@@ -265,6 +265,112 @@ assert.deepEqual(runtime.call("calculator.divide", 84n, 2n), {ok:true,value:42n}
     );
 }
 
+struct ProjectRustSdk {
+    _root: Fixture,
+    project_revision: String,
+    workspace_revision: String,
+    project_subject_digest: String,
+    source_revisions: Vec<String>,
+}
+
+fn project_rust_sdk_gate() -> bool {
+    std::env::var_os("SEMAPRAX_REQUIRE_PROJECT_NATIVE_RUST_SDK").as_deref()
+        == Some(std::ffi::OsStr::new("1"))
+}
+
+fn run_project_rust_sdk(fixture: &Fixture, label: &str) -> ProjectRustSdk {
+    let root = Fixture::new(&format!("rust-sdk-{label}"));
+    let generated = root.0.join("generated-project-sdk");
+    let consumer = root.0.join("project-consumer");
+    std::fs::create_dir_all(consumer.join("src")).unwrap();
+    let example = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/calculator-rust");
+    for relative in ["Cargo.toml", "src/main.rs"] {
+        std::fs::copy(
+            example.join("project-consumer").join(relative),
+            consumer.join(relative),
+        )
+        .unwrap();
+    }
+
+    let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
+    let setup = Command::new(&cargo)
+        .args(["run", "--locked", "--offline", "--quiet", "--manifest-path"])
+        .arg(example.join("Cargo.toml"))
+        .arg("--")
+        .arg("project")
+        .arg(fixture.manifest())
+        .arg(&generated)
+        .output()
+        .unwrap();
+    assert!(
+        setup.status.success(),
+        "generate {label} Project Rust SDK: {}",
+        String::from_utf8_lossy(&setup.stderr)
+    );
+    let stdout = String::from_utf8(setup.stdout).unwrap();
+    let fields = stdout.split_whitespace().collect::<Vec<_>>();
+    assert_eq!(fields.len(), 6, "unexpected Project SDK setup output");
+
+    let lock = Command::new(&cargo)
+        .args(["generate-lockfile", "--offline", "--manifest-path"])
+        .arg(consumer.join("Cargo.toml"))
+        .output()
+        .unwrap();
+    assert!(
+        lock.status.success(),
+        "lock {label} Project Rust consumer: {}",
+        String::from_utf8_lossy(&lock.stderr)
+    );
+    let run = Command::new(&cargo)
+        .args(["run", "--locked", "--offline", "--quiet", "--manifest-path"])
+        .arg(consumer.join("Cargo.toml"))
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "run {label} Project Rust consumer: {}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    assert_eq!(run.stdout, b"42\n");
+
+    let manifest: Value = serde_json::from_slice(
+        &std::fs::read(generated.join("semaprax.native-rust-sdk.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(manifest["schema"], "semaprax.project-native-rust-sdk.v1");
+    assert_eq!(manifest["project_subject"]["project_revision"], fields[3]);
+    assert_eq!(manifest["project_subject"]["workspace_revision"], fields[4]);
+    let sources = manifest["project_subject"]["sources"]
+        .as_array()
+        .expect("Project SDK manifest must carry exact source facts");
+    assert_eq!(sources.len(), PROJECT_FILES.len() - 1);
+    let source_revisions = sources
+        .iter()
+        .map(|source| {
+            source["source_revision"]
+                .as_str()
+                .expect("Project SDK source revision must be a string")
+                .to_owned()
+        })
+        .collect::<Vec<_>>();
+    let descriptor: Value =
+        serde_json::from_slice(&std::fs::read(generated.join("native/descriptor.json")).unwrap())
+            .unwrap();
+    assert_eq!(
+        descriptor["schema"],
+        "semaprax.project-native-rust-interop-descriptor.v1"
+    );
+    assert_eq!(descriptor["project_subject_digest"], fields[5]);
+
+    ProjectRustSdk {
+        _root: root,
+        project_revision: fields[3].to_owned(),
+        workspace_revision: fields[4].to_owned(),
+        project_subject_digest: fields[5].to_owned(),
+        source_revisions,
+    }
+}
+
 #[test]
 fn project_rename_transaction_refreshes_the_exact_project_and_preserves_web_api() {
     let fixture = Fixture::new("vertical");
@@ -272,6 +378,7 @@ fn project_rename_transaction_refreshes_the_exact_project_and_preserves_web_api(
     let renamed_web = Output::fresh("renamed");
     build_web(&fixture, &baseline_web);
     run_node_consumer(&baseline_web);
+    let baseline_rust = project_rust_sdk_gate().then(|| run_project_rust_sdk(&fixture, "baseline"));
 
     let mut daemon = Daemon::start(&fixture, true, &[]);
     let protocol = daemon.call(json!({"jsonrpc":"2.0","id":1,"method":"protocol"}));
@@ -285,6 +392,10 @@ fn project_rename_transaction_refreshes_the_exact_project_and_preserves_web_api(
     assert!(!methods.contains(&json!("change/apply")));
 
     let (base_project, base_workspace) = open(&mut daemon, 2);
+    if let Some(baseline_rust) = &baseline_rust {
+        assert_eq!(baseline_rust.project_revision, base_project);
+        assert_eq!(baseline_rust.workspace_revision, base_workspace);
+    }
     let preview = daemon.call(preview_request(3, &base_project, &base_workspace));
     let preview = &preview["result"]["preview"];
     assert_eq!(preview["schema"], "semaprax.project-rename-preview.v1");
@@ -413,6 +524,28 @@ fn project_rename_transaction_refreshes_the_exact_project_and_preserves_web_api(
         );
     }
     run_node_consumer(&renamed_web);
+    if let Some(baseline_rust) = baseline_rust {
+        let renamed_rust = run_project_rust_sdk(&fixture, "renamed");
+        assert_eq!(renamed_rust.project_revision, candidate_project);
+        assert_eq!(renamed_rust.workspace_revision, candidate_workspace);
+        assert_ne!(
+            baseline_rust.project_revision,
+            renamed_rust.project_revision
+        );
+        assert_ne!(
+            baseline_rust.workspace_revision,
+            renamed_rust.workspace_revision
+        );
+        assert_ne!(
+            baseline_rust.project_subject_digest,
+            renamed_rust.project_subject_digest
+        );
+        assert_ne!(
+            baseline_rust.source_revisions,
+            renamed_rust.source_revisions
+        );
+        assert!(renamed_rust.source_revisions.contains(&candidate_source));
+    }
 }
 
 #[test]

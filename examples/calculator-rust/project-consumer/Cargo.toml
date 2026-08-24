@@ -1,0 +1,14 @@
+[package]
+name = "semaprax-calculator-project-rust-consumer"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.85"
+publish = false
+
+[workspace]
+
+[dependencies]
+semaprax-generated-native-rust-sdk = { path = "../generated-project-sdk" }
+
+[lints.rust]
+unsafe_code = "forbid"

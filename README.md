@@ -167,8 +167,8 @@ does not satisfy a broader product gate.
 | Ownership | Move and partial-place checking, explicit lifecycle/ownership boundaries, and independently replayed target-neutral cleanup plans. General lifetime, aliasing, concurrency, and public resource execution remain open. |
 | Agent interface | Deterministic Graph v10–v14, bounded context, impact preview, repair discovery, semantic review, and exact evidence replay. |
 | Semantic changes | Atomic single-file patches plus bounded managed multi-file workspace transactions and replacements-only semantic workspace operations. These do not provide general Git/editor-tree atomicity. |
-| Project build | A bounded explicit pure-scalar `semaprax.toml` build input reuses one in-memory Workspace Phase-A pass and publishes a Web package. Explicit stable-ID `use function` provider edges are its only cross-file composition; native lowering is internal evidence only. This is not dependency management, a managed workspace, or production packaging. |
-| Native target | C11/Clang scalar and bounded Copy-data execution plus a locally evidenced generated scalar Native Rust SDK package. Exact-head SDK promotion and public general resource/string/FFI/aggregate ABI admission remain open. |
+| Project build | A bounded explicit pure-scalar `semaprax.toml` build input reuses one in-memory Workspace Phase-A pass and publishes a Web package or explicit native executable. An unpublished API also locally generates the scalar Rust SDK from the authenticated linked Project. Explicit stable-ID `use function` provider edges are its only cross-file composition. This is not dependency management, a managed workspace, or production packaging. |
+| Native target | C11/Clang scalar and bounded Copy-data execution plus locally evidenced direct-source and Project-generated scalar Native Rust SDK packages. Exact-head SDK promotion and public general resource/string/FFI/aggregate ABI admission remain open. |
 | Web target | WebAssembly Core plus a generated package; selected stable-ID scalar functions have bounded JavaScript/TypeScript bindings. General browser-SDK and public Component Model output remain open. |
 | Applications | Private CI evidence exists for bounded desktop and mobile prototypes. Public SDKs, packaging, lifecycle breadth, and production distribution remain open. |
 | Agent runtime | A bounded injected-host Rust API has hosted deterministic fake-host evidence. It is not a live provider transport, CLI agent, durable-memory system, wallet, payment, signing, or ambient-authority surface. |
@@ -252,11 +252,31 @@ examples/calculator-project/semaprax.toml` or `semaprax build
 examples/calculator-project/semaprax.toml --target web -o calculator-project-web`.
 The six-line manifest explicitly names all sources, entry/test modules, and Web
 exports; it has no dependency or capability syntax. See [Project Manifest
-v1](docs/PROJECT-MANIFEST-V1.md) for its scalar-only, Web-only publication
-boundary: interface/native imports and `use type` are excluded, while explicit
+v1](docs/PROJECT-MANIFEST-V1.md) for its scalar-only Web/explicit-native
+publication boundary: interface/native imports and `use type` are excluded, while explicit
 stable-ID `use function` provider edges compose the named modules. A final
 post-publication input drift is `SPX-J103`; callers reconcile the retained
 digest-bound package and never delete it automatically.
+
+The unpublished calculator setup can also generate the exact local Rust SDK
+for that authenticated Project:
+
+```sh
+RUSTC=/absolute/path/to/rustc \
+CLANG=/absolute/path/to/clang \
+SEMAPRAX_ARCHIVER=/absolute/path/to/the-admitted-platform-archiver \
+cargo run --locked --offline --manifest-path examples/calculator-rust/Cargo.toml -- \
+  project "$(pwd)/examples/calculator-project/semaprax.toml" \
+  "$(pwd)/examples/calculator-rust/generated-project-sdk"
+```
+
+The separate compiler-free `project-consumer` exercises the four manifest
+exports. Local evidence rebuilds Web/Node and Rust consumers after the daemon
+display rename and checks stable-ID behavior across changed authenticated
+revisions; exact-head hosted promotion and a root Project-to-Rust CLI remain
+pending. The tool paths are required authority, not illustrative defaults; see
+[the quality gates](docs/QUALITY-GATES.md) for the exact tested Darwin plan and
+the additional Windows tool-root/linker inputs.
 
 For repeated agent queries, `semapraxd --stdio --manifest-path
 examples/calculator-project/semaprax.toml` retains that authenticated project's

@@ -2,7 +2,10 @@
 
 use super::authority::build_native_rust_sdk_inner;
 use super::descriptor::{canonical_spec, parse_descriptor};
-use super::package::{render_package_sources, render_sdk_manifest, verify_sdk_manifest};
+use super::package::{
+    render_package_sources, render_sdk_manifest, verify_sdk_manifest, SdkManifestInputs,
+    SdkManifestSubject,
+};
 use super::*;
 
 const MINIMAL_SOURCE: &str = r#"module sdk.path_fixture;
@@ -443,43 +446,26 @@ fn main() -> i64 { 0 }
     assert!(sources.lib_rs.contains("fn spx_host_dot_add"));
     let inner_manifest = b"inner\n";
     let archive = b"archive";
-    let manifest = render_sdk_manifest(
-        &facts,
-        &options,
-        prepared.descriptor().as_bytes(),
+    let manifest_inputs = SdkManifestInputs {
+        facts: &facts,
+        options: &options,
+        descriptor: prepared.descriptor().as_bytes(),
         inner_manifest,
-        &sources,
-        prepared.generated_rust().as_bytes(),
-        prepared.private_ffi_source().as_bytes(),
+        sources: &sources,
+        safe_inner: prepared.generated_rust().as_bytes(),
+        ffi_inner: prepared.private_ffi_source().as_bytes(),
         archive,
-    )
-    .unwrap();
+    };
+    let manifest = render_sdk_manifest(manifest_inputs, SdkManifestSubject::Source).unwrap();
     verify_sdk_manifest(
         manifest.as_bytes(),
-        &facts,
-        &options,
-        prepared.descriptor().as_bytes(),
-        inner_manifest,
-        &sources,
-        prepared.generated_rust().as_bytes(),
-        prepared.private_ffi_source().as_bytes(),
-        archive,
+        manifest_inputs,
+        SdkManifestSubject::Source,
     )
     .unwrap();
     let manifest = manifest.into_bytes();
     let rejects = |bytes: &[u8]| {
-        verify_sdk_manifest(
-            bytes,
-            &facts,
-            &options,
-            prepared.descriptor().as_bytes(),
-            inner_manifest,
-            &sources,
-            prepared.generated_rust().as_bytes(),
-            prepared.private_ffi_source().as_bytes(),
-            archive,
-        )
-        .is_err()
+        verify_sdk_manifest(bytes, manifest_inputs, SdkManifestSubject::Source).is_err()
     };
     for index in 0..manifest.len() {
         let mut substituted = manifest.clone();

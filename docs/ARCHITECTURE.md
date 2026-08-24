@@ -213,6 +213,19 @@ canonical Spec input and all six outputs, and a portable fixed-target fixture
 freezes each output's byte length and raw SHA-256 plus the existing Descriptor
 and Manifest protocol-domain digests. This freezes those wire identities without
 claiming hosted execution or public promotion.
+Public Phase C wraps that lane in an unpublished bounded builder which emits
+one exact dependency-free nine-file local Cargo package. Its additive Project
+entry point receives a root-owned authenticated subject through
+`ProjectSnapshot::with_authenticated_native_rust_sdk_subject`, then passes the
+already linked and validated entry `ResolvedProgram` directly into the
+builder. The target-neutral `semaprax.project-native-rust-subject.v1` binds the
+canonical manifest, Project/workspace/graph revisions, exact declared-source
+facts, entry module, and exact stable-ID export origins. Separate Project
+Descriptor, private Bundle, and outer SDK schemas bind target-specific ABI and
+artifact facts under distinct domains. The callback gains no Project mutation
+or filesystem-publication authority; input drift after it starts is
+conservatively `SPX-J103` because the root cannot infer whether the external
+builder crossed its publication boundary.
 Preparation reserves its cumulative authority before each semantic phase. The
 local capacity corpus separates persistent HIR/facts/artifact storage from
 sequential scratch, iteratively traverses admitted depth, transfers the Spec
@@ -1384,6 +1397,15 @@ closed schema, bounds, compiler-owned status table, canonical reconstruction,
 and digest without granting execution authority. A final post-publication input
 drift is `SPX-J103`: the complete retained output remains for caller
 reconciliation and is never deleted automatically.
+The separate unpublished Project Native Rust SDK builder uses the same held
+Project boundary to generate a local Rust package from the manifest's exact
+Web-export set and the already linked entry HIR. Its canonical Project subject
+binds every source and revision before any builder effect; it does not flatten
+or reparse the Project and does not add a Project CLI target. Local evidence
+rebuilds Web/Node and Rust consumers after the opt-in daemon rename and proves
+stable-ID behavior across changed authenticated revisions. Hosted promotion
+and general Project SDK/package/import/capability/aggregate/resource support
+remain open.
 See [Project Manifest v1](PROJECT-MANIFEST-V1.md).
 
 ### Project Agent Transport v2

@@ -132,6 +132,28 @@ and a Phase-C pre-reserved cumulative-memory or allocation-failure-recovery
 proof remain held. Hosted promotion requires the exact-head three-OS SDK job;
 local success alone is not promotion evidence.
 
+Project Native Rust SDK v1 additionally requires the direct Project-subject
+and exact/minus-one allocation/replay unit evidence plus this full local
+consumer gate:
+
+```sh
+SEMAPRAX_REQUIRE_PROJECT_NATIVE_RUST_SDK=1 cargo test --locked -p semaprax --test project_agent_transport_rename_v1 project_rename_transaction_refreshes_the_exact_project_and_preserves_web_api -- --nocapture
+```
+
+The effectful test uses the same explicit held `RUSTC`, `CLANG`, and
+`SEMAPRAX_ARCHIVER` authority as Public Phase C (and the same Windows tool-root
+and linker inputs). It must build and run the baseline Web/Node and Rust
+consumers, apply the daemon rename, shut the daemon down, then rebuild and run
+both consumers while checking changed Project/workspace/subject/source
+revisions and unchanged stable-ID behavior. It must not replace that assertion
+with whole-package byte equality. Exact-head Ubuntu/macOS/Windows promotion is
+still required before a hosted claim.
+
+On Darwin the admitted local environment uses `RUSTC=/opt/homebrew/bin/rustc`,
+`CLANG=/usr/bin/clang`, and `SEMAPRAX_ARCHIVER=/usr/bin/libtool`; the frozen
+archive invocation is `libtool -static -D`. `ar` and `llvm-ar` are deliberately
+not interchangeable evidence for that platform plan.
+
 Public Wasm Scalar Exports v1 additionally requires focused admission,
 emission, package, CLI, and consumer gates. The profile must admit only 1–32
 distinct explicit stable IDs under the exact lowercase portable 128-byte

@@ -1,5 +1,6 @@
 //! Deterministic generated-crate sources and SDK manifest replay.
 
+use super::project::ProjectSdkSubject;
 use super::*;
 
 fn parameters(parameters: &[Parameter]) -> String {
@@ -126,17 +127,48 @@ fn signature(output: &mut String, parameters: &[Parameter], result: Scalar) {
     json_string(output, result.wire());
 }
 
-#[allow(clippy::too_many_arguments)]
+#[derive(Clone, Copy)]
+pub(super) struct SdkManifestInputs<'a> {
+    pub(super) facts: &'a DescriptorFacts,
+    pub(super) options: &'a NativeRustSdkOptions,
+    pub(super) descriptor: &'a [u8],
+    pub(super) inner_manifest: &'a [u8],
+    pub(super) sources: &'a PackageSources,
+    pub(super) safe_inner: &'a [u8],
+    pub(super) ffi_inner: &'a [u8],
+    pub(super) archive: &'a [u8],
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum SdkManifestSubject<'a> {
+    Source,
+    Project(&'a ProjectSdkSubject),
+}
+
+impl<'a> SdkManifestSubject<'a> {
+    const fn project(self) -> Option<&'a ProjectSdkSubject> {
+        match self {
+            Self::Source => None,
+            Self::Project(project) => Some(project),
+        }
+    }
+}
+
 pub(super) fn render_sdk_manifest(
-    facts: &DescriptorFacts,
-    options: &NativeRustSdkOptions,
-    descriptor: &[u8],
-    inner_manifest: &[u8],
-    sources: &PackageSources,
-    safe_inner: &[u8],
-    ffi_inner: &[u8],
-    archive: &[u8],
+    inputs: SdkManifestInputs<'_>,
+    subject: SdkManifestSubject<'_>,
 ) -> Result<String, Diagnostic> {
+    let SdkManifestInputs {
+        facts,
+        options,
+        descriptor,
+        inner_manifest,
+        sources,
+        safe_inner,
+        ffi_inner,
+        archive,
+    } = inputs;
+    let project = subject.project();
     let archive_path = if cfg!(windows) {
         "native/semaprax_native_rust_sdk.lib"
     } else {
@@ -155,23 +187,53 @@ pub(super) fn render_sdk_manifest(
     files.sort_by_key(|(path, _)| path.as_bytes());
     let mut output = String::with_capacity(65_536);
     output.push_str("{\"schema\":");
-    json_string(&mut output, SDK_SCHEMA);
+    json_string(
+        &mut output,
+        if project.is_some() {
+            PROJECT_NATIVE_RUST_SDK_SCHEMA
+        } else {
+            SDK_SCHEMA
+        },
+    );
     output.push_str(",\"crate\":{\"name\":");
     json_string(&mut output, CRATE_NAME);
     output.push_str(",\"version\":");
     json_string(&mut output, CRATE_VERSION);
     output.push_str(",\"target\":");
     json_string(&mut output, &facts.target);
-    output.push_str("},\"source\":{\"module\":");
-    json_string(&mut output, &facts.module);
-    output.push_str(",\"revision\":");
-    json_string(&mut output, &facts.source_revision);
-    output.push_str("},\"inner\":{\"descriptor_digest\":");
-    json_string(&mut output, &domain_digest(DESCRIPTOR_DOMAIN, descriptor));
+    if let Some(project) = project {
+        output.push_str("},\"project_subject\":");
+        output.push_str(project.canonical.trim_end_matches('\n'));
+    } else {
+        output.push_str("},\"source\":{\"module\":");
+        json_string(&mut output, &facts.module);
+        output.push_str(",\"revision\":");
+        json_string(&mut output, &facts.source_revision);
+        output.push('}');
+    }
+    output.push_str(",\"inner\":{\"descriptor_digest\":");
+    json_string(
+        &mut output,
+        &domain_digest(
+            if project.is_some() {
+                PROJECT_DESCRIPTOR_DOMAIN
+            } else {
+                DESCRIPTOR_DOMAIN
+            },
+            descriptor,
+        ),
+    );
     output.push_str(",\"bundle_digest\":");
     json_string(
         &mut output,
-        &domain_digest(INNER_BUNDLE_DOMAIN, inner_manifest),
+        &domain_digest(
+            if project.is_some() {
+                PROJECT_INNER_BUNDLE_DOMAIN
+            } else {
+                INNER_BUNDLE_DOMAIN
+            },
+            inner_manifest,
+        ),
     );
     output.push_str("},\"files\":[");
     for (index, (path, bytes)) in files.iter().enumerate() {
@@ -312,18 +374,22 @@ fn replay_signature(
     replay.json(result.wire())
 }
 
-#[allow(clippy::too_many_arguments)]
 pub(super) fn verify_sdk_manifest(
     manifest: &[u8],
-    facts: &DescriptorFacts,
-    options: &NativeRustSdkOptions,
-    descriptor: &[u8],
-    inner_manifest: &[u8],
-    sources: &PackageSources,
-    safe_inner: &[u8],
-    ffi_inner: &[u8],
-    archive: &[u8],
+    inputs: SdkManifestInputs<'_>,
+    subject: SdkManifestSubject<'_>,
 ) -> Result<(), Diagnostic> {
+    let SdkManifestInputs {
+        facts,
+        options,
+        descriptor,
+        inner_manifest,
+        sources,
+        safe_inner,
+        ffi_inner,
+        archive,
+    } = inputs;
+    let project = subject.project();
     if manifest.len() > MAX_SDK_MANIFEST_BYTES || !manifest.ends_with(b"\n") {
         return Err(sdk_error("Native Rust SDK manifest replay failed"));
     }
@@ -345,21 +411,45 @@ pub(super) fn verify_sdk_manifest(
     files.sort_by_key(|(path, _)| path.as_bytes());
     let mut replay = ManifestReplay::new(manifest);
     replay.text("{\"schema\":")?;
-    replay.json(SDK_SCHEMA)?;
+    replay.json(if project.is_some() {
+        PROJECT_NATIVE_RUST_SDK_SCHEMA
+    } else {
+        SDK_SCHEMA
+    })?;
     replay.text(",\"crate\":{\"name\":")?;
     replay.json(CRATE_NAME)?;
     replay.text(",\"version\":")?;
     replay.json(CRATE_VERSION)?;
     replay.text(",\"target\":")?;
     replay.json(&facts.target)?;
-    replay.text("},\"source\":{\"module\":")?;
-    replay.json(&facts.module)?;
-    replay.text(",\"revision\":")?;
-    replay.json(&facts.source_revision)?;
-    replay.text("},\"inner\":{\"descriptor_digest\":")?;
-    replay.json(&domain_digest(DESCRIPTOR_DOMAIN, descriptor))?;
+    if let Some(project) = project {
+        replay.text("},\"project_subject\":")?;
+        replay.text(project.canonical.trim_end_matches('\n'))?;
+    } else {
+        replay.text("},\"source\":{\"module\":")?;
+        replay.json(&facts.module)?;
+        replay.text(",\"revision\":")?;
+        replay.json(&facts.source_revision)?;
+        replay.text("}")?;
+    }
+    replay.text(",\"inner\":{\"descriptor_digest\":")?;
+    replay.json(&domain_digest(
+        if project.is_some() {
+            PROJECT_DESCRIPTOR_DOMAIN
+        } else {
+            DESCRIPTOR_DOMAIN
+        },
+        descriptor,
+    ))?;
     replay.text(",\"bundle_digest\":")?;
-    replay.json(&domain_digest(INNER_BUNDLE_DOMAIN, inner_manifest))?;
+    replay.json(&domain_digest(
+        if project.is_some() {
+            PROJECT_INNER_BUNDLE_DOMAIN
+        } else {
+            INNER_BUNDLE_DOMAIN
+        },
+        inner_manifest,
+    ))?;
     replay.text("},\"files\":[")?;
     for (index, (path, bytes)) in files.iter().enumerate() {
         if index != 0 {

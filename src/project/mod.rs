@@ -9,6 +9,7 @@ mod authority;
 mod build;
 mod execution;
 mod manifest;
+mod native_sdk;
 mod rename;
 mod semantic;
 #[cfg(test)]
@@ -32,6 +33,7 @@ pub use manifest::{
     ProjectManifest, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES,
     MAX_SOURCES, MAX_STABLE_ID_BYTES, MAX_TOTAL_SOURCE_BYTES, MAX_WEB_EXPORTS, PROJECT_SCHEMA,
 };
+pub use native_sdk::{ProjectNativeSdkExport, ProjectNativeSdkSubject};
 pub(crate) use rename::{PreparedProjectRename, ProjectRenameDerivation};
 pub use semantic::{PROJECT_SEMANTIC_CONTEXT_SCHEMA, PROJECT_SEMANTIC_GRAPH_SCHEMA};
 
@@ -452,3 +454,4 @@ pub(crate) fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec
 
 const WEB_PUBLICATION_SUBJECT: &str = "digest-bound Web package";
 const NATIVE_PUBLICATION_SUBJECT: &str = "native executable";
+const AUTHENTICATED_PROJECT_SUBJECT_OPERATION: &str = "authenticated Project subject operation";

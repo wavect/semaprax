@@ -82,6 +82,19 @@ including Ubuntu, macOS, and Windows. This does not move a completion row or the
 39 Partial/17 Missing totals, and it is not general multi-file compilation,
 dependency management, capabilities, test discovery, or production packaging.
 
+Project Native Rust SDK v1 is the next local consumer bridge over that same
+bounded Project subject. The unpublished builder accepts the authenticated
+linked entry HIR and exact manifest export origins directly, emits the existing
+nine-file dependency-free Rust package, and binds canonical manifest,
+Project/workspace/graph, and complete source facts in distinct Project
+subject/descriptor/bundle/outer schemas. The calculator evidence runs Web/Node
+and Rust consumers before and after an opt-in daemon display rename and proves
+stable-ID behavior across changed revisions without asserting whole-package
+byte equality. Exact-head Ubuntu/macOS/Windows promotion remains pending, and
+this adds no root CLI, registry, dependency, general Project SDK, import,
+capability, aggregate, or resource claim. Completion-row statuses and current
+totals do not change.
+
 ## 0.1 — Executable semantic seed
 
 Status: implemented in this repository.

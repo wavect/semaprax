@@ -295,6 +295,62 @@ fn external_example_has_a_closed_two_phase_dependency_topology() {
 }
 
 #[test]
+fn project_example_selects_manifest_exports_for_a_compiler_free_consumer() {
+    let setup = read("examples/calculator-rust/src/main.rs");
+    for required in [
+        "build_project_native_rust_sdk",
+        "bundle.project_revision()",
+        "bundle.workspace_revision()",
+        "bundle.subject_digest()",
+    ] {
+        assert!(
+            setup.contains(required),
+            "Project setup is missing `{required}`"
+        );
+    }
+    let builder = read("crates/semaprax-native-rust-interop-builder/src/public_sdk/project.rs");
+    assert!(builder.contains("with_authenticated_native_rust_sdk_subject"));
+
+    let manifest = read("examples/calculator-project/semaprax.toml");
+    for stable_id in [
+        "calculator.add",
+        "calculator.divide",
+        "calculator.is-negative",
+        "calculator.not",
+    ] {
+        assert!(manifest.contains(stable_id));
+    }
+
+    let consumer = read("examples/calculator-rust/project-consumer/Cargo.toml");
+    assert!(consumer
+        .contains("semaprax-generated-native-rust-sdk = { path = \"../generated-project-sdk\" }"));
+    for forbidden in [
+        "semaprax =",
+        "semaprax-native-rust-interop",
+        "build-dependencies",
+    ] {
+        assert!(
+            !consumer.contains(forbidden),
+            "Project consumer retained compiler authority through `{forbidden}`"
+        );
+    }
+
+    let consumer_source = read("examples/calculator-rust/project-consumer/src/main.rs");
+    for required in [
+        "spx_calculator_dot_add",
+        "spx_calculator_dot_divide",
+        "spx_calculator_dot_is_hyphen_negative",
+        "spx_calculator_dot_not",
+    ] {
+        assert!(
+            consumer_source.contains(required),
+            "Project consumer is missing `{required}`"
+        );
+    }
+    assert!(!consumer_source.contains("unsafe"));
+}
+
+#[test]
 fn public_builder_contract_names_the_fixed_package_and_inventory() {
     let facade = read("crates/semaprax-native-rust-interop-builder/src/lib.rs");
     let implementation = [

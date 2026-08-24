@@ -4,10 +4,15 @@
 //! bypassing cleanup or publishing an unauthenticated package.
 
 use super::authentication::{
-    authenticate_inventory, read_inner, verify_inner_payload_bindings, verify_published_package,
+    authenticate_inventory, read_inner, verify_inner_payload_bindings,
+    verify_project_inner_payload_bindings, verify_published_package,
 };
-use super::descriptor::{canonical_spec, parse_descriptor};
-use super::package::{render_package_sources, render_sdk_manifest, verify_sdk_manifest};
+use super::descriptor::{canonical_spec, parse_descriptor, parse_project_descriptor};
+use super::package::{
+    render_package_sources, render_sdk_manifest, verify_sdk_manifest, SdkManifestInputs,
+    SdkManifestSubject,
+};
+use super::project::ProjectSdkSubject;
 use super::*;
 
 fn simple_output_name(output: &Path) -> Result<&OsStr, Diagnostic> {
@@ -496,8 +501,37 @@ fn fail_before_publish(
     PublicBuildError::One(primary)
 }
 
+enum SdkInput<'a> {
+    Source(&'a crate::ast::Program),
+    Project {
+        program: &'a crate::hir::ResolvedProgram,
+        subject: &'a ProjectSdkSubject,
+    },
+}
+
 pub(super) fn build_native_rust_sdk_inner(
     program: &crate::ast::Program,
+    options: NativeRustSdkOptions,
+    output: &Path,
+) -> Result<NativeRustSdkBundle, PublicBuildError> {
+    build_sdk_inner(SdkInput::Source(program), options, output)
+}
+
+pub(super) fn build_project_native_rust_sdk_inner(
+    program: &crate::hir::ResolvedProgram,
+    subject: &ProjectSdkSubject,
+    output: &Path,
+) -> Result<NativeRustSdkBundle, PublicBuildError> {
+    let options = NativeRustSdkOptions {
+        exports: subject.exports.iter().map(|fact| fact.id.clone()).collect(),
+        imports: Vec::new(),
+        capabilities: Vec::new(),
+    };
+    build_sdk_inner(SdkInput::Project { program, subject }, options, output)
+}
+
+fn build_sdk_inner(
+    input: SdkInput<'_>,
     options: NativeRustSdkOptions,
     output: &Path,
 ) -> Result<NativeRustSdkBundle, PublicBuildError> {
@@ -514,11 +548,26 @@ pub(super) fn build_native_rust_sdk_inner(
     {
         return Err(sdk_error("Native Rust SDK export and import selections are invalid").into());
     }
-    let canonical_source = semaprax::format::canonical(program);
-    let source_revision = domain_digest(SOURCE_DOMAIN, canonical_source.as_bytes());
     let target = target_triple()
         .ok_or_else(|| sdk_error("Native Rust SDK current target is unsupported"))?;
-    let spec = canonical_spec(&program.module, &source_revision, target, &options)?;
+    let (module, source_revision, spec) = match &input {
+        SdkInput::Source(program) => {
+            let canonical_source = semaprax::format::canonical(program);
+            let revision = domain_digest(SOURCE_DOMAIN, canonical_source.as_bytes());
+            let spec = canonical_spec(&program.module, &revision, target, &options)?;
+            (program.module.as_str(), revision, spec)
+        }
+        SdkInput::Project { program, subject } => {
+            if program.module != subject.entry_module {
+                return Err(sdk_error("Native Rust Project SDK subject replay failed").into());
+            }
+            (
+                program.module.as_str(),
+                subject.digest.clone(),
+                subject.canonical.clone(),
+            )
+        }
+    };
     if output
         .to_str()
         .filter(|path| !path.contains(['\r', '\n']))
@@ -653,11 +702,21 @@ pub(super) fn build_native_rust_sdk_inner(
 
     // Private B remains byte-for-byte unchanged and publishes into an owned
     // sibling scratch directory that Phase C authenticates independently.
-    let inner_facts = match crate::implementation::build_native_rust_interop_bundle(
-        program,
-        spec.as_bytes(),
-        &inner_path,
-    ) {
+    let inner_result = match &input {
+        SdkInput::Source(program) => crate::implementation::build_native_rust_interop_bundle(
+            program,
+            spec.as_bytes(),
+            &inner_path,
+        ),
+        SdkInput::Project { program, .. } => {
+            crate::implementation::build_project_native_rust_interop_bundle(
+                program,
+                spec.as_bytes(),
+                &inner_path,
+            )
+        }
+    };
+    let inner_facts = match inner_result {
         Ok(facts) => facts,
         Err(errors) => return Err(PublicBuildError::Many(errors)),
     };
@@ -701,26 +760,37 @@ pub(super) fn build_native_rust_sdk_inner(
             "semaprax_native_rust_interop.h",
             MAX_DESCRIPTOR_BYTES,
         )?;
-        verify_inner_payload_bindings(
-            &inner_manifest,
-            &InnerArtifacts {
-                descriptor: &descriptor,
-                generated_c: &generated_c,
-                generated_header: &generated_header,
-                safe_rust: &safe_inner,
-                ffi_rust: &ffi_inner,
-                object: &object,
-                object_name,
-            },
-            inner_facts.manifest_digest(),
-        )?;
-        let descriptor_facts = parse_descriptor(
-            &descriptor,
-            &program.module,
-            &source_revision,
-            target,
-            &options,
-        )?;
+        let artifacts = InnerArtifacts {
+            descriptor: &descriptor,
+            generated_c: &generated_c,
+            generated_header: &generated_header,
+            safe_rust: &safe_inner,
+            ffi_rust: &ffi_inner,
+            object: &object,
+            object_name,
+        };
+        match &input {
+            SdkInput::Source(_) => verify_inner_payload_bindings(
+                &inner_manifest,
+                &artifacts,
+                inner_facts.manifest_digest(),
+                inner_facts.descriptor_digest(),
+            )?,
+            SdkInput::Project { .. } => verify_project_inner_payload_bindings(
+                &inner_manifest,
+                &artifacts,
+                inner_facts.manifest_digest(),
+                inner_facts.descriptor_digest(),
+            )?,
+        }
+        let descriptor_facts = match &input {
+            SdkInput::Source(_) => {
+                parse_descriptor(&descriptor, module, &source_revision, target, &options)?
+            }
+            SdkInput::Project { subject, .. } => {
+                parse_project_descriptor(&descriptor, module, &subject.digest, target, &options)?
+            }
+        };
         let sources = render_package_sources(&descriptor_facts, &options.capabilities);
         Ok((
             descriptor,
@@ -845,27 +915,22 @@ pub(super) fn build_native_rust_sdk_inner(
     #[cfg(test)]
     record_test_build_stage(TestBuildLastStage::OuterStageCreated);
     let outer_result = (|| -> Result<String, Diagnostic> {
-        let manifest = render_sdk_manifest(
-            &descriptor_facts,
-            &options,
-            &descriptor,
-            &inner_manifest,
-            &sources,
-            &safe_inner,
-            &ffi_inner,
-            &archive,
-        )?;
-        verify_sdk_manifest(
-            manifest.as_bytes(),
-            &descriptor_facts,
-            &options,
-            &descriptor,
-            &inner_manifest,
-            &sources,
-            &safe_inner,
-            &ffi_inner,
-            &archive,
-        )?;
+        let manifest_subject = match &input {
+            SdkInput::Source(_) => SdkManifestSubject::Source,
+            SdkInput::Project { subject, .. } => SdkManifestSubject::Project(subject),
+        };
+        let manifest_inputs = SdkManifestInputs {
+            facts: &descriptor_facts,
+            options: &options,
+            descriptor: &descriptor,
+            inner_manifest: &inner_manifest,
+            sources: &sources,
+            safe_inner: &safe_inner,
+            ffi_inner: &ffi_inner,
+            archive: &archive,
+        };
+        let manifest = render_sdk_manifest(manifest_inputs, manifest_subject)?;
+        verify_sdk_manifest(manifest.as_bytes(), manifest_inputs, manifest_subject)?;
         populate_outer_stage(
             &mut outer,
             &sources,
@@ -977,20 +1042,34 @@ pub(super) fn build_native_rust_sdk_inner(
     )?;
     #[cfg(test)]
     record_test_build_stage(TestBuildLastStage::PublishedPackageAuthenticated);
+    let manifest_subject = match &input {
+        SdkInput::Source(_) => SdkManifestSubject::Source,
+        SdkInput::Project { subject, .. } => SdkManifestSubject::Project(subject),
+    };
     verify_sdk_manifest(
         &published_manifest,
-        &descriptor_facts,
-        &options,
-        &descriptor,
-        &inner_manifest,
-        &sources,
-        &safe_inner,
-        &ffi_inner,
-        &archive,
+        SdkManifestInputs {
+            facts: &descriptor_facts,
+            options: &options,
+            descriptor: &descriptor,
+            inner_manifest: &inner_manifest,
+            sources: &sources,
+            safe_inner: &safe_inner,
+            ffi_inner: &ffi_inner,
+            archive: &archive,
+        },
+        manifest_subject,
     )?;
     #[cfg(test)]
     record_test_build_stage(TestBuildLastStage::PublishedAuthenticated);
-    let manifest_digest = domain_digest(SDK_MANIFEST_DOMAIN, manifest.as_bytes());
+    let manifest_digest = domain_digest(
+        if matches!(input, SdkInput::Project { .. }) {
+            PROJECT_SDK_MANIFEST_DOMAIN
+        } else {
+            SDK_MANIFEST_DOMAIN
+        },
+        manifest.as_bytes(),
+    );
     Ok(NativeRustSdkBundle {
         output_directory: output.to_path_buf(),
         manifest_path: output.join("semaprax.native-rust-sdk.json"),

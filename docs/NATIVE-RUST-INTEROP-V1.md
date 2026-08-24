@@ -246,6 +246,41 @@ the Rust-import callback, status mapping, deterministic double builds, display
 rename preservation, and one same-source Rust/native-C/Core-Wasm result.
 Exact-head hosted promotion remains pending.
 
+### Project Native Rust SDK v1
+
+The additive `build_project_native_rust_sdk(manifest_path, output)` entry point
+builds the same exact nine-file generated package from one authenticated
+Project Manifest v1 snapshot. The Project root retains the manifest and every
+declared source handle while lending a non-constructible subject to the
+builder. The subject binds the canonical manifest bytes and digest, Project
+and workspace revisions, complete Project-graph digest, sorted exact source
+path/schema/revision/digest/length facts, entry module, and the manifest's
+sorted stable-ID Web exports with their exact module/path origins. The builder
+consumes the already linked and validated entry `ResolvedProgram` directly; it
+does not flatten, reparse, or reconstruct cross-file meaning.
+
+The target-neutral subject schema is
+`semaprax.project-native-rust-subject.v1`. Target-specific ABI facts remain in
+the distinct `semaprax.project-native-rust-interop-descriptor.v1` descriptor,
+`semaprax.project-native-rust-interop-bundle.v1` private bundle, and
+`semaprax.project-native-rust-sdk.v1` outer manifest. Their domain-separated
+digests and exact replay prevent a direct-source subject, Project subject,
+descriptor, bundle, or outer manifest from being substituted for another.
+The returned `ProjectNativeRustSdkBundle` exposes the authenticated Project
+revision, workspace revision, and Project-subject digest in addition to the
+ordinary SDK bundle.
+
+Focused local evidence builds and runs the four-export calculator Project as
+both Web/Node and generated Rust consumers, applies the opt-in daemon display
+rename, shuts the daemon down, then independently rebuilds and reruns both
+consumers. It proves stable-ID behavior while requiring the Project,
+workspace, subject, and changed-source revisions to change; it deliberately
+does not claim whole-package byte equality across a semantic source rename.
+Hosted Ubuntu/macOS/Windows promotion remains pending. This entry point adds no
+root CLI, registry, dependency, general Project SDK, capability, import,
+aggregate, resource, or publication-path claim beyond the existing bounded
+builder output.
+
 ## Diagnostics and nonclaims
 
 The exact owned diagnostics are B106 noncanonical spec; B107 closed declaration

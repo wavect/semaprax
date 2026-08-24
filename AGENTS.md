@@ -39,6 +39,9 @@ Change-v1 replacements proposal, also read
 For the opt-in Project daemon's single exported-function display rename and
 its overlapping Project/A0 authority handoff, also read
 `docs/PROJECT-RENAME-TRANSACTION-V1.md`.
+For the authenticated Project-to-generated-Rust builder subject, exact source
+and export-origin facts, and stable-ID consumer evidence, also read
+`docs/NATIVE-RUST-INTEROP-V1.md` and `docs/PROJECT-MANIFEST-V1.md`.
 For native owned-call recovery, physical failure, settlement, or quiescence,
 also read `docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md`; its hidden Rust model is
 proof scaffolding, not a wired native-runtime claim.
@@ -89,6 +92,10 @@ proof scaffolding, not a wired native-runtime claim.
   absorbing held-input drift. Explicit opt-in Transport v3 adds one
   server-derived, single-file exported-function display rename through the
   existing A0 authority; no general change/build/network/disk-cache authority.
+- `src/project/native_sdk.rs`,
+  `crates/semaprax-native-rust-interop-builder/src/public_sdk/project.rs`:
+  authenticated target-neutral Project SDK subject lease and unpublished
+  generated Native Rust package entry point over the already linked HIR.
 - `src/agent_runtime.rs`, `src/agent_runtime/`: bounded injected-host Agent
   profile, runtime-owned streaming sinks, cancellation, Trace, and Evidence;
   no built-in transport, write tool, durable memory, or economic authority.

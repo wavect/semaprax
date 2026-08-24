@@ -25,6 +25,7 @@ pub(super) struct ProjectSemanticState {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct ProjectRenameFunction {
     pub(super) path: String,
+    pub(super) module: String,
     pub(super) name: String,
     pub(super) origin: crate::hir::IdentityOrigin,
 }
@@ -50,6 +51,7 @@ impl ProjectSemanticState {
                         function.id.as_str().to_owned(),
                         ProjectRenameFunction {
                             path: module.path().to_owned(),
+                            module: module.module().to_owned(),
                             name: function.name.clone(),
                             origin: *origin,
                         },

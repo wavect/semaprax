@@ -1,13 +1,15 @@
 use std::path::{Path, PathBuf};
 
-use semaprax_native_rust_interop::{build_native_rust_sdk, NativeRustSdkOptions};
+use semaprax_native_rust_interop::{
+    build_native_rust_sdk, build_project_native_rust_sdk, NativeRustSdkOptions,
+};
 
 const CALCULATOR: &str = include_str!("../../calculator.spx");
 const CALLBACK: &str = include_str!("../callback.spx");
 
 fn usage() -> ! {
     eprintln!(
-        "usage: semaprax-calculator-rust-setup <calculator|calculator-renamed|callback> <output-directory>"
+        "usage:\n  semaprax-calculator-rust-setup <calculator|calculator-renamed|callback> <output-directory>\n  semaprax-calculator-rust-setup project <manifest-path> <output-directory>"
     );
     std::process::exit(2);
 }
@@ -46,6 +48,31 @@ fn build(source: &str, source_path: &Path, exports: &[&str], imports: &[&str], o
 fn main() {
     let mut arguments = std::env::args().skip(1);
     let mode = arguments.next().unwrap_or_else(|| usage());
+    if mode == "project" {
+        let manifest = PathBuf::from(arguments.next().unwrap_or_else(|| usage()));
+        let output = output_path(arguments.next());
+        if arguments.next().is_some() {
+            usage();
+        }
+        match build_project_native_rust_sdk(&manifest, &output) {
+            Ok(bundle) => println!(
+                "{} {} {} {} {} {}",
+                bundle.sdk().crate_name(),
+                bundle.sdk().target_triple(),
+                bundle.sdk().manifest_digest(),
+                bundle.project_revision(),
+                bundle.workspace_revision(),
+                bundle.subject_digest()
+            ),
+            Err(diagnostics) => {
+                for diagnostic in diagnostics {
+                    eprintln!("{}: {}", diagnostic.code, diagnostic.message);
+                }
+                std::process::exit(1);
+            }
+        }
+        return;
+    }
     let output = output_path(arguments.next());
     if arguments.next().is_some() {
         usage();

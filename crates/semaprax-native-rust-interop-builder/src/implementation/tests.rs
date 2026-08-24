@@ -36,7 +36,7 @@ fn fixture() -> (Program, String) {
     let source = crate::format::canonical(&program);
     let spec = Spec {
         module: program.module.clone(),
-        source_revision: domain_digest(SOURCE_DOMAIN, source.as_bytes()),
+        source_revision: Some(domain_digest(SOURCE_DOMAIN, source.as_bytes())),
         target: current_target().unwrap(),
         exports: vec!["interop.add".to_owned()],
         imports: vec!["host.add".to_owned()],
@@ -44,6 +44,92 @@ fn fixture() -> (Program, String) {
     };
     let canonical = render_spec(&spec);
     (program, canonical)
+}
+
+#[test]
+fn project_phase_a_consumes_resolved_hir_and_emits_distinct_subject_contracts() {
+    let source = r#"module project.entry;
+
+@id("project.add")
+fn add(left: i64, right: i64) -> i64
+{
+    left + right
+}
+
+@id("project.main")
+fn main() -> i64
+{
+    0
+}
+"#;
+    let program = crate::parse(source, Path::new("src/entry.spx")).unwrap();
+    let resolved = hir::resolve(&program).unwrap();
+    let manifest = "schema = \"semaprax.project.v1\"\nname = \"project\"\n";
+    let subject = ProjectSubject {
+        name: "project".to_owned(),
+        manifest_bytes: manifest.len(),
+        manifest_digest: raw_digest(manifest.as_bytes()),
+        manifest_canonical: manifest.to_owned(),
+        project_revision: format!("sha256:{}", "1".repeat(64)),
+        workspace_revision: format!("sha256:{}", "2".repeat(64)),
+        project_graph_digest: format!("sha256:{}", "3".repeat(64)),
+        entry_module: "project.entry".to_owned(),
+        sources: vec![ProjectSubjectSource {
+            path: "src/entry.spx".to_owned(),
+            source_graph_schema: "semaprax.graph.v14".to_owned(),
+            source_revision: format!("sha256:{}", "4".repeat(64)),
+            source_digest: raw_digest(source.as_bytes()),
+            bytes: source.len(),
+        }],
+        exports: vec![ProjectSubjectExport {
+            stable_id: "project.add".to_owned(),
+            module: "project.entry".to_owned(),
+            path: "src/entry.spx".to_owned(),
+        }],
+    };
+    let canonical = render_project_subject(&subject);
+    let (prepared, overflowed) = crate::bounded_output::with_limit(MAX_BUILDER_BYTES, || {
+        prepare_project_native_rust_interop_bounded(&resolved, canonical.as_bytes())
+    });
+    assert!(!overflowed);
+    let prepared = prepared.expect("resolved Project Phase A");
+    let expected_digest = domain_digest(PROJECT_SUBJECT_DOMAIN, canonical.as_bytes());
+    assert_eq!(
+        prepared.project_subject_digest(),
+        Some(expected_digest.as_str())
+    );
+    assert_eq!(prepared.source_revision(), None);
+    assert!(prepared.descriptor().contains(PROJECT_DESCRIPTOR_SCHEMA));
+    assert!(prepared
+        .descriptor()
+        .contains("\"project_subject_digest\":"));
+    assert!(!prepared.descriptor().contains("\"source_revision\":"));
+    assert_eq!(prepared.closure(), &["project.add"]);
+
+    drop(prepared);
+    let mut lower = 0usize;
+    let mut upper = MAX_BUILDER_BYTES;
+    while lower < upper {
+        let middle = lower + (upper - lower) / 2;
+        let (result, overflowed) = crate::bounded_output::with_limit(middle, || {
+            prepare_project_native_rust_interop_bounded(&resolved, canonical.as_bytes())
+        });
+        if result.is_ok() && !overflowed {
+            upper = middle;
+        } else {
+            lower = middle + 1;
+        }
+    }
+    let exact_limit = lower;
+    let (exact, overflowed) = crate::bounded_output::with_limit(exact_limit, || {
+        prepare_project_native_rust_interop_bounded(&resolved, canonical.as_bytes())
+    });
+    assert!(exact.is_ok());
+    assert!(!overflowed);
+    let (minus_one, overflowed) = crate::bounded_output::with_limit(exact_limit - 1, || {
+        prepare_project_native_rust_interop_bounded(&resolved, canonical.as_bytes())
+    });
+    assert!(minus_one.is_err() || overflowed);
 }
 
 #[derive(Default)]
@@ -658,7 +744,7 @@ fn prepare_source(
     let canonical = crate::format::canonical(&program);
     let spec = Spec {
         module: program.module.clone(),
-        source_revision: domain_digest(SOURCE_DOMAIN, canonical.as_bytes()),
+        source_revision: Some(domain_digest(SOURCE_DOMAIN, canonical.as_bytes())),
         target: current_target().unwrap(),
         exports: exports.iter().map(|value| (*value).to_owned()).collect(),
         imports: imports.iter().map(|value| (*value).to_owned()).collect(),
@@ -824,7 +910,7 @@ fn main() -> i64 { 0 }
     let canonical = crate::format::canonical(&program);
     let spec = Spec {
         module: program.module.clone(),
-        source_revision: domain_digest(SOURCE_DOMAIN, canonical.as_bytes()),
+        source_revision: Some(domain_digest(SOURCE_DOMAIN, canonical.as_bytes())),
         target: current_target().unwrap(),
         exports: vec!["export.a".to_owned(), "export.b".to_owned()],
         imports: vec!["host.a.call".to_owned(), "host.b.call".to_owned()],
@@ -990,7 +1076,7 @@ fn source_descriptor_and_generated_views_reconstruct_from_authenticated_facts() 
     );
     assert_eq!(
         domain_digest(SOURCE_DOMAIN, crate::format::canonical(&program).as_bytes()),
-        prepared.source_revision
+        prepared.source_revision.clone().unwrap()
     );
     replay_descriptor(
         &reconstructed,
@@ -1026,8 +1112,10 @@ fn source_descriptor_and_generated_views_reconstruct_from_authenticated_facts() 
     );
 
     let mut changed_spec = spec;
-    changed_spec.source_revision =
-        domain_digest(SOURCE_DOMAIN, crate::format::canonical(&changed).as_bytes());
+    changed_spec.source_revision = Some(domain_digest(
+        SOURCE_DOMAIN,
+        crate::format::canonical(&changed).as_bytes(),
+    ));
     let changed_prepared =
         prepare_native_rust_interop(&changed, render_spec(&changed_spec).as_bytes()).unwrap();
     assert_ne!(changed_prepared.source_revision, prepared.source_revision);
@@ -1053,9 +1141,11 @@ fn descriptor_and_generated_source_replay_reject_every_bound_family() {
             "\"module\":\"interop.forgery\"",
             1,
         ),
-        prepared
-            .descriptor
-            .replacen(&prepared.source_revision, "sha256:forged-source", 1),
+        prepared.descriptor.replacen(
+            prepared.source_revision.as_deref().unwrap(),
+            "sha256:forged-source",
+            1,
+        ),
         prepared
             .descriptor
             .replacen(&prepared.hir_digest, "sha256:forged-hir", 1),
@@ -1636,8 +1726,9 @@ fn full_bundle_builder_limit_is_cumulative_exact_and_cannot_be_widened() {
 #[test]
 fn phase_b_local_paths_digest_and_stage_names_are_frozen_before_effects() {
     let output = Path::new("phase-b-bundle");
-    let mut pending = PendingBundleFacts::new(output, "module.o").unwrap();
-    pending.bind_manifest_digest(b"manifest\n").unwrap();
+    let digest = format!("sha256:{}", "0".repeat(64));
+    let mut pending = PendingBundleFacts::new(output, "module.o", &digest).unwrap();
+    pending.bind_manifest_digest(b"manifest\n", false).unwrap();
     let facts = pending.finish();
     assert_eq!(facts.output_directory, output);
     assert_eq!(facts.object_path, output.join("module.o"));
@@ -1737,12 +1828,14 @@ fn phase_b_windows_absolute_precarrier_topology_is_cumulatively_bounded() {
                 )
             });
         let parent = output.parent().unwrap();
-        let pending = PendingBundleFacts::new(&output, "module.obj").unwrap_or_else(|error| {
-            panic!(
-                "pending facts failed with {} bytes remaining: {error:?}",
-                crate::bounded_output::remaining_active().unwrap_or(0),
-            )
-        });
+        let digest = format!("sha256:{}", "0".repeat(64));
+        let pending =
+            PendingBundleFacts::new(&output, "module.obj", &digest).unwrap_or_else(|error| {
+                panic!(
+                    "pending facts failed with {} bytes remaining: {error:?}",
+                    crate::bounded_output::remaining_active().unwrap_or(0),
+                )
+            });
         let publish_slot = StageSlot::new(parent, &prepared.descriptor_digest, "publish")
             .unwrap_or_else(|error| {
                 panic!(
@@ -3919,7 +4012,7 @@ fn specification_parser_is_canonical_bounded_and_intent_bound() {
     );
     CANONICAL_FORMAT_PASS_COUNT.with(|count| assert_eq!(count.get(), 1));
     let mut exact_source_spec = parse_spec(&program, canonical.as_bytes()).unwrap();
-    exact_source_spec.source_revision = domain_digest(SOURCE_DOMAIN, exact_source.as_bytes());
+    exact_source_spec.source_revision = Some(domain_digest(SOURCE_DOMAIN, exact_source.as_bytes()));
     parse_spec(
         &exact_source_program,
         render_spec(&exact_source_spec).as_bytes(),
@@ -3952,7 +4045,7 @@ fn specification_parser_is_canonical_bounded_and_intent_bound() {
         "bounded formatting mutated the source program"
     );
     let mut over_source_spec = exact_source_spec;
-    over_source_spec.source_revision = domain_digest(SOURCE_DOMAIN, over_source.as_bytes());
+    over_source_spec.source_revision = Some(domain_digest(SOURCE_DOMAIN, over_source.as_bytes()));
     let error = match parse_spec(&over_program, render_spec(&over_source_spec).as_bytes()) {
         Ok(_) => panic!("over-limit source was accepted"),
         Err(error) => error,
@@ -3972,7 +4065,7 @@ fn specification_parser_is_canonical_bounded_and_intent_bound() {
         },
         {
             let mut value = spec.clone();
-            value.source_revision = "sha256:forged-source".to_owned();
+            value.source_revision = Some("sha256:forged-source".to_owned());
             value
         },
     ] {
@@ -4019,10 +4112,10 @@ fn specification_parser_is_canonical_bounded_and_intent_bound() {
         .stable_id
         .clone();
     let mut automatic_spec = spec;
-    automatic_spec.source_revision = domain_digest(
+    automatic_spec.source_revision = Some(domain_digest(
         SOURCE_DOMAIN,
         crate::format::canonical(&automatic_program).as_bytes(),
-    );
+    ));
     automatic_spec.exports = vec![automatic_id];
     let error = match prepare_native_rust_interop(
         &automatic_program,
@@ -4108,7 +4201,7 @@ fn export_import_and_parameter_count_limits_are_exact() {
     let canonical_source = crate::format::canonical(&program);
     let spec = Spec {
         module: program.module.clone(),
-        source_revision: domain_digest(SOURCE_DOMAIN, canonical_source.as_bytes()),
+        source_revision: Some(domain_digest(SOURCE_DOMAIN, canonical_source.as_bytes())),
         target: current_target().unwrap(),
         exports: (0..MAX_EXPORTS)
             .map(|index| format!("export.{index:02}"))
@@ -4167,7 +4260,7 @@ fn closure_effect_and_identifier_limits_are_exact() {
     let canonical_source = crate::format::canonical(&program);
     let spec = Spec {
         module: program.module.clone(),
-        source_revision: domain_digest(SOURCE_DOMAIN, canonical_source.as_bytes()),
+        source_revision: Some(domain_digest(SOURCE_DOMAIN, canonical_source.as_bytes())),
         target: current_target().unwrap(),
         exports: vec!["export.effects".to_owned()],
         imports: vec!["host.effects.call".to_owned()],
@@ -4231,7 +4324,7 @@ fn closure_effect_and_identifier_limits_are_exact() {
         let canonical = crate::format::canonical(&program);
         let spec = Spec {
             module: program.module.clone(),
-            source_revision: domain_digest(SOURCE_DOMAIN, canonical.as_bytes()),
+            source_revision: Some(domain_digest(SOURCE_DOMAIN, canonical.as_bytes())),
             target: current_target().unwrap(),
             exports: vec!["closure.000".to_owned()],
             imports: vec!["host.closure.leaf".to_owned()],
@@ -4272,10 +4365,10 @@ fn closure_effect_and_identifier_limits_are_exact() {
         crate::parse(cycle_source, Path::new("native-rust-closure-cycle.spx")).unwrap();
     let cycle_spec = Spec {
         module: cycle_program.module.clone(),
-        source_revision: domain_digest(
+        source_revision: Some(domain_digest(
             SOURCE_DOMAIN,
             crate::format::canonical(&cycle_program).as_bytes(),
-        ),
+        )),
         target: current_target().unwrap(),
         exports: vec!["cycle.a".to_owned()],
         imports: Vec::new(),
@@ -6741,12 +6834,12 @@ fn post_hir_spec_transfer_capacity_slack_does_not_consume_scratch_authority() {
     )
     .unwrap();
     let base_transfer = prepared_spec_transfer_capacity(&spec).unwrap();
-    let digest = spec.source_revision.clone();
+    let digest = spec.source_revision.clone().unwrap();
     let requested_capacity = digest.len() + 37;
     let mut over_capacity_digest = String::with_capacity(requested_capacity);
     over_capacity_digest.push_str(&digest);
     assert!(over_capacity_digest.capacity() > over_capacity_digest.len());
-    spec.source_revision = over_capacity_digest;
+    spec.source_revision = Some(over_capacity_digest);
 
     let hostile = post_hir_facts_capacity(
         canonical_source.len(),
@@ -6963,7 +7056,7 @@ fn post_hir_named_phase_envelopes_cover_representative_and_depth_512_c() {
             let deep_source = crate::format::canonical(&deep);
             let deep_spec = Spec {
                 module: deep.module.clone(),
-                source_revision: domain_digest(SOURCE_DOMAIN, deep_source.as_bytes()),
+                source_revision: Some(domain_digest(SOURCE_DOMAIN, deep_source.as_bytes())),
                 target: current_target().unwrap(),
                 exports: vec!["interop.add".to_owned()],
                 imports: vec!["host.add".to_owned()],
@@ -7035,7 +7128,7 @@ fn post_hir_facts_cross_product_maxima_stay_inside_named_scratch() {
     let canonical_source = crate::format::canonical(&program);
     let spec = Spec {
         module: program.module.clone(),
-        source_revision: domain_digest(SOURCE_DOMAIN, canonical_source.as_bytes()),
+        source_revision: Some(domain_digest(SOURCE_DOMAIN, canonical_source.as_bytes())),
         target: current_target().unwrap(),
         exports: (0..MAX_EXPORTS)
             .map(|index| format!("export.{index:02}"))
@@ -7129,7 +7222,7 @@ fn post_hir_facts_zero_entry_collections_have_zero_backing_and_stay_bounded() {
     let canonical_source = crate::format::canonical(&program);
     let spec = Spec {
         module: program.module.clone(),
-        source_revision: domain_digest(SOURCE_DOMAIN, canonical_source.as_bytes()),
+        source_revision: Some(domain_digest(SOURCE_DOMAIN, canonical_source.as_bytes())),
         target: current_target().unwrap(),
         exports: vec!["zero.export".to_owned()],
         imports: Vec::new(),
@@ -7195,7 +7288,7 @@ fn post_hir_dense_fan_in_duplicates_and_all_interface_imports_stay_bounded() {
     let canonical_source = crate::format::canonical(&program);
     let spec = Spec {
         module: program.module.clone(),
-        source_revision: domain_digest(SOURCE_DOMAIN, canonical_source.as_bytes()),
+        source_revision: Some(domain_digest(SOURCE_DOMAIN, canonical_source.as_bytes())),
         target: current_target().unwrap(),
         exports: vec!["fanin.export".to_owned()],
         imports: vec!["import.fan".to_owned()],
@@ -7687,7 +7780,7 @@ fn prebuilt_exact_depth_program_prepares_and_disposes_in_child() {
         let canonical = crate::format::canonical(&program);
         let spec = render_spec(&Spec {
             module: program.module.clone(),
-            source_revision: domain_digest(SOURCE_DOMAIN, canonical.as_bytes()),
+            source_revision: Some(domain_digest(SOURCE_DOMAIN, canonical.as_bytes())),
             target: current_target().unwrap(),
             exports: vec![format!("prebuilt.{shape}.deep")],
             imports: Vec::new(),
@@ -8733,7 +8826,7 @@ fn main() -> i64
     let canonical = crate::format::canonical(&program);
     let spec = Spec {
         module: program.module.clone(),
-        source_revision: domain_digest(SOURCE_DOMAIN, canonical.as_bytes()),
+        source_revision: Some(domain_digest(SOURCE_DOMAIN, canonical.as_bytes())),
         target: current_target().unwrap(),
         exports: vec!["interop.bool".to_owned()],
         imports: vec!["host.bool.invert".to_owned()],

@@ -108,6 +108,71 @@ pub(super) fn parse_descriptor(
     expected_target: &str,
     options: &NativeRustSdkOptions,
 ) -> Result<DescriptorFacts, Diagnostic> {
+    parse_descriptor_for_subject(
+        bytes,
+        expected_module,
+        expected_target,
+        options,
+        DescriptorSubjectExpectation::Source {
+            revision: expected_revision,
+        },
+    )
+}
+
+pub(super) fn parse_project_descriptor(
+    bytes: &[u8],
+    expected_module: &str,
+    expected_subject_digest: &str,
+    expected_target: &str,
+    options: &NativeRustSdkOptions,
+) -> Result<DescriptorFacts, Diagnostic> {
+    parse_descriptor_for_subject(
+        bytes,
+        expected_module,
+        expected_target,
+        options,
+        DescriptorSubjectExpectation::Project {
+            subject_digest: expected_subject_digest,
+        },
+    )
+}
+
+#[derive(Clone, Copy)]
+enum DescriptorSubjectExpectation<'a> {
+    Source { revision: &'a str },
+    Project { subject_digest: &'a str },
+}
+
+impl<'a> DescriptorSubjectExpectation<'a> {
+    const fn schema(self) -> &'static str {
+        match self {
+            Self::Source { .. } => DESCRIPTOR_SCHEMA,
+            Self::Project { .. } => PROJECT_DESCRIPTOR_SCHEMA,
+        }
+    }
+
+    const fn revision_key(self) -> &'static str {
+        match self {
+            Self::Source { .. } => "source_revision",
+            Self::Project { .. } => "project_subject_digest",
+        }
+    }
+
+    const fn revision(self) -> &'a str {
+        match self {
+            Self::Source { revision } => revision,
+            Self::Project { subject_digest } => subject_digest,
+        }
+    }
+}
+
+fn parse_descriptor_for_subject(
+    bytes: &[u8],
+    expected_module: &str,
+    expected_target: &str,
+    options: &NativeRustSdkOptions,
+    subject: DescriptorSubjectExpectation<'_>,
+) -> Result<DescriptorFacts, Diagnostic> {
     if bytes.len() > MAX_DESCRIPTOR_BYTES || !bytes.ends_with(b"\n") {
         return Err(sdk_error("Native Rust SDK descriptor replay failed"));
     }
@@ -118,9 +183,9 @@ pub(super) fn parse_descriptor(
         .filter(|root| root.len() == 11)
         .ok_or_else(|| sdk_error("Native Rust SDK descriptor replay failed"))?;
     let target = descriptor_object(&value, "target")?;
-    if root.get("schema").and_then(Value::as_str) != Some(DESCRIPTOR_SCHEMA)
+    if root.get("schema").and_then(Value::as_str) != Some(subject.schema())
         || root.get("module").and_then(Value::as_str) != Some(expected_module)
-        || root.get("source_revision").and_then(Value::as_str) != Some(expected_revision)
+        || root.get(subject.revision_key()).and_then(Value::as_str) != Some(subject.revision())
         || target.len() != 5
         || target.get("triple").and_then(Value::as_str) != Some(expected_target)
         || target.get("pointer_width").and_then(Value::as_u64) != Some(64)
@@ -235,7 +300,7 @@ pub(super) fn parse_descriptor(
     }
     Ok(DescriptorFacts {
         module: expected_module.to_owned(),
-        source_revision: expected_revision.to_owned(),
+        source_revision: subject.revision().to_owned(),
         target: expected_target.to_owned(),
         exports,
         imports,

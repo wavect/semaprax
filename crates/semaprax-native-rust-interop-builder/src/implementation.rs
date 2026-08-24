@@ -11,7 +11,7 @@ use sha2::{Digest, Sha256};
 
 use crate::platform;
 
-use crate::ast::{ParamMode, Program, Type};
+use crate::ast::Program;
 use crate::diagnostic::{quote_json, Diagnostic};
 
 mod artifacts;
@@ -20,7 +20,8 @@ mod exact_replay;
 
 use artifacts::{
     c_expression_shape, generate_c, generate_header, generate_rust_artifacts, render_descriptor,
-    replay_descriptor, replay_generated_exact, replay_limits_exact, C_EXPRESSION_FRAME_BYTES,
+    render_descriptor_for_subject, replay_descriptor, replay_descriptor_for_subject,
+    replay_generated_exact, replay_limits_exact, C_EXPRESSION_FRAME_BYTES,
     REPLAY_C_EXPRESSION_FRAME_BYTES,
 };
 #[cfg(test)]
@@ -52,12 +53,22 @@ use crate::hir::{
 const SPEC_SCHEMA: &str = "semaprax.native-rust-interop-spec.v1";
 const DESCRIPTOR_SCHEMA: &str = "semaprax.native-rust-interop-descriptor.v1";
 const BUNDLE_SCHEMA: &str = "semaprax.native-rust-interop-bundle.v1";
+const PROJECT_SUBJECT_SCHEMA: &str = "semaprax.project-native-rust-subject.v1";
+const PROJECT_SCHEMA: &str = "semaprax.project.v1";
+const PROJECT_GRAPH_SCHEMA: &str = "semaprax.project-semantic-graph.v1";
+const PROJECT_DESCRIPTOR_SCHEMA: &str = "semaprax.project-native-rust-interop-descriptor.v1";
+const PROJECT_BUNDLE_SCHEMA: &str = "semaprax.project-native-rust-interop-bundle.v1";
 const SOURCE_DOMAIN: &[u8] = b"semaprax.native-rust-interop.source-revision.v1\0";
+const PROJECT_SUBJECT_DOMAIN: &[u8] = b"semaprax.project-native-rust-interop.subject.v1\0";
 const HIR_DOMAIN: &[u8] = b"semaprax.native-rust-interop.hir-digest.v1\0";
 const SPEC_DIGEST_DOMAIN: &[u8] = b"semaprax.native-rust-interop.spec-digest.v1\0";
 const DESCRIPTOR_DIGEST_DOMAIN: &[u8] = b"semaprax.native-rust-interop.descriptor-digest.v1\0";
+const PROJECT_DESCRIPTOR_DIGEST_DOMAIN: &[u8] =
+    b"semaprax.project-native-rust-interop.descriptor-digest.v1\0";
 const CALL_DOMAIN: &[u8] = b"semaprax.native-rust-interop.call-contract.v1\0";
 const BUNDLE_DIGEST_DOMAIN: &[u8] = b"semaprax.native-rust-interop.bundle-digest.v1\0";
+const PROJECT_BUNDLE_DIGEST_DOMAIN: &[u8] =
+    b"semaprax.project-native-rust-interop.bundle-digest.v1\0";
 const CAPABILITIES_DOMAIN: &[u8] = b"semaprax.native-rust-interop.capabilities.v1\0";
 
 const MAX_EXPORTS: usize = 32;
@@ -347,11 +358,74 @@ const NONCLAIMS: &[&str] = &[
 #[derive(Clone)]
 struct Spec {
     module: String,
-    source_revision: String,
+    source_revision: Option<String>,
     target: Target,
     exports: Vec<String>,
     imports: Vec<String>,
     capabilities: Vec<String>,
+}
+
+impl Spec {
+    fn source_revision(&self) -> Option<&str> {
+        self.source_revision.as_deref()
+    }
+}
+
+#[derive(Clone)]
+struct ProjectSubjectSource {
+    path: String,
+    source_graph_schema: String,
+    source_revision: String,
+    source_digest: String,
+    bytes: usize,
+}
+
+#[derive(Clone)]
+struct ProjectSubjectExport {
+    stable_id: String,
+    module: String,
+    path: String,
+}
+
+struct ProjectSubject {
+    name: String,
+    manifest_bytes: usize,
+    manifest_digest: String,
+    manifest_canonical: String,
+    project_revision: String,
+    workspace_revision: String,
+    project_graph_digest: String,
+    entry_module: String,
+    sources: Vec<ProjectSubjectSource>,
+    exports: Vec<ProjectSubjectExport>,
+}
+
+#[derive(Clone, Copy)]
+enum DescriptorSubject<'a> {
+    SourceRevision(&'a str),
+    ProjectSubjectDigest(&'a str),
+}
+
+impl<'a> DescriptorSubject<'a> {
+    fn schema(self) -> &'static str {
+        match self {
+            Self::SourceRevision(_) => DESCRIPTOR_SCHEMA,
+            Self::ProjectSubjectDigest(_) => PROJECT_DESCRIPTOR_SCHEMA,
+        }
+    }
+
+    fn key(self) -> &'static str {
+        match self {
+            Self::SourceRevision(_) => "source_revision",
+            Self::ProjectSubjectDigest(_) => "project_subject_digest",
+        }
+    }
+
+    fn value(self) -> &'a str {
+        match self {
+            Self::SourceRevision(value) | Self::ProjectSubjectDigest(value) => value,
+        }
+    }
 }
 
 #[derive(Clone, Eq, PartialEq)]
@@ -366,7 +440,9 @@ struct Target {
 fn checked_spec_owned_capacity(spec: &Spec) -> Option<usize> {
     std::mem::size_of::<Spec>()
         .checked_add(spec.module.capacity())
-        .and_then(|bytes| bytes.checked_add(spec.source_revision.capacity()))
+        .and_then(|bytes| {
+            bytes.checked_add(spec.source_revision.as_ref().map_or(0, String::capacity))
+        })
         .and_then(|bytes| bytes.checked_add(spec.target.triple.capacity()))
         .and_then(|bytes| bytes.checked_add(spec.target.endian.capacity()))
         .and_then(|bytes| bytes.checked_add(spec.target.panic_strategy.capacity()))
@@ -392,7 +468,8 @@ fn checked_spec_owned_capacity(spec: &Spec) -> Option<usize> {
 
 fn prepared_spec_transfer_capacity(spec: &Spec) -> Option<usize> {
     spec.source_revision
-        .capacity()
+        .as_ref()
+        .map_or(0, String::capacity)
         .checked_add(spec.target.triple.capacity())
         .and_then(|bytes| bytes.checked_add(spec.target.endian.capacity()))
         .and_then(|bytes| bytes.checked_add(spec.target.panic_strategy.capacity()))
@@ -763,7 +840,13 @@ fn post_hir_facts_capacity(
             bytes.checked_add(closure.len().checked_mul(std::mem::size_of::<String>())?)
         })
         .and_then(|bytes| bytes.checked_add(closure_id_bytes))
-        .and_then(|bytes| bytes.checked_add(spec.source_revision.capacity()))
+        .and_then(|bytes| {
+            bytes.checked_add(
+                spec.source_revision
+                    .as_ref()
+                    .map_or(SHA256_TEXT_BYTES, String::capacity),
+            )
+        })
         .and_then(|bytes| bytes.checked_add(final_digest_payload))
         .and_then(|bytes| bytes.checked_add(target_retained_payload))
         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
@@ -1144,11 +1227,11 @@ fn borrowed_map_owned_capacity<K, V>(len: usize) -> usize {
 #[cfg(test)]
 fn post_hir_selection_scratch_capacity(
     selected_effects: &BTreeSet<&str>,
-    source_functions: &BTreeMap<&str, &crate::ast::Function>,
+    source_functions: &BTreeMap<&str, &ResolvedFunction>,
     resolved_imports: &Vec<(&str, &ResolvedImport)>,
 ) -> usize {
     borrowed_string_set_owned_capacity(selected_effects)
-        .saturating_add(borrowed_map_owned_capacity::<&str, &crate::ast::Function>(
+        .saturating_add(borrowed_map_owned_capacity::<&str, &ResolvedFunction>(
             source_functions.len(),
         ))
         .saturating_add(
@@ -1162,7 +1245,7 @@ fn post_hir_live_facts_capacity(
     export_facts: &Vec<ExportFact>,
     import_facts: &Vec<ImportFact>,
     selected_effects: &BTreeSet<&str>,
-    source_functions: &BTreeMap<&str, &crate::ast::Function>,
+    source_functions: &BTreeMap<&str, &ResolvedFunction>,
     resolved_imports: &Vec<(&str, &ResolvedImport)>,
     selected_capabilities: &Vec<String>,
     status_domains: &Vec<String>,
@@ -1290,7 +1373,7 @@ fn string_slice_owned_capacity(values: &[String]) -> usize {
 
 fn spec_owned_capacity(spec: &Spec) -> usize {
     spec.module.capacity()
-        + spec.source_revision.capacity()
+        + spec.source_revision.as_ref().map_or(0, String::capacity)
         + spec.target.triple.capacity()
         + spec.target.endian.capacity()
         + spec.target.panic_strategy.capacity()
@@ -1306,7 +1389,8 @@ pub(crate) struct PreparedNativeRustInterop {
     spec_digest: String,
     descriptor: String,
     descriptor_digest: String,
-    source_revision: String,
+    source_revision: Option<String>,
+    project_subject_digest: Option<String>,
     hir_digest: String,
     target: Target,
     exports: Vec<ExportFact>,
@@ -1319,6 +1403,23 @@ pub(crate) struct PreparedNativeRustInterop {
 }
 
 impl PreparedNativeRustInterop {
+    fn is_project(&self) -> bool {
+        self.project_subject_digest.is_some()
+    }
+    fn descriptor_schema(&self) -> &'static str {
+        if self.is_project() {
+            PROJECT_DESCRIPTOR_SCHEMA
+        } else {
+            DESCRIPTOR_SCHEMA
+        }
+    }
+    fn bundle_schema(&self) -> &'static str {
+        if self.is_project() {
+            PROJECT_BUNDLE_SCHEMA
+        } else {
+            BUNDLE_SCHEMA
+        }
+    }
     pub(crate) fn canonical_spec(&self) -> &str {
         &self.canonical_spec
     }
@@ -1331,8 +1432,11 @@ impl PreparedNativeRustInterop {
     pub(crate) fn descriptor_digest(&self) -> &str {
         &self.descriptor_digest
     }
-    pub(crate) fn source_revision(&self) -> &str {
-        &self.source_revision
+    pub(crate) fn source_revision(&self) -> Option<&str> {
+        self.source_revision.as_deref()
+    }
+    pub(crate) fn project_subject_digest(&self) -> Option<&str> {
+        self.project_subject_digest.as_deref()
     }
     pub(crate) fn hir_digest(&self) -> &str {
         &self.hir_digest
@@ -1364,6 +1468,7 @@ pub(crate) struct NativeRustInteropBundleFacts {
     descriptor_path: PathBuf,
     manifest_path: PathBuf,
     manifest_digest: String,
+    descriptor_digest: String,
 }
 
 struct PendingBundleFacts {
@@ -1372,11 +1477,20 @@ struct PendingBundleFacts {
     descriptor_path: PathBuf,
     manifest_path: PathBuf,
     manifest_digest: String,
+    descriptor_digest: String,
 }
 
 impl PendingBundleFacts {
-    fn new(output: &Path, object_name: &'static str) -> Result<Self, Diagnostic> {
+    fn new(
+        output: &Path,
+        object_name: &'static str,
+        descriptor_digest: &str,
+    ) -> Result<Self, Diagnostic> {
         use std::path::Component;
+
+        if !canonical_sha256_text(descriptor_digest) {
+            return Err(b108());
+        }
 
         let parent = output.parent().ok_or_else(platform_publication_error)?;
         let output_name = output.file_name().ok_or_else(platform_publication_error)?;
@@ -1401,6 +1515,7 @@ impl PendingBundleFacts {
             .and_then(|bytes| bytes.checked_add(descriptor_capacity))
             .and_then(|bytes| bytes.checked_add(manifest_capacity))
             .and_then(|bytes| bytes.checked_add(SHA256_TEXT_BYTES))
+            .and_then(|bytes| bytes.checked_add(descriptor_digest.len()))
             .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
         let authority = reserve_temporary_exact(retained)?;
 
@@ -1413,6 +1528,10 @@ impl PendingBundleFacts {
             manifest_capacity,
         )?;
         let manifest_digest = String::with_capacity(SHA256_TEXT_BYTES);
+        let descriptor_digest = descriptor_digest.to_owned();
+        if descriptor_digest.capacity() != SHA256_TEXT_BYTES {
+            return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
+        }
         if manifest_digest.capacity() != SHA256_TEXT_BYTES {
             return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
         }
@@ -1423,17 +1542,26 @@ impl PendingBundleFacts {
             descriptor_path,
             manifest_path,
             manifest_digest,
+            descriptor_digest,
         })
     }
 
-    fn bind_manifest_digest(&mut self, manifest: &[u8]) -> Result<(), PhaseBLocalError> {
+    fn bind_manifest_digest(
+        &mut self,
+        manifest: &[u8],
+        project: bool,
+    ) -> Result<(), PhaseBLocalError> {
         if !self.manifest_digest.is_empty() || self.manifest_digest.capacity() != SHA256_TEXT_BYTES
         {
             return Err(PhaseBLocalError::Replay);
         }
         self.manifest_digest.push_str("sha256:");
         let mut hasher = Sha256::new();
-        hasher.update(BUNDLE_DIGEST_DOMAIN);
+        hasher.update(if project {
+            PROJECT_BUNDLE_DIGEST_DOMAIN
+        } else {
+            BUNDLE_DIGEST_DOMAIN
+        });
         hasher.update(manifest);
         let digest = hasher.finalize();
         for byte in digest {
@@ -1458,6 +1586,7 @@ impl PendingBundleFacts {
             descriptor_path: self.descriptor_path,
             manifest_path: self.manifest_path,
             manifest_digest: self.manifest_digest,
+            descriptor_digest: self.descriptor_digest,
         }
     }
 }
@@ -1572,6 +1701,9 @@ impl NativeRustInteropBundleFacts {
     pub(crate) fn manifest_digest(&self) -> &str {
         &self.manifest_digest
     }
+    pub(crate) fn descriptor_digest(&self) -> &str {
+        &self.descriptor_digest
+    }
 }
 
 fn b106() -> Diagnostic {
@@ -1656,6 +1788,23 @@ const _: () = assert!(std::mem::size_of::<ResolvedDisposeFrame>() == 56);
 struct ResolvedProgramOwner {
     program: Option<ResolvedProgram>,
     frames: Vec<ResolvedDisposeFrame>,
+}
+
+// Keeping the source owner inline preserves the already-censused HIR disposal
+// allocation contract; boxing it would introduce a new unaccounted allocation.
+#[allow(clippy::large_enum_variant)]
+enum PhaseAResolved<'a> {
+    Source(ResolvedProgramOwner),
+    Project(&'a ResolvedProgram),
+}
+
+impl PhaseAResolved<'_> {
+    fn program(&self) -> &ResolvedProgram {
+        match self {
+            Self::Source(owner) => owner.program(),
+            Self::Project(program) => program,
+        }
+    }
 }
 
 impl ResolvedProgramOwner {
@@ -2606,6 +2755,328 @@ fn parse_spec(program: &Program, bytes: &[u8]) -> Result<Spec, Diagnostic> {
     parse_spec_with_source(program, bytes, &source)
 }
 
+fn canonical_sha256_text(value: &str) -> bool {
+    value.len() == SHA256_TEXT_BYTES
+        && value.starts_with("sha256:")
+        && value["sha256:".len()..]
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn project_subject_string(
+    object: &serde_json::Map<String, Value>,
+    name: &str,
+) -> Result<String, Diagnostic> {
+    object
+        .get(name)
+        .and_then(Value::as_str)
+        .filter(|value| !value.is_empty() && !value.contains('\0'))
+        .map(str::to_owned)
+        .ok_or_else(b106)
+}
+
+fn project_subject_usize(
+    object: &serde_json::Map<String, Value>,
+    name: &str,
+) -> Result<usize, Diagnostic> {
+    object
+        .get(name)
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .ok_or_else(b106)
+}
+
+fn project_subject_owned_capacity(subject: &ProjectSubject) -> Result<usize, Diagnostic> {
+    let strings = [
+        &subject.name,
+        &subject.manifest_digest,
+        &subject.manifest_canonical,
+        &subject.project_revision,
+        &subject.workspace_revision,
+        &subject.project_graph_digest,
+        &subject.entry_module,
+    ];
+    let mut bytes = std::mem::size_of::<ProjectSubject>();
+    for value in strings {
+        bytes = bytes
+            .checked_add(value.capacity())
+            .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+    }
+    bytes = bytes
+        .checked_add(
+            subject
+                .sources
+                .capacity()
+                .checked_mul(std::mem::size_of::<ProjectSubjectSource>())
+                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
+        )
+        .and_then(|bytes| {
+            bytes.checked_add(
+                subject
+                    .exports
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<ProjectSubjectExport>())?,
+            )
+        })
+        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+    for source in &subject.sources {
+        for value in [
+            &source.path,
+            &source.source_graph_schema,
+            &source.source_revision,
+            &source.source_digest,
+        ] {
+            bytes = bytes
+                .checked_add(value.capacity())
+                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+        }
+    }
+    for export in &subject.exports {
+        for value in [&export.stable_id, &export.module, &export.path] {
+            bytes = bytes
+                .checked_add(value.capacity())
+                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+        }
+    }
+    Ok(bytes)
+}
+
+fn parse_project_subject(bytes: &[u8]) -> Result<(ProjectSubject, TemporaryBudget), Diagnostic> {
+    if bytes.len() > MAX_SPEC_BYTES {
+        return Err(b109("max_spec_bytes", MAX_SPEC_BYTES));
+    }
+    if !bytes.ends_with(b"\n") || bytes.ends_with(b"\n\n") || bytes.contains(&b'\r') {
+        return Err(b106());
+    }
+    if json_depth(bytes)? > MAX_JSON_DEPTH {
+        return Err(b109("max_json_depth", MAX_JSON_DEPTH));
+    }
+    let parser_capacity = bytes
+        .len()
+        .checked_mul(6)
+        .and_then(|value| value.checked_add(65_536))
+        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+    let mut parser_budget = reserve_temporary_exact(parser_capacity)?;
+    let value: Value = serde_json::from_slice(bytes).map_err(|_| b106())?;
+    let object = value.as_object().ok_or_else(b106)?;
+    if object.len() != 12
+        || object.get("schema").and_then(Value::as_str) != Some(PROJECT_SUBJECT_SCHEMA)
+        || object.get("project_schema").and_then(Value::as_str) != Some(PROJECT_SCHEMA)
+        || object
+            .get("imports")
+            .and_then(Value::as_array)
+            .map(Vec::len)
+            != Some(0)
+        || object
+            .get("capabilities")
+            .and_then(Value::as_array)
+            .map(Vec::len)
+            != Some(0)
+    {
+        return Err(b106());
+    }
+    let name = project_subject_string(object, "name")?;
+    let project_revision = project_subject_string(object, "project_revision")?;
+    let workspace_revision = project_subject_string(object, "workspace_revision")?;
+    let entry_module = project_subject_string(object, "entry_module")?;
+    let manifest = object
+        .get("manifest")
+        .and_then(Value::as_object)
+        .filter(|manifest| manifest.len() == 3)
+        .ok_or_else(b106)?;
+    let manifest_bytes = project_subject_usize(manifest, "bytes")?;
+    let manifest_digest = project_subject_string(manifest, "digest")?;
+    let manifest_canonical = project_subject_string(manifest, "canonical")?;
+    if manifest.len() != 3
+        || manifest_canonical.len() != manifest_bytes
+        || raw_digest(manifest_canonical.as_bytes()) != manifest_digest
+    {
+        return Err(b106());
+    }
+    let graph = object
+        .get("project_graph")
+        .and_then(Value::as_object)
+        .filter(|graph| graph.len() == 2)
+        .ok_or_else(b106)?;
+    if graph.get("schema").and_then(Value::as_str) != Some(PROJECT_GRAPH_SCHEMA) {
+        return Err(b106());
+    }
+    let project_graph_digest = project_subject_string(graph, "digest")?;
+    if ![
+        manifest_digest.as_str(),
+        project_revision.as_str(),
+        workspace_revision.as_str(),
+        project_graph_digest.as_str(),
+    ]
+    .into_iter()
+    .all(canonical_sha256_text)
+    {
+        return Err(b106());
+    }
+    let source_values = object
+        .get("sources")
+        .and_then(Value::as_array)
+        .filter(|sources| (1..=16).contains(&sources.len()))
+        .ok_or_else(b106)?;
+    let mut sources = Vec::with_capacity(source_values.len());
+    let mut total_source_bytes = 0usize;
+    for value in source_values {
+        let source = value
+            .as_object()
+            .filter(|source| source.len() == 5)
+            .ok_or_else(b106)?;
+        let source = ProjectSubjectSource {
+            path: project_subject_string(source, "path")?,
+            source_graph_schema: project_subject_string(source, "source_graph_schema")?,
+            source_revision: project_subject_string(source, "source_revision")?,
+            source_digest: project_subject_string(source, "source_digest")?,
+            bytes: project_subject_usize(source, "bytes")?,
+        };
+        if source.path.len() > 4096
+            || source.source_graph_schema.len() > MAX_IDENTIFIER_BYTES
+            || !canonical_sha256_text(&source.source_revision)
+            || !canonical_sha256_text(&source.source_digest)
+            || source.bytes > MAX_SOURCE_BYTES
+        {
+            return Err(b106());
+        }
+        total_source_bytes = total_source_bytes
+            .checked_add(source.bytes)
+            .ok_or_else(|| b109("max_source_bytes", MAX_SOURCE_BYTES))?;
+        sources.push(source);
+    }
+    if total_source_bytes > MAX_SOURCE_BYTES {
+        return Err(b109("max_source_bytes", MAX_SOURCE_BYTES));
+    }
+    if !sources.windows(2).all(|pair| pair[0].path < pair[1].path) {
+        return Err(b106());
+    }
+    let export_values = object
+        .get("exports")
+        .and_then(Value::as_array)
+        .filter(|exports| !exports.is_empty() && exports.len() <= MAX_EXPORTS)
+        .ok_or_else(b106)?;
+    let mut exports = Vec::with_capacity(export_values.len());
+    for value in export_values {
+        let export = value
+            .as_object()
+            .filter(|export| export.len() == 3)
+            .ok_or_else(b106)?;
+        let export = ProjectSubjectExport {
+            stable_id: project_subject_string(export, "stable_id")?,
+            module: project_subject_string(export, "module")?,
+            path: project_subject_string(export, "path")?,
+        };
+        identifier_gate(&export.stable_id)?;
+        identifier_gate(&export.module)?;
+        if export.path.len() > 4096 || !sources.iter().any(|source| source.path == export.path) {
+            return Err(b106());
+        }
+        exports.push(export);
+    }
+    if !exports
+        .windows(2)
+        .all(|pair| pair[0].stable_id < pair[1].stable_id)
+    {
+        return Err(b106());
+    }
+    let subject = ProjectSubject {
+        name,
+        manifest_bytes,
+        manifest_digest,
+        manifest_canonical,
+        project_revision,
+        workspace_revision,
+        project_graph_digest,
+        entry_module,
+        sources,
+        exports,
+    };
+    let canonical = render_project_subject(&subject);
+    if canonical.as_bytes() != bytes {
+        return Err(b106());
+    }
+    let retained = project_subject_owned_capacity(&subject)?;
+    drop((canonical, value));
+    parser_budget.shrink_held(retained)?;
+    Ok((subject, parser_budget))
+}
+
+fn render_project_subject(subject: &ProjectSubject) -> String {
+    let mut count = CountingSink {
+        bytes: 0,
+        maximum: MAX_SPEC_BYTES,
+        overflowed: false,
+    };
+    if write_project_subject(subject, &mut count).is_err() || count.overflowed {
+        return String::new();
+    }
+    let mut output = String::with_capacity(count.bytes);
+    if write_project_subject(subject, &mut output).is_err() || output.capacity() != count.bytes {
+        return String::new();
+    }
+    output
+}
+
+fn write_project_subject(
+    subject: &ProjectSubject,
+    output: &mut impl std::fmt::Write,
+) -> std::fmt::Result {
+    output.write_str("{\"schema\":")?;
+    write_json_string(output, PROJECT_SUBJECT_SCHEMA)?;
+    output.write_str(",\"project_schema\":")?;
+    write_json_string(output, PROJECT_SCHEMA)?;
+    output.write_str(",\"name\":")?;
+    write_json_string(output, &subject.name)?;
+    output.write_str(",\"manifest\":{\"bytes\":")?;
+    write_usize_decimal(output, subject.manifest_bytes)?;
+    output.write_str(",\"digest\":")?;
+    write_json_string(output, &subject.manifest_digest)?;
+    output.write_str(",\"canonical\":")?;
+    write_json_string(output, &subject.manifest_canonical)?;
+    output.write_str("},\"project_revision\":")?;
+    write_json_string(output, &subject.project_revision)?;
+    output.write_str(",\"workspace_revision\":")?;
+    write_json_string(output, &subject.workspace_revision)?;
+    output.write_str(",\"project_graph\":{\"schema\":")?;
+    write_json_string(output, PROJECT_GRAPH_SCHEMA)?;
+    output.write_str(",\"digest\":")?;
+    write_json_string(output, &subject.project_graph_digest)?;
+    output.write_str("},\"entry_module\":")?;
+    write_json_string(output, &subject.entry_module)?;
+    output.write_str(",\"sources\":[")?;
+    for (index, source) in subject.sources.iter().enumerate() {
+        if index != 0 {
+            output.write_char(',')?;
+        }
+        output.write_str("{\"path\":")?;
+        write_json_string(output, &source.path)?;
+        output.write_str(",\"source_graph_schema\":")?;
+        write_json_string(output, &source.source_graph_schema)?;
+        output.write_str(",\"source_revision\":")?;
+        write_json_string(output, &source.source_revision)?;
+        output.write_str(",\"source_digest\":")?;
+        write_json_string(output, &source.source_digest)?;
+        output.write_str(",\"bytes\":")?;
+        write_usize_decimal(output, source.bytes)?;
+        output.write_char('}')?;
+    }
+    output.write_str("],\"exports\":[")?;
+    for (index, export) in subject.exports.iter().enumerate() {
+        if index != 0 {
+            output.write_char(',')?;
+        }
+        output.write_str("{\"stable_id\":")?;
+        write_json_string(output, &export.stable_id)?;
+        output.write_str(",\"module\":")?;
+        write_json_string(output, &export.module)?;
+        output.write_str(",\"path\":")?;
+        write_json_string(output, &export.path)?;
+        output.write_char('}')?;
+    }
+    output.write_str("],\"imports\":[],\"capabilities\":[]}\n")
+}
+
 fn parse_spec_with_source(
     program: &Program,
     bytes: &[u8],
@@ -2693,7 +3164,7 @@ fn parse_spec_with_source_authority(
     };
     let spec = Spec {
         module,
-        source_revision,
+        source_revision: Some(source_revision),
         target,
         exports,
         imports,
@@ -2741,7 +3212,7 @@ fn parse_spec_with_source_authority(
         return Err(b109("max_source_bytes", MAX_SOURCE_BYTES));
     }
     if spec.module != program.module
-        || spec.source_revision != domain_digest(SOURCE_DOMAIN, source.as_bytes())
+        || spec.source_revision() != Some(domain_digest(SOURCE_DOMAIN, source.as_bytes()).as_str())
     {
         return Err(b107("selected identity missing"));
     }
@@ -2845,7 +3316,11 @@ fn write_spec(spec: &Spec, output: &mut impl std::fmt::Write) -> std::fmt::Resul
     output.write_str(",\"module\":")?;
     write_json_string(output, &spec.module)?;
     output.write_str(",\"source_revision\":")?;
-    write_json_string(output, &spec.source_revision)?;
+    write_json_string(
+        output,
+        spec.source_revision()
+            .expect("canonical source Spec has a source revision"),
+    )?;
     output.write_str(",\"target\":{\"triple\":")?;
     write_json_string(output, &spec.target.triple)?;
     write!(output, ",\"pointer_width\":{}", spec.target.pointer_width)?;
@@ -2894,20 +3369,6 @@ fn scalar_type(ty: &ResolvedType) -> Option<ScalarType> {
         ResolvedType::I64 => Some(ScalarType::I64),
         ResolvedType::Bool => Some(ScalarType::Bool),
         _ => None,
-    }
-}
-
-fn source_scalar_type(ty: &Type) -> Option<ScalarType> {
-    match ty {
-        Type::I64 => Some(ScalarType::I64),
-        Type::Bool => Some(ScalarType::Bool),
-        Type::I32
-        | Type::Char
-        | Type::U8
-        | Type::F32
-        | Type::F64
-        | Type::String
-        | Type::Named { .. } => None,
     }
 }
 
@@ -4972,37 +5433,131 @@ fn prepare_native_rust_interop_bounded(
     program: &Program,
     spec_bytes: &[u8],
 ) -> Result<PreparedNativeRustInterop, Diagnostic> {
-    validate_native_rust_source_expression_budget(program)?;
-    debit(spec_bytes.len())?;
-    let canonical_source = canonical_source_bounded(program)?;
-    let (spec, spec_authority) =
-        parse_spec_with_source_authority(program, spec_bytes, &canonical_source)?;
+    prepare_native_rust_interop_from_input(Some(program), None, spec_bytes)
+}
+
+fn prepare_project_native_rust_interop_bounded(
+    program: &ResolvedProgram,
+    subject_bytes: &[u8],
+) -> Result<PreparedNativeRustInterop, Diagnostic> {
+    prepare_native_rust_interop_from_input(None, Some(program), subject_bytes)
+}
+
+fn prepare_native_rust_interop_from_input<'a>(
+    source_program: Option<&'a Program>,
+    project_program: Option<&'a ResolvedProgram>,
+    input_bytes: &[u8],
+) -> Result<PreparedNativeRustInterop, Diagnostic> {
+    let is_project = project_program.is_some();
+    debit(input_bytes.len())?;
+    let (
+        spec,
+        spec_authority,
+        canonical_spec,
+        project_subject_digest,
+        resolved_owner,
+        hir_budget,
+        canonical_source_len,
+    ) = if let Some(program) = source_program {
+        validate_native_rust_source_expression_budget(program)?;
+        let canonical_source = canonical_source_bounded(program)?;
+        let (spec, spec_authority) =
+            parse_spec_with_source_authority(program, input_bytes, &canonical_source)?;
+        identifier_audit(program, &spec)?;
+        let canonical_spec_budget = reserve_temporary_exact(MAX_SPEC_BYTES)?;
+        let canonical_spec = render_spec(&spec);
+        canonical_spec_budget.retain(canonical_spec.capacity())?;
+        let mut hir_scan_stack = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
+        let hir_capacity =
+            hir_pre_resolve_capacity(program, canonical_source.len(), &mut hir_scan_stack)?;
+        let mut source_hir_budget = reserve_temporary_exact(
+            hir_capacity
+                .complete()
+                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
+        )?;
+        let dispose_frames = Vec::with_capacity(hir_capacity.disposal_frames);
+        note_hir_resolve_pass();
+        let owner = ResolvedProgramOwner::new(
+            hir::resolve(program).map_err(|_| b107("selected identity missing"))?,
+            dispose_frames,
+            hir_capacity.disposal_frames,
+        );
+        let actual_hir_retained = hir_owned_capacity(owner.program())?
+            .checked_add(hir_capacity.declaration_index_upper)
+            .and_then(|bytes| {
+                bytes.checked_add(
+                    hir_capacity
+                        .disposal_frames
+                        .checked_mul(std::mem::size_of::<ResolvedDisposeFrame>())?,
+                )
+            })
+            .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+        if actual_hir_retained > hir_capacity.retained_upper {
+            return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
+        }
+        source_hir_budget.shrink_held(actual_hir_retained)?;
+        (
+            spec,
+            spec_authority,
+            canonical_spec,
+            None,
+            PhaseAResolved::Source(owner),
+            Some(source_hir_budget),
+            canonical_source.len(),
+        )
+    } else {
+        let program = project_program.ok_or_else(b106)?;
+        let (subject, subject_authority) = parse_project_subject(input_bytes)?;
+        hir::validate(program).map_err(|_| b107("invalid resolved Project program"))?;
+        if program.module != subject.entry_module {
+            return Err(b107("Project scalar closure required"));
+        }
+        identifier_gate(&program.module)?;
+        let exports = subject
+            .exports
+            .iter()
+            .map(|export| export.stable_id.clone())
+            .collect::<Vec<_>>();
+        let project_subject_digest = domain_digest(PROJECT_SUBJECT_DOMAIN, input_bytes);
+        let spec = Spec {
+            module: subject.entry_module.clone(),
+            source_revision: None,
+            target: current_target().ok_or_else(|| b107("unsupported target"))?,
+            exports,
+            imports: Vec::new(),
+            capabilities: Vec::new(),
+        };
+        let spec_authority = reserve_temporary_exact(
+            checked_spec_owned_capacity(&spec)
+                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
+        )?;
+        let canonical_spec_budget = reserve_temporary_exact(input_bytes.len())?;
+        let canonical_spec = render_project_subject(&subject);
+        if canonical_spec.as_bytes() != input_bytes {
+            return Err(b106());
+        }
+        canonical_spec_budget.retain(canonical_spec.capacity())?;
+        drop(subject);
+        drop(subject_authority);
+        (
+            spec,
+            spec_authority,
+            canonical_spec,
+            Some(project_subject_digest),
+            PhaseAResolved::Project(program),
+            None,
+            input_bytes.len(),
+        )
+    };
     #[cfg(test)]
     let spec_transfer_allocations = (
-        spec.source_revision.as_ptr(),
+        spec.source_revision
+            .as_ref()
+            .map_or(std::ptr::null(), |value| value.as_ptr()),
         spec.target.triple.as_ptr(),
         spec.target.endian.as_ptr(),
         spec.target.panic_strategy.as_ptr(),
         spec.target.thread_policy.as_ptr(),
-    );
-    identifier_audit(program, &spec)?;
-    let canonical_spec_budget = reserve_temporary_exact(MAX_SPEC_BYTES)?;
-    let canonical_spec = render_spec(&spec);
-    canonical_spec_budget.retain(canonical_spec.capacity())?;
-    let mut hir_scan_stack = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
-    let hir_capacity =
-        hir_pre_resolve_capacity(program, canonical_source.len(), &mut hir_scan_stack)?;
-    let mut hir_budget = reserve_temporary_exact(
-        hir_capacity
-            .complete()
-            .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
-    )?;
-    let dispose_frames = Vec::with_capacity(hir_capacity.disposal_frames);
-    note_hir_resolve_pass();
-    let resolved_owner = ResolvedProgramOwner::new(
-        hir::resolve(program).map_err(|_| b107("selected identity missing"))?,
-        dispose_frames,
-        hir_capacity.disposal_frames,
     );
     let resolved = resolved_owner.program();
     let (closure, reached_imports) = selected_closure(resolved, &spec.exports)?;
@@ -5020,23 +5575,8 @@ fn prepare_native_rust_interop_bounded(
     // Its maps contain only declaration identities/type facts derived from
     // canonical source; charge a separate source-derived upper while every
     // public ResolvedProgram field and selected clone is exact-censused.
-    let declaration_index_upper = hir_capacity.declaration_index_upper;
-    let actual_hir_retained = hir_owned_capacity(resolved)?
-        .checked_add(declaration_index_upper)
-        .and_then(|bytes| {
-            bytes.checked_add(
-                hir_capacity
-                    .disposal_frames
-                    .checked_mul(std::mem::size_of::<ResolvedDisposeFrame>())?,
-            )
-        })
-        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
-    if actual_hir_retained > hir_capacity.retained_upper {
-        return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
-    }
-    hir_budget.shrink_held(actual_hir_retained)?;
     let facts_capacity = post_hir_facts_capacity(
-        canonical_source.len(),
+        canonical_source_len,
         canonical_spec.len(),
         resolved,
         &closure,
@@ -5069,26 +5609,42 @@ fn prepare_native_rust_interop_bounded(
             identifier_gate(effect)?;
             selected_effects.insert(effect.as_str());
         }
+        if is_project
+            && (!function.effects.is_empty()
+                || resolved
+                    .declarations
+                    .declaration(&function.id)
+                    .map(|declaration| declaration.identity_origin)
+                    != Some(crate::hir::IdentityOrigin::Explicit))
+        {
+            return Err(b107(
+                "Project closure requires explicit effect-free declarations",
+            ));
+        }
     }
-    let source_functions = program
+    let source_functions = resolved
         .functions
         .iter()
-        .map(|function| (function.stable_id.as_str(), function))
+        .map(|function| (function.id.as_str(), function))
         .collect::<BTreeMap<_, _>>();
     for id in &spec.exports {
         let function = source_functions
             .get(id.as_str())
             .ok_or_else(|| b107("selected identity missing"))?;
-        if !function.explicit_id
+        let explicit_id = resolved
+            .declarations
+            .declaration(&function.id)
+            .map(|declaration| declaration.identity_origin)
+            == Some(crate::hir::IdentityOrigin::Explicit);
+        if !explicit_id
             || function.name == "main"
-            || !function.type_parameters.is_empty()
             || function.params.len() > MAX_PARAMETERS
             || function.params.iter().any(|parameter| {
-                parameter.mode != ParamMode::Value || source_scalar_type(&parameter.ty).is_none()
+                parameter.ownership != OwnershipMode::Value || scalar_type(&parameter.ty).is_none()
             })
-            || source_scalar_type(&function.return_type).is_none()
+            || scalar_type(&function.return_type).is_none()
         {
-            return Err(b107(if !function.explicit_id {
+            return Err(b107(if !explicit_id {
                 "explicit persistent ID required"
             } else {
                 "scalar value signature required"
@@ -5677,24 +6233,50 @@ fn prepare_native_rust_interop_bounded(
     #[cfg(test)]
     inject_prepare_failure(PrepareFailurePoint::Facts)?;
     let descriptor_budget = reserve_temporary_exact(MAX_DESCRIPTOR_BYTES)?;
-    let descriptor = render_descriptor(
-        &spec,
-        &hir_digest,
-        &status_domains,
-        &export_facts,
-        &import_facts,
-    )?;
+    let descriptor = if is_project {
+        render_descriptor_for_subject(
+            &spec,
+            DescriptorSubject::ProjectSubjectDigest(
+                project_subject_digest.as_deref().ok_or_else(b108)?,
+            ),
+            &hir_digest,
+            &status_domains,
+            &export_facts,
+            &import_facts,
+        )?
+    } else {
+        render_descriptor(
+            &spec,
+            &hir_digest,
+            &status_domains,
+            &export_facts,
+            &import_facts,
+        )?
+    };
     descriptor_budget.retain(descriptor.capacity())?;
     if descriptor.len() > MAX_DESCRIPTOR_BYTES {
         return Err(b109("max_descriptor_bytes", MAX_DESCRIPTOR_BYTES));
     }
-    replay_descriptor(
-        &descriptor,
-        &spec,
-        &hir_digest,
-        &export_facts,
-        &import_facts,
-    )?;
+    if is_project {
+        replay_descriptor_for_subject(
+            &descriptor,
+            &spec,
+            DescriptorSubject::ProjectSubjectDigest(
+                project_subject_digest.as_deref().ok_or_else(b108)?,
+            ),
+            &hir_digest,
+            &export_facts,
+            &import_facts,
+        )?;
+    } else {
+        replay_descriptor(
+            &descriptor,
+            &spec,
+            &hir_digest,
+            &export_facts,
+            &import_facts,
+        )?;
+    }
     let header_budget = reserve_temporary_exact(MAX_GENERATED_HEADER_BYTES)?;
     let generated_header = generate_header(&export_facts, &import_facts)?;
     header_budget.retain(generated_header.capacity())?;
@@ -5746,8 +6328,22 @@ fn prepare_native_rust_interop_bounded(
             .iter()
             .map(|function| function.id.as_str().to_owned()),
     );
-    let spec_digest = domain_digest(SPEC_DIGEST_DOMAIN, canonical_spec.as_bytes());
-    let descriptor_digest = domain_digest(DESCRIPTOR_DIGEST_DOMAIN, descriptor.as_bytes());
+    let spec_digest = domain_digest(
+        if is_project {
+            PROJECT_SUBJECT_DOMAIN
+        } else {
+            SPEC_DIGEST_DOMAIN
+        },
+        canonical_spec.as_bytes(),
+    );
+    let descriptor_digest = domain_digest(
+        if is_project {
+            PROJECT_DESCRIPTOR_DIGEST_DOMAIN
+        } else {
+            DESCRIPTOR_DIGEST_DOMAIN
+        },
+        descriptor.as_bytes(),
+    );
     let spec_authority_bytes = checked_spec_owned_capacity(&spec)
         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
     if spec_authority.maximum() != spec_authority_bytes {
@@ -5770,6 +6366,9 @@ fn prepare_native_rust_interop_bounded(
             .and_then(|bytes| bytes.checked_add(hir_digest.capacity()))
             .and_then(|bytes| bytes.checked_add(spec_digest.capacity()))
             .and_then(|bytes| bytes.checked_add(descriptor_digest.capacity()))
+            .and_then(|bytes| {
+                bytes.checked_add(project_subject_digest.as_ref().map_or(0, String::capacity))
+            })
             .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
     let persistent_facts = persistent_without_spec_transfer
         .checked_add(spec_transfer_capacity)
@@ -5814,7 +6413,9 @@ fn prepare_native_rust_interop_bounded(
     assert_eq!(
         spec_transfer_allocations,
         (
-            source_revision.as_ptr(),
+            source_revision
+                .as_ref()
+                .map_or(std::ptr::null(), |value| value.as_ptr()),
             target.triple.as_ptr(),
             target.endian.as_ptr(),
             target.panic_strategy.as_ptr(),
@@ -5823,7 +6424,8 @@ fn prepare_native_rust_interop_bounded(
         "Spec source/target allocations must move into Prepared without clones",
     );
     let moved_transfer_capacity = source_revision
-        .capacity()
+        .as_ref()
+        .map_or(0, String::capacity)
         .checked_add(target.triple.capacity())
         .and_then(|bytes| bytes.checked_add(target.endian.capacity()))
         .and_then(|bytes| bytes.checked_add(target.panic_strategy.capacity()))
@@ -5866,6 +6468,7 @@ fn prepare_native_rust_interop_bounded(
         descriptor_digest,
         descriptor,
         source_revision,
+        project_subject_digest,
         hir_digest,
         target,
         exports: export_facts,
@@ -6884,9 +7487,13 @@ fn write_manifest(
     target: &str,
 ) -> std::fmt::Result {
     output.write_str("{\"schema\":")?;
-    write_json_string(output, BUNDLE_SCHEMA)?;
+    write_json_string(output, prepared.bundle_schema())?;
+    if let Some(digest) = prepared.project_subject_digest() {
+        output.write_str(",\"project_subject_digest\":")?;
+        write_json_string(output, digest)?;
+    }
     output.write_str(",\"descriptor\":{\"schema\":")?;
-    write_json_string(output, DESCRIPTOR_SCHEMA)?;
+    write_json_string(output, prepared.descriptor_schema())?;
     output.write_str(",\"digest\":")?;
     write_json_string(output, &prepared.descriptor_digest)?;
     output.write_str(",\"bytes\":")?;
@@ -6975,9 +7582,13 @@ fn replay_manifest_bytes_exact(
 ) -> bool {
     let mut exact = ExactReplay::new(source);
     exact.text("{\"schema\":");
-    exact.json(BUNDLE_SCHEMA);
+    exact.json(prepared.bundle_schema());
+    if let Some(digest) = prepared.project_subject_digest() {
+        exact.text(",\"project_subject_digest\":");
+        exact.json(digest);
+    }
     exact.text(",\"descriptor\":{\"schema\":");
-    exact.json(DESCRIPTOR_SCHEMA);
+    exact.json(prepared.descriptor_schema());
     exact.text(",\"digest\":");
     exact.json(&prepared.descriptor_digest);
     exact.text(",\"bytes\":");
@@ -7219,9 +7830,13 @@ fn replay_manifest_semantic(
 ) -> Result<usize, PhaseBLocalError> {
     let mut cursor = ManifestCursor::new(source)?;
     cursor.expect(b"{\"schema\":")?;
-    cursor.string_eq(BUNDLE_SCHEMA)?;
+    cursor.string_eq(prepared.bundle_schema())?;
+    if let Some(digest) = prepared.project_subject_digest() {
+        cursor.expect(b",\"project_subject_digest\":")?;
+        cursor.string_eq(digest)?;
+    }
     cursor.expect(b",\"descriptor\":{\"schema\":")?;
-    cursor.string_eq(DESCRIPTOR_SCHEMA)?;
+    cursor.string_eq(prepared.descriptor_schema())?;
     cursor.expect(b",\"digest\":")?;
     cursor.string_eq(&prepared.descriptor_digest)?;
     cursor.expect(b",\"bytes\":")?;
@@ -8136,6 +8751,21 @@ pub(crate) fn build_native_rust_interop_bundle(
     finish_bounded_bundle(result, overflowed)
 }
 
+pub(crate) fn build_project_native_rust_interop_bundle(
+    program: &ResolvedProgram,
+    project_subject_bytes: &[u8],
+    output: &Path,
+) -> Result<NativeRustInteropBundleFacts, Vec<Diagnostic>> {
+    reset_phase_b_error_materialization_observer();
+    let (result, overflowed) = crate::bounded_output::with_limit(MAX_BUILDER_BYTES, || {
+        let prepared = prepare_project_native_rust_interop_bounded(program, project_subject_bytes)?;
+        let phase = prepare_phase_b_from_prepared(prepared, output)?;
+        let mut hook = |_, _: &Path, _: &Path, _: &Path| {};
+        build_prepared_phase_b_bounded(phase, output, &mut hook)
+    });
+    finish_bounded_bundle(result, overflowed)
+}
+
 #[cfg(test)]
 fn build_native_rust_interop_bundle_with_test_limit(
     program: &Program,
@@ -8456,13 +9086,20 @@ fn prepare_phase_b(
     output: &Path,
 ) -> Result<PreparedPhaseB, BundleBuildError> {
     let prepared = prepare_native_rust_interop_bounded(program, spec_bytes)?;
+    prepare_phase_b_from_prepared(prepared, output)
+}
+
+fn prepare_phase_b_from_prepared(
+    prepared: PreparedNativeRustInterop,
+    output: &Path,
+) -> Result<PreparedPhaseB, BundleBuildError> {
     let object_name: &'static str = if cfg!(windows) {
         "module.obj"
     } else {
         "module.o"
     };
     let parent = output.parent().ok_or_else(platform_publication_error)?;
-    let pending_facts = PendingBundleFacts::new(output, object_name)?;
+    let pending_facts = PendingBundleFacts::new(output, object_name, &prepared.descriptor_digest)?;
     let publish_slot = StageSlot::new(parent, &prepared.descriptor_digest, "publish")?;
     let run_slot = StageSlot::new(parent, &prepared.descriptor_digest, "run")?;
     let publish_files = prepare_publish_discard_inventory()?;
@@ -8538,6 +9175,15 @@ fn build_native_rust_interop_bundle_bounded(
     output: &Path,
     hook: &mut dyn FnMut(NativeRustBuildPoint, &Path, &Path, &Path),
 ) -> Result<BundleBuildSuccess, BundleBuildError> {
+    let phase = prepare_phase_b(program, spec_bytes, output)?;
+    build_prepared_phase_b_bounded(phase, output, hook)
+}
+
+fn build_prepared_phase_b_bounded(
+    phase: PreparedPhaseB,
+    output: &Path,
+    hook: &mut dyn FnMut(NativeRustBuildPoint, &Path, &Path, &Path),
+) -> Result<BundleBuildSuccess, BundleBuildError> {
     let PreparedPhaseB {
         prepared,
         mut pending_facts,
@@ -8554,7 +9200,7 @@ fn build_native_rust_interop_bundle_bounded(
         link_copies,
         inventory_exact,
         mut final_publish,
-    } = prepare_phase_b(program, spec_bytes, output)?;
+    } = phase;
 
     mark_phase_b_effect_started();
     #[cfg(test)]
@@ -8622,7 +9268,9 @@ fn build_native_rust_interop_bundle_bounded(
         let _ = discard_run_stage(&parent_authority, &stage, &publish_files);
         return Err(carriers.error(error));
     }
-    if let Err(error) = pending_facts.bind_manifest_digest(facts.manifest.as_bytes()) {
+    if let Err(error) =
+        pending_facts.bind_manifest_digest(facts.manifest.as_bytes(), prepared.is_project())
+    {
         let _ = discard_run_stage(&parent_authority, &stage, &publish_files);
         return Err(carriers.error(error));
     }

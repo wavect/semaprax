@@ -17,10 +17,19 @@ use crate::diagnostic::Diagnostic;
 const SPEC_SCHEMA: &str = "semaprax.native-rust-interop-spec.v1";
 const DESCRIPTOR_SCHEMA: &str = "semaprax.native-rust-interop-descriptor.v1";
 const SDK_SCHEMA: &str = "semaprax.native-rust-sdk.v1";
+pub const PROJECT_NATIVE_RUST_SUBJECT_SCHEMA: &str = "semaprax.project-native-rust-subject.v1";
+pub const PROJECT_NATIVE_RUST_SDK_SCHEMA: &str = "semaprax.project-native-rust-sdk.v1";
+const PROJECT_DESCRIPTOR_SCHEMA: &str = "semaprax.project-native-rust-interop-descriptor.v1";
 const SOURCE_DOMAIN: &[u8] = b"semaprax.native-rust-interop.source-revision.v1\0";
 const DESCRIPTOR_DOMAIN: &[u8] = b"semaprax.native-rust-interop.descriptor-digest.v1\0";
 const INNER_BUNDLE_DOMAIN: &[u8] = b"semaprax.native-rust-interop.bundle-digest.v1\0";
+const PROJECT_DESCRIPTOR_DOMAIN: &[u8] =
+    b"semaprax.project-native-rust-interop.descriptor-digest.v1\0";
+const PROJECT_INNER_BUNDLE_DOMAIN: &[u8] =
+    b"semaprax.project-native-rust-interop.bundle-digest.v1\0";
 const SDK_MANIFEST_DOMAIN: &[u8] = b"semaprax.native-rust-sdk.manifest.v1\0";
+const PROJECT_SUBJECT_DOMAIN: &[u8] = b"semaprax.project-native-rust-interop.subject.v1\0";
+const PROJECT_SDK_MANIFEST_DOMAIN: &[u8] = b"semaprax.project-native-rust-sdk.manifest.v1\0";
 const MAX_SOURCE_BYTES: usize = 16_777_216;
 const MAX_SPEC_BYTES: usize = 1_048_576;
 const MAX_DESCRIPTOR_BYTES: usize = 1_048_576;
@@ -105,6 +114,54 @@ pub struct NativeRustSdkBundle {
     manifest_digest: String,
     crate_name: String,
     target_triple: String,
+}
+
+/// Immutable facts returned only after one authenticated Project SDK package
+/// and the retained Project inputs have both been rechecked.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectNativeRustSdkBundle {
+    sdk: NativeRustSdkBundle,
+    project_revision: String,
+    workspace_revision: String,
+    subject_digest: String,
+}
+
+impl ProjectNativeRustSdkBundle {
+    pub fn sdk(&self) -> &NativeRustSdkBundle {
+        &self.sdk
+    }
+
+    pub fn output_directory(&self) -> &Path {
+        self.sdk.output_directory()
+    }
+
+    pub fn manifest_path(&self) -> &Path {
+        self.sdk.manifest_path()
+    }
+
+    pub fn manifest_digest(&self) -> &str {
+        self.sdk.manifest_digest()
+    }
+
+    pub fn crate_name(&self) -> &str {
+        self.sdk.crate_name()
+    }
+
+    pub fn target_triple(&self) -> &str {
+        self.sdk.target_triple()
+    }
+
+    pub fn project_revision(&self) -> &str {
+        &self.project_revision
+    }
+
+    pub fn workspace_revision(&self) -> &str {
+        &self.workspace_revision
+    }
+
+    pub fn subject_digest(&self) -> &str {
+        &self.subject_digest
+    }
 }
 
 impl NativeRustSdkBundle {
@@ -485,8 +542,10 @@ mod authority;
 mod build;
 mod descriptor;
 mod package;
+mod project;
 
 pub use build::build_native_rust_sdk;
+pub use project::build_project_native_rust_sdk;
 
 #[cfg(test)]
 mod tests;

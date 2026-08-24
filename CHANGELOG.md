@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- Added locally evidenced Project Native Rust SDK v1. The unpublished builder
+  accepts one root-authenticated Project Manifest v1 subject, consumes its
+  already linked and validated entry HIR without flattening or reparsing, and
+  emits the existing exact nine-file dependency-free Rust package for the
+  manifest's stable-ID Web-export set. Distinct target-neutral subject,
+  target-specific descriptor/bundle, and outer SDK schemas bind canonical
+  manifest bytes, Project/workspace/graph revisions, complete source facts,
+  exact export origins, current-target ABI, and artifacts under separate
+  digest domains. Local calculator evidence runs Web/Node and Rust consumers,
+  applies the opt-in daemon display rename, shuts the daemon down, rebuilds,
+  and proves stable-ID behavior across changed authenticated revisions. It
+  does not assert whole-package byte equality. Hosted promotion, root CLI,
+  registry, dependencies, and general Project/import/capability/aggregate/
+  resource support remain pending; completion statuses and totals are
+  unchanged.
+
 - Added the ownership control-flow regression battery v1
   (`tests/ownership_control_flow_v1.rs`): fourteen pinned cases locking the
   exact move-safety behavior across lazy boolean operands, match scrutinees,

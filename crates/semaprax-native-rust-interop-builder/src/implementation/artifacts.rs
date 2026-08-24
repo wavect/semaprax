@@ -32,13 +32,16 @@ pub(super) fn replay_limits_exact(replay: &mut ExactReplay<'_>) {
 }
 
 pub(super) fn replay_spec_bytes_exact(source: &str, spec: &Spec) -> bool {
+    let Some(source_revision) = spec.source_revision() else {
+        return false;
+    };
     let mut replay = ExactReplay::new(source);
     replay.text("{\"schema\":");
     replay.json(SPEC_SCHEMA);
     replay.text(",\"module\":");
     replay.json(&spec.module);
     replay.text(",\"source_revision\":");
-    replay.json(&spec.source_revision);
+    replay.json(source_revision);
     replay.text(",\"target\":{\"triple\":");
     replay.json(&spec.target.triple);
     replay.text(",\"pointer_width\":");
@@ -100,6 +103,7 @@ fn replay_strings_exact(replay: &mut ExactReplay<'_>, values: &[String]) {
 fn replay_descriptor_bytes_exact(
     source: &str,
     spec: &Spec,
+    subject: DescriptorSubject<'_>,
     hir_digest: &str,
     status_domains: &[String],
     exports: &[ExportFact],
@@ -107,11 +111,13 @@ fn replay_descriptor_bytes_exact(
 ) -> bool {
     let mut replay = ExactReplay::new(source);
     replay.text("{\"schema\":");
-    replay.json(DESCRIPTOR_SCHEMA);
+    replay.json(subject.schema());
     replay.text(",\"module\":");
     replay.json(&spec.module);
-    replay.text(",\"source_revision\":");
-    replay.json(&spec.source_revision);
+    replay.text(",\"");
+    replay.text(subject.key());
+    replay.text("\":");
+    replay.json(subject.value());
     replay.text(",\"hir_digest\":");
     replay.json(hir_digest);
     replay.text(",\"target\":{\"triple\":");
@@ -223,6 +229,27 @@ fn replay_descriptor_bytes_exact(
 
 pub(super) fn render_descriptor_with_limit(
     spec: &Spec,
+    hir_digest: &str,
+    status_domains: &[String],
+    exports: &[ExportFact],
+    imports: &[ImportFact],
+    maximum: usize,
+) -> Result<String, Diagnostic> {
+    let source_revision = spec.source_revision().ok_or_else(b108)?;
+    render_descriptor_for_subject_with_limit(
+        spec,
+        DescriptorSubject::SourceRevision(source_revision),
+        hir_digest,
+        status_domains,
+        exports,
+        imports,
+        maximum,
+    )
+}
+
+fn render_descriptor_for_subject_with_limit(
+    spec: &Spec,
+    subject: DescriptorSubject<'_>,
     hir_digest: &str,
     status_domains: &[String],
     exports: &[ExportFact],
@@ -399,9 +426,9 @@ pub(super) fn render_descriptor_with_limit(
             .saturating_add(import_rows.capacity()),
     );
     drop(import_row_values);
-    let schema = quote_json(DESCRIPTOR_SCHEMA);
+    let schema = quote_json(subject.schema());
     let module = quote_json(&spec.module);
-    let source_revision = quote_json(&spec.source_revision);
+    let subject_value = quote_json(subject.value());
     let hir = quote_json(hir_digest);
     let target = target_json(&spec.target);
     let status_rows = statuses.join(",");
@@ -415,7 +442,7 @@ pub(super) fn render_descriptor_with_limit(
             .saturating_add(import_rows.capacity())
             .saturating_add(schema.capacity())
             .saturating_add(module.capacity())
-            .saturating_add(source_revision.capacity())
+            .saturating_add(subject_value.capacity())
             .saturating_add(hir.capacity())
             .saturating_add(target.capacity())
             .saturating_add(status_rows.capacity())
@@ -425,10 +452,11 @@ pub(super) fn render_descriptor_with_limit(
     render_exact_artifact("max_descriptor_bytes", maximum, |sink| {
         write!(
             sink,
-            "{{\"schema\":{},\"module\":{},\"source_revision\":{},\"hir_digest\":{},\"target\":{},\"status_domains\":[{}],\"abi\":{{\"version\":1,\"calling_convention\":\"C\",\"status_word\":\"u64-domain16-code32-class8-retry1-reserved7\",\"bool\":\"u8-0-or-1\",\"i64\":\"signed-two-complement-i64\",\"context\":\"SPXNRCTX1\",\"imports_table\":\"SPXNRIMP1\",\"result\":\"caller-owned-uninitialized-success-only\",\"allocator\":\"none-across-boundary\",\"unwind\":\"caught-before-ffi-return\",\"threading\":\"same-thread\",\"reentrancy\":\"rejected\"}},\"exports\":[{}],\"imports\":[{}],\"limits\":{},\"nonclaims\":[{}]}}\n",
+            "{{\"schema\":{},\"module\":{},\"{}\":{},\"hir_digest\":{},\"target\":{},\"status_domains\":[{}],\"abi\":{{\"version\":1,\"calling_convention\":\"C\",\"status_word\":\"u64-domain16-code32-class8-retry1-reserved7\",\"bool\":\"u8-0-or-1\",\"i64\":\"signed-two-complement-i64\",\"context\":\"SPXNRCTX1\",\"imports_table\":\"SPXNRIMP1\",\"result\":\"caller-owned-uninitialized-success-only\",\"allocator\":\"none-across-boundary\",\"unwind\":\"caught-before-ffi-return\",\"threading\":\"same-thread\",\"reentrancy\":\"rejected\"}},\"exports\":[{}],\"imports\":[{}],\"limits\":{},\"nonclaims\":[{}]}}\n",
             schema,
             module,
-            source_revision,
+            subject.key(),
+            subject_value,
             hir,
             target,
             status_rows,
@@ -458,9 +486,47 @@ pub(super) fn render_descriptor(
     )
 }
 
+pub(super) fn render_descriptor_for_subject(
+    spec: &Spec,
+    subject: DescriptorSubject<'_>,
+    hir_digest: &str,
+    status_domains: &[String],
+    exports: &[ExportFact],
+    imports: &[ImportFact],
+) -> Result<String, Diagnostic> {
+    render_descriptor_for_subject_with_limit(
+        spec,
+        subject,
+        hir_digest,
+        status_domains,
+        exports,
+        imports,
+        MAX_DESCRIPTOR_BYTES,
+    )
+}
+
 pub(super) fn replay_descriptor(
     source: &str,
     spec: &Spec,
+    hir_digest: &str,
+    exports: &[ExportFact],
+    imports: &[ImportFact],
+) -> Result<(), Diagnostic> {
+    let source_revision = spec.source_revision().ok_or_else(b108)?;
+    replay_descriptor_for_subject(
+        source,
+        spec,
+        DescriptorSubject::SourceRevision(source_revision),
+        hir_digest,
+        exports,
+        imports,
+    )
+}
+
+pub(super) fn replay_descriptor_for_subject(
+    source: &str,
+    spec: &Spec,
+    subject: DescriptorSubject<'_>,
     hir_digest: &str,
     exports: &[ExportFact],
     imports: &[ImportFact],
@@ -487,7 +553,15 @@ pub(super) fn replay_descriptor(
                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
         );
     }
-    if !replay_descriptor_bytes_exact(source, spec, hir_digest, &status_domains, exports, imports) {
+    if !replay_descriptor_bytes_exact(
+        source,
+        spec,
+        subject,
+        hir_digest,
+        &status_domains,
+        exports,
+        imports,
+    ) {
         return Err(b108());
     }
     if !source.ends_with('\n') {
@@ -508,9 +582,13 @@ pub(super) fn replay_descriptor(
     );
     let row = value.as_object().ok_or_else(b108)?;
     if row.len() != 11
-        || row.get("schema").and_then(Value::as_str) != Some(DESCRIPTOR_SCHEMA)
+        || row.get("schema").and_then(Value::as_str) != Some(subject.schema())
         || row.get("module").and_then(Value::as_str) != Some(&spec.module)
-        || row.get("source_revision").and_then(Value::as_str) != Some(&spec.source_revision)
+        || row.get(subject.key()).and_then(Value::as_str) != Some(subject.value())
+        || row.contains_key(match subject {
+            DescriptorSubject::SourceRevision(_) => "project_subject_digest",
+            DescriptorSubject::ProjectSubjectDigest(_) => "source_revision",
+        })
         || row.get("hir_digest").and_then(Value::as_str) != Some(hir_digest)
         || row.get("exports").and_then(Value::as_array).map(Vec::len) != Some(exports.len())
         || row.get("imports").and_then(Value::as_array).map(Vec::len) != Some(imports.len())

@@ -22,7 +22,11 @@ use std::path::Path;
 
 mod public_sdk;
 
-pub use public_sdk::{build_native_rust_sdk, NativeRustSdkBundle, NativeRustSdkOptions};
+pub use public_sdk::{
+    build_native_rust_sdk, build_project_native_rust_sdk, NativeRustSdkBundle,
+    NativeRustSdkOptions, ProjectNativeRustSdkBundle, PROJECT_NATIVE_RUST_SDK_SCHEMA,
+    PROJECT_NATIVE_RUST_SUBJECT_SCHEMA,
+};
 
 pub(crate) mod workspace {
     use super::*;

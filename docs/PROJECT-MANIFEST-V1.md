@@ -162,14 +162,31 @@ cargo test --locked -p semaprax --test project_manifest_v1
 cargo test --locked -p semaprax --test project_backend_equivalence_v1 -- --test-threads=1
 ```
 
+The additive local Project Native Rust SDK v1 evidence uses the manifest's
+exact `web_exports` set as the generated Rust facade and binds the canonical
+manifest, Project/workspace/graph revisions, every declared source fact, and
+each export's declaration origin before invoking the existing SDK builder over
+the already linked entry HIR. Its end-to-end gate builds and runs the
+calculator Project through Web/Node and Rust consumers before and after the
+opt-in daemon rename and explicit shutdown:
+
+```sh
+SEMAPRAX_REQUIRE_PROJECT_NATIVE_RUST_SDK=1 cargo test --locked -p semaprax --test project_agent_transport_rename_v1 project_rename_transaction_refreshes_the_exact_project_and_preserves_web_api -- --nocapture
+```
+
+That evidence is local only. It proves revision-bound stable-ID behavior, not
+whole-package byte equality across the rename, a Project CLI Rust target, or
+general Project/package/import/capability/aggregate/resource support.
+
 The exact `d883ace579bfd86f723cdc6819224fde51f0677d` Project v1 matrix is
 hosted green in [run 32523952912](https://github.com/wavect/semaprax/actions/runs/32523952912),
 including [Ubuntu](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973139),
 [macOS](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973190),
 and [Windows](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973112).
-That run predates native publication; the new lane additionally requires an
-exact-head hosted Ubuntu/macOS/Windows matrix that includes
-`project_native_publication_v1` before any hosted claim. Project v1 does not
+That run predates native publication and the Project Native Rust SDK; the new
+lanes additionally require an exact-head hosted Ubuntu/macOS/Windows matrix
+that includes `project_native_publication_v1` and the Project Native Rust SDK
+gate before any hosted claim for those lanes. Project v1 does not
 claim general packages/dependencies, registry or network access, capabilities,
 aggregate or resource composition, generics, interface/native imports or
 `use type` edges, effects, general multi-file compilation, native output

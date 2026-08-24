@@ -3,10 +3,12 @@
 //! [`generate`] projects one verified single-file SEMAPRAX module into one
 //! canonical compact JSON envelope (`semaprax.ui-dialect-schema.v1`)
 //! describing its typed application schema: every admitted public non-generic
-//! scalar-field record becomes one state-shape descriptor whose names,
+//! Copy-scalar-field record becomes one state-shape descriptor whose names,
 //! types, offsets, sizes, and alignments come exclusively from the checked
-//! Native64 compiler layouts, and every admitted explicit-ID monomorphic
-//! by-value effect-free scalar function becomes one typed action descriptor
+//! Native64 compiler layouts (`i64`, `i32`, `u8`, `f32`, `f64`, `char`,
+//! `bool`; mixed scalar fields allowed), and every admitted explicit-ID
+//! monomorphic by-value effect-free scalar function becomes one typed action
+//! descriptor
 //! with its parameter/result types. An explicit empty-by-default UI section
 //! (`controls`, `accessibility`, `navigation`) is always present as a
 //! reserved nonclaim field. This is a schema PROJECTION only: no rendering,
@@ -298,8 +300,9 @@ struct SchemaInput {
 }
 
 /// Closed AST-level admission gate for records: only public non-generic
-/// records whose fields are all direct `i64`/`bool` scalars are admitted;
-/// every other declaration gets exactly one closed exclusion reason.
+/// records whose fields are all direct Copy scalars (`i64`, `i32`, `u8`,
+/// `f32`, `f64`, `char`, `bool`) are admitted; every other declaration gets
+/// exactly one closed exclusion reason.
 fn record_admission(declaration: &TypeDeclaration) -> Option<&'static str> {
     if !declaration.explicit_id {
         return Some(RECORD_REASON_AUTOMATIC_IDENTITY);
@@ -314,7 +317,7 @@ fn record_admission(declaration: &TypeDeclaration) -> Option<&'static str> {
         TypeDeclarationKind::Record { fields } => {
             if fields
                 .iter()
-                .any(|field| !matches!(field.ty, Type::I64 | Type::Bool))
+                .any(|field| ast_scalar_type_name(&field.ty).is_none())
             {
                 Some(RECORD_REASON_MIXED_FIELD_TYPES)
             } else {
@@ -327,14 +330,19 @@ fn record_admission(declaration: &TypeDeclaration) -> Option<&'static str> {
 fn ast_scalar_type_name(ty: &Type) -> Option<&'static str> {
     match ty {
         Type::I64 => Some("i64"),
+        Type::I32 => Some("i32"),
+        Type::Char => Some("char"),
+        Type::U8 => Some("u8"),
+        Type::F32 => Some("f32"),
+        Type::F64 => Some("f64"),
         Type::Bool => Some("bool"),
         _ => None,
     }
 }
 
-/// Closed AST-level admission gate mirroring the Canonical ABI Report v1
-/// profile exactly: explicit identity, monomorphic, effect-free, by-value
-/// direct `i64`/`bool` parameters and result.
+/// Closed AST-level admission gate mirroring the widened Canonical ABI Report
+/// v1 profile style: explicit identity, monomorphic, effect-free, by-value
+/// direct Copy-scalar parameters and result.
 fn function_admission(function: &Function) -> Option<&'static str> {
     if !function.explicit_id {
         return Some(REASON_AUTOMATIC_IDENTITY);
@@ -349,11 +357,11 @@ fn function_admission(function: &Function) -> Option<&'static str> {
         if param.mode != ParamMode::Value {
             return Some(REASON_UNSUPPORTED_PARAMETER_MODE);
         }
-        if !matches!(param.ty, Type::I64 | Type::Bool) {
+        if ast_scalar_type_name(&param.ty).is_none() {
             return Some(REASON_UNSUPPORTED_PARAMETER_TYPE);
         }
     }
-    if !matches!(function.return_type, Type::I64 | Type::Bool) {
+    if ast_scalar_type_name(&function.return_type).is_none() {
         return Some(REASON_UNSUPPORTED_RESULT_TYPE);
     }
     None
@@ -411,6 +419,11 @@ fn project_state_shape(
 fn resolved_scalar_type_name(ty: &ResolvedType) -> Result<&'static str, Vec<Diagnostic>> {
     match ty {
         ResolvedType::I64 => Ok("i64"),
+        ResolvedType::I32 => Ok("i32"),
+        ResolvedType::Char => Ok("char"),
+        ResolvedType::U8 => Ok("u8"),
+        ResolvedType::F32 => Ok("f32"),
+        ResolvedType::F64 => Ok("f64"),
         ResolvedType::Bool => Ok("bool"),
         other => Err(vec![consistency_error(format!(
             "type `{}` is outside the admitted scalar profile",
@@ -948,5 +961,86 @@ fn main() -> i64 { 0 }
 
     fn cleanup(path: &Path) {
         let _ = std::fs::remove_file(path);
+    }
+
+    /// Widened-scalar state-shape facts must equal the checked Native64
+    /// compiler layouts for every admitted scalar kind, including mixed
+    /// padding and the four-byte char representation.
+    #[test]
+    fn widened_state_shape_facts_come_from_the_checked_layouts() {
+        let source = r#"
+module test.widened.shapes;
+
+@id("shapes.tensor")
+record Tensor {
+    @id("shapes.tensor.a")
+    a: i64,
+    @id("shapes.tensor.b")
+    b: i32,
+    @id("shapes.tensor.c")
+    c: u8,
+    @id("shapes.tensor.d")
+    d: f32,
+    @id("shapes.tensor.e")
+    e: f64,
+    @id("shapes.tensor.g")
+    g: char,
+    @id("shapes.tensor.h")
+    h: bool,
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+        let path = write_temp(source);
+        let text = std::fs::read_to_string(&path).unwrap();
+        let program = parse(&text, &path).expect("parses");
+        let resolved = hir::resolve(&program).expect("resolves");
+        let shape = project_state_shape(&resolved, "shapes.tensor").expect("shape");
+
+        let declaration = resolved
+            .types
+            .iter()
+            .find(|candidate| candidate.id.as_str() == "shapes.tensor")
+            .expect("resolved record");
+        let checked = aggregate_layout::AggregateLayout::for_record(
+            &resolved,
+            AggregateTarget::Native64,
+            &declaration.id,
+        )
+        .expect("checked layout");
+        assert_eq!(
+            (shape.size_bytes, shape.align_bytes),
+            (checked.size, checked.align)
+        );
+        assert_eq!(shape.fields.len(), checked.fields.len());
+        for (field, fact) in shape.fields.iter().zip(checked.fields.iter()) {
+            assert_eq!(
+                (field.offset, field.size_bytes, field.align_bytes),
+                (fact.offset, fact.size, fact.align)
+            );
+        }
+        assert_eq!(shape.name, "Tensor");
+        assert_eq!(
+            shape
+                .fields
+                .iter()
+                .map(|field| field.ty)
+                .collect::<Vec<_>>(),
+            vec!["i64", "i32", "u8", "f32", "f64", "char", "bool"]
+        );
+        // Mixed scalar padding: i64, i32, u8, f32 then an aligned f64, char,
+        // bool pad to the record alignment.
+        assert_eq!(shape.size_bytes, 40);
+        assert_eq!(shape.align_bytes, 8);
+        assert_eq!(
+            shape
+                .fields
+                .iter()
+                .map(|field| (field.offset, field.size_bytes, field.align_bytes))
+                .collect::<Vec<_>>(),
+            vec![(0, 8, 8), (8, 4, 4), (12, 1, 1), (16, 4, 4), (24, 8, 8), (32, 4, 4), (36, 1, 1)]
+        );
+        cleanup(&path);
     }
 }

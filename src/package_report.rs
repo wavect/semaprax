@@ -4,7 +4,8 @@
 //! canonical compact JSON envelope (`semaprax.package-report.v1`): an
 //! interface-first package descriptor whose export inventory lists every
 //! admitted declaration — explicit-ID monomorphic effect-free functions with
-//! only by-value direct `i64`/`bool` parameters and results — sorted bytewise
+//! only by-value direct Copy-scalar (`i64`, `i32`, `u8`, `f32`, `f64`,
+//! `char`, `bool`) parameters and results — sorted bytewise
 //! by stable identity, each carrying its interface types, rendered contract
 //! clauses, declared effect set, and the exact Native64 prototype line
 //! extracted verbatim from the production native C11 projection under its own
@@ -474,7 +475,10 @@ fn replay_closed_sections(payload: &serde_json::Value) -> Result<(), Diagnostic>
     Ok(())
 }
 
-/// Closed AST-level admission gate mirroring Canonical ABI Report v1 exactly.
+/// Closed AST-level admission gate mirroring the widened Canonical ABI
+/// Report v1 profile style: explicit identity, monomorphic, effect-free,
+/// by-value direct Copy-scalar (`i64`, `i32`, `u8`, `f32`, `f64`, `char`,
+/// `bool`) parameters and result.
 fn admission(function: &Function) -> Option<&'static str> {
     if !function.explicit_id {
         return Some(REASON_AUTOMATIC_IDENTITY);
@@ -489,32 +493,41 @@ fn admission(function: &Function) -> Option<&'static str> {
         if param.mode != ParamMode::Value {
             return Some(REASON_UNSUPPORTED_PARAMETER_MODE);
         }
-        if !matches!(param.ty, Type::I64 | Type::Bool) {
+        if scalar_type_name(&param.ty).is_none() {
             return Some(REASON_UNSUPPORTED_PARAMETER_TYPE);
         }
     }
-    if !matches!(function.return_type, Type::I64 | Type::Bool) {
+    if scalar_type_name(&function.return_type).is_none() {
         return Some(REASON_UNSUPPORTED_RESULT_TYPE);
     }
     None
+}
+
+/// The widened Copy-scalar surface this report admits, with the exact
+/// language-type spelling embedded in the export inventory.
+fn scalar_type_name(ty: &Type) -> Option<&'static str> {
+    match ty {
+        Type::I64 => Some("i64"),
+        Type::I32 => Some("i32"),
+        Type::Char => Some("char"),
+        Type::U8 => Some("u8"),
+        Type::F32 => Some("f32"),
+        Type::F64 => Some("f64"),
+        Type::Bool => Some("bool"),
+        _ => None,
+    }
 }
 
 fn parameter_types(function: &Function) -> Vec<&'static str> {
     function
         .params
         .iter()
-        .map(|param| match param.ty {
-            Type::I64 => "i64",
-            _ => "bool",
-        })
+        .map(|param| scalar_type_name(&param.ty).expect("admitted scalar parameter"))
         .collect()
 }
 
 fn result_type(function: &Function) -> &'static str {
-    match function.return_type {
-        Type::I64 => "i64",
-        _ => "bool",
-    }
+    scalar_type_name(&function.return_type).expect("admitted scalar result")
 }
 
 fn extract_native_signature(

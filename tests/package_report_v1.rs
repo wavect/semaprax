@@ -207,11 +207,17 @@ fn effectful(value: i64) -> i64 uses { io.release } { value }
 @id("probe.borrowed")
 fn borrowed(target: borrow Buffer, amount: i64) -> i64 { amount }
 
+@id("probe.box")
+record Box {
+    @id("probe.box.value")
+    value: i64,
+}
+
 @id("probe.wide")
-fn wide(ratio: f64) -> f64 { ratio }
+fn wide(box: Box) -> Box { box }
 
 @id("probe.narrow")
-fn narrow(value: i64) -> f64 { 1.0 }
+fn narrow(value: i64) -> Box { Box { value: value } }
 
 fn helper(value: i64) -> i64 { value + 1 }
 

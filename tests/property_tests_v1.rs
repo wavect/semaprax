@@ -227,8 +227,8 @@ fn effectful(value: i64) -> i64
     uses { clock.read }
 { value + 1 }
 
-@id("probe.floaty")
-fn floaty(value: f32) -> f32 { value }
+@id("probe.stringy")
+fn stringy(value: string) -> string { value }
 
 @id("probe.constructs")
 fn constructs(value: i64) -> i64 {
@@ -266,7 +266,9 @@ fn main() -> i64 { 0 }
     let expected: &[(&str, &str)] = &[
         ("generic", "generic_function"),
         ("effectful", "declared_effects"),
-        ("floaty", "unsupported_parameter_type"),
+        // Widening admitted the seven Copy scalars, so the closed
+        // `unsupported_parameter_type` probe uses `string`.
+        ("stringy", "unsupported_parameter_type"),
         ("constructs", "record_construction"),
         ("maybe", "unsupported_result_type"),
         ("branching", "variant_construction"),

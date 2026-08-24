@@ -742,7 +742,7 @@ console.log("u8-trap-ok");
 }
 
 #[test]
-fn property_tests_defer_uint8_literals_with_the_stable_reason() {
+fn property_tests_analyze_uint8_literals_after_widening() {
     let source = r#"
 module test.u8_property;
 @id("t.identity")
@@ -764,8 +764,10 @@ fn main() -> i64 { 0 }
         .iter()
         .find(|entry| entry["name"] == "identity")
         .expect("identity function is analyzed");
-    assert_eq!(entry["outcome"], "deferred");
-    assert_eq!(entry["reason"], "uint8_literal");
+    // Widening admitted the full Copy-scalar surface, so a `u8` literal in an
+    // otherwise scalar body is now evaluated instead of deferred.
+    assert_eq!(entry["outcome"], "analyzed");
+    assert!(entry["discharged_cases"].as_u64().unwrap() > 0);
     let _ = std::fs::remove_file(&path);
 }
 

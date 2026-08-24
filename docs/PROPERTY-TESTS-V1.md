@@ -26,12 +26,12 @@ semaprax properties <file> [--max-cases N] [--max-functions N] [--max-bytes N] [
 ## Admission and evaluation model
 
 A function is admitted only when it is monomorphic, declares no effects, has
-only by-value direct `i64`/`bool` parameters, and returns direct `i64`/`bool`.
-Every other function is reported as `deferred` with one closed reason:
+only by-value direct parameters over the admitted Copy-scalar types
+(`i64`, `i32`, `u8`, `char`, `f32`, `f64`, `bool`), and returns one of those
+types. Every other function is reported as `deferred` with one closed reason:
 `generic_function`, `declared_effects`, `unsupported_parameter_mode`,
 `unsupported_parameter_type`, `unsupported_result_type`, or the first
-unsupported construct found by the pre-case scan (`float_literal`,
-`int32_literal`, `char_literal`, `uint8_literal`, `record_construction`,
+unsupported construct found by the pre-case scan (`record_construction`,
 `variant_construction`,
 `record_update`,
 `record_projection`, `match_expression`, `try_expression`, `generic_call`,
@@ -40,23 +40,37 @@ unsupported construct found by the pre-case scan (`float_literal`,
 
 For each admitted function the generator produces deterministic candidates:
 the first cases use a fixed boundary lattice per parameter (`0`, `±1`, `±2`,
-`±3`, `i64::MIN`/`MAX`/`MIN+1`/`MAX-1` for `i64`; `true`, `false` for `bool`),
+`±3`, `i64::MIN`/`MAX`/`MIN+1`/`MAX-1` for `i64`; the same shape for `i32`;
+`0`, `1`, `2`, `3`, `255`, `254`, `253` for `u8`; printable ASCII anchors, the
+named escapes, and `\u{10ffff}` for `char`; finite literals
+`0.0`, `±1.0`, `±2.0`, `±3.0`, `f32::MIN`, `f32::MAX`, `±0.5` for `f32` and
+the analogous `f64` set; `true`, `false` for `bool`),
 and later cases draw full-range samples from independent xorshift64* streams
 seeded through splitmix64 mixing of `(base seed, authored function index,
-parameter position)`.
+parameter position)`. Sampled floats are constructed from exact 24-bit
+(`f32`) and 53-bit (`f64`) magnitudes scaled by a power of two, so every
+generated float is finite by construction.
 
 Each candidate tuple is classified exactly once:
 
 1. `requires` clauses are evaluated left-to-right under the parameter
    bindings. The first `false` clause *filters* the case — the input lies
    outside the declared domain and is not a counterexample.
-2. The body is evaluated with checked arithmetic, short-circuit booleans,
-   lexical `let` bindings, `if/else`, and interprocedural calls to other
-   admitted local functions. Callee preconditions are re-checked at each call;
+2. The body is evaluated with checked arithmetic over all admitted integer
+   widths, IEEE-754 float arithmetic, short-circuit booleans, lexical `let`
+   (including `let mut`) bindings, plain assignment statements, bounded
+   `while` loops, `if/else`, and interprocedural calls to other admitted
+   local functions. Callee preconditions are re-checked at each call;
    violations surface as the `callee_requires_violated` runtime reason. A
    callee's postconditions are not evaluated. Runtime reasons are closed:
    `arithmetic_overflow`, `division_by_zero`, `remainder_by_zero`,
    `negation_overflow`, `call_depth_exceeded`, `callee_requires_violated`.
+   Width-specific overflow statuses collapse into `arithmetic_overflow`.
+   Floats never select a runtime failure: division by zero yields an
+   infinity, exactly like the interpreter engine. Every loop iteration
+   charges steps, so a non-terminating loop fails closed through the shared
+   step-budget path instead of hanging; field-assignment targets stay closed
+   with the aggregate reasons above.
 3. With the result bound, every `ensures` clause is evaluated. The first
    `false` clause is recorded as the counterexample (clause index, canonical
    clause text, full argument tuple, observed result) and stops further cases
@@ -76,7 +90,26 @@ The report is canonical compact JSON with schema
 `nonclaims`. Analyzed entries carry `stable_id`, `name`, `outcome`,
 `signature`, clause listings, per-outcome counters, sorted `runtime_reasons`,
 and either `counterexample` or `null`. Integer values are serialized as
-decimal strings to keep the report JSON-number safe.
+decimal strings to keep the report JSON-number safe. Widened scalar values
+render canonically inside quoted JSON strings: `i64` as bare decimal,
+suffixed widths with their explicit `i32`/`u8` suffixes, `char` through the
+canonical escape projection (`'a'`, `'\n'`, `'\u{10ffff}'`), and floats as
+their exact big-endian IEEE-754 bit pattern — the same convention the
+interpreter's envelopes use — so `-0.0`, infinities, and NaN results stay
+distinguishable without relying on any platform's decimal formatting.
+
+## Widening — full Copy-scalar surface (2026-08-24)
+
+Generation and admission widened from `i64`/`bool` to the full seven-type
+Copy-scalar surface the interpreter engine already evaluates: `i64`, `i32`,
+`u8`, `char`, `f32`, `f64`, `bool`. The envelope schema stays
+`semaprax.property-tests.v1`; the widening is purely additive and legacy
+reports over `i64`/`bool` signatures replay byte-identically. The closed
+reason vocabulary shrank only by the four literal rejections that became
+admissions (`float_literal`, `int32_literal`, `char_literal`,
+`uint8_literal`) and by admitting bounded `while` loops; strings, records,
+variants, generics, effects, method calls, match, and try remain closed with
+the same reasons as before.
 
 ## Nonclaims
 
@@ -91,4 +124,5 @@ tranche does not move any completion-matrix status.
 ```sh
 cargo test --locked -p semaprax --lib properties::
 cargo test --locked -p semaprax --test property_tests_v1 -- --test-threads=1
+cargo test --locked -p semaprax --all-features --test property_widen_v1 -- --test-threads=1
 ```

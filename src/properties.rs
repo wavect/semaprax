@@ -36,10 +36,6 @@ const REASON_UNSUPPORTED_PARAMETER_MODE: &str = "unsupported_parameter_mode";
 const REASON_UNSUPPORTED_PARAMETER_TYPE: &str = "unsupported_parameter_type";
 const REASON_UNSUPPORTED_RESULT_TYPE: &str = "unsupported_result_type";
 const REASON_EVALUATION_STEP_BUDGET_EXHAUSTED: &str = "evaluation_step_budget_exhausted";
-const REASON_FLOAT_LITERAL: &str = "float_literal";
-const REASON_INT32_LITERAL: &str = "int32_literal";
-const REASON_CHAR_LITERAL: &str = "char_literal";
-const REASON_UINT8_LITERAL: &str = "uint8_literal";
 const REASON_RECORD_CONSTRUCTION: &str = "record_construction";
 const REASON_VARIANT_CONSTRUCTION: &str = "variant_construction";
 const REASON_RECORD_UPDATE: &str = "record_update";
@@ -47,7 +43,6 @@ const REASON_RECORD_PROJECTION: &str = "record_projection";
 const REASON_MATCH_EXPRESSION: &str = "match_expression";
 const REASON_TRY_EXPRESSION: &str = "try_expression";
 const REASON_ASSIGNMENT: &str = "assignment_statement";
-const REASON_WHILE_LOOP: &str = "while_statement";
 const REASON_GENERIC_CALL: &str = "generic_call";
 const REASON_UNRESOLVED_CALL: &str = "unresolved_call";
 const REASON_UNRESOLVED_VARIABLE: &str = "unresolved_variable";
@@ -86,6 +81,71 @@ const I64_LATTICE: [i64; 11] = [
     i64::MIN + 1,
     i64::MAX - 1,
 ];
+
+const I32_LATTICE: [i32; 11] = [
+    0,
+    1,
+    -1,
+    2,
+    -2,
+    3,
+    -3,
+    i32::MIN,
+    i32::MAX,
+    i32::MIN + 1,
+    i32::MAX - 1,
+];
+
+const U8_LATTICE: [u8; 7] = [0, 1, 2, 3, u8::MAX, u8::MAX - 1, u8::MAX - 2];
+
+/// Char boundaries cover the named escapes, printable ASCII anchors, and the
+/// maximum Unicode scalar value; surrogate halves are never scalars.
+const CHAR_LATTICE: [u32; 11] = [
+    'a' as u32,
+    'A' as u32,
+    '0' as u32,
+    ' ' as u32,
+    '\n' as u32,
+    '\t' as u32,
+    '\r' as u32,
+    '\0' as u32,
+    '\\' as u32,
+    '\'' as u32,
+    0x0010_FFFF,
+];
+
+/// Float lattices hold only finite literals (`MIN`/`MAX` inclusive); NaN and
+/// infinities are excluded because verified HIR rejects non-finite literals.
+const F32_LATTICE: [f32; 11] = [
+    0.0,
+    1.0,
+    -1.0,
+    2.0,
+    -2.0,
+    3.0,
+    -3.0,
+    f32::MIN,
+    f32::MAX,
+    0.5,
+    -0.5,
+];
+
+const F64_LATTICE: [f64; 11] = [
+    0.0,
+    1.0,
+    -1.0,
+    2.0,
+    -2.0,
+    3.0,
+    -3.0,
+    f64::MIN,
+    f64::MAX,
+    0.5,
+    -0.5,
+];
+
+/// One Unicode scalar value below the surrogate range plus one above it.
+const CHAR_SCALAR_SPACE: u64 = 0x11_0000 - 0x800;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PropertyTestOptions {
@@ -380,16 +440,35 @@ fn deferred_entry_json(function: &Function, reason: &str) -> String {
     )
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum Value {
     Int(i64),
+    Int32(i32),
+    Uint8(u8),
+    Char(u32),
+    Float32(f32),
+    Float64(f64),
     Bool(bool),
 }
 
 impl Value {
+    /// Canonical report rendering per widened type:
+    ///
+    /// - `i64` as bare decimal (legacy convention);
+    /// - suffixed widths with their explicit `i32`/`u8` suffixes;
+    /// - `char` through the canonical escape projection;
+    /// - floats as their exact big-endian IEEE-754 bit pattern, the same
+    ///   convention the interpreter's envelopes use, so `-0.0`, infinities,
+    ///   and NaN results stay distinguishable without relying on any
+    ///   platform's decimal formatting.
     fn render(self) -> String {
         match self {
             Value::Int(value) => value.to_string(),
+            Value::Int32(value) => format!("{value}i32"),
+            Value::Uint8(value) => format!("{value}u8"),
+            Value::Char(value) => crate::format::canonical_char(value),
+            Value::Float32(value) => format!("{:08x}", value.to_bits()),
+            Value::Float64(value) => format!("{:016x}", value.to_bits()),
             Value::Bool(value) => value.to_string(),
         }
     }
@@ -471,6 +550,10 @@ impl<'a> Analyzer<'a> {
         }
     }
 
+    /// Closed AST-level admission gate mirroring the scalar interpreter
+    /// profile: monomorphic, effect-free, by-value direct signature over the
+    /// admitted Copy-scalar types (`i64`, `i32`, `u8`, `char`, `f32`, `f64`,
+    /// `bool`).
     fn admission(function: &Function) -> Option<&'static str> {
         if !function.type_parameters.is_empty() {
             return Some(REASON_GENERIC_FUNCTION);
@@ -482,11 +565,11 @@ impl<'a> Analyzer<'a> {
             if param.mode != ParamMode::Value {
                 return Some(REASON_UNSUPPORTED_PARAMETER_MODE);
             }
-            if !matches!(param.ty, Type::I64 | Type::Bool) {
+            if !is_admitted_scalar(&param.ty) {
                 return Some(REASON_UNSUPPORTED_PARAMETER_TYPE);
             }
         }
-        if !matches!(function.return_type, Type::I64 | Type::Bool) {
+        if !is_admitted_scalar(&function.return_type) {
             return Some(REASON_UNSUPPORTED_RESULT_TYPE);
         }
         None
@@ -498,11 +581,15 @@ impl<'a> Analyzer<'a> {
             return Some(REASON_EVALUATION_STEP_BUDGET_EXHAUSTED);
         }
         match &expression.kind {
-            ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::String(_) | ExprKind::Var(_) => None,
-            ExprKind::Int32(_) => Some(REASON_INT32_LITERAL),
-            ExprKind::Float32(_) | ExprKind::Float64(_) => Some(REASON_FLOAT_LITERAL),
-            ExprKind::Char(_) => Some(REASON_CHAR_LITERAL),
-            ExprKind::Uint8(_) => Some(REASON_UINT8_LITERAL),
+            ExprKind::Int(_)
+            | ExprKind::Int32(_)
+            | ExprKind::Uint8(_)
+            | ExprKind::Char(_)
+            | ExprKind::Float32(_)
+            | ExprKind::Float64(_)
+            | ExprKind::Bool(_)
+            | ExprKind::String(_)
+            | ExprKind::Var(_) => None,
             ExprKind::Call {
                 name,
                 type_arguments,
@@ -571,12 +658,11 @@ impl<'a> Analyzer<'a> {
         }
         match &expression.kind {
             ExprKind::Int(value) => Outcome::Value(Value::Int(*value)),
-            ExprKind::Int32(_) => Outcome::Unsupported(REASON_INT32_LITERAL),
-            ExprKind::Float32(_) | ExprKind::Float64(_) => {
-                Outcome::Unsupported(REASON_FLOAT_LITERAL)
-            }
-            ExprKind::Char(_) => Outcome::Unsupported(REASON_CHAR_LITERAL),
-            ExprKind::Uint8(_) => Outcome::Unsupported(REASON_UINT8_LITERAL),
+            ExprKind::Int32(value) => Outcome::Value(Value::Int32(*value)),
+            ExprKind::Uint8(value) => Outcome::Value(Value::Uint8(*value)),
+            ExprKind::Char(value) => Outcome::Value(Value::Char(*value)),
+            ExprKind::Float32(value) => Outcome::Value(Value::Float32(f32::from_bits(*value))),
+            ExprKind::Float64(value) => Outcome::Value(Value::Float64(f64::from_bits(*value))),
             ExprKind::Bool(value) => Outcome::Value(Value::Bool(*value)),
             ExprKind::MethodCall { .. } | ExprKind::SuperMethod { .. } => {
                 Outcome::Unsupported(REASON_METHOD_CALL)
@@ -596,6 +682,23 @@ impl<'a> Analyzer<'a> {
                         Outcome::Runtime(RuntimeReason::NegationOverflow),
                         |result| Outcome::Value(Value::Int(result)),
                     ),
+                    UnaryOp::Not => Outcome::Unsupported(REASON_ILL_TYPED_EXPRESSION),
+                },
+                Outcome::Value(Value::Int32(inner)) => match op {
+                    UnaryOp::Neg => inner.checked_neg().map_or(
+                        Outcome::Runtime(RuntimeReason::NegationOverflow),
+                        |result| Outcome::Value(Value::Int32(result)),
+                    ),
+                    UnaryOp::Not => Outcome::Unsupported(REASON_ILL_TYPED_EXPRESSION),
+                },
+                // IEEE-754 negation is total over finite and non-finite
+                // floats alike; only integer widths overflow.
+                Outcome::Value(Value::Float32(inner)) => match op {
+                    UnaryOp::Neg => Outcome::Value(Value::Float32(-inner)),
+                    UnaryOp::Not => Outcome::Unsupported(REASON_ILL_TYPED_EXPRESSION),
+                },
+                Outcome::Value(Value::Float64(inner)) => match op {
+                    UnaryOp::Neg => Outcome::Value(Value::Float64(-inner)),
                     UnaryOp::Not => Outcome::Unsupported(REASON_ILL_TYPED_EXPRESSION),
                 },
                 other => other,
@@ -726,13 +829,42 @@ impl<'a> Analyzer<'a> {
                                 }
                             }
                         }
-                        Statement::While { .. } => {
-                            // Property-test generation stays loop-free: the
-                            // seeded candidate corpus never needs iteration,
-                            // and unbounded evaluation would break the step
-                            // budget contract for generated tests.
-                            interrupted = Some(Outcome::Unsupported(REASON_WHILE_LOOP));
-                            break;
+                        Statement::While {
+                            condition, body, ..
+                        } => {
+                            // Widened admission: while loops evaluate exactly
+                            // like the interpreter engine — the condition
+                            // re-evaluates before every iteration and every
+                            // evaluated node charges steps, so a
+                            // non-terminating loop fails closed through the
+                            // shared step-budget path instead of hanging.
+                            loop {
+                                if self.steps >= MAX_TOTAL_STEPS {
+                                    interrupted = Some(Outcome::Exhausted);
+                                    break;
+                                }
+                                self.steps += 1;
+                                match self.evaluate(condition, environment, depth) {
+                                    Outcome::Value(Value::Bool(true)) => {}
+                                    Outcome::Value(Value::Bool(false)) => break,
+                                    Outcome::Value(_) => {
+                                        interrupted =
+                                            Some(Outcome::Unsupported(REASON_ILL_TYPED_EXPRESSION));
+                                        break;
+                                    }
+                                    other => {
+                                        interrupted = Some(other);
+                                        break;
+                                    }
+                                }
+                                match self.evaluate(body, environment, depth) {
+                                    Outcome::Value(_) => {}
+                                    other => {
+                                        interrupted = Some(other);
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -832,9 +964,9 @@ impl<'a> Analyzer<'a> {
                 .iter()
                 .map(|(name, value)| {
                     bformat!(
-                        "{{\"name\":{},\"value\":\"{}\"}}",
+                        "{{\"name\":{},\"value\":{}}}",
                         quote_json(name),
-                        value.render()
+                        quote_json(&value.render())
                     )
                 })
                 .collect::<Vec<_>>()
@@ -849,7 +981,7 @@ impl<'a> Analyzer<'a> {
                         case_classified = true;
                         break;
                     }
-                    Outcome::Value(Value::Int(_)) => {
+                    Outcome::Value(_) => {
                         return FunctionOutcome::Deferred(REASON_ILL_TYPED_EXPRESSION)
                     }
                     Outcome::Runtime(reason) => {
@@ -875,17 +1007,17 @@ impl<'a> Analyzer<'a> {
                             Outcome::Value(Value::Bool(true)) => {}
                             Outcome::Value(Value::Bool(false)) => {
                                 counterexample = Some(bformat!(
-                                    "{{\"index\":{},\"text\":{},\"arguments\":[{}],\"result\":\"{}\"}}",
+                                    "{{\"index\":{},\"text\":{},\"arguments\":[{}],\"result\":{}}}",
                                     clause_index,
                                     quote_json(&format::expr(clause, 0)),
                                     arguments_json,
-                                    result_value.render()
+                                    quote_json(&result_value.render())
                                 ));
                                 ensured = false;
                                 found_counterexample = true;
                                 break;
                             }
-                            Outcome::Value(Value::Int(_)) => {
+                            Outcome::Value(_) => {
                                 return FunctionOutcome::Deferred(REASON_ILL_TYPED_EXPRESSION)
                             }
                             Outcome::Runtime(reason) => {
@@ -964,9 +1096,24 @@ impl<'a> Analyzer<'a> {
     }
 }
 
+/// The widened direct scalar boundary: exactly the primitive Copy-scalar
+/// types the interpreter engine evaluates; strings, records, variants, and
+/// generics stay outside the profile.
+fn is_admitted_scalar(ty: &Type) -> bool {
+    matches!(
+        ty,
+        Type::I64 | Type::I32 | Type::U8 | Type::F32 | Type::F64 | Type::Char | Type::Bool
+    )
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum ScalarKind {
     Int,
+    Int32,
+    Uint8,
+    Char,
+    Float32,
+    Float64,
     Bool,
 }
 
@@ -974,17 +1121,28 @@ impl ScalarKind {
     fn of(ty: &Type) -> Self {
         match ty {
             Type::I64 => ScalarKind::Int,
+            Type::I32 => ScalarKind::Int32,
+            Type::U8 => ScalarKind::Uint8,
+            Type::Char => ScalarKind::Char,
+            Type::F32 => ScalarKind::Float32,
+            Type::F64 => ScalarKind::Float64,
             Type::Bool => ScalarKind::Bool,
-            Type::I32
-            | Type::U8
-            | Type::Char
-            | Type::F32
-            | Type::F64
-            | Type::String
-            | Type::Named { .. } => unreachable!(
-                "ScalarKind::of called for unsupported type `{:?}`; admitted scalars are only i64 and bool",
+            Type::String | Type::Named { .. } => unreachable!(
+                "ScalarKind::of called for unsupported type `{:?}`; admitted scalars are the seven primitive Copy types",
                 ty
             ),
+        }
+    }
+
+    fn lattice_len(self) -> usize {
+        match self {
+            ScalarKind::Int
+            | ScalarKind::Int32
+            | ScalarKind::Char
+            | ScalarKind::Float32
+            | ScalarKind::Float64 => 11,
+            ScalarKind::Uint8 => U8_LATTICE.len(),
+            ScalarKind::Bool => 2,
         }
     }
 }
@@ -992,36 +1150,67 @@ impl ScalarKind {
 fn scalar_type_text(ty: &Type) -> &'static str {
     match ty {
         Type::I64 => "i64",
+        Type::I32 => "i32",
+        Type::U8 => "u8",
+        Type::Char => "char",
+        Type::F32 => "f32",
+        Type::F64 => "f64",
         Type::Bool => "bool",
-        Type::I32
-        | Type::U8
-        | Type::Char
-        | Type::F32
-        | Type::F64
-        | Type::String
-        | Type::Named { .. } => unreachable!(
-            "scalar_type_text called for unsupported type `{:?}`; admitted scalars are only i64 and bool",
+        Type::String | Type::Named { .. } => unreachable!(
+            "scalar_type_text called for unsupported type `{:?}`; admitted scalars are the seven primitive Copy types",
             ty
         ),
     }
 }
 
+/// Deterministic per-kind candidate values. The first cases walk the fixed
+/// boundary lattice; later cases draw from the parameter's xorshift64* stream.
 fn scalar_value(kind: ScalarKind, state: &mut u64, case_index: usize) -> Value {
+    if case_index < kind.lattice_len() {
+        return match kind {
+            ScalarKind::Int => Value::Int(I64_LATTICE[case_index]),
+            ScalarKind::Int32 => Value::Int32(I32_LATTICE[case_index]),
+            ScalarKind::Uint8 => Value::Uint8(U8_LATTICE[case_index]),
+            ScalarKind::Char => Value::Char(CHAR_LATTICE[case_index]),
+            ScalarKind::Float32 => Value::Float32(F32_LATTICE[case_index]),
+            ScalarKind::Float64 => Value::Float64(F64_LATTICE[case_index]),
+            ScalarKind::Bool => Value::Bool(case_index == 0),
+        };
+    }
+    let sample = next_sample(state);
     match kind {
-        ScalarKind::Int => {
-            if case_index < I64_LATTICE.len() {
-                Value::Int(I64_LATTICE[case_index])
-            } else {
-                Value::Int(next_sample(state) as i64)
+        ScalarKind::Int => Value::Int(sample as i64),
+        ScalarKind::Int32 => Value::Int32(sample as i32),
+        ScalarKind::Uint8 => Value::Uint8((sample & 0xFF) as u8),
+        // Uniform over the 0x10F800 valid scalars; samples landing in the
+        // surrogate range skip past it.
+        ScalarKind::Char => {
+            let mut scalar = (sample % CHAR_SCALAR_SPACE) as u32;
+            if (0xD800..0xE000).contains(&scalar) {
+                scalar += 0x800;
             }
+            Value::Char(scalar)
         }
-        ScalarKind::Bool => {
-            if case_index < 2 {
-                Value::Bool(case_index == 0)
+        // A 24-bit magnitude divided by 2^24 lands exactly in [-1, 1); every
+        // sampled float stays finite by construction.
+        ScalarKind::Float32 => {
+            let magnitude = ((sample & 0x00FF_FFFF) as f32) / 16_777_216.0;
+            Value::Float32(if sample >> 63 == 1 {
+                -magnitude
             } else {
-                Value::Bool(next_sample(state) & 1 == 1)
-            }
+                magnitude
+            })
         }
+        // Same construction at double precision with a 53-bit magnitude.
+        ScalarKind::Float64 => {
+            let magnitude = ((sample & 0x000F_FFFF_FFFF_FFFF) as f64) / 9_007_199_254_740_992.0;
+            Value::Float64(if sample >> 63 == 1 {
+                -magnitude
+            } else {
+                magnitude
+            })
+        }
+        ScalarKind::Bool => Value::Bool(sample & 1 == 1),
     }
 }
 
@@ -1050,6 +1239,9 @@ fn parameter_stream_seed(base: u64, function_index: usize, parameter_index: usiz
 }
 
 fn combine_binary(op: BinaryOp, left: Value, right: Value) -> Outcome {
+    // Checked integer arithmetic collapses every width-specific overflow
+    // status into `arithmetic_overflow`, matching the closed runtime-reason
+    // vocabulary this report already pins.
     match (left, right) {
         (Value::Int(left), Value::Int(right)) => match op {
             BinaryOp::Add => checked_int(left.checked_add(right)),
@@ -1069,13 +1261,58 @@ fn combine_binary(op: BinaryOp, left: Value, right: Value) -> Outcome {
                     checked_int(left.checked_rem(right))
                 }
             }
-            BinaryOp::Eq => Outcome::Value(Value::Bool(left == right)),
-            BinaryOp::Ne => Outcome::Value(Value::Bool(left != right)),
-            BinaryOp::Lt => Outcome::Value(Value::Bool(left < right)),
-            BinaryOp::Le => Outcome::Value(Value::Bool(left <= right)),
-            BinaryOp::Gt => Outcome::Value(Value::Bool(left > right)),
-            BinaryOp::Ge => Outcome::Value(Value::Bool(left >= right)),
-            BinaryOp::And | BinaryOp::Or => Outcome::Unsupported(REASON_ILL_TYPED_EXPRESSION),
+            _ => ordered(op, left < right, left == right),
+        },
+        (Value::Int32(left), Value::Int32(right)) => match op {
+            BinaryOp::Add => checked_int32(left.checked_add(right)),
+            BinaryOp::Sub => checked_int32(left.checked_sub(right)),
+            BinaryOp::Mul => checked_int32(left.checked_mul(right)),
+            BinaryOp::Div => match (right, left.checked_div(right)) {
+                (0, _) => Outcome::Runtime(RuntimeReason::DivisionByZero),
+                (_, None) => Outcome::Runtime(RuntimeReason::ArithmeticOverflow),
+                (_, Some(quotient)) => Outcome::Value(Value::Int32(quotient)),
+            },
+            BinaryOp::Rem => match (right, left.checked_rem(right)) {
+                (0, _) => Outcome::Runtime(RuntimeReason::RemainderByZero),
+                (_, None) => Outcome::Runtime(RuntimeReason::ArithmeticOverflow),
+                (_, Some(remainder)) => Outcome::Value(Value::Int32(remainder)),
+            },
+            _ => ordered(op, left < right, left == right),
+        },
+        (Value::Uint8(left), Value::Uint8(right)) => match op {
+            BinaryOp::Add => checked_uint8(left.checked_add(right)),
+            BinaryOp::Sub => checked_uint8(left.checked_sub(right)),
+            BinaryOp::Mul => checked_uint8(left.checked_mul(right)),
+            // `u8` division and remainder can only fail on a zero divisor,
+            // so the checked operations select exactly that status.
+            BinaryOp::Div => left.checked_div(right).map_or(
+                Outcome::Runtime(RuntimeReason::DivisionByZero),
+                |quotient| Outcome::Value(Value::Uint8(quotient)),
+            ),
+            BinaryOp::Rem => left.checked_rem(right).map_or(
+                Outcome::Runtime(RuntimeReason::RemainderByZero),
+                |remainder| Outcome::Value(Value::Uint8(remainder)),
+            ),
+            _ => ordered(op, left < right, left == right),
+        },
+        // Chars admit only scalar ordering; arithmetic over chars is
+        // ill-typed on verified programs.
+        (Value::Char(left), Value::Char(right)) => ordered(op, left < right, left == right),
+        // IEEE-754 semantics: division by zero yields an infinity rather than
+        // a failure, and unordered NaN comparisons are false except `!=`.
+        (Value::Float32(left), Value::Float32(right)) => match op {
+            BinaryOp::Add => Outcome::Value(Value::Float32(left + right)),
+            BinaryOp::Sub => Outcome::Value(Value::Float32(left - right)),
+            BinaryOp::Mul => Outcome::Value(Value::Float32(left * right)),
+            BinaryOp::Div => Outcome::Value(Value::Float32(left / right)),
+            _ => float_ordered(op, left.partial_cmp(&right), left == right),
+        },
+        (Value::Float64(left), Value::Float64(right)) => match op {
+            BinaryOp::Add => Outcome::Value(Value::Float64(left + right)),
+            BinaryOp::Sub => Outcome::Value(Value::Float64(left - right)),
+            BinaryOp::Mul => Outcome::Value(Value::Float64(left * right)),
+            BinaryOp::Div => Outcome::Value(Value::Float64(left / right)),
+            _ => float_ordered(op, left.partial_cmp(&right), left == right),
         },
         (Value::Bool(left), Value::Bool(right)) => match op {
             BinaryOp::Eq => Outcome::Value(Value::Bool(left == right)),
@@ -1086,9 +1323,54 @@ fn combine_binary(op: BinaryOp, left: Value, right: Value) -> Outcome {
     }
 }
 
+/// Shared comparison projection for scalar widths whose remaining operators
+/// are ill-typed on verified programs.
+fn ordered(op: BinaryOp, less: bool, equal: bool) -> Outcome {
+    let value = match op {
+        BinaryOp::Eq => equal,
+        BinaryOp::Ne => !equal,
+        BinaryOp::Lt => less,
+        BinaryOp::Le => less || equal,
+        BinaryOp::Gt => !less && !equal,
+        BinaryOp::Ge => !less,
+        _ => return Outcome::Unsupported(REASON_ILL_TYPED_EXPRESSION),
+    };
+    Outcome::Value(Value::Bool(value))
+}
+
+/// IEEE-754 comparisons exactly as the interpreter evaluates them: unordered
+/// operands compare false everywhere except `!=`.
+fn float_ordered(op: BinaryOp, ordering: Option<std::cmp::Ordering>, equal: bool) -> Outcome {
+    use std::cmp::Ordering;
+    let value = match op {
+        BinaryOp::Eq => equal,
+        BinaryOp::Ne => !equal,
+        BinaryOp::Lt => ordering == Some(Ordering::Less),
+        BinaryOp::Le => matches!(ordering, Some(Ordering::Less) | Some(Ordering::Equal)),
+        BinaryOp::Gt => ordering == Some(Ordering::Greater),
+        BinaryOp::Ge => matches!(ordering, Some(Ordering::Greater) | Some(Ordering::Equal)),
+        _ => return Outcome::Unsupported(REASON_ILL_TYPED_EXPRESSION),
+    };
+    Outcome::Value(Value::Bool(value))
+}
+
 fn checked_int(value: Option<i64>) -> Outcome {
     match value {
         Some(value) => Outcome::Value(Value::Int(value)),
+        None => Outcome::Runtime(RuntimeReason::ArithmeticOverflow),
+    }
+}
+
+fn checked_int32(value: Option<i32>) -> Outcome {
+    match value {
+        Some(value) => Outcome::Value(Value::Int32(value)),
+        None => Outcome::Runtime(RuntimeReason::ArithmeticOverflow),
+    }
+}
+
+fn checked_uint8(value: Option<u8>) -> Outcome {
+    match value {
+        Some(value) => Outcome::Value(Value::Uint8(value)),
         None => Outcome::Runtime(RuntimeReason::ArithmeticOverflow),
     }
 }

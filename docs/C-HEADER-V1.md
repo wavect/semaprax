@@ -31,7 +31,9 @@ semaprax c-header <file> --function name|stable-id[,...] [--function ...] [--max
 Only explicitly selected functions are considered; nothing is emitted for
 unselected declarations. A selected function is admitted only when it has an
 explicit stable identity, is monomorphic, declares no effects, has only
-by-value direct `i64`/`bool` parameters, and returns direct `i64`/`bool`.
+by-value direct parameters over the full Copy-scalar surface (`i64`, `i32`,
+`u8`, `bool`, `f32`, `f64`, `char`; mixed signatures allowed), and returns a
+direct scalar from that same surface.
 Every other selected function is recorded as an exclusion with one closed
 reason: `automatic_identity`, `generic_function`, `declared_effects`,
 `unsupported_parameter_mode`, `unsupported_parameter_type`, or
@@ -94,7 +96,8 @@ consistency.
 
 ## Evidence
 
-Executable evidence lives in `tests/c_header_emission_v1.rs` plus module
+Executable evidence lives in `tests/c_header_emission_v1.rs`,
+`tests/interop_scalar_widen_v1.rs`, plus module
 tests in `src/c_header.rs`: pinned golden envelope and path-independent
 header digests over `examples/meaning.spx`, byte-identical double runs,
 verbatim cross-consistency against the native projection, every exclusion
@@ -103,6 +106,22 @@ stability under formatting-only drift and display-name-only renames, guard
 change under identity rename, budget-exhaustion failure, tampered-envelope
 rejection, and CLI exit-code contracts. No C compiler is invoked and no
 target execution is claimed; hosted promotion remains pending.
+
+## Scalar-surface widening (2026-08-23)
+
+The shared admission profile was widened from by-value `i64`/`bool` to the
+full Copy-scalar surface: `i64`, `i32`, `u8`, `bool`, `f32`, `f64`, and
+`char` parameters and results, with mixed signatures allowed. Headers need no
+rendering changes because declaration lines are extracted verbatim from the
+production native projection, which already emits `int64_t`, `int32_t`,
+`uint8_t`, `uint32_t` (for `char`), `float`, `double`, and `bool` for those
+scalars; widened prototypes are pinned byte-level against that projection in
+`tests/interop_scalar_widen_v1.rs`. Envelope shape, guard derivation,
+digest domains, hygiene rules, budget behavior, diagnostics
+(`SPX-D101`–`SPX-D105`), and nonclaims are unchanged, all pre-existing pinned
+KATs remain green, and no new diagnostic codes were needed. Still nonclaimed:
+imports, raw bindings, safe wrappers, Objective-C mapping, string or buffer
+mappings, compiled conformance evidence, and any target execution.
 
 See also [PROPERTY-TESTS-V1.md](PROPERTY-TESTS-V1.md) for the sibling
 read-only scalar analysis tranche and its shared admission profile.

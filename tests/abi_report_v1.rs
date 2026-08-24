@@ -188,10 +188,10 @@ fn effectful(value: i64) -> i64 uses { io.release } { value }
 fn borrowed(target: borrow Buffer, amount: i64) -> i64 { amount }
 
 @id("probe.wide")
-fn wide(ratio: f64) -> f64 { ratio }
+fn wide(label: string) -> string { label }
 
 @id("probe.narrow")
-fn narrow(value: i64) -> f64 { 1.0 }
+fn narrow(value: i64) -> string { "x" }
 
 @id("app.main")
 fn main() -> i64 { 7 }

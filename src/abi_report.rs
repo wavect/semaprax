@@ -1,12 +1,14 @@
 //! Deterministic, read-only Canonical ABI Report v1.
 //!
 //! `semaprax abi-report <file>` derives, for explicitly selected public
-//! monomorphic scalar functions, both the native fast ABI (the exact Native64
-//! C11 prototype extracted verbatim from the production native projection,
-//! checked compiler sizes and alignments, by-value parameter passing, and the
-//! status/out-parameter contract) and the portable canonical ABI mapping used
-//! by the Public Scalar Export Profile v1 Core-Wasm lane (i64/i32 value
-//! types, canonical bool boundary normalization, and copy-only behavior).
+//! monomorphic scalar functions over the full Copy-scalar surface (`i64`,
+//! `i32`, `u8`, `bool`, `f32`, `f64`, `char`), both the native fast ABI (the
+//! exact Native64 C11 prototype extracted verbatim from the production native
+//! projection, checked compiler sizes and alignments, by-value parameter
+//! passing, and the status/out-parameter contract) and the portable canonical
+//! ABI mapping (the exact Core-Wasm value types the backend emits for every
+//! admitted scalar, canonical bool boundary normalization, and copy-only
+//! behavior).
 //!
 //! Diagnostics use the previously unused `SPX-A2xx` family:
 //! - `SPX-A201`: invalid options (bounds, duplicates, malformed values).
@@ -476,13 +478,19 @@ fn scalar_facts(
     })
 }
 
-/// Sizes and alignments come exclusively from the checked compiler layouts.
+/// Sizes and alignments come exclusively from the checked compiler layouts;
+/// the C spellings mirror `codegen::native_resource::c_type` exactly.
 fn scalar_facts_for(ty: &ResolvedType) -> Result<ScalarFacts, Vec<Diagnostic>> {
     let (size_bytes, align_bytes) =
         aggregate_layout::scalar_size_align(aggregate_layout_target(), ty)
             .map_err(|error| vec![error])?;
     let (language_type, c_type) = match ty {
         ResolvedType::I64 => ("i64", "int64_t"),
+        ResolvedType::I32 => ("i32", "int32_t"),
+        ResolvedType::U8 => ("u8", "uint8_t"),
+        ResolvedType::Char => ("char", "uint32_t"),
+        ResolvedType::F32 => ("f32", "float"),
+        ResolvedType::F64 => ("f64", "double"),
         ResolvedType::Bool => ("bool", "bool"),
         other => {
             return Err(vec![consistency_error(format!(
@@ -503,12 +511,15 @@ fn aggregate_layout_target() -> aggregate_layout::AggregateTarget {
     aggregate_layout::AggregateTarget::Native64
 }
 
-/// Mirror of the portable lane's Core-Wasm value-type lowering: `i64` stays
-/// `i64` while `bool` narrows to `i32`.
+/// Mirror of the Core-Wasm value-type lowering (`wasm_type` in the backend):
+/// `i64`, `f32`, and `f64` keep their exact width while `bool`, `i32`, `u8`,
+/// and `char` ride the `i32` lane.
 fn wasm_value_type(ty: &ResolvedType) -> Result<&'static str, Vec<Diagnostic>> {
     match ty {
         ResolvedType::I64 => Ok("i64"),
-        ResolvedType::Bool => Ok("i32"),
+        ResolvedType::I32 | ResolvedType::U8 | ResolvedType::Char | ResolvedType::Bool => Ok("i32"),
+        ResolvedType::F32 => Ok("f32"),
+        ResolvedType::F64 => Ok("f64"),
         other => Err(vec![consistency_error(format!(
             "type `{}` has no portable scalar mapping",
             other.identity_key()
@@ -545,7 +556,8 @@ fn resolve_selection<'a>(
 
 /// Closed AST-level admission gate mirroring C Header Emission v1 and the
 /// Property-Test Generation scalar profile, plus the explicit-identity
-/// requirement.
+/// requirement. The admitted type surface is the full Copy-scalar set; every
+/// member lowers end-to-end in both production backends.
 fn admission(function: &Function) -> Option<&'static str> {
     if !function.explicit_id {
         return Some(REASON_AUTOMATIC_IDENTITY);
@@ -560,14 +572,22 @@ fn admission(function: &Function) -> Option<&'static str> {
         if param.mode != ParamMode::Value {
             return Some(REASON_UNSUPPORTED_PARAMETER_MODE);
         }
-        if !matches!(param.ty, Type::I64 | Type::Bool) {
+        if !is_admitted_scalar(&param.ty) {
             return Some(REASON_UNSUPPORTED_PARAMETER_TYPE);
         }
     }
-    if !matches!(function.return_type, Type::I64 | Type::Bool) {
+    if !is_admitted_scalar(&function.return_type) {
         return Some(REASON_UNSUPPORTED_RESULT_TYPE);
     }
     None
+}
+
+/// The full Copy-scalar surface admitted by the interop projections.
+fn is_admitted_scalar(ty: &Type) -> bool {
+    matches!(
+        ty,
+        Type::I64 | Type::I32 | Type::U8 | Type::Char | Type::F32 | Type::F64 | Type::Bool
+    )
 }
 
 fn extract_native_signature(

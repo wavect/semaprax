@@ -5784,8 +5784,7 @@ fn check_expr(
                 result_type,
                 allow_moves,
                 diagnostics,
-            );
-            let receiver_value = receiver_value?;
+            )?;
             let Type::Named {
                 name: class_name,
                 arguments: class_arguments,

@@ -360,8 +360,9 @@ fn resolve_selection<'a>(
     Ok(selected)
 }
 
-/// Closed AST-level admission gate mirroring the Property-Test Generation
-/// scalar profile, plus the explicit-identity requirement.
+/// Closed AST-level admission gate mirroring the widened interop scalar
+/// profile (full Copy-scalar surface), plus the explicit-identity
+/// requirement.
 fn admission(function: &Function) -> Option<&'static str> {
     if !function.explicit_id {
         return Some(REASON_AUTOMATIC_IDENTITY);
@@ -376,14 +377,23 @@ fn admission(function: &Function) -> Option<&'static str> {
         if param.mode != ParamMode::Value {
             return Some(REASON_UNSUPPORTED_PARAMETER_MODE);
         }
-        if !matches!(param.ty, Type::I64 | Type::Bool) {
+        if !is_admitted_scalar(&param.ty) {
             return Some(REASON_UNSUPPORTED_PARAMETER_TYPE);
         }
     }
-    if !matches!(function.return_type, Type::I64 | Type::Bool) {
+    if !is_admitted_scalar(&function.return_type) {
         return Some(REASON_UNSUPPORTED_RESULT_TYPE);
     }
     None
+}
+
+/// The full Copy-scalar surface admitted by the interop projections; every
+/// member has an exact native C representation in the production projection.
+fn is_admitted_scalar(ty: &Type) -> bool {
+    matches!(
+        ty,
+        Type::I64 | Type::I32 | Type::U8 | Type::Char | Type::F32 | Type::F64 | Type::Bool
+    )
 }
 
 fn contract_clauses(clauses: &[crate::ast::Expr]) -> Result<Vec<String>, Vec<Diagnostic>> {
@@ -784,7 +794,7 @@ fn effectful(value: i64) -> i64 uses { io.release } { value }
 fn borrowed(target: borrow Buffer, amount: i64) -> i64 { amount }
 
 @id("probe.wide")
-fn wide(ratio: f64) -> f64 { ratio }
+fn wide(label: string) -> string { label }
 
 @id("app.main")
 fn main() -> i64

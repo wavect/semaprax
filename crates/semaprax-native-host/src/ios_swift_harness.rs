@@ -25,7 +25,14 @@ use semaprax_native_loader::{
 use crate::callable_wire_v3::{ExecuteOutcome, Publication};
 #[cfg(target_os = "ios")]
 use crate::descriptor_v3::Descriptor;
+#[cfg(not(target_os = "ios"))]
 use crate::settlement_host_v3::PrivateSettlementHostV3;
+#[cfg(target_os = "ios")]
+use crate::settlement_host_v3::{
+    PrivateSettlementArgumentV3, PrivateSettlementExecutionError, PrivateSettlementHostV3,
+};
+#[cfg(target_os = "ios")]
+use crate::settlement_ledger::SettlementLedgerError;
 
 type ResetHook = unsafe extern "C" fn() -> u32;
 type SnapshotHook = unsafe extern "C" fn(*mut u32, *mut u32, *mut u64, u32) -> u32;
@@ -48,6 +55,9 @@ const GENERATION_SHIFT: u32 = 24;
 const TAG_MASK: u64 = (1 << 15) - 1;
 const HANDLE_KAT: u64 = 0x0001_0000_0100_0001;
 const PROOF_FLAGS: u64 = 0x0f;
+const REQUIRES_FALSE_PAYLOAD: u64 = u64::MAX;
+const REQUIRES_FALSE_SELECTED_ORDINAL: u32 = 1;
+const OWNER_GENERATION: u64 = 1;
 
 const CODE_INVALID_ARGUMENT: u32 = 1;
 const CODE_WRONG_THREAD: u32 = 2;
@@ -60,6 +70,7 @@ const CODE_STALE: u32 = 8;
 const CODE_CROSS_RUNTIME: u32 = 9;
 const CODE_ALREADY_OPEN: u32 = 10;
 const CODE_REENTRANT: u32 = 11;
+const CODE_WRONG_PAYLOAD: u32 = 12;
 const CODE_UNCERTAIN: u32 = 0x8000_0001;
 const CODE_PANIC: u32 = 0x8000_0002;
 const CODE_UNHEALTHY: u32 = 0x8000_0003;
@@ -77,8 +88,17 @@ const _: () = {
 static NEXT_TAG: AtomicU32 = AtomicU32::new(1);
 thread_local! { static RUNTIME: RefCell<Option<Runtime>> = const { RefCell::new(None) }; }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SessionShape {
+    Pair,
+    SingleWitness,
+}
+
 #[derive(Clone, Copy)]
-struct Session([u64; 2]);
+struct Session {
+    shape: SessionShape,
+    payloads: [u64; 2],
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum State<T> {
@@ -247,6 +267,133 @@ struct Runtime {
     poisoned: bool,
 }
 
+#[cfg(target_os = "ios")]
+impl Runtime {
+    fn adopt_single_witness(&mut self, payload: u64) -> Result<u64, u64> {
+        if self.poisoned || self.host.is_poisoned() {
+            return Err(status(CODE_UNHEALTHY));
+        }
+        if payload != REQUIRES_FALSE_PAYLOAD {
+            return Err(status(CODE_WRONG_PAYLOAD));
+        }
+        self.table
+            .insert(Session {
+                shape: SessionShape::SingleWitness,
+                payloads: [payload, 0],
+            })
+            .map_err(map_table)
+    }
+
+    fn requires_false_witness(&mut self, handle: u64) -> Result<PrivateAppleSwiftEvidenceV1, u64> {
+        if self.poisoned || self.host.is_poisoned() {
+            return Err(status(CODE_UNHEALTHY));
+        }
+        let session = self.table.claim(handle).map_err(map_table)?;
+        if session.shape != SessionShape::SingleWitness {
+            self.table.restore(handle);
+            return Err(status(CODE_INVALID_HANDLE));
+        }
+        let payload = session.payloads[0];
+        if unsafe { (self.reset)() } != 0 {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        let slot = self.next_owner;
+        let Some(next) = slot.checked_add(1) else {
+            self.table.restore(handle);
+            return Err(status(CODE_CAPACITY));
+        };
+        let owner = match self.host.register_owner(slot, OWNER_GENERATION) {
+            Ok(owner) => owner,
+            Err(_) => {
+                self.table.restore(handle);
+                return Err(status(CODE_CAPACITY));
+            }
+        };
+        self.next_owner = next;
+        // The canonical `requires-false` corpus witness: one owned argument at
+        // the corpus-maximum payload plus one false boolean scalar.
+        let arguments = [
+            PrivateSettlementArgumentV3::Owned {
+                handle: owner,
+                payload,
+            },
+            PrivateSettlementArgumentV3::Bool(false),
+        ];
+        let committed = match self.host.execute_canonical(&arguments) {
+            Ok(committed) => committed,
+            Err(_) => {
+                self.poisoned = true;
+                self.table.quarantine(handle);
+                return Err(status(CODE_UNCERTAIN));
+            }
+        };
+        let allocations = crate::postcommit_allocation_probe::take_last();
+        let mut count = 0;
+        let mut ordinals = [0; 2];
+        let mut payloads = [0; 2];
+        let trace =
+            unsafe { (self.snapshot)(&mut count, ordinals.as_mut_ptr(), payloads.as_mut_ptr(), 2) };
+        let healthy = !self.host.is_poisoned()
+            && !self.host.is_draining()
+            && self.host.quarantined_count() == 0;
+        if committed.outcome
+            != (ExecuteOutcome::SemanticFailure {
+                selected_ordinal: REQUIRES_FALSE_SELECTED_ORDINAL,
+            })
+            || committed.committed.publication != Publication::NoOwned
+            || committed.committed.published_owner.is_some()
+            || allocations != Some(0)
+            || trace != 0
+            || count != 1
+            || ordinals != [0, 0]
+            || payloads != [REQUIRES_FALSE_PAYLOAD, 0]
+            || !healthy
+        {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        if self
+            .host
+            .replay_committed(committed.identity, &committed.candidate_bytes)
+            != Ok(committed.committed)
+        {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        // Failure selection is sticky: the consumed owner must make a second
+        // canonical execution fail closed without poisoning the host.
+        if self.host.execute_canonical(&arguments)
+            != Err(PrivateSettlementExecutionError::Ledger(
+                SettlementLedgerError::StaleOwner,
+            ))
+            || self.host.is_poisoned()
+            || self.host.is_draining()
+            || self.host.quarantined_count() != 0
+        {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        self.table.consume(handle);
+        Ok(PrivateAppleSwiftEvidenceV1 {
+            words: [
+                1,
+                self.host.module_instance_id().get(),
+                u64::from(REQUIRES_FALSE_SELECTED_ORDINAL),
+                0,
+                1,
+                REQUIRES_FALSE_PAYLOAD,
+                0,
+                0,
+            ],
+        })
+    }
+}
+
 fn map_table(error: TableError) -> u64 {
     status(match error {
         TableError::Capacity => CODE_CAPACITY,
@@ -397,7 +544,10 @@ pub unsafe extern "C" fn spx_private_apple_swift_v1_adopt_pair(
             }
             runtime
                 .table
-                .insert(Session([first, second]))
+                .insert(Session {
+                    shape: SessionShape::Pair,
+                    payloads: [first, second],
+                })
                 .map_err(map_table)
         }) {
             Ok(handle) => {
@@ -428,6 +578,10 @@ pub unsafe extern "C" fn spx_private_apple_swift_v1_consume(
                 return Err(status(CODE_UNHEALTHY));
             }
             let session = runtime.table.claim(handle).map_err(map_table)?;
+            if session.shape != SessionShape::Pair {
+                runtime.table.restore(handle);
+                return Err(status(CODE_INVALID_HANDLE));
+            }
             if unsafe { (runtime.reset)() } != 0 {
                 runtime.poisoned = true;
                 runtime.table.quarantine_active();
@@ -450,7 +604,10 @@ pub unsafe extern "C" fn spx_private_apple_swift_v1_consume(
                 }
             };
             runtime.next_owner = next;
-            let committed = match runtime.host.execute_owned_success(&owners, &session.0) {
+            let committed = match runtime
+                .host
+                .execute_owned_success(&owners, &session.payloads)
+            {
                 Ok(value) => value,
                 Err(_) => {
                     runtime.poisoned = true;
@@ -520,6 +677,52 @@ pub unsafe extern "C" fn spx_private_apple_swift_v1_consume(
             })
         }) {
             Ok(evidence) => {
+                unsafe { ptr::write(output, evidence) };
+                0
+            }
+            Err(error) => error,
+        }
+    })
+}
+
+#[cfg(target_os = "ios")]
+#[no_mangle]
+pub unsafe extern "C" fn spx_private_apple_swift_v1_adopt_single(
+    payload: u64,
+    output: *mut u64,
+) -> u64 {
+    guard(|| {
+        if output.is_null() || (output as usize) % mem::align_of::<u64>() != 0 {
+            return status(CODE_INVALID_ARGUMENT);
+        }
+        match with_runtime(|runtime| runtime.adopt_single_witness(payload)) {
+            Ok(handle) => {
+                unsafe { output.write(handle) };
+                0
+            }
+            Err(error) => error,
+        }
+    })
+}
+
+#[cfg(target_os = "ios")]
+#[no_mangle]
+pub unsafe extern "C" fn spx_private_apple_swift_v1_execute_requires_false(
+    handle: u64,
+    output: *mut PrivateAppleSwiftEvidenceV1,
+    output_len: u32,
+) -> u64 {
+    guard(|| {
+        if output.is_null()
+            || output_len as usize != mem::size_of::<PrivateAppleSwiftEvidenceV1>()
+            || (output as usize) % mem::align_of::<PrivateAppleSwiftEvidenceV1>() != 0
+        {
+            return status(CODE_INVALID_ARGUMENT);
+        }
+        match with_runtime(|runtime| runtime.requires_false_witness(handle)) {
+            Ok(evidence) => {
+                // SAFETY: Exact aligned output storage was checked above and is
+                // written only after authenticated receipt commit.
                 unsafe { ptr::write(output, evidence) };
                 0
             }
@@ -627,5 +830,37 @@ mod tests {
         );
         assert_eq!(status(CODE_EVIDENCE), 0x0000_002d_8000_0004);
         assert_eq!(status(CODE_PANIC), 0x0000_002d_8000_0002);
+    }
+
+    #[test]
+    fn requires_false_witness_constants_are_frozen() {
+        assert_eq!(REQUIRES_FALSE_PAYLOAD, u64::MAX);
+        assert_eq!(REQUIRES_FALSE_SELECTED_ORDINAL, 1);
+        assert_eq!(OWNER_GENERATION, 1);
+        assert_eq!(status(CODE_WRONG_PAYLOAD), 0x0000_002d_0000_000c);
+        let evidence = PrivateAppleSwiftEvidenceV1 {
+            words: [
+                1,
+                7,
+                u64::from(REQUIRES_FALSE_SELECTED_ORDINAL),
+                0,
+                1,
+                REQUIRES_FALSE_PAYLOAD,
+                0,
+                0,
+            ],
+        };
+        assert_eq!(evidence.words, [1, 7, 1, 0, 1, 0xffff_ffff_ffff_ffff, 0, 0]);
+    }
+
+    #[test]
+    fn witness_sessions_are_shaped_and_distinct_from_pairs() {
+        assert_ne!(SessionShape::Pair, SessionShape::SingleWitness);
+        let witness = Session {
+            shape: SessionShape::SingleWitness,
+            payloads: [REQUIRES_FALSE_PAYLOAD, 0],
+        };
+        assert_eq!(witness.payloads[0], u64::MAX);
+        assert_eq!(witness.shape, SessionShape::SingleWitness);
     }
 }

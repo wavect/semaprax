@@ -139,3 +139,29 @@ func poisonedEvidence() -> spx_private_apple_swift_evidence_v1 {
 func evidenceWords(_ value: inout spx_private_apple_swift_evidence_v1) -> [UInt64] {
     withUnsafeBytes(of: &value) { Array($0.bindMemory(to: UInt64.self)) }
 }
+
+struct RequiresFalseEvidence: Equatable, Sendable {
+    static let selectedOrdinalKAT: UInt64 = 1
+    static let finalizerPayloadKAT: UInt64 = UInt64.max
+    static let byteCount: UInt32 = 64
+    let words: [UInt64]
+
+    func requireExact() throws {
+        try requireContract(words.count == 8, "witness evidence width changed")
+        try requireContract(words[0] == 1, "witness evidence version changed")
+        try requireContract(words[1] != 0, "witness module identity is zero")
+        try requireContract(words[2] == Self.selectedOrdinalKAT,
+                            "semantic failure selection word is not the canonical requires ordinal")
+        try requireContract(words[3] == 0, "witness postcommit allocation count is nonzero")
+        try requireContract(words[4] == 1, "witness finalizer count is not exactly one")
+        try requireContract(words[5] == Self.finalizerPayloadKAT,
+                            "witness finalizer payload is not the canonical corpus value")
+        try requireContract(words[6] == 0, "witness mutated a second owner slot")
+        try requireContract(words[7] == 0, "witness host flags changed")
+    }
+
+    func requirePoisoned() throws {
+        try requireContract(words == Array(repeating: ConsumeEvidence.poison, count: 8),
+                            "native rejection modified witness output evidence")
+    }
+}

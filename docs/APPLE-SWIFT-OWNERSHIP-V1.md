@@ -35,6 +35,15 @@ or permission to open `SPX-B104`.
   no-owned publication, nonzero receipt/candidate/identity facts, a changed
   ledger digest, healthy host state, an empty handle table at close, and zero
   measured Rust allocations across the irreversible interval.
+- After the discard pass closes, both applications additionally execute the
+  canonical `token.requires` `requires-false` semantic-failure witness once per
+  pass against a second target-bound registration of the corpus fixture. The
+  witness requires `ExecuteOutcome::SemanticFailure` at selected ordinal 1,
+  no-owned publication with no published owner, zero postcommit allocations,
+  exact replay equality for the committed receipt, exactly one physical
+  finalizer at payload `u64::MAX`, and a sticky stale-owner rejection on a
+  second canonical execution; any drift quarantines and poisons the runtime.
+  Each application appends the deterministic marker `rf=1` to its result.
 
 ## Executable gate
 
@@ -48,7 +57,8 @@ on an arm64 Simulator:
 - provider `-O0` with explicit `consume()`;
 - provider `-O2` with deterministic ARC `deinit` cleanup.
 
-Both applications must publish one exact app-container result. Missing output,
+Both applications must additionally execute the `requires-false` witness
+described above and publish one exact app-container result. Missing output,
 fallback to host execution, an extra dynamic image, an unexpected exported
 symbol, or a mismatched result fails the gate.
 

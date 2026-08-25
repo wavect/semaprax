@@ -21,6 +21,18 @@ final class NativeRuntime: @unchecked Sendable {
         StatusWord(raw: try fifo.call { spx_private_apple_swift_fixture_v1_open() })
     }
 
+    func openRequiresFalse() throws {
+        let status = StatusWord(raw: try fifo.call {
+            spx_private_apple_swift_fixture_rf_v1_open()
+        })
+        try status.requireWellFormed()
+        try requireContract(status.isSuccess, "private Swift requires-false fixture open failed")
+    }
+
+    func openRequiresFalseAgainRaw() throws -> StatusWord {
+        StatusWord(raw: try fifo.call { spx_private_apple_swift_fixture_rf_v1_open() })
+    }
+
     func adopt() throws -> OwnedSession {
         let call: (StatusWord, UInt64) = try fifo.call {
             var output = UInt64.max
@@ -61,6 +73,43 @@ final class NativeRuntime: @unchecked Sendable {
             handle, &native, ConsumeEvidence.byteCount))
         try status.requireWellFormed()
         return (status, ConsumeEvidence(words: evidenceWords(&native)))
+    }
+
+    func adoptSingleWitness() throws -> OpaqueHandle {
+        let call: (StatusWord, UInt64) = try fifo.call {
+            var output: UInt64 = 0
+            let status = StatusWord(raw: spx_private_apple_swift_v1_adopt_single(
+                RequiresFalseEvidence.finalizerPayloadKAT, &output))
+            return (status, output)
+        }
+        let status = call.0
+        let output = call.1
+        try status.requireWellFormed()
+        if !status.isSuccess {
+            try requireContract(output == 0, "witness adoption rejection modified output handle")
+            throw ContractFailure(description: "private Swift witness adoption failed")
+        }
+        return try OpaqueHandle(output)
+    }
+
+    func executeRequiresFalse(_ handle: UInt64) throws -> RequiresFalseEvidence {
+        let result = try executeRequiresFalseOnOwner(
+            handle: handle, length: RequiresFalseEvidence.byteCount)
+        try requireContract(result.0.isSuccess, "private Swift requires-false witness failed")
+        return result.1
+    }
+
+    func executeRequiresFalseOnOwner(
+        handle: UInt64, length: UInt32) throws -> (StatusWord, RequiresFalseEvidence) {
+        let call: (StatusWord, RequiresFalseEvidence) = try fifo.call {
+            var native = poisonedEvidence()
+            let status = StatusWord(raw: spx_private_apple_swift_v1_execute_requires_false(
+                handle, &native, length))
+            return (status, RequiresFalseEvidence(words: evidenceWords(&native)))
+        }
+        let status = call.0
+        try status.requireWellFormed()
+        return call
     }
 
     func closeRaw() throws -> StatusWord {

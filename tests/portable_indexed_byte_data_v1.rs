@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use semaprax::hir::{self, ByteSliceExtent, ByteSliceRootKind, ResolvedType};
 use semaprax::interpreter::{self, ArgumentValue, InterpreterOptions};
 use semaprax::{codegen, format, graph, parse, verify};
+use sha2::{Digest as _, Sha256};
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
@@ -126,6 +127,22 @@ fn hir_and_graph_preserve_symbolic_parameter_roots_and_aliases() {
     let legacy_graph = graph::to_json(&legacy).unwrap();
     assert!(legacy_graph.contains("\"schema\":\"semaprax.graph.v10\""));
     assert!(!legacy_graph.contains("portable_indexed_byte_data"));
+}
+
+#[test]
+fn graph_v17_bytes_remain_frozen_without_stdout_v18_facts() {
+    let program = parse(SOURCE, "graph-v17-frozen.spx").unwrap();
+    let graph = graph::to_json(&program).unwrap();
+    assert!(graph.contains("\"schema\":\"semaprax.graph.v17\""));
+    assert!(!graph.contains("stdout_write_sites"));
+    assert!(!graph.contains("bounded_stdout_transcript"));
+    assert_eq!(
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(graph.as_bytes()))
+        ),
+        "35e44f3d697abb3d406955d76bfd2395eb7d0cd1ccecf05699057712d571209b"
+    );
 }
 
 #[test]

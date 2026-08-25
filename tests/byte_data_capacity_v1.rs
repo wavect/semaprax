@@ -3,7 +3,7 @@ mod byte_data_capacity;
 
 use byte_data_capacity::{
     analyze, ArrayStorageKind, ArrayStorageSlot, CapacityDiagnostic, CapacityFlow,
-    FunctionCapacityInput,
+    FunctionCapacityInput, MAX_STDOUT_TRANSCRIPT_BYTES,
 };
 
 fn slot(identity: &str, kind: ArrayStorageKind, length: u32) -> ArrayStorageSlot {
@@ -38,6 +38,60 @@ fn copy(site: &str, bytes: u64) -> CapacityFlow {
         site: site.to_owned(),
         conservative_payload_bytes: bytes,
     }
+}
+
+fn stdout_write(site: &str) -> CapacityFlow {
+    CapacityFlow::StdoutWrite {
+        site: site.to_owned(),
+    }
+}
+
+#[test]
+fn stdout_transcript_is_single_path_bounded_and_cycle_free() {
+    assert_eq!(MAX_STDOUT_TRANSCRIPT_BYTES, 65_536);
+    let alternative = analyze(&[function(
+        "root",
+        vec![],
+        CapacityFlow::Alternative(vec![stdout_write("root.left"), stdout_write("root.right")]),
+    )])
+    .unwrap();
+    assert_eq!(alternative.function("root").unwrap().stdout_write_sites, 1);
+
+    let sequence = analyze(&[function(
+        "root",
+        vec![],
+        CapacityFlow::Sequence(vec![
+            stdout_write("root.first"),
+            stdout_write("root.second"),
+        ]),
+    )])
+    .unwrap_err();
+    assert_eq!(sequence.diagnostic, CapacityDiagnostic::Transcript);
+    assert!(sequence.detail.contains("reaches 2 sites"));
+
+    let looped = analyze(&[function(
+        "root",
+        vec![],
+        CapacityFlow::Loop {
+            condition: Box::new(CapacityFlow::Empty),
+            body: Box::new(stdout_write("root.loop")),
+        },
+    )])
+    .unwrap_err();
+    assert_eq!(looped.diagnostic, CapacityDiagnostic::Transcript);
+    assert!(looped.detail.contains("while"));
+
+    let cycle = analyze(&[
+        function("a", vec![], call("a.b", "b")),
+        function(
+            "b",
+            vec![],
+            CapacityFlow::Sequence(vec![stdout_write("b.write"), call("b.a", "a")]),
+        ),
+    ])
+    .unwrap_err();
+    assert_eq!(cycle.diagnostic, CapacityDiagnostic::Transcript);
+    assert!(cycle.detail.contains("cyclic"));
 }
 
 #[test]

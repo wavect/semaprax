@@ -11,9 +11,9 @@ use std::path::{Component, PathBuf};
 
 use crate::diagnostic::Diagnostic;
 
-#[cfg(windows)]
-use super::PROJECT_NPM_BUILD_SCHEMA_V2;
 use super::{package_error, NpmArtifact};
+#[cfg(windows)]
+use super::{PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3};
 
 #[cfg(test)]
 type TestHook = Box<dyn FnOnce() + Send + 'static>;
@@ -42,7 +42,7 @@ fn run_test_after_create() {}
 #[cfg(unix)]
 pub(super) fn publish(
     output: &Path,
-    artifacts: &[NpmArtifact; 6],
+    artifacts: &[NpmArtifact],
     _schema: &str,
 ) -> Result<(), Diagnostic> {
     unix::publish(output, artifacts)
@@ -51,10 +51,13 @@ pub(super) fn publish(
 #[cfg(windows)]
 pub(super) fn publish(
     output: &Path,
-    artifacts: &[NpmArtifact; 6],
+    artifacts: &[NpmArtifact],
     schema: &str,
 ) -> Result<(), Diagnostic> {
-    if schema == PROJECT_NPM_BUILD_SCHEMA_V2 {
+    if matches!(
+        schema,
+        PROJECT_NPM_BUILD_SCHEMA_V2 | PROJECT_NPM_BUILD_SCHEMA_V3
+    ) {
         return Err(package_error(
             "useful-data npm publication requires safe handle-relative Windows authority",
         ));
@@ -63,7 +66,7 @@ pub(super) fn publish(
 }
 
 #[cfg(windows)]
-fn legacy_windows_publish(output: &Path, artifacts: &[NpmArtifact; 6]) -> Result<(), Diagnostic> {
+fn legacy_windows_publish(output: &Path, artifacts: &[NpmArtifact]) -> Result<(), Diagnostic> {
     use std::io::Write;
 
     match std::fs::symlink_metadata(output) {
@@ -99,7 +102,7 @@ mod unix {
 
     use super::*;
 
-    pub(super) fn publish(output: &Path, artifacts: &[NpmArtifact; 6]) -> Result<(), Diagnostic> {
+    pub(super) fn publish(output: &Path, artifacts: &[NpmArtifact]) -> Result<(), Diagnostic> {
         let absolute = absolute_normalized(output)?;
         let name = absolute
             .file_name()
@@ -216,14 +219,14 @@ mod unix {
 
     fn authenticate_inventory(
         directory: &OwnedFd,
-        artifacts: &[NpmArtifact; 6],
+        artifacts: &[NpmArtifact],
         identities: &[(u64, u64)],
     ) -> Result<(), Diagnostic> {
         let duplicate = rustix::io::dup(directory)
             .map_err(|error| package_error(format!("cannot hold npm inventory: {error}")))?;
         let entries = Dir::new(duplicate)
             .map_err(|error| package_error(format!("cannot inspect npm inventory: {error}")))?;
-        let mut seen = [false; 6];
+        let mut seen = vec![false; artifacts.len()];
         for entry in entries {
             let entry = entry
                 .map_err(|error| package_error(format!("cannot inspect npm inventory: {error}")))?;
@@ -242,7 +245,7 @@ mod unix {
             }
             seen[index] = true;
         }
-        if seen != [true; 6] {
+        if seen.iter().any(|seen| !seen) {
             return Err(package_error("npm package artifact inventory is not exact"));
         }
         Ok(())

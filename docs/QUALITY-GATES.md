@@ -307,6 +307,38 @@ quality suite and exact-head hosted Linux, macOS, Windows, and Rust-1.85 jobs.
 Safe Windows v2 publication, npm registry publication, and release promotion
 remain open.
 
+Bounded Stdout Transcript v1 / Project Manifest v4 additionally requires
+reserved-name and reserved-stable-ID rejection for authored functions,
+templates, and imports; exact permit/effect/signature/provenance agreement at
+source and hostile HIR; one-write branch maxima and sequential sums; loop and
+direct/mutual-cycle rejection; and cleanup builder/replay agreement that the
+operation is total and adds no leaf or status. Interpreter, native O0/O2, and
+Core-Wasm/Node must prove zero, exact-byte, 65,536-byte, repeated-invocation,
+and failure-after-write discard behavior. Wasm inspection must prove fixed
+guest transcript storage and no stdout/WASI/console import.
+
+Project v4 gates require exact ten-assignment canonical parsing with frozen
+v1-v3 bytes, one command/export stable ID, the exact stdout-only entry closure,
+an effect-free test closure, exact seven-file
+`semaprax.project-npm-build.v3` replay/tamper evidence, and compiler-free Node
+execution. The command boundary must cover match/no-match exits, empty and
+binary inputs, the combined needle-plus-stdin limit and plus-one failure,
+success-only one-time transcript retrieval, forced post-return arena settlement
+failure, and awaited physical stdout failure mapping to exit 2. Focused local
+Wasm evidence must also instantiate the raw shipped module with a checked
+import that throws after `stdout_write` and prove the entire exported transcript
+range remains zero; command admission must reject local-array, owned-data, and
+helper-root output operands. Focused local gates include:
+
+```sh
+cargo test --locked -p semaprax --test bounded_stdout_transcript_v1
+cargo test --locked -p semaprax --test project_manifest_v4
+cargo test --locked -p semaprax --test useful_data_command_v1
+```
+
+These are local Partial evidence only; hosted promotion and publication remain
+separate gates.
+
 Project CLI publication is Web (default), explicit native, or npm. For Project
 v2, default/`web`/`wasm` and `npm` deliberately select the same exact six-file
 Useful Text package; Project v1 stays on its frozen scalar Web route. Project `run`

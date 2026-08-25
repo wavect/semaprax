@@ -4,6 +4,7 @@
 //! and the already-admitted public ABI. This module neither reads nor writes a
 //! path and never launches npm, Node, or another process.
 
+mod command;
 mod data;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 mod publication;
@@ -31,8 +32,10 @@ const MAX_PARAMETERS: usize = 8;
 
 pub const PROJECT_NPM_BUILD_SCHEMA: &str = "semaprax.project-npm-build.v1";
 pub const PROJECT_NPM_BUILD_SCHEMA_V2: &str = "semaprax.project-npm-build.v2";
+pub const PROJECT_NPM_BUILD_SCHEMA_V3: &str = "semaprax.project-npm-build.v3";
 const PROJECT_NPM_BUILD_DIGEST_DOMAIN: &[u8] = b"semaprax.project-npm-build.payload.v1\0";
 const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V2: &[u8] = b"semaprax.project-npm-build.payload.v2\0";
+const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V3: &[u8] = b"semaprax.project-npm-build.payload.v3\0";
 pub const MAX_PROJECT_NPM_BUILD_BYTES: usize = 40 * 1024 * 1024;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -109,7 +112,22 @@ pub(crate) struct UsefulTextNpmPackage {
     artifacts: [NpmArtifact; 6],
 }
 
-/// Canonical, replayable carrier for one exact six-file npm package.
+enum ReplayedNpmArtifacts {
+    Text([NpmArtifact; 6]),
+    Data([NpmArtifact; 6]),
+    Command([NpmArtifact; 7]),
+}
+
+impl ReplayedNpmArtifacts {
+    fn as_slice(&self) -> &[NpmArtifact] {
+        match self {
+            Self::Text(value) | Self::Data(value) => value,
+            Self::Command(value) => value,
+        }
+    }
+}
+
+/// Canonical, replayable carrier for one schema-selected exact npm package.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProjectNpmBuild {
     envelope: String,
@@ -202,9 +220,10 @@ impl ProjectNpmBuild {
             ],
         )?;
         let schema = json_string(object, "schema")?;
-        let expected_paths = match schema {
+        let expected_paths: &[&str] = match schema {
             PROJECT_NPM_BUILD_SCHEMA => &USEFUL_TEXT_PACKAGE_PATHS,
             PROJECT_NPM_BUILD_SCHEMA_V2 => &data::USEFUL_DATA_PACKAGE_PATHS,
+            PROJECT_NPM_BUILD_SCHEMA_V3 => &command::USEFUL_DATA_COMMAND_PACKAGE_PATHS,
             _ => return Err(package_error("npm build schema is unsupported")),
         };
         let identity = NpmBuildIdentity {
@@ -278,24 +297,51 @@ impl ProjectNpmBuild {
         if declared_total != total {
             return Err(package_error("npm build artifact byte count disagrees"));
         }
-        let artifacts: [NpmArtifact; 6] = artifacts
-            .try_into()
-            .map_err(|_| package_error("npm build artifact inventory is not exact"))?;
-        let payload_digest = if schema == PROJECT_NPM_BUILD_SCHEMA {
-            let package = UsefulTextNpmPackage {
-                artifacts: artifacts.clone(),
-            };
-            validate_replayed_package(identity, &package)?;
-            payload_digest(identity, &package)
-        } else {
-            data::validate_replayed(identity, &artifacts)?;
-            payload_digest_artifacts_v2(identity, &artifacts)
+        let artifacts = match schema {
+            PROJECT_NPM_BUILD_SCHEMA => ReplayedNpmArtifacts::Text(
+                artifacts
+                    .try_into()
+                    .map_err(|_| package_error("npm build artifact inventory is not exact"))?,
+            ),
+            PROJECT_NPM_BUILD_SCHEMA_V2 => ReplayedNpmArtifacts::Data(
+                artifacts
+                    .try_into()
+                    .map_err(|_| package_error("npm build artifact inventory is not exact"))?,
+            ),
+            PROJECT_NPM_BUILD_SCHEMA_V3 => ReplayedNpmArtifacts::Command(
+                artifacts
+                    .try_into()
+                    .map_err(|_| package_error("npm build artifact inventory is not exact"))?,
+            ),
+            _ => unreachable!("carrier schema selected above"),
+        };
+        let payload_digest = match &artifacts {
+            ReplayedNpmArtifacts::Text(artifacts) => {
+                let package = UsefulTextNpmPackage {
+                    artifacts: artifacts.clone(),
+                };
+                validate_replayed_package(identity, &package)?;
+                payload_digest(identity, &package)
+            }
+            ReplayedNpmArtifacts::Data(artifacts) => {
+                data::validate_replayed(identity, artifacts)?;
+                payload_digest_artifacts_v2(identity, artifacts)
+            }
+            ReplayedNpmArtifacts::Command(artifacts) => {
+                command::validate_replayed(identity, artifacts)?;
+                payload_digest_artifacts_v3(identity, artifacts)
+            }
         };
         if json_string(object, "payload_digest")? != payload_digest {
             return Err(package_error("npm build payload digest disagrees"));
         }
-        let canonical =
-            render_carrier_artifacts(schema, identity, &artifacts, total, &payload_digest);
+        let canonical = render_carrier_artifacts(
+            schema,
+            identity,
+            artifacts.as_slice(),
+            total,
+            &payload_digest,
+        );
         if canonical != envelope {
             return Err(package_error("npm build envelope is not canonical"));
         }
@@ -324,7 +370,7 @@ impl ProjectNpmBuild {
             .and_then(|object| json_string(object, "schema"))?;
         #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
         {
-            publication::publish(output, &package, schema)
+            publication::publish(output, package.as_slice(), schema)
         }
         #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
         {
@@ -416,6 +462,16 @@ pub(crate) fn prepare(
     project_graph_digest: &str,
     max_bytes: usize,
 ) -> Result<ProjectNpmBuild, Diagnostic> {
+    if manifest.is_v4() {
+        return command::prepare(
+            manifest,
+            program,
+            project_revision,
+            workspace_revision,
+            project_graph_digest,
+            max_bytes,
+        );
+    }
     if manifest.is_v3() {
         return data::prepare(
             manifest,
@@ -546,14 +602,23 @@ pub(super) fn render_semantic_recipe(
             ));
         }
     }
-    let mut output = String::from("module semaprax_npm_recipe;\n\n");
+    let has_stdout = program
+        .functions
+        .iter()
+        .any(|function| function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT]);
+    let mut output = if has_stdout {
+        String::from("module semaprax_npm_recipe;\n\npermit { process.stdout.write }\n\n")
+    } else {
+        String::from("module semaprax_npm_recipe;\n\n")
+    };
     for function in &program.functions {
-        if !function.effects.is_empty()
+        if (!function.effects.is_empty()
+            && function.effects != [crate::host_io_ops::STDOUT_WRITE_EFFECT])
             || !function.requires.is_empty()
             || !function.ensures.is_empty()
         {
             return Err(package_error(
-                "npm semantic recipe does not admit effects or contracts",
+                "npm semantic recipe does not admit these effects or contracts",
             ));
         }
         let mut values = BTreeMap::<String, String>::new();
@@ -583,9 +648,17 @@ pub(super) fn render_semantic_recipe(
             .get(function.id.as_str())
             .ok_or_else(|| package_error("npm semantic recipe function name is absent"))?;
         output.push_str(&format!(
-            "@id({})\nfn {name}({parameters}) -> {}\n",
+            "@id({})\nfn {name}({parameters}) -> {}\n{}",
             quote_source(function.id.as_str()),
             recipe_type(&function.return_type)?,
+            if function.effects.is_empty() {
+                "".to_owned()
+            } else {
+                format!(
+                    "    uses {{ {} }}\n",
+                    crate::host_io_ops::STDOUT_WRITE_EFFECT
+                )
+            },
         ));
         let mut local_index = 0_usize;
         output.push_str(&render_recipe_expr(
@@ -668,6 +741,10 @@ fn render_recipe_expr(
                 .map(|operation| operation.name().to_owned())
                 .or_else(|| {
                     crate::byte_ops::by_id(callee.as_str())
+                        .map(|operation| operation.name().to_owned())
+                })
+                .or_else(|| {
+                    crate::host_io_ops::by_id(callee.as_str())
                         .map(|operation| operation.name().to_owned())
                 })
                 .or_else(|| functions.get(callee.as_str()).cloned())
@@ -1387,6 +1464,13 @@ pub(super) fn payload_digest_artifacts_v2(
     payload_digest_artifacts_with_domain(PROJECT_NPM_BUILD_DIGEST_DOMAIN_V2, identity, artifacts)
 }
 
+pub(super) fn payload_digest_artifacts_v3(
+    identity: NpmBuildIdentity<'_>,
+    artifacts: &[NpmArtifact],
+) -> String {
+    payload_digest_artifacts_with_domain(PROJECT_NPM_BUILD_DIGEST_DOMAIN_V3, identity, artifacts)
+}
+
 fn payload_digest_artifacts_with_domain(
     domain: &[u8],
     identity: NpmBuildIdentity<'_>,
@@ -1538,16 +1622,17 @@ fn validate_carrier_limit(length: usize, max_bytes: usize) -> Result<(), Diagnos
 fn decode_carrier_artifacts(
     envelope: &str,
     max_bytes: usize,
-) -> Result<[NpmArtifact; 6], Diagnostic> {
+) -> Result<ReplayedNpmArtifacts, Diagnostic> {
     let value: serde_json::Value = serde_json::from_str(envelope)
         .map_err(|_| package_error("npm build envelope is not valid JSON"))?;
     let schema = value
         .get("schema")
         .and_then(serde_json::Value::as_str)
         .ok_or_else(|| package_error("npm build schema is invalid"))?;
-    let paths = match schema {
+    let paths: &[&str] = match schema {
         PROJECT_NPM_BUILD_SCHEMA => &USEFUL_TEXT_PACKAGE_PATHS,
         PROJECT_NPM_BUILD_SCHEMA_V2 => &data::USEFUL_DATA_PACKAGE_PATHS,
+        PROJECT_NPM_BUILD_SCHEMA_V3 => &command::USEFUL_DATA_COMMAND_PACKAGE_PATHS,
         _ => return Err(package_error("npm build schema is unsupported")),
     };
     let rows = value
@@ -1555,7 +1640,7 @@ fn decode_carrier_artifacts(
         .and_then(serde_json::Value::as_array)
         .ok_or_else(|| package_error("npm build artifacts are invalid"))?;
     let mut total = 0_usize;
-    let mut artifacts = Vec::with_capacity(6);
+    let mut artifacts = Vec::with_capacity(paths.len());
     if rows.len() != paths.len() {
         return Err(package_error("npm build artifact inventory is not exact"));
     }
@@ -1568,9 +1653,21 @@ fn decode_carrier_artifacts(
         total += bytes.len();
         artifacts.push(NpmArtifact { path, bytes });
     }
-    artifacts
-        .try_into()
-        .map_err(|_| package_error("npm build artifact inventory is not exact"))
+    match schema {
+        PROJECT_NPM_BUILD_SCHEMA => artifacts
+            .try_into()
+            .map(ReplayedNpmArtifacts::Text)
+            .map_err(|_| package_error("npm build artifact inventory is not exact")),
+        PROJECT_NPM_BUILD_SCHEMA_V2 => artifacts
+            .try_into()
+            .map(ReplayedNpmArtifacts::Data)
+            .map_err(|_| package_error("npm build artifact inventory is not exact")),
+        PROJECT_NPM_BUILD_SCHEMA_V3 => artifacts
+            .try_into()
+            .map(ReplayedNpmArtifacts::Command)
+            .map_err(|_| package_error("npm build artifact inventory is not exact")),
+        _ => unreachable!("carrier schema selected above"),
+    }
 }
 
 pub(super) fn package_error(message: impl Into<String>) -> Diagnostic {

@@ -74,6 +74,12 @@ pub(super) fn build_owned(
             &entry_program,
             manifest.web_exports(),
         ),
+        super::ProjectProfile::UsefulDataCommandV1 => {
+            crate::wasm::emit_resolved_module_with_byte_exports_and_stdout_transcript(
+                &entry_program,
+                manifest.web_exports(),
+            )
+        }
     }
     .map_err(|error| vec![error])?;
     let sources = files

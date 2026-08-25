@@ -1513,6 +1513,42 @@ Windows v2 publication remains deliberately fail-closed. Exact-head hosted
 promotion, registry publication, and release promotion remain open, so no
 complete-profile claim is made.
 
+## Bounded stdout transcript and Project Manifest v4
+
+[Bounded Stdout Transcript v1](BOUNDED-STDOUT-TRANSCRIPT-V1.md) adds one
+compiler-authenticated `stdout_write(borrow Slice<u8>) -> usize` operation with
+the exact `process.stdout.write` effect. Source and hostile HIR independently
+reserve its spelling and stable ID, reconstruct its slice provenance and
+effect, and reject contracts, loops, reachable cycles, and more than one write
+on any executable path. It is an infallible Copy-result call with no cleanup
+leaf or status producer. Reachability selects Graph v18; legacy programs retain
+their previous graph and backend schemas.
+
+The hosted interpreter, native C, and Core Wasm all use fresh invocation-owned
+staging. Publication happens only after root success; failure wipes the staged
+range. Native exposes a caller-owned fixed transcript result without stdio.
+The public Wasm command profile uses a fixed third memory page and exported
+authenticated base, capacity, and published-length globals. Its stdout operand
+must be rooted in one selected external Slice parameter. The intrinsic records
+only the authenticated scratch pointer/length in private globals; the root
+wrapper copies bytes into the transcript page only after target status and
+canonical result validation. Thus even a raw consumer-supplied import that
+throws after the intrinsic leaves the exported range zero. The JS facade makes
+the range available only after arena settlement, copies it once, then clears
+it; every failed primary or settlement path wipes the entire range. No
+stdout/WASI/console import is added, and raw general stdout-profile Wasm
+emitters remain crate-private.
+
+[Project Manifest v4](PROJECT-MANIFEST-V4.md) additively selects the exact
+`useful-data-command.v1` profile. A distinct linker admits only the stdout
+effect in the entry closure while legacy Useful Data and the test closure stay
+effect-free. Its seven-file `semaprax.project-npm-build.v3` package contains a
+fixed Node command adapter. The adapter prebuffers its UTF-8 needle and stdin
+under one 65,536-byte limit, invokes the exact stable-ID bool command, awaits
+one physical stdout flush after settlement, and maps match/no-match/adapter
+failure to exits 0/1/2. The `spxgrep` fixture is compiler-free after generation
+and performs a real nested `byte_get` search over arbitrary stdin bytes.
+
 ### Project Agent Transport v2
 
 `src/project_transport/` and `src/bin/semapraxd.rs` add a separate strict

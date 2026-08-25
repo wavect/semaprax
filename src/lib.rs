@@ -31,6 +31,7 @@ pub mod format;
 pub mod freestanding_object;
 pub mod graph;
 pub mod hir;
+pub mod hosted_interpreter;
 pub mod hygienic;
 pub mod impact;
 pub mod interpreter;
@@ -85,6 +86,7 @@ pub mod workspace;
 pub mod workspace_patch_evidence;
 
 mod graph_cleanup;
+pub(crate) mod host_io_ops;
 mod host_ownership;
 mod prelude;
 pub mod semantic_workspace;

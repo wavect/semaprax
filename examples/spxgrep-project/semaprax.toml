@@ -1,0 +1,10 @@
+schema = "semaprax.project.v4"
+name = "spxgrep"
+version = "0.1.0"
+profile = "useful-data-command.v1"
+entry = "spxgrep.app"
+sources = ["src/app.spx", "src/tests.spx"]
+web_exports = ["spxgrep.contains"]
+command = "spxgrep.contains"
+capabilities = ["process.stdout.write"]
+tests = ["spxgrep.tests"]

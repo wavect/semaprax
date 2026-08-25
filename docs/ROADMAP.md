@@ -151,11 +151,23 @@ multi-module binary-frame acceptance project. Indexed Byte Loop v2 locally
 adds true dynamic traversal through exact compiler-owned `byte_get` /
 `Option<u8>` matching while preserving cleanup-inert loops. Unix publication is
 handle-relative and no-clobber; the Windows v2 route stays fail-closed until an
-equally strong primitive is available. The remaining promotion work is the
+equally strong primitive is available.
+
+[Bounded Stdout Transcript v1](BOUNDED-STDOUT-TRANSCRIPT-V1.md) and [Project
+Manifest v4](PROJECT-MANIFEST-V4.md) now add the first closed output consumer.
+Compiler-owned `stdout_write` stages at most one bounded slice per executable
+path and publishes it only after root success. Native never touches a process
+descriptor; Wasm stages in guest memory without a stdout/WASI import. The
+fixed `spxgrep` npm command snapshots one UTF-8 needle plus stdin under one
+65,536-byte adapter budget, runs a true nested indexed-byte search, and flushes
+the sealed transcript once. Exact match/no-match/error exits, settlement
+fail-stop, carrier replay, and compiler-free Node execution are locally green.
+
+The remaining promotion work is the
 complete hostile cross-platform boundary matrix, exact-head hosted Linux,
 macOS, Windows, and Rust-1.85 evidence, safe Windows publication, npm registry
 publication, and release promotion. General aggregate/resource iteration,
-files/stdin/stdout, general
+language-level files/stdin/argv and general streaming stdout, general
 collections, mutable views, dependencies, lockfiles, signing, and provenance
 remain on the roadmap.
 

@@ -854,6 +854,7 @@ pub(super) fn lower_selected_functions(
             function,
             &function_indexes,
             &variant_layouts,
+            None,
         )?);
     }
     Ok(SelectedAggregateLowering {
@@ -955,6 +956,7 @@ pub(super) fn lower_selected_function_instances(
                 &instance.function,
                 &function_indexes,
                 &variant_layouts,
+                None,
             )
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -967,7 +969,12 @@ pub(super) fn lower_selected_function_instances(
 }
 
 pub(super) fn emit(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic> {
-    emit_profile(program, false)
+    emit_profile(program, false, false)
+}
+
+#[cfg(test)]
+pub(super) fn emit_stdout_transcript(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic> {
+    emit_profile(program, false, true)
 }
 
 /// Emit Public Useful Data Export v1 without widening the legacy aggregate
@@ -976,6 +983,21 @@ pub(super) fn emit(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic> {
 pub(super) fn emit_byte_exports(
     program: &ResolvedProgram,
     plans: &[super::data_exports::DataExportPlan],
+) -> Result<Vec<u8>, Diagnostic> {
+    emit_byte_exports_profile(program, plans, false)
+}
+
+pub(super) fn emit_byte_exports_with_stdout_transcript(
+    program: &ResolvedProgram,
+    plans: &[super::data_exports::DataExportPlan],
+) -> Result<Vec<u8>, Diagnostic> {
+    emit_byte_exports_profile(program, plans, true)
+}
+
+fn emit_byte_exports_profile(
+    program: &ResolvedProgram,
+    plans: &[super::data_exports::DataExportPlan],
+    host_output: bool,
 ) -> Result<Vec<u8>, Diagnostic> {
     if plans.is_empty() || !super::program_uses_byte_data(program) {
         return Err(error(
@@ -1137,17 +1159,18 @@ pub(super) fn emit_byte_exports(
 
     let mut memory = Vec::new();
     write_u32(&mut memory, 1);
-    memory.extend([
-        0x01,
-        super::data_exports::FIXED_MEMORY_PAGES,
-        super::data_exports::FIXED_MEMORY_PAGES,
-    ]);
+    let memory_pages = if host_output {
+        super::host_output::MEMORY_PAGES
+    } else {
+        super::data_exports::FIXED_MEMORY_PAGES
+    };
+    memory.extend([0x01, memory_pages, memory_pages]);
     section(&mut module, 5, memory);
 
     // Global 0 is the private shadow-stack top. The public globals follow in
     // exact status/base/capacity order and are the only exported globals.
     let mut globals = Vec::new();
-    write_u32(&mut globals, 4);
+    write_u32(&mut globals, if host_output { 9 } else { 4 });
     globals.extend([I32, 0x01, 0x41]);
     write_i64(&mut globals, 131_072);
     globals.push(0x0b);
@@ -1161,12 +1184,15 @@ pub(super) fn emit_byte_exports(
         i64::from(super::data_exports::SCRATCH_CAPACITY),
     );
     globals.push(0x0b);
+    if host_output {
+        super::host_output::append_data_globals(&mut globals);
+    }
     section(&mut module, 6, globals);
 
     let mut exports = Vec::new();
     write_u32(
         &mut exports,
-        4_u32
+        (if host_output { 7_u32 } else { 4_u32 })
             .checked_add(u32::try_from(plans.len()).map_err(|_| error("too many data exports"))?)
             .ok_or_else(|| error("Public Useful Data export count overflows u32"))?,
     );
@@ -1181,6 +1207,9 @@ pub(super) fn emit_byte_exports(
         write_name(&mut exports, name);
         exports.push(0x03);
         write_u32(&mut exports, index);
+    }
+    if host_output {
+        super::host_output::append_exports(&mut exports, super::host_output::DATA_GLOBALS, false);
     }
     let wrapper_base = SCALAR_IMPORT_COUNT
         .checked_add(BYTE_IMPORT_COUNT)
@@ -1205,7 +1234,13 @@ pub(super) fn emit_byte_exports(
             .map_err(|_| error("too many Public Useful Data bodies"))?,
     );
     for (function, _) in &executable_functions {
-        let body = emit_function(program, function, &function_indexes, &variant_layouts)?;
+        let body = emit_function(
+            program,
+            function,
+            &function_indexes,
+            &variant_layouts,
+            host_output.then_some(super::host_output::DATA_GLOBALS),
+        )?;
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
     }
@@ -1214,7 +1249,16 @@ pub(super) fn emit_byte_exports(
             .get(&FunctionExecutionId::Monomorphic(plan.function_id.clone()))
             .copied()
             .ok_or_else(|| error("selected data export target is not indexed"))?;
-        let body = plan.emit_wrapper_body(target, 0, 1)?;
+        let body = if host_output {
+            plan.emit_wrapper_body_with_stdout_transcript(
+                target,
+                0,
+                1,
+                super::host_output::DATA_GLOBALS,
+            )?
+        } else {
+            plan.emit_wrapper_body(target, 0, 1)?
+        };
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
     }
@@ -1222,7 +1266,11 @@ pub(super) fn emit_byte_exports(
     Ok(module)
 }
 
-fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>, Diagnostic> {
+fn emit_profile(
+    program: &ResolvedProgram,
+    test_exports: bool,
+    host_output: bool,
+) -> Result<Vec<u8>, Diagnostic> {
     let uses_byte_data = super::program_uses_byte_data(program);
     if program
         .types
@@ -1411,14 +1459,22 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
     let mut memory = Vec::new();
     write_u32(&mut memory, 1);
     if uses_byte_data {
-        memory.extend([0x01, 0x02, 0x02]);
+        if host_output {
+            memory.extend([
+                0x01,
+                super::host_output::MEMORY_PAGES,
+                super::host_output::MEMORY_PAGES,
+            ]);
+        } else {
+            memory.extend([0x01, 0x02, 0x02]);
+        }
     } else {
         memory.extend([0x00, 0x01]);
     }
     section(&mut module, 5, memory);
 
     let mut globals = Vec::new();
-    write_u32(&mut globals, 1);
+    write_u32(&mut globals, if host_output { 5 } else { 1 });
     globals.extend([I32, 0x01, 0x41]);
     write_i64(
         &mut globals,
@@ -1429,6 +1485,9 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
         }),
     );
     globals.push(0x0b);
+    if host_output {
+        super::host_output::append_globals(&mut globals);
+    }
     section(&mut module, 6, globals);
 
     let mut exports = Vec::new();
@@ -1440,7 +1499,10 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
     } else {
         0
     };
-    write_u32(&mut exports, 1 + extra_exports + u32::from(uses_byte_data));
+    write_u32(
+        &mut exports,
+        1 + extra_exports + u32::from(uses_byte_data) + if host_output { 4 } else { 0 },
+    );
     write_name(&mut exports, "semaprax_main");
     exports.push(0x00);
     let wrapper_index = SCALAR_IMPORT_COUNT
@@ -1455,6 +1517,9 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
         write_name(&mut exports, "__spx_byte_memory");
         exports.push(0x02);
         write_u32(&mut exports, 0);
+    }
+    if host_output {
+        super::host_output::append_exports(&mut exports, super::host_output::ROOT_GLOBALS, true);
     }
     if test_exports {
         write_name(&mut exports, "__spx_test_memory");
@@ -1486,7 +1551,13 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
             .map_err(|_| error("too many aggregate function bodies"))?,
     );
     for (function, _) in &executable_functions {
-        let body = emit_function(program, function, &function_indexes, &variant_layouts)?;
+        let body = emit_function(
+            program,
+            function,
+            &function_indexes,
+            &variant_layouts,
+            host_output.then_some(super::host_output::ROOT_GLOBALS),
+        )?;
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
     }
@@ -1494,6 +1565,7 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
         *function_indexes
             .get(&FunctionExecutionId::Monomorphic(main.id.clone()))
             .ok_or_else(|| error("aggregate main function is not indexed"))?,
+        host_output,
     );
     write_u32(&mut code, wrapper.len() as u32);
     code.extend(wrapper);
@@ -1527,6 +1599,7 @@ fn emit_function(
     function: &ResolvedFunction,
     function_indexes: &HashMap<FunctionExecutionId, u32>,
     variant_layouts: &VariantLayoutCache,
+    host_output: Option<super::host_output::Globals>,
 ) -> Result<Vec<u8>, Diagnostic> {
     let plan = FunctionPlan::build(program, function, variant_layouts)?;
     let mut body = Vec::new();
@@ -1617,6 +1690,7 @@ fn emit_function(
         status_exit_extra_depth: 1,
         try_target_enabled: false,
         failure_expression: None,
+        host_output,
     };
     for contract in &function.requires {
         let condition = emitter.emit_expr(contract)?;
@@ -1820,6 +1894,7 @@ struct Emitter<'a> {
     status_exit_extra_depth: u32,
     try_target_enabled: bool,
     failure_expression: Option<ExpressionId>,
+    host_output: Option<super::host_output::Globals>,
 }
 
 impl Emitter<'_> {
@@ -3204,6 +3279,39 @@ impl Emitter<'_> {
         args: &[ResolvedExpr],
     ) -> Result<Value, Diagnostic> {
         if instance.is_none() {
+            if crate::host_io_ops::by_id(callee.as_str()).is_some() {
+                if self.host_output.is_none() {
+                    return Err(error(
+                        "host stdout write requires the Wasm stdout-transcript profile",
+                    ));
+                }
+                if args.len() != 1 {
+                    return Err(error("host stdout write arity disagrees with resolved HIR"));
+                }
+                let value = self.emit_expr(&args[0])?;
+                self.require_scalar(&value, &ResolvedType::SliceU8, "host stdout write argument")?;
+                require_type(&expr.ty, &ResolvedType::Usize, "host stdout write result")?;
+                self.apply_call_commit(&expr.id)?;
+                let local = self.plan.expr_scalar(expr)?;
+                self.get_scalar(&value);
+                self.output.push(0x21);
+                write_u32(self.output, local);
+                let staged = Value::Scalar {
+                    local,
+                    ty: ResolvedType::SliceU8,
+                };
+                self.validate_byte_slice(&staged);
+                super::host_output::emit_write(
+                    self.output,
+                    local,
+                    local,
+                    self.host_output.expect("checked stdout transcript profile"),
+                );
+                return Ok(Value::Scalar {
+                    local,
+                    ty: ResolvedType::Usize,
+                });
+            }
             if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
                 return self.emit_byte_op(expr, op, args);
             }
@@ -4533,7 +4641,7 @@ fn require_type(
     }
 }
 
-fn emit_wrapper(main_index: u32) -> Vec<u8> {
+fn emit_wrapper(main_index: u32, host_output: bool) -> Vec<u8> {
     let old_stack = 0_u32;
     let frame_base = 1_u32;
     let status = 2_u32;
@@ -4545,6 +4653,10 @@ fn emit_wrapper(main_index: u32) -> Vec<u8> {
     body.push(I32);
     write_u32(&mut body, 1);
     body.push(I32);
+
+    if host_output {
+        super::host_output::emit_reset(&mut body, super::host_output::ROOT_GLOBALS);
+    }
 
     body.push(0x23);
     write_u32(&mut body, 0);
@@ -4573,6 +4685,16 @@ fn emit_wrapper(main_index: u32) -> Vec<u8> {
     write_u32(&mut body, old_stack);
     body.push(0x24);
     write_u32(&mut body, 0);
+
+    if host_output {
+        body.push(0x20);
+        write_u32(&mut body, status);
+        body.extend([0x04, 0x40]);
+        super::host_output::emit_discard(&mut body, super::host_output::ROOT_GLOBALS);
+        body.push(0x05);
+        super::host_output::emit_publish(&mut body, super::host_output::ROOT_GLOBALS);
+        body.push(0x0b);
+    }
 
     body.push(0x20);
     write_u32(&mut body, status);
@@ -4704,7 +4826,7 @@ fn main() -> i64 { 0 }
         }
         let program = parse(BYTE_BOUNDARY_SOURCE, Path::new("byte-boundary-wasm.spx")).unwrap();
         let resolved = hir::resolve(&program).unwrap();
-        let bytes = emit_profile(&resolved, true).unwrap();
+        let bytes = emit_profile(&resolved, true, false).unwrap();
         let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
         let stem = format!("semaprax-byte-boundary-wasm-{}-{id}", std::process::id());
         let wasm_path = std::env::temp_dir().join(format!("{stem}.wasm"));
@@ -5117,7 +5239,7 @@ fn main() -> i64 {
         }
         let program = parse(SOURCE, Path::new("aggregate-wasm.spx")).unwrap();
         let resolved = hir::resolve(&program).unwrap();
-        let bytes = emit_profile(&resolved, true).unwrap();
+        let bytes = emit_profile(&resolved, true, false).unwrap();
         let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
         let stem = format!("semaprax-aggregate-wasm-{}-{id}", std::process::id());
         let wasm_path = std::env::temp_dir().join(format!("{stem}.wasm"));
@@ -5199,8 +5321,8 @@ console.log("aggregate-wasm-v1-ok");
         }
         let program = parse(VARIANT_SOURCE, Path::new("variant-wasm.spx")).unwrap();
         let resolved = hir::resolve(&program).unwrap();
-        let bytes = emit_profile(&resolved, true).unwrap();
-        assert_eq!(bytes, emit_profile(&resolved, true).unwrap());
+        let bytes = emit_profile(&resolved, true, false).unwrap();
+        assert_eq!(bytes, emit_profile(&resolved, true, false).unwrap());
         let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
         let stem = format!("semaprax-variant-wasm-{}-{id}", std::process::id());
         let wasm_path = std::env::temp_dir().join(format!("{stem}.wasm"));
@@ -5318,8 +5440,8 @@ console.log("variant-wasm-v1-ok");
         )
         .unwrap();
         let resolved = hir::resolve(&program).unwrap();
-        let bytes = emit_profile(&resolved, true).unwrap();
-        assert_eq!(bytes, emit_profile(&resolved, true).unwrap());
+        let bytes = emit_profile(&resolved, true, false).unwrap();
+        assert_eq!(bytes, emit_profile(&resolved, true, false).unwrap());
         let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
         let stem = format!("semaprax-generic-variant-wasm-{}-{id}", std::process::id());
         let wasm_path = std::env::temp_dir().join(format!("{stem}.wasm"));
@@ -5398,8 +5520,8 @@ console.log("generic-variant-wasm-v2-ok");
         }
         let program = parse(RESULT_TRY_SOURCE, Path::new("result-try-wasm.spx")).unwrap();
         let resolved = hir::resolve(&program).unwrap();
-        let bytes = emit_profile(&resolved, true).unwrap();
-        assert_eq!(bytes, emit_profile(&resolved, true).unwrap());
+        let bytes = emit_profile(&resolved, true, false).unwrap();
+        assert_eq!(bytes, emit_profile(&resolved, true, false).unwrap());
         let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
         let stem = format!("semaprax-result-try-wasm-{}-{id}", std::process::id());
         let wasm_path = std::env::temp_dir().join(format!("{stem}.wasm"));

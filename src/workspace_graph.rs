@@ -1094,7 +1094,11 @@ impl WorkspaceGraphBuild {
                 continue;
             }
             retained_modules += 1;
-            if !module.permits.is_empty()
+            let permits_admitted = module.permits.is_empty()
+                || (profile == crate::project::ProjectProfile::UsefulDataCommandV1
+                    && module.module == entry_module
+                    && module.permits == [crate::host_io_ops::STDOUT_WRITE_EFFECT]);
+            if !permits_admitted
                 || !module.types.is_empty()
                 || !module.interfaces.is_empty()
                 || !module.function_templates.is_empty()
@@ -1174,6 +1178,13 @@ impl WorkspaceGraphBuild {
             }
             crate::project::ProjectProfile::UsefulDataV1 => {
                 hir::link_useful_data_workspace(entry_module.to_owned(), entrypoint, functions)
+            }
+            crate::project::ProjectProfile::UsefulDataCommandV1 => {
+                hir::link_useful_data_command_workspace(
+                    entry_module.to_owned(),
+                    entrypoint,
+                    functions,
+                )
             }
         }
         .map_err(|error| vec![error])
@@ -1285,6 +1296,9 @@ impl WorkspaceGraphBuild {
             }
             crate::project::ProjectProfile::UsefulDataV1 => {
                 hir::link_useful_data_workspace(base.module, base.entrypoint, functions)
+            }
+            crate::project::ProjectProfile::UsefulDataCommandV1 => {
+                hir::link_useful_data_command_workspace(base.module, base.entrypoint, functions)
             }
         }
         .map_err(|error| vec![error])
@@ -1449,7 +1463,11 @@ impl WorkspaceGraphBuild {
         validate_entry_module(test_module)?;
         let roots = BTreeSet::from([entry_module, test_module]);
         for module in &self.hir.modules {
-            if !module.permits.is_empty()
+            let permits_admitted = module.permits.is_empty()
+                || (profile == crate::project::ProjectProfile::UsefulDataCommandV1
+                    && module.module == entry_module
+                    && module.permits == [crate::host_io_ops::STDOUT_WRITE_EFFECT]);
+            if !permits_admitted
                 || !module.types.is_empty()
                 || !module.interfaces.is_empty()
                 || !module.function_templates.is_empty()
@@ -1490,7 +1508,8 @@ impl WorkspaceGraphBuild {
                             hir::OwnershipMode::Value
                         ) | (hir::ResolvedType::Str, hir::OwnershipMode::Borrow)
                     ),
-                    crate::project::ProjectProfile::UsefulDataV1 => {
+                    crate::project::ProjectProfile::UsefulDataV1
+                    | crate::project::ProjectProfile::UsefulDataCommandV1 => {
                         hir::useful_data_workspace_parameter_admitted(
                             &parameter.ty,
                             parameter.ownership,
@@ -1503,11 +1522,15 @@ impl WorkspaceGraphBuild {
                         function.return_type,
                         hir::ResolvedType::I64 | hir::ResolvedType::Bool
                     ),
-                    crate::project::ProjectProfile::UsefulDataV1 => {
+                    crate::project::ProjectProfile::UsefulDataV1
+                    | crate::project::ProjectProfile::UsefulDataCommandV1 => {
                         hir::useful_data_workspace_return_admitted(&function.return_type)
                     }
                 };
-                if !function.effects.is_empty()
+                let effects_admitted = function.effects.is_empty()
+                    || (profile == crate::project::ProjectProfile::UsefulDataCommandV1
+                        && function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT]);
+                if !effects_admitted
                     || !admitted_return
                     || function
                         .params
@@ -1520,6 +1543,9 @@ impl WorkspaceGraphBuild {
                             "Useful Text Consumer linker"
                         }
                         crate::project::ProjectProfile::UsefulDataV1 => "Useful Data linker",
+                        crate::project::ProjectProfile::UsefulDataCommandV1 => {
+                            "Useful Data Command linker"
+                        }
                     };
                     return Err(vec![graph_error(
                         "SPX-G172",

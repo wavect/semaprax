@@ -573,8 +573,8 @@ pub(crate) fn evaluate_resolved_zero_arg_i64(
             .name("semaprax-resolved-evaluate".to_owned())
             .stack_size(EVALUATION_STACK_BYTES)
             .spawn_scoped(scope, || {
-                let (outcome, steps_used) =
-                    evaluate_resolved_entry(entry, &[], &admitted, max_steps);
+                let (outcome, steps_used, _) =
+                    evaluate_resolved_entry(entry, &[], &admitted, max_steps, false);
                 let outcome = match outcome {
                     Ok(Value::Int(value)) => ResolvedEvaluationOutcome::ReturnedI64(value),
                     Ok(_) => ResolvedEvaluationOutcome::GuardError(
@@ -693,8 +693,13 @@ fn interpret_on_current_thread(
 
     scan_closure(entry.id.as_str(), &admitted)?;
 
-    let (evaluated, steps_used) =
-        evaluate_resolved_entry(entry, &parsed_arguments, &admitted, options.max_steps);
+    let (evaluated, steps_used, _) = evaluate_resolved_entry(
+        entry,
+        &parsed_arguments,
+        &admitted,
+        options.max_steps,
+        false,
+    );
     let outcome = match evaluated {
         Ok(value) => returned_outcome(&value),
         Err(flow) => match flow {
@@ -921,7 +926,8 @@ fn scan_closure(
                 }
                 let intrinsic = crate::string_ops::by_id(callee.as_str()).is_some()
                     || crate::str_ops::by_id(callee.as_str()).is_some()
-                    || crate::byte_ops::by_id(callee.as_str()).is_some();
+                    || crate::byte_ops::by_id(callee.as_str()).is_some()
+                    || crate::host_io_ops::by_id(callee.as_str()).is_some();
                 if !intrinsic && !admitted.contains_key(callee.as_str()) {
                     return Err(reject_scan(expression, REASON_UNSUPPORTED_CALLEE));
                 }
@@ -1004,29 +1010,112 @@ fn admitted_resolved_functions(
 }
 
 fn resolved_signature_is_admitted(function: &ResolvedFunction) -> bool {
-    function.effects.is_empty()
-        && function
-            .params
-            .iter()
-            .all(|parameter| match (&parameter.ty, parameter.ownership) {
-                (ty, hir::OwnershipMode::Value)
-                    if is_admitted_resolved_scalar(ty)
-                        || matches!(ty, ResolvedType::ArrayU8(_)) =>
-                {
-                    true
-                }
-                (ResolvedType::Bytes, hir::OwnershipMode::Own)
-                | (ResolvedType::Bytes, hir::OwnershipMode::Borrow)
-                | (ResolvedType::Str, hir::OwnershipMode::Borrow)
-                | (ResolvedType::SliceU8, hir::OwnershipMode::Borrow)
-                | (ResolvedType::ArrayU8(_), hir::OwnershipMode::Borrow) => true,
-                _ => false,
-            })
+    function.effects.is_empty() && resolved_data_signature_is_admitted(function)
+}
+
+fn resolved_data_signature_is_admitted(function: &ResolvedFunction) -> bool {
+    function
+        .params
+        .iter()
+        .all(|parameter| match (&parameter.ty, parameter.ownership) {
+            (ty, hir::OwnershipMode::Value)
+                if is_admitted_resolved_scalar(ty) || matches!(ty, ResolvedType::ArrayU8(_)) =>
+            {
+                true
+            }
+            (ResolvedType::Bytes, hir::OwnershipMode::Own)
+            | (ResolvedType::Bytes, hir::OwnershipMode::Borrow)
+            | (ResolvedType::Str, hir::OwnershipMode::Borrow)
+            | (ResolvedType::SliceU8, hir::OwnershipMode::Borrow)
+            | (ResolvedType::ArrayU8(_), hir::OwnershipMode::Borrow) => true,
+            _ => false,
+        })
         && (is_admitted_resolved_scalar(&function.return_type)
             || matches!(
                 function.return_type,
                 ResolvedType::ArrayU8(_) | ResolvedType::Bytes
             ))
+}
+
+pub(crate) fn evaluate_resolved_stdout_transcript(
+    program: &hir::ResolvedProgram,
+    entry_id: &str,
+    max_steps: usize,
+) -> Result<(ResolvedEvaluation, Vec<u8>), Vec<Diagnostic>> {
+    hir::validate(program).map_err(|diagnostic| vec![diagnostic])?;
+    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
+        return Err(vec![option_error(format!(
+            "hosted evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
+        ))]);
+    }
+    if program.entrypoint.as_str() != entry_id
+        || !program
+            .permits
+            .iter()
+            .any(|effect| effect == crate::host_io_ops::STDOUT_WRITE_EFFECT)
+    {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_CALLEE,
+            "hosted stdout evaluation requires the exact entry point and module permit".to_owned(),
+        )]);
+    }
+    let admitted = program
+        .functions
+        .iter()
+        .filter(|function| {
+            program
+                .declarations
+                .declaration(&function.id)
+                .is_some_and(|declaration| {
+                    declaration.identity_origin == hir::IdentityOrigin::Explicit
+                })
+        })
+        .filter(|function| {
+            resolved_data_signature_is_admitted(function)
+                && function
+                    .effects
+                    .iter()
+                    .all(|effect| effect == crate::host_io_ops::STDOUT_WRITE_EFFECT)
+        })
+        .map(|function| (function.id.as_str(), function))
+        .collect::<BTreeMap<_, _>>();
+    let entry = admitted.get(entry_id).copied().ok_or_else(|| {
+        vec![selection_error(
+            REASON_UNSUPPORTED_CALLEE,
+            format!("hosted entry `{entry_id}` is outside the stdout transcript profile"),
+        )]
+    })?;
+    if !entry.params.is_empty() || entry.return_type != ResolvedType::I64 {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_RESULT_TYPE,
+            format!("hosted entry `{entry_id}` must have type `fn main() -> i64`"),
+        )]);
+    }
+    hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
+    scan_closure(entry_id, &admitted)?;
+    let (evaluated, steps_used, mut transcript) =
+        evaluate_resolved_entry(entry, &[], &admitted, max_steps, true);
+    let outcome = match evaluated {
+        Ok(Value::Int(value)) => ResolvedEvaluationOutcome::ReturnedI64(value),
+        Ok(_) => ResolvedEvaluationOutcome::GuardError(
+            "hosted zero-argument i64 entry returned a non-i64 value".to_owned(),
+        ),
+        Err(Flow::Failure(status)) => ResolvedEvaluationOutcome::LanguageFailure(status),
+        Err(Flow::Exhausted) => ResolvedEvaluationOutcome::FuelExhausted,
+        Err(Flow::DepthExceeded) => ResolvedEvaluationOutcome::CallDepthExceeded,
+        Err(Flow::Guard(detail)) => ResolvedEvaluationOutcome::GuardError(detail.to_owned()),
+    };
+    if !matches!(outcome, ResolvedEvaluationOutcome::ReturnedI64(_)) {
+        transcript.clear();
+    }
+    Ok((
+        ResolvedEvaluation {
+            outcome,
+            steps_used,
+            max_steps,
+        },
+        transcript,
+    ))
 }
 
 fn is_admitted_resolved_scalar(ty: &ResolvedType) -> bool {
@@ -1274,6 +1363,7 @@ struct Evaluator<'a> {
     budget: usize,
     next_byte_allocation: u32,
     allocated_byte_payload: u64,
+    stdout_transcript: Option<Vec<u8>>,
 }
 
 fn evaluate_resolved_entry<'a>(
@@ -1281,16 +1371,22 @@ fn evaluate_resolved_entry<'a>(
     arguments: &[(String, ArgumentValue)],
     admitted: &'a BTreeMap<&'a str, &'a ResolvedFunction>,
     budget: usize,
-) -> (Result<Value, Flow>, usize) {
+    host_stdout: bool,
+) -> (Result<Value, Flow>, usize, Vec<u8>) {
     let mut evaluator = Evaluator {
         admitted,
         steps: 0,
         budget,
         next_byte_allocation: 0,
         allocated_byte_payload: 0,
+        stdout_transcript: host_stdout.then(Vec::new),
     };
     let outcome = evaluator.evaluate_entry(entry, arguments);
-    (outcome, evaluator.steps)
+    (
+        outcome,
+        evaluator.steps,
+        evaluator.stdout_transcript.unwrap_or_default(),
+    )
 }
 
 impl Evaluator<'_> {
@@ -1728,6 +1824,29 @@ impl Evaluator<'_> {
                         }
                         _ => Err(Flow::Guard("ill-typed borrowed byte operation operand")),
                     };
+                }
+                if crate::host_io_ops::by_id(callee.as_str()).is_some() {
+                    self.charge().ok_or(Flow::Exhausted)?;
+                    let [argument] = args.as_slice() else {
+                        return Err(Flow::Guard("invalid stdout_write arity"));
+                    };
+                    let value = self.evaluate(argument, environment, depth)?;
+                    let Value::BorrowedSlice(value) = value else {
+                        return Err(Flow::Guard("ill-typed stdout_write operand"));
+                    };
+                    let transcript = self
+                        .stdout_transcript
+                        .as_mut()
+                        .ok_or(Flow::Guard("stdout_write reached effect-free interpreter"))?;
+                    let next = transcript
+                        .len()
+                        .checked_add(value.bytes.len())
+                        .ok_or(Flow::Guard("stdout transcript length overflowed"))?;
+                    if next > crate::host_io_ops::MAX_STDOUT_TRANSCRIPT_BYTES as usize {
+                        return Err(Flow::Guard("stdout transcript exceeds verified capacity"));
+                    }
+                    transcript.extend_from_slice(value.bytes.as_ref());
+                    return Ok(Value::Usize(value.bytes.len() as u64));
                 }
                 let Some(function) = self.admitted.get(callee.as_str()) else {
                     return Err(Flow::Guard("call outside the admitted closure"));

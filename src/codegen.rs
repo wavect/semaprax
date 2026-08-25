@@ -31,6 +31,7 @@ mod native_conformance_materialize;
 #[cfg(test)]
 mod native_conformance_wire;
 mod native_host_contract;
+mod native_host_output;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 mod native_module_lease;
 mod native_resource;
@@ -113,6 +114,14 @@ pub fn emit_c(program: &Program) -> Result<String, Diagnostic> {
     emit_resolved_c_with_source(program, &resolved)
 }
 
+/// Resolve source and emit the bounded native stdout-transcript profile.
+pub fn emit_c_with_stdout_transcript(program: &Program) -> Result<String, Diagnostic> {
+    let resolved = hir::resolve(program).map_err(first_backend_diagnostic)?;
+    crate::host_io_ops::validate_stdout_profile_authority(&resolved)?;
+    let labels = contract_labels(program, &resolved);
+    emit_hir_c_with_labels(&resolved, &labels, NativeOutputProfile::StdoutTranscript)
+}
+
 /// Emit the exact production C11 projection from an already resolved source.
 ///
 /// The parsed source remains necessary only for canonical contract labels. This
@@ -124,7 +133,7 @@ pub(crate) fn emit_resolved_c_with_source(
 ) -> Result<String, Diagnostic> {
     reject_native_rust_for_native(resolved)?;
     let labels = contract_labels(source, resolved);
-    emit_hir_c_with_labels(resolved, &labels)
+    emit_hir_c_with_labels(resolved, &labels, NativeOutputProfile::Legacy)
 }
 
 /// Emit C11 from resolved HIR.
@@ -134,7 +143,21 @@ pub(crate) fn emit_resolved_c_with_source(
 /// rather than reconstructing either from source names.
 pub fn emit_hir_c(program: &ResolvedProgram) -> Result<String, Diagnostic> {
     reject_native_rust_for_native(program)?;
-    emit_hir_c_with_labels(program, &HashMap::new())
+    emit_hir_c_with_labels(program, &HashMap::new(), NativeOutputProfile::Legacy)
+}
+
+/// Emit the bounded native stdout-transcript profile from validated HIR.
+///
+/// The generated C exposes `spx_stdout_transcript_run_v1` and performs no
+/// stdout write. Its caller-owned result remains canonically empty on failure.
+pub fn emit_hir_c_with_stdout_transcript(program: &ResolvedProgram) -> Result<String, Diagnostic> {
+    crate::host_io_ops::validate_stdout_profile_authority(program)?;
+    reject_native_rust_for_native(program)?;
+    emit_hir_c_with_labels(
+        program,
+        &HashMap::new(),
+        NativeOutputProfile::StdoutTranscript,
+    )
 }
 
 fn reject_native_rust_for_native(program: &ResolvedProgram) -> Result<(), Diagnostic> {
@@ -963,6 +986,7 @@ fn contract_labels(program: &Program, resolved: &ResolvedProgram) -> HashMap<Exp
 fn emit_hir_c_with_labels(
     program: &ResolvedProgram,
     contract_labels: &HashMap<ExpressionId, String>,
+    output_profile: NativeOutputProfile,
 ) -> Result<String, Diagnostic> {
     hir::validate(program)?;
     if program.types.iter().any(|declaration| {
@@ -980,6 +1004,9 @@ fn emit_hir_c_with_labels(
     debug_assert!(resource_abi.resources.is_empty());
     let mut output = crate::bounded_output::CappedString::new();
     emit_native_prelude(&mut output, &resource_abi, program);
+    if output_profile == NativeOutputProfile::StdoutTranscript {
+        native_host_output::emit_runtime(&mut output);
+    }
     emit_fixed_byte_array_declarations(&mut output, program)?;
     emit_aggregate_declarations(
         &mut output,
@@ -997,6 +1024,7 @@ fn emit_hir_c_with_labels(
         contract_labels,
         record_layouts: &record_layouts,
         variant_layouts: &variant_layouts,
+        output_profile,
     };
     for function in &program.functions {
         emit_function(
@@ -1029,8 +1057,11 @@ fn emit_hir_c_with_labels(
         .get(&FunctionExecutionId::Monomorphic(main.id.clone()))
         .ok_or_else(|| backend_error("native entry point is not indexed"))?
         .symbol;
-    write!(
-        output,
+    if output_profile == NativeOutputProfile::StdoutTranscript {
+        native_host_output::emit_root_wrapper(&mut output, symbol);
+    } else {
+        write!(
+            output,
         "#ifndef SPX_NO_ENTRY_WRAPPER\n\
          int main(void) {{\n\
              struct spx_status_entry spx_status_entries[UINT32_C(1)];\n\
@@ -1046,9 +1077,16 @@ fn emit_hir_c_with_labels(
              return 0;\n\
          }}\n\
          #endif\n"
-    )
-    .expect("writing to a string cannot fail");
+        )
+        .expect("writing to a string cannot fail");
+    }
     Ok(output.into_string())
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NativeOutputProfile {
+    Legacy,
+    StdoutTranscript,
 }
 
 /// Emit one length-indexed, alignment-one C type for each reachable nonempty
@@ -2539,6 +2577,7 @@ struct NativeEmissionContext<'a> {
     contract_labels: &'a HashMap<ExpressionId, String>,
     record_layouts: &'a AggregateLayoutCache,
     variant_layouts: &'a VariantLayoutCache,
+    output_profile: NativeOutputProfile,
 }
 
 fn emit_function(
@@ -3034,6 +3073,7 @@ struct CEmitter<'a, O: COutput> {
     variant_layouts: &'a VariantLayoutCache,
     return_type: &'a ResolvedType,
     bytes_plan: Option<&'a native_bytes::NativeBytesPlan>,
+    output_profile: NativeOutputProfile,
     try_target_enabled: bool,
     next_local: usize,
     indent: usize,
@@ -3057,6 +3097,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             variant_layouts: emission.variant_layouts,
             return_type,
             bytes_plan,
+            output_profile: emission.output_profile,
             try_target_enabled: false,
             next_local: 0,
             indent: 1,
@@ -3678,6 +3719,38 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 ..
             } => {
                 if instance.is_none() {
+                    if crate::host_io_ops::by_id(callee.as_str()).is_some() {
+                        if self.output_profile != NativeOutputProfile::StdoutTranscript {
+                            return Err(backend_error(
+                                "host stdout write requires the native stdout-transcript profile",
+                            ));
+                        }
+                        if args.len() != 1 {
+                            return Err(backend_error(
+                                "host stdout write arity disagrees with resolved HIR",
+                            ));
+                        }
+                        let value = self.emit_expr(&args[0])?;
+                        self.require_type(
+                            &value.ty,
+                            &ResolvedType::SliceU8,
+                            "host stdout write argument",
+                        )?;
+                        self.require_type(
+                            &expr.ty,
+                            &ResolvedType::Usize,
+                            "host stdout write result",
+                        )?;
+                        let temporary = self.temporary(&ResolvedType::Usize)?;
+                        self.line(&format!(
+                            "{temporary} = spx_host_stdout_write_v1(spx_ctx, {});",
+                            value.code
+                        ));
+                        return Ok(CValue {
+                            code: temporary,
+                            ty: ResolvedType::Usize,
+                        });
+                    }
                     if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
                         return self.emit_str_op(op, args, &expr.ty);
                     }

@@ -9,8 +9,13 @@ pub const PROJECT_SCHEMA_V2: &str = "semaprax.project.v2";
 /// public adapter. V1 and v2 parsing and rendering remain byte-for-byte
 /// unchanged.
 pub const PROJECT_SCHEMA_V3: &str = "semaprax.project.v3";
+/// Additive Project Manifest v4 schema for one exact compiler-free command
+/// adapter over the Portable Indexed Byte Data public ABI.
+pub const PROJECT_SCHEMA_V4: &str = "semaprax.project.v4";
 pub const PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1: &str = "useful-text-consumer.v1";
 pub const PROJECT_PROFILE_USEFUL_DATA_V1: &str = "useful-data.v1";
+pub const PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1: &str = "useful-data-command.v1";
+pub const PROJECT_COMMAND_STDOUT_CAPABILITY: &str = "process.stdout.write";
 pub const MAX_MANIFEST_BYTES: usize = 64 * 1024;
 pub const MAX_NAME_BYTES: usize = 64;
 pub const MAX_VERSION_BYTES: usize = 128;
@@ -29,6 +34,7 @@ pub enum ProjectProfile {
     ScalarV1,
     UsefulTextConsumerV1,
     UsefulDataV1,
+    UsefulDataCommandV1,
 }
 
 impl ProjectProfile {
@@ -37,6 +43,7 @@ impl ProjectProfile {
             Self::ScalarV1 => None,
             Self::UsefulTextConsumerV1 => Some(PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1),
             Self::UsefulDataV1 => Some(PROJECT_PROFILE_USEFUL_DATA_V1),
+            Self::UsefulDataCommandV1 => Some(PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1),
         }
     }
 }
@@ -53,6 +60,8 @@ pub struct ProjectManifest {
     entry: String,
     sources: Vec<String>,
     web_exports: Vec<String>,
+    command: Option<String>,
+    capabilities: Vec<String>,
     test_module: String,
 }
 
@@ -72,7 +81,7 @@ impl ProjectManifest {
             .copied()
             .ok_or_else(|| grammar("Project manifest is empty"))
             .and_then(|line| parse_string_assignment(line, "schema"))?;
-        let (schema, name, package_version, profile, entry, sources, web_exports, tests) =
+        let (schema, name, package_version, profile, entry, sources, web_exports, command, capabilities, tests) =
             match schema.as_str() {
                 PROJECT_SCHEMA => {
                     if lines.len() != 7 || lines.last() != Some(&"") {
@@ -88,6 +97,8 @@ impl ProjectManifest {
                         parse_string_assignment(lines[2], "entry")?,
                         parse_array_assignment(lines[3], "sources")?,
                         parse_array_assignment(lines[4], "web_exports")?,
+                        None,
+                        Vec::new(),
                         parse_array_assignment(lines[5], "tests")?,
                     )
                 }
@@ -117,6 +128,8 @@ impl ProjectManifest {
                         parse_string_assignment(lines[4], "entry")?,
                         parse_array_assignment(lines[5], "sources")?,
                         parse_array_assignment(lines[6], "web_exports")?,
+                        None,
+                        Vec::new(),
                         parse_array_assignment(lines[7], "tests")?,
                     )
                 }
@@ -144,12 +157,52 @@ impl ProjectManifest {
                         parse_string_assignment(lines[4], "entry")?,
                         parse_array_assignment(lines[5], "sources")?,
                         parse_array_assignment(lines[6], "web_exports")?,
+                        None,
+                        Vec::new(),
                         parse_array_assignment(lines[7], "tests")?,
+                    )
+                }
+                PROJECT_SCHEMA_V4 => {
+                    if lines.len() != 11 || lines.last() != Some(&"") {
+                        return Err(grammar(
+                            "Project v4 manifest must contain exactly ten ordered assignments and one terminal LF",
+                        ));
+                    }
+                    let version = parse_string_assignment(lines[2], "version")?;
+                    if !valid_semver(&version) {
+                        return Err(grammar(
+                            "Project v4 version must be canonical Semantic Versioning text of at most 128 bytes",
+                        ));
+                    }
+                    let profile = parse_string_assignment(lines[3], "profile")?;
+                    if profile != PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1 {
+                        return Err(grammar(
+                            "Project v4 profile is not useful-data-command.v1",
+                        ));
+                    }
+                    let command = parse_string_assignment(lines[7], "command")?;
+                    let capabilities = parse_array_assignment(lines[8], "capabilities")?;
+                    if capabilities != [PROJECT_COMMAND_STDOUT_CAPABILITY] {
+                        return Err(grammar(
+                            "Project v4 capabilities must be exactly [\"process.stdout.write\"]",
+                        ));
+                    }
+                    (
+                        PROJECT_SCHEMA_V4,
+                        parse_string_assignment(lines[1], "name")?,
+                        Some(version),
+                        ProjectProfile::UsefulDataCommandV1,
+                        parse_string_assignment(lines[4], "entry")?,
+                        parse_array_assignment(lines[5], "sources")?,
+                        parse_array_assignment(lines[6], "web_exports")?,
+                        Some(command),
+                        capabilities,
+                        parse_array_assignment(lines[9], "tests")?,
                     )
                 }
                 _ => {
                     return Err(grammar(
-                        "Project manifest schema is neither semaprax.project.v1, semaprax.project.v2, nor semaprax.project.v3",
+                        "Project manifest schema is neither semaprax.project.v1, semaprax.project.v2, semaprax.project.v3, nor semaprax.project.v4",
                     ))
                 }
             };
@@ -157,6 +210,7 @@ impl ProjectManifest {
             PROJECT_SCHEMA => "Project v1",
             PROJECT_SCHEMA_V2 => "Project v2",
             PROJECT_SCHEMA_V3 => "Project v3",
+            PROJECT_SCHEMA_V4 => "Project v4",
             _ => unreachable!("schema was selected by the closed parser"),
         };
         if !valid_name(&name) {
@@ -204,6 +258,16 @@ impl ProjectManifest {
                 "{version_label} web exports must use bounded lowercase [a-z0-9._-] stable IDs"
             )));
         }
+        if let Some(command) = &command {
+            if !valid_stable_id(command)
+                || web_exports.len() != 1
+                || web_exports.first() != Some(command)
+            {
+                return Err(grammar(
+                    "Project v4 web_exports must contain exactly the command stable ID",
+                ));
+            }
+        }
         if tests.len() != 1 || !valid_module(&tests[0]) {
             return Err(grammar(format!(
                 "{version_label} tests must contain exactly one bounded module name"
@@ -223,6 +287,8 @@ impl ProjectManifest {
             entry,
             sources,
             web_exports,
+            command,
+            capabilities,
             test_module: tests.into_iter().next().expect("one test module"),
         };
         if manifest.to_canonical_toml() != source {
@@ -261,6 +327,10 @@ impl ProjectManifest {
         self.schema == PROJECT_SCHEMA_V3
     }
 
+    pub fn is_v4(&self) -> bool {
+        self.schema == PROJECT_SCHEMA_V4
+    }
+
     pub fn entry(&self) -> &str {
         &self.entry
     }
@@ -271,6 +341,14 @@ impl ProjectManifest {
 
     pub fn web_exports(&self) -> &[String] {
         &self.web_exports
+    }
+
+    pub fn command(&self) -> Option<&str> {
+        self.command.as_deref()
+    }
+
+    pub fn capabilities(&self) -> &[String] {
+        &self.capabilities
     }
 
     pub fn test_module(&self) -> &str {
@@ -302,7 +380,7 @@ impl ProjectManifest {
                 render_array(&self.web_exports),
                 self.test_module,
             )
-        } else {
+        } else if self.schema == PROJECT_SCHEMA_V3 {
             format!(
                 "schema = \"{PROJECT_SCHEMA_V3}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ntests = [\"{}\"]\n",
                 self.name,
@@ -315,6 +393,19 @@ impl ProjectManifest {
                 self.entry,
                 render_array(&self.sources),
                 render_array(&self.web_exports),
+                self.test_module,
+            )
+        } else {
+            format!(
+                "schema = \"{PROJECT_SCHEMA_V4}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ncommand = \"{}\"\ncapabilities = {}\ntests = [\"{}\"]\n",
+                self.name,
+                self.package_version.as_deref().expect("Project v4 carries a package version"),
+                self.profile.name().expect("Project v4 carries a named profile"),
+                self.entry,
+                render_array(&self.sources),
+                render_array(&self.web_exports),
+                self.command.as_deref().expect("Project v4 carries a command stable ID"),
+                render_array(&self.capabilities),
                 self.test_module,
             )
         }

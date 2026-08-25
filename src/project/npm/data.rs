@@ -34,7 +34,7 @@ const MAX_EXPORTS: usize = 32;
 const MAX_PARAMETERS: usize = 8;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum DataType {
+pub(super) enum DataType {
     SliceU8,
     I64,
     Bool,
@@ -61,11 +61,11 @@ impl DataType {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct DataExport {
-    stable_id: String,
-    wasm_export: String,
-    parameters: Vec<DataType>,
-    result: DataType,
+pub(super) struct DataExport {
+    pub(super) stable_id: String,
+    pub(super) wasm_export: String,
+    pub(super) parameters: Vec<DataType>,
+    pub(super) result: DataType,
 }
 
 pub(super) fn prepare(
@@ -129,7 +129,7 @@ fn require_profile(manifest: &ProjectManifest) -> Result<&str, Diagnostic> {
         .ok_or_else(|| package_error("npm data facade requires a package version"))
 }
 
-fn derive_exports(
+pub(super) fn derive_exports(
     program: &ResolvedProgram,
     selected: &[String],
 ) -> Result<Vec<DataExport>, Diagnostic> {
@@ -241,7 +241,7 @@ fn render_package(
     ])
 }
 
-fn render_runtime(wasm_sha256: &str) -> String {
+pub(super) fn render_runtime(wasm_sha256: &str) -> String {
     format!(
         r#"const EXPECTED_WASM_SHA256 = "{wasm_sha256}";
 const MIN_I64 = -(1n << 63n), MAX_I64 = (1n << 63n) - 1n;
@@ -337,7 +337,7 @@ export async function instantiateCore(input) {{
     )
 }
 
-fn render_bindings(exports: &[DataExport], wasm_sha256: &str) -> String {
+pub(super) fn render_bindings(exports: &[DataExport], wasm_sha256: &str) -> String {
     let facts = exports
         .iter()
         .map(|export| {
@@ -422,7 +422,7 @@ export default instantiate;
     )
 }
 
-fn render_declarations(exports: &[DataExport]) -> String {
+pub(super) fn render_declarations(exports: &[DataExport]) -> String {
     let functions = exports
         .iter()
         .map(|export| {
@@ -705,7 +705,7 @@ fn artifact_bytes<'a>(artifacts: &'a [NpmArtifact; 6], path: &str) -> Result<&'a
         .ok_or_else(|| package_error(format!("npm data artifact `{path}` is absent")))
 }
 
-fn raw_symbol(stable_id: &str) -> String {
+pub(super) fn raw_symbol(stable_id: &str) -> String {
     let mut symbol = String::from("spx_data_");
     for byte in stable_id.bytes() {
         use std::fmt::Write as _;
@@ -713,7 +713,7 @@ fn raw_symbol(stable_id: &str) -> String {
     }
     symbol
 }
-fn hex_sha256(bytes: &[u8]) -> String {
+pub(super) fn hex_sha256(bytes: &[u8]) -> String {
     format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
 }
 

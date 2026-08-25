@@ -684,6 +684,13 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 declaration.span,
             ));
         }
+        reject_reserved_host_id(
+            program,
+            &declaration.stable_id,
+            "type declaration",
+            declaration.span,
+            &mut diagnostics,
+        );
         if declaration.stable_id.contains('\0') {
             let kind = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => "resource",
@@ -768,6 +775,13 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 }
                 match lifecycle.stable_id.as_deref() {
                     Some(id) if !id.is_empty() => {
+                        reject_reserved_host_id(
+                            program,
+                            id,
+                            "resource lifecycle",
+                            lifecycle.span,
+                            &mut diagnostics,
+                        );
                         if id.contains('\0') {
                             diagnostics.push(invalid_stable_id(
                                 program,
@@ -859,6 +873,13 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                         field.span,
                     ));
                 }
+                reject_reserved_host_id(
+                    program,
+                    &field.stable_id,
+                    "record field",
+                    field.span,
+                    &mut diagnostics,
+                );
                 if field.stable_id.contains('\0') {
                     diagnostics.push(invalid_stable_id(
                         program,
@@ -926,6 +947,13 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                         case.span,
                     ));
                 }
+                reject_reserved_host_id(
+                    program,
+                    &case.stable_id,
+                    "variant case",
+                    case.span,
+                    &mut diagnostics,
+                );
                 if case.stable_id.contains('\0') {
                     diagnostics.push(invalid_stable_id(
                         program,
@@ -1012,6 +1040,13 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                             field.span,
                         ));
                     }
+                    reject_reserved_host_id(
+                        program,
+                        &field.stable_id,
+                        "variant case field",
+                        field.span,
+                        &mut diagnostics,
+                    );
                     if field.stable_id.contains('\0') {
                         diagnostics.push(invalid_stable_id(
                             program,
@@ -1081,6 +1116,13 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 .with_help("add @id(\"your.namespace.interface\") before the interface"),
             );
         }
+        reject_reserved_host_id(
+            program,
+            &interface.stable_id,
+            "interface",
+            interface.span,
+            &mut diagnostics,
+        );
         if interface.stable_id.contains('\0') {
             diagnostics.push(invalid_stable_id(
                 program,
@@ -1120,6 +1162,24 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                     import.name_span,
                 ));
             }
+            if crate::host_io_ops::by_name(&import.name).is_some() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-S113",
+                    format!(
+                        "import `{}.{}` aliases a compiler-owned host I/O operation",
+                        interface.name, import.name
+                    ),
+                    import.name_span,
+                ));
+            }
+            reject_reserved_host_id(
+                program,
+                &import.stable_id,
+                "import",
+                import.span,
+                &mut diagnostics,
+            );
             if !import_names.insert(import.name.as_str()) {
                 diagnostics.push(error(
                     program,
@@ -1582,6 +1642,24 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 function.name_span,
             ));
         }
+        if crate::host_io_ops::by_name(&function.name).is_some() {
+            diagnostics.push(error(
+                program,
+                "SPX-S113",
+                format!(
+                    "function name `{}` is reserved by the compiler-owned host I/O operations",
+                    function.name
+                ),
+                function.name_span,
+            ));
+        }
+        reject_reserved_host_id(
+            program,
+            &function.stable_id,
+            "function",
+            function.span,
+            &mut diagnostics,
+        );
         if functions.insert(function.name.as_str(), function).is_some() {
             diagnostics.push(error(
                 program,
@@ -1742,6 +1820,13 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                     method.span,
                 ));
             }
+            reject_reserved_host_id(
+                program,
+                &method.stable_id,
+                "method",
+                method.span,
+                &mut diagnostics,
+            );
             if method.stable_id.contains('\0') {
                 diagnostics.push(invalid_stable_id(
                     program,
@@ -2184,6 +2269,16 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
 
             let entry_variables = variables.clone();
             for contract in &function.requires {
+                contract.visit_calls(&mut |callee, span| {
+                    if crate::host_io_ops::by_name(callee).is_some() {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T269",
+                            "stdout_write is not admitted in contracts",
+                            span,
+                        ));
+                    }
+                });
                 require_bool(
                     program,
                     function,
@@ -2242,6 +2337,16 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
             }
 
             for contract in &function.ensures {
+                contract.visit_calls(&mut |callee, span| {
+                    if crate::host_io_ops::by_name(callee).is_some() {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T269",
+                            "stdout_write is not admitted in contracts",
+                            span,
+                        ));
+                    }
+                });
                 require_bool(
                     program,
                     function,
@@ -2303,6 +2408,21 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 }
             }
             function.body.visit_calls(&mut |callee, span| {
+                if let Some(op) = crate::host_io_ops::by_name(callee) {
+                    if !declared.contains(op.effect()) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-E102",
+                            format!(
+                                "call to `{callee}` requires effect `{}`; add it to `{}`",
+                                op.effect(),
+                                function.name
+                            ),
+                            span,
+                        ));
+                    }
+                    return;
+                }
                 if let Some(target) = functions.get(callee) {
                     for effect in &target.effects {
                         if !declared.contains(effect.as_str()) {
@@ -2485,6 +2605,9 @@ fn source_capacity_expr_type(
         ExprKind::Var(name) => bindings.get(name).cloned(),
         ExprKind::Call { name, .. } => crate::byte_ops::by_name(name)
             .map(crate::byte_ops::ByteOp::ast_return_type)
+            .or_else(|| {
+                crate::host_io_ops::by_name(name).map(crate::host_io_ops::HostIoOp::ast_return_type)
+            })
             .or_else(|| {
                 context
                     .ordinary
@@ -2718,6 +2841,10 @@ fn source_capacity_expr(
                 children.push(CapacityFlow::BytesCopy {
                     site: path.to_owned(),
                     conservative_payload_bytes: crate::byte_data_capacity::MAX_ARRAY_BYTES,
+                });
+            } else if name == crate::host_io_ops::STDOUT_WRITE_NAME {
+                children.push(CapacityFlow::StdoutWrite {
+                    site: path.to_owned(),
                 });
             } else if let Some(target) = target {
                 children.push(CapacityFlow::Call {
@@ -4136,6 +4263,7 @@ struct VariantMatchState<'a> {
 enum VerifierCallTarget<'a> {
     Native(&'a ImportDeclaration),
     Byte(crate::byte_ops::ByteOp),
+    HostIo(crate::host_io_ops::HostIoOp),
     Ordinary(Option<VerifierFunctionSignature<'a>>),
 }
 
@@ -4336,7 +4464,7 @@ fn verifier_frame_owned_capacity(frame: &VerifierFrame<'_>) -> usize {
         ),
         VerifierFrame::ResumeCallArgument { target, .. } => match target {
             VerifierCallTarget::Native(_) => 0,
-            VerifierCallTarget::Byte(_) => 0,
+            VerifierCallTarget::Byte(_) | VerifierCallTarget::HostIo(_) => 0,
             VerifierCallTarget::Ordinary(Some(signature)) => {
                 verifier_signature_owned_capacity(signature)
             }
@@ -5071,6 +5199,17 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 ));
                             }
                             VerifierCallTarget::Byte(op)
+                        } else if let Some(op) = crate::host_io_ops::by_name(name) {
+                            let params = crate::host_io_ops::ast_params(op);
+                            if !type_arguments.is_empty() || args.len() != params.len() {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-T269",
+                                    format!("invalid host I/O operation `{name}` call shape"),
+                                    expression.span,
+                                ));
+                            }
+                            VerifierCallTarget::HostIo(op)
                         } else {
                             let target = self.functions.get(name.as_str()).copied();
                             if target.is_none() {
@@ -5172,6 +5311,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     value
                                 }
                                 VerifierCallTarget::Byte(op) => {
+                                    CheckedValue::returned(op.ast_return_type(), false)
+                                }
+                                VerifierCallTarget::HostIo(op) => {
                                     CheckedValue::returned(op.ast_return_type(), false)
                                 }
                                 VerifierCallTarget::Ordinary(Some(target)) => {
@@ -6423,6 +6565,24 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 }
                             }
                         }
+                        VerifierCallTarget::HostIo(op) => {
+                            if let Some(actual) = &actual {
+                                reject_native_unit_value(
+                                    self.program,
+                                    argument,
+                                    actual,
+                                    self.diagnostics,
+                                );
+                                if !actual.native_unit && !op.accepts_ast(index, &actual.ty) {
+                                    self.diagnostics.push(error(
+                                        self.program,
+                                        "SPX-T269",
+                                        format!("host I/O operation `{name}` argument {index} has the wrong type"),
+                                        argument.span,
+                                    ));
+                                }
+                            }
+                        }
                     }
                     let next = index + 1;
                     if let Some(argument) = args.get(next) {
@@ -6453,6 +6613,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 Some(value)
                             }
                             VerifierCallTarget::Byte(op) => {
+                                Some(CheckedValue::returned(op.ast_return_type(), false))
+                            }
+                            VerifierCallTarget::HostIo(op) => {
                                 Some(CheckedValue::returned(op.ast_return_type(), false))
                             }
                             VerifierCallTarget::Ordinary(Some(target)) => {
@@ -10928,6 +11091,25 @@ fn invalid_stable_id(
         ),
         span,
     )
+}
+
+fn reject_reserved_host_id(
+    program: &Program,
+    stable_id: &str,
+    kind: &str,
+    span: Span,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    if crate::host_io_ops::by_id(stable_id).is_some() {
+        diagnostics.push(error(
+            program,
+            "SPX-S113",
+            format!(
+                "authored {kind} uses stable ID `{stable_id}`, which is reserved by the compiler-owned host I/O operations"
+            ),
+            span,
+        ));
+    }
 }
 
 fn source_identifier(value: &str) -> bool {

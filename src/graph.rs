@@ -1280,7 +1280,12 @@ pub fn reject_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
 }
 
 pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
-    if schema == "semaprax.graph.v17" {
+    if schema == "semaprax.graph.v18" {
+        Err(Diagnostic::io(
+            "SPX-G410",
+            "bounded-stdout-transcript programs select `semaprax.graph.v18`, which is outside this evidence flow's admission",
+        ))
+    } else if schema == "semaprax.graph.v17" {
         Err(Diagnostic::io(
             "SPX-G410",
             "portable-indexed-byte-data programs select `semaprax.graph.v17`, which is outside this evidence flow's admission",
@@ -1305,6 +1310,23 @@ pub(crate) fn graph_schema_from_parts(
     functions: &[ResolvedFunction],
     function_templates: &[hir::ResolvedFunctionTemplate],
 ) -> &'static str {
+    if functions.iter().any(|function| {
+        function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .any(expression_has_stdout_write)
+    }) || function_templates.iter().any(|template| {
+        template
+            .requires
+            .iter()
+            .chain(std::iter::once(&template.body))
+            .chain(&template.ensures)
+            .any(expression_has_stdout_write)
+    }) {
+        return "semaprax.graph.v18";
+    }
     // Portable Indexed Byte Data v1 selects v17 above the existing v16/v15
     // schemas whenever the authenticated program carries target-independent
     // usize meaning or a borrowed byte view.
@@ -1557,6 +1579,64 @@ fn expression_has_while(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::Place(_)
         | ResolvedExprKind::BorrowPlace { .. } => false,
+    }
+}
+
+fn expression_has_stdout_write(expression: &ResolvedExpr) -> bool {
+    match &expression.kind {
+        ResolvedExprKind::Call { callee, args, .. } => {
+            callee.as_str() == crate::host_io_ops::STDOUT_WRITE_ID
+                || args.iter().any(expression_has_stdout_write)
+        }
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            call.args.iter().any(expression_has_stdout_write)
+        }
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::TryOption { operand: value, .. }
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => expression_has_stdout_write(value),
+        ResolvedExprKind::Binary { left, right, .. } => {
+            expression_has_stdout_write(left) || expression_has_stdout_write(right)
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            statements.iter().any(|statement| {
+                (0..statement.child_count()).any(|index| {
+                    statement
+                        .child(index)
+                        .is_some_and(expression_has_stdout_write)
+                })
+            }) || expression_has_stdout_write(tail)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            expression_has_stdout_write(condition)
+                || expression_has_stdout_write(then_branch)
+                || expression_has_stdout_write(else_branch)
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => fields
+            .iter()
+            .any(|field| expression_has_stdout_write(&field.value)),
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            expression_has_stdout_write(scrutinee)
+                || arms.iter().any(|arm| {
+                    arm.guard
+                        .as_deref()
+                        .is_some_and(expression_has_stdout_write)
+                        || expression_has_stdout_write(&arm.value)
+                })
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            expression_has_stdout_write(base)
+                || fields
+                    .iter()
+                    .any(|field| expression_has_stdout_write(&field.value))
+        }
+        _ => false,
     }
 }
 
@@ -3069,9 +3149,9 @@ fn portable_indexed_byte_data_json(
     schema: &str,
     program: &ResolvedProgram,
 ) -> Result<String, Diagnostic> {
-    if schema == "semaprax.graph.v17" {
+    if matches!(schema, "semaprax.graph.v17" | "semaprax.graph.v18") {
         let capacity = hir::analyze_byte_data_capacity(program)?;
-        Ok(format!(
+        let portable = format!(
             ",\"portable_indexed_byte_data\":{{\"profile\":\"useful-data-v1\",\"semantic_usize_bits\":64,\"max_external_root_bytes\":{},\"max_slice_bytes\":{},\"max_array_bytes\":{},\"max_inline_array_frame_bytes\":{},\"max_active_array_call_path_bytes\":{},\"max_bytes_copy_sites\":{},\"max_owned_byte_payload_bytes\":{},\"wasm_arena_token_min_inclusive\":1,\"wasm_arena_token_max_exclusive\":2147483648,\"wasm_arena_tokens_monotonic\":true,\"wasm_arena_tokens_reused\":false,\"wasm_import_binding\":\"exact-token-length\",\"wasm_carrier\":\"root-word-high32-length-u32-low32\",\"empty_bytes_owns_token\":true,\"zero_array_view\":\"root0-length0\",\"indexed_read\":\"total-option-u8\",\"capacity_summaries\":[{}],\"byte_slice_provenance\":[{}]}}",
             crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES,
             crate::byte_data_capacity::MAX_ARRAY_BYTES,
@@ -3082,14 +3162,26 @@ fn portable_indexed_byte_data_json(
             crate::byte_data_capacity::MAX_OWNED_BYTE_PAYLOAD_BYTES,
             capacity.functions().map(|(function, _)| {
                 let summary = capacity.function(function).expect("enumerated capacity summary remains addressable");
-                format!(
-                    "{{\"function\":{},\"inline_array_frame_bytes\":{},\"active_array_call_path_bytes\":{},\"bytes_copy_sites\":{},\"owned_byte_payload_bytes\":{}}}",
-                    quote_json(function),
-                    summary.inline_array_frame_bytes,
-                    summary.active_array_call_path_bytes,
-                    summary.bytes_copy_sites,
-                    summary.owned_byte_payload_bytes,
-                )
+                if schema == "semaprax.graph.v18" {
+                    format!(
+                        "{{\"function\":{},\"inline_array_frame_bytes\":{},\"active_array_call_path_bytes\":{},\"bytes_copy_sites\":{},\"owned_byte_payload_bytes\":{},\"stdout_write_sites\":{}}}",
+                        quote_json(function),
+                        summary.inline_array_frame_bytes,
+                        summary.active_array_call_path_bytes,
+                        summary.bytes_copy_sites,
+                        summary.owned_byte_payload_bytes,
+                        summary.stdout_write_sites,
+                    )
+                } else {
+                    format!(
+                        "{{\"function\":{},\"inline_array_frame_bytes\":{},\"active_array_call_path_bytes\":{},\"bytes_copy_sites\":{},\"owned_byte_payload_bytes\":{}}}",
+                        quote_json(function),
+                        summary.inline_array_frame_bytes,
+                        summary.active_array_call_path_bytes,
+                        summary.bytes_copy_sites,
+                        summary.owned_byte_payload_bytes,
+                    )
+                }
             }).collect::<Vec<_>>().budgeted_join(","),
             program
                 .declarations
@@ -3097,7 +3189,19 @@ fn portable_indexed_byte_data_json(
                 .map(|(value, provenance)| byte_slice_fact_json(value, provenance))
                 .collect::<Vec<_>>()
                 .budgeted_join(",")
-        ))
+        );
+        let transcript = if schema == "semaprax.graph.v18" {
+            format!(
+                ",\"bounded_stdout_transcript\":{{\"profile\":\"bounded-stdout-transcript-v1\",\"operation\":{},\"effect\":{},\"max_transcript_bytes\":{},\"max_writes_per_executable_path\":{},\"publication\":\"terminal-success-only\",\"failure\":\"discard-staged-transcript\"}}",
+                quote_json(crate::host_io_ops::STDOUT_WRITE_ID),
+                quote_json(crate::host_io_ops::STDOUT_WRITE_EFFECT),
+                crate::host_io_ops::MAX_STDOUT_TRANSCRIPT_BYTES,
+                crate::host_io_ops::MAX_STDOUT_WRITES_PER_PATH,
+            )
+        } else {
+            String::new()
+        };
+        Ok(format!("{portable}{transcript}"))
     } else {
         Ok(String::new())
     }

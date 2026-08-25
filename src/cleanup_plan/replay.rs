@@ -1580,6 +1580,9 @@ fn resolved_call_params(
         if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
             return Ok(crate::byte_ops::resolved_params(op));
         }
+        if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
+            return Ok(crate::host_io_ops::resolved_params(op));
+        }
     }
     let target = program
         .resolve_call_target(callee, instance)
@@ -1663,7 +1666,10 @@ fn collect_expression_statuses(
             ResolvedExprKind::Call {
                 callee, instance, ..
             } => {
-                if instance.is_none() && crate::byte_ops::by_id(callee.as_str()).is_some() {
+                if instance.is_none()
+                    && (crate::byte_ops::by_id(callee.as_str()).is_some()
+                        || crate::host_io_ops::by_id(callee.as_str()).is_some())
+                {
                     // Byte-data operations are total after HIR admission.
                     // Physical allocation failure is invariant fail-stop, not
                     // a recoverable operation status.
@@ -3090,12 +3096,18 @@ fn expression_skeleton(
                             .is_none()
                             .then(|| crate::byte_ops::by_id(callee.as_str()))
                             .flatten();
+                        let host_io_intrinsic = instance
+                            .is_none()
+                            .then(|| crate::host_io_ops::by_id(callee.as_str()))
+                            .flatten();
                         let params = if let Some(op) = string_intrinsic {
                             crate::string_ops::resolved_params(op)
                         } else if let Some(op) = str_intrinsic {
                             crate::str_ops::resolved_params(op)
                         } else if let Some(op) = byte_intrinsic {
                             crate::byte_ops::resolved_params(op)
+                        } else if let Some(op) = host_io_intrinsic {
+                            crate::host_io_ops::resolved_params(op)
                         } else {
                             let target = program
                                 .resolve_call_target(callee, instance.as_ref())
@@ -4936,13 +4948,14 @@ fn finish_call_states(
     states: Vec<CallSkeletonState>,
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
-    let infallible_byte_operation = matches!(
+    let infallible_compiler_operation = matches!(
         &expression.kind,
         ResolvedExprKind::Call {
             callee,
             instance: None,
             ..
         } if crate::byte_ops::by_id(callee.as_str()).is_some()
+            || crate::host_io_ops::by_id(callee.as_str()).is_some()
     );
     let source_expression =
         work.clone_owned(&expression.id, "call status source expression clone")?;
@@ -4965,7 +4978,7 @@ fn finish_call_states(
             },
             "call-commit observation",
         )?;
-        if infallible_byte_operation {
+        if infallible_compiler_operation {
             if expression.ownership == OwnershipMode::Own
                 && type_needs_drop(program, function, &expression.ty)?
             {

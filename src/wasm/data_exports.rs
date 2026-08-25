@@ -10,7 +10,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     self, ByteSliceExtent, ByteSliceRootKind, DeclarationId, IdentityOrigin, OwnershipMode,
-    ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType,
+    ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedStatement,
+    ResolvedType, ValueId,
 };
 
 use super::{write_i64, write_u32, ByteOutput, I32, I64};
@@ -65,6 +66,31 @@ impl DataExportPlan {
         stack_global_index: u32,
         status_global_index: u32,
     ) -> Result<Vec<u8>, Diagnostic> {
+        self.emit_wrapper_body_profile(target_index, stack_global_index, status_global_index, None)
+    }
+
+    pub(super) fn emit_wrapper_body_with_stdout_transcript(
+        &self,
+        target_index: u32,
+        stack_global_index: u32,
+        status_global_index: u32,
+        globals: super::host_output::Globals,
+    ) -> Result<Vec<u8>, Diagnostic> {
+        self.emit_wrapper_body_profile(
+            target_index,
+            stack_global_index,
+            status_global_index,
+            Some(globals),
+        )
+    }
+
+    fn emit_wrapper_body_profile(
+        &self,
+        target_index: u32,
+        stack_global_index: u32,
+        status_global_index: u32,
+        host_output: Option<super::host_output::Globals>,
+    ) -> Result<Vec<u8>, Diagnostic> {
         let raw_count = u32::try_from(self.parameter_count * 2)
             .map_err(|_| admission("data wrapper raw parameter count overflows u32"))?;
         let old_stack = raw_count;
@@ -75,6 +101,10 @@ impl DataExportPlan {
         write_u32(&mut body, 1);
         write_u32(&mut body, 4);
         body.push(I32);
+
+        if let Some(globals) = host_output {
+            super::host_output::emit_reset(&mut body, globals);
+        }
 
         i32_const(&mut body, 0);
         global_set(&mut body, status_global_index);
@@ -145,6 +175,9 @@ impl DataExportPlan {
         global_set(&mut body, status_global_index);
         local_get(&mut body, status);
         body.extend_from_slice(&[0x04, 0x40]);
+        if let Some(globals) = host_output {
+            super::host_output::emit_discard(&mut body, globals);
+        }
         emit_zero(&mut body, self.result);
         body.push(0x0f); // return without observing the unpublished result slot
         body.push(0x0b);
@@ -163,6 +196,11 @@ impl DataExportPlan {
                 local_get(&mut body, status);
             }
         }
+        if let Some(globals) = host_output {
+            // The bool carrier check above is still part of target
+            // authentication. Seal only after it has succeeded.
+            super::host_output::emit_publish(&mut body, globals);
+        }
         body.push(0x0b);
         Ok(body)
     }
@@ -172,9 +210,29 @@ pub(super) fn prepare(
     program: &ResolvedProgram,
     export_ids: &[String],
 ) -> Result<Vec<DataExportPlan>, Diagnostic> {
+    prepare_profile(program, export_ids, false)
+}
+
+pub(super) fn prepare_with_stdout_transcript(
+    program: &ResolvedProgram,
+    export_ids: &[String],
+) -> Result<Vec<DataExportPlan>, Diagnostic> {
+    prepare_profile(program, export_ids, true)
+}
+
+fn prepare_profile(
+    program: &ResolvedProgram,
+    export_ids: &[String],
+    host_output: bool,
+) -> Result<Vec<DataExportPlan>, Diagnostic> {
     validate_selection(export_ids)?;
     hir::validate(program)?;
-    if !program.permits.is_empty() || !program.interfaces.is_empty() {
+    let permits_are_admitted = if host_output {
+        program.permits == [crate::host_io_ops::STDOUT_WRITE_EFFECT]
+    } else {
+        program.permits.is_empty()
+    };
+    if !permits_are_admitted || !program.interfaces.is_empty() {
         return Err(admission(
             "Public Useful Data Export v1 does not admit permits or interfaces",
         ));
@@ -205,6 +263,10 @@ pub(super) fn prepare(
         .iter()
         .map(|function| (function.id.as_str(), function))
         .collect::<BTreeMap<_, _>>();
+    let selected_ids = export_ids
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
     let entry = functions
         .get(program.entrypoint.as_str())
         .copied()
@@ -220,7 +282,23 @@ pub(super) fn prepare(
     let mut call_graph = BTreeMap::new();
     for function in &program.functions {
         let mut callees = Vec::new();
-        validate_function(program, function, &functions, &mut callees)?;
+        let stdout_external_roots = (host_output && selected_ids.contains(function.id.as_str()))
+            .then(|| {
+                function
+                    .params
+                    .iter()
+                    .filter(|parameter| parameter.ty == ResolvedType::SliceU8)
+                    .map(|parameter| parameter.id.clone())
+                    .collect::<BTreeSet<_>>()
+            });
+        validate_function(
+            program,
+            function,
+            &functions,
+            &mut callees,
+            host_output,
+            stdout_external_roots.as_ref(),
+        )?;
         callees.sort();
         callees.dedup();
         call_graph.insert(function.id.clone(), callees);
@@ -294,9 +372,15 @@ fn validate_function(
     function: &ResolvedFunction,
     functions: &BTreeMap<&str, &ResolvedFunction>,
     callees: &mut Vec<DeclarationId>,
+    host_output: bool,
+    stdout_external_roots: Option<&BTreeSet<ValueId>>,
 ) -> Result<(), Diagnostic> {
-    if !function.effects.is_empty() || !function.requires.is_empty() || !function.ensures.is_empty()
-    {
+    let effects_are_admitted = if host_output {
+        function.effects.is_empty() || function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT]
+    } else {
+        function.effects.is_empty()
+    };
+    if !effects_are_admitted || !function.requires.is_empty() || !function.ensures.is_empty() {
         return Err(admission(format!(
             "Public Useful Data Export v1 function `{}` must be effect- and contract-free",
             function.id
@@ -345,7 +429,15 @@ fn validate_function(
                     )));
                 }
                 pending.extend(args);
-                if crate::byte_ops::by_id(callee.as_str()).is_none() {
+                if host_output && crate::host_io_ops::by_id(callee.as_str()).is_some() {
+                    let roots = stdout_external_roots.ok_or_else(|| {
+                        admission(format!(
+                            "Public Useful Data Export v1 function `{}` may write stdout only from the selected command boundary",
+                            function.id
+                        ))
+                    })?;
+                    validate_stdout_external_argument(program, function, args, roots)?;
+                } else if crate::byte_ops::by_id(callee.as_str()).is_none() {
                     if !functions.contains_key(callee.as_str()) {
                         return Err(admission(format!(
                             "Public Useful Data Export v1 function `{}` reaches unavailable call `{callee}`",
@@ -427,6 +519,43 @@ fn validate_function(
         }
     }
     let _ = program;
+    Ok(())
+}
+
+fn validate_stdout_external_argument(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    args: &[ResolvedExpr],
+    external_roots: &BTreeSet<ValueId>,
+) -> Result<(), Diagnostic> {
+    let [argument] = args else {
+        return Err(admission("stdout_write argument inventory is not exact"));
+    };
+    let place = match &argument.kind {
+        ResolvedExprKind::Place(place) | ResolvedExprKind::BorrowPlace { place, .. }
+            if place.projections.is_empty() => place,
+        _ => {
+            return Err(admission(format!(
+                "Public Useful Data Export v1 function `{}` must write an external Slice parameter or immutable alias",
+                function.id
+            )))
+        }
+    };
+    let provenance = program
+        .declarations
+        .byte_slice_provenance(&place.root)
+        .ok_or_else(|| admission("stdout_write operand lacks authenticated byte provenance"))?;
+    if provenance.root_kind != ByteSliceRootKind::FunctionParameter
+        || provenance.root_length != ByteSliceExtent::ParameterLength
+        || provenance.offset != ByteSliceExtent::Constant(0)
+        || provenance.length != ByteSliceExtent::ParameterLength
+        || !external_roots.contains(&provenance.root)
+    {
+        return Err(admission(format!(
+            "Public Useful Data Export v1 function `{}` stdout_write operand is not rooted in a selected external Slice parameter",
+            function.id
+        )));
+    }
     Ok(())
 }
 
@@ -623,7 +752,7 @@ fn capacity(message: impl Into<String>) -> Diagnostic {
 mod tests {
     use std::path::Path;
 
-    use super::{prepare, raw_symbol, DataResultType};
+    use super::{prepare, prepare_with_stdout_transcript, raw_symbol, DataResultType};
 
     const SOURCE: &str = r#"
 module test.data_exports;
@@ -711,6 +840,136 @@ fn fail(value: borrow Slice<u8>) -> i64 {
             &["data.length".to_owned()]
         )
         .is_err());
+    }
+
+    #[test]
+    fn command_stdout_accepts_only_selected_external_slice_roots() {
+        const EXTERNAL: &str = r#"
+module test.command_external;
+permit { process.stdout.write }
+@id("command.run")
+fn run(input: borrow Slice<u8>) -> bool uses { process.stdout.write } {
+    let alias = input;
+    stdout_write(alias) == byte_len(input)
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+        let parsed = crate::parse(EXTERNAL, Path::new("command-external.spx")).unwrap();
+        let resolved = crate::hir::resolve(&parsed).unwrap();
+        prepare_with_stdout_transcript(&resolved, &["command.run".to_owned()]).unwrap();
+
+        for (name, replacement) in [
+            (
+                "array",
+                "let local = [65u8]; let view = array_as_slice(local); stdout_write(view) == 1usize",
+            ),
+            (
+                "owned",
+                "let owned = bytes_copy(input); let view = bytes_as_slice(owned); stdout_write(view) == byte_len(input)",
+            ),
+        ] {
+            let hostile = EXTERNAL.replace(
+                "let alias = input;\n    stdout_write(alias) == byte_len(input)",
+                replacement,
+            );
+            let parsed = crate::parse(
+                &hostile,
+                Path::new(&format!("command-hostile-{name}.spx")),
+            )
+            .unwrap();
+            let resolved = crate::hir::resolve(&parsed).unwrap();
+            let error = prepare_with_stdout_transcript(&resolved, &["command.run".to_owned()])
+                .unwrap_err();
+            assert_eq!(error.code, "SPX-W121");
+            assert!(error.message.contains("external Slice parameter"));
+        }
+
+        let helper = EXTERNAL
+            .replace(
+                "@id(\"command.run\")",
+                r#"@id("command.helper")
+fn helper(input: borrow Slice<u8>) -> usize uses { process.stdout.write } {
+    stdout_write(input)
+}
+@id("command.run")"#,
+            )
+            .replace("stdout_write(alias)", "helper(alias)");
+        let parsed = crate::parse(&helper, Path::new("command-helper-write.spx")).unwrap();
+        let resolved = crate::hir::resolve(&parsed).unwrap();
+        let error =
+            prepare_with_stdout_transcript(&resolved, &["command.run".to_owned()]).unwrap_err();
+        assert_eq!(error.code, "SPX-W121");
+        assert!(error.message.contains("selected command boundary"));
+    }
+
+    #[test]
+    fn throwing_checked_import_cannot_expose_staged_stdout_bytes() {
+        use std::process::Command;
+
+        if Command::new("node").arg("--version").output().is_err() {
+            return;
+        }
+        const COMMAND: &str = r#"
+module test.command_throw;
+permit { process.stdout.write }
+@id("command.run")
+fn run(input: borrow Slice<u8>) -> bool uses { process.stdout.write } {
+    let written = stdout_write(input);
+    match byte_get(input, 0usize) {
+        Option::Some { value } => written == byte_len(input) && value == 65u8,
+        Option::None {} => false,
+    }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+        let parsed = crate::parse(COMMAND, Path::new("command-throw.spx")).unwrap();
+        let resolved = crate::hir::resolve(&parsed).unwrap();
+        let plans = prepare_with_stdout_transcript(&resolved, &["command.run".to_owned()]).unwrap();
+        let wasm =
+            crate::wasm::aggregate::emit_byte_exports_with_stdout_transcript(&resolved, &plans)
+                .unwrap();
+        wasmparser::Validator::new().validate_all(&wasm).unwrap();
+
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-command-throw-{}-{}",
+            std::process::id(),
+            wasm.len()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let wasm_path = root.join("app.wasm");
+        let script_path = root.join("probe.mjs");
+        std::fs::write(&wasm_path, wasm).unwrap();
+        let script = format!(
+            r#"import {{ readFile }} from "node:fs/promises";
+let instance;
+const imports={{env:{{
+spx_add:(a,b)=>a+b,spx_sub:(a,b)=>a-b,spx_mul:(a,b)=>a*b,spx_div:(a,b)=>a/b,spx_rem:(a,b)=>a%b,spx_neg:a=>-a,spx_contract_fail:()=>{{throw Error("contract");}},
+spx_bytes_copy:()=>{{throw Error("unused copy");}},spx_bytes_get:()=>{{throw Error("injected checked read failure");}},spx_bytes_drop:()=>{{throw Error("unused drop");}},spx_bytes_as_slice:()=>{{throw Error("unused slice");}}
+}}}};
+({{instance}}=await WebAssembly.instantiate(await readFile(process.argv[2]),imports));
+const e=instance.exports,memory=new Uint8Array(e.memory.buffer);memory.set([65,0,66],0);
+let failed=false;try{{e["{symbol}"](0,3)}}catch{{failed=true}}if(!failed)throw Error("import failure hidden");
+if(e.__spx_stdout_length_v1.value!==0)throw Error("failed length published");
+if(memory.subarray(131072,196608).some(byte=>byte!==0))throw Error("staged bytes escaped");
+console.log("command-throw-pristine");
+"#,
+            symbol = raw_symbol("command.run")
+        );
+        std::fs::write(&script_path, script).unwrap();
+        let output = Command::new("node")
+            .arg(&script_path)
+            .arg(&wasm_path)
+            .output()
+            .unwrap();
+        let _ = std::fs::remove_file(&script_path);
+        let _ = std::fs::remove_file(&wasm_path);
+        let _ = std::fs::remove_dir(&root);
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(output.stdout, b"command-throw-pristine\n");
     }
 
     #[test]

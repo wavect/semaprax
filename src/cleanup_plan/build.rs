@@ -2425,6 +2425,14 @@ impl<'a> PlanBuilder<'a> {
                                 )));
                             }
                             crate::byte_ops::resolved_params(op)
+                        } else if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
+                            if instance.is_some() || args.len() != op.arity() {
+                                return Err(plan_error(format!(
+                                    "cleanup host I/O call `{}` has inconsistent shape",
+                                    expression.id
+                                )));
+                            }
+                            crate::host_io_ops::resolved_params(op)
                         } else {
                             let target = self
                                 .program
@@ -2918,7 +2926,9 @@ impl<'a> PlanBuilder<'a> {
                                 arguments: commits,
                             },
                         );
-                        if crate::byte_ops::by_id(callee.as_str()).is_some() {
+                        if crate::byte_ops::by_id(callee.as_str()).is_some()
+                            || crate::host_io_ops::by_id(callee.as_str()).is_some()
+                        {
                             let destination = self.expression_slot(expression, active_region)?;
                             if let Some(destination) = destination.clone() {
                                 self.initialize(
@@ -4207,6 +4217,8 @@ impl<'a> PlanBuilder<'a> {
                 crate::str_ops::resolved_params(op)
             } else if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
                 crate::byte_ops::resolved_params(op)
+            } else if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
+                crate::host_io_ops::resolved_params(op)
             } else {
                 let target = self
                     .program
@@ -4274,7 +4286,9 @@ impl<'a> PlanBuilder<'a> {
             },
         );
 
-        if crate::byte_ops::by_id(callee.as_str()).is_some() {
+        if crate::byte_ops::by_id(callee.as_str()).is_some()
+            || crate::host_io_ops::by_id(callee.as_str()).is_some()
+        {
             let destination = self.expression_slot(expression, region)?;
             if let Some(destination) = destination.clone() {
                 self.initialize(

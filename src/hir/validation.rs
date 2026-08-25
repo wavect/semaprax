@@ -101,8 +101,22 @@ impl<'a> HirValidator<'a> {
 
     pub(super) fn new(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
         validate_nul_free_identities(program)?;
+        for declaration in program.declarations.declarations() {
+            if crate::host_io_ops::by_id(declaration.id.as_str()).is_some() {
+                return Err(hir_error(format!(
+                    "resolved {:?} declaration `{}` aliases a compiler-owned host I/O operation",
+                    declaration.kind, declaration.id
+                )));
+            }
+        }
         let mut functions = BTreeMap::new();
         for function in &program.functions {
+            if crate::host_io_ops::by_id(function.id.as_str()).is_some() {
+                return Err(hir_error(format!(
+                    "resolved function `{}` aliases a compiler-owned host I/O operation",
+                    function.id
+                )));
+            }
             if functions.insert(function.id.clone(), function).is_some() {
                 return Err(hir_error(format!(
                     "duplicate resolved function identity `{}`",
@@ -125,6 +139,14 @@ impl<'a> HirValidator<'a> {
                         function.id
                     )));
                 }
+            }
+        }
+        for template in &program.function_templates {
+            if crate::host_io_ops::by_id(template.id.as_str()).is_some() {
+                return Err(hir_error(format!(
+                    "resolved function template `{}` aliases a compiler-owned host I/O operation",
+                    template.id
+                )));
             }
         }
         Ok(Self {
@@ -186,6 +208,12 @@ impl<'a> HirValidator<'a> {
                 )));
             }
             for import in &interface.imports {
+                if crate::host_io_ops::by_id(import.id.as_str()).is_some() {
+                    return Err(hir_error(format!(
+                        "resolved import `{}` aliases a compiler-owned host I/O operation",
+                        import.id
+                    )));
+                }
                 if !import_ids.insert(import.id.clone())
                     || imports.insert(import.id.clone(), import).is_some()
                 {
@@ -1630,7 +1658,8 @@ impl<'a> HirValidator<'a> {
             if instance.is_none()
                 && (crate::string_ops::by_id(callee.as_str()).is_some()
                     || crate::str_ops::by_id(callee.as_str()).is_some()
-                    || crate::byte_ops::by_id(callee.as_str()).is_some())
+                    || crate::byte_ops::by_id(callee.as_str()).is_some()
+                    || crate::host_io_ops::by_id(callee.as_str()).is_some())
             {
                 // String operations carry no authored declaration and their
                 // scalar/string results contribute no lifecycle effects.
@@ -2939,6 +2968,33 @@ impl<'a> HirValidator<'a> {
                                     )));
                                 }
                                 (crate::byte_ops::resolved_params(op), op.return_type())
+                            } else if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
+                                if instance.is_some() || !type_arguments.is_empty() {
+                                    return Err(hir_error(
+                                        "host I/O operation call must be monomorphic",
+                                    ));
+                                }
+                                if args.len() != op.arity() {
+                                    return Err(hir_error(format!(
+                                        "host I/O operation `{}` expects {} arguments but received {}",
+                                        op.name(), op.arity(), args.len()
+                                    )));
+                                }
+                                match allowed_effects {
+                                    Some(allowed) if !allowed.contains(op.effect()) => {
+                                        return Err(hir_error(format!(
+                                            "call to `{callee}` requires undeclared effect `{}`",
+                                            op.effect()
+                                        )));
+                                    }
+                                    None => {
+                                        return Err(hir_error(
+                                            "contract calls effectful host I/O operation",
+                                        ))
+                                    }
+                                    _ => {}
+                                }
+                                (crate::host_io_ops::resolved_params(op), op.return_type())
                             } else {
                                 let target = self
                                     .program
@@ -5481,6 +5537,10 @@ impl<'a> HirValidator<'a> {
                     .is_none()
                     .then(|| crate::byte_ops::by_id(callee.as_str()))
                     .flatten();
+                let host_io_intrinsic = instance
+                    .is_none()
+                    .then(|| crate::host_io_ops::by_id(callee.as_str()))
+                    .flatten();
                 let (params, return_type, target_effects) = if let Some(op) = string_intrinsic {
                     // String operations carry their reserved identity instead
                     // of an authored declaration.
@@ -5524,6 +5584,18 @@ impl<'a> HirValidator<'a> {
                         crate::byte_ops::resolved_params(op),
                         op.return_type(),
                         Vec::new(),
+                    )
+                } else if let Some(op) = host_io_intrinsic {
+                    if args.len() != op.arity() || !type_arguments.is_empty() {
+                        return Err(hir_error(format!(
+                            "invalid host I/O operation `{}` call shape",
+                            op.name()
+                        )));
+                    }
+                    (
+                        crate::host_io_ops::resolved_params(op),
+                        op.return_type(),
+                        vec![op.effect().to_owned()],
                     )
                 } else {
                     let target = self

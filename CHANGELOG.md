@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Added locally evidenced Bounded Stdout Transcript v1 and Project Manifest
+  v4. Compiler-owned `stdout_write` has exact `process.stdout.write` authority,
+  a 65,536-byte success-published transcript, one-write-per-path analysis, and
+  loop/cycle rejection. Interpreter, native O0/O2, and Core-Wasm/Node preserve
+  exact bytes and discard every failed invocation; Wasm adds no stdout/WASI
+  import. The additive `useful-data-command.v1` profile emits an independently
+  replayed seven-file npm command package. Its compiler-free `spxgrep` fixture
+  prebuffers a UTF-8 needle plus binary stdin under one bound, performs a real
+  nested indexed-byte search, flushes once after semantic and arena settlement,
+  and uses exact match/no-match/adapter-failure exits. Legacy Project v1-v3,
+  Graph, cleanup, and Useful Data paths remain unchanged. Hosted promotion,
+  safe Windows publication, registry publication, and general language I/O
+  remain open, so completion totals and Partial status do not change.
+
 - Added locally evidenced Indexed Byte Loop v2. Bounded loops may perform
   immutable `byte_len`/`byte_get` reads and exhaustively match the exact
   compiler-owned `Option<u8>` result with guard-free `Some`/`None` arms. Source

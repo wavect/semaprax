@@ -12,6 +12,8 @@ pub(crate) const MAX_INLINE_ARRAY_FRAME_BYTES: u64 = 65_536;
 pub(crate) const MAX_ACTIVE_ARRAY_CALL_PATH_BYTES: u64 = 65_536;
 pub(crate) const MAX_BYTES_COPY_SITES: u32 = 16;
 pub(crate) const MAX_OWNED_BYTE_PAYLOAD_BYTES: u64 = 1_048_576;
+pub(crate) const MAX_STDOUT_TRANSCRIPT_BYTES: u64 = 65_536;
+pub(crate) const MAX_STDOUT_WRITES_PER_PATH: u64 = 1;
 
 const MAX_FUNCTIONS: usize = 4_096;
 const MAX_FLOW_NODES: usize = 65_536;
@@ -46,6 +48,9 @@ pub(crate) enum CapacityFlow {
         site: String,
         conservative_payload_bytes: u64,
     },
+    StdoutWrite {
+        site: String,
+    },
     Loop {
         condition: Box<CapacityFlow>,
         body: Box<CapacityFlow>,
@@ -65,6 +70,7 @@ pub(crate) struct FunctionCapacitySummary {
     pub active_array_call_path_bytes: u64,
     pub bytes_copy_sites: u32,
     pub owned_byte_payload_bytes: u64,
+    pub stdout_write_sites: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -90,6 +96,7 @@ impl ProgramCapacitySummary {
 pub(crate) enum CapacityDiagnostic {
     Array,
     Allocation,
+    Transcript,
     Invariant,
 }
 
@@ -98,6 +105,7 @@ impl CapacityDiagnostic {
         match self {
             Self::Array => "SPX-T261",
             Self::Allocation => "SPX-T267",
+            Self::Transcript => "SPX-T269",
             Self::Invariant => "SPX-H006",
         }
     }
@@ -137,6 +145,7 @@ struct AllocationSummary {
 enum FoldMode {
     Array,
     Allocation,
+    Transcript,
 }
 
 struct ValidatedFunction<'a> {
@@ -144,6 +153,7 @@ struct ValidatedFunction<'a> {
     frame_bytes: u64,
     callees: BTreeSet<&'a str>,
     has_local_copy: bool,
+    has_local_stdout_write: bool,
 }
 
 pub(crate) fn analyze(
@@ -169,7 +179,7 @@ pub(crate) fn analyze(
     let mut validated = BTreeMap::<&str, ValidatedFunction<'_>>::new();
     for (identity, function) in &by_id {
         let frame_bytes = validate_slots(function)?;
-        let (callees, has_local_copy) = validate_flow(function, &by_id)?;
+        let (callees, has_local_copy, has_local_stdout_write) = validate_flow(function, &by_id)?;
         validated.insert(
             identity,
             ValidatedFunction {
@@ -177,18 +187,25 @@ pub(crate) fn analyze(
                 frame_bytes,
                 callees,
                 has_local_copy,
+                has_local_stdout_write,
             },
         );
     }
 
     let array_relevant = reverse_reachable(&validated, |item| item.frame_bytes != 0);
     let allocation_relevant = reverse_reachable(&validated, |item| item.has_local_copy);
+    let transcript_relevant = reverse_reachable(&validated, |item| item.has_local_stdout_write);
     let array_order =
         relevant_topological_order(&validated, &array_relevant, CapacityDiagnostic::Array)?;
     let allocation_order = relevant_topological_order(
         &validated,
         &allocation_relevant,
         CapacityDiagnostic::Allocation,
+    )?;
+    let transcript_order = relevant_topological_order(
+        &validated,
+        &transcript_relevant,
+        CapacityDiagnostic::Transcript,
     )?;
 
     let mut summaries = validated
@@ -230,7 +247,7 @@ pub(crate) fn analyze(
 
     for identity in allocation_order.into_iter().rev() {
         let item = &validated[identity];
-        let (_, allocation) = fold_flow(
+        let (_, allocation, _) = fold_flow(
             &item.input.execution,
             FoldMode::Allocation,
             identity,
@@ -259,6 +276,29 @@ pub(crate) fn analyze(
             .expect("validated function has a summary");
         summary.bytes_copy_sites = allocation.sites;
         summary.owned_byte_payload_bytes = allocation.payload_bytes;
+    }
+
+    for identity in transcript_order.into_iter().rev() {
+        let item = &validated[identity];
+        let (_, _, sites) = fold_flow(
+            &item.input.execution,
+            FoldMode::Transcript,
+            identity,
+            &summaries,
+        )?;
+        if sites > MAX_STDOUT_WRITES_PER_PATH {
+            return Err(transcript_error(
+                identity,
+                format!(
+                    "stdout_write path reaches {sites} sites; limit is {}",
+                    MAX_STDOUT_WRITES_PER_PATH
+                ),
+            ));
+        }
+        summaries
+            .get_mut(identity)
+            .expect("validated function has a summary")
+            .stdout_write_sites = sites;
     }
 
     Ok(ProgramCapacitySummary {
@@ -318,12 +358,13 @@ fn validate_slots(function: &FunctionCapacityInput) -> Result<u64, CapacityError
 fn validate_flow<'a>(
     function: &'a FunctionCapacityInput,
     functions: &BTreeMap<&str, &FunctionCapacityInput>,
-) -> Result<(BTreeSet<&'a str>, bool), CapacityError> {
+) -> Result<(BTreeSet<&'a str>, bool, bool), CapacityError> {
     let mut pending = vec![&function.execution];
     let mut nodes = 0usize;
     let mut callees = BTreeSet::new();
     let mut sites = BTreeSet::new();
     let mut has_local_copy = false;
+    let mut has_local_stdout_write = false;
     while let Some(flow) = pending.pop() {
         nodes = nodes.checked_add(1).ok_or_else(|| {
             invariant(
@@ -380,13 +421,23 @@ fn validate_flow<'a>(
                 }
                 has_local_copy = true;
             }
+            CapacityFlow::StdoutWrite { site } => {
+                require_identity(site, Some(&function.function), "stdout_write site")?;
+                if !sites.insert(site.as_str()) {
+                    return Err(invariant(
+                        Some(&function.function),
+                        format!("duplicate capacity site `{site}`"),
+                    ));
+                }
+                has_local_stdout_write = true;
+            }
             CapacityFlow::Loop { condition, body } => {
                 pending.push(body);
                 pending.push(condition);
             }
         }
     }
-    Ok((callees, has_local_copy))
+    Ok((callees, has_local_copy, has_local_stdout_write))
 }
 
 fn reverse_reachable<'a>(
@@ -459,6 +510,7 @@ fn relevant_topological_order<'a>(
         let detail = match diagnostic {
             CapacityDiagnostic::Array => "call-graph cycle can reach nonzero inline array storage",
             CapacityDiagnostic::Allocation => "bytes_copy executable closure is cyclic",
+            CapacityDiagnostic::Transcript => "stdout_write executable closure is cyclic",
             CapacityDiagnostic::Invariant => unreachable!(),
         };
         return Err(CapacityError {
@@ -475,17 +527,17 @@ fn fold_flow(
     mode: FoldMode,
     function: &str,
     summaries: &BTreeMap<String, FunctionCapacitySummary>,
-) -> Result<(u64, AllocationSummary), CapacityError> {
+) -> Result<(u64, AllocationSummary, u64), CapacityError> {
     enum Frame<'a> {
         Enter(&'a CapacityFlow),
         Finish(&'a CapacityFlow, usize),
     }
     let mut frames = vec![Frame::Enter(flow)];
-    let mut values = Vec::<(u64, AllocationSummary)>::new();
+    let mut values = Vec::<(u64, AllocationSummary, u64)>::new();
     while let Some(frame) = frames.pop() {
         match frame {
             Frame::Enter(node) => match node {
-                CapacityFlow::Empty => values.push((0, AllocationSummary::default())),
+                CapacityFlow::Empty => values.push((0, AllocationSummary::default(), 0)),
                 CapacityFlow::Call { callee, .. } => {
                     let summary = &summaries[callee];
                     values.push((
@@ -494,6 +546,7 @@ fn fold_flow(
                             sites: summary.bytes_copy_sites,
                             payload_bytes: summary.owned_byte_payload_bytes,
                         },
+                        summary.stdout_write_sites,
                     ));
                 }
                 CapacityFlow::BytesCopy {
@@ -505,7 +558,11 @@ fn fold_flow(
                         sites: 1,
                         payload_bytes: *conservative_payload_bytes,
                     },
+                    0,
                 )),
+                CapacityFlow::StdoutWrite { .. } => {
+                    values.push((0, AllocationSummary::default(), 1));
+                }
                 CapacityFlow::Sequence(children) | CapacityFlow::Alternative(children) => {
                     frames.push(Frame::Finish(node, children.len()));
                     frames.extend(children.iter().rev().map(Frame::Enter));
@@ -524,12 +581,14 @@ fn fold_flow(
                 let alternative = matches!(node, CapacityFlow::Alternative(_));
                 let mut array_bytes = 0u64;
                 let mut allocation = AllocationSummary::default();
-                for (child_array, child_allocation) in children {
+                let mut stdout_write_sites = 0u64;
+                for (child_array, child_allocation, child_stdout_write_sites) in children {
                     if alternative {
                         array_bytes = array_bytes.max(child_array);
                         allocation.sites = allocation.sites.max(child_allocation.sites);
                         allocation.payload_bytes =
                             allocation.payload_bytes.max(child_allocation.payload_bytes);
+                        stdout_write_sites = stdout_write_sites.max(child_stdout_write_sites);
                     } else {
                         array_bytes = array_bytes.checked_add(child_array).ok_or_else(|| {
                             array_error(function, "active array call-path calculation overflowed")
@@ -546,6 +605,11 @@ fn fold_flow(
                             .ok_or_else(|| {
                                 allocation_error(function, "owned byte payload sum overflowed")
                             })?;
+                        stdout_write_sites = stdout_write_sites
+                            .checked_add(child_stdout_write_sites)
+                            .ok_or_else(|| {
+                                transcript_error(function, "stdout_write site count overflowed")
+                            })?;
                     }
                 }
                 if matches!(mode, FoldMode::Allocation)
@@ -557,7 +621,16 @@ fn fold_flow(
                         "bytes_copy is reachable from a while condition or body",
                     ));
                 }
-                values.push((array_bytes, allocation));
+                if matches!(mode, FoldMode::Transcript)
+                    && matches!(node, CapacityFlow::Loop { .. })
+                    && stdout_write_sites != 0
+                {
+                    return Err(transcript_error(
+                        function,
+                        "stdout_write is reachable from a while condition or body",
+                    ));
+                }
+                values.push((array_bytes, allocation, stdout_write_sites));
             }
         }
     }
@@ -595,6 +668,14 @@ fn array_error(function: &str, detail: impl Into<String>) -> CapacityError {
 fn allocation_error(function: &str, detail: impl Into<String>) -> CapacityError {
     CapacityError {
         diagnostic: CapacityDiagnostic::Allocation,
+        function: Some(function.to_owned()),
+        detail: detail.into(),
+    }
+}
+
+fn transcript_error(function: &str, detail: impl Into<String>) -> CapacityError {
+    CapacityError {
+        diagnostic: CapacityDiagnostic::Transcript,
         function: Some(function.to_owned()),
         detail: detail.into(),
     }

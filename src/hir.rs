@@ -3202,6 +3202,10 @@ fn byte_capacity_expression(
                     site: expression.id.as_str().to_owned(),
                     conservative_payload_bytes: crate::byte_data_capacity::MAX_ARRAY_BYTES,
                 });
+            } else if callee.as_str() == crate::host_io_ops::STDOUT_WRITE_ID {
+                children.push(CapacityFlow::StdoutWrite {
+                    site: expression.id.as_str().to_owned(),
+                });
             } else if program
                 .resolve_call_target(callee, instance.as_ref())
                 .is_some()
@@ -4380,7 +4384,27 @@ pub(crate) fn link_useful_text_workspace(
 pub(crate) fn link_useful_data_workspace(
     module: String,
     entrypoint: DeclarationId,
+    linked_functions: Vec<LinkedScalarFunction>,
+) -> Result<ResolvedProgram, Diagnostic> {
+    link_useful_data_workspace_profile(module, entrypoint, linked_functions, false)
+}
+
+/// Assemble the additive Project v4 command closure. This keeps the Useful
+/// Data value/profile boundary intact while reconstructing exactly the one
+/// compiler-owned stdout capability authenticated by the manifest/linker.
+pub(crate) fn link_useful_data_command_workspace(
+    module: String,
+    entrypoint: DeclarationId,
+    linked_functions: Vec<LinkedScalarFunction>,
+) -> Result<ResolvedProgram, Diagnostic> {
+    link_useful_data_workspace_profile(module, entrypoint, linked_functions, true)
+}
+
+fn link_useful_data_workspace_profile(
+    module: String,
+    entrypoint: DeclarationId,
     mut linked_functions: Vec<LinkedScalarFunction>,
+    stdout_command: bool,
 ) -> Result<ResolvedProgram, Diagnostic> {
     if linked_functions.is_empty() {
         return Err(link_error("workspace useful-data closure has no functions"));
@@ -4397,7 +4421,9 @@ pub(crate) fn link_useful_data_workspace(
                 function.id
             )));
         }
-        if !function.effects.is_empty()
+        let effects_admitted = function.effects.is_empty()
+            || (stdout_command && function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT]);
+        if !effects_admitted
             || !useful_data_workspace_return_admitted(&function.return_type)
             || function.params.iter().any(|parameter| {
                 !useful_data_workspace_parameter_admitted(&parameter.ty, parameter.ownership)
@@ -4503,7 +4529,11 @@ pub(crate) fn link_useful_data_workspace(
     }
     let mut linked = ResolvedProgram {
         module,
-        permits: Vec::new(),
+        permits: if stdout_command {
+            vec![crate::host_io_ops::STDOUT_WRITE_EFFECT.to_owned()]
+        } else {
+            Vec::new()
+        },
         entrypoint,
         declarations,
         types: compiler_types,
@@ -7068,6 +7098,12 @@ impl Resolver<'_> {
                 op: crate::byte_ops::ByteOp,
                 argument_count: usize,
             },
+            FinishHostIoOp {
+                span: Span,
+                path: String,
+                op: crate::host_io_ops::HostIoOp,
+                argument_count: usize,
+            },
             ChildNext {
                 children: &'expr [Expr],
                 index: usize,
@@ -7371,6 +7407,7 @@ impl Resolver<'_> {
                 | Frame::FinishStringOp { path, .. }
                 | Frame::FinishStrOp { path, .. }
                 | Frame::FinishByteOp { path, .. }
+                | Frame::FinishHostIoOp { path, .. }
                 | Frame::ChildNext { path, .. }
                 | Frame::MethodArgNext { path, .. }
                 | Frame::FinishUnary { path, .. }
@@ -7817,6 +7854,27 @@ impl Resolver<'_> {
                                 ));
                             }
                             frames.push(Frame::FinishByteOp {
+                                span: expr.span,
+                                path: path.clone(),
+                                op,
+                                argument_count: args.len(),
+                            });
+                            frames.push(Frame::ChildNext {
+                                children: args,
+                                index: 0,
+                                bindings,
+                                path,
+                                segment: "arg",
+                            });
+                        } else if let Some(op) = crate::host_io_ops::by_name(name) {
+                            if !type_arguments.is_empty() || args.len() != op.arity() {
+                                return Err(self.error(
+                                    "SPX-T269",
+                                    format!("invalid host I/O operation `{name}` call shape"),
+                                    expr.span,
+                                ));
+                            }
+                            frames.push(Frame::FinishHostIoOp {
                                 span: expr.span,
                                 path: path.clone(),
                                 op,
@@ -8477,6 +8535,39 @@ impl Resolver<'_> {
                         id: ExpressionId::new(function, &path),
                         ty,
                         ownership,
+                        kind: ResolvedExprKind::Call {
+                            callee: DeclarationId::new(op.id()),
+                            type_arguments: Vec::new(),
+                            instance: None,
+                            args,
+                        },
+                        span,
+                    });
+                }
+                Frame::FinishHostIoOp {
+                    span,
+                    path,
+                    op,
+                    argument_count,
+                } => {
+                    let args = take_results(&mut results, argument_count);
+                    for (index, argument) in args.iter().enumerate() {
+                        if !op.accepts_resolved(index, &argument.ty) {
+                            return Err(self.error(
+                                "SPX-T269",
+                                format!(
+                                    "host I/O operation `{}` argument {} has the wrong type",
+                                    op.name(),
+                                    index
+                                ),
+                                argument.span,
+                            ));
+                        }
+                    }
+                    results.push(ResolvedExpr {
+                        id: ExpressionId::new(function, &path),
+                        ty: op.return_type(),
+                        ownership: OwnershipMode::Value,
                         kind: ResolvedExprKind::Call {
                             callee: DeclarationId::new(op.id()),
                             type_arguments: Vec::new(),
@@ -10780,6 +10871,52 @@ impl Resolver<'_> {
                         span: expr.span,
                     });
                 }
+                if let Some(op) = crate::host_io_ops::by_name(name) {
+                    if !type_arguments.is_empty() || args.len() != op.arity() {
+                        return Err(self.error(
+                            "SPX-T269",
+                            format!("invalid host I/O operation `{name}` call shape"),
+                            expr.span,
+                        ));
+                    }
+                    let args = args
+                        .iter()
+                        .enumerate()
+                        .map(|(index, argument)| {
+                            self.resolve_expr_recursive_reference(
+                                function,
+                                argument,
+                                bindings,
+                                &format!("{path}.arg.{index}"),
+                            )
+                        })
+                        .collect::<Result<Vec<_>, _>>()?;
+                    for (index, argument) in args.iter().enumerate() {
+                        if !op.accepts_resolved(index, &argument.ty) {
+                            return Err(self.error(
+                                "SPX-T269",
+                                format!(
+                                    "host I/O operation `{}` argument {} has the wrong type",
+                                    op.name(),
+                                    index
+                                ),
+                                argument.span,
+                            ));
+                        }
+                    }
+                    return Ok(ResolvedExpr {
+                        id,
+                        ty: op.return_type(),
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Call {
+                            callee: DeclarationId::new(op.id()),
+                            type_arguments: Vec::new(),
+                            instance: None,
+                            args,
+                        },
+                        span: expr.span,
+                    });
+                }
                 let template = self
                     .declarations
                     .function_id(name)
@@ -12189,6 +12326,57 @@ mod iterative_validator_tests {
 
     use super::*;
     use crate::{hir, parse};
+
+    #[test]
+    fn hostile_declaration_index_rejects_reserved_host_id_for_every_authored_kind() {
+        let source = r#"
+module test.reserved_host_index;
+@id("token") resource Token { @id("token.drop") drop trivial; }
+@id("pair") record Pair { @id("pair.x") x: i64, }
+@id("choice") variant Choice { @id("choice.a") A { @id("choice.a.x") x: i64, }, }
+@id("class") class Class { @id("class.x") x: i64, @id("class.value") fn value(self: Class) -> i64 { self.x } }
+@id("host") interface Host permits {} {
+    @id("host.echo") import rust fn echo(value: i64) -> i64 effects {} failure infallible;
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+        let parsed = parse(source, Path::new("reserved-host-index.spx")).unwrap();
+        let resolved = hir::resolve(&parsed).unwrap();
+        for identity in [
+            "token",
+            "token.drop",
+            "pair",
+            "pair.x",
+            "choice",
+            "choice.a",
+            "choice.a.x",
+            "class",
+            "class.x",
+            "class.value",
+            "host",
+            "host.echo",
+        ] {
+            let mut hostile = resolved.clone();
+            let original = DeclarationId::new(identity);
+            let mut declaration = hostile
+                .declarations
+                .declarations
+                .remove(&original)
+                .expect("fixture declaration is indexed");
+            declaration.id = DeclarationId::new(crate::host_io_ops::STDOUT_WRITE_ID);
+            hostile
+                .declarations
+                .declarations
+                .insert(declaration.id.clone(), declaration);
+            let diagnostic = hir::validate(&hostile).unwrap_err();
+            assert!(
+                diagnostic
+                    .message
+                    .contains("aliases a compiler-owned host I/O operation"),
+                "reserved hostile declaration kind `{identity}` was not rejected first: {diagnostic:?}"
+            );
+        }
+    }
 
     #[test]
     fn iterative_resolver_matches_recursive_reference_outside_builder_accounting() {

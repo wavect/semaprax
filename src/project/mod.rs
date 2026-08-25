@@ -34,13 +34,14 @@ use manifest::{capacity, grammar};
 pub use manifest::{
     ProjectManifest, ProjectProfile, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES,
     MAX_PATH_BYTES, MAX_SOURCES, MAX_STABLE_ID_BYTES, MAX_TOTAL_SOURCE_BYTES, MAX_VERSION_BYTES,
-    MAX_WEB_EXPORTS, PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
-    PROJECT_SCHEMA, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3,
+    MAX_WEB_EXPORTS, PROJECT_COMMAND_STDOUT_CAPABILITY, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
+    PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1, PROJECT_SCHEMA,
+    PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4,
 };
 pub use native_sdk::{ProjectNativeSdkExport, ProjectNativeSdkSubject};
 pub use npm::{
     ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
-    PROJECT_NPM_BUILD_SCHEMA_V2,
+    PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3,
 };
 pub(crate) use rename::{PreparedProjectRename, ProjectRenameDerivation};
 pub use semantic::{
@@ -260,8 +261,8 @@ impl ProjectSnapshot {
     /// Build the authenticated project entry closure as its profile-selected
     /// Web product.
     pub fn build_web(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
-        // Project v2/v3 each have one public JavaScript product: their exact
-        // six-file npm/Web package. Keeping `web` and the default route as
+        // Project v2/v3/v4 each have one public JavaScript product: their exact
+        // schema-selected npm/Web package. Keeping `web` and the default route as
         // aliases avoids a scalar-v1 fallback while `npm` remains the explicit
         // package-manager spelling. Frozen Project v1 bytes and publication
         // behavior stay on the scalar route below.
@@ -286,7 +287,7 @@ impl ProjectSnapshot {
     }
 
     /// Build a Project v1 authenticated entry closure as one deterministic
-    /// pathless scalar-Web carrier. Project v2/v3 keep the frozen return type
+    /// pathless scalar-Web carrier. Project v2/v3/v4 keep the frozen return type
     /// honest by using [`Self::build_npm_inline`] for their npm/Web carriers.
     /// This performs no filesystem access, process launch, publication, or
     /// caching. `max_bytes` bounds both the cumulative decoded artifact
@@ -295,9 +296,11 @@ impl ProjectSnapshot {
         if self.manifest.project_profile() != ProjectProfile::ScalarV1 {
             let version = if self.manifest.is_v2() {
                 "v2"
-            } else {
-                debug_assert!(self.manifest.is_v3());
+            } else if self.manifest.is_v3() {
                 "v3"
+            } else {
+                debug_assert!(self.manifest.is_v4());
+                "v4"
             };
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
@@ -326,8 +329,7 @@ impl ProjectSnapshot {
         .map_err(|error| vec![error])
     }
 
-    /// Build and publish the exact installable six-file npm package admitted
-    /// only by Project v2's Useful Text Consumer profile.
+    /// Build and publish the exact installable schema-selected npm package.
     pub fn build_npm(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
         let prepared = npm::prepare(
             &self.manifest,

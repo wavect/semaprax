@@ -303,6 +303,7 @@ enum TestBuildLastStage {
     ArchiveScratchDiscarded,
     InnerScratchDiscarded,
     PrePublishAuthenticated,
+    OuterPublicationSettled,
     PublishReturned,
     PublishedPackageAuthenticated,
     PublishedAuthenticated,

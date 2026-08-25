@@ -17,7 +17,7 @@ method and returns the generated closed import-result type.
 
 The additive `project` setup mode accepts an authenticated Project Manifest v1
 path and emits `generated-project-sdk`. The separate `project-consumer` uses
-only the four stable-ID exports selected by
+all six stable-ID exports selected by
 `../calculator-project/semaprax.toml`. The Project integration gate builds and
 runs this consumer before and after a daemon-applied display rename, with the
 daemon shut down before the second build. The two packages intentionally bind

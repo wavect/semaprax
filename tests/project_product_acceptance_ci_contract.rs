@@ -42,6 +42,7 @@ fn focused_product_acceptance_is_locked_offline_and_tool_authenticated() {
         "SEMAPRAX_ARCHIVER=",
         "VCToolsInstallDir",
         "SEMAPRAX_LINKER=",
+        "cargo fetch --locked\n",
         "cargo fetch --locked --manifest-path examples/calculator-rust/Cargo.toml",
         "cargo test --locked --offline -p semaprax --test project_product_acceptance_ci_contract",
         "SEMAPRAX_REQUIRE_PROJECT_TYPESCRIPT: \"1\"",
@@ -56,6 +57,24 @@ fn focused_product_acceptance_is_locked_offline_and_tool_authenticated() {
     assert!(
         !acceptance.contains("continue-on-error: true"),
         "a literal non-blocking step must not masquerade as product promotion"
+    );
+    let root_fetch = acceptance
+        .find("cargo fetch --locked\n")
+        .expect("root workspace dependency fetch");
+    let standalone_fetch = acceptance
+        .find("cargo fetch --locked --manifest-path examples/calculator-rust/Cargo.toml")
+        .expect("standalone consumer dependency fetch");
+    let first_offline_test = acceptance
+        .find("cargo test --locked --offline")
+        .expect("offline acceptance test");
+    assert!(
+        root_fetch < standalone_fetch && standalone_fetch < first_offline_test,
+        "both dependency closures must be fetched before the first offline test"
+    );
+    assert_eq!(
+        acceptance.matches("cargo fetch --locked\n").count(),
+        1,
+        "the focused job must fetch the root workspace exactly once"
     );
 }
 
@@ -89,7 +108,11 @@ fn dedicated_chromium_acceptance_remains_a_separate_blocking_job() {
     let browser = job(&workflow, "wasm-scalar-exports-browser-v1");
     for required in [
         "name: Public Wasm Scalar Exports v1 Chromium",
-        "npm test -- --workers=1 --retries=0",
+        "examples/calculator.spx --target web",
+        "examples/calculator-project/semaprax.toml --target web",
+        "SEMAPRAX_DIRECT_CALCULATOR_ROOT=",
+        "SEMAPRAX_PROJECT_CALCULATOR_ROOT=",
+        "npm run test:fixtures --",
     ] {
         assert!(
             browser.contains(required),
@@ -97,4 +120,9 @@ fn dedicated_chromium_acceptance_remains_a_separate_blocking_job() {
         );
     }
     assert!(!browser.contains("continue-on-error"));
+    assert_eq!(
+        browser.matches("--moduleResolution NodeNext").count(),
+        2,
+        "both direct-source and Project declaration consumers must type-check"
+    );
 }

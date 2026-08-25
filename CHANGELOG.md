@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- Closed the local v0.2 calculator-product evidence gaps without widening the
+  admitted scalar profile. The committed browser calculator now consumes both
+  a direct `semaprax.web.v4` package and the multi-module
+  `semaprax.web-project.v1` package through the same six stable-ID calls; its
+  dual-fixture preflight authenticates both schemas and exact export sets,
+  strict TypeScript checks both generated consumers, and one serial Chromium
+  lane exercises both packages. Public Native Rust SDK Phase C now has an
+  explicit one-way settled publication state: after the final exact inventory
+  replay it releases all nine leaf handles, closes both child-directory
+  authorities, and retains only the authenticated root for the no-clobber
+  rename required by Windows. Failure after settlement preserves exact inert
+  residue. CI now fetches the root lockfile before offline product execution,
+  invokes the intentionally unsettled Windows negative control explicitly,
+  and keeps the new settled nested-publication regression blocking. These
+  changes are locally evidenced; exact-head hosted promotion, registry
+  publication, and general SDK/browser claims remain pending.
+
 - Added the locally evidenced [Bounded Language Command I/O
   v1](docs/BOUNDED-LANGUAGE-COMMAND-IO-V1.md), additive Graph v19, and Project
   Manifest v6. Checked code gains four compiler-owned operations for argument

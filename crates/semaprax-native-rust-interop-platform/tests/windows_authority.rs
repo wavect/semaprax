@@ -237,6 +237,76 @@ fn windows_prepared_publish_renames_the_authenticated_stage_without_clobber() {
 }
 
 #[test]
+fn windows_settled_nested_inventory_publishes_after_descendant_authorities_close() {
+    let root = root("nested-publish-success");
+    let parent = hold_directory(&root).unwrap();
+    let stage = create_directory_new(&parent, OsStr::new("stage"), 0o700).unwrap();
+    let source = create_directory_new(&stage, OsStr::new("src"), 0o700).unwrap();
+    let native = create_directory_new(&stage, OsStr::new("native"), 0o700).unwrap();
+    let mut root_files = prepare_discard_inventory([
+        OsStr::new("Cargo.toml"),
+        OsStr::new("build.rs"),
+        OsStr::new("sdk.json"),
+    ])
+    .unwrap();
+    let mut source_files = prepare_discard_inventory([
+        OsStr::new("lib.rs"),
+        OsStr::new("safe.rs"),
+        OsStr::new("ffi.rs"),
+    ])
+    .unwrap();
+    let mut native_files = prepare_discard_inventory([
+        OsStr::new("sdk.lib"),
+        OsStr::new("descriptor.json"),
+        OsStr::new("manifest.json"),
+    ])
+    .unwrap();
+    for (name, bytes) in [
+        ("Cargo.toml", b"cargo".as_slice()),
+        ("build.rs", b"build".as_slice()),
+        ("sdk.json", b"sdk".as_slice()),
+    ] {
+        write_file_new_prepared(&stage, &mut root_files, name, bytes, 0o600).unwrap();
+    }
+    for (name, bytes) in [
+        ("lib.rs", b"lib".as_slice()),
+        ("safe.rs", b"safe".as_slice()),
+        ("ffi.rs", b"ffi".as_slice()),
+    ] {
+        write_file_new_prepared(&source, &mut source_files, name, bytes, 0o600).unwrap();
+    }
+    for (name, bytes) in [
+        ("sdk.lib", b"archive".as_slice()),
+        ("descriptor.json", b"descriptor".as_slice()),
+        ("manifest.json", b"manifest".as_slice()),
+    ] {
+        write_file_new_prepared(&native, &mut native_files, name, bytes, 0o600).unwrap();
+    }
+
+    root_files.settle_for_publish().unwrap();
+    source_files.settle_for_publish().unwrap();
+    native_files.settle_for_publish().unwrap();
+    drop((source, native));
+
+    let stage_name = prepare_stage_name(OsStr::new("stage")).unwrap();
+    let mut publish = prepare_publish_directory(OsStr::new("published")).unwrap();
+    publish_directory_new_prepared(
+        &mut publish,
+        &parent,
+        &stage,
+        &stage_name,
+        OsStr::new("published"),
+    )
+    .unwrap();
+    assert!(!root.join("stage").exists());
+    assert_eq!(fs::read(root.join("published/src/lib.rs")).unwrap(), b"lib");
+    assert_eq!(
+        fs::read(root.join("published/native/sdk.lib")).unwrap(),
+        b"archive"
+    );
+}
+
+#[test]
 fn settled_publish_inventory_rejects_foreign_name_substitution_before_cleanup() {
     let root = root("settled-publish-substitution");
     let parent = hold_directory(&root).unwrap();

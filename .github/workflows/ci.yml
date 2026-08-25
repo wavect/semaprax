@@ -57,13 +57,16 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-      - name: Build the scalar calculator package into an isolated loopback fixture
+      - name: Build direct-source and multi-module Project calculators into isolated fixtures
         shell: bash
         run: |
           set -euo pipefail
           fixture="$RUNNER_TEMP/semaprax-wasm-scalar-browser-v1"
-          mkdir -p "$fixture"
-          cp -a examples/calculator-web/. "$fixture/"
+          direct="$fixture/direct-source"
+          project="$fixture/project"
+          mkdir -p "$direct" "$project"
+          cp -a examples/calculator-web/. "$direct/"
+          cp -a examples/calculator-web/. "$project/"
           cargo run --locked -p semaprax -- build examples/calculator.spx --target web \
             --export calculator.add \
             --export calculator.subtract \
@@ -71,22 +74,32 @@ jobs:
             --export calculator.divide \
             --export calculator.is-negative \
             --export calculator.not \
-            -o "$fixture/generated"
-          echo "SEMAPRAX_CALCULATOR_ROOT=$fixture" >> "$GITHUB_ENV"
+            -o "$direct/generated"
+          cargo run --locked -p semaprax -- build \
+            examples/calculator-project/semaprax.toml --target web \
+            -o "$project/generated"
+          echo "SEMAPRAX_DIRECT_CALCULATOR_ROOT=$direct" >> "$GITHUB_ENV"
+          echo "SEMAPRAX_PROJECT_CALCULATOR_ROOT=$project" >> "$GITHUB_ENV"
       - name: Install the locked Playwright fixture and Chromium
         working-directory: platform-tests/wasm-scalar-browser-v1
         run: |
           npm ci --ignore-scripts
           npx --no-install playwright install --with-deps chromium
-      - name: Type-check the real generated scalar declaration consumer
+      - name: Type-check both real generated declaration consumers
+        working-directory: platform-tests/wasm-scalar-browser-v1
+        run: |
+          npx --no-install tsc --strict --noEmit --target ES2022 \
+            --module NodeNext --moduleResolution NodeNext \
+            "$SEMAPRAX_DIRECT_CALCULATOR_ROOT/consumer.ts"
+          npx --no-install tsc --strict --noEmit --target ES2022 \
+            --module NodeNext --moduleResolution NodeNext \
+            "$SEMAPRAX_PROJECT_CALCULATOR_ROOT/consumer.ts"
+      - name: Exercise both generated calculators in serial real Chromium workers
         working-directory: platform-tests/wasm-scalar-browser-v1
         run: >-
-          npx --no-install tsc --strict --noEmit --target ES2022
-          --module NodeNext --moduleResolution NodeNext
-          "$SEMAPRAX_CALCULATOR_ROOT/consumer.ts"
-      - name: Exercise the generated calculator in one real Chromium worker
-        working-directory: platform-tests/wasm-scalar-browser-v1
-        run: npm test -- --workers=1 --retries=0
+          npm run test:fixtures --
+          "$SEMAPRAX_DIRECT_CALCULATOR_ROOT"
+          "$SEMAPRAX_PROJECT_CALCULATOR_ROOT"
 
   project-product-acceptance-v1:
     name: Project Product Acceptance v1 (${{ matrix.os }}, ${{ matrix.evidence }})
@@ -179,8 +192,10 @@ jobs:
           echo SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS%>>"%GITHUB_ENV%"
           echo SEMAPRAX_LINKER=%SEMAPRAX_LINKER%>>"%GITHUB_ENV%"
           echo SEMAPRAX_ARCHIVER=%SEMAPRAX_ARCHIVER%>>"%GITHUB_ENV%"
-      - name: Fetch the standalone Rust consumer dependency closure
-        run: cargo fetch --locked --manifest-path examples/calculator-rust/Cargo.toml
+      - name: Fetch the root workspace and standalone Rust consumer dependency closures
+        run: |
+          cargo fetch --locked
+          cargo fetch --locked --manifest-path examples/calculator-rust/Cargo.toml
       - name: Freeze the focused acceptance workflow contract
         run: cargo test --locked --offline -p semaprax --test project_product_acceptance_ci_contract -- --nocapture
       - name: Require the complete project, daemon, Web, native, Wasm, TypeScript, and Rust cycle
@@ -272,7 +287,7 @@ jobs:
       - name: Diagnose Windows mixed inventory across directory publication (non-blocking)
         if: runner.os == 'Windows'
         continue-on-error: true
-        run: cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib tests::windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename -- --exact --nocapture --test-threads=1
+        run: cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib tests::windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename -- --ignored --exact --nocapture --test-threads=1
       - name: Diagnose minimal effectful public SDK build on Windows (non-blocking)
         if: runner.os == 'Windows'
         continue-on-error: true

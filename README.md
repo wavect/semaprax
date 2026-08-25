@@ -225,7 +225,7 @@ Start with [Agent Context v1](docs/AGENT-CONTEXT-V1.md),
 | `semaprax check [semaprax.toml]` / `semaprax build [semaprax.toml] [--target web]` | Check or publish the bounded Project Manifest v1 Web package; `--manifest-path` selects another manifest. |
 | `semaprax graph <file>` | Emit the revisioned semantic graph. |
 | `semaprax context <file> <stable-id> [options]` | Emit a deterministic, bounded semantic context. |
-| `semapraxd --stdio [--manifest-path semaprax.toml] [--allow-project-rename]` | Serve one authenticated Project v1 snapshot through read-only Transport v2, or explicitly opt into the bounded v3 exported-function display rename. |
+| `semapraxd --stdio [--manifest-path semaprax.toml] [--allow-project-rename\|--allow-project-workflow]` | Serve one authenticated Project snapshot through read-only Transport v2, opt into the bounded v3 rename, or select the v4 derive/preview/impact/review/apply/build workflow. |
 | `semaprax impact <file> <patch.spatch> [options]` | Preview supported source consumers and reverse-call impact without writing. |
 | `semaprax review <file> <patch.spatch>` | Emit the bounded semantic review report. |
 | `semaprax patch <file> <patch.spatch>` | Apply a supported atomic semantic transaction. |
@@ -258,6 +258,12 @@ stable-ID `use function` provider edges compose the named modules. A final
 post-publication input drift is `SPX-J103`; callers reconcile the retained
 digest-bound package and never delete it automatically.
 
+The committed [browser calculator shell](examples/calculator-web/README.md)
+consumes either the direct-source package or this multi-module Project package
+without changing its stable-ID calls. The locked Chromium fixture authenticates
+the two distinct package schemas and exact six-export inventories, type-checks
+both generated declaration consumers, and exercises both calculators serially.
+
 The unpublished calculator setup can also generate the exact local Rust SDK
 for that authenticated Project:
 
@@ -270,7 +276,7 @@ cargo run --locked --offline --manifest-path examples/calculator-rust/Cargo.toml
   "$(pwd)/examples/calculator-rust/generated-project-sdk"
 ```
 
-The separate compiler-free `project-consumer` exercises the four manifest
+The separate compiler-free `project-consumer` exercises all six manifest
 exports. Local evidence rebuilds Web/Node and Rust consumers after the daemon
 display rename and checks stable-ID behavior across changed authenticated
 revisions; exact-head hosted promotion and a root Project-to-Rust CLI remain
@@ -287,7 +293,10 @@ v2](docs/PROJECT-AGENT-TRANSPORT-V2.md). Adding `--allow-project-rename`
 selects additive Transport v3 and its sole server-derived
 `rename/preview`/`rename/apply` transaction for one explicitly identified Web
 export. It is not a general or multi-file edit API; see [Project Rename
-Transaction v1](docs/PROJECT-RENAME-TRANSACTION-V1.md).
+Transaction v1](docs/PROJECT-RENAME-TRANSACTION-V1.md). The mutually exclusive
+`--allow-project-workflow` selects Transport v4 and adds derive, candidate-bound
+Impact/Review, A0 apply, exact reload, and pathless Web rebuild for that bounded
+rename slice; see [Project Agent Workflow v1](docs/PROJECT-AGENT-WORKFLOW-V1.md).
 
 ## Roadmap
 

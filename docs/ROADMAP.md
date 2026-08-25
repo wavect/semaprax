@@ -88,12 +88,16 @@ linked entry HIR and exact manifest export origins directly, emits the existing
 nine-file dependency-free Rust package, and binds canonical manifest,
 Project/workspace/graph, and complete source facts in distinct Project
 subject/descriptor/bundle/outer schemas. The six-operation calculator evidence
-runs Web/Node and Rust consumers before and after an opt-in daemon display rename and proves
-stable-ID behavior across changed revisions without asserting whole-package
-byte equality. Exact-head Ubuntu/macOS/Windows promotion remains pending, and
-this adds no root CLI, registry, dependency, general Project SDK, import,
-capability, aggregate, or resource claim. Completion-row statuses and current
-totals do not change.
+runs Web/Node and Rust consumers before and after an opt-in daemon display
+rename and proves stable-ID behavior across changed revisions without asserting
+whole-package byte equality. Phase C now locally performs a final exact
+inventory replay followed by a one-way settlement that releases all leaf and
+child-directory authorities before its root rename, with an explicit blocking
+Windows nested-inventory regression and fail-stop inert residue after the
+transition. Exact-head Ubuntu/macOS/Windows promotion remains pending, and this
+adds no root CLI, registry, dependency, general Project SDK, import, capability,
+aggregate, or resource claim. Completion-row statuses and current totals do not
+change.
 
 [Project Agent Workflow v1](PROJECT-AGENT-WORKFLOW-V1.md) closes the remaining
 local calculator-orchestration gap for the admitted rename slice. Opt-in
@@ -116,6 +120,15 @@ paths on Ubuntu and macOS; Windows is diagnostic-only until its SDK publication
 boundary is promotable. This closes the local evidence-fragmentation gap but
 not full hosted promotion; new language breadth follows only after the
 mandatory matrix carries both optional paths successfully.
+
+The committed browser calculator shell now also consumes the multi-module
+Project package, rather than using Project output only from test-only Node and
+Rust binaries. One exact dual-fixture preflight distinguishes and authenticates
+the direct `semaprax.web.v4` and Project `semaprax.web-project.v1` manifests,
+requires the same six stable IDs, and feeds both generated packages through the
+same TypeScript consumer and serial Chromium interaction. This closes the local
+interactive-Project-consumer gap only; the new exact-head browser job and full
+promotion matrix remain required before widening the hosted claim.
 
 ## Useful Text Consumer v1 and Project Manifest v2
 

@@ -23,6 +23,7 @@ test("loopback Chromium calculator preserves stable-ID success, failure, and re-
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
   await page.goto("/index.html");
+  const expectedOrigin = new URL(page.url()).origin;
   await expect(page.getByRole("heading", { name: "SEMAPRAX calculator" })).toBeVisible();
 
   await calculate(page, {
@@ -64,8 +65,8 @@ test("loopback Chromium calculator preserves stable-ID success, failure, and re-
 
   await expect.poll(() => wasmResponses.length).toBe(1);
   expect(wasmResponses[0].status()).toBe(200);
-  expect(new URL(wasmResponses[0].url()).origin).toBe("http://127.0.0.1:4173");
-  expect(new Set(requestOrigins)).toEqual(new Set(["http://127.0.0.1:4173"]));
+  expect(new URL(wasmResponses[0].url()).origin).toBe(expectedOrigin);
+  expect(new Set(requestOrigins)).toEqual(new Set([expectedOrigin]));
   expect(requestFailures).toEqual([]);
   expect(pageErrors).toEqual([]);
 });

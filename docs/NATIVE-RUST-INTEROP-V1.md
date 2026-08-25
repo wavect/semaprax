@@ -235,6 +235,17 @@ independently reconstructed in Phase C.
 AArch64 Windows remains rejected because no matching ARM64 Visual C++ tool plan
 is frozen.
 
+The outer package has an explicit one-way publication transition. Phase C
+performs its final exact root/src/native inventory replay while cleanup
+authority is still complete, settles every held regular file, closes both
+descendant directory handles, and retains only the parent plus authenticated
+root-stage authority for the no-clobber rename. This is required on Windows,
+where renaming a directory that still contains held open descendants is
+correctly denied. Once settlement starts, any failure leaves the exact inert
+stage for caller reconciliation; cleanup is never attempted with incomplete
+descendant authority. Success still reopens and independently authenticates
+the published nine-file package.
+
 Phase C caps source, Spec, Descriptor, inner manifest, generated Rust, outer
 manifest, object, and archive carriers; the archive cap is 8,388,608 bytes and
 the outer-manifest cap is 1,048,576 bytes. It does not extend private A+B's

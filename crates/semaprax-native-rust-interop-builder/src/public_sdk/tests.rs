@@ -297,15 +297,56 @@ fn effect_boundaries_fail_stop_and_preserve_sticky_status() {
     assert_eq!(state.last_stage, TestBuildLastStage::OuterStageCreated);
     assert!(!output.exists());
 
+    let settled_names_before = bounded_remaining_sdk_names(&root);
     let (output, error, state) = run(TestBuildPoint::BeforePublish, "before-publish");
     let diagnostics = error.err().unwrap().into_diagnostics();
     assert_eq!(diagnostics[0].code, "SPX-I233");
     assert_eq!((state.archive_attempts, state.publish_calls), (1, 1));
     assert_eq!(
         state.last_stage,
-        TestBuildLastStage::PrePublishAuthenticated
+        TestBuildLastStage::OuterPublicationSettled
     );
     assert!(!output.exists());
+    let settled_names_after = bounded_remaining_sdk_names(&root);
+    let added_settled_names = settled_names_after
+        .iter()
+        .filter(|name| !settled_names_before.contains(name))
+        .collect::<Vec<_>>();
+    assert_eq!(added_settled_names.len(), 1);
+    let settled_name = added_settled_names[0];
+    assert!(settled_name.starts_with(".semaprax-native-rust-sdk-"));
+    let settled_stage = root.join(settled_name);
+    assert!(settled_stage.is_dir());
+    assert_eq!(std::fs::read_dir(&settled_stage).unwrap().count(), 5);
+    assert_eq!(
+        std::fs::read_dir(settled_stage.join("src"))
+            .unwrap()
+            .count(),
+        3
+    );
+    assert_eq!(
+        std::fs::read_dir(settled_stage.join("native"))
+            .unwrap()
+            .count(),
+        3
+    );
+    for relative in [
+        "Cargo.toml",
+        "build.rs",
+        "semaprax.native-rust-sdk.json",
+        "src/lib.rs",
+        "src/semaprax_native_rust_interop.rs",
+        "src/semaprax_native_rust_interop_ffi.rs",
+        "native/descriptor.json",
+        if cfg!(windows) {
+            "native/semaprax_native_rust_sdk.lib"
+        } else {
+            "native/libsemaprax_native_rust_sdk.a"
+        },
+        "native/semaprax.native-rust-interop.json",
+    ] {
+        assert!(settled_stage.join(relative).is_file(), "missing {relative}");
+    }
 
     let (output, error, state) = run(
         TestBuildPoint::ScratchCleanupUncertainty,

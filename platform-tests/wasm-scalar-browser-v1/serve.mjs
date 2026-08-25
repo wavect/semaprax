@@ -4,6 +4,12 @@ import { resolve, sep } from "node:path";
 
 const configuredRoot = process.env.SEMAPRAX_CALCULATOR_ROOT;
 if (!configuredRoot) throw new Error("SEMAPRAX_CALCULATOR_ROOT must name the calculator directory");
+const configuredPort = process.env.SEMAPRAX_CALCULATOR_PORT ?? "4173";
+if (!/^[0-9]+$/.test(configuredPort)) throw new Error("SEMAPRAX_CALCULATOR_PORT must be decimal");
+const port = Number(configuredPort);
+if (!Number.isSafeInteger(port) || port < 1024 || port > 65535) {
+  throw new Error("SEMAPRAX_CALCULATOR_PORT is outside the admitted range");
+}
 const root = resolve(configuredRoot);
 const rootPrefix = `${root}${sep}`;
 const mime = new Map([
@@ -61,6 +67,6 @@ createServer(async (request, response) => {
   } else {
     createReadStream(path).pipe(response);
   }
-}).listen(4173, "127.0.0.1", () => {
-  process.stdout.write("scalar-browser-server-ready\n");
+}).listen(port, "127.0.0.1", () => {
+  process.stdout.write(`scalar-browser-server-ready:${port}\n`);
 });

@@ -231,6 +231,14 @@ struct OuterStagePlan {
     native_files: crate::platform::PreparedDiscardInventory<3>,
 }
 
+/// A fully authenticated outer package whose descendant authorities have been
+/// released. This is deliberately a one-way state: publication failure after
+/// this transition leaves the exact inert stage for external reconciliation.
+struct SettledOuterPublication {
+    directory: crate::platform::HeldDirectory,
+    name: crate::platform::PreparedStageName,
+}
+
 impl OuterStage {
     fn recheck_all(
         &self,
@@ -269,6 +277,38 @@ impl OuterStage {
         )
         .map_err(|_| publication_error())?;
         Ok(())
+    }
+
+    fn settle_for_publish(mut self) -> Result<SettledOuterPublication, Diagnostic> {
+        // Each inventory rechecks every held leaf before releasing it. If any
+        // check fails, consuming `self` closes the remaining authorities and
+        // intentionally leaves the stage untouched.
+        self.root_files
+            .settle_for_publish()
+            .map_err(|_| publication_error())?;
+        self.src_files
+            .settle_for_publish()
+            .map_err(|_| publication_error())?;
+        self.native_files
+            .settle_for_publish()
+            .map_err(|_| publication_error())?;
+
+        let Self {
+            directory,
+            src,
+            native,
+            name,
+            src_name: _,
+            native_name: _,
+            root_files: _,
+            src_files: _,
+            native_files: _,
+        } = self;
+        // Windows rejects a directory rename while descendant directory
+        // handles remain open. The root stage authority is retained so the
+        // prepared no-clobber rename still authenticates the exact object.
+        drop((src, native));
+        Ok(SettledOuterPublication { directory, name })
     }
 }
 
@@ -983,13 +1023,7 @@ fn build_sdk_inner(
     }
     #[cfg(test)]
     record_test_build_stage(TestBuildLastStage::InnerScratchDiscarded);
-    let publication = (|| -> Result<(), Diagnostic> {
-        #[cfg(test)]
-        #[cfg(debug_assertions)]
-        if test_hook(TestBuildPoint::BeforePublish) {
-            crate::platform::inject_publish_directory_failure(&mut final_publish, 4)
-                .map_err(|_| publication_error())?;
-        }
+    let prepublication = (|| -> Result<(), Diagnostic> {
         crate::platform::recheck_directory(&parent).map_err(|_| publication_error())?;
         outer.recheck_all(
             &mut root_publish_scan,
@@ -998,13 +1032,37 @@ fn build_sdk_inner(
         )?;
         #[cfg(test)]
         record_test_build_stage(TestBuildLastStage::PrePublishAuthenticated);
+        Ok(())
+    })();
+    if let Err(error) = prepublication {
+        let cleanup = discard_outer_stage(&parent, &outer);
+        return Err(if cleanup.is_err() {
+            publication_error().into()
+        } else {
+            error.into()
+        });
+    }
+
+    // No cleanup is permitted past this consuming transition. Leaf facts are
+    // settled and the child directory handles are closed before Windows sees
+    // the root-directory rename.
+    let settled = outer.settle_for_publish().map_err(PublicBuildError::One)?;
+    #[cfg(test)]
+    record_test_build_stage(TestBuildLastStage::OuterPublicationSettled);
+    let publication = (|| -> Result<(), Diagnostic> {
+        #[cfg(test)]
+        #[cfg(debug_assertions)]
+        if test_hook(TestBuildPoint::BeforePublish) {
+            crate::platform::inject_publish_directory_failure(&mut final_publish, 4)
+                .map_err(|_| publication_error())?;
+        }
         #[cfg(test)]
         record_publish_call();
         crate::platform::publish_directory_new_prepared(
             &mut final_publish,
             &parent,
-            &outer.directory,
-            &outer.name,
+            &settled.directory,
+            &settled.name,
             output_name,
         )
         .map_err(|_| publication_error())?;
@@ -1013,12 +1071,7 @@ fn build_sdk_inner(
         Ok(())
     })();
     if let Err(error) = publication {
-        let cleanup = discard_outer_stage(&parent, &outer);
-        return Err(if cleanup.is_err() {
-            publication_error().into()
-        } else {
-            error.into()
-        });
+        return Err(error.into());
     }
 
     // Post-publication replay is read-only. Failure leaves the complete,

@@ -18,17 +18,17 @@ use super::{
     PROJECT_NPM_BUILD_SCHEMA_V5,
 };
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 type TestHook = Box<dyn FnOnce() + Send + 'static>;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 static TEST_AFTER_CREATE: std::sync::Mutex<Option<TestHook>> = std::sync::Mutex::new(None);
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(super) fn set_test_after_create(hook: TestHook) {
     *TEST_AFTER_CREATE.lock().expect("publication hook lock") = Some(hook);
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 fn run_test_after_create() {
     if let Some(hook) = TEST_AFTER_CREATE
         .lock()
@@ -39,7 +39,7 @@ fn run_test_after_create() {
     }
 }
 
-#[cfg(not(test))]
+#[cfg(not(all(test, unix)))]
 fn run_test_after_create() {}
 
 #[cfg(unix)]

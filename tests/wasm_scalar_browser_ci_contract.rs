@@ -17,12 +17,14 @@ fn chromium_scalar_calculator_gate_is_isolated_locked_and_serial() {
         "runs-on: ubuntu-24.04",
         "timeout-minutes: 20",
         "node-version: 22",
-        "SEMAPRAX_CALCULATOR_ROOT=$fixture",
+        "SEMAPRAX_DIRECT_CALCULATOR_ROOT=$direct",
+        "SEMAPRAX_PROJECT_CALCULATOR_ROOT=$project",
         "npm ci --ignore-scripts",
         "npx --no-install playwright install --with-deps chromium",
         "npx --no-install tsc --strict --noEmit --target ES2022",
-        "\"$SEMAPRAX_CALCULATOR_ROOT/consumer.ts\"",
-        "npm test -- --workers=1 --retries=0",
+        "\"$SEMAPRAX_DIRECT_CALCULATOR_ROOT/consumer.ts\"",
+        "\"$SEMAPRAX_PROJECT_CALCULATOR_ROOT/consumer.ts\"",
+        "npm run test:fixtures --",
     ] {
         assert!(
             workflow.contains(required),
@@ -60,12 +62,30 @@ fn chromium_scalar_calculator_gate_is_isolated_locked_and_serial() {
         "browserName: \"chromium\"",
         "workers: 1",
         "retries: 0",
-        "baseURL: \"http://127.0.0.1:4173\"",
+        "SEMAPRAX_CALCULATOR_FIXTURES",
+        "4173 + index",
+        "projects,",
+        "webServer,",
         "reuseExistingServer: false",
     ] {
         assert!(
             config.contains(required),
             "browser fixture lost `{required}`"
+        );
+    }
+
+    let fixture_runner = read(root, &format!("{fixture}/test-fixtures.mjs"));
+    for required in [
+        "semaprax.web.v4",
+        "semaprax.web-project.v1",
+        "roots.length !== 2",
+        "SEMAPRAX_CALCULATOR_FIXTURES",
+        "\"--workers=1\"",
+        "\"--retries=0\"",
+    ] {
+        assert!(
+            fixture_runner.contains(required),
+            "dual browser fixture runner lost `{required}`"
         );
     }
 

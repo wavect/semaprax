@@ -210,11 +210,14 @@ manifest replay, exact artifact SHA-256 bindings, mutation rejection before
 Wasm instantiation, byte-identical double builds, legacy web-v3 byte
 preservation, strict repeated-`--export` CLI parsing, Node execution,
 native/Wasm scalar status equivalence, formatting, strict Clippy, Rust 1.85,
-package and source locks, and independent security review. A pinned
-`tsc --strict --noEmit` external consumer and a hosted real-browser calculator
-interaction remain mandatory before claiming independently validated
-TypeScript or general browser-SDK compatibility. The full exact-head hosted
-matrix remains mandatory for promotion.
+package and source locks, and independent security review. Pinned
+`tsc --strict --noEmit` external consumers must compile both the direct and
+Project-generated declarations. The browser gate must authenticate their
+distinct manifest schemas and exact six-stable-ID inventories, then execute
+both packages serially through the same committed calculator shell. That
+hosted real-browser interaction remains mandatory before claiming independently
+validated Project-browser or general browser-SDK compatibility. The full
+exact-head hosted matrix remains mandatory for promotion.
 
 Project Manifest v1 additionally requires exact six-assignment canonical TOML
 and bounds, explicit-source/root/ancestor held-identity authentication and
@@ -538,23 +541,25 @@ healthy host state, and zero measured Rust allocation across the irreversible
 interval. JNI/Kotlin, APK/AAR, lifecycle/UI, device, broader corpus, and public
 admission remain separate gates.
 
-The Windows mixed-inventory directory-publication gate is an explicitly
-non-blocking diagnostic while one defect stays open: on current GitHub
-Windows runners, renaming a staged directory returns `STATUS_ACCESS_DENIED`
-through `NtSetInformationFile(FileRenameInformationEx)` with POSIX semantics,
-through the legacy fallback, and through plain `MoveFileExW` whenever any
-descendant was opened through the held-handle authority — even after every
-handle closes and even when the descendant is reopened through the CRT —
-while empty siblings and never-opened trees rename normally. The brepro
-archive admission gate remains mandatory and green. The mixed-inventory test
-stays in-tree behind `#[ignore]` carrying its probe evidence; hosted
-promotion of native-publication lanes remains held until this is
-root-caused and the gate returns to mandatory blocking status. The Windows
+The Windows mixed-inventory diagnostic now records the negative control
+accurately: it deliberately retains descendant file and directory authorities,
+so `STATUS_ACCESS_DENIED` is required rather than evidence of a mysterious
+post-close failure. CI invokes that ignored probe explicitly with `--ignored`.
+The production Phase-C fix performs its final exact replay first, then settles
+all leaf inventories and closes child-directory handles before the root rename;
+the safe platform regression
+`windows_settled_nested_inventory_publishes_after_descendant_authorities_close`
+is blocking. Any failure after the one-way settlement boundary preserves inert
+residue and cannot attempt partial cleanup. The brepro archive admission gate
+remains mandatory and green. Hosted promotion of native-publication lanes
+remains held until the new Windows regression and full consumers are exact-head
+green and the diagnostics return to mandatory blocking status. The Windows
 minimal effectful public SDK build step, the Windows half of the final
 package/consumer/callback/backend-equivalence step, and the Windows-bounded
 A+B replay step carry the same non-blocking diagnostic classification because
-their publication boundaries reproduce the identical `SPX-I233` ACCESS_DENIED
-signature; the Ubuntu and macOS SDK gates remain fully mandatory.
+their previous hosted boundaries reproduced the identical `SPX-I233`
+ACCESS_DENIED signature and the corrected path has not yet completed an
+exact-head run; the Ubuntu and macOS SDK gates remain fully mandatory.
 
 [Run 31320436726, job
 93262427248](https://github.com/wavect/semaprax/actions/runs/31320436726/job/93262427248)

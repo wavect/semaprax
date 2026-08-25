@@ -817,7 +817,7 @@ fn windows_real_archive_failure_evidence(
 
 #[cfg(windows)]
 #[test]
-#[ignore = "Windows directory rename returns STATUS_ACCESS_DENIED whenever any descendant was opened through the held-handle authority, even after all handles close and even for MoveFileExW; empty and never-opened siblings rename fine. Under active diagnosis; run with --ignored to reproduce the probe evidence."]
+#[ignore = "legacy negative-control probe intentionally retains descendant file and directory authorities; the safe platform test windows_settled_nested_inventory_publishes_after_descendant_authorities_close is the blocking settled-publication regression"]
 fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename() {
     use std::ffi::OsStr;
 

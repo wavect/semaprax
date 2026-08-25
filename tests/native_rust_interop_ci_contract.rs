@@ -686,12 +686,29 @@ fn public_sdk_windows_runs_exact_early_archive_and_minimal_effectful_diagnostics
         .and_then(|tail| tail.split("\n  verify:\n").next())
         .expect("Public Native Rust SDK workflow job");
     let archive_command = "run: cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib tests::windows_real_brepro_archive_round_trips_through_exact_admission -- --exact --nocapture --test-threads=1";
-    let inventory_command = "run: cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib tests::windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename -- --exact --nocapture --test-threads=1";
+    let inventory_command = "run: cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib tests::windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename -- --ignored --exact --nocapture --test-threads=1";
     let minimal_command = "run: cargo test --locked -p semaprax-native-rust-interop --lib public_sdk::tests::effectful_no_import_sdk_builds_the_exact_public_inventory -- --exact --nocapture --test-threads=1";
     let long_command = "cargo test --locked -p semaprax --test public_native_rust_sdk_v1 -- --test-threads=1 --nocapture";
     assert_eq!(public_job.matches(archive_command).count(), 1);
     assert_eq!(public_job.matches(inventory_command).count(), 1);
     assert_eq!(public_job.matches(minimal_command).count(), 1);
+    let inventory_step = public_job
+        .split(
+            "- name: Diagnose Windows mixed inventory across directory publication (non-blocking)",
+        )
+        .nth(1)
+        .and_then(|tail| tail.split("      - name:").next())
+        .expect("bounded Windows mixed-inventory diagnostic step");
+    for required in [
+        "if: runner.os == 'Windows'",
+        "continue-on-error: true",
+        "--ignored --exact --nocapture --test-threads=1",
+    ] {
+        assert!(
+            inventory_step.contains(required),
+            "Windows mixed-inventory diagnostic lost `{required}`"
+        );
+    }
     assert_eq!(
         public_job
             .matches("SEMAPRAX_REQUIRE_WINDOWS_REAL_ARCHIVE: \"1\"")
@@ -751,6 +768,7 @@ fn public_sdk_minimal_failure_diagnostic_locks_exact_monotonic_phase_c_boundarie
             "ArchiveScratchDiscarded",
             "InnerScratchDiscarded",
             "PrePublishAuthenticated",
+            "OuterPublicationSettled",
             "PublishReturned",
             "PublishedPackageAuthenticated",
             "PublishedAuthenticated",

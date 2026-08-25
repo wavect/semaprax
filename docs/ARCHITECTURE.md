@@ -305,8 +305,12 @@ Phase C prepares every filesystem/process authority before invoking private B,
 then authenticates B's exact seven-entry output through held handles. It builds
 one capped deterministic archive in a separate held nonce stage, settles both
 scratch stages, writes the generated Cargo facade into a third exact-inventory
-stage, independently replays `semaprax.native-rust-sdk.v1`, and performs the
-sole create-new directory pivot. Post-pivot verification is read-only and a
+stage, and independently replays `semaprax.native-rust-sdk.v1`. Its final
+cleanup-capable replay precedes a consuming one-way transition that settles all
+nine leaf handles, closes both child-directory handles, and retains only the
+authenticated root stage for the sole create-new directory pivot. Failure at
+or after that transition preserves inert residue rather than attempting
+cleanup with incomplete authority. Post-pivot verification is read-only and a
 failure retains the complete digest-bound package for reconciliation. The
 outer root inventory is checked handle-relatively across its three files and
 two child directories; raw path scans are not publication authority. Phase C
@@ -1922,6 +1926,15 @@ exact TypeScript 5.8.3 compilation of the real generated consumer is part of
 that same hosted gate. That browser job proves only the
 generated calculator in one Ubuntu Chromium configuration, not general browser
 compatibility.
+
+The additive product fixture reuses that committed calculator shell for two
+separate generated roots: the direct `semaprax.web.v4` package and the linked
+Project `semaprax.web-project.v1` package. A bounded preflight authenticates the
+schema distinction and exact common six-stable-ID inventory before Playwright
+starts; each generated declaration consumer is checked independently and the
+two browser instances use isolated loopback ports. This is locally wired and
+awaits exact-head hosted evidence; it is not a multi-engine or general browser
+claim.
 
 ## Development integrity
 

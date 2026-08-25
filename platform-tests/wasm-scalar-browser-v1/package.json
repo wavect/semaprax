@@ -7,7 +7,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:fixtures": "node ./test-fixtures.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.62.0",

@@ -51,20 +51,18 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use sha2::{Digest as _, Sha256};
 
-use crate::bounded_output::BudgetedJoin as _;
-
 pub use native_callable_bundle::{
     build_native_callable_bundle, preflight_native_callable_bundle, NativeCallableBundle,
     NativeCallableBundlePreflight,
 };
 
-use crate::aggregate_layout::{AggregateLayout, AggregateLayoutCache, AggregateTarget};
-use crate::ast::{BinaryOp, Program, UnaryOp};
+use crate::aggregate_layout::{AggregateLayoutCache, AggregateTarget};
+use crate::ast::{BinaryOp, Program};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    self, DeclarationId, DeclarationKind, ExpressionId, FunctionExecutionId, PlaceProjection,
-    ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedStatement,
-    ResolvedType, ResolvedTypeDeclarationKind, ValueId,
+    self, DeclarationId, DeclarationKind, ExpressionId, FunctionExecutionId, ResolvedExpr,
+    ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedType, ResolvedTypeDeclarationKind,
+    ValueId,
 };
 use crate::variant_layout::{VariantLayout, VariantLayoutCache, VariantTarget};
 

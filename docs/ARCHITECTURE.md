@@ -89,11 +89,17 @@ links here instead of duplicating it.
   and structurally validated Wasm-core projection evidence.
 - `src/patch_evidence.rs`: canonical Semantic Patch Evidence v1/v2 generation,
   independent verification receipts, and evidence-gated A0 application.
-- `src/codegen.rs`, `src/codegen/native_command.rs`,
-  `src/codegen/native_byte_data.rs`, `src/codegen/native_bytes.rs`,
-  `src/codegen/native_callable_*`, `wasm.rs`: native C11/Clang including the
-  fixed Project-v5 command adapter, plan-driven internal byte ownership,
-  private callable-v2, and browser/Wasm lanes.
+- `src/codegen.rs`, `src/codegen/native_emit/`,
+  `src/codegen/native_command.rs`, `src/codegen/native_byte_data.rs`,
+  `src/codegen/native_bytes.rs`, `src/codegen/native_callable_*`, `wasm.rs`:
+  native C11/Clang and browser/Wasm lanes. `codegen.rs` retains the established
+  native entry/admission surface, fixed runtime payloads, and private callable
+  fixture APIs; `native_emit/mod.rs` owns validated-HIR C11 orchestration,
+  declarations, function emission, and toolchain invocation; and
+  `native_emit/expression.rs` owns source-ordered expression and place
+  lowering. The fixed Project-v5 command adapter, plan-driven internal byte
+  ownership, and private callable lanes retain their existing authority
+  boundaries.
 - `src/wit_component.rs`: default-off deterministic WIT/schema/JavaScript boundary evidence; not a Component Model runtime.
 - `crates/semaprax-native-loader`, `crates/semaprax-native-host`: unpublished unsafe loader quarantine and connected callable authority/ledger host.
 - `platform-tests/`: private installed-app/native-process packaging and runtime gates; claims count only after their hosted jobs are green.

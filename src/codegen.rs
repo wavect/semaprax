@@ -43,11 +43,8 @@ mod native_trace;
 mod native_trace_runtime;
 mod native_value;
 
-use std::collections::{BTreeSet, HashMap};
-use std::fmt::Write;
+use std::collections::HashMap;
 use std::path::Path;
-use std::process::Command;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use sha2::{Digest as _, Sha256};
 
@@ -56,15 +53,9 @@ pub use native_callable_bundle::{
     NativeCallableBundlePreflight,
 };
 
-use crate::aggregate_layout::{AggregateLayoutCache, AggregateTarget};
-use crate::ast::{BinaryOp, Program};
+use crate::ast::Program;
 use crate::diagnostic::Diagnostic;
-use crate::hir::{
-    self, DeclarationId, DeclarationKind, ExpressionId, FunctionExecutionId, ResolvedExpr,
-    ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedType, ResolvedTypeDeclarationKind,
-    ValueId,
-};
-use crate::variant_layout::{VariantLayout, VariantLayoutCache, VariantTarget};
+use crate::hir::{self, DeclarationId, ExpressionId, ResolvedProgram};
 
 macro_rules! format {
     ($($argument:tt)*) => {
@@ -1431,12 +1422,14 @@ fn backend_error(message: impl Into<String>) -> Diagnostic {
 
 #[cfg(test)]
 mod tests {
+    use std::fmt::Write as _;
     use std::fs;
     use std::path::Path;
     use std::path::PathBuf;
     use std::process::Command;
     use std::sync::atomic::{AtomicU64, Ordering};
 
+    use crate::hir::ResolvedType;
     use crate::{hir, parse};
     use sha2::{Digest, Sha256};
 

@@ -119,7 +119,11 @@ proof scaffolding, not a wired native-runtime claim.
   and structurally validated Wasm-core projection evidence.
 - `src/patch_evidence.rs`: canonical Semantic Patch Evidence v1/v2 generation,
   independent verification receipts, and evidence-gated A0 application.
-- `src/codegen.rs`, `src/codegen/native_callable_*`, `wasm.rs`: native C11/Clang, private callable-v2, and browser/Wasm lanes.
+- `src/codegen.rs`, `src/codegen/native_emit/`,
+  `src/codegen/native_callable_*`, `wasm.rs`: native C11/Clang, private
+  callable-v2, and browser/Wasm lanes. The root module retains stable entry,
+  admission, and runtime-payload surfaces; `native_emit/mod.rs` owns C11
+  orchestration and `native_emit/expression.rs` owns expression/place lowering.
 - `src/wit_component.rs`: default-off deterministic WIT/schema/JavaScript boundary evidence; not a Component Model runtime.
 - `crates/semaprax-native-loader`, `crates/semaprax-native-host`: unpublished unsafe loader quarantine and connected callable authority/ledger host.
 - `platform-tests/`: private installed-app/native-process packaging and runtime gates; claims count only after their hosted jobs are green.

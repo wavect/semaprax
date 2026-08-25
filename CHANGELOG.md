@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Reorganized the native C11 compiler implementation along review boundaries:
+  `src/codegen.rs` retains its established entry/admission surface and runtime
+  payloads, `src/codegen/native_emit/mod.rs` owns emission orchestration and
+  function/layout projection, and `src/codegen/native_emit/expression.rs` owns
+  expression and place lowering. Existing entry points, output profiles,
+  validation order, and authority boundaries are preserved. This is source
+  organization only: it adds no language, HIR, Graph, CleanupPlan, backend
+  semantics, runtime authority, target support, hosted promotion, or
+  completion-status change; totals remain 56 Partial/0 Missing.
+
 - Added target-bound owned-resource corpus fixture emitters for the private
   mobile lanes: `emit_private_native_callable_v3_android_corpus_fixture`
   (Android dynamic x86_64/arm64) and

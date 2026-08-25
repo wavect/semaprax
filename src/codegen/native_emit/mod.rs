@@ -1,4 +1,30 @@
-use super::*;
+use std::collections::{BTreeSet, HashMap};
+use std::fmt::Write as _;
+use std::path::Path;
+use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+use sha2::{Digest as _, Sha256};
+
+use crate::aggregate_layout::{AggregateLayoutCache, AggregateTarget};
+use crate::ast::BinaryOp;
+use crate::diagnostic::Diagnostic;
+use crate::hir::{
+    self, DeclarationId, DeclarationKind, ExpressionId, FunctionExecutionId, ResolvedExpr,
+    ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedType, ResolvedTypeDeclarationKind,
+    ValueId,
+};
+use crate::variant_layout::{VariantLayout, VariantLayoutCache, VariantTarget};
+
+use super::{
+    backend_error, c_i64, native_byte_data, native_bytes, native_command, native_host_output,
+    native_resource, native_runtime, resource_lowering_gate, COutput, NATIVE_SCALAR_RUNTIME_C,
+};
+#[cfg(test)]
+use super::{
+    native_adapter_abi, native_cleanup, native_cleanup_emit, native_host_contract, native_trace,
+    native_value,
+};
 
 mod expression;
 

@@ -15,7 +15,7 @@ fn hosted_matrix_routes_public_sdk_evidence_on_all_three_operating_systems() {
         .and_then(|tail| tail.split("\n  verify:\n").next())
         .expect("Public Native Rust SDK CI job");
     for runner in ["ubuntu-latest", "macos-latest", "windows-latest"] {
-        assert!(workflow.contains(runner), "CI matrix is missing {runner}");
+        assert!(public_sdk.contains(runner), "CI matrix is missing {runner}");
     }
     for required in [
         "public_native_rust_sdk_v1",
@@ -23,14 +23,27 @@ fn hosted_matrix_routes_public_sdk_evidence_on_all_three_operating_systems() {
         "examples/calculator-rust/Cargo.toml",
         "SEMAPRAX_ARCHIVER",
         "SEMAPRAX_REQUIRE_PUBLIC_NATIVE_RUST_SDK",
+        "SEMAPRAX_REQUIRE_DARWIN_REAL_ARCHIVE",
+        "tests::darwin_real_d_archive_is_exact_and_reproducible_across_tool_versions",
+        "cargo test --locked --offline -p semaprax-native-rust-interop-platform-sys --lib tests::darwin_real_d_archive_is_exact_and_reproducible_across_tool_versions",
     ] {
         assert!(
-            workflow.contains(required),
+            public_sdk.contains(required),
             "hosted public Native Rust SDK evidence is missing `{required}`"
         );
     }
-    assert!(workflow.contains("--locked"));
-    assert!(workflow.contains("--offline"));
+    assert!(public_sdk.contains("--locked"));
+    assert!(public_sdk.contains("--offline"));
+    let dependency_fetch = public_sdk
+        .find("Fetch the root workspace and standalone Rust consumer dependency closures")
+        .expect("Public SDK dependency fetch");
+    let darwin_gate = public_sdk
+        .find("Require exact reproducible Darwin archive admission")
+        .expect("Public SDK Darwin archive gate");
+    assert!(
+        dependency_fetch < darwin_gate,
+        "the Darwin archive gate must run offline after the complete dependency fetch",
+    );
     for required in [
         "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=%SEMAPRAX_LINKER%",
         "echo LINK=",

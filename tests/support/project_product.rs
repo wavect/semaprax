@@ -391,6 +391,9 @@ pub fn run_project_rust_sdk(fixture: &ProjectFixture, label: &str) -> RustSdkFac
     let root = TempDir::new(&format!("rust-{label}"));
     let generated = root.join("generated-project-sdk");
     let consumer = root.join("project-consumer");
+    let cargo_target = root.join("target");
+    #[cfg(windows)]
+    assert_windows_cargo_target_budget(&cargo_target);
     std::fs::create_dir_all(consumer.join("src")).unwrap();
     let example = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/calculator-rust");
     for relative in ["Cargo.toml", "src/main.rs"] {
@@ -422,6 +425,7 @@ pub fn run_project_rust_sdk(fixture: &ProjectFixture, label: &str) -> RustSdkFac
     let lock = native_rust_cargo::cargo_command()
         .args(["generate-lockfile", "--offline", "--manifest-path"])
         .arg(consumer.join("Cargo.toml"))
+        .env("CARGO_TARGET_DIR", &cargo_target)
         .output()
         .unwrap();
     assert!(
@@ -430,8 +434,15 @@ pub fn run_project_rust_sdk(fixture: &ProjectFixture, label: &str) -> RustSdkFac
         String::from_utf8_lossy(&lock.stderr)
     );
     let run = native_rust_cargo::cargo_command()
-        .args(["run", "--locked", "--offline", "--quiet", "--manifest-path"])
+        .args([
+            "run",
+            "--verbose",
+            "--locked",
+            "--offline",
+            "--manifest-path",
+        ])
         .arg(consumer.join("Cargo.toml"))
+        .env("CARGO_TARGET_DIR", &cargo_target)
         .output()
         .unwrap();
     assert!(
@@ -482,6 +493,37 @@ pub fn run_project_rust_sdk(fixture: &ProjectFixture, label: &str) -> RustSdkFac
         source_revisions,
         manifest_exports,
     }
+}
+
+#[cfg(windows)]
+fn assert_windows_cargo_target_budget(target: &Path) {
+    use std::os::windows::ffi::OsStrExt as _;
+
+    // link.exe still applies its legacy object-input path boundary even when
+    // rustc passes an absolute verbatim path. Model the longest build-script
+    // object name emitted for the generated SDK, including Cargo's three
+    // fixed-width disambiguators, and leave room for the terminating NUL.
+    const MAX_PATH_UTF16_UNITS: usize = 260;
+    const GENERATED_SDK_BUILD_SCRIPT_OBJECT_SUFFIX: &str = concat!(
+        r"\debug\build\semaprax-generated-native-rust-sdk-0000000000000000",
+        r"\build_script_build-0000000000000000.build_script_build.",
+        "0000000000000000-cgu.0.rcgu.o",
+    );
+    let target_units = target.as_os_str().encode_wide().count();
+    let object_units = target_units
+        .checked_add(
+            GENERATED_SDK_BUILD_SCRIPT_OBJECT_SUFFIX
+                .encode_utf16()
+                .count(),
+        )
+        .expect("nested Cargo object path length overflow");
+    eprintln!(
+        "nested Product Cargo target path uses {target_units} UTF-16 units; longest modeled object uses {object_units}"
+    );
+    assert!(
+        object_units < MAX_PATH_UTF16_UNITS,
+        "nested Product Cargo object path exceeds the legacy link.exe boundary: {object_units} >= {MAX_PATH_UTF16_UNITS}",
+    );
 }
 
 fn temporary(label: &str) -> PathBuf {

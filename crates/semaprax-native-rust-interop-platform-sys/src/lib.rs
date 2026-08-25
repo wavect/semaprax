@@ -168,7 +168,15 @@ fn exact_archive_member_metadata(
     for index in 0..count {
         encoded[index] = digits[count - index - 1];
     }
-    if header[40..48] != encoded {
+    #[cfg(target_os = "macos")]
+    // Apple cctools `libtool -D` releases canonicalize an input member to
+    // 0100644; releases that preserve the authenticated input permission emit
+    // the exact low permission bits above. No other archive field is widened.
+    let mode_matches = header[40..48] == encoded
+        || matches!(kind, ArchiveMemberKind::Extended(12)) && header[40..48] == *b"100644  ";
+    #[cfg(not(target_os = "macos"))]
+    let mode_matches = header[40..48] == encoded;
+    if !mode_matches {
         return Err(Error::Invalid);
     }
     Ok(())

@@ -199,6 +199,11 @@ jobs:
         run: |
           cargo fetch --locked
           cargo fetch --locked --manifest-path examples/calculator-rust/Cargo.toml
+      - name: Require exact reproducible Darwin archive admission
+        if: runner.os == 'macOS'
+        env:
+          SEMAPRAX_REQUIRE_DARWIN_REAL_ARCHIVE: "1"
+        run: cargo test --locked --offline -p semaprax-native-rust-interop-platform-sys --lib tests::darwin_real_d_archive_is_exact_and_reproducible_across_tool_versions -- --exact --nocapture --test-threads=1
       - name: Freeze the focused acceptance workflow contract
         run: cargo test --locked --offline -p semaprax --test project_product_acceptance_ci_contract -- --nocapture
       - name: Require the complete project, daemon, Web, native, Wasm, TypeScript, and Rust cycle
@@ -285,6 +290,15 @@ jobs:
           echo CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=%SEMAPRAX_LINKER%>>"%GITHUB_ENV%"
           echo LINK=>>"%GITHUB_ENV%"
           echo _LINK_=>>"%GITHUB_ENV%"
+      - name: Fetch the root workspace and standalone Rust consumer dependency closures
+        run: |
+          cargo fetch --locked
+          cargo fetch --locked --manifest-path examples/calculator-rust/Cargo.toml
+      - name: Require exact reproducible Darwin archive admission
+        if: runner.os == 'macOS'
+        env:
+          SEMAPRAX_REQUIRE_DARWIN_REAL_ARCHIVE: "1"
+        run: cargo test --locked --offline -p semaprax-native-rust-interop-platform-sys --lib tests::darwin_real_d_archive_is_exact_and_reproducible_across_tool_versions -- --exact --nocapture --test-threads=1
       - name: Require exact Windows real archive admission before public SDK work
         if: runner.os == 'Windows'
         env:
@@ -305,10 +319,9 @@ jobs:
         env:
           SEMAPRAX_REQUIRE_PUBLIC_NATIVE_RUST_SDK: "1"
         run: |
-          cargo fetch --locked --manifest-path examples/calculator-rust/Cargo.toml
           cargo check --locked --offline --manifest-path examples/calculator-rust/Cargo.toml
-          cargo test --locked -p semaprax --test public_native_rust_sdk_ci_contract -- --nocapture
-          cargo test --locked -p semaprax --test public_native_rust_sdk_v1 -- --test-threads=1 --nocapture
+          cargo test --locked --offline -p semaprax --test public_native_rust_sdk_ci_contract -- --nocapture
+          cargo test --locked --offline -p semaprax --test public_native_rust_sdk_v1 -- --test-threads=1 --nocapture
 
   verify:
     name: Rust ${{ matrix.os }}

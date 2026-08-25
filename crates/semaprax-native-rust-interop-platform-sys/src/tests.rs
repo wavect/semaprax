@@ -131,6 +131,30 @@ fn archive_header_parser_rejects_noncanonical_sizes_and_unknown_members() {
             );
         }
     }
+    #[cfg(target_os = "macos")]
+    {
+        let mut header = [b' '; 60];
+        header[16..28].copy_from_slice(b"0           ");
+        header[28..34].copy_from_slice(b"0     ");
+        header[34..40].copy_from_slice(b"0     ");
+        header[40..48].copy_from_slice(b"100644  ");
+        assert_eq!(
+            exact_archive_member_metadata(&header, ArchiveMemberKind::Extended(12), 0o100600),
+            Ok(()),
+        );
+        for hostile_mode in [
+            b"100600  ".as_slice(),
+            b"644     ".as_slice(),
+            b"100666  ".as_slice(),
+        ] {
+            let mut hostile = header;
+            hostile[40..48].copy_from_slice(hostile_mode);
+            assert_eq!(
+                exact_archive_member_metadata(&hostile, ArchiveMemberKind::Extended(12), 0o100600,),
+                Err(Error::Invalid),
+            );
+        }
+    }
     #[cfg(windows)]
     {
         let mut old_synthetic_date = [b' '; 60];
@@ -157,6 +181,192 @@ fn archive_header_parser_rejects_noncanonical_sizes_and_unknown_members() {
             Err(Error::Invalid),
         );
     }
+}
+
+#[cfg(target_os = "macos")]
+fn append_darwin_archive_member(
+    archive: &mut Vec<u8>,
+    extended_name: &[u8],
+    mode: &[u8; 8],
+    data: &[u8],
+) {
+    assert!(extended_name.len().is_multiple_of(4));
+    let mut header = [b' '; 60];
+    let encoded_name = format!("#1/{}", extended_name.len());
+    header[..encoded_name.len()].copy_from_slice(encoded_name.as_bytes());
+    header[16..28].copy_from_slice(b"0           ");
+    header[28..34].copy_from_slice(b"0     ");
+    header[34..40].copy_from_slice(b"0     ");
+    header[40..48].copy_from_slice(mode);
+    let size = extended_name.len() + data.len();
+    let encoded_size = size.to_string();
+    header[48..48 + encoded_size.len()].copy_from_slice(encoded_size.as_bytes());
+    header[58..].copy_from_slice(b"`\n");
+    archive.extend_from_slice(&header);
+    archive.extend_from_slice(extended_name);
+    archive.extend_from_slice(data);
+    if size & 1 != 0 {
+        archive.push(b'\n');
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn synthetic_darwin_archive(input: &[u8], input_mode: &[u8; 8]) -> Vec<u8> {
+    let mut archive = b"!<arch>\n".to_vec();
+    append_darwin_archive_member(&mut archive, b"__.SYMDEF SORTED\0\0\0\0", b"100644  ", b"");
+    append_darwin_archive_member(&mut archive, b"module.o\0\0\0\0", input_mode, input);
+    archive
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn darwin_archive_admission_accepts_only_the_two_deterministic_input_modes() {
+    use std::ffi::OsStr;
+    use std::os::unix::fs::PermissionsExt as _;
+
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-darwin-archive-mode-fixture-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos(),
+    ));
+    std::fs::create_dir(&root).unwrap();
+    let input_bytes = b"exact-mach-o-object";
+    std::fs::write(root.join("module.o"), input_bytes).unwrap();
+    std::fs::set_permissions(
+        root.join("module.o"),
+        std::fs::Permissions::from_mode(0o600),
+    )
+    .unwrap();
+    let root = std::fs::canonicalize(root).unwrap();
+    let directory = super::platform::hold_directory(&root).unwrap();
+    let input = super::platform::hold_regular_file(&directory, OsStr::new("module.o")).unwrap();
+
+    for (index, mode) in [b"600     ", b"100644  "].into_iter().enumerate() {
+        let name = format!("accepted-{index}.a");
+        std::fs::write(
+            root.join(&name),
+            synthetic_darwin_archive(input_bytes, mode),
+        )
+        .unwrap();
+        let archive = super::platform::hold_regular_file(&directory, OsStr::new(&name)).unwrap();
+        super::platform::test_exact_archive_member(&archive, &input).unwrap();
+    }
+
+    for (index, mode) in [b"100600  ", b"644     ", b"100666  "]
+        .into_iter()
+        .enumerate()
+    {
+        let name = format!("rejected-{index}.a");
+        std::fs::write(
+            root.join(&name),
+            synthetic_darwin_archive(input_bytes, mode),
+        )
+        .unwrap();
+        let archive = super::platform::hold_regular_file(&directory, OsStr::new(&name)).unwrap();
+        assert_eq!(
+            super::platform::test_exact_archive_member(&archive, &input),
+            Err(Error::Invalid),
+        );
+    }
+
+    drop((input, directory));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn darwin_real_d_archive_is_exact_and_reproducible_across_tool_versions() {
+    use std::ffi::OsStr;
+
+    if std::env::var_os("SEMAPRAX_REQUIRE_DARWIN_REAL_ARCHIVE").as_deref() != Some(OsStr::new("1"))
+    {
+        return;
+    }
+
+    let source_root = std::env::temp_dir().join(format!(
+        "semaprax-darwin-real-archive-source-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos(),
+    ));
+    std::fs::create_dir(&source_root).unwrap();
+    std::fs::write(
+        source_root.join("module.c"),
+        b"int semaprax_darwin_real_archive_probe(void){return 17;}\n",
+    )
+    .unwrap();
+    let compile = std::process::Command::new(
+        std::env::var_os("CLANG").unwrap_or_else(|| "/usr/bin/clang".into()),
+    )
+    .current_dir(&source_root)
+    .args(["-std=c11", "-O2", "-Wall", "-Wextra", "-Werror", "-c"])
+    .arg("module.c")
+    .args(["-o", "module.o"])
+    .output()
+    .unwrap();
+    assert!(
+        compile.status.success(),
+        "{}",
+        String::from_utf8_lossy(&compile.stderr)
+    );
+    let object = std::fs::read(source_root.join("module.o")).unwrap();
+    std::fs::remove_dir_all(source_root).unwrap();
+
+    let mut archives = Vec::new();
+    let mut admitted_modes = Vec::new();
+    for index in 0..2 {
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-darwin-real-archive-{}-{index}",
+            std::process::id(),
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let root = std::fs::canonicalize(root).unwrap();
+        let directory = super::platform::hold_directory(&root).unwrap();
+        let input =
+            super::platform::write_file_new(&directory, OsStr::new("module.o"), &object, 0o600)
+                .unwrap();
+        let archiver =
+            super::platform::hold_external_executable(std::path::Path::new("/usr/bin/libtool"))
+                .unwrap();
+        let prepared = super::platform::prepare_archive_invocation(
+            OsStr::new("module.o"),
+            OsStr::new("libsemaprax_native_rust_sdk.a"),
+        )
+        .unwrap();
+        let mut process = super::platform::prepare_process_arena(1).unwrap();
+        let archive = super::platform::archive_prepared_settled(
+            &archiver,
+            &directory,
+            &input,
+            prepared,
+            &mut process,
+        )
+        .unwrap();
+        let bytes = super::platform::read_exact(
+            &archive,
+            usize::try_from(super::SDK_ARCHIVE_MAX_BYTES).unwrap(),
+        )
+        .unwrap();
+        let first_size =
+            usize::try_from(super::archive_member_size(&bytes[56..66]).unwrap()).unwrap();
+        let second_header = 68 + first_size + (first_size & 1);
+        let mode = &bytes[second_header + 40..second_header + 48];
+        assert!(
+            mode == b"600     " || mode == b"100644  ",
+            "Darwin -D emitted an unauthenticated input mode: {mode:?}",
+        );
+        admitted_modes.push(mode.to_vec());
+        archives.push(bytes);
+        drop((archive, archiver, input, directory, process));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    assert_eq!(archives[0], archives[1]);
+    assert_eq!(admitted_modes[0], admitted_modes[1]);
 }
 
 #[test]

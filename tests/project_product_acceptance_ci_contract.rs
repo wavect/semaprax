@@ -40,6 +40,8 @@ fn focused_product_acceptance_is_locked_offline_and_tool_authenticated() {
         "RUSTC=",
         "CLANG=",
         "SEMAPRAX_ARCHIVER=",
+        "SEMAPRAX_REQUIRE_DARWIN_REAL_ARCHIVE: \"1\"",
+        "tests::darwin_real_d_archive_is_exact_and_reproducible_across_tool_versions",
         "VCToolsInstallDir",
         "SEMAPRAX_LINKER=",
         "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=%SEMAPRAX_LINKER%",
@@ -114,6 +116,32 @@ fn generated_project_consumers_bind_the_bounded_windows_linker_path_at_both_revi
         3,
         "Project SDK setup, lock, and consumer must share the bounded Cargo linker binding"
     );
+    for required in [
+        "let cargo_target = root.join(\"target\")",
+        "assert_windows_cargo_target_budget(&cargo_target)",
+        "GENERATED_SDK_BUILD_SCRIPT_OBJECT_SUFFIX",
+        "object_units < MAX_PATH_UTF16_UNITS",
+        "\"run\",\n            \"--verbose\"",
+    ] {
+        assert!(
+            support.contains(required),
+            "Project nested Cargo path evidence lost `{required}`",
+        );
+    }
+    assert_eq!(
+        support
+            .matches(".env(\"CARGO_TARGET_DIR\", &cargo_target)")
+            .count(),
+        2,
+        "lock and run must share one short, invocation-owned Cargo target",
+    );
+    let verbose_run = support
+        .split("let run = native_rust_cargo::cargo_command()")
+        .nth(1)
+        .and_then(|tail| tail.split(".output()\n        .unwrap();").next())
+        .expect("nested Project Cargo run block");
+    assert!(verbose_run.contains("\"--verbose\""));
+    assert!(!verbose_run.contains("\"--quiet\""));
     let acceptance = fs::read_to_string(root.join("tests/project_product_acceptance_v1.rs"))
         .expect("read Project product acceptance");
     for required in [

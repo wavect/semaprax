@@ -4497,7 +4497,7 @@ pub(super) fn test_regular_file_facts(file: &RegularFile) -> (u32, u64, u64) {
     (file.mode, file.dev, file.ino)
 }
 
-#[cfg(all(test, target_os = "linux"))]
+#[cfg(all(test, any(target_os = "linux", target_os = "macos")))]
 pub(super) fn test_exact_archive_member(
     archive: &RegularFile,
     input: &RegularFile,

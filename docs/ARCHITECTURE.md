@@ -69,7 +69,9 @@ links here instead of duplicating it.
 - `src/economic_agent.rs`: public injected-host test-network/native-asset Economic Agent
   policy, intent, chain-plan, approval, custody, journal, reconciliation,
   Trace, and Evidence core; no built-in transport, key, or
-  mainnet authority.
+  mainnet authority. Its proof-only unit corpus is isolated in
+  `src/economic_agent/tests.rs` without widening production visibility or
+  changing the exact `economic_agent::tests::*` paths used by hosted gates.
 - `src/repair.rs`: bounded read-only Diagnostic Repair v1 discovery and
   instantiation plus the independently replayed Patch-v3 identity-rebase gate.
 - `src/properties.rs`, `tests/property_tests_v1.rs`: read-only deterministic
@@ -1455,6 +1457,20 @@ process, npm, network, or registry authority. Local gates perform offline
 pack/install, declaration consumption, runtime execution, carrier tamper
 replay, and stable-ID display-rename preservation. Exact-head hosted promotion
 and registry publication remain pending.
+
+The next Useful Data expansion is normatively bounded by
+[Portable Indexed Byte Data v1](PORTABLE-INDEXED-BYTE-DATA-V1.md). It fixes a
+target-independent checked `usize`, inline byte arrays, unique owned `Bytes`,
+provenance-carrying non-escaping `Slice<u8>`, total `Option<u8>` indexing, and
+closed capacity/cleanup/Graph-v17 rules. The first internal tranche now lowers
+semantic-u64 `usize` and external non-escaping `Slice<u8>` parameters with
+symbolic parameter-root provenance, immutable aliases, cumulative 65,536-byte
+host admission, `byte_len`, and total guarded `byte_get` through interpreter,
+native C, and the internal Wasm aggregate lane. Slice forwarding preserves the
+caller root and does not recharge it; Graph v17 serializes the complete
+parameter/alias provenance table. Arrays, owned `Bytes`, view/copy operations,
+and public Project/npm useful-data adapters remain unimplemented, and no
+hosted or complete-profile claim is made.
 
 ### Project Agent Transport v2
 

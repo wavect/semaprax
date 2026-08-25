@@ -374,11 +374,12 @@ fn scalar_type_name(ty: &Type) -> Option<&'static str> {
         Type::I64 => Some("i64"),
         Type::I32 => Some("i32"),
         Type::U8 => Some("u8"),
+        Type::Usize => None,
         Type::F32 => Some("f32"),
         Type::F64 => Some("f64"),
         Type::Bool => Some("bool"),
         Type::Char => Some("char"),
-        Type::String | Type::Str => None,
+        Type::String | Type::Str | Type::SliceU8 => None,
         Type::Named { .. } => None,
     }
 }
@@ -551,6 +552,7 @@ fn is_pure_region(expr: &ResolvedExpr, element_type: &str) -> bool {
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_) => true,
         ResolvedExprKind::Place(place) => {
@@ -581,6 +583,10 @@ fn render_expr(
         ResolvedExprKind::Uint8(value) => {
             output.push_str(&value.to_string());
             output.push_str("u8");
+        }
+        ResolvedExprKind::Usize(value) => {
+            output.push_str(&value.to_string());
+            output.push_str("usize");
         }
         ResolvedExprKind::Float32(bits) => {
             output.push_str(&format::canonical_f32_bits(*bits));
@@ -813,6 +819,7 @@ fn pattern_value_text(value: hir::PatternValue) -> String {
         hir::PatternValue::Int(value) => value.to_string(),
         hir::PatternValue::Int32(value) => format!("{value}i32"),
         hir::PatternValue::Uint8(value) => format!("{value}u8"),
+        hir::PatternValue::Usize(value) => format!("{value}usize"),
         hir::PatternValue::Char(value) => crate::format::canonical_char(value),
         hir::PatternValue::Bool(value) => value.to_string(),
     }
@@ -857,6 +864,7 @@ impl Walker<'_> {
             ResolvedExprKind::Int(_)
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_) => {
                 self.push_ineligible(expr, REASON_SCALAR_LEAF);

@@ -126,6 +126,7 @@ pub(super) fn ast_child(expression: &crate::ast::Expr, index: usize) -> Option<&
         | crate::ast::ExprKind::Int32(_)
         | crate::ast::ExprKind::Char(_)
         | crate::ast::ExprKind::Uint8(_)
+        | crate::ast::ExprKind::Usize(_)
         | crate::ast::ExprKind::Float32(_)
         | crate::ast::ExprKind::Float64(_)
         | crate::ast::ExprKind::Bool(_)
@@ -193,6 +194,7 @@ fn ast_child_identity_path_increment(
         | crate::ast::ExprKind::Int32(_)
         | crate::ast::ExprKind::Char(_)
         | crate::ast::ExprKind::Uint8(_)
+        | crate::ast::ExprKind::Usize(_)
         | crate::ast::ExprKind::Float32(_)
         | crate::ast::ExprKind::Float64(_)
         | crate::ast::ExprKind::Bool(_)
@@ -242,6 +244,10 @@ fn ast_type_identity_key_len(program: &Program, root: &crate::ast::Type) -> Opti
                 results[result_len] = "u8".len();
                 result_len = result_len.checked_add(1)?;
             }
+            Frame::Enter(crate::ast::Type::Usize) => {
+                results[result_len] = "usize".len();
+                result_len = result_len.checked_add(1)?;
+            }
             Frame::Enter(crate::ast::Type::F32) => {
                 results[result_len] = "f32".len();
                 result_len = result_len.checked_add(1)?;
@@ -260,6 +266,10 @@ fn ast_type_identity_key_len(program: &Program, root: &crate::ast::Type) -> Opti
             }
             Frame::Enter(crate::ast::Type::Str) => {
                 results[result_len] = "str".len();
+                result_len = result_len.checked_add(1)?;
+            }
+            Frame::Enter(crate::ast::Type::SliceU8) => {
+                results[result_len] = "slice-u8".len();
                 result_len = result_len.checked_add(1)?;
             }
             Frame::Enter(crate::ast::Type::Named { name, arguments }) => {
@@ -502,6 +512,7 @@ pub(super) fn scan_ast_capacity<'a>(
                     | crate::ast::ExprKind::Int32(_)
                     | crate::ast::ExprKind::Char(_)
                     | crate::ast::ExprKind::Uint8(_)
+                    | crate::ast::ExprKind::Usize(_)
                     | crate::ast::ExprKind::Float32(_)
                     | crate::ast::ExprKind::Float64(_)
                     | crate::ast::ExprKind::Bool(_)
@@ -791,11 +802,13 @@ fn ast_resource_leaf_count(
                 | crate::ast::Type::I32
                 | crate::ast::Type::Char
                 | crate::ast::Type::U8
+                | crate::ast::Type::Usize
                 | crate::ast::Type::F32
                 | crate::ast::Type::F64
                 | crate::ast::Type::Bool
                 | crate::ast::Type::String
-                | crate::ast::Type::Str,
+                | crate::ast::Type::Str
+                | crate::ast::Type::SliceU8,
                 _,
             ) => {
                 values[value_len] = 0;
@@ -1808,6 +1821,7 @@ fn cleanup_plan_variable_identity_bytes(
             | crate::ast::ExprKind::Int32(_)
             | crate::ast::ExprKind::Char(_)
             | crate::ast::ExprKind::Uint8(_)
+            | crate::ast::ExprKind::Usize(_)
             | crate::ast::ExprKind::Float32(_)
             | crate::ast::ExprKind::Float64(_)
             | crate::ast::ExprKind::Bool(_)
@@ -2129,6 +2143,7 @@ fn cleanup_binding_flow<'a>(
                 | crate::ast::ExprKind::Int32(_)
                 | crate::ast::ExprKind::Char(_)
                 | crate::ast::ExprKind::Uint8(_)
+                | crate::ast::ExprKind::Usize(_)
                 | crate::ast::ExprKind::Float32(_)
                 | crate::ast::ExprKind::Float64(_)
                 | crate::ast::ExprKind::Bool(_)
@@ -2367,11 +2382,13 @@ fn cleanup_retained_stats(
             | crate::ast::Type::I32
             | crate::ast::Type::Char
             | crate::ast::Type::U8
+            | crate::ast::Type::Usize
             | crate::ast::Type::F32
             | crate::ast::Type::F64
             | crate::ast::Type::Bool
             | crate::ast::Type::String
-            | crate::ast::Type::Str => CleanupTypeKey::Scalar,
+            | crate::ast::Type::Str
+            | crate::ast::Type::SliceU8 => CleanupTypeKey::Scalar,
             crate::ast::Type::Named { name, .. } => {
                 if let Some(index) = program
                     .types
@@ -3336,6 +3353,7 @@ fn cleanup_retained_stats(
                     | crate::ast::ExprKind::Int32(_)
                     | crate::ast::ExprKind::Char(_)
                     | crate::ast::ExprKind::Uint8(_)
+                    | crate::ast::ExprKind::Usize(_)
                     | crate::ast::ExprKind::Float32(_)
                     | crate::ast::ExprKind::Float64(_)
                     | crate::ast::ExprKind::Bool(_)
@@ -5209,11 +5227,13 @@ fn hir_type_owned_capacity(ty: &ResolvedType) -> Option<usize> {
         | ResolvedType::I32
         | ResolvedType::Char
         | ResolvedType::U8
+        | ResolvedType::Usize
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool
         | ResolvedType::String
-        | ResolvedType::Str => Some(0),
+        | ResolvedType::Str
+        | ResolvedType::SliceU8 => Some(0),
         ResolvedType::TypeParameter { owner, .. } => Some(owner.as_str().len()),
         ResolvedType::Nominal {
             declaration,
@@ -5570,6 +5590,7 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_) => {}
@@ -6026,6 +6047,7 @@ pub(super) fn validate_native_rust_expression_budget_for_closure(
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)

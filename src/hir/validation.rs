@@ -63,6 +63,7 @@ fn contains_unsafe_boundary(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -77,6 +78,7 @@ pub(super) struct HirValidator<'a> {
     functions: BTreeMap<DeclarationId, &'a ResolvedFunction>,
     expression_ids: BTreeSet<ExpressionId>,
     value_ids: BTreeSet<ValueId>,
+    byte_slice_aliases: BTreeMap<ValueId, ValueId>,
 }
 
 impl<'a> HirValidator<'a> {
@@ -127,6 +129,7 @@ impl<'a> HirValidator<'a> {
             functions,
             expression_ids: BTreeSet::new(),
             value_ids: BTreeSet::new(),
+            byte_slice_aliases: BTreeMap::new(),
         })
     }
 
@@ -576,6 +579,12 @@ impl<'a> HirValidator<'a> {
                                 field.id
                             )));
                         }
+                        if field.ty == ResolvedType::SliceU8 {
+                            return Err(hir_error(format!(
+                                "field `{}` cannot store borrowed `Slice<u8>`",
+                                field.id
+                            )));
+                        }
                         if field.ty == ResolvedType::Unit {
                             return Err(hir_error(format!(
                                 "field `{}` uses Unit outside a native Rust import result",
@@ -607,10 +616,12 @@ impl<'a> HirValidator<'a> {
                             ResolvedType::I32
                             | ResolvedType::Char
                             | ResolvedType::U8
+                            | ResolvedType::Usize
                             | ResolvedType::F32
                             | ResolvedType::F64
                             | ResolvedType::String
-                            | ResolvedType::Str => {
+                            | ResolvedType::Str
+                            | ResolvedType::SliceU8 => {
                                 return Err(hir_error(format!(
                                     "field `{}` has an invalid generic copy record template",
                                     field.id
@@ -759,10 +770,12 @@ impl<'a> HirValidator<'a> {
                             ResolvedType::I32
                             | ResolvedType::Char
                             | ResolvedType::U8
+                            | ResolvedType::Usize
                             | ResolvedType::F32
                             | ResolvedType::F64
                             | ResolvedType::String
-                            | ResolvedType::Str => {
+                            | ResolvedType::Str
+                            | ResolvedType::SliceU8 => {
                                 return Err(hir_error(format!(
                                     "field `{}` has an invalid generic copy payload template",
                                     field.id
@@ -963,6 +976,27 @@ impl<'a> HirValidator<'a> {
                 &FunctionExecutionId::Generic(instance.id.clone()),
             )?;
         }
+        let expected_byte_roots = self
+            .byte_slice_aliases
+            .iter()
+            .map(|(value, root)| {
+                (
+                    value.clone(),
+                    ByteSliceProvenance {
+                        root: root.clone(),
+                        root_kind: ByteSliceRootKind::FunctionParameter,
+                        root_length: ByteSliceExtent::ParameterLength,
+                        offset: ByteSliceExtent::Constant(0),
+                        length: ByteSliceExtent::ParameterLength,
+                    },
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        if self.program.declarations.byte_slice_roots != expected_byte_roots {
+            return Err(hir_error(
+                "byte-slice symbolic provenance is missing, forged, or non-canonical",
+            ));
+        }
         Ok(())
     }
 
@@ -976,10 +1010,12 @@ impl<'a> HirValidator<'a> {
             ResolvedType::I32
             | ResolvedType::Char
             | ResolvedType::U8
+            | ResolvedType::Usize
             | ResolvedType::F32
             | ResolvedType::F64
             | ResolvedType::String
-            | ResolvedType::Str => Err(hir_error(format!(
+            | ResolvedType::Str
+            | ResolvedType::SliceU8 => Err(hir_error(format!(
                 "generic template `{}` has an invalid direct-scalar signature slot",
                 template.id
             ))),
@@ -1059,6 +1095,7 @@ impl<'a> HirValidator<'a> {
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -1230,6 +1267,7 @@ impl<'a> HirValidator<'a> {
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -1362,6 +1400,12 @@ impl<'a> HirValidator<'a> {
             ));
         }
         self.validate_type(&function.return_type)?;
+        if function.return_type.is_compiler_byte_option() {
+            return Err(hir_error(format!(
+                "function `{}` cannot author Option<u8>; that widening is reserved to byte_get results",
+                function.id
+            )));
+        }
         let permits = self
             .program
             .permits
@@ -1401,7 +1445,8 @@ impl<'a> HirValidator<'a> {
         for (callee, instance) in callees {
             if instance.is_none()
                 && (crate::string_ops::by_id(callee.as_str()).is_some()
-                    || crate::str_ops::by_id(callee.as_str()).is_some())
+                    || crate::str_ops::by_id(callee.as_str()).is_some()
+                    || crate::byte_ops::by_id(callee.as_str()).is_some())
             {
                 // String operations carry no authored declaration and their
                 // scalar/string results contribute no lifecycle effects.
@@ -1442,7 +1487,30 @@ impl<'a> HirValidator<'a> {
             }
             self.insert_value(&param.id)?;
             self.validate_type(&param.ty)?;
+            if param.ty.is_compiler_byte_option() {
+                return Err(hir_error(format!(
+                    "parameter `{}` cannot author compiler-owned Option<u8>",
+                    param.id
+                )));
+            }
             self.validate_declared_ownership(&param.ty, param.ownership)?;
+            if param.ty == ResolvedType::SliceU8
+                && (param.ownership != OwnershipMode::Borrow
+                    || self
+                        .program
+                        .declarations
+                        .byte_slice_provenance(&param.id)
+                        .is_none())
+            {
+                return Err(hir_error(format!(
+                    "byte-slice parameter `{}` lacks exact symbolic parameter-root borrow provenance",
+                    param.id
+                )));
+            }
+            if param.ty == ResolvedType::SliceU8 {
+                self.byte_slice_aliases
+                    .insert(param.id.clone(), param.id.clone());
+            }
             scope.insert(
                 param.id.clone(),
                 ValidationBinding {
@@ -1465,6 +1533,12 @@ impl<'a> HirValidator<'a> {
         if function.return_type == ResolvedType::Str {
             return Err(hir_error(format!(
                 "function `{}` cannot return borrowed `str`",
+                function.id
+            )));
+        }
+        if function.return_type == ResolvedType::SliceU8 {
+            return Err(hir_error(format!(
+                "function `{}` cannot return borrowed `Slice<u8>`",
                 function.id
             )));
         }
@@ -2455,6 +2529,14 @@ impl<'a> HirValidator<'a> {
                             self.finish_expr(expression, &ResolvedType::U8, OwnershipMode::Value)?;
                             scopes.push(scope);
                         }
+                        ResolvedExprKind::Usize(_) => {
+                            self.finish_expr(
+                                expression,
+                                &ResolvedType::Usize,
+                                OwnershipMode::Value,
+                            )?;
+                            scopes.push(scope);
+                        }
                         ResolvedExprKind::Float32(bits) => {
                             self.validate_finite_f32(*bits)?;
                             self.finish_expr(expression, &ResolvedType::F32, OwnershipMode::Value)?;
@@ -2607,6 +2689,21 @@ impl<'a> HirValidator<'a> {
                                     )));
                                 }
                                 (crate::str_ops::resolved_params(op), op.return_type())
+                            } else if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
+                                if instance.is_some() || !type_arguments.is_empty() {
+                                    return Err(hir_error(
+                                        "byte operation call must be monomorphic",
+                                    ));
+                                }
+                                if args.len() != op.arity() {
+                                    return Err(hir_error(format!(
+                                        "byte operation `{}` expects {} arguments but received {}",
+                                        op.name(),
+                                        op.arity(),
+                                        args.len()
+                                    )));
+                                }
+                                (crate::byte_ops::resolved_params(op), op.return_type())
                             } else {
                                 let target = self
                                     .program
@@ -2812,6 +2909,11 @@ impl<'a> HirValidator<'a> {
                             case,
                             fields,
                         } => {
+                            if expression.ty.is_compiler_byte_option() {
+                                return Err(hir_error(
+                                    "Option<u8> may be produced only by compiler-owned byte_get",
+                                ));
+                            }
                             let ResolvedType::Nominal {
                                 declaration: instance,
                                 arguments,
@@ -2998,6 +3100,20 @@ impl<'a> HirValidator<'a> {
                     let param = &params[index];
                     self.require_type(&argument.ty, &param.ty, "call argument")?;
                     self.validate_argument_ownership(argument.ownership, param)?;
+                    if param.ty == ResolvedType::SliceU8 {
+                        let ResolvedExprKind::Place(place) = &argument.kind else {
+                            return Err(hir_error(
+                                "byte-slice call argument must forward an authenticated place",
+                            ));
+                        };
+                        if !place.projections.is_empty()
+                            || !self.byte_slice_aliases.contains_key(&place.root)
+                        {
+                            return Err(hir_error(
+                                "byte-slice call argument lacks symbolic root provenance",
+                            ));
+                        }
+                    }
                     if self.argument_transfers(param)? {
                         if !allow_moves {
                             let ResolvedExprKind::Call { callee, .. } = &expression.kind else {
@@ -3143,9 +3259,11 @@ impl<'a> HirValidator<'a> {
                                 ResolvedType::I64
                                     | ResolvedType::I32
                                     | ResolvedType::U8
+                                    | ResolvedType::Usize
                                     | ResolvedType::F32
                                     | ResolvedType::F64
-                            ) || (matches!(op, BinaryOp::Rem) && left.ty != ResolvedType::I64)
+                            ) || (matches!(op, BinaryOp::Rem)
+                                && !matches!(left.ty, ResolvedType::I64 | ResolvedType::Usize))
                             {
                                 return Err(hir_error(
                                     "binary operand has inconsistent resolved types",
@@ -3163,6 +3281,7 @@ impl<'a> HirValidator<'a> {
                                     | ResolvedType::I32
                                     | ResolvedType::Char
                                     | ResolvedType::U8
+                                    | ResolvedType::Usize
                                     | ResolvedType::F32
                                     | ResolvedType::F64
                             ) {
@@ -3508,7 +3627,13 @@ impl<'a> HirValidator<'a> {
                     path,
                 } => {
                     let mut scope = scopes.pop().expect("block let scope retained");
-                    let ResolvedStatement::Let { binding, value, .. } = &statements[index] else {
+                    let ResolvedStatement::Let {
+                        binding,
+                        mutable,
+                        value,
+                        ..
+                    } = &statements[index]
+                    else {
                         unreachable!("let frame resumes at a let statement")
                     };
                     let statement_path = format!("{path}.s{index}");
@@ -3527,6 +3652,24 @@ impl<'a> HirValidator<'a> {
                         )));
                     }
                     self.validate_declared_ownership(&binding.ty, binding.ownership)?;
+                    if binding.ty == ResolvedType::SliceU8 {
+                        let ResolvedExprKind::Place(place) = &value.kind else {
+                            return Err(hir_error(
+                                "byte-slice local must be a direct immutable alias",
+                            ));
+                        };
+                        let Some(root) = self.byte_slice_aliases.get(&place.root).cloned() else {
+                            return Err(hir_error(
+                                "byte-slice local alias lacks symbolic parameter-root provenance",
+                            ));
+                        };
+                        if *mutable || !place.projections.is_empty() {
+                            return Err(hir_error(
+                                "byte-slice local alias must be immutable and unprojected",
+                            ));
+                        }
+                        self.byte_slice_aliases.insert(binding.id.clone(), root);
+                    }
                     if self.is_owned_resource(&binding.ty, binding.ownership)? {
                         if !allow_moves {
                             return Err(hir_error(
@@ -4021,6 +4164,7 @@ impl<'a> HirValidator<'a> {
                         ResolvedType::I64
                             | ResolvedType::I32
                             | ResolvedType::U8
+                            | ResolvedType::Usize
                             | ResolvedType::Char
                             | ResolvedType::Bool
                     ) {
@@ -4943,6 +5087,7 @@ impl<'a> HirValidator<'a> {
                 (ResolvedType::Char, OwnershipMode::Value)
             }
             ResolvedExprKind::Uint8(_) => (ResolvedType::U8, OwnershipMode::Value),
+            ResolvedExprKind::Usize(_) => (ResolvedType::Usize, OwnershipMode::Value),
             ResolvedExprKind::Float32(bits) => {
                 self.validate_finite_f32(*bits)?;
                 (ResolvedType::F32, OwnershipMode::Value)
@@ -5045,6 +5190,10 @@ impl<'a> HirValidator<'a> {
                     .is_none()
                     .then(|| crate::str_ops::by_id(callee.as_str()))
                     .flatten();
+                let byte_intrinsic = instance
+                    .is_none()
+                    .then(|| crate::byte_ops::by_id(callee.as_str()))
+                    .flatten();
                 let (params, return_type, target_effects) = if let Some(op) = string_intrinsic {
                     // String operations carry their reserved identity instead
                     // of an authored declaration.
@@ -5072,6 +5221,20 @@ impl<'a> HirValidator<'a> {
                     }
                     (
                         crate::str_ops::resolved_params(op),
+                        op.return_type(),
+                        Vec::new(),
+                    )
+                } else if let Some(op) = byte_intrinsic {
+                    if args.len() != op.arity() {
+                        return Err(hir_error(format!(
+                            "byte operation `{}` expects {} arguments but received {}",
+                            op.name(),
+                            op.arity(),
+                            args.len()
+                        )));
+                    }
+                    (
+                        crate::byte_ops::resolved_params(op),
                         op.return_type(),
                         Vec::new(),
                     )
@@ -5123,6 +5286,20 @@ impl<'a> HirValidator<'a> {
                     )?;
                     self.require_type(&argument.ty, &param.ty, "call argument")?;
                     self.validate_argument_ownership(argument.ownership, param)?;
+                    if param.ty == ResolvedType::SliceU8 {
+                        let ResolvedExprKind::Place(place) = &argument.kind else {
+                            return Err(hir_error(
+                                "byte-slice call argument must forward an authenticated place",
+                            ));
+                        };
+                        if !place.projections.is_empty()
+                            || !self.byte_slice_aliases.contains_key(&place.root)
+                        {
+                            return Err(hir_error(
+                                "byte-slice call argument lacks symbolic root provenance",
+                            ));
+                        }
+                    }
                     if self.argument_transfers(param)? {
                         if !allow_moves {
                             return Err(hir_error(format!(
@@ -5260,7 +5437,12 @@ impl<'a> HirValidator<'a> {
                 let mut block_scope = scope.clone();
                 for (index, statement) in statements.iter().enumerate() {
                     match statement {
-                        ResolvedStatement::Let { binding, value, .. } => {
+                        ResolvedStatement::Let {
+                            binding,
+                            mutable,
+                            value,
+                            ..
+                        } => {
                             let statement_path = format!("{path}.s{index}");
                             self.validate_expr_recursive_reference(
                                 function,
@@ -5285,6 +5467,25 @@ impl<'a> HirValidator<'a> {
                                 )));
                             }
                             self.validate_declared_ownership(&binding.ty, binding.ownership)?;
+                            if binding.ty == ResolvedType::SliceU8 {
+                                let ResolvedExprKind::Place(place) = &value.kind else {
+                                    return Err(hir_error(
+                                        "byte-slice local must be a direct immutable alias",
+                                    ));
+                                };
+                                let Some(root) = self.byte_slice_aliases.get(&place.root).cloned()
+                                else {
+                                    return Err(hir_error(
+                                        "byte-slice local alias lacks symbolic parameter-root provenance",
+                                    ));
+                                };
+                                if *mutable || !place.projections.is_empty() {
+                                    return Err(hir_error(
+                                        "byte-slice local alias must be immutable and unprojected",
+                                    ));
+                                }
+                                self.byte_slice_aliases.insert(binding.id.clone(), root);
+                            }
                             if self.is_owned_resource(&binding.ty, binding.ownership)? {
                                 if !allow_moves {
                                     return Err(hir_error(
@@ -5566,6 +5767,11 @@ impl<'a> HirValidator<'a> {
                 case,
                 fields,
             } => {
+                if expression.ty.is_compiler_byte_option() {
+                    return Err(hir_error(
+                        "Option<u8> may be produced only by compiler-owned byte_get",
+                    ));
+                }
                 let ResolvedType::Nominal {
                     declaration: instance_variant,
                     arguments,
@@ -5656,6 +5862,7 @@ impl<'a> HirValidator<'a> {
                     ResolvedType::I64
                         | ResolvedType::I32
                         | ResolvedType::U8
+                        | ResolvedType::Usize
                         | ResolvedType::Char
                         | ResolvedType::Bool
                 ) {
@@ -6558,6 +6765,7 @@ impl<'a> HirValidator<'a> {
                     | ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)
                     | ResolvedExprKind::Uint8(_)
+                    | ResolvedExprKind::Usize(_)
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_)
@@ -6783,11 +6991,13 @@ impl<'a> HirValidator<'a> {
                     | ResolvedType::I32
                     | ResolvedType::Char
                     | ResolvedType::U8
+                    | ResolvedType::Usize
                     | ResolvedType::F32
                     | ResolvedType::F64
                     | ResolvedType::Bool
                     | ResolvedType::String
-                    | ResolvedType::Str,
+                    | ResolvedType::Str
+                    | ResolvedType::SliceU8,
                 ) => {}
                 Frame::Enter(ResolvedType::TypeParameter { .. }) => {
                     return Err(hir_error(
@@ -6833,9 +7043,11 @@ impl<'a> HirValidator<'a> {
                     }
                     if !arguments.is_empty()
                         && (!matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
-                            || arguments.iter().any(|argument| {
-                                !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
-                            }))
+                            || (arguments.as_slice() != [ResolvedType::U8]
+                                || declaration.as_str() != crate::prelude::OPTION_ID)
+                                && arguments.iter().any(|argument| {
+                                    !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
+                                }))
                     {
                         return Err(hir_error(format!(
                             "nominal type `{declaration}` has unsupported generic arguments"

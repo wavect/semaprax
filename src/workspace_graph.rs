@@ -1699,6 +1699,7 @@ fn resolved_function_callees(function: &hir::ResolvedFunction) -> BTreeSet<hir::
             | hir::ResolvedExprKind::Int32(_)
             | hir::ResolvedExprKind::Char(_)
             | hir::ResolvedExprKind::Uint8(_)
+            | hir::ResolvedExprKind::Usize(_)
             | hir::ResolvedExprKind::Float32(_)
             | hir::ResolvedExprKind::Float64(_)
             | hir::ResolvedExprKind::Bool(_)
@@ -5508,6 +5509,7 @@ fn visit_resolved_calls(
         | hir::ResolvedExprKind::Int32(_)
         | hir::ResolvedExprKind::Char(_)
         | hir::ResolvedExprKind::Uint8(_)
+        | hir::ResolvedExprKind::Usize(_)
         | hir::ResolvedExprKind::Float32(_)
         | hir::ResolvedExprKind::Float64(_)
         | hir::ResolvedExprKind::Bool(_)
@@ -6048,6 +6050,7 @@ fn collect_resolved_expression_type_sites(
         | hir::ResolvedExprKind::Int32(_)
         | hir::ResolvedExprKind::Char(_)
         | hir::ResolvedExprKind::Uint8(_)
+        | hir::ResolvedExprKind::Usize(_)
         | hir::ResolvedExprKind::Float32(_)
         | hir::ResolvedExprKind::Float64(_)
         | hir::ResolvedExprKind::Bool(_)
@@ -6491,11 +6494,13 @@ fn type_contains_name_from(ty: &Type, names: &BTreeSet<&str>) -> bool {
         | Type::I32
         | Type::Char
         | Type::U8
+        | Type::Usize
         | Type::F32
         | Type::F64
         | Type::Bool
         | Type::String
-        | Type::Str => false,
+        | Type::Str
+        | Type::SliceU8 => false,
         Type::Named { name, arguments } => {
             names.contains(name.as_str())
                 || arguments
@@ -6562,11 +6567,13 @@ fn signature_type_is_admitted(
         | Type::I32
         | Type::Char
         | Type::U8
+        | Type::Usize
         | Type::F32
         | Type::F64
         | Type::Bool
         | Type::String
         | Type::Str => true,
+        Type::SliceU8 => false,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
                 return false;
@@ -6681,11 +6688,13 @@ fn exposed_type_reference_is_directly_imported(
         | Type::I32
         | Type::Char
         | Type::U8
+        | Type::Usize
         | Type::F32
         | Type::F64
         | Type::Bool
         | Type::String
         | Type::Str => true,
+        Type::SliceU8 => false,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
                 return false;
@@ -6755,11 +6764,13 @@ fn type_reference_is_admitted(
         | Type::I32
         | Type::Char
         | Type::U8
+        | Type::Usize
         | Type::F32
         | Type::F64
         | Type::Bool
         | Type::String
         | Type::Str => true,
+        Type::SliceU8 => false,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(program) = programs.iter().find(|item| item.module == module) else {
                 return false;
@@ -6966,6 +6977,7 @@ fn visit_ast_call_sites(
         | ExprKind::Int32(_)
         | ExprKind::Char(_)
         | ExprKind::Uint8(_)
+        | ExprKind::Usize(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
         | ExprKind::Bool(_)

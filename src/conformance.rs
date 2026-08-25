@@ -285,6 +285,8 @@ pub enum TraceResult {
     Char(u32),
     /// Exact unsigned 8-bit payload.
     Uint8(u8),
+    /// Exact target-independent unsigned 64-bit semantic integer payload.
+    Usize(u64),
     /// Exact IEEE-754 single-precision payload bits.
     F32(u32),
     /// Exact IEEE-754 double-precision payload bits.
@@ -550,6 +552,10 @@ fn trace_result_json(result: &TraceResult) -> String {
         TraceResult::Uint8(value) => {
             format!("{{\"kind\":\"uint8\",\"value\":{value}}}")
         }
+        TraceResult::Usize(value) => format!(
+            "{{\"kind\":\"usize\",\"value\":{}}}",
+            quote_json(&value.to_string())
+        ),
         TraceResult::F32(bits) => format!("{{\"kind\":\"f32\",\"bits\":\"{bits:08x}\"}}",),
         TraceResult::F64(bits) => format!("{{\"kind\":\"f64\",\"bits\":\"{bits:016x}\"}}",),
         TraceResult::Bool(value) => format!("{{\"kind\":\"bool\",\"value\":{value}}}"),

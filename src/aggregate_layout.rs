@@ -219,6 +219,7 @@ fn layout_type(
         | ResolvedType::I32
         | ResolvedType::Char
         | ResolvedType::U8
+        | ResolvedType::Usize
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => {
@@ -230,6 +231,9 @@ fn layout_type(
         )),
         ResolvedType::Str => Err(layout_error(
             "borrowed string views have no aggregate value layout",
+        )),
+        ResolvedType::SliceU8 => Err(layout_error(
+            "borrowed byte-slice views have no aggregate value layout",
         )),
         ResolvedType::TypeParameter { .. } => Err(layout_error(
             "generic aggregate layouts are outside executable records v1",
@@ -253,6 +257,7 @@ pub(crate) fn scalar_size_align(
             AggregateTarget::Native64 => Ok((1, 1)),
             AggregateTarget::Wasm32 => Ok((4, 4)),
         },
+        ResolvedType::Usize => Ok((8, 8)),
         ResolvedType::F32 => Ok((4, 4)),
         ResolvedType::F64 => Ok((8, 8)),
         ResolvedType::Bool => match target {
@@ -544,6 +549,7 @@ fn collect_expr_record_types(
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)

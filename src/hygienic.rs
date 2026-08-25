@@ -396,6 +396,7 @@ impl ScanState<'_> {
             ExprKind::Int(_)
             | ExprKind::Int32(_)
             | ExprKind::Uint8(_)
+            | ExprKind::Usize(_)
             | ExprKind::Bool(_)
             | ExprKind::String(_)
             | ExprKind::Var(_) => None,

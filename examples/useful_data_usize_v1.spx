@@ -1,0 +1,14 @@
+module examples.useful_data_usize_v1;
+
+@id("example.usize.checksum")
+fn checksum(seed: usize, count: usize) -> usize {
+    let mut value = seed;
+    value = value + count;
+    value = value * 3usize;
+    value % 257usize
+}
+
+@id("app.main")
+fn main() -> i64 {
+    if checksum(7usize, 5usize) == 36usize { 0 } else { 1 }
+}

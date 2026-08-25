@@ -1990,6 +1990,7 @@ fn drain_disposal_frames(
                 | ResolvedExprKind::Int32(_)
                 | ResolvedExprKind::Char(_)
                 | ResolvedExprKind::Uint8(_)
+                | ResolvedExprKind::Usize(_)
                 | ResolvedExprKind::Float32(_)
                 | ResolvedExprKind::Float64(_)
                 | ResolvedExprKind::Bool(_)
@@ -3578,6 +3579,7 @@ fn resolved_call_child(expression: &ResolvedExpr, index: usize) -> Option<&Resol
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -4214,11 +4216,13 @@ fn type_identity_metrics(
                     ResolvedType::I32 => Some(leaf("i32".len())),
                     ResolvedType::Char => Some(leaf("char".len())),
                     ResolvedType::U8 => Some(leaf("u8".len())),
+                    ResolvedType::Usize => Some(leaf("usize".len())),
                     ResolvedType::F32 => Some(leaf("f32".len())),
                     ResolvedType::F64 => Some(leaf("f64".len())),
                     ResolvedType::Bool => Some(leaf("bool".len())),
                     ResolvedType::String => Some(leaf("string".len())),
                     ResolvedType::Str => Some(leaf("str".len())),
+                    ResolvedType::SliceU8 => Some(leaf("slice-u8".len())),
                     ResolvedType::TypeParameter { owner, index } => {
                         let owner_bytes = owner.as_str().len();
                         let root_bytes = "parameter:"
@@ -4350,22 +4354,26 @@ fn fingerprint_type_identity(
                 | ResolvedType::I32
                 | ResolvedType::Char
                 | ResolvedType::U8
+                | ResolvedType::Usize
                 | ResolvedType::F32
                 | ResolvedType::F64
                 | ResolvedType::Bool
                 | ResolvedType::String
-                | ResolvedType::Str => {
+                | ResolvedType::Str
+                | ResolvedType::SliceU8 => {
                     let text = match ty {
                         ResolvedType::Unit => "unit",
                         ResolvedType::I64 => "i64",
                         ResolvedType::I32 => "i32",
                         ResolvedType::Char => "char",
                         ResolvedType::U8 => "u8",
+                        ResolvedType::Usize => "usize",
                         ResolvedType::F32 => "f32",
                         ResolvedType::F64 => "f64",
                         ResolvedType::Bool => "bool",
                         ResolvedType::String => "string",
                         ResolvedType::Str => "str",
+                        ResolvedType::SliceU8 => "slice-u8",
                         _ => unreachable!(),
                     };
                     let mut key = String::with_capacity(text.len());
@@ -4573,6 +4581,7 @@ fn fingerprint_expression_types_scratch(
                     | ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)
                     | ResolvedExprKind::Uint8(_)
+                    | ResolvedExprKind::Usize(_)
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_)
@@ -5049,6 +5058,10 @@ fn hash_expr(
                             frame(hasher, b"uint8");
                             frame(hasher, [*inner].as_slice());
                         }
+                        crate::hir::PatternValue::Usize(inner) => {
+                            frame(hasher, b"usize");
+                            frame(hasher, inner.to_le_bytes().as_slice());
+                        }
                         crate::hir::PatternValue::Char(inner) => {
                             frame(hasher, b"char");
                             frame(hasher, inner.to_le_bytes().as_slice());
@@ -5158,6 +5171,7 @@ fn hash_expr(
                     ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)
                     | ResolvedExprKind::Uint8(_)
+                    | ResolvedExprKind::Usize(_)
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::String(_) => {
@@ -6519,6 +6533,7 @@ fn validate_selected_scalar_closure(functions: &[&ResolvedFunction]) -> Result<(
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)

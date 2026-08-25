@@ -752,6 +752,7 @@ fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize {
             | ExprKind::Int32(_)
             | ExprKind::Char(_)
             | ExprKind::Uint8(_)
+            | ExprKind::Usize(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)
@@ -1138,6 +1139,9 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                     // The explicit suffix keeps the declared width stable
                     // across canonical round trips.
                     write!(output, "{value}u8").unwrap();
+                }
+                ExprKind::Usize(value) => {
+                    write!(output, "{value}usize").unwrap();
                 }
                 ExprKind::Char(value) => {
                     output.write_str(&canonical_char(*value)).unwrap();
@@ -1576,11 +1580,13 @@ fn write_type(output: &mut impl std::fmt::Write, ty: &crate::ast::Type) {
             Frame::Type(crate::ast::Type::I32) => output.write_str("i32").unwrap(),
             Frame::Type(crate::ast::Type::Char) => output.write_str("char").unwrap(),
             Frame::Type(crate::ast::Type::U8) => output.write_str("u8").unwrap(),
+            Frame::Type(crate::ast::Type::Usize) => output.write_str("usize").unwrap(),
             Frame::Type(crate::ast::Type::F32) => output.write_str("f32").unwrap(),
             Frame::Type(crate::ast::Type::F64) => output.write_str("f64").unwrap(),
             Frame::Type(crate::ast::Type::Bool) => output.write_str("bool").unwrap(),
             Frame::Type(crate::ast::Type::String) => output.write_str("string").unwrap(),
             Frame::Type(crate::ast::Type::Str) => output.write_str("str").unwrap(),
+            Frame::Type(crate::ast::Type::SliceU8) => output.write_str("Slice<u8>").unwrap(),
             Frame::Type(crate::ast::Type::Named { name, arguments }) => {
                 output.write_str(name).unwrap();
                 if !arguments.is_empty() {
@@ -1655,6 +1661,7 @@ fn write_pattern_literal(output: &mut impl std::fmt::Write, value: crate::ast::P
         // canonical round trips, exactly like expression literals.
         crate::ast::PatternLiteral::Int32(value) => write!(output, "{value}i32").unwrap(),
         crate::ast::PatternLiteral::Uint8(value) => write!(output, "{value}u8").unwrap(),
+        crate::ast::PatternLiteral::Usize(value) => write!(output, "{value}usize").unwrap(),
         crate::ast::PatternLiteral::Char(value) => {
             output.write_str(&canonical_char(value)).unwrap()
         }
@@ -1788,6 +1795,7 @@ fn contains_record_construction(value: &Expr) -> bool {
             | ExprKind::Int32(_)
             | ExprKind::Char(_)
             | ExprKind::Uint8(_)
+            | ExprKind::Usize(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)

@@ -14,10 +14,11 @@ use crate::call_index::PersistentCallIndex;
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::format;
 use crate::hir::{
-    self, DeclarationId, FunctionExecutionId, FunctionInstanceId, IdentityOrigin, OwnershipMode,
-    Place, PlaceProjection, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
-    ResolvedImportFailure, ResolvedProgram, ResolvedResourceDropKind, ResolvedStatement,
-    ResolvedType, ResolvedTypeDeclarationKind, TypeFacts, ValueId,
+    self, ByteSliceExtent, ByteSliceRootKind, DeclarationId, FunctionExecutionId,
+    FunctionInstanceId, IdentityOrigin, OwnershipMode, Place, PlaceProjection, ResolvedExpr,
+    ResolvedExprKind, ResolvedFunction, ResolvedImportFailure, ResolvedProgram,
+    ResolvedResourceDropKind, ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
+    TypeFacts, ValueId,
 };
 use crate::prelude;
 
@@ -1195,6 +1196,7 @@ fn collect_result_propagations<'a>(
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -1275,7 +1277,12 @@ pub fn reject_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
 }
 
 pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
-    if schema == "semaprax.graph.v15" {
+    if schema == "semaprax.graph.v17" {
+        Err(Diagnostic::io(
+            "SPX-G410",
+            "portable-indexed-byte-data programs select `semaprax.graph.v17`, which is outside this evidence flow's admission",
+        ))
+    } else if schema == "semaprax.graph.v15" {
         Err(Diagnostic::io(
             "SPX-G410",
             "while-loop programs select `semaprax.graph.v15`, which is outside this evidence flow's admission",
@@ -1295,6 +1302,28 @@ pub(crate) fn graph_schema_from_parts(
     functions: &[ResolvedFunction],
     function_templates: &[hir::ResolvedFunctionTemplate],
 ) -> &'static str {
+    // Portable Indexed Byte Data v1 selects v17 above the existing v16/v15
+    // schemas whenever the authenticated program carries target-independent
+    // usize meaning or a borrowed byte view.
+    // Programs without the new scalar retain byte-identical v10-v16 output.
+    if types.iter().any(type_declaration_has_usize)
+        || functions.iter().any(function_has_usize)
+        || function_templates.iter().any(|template| {
+            template
+                .params
+                .iter()
+                .any(|param| type_has_usize(&param.ty))
+                || type_has_usize(&template.return_type)
+                || template
+                    .requires
+                    .iter()
+                    .chain(std::iter::once(&template.body))
+                    .chain(&template.ensures)
+                    .any(expression_has_usize)
+        })
+    {
+        return "semaprax.graph.v17";
+    }
     // Refutable Match v1 selects v16 above the whole lower lattice (including
     // the v15 while extension) only when an authenticated refutable node
     // exists; programs without refutable-match syntax keep their exact
@@ -1356,6 +1385,112 @@ pub(crate) fn graph_schema_from_parts(
     }
 }
 
+fn type_has_usize(ty: &ResolvedType) -> bool {
+    match ty {
+        ResolvedType::Usize | ResolvedType::SliceU8 => true,
+        ResolvedType::Nominal { arguments, .. } => arguments.iter().any(type_has_usize),
+        ResolvedType::Unit
+        | ResolvedType::I64
+        | ResolvedType::I32
+        | ResolvedType::Char
+        | ResolvedType::U8
+        | ResolvedType::F32
+        | ResolvedType::F64
+        | ResolvedType::Bool
+        | ResolvedType::String
+        | ResolvedType::Str
+        | ResolvedType::TypeParameter { .. } => false,
+    }
+}
+
+fn type_declaration_has_usize(declaration: &hir::ResolvedTypeDeclaration) -> bool {
+    match &declaration.kind {
+        ResolvedTypeDeclarationKind::Record { fields }
+        | ResolvedTypeDeclarationKind::Class { fields, .. } => {
+            fields.iter().any(|field| type_has_usize(&field.ty))
+        }
+        ResolvedTypeDeclarationKind::Variant { cases } => cases
+            .iter()
+            .flat_map(|case| &case.fields)
+            .any(|field| type_has_usize(&field.ty)),
+        ResolvedTypeDeclarationKind::Resource { .. } => false,
+    }
+}
+
+fn function_has_usize(function: &ResolvedFunction) -> bool {
+    function
+        .params
+        .iter()
+        .any(|param| type_has_usize(&param.ty))
+        || type_has_usize(&function.return_type)
+        || function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .any(expression_has_usize)
+}
+
+fn expression_has_usize(expression: &ResolvedExpr) -> bool {
+    if type_has_usize(&expression.ty) {
+        return true;
+    }
+    match &expression.kind {
+        ResolvedExprKind::Usize(_) => true,
+        ResolvedExprKind::Block { statements, tail } => {
+            statements.iter().any(|statement| {
+                (0..statement.child_count())
+                    .any(|index| statement.child(index).is_some_and(expression_has_usize))
+            }) || expression_has_usize(tail)
+        }
+        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_usize),
+        ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_usize),
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::TryOption { operand: value, .. }
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => expression_has_usize(value),
+        ResolvedExprKind::Binary { left, right, .. } => {
+            expression_has_usize(left) || expression_has_usize(right)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            expression_has_usize(condition)
+                || expression_has_usize(then_branch)
+                || expression_has_usize(else_branch)
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => fields
+            .iter()
+            .any(|field| expression_has_usize(&field.value)),
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            expression_has_usize(scrutinee)
+                || arms.iter().any(|arm| {
+                    arm.guard.as_deref().is_some_and(expression_has_usize)
+                        || expression_has_usize(&arm.value)
+                })
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            expression_has_usize(base)
+                || fields
+                    .iter()
+                    .any(|field| expression_has_usize(&field.value))
+        }
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
+        | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
+        | ResolvedExprKind::Place(_) => false,
+    }
+}
+
 /// `true` when the resolved expression tree contains an authenticated while
 /// statement anywhere inside its blocks, branches, arms, or nested bodies.
 fn expression_has_while(expression: &ResolvedExpr) -> bool {
@@ -1404,6 +1539,7 @@ fn expression_has_while(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -1469,6 +1605,7 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -1537,6 +1674,7 @@ fn expression_has_refutable_match(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -1607,6 +1745,7 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -1716,6 +1855,10 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
         ResolvedExprKind::Uint8(value) => {
             format!("{{\"kind\":\"uint8\",\"value\":{value}}}")
         }
+        ResolvedExprKind::Usize(value) => format!(
+            "{{\"kind\":\"usize\",\"value\":{}}}",
+            quote_json(&value.to_string())
+        ),
         ResolvedExprKind::Float32(bits) => format!(
             "{{\"kind\":\"float32\",\"bits\":\"{bits:08x}\",\"value\":{}}}",
             quote_json(&crate::format::canonical_f32_bits(*bits))
@@ -2084,6 +2227,7 @@ fn pattern_value_text(value: crate::hir::PatternValue) -> String {
         crate::hir::PatternValue::Int(value) => value.to_string(),
         crate::hir::PatternValue::Int32(value) => format!("{value}i32"),
         crate::hir::PatternValue::Uint8(value) => format!("{value}u8"),
+        crate::hir::PatternValue::Usize(value) => format!("{value}usize"),
         crate::hir::PatternValue::Char(value) => crate::format::canonical_char(value),
         crate::hir::PatternValue::Bool(value) => value.to_string(),
     }
@@ -2856,6 +3000,68 @@ enum GraphView<'a> {
     },
 }
 
+fn byte_slice_extent_json(extent: ByteSliceExtent) -> String {
+    match extent {
+        ByteSliceExtent::Constant(value) => {
+            format!("{{\"kind\":\"constant\",\"value\":{value}}}")
+        }
+        ByteSliceExtent::ParameterLength => "{\"kind\":\"parameter_length\"}".to_owned(),
+    }
+}
+
+fn byte_slice_fact_json(value: &ValueId, provenance: &hir::ByteSliceProvenance) -> String {
+    let root_kind = match provenance.root_kind {
+        ByteSliceRootKind::FunctionParameter => "function_parameter",
+    };
+    format!(
+        "{{\"value\":{},\"root\":{},\"root_kind\":{},\"root_length\":{},\"offset\":{},\"length\":{}}}",
+        quote_json(value.as_str()),
+        quote_json(provenance.root.as_str()),
+        quote_json(root_kind),
+        byte_slice_extent_json(provenance.root_length),
+        byte_slice_extent_json(provenance.offset),
+        byte_slice_extent_json(provenance.length)
+    )
+}
+
+fn portable_indexed_byte_data_json(schema: &str, program: &ResolvedProgram) -> String {
+    if schema == "semaprax.graph.v17" {
+        format!(
+            ",\"portable_indexed_byte_data\":{{\"profile\":\"external-slice-v1\",\"semantic_usize_bits\":64,\"max_external_root_bytes\":65536,\"max_slice_bytes\":65536,\"indexed_read\":\"total-option-u8\",\"byte_slice_provenance\":[{}]}}",
+            program
+                .declarations
+                .byte_slice_provenances()
+                .map(|(value, provenance)| byte_slice_fact_json(value, provenance))
+                .collect::<Vec<_>>()
+                .budgeted_join(",")
+        )
+    } else {
+        String::new()
+    }
+}
+
+fn byte_slice_provenance_json(
+    program: &ResolvedProgram,
+    parameter: &hir::ResolvedParam,
+) -> Result<Option<String>, Diagnostic> {
+    if parameter.ty != ResolvedType::SliceU8 {
+        return Ok(None);
+    }
+    let provenance = program
+        .declarations
+        .byte_slice_provenance(&parameter.id)
+        .ok_or_else(|| {
+            Diagnostic::io(
+                "SPX-G411",
+                format!(
+                    "byte-slice parameter `{}` lacks authenticated provenance",
+                    parameter.id
+                ),
+            )
+        })?;
+    Ok(Some(byte_slice_fact_json(&parameter.id, provenance)))
+}
+
 fn graph_json(
     program: &ResolvedProgram,
     source_revision: &str,
@@ -2916,15 +3122,17 @@ fn graph_json(
         }
     }
     close_type_declarations(program, &mut selected_types)?;
+    let schema = graph_schema(program);
     let mut output = crate::bounded_output::CappedString::new();
     write!(
         output,
-        "{{\"schema\":{},\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\",\"match_arms\":\"revision-scoped-structural\",\"patterns\":\"revision-scoped-structural\",\"type_parameters\":\"owner-and-index-stable\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
-        quote_json(graph_schema(program)),
+        "{{\"schema\":{},\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\",\"match_arms\":\"revision-scoped-structural\",\"patterns\":\"revision-scoped-structural\",\"type_parameters\":\"owner-and-index-stable\"}}{},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
+        quote_json(schema),
         quote_json(source_revision),
         quote_json(prelude::SCHEMA_V1),
         quote_json(&prelude::digest_text_v1()),
         view_json(view),
+        portable_indexed_byte_data_json(schema, program),
         quote_json(&program.module),
         string_array(&program.permits),
         quote_json(program.entrypoint.as_str()),
@@ -3353,13 +3561,23 @@ fn graph_json(
             .params
             .iter()
             .map(|param| {
-                Ok(format!(
-                    "{{\"id\":{},\"name\":{},\"type_id\":{},\"ownership_mode\":{}}}",
-                    quote_json(param.id.as_str()),
-                    quote_json(&param.name),
-                    quote_json(&param.ty.identity_key()),
-                    quote_json(ownership_text(param.ownership))
-                ))
+                let provenance = byte_slice_provenance_json(program, param)?;
+                Ok(match provenance {
+                    Some(provenance) => format!(
+                        "{{\"id\":{},\"name\":{},\"type_id\":{},\"ownership_mode\":{},\"byte_slice_provenance\":{provenance}}}",
+                        quote_json(param.id.as_str()),
+                        quote_json(&param.name),
+                        quote_json(&param.ty.identity_key()),
+                        quote_json(ownership_text(param.ownership))
+                    ),
+                    None => format!(
+                        "{{\"id\":{},\"name\":{},\"type_id\":{},\"ownership_mode\":{}}}",
+                        quote_json(param.id.as_str()),
+                        quote_json(&param.name),
+                        quote_json(&param.ty.identity_key()),
+                        quote_json(ownership_text(param.ownership))
+                    ),
+                })
             })
             .collect::<Result<Vec<_>, Diagnostic>>()?
             .budgeted_join(",");
@@ -3607,6 +3825,7 @@ fn visit_expr_call_instances(
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -3681,6 +3900,7 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -3778,6 +3998,7 @@ fn collect_expr_type_declarations(
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -4012,6 +4233,10 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
         ResolvedExprKind::Uint8(value) => {
             format!("{{{header},\"kind\":\"uint8\",\"value\":{value}}}")
         }
+        ResolvedExprKind::Usize(value) => format!(
+            "{{{header},\"kind\":\"usize\",\"value\":{}}}",
+            quote_json(&value.to_string())
+        ),
         ResolvedExprKind::Float32(bits) => format!(
             "{{{header},\"kind\":\"float32\",\"bits\":\"{bits:08x}\",\"value\":{}}}",
             quote_json(&crate::format::canonical_f32_bits(*bits))
@@ -4418,6 +4643,7 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -4556,11 +4782,16 @@ fn type_json(ty: &ResolvedType) -> String {
         ResolvedType::I32 => "{\"kind\":\"primitive\",\"name\":\"i32\"}".to_owned(),
         ResolvedType::Char => "{\"kind\":\"primitive\",\"name\":\"char\"}".to_owned(),
         ResolvedType::U8 => "{\"kind\":\"primitive\",\"name\":\"u8\"}".to_owned(),
+        ResolvedType::Usize => "{\"kind\":\"primitive\",\"name\":\"usize\"}".to_owned(),
         ResolvedType::F32 => "{\"kind\":\"primitive\",\"name\":\"f32\"}".to_owned(),
         ResolvedType::F64 => "{\"kind\":\"primitive\",\"name\":\"f64\"}".to_owned(),
         ResolvedType::Bool => "{\"kind\":\"primitive\",\"name\":\"bool\"}".to_owned(),
         ResolvedType::String => "{\"kind\":\"primitive\",\"name\":\"string\"}".to_owned(),
         ResolvedType::Str => "{\"kind\":\"primitive\",\"name\":\"str\"}".to_owned(),
+        ResolvedType::SliceU8 => {
+            "{\"element\":{\"kind\":\"primitive\",\"name\":\"u8\"},\"kind\":\"borrowed_slice\"}"
+                .to_owned()
+        }
         ResolvedType::TypeParameter { owner, index } => format!(
             "{{\"kind\":\"type_parameter\",\"owner\":{},\"index\":{index}}}",
             quote_json(owner.as_str())

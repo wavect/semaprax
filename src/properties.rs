@@ -584,6 +584,7 @@ impl<'a> Analyzer<'a> {
             ExprKind::Int(_)
             | ExprKind::Int32(_)
             | ExprKind::Uint8(_)
+            | ExprKind::Usize(_)
             | ExprKind::Char(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
@@ -660,6 +661,7 @@ impl<'a> Analyzer<'a> {
             ExprKind::Int(value) => Outcome::Value(Value::Int(*value)),
             ExprKind::Int32(value) => Outcome::Value(Value::Int32(*value)),
             ExprKind::Uint8(value) => Outcome::Value(Value::Uint8(*value)),
+            ExprKind::Usize(_) => Outcome::Unsupported(REASON_UNSUPPORTED_PARAMETER_TYPE),
             ExprKind::Char(value) => Outcome::Value(Value::Char(*value)),
             ExprKind::Float32(value) => Outcome::Value(Value::Float32(f32::from_bits(*value))),
             ExprKind::Float64(value) => Outcome::Value(Value::Float64(f64::from_bits(*value))),
@@ -1127,7 +1129,7 @@ impl ScalarKind {
             Type::F32 => ScalarKind::Float32,
             Type::F64 => ScalarKind::Float64,
             Type::Bool => ScalarKind::Bool,
-            Type::String | Type::Str | Type::Named { .. } => unreachable!(
+            Type::Usize | Type::String | Type::Str | Type::SliceU8 | Type::Named { .. } => unreachable!(
                 "ScalarKind::of called for unsupported type `{:?}`; admitted scalars are the seven primitive Copy types",
                 ty
             ),
@@ -1156,7 +1158,7 @@ fn scalar_type_text(ty: &Type) -> &'static str {
         Type::F32 => "f32",
         Type::F64 => "f64",
         Type::Bool => "bool",
-        Type::String | Type::Str | Type::Named { .. } => unreachable!(
+        Type::Usize | Type::String | Type::Str | Type::SliceU8 | Type::Named { .. } => unreachable!(
             "scalar_type_text called for unsupported type `{:?}`; admitted scalars are the seven primitive Copy types",
             ty
         ),

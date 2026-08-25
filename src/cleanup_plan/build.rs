@@ -340,10 +340,11 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
         | ResolvedType::I32
         | ResolvedType::Char
         | ResolvedType::U8
+        | ResolvedType::Usize
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => 0,
-        ResolvedType::String | ResolvedType::Str => 0,
+        ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,
@@ -2226,6 +2227,7 @@ impl<'a> PlanBuilder<'a> {
                     | ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)
                     | ResolvedExprKind::Uint8(_)
+                    | ResolvedExprKind::Usize(_)
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_)
@@ -2377,6 +2379,20 @@ impl<'a> PlanBuilder<'a> {
                                 )));
                             }
                             crate::str_ops::resolved_params(op)
+                        } else if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
+                            if instance.is_some() {
+                                return Err(plan_error(format!(
+                                    "borrowed byte operation call `{}` must be monomorphic",
+                                    expression.id
+                                )));
+                            }
+                            if args.len() != op.arity() {
+                                return Err(plan_error(format!(
+                                    "cleanup call `{}` has inconsistent arity",
+                                    expression.id
+                                )));
+                            }
+                            crate::byte_ops::resolved_params(op)
                         } else {
                             let target = self
                                 .program
@@ -3329,11 +3345,13 @@ impl<'a> PlanBuilder<'a> {
                         | ResolvedType::I32
                         | ResolvedType::Char
                         | ResolvedType::U8
+                        | ResolvedType::Usize
                         | ResolvedType::F32
                         | ResolvedType::F64
                         | ResolvedType::Bool
                         | ResolvedType::String
                         | ResolvedType::Str
+                        | ResolvedType::SliceU8
                         | ResolvedType::TypeParameter { .. } => false,
                     };
                     if is_record {
@@ -3912,6 +3930,7 @@ impl<'a> PlanBuilder<'a> {
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -4128,6 +4147,8 @@ impl<'a> PlanBuilder<'a> {
                 crate::string_ops::resolved_params(op)
             } else if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
                 crate::str_ops::resolved_params(op)
+            } else if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
+                crate::byte_ops::resolved_params(op)
             } else {
                 let target = self
                     .program
@@ -5094,6 +5115,7 @@ impl<'a> PlanBuilder<'a> {
             ResolvedType::I64
                 | ResolvedType::I32
                 | ResolvedType::U8
+                | ResolvedType::Usize
                 | ResolvedType::Char
                 | ResolvedType::Bool
         ) {
@@ -5120,11 +5142,13 @@ impl<'a> PlanBuilder<'a> {
             | ResolvedType::I32
             | ResolvedType::Char
             | ResolvedType::U8
+            | ResolvedType::Usize
             | ResolvedType::F32
             | ResolvedType::F64
             | ResolvedType::Bool
             | ResolvedType::String
             | ResolvedType::Str
+            | ResolvedType::SliceU8
             | ResolvedType::TypeParameter { .. } => false,
         };
         if is_record {

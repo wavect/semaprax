@@ -13,6 +13,7 @@ pub(crate) mod aggregate_layout;
 pub mod arc_zones;
 pub mod ast;
 pub(crate) mod bounded_output;
+pub(crate) mod byte_ops;
 pub mod c_header;
 pub(crate) mod call_index;
 pub mod capability_manifest;

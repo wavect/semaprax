@@ -409,10 +409,15 @@ fn type_json(ty: &ResolvedType) -> String {
         ResolvedType::I32 => "{\"kind\":\"primitive\",\"name\":\"i32\"}".to_owned(),
         ResolvedType::Char => "{\"kind\":\"primitive\",\"name\":\"char\"}".to_owned(),
         ResolvedType::U8 => "{\"kind\":\"primitive\",\"name\":\"u8\"}".to_owned(),
+        ResolvedType::Usize => "{\"kind\":\"primitive\",\"name\":\"usize\"}".to_owned(),
         ResolvedType::F32 => "{\"kind\":\"primitive\",\"name\":\"f32\"}".to_owned(),
         ResolvedType::F64 => "{\"kind\":\"primitive\",\"name\":\"f64\"}".to_owned(),
         ResolvedType::String => "{\"kind\":\"primitive\",\"name\":\"string\"}".to_owned(),
         ResolvedType::Str => "{\"kind\":\"primitive\",\"name\":\"str\"}".to_owned(),
+        ResolvedType::SliceU8 => {
+            "{\"element\":{\"kind\":\"primitive\",\"name\":\"u8\"},\"kind\":\"borrowed_slice\"}"
+                .to_owned()
+        }
         ResolvedType::Bool => "{\"kind\":\"primitive\",\"name\":\"bool\"}".to_owned(),
         ResolvedType::TypeParameter { owner, index } => format!(
             "{{\"kind\":\"type_parameter\",\"owner\":{},\"index\":{}}}",

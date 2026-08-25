@@ -94,6 +94,7 @@ struct FunctionPlan {
     old_stack: u32,
     frame_base: u32,
     status: u32,
+    external_root_bytes: Option<u32>,
     result_staged: Option<u32>,
     has_try: bool,
     result_out: u32,
@@ -129,6 +130,12 @@ impl FunctionPlan {
         let old_stack = add_local(I32)?;
         let frame_base = add_local(I32)?;
         let status = add_local(I32)?;
+        let external_root_bytes = function
+            .params
+            .iter()
+            .any(|param| matches!(param.ty, ResolvedType::SliceU8))
+            .then(|| add_local(I64))
+            .transpose()?;
         let has_try = expression_has_try(&function.body);
         let result_staged = if has_try { Some(add_local(I32)?) } else { None };
 
@@ -149,6 +156,7 @@ impl FunctionPlan {
             old_stack,
             frame_base,
             status,
+            external_root_bytes,
             result_staged,
             has_try,
             result_out,
@@ -440,6 +448,7 @@ impl FunctionPlan {
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -553,6 +562,7 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -621,12 +631,14 @@ fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diag
         return Ok(false);
     }
     if arguments.len() != item.type_parameters.len()
-        || arguments
-            .iter()
-            .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+        || arguments.iter().any(|argument| {
+            !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
+                && !(declaration.as_str() == crate::prelude::OPTION_ID
+                    && *argument == ResolvedType::U8)
+        })
     {
         return Err(error(format!(
-            "Wasm variant representation requires exact concrete i64/bool arguments for `{}`",
+            "Wasm variant representation requires admitted exact concrete arguments for `{}`",
             ty.identity_key()
         )));
     }
@@ -675,6 +687,8 @@ fn scalar_wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
         ResolvedType::I32 => Ok(I32),
         ResolvedType::Char => Ok(I32),
         ResolvedType::U8 => Ok(I32),
+        ResolvedType::Usize => Ok(I64),
+        ResolvedType::SliceU8 => Ok(I64),
         ResolvedType::F32 => Ok(F32),
         ResolvedType::F64 => Ok(F64),
         ResolvedType::Bool => Ok(I32),
@@ -691,6 +705,8 @@ fn scalar_size_align(ty: &ResolvedType) -> Result<(u32, u32), Diagnostic> {
         ResolvedType::I32 => Ok((4, 4)),
         ResolvedType::Char => Ok((4, 4)),
         ResolvedType::U8 => Ok((4, 4)),
+        ResolvedType::Usize => Ok((8, 8)),
+        ResolvedType::SliceU8 => Ok((8, 8)),
         ResolvedType::F32 => Ok((4, 4)),
         ResolvedType::F64 => Ok((8, 8)),
         ResolvedType::Bool => Ok((4, 4)),
@@ -890,6 +906,7 @@ pub(super) fn emit(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic> {
 }
 
 fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>, Diagnostic> {
+    let uses_byte_data = super::program_uses_byte_data(program);
     if program
         .types
         .iter()
@@ -1030,13 +1047,24 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
 
     let mut memory = Vec::new();
     write_u32(&mut memory, 1);
-    memory.extend([0x00, 0x01]);
+    if uses_byte_data {
+        memory.extend([0x01, 0x02, 0x02]);
+    } else {
+        memory.extend([0x00, 0x01]);
+    }
     section(&mut module, 5, memory);
 
     let mut globals = Vec::new();
     write_u32(&mut globals, 1);
     globals.extend([I32, 0x01, 0x41]);
-    write_i64(&mut globals, i64::from(SHADOW_STACK_TOP));
+    write_i64(
+        &mut globals,
+        i64::from(if uses_byte_data {
+            131_072
+        } else {
+            SHADOW_STACK_TOP
+        }),
+    );
     globals.push(0x0b);
     section(&mut module, 6, globals);
 
@@ -1142,6 +1170,15 @@ fn emit_function(
     write_u32(&mut body, 0);
     body.push(0x21);
     write_u32(&mut body, plan.old_stack);
+    if let Some(external_root_bytes) = plan.external_root_bytes {
+        emit_external_byte_root_admission(
+            &mut body,
+            program,
+            function,
+            plan.old_stack,
+            external_root_bytes,
+        )?;
+    }
     if plan.frame_size != 0 {
         body.push(0x20);
         write_u32(&mut body, plan.old_stack);
@@ -1295,6 +1332,85 @@ fn emit_function(
     Ok(body)
 }
 
+fn emit_external_byte_root_admission(
+    body: &mut Vec<u8>,
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    old_stack: u32,
+    charged: u32,
+) -> Result<(), Diagnostic> {
+    let roots = function
+        .params
+        .iter()
+        .enumerate()
+        .filter(|(_, param)| matches!(param.ty, ResolvedType::SliceU8))
+        .map(|(index, param)| {
+            let provenance = program
+                .declarations
+                .byte_slice_provenance(&param.id)
+                .ok_or_else(|| error("external Slice<u8> parameter lacks provenance"))?;
+            if provenance.root != param.id
+                || provenance.root_kind != crate::hir::ByteSliceRootKind::FunctionParameter
+                || provenance.root_length != crate::hir::ByteSliceExtent::ParameterLength
+                || provenance.offset != crate::hir::ByteSliceExtent::Constant(0)
+                || provenance.length != crate::hir::ByteSliceExtent::ParameterLength
+            {
+                return Err(error(
+                    "external Slice<u8> parameter provenance is not an exact full root",
+                ));
+            }
+            u32::try_from(index).map_err(|_| error("byte root parameter index overflows u32"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    if roots.is_empty() {
+        return Ok(());
+    }
+
+    // A direct test/callable export observes the untouched data-profile stack
+    // top. Internal forwarding runs below it and must not recharge roots.
+    body.push(0x20);
+    write_u32(body, old_stack);
+    body.push(0x41);
+    write_i64(body, 131_072);
+    body.extend([0x46, 0x04, 0x40]);
+    body.extend([0x42, 0x00, 0x21]);
+    write_u32(body, charged);
+    for parameter in roots {
+        // len <= 65536 && offset <= 65536 - len, without unchecked addition.
+        body.push(0x20);
+        write_u32(body, parameter);
+        body.extend([0x42, 0x20, 0x88, 0x42]);
+        write_i64(body, crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES as i64);
+        body.push(0x58);
+        body.push(0x20);
+        write_u32(body, parameter);
+        body.extend([0xa7, 0xad, 0x42]);
+        write_i64(body, crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES as i64);
+        body.push(0x20);
+        write_u32(body, parameter);
+        body.extend([
+            0x42, 0x20, 0x88, 0x7d, 0x58, 0x71, 0x45, 0x04, 0x40, 0x00, 0x0b,
+        ]);
+
+        // charged <= 65536 - len; only then add the distinct parameter root.
+        body.push(0x20);
+        write_u32(body, charged);
+        body.push(0x42);
+        write_i64(body, crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES as i64);
+        body.push(0x20);
+        write_u32(body, parameter);
+        body.extend([0x42, 0x20, 0x88, 0x7d, 0x58, 0x45, 0x04, 0x40, 0x00, 0x0b]);
+        body.push(0x20);
+        write_u32(body, charged);
+        body.push(0x20);
+        write_u32(body, parameter);
+        body.extend([0x42, 0x20, 0x88, 0x7c, 0x21]);
+        write_u32(body, charged);
+    }
+    body.push(0x0b);
+    Ok(())
+}
+
 struct Emitter<'a> {
     output: &'a mut Vec<u8>,
     program: &'a ResolvedProgram,
@@ -1353,6 +1469,17 @@ impl Emitter<'_> {
                 Ok(Value::Scalar {
                     local: destination,
                     ty: ResolvedType::U8,
+                })
+            }
+            ResolvedExprKind::Usize(value) => {
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x42);
+                write_i64(self.output, *value as i64);
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::Usize,
                 })
             }
             ResolvedExprKind::Float32(bits) => {
@@ -1625,6 +1752,7 @@ impl Emitter<'_> {
                     ResolvedType::I64
                         | ResolvedType::I32
                         | ResolvedType::U8
+                        | ResolvedType::Usize
                         | ResolvedType::Char
                         | ResolvedType::Bool
                 ) {
@@ -2294,6 +2422,11 @@ impl Emitter<'_> {
                     write_i64(self.output, i64::from(*inner));
                     self.output.push(0x46);
                 }
+                (ResolvedType::Usize, crate::hir::PatternValue::Usize(inner)) => {
+                    self.output.push(0x42);
+                    write_i64(self.output, *inner as i64);
+                    self.output.push(0x51);
+                }
                 (ResolvedType::Char, crate::hir::PatternValue::Char(inner)) => {
                     self.output.push(0x41);
                     write_i64(self.output, i64::from(*inner));
@@ -2405,6 +2538,11 @@ impl Emitter<'_> {
         instance: Option<&crate::hir::FunctionInstanceId>,
         args: &[ResolvedExpr],
     ) -> Result<Value, Diagnostic> {
+        if instance.is_none() {
+            if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
+                return self.emit_byte_op(expr, op, args);
+            }
+        }
         let target = self
             .program
             .resolve_call_target(callee, instance)
@@ -2491,6 +2629,99 @@ impl Emitter<'_> {
             write_u32(self.output, *local);
         }
         Ok(result)
+    }
+
+    fn emit_byte_op(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: crate::byte_ops::ByteOp,
+        args: &[ResolvedExpr],
+    ) -> Result<Value, Diagnostic> {
+        if args.len() != op.arity() {
+            return Err(error("byte operation arity disagrees with resolved HIR"));
+        }
+        let mut values = Vec::with_capacity(args.len());
+        for (argument, expected) in args.iter().zip(op.param_types()) {
+            let value = self.emit_expr(argument)?;
+            require_type(value_type(&value), expected, "byte operation argument")?;
+            values.push(value);
+        }
+        self.validate_byte_slice(&values[0]);
+        require_type(&expr.ty, &op.return_type(), "byte operation result")?;
+        match op {
+            crate::byte_ops::ByteOp::Len => {
+                let local = self.plan.expr_scalar(expr)?;
+                self.get_scalar(&values[0]);
+                self.output.extend([0x42, 0x20, 0x88, 0x21]);
+                write_u32(self.output, local);
+                Ok(Value::Scalar {
+                    local,
+                    ty: ResolvedType::Usize,
+                })
+            }
+            crate::byte_ops::ByteOp::Get => {
+                let pointer = self.plan.expr_pointer(expr)?;
+                let layout = variant_layout(self.variant_layouts, &expr.ty)?;
+                let none = layout
+                    .case(&crate::hir::DeclarationId::new(
+                        crate::prelude::OPTION_NONE_ID,
+                    ))
+                    .ok_or_else(|| error("Option<u8> layout has no None case"))?;
+                let some_id = crate::hir::DeclarationId::new(crate::prelude::OPTION_SOME_ID);
+                let some = layout
+                    .case(&some_id)
+                    .ok_or_else(|| error("Option<u8> layout has no Some case"))?;
+                let field = some
+                    .field(&crate::hir::DeclarationId::new(
+                        crate::prelude::OPTION_SOME_VALUE_ID,
+                    ))
+                    .ok_or_else(|| error("Option<u8> layout has no Some payload"))?;
+                self.emit_pointer(pointer);
+                self.output.extend([0x41, 0x00, 0x41]);
+                write_i64(self.output, i64::from(layout.size));
+                self.output.extend([0xfc, 0x0b, 0x00]);
+                self.get_scalar(&values[1]);
+                self.get_scalar(&values[0]);
+                self.output.extend([0x42, 0x20, 0x88, 0x54, 0x04, 0x40]);
+                self.emit_pointer(Pointer {
+                    local: pointer.local,
+                    offset: pointer.offset + layout.payload_offset + field.offset,
+                });
+                self.get_scalar(&values[0]);
+                self.output.push(0xa7);
+                self.get_scalar(&values[1]);
+                self.output
+                    .extend([0xa7, 0x6a, 0x2d, 0x00, 0x00, 0x3a, 0x00, 0x00]);
+                self.emit_pointer(pointer);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(some.tag));
+                self.output.extend([0x36, 0x02, 0x00, 0x05]);
+                self.emit_pointer(pointer);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(none.tag));
+                self.output.extend([0x36, 0x02, 0x00, 0x0b]);
+                Ok(Value::Aggregate {
+                    pointer,
+                    ty: expr.ty.clone(),
+                })
+            }
+        }
+    }
+
+    fn validate_byte_slice(&mut self, value: &Value) {
+        // Packed carrier: low 32 bits are the page-0 offset, high 32 bits are
+        // the byte length. Reject any range that reaches the page-1 stack.
+        self.get_scalar(value);
+        self.output.extend([0x42, 0x20, 0x88, 0x42]);
+        write_i64(self.output, crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES as i64);
+        self.output.push(0x58); // i64.le_u
+        self.get_scalar(value);
+        self.output.extend([0xa7, 0xad, 0x42]);
+        write_i64(self.output, crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES as i64);
+        self.get_scalar(value);
+        self.output.extend([
+            0x42, 0x20, 0x88, 0x7d, 0x58, 0x71, 0x45, 0x04, 0x40, 0x00, 0x0b,
+        ]);
     }
 
     fn emit_unary(
@@ -2617,6 +2848,14 @@ impl Emitter<'_> {
         {
             return self.emit_u8_binary(expr, op, &left, &right, destination);
         }
+        if matches!(value_type(&left), ResolvedType::Usize)
+            && matches!(
+                op,
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+            )
+        {
+            return self.emit_usize_binary(expr, op, &left, &right, destination);
+        }
         match op {
             BinaryOp::Add if int32_operands => {
                 self.emit_checked_i32_add(&left, &right, destination)?
@@ -2646,8 +2885,8 @@ impl Emitter<'_> {
                 self.get_scalar(&left);
                 self.get_scalar(&right);
                 self.output.push(match (value_type(&left), op) {
-                    (ResolvedType::I64, BinaryOp::Eq) => 0x51,
-                    (ResolvedType::I64, BinaryOp::Ne) => 0x52,
+                    (ResolvedType::I64 | ResolvedType::Usize, BinaryOp::Eq) => 0x51,
+                    (ResolvedType::I64 | ResolvedType::Usize, BinaryOp::Ne) => 0x52,
                     (ResolvedType::F32, BinaryOp::Eq) => 0x5b,
                     (ResolvedType::F32, BinaryOp::Ne) => 0x5c,
                     (ResolvedType::F64, BinaryOp::Eq) => 0x61,
@@ -2667,6 +2906,7 @@ impl Emitter<'_> {
                         | ResolvedType::I32
                         | ResolvedType::Char
                         | ResolvedType::U8
+                        | ResolvedType::Usize
                         | ResolvedType::F32
                         | ResolvedType::F64
                 ) {
@@ -2691,6 +2931,10 @@ impl Emitter<'_> {
                     (ResolvedType::U8, BinaryOp::Gt) => 0x4b,
                     (ResolvedType::U8, BinaryOp::Le) => 0x4d,
                     (ResolvedType::U8, BinaryOp::Ge) => 0x4f,
+                    (ResolvedType::Usize, BinaryOp::Lt) => 0x54,
+                    (ResolvedType::Usize, BinaryOp::Gt) => 0x56,
+                    (ResolvedType::Usize, BinaryOp::Le) => 0x58,
+                    (ResolvedType::Usize, BinaryOp::Ge) => 0x5a,
                     (ResolvedType::F32, BinaryOp::Lt) => 0x5d,
                     (ResolvedType::F32, BinaryOp::Gt) => 0x5e,
                     (ResolvedType::F32, BinaryOp::Le) => 0x5f,
@@ -3158,6 +3402,81 @@ impl Emitter<'_> {
         })
     }
 
+    fn emit_usize_binary(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: BinaryOp,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<Value, Diagnostic> {
+        self.require_scalar(left, &ResolvedType::Usize, "usize arithmetic")?;
+        self.require_scalar(right, &ResolvedType::Usize, "usize arithmetic")?;
+        match op {
+            BinaryOp::Add => {
+                self.get_scalar(left);
+                self.get_scalar(right);
+                self.output.push(0x7c);
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                self.output.push(0x20);
+                write_u32(self.output, destination);
+                self.get_scalar(left);
+                self.output.push(0x54);
+                self.fail_if(STATUS_ADD_OVERFLOW);
+            }
+            BinaryOp::Sub => {
+                self.get_scalar(left);
+                self.get_scalar(right);
+                self.output.push(0x54);
+                self.fail_if(STATUS_SUB_OVERFLOW);
+                self.get_scalar(left);
+                self.get_scalar(right);
+                self.output.push(0x7d);
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+            }
+            BinaryOp::Mul => {
+                self.get_scalar(right);
+                self.output.push(0x50);
+                self.output.push(0x45);
+                self.get_scalar(left);
+                self.output.push(0x42);
+                write_i64(self.output, -1);
+                self.get_scalar(right);
+                self.output.push(0x80);
+                self.output.push(0x56);
+                self.output.push(0x71);
+                self.fail_if(STATUS_MUL_OVERFLOW);
+                self.get_scalar(left);
+                self.get_scalar(right);
+                self.output.push(0x7e);
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+            }
+            BinaryOp::Div | BinaryOp::Rem => {
+                self.get_scalar(right);
+                self.output.push(0x50);
+                self.fail_if(if op == BinaryOp::Div {
+                    STATUS_DIV_ZERO
+                } else {
+                    STATUS_REM_ZERO
+                });
+                self.get_scalar(left);
+                self.get_scalar(right);
+                self.output
+                    .push(if op == BinaryOp::Div { 0x80 } else { 0x82 });
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+            }
+            _ => return Err(error("usize binary operation is not arithmetic")),
+        }
+        Ok(Value::Scalar {
+            local: destination,
+            ty: expr.ty.clone(),
+        })
+    }
+
     fn place_value(&self, place: &crate::hir::Place) -> Result<Value, Diagnostic> {
         let mut value =
             self.bindings.get(&place.root).cloned().ok_or_else(|| {
@@ -3276,7 +3595,9 @@ impl Emitter<'_> {
 
     fn load_scalar(&mut self, ty: &ResolvedType) {
         match ty {
-            ResolvedType::I64 => self.output.extend([0x29, 0x03, 0x00]),
+            ResolvedType::I64 | ResolvedType::Usize | ResolvedType::SliceU8 => {
+                self.output.extend([0x29, 0x03, 0x00])
+            }
             ResolvedType::F64 => self.output.extend([0x2b, 0x03, 0x00]),
             ResolvedType::F32 => self.output.extend([0x2a, 0x02, 0x00]),
             ResolvedType::Bool | ResolvedType::Char | ResolvedType::I32 | ResolvedType::U8 => {
@@ -3288,7 +3609,9 @@ impl Emitter<'_> {
 
     fn store_scalar(&mut self, ty: &ResolvedType) {
         match ty {
-            ResolvedType::I64 => self.output.extend([0x37, 0x03, 0x00]),
+            ResolvedType::I64 | ResolvedType::Usize | ResolvedType::SliceU8 => {
+                self.output.extend([0x37, 0x03, 0x00])
+            }
             ResolvedType::F64 => self.output.extend([0x39, 0x03, 0x00]),
             ResolvedType::F32 => self.output.extend([0x38, 0x02, 0x00]),
             ResolvedType::Bool | ResolvedType::Char | ResolvedType::I32 | ResolvedType::U8 => {
@@ -3496,6 +3819,111 @@ mod tests {
     use crate::parse;
 
     static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+
+    const BYTE_BOUNDARY_SOURCE: &str = r#"
+module test.byte_boundary;
+@id("bytes.total")
+fn total(left: borrow Slice<u8>, right: borrow Slice<u8>) -> usize {
+    byte_len(left) + byte_len(right)
+}
+@id("bytes.forward")
+fn forward(left: borrow Slice<u8>, right: borrow Slice<u8>) -> usize {
+    total(left, right)
+}
+@id("bytes.at")
+fn at(value: borrow Slice<u8>, index: usize) -> u8 {
+    match byte_get(value, index) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    }
+}
+@id("usize.add.failure")
+fn usize_add(left: usize, right: usize) -> usize { left + right }
+@id("usize.sub.failure")
+fn usize_sub(left: usize, right: usize) -> usize { left - right }
+@id("usize.mul.failure")
+fn usize_mul(left: usize, right: usize) -> usize { left * right }
+@id("usize.div.failure")
+fn usize_div(left: usize, right: usize) -> usize { left / right }
+@id("usize.rem.failure")
+fn usize_rem(left: usize, right: usize) -> usize { left % right }
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+    #[test]
+    fn node_rejects_invalid_and_cumulatively_oversized_external_byte_roots() {
+        if Command::new("node").arg("--version").output().is_err() {
+            return;
+        }
+        let program = parse(BYTE_BOUNDARY_SOURCE, Path::new("byte-boundary-wasm.spx")).unwrap();
+        let resolved = hir::resolve(&program).unwrap();
+        let bytes = emit_profile(&resolved, true).unwrap();
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        let stem = format!("semaprax-byte-boundary-wasm-{}-{id}", std::process::id());
+        let wasm_path = std::env::temp_dir().join(format!("{stem}.wasm"));
+        let script_path = std::env::temp_dir().join(format!("{stem}.mjs"));
+        std::fs::write(&wasm_path, bytes).unwrap();
+        let export = |id: &str| format!("__spx_test_{}", hex_identity(&DeclarationId::new(id)));
+        let script = format!(
+            r#"import {{ readFile }} from "node:fs/promises";
+const fail = (name) => () => {{ throw new Error(`unexpected host import ${{name}}`); }};
+const bytes = await readFile(process.argv[2]);
+const {{ instance }} = await WebAssembly.instantiate(bytes, {{ env: {{
+  spx_add: (a, b) => a + b, spx_sub: fail("spx_sub"), spx_mul: fail("spx_mul"),
+  spx_div: fail("spx_div"), spx_rem: fail("spx_rem"), spx_neg: fail("spx_neg"),
+  spx_contract_fail: fail("spx_contract_fail"),
+}} }});
+const view = new DataView(instance.exports.__spx_test_memory.buffer);
+const output = 65536;
+const pack = (offset, length) => (BigInt(length) << 32n) | BigInt(offset);
+const forward = instance.exports["{forward}"];
+const at = instance.exports["{at}"];
+const usizeAdd = instance.exports["{usize_add}"];
+const usizeSub = instance.exports["{usize_sub}"];
+const usizeMul = instance.exports["{usize_mul}"];
+const usizeDiv = instance.exports["{usize_div}"];
+const usizeRem = instance.exports["{usize_rem}"];
+if (forward(pack(0, 32768), pack(32768, 32768), output) !== 0) throw new Error("valid boundary status");
+if (view.getBigUint64(output, true) !== 65536n) throw new Error("internal forwarding recharged roots");
+view.setUint8(10, 0); view.setUint8(11, 255); view.setUint8(12, 7);
+if (at(pack(10, 3), 1n, output) !== 0 || view.getUint8(output) !== 255) throw new Error("total indexed hit");
+if (at(pack(10, 3), 3n, output) !== 0 || view.getUint8(output) !== 0) throw new Error("total indexed miss");
+if (at(pack(10, 3), 0xffffffffffffffffn, output) !== 0 || view.getUint8(output) !== 0) throw new Error("total indexed max miss");
+if (usizeAdd(-1n, 1n, output) !== 1) throw new Error("usize add overflow status");
+if (usizeSub(0n, 1n, output) !== 2) throw new Error("usize sub overflow status");
+if (usizeMul(-1n, 2n, output) !== 3) throw new Error("usize mul overflow status");
+if (usizeDiv(1n, 0n, output) !== 4) throw new Error("usize division by zero status");
+if (usizeRem(1n, 0n, output) !== 6) throw new Error("usize remainder by zero status");
+let invalidRange = false;
+try {{ forward(pack(65000, 1000), pack(0, 0), output); }} catch {{ invalidRange = true; }}
+if (!invalidRange) throw new Error("invalid packed range was admitted");
+let cumulative = false;
+try {{ forward(pack(0, 40000), pack(0, 40000), output); }} catch {{ cumulative = true; }}
+if (!cumulative) throw new Error("cumulative external roots were admitted");
+"#,
+            forward = export("bytes.forward"),
+            at = export("bytes.at"),
+            usize_add = export("usize.add.failure"),
+            usize_sub = export("usize.sub.failure"),
+            usize_mul = export("usize.mul.failure"),
+            usize_div = export("usize.div.failure"),
+            usize_rem = export("usize.rem.failure")
+        );
+        std::fs::write(&script_path, script).unwrap();
+        let output = Command::new("node")
+            .arg(&script_path)
+            .arg(&wasm_path)
+            .output()
+            .unwrap();
+        let _ = std::fs::remove_file(&script_path);
+        let _ = std::fs::remove_file(&wasm_path);
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
 
     const GENERIC_INSTANCE_SOURCE: &str =
         include_str!("../../platform-tests/component-runtime/v9.spx");

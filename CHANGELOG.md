@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Added the first internal Portable Indexed Byte Data v1 tranche. `usize` is
+  one target-independent checked semantic `u64` with exact unsigned source,
+  HIR, Graph-v17, interpreter, native C, and Wasm behavior. Non-escaping
+  `borrow Slice<u8>` parameters carry independently validated symbolic
+  parameter-root provenance through immutable aliases and internal calls;
+  concrete host boundaries enforce a cumulative 65,536-byte root limit once.
+  Compiler-owned `byte_len` and total `byte_get -> Option<u8>` are NUL-safe and
+  never perform an out-of-range load. Local evidence covers checked usize
+  failure codes, native O0/O2, internal Node/Wasm parity, malformed carriers,
+  exact capacity boundaries, cleanup inertness, Graph provenance, and stable
+  diagnostics. Fixed arrays, owned `Bytes`, conversions, public Project/npm
+  adapters, and hosted promotion remain open. Economic Agent unit proof code
+  was also moved from the production module into `economic_agent/tests.rs`
+  while preserving every existing test path and behavior.
+
 - Added the locally evidenced Useful Text Consumer v1 / Project Manifest v2
   tranche. Source and hostile HIR now admit a non-escaping `borrow str` input
   view with compiler-owned byte-length, empty, prefix, and contains operations;
@@ -23,8 +38,9 @@
   native O0/O2, Wasm, stable-ID display rename,
   carrier tamper rejection, and offline pack/install/consumer execution while
   preserving Project-v1 and scalar Web bytes. Exact-head hosted promotion is
-  pending. This does not claim `usize`, arrays/slices, indexing, iteration,
-  general text processing, dependency resolution, or npm registry publication.
+  pending. This text tranche does not claim arrays, owned byte buffers,
+  iteration, general text processing, dependency resolution, or npm registry
+  publication; the separate internal indexed-byte tranche remains non-public.
 
 - Added one locally evidenced v0.2 product-acceptance runner over the
   multi-module calculator Project. It executes the authenticated entry and test

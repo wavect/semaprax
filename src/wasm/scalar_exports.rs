@@ -318,6 +318,7 @@ fn validate_expression_profile(
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -401,10 +402,12 @@ fn scalar_type(ty: &ResolvedType) -> Option<ScalarType> {
         | ResolvedType::I32
         | ResolvedType::Char
         | ResolvedType::U8
+        | ResolvedType::Usize
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::String
         | ResolvedType::Str
+        | ResolvedType::SliceU8
         | ResolvedType::TypeParameter { .. }
         | ResolvedType::Nominal { .. } => None,
     }

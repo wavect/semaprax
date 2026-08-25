@@ -67,8 +67,15 @@ fn binding_owned_capacity(binding: &Binding) -> usize {
 #[cfg(test)]
 fn ast_type_owned_capacity(ty: &Type) -> usize {
     match ty {
-        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => 0,
-        Type::String | Type::Str => 0,
+        Type::I64
+        | Type::I32
+        | Type::Char
+        | Type::U8
+        | Type::Usize
+        | Type::F32
+        | Type::F64
+        | Type::Bool => 0,
+        Type::String | Type::Str | Type::SliceU8 => 0,
         Type::Named { name, arguments } => name
             .capacity()
             .saturating_add(arguments.capacity() * std::mem::size_of::<Type>())
@@ -347,11 +354,13 @@ impl<'a> TypeTable<'a> {
                     Type::I32 => resolved.push(Type::I32),
                     Type::Char => resolved.push(Type::Char),
                     Type::U8 => resolved.push(Type::U8),
+                    Type::Usize => resolved.push(Type::Usize),
                     Type::F32 => resolved.push(Type::F32),
                     Type::F64 => resolved.push(Type::F64),
                     Type::Bool => resolved.push(Type::Bool),
                     Type::String => resolved.push(Type::String),
                     Type::Str => resolved.push(Type::Str),
+                    Type::SliceU8 => resolved.push(Type::SliceU8),
                     Type::Named {
                         name,
                         arguments: nested,
@@ -413,10 +422,12 @@ impl<'a> TypeTable<'a> {
             | Type::I32
             | Type::Char
             | Type::U8
+            | Type::Usize
             | Type::F32
             | Type::F64
             | Type::Bool
-            | Type::Str => false,
+            | Type::Str
+            | Type::SliceU8 => false,
             Type::Named { name, arguments } => {
                 if !visiting.insert(name.clone()) {
                     return false;
@@ -797,6 +808,17 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                         field.span,
                     ));
                 }
+                if field.ty == Type::SliceU8 {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T264",
+                        format!(
+                            "aggregate field `{}.{}` cannot store borrowed `Slice<u8>`",
+                            declaration.name, field.name
+                        ),
+                        field.span,
+                    ));
+                }
                 if !source_identifier(&field.name) {
                     diagnostics.push(error(
                         program,
@@ -923,6 +945,17 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                             "SPX-O116",
                             format!(
                                 "variant field `{}::{}.{}` cannot store borrowed `str`",
+                                declaration.name, case.name, field.name
+                            ),
+                            field.span,
+                        ));
+                    }
+                    if field.ty == Type::SliceU8 {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T264",
+                            format!(
+                                "variant field `{}::{}.{}` cannot store borrowed `Slice<u8>`",
                                 declaration.name, case.name, field.name
                             ),
                             field.span,
@@ -1152,6 +1185,14 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 ));
             }
             for param in &import.params {
+                if param.ty == Type::SliceU8 {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T268",
+                        "`Slice<u8>` cannot cross an import boundary",
+                        param.span,
+                    ));
+                }
                 check_declared_type(
                     program,
                     &param.ty,
@@ -1487,6 +1528,17 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 "SPX-S113",
                 format!(
                     "function name `{}` is reserved by the compiler-owned borrowed string operations",
+                    function.name
+                ),
+                function.name_span,
+            ));
+        }
+        if crate::byte_ops::by_name(&function.name).is_some() {
+            diagnostics.push(error(
+                program,
+                "SPX-S113",
+                format!(
+                    "function name `{}` is reserved by the compiler-owned byte operations",
                     function.name
                 ),
                 function.name_span,
@@ -2046,6 +2098,17 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                     function.span,
                 ));
             }
+            if function.return_type == Type::SliceU8 {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T264",
+                    format!(
+                        "function `{}` cannot return borrowed `Slice<u8>`; byte views cannot escape their invocation",
+                        function.name
+                    ),
+                    function.span,
+                ));
+            }
             for param in &function.params {
                 if !source_identifier(&param.name) {
                     diagnostics.push(error(
@@ -2466,7 +2529,14 @@ fn direct_function_type_argument(ty: &Type) -> bool {
 fn generic_function_signature_slot(ty: &Type, parameters: &HashSet<&str>) -> bool {
     match ty {
         Type::I64 | Type::Bool | Type::String => true,
-        Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Str => false,
+        Type::I32
+        | Type::Char
+        | Type::U8
+        | Type::Usize
+        | Type::F32
+        | Type::F64
+        | Type::Str
+        | Type::SliceU8 => false,
         Type::Named { name, arguments } => {
             arguments.is_empty() && parameters.contains(name.as_str())
         }
@@ -2491,11 +2561,13 @@ fn substitute_function_type(
                 Type::I32 => resolved.push(Type::I32),
                 Type::Char => resolved.push(Type::Char),
                 Type::U8 => resolved.push(Type::U8),
+                Type::Usize => resolved.push(Type::Usize),
                 Type::F32 => resolved.push(Type::F32),
                 Type::F64 => resolved.push(Type::F64),
                 Type::Bool => resolved.push(Type::Bool),
                 Type::String => resolved.push(Type::String),
                 Type::Str => resolved.push(Type::Str),
+                Type::SliceU8 => resolved.push(Type::SliceU8),
                 Type::Named {
                     name,
                     arguments: nested,
@@ -2552,6 +2624,7 @@ fn generic_function_expression_is_direct_scalar(expression: &Expr) -> bool {
             | ExprKind::Int32(_)
             | ExprKind::Char(_)
             | ExprKind::Uint8(_)
+            | ExprKind::Usize(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)
@@ -2680,6 +2753,23 @@ fn check_ownership_mode(
                     param.span,
                 )
                 .with_help(format!("use `{}: borrow str`", param.name)),
+            );
+        }
+        return;
+    }
+    if param.ty == Type::SliceU8 {
+        if param.mode != ParamMode::Borrow {
+            diagnostics.push(
+                error(
+                    program,
+                    "SPX-T263",
+                    format!(
+                        "byte-slice parameter `{}.{}` must use `borrow Slice<u8>`",
+                        function.name, param.name
+                    ),
+                    param.span,
+                )
+                .with_help(format!("use `{}: borrow Slice<u8>`", param.name)),
             );
         }
         return;
@@ -3137,6 +3227,7 @@ fn pattern_literal_type(value: crate::ast::PatternLiteral) -> Type {
         crate::ast::PatternLiteral::Int(_) => Type::I64,
         crate::ast::PatternLiteral::Int32(_) => Type::I32,
         crate::ast::PatternLiteral::Uint8(_) => Type::U8,
+        crate::ast::PatternLiteral::Usize(_) => Type::Usize,
         crate::ast::PatternLiteral::Char(_) => Type::Char,
         crate::ast::PatternLiteral::Bool(_) => Type::Bool,
     }
@@ -3577,6 +3668,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             | ExprKind::Int32(_)
             | ExprKind::Char(_)
             | ExprKind::Uint8(_)
+            | ExprKind::Usize(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)
@@ -3819,6 +3911,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     ExprKind::Int32(_) => self.values.push(Some(CheckedValue::value(Type::I32))),
                     ExprKind::Char(_) => self.values.push(Some(CheckedValue::value(Type::Char))),
                     ExprKind::Uint8(_) => self.values.push(Some(CheckedValue::value(Type::U8))),
+                    ExprKind::Usize(_) => self.values.push(Some(CheckedValue::value(Type::Usize))),
                     ExprKind::Float32(_) => self.values.push(Some(CheckedValue::value(Type::F32))),
                     ExprKind::Float64(_) => self.values.push(Some(CheckedValue::value(Type::F64))),
                     ExprKind::Bool(_) => self.values.push(Some(CheckedValue::value(Type::Bool))),
@@ -3997,6 +4090,36 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     "SPX-T204",
                                     format!(
                                         "`{name}` expects {} arguments, received {}",
+                                        params.len(),
+                                        args.len()
+                                    ),
+                                    expression.span,
+                                ));
+                            }
+                            VerifierCallTarget::Ordinary(Some(
+                                VerifierFunctionSignature::Specialized {
+                                    params,
+                                    return_type: op.ast_return_type(),
+                                },
+                            ))
+                        } else if let Some(op) = crate::byte_ops::by_name(name) {
+                            let params = crate::byte_ops::ast_params(op);
+                            if !type_arguments.is_empty() {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-T263",
+                                    format!(
+                                        "byte operation `{name}` does not accept type arguments"
+                                    ),
+                                    expression.span,
+                                ));
+                            }
+                            if args.len() != params.len() {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-T263",
+                                    format!(
+                                        "byte operation `{name}` expects {} arguments, received {}",
                                         params.len(),
                                         args.len()
                                     ),
@@ -4534,6 +4657,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         | Type::I32
                                         | Type::Char
                                         | Type::U8
+                                        | Type::Usize
                                         | Type::F32
                                         | Type::F64
                                 )
@@ -4542,6 +4666,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         .as_ref()
                         .map(|value| value.ty.clone())
                         .filter(|ty| matches!(ty, Type::U8));
+                    let left_usize = left_value
+                        .as_ref()
+                        .map(|value| value.ty.clone())
+                        .filter(|ty| matches!(ty, Type::Usize));
                     let left_numeric = left_value
                         .as_ref()
                         .map(|value| value.ty.clone())
@@ -4589,6 +4717,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 .clone()
                                 .or(left_integer)
                                 .or(left_narrow)
+                                .or(left_usize)
                                 .unwrap_or(Type::I64);
                             (expected.clone(), expected)
                         }
@@ -4833,6 +4962,16 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     *name_span,
                                 ));
                             } else if let Some(actual) = actual {
+                                if actual.ty == Type::SliceU8 && *mutable {
+                                    self.diagnostics.push(error(
+                                        self.program,
+                                        "SPX-T264",
+                                        format!(
+                                            "byte-slice alias `{name}` must be immutable and cannot be reassigned"
+                                        ),
+                                        *name_span,
+                                    ));
+                                }
                                 // Class Inheritance v1: a declared type accepts
                                 // the value's exact type or an ancestor class
                                 // whose prefix consumes the value cleanly; the
@@ -4866,8 +5005,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     }
                                     if exact || upcast {
                                         binding_ty = declared_ty.clone();
-                                        binding_mode = if self.types.contains_resource(declared_ty)
-                                        {
+                                        binding_mode = if *declared_ty == Type::SliceU8 {
+                                            ParamMode::Borrow
+                                        } else if self.types.contains_resource(declared_ty) {
                                             ParamMode::Own
                                         } else {
                                             ParamMode::Value
@@ -6128,7 +6268,12 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     let scalar_scrutinee = scrutinee_value.as_ref().is_some_and(|value| {
                         matches!(
                             value.ty,
-                            Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::Bool
+                            Type::I64
+                                | Type::I32
+                                | Type::Char
+                                | Type::U8
+                                | Type::Usize
+                                | Type::Bool
                         ) && value.mode == ParamMode::Value
                     });
                     if scalar_scrutinee {
@@ -6385,11 +6530,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             | Type::I32
                             | Type::Char
                             | Type::U8
+                            | Type::Usize
                             | Type::F32
                             | Type::F64
                             | Type::Bool
                             | Type::String
                             | Type::Str
+                            | Type::SliceU8
                             | Type::Named { .. } => None,
                         });
                     let variant_name = variant_instance.as_ref().map(|(name, _)| name.clone());
@@ -6933,6 +7080,7 @@ fn check_expr(
         ExprKind::Int32(_) => Some(CheckedValue::value(Type::I32)),
         ExprKind::Char(_) => Some(CheckedValue::value(Type::Char)),
         ExprKind::Uint8(_) => Some(CheckedValue::value(Type::U8)),
+        ExprKind::Usize(_) => Some(CheckedValue::value(Type::Usize)),
         ExprKind::Float32(_) => Some(CheckedValue::value(Type::F32)),
         ExprKind::Float64(_) => Some(CheckedValue::value(Type::F64)),
         ExprKind::Bool(_) => Some(CheckedValue::value(Type::Bool)),
@@ -7500,13 +7648,17 @@ fn check_expr(
                 .filter(|ty| {
                     matches!(
                         ty,
-                        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64
+                        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::Usize | Type::F32 | Type::F64
                     )
                 });
             let left_narrow = left_ty
                 .as_ref()
                 .map(|value| value.ty.clone())
                 .filter(|ty| matches!(ty, Type::U8));
+            let left_usize = left_ty
+                .as_ref()
+                .map(|value| value.ty.clone())
+                .filter(|ty| matches!(ty, Type::Usize));
             let left_numeric = left_ty
                 .as_ref()
                 .map(|value| value.ty.clone())
@@ -7548,6 +7700,7 @@ fn check_expr(
                         .clone()
                         .or(left_integer)
                         .or(left_narrow)
+                        .or(left_usize)
                         .unwrap_or(Type::I64);
                     (expected.clone(), expected)
                 }
@@ -7834,7 +7987,7 @@ fn check_expr(
             let scalar_scrutinee = scrutinee_value.as_ref().is_some_and(|value| {
                 matches!(
                     value.ty,
-                    Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::Bool
+                    Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::Usize | Type::Bool
                 ) && value.mode == ParamMode::Value
             });
             if scalar_scrutinee {
@@ -8129,11 +8282,13 @@ fn check_expr(
                 | Type::I32
                 | Type::Char
                 | Type::U8
+                | Type::Usize
                 | Type::F32
                 | Type::F64
                 | Type::Bool
                 | Type::String
                 | Type::Str
+                | Type::SliceU8
                 | Type::Named { .. } => None,
             });
             let variant_name = variant_instance.as_ref().map(|(name, _)| name.clone());
@@ -8997,6 +9152,7 @@ fn reject_while_disallowed_oracle(
         | ExprKind::Int32(_)
         | ExprKind::Char(_)
         | ExprKind::Uint8(_)
+        | ExprKind::Usize(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
         | ExprKind::Bool(_)
@@ -9720,7 +9876,14 @@ fn source_identifier(value: &str) -> bool {
 pub(crate) fn is_scalar_source_type(ty: &Type) -> bool {
     matches!(
         ty,
-        Type::I64 | Type::I32 | Type::U8 | Type::Char | Type::F32 | Type::F64 | Type::Bool
+        Type::I64
+            | Type::I32
+            | Type::U8
+            | Type::Usize
+            | Type::Char
+            | Type::F32
+            | Type::F64
+            | Type::Bool
     )
 }
 

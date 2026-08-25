@@ -552,11 +552,12 @@ fn validate_supported_type(
         | ResolvedType::I32
         | ResolvedType::Char
         | ResolvedType::U8
+        | ResolvedType::Usize
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => Ok(()),
         // Owned strings are ordinary values with backend-inline drops.
-        ResolvedType::String | ResolvedType::Str => Ok(()),
+        ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 => Ok(()),
         ResolvedType::TypeParameter { .. } => Err(unsupported(
             function,
             format!(
@@ -696,6 +697,7 @@ fn validate_expression(
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)

@@ -61,10 +61,13 @@ fn resolved_type_owned_capacity(ty: &crate::hir::ResolvedType) -> Option<usize> 
         | crate::hir::ResolvedType::I32
         | crate::hir::ResolvedType::Char
         | crate::hir::ResolvedType::U8
+        | crate::hir::ResolvedType::Usize
         | crate::hir::ResolvedType::F32
         | crate::hir::ResolvedType::F64
         | crate::hir::ResolvedType::Bool => Some(0),
-        crate::hir::ResolvedType::String | crate::hir::ResolvedType::Str => Some(0),
+        crate::hir::ResolvedType::String
+        | crate::hir::ResolvedType::Str
+        | crate::hir::ResolvedType::SliceU8 => Some(0),
         crate::hir::ResolvedType::TypeParameter { owner, .. } => Some(owner.as_str().len()),
         crate::hir::ResolvedType::Nominal {
             declaration,

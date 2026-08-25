@@ -98,9 +98,11 @@ impl VariantLayout {
             return Err(layout_error(format!("`{variant}` is not a variant")));
         };
         if arguments.len() != declaration.type_parameters.len()
-            || arguments
-                .iter()
-                .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+            || arguments.iter().any(|argument| {
+                !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
+                    && !(variant.as_str() == crate::prelude::OPTION_ID
+                        && *argument == ResolvedType::U8)
+            })
         {
             return Err(layout_error(format!(
                 "variant `{variant}` has invalid concrete arguments"
@@ -497,6 +499,7 @@ fn collect_expr_variant_types(
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)

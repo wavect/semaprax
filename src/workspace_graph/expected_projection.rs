@@ -547,6 +547,7 @@ fn ast_expr_identity_slots(expression: &Expr) -> Result<usize, Vec<Diagnostic>> 
         | ExprKind::Int32(_)
         | ExprKind::Char(_)
         | ExprKind::Uint8(_)
+        | ExprKind::Usize(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
         | ExprKind::Bool(_)
@@ -837,6 +838,7 @@ fn ast_expr_cost(expression: &Expr, cost: &mut StructuralCost) -> Result<(), Vec
         | ExprKind::Int32(_)
         | ExprKind::Char(_)
         | ExprKind::Uint8(_)
+        | ExprKind::Usize(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
         | ExprKind::Bool(_)
@@ -927,6 +929,7 @@ fn default_expr_expanded_cost(
         | Type::I32
         | Type::Char
         | Type::U8
+        | Type::Usize
         | Type::F32
         | Type::F64
         | Type::Bool
@@ -935,6 +938,10 @@ fn default_expr_expanded_cost(
             bytes: std::mem::size_of::<Expr>(),
             identity_slots: 0,
         }),
+        Type::SliceU8 => Err(vec![graph_error(
+            "SPX-G173",
+            "borrowed `Slice<u8>` has no synthesizable workspace default",
+        )]),
         Type::Named { name, arguments } if arguments.is_empty() => {
             let target_id = resolve_type_id(module, name, programs).ok_or_else(|| {
                 vec![graph_error(
@@ -1332,6 +1339,7 @@ fn default_expr(
         Type::I32 => ExprKind::Int32(0),
         Type::Char => ExprKind::Char(0),
         Type::U8 => ExprKind::Uint8(0),
+        Type::Usize => ExprKind::Usize(0),
         Type::F32 => ExprKind::Float32(0),
         Type::F64 => ExprKind::Float64(0),
         Type::Bool => ExprKind::Bool(false),
@@ -1340,6 +1348,12 @@ fn default_expr(
             return Err(vec![graph_error(
                 "SPX-G173",
                 "borrowed `str` has no synthesizable workspace default",
+            )]);
+        }
+        Type::SliceU8 => {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "borrowed `Slice<u8>` has no synthesizable workspace default",
             )]);
         }
         Type::Named { name, arguments } if arguments.is_empty() => {
@@ -2151,6 +2165,7 @@ fn collect_expression_type_edges(
         | ExprKind::Int32(_)
         | ExprKind::Char(_)
         | ExprKind::Uint8(_)
+        | ExprKind::Usize(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
         | ExprKind::Bool(_)

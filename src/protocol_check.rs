@@ -385,6 +385,11 @@ fn check_type(
         Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => {
             Ok(())
         }
+        Type::Usize => Err(signature_error(
+            &protocol.name,
+            &method.name,
+            "`usize` is outside Protocol Projection v1".to_owned(),
+        )),
         Type::String => Err(signature_error(
             &protocol.name,
             &method.name,
@@ -394,6 +399,11 @@ fn check_type(
             &protocol.name,
             &method.name,
             "borrowed `str` is outside Protocol Projection v1".to_owned(),
+        )),
+        Type::SliceU8 => Err(signature_error(
+            &protocol.name,
+            &method.name,
+            "borrowed `Slice<u8>` is outside Protocol Projection v1".to_owned(),
         )),
         Type::Named { name, arguments } => {
             if !arguments.is_empty() {

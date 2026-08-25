@@ -635,6 +635,7 @@ fn expression_path_counts_with_while(
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -924,6 +925,7 @@ fn expression_skeleton_work_upper(
                 | ResolvedExprKind::Int32(_)
                 | ResolvedExprKind::Char(_)
                 | ResolvedExprKind::Uint8(_)
+                | ResolvedExprKind::Usize(_)
                 | ResolvedExprKind::Float32(_)
                 | ResolvedExprKind::Float64(_)
                 | ResolvedExprKind::Bool(_)
@@ -1528,7 +1530,10 @@ fn type_needs_drop(
                 format!("type `{}` has no cleanup facts", ty.identity_key()),
             )
         })?
-        && !matches!(ty, ResolvedType::String | ResolvedType::Str))
+        && !matches!(
+            ty,
+            ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8
+        ))
 }
 
 /// Resolve one call's parameters for replay: compiler-owned string operations
@@ -1546,6 +1551,9 @@ fn resolved_call_params(
         }
         if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
             return Ok(crate::str_ops::resolved_params(op));
+        }
+        if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
+            return Ok(crate::byte_ops::resolved_params(op));
         }
     }
     let target = program
@@ -1632,7 +1640,8 @@ fn collect_expression_statuses(
             } => {
                 if instance.is_none()
                     && (crate::string_ops::by_id(callee.as_str()).is_some()
-                        || crate::str_ops::by_id(callee.as_str()).is_some())
+                        || crate::str_ops::by_id(callee.as_str()).is_some()
+                        || crate::byte_ops::by_id(callee.as_str()).is_some())
                 {
                     // String operations project like ordinary propagated calls.
                 } else if program
@@ -1711,6 +1720,7 @@ fn collect_expression_statuses(
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -2955,6 +2965,7 @@ fn expression_skeleton(
                     | ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)
                     | ResolvedExprKind::Uint8(_)
+                    | ResolvedExprKind::Usize(_)
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_)
@@ -3034,10 +3045,16 @@ fn expression_skeleton(
                             .is_none()
                             .then(|| crate::str_ops::by_id(callee.as_str()))
                             .flatten();
+                        let byte_intrinsic = instance
+                            .is_none()
+                            .then(|| crate::byte_ops::by_id(callee.as_str()))
+                            .flatten();
                         let params = if let Some(op) = string_intrinsic {
                             crate::string_ops::resolved_params(op)
                         } else if let Some(op) = str_intrinsic {
                             crate::str_ops::resolved_params(op)
+                        } else if let Some(op) = byte_intrinsic {
+                            crate::byte_ops::resolved_params(op)
                         } else {
                             let target = program
                                 .resolve_call_target(callee, instance.as_ref())
@@ -4167,11 +4184,13 @@ fn validate_match_skeleton_shape(
         | ResolvedType::I32
         | ResolvedType::Char
         | ResolvedType::U8
+        | ResolvedType::Usize
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool
         | ResolvedType::String
         | ResolvedType::Str
+        | ResolvedType::SliceU8
         | ResolvedType::TypeParameter { .. } => false,
     };
     if is_record {
@@ -6034,6 +6053,7 @@ fn replay_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&R
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)

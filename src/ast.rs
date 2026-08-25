@@ -25,6 +25,8 @@ pub enum Type {
     I32,
     Char,
     U8,
+    /// A target-independent checked unsigned 64-bit semantic integer.
+    Usize,
     F32,
     F64,
     Bool,
@@ -32,6 +34,9 @@ pub enum Type {
     /// A borrowed UTF-8 view. Source functions may receive it only through
     /// an explicit `borrow str` parameter; it has no literal or owned form.
     Str,
+    /// A non-escaping immutable byte view rooted in one external invocation
+    /// input. It is written exactly `Slice<u8>` and has no owned form.
+    SliceU8,
     Named {
         name: String,
         arguments: Vec<Type>,
@@ -51,11 +56,13 @@ impl fmt::Display for Type {
                 Frame::Type(Type::I32) => f.write_str("i32")?,
                 Frame::Type(Type::Char) => f.write_str("char")?,
                 Frame::Type(Type::U8) => f.write_str("u8")?,
+                Frame::Type(Type::Usize) => f.write_str("usize")?,
                 Frame::Type(Type::F32) => f.write_str("f32")?,
                 Frame::Type(Type::F64) => f.write_str("f64")?,
                 Frame::Type(Type::Bool) => f.write_str("bool")?,
                 Frame::Type(Type::String) => f.write_str("string")?,
                 Frame::Type(Type::Str) => f.write_str("str")?,
+                Frame::Type(Type::SliceU8) => f.write_str("Slice<u8>")?,
                 Frame::Type(Type::Named { name, arguments }) => {
                     f.write_str(name)?;
                     if !arguments.is_empty() {
@@ -331,6 +338,8 @@ pub enum ExprKind {
     Char(u32),
     /// A `u8` literal stored as its exact value.
     Uint8(u8),
+    /// A `usize` literal stored as its target-independent unsigned value.
+    Usize(u64),
     /// An `f32` literal stored as its exact IEEE-754 bit pattern.
     Float32(u32),
     /// An `f64` literal stored as its exact IEEE-754 bit pattern.
@@ -467,6 +476,7 @@ pub enum PatternLiteral {
     Int(i64),
     Int32(i32),
     Uint8(u8),
+    Usize(u64),
     Char(u32),
     Bool(bool),
 }
@@ -478,6 +488,7 @@ impl PatternLiteral {
             Self::Int(_) => "i64",
             Self::Int32(_) => "i32",
             Self::Uint8(_) => "u8",
+            Self::Usize(_) => "usize",
             Self::Char(_) => "char",
             Self::Bool(_) => "bool",
         }
@@ -809,6 +820,7 @@ impl Expr {
             | ExprKind::Int32(_)
             | ExprKind::Char(_)
             | ExprKind::Uint8(_)
+            | ExprKind::Usize(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)

@@ -852,6 +852,10 @@ impl Parser {
                 kind: ExprKind::Uint8(value),
                 span: token.span,
             },
+            TokenKind::Usize(value) => Expr {
+                kind: ExprKind::Usize(value),
+                span: token.span,
+            },
             TokenKind::String(value) => Expr {
                 kind: ExprKind::String(value),
                 span: token.span,
@@ -882,6 +886,14 @@ impl Parser {
                 };
                 let value = self.expression_with_record_literals(7, allow_record_literals)?;
                 let span = token.span.merge(value.span);
+                if op == UnaryOp::Neg && matches!(value.kind, ExprKind::Usize(_)) {
+                    return Err(Diagnostic::error(
+                        "SPX-T260",
+                        "usize literals cannot be negative",
+                        span,
+                    )
+                    .at_path(&self.path));
+                }
                 Expr {
                     kind: ExprKind::Unary {
                         op,
@@ -1480,6 +1492,14 @@ impl Parser {
                     i128::from(i32::MIN),
                     token.span,
                 )? as i32),
+                TokenKind::Usize(_) => {
+                    return Err(Diagnostic::error(
+                        "SPX-T260",
+                        "usize literals cannot be negative",
+                        minus_span.merge(token.span),
+                    )
+                    .at_path(&self.path))
+                }
                 _ => {
                     return Err(Diagnostic::error(
                         "SPX-P206",
@@ -1565,6 +1585,10 @@ impl Parser {
             },
             TokenKind::Uint8(value) => MatchPattern::Literal {
                 value: PatternLiteral::Uint8(value),
+                span: token.span,
+            },
+            TokenKind::Usize(value) => MatchPattern::Literal {
+                value: PatternLiteral::Usize(value),
                 span: token.span,
             },
             TokenKind::Char(value) => MatchPattern::Literal {
@@ -1670,9 +1694,21 @@ impl Parser {
 
     fn ty(&mut self) -> Result<Type, Diagnostic> {
         let (name, _) = self.qualified_ident("type")?;
+        if name == "Slice" {
+            self.expect(&TokenKind::Lt, "`<` after `Slice`")?;
+            let (element, _element_span) = self.qualified_ident("slice element type")?;
+            if element != "u8" {
+                return Err(self.error_here(
+                    "SPX-T268",
+                    "Portable Indexed Byte Data v1 admits only `Slice<u8>`",
+                ));
+            }
+            self.expect(&TokenKind::Gt, "`>` after `Slice<u8`")?;
+            return Ok(Type::SliceU8);
+        }
         let is_primitive = matches!(
             name.as_str(),
-            "i64" | "i32" | "u8" | "char" | "f32" | "f64" | "bool" | "string" | "str"
+            "i64" | "i32" | "u8" | "usize" | "char" | "f32" | "f64" | "bool" | "string" | "str"
         );
         if is_primitive && self.at(&TokenKind::Lt) {
             return Err(self.error_here(
@@ -1684,6 +1720,7 @@ impl Parser {
             "i64" => Ok(Type::I64),
             "i32" => Ok(Type::I32),
             "u8" => Ok(Type::U8),
+            "usize" => Ok(Type::Usize),
             "char" => Ok(Type::Char),
             "f32" => Ok(Type::F32),
             "f64" => Ok(Type::F64),

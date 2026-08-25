@@ -178,15 +178,16 @@ pub(crate) fn plan(
         ResolvedType::I32
         | ResolvedType::Char
         | ResolvedType::U8
+        | ResolvedType::Usize
         | ResolvedType::F32
         | ResolvedType::F64 => {
             return Err(value_error(
                 "non-i64 scalar result is outside the staged single-frame value corpus",
             ));
         }
-        ResolvedType::String | ResolvedType::Str => {
+        ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 => {
             return Err(value_error(
-                "text result is outside the staged single-frame value corpus",
+                "text or borrowed-data result is outside the staged single-frame value corpus",
             ));
         }
         ResolvedType::I64 => {
@@ -976,15 +977,16 @@ fn validate_signature(
             ResolvedType::I32
             | ResolvedType::Char
             | ResolvedType::U8
+            | ResolvedType::Usize
             | ResolvedType::F32
             | ResolvedType::F64 => {
                 return Err(value_error(
                     "non-i64 scalar parameter is outside the staged single-frame value corpus",
                 ));
             }
-            ResolvedType::String | ResolvedType::Str => {
+            ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 => {
                 return Err(value_error(
-                    "text parameter is outside the staged single-frame value corpus",
+                    "text or borrowed-data parameter is outside the staged single-frame value corpus",
                 ));
             }
             ResolvedType::I64 | ResolvedType::Bool => {
@@ -1025,11 +1027,13 @@ fn validate_signature(
         | ResolvedType::I32
         | ResolvedType::Char
         | ResolvedType::U8
+        | ResolvedType::Usize
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool
         | ResolvedType::String
         | ResolvedType::Str
+        | ResolvedType::SliceU8
         | ResolvedType::TypeParameter { .. }
         | ResolvedType::Nominal { .. } => {
             Err(value_error("result type is outside the staged corpus"))

@@ -271,6 +271,7 @@ fn collect_variant_domains(
             | hir::ResolvedExprKind::Int32(_)
             | hir::ResolvedExprKind::Char(_)
             | hir::ResolvedExprKind::Uint8(_)
+            | hir::ResolvedExprKind::Usize(_)
             | hir::ResolvedExprKind::Float32(_)
             | hir::ResolvedExprKind::Float64(_)
             | hir::ResolvedExprKind::Bool(_)
@@ -681,6 +682,7 @@ fn find_expression_by<'a>(
         | hir::ResolvedExprKind::Int32(_)
         | hir::ResolvedExprKind::Char(_)
         | hir::ResolvedExprKind::Uint8(_)
+        | hir::ResolvedExprKind::Usize(_)
         | hir::ResolvedExprKind::Float32(_)
         | hir::ResolvedExprKind::Float64(_)
         | hir::ResolvedExprKind::Bool(_)
@@ -1276,6 +1278,7 @@ impl<'a> Executor<'a> {
             | (ResolvedType::Bool, TraceResult::Bool(_))
             | (ResolvedType::Char, TraceResult::Char(_))
             | (ResolvedType::U8, TraceResult::Uint8(_))
+            | (ResolvedType::Usize, TraceResult::Usize(_))
             | (ResolvedType::F32, TraceResult::F32(_))
             | (ResolvedType::F64, TraceResult::F64(_)) => true,
             (ResolvedType::Nominal { declaration, .. }, TraceResult::Owned { type_id }) => {
@@ -1290,6 +1293,7 @@ impl<'a> Executor<'a> {
                 | ResolvedType::I32
                 | ResolvedType::Char
                 | ResolvedType::U8
+                | ResolvedType::Usize
                 | ResolvedType::F32
                 | ResolvedType::F64
                 | ResolvedType::Bool,
@@ -1301,6 +1305,7 @@ impl<'a> Executor<'a> {
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Unit)
             | (CleanupResultSource::Scalar { .. }, ResolvedType::String)
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Str)
+            | (CleanupResultSource::Scalar { .. }, ResolvedType::SliceU8)
             | (CleanupResultSource::Owned { .. }, ResolvedType::Unit)
             | (
                 CleanupResultSource::Owned { .. },
@@ -1308,11 +1313,13 @@ impl<'a> Executor<'a> {
                 | ResolvedType::I32
                 | ResolvedType::Char
                 | ResolvedType::U8
+                | ResolvedType::Usize
                 | ResolvedType::F32
                 | ResolvedType::F64
                 | ResolvedType::Bool
                 | ResolvedType::String
-                | ResolvedType::Str,
+                | ResolvedType::Str
+                | ResolvedType::SliceU8,
             )
             | (_, ResolvedType::TypeParameter { .. }) => false,
         };

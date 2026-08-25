@@ -300,10 +300,11 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
         | ResolvedType::I32
         | ResolvedType::Char
         | ResolvedType::U8
+        | ResolvedType::Usize
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => 0,
-        ResolvedType::String | ResolvedType::Str => 0,
+        ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,
@@ -484,6 +485,7 @@ fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -591,6 +593,7 @@ pub(crate) fn is_scalar_resolved_type(ty: &ResolvedType) -> bool {
         ResolvedType::I64
             | ResolvedType::I32
             | ResolvedType::U8
+            | ResolvedType::Usize
             | ResolvedType::Char
             | ResolvedType::F32
             | ResolvedType::F64
@@ -884,6 +887,35 @@ pub struct Declaration {
     pub owner: Option<DeclarationId>,
 }
 
+/// Authenticated origin class for one non-escaping byte-slice root.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ByteSliceRootKind {
+    /// A symbolic function-parameter root. Callers substitute the argument's
+    /// existing root; only a concrete host entry turns it into external input.
+    FunctionParameter,
+}
+
+/// A symbolic extent deliberately independent of the compiler host's pointer
+/// width. External lengths are checked as semantic u64 values at invocation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ByteSliceExtent {
+    Constant(u64),
+    ParameterLength,
+}
+
+/// Exact provenance for a byte view. In this first tranche every admitted
+/// source view is the complete symbolic parameter root (`offset = 0`,
+/// `length = root length`); aliases retain this fact rather than minting a new
+/// root. Host boundaries alone bind that symbol to external input storage.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ByteSliceProvenance {
+    pub root: ValueId,
+    pub root_kind: ByteSliceRootKind,
+    pub root_length: ByteSliceExtent,
+    pub offset: ByteSliceExtent,
+    pub length: ByteSliceExtent,
+}
+
 /// A deterministic, display-name-to-identity index.
 ///
 /// Types and values occupy distinct namespaces so future record/variant type
@@ -905,9 +937,19 @@ pub struct DeclarationIndex {
     /// Class Inheritance v1: the declared parent of each extending class.
     /// Classes without `extends` have no entry.
     class_parents: BTreeMap<DeclarationId, DeclarationId>,
+    byte_slice_roots: BTreeMap<ValueId, ByteSliceProvenance>,
 }
 
 impl DeclarationIndex {
+    pub fn byte_slice_provenance(&self, value: &ValueId) -> Option<&ByteSliceProvenance> {
+        self.byte_slice_roots.get(value)
+    }
+
+    pub fn byte_slice_provenances(
+        &self,
+    ) -> impl ExactSizeIterator<Item = (&ValueId, &ByteSliceProvenance)> {
+        self.byte_slice_roots.iter()
+    }
     #[cfg(test)]
     fn type_facts_layout_capacity(&self) -> usize {
         self.type_facts_by_id
@@ -1214,11 +1256,13 @@ impl DeclarationIndex {
                         ResolvedType::I32 => Some((true, false, false, "scalar:i32")),
                         ResolvedType::Char => Some((true, false, false, "scalar:char")),
                         ResolvedType::U8 => Some((true, false, false, "scalar:u8")),
+                        ResolvedType::Usize => Some((true, false, false, "scalar:usize")),
                         ResolvedType::F32 => Some((true, false, false, "scalar:f32")),
                         ResolvedType::F64 => Some((true, false, false, "scalar:f64")),
                         ResolvedType::Bool => Some((true, false, false, "scalar:bool")),
                         ResolvedType::String => Some((false, false, true, "owned:string")),
                         ResolvedType::Str => Some((false, false, false, "borrowed:str")),
+                        ResolvedType::SliceU8 => Some((false, false, false, "borrowed:slice-u8")),
                         ResolvedType::TypeParameter { .. } | ResolvedType::Nominal { .. } => None,
                     };
                     if let Some((copy, contains_resource, needs_drop, key)) = scalar {
@@ -1258,10 +1302,13 @@ impl DeclarationIndex {
                         return None;
                     }
                     let parameters = self.type_parameters.get(&declaration)?;
+                    let compiler_byte_option = declaration.as_str() == crate::prelude::OPTION_ID
+                        && arguments.as_slice() == [ResolvedType::U8];
                     if arguments.len() != parameters.len()
-                        || arguments.iter().any(|argument| {
-                            !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
-                        })
+                        || (!compiler_byte_option
+                            && arguments.iter().any(|argument| {
+                                !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
+                            }))
                         || !visiting.insert(declaration.clone())
                     {
                         return None;
@@ -2151,11 +2198,13 @@ impl DeclarationIndex {
                     Type::I32 => resolved.push(ResolvedType::I32),
                     Type::Char => resolved.push(ResolvedType::Char),
                     Type::U8 => resolved.push(ResolvedType::U8),
+                    Type::Usize => resolved.push(ResolvedType::Usize),
                     Type::F32 => resolved.push(ResolvedType::F32),
                     Type::F64 => resolved.push(ResolvedType::F64),
                     Type::Bool => resolved.push(ResolvedType::Bool),
                     Type::String => resolved.push(ResolvedType::String),
                     Type::Str => resolved.push(ResolvedType::Str),
+                    Type::SliceU8 => resolved.push(ResolvedType::SliceU8),
                     Type::Named { name, arguments } => {
                         if arguments.is_empty() {
                             if let Some(owner) = parameter_owner {
@@ -2200,6 +2249,8 @@ pub enum ResolvedType {
     Char,
     /// One unsigned 8-bit integer value.
     U8,
+    /// A target-independent checked unsigned 64-bit semantic integer.
+    Usize,
     /// IEEE-754 single precision.
     F32,
     /// IEEE-754 double precision.
@@ -2209,6 +2260,8 @@ pub enum ResolvedType {
     String,
     /// A non-owning UTF-8 view rooted in the current invocation.
     Str,
+    /// A non-owning byte view rooted in the current invocation.
+    SliceU8,
     TypeParameter {
         owner: DeclarationId,
         index: u32,
@@ -2220,6 +2273,17 @@ pub enum ResolvedType {
 }
 
 impl ResolvedType {
+    pub fn is_compiler_byte_option(&self) -> bool {
+        matches!(
+            self,
+            Self::Nominal {
+                declaration,
+                arguments,
+            } if declaration.as_str() == crate::prelude::OPTION_ID
+                && arguments.as_slice() == [ResolvedType::U8]
+        )
+    }
+
     pub fn nominal_id(&self) -> Option<&DeclarationId> {
         match self {
             Self::Nominal { declaration, .. } => Some(declaration),
@@ -2228,11 +2292,13 @@ impl ResolvedType {
             | Self::I32
             | Self::Char
             | Self::U8
+            | Self::Usize
             | Self::F32
             | Self::F64
             | Self::Bool
             | Self::String
             | Self::Str
+            | Self::SliceU8
             | Self::TypeParameter { .. } => None,
         }
     }
@@ -2253,11 +2319,13 @@ impl ResolvedType {
                     Self::I32 => keys.push("i32".to_owned()),
                     Self::Char => keys.push("char".to_owned()),
                     Self::U8 => keys.push("u8".to_owned()),
+                    Self::Usize => keys.push("usize".to_owned()),
                     Self::F32 => keys.push("f32".to_owned()),
                     Self::F64 => keys.push("f64".to_owned()),
                     Self::Bool => keys.push("bool".to_owned()),
                     Self::String => keys.push("string".to_owned()),
                     Self::Str => keys.push("str".to_owned()),
+                    Self::SliceU8 => keys.push("slice-u8".to_owned()),
                     Self::TypeParameter { owner, index } => keys.push(format!(
                         "parameter:{}:{}:{index}",
                         owner.as_str().len(),
@@ -2335,11 +2403,13 @@ pub(crate) fn substitute_type(
                 ResolvedType::I32 => resolved.push(ResolvedType::I32),
                 ResolvedType::Char => resolved.push(ResolvedType::Char),
                 ResolvedType::U8 => resolved.push(ResolvedType::U8),
+                ResolvedType::Usize => resolved.push(ResolvedType::Usize),
                 ResolvedType::F32 => resolved.push(ResolvedType::F32),
                 ResolvedType::F64 => resolved.push(ResolvedType::F64),
                 ResolvedType::Bool => resolved.push(ResolvedType::Bool),
                 ResolvedType::String => resolved.push(ResolvedType::String),
                 ResolvedType::Str => resolved.push(ResolvedType::Str),
+                ResolvedType::SliceU8 => resolved.push(ResolvedType::SliceU8),
                 ResolvedType::TypeParameter {
                     owner: parameter_owner,
                     index,
@@ -2409,11 +2479,13 @@ fn substitute_source_function_type(
                 Type::I32 => resolved.push(Type::I32),
                 Type::Char => resolved.push(Type::Char),
                 Type::U8 => resolved.push(Type::U8),
+                Type::Usize => resolved.push(Type::Usize),
                 Type::F32 => resolved.push(Type::F32),
                 Type::F64 => resolved.push(Type::F64),
                 Type::Bool => resolved.push(Type::Bool),
                 Type::String => resolved.push(Type::String),
                 Type::Str => resolved.push(Type::Str),
+                Type::SliceU8 => resolved.push(Type::SliceU8),
                 Type::Named {
                     name,
                     arguments: nested,
@@ -2583,6 +2655,7 @@ fn materialize_template_expr(
         ResolvedExprKind::Int32(value) => ResolvedExprKind::Int32(*value),
         ResolvedExprKind::Char(value) => ResolvedExprKind::Char(*value),
         ResolvedExprKind::Uint8(value) => ResolvedExprKind::Uint8(*value),
+        ResolvedExprKind::Usize(value) => ResolvedExprKind::Usize(*value),
         ResolvedExprKind::Float32(bits) => ResolvedExprKind::Float32(*bits),
         ResolvedExprKind::Float64(bits) => ResolvedExprKind::Float64(*bits),
         ResolvedExprKind::Bool(value) => ResolvedExprKind::Bool(*value),
@@ -3075,6 +3148,8 @@ pub enum ResolvedExprKind {
     Char(u32),
     /// A `u8` literal held as its exact value.
     Uint8(u8),
+    /// A target-independent `usize` literal held as its exact u64 value.
+    Usize(u64),
     /// An `f32` literal held as its exact IEEE-754 bit pattern.
     Float32(u32),
     /// An `f64` literal held as its exact IEEE-754 bit pattern.
@@ -3216,6 +3291,7 @@ pub enum PatternValue {
     Int(i64),
     Int32(i32),
     Uint8(u8),
+    Usize(u64),
     Char(u32),
     Bool(bool),
 }
@@ -3226,6 +3302,7 @@ impl PatternValue {
             crate::ast::PatternLiteral::Int(inner) => Self::Int(inner),
             crate::ast::PatternLiteral::Int32(inner) => Self::Int32(inner),
             crate::ast::PatternLiteral::Uint8(inner) => Self::Uint8(inner),
+            crate::ast::PatternLiteral::Usize(inner) => Self::Usize(inner),
             crate::ast::PatternLiteral::Char(inner) => Self::Char(inner),
             crate::ast::PatternLiteral::Bool(inner) => Self::Bool(inner),
         }
@@ -3237,6 +3314,7 @@ impl PatternValue {
             Self::Int(_) => ResolvedType::I64,
             Self::Int32(_) => ResolvedType::I32,
             Self::Uint8(_) => ResolvedType::U8,
+            Self::Usize(_) => ResolvedType::Usize,
             Self::Char(_) => ResolvedType::Char,
             Self::Bool(_) => ResolvedType::Bool,
         }
@@ -3376,6 +3454,134 @@ impl ResolvedStatement {
             Self::While {
                 condition, body, ..
             } => [condition.as_ref(), body.as_ref()].get(index).copied(),
+        }
+    }
+}
+
+fn derive_byte_slice_provenance(
+    functions: &[ResolvedFunction],
+) -> Result<BTreeMap<ValueId, ByteSliceProvenance>, Diagnostic> {
+    let mut facts = BTreeMap::new();
+    let mut aliases = Vec::<(&ResolvedBinding, bool, &ResolvedExpr)>::new();
+    for function in functions {
+        for parameter in &function.params {
+            if parameter.ty == ResolvedType::SliceU8 {
+                facts.insert(
+                    parameter.id.clone(),
+                    ByteSliceProvenance {
+                        root: parameter.id.clone(),
+                        root_kind: ByteSliceRootKind::FunctionParameter,
+                        root_length: ByteSliceExtent::ParameterLength,
+                        offset: ByteSliceExtent::Constant(0),
+                        length: ByteSliceExtent::ParameterLength,
+                    },
+                );
+            }
+        }
+        let mut pending = function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .collect::<Vec<_>>();
+        while let Some(expression) = pending.pop() {
+            match &expression.kind {
+                ResolvedExprKind::Call { args, .. } => pending.extend(args),
+                ResolvedExprKind::NativeRustImportCall(call) => pending.extend(&call.args),
+                ResolvedExprKind::Unary { value, .. }
+                | ResolvedExprKind::Try { operand: value, .. }
+                | ResolvedExprKind::TryOption { operand: value, .. }
+                | ResolvedExprKind::Project { base: value, .. }
+                | ResolvedExprKind::Upcast { source: value } => pending.push(value),
+                ResolvedExprKind::Binary { left, right, .. } => {
+                    pending.push(left);
+                    pending.push(right);
+                }
+                ResolvedExprKind::Block { statements, tail } => {
+                    pending.push(tail);
+                    for statement in statements {
+                        if let ResolvedStatement::Let {
+                            binding,
+                            mutable,
+                            value,
+                            ..
+                        } = statement
+                        {
+                            if binding.ty == ResolvedType::SliceU8 {
+                                aliases.push((binding, *mutable, value));
+                            }
+                        }
+                        for index in 0..statement.child_count() {
+                            pending.push(
+                                statement
+                                    .child(index)
+                                    .expect("statement child count is canonical"),
+                            );
+                        }
+                    }
+                }
+                ResolvedExprKind::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => {
+                    pending.push(condition);
+                    pending.push(then_branch);
+                    pending.push(else_branch);
+                }
+                ResolvedExprKind::ConstructRecord { fields, .. }
+                | ResolvedExprKind::ConstructVariant { fields, .. } => {
+                    pending.extend(fields.iter().map(|field| &field.value));
+                }
+                ResolvedExprKind::Match { scrutinee, arms } => {
+                    pending.push(scrutinee);
+                    for arm in arms {
+                        if let Some(guard) = &arm.guard {
+                            pending.push(guard);
+                        }
+                        pending.push(&arm.value);
+                    }
+                }
+                ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                    pending.push(base);
+                    pending.extend(fields.iter().map(|field| &field.value));
+                }
+                ResolvedExprKind::Int(_)
+                | ResolvedExprKind::Int32(_)
+                | ResolvedExprKind::Char(_)
+                | ResolvedExprKind::Uint8(_)
+                | ResolvedExprKind::Usize(_)
+                | ResolvedExprKind::Float32(_)
+                | ResolvedExprKind::Float64(_)
+                | ResolvedExprKind::Bool(_)
+                | ResolvedExprKind::String(_)
+                | ResolvedExprKind::Place(_) => {}
+            }
+        }
+    }
+    let mut unresolved = aliases;
+    loop {
+        let before = unresolved.len();
+        unresolved.retain(|(binding, mutable, value)| {
+            let ResolvedExprKind::Place(place) = &value.kind else {
+                return true;
+            };
+            if *mutable || !place.projections.is_empty() {
+                return true;
+            }
+            let Some(source) = facts.get(&place.root).cloned() else {
+                return true;
+            };
+            facts.insert(binding.id.clone(), source);
+            false
+        });
+        if unresolved.is_empty() {
+            return Ok(facts);
+        }
+        if unresolved.len() == before {
+            return Err(hir_error(
+                "byte-slice alias lacks a canonical symbolic parameter root",
+            ));
         }
     }
 }
@@ -3890,11 +4096,13 @@ fn audit_resolved_type(root: &ResolvedType) -> Result<(), Diagnostic> {
             | ResolvedType::I32
             | ResolvedType::Char
             | ResolvedType::U8
+            | ResolvedType::Usize
             | ResolvedType::F32
             | ResolvedType::F64
             | ResolvedType::Bool
             | ResolvedType::String
-            | ResolvedType::Str => {}
+            | ResolvedType::Str
+            | ResolvedType::SliceU8 => {}
             ResolvedType::TypeParameter { owner, .. } => {
                 reject_nul_identity("resolved type-parameter owner", owner.as_str())?;
             }
@@ -3945,6 +4153,7 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -4558,6 +4767,7 @@ fn visit_resolved_calls(
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -4668,6 +4878,7 @@ pub(crate) fn workspace_call_sites(
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -4936,11 +5147,14 @@ impl Resolver<'_> {
             .map(|function| self.resolve_function_template(function))
             .collect::<Result<_, _>>()?;
         let function_instances = self.discover_function_instances()?;
+        let byte_slice_roots = derive_byte_slice_provenance(&functions)?;
+        let mut declarations = self.declarations;
+        declarations.byte_slice_roots = byte_slice_roots;
         let mut resolved = ResolvedProgram {
             module: self.program.module.clone(),
             permits: self.program.permits.clone(),
             entrypoint,
-            declarations: self.declarations,
+            declarations,
             types,
             interfaces,
             function_templates,
@@ -5213,11 +5427,11 @@ impl Resolver<'_> {
                 // parameter carries unique ownership.
                 let ownership = if ty == ResolvedType::String {
                     OwnershipMode::Own
-                } else if ty == ResolvedType::Str {
+                } else if matches!(ty, ResolvedType::Str | ResolvedType::SliceU8) {
                     if param.mode != ParamMode::Borrow {
                         return Err(self.error(
                             "SPX-H006",
-                            "resolved `str` parameter must have borrow ownership",
+                            "resolved borrowed-view parameter must have borrow ownership",
                             param.span,
                         ));
                     }
@@ -5248,6 +5462,13 @@ impl Resolver<'_> {
             return Err(self.error(
                 "SPX-H006",
                 "borrowed `str` cannot escape through a function result",
+                function.span,
+            ));
+        }
+        if return_type == ResolvedType::SliceU8 {
+            return Err(self.error(
+                "SPX-H006",
+                "borrowed `Slice<u8>` cannot escape through a function result",
                 function.span,
             ));
         }
@@ -5330,11 +5551,13 @@ impl Resolver<'_> {
                 Frame::Enter(Type::I32) => result = Some(ResolvedType::I32),
                 Frame::Enter(Type::Char) => result = Some(ResolvedType::Char),
                 Frame::Enter(Type::U8) => result = Some(ResolvedType::U8),
+                Frame::Enter(Type::Usize) => result = Some(ResolvedType::Usize),
                 Frame::Enter(Type::F32) => result = Some(ResolvedType::F32),
                 Frame::Enter(Type::F64) => result = Some(ResolvedType::F64),
                 Frame::Enter(Type::Bool) => result = Some(ResolvedType::Bool),
                 Frame::Enter(Type::String) => result = Some(ResolvedType::String),
                 Frame::Enter(Type::Str) => result = Some(ResolvedType::Str),
+                Frame::Enter(Type::SliceU8) => result = Some(ResolvedType::SliceU8),
                 Frame::Enter(Type::Named { name, arguments }) => {
                     let declaration =
                         self.declarations.type_id(name).cloned().ok_or_else(|| {
@@ -5817,6 +6040,7 @@ impl Resolver<'_> {
             | ExprKind::Int32(_)
             | ExprKind::Char(_)
             | ExprKind::Uint8(_)
+            | ExprKind::Usize(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)
@@ -6091,6 +6315,12 @@ impl Resolver<'_> {
                 span: Span,
                 path: String,
                 op: crate::str_ops::StrOp,
+                argument_count: usize,
+            },
+            FinishByteOp {
+                span: Span,
+                path: String,
+                op: crate::byte_ops::ByteOp,
                 argument_count: usize,
             },
             ChildNext {
@@ -6395,6 +6625,7 @@ impl Resolver<'_> {
                 | Frame::FinishCall { path, .. }
                 | Frame::FinishStringOp { path, .. }
                 | Frame::FinishStrOp { path, .. }
+                | Frame::FinishByteOp { path, .. }
                 | Frame::ChildNext { path, .. }
                 | Frame::MethodArgNext { path, .. }
                 | Frame::FinishUnary { path, .. }
@@ -6486,10 +6717,11 @@ impl Resolver<'_> {
                             | Type::I32
                             | Type::Char
                             | Type::U8
+                            | Type::Usize
                             | Type::F32
                             | Type::F64
                             | Type::Bool => 0,
-                            Type::String | Type::Str => 0,
+                            Type::String | Type::Str | Type::SliceU8 => 0,
                             Type::Named { name, arguments } => {
                                 name.capacity() + arguments.capacity() * std::mem::size_of::<Type>()
                             }
@@ -6665,6 +6897,13 @@ impl Resolver<'_> {
                         kind: ResolvedExprKind::Uint8(*value),
                         span: expr.span,
                     }),
+                    ExprKind::Usize(value) => results.push(ResolvedExpr {
+                        id: ExpressionId::new(function, &path),
+                        ty: ResolvedType::Usize,
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Usize(*value),
+                        span: expr.span,
+                    }),
                     ExprKind::Float32(bits) => results.push(ResolvedExpr {
                         id: ExpressionId::new(function, &path),
                         ty: ResolvedType::F32,
@@ -6794,6 +7033,27 @@ impl Resolver<'_> {
                                 ));
                             }
                             frames.push(Frame::FinishStrOp {
+                                span: expr.span,
+                                path: path.clone(),
+                                op,
+                                argument_count: args.len(),
+                            });
+                            frames.push(Frame::ChildNext {
+                                children: args,
+                                index: 0,
+                                bindings,
+                                path,
+                                segment: "arg",
+                            });
+                        } else if let Some(op) = crate::byte_ops::by_name(name) {
+                            if !type_arguments.is_empty() || args.len() != op.arity() {
+                                return Err(self.error(
+                                    "SPX-H006",
+                                    format!("invalid byte operation `{name}` call shape"),
+                                    expr.span,
+                                ));
+                            }
+                            frames.push(Frame::FinishByteOp {
                                 span: expr.span,
                                 path: path.clone(),
                                 op,
@@ -7405,6 +7665,41 @@ impl Resolver<'_> {
                         span,
                     });
                 }
+                Frame::FinishByteOp {
+                    span,
+                    path,
+                    op,
+                    argument_count,
+                } => {
+                    let args = take_results(&mut results, argument_count);
+                    for (index, argument) in args.iter().enumerate() {
+                        if argument.ty != op.param_types()[index] {
+                            return Err(self.error(
+                                "SPX-H006",
+                                format!(
+                                    "byte operation `{}` argument {} has the wrong type",
+                                    op.name(),
+                                    index
+                                ),
+                                argument.span,
+                            ));
+                        }
+                    }
+                    let ty = op.return_type();
+                    let ownership = self.expression_ownership(&ty, OwnershipMode::Own, span)?;
+                    results.push(ResolvedExpr {
+                        id: ExpressionId::new(function, &path),
+                        ty,
+                        ownership,
+                        kind: ResolvedExprKind::Call {
+                            callee: DeclarationId::new(op.id()),
+                            type_arguments: Vec::new(),
+                            instance: None,
+                            args,
+                        },
+                        span,
+                    });
+                }
                 Frame::ChildNext {
                     children,
                     index,
@@ -7494,6 +7789,14 @@ impl Resolver<'_> {
                             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div,
                             ResolvedType::U8,
                         ) => ResolvedType::U8,
+                        (
+                            BinaryOp::Add
+                            | BinaryOp::Sub
+                            | BinaryOp::Mul
+                            | BinaryOp::Div
+                            | BinaryOp::Rem,
+                            ResolvedType::Usize,
+                        ) => ResolvedType::Usize,
                         (
                             BinaryOp::Add
                             | BinaryOp::Sub
@@ -8256,6 +8559,7 @@ impl Resolver<'_> {
                         ResolvedType::I64
                             | ResolvedType::I32
                             | ResolvedType::U8
+                            | ResolvedType::Usize
                             | ResolvedType::Char
                             | ResolvedType::Bool
                     ) {
@@ -9377,6 +9681,11 @@ impl Resolver<'_> {
                 ResolvedType::U8,
                 OwnershipMode::Value,
             ),
+            ExprKind::Usize(value) => (
+                ResolvedExprKind::Usize(*value),
+                ResolvedType::Usize,
+                OwnershipMode::Value,
+            ),
             ExprKind::Float32(bits) => (
                 ResolvedExprKind::Float32(*bits),
                 ResolvedType::F32,
@@ -9583,6 +9892,55 @@ impl Resolver<'_> {
                                     index,
                                     expected.identity_key(),
                                     argument.ty.identity_key()
+                                ),
+                                argument.span,
+                            ));
+                        }
+                    }
+                    let ty = op.return_type();
+                    let ownership =
+                        self.expression_ownership(&ty, OwnershipMode::Own, expr.span)?;
+                    return Ok(ResolvedExpr {
+                        id,
+                        ty,
+                        ownership,
+                        kind: ResolvedExprKind::Call {
+                            callee: DeclarationId::new(op.id()),
+                            type_arguments: Vec::new(),
+                            instance: None,
+                            args,
+                        },
+                        span: expr.span,
+                    });
+                }
+                if let Some(op) = crate::byte_ops::by_name(name) {
+                    if !type_arguments.is_empty() || args.len() != op.arity() {
+                        return Err(self.error(
+                            "SPX-H006",
+                            format!("invalid byte operation `{name}` call shape"),
+                            expr.span,
+                        ));
+                    }
+                    let args = args
+                        .iter()
+                        .enumerate()
+                        .map(|(index, argument)| {
+                            self.resolve_expr_recursive_reference(
+                                function,
+                                argument,
+                                bindings,
+                                &format!("{path}.arg.{index}"),
+                            )
+                        })
+                        .collect::<Result<Vec<_>, _>>()?;
+                    for (index, argument) in args.iter().enumerate() {
+                        if argument.ty != op.param_types()[index] {
+                            return Err(self.error(
+                                "SPX-H006",
+                                format!(
+                                    "byte operation `{}` argument {} has the wrong type",
+                                    op.name(),
+                                    index
                                 ),
                                 argument.span,
                             ));
@@ -10329,6 +10687,7 @@ impl Resolver<'_> {
                     ResolvedType::I64
                         | ResolvedType::I32
                         | ResolvedType::U8
+                        | ResolvedType::Usize
                         | ResolvedType::Char
                         | ResolvedType::Bool
                 ) {

@@ -50,6 +50,7 @@ impl NativeResourceAbi {
             ResolvedType::I32 => Ok("int32_t"),
             ResolvedType::Char => Ok("uint32_t"),
             ResolvedType::U8 => Ok("uint8_t"),
+            ResolvedType::Usize => Ok("uint64_t"),
             ResolvedType::F32 => Ok("float"),
             ResolvedType::F64 => Ok("double"),
             ResolvedType::Bool => Ok("bool"),
@@ -59,6 +60,7 @@ impl NativeResourceAbi {
             // Borrowed UTF-8 text is a non-owning pointer/length view. The
             // definition is emitted only for programs reaching Str ops.
             ResolvedType::Str => Ok("spx_str_v1"),
+            ResolvedType::SliceU8 => Ok("spx_slice_u8_v1"),
             ResolvedType::TypeParameter { .. } => Err(resource_error(format!(
                 "native representation is unavailable for generic type `{}`",
                 ty.identity_key()

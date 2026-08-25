@@ -320,11 +320,13 @@ fn materialize_result(
         | (ResolvedType::I32, WireResult::Owned { .. })
         | (ResolvedType::U8, WireResult::Bool(_))
         | (ResolvedType::U8, WireResult::Owned { .. })
+        | (ResolvedType::Usize, _)
         | (ResolvedType::F32, _)
         | (ResolvedType::F64, _)
         | (ResolvedType::Bool, _)
         | (ResolvedType::String, _)
         | (ResolvedType::Str, _)
+        | (ResolvedType::SliceU8, _)
         | (ResolvedType::TypeParameter { .. }, _)
         | (ResolvedType::Nominal { .. }, _) => Err(MaterializeError::ResultTypeMismatch),
     }

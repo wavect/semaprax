@@ -29,6 +29,8 @@ pub enum TokenKind {
     Char(u32),
     /// One `u8` literal held as its exact value.
     Uint8(u8),
+    /// One target-independent unsigned 64-bit literal with a `usize` suffix.
+    Usize(u64),
     String(String),
     At,
     LParen,
@@ -178,10 +180,13 @@ impl Lexer<'_> {
                 if self.starts_with("u8") {
                     return self.uint8_token(start, line, column);
                 }
+                if self.starts_with("usize") {
+                    return self.usize_token(start, line, column);
+                }
                 if self.peek().is_some_and(is_ident_start) {
                     return Err(self.error(
                         "SPX-P003",
-                        "integer literals accept only an `i32` or `u8` suffix",
+                        "integer literals accept only an `i32`, `u8`, or `usize` suffix",
                         self.span_from(start, line, column),
                     ));
                 }
@@ -285,6 +290,36 @@ impl Lexer<'_> {
         })?;
         Ok(Token {
             kind: TokenKind::Uint8(value),
+            span: self.span_from(start, line, column),
+        })
+    }
+
+    fn usize_token(
+        &mut self,
+        start: usize,
+        line: usize,
+        column: usize,
+    ) -> Result<Token, Diagnostic> {
+        for _ in 0..5 {
+            self.bump();
+        }
+        if self.peek().is_some_and(is_ident_continue) {
+            return Err(self.error(
+                "SPX-T260",
+                "usize literals require exactly the `usize` suffix",
+                self.span_from(start, line, column),
+            ));
+        }
+        let text = &self.source[start..self.offset - 5];
+        let value = text.parse::<u64>().map_err(|_| {
+            self.error(
+                "SPX-T260",
+                "usize literal is outside the target-independent u64 range",
+                self.span_from(start, line, column),
+            )
+        })?;
+        Ok(Token {
+            kind: TokenKind::Usize(value),
             span: self.span_from(start, line, column),
         })
     }

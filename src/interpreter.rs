@@ -197,11 +197,13 @@ pub enum ArgumentValue {
     Int(i64),
     Int32(i32),
     Uint8(u8),
+    Usize(u64),
     Char(u32),
     Float32(f32),
     Float64(f64),
     Bool(bool),
     BorrowedStr(String),
+    BorrowedSlice(Vec<u8>),
 }
 
 impl ArgumentValue {
@@ -210,11 +212,13 @@ impl ArgumentValue {
             Self::Int(_) => "i64",
             Self::Int32(_) => "i32",
             Self::Uint8(_) => "u8",
+            Self::Usize(_) => "usize",
             Self::Char(_) => "char",
             Self::Float32(_) => "f32",
             Self::Float64(_) => "f64",
             Self::Bool(_) => "bool",
             Self::BorrowedStr(_) => "str",
+            Self::BorrowedSlice(_) => "Slice<u8>",
         }
     }
 
@@ -226,6 +230,7 @@ impl ArgumentValue {
             // each rendering uniquely replayable.
             Self::Int32(value) => format!("{value}i32"),
             Self::Uint8(value) => format!("{value}u8"),
+            Self::Usize(value) => format!("{value}usize"),
             Self::Char(value) => crate::format::canonical_char(*value),
             Self::Float32(value) => format!("{:08x}", value.to_bits()),
             Self::Float64(value) => format!("{:016x}", value.to_bits()),
@@ -233,6 +238,8 @@ impl ArgumentValue {
             Self::BorrowedStr(value) => {
                 serde_json::to_string(value).expect("Rust strings always serialize as JSON")
             }
+            Self::BorrowedSlice(value) => serde_json::to_string(value)
+                .expect("byte arrays always serialize as canonical JSON"),
         }
     }
 }
@@ -253,6 +260,25 @@ impl ArgumentValue {
 ///
 /// Non-canonical or out-of-range literals fail closed (`SPX-F103`).
 pub fn parse_argument(text: &str) -> Result<ArgumentValue, Diagnostic> {
+    if text.starts_with('[') {
+        let value = serde_json::from_str::<Vec<u8>>(text).map_err(|_| {
+            argument_error(format!(
+                "argument `{text}` is not a canonical byte array literal"
+            ))
+        })?;
+        if serde_json::to_string(&value).ok().as_deref() != Some(text) {
+            return Err(argument_error(format!(
+                "argument `{text}` is not a canonical byte array literal"
+            )));
+        }
+        if value.len() as u64 > crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES {
+            return Err(argument_error(format!(
+                "borrowed `Slice<u8>` argument exceeds the {}-byte profile limit",
+                crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES
+            )));
+        }
+        return Ok(ArgumentValue::BorrowedSlice(value));
+    }
     if text.starts_with('"') {
         let value = serde_json::from_str::<String>(text).map_err(|_| {
             argument_error(format!(
@@ -320,6 +346,19 @@ pub fn parse_argument(text: &str) -> Result<ArgumentValue, Diagnostic> {
                 .parse::<u8>()
                 .map(ArgumentValue::Uint8)
                 .map_err(|_| argument_error(format!("argument `{text}` is outside the u8 range")))
+        }
+        "usize" => {
+            if sign == "-" {
+                return Err(argument_error(format!(
+                    "argument `{text}` is outside the usize range"
+                )));
+            }
+            digits
+                .parse::<u64>()
+                .map(ArgumentValue::Usize)
+                .map_err(|_| {
+                    argument_error(format!("argument `{text}` is outside the usize range"))
+                })
         }
         _ => Err(argument_error(format!(
             "argument `{text}` is not a scalar literal"
@@ -740,7 +779,7 @@ fn admission(function: &Function) -> Option<&'static str> {
     }
     for param in &function.params {
         let admitted = (param.mode == ParamMode::Value && is_admitted_scalar(&param.ty))
-            || (param.mode == ParamMode::Borrow && param.ty == Type::Str);
+            || (param.mode == ParamMode::Borrow && matches!(param.ty, Type::Str | Type::SliceU8));
         if !admitted && param.mode != ParamMode::Value {
             return Some(REASON_UNSUPPORTED_PARAMETER_MODE);
         }
@@ -760,7 +799,14 @@ fn admission(function: &Function) -> Option<&'static str> {
 fn is_admitted_scalar(ty: &Type) -> bool {
     matches!(
         ty,
-        Type::I64 | Type::I32 | Type::U8 | Type::F32 | Type::F64 | Type::Char | Type::Bool
+        Type::I64
+            | Type::I32
+            | Type::U8
+            | Type::Usize
+            | Type::F32
+            | Type::F64
+            | Type::Char
+            | Type::Bool
     )
 }
 
@@ -784,11 +830,13 @@ fn bind_arguments(
             (Type::I64, ArgumentValue::Int(_))
                 | (Type::I32, ArgumentValue::Int32(_))
                 | (Type::U8, ArgumentValue::Uint8(_))
+                | (Type::Usize, ArgumentValue::Usize(_))
                 | (Type::Char, ArgumentValue::Char(_))
                 | (Type::F32, ArgumentValue::Float32(_))
                 | (Type::F64, ArgumentValue::Float64(_))
                 | (Type::Bool, ArgumentValue::Bool(_))
                 | (Type::Str, ArgumentValue::BorrowedStr(_))
+                | (Type::SliceU8, ArgumentValue::BorrowedSlice(_))
         );
         if !type_matches {
             return Err(vec![argument_error(format!(
@@ -842,13 +890,18 @@ fn scan_closure(
                     ResolvedType::I64
                         | ResolvedType::I32
                         | ResolvedType::U8
+                        | ResolvedType::Usize
                         | ResolvedType::Char
                         | ResolvedType::Bool
                 );
                 let patterns_admitted = arms
                     .iter()
                     .all(|arm| arm.pattern_is_literal_or_irrefutable());
-                if !scalar || !patterns_admitted || arms.is_empty() {
+                let option_u8 = is_option_u8(&scrutinee.ty)
+                    && arms
+                        .iter()
+                        .all(|arm| option_u8_pattern_is_admitted(&arm.pattern));
+                if (!scalar && !option_u8) || (scalar && !patterns_admitted) || arms.is_empty() {
                     Err(reject_scan(expression, REASON_MATCH_EXPRESSION))
                 } else {
                     Ok(())
@@ -870,7 +923,8 @@ fn scan_closure(
                     return Err(reject_scan(expression, REASON_GENERIC_CALL));
                 }
                 let intrinsic = crate::string_ops::by_id(callee.as_str()).is_some()
-                    || crate::str_ops::by_id(callee.as_str()).is_some();
+                    || crate::str_ops::by_id(callee.as_str()).is_some()
+                    || crate::byte_ops::by_id(callee.as_str()).is_some();
                 if !intrinsic && !admitted.contains_key(callee.as_str()) {
                     return Err(reject_scan(expression, REASON_UNSUPPORTED_CALLEE));
                 }
@@ -909,7 +963,7 @@ fn scan_closure(
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
             // Callee bodies are enqueued once; the monotone `visited` set
             // makes recursive call cycles terminate.
-            if visited.insert(callee.as_str()) {
+            if admitted.contains_key(callee.as_str()) && visited.insert(callee.as_str()) {
                 queue.push(callee.as_str());
             }
         }
@@ -963,6 +1017,7 @@ fn is_admitted_resolved_scalar(ty: &ResolvedType) -> bool {
         ResolvedType::I64
             | ResolvedType::I32
             | ResolvedType::U8
+            | ResolvedType::Usize
             | ResolvedType::F32
             | ResolvedType::F64
             | ResolvedType::Char
@@ -977,6 +1032,7 @@ fn pattern_value_matches(staged: &Value, value: crate::hir::PatternValue) -> boo
         (Value::Int(actual), crate::hir::PatternValue::Int(expected)) => *actual == expected,
         (Value::Int32(actual), crate::hir::PatternValue::Int32(expected)) => *actual == expected,
         (Value::Uint8(actual), crate::hir::PatternValue::Uint8(expected)) => *actual == expected,
+        (Value::Usize(actual), crate::hir::PatternValue::Usize(expected)) => *actual == expected,
         (Value::Char(actual), crate::hir::PatternValue::Char(expected)) => *actual == expected,
         (Value::Bool(actual), crate::hir::PatternValue::Bool(expected)) => *actual == expected,
         _ => false,
@@ -1045,6 +1101,7 @@ fn child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -1058,18 +1115,55 @@ enum Value {
     Int(i64),
     Int32(i32),
     Uint8(u8),
+    Usize(u64),
     Char(u32),
     Float32(f32),
     Float64(f64),
     Bool(bool),
     String(String),
     BorrowedStr(BorrowedStrValue),
+    BorrowedSlice(BorrowedSliceValue),
+    OptionU8(Option<u8>),
+}
+
+fn is_option_u8(ty: &ResolvedType) -> bool {
+    matches!(
+        ty,
+        ResolvedType::Nominal { declaration, arguments }
+            if declaration.as_str() == crate::prelude::OPTION_ID
+                && arguments.as_slice() == [ResolvedType::U8]
+    )
+}
+
+fn option_u8_pattern_is_admitted(pattern: &crate::hir::ResolvedMatchPattern) -> bool {
+    let crate::hir::ResolvedMatchPattern::Variant {
+        variant,
+        case,
+        fields,
+    } = pattern
+    else {
+        return false;
+    };
+    if variant.as_str() != crate::prelude::OPTION_ID {
+        return false;
+    }
+    (case.as_str() == crate::prelude::OPTION_NONE_ID && fields.is_empty())
+        || (case.as_str() == crate::prelude::OPTION_SOME_ID
+            && fields.len() == 1
+            && fields[0].field.as_str() == crate::prelude::OPTION_SOME_VALUE_ID
+            && fields[0].binding.ty == ResolvedType::U8)
 }
 
 #[derive(Clone, Debug, PartialEq)]
 struct BorrowedStrValue {
     invocation_root: ValueId,
     text: Arc<str>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct BorrowedSliceValue {
+    invocation_root: ValueId,
+    bytes: Arc<[u8]>,
 }
 
 fn borrowed_text(value: &Value) -> Option<&str> {
@@ -1098,6 +1192,7 @@ fn returned_outcome(value: &Value) -> OutcomeJson {
         // canonical rendering replays uniquely against the closed grammars.
         Value::Int32(value) => ("i32", format!("{value}i32")),
         Value::Uint8(value) => ("u8", format!("{value}u8")),
+        Value::Usize(value) => ("usize", format!("{value}usize")),
         Value::Char(value) => ("char", crate::format::canonical_char(*value)),
         // Floats render as their exact big-endian IEEE-754 bit pattern so the
         // envelope distinguishes `-0.0`, infinities, and NaN payloads without
@@ -1195,12 +1290,26 @@ impl Evaluator<'_> {
                 "borrowed string invocation exceeds byte budget",
             ));
         }
+        let byte_roots = arguments.iter().filter_map(|(_, argument)| match argument {
+            ArgumentValue::BorrowedSlice(value) => Some(value.len() as u64),
+            _ => None,
+        });
+        let mut charged = 0u64;
+        for length in byte_roots {
+            charged = charged
+                .checked_add(length)
+                .ok_or(Flow::Guard("borrowed byte invocation exceeds byte budget"))?;
+            if charged > crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES {
+                return Err(Flow::Guard("borrowed byte invocation exceeds byte budget"));
+            }
+        }
         let mut values = Vec::with_capacity(arguments.len());
         for (param, (_, argument)) in function.params.iter().zip(arguments.iter()) {
             let value = match (&param.ty, argument) {
                 (ResolvedType::I64, ArgumentValue::Int(inner)) => Value::Int(*inner),
                 (ResolvedType::I32, ArgumentValue::Int32(inner)) => Value::Int32(*inner),
                 (ResolvedType::U8, ArgumentValue::Uint8(inner)) => Value::Uint8(*inner),
+                (ResolvedType::Usize, ArgumentValue::Usize(inner)) => Value::Usize(*inner),
                 (ResolvedType::Char, ArgumentValue::Char(inner)) => Value::Char(*inner),
                 (ResolvedType::F32, ArgumentValue::Float32(inner)) => Value::Float32(*inner),
                 (ResolvedType::F64, ArgumentValue::Float64(inner)) => Value::Float64(*inner),
@@ -1209,6 +1318,12 @@ impl Evaluator<'_> {
                     Value::BorrowedStr(BorrowedStrValue {
                         invocation_root: param.id.clone(),
                         text: Arc::from(inner.as_str()),
+                    })
+                }
+                (ResolvedType::SliceU8, ArgumentValue::BorrowedSlice(inner)) => {
+                    Value::BorrowedSlice(BorrowedSliceValue {
+                        invocation_root: param.id.clone(),
+                        bytes: Arc::from(inner.as_slice()),
                     })
                 }
                 _ => return Err(Flow::Guard("argument/parameter binding mismatch")),
@@ -1267,6 +1382,7 @@ impl Evaluator<'_> {
             ResolvedExprKind::Int(value) => Ok(Value::Int(*value)),
             ResolvedExprKind::Int32(value) => Ok(Value::Int32(*value)),
             ResolvedExprKind::Uint8(value) => Ok(Value::Uint8(*value)),
+            ResolvedExprKind::Usize(value) => Ok(Value::Usize(*value)),
             ResolvedExprKind::Char(value) => Ok(Value::Char(*value)),
             ResolvedExprKind::Float32(bits) => Ok(Value::Float32(f32::from_bits(*bits))),
             ResolvedExprKind::Float64(bits) => Ok(Value::Float64(f64::from_bits(*bits))),
@@ -1446,6 +1562,29 @@ impl Evaluator<'_> {
                         }
                     };
                 }
+                if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
+                    self.charge().ok_or(Flow::Exhausted)?;
+                    let mut values = Vec::with_capacity(args.len());
+                    for argument in args {
+                        values.push(self.evaluate(argument, environment, depth)?);
+                    }
+                    return match (op, values.as_slice()) {
+                        (crate::byte_ops::ByteOp::Len, [Value::BorrowedSlice(value)]) => {
+                            Ok(Value::Usize(value.bytes.len() as u64))
+                        }
+                        (
+                            crate::byte_ops::ByteOp::Get,
+                            [Value::BorrowedSlice(value), Value::Usize(index)],
+                        ) => {
+                            let byte = usize::try_from(*index)
+                                .ok()
+                                .and_then(|index| value.bytes.get(index))
+                                .copied();
+                            Ok(Value::OptionU8(byte))
+                        }
+                        _ => Err(Flow::Guard("ill-typed borrowed byte operation operand")),
+                    };
+                }
                 let Some(function) = self.admitted.get(callee.as_str()) else {
                     return Err(Flow::Guard("call outside the admitted closure"));
                 };
@@ -1550,6 +1689,7 @@ impl Evaluator<'_> {
             ResolvedExprKind::Match { scrutinee, arms } => {
                 let staged = self.evaluate(scrutinee, environment, depth)?;
                 for arm in arms {
+                    let mut aggregate_bindings = Vec::new();
                     let selected = match &arm.pattern {
                         crate::hir::ResolvedMatchPattern::Wildcard => true,
                         crate::hir::ResolvedMatchPattern::Binding(binding) => {
@@ -1575,8 +1715,40 @@ impl Evaluator<'_> {
                             }
                             matched
                         }
-                        crate::hir::ResolvedMatchPattern::Variant { .. }
-                        | crate::hir::ResolvedMatchPattern::Record { .. } => {
+                        crate::hir::ResolvedMatchPattern::Variant {
+                            variant,
+                            case,
+                            fields,
+                        } => {
+                            if variant.as_str() != crate::prelude::OPTION_ID {
+                                return Err(Flow::Guard(
+                                    "non-Option variant reached byte evaluation",
+                                ));
+                            }
+                            match (&staged, case.as_str()) {
+                                (Value::OptionU8(None), crate::prelude::OPTION_NONE_ID)
+                                    if fields.is_empty() =>
+                                {
+                                    true
+                                }
+                                (Value::OptionU8(Some(value)), crate::prelude::OPTION_SOME_ID)
+                                    if fields.len() == 1
+                                        && fields[0].field.as_str()
+                                            == crate::prelude::OPTION_SOME_VALUE_ID =>
+                                {
+                                    aggregate_bindings
+                                        .push((fields[0].binding.id.clone(), Value::Uint8(*value)));
+                                    true
+                                }
+                                (Value::OptionU8(_), _) => false,
+                                _ => {
+                                    return Err(Flow::Guard(
+                                        "variant pattern has non-variant value",
+                                    ))
+                                }
+                            }
+                        }
+                        crate::hir::ResolvedMatchPattern::Record { .. } => {
                             return Err(Flow::Guard(
                                 "aggregate match shape reached scalar evaluation",
                             ));
@@ -1585,6 +1757,8 @@ impl Evaluator<'_> {
                     if !selected {
                         continue;
                     }
+                    let aggregate_count = aggregate_bindings.len();
+                    environment.extend(aggregate_bindings);
                     // Binding arms capture the staged scrutinee value.
                     let mut bound: Option<(ValueId, Value)> = None;
                     if let crate::hir::ResolvedMatchPattern::Binding(binding) = &arm.pattern {
@@ -1602,12 +1776,14 @@ impl Evaluator<'_> {
                         if bound.is_some() {
                             environment.pop();
                         }
+                        environment.truncate(environment.len().saturating_sub(aggregate_count));
                         continue;
                     }
                     let outcome = self.evaluate(&arm.value, environment, depth);
                     if bound.is_some() {
                         environment.pop();
                     }
+                    environment.truncate(environment.len().saturating_sub(aggregate_count));
                     return outcome;
                 }
                 Err(Flow::Guard("refutable match selected no arm"))
@@ -1722,6 +1898,26 @@ fn combine(op: BinaryOp, lhs: Value, rhs: Value) -> Option<Result<Value, Normali
             BinaryOp::Rem => a.checked_rem(b).map_or_else(
                 || arithmetic(None, StatusCase::RemainderByZero),
                 |remainder| Some(Ok(Value::Uint8(remainder))),
+            ),
+            _ => ordered(a < b, a == b),
+        },
+        (Value::Usize(a), Value::Usize(b)) => match op {
+            BinaryOp::Add => {
+                arithmetic(a.checked_add(b).map(Value::Usize), StatusCase::AddOverflow)
+            }
+            BinaryOp::Sub => {
+                arithmetic(a.checked_sub(b).map(Value::Usize), StatusCase::SubOverflow)
+            }
+            BinaryOp::Mul => {
+                arithmetic(a.checked_mul(b).map(Value::Usize), StatusCase::MulOverflow)
+            }
+            BinaryOp::Div => a.checked_div(b).map_or_else(
+                || arithmetic(None, StatusCase::DivisionByZero),
+                |quotient| Some(Ok(Value::Usize(quotient))),
+            ),
+            BinaryOp::Rem => a.checked_rem(b).map_or_else(
+                || arithmetic(None, StatusCase::RemainderByZero),
+                |remainder| Some(Ok(Value::Usize(remainder))),
             ),
             _ => ordered(a < b, a == b),
         },
@@ -2000,10 +2196,13 @@ pub fn verify_envelope(envelope: &str) -> Result<(), Diagnostic> {
             ));
         }
         let type_text = match argument["type"].as_str() {
-            Some(type_text @ ("i64" | "i32" | "u8" | "char" | "f32" | "f64" | "bool")) => type_text,
+            Some(
+                type_text @ ("i64" | "i32" | "u8" | "usize" | "char" | "f32" | "f64" | "bool"),
+            ) => type_text,
             _ => {
                 return Err(consistency_error(
-                    "argument type must be one of i64, i32, u8, char, f32, f64, bool".to_owned(),
+                    "argument type must be one of i64, i32, u8, usize, char, f32, f64, bool"
+                        .to_owned(),
                 ))
             }
         };
@@ -2103,11 +2302,11 @@ pub fn verify_envelope(envelope: &str) -> Result<(), Diagnostic> {
             }
             let type_text =
                 match outcome["type"].as_str() {
-                    Some(type_text @ ("i64" | "i32" | "u8" | "char" | "f32" | "f64" | "bool")) => {
+                    Some(type_text @ ("i64" | "i32" | "u8" | "usize" | "char" | "f32" | "f64" | "bool")) => {
                         type_text
                     }
                     _ => return Err(consistency_error(
-                        "returned outcome type must be one of i64, i32, u8, char, f32, f64, bool"
+                        "returned outcome type must be one of i64, i32, u8, usize, char, f32, f64, bool"
                             .to_owned(),
                     )),
                 };
@@ -2178,6 +2377,7 @@ fn canonical_scalar_value_matches(type_text: &str, value_text: &str) -> bool {
         "i64" => matches!(parse_argument(value_text), Ok(ArgumentValue::Int(_))),
         "i32" => matches!(parse_argument(value_text), Ok(ArgumentValue::Int32(_))),
         "u8" => matches!(parse_argument(value_text), Ok(ArgumentValue::Uint8(_))),
+        "usize" => matches!(parse_argument(value_text), Ok(ArgumentValue::Usize(_))),
         "bool" => matches!(parse_argument(value_text), Ok(ArgumentValue::Bool(_))),
         "str" => matches!(
             parse_argument(value_text),

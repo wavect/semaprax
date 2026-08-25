@@ -1,6 +1,7 @@
 mod native_adapter_abi;
 #[cfg(test)]
 pub(crate) mod native_aggregate;
+mod native_byte_data;
 mod native_callable_abi;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 mod native_callable_abi_v3;
@@ -1053,7 +1054,7 @@ fn emit_native_prelude(
     resource_abi: &native_resource::NativeResourceAbi,
     program: &ResolvedProgram,
 ) {
-    if program_uses_borrowed_str(program) {
+    if program_uses_borrowed_str(program) || program_uses_byte_data(program) {
         native_runtime::emit_status_runtime_with_borrowed_str(output);
     } else {
         native_runtime::emit_status_runtime(output);
@@ -1065,6 +1066,11 @@ fn emit_native_prelude(
         // Checked u8 helpers stay out of programs that cannot reach them, so
         // existing projections keep their exact committed bytes.
         output.push_str(NATIVE_U8_RUNTIME_C);
+    }
+    if program_uses_usize_arithmetic(program) {
+        // Portable usize is semantic u64 on every target. Keep its helpers
+        // reachability-gated so programs without usize preserve exact bytes.
+        output.push_str(NATIVE_USIZE_RUNTIME_C);
     }
     if program_uses_strings(program) {
         output.push_str(NATIVE_STRING_RUNTIME_C);
@@ -1084,6 +1090,37 @@ fn emit_native_prelude(
         // reachability gate so every pre-text native projection is byte exact.
         output.push_str(NATIVE_BORROWED_STR_RUNTIME_C);
     }
+    if program_uses_byte_data(program) {
+        native_byte_data::emit_runtime(output);
+    }
+}
+
+fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
+    let mut pending: Vec<&ResolvedExpr> = Vec::new();
+    for function in &program.functions {
+        if matches!(function.return_type, ResolvedType::SliceU8)
+            || function
+                .params
+                .iter()
+                .any(|param| matches!(param.ty, ResolvedType::SliceU8))
+        {
+            return true;
+        }
+        pending.push(&function.body);
+        pending.extend(function.requires.iter().chain(&function.ensures));
+    }
+    while let Some(expression) = pending.pop() {
+        if matches!(expression.ty, ResolvedType::SliceU8) {
+            return true;
+        }
+        if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
+            if crate::byte_ops::by_id(callee.as_str()).is_some() {
+                return true;
+            }
+        }
+        pending.extend(resolved_expr_children(expression));
+    }
+    false
 }
 
 /// Whether any resolved signature, body, or contract admits an owned string
@@ -1218,6 +1255,32 @@ fn program_uses_u8_arithmetic(program: &ResolvedProgram) -> bool {
     false
 }
 
+fn program_uses_usize_arithmetic(program: &ResolvedProgram) -> bool {
+    let mut pending: Vec<&ResolvedExpr> = Vec::new();
+    for function in &program.functions {
+        pending.push(&function.body);
+        pending.extend(function.requires.iter());
+        pending.extend(function.ensures.iter());
+    }
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::Binary { op, left, right } = &expression.kind {
+            if matches!(left.ty, ResolvedType::Usize)
+                && matches!(
+                    op,
+                    BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+                )
+            {
+                return true;
+            }
+            pending.push(left);
+            pending.push(right);
+            continue;
+        }
+        pending.extend(resolved_expr_children(expression));
+    }
+    false
+}
+
 /// Every direct resolved child of an expression.
 fn resolved_expr_children<'a>(
     expression: &'a ResolvedExpr,
@@ -1271,6 +1334,7 @@ fn resolved_expr_children<'a>(
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -1545,12 +1609,14 @@ fn variant_declaration_id<'a>(
         return Ok(None);
     }
     if arguments.len() != item.type_parameters.len()
-        || arguments
-            .iter()
-            .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+        || arguments.iter().any(|argument| {
+            !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
+                && !(declaration.as_str() == crate::prelude::OPTION_ID
+                    && *argument == ResolvedType::U8)
+        })
     {
         return Err(backend_error(format!(
-            "native variant representation requires exact concrete i64/bool arguments for `{}`",
+            "native variant representation requires admitted exact concrete arguments for `{}`",
             ty.identity_key()
         )));
     }
@@ -2299,6 +2365,67 @@ static __attribute__((unused)) spx_status_token spx_rt_u8_div(
 }
 "#;
 
+const NATIVE_USIZE_RUNTIME_C: &str = r#"static __attribute__((unused)) spx_status_token spx_rt_usize_add(
+    struct spx_context *spx_ctx, uint64_t a, uint64_t b, uint64_t *result_out
+) {
+    if (a > UINT64_MAX - b) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_ADD_OVERFLOW, "addition overflow"
+        );
+    }
+    *result_out = a + b;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_usize_sub(
+    struct spx_context *spx_ctx, uint64_t a, uint64_t b, uint64_t *result_out
+) {
+    if (a < b) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_SUB_OVERFLOW, "subtraction overflow"
+        );
+    }
+    *result_out = a - b;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_usize_mul(
+    struct spx_context *spx_ctx, uint64_t a, uint64_t b, uint64_t *result_out
+) {
+    if (b != UINT64_C(0) && a > UINT64_MAX / b) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_MUL_OVERFLOW, "multiplication overflow"
+        );
+    }
+    *result_out = a * b;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_usize_div(
+    struct spx_context *spx_ctx, uint64_t a, uint64_t b, uint64_t *result_out
+) {
+    if (b == UINT64_C(0)) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_DIVISION_BY_ZERO, "invalid division"
+        );
+    }
+    *result_out = a / b;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_usize_rem(
+    struct spx_context *spx_ctx, uint64_t a, uint64_t b, uint64_t *result_out
+) {
+    if (b == UINT64_C(0)) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_REMAINDER_BY_ZERO, "invalid remainder"
+        );
+    }
+    *result_out = a % b;
+    return SPX_STATUS_SUCCESS;
+}
+"#;
+
 struct NativeEmissionContext<'a> {
     program: &'a ResolvedProgram,
     resource_abi: &'a native_resource::NativeResourceAbi,
@@ -2372,19 +2499,34 @@ fn emit_function(
         .filter(|(_, param)| matches!(param.ty, ResolvedType::Str))
         .map(|(index, _)| index)
         .collect::<Vec<_>>();
-    if !borrowed_params.is_empty() {
+    let borrowed_byte_params = function
+        .params
+        .iter()
+        .enumerate()
+        .filter(|(_, param)| matches!(param.ty, ResolvedType::SliceU8))
+        .map(|(index, _)| index)
+        .collect::<Vec<_>>();
+    if !borrowed_params.is_empty() || !borrowed_byte_params.is_empty() {
         emitter
             .line("const bool spx_borrowed_str_root = spx_ctx->borrowed_str_depth == UINT32_C(0);");
         emitter.line("if (spx_ctx->borrowed_str_depth == UINT32_MAX) spx_runtime_invariant_failure(\"borrowed str call depth exhausted\");");
         emitter.line("if (spx_borrowed_str_root) {");
         emitter.indent += 1;
-        emitter.line("uint64_t spx_borrowed_str_bytes = UINT64_C(0);");
-        for index in &borrowed_params {
-            emitter.line(&format!("spx_str_require_valid(spx_param_{index});"));
-            emitter.line(&format!(
-                "if (spx_param_{index}.len > SPX_BORROWED_STR_MAX_BYTES - spx_borrowed_str_bytes) spx_runtime_invariant_failure(\"borrowed str invocation exceeds byte budget\");"
-            ));
-            emitter.line(&format!("spx_borrowed_str_bytes += spx_param_{index}.len;"));
+        if !borrowed_params.is_empty() {
+            emitter.line("uint64_t spx_borrowed_str_bytes = UINT64_C(0);");
+            for index in &borrowed_params {
+                emitter.line(&format!("spx_str_require_valid(spx_param_{index});"));
+                emitter.line(&format!(
+                    "if (spx_param_{index}.len > SPX_BORROWED_STR_MAX_BYTES - spx_borrowed_str_bytes) spx_runtime_invariant_failure(\"borrowed str invocation exceeds byte budget\");"
+                ));
+                emitter.line(&format!("spx_borrowed_str_bytes += spx_param_{index}.len;"));
+            }
+        }
+        if !borrowed_byte_params.is_empty() {
+            emitter.line("uint64_t spx_borrowed_byte_roots = UINT64_C(0);");
+            for index in &borrowed_byte_params {
+                emitter.line(&format!("spx_borrowed_byte_roots = spx_slice_u8_charge_root(spx_borrowed_byte_roots, spx_param_{index});"));
+            }
         }
         emitter.indent -= 1;
         emitter.line("}");
@@ -2445,7 +2587,7 @@ fn emit_function(
     emitter.line("goto spx_epilogue;");
     drop(emitter);
     output.push_str("spx_epilogue:\n");
-    if !borrowed_params.is_empty() {
+    if !borrowed_params.is_empty() || !borrowed_byte_params.is_empty() {
         output.push_str("    if (spx_ctx->borrowed_str_depth == UINT32_C(0)) spx_runtime_invariant_failure(\"borrowed str call depth underflow\");\n");
         output.push_str("    --spx_ctx->borrowed_str_depth;\n");
     }
@@ -2521,6 +2663,7 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -2702,6 +2845,7 @@ fn c_pattern_literal(value: hir::PatternValue) -> String {
         hir::PatternValue::Int(value) => c_i64(value),
         hir::PatternValue::Int32(value) => format!("INT32_C({value})"),
         hir::PatternValue::Uint8(value) => format!("UINT8_C({value})"),
+        hir::PatternValue::Usize(value) => format!("UINT64_C({value})"),
         hir::PatternValue::Char(value) => format!("UINT32_C(0x{value:x})"),
         hir::PatternValue::Bool(value) => value.to_string(),
     }
@@ -3014,6 +3158,77 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         })
     }
 
+    fn emit_byte_op(
+        &mut self,
+        op: crate::byte_ops::ByteOp,
+        args: &[ResolvedExpr],
+        result_type: &ResolvedType,
+    ) -> Result<CValue, Diagnostic> {
+        if args.len() != op.arity() {
+            return Err(backend_error(format!(
+                "byte operation `{}` has {} arguments; expected {}",
+                op.id(),
+                args.len(),
+                op.arity()
+            )));
+        }
+        let mut arguments = Vec::with_capacity(args.len());
+        for (argument, expected) in args.iter().zip(op.param_types()) {
+            let value = self.emit_expr(argument)?;
+            self.require_type(&value.ty, expected, "byte operation argument")?;
+            arguments.push(value);
+        }
+        let return_type = op.return_type();
+        self.require_type(result_type, &return_type, "byte operation result")?;
+        let temporary = self.temporary(&return_type)?;
+        match op {
+            crate::byte_ops::ByteOp::Len => {
+                self.line(&format!(
+                    "{temporary} = spx_byte_len({});",
+                    arguments[0].code
+                ));
+            }
+            crate::byte_ops::ByteOp::Get => {
+                let layout = self.variant_layout(&return_type)?;
+                let none_id = DeclarationId::new(crate::prelude::OPTION_NONE_ID);
+                let some_id = DeclarationId::new(crate::prelude::OPTION_SOME_ID);
+                let value_id = DeclarationId::new(crate::prelude::OPTION_SOME_VALUE_ID);
+                let none = layout.case(&none_id).ok_or_else(|| {
+                    backend_error("Option<u8> layout has no compiler-owned None case")
+                })?;
+                let some = layout.case(&some_id).ok_or_else(|| {
+                    backend_error("Option<u8> layout has no compiler-owned Some case")
+                })?;
+                let field = some.field(&value_id).ok_or_else(|| {
+                    backend_error("Option<u8> layout has no compiler-owned Some payload")
+                })?;
+                self.require_type(&field.ty, &ResolvedType::U8, "byte_get Some payload")?;
+                let slice = &arguments[0].code;
+                let index = &arguments[1].code;
+                self.line(&format!("spx_slice_u8_require_valid({slice});"));
+                self.line(&format!("memset(&{temporary}, 0, sizeof({temporary}));"));
+                self.line(&format!("if ({index} < ({slice}).len) {{"));
+                self.indent += 1;
+                self.line(&format!(
+                    "{temporary}.spx_payload.{}.{} = ({slice}).ptr[{index}];",
+                    c_case_symbol(&some_id),
+                    c_field_symbol(&value_id)
+                ));
+                self.line(&format!("{temporary}.spx_tag = UINT32_C({});", some.tag));
+                self.indent -= 1;
+                self.line("} else {");
+                self.indent += 1;
+                self.line(&format!("{temporary}.spx_tag = UINT32_C({});", none.tag));
+                self.indent -= 1;
+                self.line("}");
+            }
+        }
+        Ok(CValue {
+            code: temporary,
+            ty: return_type,
+        })
+    }
+
     fn emit_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
         let value = match &expr.kind {
             ResolvedExprKind::Int(value) => {
@@ -3042,6 +3257,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 CValue {
                     code: format!("UINT8_C({value})"),
                     ty: ResolvedType::U8,
+                }
+            }
+            ResolvedExprKind::Usize(value) => {
+                self.require_type(&expr.ty, &ResolvedType::Usize, "usize literal")?;
+                CValue {
+                    code: format!("UINT64_C({value})"),
+                    ty: ResolvedType::Usize,
                 }
             }
             ResolvedExprKind::Float32(bits) => {
@@ -3102,6 +3324,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 if instance.is_none() {
                     if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
                         return self.emit_str_op(op, args, &expr.ty);
+                    }
+                    if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
+                        return self.emit_byte_op(op, args, &expr.ty);
                     }
                     if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                         return self.emit_string_op(op, args, &expr.ty);
@@ -4059,10 +4284,16 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         let char_operand = matches!(left.ty, ResolvedType::Char);
         let int32_operand = matches!(left.ty, ResolvedType::I32);
         let narrow_operand = matches!(left.ty, ResolvedType::U8);
+        let usize_operand = matches!(left.ty, ResolvedType::Usize);
         let operand_type = match op {
             BinaryOp::And | BinaryOp::Or => ResolvedType::Bool,
             BinaryOp::Eq | BinaryOp::Ne => left.ty.clone(),
-            _ if float_operand || char_operand || int32_operand || narrow_operand => {
+            _ if float_operand
+                || char_operand
+                || int32_operand
+                || narrow_operand
+                || usize_operand =>
+            {
                 left.ty.clone()
             }
             _ => ResolvedType::I64,
@@ -4078,6 +4309,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 if narrow_operand =>
             {
                 ResolvedType::U8
+            }
+            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+                if usize_operand =>
+            {
+                ResolvedType::Usize
             }
             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => {
                 ResolvedType::I64
@@ -4167,6 +4403,25 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 BinaryOp::Mul => "spx_rt_u8_mul",
                 BinaryOp::Div => "spx_rt_u8_div",
                 _ => unreachable!("u8 arithmetic operation was matched above"),
+            };
+            self.line(&format!(
+                "spx_status = {helper}(spx_ctx, {}, {}, &{temporary});",
+                left.code, right.code
+            ));
+            self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+        } else if usize_operand
+            && matches!(
+                op,
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+            )
+        {
+            let helper = match op {
+                BinaryOp::Add => "spx_rt_usize_add",
+                BinaryOp::Sub => "spx_rt_usize_sub",
+                BinaryOp::Mul => "spx_rt_usize_mul",
+                BinaryOp::Div => "spx_rt_usize_div",
+                BinaryOp::Rem => "spx_rt_usize_rem",
+                _ => unreachable!("usize arithmetic operation was matched above"),
             };
             self.line(&format!(
                 "spx_status = {helper}(spx_ctx, {}, {}, &{temporary});",

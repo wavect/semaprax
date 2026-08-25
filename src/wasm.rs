@@ -208,6 +208,93 @@ fn program_uses_strings(program: &ResolvedProgram) -> bool {
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
+            | ResolvedExprKind::Place(_) => {}
+        }
+    }
+    false
+}
+
+fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
+    let mut pending = Vec::new();
+    for function in &program.functions {
+        if matches!(function.return_type, ResolvedType::SliceU8)
+            || function
+                .params
+                .iter()
+                .any(|param| matches!(param.ty, ResolvedType::SliceU8))
+        {
+            return true;
+        }
+        pending.push(&function.body);
+        pending.extend(function.requires.iter().chain(&function.ensures));
+    }
+    while let Some(expression) = pending.pop() {
+        if matches!(expression.ty, ResolvedType::SliceU8) {
+            return true;
+        }
+        if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
+            if crate::byte_ops::by_id(callee.as_str()).is_some() {
+                return true;
+            }
+        }
+        match &expression.kind {
+            ResolvedExprKind::Call { args, .. } => pending.extend(args),
+            ResolvedExprKind::NativeRustImportCall(call) => pending.extend(&call.args),
+            ResolvedExprKind::Unary { value, .. }
+            | ResolvedExprKind::Try { operand: value, .. }
+            | ResolvedExprKind::TryOption { operand: value, .. }
+            | ResolvedExprKind::Project { base: value, .. }
+            | ResolvedExprKind::Upcast { source: value } => pending.push(value),
+            ResolvedExprKind::Binary { left, right, .. } => {
+                pending.push(left);
+                pending.push(right);
+            }
+            ResolvedExprKind::Block { statements, tail } => {
+                for statement in statements {
+                    for index in 0..statement.child_count() {
+                        if let Some(child) = statement.child(index) {
+                            pending.push(child);
+                        }
+                    }
+                }
+                pending.push(tail);
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                pending.push(condition);
+                pending.push(then_branch);
+                pending.push(else_branch);
+            }
+            ResolvedExprKind::ConstructRecord { fields, .. }
+            | ResolvedExprKind::ConstructVariant { fields, .. } => {
+                pending.extend(fields.iter().map(|field| &field.value))
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                pending.push(scrutinee);
+                for arm in arms {
+                    if let Some(guard) = &arm.guard {
+                        pending.push(guard);
+                    }
+                    pending.push(&arm.value);
+                }
+            }
+            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                pending.push(base);
+                pending.extend(fields.iter().map(|field| &field.value));
+            }
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -284,6 +371,7 @@ fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -357,6 +445,7 @@ fn program_uses_string_ops_v2(program: &ResolvedProgram) -> bool {
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -445,6 +534,7 @@ fn collect_string_data(program: &ResolvedProgram) -> StringData {
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -470,6 +560,9 @@ struct LocalLayout<'a> {
     /// Checked u8 arithmetic stages operands and results in two trailing
     /// scratch locals so the failure trap never taints live stack values.
     u8_scratch: Option<(u32, u32)>,
+    /// Portable usize arithmetic stages two semantic-u64 operands without
+    /// reinterpreting them as host- or pointer-width integers.
+    usize_scratch: Option<(u32, u32)>,
     /// Refutable Match v1: one staging local per scalar match expression,
     /// keyed by expression identity. The scrutinee evaluates once here and
     /// every arm test re-reads it.
@@ -626,7 +719,7 @@ fn emit_resolved_module_internal(
             .declaration(&declaration.id)
             .is_some_and(|item| item.identity_origin == IdentityOrigin::CompilerOwned)
     });
-    if has_authored_aggregate || !concrete_variants.is_empty() {
+    if has_authored_aggregate || !concrete_variants.is_empty() || program_uses_byte_data(program) {
         if has_public_profile {
             return Err(Diagnostic::io(
                 "SPX-W115",
@@ -1195,6 +1288,7 @@ fn emit_resolved_module_internal(
             lets: HashMap::new(),
             wide_scratch: [0; 2],
             u8_scratch: None,
+            usize_scratch: None,
             match_scratch: HashMap::new(),
             string_data: Some(&string_data),
             string_ops_v2_base,
@@ -1232,6 +1326,18 @@ fn emit_resolved_module_internal(
             layout.declarations.push(ResolvedType::U8);
             layout.declarations.push(ResolvedType::U8);
             layout.u8_scratch = Some((left_index, left_index + 1));
+        }
+        if contains_usize_arithmetic(&function.body)
+            || function
+                .requires
+                .iter()
+                .chain(&function.ensures)
+                .any(contains_usize_arithmetic)
+        {
+            let left_index = layout.declarations.len() as u32;
+            layout.declarations.push(ResolvedType::Usize);
+            layout.declarations.push(ResolvedType::Usize);
+            layout.usize_scratch = Some((left_index, left_index + 1));
         }
         value_indexes.extend(layout.lets.iter().map(|(id, index)| (id.clone(), *index)));
         value_indexes.insert(function.result_id.clone(), result_local);
@@ -2942,6 +3048,7 @@ fn collect_locals(
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -2978,6 +3085,10 @@ fn emit_expr(
             // u8 values ride the i32 valtype with the same exact encoding.
             output.push(0x41);
             write_i64(output, i64::from(*value));
+        }
+        ResolvedExprKind::Usize(value) => {
+            output.push(0x42);
+            write_i64(output, *value as i64);
         }
         ResolvedExprKind::Float32(bits) => {
             output.push(0x43);
@@ -3367,6 +3478,87 @@ fn emit_expr(
                     "u8 remainder has no admitted Wasm lowering",
                 ));
             }
+            if matches!(left.ty, ResolvedType::Usize)
+                && matches!(
+                    op,
+                    BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+                )
+            {
+                let Some((left_scratch, right_scratch)) = layout.usize_scratch else {
+                    return Err(Diagnostic::io(
+                        "SPX-W108",
+                        "missing WebAssembly local layout for checked usize arithmetic",
+                    ));
+                };
+                output.push(0x21);
+                write_u32(output, right_scratch);
+                output.push(0x21);
+                write_u32(output, left_scratch);
+                match op {
+                    BinaryOp::Add => {
+                        output.push(0x20);
+                        write_u32(output, left_scratch);
+                        output.push(0x20);
+                        write_u32(output, right_scratch);
+                        output.push(0x7c);
+                        output.push(0x22);
+                        write_u32(output, right_scratch);
+                        output.push(0x20);
+                        write_u32(output, left_scratch);
+                        output.push(0x54); // i64.lt_u(result, left)
+                        emit_failure_trap(output);
+                        output.push(0x20);
+                        write_u32(output, right_scratch);
+                    }
+                    BinaryOp::Sub => {
+                        output.push(0x20);
+                        write_u32(output, left_scratch);
+                        output.push(0x20);
+                        write_u32(output, right_scratch);
+                        output.push(0x54); // i64.lt_u(left, right)
+                        emit_failure_trap(output);
+                        output.push(0x20);
+                        write_u32(output, left_scratch);
+                        output.push(0x20);
+                        write_u32(output, right_scratch);
+                        output.push(0x7d);
+                    }
+                    BinaryOp::Mul => {
+                        output.push(0x20);
+                        write_u32(output, right_scratch);
+                        output.push(0x50); // i64.eqz
+                        output.push(0x45); // i32.eqz => right != 0
+                        output.push(0x20);
+                        write_u32(output, left_scratch);
+                        output.push(0x42);
+                        write_i64(output, -1); // UINT64_MAX bit pattern
+                        output.push(0x20);
+                        write_u32(output, right_scratch);
+                        output.push(0x80); // i64.div_u
+                        output.push(0x56); // i64.gt_u
+                        output.push(0x71); // i32.and
+                        emit_failure_trap(output);
+                        output.push(0x20);
+                        write_u32(output, left_scratch);
+                        output.push(0x20);
+                        write_u32(output, right_scratch);
+                        output.push(0x7e);
+                    }
+                    BinaryOp::Div | BinaryOp::Rem => {
+                        output.push(0x20);
+                        write_u32(output, right_scratch);
+                        output.push(0x50);
+                        emit_failure_trap(output);
+                        output.push(0x20);
+                        write_u32(output, left_scratch);
+                        output.push(0x20);
+                        write_u32(output, right_scratch);
+                        output.push(if *op == BinaryOp::Div { 0x80 } else { 0x82 });
+                    }
+                    _ => unreachable!("usize arithmetic operation was matched above"),
+                }
+                return Ok(());
+            }
             if matches!(left.ty, ResolvedType::Char)
                 && matches!(
                     op,
@@ -3386,8 +3578,8 @@ fn emit_expr(
                 BinaryOp::Rem => call_import(output, 4),
                 BinaryOp::Eq | BinaryOp::Ne => {
                     output.push(match (&left.ty, op) {
-                        (ResolvedType::I64, BinaryOp::Eq) => 0x51,
-                        (ResolvedType::I64, BinaryOp::Ne) => 0x52,
+                        (ResolvedType::I64 | ResolvedType::Usize, BinaryOp::Eq) => 0x51,
+                        (ResolvedType::I64 | ResolvedType::Usize, BinaryOp::Ne) => 0x52,
                         (_, BinaryOp::Eq) => 0x46,
                         (_, BinaryOp::Ne) => 0x47,
                         _ => unreachable!(),
@@ -3409,6 +3601,10 @@ fn emit_expr(
                         (ResolvedType::U8, BinaryOp::Gt) => 0x4b,
                         (ResolvedType::U8, BinaryOp::Le) => 0x4d,
                         (ResolvedType::U8, BinaryOp::Ge) => 0x4f,
+                        (ResolvedType::Usize, BinaryOp::Lt) => 0x54,
+                        (ResolvedType::Usize, BinaryOp::Gt) => 0x56,
+                        (ResolvedType::Usize, BinaryOp::Le) => 0x58,
+                        (ResolvedType::Usize, BinaryOp::Ge) => 0x5a,
                         (_, BinaryOp::Lt) => 0x53,
                         (_, BinaryOp::Gt) => 0x55,
                         (_, BinaryOp::Le) => 0x57,
@@ -4015,6 +4211,7 @@ pub(crate) fn needs_i32_wide_scratch(expression: &ResolvedExpr) -> bool {
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -4038,9 +4235,17 @@ fn emit_failure_trap(output: &mut impl ByteOutput) {
 /// Whether an expression contains checked u8 arithmetic that needs the
 /// function-level scratch locals.
 fn contains_u8_arithmetic(expression: &ResolvedExpr) -> bool {
+    contains_checked_arithmetic(expression, &ResolvedType::U8)
+}
+
+fn contains_usize_arithmetic(expression: &ResolvedExpr) -> bool {
+    contains_checked_arithmetic(expression, &ResolvedType::Usize)
+}
+
+fn contains_checked_arithmetic(expression: &ResolvedExpr, target: &ResolvedType) -> bool {
     match &expression.kind {
         ResolvedExprKind::Binary { op, left, right: _ }
-            if matches!(left.ty, ResolvedType::U8)
+            if left.ty == *target
                 && matches!(
                     *op,
                     BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
@@ -4049,22 +4254,28 @@ fn contains_u8_arithmetic(expression: &ResolvedExpr) -> bool {
             true
         }
         ResolvedExprKind::Binary { left, right, .. } => {
-            contains_u8_arithmetic(left) || contains_u8_arithmetic(right)
+            contains_checked_arithmetic(left, target) || contains_checked_arithmetic(right, target)
         }
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
         | ResolvedExprKind::Project { base: value, .. }
-        | ResolvedExprKind::Upcast { source: value } => contains_u8_arithmetic(value),
-        ResolvedExprKind::Call { args, .. } => args.iter().any(contains_u8_arithmetic),
-        ResolvedExprKind::NativeRustImportCall(call) => {
-            call.args.iter().any(contains_u8_arithmetic)
-        }
+        | ResolvedExprKind::Upcast { source: value } => contains_checked_arithmetic(value, target),
+        ResolvedExprKind::Call { args, .. } => args
+            .iter()
+            .any(|argument| contains_checked_arithmetic(argument, target)),
+        ResolvedExprKind::NativeRustImportCall(call) => call
+            .args
+            .iter()
+            .any(|argument| contains_checked_arithmetic(argument, target)),
         ResolvedExprKind::Block { statements, tail } => {
-            contains_u8_arithmetic(tail)
+            contains_checked_arithmetic(tail, target)
                 || statements.iter().any(|statement| {
-                    (0..statement.child_count())
-                        .any(|index| statement.child(index).is_some_and(contains_u8_arithmetic))
+                    (0..statement.child_count()).any(|index| {
+                        statement
+                            .child(index)
+                            .is_some_and(|child| contains_checked_arithmetic(child, target))
+                    })
                 })
         }
         ResolvedExprKind::If {
@@ -4072,33 +4283,34 @@ fn contains_u8_arithmetic(expression: &ResolvedExpr) -> bool {
             then_branch,
             else_branch,
         } => {
-            contains_u8_arithmetic(condition)
-                || contains_u8_arithmetic(then_branch)
-                || contains_u8_arithmetic(else_branch)
+            contains_checked_arithmetic(condition, target)
+                || contains_checked_arithmetic(then_branch, target)
+                || contains_checked_arithmetic(else_branch, target)
         }
         ResolvedExprKind::ConstructRecord { fields, .. }
         | ResolvedExprKind::ConstructVariant { fields, .. } => fields
             .iter()
-            .any(|field| contains_u8_arithmetic(&field.value)),
+            .any(|field| contains_checked_arithmetic(&field.value, target)),
         ResolvedExprKind::Match { scrutinee, arms } => {
-            contains_u8_arithmetic(scrutinee)
+            contains_checked_arithmetic(scrutinee, target)
                 || arms.iter().any(|arm| {
                     arm.guard
                         .as_ref()
-                        .is_some_and(|guard| contains_u8_arithmetic(guard))
-                        || contains_u8_arithmetic(&arm.value)
+                        .is_some_and(|guard| contains_checked_arithmetic(guard, target))
+                        || contains_checked_arithmetic(&arm.value, target)
                 })
         }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-            contains_u8_arithmetic(base)
+            contains_checked_arithmetic(base, target)
                 || fields
                     .iter()
-                    .any(|field| contains_u8_arithmetic(&field.value))
+                    .any(|field| contains_checked_arithmetic(&field.value, target))
         }
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -4117,11 +4329,12 @@ fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
         ResolvedType::I32 => Ok(I32),
         ResolvedType::Char => Ok(I32),
         ResolvedType::U8 => Ok(I32),
+        ResolvedType::Usize => Ok(I64),
         ResolvedType::F32 => Ok(F32),
         ResolvedType::F64 => Ok(F64),
         ResolvedType::Bool | ResolvedType::Nominal { .. } => Ok(I32),
         // Owned strings lower to an abstract host handle riding the i64 lane.
-        ResolvedType::String | ResolvedType::Str => Ok(I64),
+        ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 => Ok(I64),
         ResolvedType::TypeParameter { .. } => Err(Diagnostic::io(
             "SPX-W109",
             format!(

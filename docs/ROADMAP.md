@@ -132,10 +132,25 @@ native O0/O2, Wasm, generated JS/TS, stable-ID display rename, independent
 carrier replay, and offline pack/install.
 
 This tranche has local evidence only. Exact-head hosted promotion is pending,
-and npm registry publication is not claimed. `usize`, arrays, slices,
-indexing, iteration, general text processing, mutable/owned view conversion,
-dependencies, lockfiles, signing, provenance, and registry distribution stay
-on the roadmap. Project v1 bytes and behavior remain frozen.
+and npm registry publication is not claimed. Public useful-data adapters,
+arrays, owned bytes, iteration, general text processing, mutable/owned view
+conversion, dependencies, lockfiles, signing, provenance, and registry
+distribution stay on the roadmap. Project v1 bytes and behavior remain frozen.
+
+[Portable Indexed Byte Data v1](PORTABLE-INDEXED-BYTE-DATA-V1.md) now freezes
+the next implementation boundary rather than leaving those terms ambiguous.
+Its closed target-independent model defines checked `usize` as semantic `u64`,
+`[u8; N]`, unique `Bytes`, provenance-carrying non-escaping `Slice<u8>`, total
+`byte_get -> Option<u8>`, fixed allocation/input limits, and an additive Graph
+v17 trigger above the existing while-v15/refutable-match-v16 schemas. The
+first internal tranche now executes semantic-u64 `usize` and external
+non-escaping `Slice<u8>` parameters with symbolic forwarding provenance,
+`byte_len`, and total `byte_get -> Option<u8>` in the interpreter, native C,
+and internal Wasm aggregate lane. Local native O0/O2, Node boundary, Graph,
+provenance, cleanup-inertness, and diagnostic gates cover that bounded slice.
+Arrays, owned `Bytes`, conversions, allocation budgets, public Project/npm
+adapters, exact-head hosted evidence, and the rest of the complete profile
+remain on the roadmap.
 
 ## 0.1 — Executable semantic seed
 

@@ -247,6 +247,7 @@ fn reported_binding_ids_equal_the_resolved_hir_inventory() {
             | hir::ResolvedExprKind::Int32(_)
             | hir::ResolvedExprKind::Char(_)
             | hir::ResolvedExprKind::Uint8(_)
+            | hir::ResolvedExprKind::Usize(_)
             | hir::ResolvedExprKind::Float32(_)
             | hir::ResolvedExprKind::Float64(_)
             | hir::ResolvedExprKind::Bool(_)

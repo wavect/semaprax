@@ -1449,8 +1449,8 @@ fn windows_real_archive_failure_evidence(
 
 #[cfg(windows)]
 #[test]
-#[ignore = "legacy negative-control probe intentionally retains descendant file and directory authorities; the safe platform test windows_settled_nested_inventory_publishes_after_descendant_authorities_close is the blocking settled-publication regression"]
-fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename() {
+#[ignore = "negative control intentionally retains descendant file and directory authorities; CI requires exact AccessDenied with no publication"]
+fn windows_live_descendant_authorities_deny_root_publish_without_later_action() {
     use std::ffi::OsStr;
 
     let root = std::env::temp_dir().join(format!(
@@ -1549,74 +1549,32 @@ fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename(
 
     let mut stage_name = super::platform::prepare_relative_name_arena(9).unwrap();
     super::platform::set_relative_name_arena(&mut stage_name, OsStr::new("stage")).unwrap();
-    let identity_probe =
+    let identity_before =
         super::platform::test_publish_stage_identity_probe(&parent, &stage, &stage_name);
     let mut publish = super::platform::prepare_publish_directory(OsStr::new("published")).unwrap();
-    super::platform::publish_directory_new_prepared(
-        &mut publish,
-        &parent,
-        &stage,
-        &stage_name,
-        OsStr::new("published"),
-    )
-    .unwrap_or_else(|error| {
-        let statuses = super::platform::test_last_publish_statuses();
-        let std_probe = std::fs::rename(root.join("stage"), root.join("published_std_probe"));
-        std::fs::create_dir(root.join("probe_empty")).ok();
-        let empty_sibling =
-            std::fs::rename(root.join("probe_empty"), root.join("probe_empty_moved"));
-        std::fs::create_dir(root.join("stage2")).ok();
-        std::fs::write(root.join("stage2").join("leaf.txt"), b"leaf").ok();
-        let unheld_child =
-            std::fs::rename(root.join("stage2"), root.join("stage2_moved"));
-        let held_file_dir = root.join("probe_held_file");
-        std::fs::create_dir(&held_file_dir).ok();
-        let held_file_directory = super::platform::hold_directory(&held_file_dir).unwrap();
-        let held_leaf = super::platform::write_file_new(
-            &held_file_directory,
-            OsStr::new("leaf.bin"),
-            b"leaf",
-            0o600,
-        )
-        .unwrap();
-        let held_file_result =
-            std::fs::rename(&held_file_dir, root.join("probe_held_file_moved"));
-        drop(held_leaf);
-        let mut std_reopen_result: Result<(), std::io::Error> = Ok(());
-        let mut std_reopened_leaf = None;
-        if held_file_result.is_err() {
-            std_reopened_leaf = std::fs::File::open(held_file_dir.join("leaf.bin")).ok();
-            std_reopen_result =
-                std::fs::rename(&held_file_dir, root.join("probe_held_std_moved"));
-        }
-        drop(std_reopened_leaf);
-        drop(held_file_directory);
-        let held_dir_parent = root.join("probe_held_dir");
-        std::fs::create_dir(&held_dir_parent).ok();
-        std::fs::create_dir(held_dir_parent.join("child")).ok();
-        let held_child = super::platform::hold_directory(&held_dir_parent.join("child"))
-            .expect("hold child directory");
-        let held_dir_result = std::fs::rename(&held_dir_parent, root.join("probe_held_dir_moved"));
-        drop(held_child);
-        let retry_probe_start = std::time::Instant::now();
-        let mut retry_probe = Err(std::io::Error::other("not attempted"));
-        let mut retry_attempts = 0_usize;
-        while retry_probe_start.elapsed() < std::time::Duration::from_secs(2) {
-            retry_attempts += 1;
-            retry_probe =
-                std::fs::rename(root.join("stage"), root.join("published_retry_probe"));
-            if retry_probe.is_ok() {
-                break;
-            }
-            std::thread::sleep(std::time::Duration::from_millis(25));
-        }
-        panic!(
-            "directory publication failed: {error:?} ({identity_probe}) statuses={statuses:?} std_rename={std_probe:?} empty_sibling={empty_sibling:?} unheld_child={unheld_child:?} held_file={held_file_result:?} std_reopen={std_reopen_result:?} held_child_dir={held_dir_result:?} retry_after={}ms attempts={retry_attempts} last={retry_probe:?}",
-            retry_probe_start.elapsed().as_millis()
-        )
-    });
-    assert!(!root.join("stage").exists());
-    assert!(super::platform::same_directory_path(&stage, &root.join("published")).unwrap());
+    assert_eq!(
+        super::platform::publish_directory_new_prepared(
+            &mut publish,
+            &parent,
+            &stage,
+            &stage_name,
+            OsStr::new("published"),
+        ),
+        Err(Error::Changed),
+    );
+    let statuses = super::platform::test_last_publish_statuses();
+    let access_denied = windows_sys::Win32::Foundation::STATUS_ACCESS_DENIED;
+    assert!(
+        statuses.iter().all(|status| *status == access_denied),
+        "live descendant authorities must deny every root rename attempt: {statuses:?}",
+    );
+    assert!(root.join("stage").is_dir());
+    assert!(!root.join("published").exists());
+    assert!(super::platform::same_directory_path(&stage, &root.join("stage")).unwrap());
+    assert_eq!(
+        super::platform::test_publish_stage_identity_probe(&parent, &stage, &stage_name),
+        identity_before,
+    );
     super::platform::recheck_directory(&parent).unwrap();
     super::platform::recheck_directory(&stage).unwrap();
     super::platform::recheck_directory(&source).unwrap();
@@ -1626,83 +1584,7 @@ fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename(
     }
     authenticate();
 
-    let source_names = super::platform::prepare_discard_names([
-        OsStr::new("lib.rs"),
-        OsStr::new("ffi.rs"),
-        OsStr::new("api.rs"),
-    ])
-    .unwrap();
-    let mut source_name = super::platform::prepare_relative_name_arena(6).unwrap();
-    super::platform::set_relative_name_arena(&mut source_name, OsStr::new("source")).unwrap();
-    super::platform::discard_owned_stage_prepared(
-        &stage,
-        &source,
-        &source_name,
-        &source_names,
-        &[
-            Some(&source_files[0]),
-            Some(&source_files[1]),
-            Some(&source_files[2]),
-        ],
-        &[None, None, None],
-        #[cfg(debug_assertions)]
-        None,
-    )
-    .unwrap();
-    let native_names = super::platform::prepare_discard_names([
-        OsStr::new("sdk.lib"),
-        OsStr::new("descriptor.json"),
-        OsStr::new("manifest.json"),
-    ])
-    .unwrap();
-    let mut native_name = super::platform::prepare_relative_name_arena(6).unwrap();
-    super::platform::set_relative_name_arena(&mut native_name, OsStr::new("native")).unwrap();
-    super::platform::discard_owned_stage_prepared(
-        &stage,
-        &native,
-        &native_name,
-        &native_names,
-        &[
-            Some(&native_files[0]),
-            Some(&native_files[1]),
-            Some(&native_files[2]),
-        ],
-        &[None, None, None],
-        #[cfg(debug_assertions)]
-        None,
-    )
-    .unwrap();
-
-    let root_names = super::platform::prepare_discard_names([
-        OsStr::new("Cargo.toml"),
-        OsStr::new("build.rs"),
-        OsStr::new("sdk.json"),
-    ])
-    .unwrap();
-    super::platform::set_relative_name_arena(&mut stage_name, OsStr::new("published")).unwrap();
-    super::platform::discard_owned_stage_prepared(
-        &parent,
-        &stage,
-        &stage_name,
-        &root_names,
-        &[
-            Some(&root_files[0]),
-            Some(&root_files[1]),
-            Some(&root_files[2]),
-        ],
-        &[None, None, None],
-        #[cfg(debug_assertions)]
-        None,
-    )
-    .unwrap();
-    assert!(!root.join("published").exists());
-
     drop((
-        root_names,
-        native_name,
-        native_names,
-        source_name,
-        source_names,
         publish,
         stage_name,
         native_files,
@@ -1713,9 +1595,8 @@ fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename(
         stage,
         parent,
     ));
-    std::fs::remove_dir(&root).unwrap();
+    std::fs::remove_dir_all(&root).unwrap();
 }
-
 #[cfg(target_os = "linux")]
 fn linux_runner_failure_helper(
     points: &[TestSettlementFailure],

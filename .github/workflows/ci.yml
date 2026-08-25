@@ -303,17 +303,16 @@ jobs:
         if: runner.os == 'Windows'
         env:
           SEMAPRAX_REQUIRE_WINDOWS_REAL_ARCHIVE: "1"
-        run: cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib tests::windows_real_brepro_archive_round_trips_through_exact_admission -- --exact --nocapture --test-threads=1
-      - name: Diagnose Windows mixed inventory across directory publication (non-blocking)
+        run: cargo test --locked --offline -p semaprax-native-rust-interop-platform-sys --lib tests::windows_real_brepro_archive_round_trips_through_exact_admission -- --exact --nocapture --test-threads=1
+      - name: Require exact Windows live-descendant publication denial
         if: runner.os == 'Windows'
-        continue-on-error: true
-        run: cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib tests::windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename -- --ignored --exact --nocapture --test-threads=1
+        run: cargo test --locked --offline -p semaprax-native-rust-interop-platform-sys --lib tests::windows_live_descendant_authorities_deny_root_publish_without_later_action -- --ignored --exact --nocapture --test-threads=1
       - name: Diagnose minimal effectful public SDK build on Windows (non-blocking)
         if: runner.os == 'Windows'
         continue-on-error: true
         env:
           SEMAPRAX_REQUIRE_PUBLIC_SDK_BUILD: "1"
-        run: cargo test --locked -p semaprax-native-rust-interop --lib public_sdk::tests::effectful_no_import_sdk_builds_the_exact_public_inventory -- --exact --nocapture --test-threads=1
+        run: cargo test --locked --offline -p semaprax-native-rust-interop --lib public_sdk::tests::effectful_no_import_sdk_builds_the_exact_public_inventory -- --exact --nocapture --test-threads=1
       - name: Require package, consumer, callback, and backend-equivalence evidence
         continue-on-error: ${{ runner.os == 'Windows' }}
         env:

@@ -567,10 +567,12 @@ healthy host state, and zero measured Rust allocation across the irreversible
 interval. JNI/Kotlin, APK/AAR, lifecycle/UI, device, broader corpus, and public
 admission remain separate gates.
 
-The Windows mixed-inventory diagnostic now records the negative control
-accurately: it deliberately retains descendant file and directory authorities,
-so `STATUS_ACCESS_DENIED` is required rather than evidence of a mysterious
-post-close failure. CI invokes that ignored probe explicitly with `--ignored`.
+The blocking Windows live-descendant negative control
+`windows_live_descendant_authorities_deny_root_publish_without_later_action`
+deliberately retains descendant file and directory authorities, requires every
+rename attempt to return `STATUS_ACCESS_DENIED`, and proves that neither
+publication nor any later mutation occurs. CI invokes that ignored probe
+explicitly with `--ignored`.
 The production Phase-C fix performs its final exact replay first, then settles
 all leaf inventories and closes child-directory handles before the root rename;
 the safe platform regression

@@ -431,12 +431,12 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
         ],
     );
     let mixed_inventory = sys_tests
-        .split("fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename()")
+        .split("fn windows_live_descendant_authorities_deny_root_publish_without_later_action()")
         .nth(1)
         .and_then(|tail| tail.split("\n#[cfg(").next())
-        .expect("bounded Windows mixed inventory runtime test");
+        .expect("bounded Windows live-descendant negative control");
     assert_contains_all(
-        "Windows mixed inventory runtime evidence",
+        "Windows live-descendant publication denial",
         mixed_inventory,
         &[
             "let root_files = [",
@@ -446,15 +446,48 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
             "inventory_entries_exact_prepared(",
             "[&source, &native]",
             "publish_directory_new_prepared(",
-            "same_directory_path(&stage, &root.join(\"published\"))",
+            "Err(Error::Changed)",
+            "STATUS_ACCESS_DENIED",
+            "statuses.iter().all(|status| *status == access_denied)",
+            "assert!(root.join(\"stage\").is_dir())",
+            "assert!(!root.join(\"published\").exists())",
+            "same_directory_path(&stage, &root.join(\"stage\"))",
+            "identity_before",
             "recheck_directory(&stage)",
             "recheck_regular(file)",
             "authenticate();",
-            "discard_owned_stage_prepared(",
-            "assert!(!root.join(\"published\").exists())",
+            "std::fs::remove_dir_all(&root)",
         ],
     );
     assert_eq!(mixed_inventory.matches("authenticate();").count(), 2);
+    assert_eq!(
+        mixed_inventory
+            .matches("publish_directory_new_prepared(")
+            .count(),
+        1,
+        "the negative control must attempt exactly one production publication",
+    );
+    let authentications = mixed_inventory
+        .match_indices("authenticate();")
+        .map(|(index, _)| index)
+        .collect::<Vec<_>>();
+    let publish = mixed_inventory
+        .find("publish_directory_new_prepared(")
+        .unwrap();
+    assert!(authentications[0] < publish && publish < authentications[1]);
+    let post_denial = &mixed_inventory[publish..authentications[1]];
+    for required in [
+        "statuses.iter().all(|status| *status == access_denied)",
+        "assert!(root.join(\"stage\").is_dir())",
+        "assert!(!root.join(\"published\").exists())",
+        "recheck_directory(&stage)",
+        "recheck_regular(file)",
+    ] {
+        assert!(
+            post_denial.contains(required),
+            "post-denial evidence lost `{required}`",
+        );
+    }
     assert_eq!(
         mixed_inventory
             .matches("inventory_entries_exact_prepared(")
@@ -462,6 +495,17 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
         3,
         "one exact root and two exact nested inventories must be replayed per authentication"
     );
+    for forbidden in [
+        "std::fs::rename",
+        "std::thread::sleep",
+        "discard_owned_stage_prepared(",
+        "published_retry_probe",
+    ] {
+        assert!(
+            !mixed_inventory.contains(forbidden),
+            "negative control admitted forbidden later action `{forbidden}`",
+        );
+    }
     assert_contains_all(
         "Windows archive hostile evidence",
         archive_hostiles,
@@ -685,23 +729,20 @@ fn public_sdk_windows_runs_exact_early_archive_and_minimal_effectful_diagnostics
         .nth(1)
         .and_then(|tail| tail.split("\n  verify:\n").next())
         .expect("Public Native Rust SDK workflow job");
-    let archive_command = "run: cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib tests::windows_real_brepro_archive_round_trips_through_exact_admission -- --exact --nocapture --test-threads=1";
-    let inventory_command = "run: cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib tests::windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename -- --ignored --exact --nocapture --test-threads=1";
-    let minimal_command = "run: cargo test --locked -p semaprax-native-rust-interop --lib public_sdk::tests::effectful_no_import_sdk_builds_the_exact_public_inventory -- --exact --nocapture --test-threads=1";
-    let long_command = "cargo test --locked -p semaprax --test public_native_rust_sdk_v1 -- --test-threads=1 --nocapture";
+    let archive_command = "run: cargo test --locked --offline -p semaprax-native-rust-interop-platform-sys --lib tests::windows_real_brepro_archive_round_trips_through_exact_admission -- --exact --nocapture --test-threads=1";
+    let inventory_command = "run: cargo test --locked --offline -p semaprax-native-rust-interop-platform-sys --lib tests::windows_live_descendant_authorities_deny_root_publish_without_later_action -- --ignored --exact --nocapture --test-threads=1";
+    let minimal_command = "run: cargo test --locked --offline -p semaprax-native-rust-interop --lib public_sdk::tests::effectful_no_import_sdk_builds_the_exact_public_inventory -- --exact --nocapture --test-threads=1";
+    let long_command = "cargo test --locked --offline -p semaprax --test public_native_rust_sdk_v1 -- --test-threads=1 --nocapture";
     assert_eq!(public_job.matches(archive_command).count(), 1);
     assert_eq!(public_job.matches(inventory_command).count(), 1);
     assert_eq!(public_job.matches(minimal_command).count(), 1);
     let inventory_step = public_job
-        .split(
-            "- name: Diagnose Windows mixed inventory across directory publication (non-blocking)",
-        )
+        .split("- name: Require exact Windows live-descendant publication denial")
         .nth(1)
         .and_then(|tail| tail.split("      - name:").next())
-        .expect("bounded Windows mixed-inventory diagnostic step");
+        .expect("bounded Windows live-descendant negative-control step");
     for required in [
         "if: runner.os == 'Windows'",
-        "continue-on-error: true",
         "--ignored --exact --nocapture --test-threads=1",
     ] {
         assert!(
@@ -709,6 +750,10 @@ fn public_sdk_windows_runs_exact_early_archive_and_minimal_effectful_diagnostics
             "Windows mixed-inventory diagnostic lost `{required}`"
         );
     }
+    assert!(
+        !inventory_step.contains("continue-on-error"),
+        "the exact AccessDenied negative control must be blocking",
+    );
     assert_eq!(
         public_job
             .matches("SEMAPRAX_REQUIRE_WINDOWS_REAL_ARCHIVE: \"1\"")
@@ -730,7 +775,7 @@ fn public_sdk_windows_runs_exact_early_archive_and_minimal_effectful_diagnostics
     assert_eq!(
         early_steps.matches("if: runner.os == 'Windows'").count(),
         4,
-        "tool resolution and all three early diagnostics must be Windows-only"
+        "tool resolution and all three early Windows gates must be Windows-only"
     );
 }
 

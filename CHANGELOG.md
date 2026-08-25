@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Added target-bound owned-resource corpus fixture emitters for the private
+  mobile lanes: `emit_private_native_callable_v3_android_corpus_fixture`
+  (Android dynamic x86_64/arm64) and
+  `emit_private_native_callable_v3_ios_corpus_fixture` (iOS static targets)
+  derive one exact provider sealed around any canonical corpus case,
+  including semantic-failure witnesses such as `requires-false`, through the
+  existing `corpus_witness_plan` machinery already proven at O0/O2 on
+  desktop. Pinned tests require byte-identical rebuilds per target and
+  distinct descriptors across targets. This is compiler-emission groundwork
+  only: the Android JNI and Apple Swift harnesses, instrumentation, and
+  hosted jobs do not consume failure-direction fixtures yet, no device or
+  simulator execution is claimed, and completion totals stay 56 Partial/
+  0 Missing.
+
 - Added locally evidenced Project Manifest v5 and the fixed
   `useful-data-command.v2` adapter while preserving Project v1-v4 manifests,
   packages, carriers, and behavior. The exact manifest separates the SEMAPRAX

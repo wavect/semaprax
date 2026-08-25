@@ -985,6 +985,78 @@ pub fn emit_private_native_callable_v3_corpus_fixture(
     Ok(private_native_callable_v3_artifact(descriptor, provider))
 }
 
+/// Hidden Android-dynamic composition fixture derived from one canonical
+/// owned-resource corpus case, including semantic-failure witnesses such as
+/// `requires-false`. The exact target is authenticated in the descriptor and
+/// paired with exact C preprocessor guards; no loader lease, receipt
+/// authority, or public execution permission is carried by this artifact.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub fn emit_private_native_callable_v3_android_corpus_fixture(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+    arguments: &[crate::owned_resource_corpus::OwnedResourceCorpusArgument],
+    expected_owned_result_ordinal: Option<usize>,
+    reference: &crate::conformance::ConformanceTrace,
+    target: PrivateNativeCallableV3AndroidTarget,
+) -> Result<PrivateNativeCallableV3Artifact, Diagnostic> {
+    let descriptor = native_callable_abi_v3::derive_dynamic_for_target(
+        program,
+        function_id,
+        target.canonical_tag(),
+    )?;
+    let plan = native_callable_provider_v3::corpus_witness_plan(
+        program,
+        function_id,
+        arguments,
+        expected_owned_result_ordinal,
+        reference,
+    )?;
+    let spec = native_callable_provider_v3::NativeCallableProviderV3Spec::new_android_dynamic(
+        descriptor.clone(),
+        plan,
+        target.provider_target(),
+    )?;
+    let provider = native_callable_provider_v3::emit(&spec)?;
+    Ok(private_native_callable_v3_artifact(descriptor, provider))
+}
+
+/// Hidden iOS-static composition fixture derived from one canonical
+/// owned-resource corpus case, including semantic-failure witnesses such as
+/// `requires-false`. The exact target is authenticated in the descriptor;
+/// this artifact carries no loader lease, receipt authority, or public
+/// execution permission.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub fn emit_private_native_callable_v3_ios_corpus_fixture(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+    arguments: &[crate::owned_resource_corpus::OwnedResourceCorpusArgument],
+    expected_owned_result_ordinal: Option<usize>,
+    reference: &crate::conformance::ConformanceTrace,
+    target: PrivateNativeCallableV3IosTarget,
+) -> Result<PrivateNativeCallableV3Artifact, Diagnostic> {
+    let descriptor = native_callable_abi_v3::derive_ios_static_for_target(
+        program,
+        function_id,
+        target.canonical_tag(),
+    )?;
+    let plan = native_callable_provider_v3::corpus_witness_plan(
+        program,
+        function_id,
+        arguments,
+        expected_owned_result_ordinal,
+        reference,
+    )?;
+    let spec = native_callable_provider_v3::NativeCallableProviderV3Spec::new_ios_static(
+        descriptor.clone(),
+        plan,
+        target.provider_target(),
+    )?;
+    let provider = native_callable_provider_v3::emit(&spec)?;
+    Ok(private_native_callable_v3_artifact(descriptor, provider))
+}
+
 fn native_callable_execution_cleanup_fingerprint(components: &[&[u8]]) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(b"semaprax.native-callable-execution-cleanup.v2\0");
@@ -5632,6 +5704,94 @@ fn main() -> i64 { 0 }
                 .all(|prior: &Vec<u8>| prior.as_slice() != first.descriptor()));
             artifacts.push(first.descriptor().to_vec());
         }
+    }
+
+    #[test]
+    fn android_corpus_failure_fixture_is_deterministic_and_target_bound() {
+        let corpus = crate::owned_resource_corpus::build_owned_resource_corpus_v1().unwrap();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.scenario_id == "requires-false")
+            .expect("requires-false corpus case");
+        let function = DeclarationId::new(case.function_id);
+        let first = emit_private_native_callable_v3_android_corpus_fixture(
+            &corpus.program,
+            &function,
+            &case.arguments,
+            case.expected_owned_result_ordinal,
+            &case.reference,
+            PrivateNativeCallableV3AndroidTarget::X86_64,
+        )
+        .unwrap();
+        let second = emit_private_native_callable_v3_android_corpus_fixture(
+            &corpus.program,
+            &function,
+            &case.arguments,
+            case.expected_owned_result_ordinal,
+            &case.reference,
+            PrivateNativeCallableV3AndroidTarget::X86_64,
+        )
+        .unwrap();
+        assert_eq!(first.descriptor(), second.descriptor());
+        assert_eq!(first.source(), second.source());
+        assert!(first.source().contains(first.getter_symbol()));
+        assert!(first.source().contains(first.execute_symbol()));
+        assert!(first.source().contains(first.settle_symbol()));
+        let arm64 = emit_private_native_callable_v3_android_corpus_fixture(
+            &corpus.program,
+            &function,
+            &case.arguments,
+            case.expected_owned_result_ordinal,
+            &case.reference,
+            PrivateNativeCallableV3AndroidTarget::Arm64,
+        )
+        .unwrap();
+        assert_ne!(first.descriptor(), arm64.descriptor());
+    }
+
+    #[test]
+    fn ios_corpus_failure_fixture_is_deterministic_and_target_bound() {
+        let corpus = crate::owned_resource_corpus::build_owned_resource_corpus_v1().unwrap();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.scenario_id == "requires-false")
+            .expect("requires-false corpus case");
+        let function = DeclarationId::new(case.function_id);
+        let first = emit_private_native_callable_v3_ios_corpus_fixture(
+            &corpus.program,
+            &function,
+            &case.arguments,
+            case.expected_owned_result_ordinal,
+            &case.reference,
+            PrivateNativeCallableV3IosTarget::SimulatorArm64,
+        )
+        .unwrap();
+        let second = emit_private_native_callable_v3_ios_corpus_fixture(
+            &corpus.program,
+            &function,
+            &case.arguments,
+            case.expected_owned_result_ordinal,
+            &case.reference,
+            PrivateNativeCallableV3IosTarget::SimulatorArm64,
+        )
+        .unwrap();
+        assert_eq!(first.descriptor(), second.descriptor());
+        assert_eq!(first.source(), second.source());
+        assert!(first.source().contains(first.getter_symbol()));
+        assert!(first.source().contains(first.execute_symbol()));
+        assert!(first.source().contains(first.settle_symbol()));
+        let device = emit_private_native_callable_v3_ios_corpus_fixture(
+            &corpus.program,
+            &function,
+            &case.arguments,
+            case.expected_owned_result_ordinal,
+            &case.reference,
+            PrivateNativeCallableV3IosTarget::DeviceArm64,
+        )
+        .unwrap();
+        assert_ne!(first.descriptor(), device.descriptor());
     }
 
     #[test]

@@ -12,7 +12,14 @@ internal class NativeRuntime(private val bridge: NativeBridge) : AutoCloseable {
     private var closed = false
 
     fun open(provider: java.io.File) {
-        require(call { bridge.open(provider) }.isSuccess) { "native runtime open failed" }
+        open(provider, NativeBridge.SELECTOR_DISCARD)
+    }
+
+    fun open(
+        provider: java.io.File,
+        selector: Int,
+    ) {
+        require(call { bridge.open(provider, selector) }.isSuccess) { "native runtime open failed" }
     }
 
     fun adopt(): OwnedSession {
@@ -21,6 +28,15 @@ internal class NativeRuntime(private val bridge: NativeBridge) : AutoCloseable {
         OpaqueHandle.decode(adopted.handle)
         return OwnedSession(this, adopted.handle)
     }
+
+    fun adoptSingleWitness(): Long {
+        val adopted = call { bridge.adoptSingle() }
+        require(adopted.status.isSuccess) { "native single-owner adoption failed" }
+        OpaqueHandle.decode(adopted.handle)
+        return adopted.handle
+    }
+
+    fun executeRequiresFalse(handle: Long): ConsumeResult = call { bridge.executeRequiresFalse(handle) }
 
     fun consume(handle: Long): ConsumeResult = call { bridge.consume(handle) }
 

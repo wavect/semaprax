@@ -42,6 +42,8 @@ class ContractInstrumentation : Instrumentation() {
         runProvider(bridge, nativeDirectory, "libsemaprax_provider_o0.so", cleaner = false)
         runProvider(bridge, nativeDirectory, "libsemaprax_provider_o2.so", cleaner = true)
         runConsumeCleanerRace(bridge, nativeDirectory)
+        runRequiresFalseWitness(bridge, nativeDirectory, "libsemaprax_provider_rf_o0.so")
+        runRequiresFalseWitness(bridge, nativeDirectory, "libsemaprax_provider_rf_o2.so")
     }
 
     private fun runProvider(
@@ -77,6 +79,11 @@ class ContractInstrumentation : Instrumentation() {
         val forged = runtime.call { bridge.consume(handle xor 1L) }
         require(forged.status.raw == StatusWord.KAT_INVALID_HANDLE)
         forged.requireUntouchedFailure()
+        val witnessOnDiscard = runtime.call { bridge.executeRequiresFalse(handle) }
+        require(witnessOnDiscard.status.raw == StatusWord.KAT_ANDROID_ADAPTER) {
+            "requires-false execution was not rejected on the discard selector"
+        }
+        witnessOnDiscard.requireUntouchedFailure()
         val wrongThread = runtime.consumeWrongThread(handle)
         require(wrongThread.status.raw == StatusWord.KAT_WRONG_THREAD)
         wrongThread.requireUntouchedFailure()
@@ -164,12 +171,47 @@ class ContractInstrumentation : Instrumentation() {
         runtime.close()
     }
 
+    private fun runRequiresFalseWitness(
+        bridge: NativeBridge,
+        nativeDirectory: File,
+        providerName: String,
+    ) {
+        val provider = File(nativeDirectory, providerName).canonicalFile
+        require(provider.parentFile == nativeDirectory && provider.isFile) {
+            "provider is not the exact installed image"
+        }
+        val runtime = NativeRuntime(bridge)
+        runtime.open(provider, NativeBridge.SELECTOR_REQUIRES_FALSE)
+        val handle = runtime.adoptSingleWitness()
+
+        // The discard selector cannot consume inside the witness image.
+        val wrongSelector = runtime.call { bridge.consume(handle) }
+        require(wrongSelector.status.raw == StatusWord.KAT_ANDROID_ADAPTER) {
+            "discard consume was not rejected on the requires-false selector"
+        }
+        wrongSelector.requireUntouchedFailure()
+
+        val forged = runtime.call { bridge.executeRequiresFalse(handle xor 1L) }
+        require(forged.status.raw == StatusWord.KAT_INVALID_HANDLE)
+        forged.requireUntouchedFailure()
+
+        // The canonical requires-false corpus witness: one adopted owner at the
+        // maximum payload fails the `requires allowed` guard, publishes no owned
+        // result, and finalizes exactly that one owner after selection.
+        runtime.executeRequiresFalse(handle).requireRequiresFalseExact()
+
+        val stale = runtime.call { bridge.executeRequiresFalse(handle) }
+        require(stale.status.raw == StatusWord.KAT_STALE_HANDLE)
+        stale.requireUntouchedFailure()
+        runtime.close()
+    }
+
     companion object {
         const val RESULT_FILE = "semaprax-android-jni-v1.txt"
         const val EXPECTED_RESULT =
             "SEMAPRAX_ANDROID_JNI_V1_OK api=35 abi=x86_64 o0=explicit o2=cleaner " +
                 "handle=0001000001000001 declared=0000006b00000007 " +
                 "unexpected=0000004500000001 finalizers=1:13,0:11 " +
-                "publication=no-owned allocations=0 handles=0\n"
+                "publication=no-owned allocations=0 handles=0 rf=1\n"
     }
 }

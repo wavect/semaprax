@@ -7,9 +7,12 @@ This is bounded hosted Android application evidence, not a public Android
 application boundary.
 
 This document freezes the first bounded Kotlin/JNI projection of SEMAPRAX
-ownership. It connects one exact generated `token.discard-two` callable-v3
-provider to the unpublished native host and authenticated receipt ledger. The
-adapter is evidence for the ownership boundary described by
+ownership. It connects two exact generated callable-v3 providers to the
+unpublished native host and authenticated receipt ledger: the success-direction
+`token.discard-two` fixture and one canonical semantic-failure witness built by
+`emit_private_native_callable_v3_android_corpus_fixture` from the
+owned-resource corpus `requires-false` case over `token.requires`. Both are
+private fixtures for the ownership boundary described by
 [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md), not a public resource ABI and
 not permission to open `SPX-B104`.
 
@@ -17,7 +20,11 @@ not permission to open `SPX-B104`.
 
 The first fixture owns one pair of direct-trivial resource payloads. Explicit
 `OwnedSession.consume()` runs the exact generated provider, which finalizes
-ordinal 1 before ordinal 0 and publishes scalar zero. The non-throwing
+ordinal 1 before ordinal 0 and publishes scalar zero. The second fixture adopts
+one single owner at the corpus-maximum payload and executes
+`token.requires(own Token, false)`, which selects the `requires allowed`
+contract failure, publishes no owned result, and finalizes exactly that owner.
+The non-throwing
 `AutoCloseable.close()` wrapper and Cleaner-compatible fallback both dispatch
 the same native consume operation asynchronously; they are not SEMAPRAX's
 fallible explicit `close` import. No JVM callback is permitted after native
@@ -25,7 +32,8 @@ fallible explicit `close` import. No JVM callback is permitted after native
 
 The adapter must prove:
 
-- one exact Android/Bionic/ELF descriptor and provider image;
+- one exact Android/Bionic/ELF descriptor and provider image per admitted
+  fixture direction, with an explicit open-time selector choosing between them;
 - a thread-bound native host and receipt ledger;
 - opaque generation-tagged Kotlin handles rather than pointer casts;
 - all-or-none transfer of the pair into the native call;
@@ -34,7 +42,11 @@ The adapter must prove:
 - non-throwing automatic cleanup;
 - stale, forged, cross-runtime, duplicate, reentrant, and wrong-thread
   rejection before ownership mutation;
-- exact O0/O2 behavior in an installed API-35 x86_64 Emulator APK; and
+- sticky failure selection on the requires-false witness: replayed committed
+  bytes reproduce the receipt, a second canonical execution observes the stale
+  owner without poisoning the host, and no owned result is published;
+- exact O0/O2 behavior for both fixture directions in an installed API-35
+  x86_64 Emulator APK; and
 - arm64 Android JNI/provider compilation and ELF inspection without claiming
   arm64 device execution.
 
@@ -167,16 +179,24 @@ dependencies, absence of workspace search paths, method registration table,
 pending-exception discipline, and status known answers are inspected.
 
 The configured no-UI instrumentation APK is required to exercise both O0 and O2
-providers and publish one exact app-private result. Its assertions cover explicit `consume()`,
+providers of both fixture directions and publish one exact app-private result.
+Its assertions cover explicit `consume()`,
 deterministic fallback cleanup, a consume-versus-Cleaner race, copied/stale/forged/
 cross-runtime/wrong-thread rejection, declared and unexpected exception
 normalization, exact finalizer order and payload, nonzero receipt/candidate/
 identity evidence, a changed ledger digest, a healthy host, zero measured Rust
-postcommit allocations, and an empty handle table after the drain barrier.
+postcommit allocations, and an empty handle table after the drain barrier. The
+instrumentation additionally asserts the canonical requires-false semantic
+failure witness: opening the failure-direction image through its dedicated
+selector, adopting one single owner at `u64::MAX`, executing
+`token.requires(own Token, false)`, observing selection ordinal 1 with
+`Publication::NoOwned`, zero postcommit allocations, exactly one physical
+finalizer (`0:18446744073709551615`), replay-equal committed bytes, a stale
+second execution, and cross-selector rejection in both directions.
 The exact file is `files/semaprax-android-jni-v1.txt`, read with `run-as`, and
 its canonical success line includes API 35, x86_64, the O0 explicit-consume and
 O2 Cleaner paths, all known answers, `finalizers=1:13,0:11`,
-`publication=no-owned`, `allocations=0`, and `handles=0`. This paragraph
+`publication=no-owned`, `allocations=0`, `handles=0`, and `rf=1`. This paragraph
 describes the implemented assertion contract; it becomes hosted execution
 evidence only after the dedicated job is green.
 
@@ -194,7 +214,8 @@ handle ABI, postcommit JVM callbacks, reentrant or nested calls, async,
 cancellation, cross-thread resource transfer, hot reload, general quiescence,
 process-kill cleanup, malicious-code containment, signed artifact provenance,
 arm64 device execution, UI/Compose/View/accessibility behavior, AAR
-publication, the broader callable corpus, or public compiler admission.
+publication, the broader callable corpus beyond the two private fixture
+directions above, or public compiler admission.
 
 The Java/Kotlin and Android completion rows remain incomplete. Ordinary
 resource-bearing native builds continue to fail with `SPX-B104`.

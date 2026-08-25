@@ -3,20 +3,24 @@ package dev.semaprax.runtime
 import java.io.File
 
 internal class NativeBridge private constructor() {
-    private external fun nativeOpen(providerPathUtf8: ByteArray): Long
+    private external fun nativeOpen(providerPathUtf8: ByteArray, selector: Int): Long
     private external fun nativeAdoptPair(
         firstPayload: Long,
         secondPayload: Long,
         outHandle: LongArray,
     ): Long
 
+    private external fun nativeAdoptSingle(payload: Long, outHandle: LongArray): Long
     private external fun nativeConsume(handle: Long, outEvidence: LongArray): Long
+    private external fun nativeExecuteRequiresFalse(handle: Long, outEvidence: LongArray): Long
     private external fun nativeCloseRuntime(): Long
     private external fun nativeProbeException(callback: Runnable): Long
     private external fun nativeConsumeRawWrongThread(handle: Long, outEvidence: LongArray): Long
 
-    fun open(provider: File): StatusWord =
-        StatusWord.decode(nativeOpen(provider.path.toByteArray(Charsets.UTF_8)))
+    fun open(
+        provider: File,
+        selector: Int = SELECTOR_DISCARD,
+    ): StatusWord = StatusWord.decode(nativeOpen(provider.path.toByteArray(Charsets.UTF_8), selector))
 
     fun adoptPair(firstPayload: Long = 11L, secondPayload: Long = 13L): AdoptResult {
         val output = longArrayOf(POISON)
@@ -24,9 +28,21 @@ internal class NativeBridge private constructor() {
         return AdoptResult(status, output[0])
     }
 
+    fun adoptSingle(payload: Long = REQUIRE_FALSE_OWNER_PAYLOAD): AdoptResult {
+        val output = longArrayOf(POISON)
+        val status = StatusWord.decode(nativeAdoptSingle(payload, output))
+        return AdoptResult(status, output[0])
+    }
+
     fun consume(handle: Long): ConsumeResult {
         val output = LongArray(EVIDENCE_WORDS) { POISON }
         val status = StatusWord.decode(nativeConsume(handle, output))
+        return ConsumeResult(status, output)
+    }
+
+    fun executeRequiresFalse(handle: Long): ConsumeResult {
+        val output = LongArray(EVIDENCE_WORDS) { POISON }
+        val status = StatusWord.decode(nativeExecuteRequiresFalse(handle, output))
         return ConsumeResult(status, output)
     }
 
@@ -48,6 +64,13 @@ internal class NativeBridge private constructor() {
         const val EVIDENCE_PROOF_MASK = 0x0fL
         const val EXPECTED_FIRST_FINALIZER = (1L shl 32) or 13L
         const val EXPECTED_SECOND_FINALIZER = 11L
+        const val SELECTOR_DISCARD = 0
+        const val SELECTOR_REQUIRES_FALSE = 1
+        const val REQUIRE_FALSE_OWNER_PAYLOAD = -1L
+        const val REQUIRE_FALSE_STATUS_WORD = 1L
+        const val REQUIRE_FALSE_FINALIZER_COUNT = 1L
+        const val REQUIRE_FALSE_FINALIZER =
+            (0L shl 32) or REQUIRE_FALSE_OWNER_PAYLOAD
         const val POISON = -0x3501450135014502L
 
         fun loadExact(nativeLibraryDirectory: File): NativeBridge {
@@ -81,6 +104,25 @@ internal data class ConsumeResult(val status: StatusWord, val evidence: LongArra
         require(evidence[4] == 2L) { "physical finalizer count is not exact" }
         require(evidence[5] == NativeBridge.EXPECTED_FIRST_FINALIZER)
         require(evidence[6] == NativeBridge.EXPECTED_SECOND_FINALIZER)
+        require(evidence[7] == 0L) { "native host state is unhealthy" }
+    }
+
+    fun requireRequiresFalseExact() {
+        require(status.isSuccess) { "requires-false witness status is nonzero" }
+        require(evidence.size == NativeBridge.EVIDENCE_WORDS)
+        require(evidence[0] == NativeBridge.EVIDENCE_VERSION)
+        require(evidence[1] > 0L) { "module instance identity is zero" }
+        require(evidence[2] == NativeBridge.REQUIRE_FALSE_STATUS_WORD) {
+            "semantic failure selection word is not the canonical requires ordinal"
+        }
+        require(evidence[3] == 0L) { "postcommit allocation count is nonzero" }
+        require(evidence[4] == NativeBridge.REQUIRE_FALSE_FINALIZER_COUNT) {
+            "physical finalizer count is not exactly one"
+        }
+        require(evidence[5] == NativeBridge.REQUIRE_FALSE_FINALIZER) {
+            "witness finalizer owner and payload are not the canonical corpus values"
+        }
+        require(evidence[6] == 0L) { "witness mutated a second owner slot" }
         require(evidence[7] == 0L) { "native host state is unhealthy" }
     }
 

@@ -7,6 +7,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 use semaprax::codegen::{
+    emit_private_native_callable_v3_android_corpus_fixture,
     emit_private_native_callable_v3_android_fixture, PrivateNativeCallableV3AndroidTarget,
     PrivateNativeCallableV3Fixture,
 };
@@ -18,19 +19,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         .skip(1)
         .map(PathBuf::from)
         .collect::<Vec<_>>();
-    if outputs.len() != 4
+    if outputs.len() != 6
         || outputs.iter().any(|path| !path.is_absolute())
         || (0..outputs.len())
             .any(|left| (left + 1..outputs.len()).any(|right| outputs[left] == outputs[right]))
     {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "expected four distinct absolute outputs: x86-provider.c arm64-provider.c x86-jni.c arm64-jni.c",
+            "expected six distinct absolute outputs: x86-discard.c arm64-discard.c \
+             x86-requires-false.c arm64-requires-false.c x86-jni.c arm64-jni.c",
         )
         .into());
     }
     let corpus = build_owned_resource_corpus_v1()
         .map_err(|error| io::Error::other(format!("build owned corpus: {error:?}")))?;
+    let requires_false = corpus
+        .cases
+        .iter()
+        .find(|case| case.scenario_id == "requires-false")
+        .ok_or_else(|| io::Error::other("requires-false corpus case is absent"))?;
+    let requires_false_function = DeclarationId::new(requires_false.function_id);
     let emit = |target| {
         emit_private_native_callable_v3_android_fixture(
             &corpus.program,
@@ -40,12 +48,43 @@ fn main() -> Result<(), Box<dyn Error>> {
         )
         .map_err(|error| io::Error::other(format!("emit Android JNI fixture: {error:?}")))
     };
+    let emit_requires_false = |target| {
+        emit_private_native_callable_v3_android_corpus_fixture(
+            &corpus.program,
+            &requires_false_function,
+            &requires_false.arguments,
+            requires_false.expected_owned_result_ordinal,
+            &requires_false.reference,
+            target,
+        )
+        .map_err(|error| {
+            io::Error::other(format!(
+                "emit Android JNI requires-false fixture: {error:?}"
+            ))
+        })
+    };
     let x86 = emit(PrivateNativeCallableV3AndroidTarget::X86_64)?;
     let arm64 = emit(PrivateNativeCallableV3AndroidTarget::Arm64)?;
+    let x86_requires_false = emit_requires_false(PrivateNativeCallableV3AndroidTarget::X86_64)?;
+    let arm64_requires_false = emit_requires_false(PrivateNativeCallableV3AndroidTarget::Arm64)?;
     write_new(&outputs[0], render_provider(x86.source()).as_bytes())?;
     write_new(&outputs[1], render_provider(arm64.source()).as_bytes())?;
-    write_new(&outputs[2], render_jni_shim(x86.descriptor()).as_bytes())?;
-    write_new(&outputs[3], render_jni_shim(arm64.descriptor()).as_bytes())?;
+    write_new(
+        &outputs[2],
+        render_provider(x86_requires_false.source()).as_bytes(),
+    )?;
+    write_new(
+        &outputs[3],
+        render_provider(arm64_requires_false.source()).as_bytes(),
+    )?;
+    write_new(
+        &outputs[4],
+        render_jni_shim(x86.descriptor(), x86_requires_false.descriptor()).as_bytes(),
+    )?;
+    write_new(
+        &outputs[5],
+        render_jni_shim(arm64.descriptor(), arm64_requires_false.descriptor()).as_bytes(),
+    )?;
     Ok(())
 }
 
@@ -97,11 +136,15 @@ uint32_t spx_private_android_jni_finalizer_snapshot_v1(
     )
 }
 
-fn render_jni_shim(descriptor: &[u8]) -> String {
+fn descriptor_literal(descriptor: &[u8]) -> String {
     let mut descriptor_bytes = String::new();
     for byte in descriptor {
         write!(descriptor_bytes, "0x{byte:02x},").expect("string writes are infallible");
     }
+    descriptor_bytes
+}
+
+fn render_jni_shim(discard_descriptor: &[u8], requires_false_descriptor: &[u8]) -> String {
     format!(
         r#"#define _GNU_SOURCE 1
 #include <dlfcn.h>
@@ -117,8 +160,13 @@ fn render_jni_shim(descriptor: &[u8]) -> String {
 #define SPX_UNEXPECTED_STATUS UINT64_C(0x0000004500000001)
 #define SPX_INVALID_STATUS UINT64_C(0x0000002d00000001)
 #define SPX_HOOK_STATUS UINT64_C(0x0000002d80000004)
+#define SPX_SELECTOR_DISCARD INT32_C(0)
+#define SPX_SELECTOR_REQUIRES_FALSE INT32_C(1)
+#define SPX_REQUIRES_FALSE_SELECTED_ORDINAL UINT64_C(1)
+#define SPX_REQUIRES_FALSE_PAYLOAD UINT64_C(18446744073709551615)
 
-static const uint8_t spx_descriptor[]={{{descriptor_bytes}}};
+static const uint8_t spx_descriptor[]={{{}}};
+static const uint8_t spx_rf_descriptor[]={{{}}};
 struct spx_jni_evidence_v1 {{
   uint32_t size;uint32_t version;uint64_t module_instance_id;uint64_t proof_flags;
   uint64_t postcommit_allocations;uint64_t host_state_flags;
@@ -127,7 +175,9 @@ _Static_assert(sizeof(struct spx_jni_evidence_v1)==40,"JNI evidence size");
 
 extern uint64_t spx_private_android_jni_v1_open(const uint8_t *,uint32_t,const uint8_t *,uint32_t);
 extern uint64_t spx_private_android_jni_v1_adopt_pair(uint64_t,uint64_t,uint64_t *);
+extern uint64_t spx_private_android_jni_v1_adopt_single(uint64_t,uint64_t *);
 extern uint64_t spx_private_android_jni_v1_consume_pair(uint64_t,struct spx_jni_evidence_v1 *,uint32_t);
+extern uint64_t spx_private_android_jni_v1_execute_requires_false(uint64_t,struct spx_jni_evidence_v1 *,uint32_t);
 extern uint64_t spx_private_android_jni_v1_poison_runtime(void);
 extern uint64_t spx_private_android_jni_v1_validate_hooks(const void *,const void *);
 extern uint64_t spx_private_android_jni_v1_close_runtime(void);
@@ -138,11 +188,19 @@ static _Thread_local void *spx_hook_image;
 static _Thread_local spx_reset_fn spx_reset;
 static _Thread_local spx_snapshot_fn spx_snapshot;
 static _Thread_local int spx_in_callback;
+static _Thread_local int spx_selector;
 
-static jlong spx_open(JNIEnv *env,jobject self,jbyteArray path_array){{
+static jlong spx_open(JNIEnv *env,jobject self,jbyteArray path_array,jint selector){{
   (void)self;
   if(spx_in_callback)return (jlong)SPX_REENTRANT_STATUS;
   if(path_array==NULL||spx_hook_image!=NULL)return (jlong)SPX_INVALID_STATUS;
+  if(selector!=SPX_SELECTOR_DISCARD&&selector!=SPX_SELECTOR_REQUIRES_FALSE)return (jlong)SPX_INVALID_STATUS;
+  const uint8_t *embedded_descriptor=spx_descriptor;
+  uint32_t embedded_length=(uint32_t)sizeof(spx_descriptor);
+  if(selector==SPX_SELECTOR_REQUIRES_FALSE){{
+    embedded_descriptor=spx_rf_descriptor;
+    embedded_length=(uint32_t)sizeof(spx_rf_descriptor);
+  }}
   jsize length=(*env)->GetArrayLength(env,path_array);
   if((*env)->ExceptionCheck(env)){{(*env)->ExceptionClear(env);return (jlong)SPX_UNEXPECTED_STATUS;}}
   if(length<=0||length>4096)return (jlong)SPX_INVALID_STATUS;
@@ -151,7 +209,7 @@ static jlong spx_open(JNIEnv *env,jobject self,jbyteArray path_array){{
   if((*env)->ExceptionCheck(env)){{(*env)->ExceptionClear(env);return (jlong)SPX_UNEXPECTED_STATUS;}}
   if(memchr(path,'\0',(size_t)length)!=NULL)return (jlong)SPX_INVALID_STATUS;
   path[length]='\0';
-  uint64_t status=spx_private_android_jni_v1_open((const uint8_t *)path,(uint32_t)length,spx_descriptor,(uint32_t)sizeof(spx_descriptor));
+  uint64_t status=spx_private_android_jni_v1_open((const uint8_t *)path,(uint32_t)length,embedded_descriptor,embedded_length);
   if(status!=UINT64_C(0))return (jlong)status;
   spx_hook_image=dlopen(path,RTLD_NOW|RTLD_LOCAL);
   if(spx_hook_image==NULL){{(void)spx_private_android_jni_v1_close_runtime();return (jlong)SPX_HOOK_STATUS;}}
@@ -175,6 +233,7 @@ static jlong spx_open(JNIEnv *env,jobject self,jbyteArray path_array){{
     (void)spx_private_android_jni_v1_close_runtime();(void)dlclose(spx_hook_image);
     spx_hook_image=NULL;spx_reset=NULL;spx_snapshot=NULL;return (jlong)SPX_HOOK_STATUS;
   }}
+  spx_selector=(int)selector;
   return (jlong)UINT64_C(0);
 }}
 
@@ -199,9 +258,31 @@ static jlong spx_adopt(JNIEnv *env,jobject self,jlong first,jlong second,jlongAr
   return (jlong)status;
 }}
 
+static jlong spx_adopt_single(JNIEnv *env,jobject self,jlong payload,jlongArray output){{
+  (void)self;
+  if(spx_in_callback)return (jlong)SPX_REENTRANT_STATUS;
+  if(output==NULL)return (jlong)SPX_INVALID_STATUS;
+  jsize length=(*env)->GetArrayLength(env,output);
+  if((*env)->ExceptionCheck(env)){{(*env)->ExceptionClear(env);return (jlong)SPX_UNEXPECTED_STATUS;}}
+  if(length<1)return (jlong)SPX_INVALID_STATUS;
+  jboolean copied=JNI_FALSE;
+  jlong *words=(*env)->GetLongArrayElements(env,output,&copied);
+  if((*env)->ExceptionCheck(env)){{
+    (*env)->ExceptionClear(env);if(words!=NULL)(*env)->ReleaseLongArrayElements(env,output,words,JNI_ABORT);
+    return (jlong)SPX_UNEXPECTED_STATUS;
+  }}
+  if(words==NULL)return (jlong)SPX_UNEXPECTED_STATUS;
+  uint64_t handle=UINT64_C(0);
+  uint64_t status=spx_private_android_jni_v1_adopt_single((uint64_t)payload,&handle);
+  if(status==UINT64_C(0))words[0]=(jlong)handle;
+  (*env)->ReleaseLongArrayElements(env,output,words,status==UINT64_C(0)?0:JNI_ABORT);
+  return (jlong)status;
+}}
+
 static jlong spx_consume(JNIEnv *env,jobject self,jlong handle,jlongArray output){{
   (void)self;
   if(spx_in_callback)return (jlong)SPX_REENTRANT_STATUS;
+  if(spx_selector!=SPX_SELECTOR_DISCARD)return (jlong)SPX_INVALID_STATUS;
   if(output==NULL)return (jlong)SPX_INVALID_STATUS;
   jsize length=(*env)->GetArrayLength(env,output);
   if((*env)->ExceptionCheck(env)){{(*env)->ExceptionClear(env);return (jlong)SPX_UNEXPECTED_STATUS;}}
@@ -240,12 +321,55 @@ static jlong spx_consume(JNIEnv *env,jobject self,jlong handle,jlongArray output
   return (jlong)status;
 }}
 
+static jlong spx_execute_requires_false(JNIEnv *env,jobject self,jlong handle,jlongArray output){{
+  (void)self;
+  if(spx_in_callback)return (jlong)SPX_REENTRANT_STATUS;
+  if(spx_selector!=SPX_SELECTOR_REQUIRES_FALSE)return (jlong)SPX_INVALID_STATUS;
+  if(output==NULL)return (jlong)SPX_INVALID_STATUS;
+  jsize length=(*env)->GetArrayLength(env,output);
+  if((*env)->ExceptionCheck(env)){{(*env)->ExceptionClear(env);return (jlong)SPX_UNEXPECTED_STATUS;}}
+  if(length<8)return (jlong)SPX_INVALID_STATUS;
+  jboolean copied=JNI_FALSE;
+  jlong *words=(*env)->GetLongArrayElements(env,output,&copied);
+  if((*env)->ExceptionCheck(env)){{
+    (*env)->ExceptionClear(env);if(words!=NULL)(*env)->ReleaseLongArrayElements(env,output,words,JNI_ABORT);
+    return (jlong)SPX_UNEXPECTED_STATUS;
+  }}
+  if(words==NULL)return (jlong)SPX_UNEXPECTED_STATUS;
+  if(spx_hook_image!=NULL&&(spx_reset==NULL||spx_reset()!=UINT32_C(0))){{
+    (void)spx_private_android_jni_v1_poison_runtime();
+    (*env)->ReleaseLongArrayElements(env,output,words,JNI_ABORT);return (jlong)SPX_HOOK_STATUS;
+  }}
+  struct spx_jni_evidence_v1 evidence={{0}};
+  uint64_t status=spx_private_android_jni_v1_execute_requires_false((uint64_t)handle,&evidence,(uint32_t)sizeof(evidence));
+  if(status==UINT64_C(0)){{
+    uint32_t count=0,owners[2]={{0,0}};uint64_t payloads[2]={{0,0}};
+    if(spx_snapshot==NULL||spx_snapshot(&count,owners,payloads,UINT32_C(2))!=UINT32_C(0)||
+       evidence.size!=(uint32_t)sizeof(evidence)||evidence.version!=UINT32_C(1)||
+       evidence.module_instance_id==UINT64_C(0)||
+       evidence.proof_flags!=SPX_REQUIRES_FALSE_SELECTED_ORDINAL||
+       evidence.postcommit_allocations!=UINT64_C(0)||evidence.host_state_flags!=UINT64_C(0)||
+       count!=UINT32_C(1)||owners[0]!=UINT32_C(0)||payloads[0]!=SPX_REQUIRES_FALSE_PAYLOAD||
+       owners[1]!=UINT32_C(0)||payloads[1]!=UINT64_C(0)){{
+      (void)spx_private_android_jni_v1_poison_runtime();status=SPX_HOOK_STATUS;
+    }}
+    else{{
+      words[0]=(jlong)UINT64_C(1);words[1]=(jlong)evidence.module_instance_id;
+      words[2]=(jlong)evidence.proof_flags;words[3]=(jlong)evidence.postcommit_allocations;
+      words[4]=(jlong)count;words[5]=(jlong)(((uint64_t)owners[0]<<32)|payloads[0]);
+      words[6]=(jlong)(((uint64_t)owners[1]<<32)|payloads[1]);words[7]=(jlong)evidence.host_state_flags;
+    }}
+  }}
+  (*env)->ReleaseLongArrayElements(env,output,words,status==UINT64_C(0)?0:JNI_ABORT);
+  return (jlong)status;
+}}
+
 static jlong spx_close(JNIEnv *env,jobject self){{
   (void)env;(void)self;
   if(spx_in_callback)return (jlong)SPX_REENTRANT_STATUS;
   uint64_t status=spx_private_android_jni_v1_close_runtime();
   if(status==UINT64_C(0)&&spx_hook_image!=NULL){{
-    (void)dlclose(spx_hook_image);spx_hook_image=NULL;spx_reset=NULL;spx_snapshot=NULL;
+    (void)dlclose(spx_hook_image);spx_hook_image=NULL;spx_reset=NULL;spx_snapshot=NULL;spx_selector=SPX_SELECTOR_DISCARD;
   }}
   return (jlong)status;
 }}
@@ -273,9 +397,11 @@ static jlong spx_probe(JNIEnv *env,jobject self,jobject callback){{
 }}
 
 static const JNINativeMethod spx_methods[]={{
-  {{"nativeOpen","([B)J",(void *)spx_open}},
+  {{"nativeOpen","([BI)J",(void *)spx_open}},
   {{"nativeAdoptPair","(JJ[J)J",(void *)spx_adopt}},
+  {{"nativeAdoptSingle","(J[J)J",(void *)spx_adopt_single}},
   {{"nativeConsume","(J[J)J",(void *)spx_consume}},
+  {{"nativeExecuteRequiresFalse","(J[J)J",(void *)spx_execute_requires_false}},
   {{"nativeCloseRuntime","()J",(void *)spx_close}},
   {{"nativeProbeException","(Ljava/lang/Runnable;)J",(void *)spx_probe}},
   {{"nativeConsumeRawWrongThread","(J[J)J",(void *)spx_consume}}
@@ -291,12 +417,14 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm,void *reserved){{
 
 JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm,void *reserved){{(void)vm;(void)reserved;}}
 "#,
+        descriptor_literal(discard_descriptor),
+        descriptor_literal(requires_false_descriptor),
     )
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{render_jni_shim, render_provider};
+    use super::{descriptor_literal, render_jni_shim, render_provider};
 
     #[test]
     fn generated_units_freeze_hooks_registration_and_known_answers() {
@@ -304,23 +432,41 @@ mod tests {
         assert!(provider.contains("spx_private_android_jni_finalizer_snapshot_v1"));
         assert!(provider.contains("spx_v3_generated_finalize"));
         assert!(provider.contains("static _Thread_local uint32_t spx_jni_finalizer_count"));
-        let shim = render_jni_shim(&[0x53, 0x50, 0x58]);
+        let shim = render_jni_shim(&[0x53, 0x50, 0x58], &[0x52, 0x46]);
         for required in [
-            "0x53,0x50,0x58,",
+            "static const uint8_t spx_descriptor[]={0x53,0x50,0x58,}",
+            "static const uint8_t spx_rf_descriptor[]={0x52,0x46,}",
             "dev/semaprax/runtime/NativeBridge",
             "dev/semaprax/runtime/DeclaredFixtureException",
+            "nativeOpen\",\"([BI)J",
             "nativeAdoptPair\",\"(JJ[J)J",
+            "nativeAdoptSingle\",\"(J[J)J",
             "nativeConsume\",\"(J[J)J",
+            "nativeExecuteRequiresFalse\",\"(J[J)J",
             "nativeProbeException",
             "SPX_REENTRANT_STATUS UINT64_C(0x0000002d0000000b)",
             "SPX_WRONG_THREAD_STATUS UINT64_C(0x0000002d00000002)",
             "SPX_UNEXPECTED_STATUS UINT64_C(0x0000004500000001)",
+            "SPX_SELECTOR_DISCARD INT32_C(0)",
+            "SPX_SELECTOR_REQUIRES_FALSE INT32_C(1)",
+            "SPX_REQUIRES_FALSE_SELECTED_ORDINAL UINT64_C(1)",
+            "SPX_REQUIRES_FALSE_PAYLOAD UINT64_C(18446744073709551615)",
+            "selector!=SPX_SELECTOR_DISCARD&&selector!=SPX_SELECTOR_REQUIRES_FALSE",
+            "spx_selector!=SPX_SELECTOR_DISCARD)return (jlong)SPX_INVALID_STATUS",
+            "spx_selector!=SPX_SELECTOR_REQUIRES_FALSE)return (jlong)SPX_INVALID_STATUS",
+            "spx_selector=(int)selector",
+            "spx_reset()!=UINT32_C(0)",
             "reset_info.dli_fbase!=snapshot_info.dli_fbase",
             "strcmp(canonical_path,reset_path)!=0",
             "spx_in_callback=1",
             "spx_in_callback=0",
             "evidence.size!=(uint32_t)sizeof(evidence)",
             "owners[0]!=UINT32_C(1)||payloads[0]!=UINT64_C(13)",
+            "evidence.proof_flags!=SPX_REQUIRES_FALSE_SELECTED_ORDINAL",
+            "count!=UINT32_C(1)||owners[0]!=UINT32_C(0)||payloads[0]!=SPX_REQUIRES_FALSE_PAYLOAD",
+            "owners[1]!=UINT32_C(0)||payloads[1]!=UINT64_C(0)",
+            "spx_private_android_jni_v1_adopt_single((uint64_t)payload,&handle)",
+            "spx_private_android_jni_v1_execute_requires_false((uint64_t)handle,&evidence,(uint32_t)sizeof(evidence))",
             "GetLongArrayElements",
             "status==UINT64_C(0)?0:JNI_ABORT",
             "spx_private_android_jni_v1_poison_runtime()",
@@ -330,5 +476,11 @@ mod tests {
         ] {
             assert!(shim.contains(required), "missing `{required}`");
         }
+    }
+
+    #[test]
+    fn descriptor_literals_are_exact_byte_hex() {
+        assert_eq!(descriptor_literal(&[0x00, 0xff]), "0x00,0xff,");
+        assert_eq!(descriptor_literal(&[]), "");
     }
 }

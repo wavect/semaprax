@@ -124,6 +124,8 @@ fn private_android_jni_project_is_offline_closed_and_source_locked() {
         "lib/x86_64/libsemaprax_jni.so",
         "lib/x86_64/libsemaprax_provider_o0.so",
         "lib/x86_64/libsemaprax_provider_o2.so",
+        "lib/x86_64/libsemaprax_provider_rf_o0.so",
+        "lib/x86_64/libsemaprax_provider_rf_o2.so",
     ] {
         assert!(
             package.contains(required),
@@ -132,9 +134,11 @@ fn private_android_jni_project_is_offline_closed_and_source_locked() {
     }
 
     for required in [
-        "private external fun nativeOpen(providerPathUtf8: ByteArray): Long",
+        "private external fun nativeOpen(providerPathUtf8: ByteArray, selector: Int): Long",
         "private external fun nativeAdoptPair(",
+        "private external fun nativeAdoptSingle(payload: Long, outHandle: LongArray): Long",
         "private external fun nativeConsume(handle: Long, outEvidence: LongArray): Long",
+        "private external fun nativeExecuteRequiresFalse(handle: Long, outEvidence: LongArray): Long",
         "private external fun nativeCloseRuntime(): Long",
         "private external fun nativeProbeException(callback: Runnable): Long",
         "private external fun nativeConsumeRawWrongThread(handle: Long, outEvidence: LongArray): Long",
@@ -142,6 +146,13 @@ fn private_android_jni_project_is_offline_closed_and_source_locked() {
         "EVIDENCE_WORDS = 8",
         "EXPECTED_FIRST_FINALIZER = (1L shl 32) or 13L",
         "EXPECTED_SECOND_FINALIZER = 11L",
+        "SELECTOR_DISCARD = 0",
+        "SELECTOR_REQUIRES_FALSE = 1",
+        "REQUIRE_FALSE_OWNER_PAYLOAD = -1L",
+        "REQUIRE_FALSE_STATUS_WORD = 1L",
+        "REQUIRE_FALSE_FINALIZER_COUNT = 1L",
+        "REQUIRE_FALSE_FINALIZER =\n            (0L shl 32) or REQUIRE_FALSE_OWNER_PAYLOAD",
+        "fun requireRequiresFalseExact()",
     ] {
         assert!(bridge.contains(required), "Kotlin JNI contract lost `{required}`");
     }
@@ -215,6 +226,12 @@ fn private_android_jni_project_is_offline_closed_and_source_locked() {
     }
     for required in [
         "runConsumeCleanerRace",
+        "runRequiresFalseWitness",
+        "requireRequiresFalseExact",
+        "SELECTOR_REQUIRES_FALSE",
+        "executeRequiresFalse",
+        "libsemaprax_provider_rf_o0.so",
+        "libsemaprax_provider_rf_o2.so",
         "runInterruptedAcceptedWork",
         "provider trace reset is per-consume",
         "consumeWrongThread",
@@ -225,6 +242,7 @@ fn private_android_jni_project_is_offline_closed_and_source_locked() {
         "requireUntouchedFailure",
         "semaprax-android-jni-v1.txt",
         "SEMAPRAX_ANDROID_JNI_V1_OK",
+        "handles=0 rf=1",
     ] {
         assert!(
             instrumentation.contains(required),
@@ -256,6 +274,13 @@ fn private_android_jni_hosted_gate_is_mandatory_and_fail_closed() {
         "gradle --offline",
         "--features unstable-android-jni-harness",
         "--bin private-android-jni-v3-fixture",
+        "x86-discard.c",
+        "arm64-discard.c",
+        "x86-requires-false.c",
+        "arm64-requires-false.c",
+        "libsemaprax_provider_rf_o0.so",
+        "libsemaprax_provider_rf_o2.so",
+        "handles=0 rf=1",
         "x86_64-linux-android",
         "aarch64-linux-android",
         "--version-script=",

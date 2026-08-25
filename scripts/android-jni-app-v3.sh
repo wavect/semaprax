@@ -6,7 +6,7 @@ readonly android_api_level="35"
 readonly android_minimum_api="28"
 readonly package_name="dev.semaprax.runtime"
 readonly instrumentation_name="dev.semaprax.instrumentation.ContractInstrumentation"
-readonly expected_result="SEMAPRAX_ANDROID_JNI_V1_OK api=35 abi=x86_64 o0=explicit o2=cleaner handle=0001000001000001 declared=0000006b00000007 unexpected=0000004500000001 finalizers=1:13,0:11 publication=no-owned allocations=0 handles=0"
+readonly expected_result="SEMAPRAX_ANDROID_JNI_V1_OK api=35 abi=x86_64 o0=explicit o2=cleaner handle=0001000001000001 declared=0000006b00000007 unexpected=0000004500000001 finalizers=1:13,0:11 publication=no-owned allocations=0 handles=0 rf=1"
 
 for command in adb cargo file find gradle grep mktemp realpath sed tr; do
   if ! which "$command" >/dev/null 2>&1; then
@@ -69,16 +69,22 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-readonly x86_provider_source="$scratch/x86-provider.c"
-readonly arm64_provider_source="$scratch/arm64-provider.c"
+readonly x86_discard_source="$scratch/x86-discard.c"
+readonly arm64_discard_source="$scratch/arm64-discard.c"
+readonly x86_requires_false_source="$scratch/x86-requires-false.c"
+readonly arm64_requires_false_source="$scratch/arm64-requires-false.c"
 readonly x86_jni_source="$scratch/x86-jni.c"
 readonly arm64_jni_source="$scratch/arm64-jni.c"
 cargo run --locked -p semaprax-native-host \
   --features unstable-android-jni-harness \
   --bin private-android-jni-v3-fixture -- \
-  "$x86_provider_source" "$arm64_provider_source" \
+  "$x86_discard_source" "$arm64_discard_source" \
+  "$x86_requires_false_source" "$arm64_requires_false_source" \
   "$x86_jni_source" "$arm64_jni_source"
-for source in "$x86_provider_source" "$arm64_provider_source" "$x86_jni_source" "$arm64_jni_source"; do
+for source in \
+  "$x86_discard_source" "$arm64_discard_source" \
+  "$x86_requires_false_source" "$arm64_requires_false_source" \
+  "$x86_jni_source" "$arm64_jni_source"; do
   test -s "$source"
 done
 
@@ -97,6 +103,8 @@ readonly native_dir="$scratch/native"
 mkdir -p "$native_dir"
 readonly packaged_provider_o0="$native_dir/libsemaprax_provider_o0.so"
 readonly packaged_provider_o2="$native_dir/libsemaprax_provider_o2.so"
+readonly packaged_provider_rf_o0="$native_dir/libsemaprax_provider_rf_o0.so"
+readonly packaged_provider_rf_o2="$native_dir/libsemaprax_provider_rf_o2.so"
 readonly packaged_jni="$native_dir/libsemaprax_jni.so"
 readonly x86_host="target/x86_64-linux-android/release/libsemaprax_native_host.a"
 readonly arm64_host="target/aarch64-linux-android/release/libsemaprax_native_host.a"
@@ -108,13 +116,21 @@ printf '%s\n' '{ global: JNI_OnLoad; local: *; };' >"$export_map"
 for optimization in 0 2; do
   "$x86_clang" -std=c11 "-O$optimization" -fPIC -shared \
     -Wall -Wextra -Werror -pedantic \
-    "$x86_provider_source" -o "$native_dir/libsemaprax_provider_o$optimization.so"
+    "$x86_discard_source" -o "$native_dir/libsemaprax_provider_o$optimization.so"
+  "$x86_clang" -std=c11 "-O$optimization" -fPIC -shared \
+    -Wall -Wextra -Werror -pedantic \
+    "$x86_requires_false_source" -o "$native_dir/libsemaprax_provider_rf_o$optimization.so"
   "$arm64_clang" -std=c11 "-O$optimization" -fPIC -shared \
     -Wall -Wextra -Werror -pedantic \
-    "$arm64_provider_source" -o "$scratch/libsemaprax_provider_arm64_o$optimization.so"
+    "$arm64_discard_source" -o "$scratch/libsemaprax_provider_arm64_o$optimization.so"
+  "$arm64_clang" -std=c11 "-O$optimization" -fPIC -shared \
+    -Wall -Wextra -Werror -pedantic \
+    "$arm64_requires_false_source" -o "$scratch/libsemaprax_provider_rf_arm64_o$optimization.so"
 done
 test -s "$packaged_provider_o0"
 test -s "$packaged_provider_o2"
+test -s "$packaged_provider_rf_o0"
+test -s "$packaged_provider_rf_o2"
 
 "$x86_clang" -std=c11 -O2 -fPIC -shared \
   -Wall -Wextra -Werror -pedantic -fvisibility=hidden \

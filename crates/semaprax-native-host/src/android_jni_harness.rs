@@ -24,7 +24,10 @@ use semaprax_native_loader::MAX_DESCRIPTOR_BYTES;
 
 use crate::callable_wire_v3::{ExecuteOutcome, Publication};
 use crate::descriptor_v3::Descriptor;
-use crate::settlement_host_v3::PrivateSettlementHostV3;
+use crate::settlement_host_v3::{
+    PrivateSettlementArgumentV3, PrivateSettlementExecutionError, PrivateSettlementHostV3,
+};
+use crate::settlement_ledger::SettlementLedgerError;
 
 const HANDLE_SLOT_BITS: u32 = 24;
 const HANDLE_GENERATION_BITS: u32 = 24;
@@ -38,6 +41,9 @@ const SESSION_CAPACITY: usize = 8;
 const MAX_PATH_BYTES: usize = 4_096;
 const EVIDENCE_VERSION: u32 = 1;
 const COMPLETE_PROOF_FLAGS: u64 = 0x0f;
+const REQUIRES_FALSE_PAYLOAD: u64 = u64::MAX;
+const REQUIRES_FALSE_SELECTED_ORDINAL: u32 = 1;
+const OWNER_GENERATION: u64 = 1;
 
 const DOMAIN_ANDROID: u16 = 1;
 const CLASS_ADAPTER: u8 = 5;
@@ -81,7 +87,14 @@ thread_local! {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SessionShape {
+    Pair,
+    SingleWitness,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct Session {
+    shape: SessionShape,
     payloads: [u64; 2],
 }
 
@@ -350,7 +363,25 @@ impl AndroidJniRuntimeV1 {
             return Err(android_status(CODE_HOST_UNHEALTHY));
         }
         self.sessions
-            .insert(Session { payloads })
+            .insert(Session {
+                shape: SessionShape::Pair,
+                payloads,
+            })
+            .map_err(map_table_error)
+    }
+
+    fn adopt_single(&mut self, payload: u64) -> Result<u64, u64> {
+        if self.poisoned || self.host.is_poisoned() {
+            return Err(android_status(CODE_HOST_UNHEALTHY));
+        }
+        if payload != REQUIRES_FALSE_PAYLOAD {
+            return Err(android_status(CODE_WRONG_PAYLOAD));
+        }
+        self.sessions
+            .insert(Session {
+                shape: SessionShape::SingleWitness,
+                payloads: [payload, 0],
+            })
             .map_err(map_table_error)
     }
 
@@ -359,6 +390,10 @@ impl AndroidJniRuntimeV1 {
             return Err(android_status(CODE_HOST_UNHEALTHY));
         }
         let session = self.sessions.claim(handle).map_err(map_table_error)?;
+        if session.shape != SessionShape::Pair {
+            self.sessions.restore(handle);
+            return Err(android_status(CODE_INVALID_HANDLE));
+        }
         let [first_slot, second_slot] = match take_owner_pair(&mut self.next_owner_slot) {
             Ok(slots) => slots,
             Err(status) => {
@@ -452,6 +487,98 @@ impl AndroidJniRuntimeV1 {
         })
     }
 
+    fn requires_false_witness(&mut self, handle: u64) -> Result<PrivateAndroidJniEvidenceV1, u64> {
+        if self.poisoned || self.host.is_poisoned() {
+            return Err(android_status(CODE_HOST_UNHEALTHY));
+        }
+        let session = self.sessions.claim(handle).map_err(map_table_error)?;
+        if session.shape != SessionShape::SingleWitness {
+            self.sessions.restore(handle);
+            return Err(android_status(CODE_INVALID_HANDLE));
+        }
+        let payload = session.payloads[0];
+        let slot = match take_owner_slot(&mut self.next_owner_slot) {
+            Ok(slot) => slot,
+            Err(status) => {
+                self.sessions.restore(handle);
+                return Err(status);
+            }
+        };
+        let owner = match self.host.register_owner(slot, OWNER_GENERATION) {
+            Ok(owner) => owner,
+            Err(_) => {
+                self.sessions.restore(handle);
+                return Err(android_status(CODE_CAPACITY));
+            }
+        };
+        // The canonical `requires-false` corpus witness: one owned argument at
+        // the corpus-maximum payload plus one false boolean scalar.
+        let arguments = [
+            PrivateSettlementArgumentV3::Owned {
+                handle: owner,
+                payload,
+            },
+            PrivateSettlementArgumentV3::Bool(false),
+        ];
+        let committed = match self.host.execute_canonical(&arguments) {
+            Ok(committed) => committed,
+            Err(_) => {
+                self.sessions.quarantine(handle);
+                self.poisoned = true;
+                return Err(android_status(CODE_EXECUTION_UNCERTAIN));
+            }
+        };
+        let allocations = crate::postcommit_allocation_probe::take_last();
+        let healthy = !self.host.is_poisoned()
+            && !self.host.is_draining()
+            && self.host.quarantined_count() == 0;
+        if committed.outcome
+            != (ExecuteOutcome::SemanticFailure {
+                selected_ordinal: REQUIRES_FALSE_SELECTED_ORDINAL,
+            })
+            || committed.committed.publication != Publication::NoOwned
+            || committed.committed.published_owner.is_some()
+            || allocations != Some(0)
+            || !healthy
+        {
+            self.sessions.quarantine(handle);
+            self.poisoned = true;
+            return Err(android_status(CODE_EVIDENCE_MISMATCH));
+        }
+        if self
+            .host
+            .replay_committed(committed.identity, &committed.candidate_bytes)
+            != Ok(committed.committed)
+        {
+            self.sessions.quarantine(handle);
+            self.poisoned = true;
+            return Err(android_status(CODE_EVIDENCE_MISMATCH));
+        }
+        // Failure selection is sticky: the consumed owner must make a second
+        // canonical execution fail closed without poisoning the host.
+        if self.host.execute_canonical(&arguments)
+            != Err(PrivateSettlementExecutionError::Ledger(
+                SettlementLedgerError::StaleOwner,
+            ))
+            || self.host.is_poisoned()
+            || self.host.is_draining()
+            || self.host.quarantined_count() != 0
+        {
+            self.sessions.quarantine(handle);
+            self.poisoned = true;
+            return Err(android_status(CODE_EVIDENCE_MISMATCH));
+        }
+        self.sessions.consume(handle);
+        Ok(PrivateAndroidJniEvidenceV1 {
+            size: mem::size_of::<PrivateAndroidJniEvidenceV1>() as u32,
+            version: EVIDENCE_VERSION,
+            module_instance_id: self.host.module_instance_id().get(),
+            proof_flags: u64::from(REQUIRES_FALSE_SELECTED_ORDINAL),
+            postcommit_allocations: allocations.unwrap_or(usize::MAX) as u64,
+            host_state_flags: 0,
+        })
+    }
+
     fn can_close(&mut self) -> Result<(), u64> {
         if self.sessions.has_quarantine() || self.poisoned || self.host.is_poisoned() {
             return Err(android_status(CODE_HOST_UNHEALTHY));
@@ -474,6 +601,14 @@ fn take_owner_pair(next_owner_slot: &mut u64) -> Result<[u64; 2], u64> {
         .ok_or_else(|| android_status(CODE_CAPACITY))?;
     *next_owner_slot = next;
     Ok([first, second])
+}
+
+fn take_owner_slot(next_owner_slot: &mut u64) -> Result<u64, u64> {
+    let slot = *next_owner_slot;
+    *next_owner_slot = slot
+        .checked_add(1)
+        .ok_or_else(|| android_status(CODE_CAPACITY))?;
+    Ok(slot)
 }
 
 fn map_table_error(error: TableError) -> u64 {
@@ -623,6 +758,27 @@ pub unsafe extern "C" fn spx_private_android_jni_v1_adopt_pair(
 
 #[cfg(target_os = "android")]
 #[no_mangle]
+pub unsafe extern "C" fn spx_private_android_jni_v1_adopt_single(
+    payload: u64,
+    out_handle: *mut u64,
+) -> u64 {
+    ffi_guard(|| {
+        if out_handle.is_null() || (out_handle as usize) % mem::align_of::<u64>() != 0 {
+            return android_status(CODE_INVALID_ARGUMENT);
+        }
+        match with_runtime_mut(|runtime| runtime.adopt_single(payload)) {
+            Ok(handle) => {
+                // SAFETY: The generated shim supplies aligned writable storage.
+                unsafe { out_handle.write(handle) };
+                0
+            }
+            Err(status) => status,
+        }
+    })
+}
+
+#[cfg(target_os = "android")]
+#[no_mangle]
 pub unsafe extern "C" fn spx_private_android_jni_v1_consume_pair(
     handle: u64,
     out_evidence: *mut PrivateAndroidJniEvidenceV1,
@@ -636,6 +792,32 @@ pub unsafe extern "C" fn spx_private_android_jni_v1_consume_pair(
             return android_status(CODE_INVALID_ARGUMENT);
         }
         match with_runtime_mut(|runtime| runtime.consume_pair(handle)) {
+            Ok(evidence) => {
+                // SAFETY: Exact aligned output storage was checked above and is
+                // written only after authenticated receipt commit.
+                unsafe { ptr::write(out_evidence, evidence) };
+                0
+            }
+            Err(status) => status,
+        }
+    })
+}
+
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub unsafe extern "C" fn spx_private_android_jni_v1_execute_requires_false(
+    handle: u64,
+    out_evidence: *mut PrivateAndroidJniEvidenceV1,
+    out_evidence_len: u32,
+) -> u64 {
+    ffi_guard(|| {
+        if out_evidence.is_null()
+            || out_evidence_len as usize != mem::size_of::<PrivateAndroidJniEvidenceV1>()
+            || (out_evidence as usize) % mem::align_of::<PrivateAndroidJniEvidenceV1>() != 0
+        {
+            return android_status(CODE_INVALID_ARGUMENT);
+        }
+        match with_runtime_mut(|runtime| runtime.requires_false_witness(handle)) {
             Ok(evidence) => {
                 // SAFETY: Exact aligned output storage was checked above and is
                 // written only after authenticated receipt commit.
@@ -864,6 +1046,26 @@ mod tests {
         let mut next = 7;
         assert_eq!(take_owner_pair(&mut next), Ok([7, 8]));
         assert_eq!(next, 9);
+    }
+
+    #[test]
+    fn owner_single_counter_exhaustion_is_nonmutating() {
+        let mut next = u64::MAX;
+        assert_eq!(
+            take_owner_slot(&mut next),
+            Err(android_status(CODE_CAPACITY))
+        );
+        assert_eq!(next, u64::MAX);
+        let mut next = 7;
+        assert_eq!(take_owner_slot(&mut next), Ok(7));
+        assert_eq!(next, 8);
+    }
+
+    #[test]
+    fn requires_false_witness_constants_are_frozen() {
+        assert_eq!(REQUIRES_FALSE_PAYLOAD, u64::MAX);
+        assert_eq!(REQUIRES_FALSE_SELECTED_ORDINAL, 1);
+        assert_eq!(OWNER_GENERATION, 1);
     }
 
     #[test]

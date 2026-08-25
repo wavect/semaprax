@@ -45,10 +45,12 @@ readonly native_names=(
   libsemaprax_jni.so
   libsemaprax_provider_o0.so
   libsemaprax_provider_o2.so
+  libsemaprax_provider_rf_o0.so
+  libsemaprax_provider_rf_o2.so
 )
 mapfile -t native_files < <(find "$native_dir" -mindepth 1 -maxdepth 1 -type f -name '*.so' -print | LC_ALL=C sort)
 if [[ "${#native_files[@]}" -ne "${#native_names[@]}" ]]; then
-  echo "generated Android JNI directory must contain exactly three shared libraries" >&2
+  echo "generated Android JNI directory must contain exactly five shared libraries" >&2
   exit 1
 fi
 for name in "${native_names[@]}"; do
@@ -137,7 +139,9 @@ done
   zip -q -X -0 "$base_apk" classes.dex \
     lib/x86_64/libsemaprax_jni.so \
     lib/x86_64/libsemaprax_provider_o0.so \
-    lib/x86_64/libsemaprax_provider_o2.so
+    lib/x86_64/libsemaprax_provider_o2.so \
+    lib/x86_64/libsemaprax_provider_rf_o0.so \
+    lib/x86_64/libsemaprax_provider_rf_o2.so
 )
 
 readonly aligned_apk="$work/aligned.apk"
@@ -168,6 +172,8 @@ readonly expected_native=(
   lib/x86_64/libsemaprax_jni.so
   lib/x86_64/libsemaprax_provider_o0.so
   lib/x86_64/libsemaprax_provider_o2.so
+  lib/x86_64/libsemaprax_provider_rf_o0.so
+  lib/x86_64/libsemaprax_provider_rf_o2.so
 )
 if [[ "${packaged_native[*]}" != "${expected_native[*]}" ]]; then
   echo "APK native library inventory is not exact" >&2

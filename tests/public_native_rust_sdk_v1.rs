@@ -4,6 +4,7 @@ use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::hir;
+use sha2::{Digest, Sha256};
 
 #[path = "support/native_rust_cargo.rs"]
 mod native_rust_cargo;
@@ -143,6 +144,58 @@ fn recursive_files(directory: &Path) -> Vec<(String, Vec<u8>)> {
     visit(directory, directory, &mut files);
     files.sort_by(|left, right| left.0.cmp(&right.0));
     files
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    use std::fmt::Write as _;
+
+    let mut rendered = String::with_capacity(64);
+    for byte in Sha256::digest(bytes) {
+        write!(&mut rendered, "{byte:02x}").unwrap();
+    }
+    rendered
+}
+
+fn inventory_difference_report(left: &[(String, Vec<u8>)], right: &[(String, Vec<u8>)]) -> String {
+    let rows = left.len().max(right.len()).min(10);
+    let mut differences = Vec::with_capacity(rows);
+    for index in 0..rows {
+        let left_row = left.get(index);
+        let right_row = right.get(index);
+        if left_row == right_row {
+            continue;
+        }
+        let describe = |row: Option<&(String, Vec<u8>)>| match row {
+            Some((path, bytes)) => format!(
+                "path={path:?},bytes={},sha256={}",
+                bytes.len(),
+                sha256_hex(bytes)
+            ),
+            None => "missing".to_owned(),
+        };
+        let first_difference = match (left_row, right_row) {
+            (Some((_, left_bytes)), Some((_, right_bytes))) => left_bytes
+                .iter()
+                .zip(right_bytes)
+                .position(|(left, right)| left != right)
+                .or_else(|| {
+                    (left_bytes.len() != right_bytes.len())
+                        .then_some(left_bytes.len().min(right_bytes.len()))
+                }),
+            _ => None,
+        };
+        differences.push(format!(
+            "row={index},first_difference={first_difference:?},left=({}),right=({})",
+            describe(left_row),
+            describe(right_row),
+        ));
+    }
+    format!(
+        "left_files={},right_files={},differences=[{}]",
+        left.len(),
+        right.len(),
+        differences.join("; ")
+    )
 }
 
 fn sdk_method(stable_id: &str) -> String {
@@ -491,7 +544,13 @@ fn hosted_external_consumers_are_deterministic_and_match_native_c_and_wasm() {
         );
     }
     let first_files = recursive_files(&first);
-    assert_eq!(first_files, recursive_files(&second));
+    let second_files = recursive_files(&second);
+    assert_eq!(
+        first_files,
+        second_files,
+        "generated SDK inventories differ: {}",
+        inventory_difference_report(&first_files, &second_files),
+    );
     assert_eq!(first_files.len(), 9);
     assert_eq!(
         first_files

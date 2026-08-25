@@ -829,7 +829,40 @@ fn windows_archive_admission_is_closed_over_the_two_brepro_layouts() {
 
 #[cfg(windows)]
 #[test]
+fn windows_c_compile_plan_disables_incremental_linker_compatible_timestamps() {
+    use std::ffi::OsStr;
+
+    let prepared = super::platform::prepare_c_compile_invocation(
+        "x86_64-pc-windows-msvc",
+        OsStr::new("module.c"),
+        2,
+        false,
+        33_554_432,
+    )
+    .unwrap();
+    let expected = [
+        "-std=c11",
+        "-target",
+        "x86_64-pc-windows-msvc",
+        "-mno-incremental-linker-compatible",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-c",
+        "module.c",
+        "-o",
+        "-",
+    ];
+    let (arguments, capacity) = super::platform::test_prepared_c_compile_arguments(&prepared);
+    assert!(arguments.iter().map(String::as_str).eq(expected));
+    assert_eq!(capacity, expected.len());
+}
+
+#[cfg(windows)]
+#[test]
 fn windows_real_brepro_archive_round_trips_through_exact_admission() {
+    use sha2::{Digest as _, Sha256};
     use std::ffi::OsStr;
     use std::path::Path;
 
@@ -877,31 +910,59 @@ fn windows_real_brepro_archive_round_trips_through_exact_admission() {
         b"int semaprax_archive_probe(void){return 7;}\n",
     )
     .unwrap();
-    let compile = std::process::Command::new(clang)
-        .current_dir(&root)
-        .args([
-            "-target",
-            "x86_64-pc-windows-msvc",
-            "-c",
-            "module.c",
-            "-o",
-            "module.obj",
-        ])
-        .output()
-        .unwrap();
-    assert!(
-        compile.status.success(),
-        "{}",
-        String::from_utf8_lossy(&compile.stderr),
-    );
-
     let directory = super::platform::hold_directory(&root).unwrap();
-    let input = super::platform::test_hold_regular_file_name_bounded(
+    let clang = super::platform::hold_external_executable(std::path::Path::new(&clang)).unwrap();
+    let mut compile_process = super::platform::prepare_process_arena(2).unwrap();
+    let compile = || {
+        super::platform::prepare_c_compile_invocation(
+            "x86_64-pc-windows-msvc",
+            OsStr::new("module.c"),
+            2,
+            false,
+            usize::try_from(super::SDK_ARCHIVE_MAX_BYTES).unwrap(),
+        )
+        .unwrap()
+    };
+    let first =
+        super::platform::compile_c_prepared(&clang, &directory, compile(), &mut compile_process)
+            .unwrap();
+    let second =
+        super::platform::compile_c_prepared(&clang, &directory, compile(), &mut compile_process)
+            .unwrap();
+    let digest = |bytes: &[u8]| {
+        use std::fmt::Write as _;
+
+        let mut rendered = String::with_capacity(64);
+        for byte in Sha256::digest(bytes) {
+            write!(&mut rendered, "{byte:02x}").unwrap();
+        }
+        rendered
+    };
+    assert_eq!(
+        first,
+        second,
+        "production Windows C objects differ: first_sha256={} second_sha256={}",
+        digest(&first),
+        digest(&second),
+    );
+    assert!(first.len() >= 8, "COFF object is shorter than its header");
+    assert_eq!(
+        &first[4..8],
+        &[0, 0, 0, 0],
+        "reproducible COFF TimeDateStamp must be zero"
+    );
+    let owned_input =
+        super::platform::write_file_new(&directory, OsStr::new("module.obj"), &first, 0o600)
+            .unwrap();
+    let input_names = super::platform::prepare_discard_names([OsStr::new("module.obj")]).unwrap();
+    let input = super::platform::transition_regular_file_to_external_read_prepared(
         &directory,
-        OsStr::new("module.obj"),
-        super::SDK_ARCHIVE_MAX_BYTES,
+        &input_names,
+        0,
+        &owned_input,
     )
     .unwrap();
+    drop(owned_input);
     let archiver_image = archiver;
     let archiver = super::platform::hold_external_executable(&archiver_image).unwrap();
     let prepared = super::platform::prepare_archive_invocation(
@@ -1009,7 +1070,15 @@ fn windows_real_brepro_archive_round_trips_through_exact_admission() {
     assert!(start.elapsed() < std::time::Duration::from_secs(5));
     super::platform::test_exact_archive_member(&archive, &input).unwrap();
 
-    drop((archive, archiver, input, directory, process));
+    drop((
+        archive,
+        archiver,
+        clang,
+        input,
+        directory,
+        process,
+        compile_process,
+    ));
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -3052,6 +3121,27 @@ fn direct_rustc_and_windows_process_source_contract_is_closed() {
     assert!(source.contains(
         "InitializeProcThreadAttributeList(std::ptr::null_mut(), 1, 0, &mut attribute_bytes)"
     ));
+
+    let compile_start = windows_source
+        .find("pub fn prepare_c_compile_invocation(")
+        .expect("Windows prepared C compile plan");
+    let compile_end = windows_source[compile_start..]
+        .find("pub fn prepared_c_compile_owned_capacity")
+        .map(|offset| compile_start + offset)
+        .expect("end Windows prepared C compile plan");
+    let compile = &windows_source[compile_start..compile_end];
+    assert_eq!(
+        compile
+            .matches("-mno-incremental-linker-compatible")
+            .count(),
+        1
+    );
+    assert!(
+        compile.find("target,").unwrap()
+            < compile
+                .find("\"-mno-incremental-linker-compatible\"")
+                .unwrap()
+    );
 }
 
 #[test]

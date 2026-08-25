@@ -3466,6 +3466,7 @@ pub fn prepare_c_compile_invocation(
             "-std=c11",
             "-target",
             target,
+            "-mno-incremental-linker-compatible",
             "-Wall",
             "-Wextra",
             "-Werror",
@@ -3481,6 +3482,13 @@ pub fn prepare_c_compile_invocation(
 
 pub fn prepared_c_compile_owned_capacity(prepared: &PreparedCCompileInvocation) -> usize {
     prepared_command_owned_capacity(&prepared.0)
+}
+
+#[cfg(test)]
+pub(super) fn test_prepared_c_compile_arguments(
+    prepared: &PreparedCCompileInvocation,
+) -> (&[String], usize) {
+    (&prepared.0.arguments, prepared.0.arguments.capacity())
 }
 
 pub fn compile_c_prepared(

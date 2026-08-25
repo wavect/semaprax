@@ -339,7 +339,12 @@ for every nested generated-package command and removes ambient `LINK` and
 `INCLUDE` remain the authenticated toolchain inputs. This closes the observed
 ambient `.obj` injection channel but holds neither the linker image nor its
 ancestors and does not attest ancestor reparses or close a same-path
-substitution race.
+substitution race. The Windows C compile plan separately disables incremental-
+linker-compatible COFF timestamps. This zeroes the object-header
+`TimeDateStamp` before `lib.exe /BREPRO` builds the archive; archive metadata
+reproducibility alone cannot repair a nondeterministic member payload. The real
+archive gate compiles the production plan twice and requires exact object bytes
+before archive admission.
 
 The Native Rust implementation is partitioned along trust and review
 boundaries so agents do not need to load one monolithic source file. The

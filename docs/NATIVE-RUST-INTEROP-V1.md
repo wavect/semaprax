@@ -253,7 +253,12 @@ through Cargo's x64 MSVC target linker variable, and removes ambient `LINK` and
 `_LINK_` option channels. It deliberately leaves `LIB` and `INCLUDE` intact and
 does not rewrite `PATH` or `RUSTFLAGS`. This is pathname configuration, not a
 held-linker or ancestor-authority claim, and it does not close a same-path
-substitution race.
+substitution race. The Windows C compiler plan also fixes
+`-mno-incremental-linker-compatible` so the COFF object `TimeDateStamp` is zero
+before archiving. `lib.exe /BREPRO` remains required for archive metadata but
+cannot normalize an already nondeterministic member. The real Windows archive
+gate therefore compiles the production object twice, requires exact byte
+equality, and only then performs exact archive-member admission.
 
 The outer package has an explicit one-way publication transition. Phase C
 performs its final exact root/src/native inventory replay while cleanup

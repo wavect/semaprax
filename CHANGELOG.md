@@ -16,10 +16,16 @@
   carries no settlement proof. On Windows, every nested external Cargo command
   validates and binds the absolute x64 MSVC target linker and removes the
   ambient `LINK`/`_LINK_` option channels before build-script linking while
-  preserving `LIB` and `INCLUDE`. This is bounded pathname configuration, not
+  preserving `LIB` and `INCLUDE`. Windows C object compilation now also fixes
+  `-mno-incremental-linker-compatible`, which zeroes the COFF `TimeDateStamp`
+  that `lib.exe /BREPRO` cannot normalize inside a member; the real archive
+  gate compiles twice and requires exact object equality before admission.
+  Hosted inventory mismatches now report only bounded per-file lengths,
+  SHA-256 digests, and first differing offsets instead of formatting binary
+  archives. The linker binding is bounded pathname configuration, not
   held-linker-image, ancestor-reparse, or same-path-race authority. The actual
-  hosted macOS success-path predicate, Windows deterministic package equality,
-  and the full exact-head promotion matrix remain pending.
+  hosted macOS success-path predicate, Windows deterministic package
+  confirmation, and the full exact-head promotion matrix remain pending.
 
 - Closed the local v0.2 calculator-product evidence gaps without widening the
   admitted scalar profile. The committed browser calculator now consumes both

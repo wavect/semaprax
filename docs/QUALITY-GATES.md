@@ -178,6 +178,11 @@ the validated absolute `SEMAPRAX_LINKER` through
 `_LINK_` while preserving `LIB` and `INCLUDE`. This is a bounded pathname
 configuration gate only: it does not prove held-image execution, ancestor
 reparse attestation, or resistance to same-path linker substitution. The
+production Windows C plan must include
+`-mno-incremental-linker-compatible`; the real archive gate must compile the
+same source twice, require byte-identical objects with a zero COFF
+`TimeDateStamp`, and only then run `lib.exe /BREPRO` plus exact member replay.
+Archive `/BREPRO` without deterministic member bytes is insufficient. The
 diagnostic/masked Windows lanes cannot be promoted until the complete consumer
 and deterministic-inventory assertions pass without `continue-on-error`.
 

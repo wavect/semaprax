@@ -430,6 +430,19 @@ fn main() -> i64 { 0 }
         assert!(!c.contains("spx_public_failure"));
         assert!(!c.contains("int main(void)"));
         assert!(!c.contains("printf(\"%lld\\n\""));
+        let unix_main = c
+            .split_once("#else\nint main(int argc, char **argv) {")
+            .and_then(|(_, tail)| tail.split_once("\n}\n#endif"))
+            .map(|(body, _)| body)
+            .expect("generated Unix native-command main");
+        let argv_validation = unix_main
+            .find("!spx_native_command_utf8_v1")
+            .expect("Unix argv UTF-8 validation");
+        let semantic_execute = unix_main
+            .find("return spx_native_command_execute_v1")
+            .expect("Unix semantic execution handoff");
+        assert!(argv_validation < semantic_execute);
+        assert!(!unix_main.contains("spx_native_command_read_stdin_v1"));
     }
 
     #[test]
@@ -492,7 +505,13 @@ fn main() -> i64 { 0 }
             return;
         };
         let invalid = std::ffi::OsStr::from_bytes(&[0xff]);
-        let output = run(&executable, invalid, b"payload");
+        let output = Command::new(&executable)
+            .arg(invalid)
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+            .unwrap();
         assert_eq!(output.status.code(), Some(2));
         assert!(output.stdout.is_empty());
         assert_eq!(output.stderr, b"SEMAPRAX native command failed\n");

@@ -59,7 +59,12 @@ int {RUN_SYMBOL}(
         return 0;
     }}
 
-    result_out->matched = matched;
+    if (!matched) {{
+        memset(&staging, 0, sizeof(staging));
+        return 1;
+    }}
+
+    result_out->matched = true;
     if (staging.length != UINT64_C(0)) {{
         memcpy(result_out->transcript, staging.bytes, (size_t)staging.length);
     }}
@@ -508,5 +513,20 @@ fn main() -> i64 { 0 }
         assert!(output.stdout.is_empty());
         assert_eq!(output.stderr, b"SEMAPRAX native command failed\n");
         let _ = std::fs::remove_file(executable);
+    }
+
+    #[test]
+    fn semantic_false_after_write_publishes_no_transcript_and_exits_one() {
+        let false_source = SOURCE.replace("written == byte_len(input)", "written == 0usize");
+        for optimization in ["-O0", "-O2"] {
+            let Some(executable) = compile(&generated(&false_source), optimization) else {
+                return;
+            };
+            let output = run(&executable, std::ffi::OsStr::new("a"), b"abc");
+            assert_eq!(output.status.code(), Some(1));
+            assert!(output.stdout.is_empty());
+            assert!(output.stderr.is_empty());
+            let _ = std::fs::remove_file(executable);
+        }
     }
 }

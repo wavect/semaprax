@@ -6,6 +6,7 @@
 
 mod carrier;
 mod command;
+mod command_v2;
 mod data;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 mod publication;
@@ -20,12 +21,13 @@ use super::{ProjectManifest, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1};
 
 use carrier::{
     artifact, json_string, payload_digest, payload_digest_artifacts_v2,
-    payload_digest_artifacts_v3, render_carrier, render_carrier_artifacts, require_exact_keys,
-    trusted_binding, validate_carrier_limit, NpmArtifact, NpmBuildIdentity,
+    payload_digest_artifacts_v3, payload_digest_artifacts_v4, render_carrier,
+    render_carrier_artifacts, require_exact_keys, trusted_binding, validate_carrier_limit,
+    NpmArtifact, NpmBuildIdentity,
 };
 pub use carrier::{
     ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
-    PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3,
+    PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
 };
 
 pub(crate) const USEFUL_TEXT_PACKAGE_PATHS: [&str; 6] = [
@@ -155,6 +157,16 @@ pub(crate) fn prepare(
     project_graph_digest: &str,
     max_bytes: usize,
 ) -> Result<ProjectNpmBuild, Diagnostic> {
+    if manifest.is_v5() {
+        return command_v2::prepare(
+            manifest,
+            program,
+            project_revision,
+            workspace_revision,
+            project_graph_digest,
+            max_bytes,
+        );
+    }
     if manifest.is_v4() {
         return command::prepare(
             manifest,

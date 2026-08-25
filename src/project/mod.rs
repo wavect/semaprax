@@ -11,6 +11,7 @@ mod execution;
 mod manifest;
 mod native_sdk;
 mod npm;
+mod profile;
 mod rename;
 mod semantic;
 #[cfg(test)]
@@ -32,16 +33,21 @@ pub use execution::{
 };
 use manifest::{capacity, grammar};
 pub use manifest::{
-    ProjectManifest, ProjectProfile, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES,
-    MAX_PATH_BYTES, MAX_SOURCES, MAX_STABLE_ID_BYTES, MAX_TOTAL_SOURCE_BYTES, MAX_VERSION_BYTES,
-    MAX_WEB_EXPORTS, PROJECT_COMMAND_STDOUT_CAPABILITY, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
-    PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1, PROJECT_SCHEMA,
-    PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4,
+    ProjectManifest, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES,
+    MAX_SOURCES, MAX_STABLE_ID_BYTES, MAX_TOTAL_SOURCE_BYTES, MAX_VERSION_BYTES, MAX_WEB_EXPORTS,
+    PROJECT_SCHEMA, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5,
 };
 pub use native_sdk::{ProjectNativeSdkExport, ProjectNativeSdkSubject};
 pub use npm::{
     ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
-    PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3,
+    PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
+};
+pub use profile::{
+    ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_ARGS_READ_CAPABILITY,
+    PROJECT_COMMAND_INPUT_V1, PROJECT_COMMAND_STDERR_WRITE_CAPABILITY,
+    PROJECT_COMMAND_STDIN_READ_CAPABILITY, PROJECT_COMMAND_STDOUT_CAPABILITY,
+    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2,
+    PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
 };
 pub(crate) use rename::{PreparedProjectRename, ProjectRenameDerivation};
 pub use semantic::{
@@ -261,7 +267,7 @@ impl ProjectSnapshot {
     /// Build the authenticated project entry closure as its profile-selected
     /// Web product.
     pub fn build_web(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
-        // Project v2/v3/v4 each have one public JavaScript product: their exact
+        // Project v2-v5 each have one public JavaScript product: their exact
         // schema-selected npm/Web package. Keeping `web` and the default route as
         // aliases avoids a scalar-v1 fallback while `npm` remains the explicit
         // package-manager spelling. Frozen Project v1 bytes and publication
@@ -287,7 +293,7 @@ impl ProjectSnapshot {
     }
 
     /// Build a Project v1 authenticated entry closure as one deterministic
-    /// pathless scalar-Web carrier. Project v2/v3/v4 keep the frozen return type
+    /// pathless scalar-Web carrier. Project v2-v5 keep the frozen return type
     /// honest by using [`Self::build_npm_inline`] for their npm/Web carriers.
     /// This performs no filesystem access, process launch, publication, or
     /// caching. `max_bytes` bounds both the cumulative decoded artifact
@@ -298,9 +304,11 @@ impl ProjectSnapshot {
                 "v2"
             } else if self.manifest.is_v3() {
                 "v3"
-            } else {
-                debug_assert!(self.manifest.is_v4());
+            } else if self.manifest.is_v4() {
                 "v4"
+            } else {
+                debug_assert!(self.manifest.is_v5());
+                "v5"
             };
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
@@ -389,11 +397,23 @@ impl ProjectSnapshot {
                 )]);
             }
         }
-        let prepared =
-            crate::codegen::emit_hir_c(&self.entry_program).map_err(|error| vec![error])?;
+        let native_command = self.manifest.project_profile() == ProjectProfile::UsefulDataCommandV2;
+        let prepared = if native_command {
+            crate::codegen::emit_hir_c_with_native_command(
+                &self.entry_program,
+                self.manifest.command().unwrap_or(""),
+            )
+        } else {
+            crate::codegen::emit_hir_c(&self.entry_program)
+        }
+        .map_err(|error| vec![error])?;
         self.recheck()?;
-        crate::codegen::compile_native_executable(&prepared, output)
-            .map_err(|error| vec![error])?;
+        if native_command {
+            crate::codegen::compile_native_command_executable(&prepared, output)
+        } else {
+            crate::codegen::compile_native_executable(&prepared, output)
+        }
+        .map_err(|error| vec![error])?;
         self.published_subject = Some(NATIVE_PUBLICATION_SUBJECT);
         self.recheck()
             .map_err(|drift| self.publication_uncertainty(drift))

@@ -1,0 +1,11 @@
+schema = "semaprax.project.v5"
+name = "spxgrep"
+version = "0.1.0"
+profile = "useful-data-command.v2"
+entry = "spxgrep.app"
+sources = ["src/app.spx", "src/tests.spx"]
+web_exports = ["spxgrep.contains"]
+command = "spxgrep.contains"
+input = "stdin-bytes+one-utf8-arg.v1"
+capabilities = ["process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]
+tests = ["spxgrep.tests"]

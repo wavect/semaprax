@@ -92,7 +92,7 @@ fn require_profile(manifest: &ProjectManifest) -> Result<&str, Diagnostic> {
         .ok_or_else(|| package_error("npm command facade requires a package version"))
 }
 
-fn validate_command<'a>(
+pub(super) fn validate_command<'a>(
     manifest: &'a ProjectManifest,
     program: &ResolvedProgram,
 ) -> Result<&'a str, Diagnostic> {
@@ -150,10 +150,33 @@ fn render_package(
         return Err(package_error("npm command facade Wasm is not bounded"));
     }
     let digest = data::hex_sha256(wasm);
+    let metadata = render_metadata(name, version, command, &digest);
+    render_package_with_metadata(name, version, command, wasm, exports, metadata.as_bytes())
+}
+
+/// Render the frozen seven-file command facade around caller-authenticated
+/// canonical metadata. Project v5 reuses the exact executable facade while
+/// binding its wider fixed-adapter authority in a distinct metadata schema.
+pub(super) fn render_package_with_metadata(
+    name: &str,
+    version: &str,
+    command: &str,
+    wasm: &[u8],
+    exports: &[data::DataExport],
+    metadata: &[u8],
+) -> Result<[NpmArtifact; 7], Diagnostic> {
+    if wasm.is_empty() || wasm.len() > 16 * 1024 * 1024 {
+        return Err(package_error("npm command facade Wasm is not bounded"));
+    }
+    let digest = data::hex_sha256(wasm);
     let runtime = render_runtime(&digest)?;
     let bindings = render_bindings(exports, &digest)?;
     let declarations = data::render_declarations(exports);
-    let metadata = render_metadata(name, version, command, &digest);
+    if exports.len() != 1 || exports[0].stable_id != command {
+        return Err(package_error(
+            "npm command facade requires exactly its one command export",
+        ));
+    }
     let adapter = render_command_adapter(command);
     let package = render_package_json(name, version);
     Ok([
@@ -161,7 +184,7 @@ fn render_package(
         artifact("semaprax.js", runtime.as_bytes()),
         artifact("semaprax.bindings.js", bindings.as_bytes()),
         artifact("semaprax.bindings.d.ts", declarations.as_bytes()),
-        artifact("semaprax.command.json", metadata.as_bytes()),
+        artifact("semaprax.command.json", metadata),
         artifact("semaprax.command.js", adapter.as_bytes()),
         artifact("package.json", package.as_bytes()),
     ])

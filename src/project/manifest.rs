@@ -1,5 +1,12 @@
 use crate::diagnostic::Diagnostic;
 
+use super::profile::{
+    ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_INPUT_V1,
+    PROJECT_COMMAND_STDOUT_CAPABILITY, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
+    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
+    PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
+};
+
 /// Frozen scalar Project Manifest v1 schema.
 pub const PROJECT_SCHEMA: &str = "semaprax.project.v1";
 /// Additive Project Manifest v2 schema used by the Useful Text Consumer
@@ -12,10 +19,9 @@ pub const PROJECT_SCHEMA_V3: &str = "semaprax.project.v3";
 /// Additive Project Manifest v4 schema for one exact compiler-free command
 /// adapter over the Portable Indexed Byte Data public ABI.
 pub const PROJECT_SCHEMA_V4: &str = "semaprax.project.v4";
-pub const PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1: &str = "useful-text-consumer.v1";
-pub const PROJECT_PROFILE_USEFUL_DATA_V1: &str = "useful-data.v1";
-pub const PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1: &str = "useful-data-command.v1";
-pub const PROJECT_COMMAND_STDOUT_CAPABILITY: &str = "process.stdout.write";
+/// Additive Project Manifest v5 schema for the fixed native/Web command
+/// adapter. V1-v4 parsing and rendering remain byte-for-byte unchanged.
+pub const PROJECT_SCHEMA_V5: &str = "semaprax.project.v5";
 pub const MAX_MANIFEST_BYTES: usize = 64 * 1024;
 pub const MAX_NAME_BYTES: usize = 64;
 pub const MAX_VERSION_BYTES: usize = 128;
@@ -26,31 +32,8 @@ pub const MAX_SOURCES: usize = 16;
 pub const MAX_WEB_EXPORTS: usize = 32;
 pub const MAX_TOTAL_SOURCE_BYTES: usize = 16 * 1024 * 1024;
 
-/// One exact Project profile selected by the manifest schema. This enum is the
-/// authority passed to project linking and backend preparation; callers must
-/// not infer profile semantics from a schema comparison or boolean flag.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ProjectProfile {
-    ScalarV1,
-    UsefulTextConsumerV1,
-    UsefulDataV1,
-    UsefulDataCommandV1,
-}
-
-impl ProjectProfile {
-    pub const fn name(self) -> Option<&'static str> {
-        match self {
-            Self::ScalarV1 => None,
-            Self::UsefulTextConsumerV1 => Some(PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1),
-            Self::UsefulDataV1 => Some(PROJECT_PROFILE_USEFUL_DATA_V1),
-            Self::UsefulDataCommandV1 => Some(PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1),
-        }
-    }
-}
-
 /// One exact, closed Project manifest. The schema selects the frozen v1
-/// scalar shape, additive v2 Useful Text Consumer shape, or additive v3
-/// Useful Data shape.
+/// scalar shape or one additive, schema-bound public profile.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProjectManifest {
     schema: &'static str,
@@ -61,12 +44,13 @@ pub struct ProjectManifest {
     sources: Vec<String>,
     web_exports: Vec<String>,
     command: Option<String>,
+    command_input: Option<String>,
     capabilities: Vec<String>,
     test_module: String,
 }
 
 impl ProjectManifest {
-    /// Parse frozen Project v1 or additive Project v2/v3 canonical TOML.
+    /// Parse one frozen Project v1-v5 canonical manifest.
     pub fn parse(source: &str) -> Result<Self, Vec<Diagnostic>> {
         if source.len() > MAX_MANIFEST_BYTES {
             return Err(capacity("manifest_bytes", MAX_MANIFEST_BYTES));
@@ -81,7 +65,7 @@ impl ProjectManifest {
             .copied()
             .ok_or_else(|| grammar("Project manifest is empty"))
             .and_then(|line| parse_string_assignment(line, "schema"))?;
-        let (schema, name, package_version, profile, entry, sources, web_exports, command, capabilities, tests) =
+        let (schema, name, package_version, profile, entry, sources, web_exports, command, command_input, capabilities, tests) =
             match schema.as_str() {
                 PROJECT_SCHEMA => {
                     if lines.len() != 7 || lines.last() != Some(&"") {
@@ -97,6 +81,7 @@ impl ProjectManifest {
                         parse_string_assignment(lines[2], "entry")?,
                         parse_array_assignment(lines[3], "sources")?,
                         parse_array_assignment(lines[4], "web_exports")?,
+                        None,
                         None,
                         Vec::new(),
                         parse_array_assignment(lines[5], "tests")?,
@@ -129,6 +114,7 @@ impl ProjectManifest {
                         parse_array_assignment(lines[5], "sources")?,
                         parse_array_assignment(lines[6], "web_exports")?,
                         None,
+                        None,
                         Vec::new(),
                         parse_array_assignment(lines[7], "tests")?,
                     )
@@ -157,6 +143,7 @@ impl ProjectManifest {
                         parse_string_assignment(lines[4], "entry")?,
                         parse_array_assignment(lines[5], "sources")?,
                         parse_array_assignment(lines[6], "web_exports")?,
+                        None,
                         None,
                         Vec::new(),
                         parse_array_assignment(lines[7], "tests")?,
@@ -196,13 +183,63 @@ impl ProjectManifest {
                         parse_array_assignment(lines[5], "sources")?,
                         parse_array_assignment(lines[6], "web_exports")?,
                         Some(command),
+                        None,
                         capabilities,
                         parse_array_assignment(lines[9], "tests")?,
                     )
                 }
+                PROJECT_SCHEMA_V5 => {
+                    if lines.len() != 12 || lines.last() != Some(&"") {
+                        return Err(grammar(
+                            "Project v5 manifest must contain exactly eleven ordered assignments and one terminal LF",
+                        ));
+                    }
+                    let version = parse_string_assignment(lines[2], "version")?;
+                    if !valid_semver(&version) {
+                        return Err(grammar(
+                            "Project v5 version must be canonical Semantic Versioning text of at most 128 bytes",
+                        ));
+                    }
+                    let profile = parse_string_assignment(lines[3], "profile")?;
+                    if profile != PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2 {
+                        return Err(grammar(
+                            "Project v5 profile is not useful-data-command.v2",
+                        ));
+                    }
+                    let command = parse_string_assignment(lines[7], "command")?;
+                    let input = parse_string_assignment(lines[8], "input")?;
+                    if input != PROJECT_COMMAND_INPUT_V1 {
+                        return Err(grammar(
+                            "Project v5 input is not stdin-bytes+one-utf8-arg.v1",
+                        ));
+                    }
+                    let capabilities = parse_array_assignment(lines[9], "capabilities")?;
+                    if !capabilities
+                        .iter()
+                        .map(String::as_str)
+                        .eq(PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2)
+                    {
+                        return Err(grammar(
+                            "Project v5 capabilities must be exactly [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]",
+                        ));
+                    }
+                    (
+                        PROJECT_SCHEMA_V5,
+                        parse_string_assignment(lines[1], "name")?,
+                        Some(version),
+                        ProjectProfile::UsefulDataCommandV2,
+                        parse_string_assignment(lines[4], "entry")?,
+                        parse_array_assignment(lines[5], "sources")?,
+                        parse_array_assignment(lines[6], "web_exports")?,
+                        Some(command),
+                        Some(input),
+                        capabilities,
+                        parse_array_assignment(lines[10], "tests")?,
+                    )
+                }
                 _ => {
                     return Err(grammar(
-                        "Project manifest schema is neither semaprax.project.v1, semaprax.project.v2, semaprax.project.v3, nor semaprax.project.v4",
+                        "Project manifest schema is neither semaprax.project.v1, semaprax.project.v2, semaprax.project.v3, semaprax.project.v4, nor semaprax.project.v5",
                     ))
                 }
             };
@@ -211,6 +248,7 @@ impl ProjectManifest {
             PROJECT_SCHEMA_V2 => "Project v2",
             PROJECT_SCHEMA_V3 => "Project v3",
             PROJECT_SCHEMA_V4 => "Project v4",
+            PROJECT_SCHEMA_V5 => "Project v5",
             _ => unreachable!("schema was selected by the closed parser"),
         };
         if !valid_name(&name) {
@@ -263,9 +301,9 @@ impl ProjectManifest {
                 || web_exports.len() != 1
                 || web_exports.first() != Some(command)
             {
-                return Err(grammar(
-                    "Project v4 web_exports must contain exactly the command stable ID",
-                ));
+                return Err(grammar(format!(
+                    "{version_label} web_exports must contain exactly the command stable ID"
+                )));
             }
         }
         if tests.len() != 1 || !valid_module(&tests[0]) {
@@ -288,6 +326,7 @@ impl ProjectManifest {
             sources,
             web_exports,
             command,
+            command_input,
             capabilities,
             test_module: tests.into_iter().next().expect("one test module"),
         };
@@ -331,6 +370,10 @@ impl ProjectManifest {
         self.schema == PROJECT_SCHEMA_V4
     }
 
+    pub fn is_v5(&self) -> bool {
+        self.schema == PROJECT_SCHEMA_V5
+    }
+
     pub fn entry(&self) -> &str {
         &self.entry
     }
@@ -345,6 +388,10 @@ impl ProjectManifest {
 
     pub fn command(&self) -> Option<&str> {
         self.command.as_deref()
+    }
+
+    pub fn command_input(&self) -> Option<&str> {
+        self.command_input.as_deref()
     }
 
     pub fn capabilities(&self) -> &[String] {
@@ -395,7 +442,7 @@ impl ProjectManifest {
                 render_array(&self.web_exports),
                 self.test_module,
             )
-        } else {
+        } else if self.schema == PROJECT_SCHEMA_V4 {
             format!(
                 "schema = \"{PROJECT_SCHEMA_V4}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ncommand = \"{}\"\ncapabilities = {}\ntests = [\"{}\"]\n",
                 self.name,
@@ -405,6 +452,21 @@ impl ProjectManifest {
                 render_array(&self.sources),
                 render_array(&self.web_exports),
                 self.command.as_deref().expect("Project v4 carries a command stable ID"),
+                render_array(&self.capabilities),
+                self.test_module,
+            )
+        } else {
+            debug_assert_eq!(self.schema, PROJECT_SCHEMA_V5);
+            format!(
+                "schema = \"{PROJECT_SCHEMA_V5}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ncommand = \"{}\"\ninput = \"{}\"\ncapabilities = {}\ntests = [\"{}\"]\n",
+                self.name,
+                self.package_version.as_deref().expect("Project v5 carries a package version"),
+                self.profile.name().expect("Project v5 carries a named profile"),
+                self.entry,
+                render_array(&self.sources),
+                render_array(&self.web_exports),
+                self.command.as_deref().expect("Project v5 carries a command stable ID"),
+                self.command_input.as_deref().expect("Project v5 carries a command input profile"),
                 render_array(&self.capabilities),
                 self.test_module,
             )

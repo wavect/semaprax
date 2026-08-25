@@ -13,7 +13,9 @@ use crate::diagnostic::Diagnostic;
 
 use super::{package_error, NpmArtifact};
 #[cfg(windows)]
-use super::{PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3};
+use super::{
+    PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
+};
 
 #[cfg(test)]
 type TestHook = Box<dyn FnOnce() + Send + 'static>;
@@ -56,7 +58,7 @@ pub(super) fn publish(
 ) -> Result<(), Diagnostic> {
     if matches!(
         schema,
-        PROJECT_NPM_BUILD_SCHEMA_V2 | PROJECT_NPM_BUILD_SCHEMA_V3
+        PROJECT_NPM_BUILD_SCHEMA_V2 | PROJECT_NPM_BUILD_SCHEMA_V3 | PROJECT_NPM_BUILD_SCHEMA_V4
     ) {
         return Err(package_error(
             "useful-data npm publication requires safe handle-relative Windows authority",

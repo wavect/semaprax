@@ -865,6 +865,7 @@ fn build_sdk_inner(
     };
     #[cfg(test)]
     record_test_build_stage(TestBuildLastStage::ArchiveStageCreated);
+    let mut archive_settlement_uncertain = false;
     let archive_result = (|| -> Result<Vec<u8>, Diagnostic> {
         #[cfg(test)]
         if test_hook(TestBuildPoint::BeforeArchive) {
@@ -877,6 +878,17 @@ fn build_sdk_inner(
         }
         #[cfg(test)]
         record_archive_attempt();
+        #[cfg(test)]
+        if test_hook(TestBuildPoint::ArchiveEffectUncertain) {
+            archive_settlement_uncertain = true;
+            return Err(archive_publication_error(
+                crate::platform::ArchiveToolFailure {
+                    error: crate::platform::Error::Invalid,
+                    phase: crate::platform::ArchiveToolFailurePhase::ExactArchive,
+                    settlement: crate::platform::ArchiveToolSettlement::Uncertain,
+                },
+            ));
+        }
         #[cfg(windows)]
         crate::platform::transition_regular_file_to_external_read_prepared(
             &archive_stage.directory,
@@ -894,7 +906,13 @@ fn build_sdk_inner(
             archive_invocation,
             &mut process_arena,
         )
-        .map_err(|_| publication_error())?;
+        .map_err(|failure| {
+            archive_settlement_uncertain = matches!(
+                failure.settlement,
+                crate::platform::ArchiveToolSettlement::Uncertain
+            );
+            archive_publication_error(failure)
+        })?;
         #[cfg(test)]
         record_test_build_stage(TestBuildLastStage::ArchiveToolReturned);
         archive_stage
@@ -924,6 +942,15 @@ fn build_sdk_inner(
     })();
     let archive = match archive_result {
         Ok(archive) => archive,
+        Err(error) if archive_settlement_uncertain => {
+            // The Darwin archiver may have changed the private stage without
+            // returning an authenticated file. That uncertainty is absorbing:
+            // exact inventory discard would be speculative later action.
+            return Err(PublicBuildError::Many(vec![
+                error,
+                archive_settlement_uncertain_error(),
+            ]));
+        }
         Err(error) => {
             return Err(fail_after_archive(&parent, &archive_stage, &inner, error));
         }

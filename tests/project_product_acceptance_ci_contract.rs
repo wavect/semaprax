@@ -42,6 +42,9 @@ fn focused_product_acceptance_is_locked_offline_and_tool_authenticated() {
         "SEMAPRAX_ARCHIVER=",
         "VCToolsInstallDir",
         "SEMAPRAX_LINKER=",
+        "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=%SEMAPRAX_LINKER%",
+        "echo LINK=",
+        "echo _LINK_=",
         "cargo fetch --locked\n",
         "cargo fetch --locked --manifest-path examples/calculator-rust/Cargo.toml",
         "cargo test --locked --offline -p semaprax --test project_product_acceptance_ci_contract",
@@ -76,6 +79,52 @@ fn focused_product_acceptance_is_locked_offline_and_tool_authenticated() {
         1,
         "the focused job must fetch the root workspace exactly once"
     );
+}
+
+#[test]
+fn generated_project_consumers_bind_the_bounded_windows_linker_path_at_both_revisions() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let binder = fs::read_to_string(root.join("tests/support/native_rust_cargo.rs"))
+        .expect("read the nested Cargo linker binder");
+    for required in [
+        "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER",
+        "std::env::var_os(\"SEMAPRAX_LINKER\")",
+        "std::env::var_os(\"SEMAPRAX_VCTOOLS\")",
+        r#"Path::new(r"bin\Hostx64\x64\link.exe")"#,
+        "command.env_remove(\"LINK\")",
+        "command.env_remove(\"_LINK_\")",
+        "does not hold the linker image or its ancestors",
+        "close a same-path substitution race",
+    ] {
+        assert!(binder.contains(required), "nested Cargo lost `{required}`");
+    }
+    for forbidden in ["command.env(\"PATH\"", "RUSTFLAGS", "-Clinker="] {
+        assert!(
+            !binder.contains(forbidden),
+            "nested Cargo admitted forbidden linker configuration `{forbidden}`"
+        );
+    }
+
+    let support = fs::read_to_string(root.join("tests/support/project_product.rs"))
+        .expect("read Project product support");
+    assert_eq!(
+        support
+            .matches("native_rust_cargo::cargo_command()")
+            .count(),
+        3,
+        "Project SDK setup, lock, and consumer must share the bounded Cargo linker binding"
+    );
+    let acceptance = fs::read_to_string(root.join("tests/project_product_acceptance_v1.rs"))
+        .expect("read Project product acceptance");
+    for required in [
+        "run_project_rust_sdk(&fixture, \"baseline\")",
+        "run_project_rust_sdk(&fixture, \"renamed\")",
+    ] {
+        assert!(
+            acceptance.contains(required),
+            "Project acceptance lost bounded-linker consumer path `{required}`"
+        );
+    }
 }
 
 #[test]

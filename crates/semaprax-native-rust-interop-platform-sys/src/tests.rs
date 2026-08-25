@@ -12,6 +12,29 @@ use super::{enter_prepared_file_syscalls, Error, TEST_PREPARED_FILE_SYSCALL_ENTR
 use super::{set_test_settlement_failures, TestSettlementFailure};
 use std::sync::atomic::Ordering;
 
+#[cfg(any(target_os = "linux", windows))]
+fn archive_prepared_for_test(
+    archiver: &super::platform::Executable,
+    cwd: &super::platform::Directory,
+    input: &super::platform::RegularFile,
+    prepared: super::platform::PreparedArchiveInvocation,
+    process: &mut super::platform::PreparedProcessArena,
+) -> Result<super::platform::RegularFile, Error> {
+    super::platform::archive_prepared(archiver, cwd, input, prepared, process)
+}
+
+#[cfg(target_os = "macos")]
+fn archive_prepared_for_test(
+    archiver: &super::platform::Executable,
+    cwd: &super::platform::Directory,
+    input: &super::platform::RegularFile,
+    prepared: super::platform::PreparedArchiveInvocation,
+    process: &mut super::platform::PreparedProcessArena,
+) -> Result<super::platform::RegularFile, Error> {
+    super::platform::archive_prepared_settled(archiver, cwd, input, prepared, process)
+        .map_err(|failure| failure.error)
+}
+
 #[test]
 fn archive_header_parser_rejects_noncanonical_sizes_and_unknown_members() {
     use super::{
@@ -203,7 +226,7 @@ fn archive_output_insertion_is_rejected_before_process_consumption_and_preserved
     let prepared = super::platform::prepare_archive_invocation(input_name, output_name).unwrap();
     let mut process = super::platform::prepare_process_arena(1).unwrap();
     assert!(matches!(
-        super::platform::archive_prepared(&executable, &cwd, &input, prepared, &mut process,),
+        archive_prepared_for_test(&executable, &cwd, &input, prepared, &mut process,),
         Err(Error::Exists)
     ));
     assert_eq!(
@@ -251,7 +274,7 @@ fn archive_nonregular_output_insertions_are_exactly_present_and_never_followed()
     .unwrap();
     let mut process = super::platform::prepare_process_arena(1).unwrap();
     assert_eq!(
-        super::platform::archive_prepared(&executable, &cwd, &input, prepared, &mut process,).err(),
+        archive_prepared_for_test(&executable, &cwd, &input, prepared, &mut process,).err(),
         Some(Error::Exists),
     );
     assert_eq!(
@@ -267,7 +290,7 @@ fn archive_nonregular_output_insertions_are_exactly_present_and_never_followed()
     )
     .unwrap();
     assert_eq!(
-        super::platform::archive_prepared(&executable, &cwd, &input, prepared, &mut process,).err(),
+        archive_prepared_for_test(&executable, &cwd, &input, prepared, &mut process,).err(),
         Some(Error::Exists),
     );
     assert_eq!(
@@ -276,6 +299,336 @@ fn archive_nonregular_output_insertions_are_exactly_present_and_never_followed()
     );
     drop((input, executable, cwd, process));
     std::fs::remove_dir_all(&root).unwrap();
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn darwin_archive_scratch_open_failure_reports_created_namespace_as_uncertain() {
+    use std::ffi::OsStr;
+
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-darwin-archive-scratch-open-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos(),
+    ));
+    std::fs::create_dir(&root).unwrap();
+    let root = std::fs::canonicalize(root).unwrap();
+    let cwd = super::platform::hold_directory(&root).unwrap();
+    let input =
+        super::platform::write_file_new(&cwd, OsStr::new("module.o"), b"owned-object", 0o600)
+            .unwrap();
+    let executable =
+        super::platform::hold_external_executable(&std::env::current_exe().unwrap()).unwrap();
+    let prepared = super::platform::prepare_archive_invocation(
+        OsStr::new("module.o"),
+        OsStr::new("libsemaprax_native_rust_sdk.a"),
+    )
+    .unwrap();
+    let mut process = super::platform::prepare_process_arena(1).unwrap();
+    super::platform::test_reset_archive_later_actions();
+    super::platform::test_inject_archive_scratch_open_failure(true);
+    let failure = super::platform::archive_prepared_settled(
+        &executable,
+        &cwd,
+        &input,
+        prepared,
+        &mut process,
+    )
+    .err()
+    .expect("injected post-mkdir open failure must fail");
+    super::platform::test_inject_archive_scratch_open_failure(false);
+    assert_eq!(
+        failure.phase,
+        super::DarwinArchiveFailurePhase::ScratchCreation
+    );
+    assert_eq!(
+        failure.settlement,
+        super::DarwinArchiveSettlement::Uncertain
+    );
+    assert_eq!(super::platform::test_archive_later_actions(), 0);
+    assert_eq!(
+        super::platform::prepared_process_arena_remaining(&process),
+        1
+    );
+    assert!(root.join("archive-tmp").is_dir());
+    assert!(!root.join("libsemaprax_native_rust_sdk.a").exists());
+
+    drop((input, executable, cwd, process));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn darwin_every_post_process_failure_is_absorbing_and_preserves_namespace_bytes() {
+    use super::platform::TestDarwinArchiveFailurePoint as Point;
+    use super::DarwinArchiveFailurePhase as Phase;
+    use std::ffi::OsStr;
+    use std::os::unix::fs::PermissionsExt;
+
+    let cases = [
+        (Point::ProcessOutput, Phase::ProcessOutput, 0, true),
+        (Point::ScratchCleanup, Phase::ScratchCleanup, 0, true),
+        (
+            Point::ArchiverRecheckBeforeHold,
+            Phase::ArchiverRecheck,
+            1,
+            false,
+        ),
+        (
+            Point::WorkingDirectoryRecheckBeforeHold,
+            Phase::WorkingDirectoryRecheck,
+            2,
+            false,
+        ),
+        (Point::InputRecheckBeforeHold, Phase::InputRecheck, 3, false),
+        (Point::OutputHold, Phase::OutputHold, 4, false),
+        (Point::ExactArchive, Phase::ExactArchive, 5, false),
+        (
+            Point::ArchiverRecheckAfterAuthentication,
+            Phase::ArchiverRecheck,
+            6,
+            false,
+        ),
+        (Point::LaunchPathRecheck, Phase::LaunchPathRecheck, 7, false),
+        (
+            Point::WorkingDirectoryRecheckAfterAuthentication,
+            Phase::WorkingDirectoryRecheck,
+            8,
+            false,
+        ),
+        (
+            Point::InputRecheckAfterAuthentication,
+            Phase::InputRecheck,
+            9,
+            false,
+        ),
+        (Point::OutputRecheck, Phase::OutputRecheck, 10, false),
+    ];
+
+    for (point, phase, expected_actions, scratch_remains) in cases {
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-darwin-archive-boundary-{}-{}-{point:?}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+        ));
+        std::fs::create_dir(&root).unwrap();
+        std::fs::write(
+            root.join("module.c"),
+            b"int semaprax_archive_boundary_probe(void){return 11;}\n",
+        )
+        .unwrap();
+        let clang = std::env::var_os("CLANG").unwrap_or_else(|| "/usr/bin/clang".into());
+        let compile = std::process::Command::new(clang)
+            .current_dir(&root)
+            .args(["-c", "module.c", "-o", "module.o"])
+            .output()
+            .unwrap();
+        assert!(
+            compile.status.success(),
+            "{point:?}: {}",
+            String::from_utf8_lossy(&compile.stderr)
+        );
+        std::fs::set_permissions(
+            root.join("module.o"),
+            std::fs::Permissions::from_mode(0o600),
+        )
+        .unwrap();
+
+        let root = std::fs::canonicalize(root).unwrap();
+        let cwd = super::platform::hold_directory(&root).unwrap();
+        let input = super::platform::test_hold_regular_file_name_bounded(
+            &cwd,
+            OsStr::new("module.o"),
+            super::SDK_ARCHIVE_MAX_BYTES,
+        )
+        .unwrap();
+        let executable =
+            super::platform::hold_external_executable(std::path::Path::new("/usr/bin/libtool"))
+                .unwrap();
+        let prepared = super::platform::prepare_archive_invocation(
+            OsStr::new("module.o"),
+            OsStr::new("libsemaprax_native_rust_sdk.a"),
+        )
+        .unwrap();
+        let mut process = super::platform::prepare_process_arena(1).unwrap();
+        super::platform::test_reset_archive_later_actions();
+        super::platform::test_inject_darwin_archive_failure(Some(point));
+        let failure = super::platform::archive_prepared_settled(
+            &executable,
+            &cwd,
+            &input,
+            prepared,
+            &mut process,
+        )
+        .err()
+        .expect("injected post-process boundary must fail");
+        super::platform::test_inject_darwin_archive_failure(None);
+        assert_eq!(failure.phase, phase, "{point:?}");
+        assert_eq!(
+            failure.settlement,
+            super::DarwinArchiveSettlement::Uncertain,
+            "{point:?}"
+        );
+        assert_eq!(
+            super::platform::test_archive_later_actions(),
+            expected_actions,
+            "{point:?} performed an action after the selected boundary"
+        );
+        assert_eq!(root.join("archive-tmp").is_dir(), scratch_remains);
+        let archive = root.join("libsemaprax_native_rust_sdk.a");
+        assert!(archive.is_file(), "{point:?} lost the archiver output");
+        let preserved = root.join("authenticated-or-unsettled-archive");
+        std::fs::rename(&archive, &preserved).unwrap();
+        std::fs::write(&archive, b"foreign-must-survive").unwrap();
+        assert!(preserved.is_file());
+        assert_eq!(std::fs::read(&archive).unwrap(), b"foreign-must-survive");
+
+        drop((input, executable, cwd, process));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn darwin_archive_process_failure_is_absorbing_after_the_effect_boundary() {
+    use std::ffi::OsStr;
+
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-darwin-archive-settlement-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos(),
+    ));
+    std::fs::create_dir(&root).unwrap();
+    let root = std::fs::canonicalize(root).unwrap();
+    let cwd = super::platform::hold_directory(&root).unwrap();
+    let input =
+        super::platform::write_file_new(&cwd, OsStr::new("module.o"), b"owned-object", 0o600)
+            .unwrap();
+    // The test image is held exactly but is not an archiver. Once it has been
+    // invoked, its namespace effects cannot be inferred from its exit status.
+    let executable =
+        super::platform::hold_external_executable(&std::env::current_exe().unwrap()).unwrap();
+    let prepared = super::platform::prepare_archive_invocation(
+        OsStr::new("module.o"),
+        OsStr::new("libsemaprax_native_rust_sdk.a"),
+    )
+    .unwrap();
+    let mut process = super::platform::prepare_process_arena(1).unwrap();
+    super::platform::test_reset_archive_later_actions();
+    let failure = super::platform::archive_prepared_settled(
+        &executable,
+        &cwd,
+        &input,
+        prepared,
+        &mut process,
+    )
+    .err()
+    .expect("non-archiver test image must fail");
+    assert_eq!(failure.phase, super::DarwinArchiveFailurePhase::Process);
+    assert_eq!(
+        failure.settlement,
+        super::DarwinArchiveSettlement::Uncertain
+    );
+    assert_eq!(super::platform::test_archive_later_actions(), 0);
+    assert!(root.join("archive-tmp").is_dir());
+
+    drop((input, executable, cwd, process));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn darwin_authenticated_archive_is_preserved_on_later_rejection() {
+    use std::ffi::OsStr;
+    use std::os::unix::fs::PermissionsExt;
+
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-darwin-archive-owned-rejection-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos(),
+    ));
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(
+        root.join("module.c"),
+        b"int semaprax_archive_settlement_probe(void){return 7;}\n",
+    )
+    .unwrap();
+    let clang = std::env::var_os("CLANG").unwrap_or_else(|| "/usr/bin/clang".into());
+    let compile = std::process::Command::new(clang)
+        .current_dir(&root)
+        .args(["-c", "module.c", "-o", "module.o"])
+        .output()
+        .unwrap();
+    assert!(
+        compile.status.success(),
+        "{}",
+        String::from_utf8_lossy(&compile.stderr)
+    );
+    std::fs::set_permissions(
+        root.join("module.o"),
+        std::fs::Permissions::from_mode(0o600),
+    )
+    .unwrap();
+
+    let root = std::fs::canonicalize(root).unwrap();
+    let cwd = super::platform::hold_directory(&root).unwrap();
+    let input = super::platform::test_hold_regular_file_name_bounded(
+        &cwd,
+        OsStr::new("module.o"),
+        super::SDK_ARCHIVE_MAX_BYTES,
+    )
+    .unwrap();
+    let executable =
+        super::platform::hold_external_executable(std::path::Path::new("/usr/bin/libtool"))
+            .unwrap();
+    let prepared = super::platform::prepare_archive_invocation(
+        OsStr::new("module.o"),
+        OsStr::new("libsemaprax_native_rust_sdk.a"),
+    )
+    .unwrap();
+    let mut process = super::platform::prepare_process_arena(1).unwrap();
+    super::platform::test_inject_archive_post_authentication_failure(true);
+    let failure = super::platform::archive_prepared_settled(
+        &executable,
+        &cwd,
+        &input,
+        prepared,
+        &mut process,
+    )
+    .err()
+    .expect("injected post-authentication rejection must fail");
+    super::platform::test_inject_archive_post_authentication_failure(false);
+    assert_eq!(
+        failure.phase,
+        super::DarwinArchiveFailurePhase::ArchiverRecheck
+    );
+    assert_eq!(
+        failure.settlement,
+        super::DarwinArchiveSettlement::Uncertain
+    );
+    let archive = root.join("libsemaprax_native_rust_sdk.a");
+    assert!(archive.is_file());
+    assert!(!root.join("archive-tmp").exists());
+    let preserved = root.join("authenticated-archive-preserved");
+    std::fs::rename(&archive, &preserved).unwrap();
+    std::fs::write(&archive, b"foreign-must-survive").unwrap();
+    assert!(preserved.is_file());
+    assert_eq!(std::fs::read(&archive).unwrap(), b"foreign-must-survive");
+
+    drop((input, executable, cwd, process));
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]

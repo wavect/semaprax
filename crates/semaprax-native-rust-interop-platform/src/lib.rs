@@ -47,6 +47,36 @@ pub struct PreparedLinkInvocation(
 pub struct PreparedArchiveInvocation(
     semaprax_native_rust_interop_platform_sys::PreparedArchiveInvocation,
 );
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ArchiveToolFailurePhase {
+    Platform,
+    Preflight,
+    ScratchCreation,
+    Process,
+    ScratchCleanup,
+    ArchiverRecheck,
+    WorkingDirectoryRecheck,
+    InputRecheck,
+    ProcessOutput,
+    OutputHold,
+    ExactArchive,
+    LaunchPathRecheck,
+    OutputRecheck,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ArchiveToolSettlement {
+    Settled,
+    Uncertain,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ArchiveToolFailure {
+    pub error: Error,
+    pub phase: ArchiveToolFailurePhase,
+    pub settlement: ArchiveToolSettlement,
+}
 pub struct PreparedRunInvocation(semaprax_native_rust_interop_platform_sys::PreparedRunInvocation);
 pub struct PreparedLinkOrCopy {
     native: semaprax_native_rust_interop_platform_sys::PreparedLinkOrCopy,
@@ -1009,19 +1039,65 @@ pub fn archive_tool_prepared(
     input: &HeldRegularFile,
     prepared: PreparedArchiveInvocation,
     process_arena: &mut PreparedProcessArena,
-) -> Result<HeldRegularFile, Error> {
+) -> Result<HeldRegularFile, ArchiveToolFailure> {
     // `cwd` is intentionally the caller-owned private nonce run stage. The
     // accepted archive is copied from there into the publication inventory by
     // the existing create-new held-file authority; this operation is not an
     // in-place publication primitive for a shared directory.
-    semaprax_native_rust_interop_platform_sys::archive_prepared(
+    #[cfg(target_os = "macos")]
+    let result = semaprax_native_rust_interop_platform_sys::archive_prepared_settled(
         &archiver.executable.0,
         &cwd.0,
         &input.0,
         prepared.0,
         &mut process_arena.0,
     )
-    .map(HeldRegularFile)
+    .map_err(|failure| {
+        use semaprax_native_rust_interop_platform_sys::DarwinArchiveFailurePhase as Native;
+        let phase = match failure.phase {
+            Native::Preflight => ArchiveToolFailurePhase::Preflight,
+            Native::ScratchCreation => ArchiveToolFailurePhase::ScratchCreation,
+            Native::Process => ArchiveToolFailurePhase::Process,
+            Native::ScratchCleanup => ArchiveToolFailurePhase::ScratchCleanup,
+            Native::ArchiverRecheck => ArchiveToolFailurePhase::ArchiverRecheck,
+            Native::WorkingDirectoryRecheck => ArchiveToolFailurePhase::WorkingDirectoryRecheck,
+            Native::InputRecheck => ArchiveToolFailurePhase::InputRecheck,
+            Native::ProcessOutput => ArchiveToolFailurePhase::ProcessOutput,
+            Native::OutputHold => ArchiveToolFailurePhase::OutputHold,
+            Native::ExactArchive => ArchiveToolFailurePhase::ExactArchive,
+            Native::LaunchPathRecheck => ArchiveToolFailurePhase::LaunchPathRecheck,
+            Native::OutputRecheck => ArchiveToolFailurePhase::OutputRecheck,
+        };
+        ArchiveToolFailure {
+            error: failure.error,
+            phase,
+            settlement: match failure.settlement {
+                semaprax_native_rust_interop_platform_sys::DarwinArchiveSettlement::Settled => {
+                    ArchiveToolSettlement::Settled
+                }
+                semaprax_native_rust_interop_platform_sys::DarwinArchiveSettlement::Uncertain => {
+                    ArchiveToolSettlement::Uncertain
+                }
+            },
+        }
+    });
+    #[cfg(not(target_os = "macos"))]
+    let result = semaprax_native_rust_interop_platform_sys::archive_prepared(
+        &archiver.executable.0,
+        &cwd.0,
+        &input.0,
+        prepared.0,
+        &mut process_arena.0,
+    )
+    .map_err(|error| ArchiveToolFailure {
+        error,
+        phase: ArchiveToolFailurePhase::Platform,
+        // The legacy Linux and Windows sys boundary returns only an error. It
+        // does not prove whether the archive process or its attempted cleanup
+        // changed the private namespace, so the safe facade must fail-stop.
+        settlement: ArchiveToolSettlement::Uncertain,
+    });
+    result.map(HeldRegularFile)
 }
 
 pub fn link_tool_prepared(

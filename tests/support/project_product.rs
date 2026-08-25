@@ -7,6 +7,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde_json::{json, Value};
 
+#[path = "native_rust_cargo.rs"]
+mod native_rust_cargo;
+
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
 const PROJECT_FILES: &[&str] = &[
@@ -398,8 +401,7 @@ pub fn run_project_rust_sdk(fixture: &ProjectFixture, label: &str) -> RustSdkFac
         .unwrap();
     }
 
-    let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
-    let setup = Command::new(&cargo)
+    let setup = native_rust_cargo::cargo_command()
         .args(["run", "--locked", "--offline", "--quiet", "--manifest-path"])
         .arg(example.join("Cargo.toml"))
         .arg("--")
@@ -417,7 +419,7 @@ pub fn run_project_rust_sdk(fixture: &ProjectFixture, label: &str) -> RustSdkFac
     let fields = stdout.split_whitespace().collect::<Vec<_>>();
     assert_eq!(fields.len(), 6, "unexpected Project SDK setup output");
 
-    let lock = Command::new(&cargo)
+    let lock = native_rust_cargo::cargo_command()
         .args(["generate-lockfile", "--offline", "--manifest-path"])
         .arg(consumer.join("Cargo.toml"))
         .output()
@@ -427,7 +429,7 @@ pub fn run_project_rust_sdk(fixture: &ProjectFixture, label: &str) -> RustSdkFac
         "lock {label} Project Rust consumer: {}",
         String::from_utf8_lossy(&lock.stderr)
     );
-    let run = Command::new(&cargo)
+    let run = native_rust_cargo::cargo_command()
         .args(["run", "--locked", "--offline", "--quiet", "--manifest-path"])
         .arg(consumer.join("Cargo.toml"))
         .output()

@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- Hardened Public Native Rust SDK Phase C at the archive and nested-Cargo
+  boundaries without claiming hosted promotion. Darwin archive execution now
+  returns a closed failure phase plus `Settled`/`Uncertain` evidence. A
+  successful `mkdirat` followed by a failed scratch reopen is explicitly
+  uncertain, every failure after archiver process entry is absorbing, known
+  process output is rejected before cleanup or rechecks, and no uncertain path
+  performs speculative pathname deletion, stage discard, outer construction,
+  later tool work, or publication. Table-driven macOS evidence exercises every
+  post-process phase and preserves inert archive/foreign bytes; the local
+  platform-sys suite is 35/35. Linux and Windows archive errors remain
+  conservatively uncertain at the safe facade because their legacy sys result
+  carries no settlement proof. On Windows, every nested external Cargo command
+  validates and binds the absolute x64 MSVC target linker and removes the
+  ambient `LINK`/`_LINK_` option channels before build-script linking while
+  preserving `LIB` and `INCLUDE`. This is bounded pathname configuration, not
+  held-linker-image, ancestor-reparse, or same-path-race authority. The actual
+  hosted macOS success-path predicate, Windows deterministic package equality,
+  and the full exact-head promotion matrix remain pending.
+
 - Closed the local v0.2 calculator-product evidence gaps without widening the
   admitted scalar profile. The committed browser calculator now consumes both
   a direct `semaprax.web.v4` package and the multi-module

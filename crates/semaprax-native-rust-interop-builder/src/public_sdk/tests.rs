@@ -272,6 +272,35 @@ fn effect_boundaries_fail_stop_and_preserve_sticky_status() {
     assert!(!output.exists());
     assert!(std::fs::read_dir(&root).unwrap().count() >= entries_before + 2);
 
+    let remaining_before = bounded_remaining_sdk_names(&root);
+    let (output, error, state) = run(
+        TestBuildPoint::ArchiveEffectUncertain,
+        "archive-effect-uncertain",
+    );
+    let diagnostics = error.err().unwrap().into_diagnostics();
+    assert_eq!(diagnostics.len(), 2);
+    assert_eq!(diagnostics[0].code, "SPX-I233");
+    assert_eq!(
+        diagnostics[0].message,
+        "Native Rust SDK publication failed at archive ExactArchive: Invalid"
+    );
+    assert_eq!(diagnostics[1].code, "SPX-I233");
+    assert_eq!(
+        diagnostics[1].message,
+        "Native Rust SDK archive effect settlement is uncertain; preserved inert stage"
+    );
+    assert_eq!((state.archive_attempts, state.publish_calls), (1, 0));
+    assert_eq!(state.last_stage, TestBuildLastStage::ArchiveStageCreated);
+    assert!(!output.exists());
+    let remaining_after = bounded_remaining_sdk_names(&root);
+    let added = remaining_after
+        .iter()
+        .filter(|name| !remaining_before.contains(name))
+        .collect::<Vec<_>>();
+    // The exact inner and archive stages remain. No cleanup removed either
+    // stage and no outer-stage creation added a third owned name.
+    assert_eq!(added.len(), 2);
+
     let (output, error, state) = run(TestBuildPoint::ArchiveOutputMutation, "archive-mutation");
     let diagnostics = error.err().unwrap().into_diagnostics();
     assert_eq!(diagnostics[0].code, "SPX-I233");

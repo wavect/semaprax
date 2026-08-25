@@ -99,6 +99,17 @@ adds no root CLI, registry, dependency, general Project SDK, import, capability,
 aggregate, or resource claim. Completion-row statuses and current totals do not
 change.
 
+The current local hardening batch makes Darwin archive failure settlement
+phase-visible and absorbing, including post-`mkdirat` reopen uncertainty and
+all post-process boundaries, while refusing speculative pathname cleanup.
+Non-Darwin erased archive errors are also fail-stop uncertain. Windows nested
+Cargo now receives the validated target-specific linker pathname with ambient
+`LINK`/`_LINK_` channels removed. This addresses the observed build-script
+`.obj` injection but is not held-image authority, does not yet resolve the
+hosted Windows deterministic-package mismatch, and does not establish the
+actual macOS successful-path predicate. Both hosts and the unmasked full matrix
+remain promotion work.
+
 [Project Agent Workflow v1](PROJECT-AGENT-WORKFLOW-V1.md) closes the remaining
 local calculator-orchestration gap for the admitted rename slice. Opt-in
 Transport v4 derives the stable-ID display rename, binds complete

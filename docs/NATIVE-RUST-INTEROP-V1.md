@@ -235,6 +235,26 @@ independently reconstructed in Phase C.
 AArch64 Windows remains rejected because no matching ARM64 Visual C++ tool plan
 is frozen.
 
+Darwin's archive call returns a closed failure phase and explicit settlement
+state. Failures before any namespace mutation are `Settled`; a scratch
+`mkdirat` followed by failed reopen and every failure after process entry are
+`Uncertain`. That state is absorbing through the safe facade and builder: no
+speculative pathname deletion, scratch or owned-stage discard, outer-stage
+creation, later tool action, or publication follows. The inert inner/archive
+stages remain for caller reconciliation. Linux and Windows legacy sys errors do
+not yet carry affirmative settlement evidence, so their safe-facade failures
+are conservatively uncertain as well. This proves fail-stop handling locally,
+not that the real hosted macOS successful path has been accepted.
+
+Every nested Windows Cargo command used by the generated-package evidence
+validates the absolute `SEMAPRAX_VCTOOLS`/`SEMAPRAX_LINKER` lexical relation,
+requires the final linker pathname to be a regular non-symlink file, binds it
+through Cargo's x64 MSVC target linker variable, and removes ambient `LINK` and
+`_LINK_` option channels. It deliberately leaves `LIB` and `INCLUDE` intact and
+does not rewrite `PATH` or `RUSTFLAGS`. This is pathname configuration, not a
+held-linker or ancestor-authority claim, and it does not close a same-path
+substitution race.
+
 The outer package has an explicit one-way publication transition. Phase C
 performs its final exact root/src/native inventory replay while cleanup
 authority is still complete, settles every held regular file, closes both

@@ -291,5 +291,43 @@ mod platform;
 #[path = "windows.rs"]
 mod platform;
 pub use platform::*;
+
+/// Exact Darwin archive boundary that rejected an otherwise bounded
+/// invocation. The safe builder facade preserves this closed phase as its
+/// `SPX-I233` fail-stop diagnostic evidence.
+#[cfg(target_os = "macos")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DarwinArchiveFailurePhase {
+    Preflight,
+    ScratchCreation,
+    Process,
+    ScratchCleanup,
+    ArchiverRecheck,
+    WorkingDirectoryRecheck,
+    InputRecheck,
+    ProcessOutput,
+    OutputHold,
+    ExactArchive,
+    LaunchPathRecheck,
+    OutputRecheck,
+}
+
+/// Settlement state after a Darwin archiver failure. `Settled` proves that no
+/// untracked archive remains. `Uncertain` is absorbing: callers must preserve
+/// the inert run stage and perform no speculative discard.
+#[cfg(target_os = "macos")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DarwinArchiveSettlement {
+    Settled,
+    Uncertain,
+}
+
+#[cfg(target_os = "macos")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct DarwinArchiveFailure {
+    pub error: Error,
+    pub phase: DarwinArchiveFailurePhase,
+    pub settlement: DarwinArchiveSettlement,
+}
 #[cfg(test)]
 mod tests;

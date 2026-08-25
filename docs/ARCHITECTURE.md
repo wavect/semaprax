@@ -319,6 +319,28 @@ that grammar. Its new per-carrier caps do not extend private A+B's cumulative
 memory proof, and platform linker-index payload semantics remain opaque,
 bounded, archive-digest-bound, and real-link exercised.
 
+Darwin archive execution additionally carries one closed phase and an explicit
+`Settled`/`Uncertain` result across the sys and safe-platform boundaries. A
+scratch `mkdirat` that succeeds before its held-directory reopen fails is
+uncertain, as is every rejection after the archive process may have run.
+Uncertainty is absorbing: the builder preserves the complete inert inner and
+archive stages and performs no scratch cleanup, stage discard, outer-stage
+creation, later tool action, or publication. In particular, it never performs
+post-effect compare-then-unlink pathname cleanup, which cannot close a namespace
+substitution race. Linux and Windows sys errors currently expose no equivalent
+settlement proof, so the safe facade conservatively marks them uncertain.
+These rules establish fail-stop behavior and phase-visible diagnostics; they do
+not prove that the hosted macOS successful path accepts every real archive.
+
+The hosted Windows test harness also binds the validated absolute
+`SEMAPRAX_LINKER` pathname through Cargo's target-specific MSVC linker variable
+for every nested generated-package command and removes ambient `LINK` and
+`_LINK_` option channels before Cargo can link a build script. `LIB` and
+`INCLUDE` remain the authenticated toolchain inputs. This closes the observed
+ambient `.obj` injection channel but holds neither the linker image nor its
+ancestors and does not attest ancestor reparses or close a same-path
+substitution race.
+
 The Native Rust implementation is partitioned along trust and review
 boundaries so agents do not need to load one monolithic source file. The
 private A+B orchestration and physical authority remain in `implementation.rs`;

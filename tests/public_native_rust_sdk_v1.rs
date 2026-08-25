@@ -5,6 +5,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::hir;
 
+#[path = "support/native_rust_cargo.rs"]
+mod native_rust_cargo;
+
 const CALCULATOR: &str = include_str!("../examples/calculator.spx");
 const CALLBACK: &str = include_str!("../examples/calculator-rust/callback.spx");
 static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
@@ -57,10 +60,6 @@ fn copied_consumer(source: &str, destination: &Path) {
     }
 }
 
-fn cargo() -> std::ffi::OsString {
-    std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into())
-}
-
 fn run(command: &mut Command, label: &str) -> std::process::Output {
     let output = command
         .output()
@@ -71,6 +70,52 @@ fn run(command: &mut Command, label: &str) -> std::process::Output {
         String::from_utf8_lossy(&output.stderr)
     );
     output
+}
+
+#[cfg(windows)]
+#[test]
+fn nested_cargo_rebinds_a_poisoned_command_to_the_validated_linker_path() {
+    use std::ffi::OsStr;
+
+    // This inspects the configured Command only; it does not execute Cargo or
+    // claim held-linker or same-path-race evidence.
+    let (Some(linker), Some(_vctools)) = (
+        std::env::var_os("SEMAPRAX_LINKER"),
+        std::env::var_os("SEMAPRAX_VCTOOLS"),
+    ) else {
+        return;
+    };
+    let mut command = native_rust_cargo::cargo_command();
+    command
+        .env("LINK", ".obj")
+        .env("_LINK_", ".obj")
+        .env(
+            "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER",
+            r"C:\foreign\link.exe",
+        )
+        .env("LIB", "preserved-lib")
+        .env("INCLUDE", "preserved-include");
+    native_rust_cargo::bind_nested_cargo_linker_path(&mut command);
+
+    let configured = |name: &str| {
+        command
+            .get_envs()
+            .find(|(key, _)| *key == OsStr::new(name))
+            .map(|(_, value)| value)
+    };
+    assert_eq!(
+        configured("CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER"),
+        Some(Some(linker.as_os_str())),
+    );
+    assert_eq!(configured("LINK"), Some(None));
+    assert_eq!(configured("_LINK_"), Some(None));
+    assert_eq!(configured("LIB"), Some(Some(OsStr::new("preserved-lib"))));
+    assert_eq!(
+        configured("INCLUDE"),
+        Some(Some(OsStr::new("preserved-include"))),
+    );
+    assert_eq!(configured("PATH"), None);
+    assert_eq!(configured("RUSTFLAGS"), None);
 }
 
 fn recursive_files(directory: &Path) -> Vec<(String, Vec<u8>)> {
@@ -436,7 +481,7 @@ fn hosted_external_consumers_are_deterministic_and_match_native_c_and_wasm() {
     let second = fixture.0.join("generated-sdk-second");
     for output in [&first, &second] {
         run(
-            Command::new(cargo())
+            native_rust_cargo::cargo_command()
                 .args(["run", "--locked", "--offline", "--quiet", "--manifest-path"])
                 .arg(&setup_manifest)
                 .arg("--")
@@ -483,13 +528,13 @@ fn hosted_external_consumers_are_deterministic_and_match_native_c_and_wasm() {
     let consumer = fixture.0.join("consumer");
     copied_consumer("consumer", &consumer);
     run(
-        Command::new(cargo())
+        native_rust_cargo::cargo_command()
             .args(["generate-lockfile", "--offline", "--manifest-path"])
             .arg(consumer.join("Cargo.toml")),
         "lock calculator consumer",
     );
     let rust = run(
-        Command::new(cargo())
+        native_rust_cargo::cargo_command()
             .args(["run", "--locked", "--offline", "--quiet", "--manifest-path"])
             .arg(consumer.join("Cargo.toml")),
         "run calculator consumer",
@@ -500,7 +545,7 @@ fn hosted_external_consumers_are_deterministic_and_match_native_c_and_wasm() {
     fs::create_dir(&renamed_root).unwrap();
     let renamed_sdk = renamed_root.join("generated-sdk");
     run(
-        Command::new(cargo())
+        native_rust_cargo::cargo_command()
             .args(["run", "--locked", "--offline", "--quiet", "--manifest-path"])
             .arg(&setup_manifest)
             .arg("--")
@@ -516,13 +561,13 @@ fn hosted_external_consumers_are_deterministic_and_match_native_c_and_wasm() {
     let renamed_consumer = renamed_root.join("consumer");
     copied_consumer("consumer", &renamed_consumer);
     run(
-        Command::new(cargo())
+        native_rust_cargo::cargo_command()
             .args(["generate-lockfile", "--offline", "--manifest-path"])
             .arg(renamed_consumer.join("Cargo.toml")),
         "lock display-renamed calculator consumer",
     );
     let renamed_rust = run(
-        Command::new(cargo())
+        native_rust_cargo::cargo_command()
             .args(["run", "--locked", "--offline", "--quiet", "--manifest-path"])
             .arg(renamed_consumer.join("Cargo.toml")),
         "run display-renamed calculator consumer",
@@ -531,7 +576,7 @@ fn hosted_external_consumers_are_deterministic_and_match_native_c_and_wasm() {
 
     let callback_sdk = fixture.0.join("callback-sdk");
     run(
-        Command::new(cargo())
+        native_rust_cargo::cargo_command()
             .args(["run", "--locked", "--offline", "--quiet", "--manifest-path"])
             .arg(&setup_manifest)
             .arg("--")
@@ -542,13 +587,13 @@ fn hosted_external_consumers_are_deterministic_and_match_native_c_and_wasm() {
     let callback_consumer = fixture.0.join("callback-consumer");
     copied_consumer("callback-consumer", &callback_consumer);
     run(
-        Command::new(cargo())
+        native_rust_cargo::cargo_command()
             .args(["generate-lockfile", "--offline", "--manifest-path"])
             .arg(callback_consumer.join("Cargo.toml")),
         "lock callback consumer",
     );
     let callback = run(
-        Command::new(cargo())
+        native_rust_cargo::cargo_command()
             .args(["run", "--locked", "--offline", "--quiet", "--manifest-path"])
             .arg(callback_consumer.join("Cargo.toml")),
         "run callback consumer",

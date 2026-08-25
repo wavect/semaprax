@@ -278,6 +278,7 @@ static STAGE_NONCE: AtomicU64 = AtomicU64::new(1);
 enum TestBuildPoint {
     ArchiveCreationCleanupUncertainty,
     BeforeArchive,
+    ArchiveEffectUncertain,
     ArchiveOutputMutation,
     AfterFirstOuterWrite,
     ScratchCleanupUncertainty,
@@ -394,6 +395,23 @@ fn sdk_error(message: &'static str) -> Diagnostic {
 
 fn publication_error() -> Diagnostic {
     Diagnostic::io("SPX-I233", "Native Rust SDK publication failed")
+}
+
+fn archive_publication_error(failure: crate::platform::ArchiveToolFailure) -> Diagnostic {
+    Diagnostic::io(
+        "SPX-I233",
+        format!(
+            "Native Rust SDK publication failed at archive {:?}: {:?}",
+            failure.phase, failure.error
+        ),
+    )
+}
+
+fn archive_settlement_uncertain_error() -> Diagnostic {
+    Diagnostic::io(
+        "SPX-I233",
+        "Native Rust SDK archive effect settlement is uncertain; preserved inert stage",
+    )
 }
 
 enum PublicBuildError {

@@ -1476,17 +1476,48 @@ pub fn create_directory_new_prepared(
     name: &PreparedRelativeNameArena,
     mode: u32,
 ) -> Result<Directory, Error> {
-    recheck_directory(parent)?;
-    let name = relative_name_arena_cstr(name)?;
-    let mode = libc::mode_t::try_from(mode).map_err(|_| Error::Invalid)?;
+    create_directory_new_prepared_with_creation_state(parent, name, mode)
+        .map_err(|failure| failure.error)
+}
+
+#[derive(Clone, Copy)]
+struct CreateDirectoryNewFailure {
+    error: Error,
+    namespace_created: bool,
+}
+
+fn create_directory_new_prepared_with_creation_state(
+    parent: &Directory,
+    name: &PreparedRelativeNameArena,
+    mode: u32,
+) -> Result<Directory, CreateDirectoryNewFailure> {
+    let settled = |error| CreateDirectoryNewFailure {
+        error,
+        namespace_created: false,
+    };
+    recheck_directory(parent).map_err(settled)?;
+    let name = relative_name_arena_cstr(name).map_err(settled)?;
+    let mode = libc::mode_t::try_from(mode).map_err(|_| settled(Error::Invalid))?;
     let result = unsafe { libc::mkdirat(parent.file.as_raw_fd(), name.as_ptr(), mode) };
     if result != 0 {
-        return Err(match std::io::Error::last_os_error().raw_os_error() {
-            Some(libc::EEXIST) => Error::Exists,
-            _ => Error::Changed,
+        return Err(settled(
+            match std::io::Error::last_os_error().raw_os_error() {
+                Some(libc::EEXIST) => Error::Exists,
+                _ => Error::Changed,
+            },
+        ));
+    }
+    #[cfg(target_os = "macos")]
+    if archive_scratch_open_failure_injected() {
+        return Err(CreateDirectoryNewFailure {
+            error: Error::Changed,
+            namespace_created: true,
         });
     }
-    open_directory_at(parent.file.as_raw_fd(), name)
+    open_directory_at(parent.file.as_raw_fd(), name).map_err(|error| CreateDirectoryNewFailure {
+        error,
+        namespace_created: true,
+    })
 }
 
 pub fn write_file_new(
@@ -4349,6 +4380,97 @@ fn discard_created_archive_identity(
     recheck_directory(directory)
 }
 
+#[cfg(all(test, target_os = "macos"))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum TestDarwinArchiveFailurePoint {
+    ProcessOutput,
+    ScratchCleanup,
+    ArchiverRecheckBeforeHold,
+    WorkingDirectoryRecheckBeforeHold,
+    InputRecheckBeforeHold,
+    OutputHold,
+    ExactArchive,
+    ArchiverRecheckAfterAuthentication,
+    LaunchPathRecheck,
+    WorkingDirectoryRecheckAfterAuthentication,
+    InputRecheckAfterAuthentication,
+    OutputRecheck,
+}
+
+#[cfg(all(test, target_os = "macos"))]
+thread_local! {
+    static TEST_ARCHIVE_POST_AUTHENTICATION_FAILURE: std::cell::Cell<bool> = const {
+        std::cell::Cell::new(false)
+    };
+    static TEST_ARCHIVE_LATER_ACTIONS: std::cell::Cell<usize> = const {
+        std::cell::Cell::new(0)
+    };
+    static TEST_ARCHIVE_SCRATCH_OPEN_FAILURE: std::cell::Cell<bool> = const {
+        std::cell::Cell::new(false)
+    };
+    static TEST_ARCHIVE_FAILURE_POINT: std::cell::Cell<Option<TestDarwinArchiveFailurePoint>> = const {
+        std::cell::Cell::new(None)
+    };
+}
+
+#[cfg(all(test, target_os = "macos"))]
+pub(super) fn test_inject_archive_post_authentication_failure(enabled: bool) {
+    TEST_ARCHIVE_POST_AUTHENTICATION_FAILURE.with(|slot| slot.set(enabled));
+}
+
+#[cfg(all(test, target_os = "macos"))]
+pub(super) fn test_reset_archive_later_actions() {
+    TEST_ARCHIVE_LATER_ACTIONS.with(|slot| slot.set(0));
+}
+
+#[cfg(all(test, target_os = "macos"))]
+pub(super) fn test_archive_later_actions() -> usize {
+    TEST_ARCHIVE_LATER_ACTIONS.with(std::cell::Cell::get)
+}
+
+#[cfg(all(test, target_os = "macos"))]
+pub(super) fn test_inject_archive_scratch_open_failure(enabled: bool) {
+    TEST_ARCHIVE_SCRATCH_OPEN_FAILURE.with(|slot| slot.set(enabled));
+}
+
+#[cfg(all(test, target_os = "macos"))]
+pub(super) fn test_inject_darwin_archive_failure(point: Option<TestDarwinArchiveFailurePoint>) {
+    TEST_ARCHIVE_FAILURE_POINT.with(|slot| slot.set(point));
+}
+
+#[cfg(all(test, target_os = "macos"))]
+fn record_archive_later_action() {
+    TEST_ARCHIVE_LATER_ACTIONS.with(|slot| slot.set(slot.get() + 1));
+}
+
+#[cfg(all(not(test), target_os = "macos"))]
+fn record_archive_later_action() {}
+
+#[cfg(all(test, target_os = "macos"))]
+fn archive_post_authentication_failure_injected() -> bool {
+    TEST_ARCHIVE_POST_AUTHENTICATION_FAILURE.with(std::cell::Cell::get)
+}
+
+#[cfg(all(not(test), target_os = "macos"))]
+fn archive_post_authentication_failure_injected() -> bool {
+    false
+}
+
+#[cfg(all(test, target_os = "macos"))]
+fn archive_scratch_open_failure_injected() -> bool {
+    TEST_ARCHIVE_SCRATCH_OPEN_FAILURE.with(std::cell::Cell::get)
+}
+
+#[cfg(all(not(test), target_os = "macos"))]
+fn archive_scratch_open_failure_injected() -> bool {
+    false
+}
+
+#[cfg(all(test, target_os = "macos"))]
+fn darwin_archive_failure_injected(point: TestDarwinArchiveFailurePoint) -> bool {
+    TEST_ARCHIVE_FAILURE_POINT.with(|slot| slot.get() == Some(point))
+}
+
 #[cfg(all(test, target_os = "linux"))]
 pub(super) fn test_archive_seed_round_trip(
     directory: &Directory,
@@ -4552,6 +4674,7 @@ fn discard_archive_scratch(
     )
 }
 
+#[cfg(target_os = "linux")]
 pub fn archive_prepared(
     archiver: &Executable,
     cwd: &Directory,
@@ -4569,8 +4692,6 @@ pub fn archive_prepared(
     recheck_directory(cwd)?;
     #[cfg(target_os = "linux")]
     let owned_output = create_owned_archive_seed(cwd, &prepared.output_name)?;
-    #[cfg(target_os = "macos")]
-    let scratch = create_directory_new_prepared(cwd, &prepared.scratch_name, 0o700)?;
     let output_limit = prepared.command.output.capacity();
     let process_output = std::mem::take(&mut prepared.command.output);
     let process = run_archive_argv(
@@ -4584,25 +4705,10 @@ pub fn archive_prepared(
     let archiver_recheck = recheck_executable(archiver);
     let cwd_recheck = recheck_directory(cwd);
     let input_recheck = recheck_named_regular(cwd, &prepared.input_name, input);
-    #[cfg(target_os = "macos")]
-    let scratch_cleanup = discard_archive_scratch(cwd, &scratch, &prepared);
-    #[cfg(target_os = "macos")]
-    let output = process?;
-    #[cfg(target_os = "macos")]
-    {
-        scratch_cleanup?;
-        archiver_recheck?;
-        cwd_recheck?;
-        input_recheck?;
-    }
     let authenticated = (|| {
-        #[cfg(target_os = "linux")]
         let output = process?;
-        #[cfg(target_os = "linux")]
         archiver_recheck?;
-        #[cfg(target_os = "linux")]
         cwd_recheck?;
-        #[cfg(target_os = "linux")]
         input_recheck?;
         if !output.is_empty() {
             return Err(Error::OutputLimit);
@@ -4612,20 +4718,16 @@ pub fn archive_prepared(
             &prepared.output_name,
             SDK_ARCHIVE_MAX_BYTES,
         )?;
-        #[cfg(target_os = "linux")]
         if (archive.dev, archive.ino) != (owned_output.dev, owned_output.ino) {
             return Err(Error::Changed);
         }
         exact_archive_member(&archive, input)?;
         recheck_executable(archiver)?;
-        #[cfg(target_os = "macos")]
-        recheck_executable_launch_path(archiver)?;
         recheck_directory(cwd)?;
         recheck_named_regular(cwd, &prepared.input_name, input)?;
         recheck_named_regular(cwd, &prepared.output_name, &archive)?;
         Ok(archive)
     })();
-    #[cfg(target_os = "linux")]
     match authenticated {
         Ok(archive) => Ok(archive),
         Err(error) => {
@@ -4637,8 +4739,169 @@ pub fn archive_prepared(
             Err(error)
         }
     }
-    #[cfg(target_os = "macos")]
-    authenticated
+}
+
+#[cfg(target_os = "macos")]
+fn darwin_archive_failure(
+    error: Error,
+    phase: crate::DarwinArchiveFailurePhase,
+    settlement: crate::DarwinArchiveSettlement,
+) -> crate::DarwinArchiveFailure {
+    crate::DarwinArchiveFailure {
+        error,
+        phase,
+        settlement,
+    }
+}
+
+/// Runs Apple's archive tool with an explicit effect-settlement result. Once
+/// the child may have created the output, every unauthenticated failure is
+/// absorbing. Once exact archive authentication succeeds, later rejection
+/// remains inert on every later rejection. No post-effect pathname cleanup is
+/// permitted because compare-then-unlink cannot close namespace substitution.
+#[cfg(target_os = "macos")]
+pub fn archive_prepared_settled(
+    archiver: &Executable,
+    cwd: &Directory,
+    input: &RegularFile,
+    mut prepared: PreparedArchiveInvocation,
+    process_arena: &mut PreparedProcessArena,
+) -> Result<RegularFile, crate::DarwinArchiveFailure> {
+    use crate::DarwinArchiveFailurePhase as Phase;
+    use crate::DarwinArchiveSettlement as Settlement;
+
+    let preflight = |error| darwin_archive_failure(error, Phase::Preflight, Settlement::Settled);
+    if !child_absent_impl(cwd, &prepared.output_name).map_err(preflight)? {
+        return Err(preflight(Error::Exists));
+    }
+    recheck_named_regular(cwd, &prepared.input_name, input).map_err(preflight)?;
+    recheck_executable(archiver).map_err(preflight)?;
+    recheck_executable_launch_path(archiver).map_err(preflight)?;
+    recheck_directory(cwd).map_err(preflight)?;
+    let scratch =
+        create_directory_new_prepared_with_creation_state(cwd, &prepared.scratch_name, 0o700)
+            .map_err(|failure| {
+                darwin_archive_failure(
+                    failure.error,
+                    Phase::ScratchCreation,
+                    if failure.namespace_created {
+                        Settlement::Uncertain
+                    } else {
+                        Settlement::Settled
+                    },
+                )
+            })?;
+    let output_limit = prepared.command.output.capacity();
+    let process_output = std::mem::take(&mut prepared.command.output);
+    let uncertain = |error, phase| darwin_archive_failure(error, phase, Settlement::Uncertain);
+    let output = match run_archive_argv(
+        archiver,
+        cwd,
+        &prepared.command.arguments,
+        output_limit,
+        process_output,
+        process_arena,
+    ) {
+        Ok(output) => output,
+        Err(error) => return Err(uncertain(error, Phase::Process)),
+    };
+    #[cfg(test)]
+    if darwin_archive_failure_injected(TestDarwinArchiveFailurePoint::ProcessOutput) {
+        return Err(uncertain(Error::OutputLimit, Phase::ProcessOutput));
+    }
+    if !output.is_empty() {
+        return Err(uncertain(Error::OutputLimit, Phase::ProcessOutput));
+    }
+    #[cfg(test)]
+    if darwin_archive_failure_injected(TestDarwinArchiveFailurePoint::ScratchCleanup) {
+        return Err(uncertain(Error::Changed, Phase::ScratchCleanup));
+    }
+    record_archive_later_action();
+    discard_archive_scratch(cwd, &scratch, &prepared)
+        .map_err(|error| uncertain(error, Phase::ScratchCleanup))?;
+    #[cfg(test)]
+    if darwin_archive_failure_injected(TestDarwinArchiveFailurePoint::ArchiverRecheckBeforeHold) {
+        return Err(uncertain(Error::Changed, Phase::ArchiverRecheck));
+    }
+    record_archive_later_action();
+    recheck_executable(archiver).map_err(|error| uncertain(error, Phase::ArchiverRecheck))?;
+    #[cfg(test)]
+    if darwin_archive_failure_injected(
+        TestDarwinArchiveFailurePoint::WorkingDirectoryRecheckBeforeHold,
+    ) {
+        return Err(uncertain(Error::Changed, Phase::WorkingDirectoryRecheck));
+    }
+    record_archive_later_action();
+    recheck_directory(cwd).map_err(|error| uncertain(error, Phase::WorkingDirectoryRecheck))?;
+    #[cfg(test)]
+    if darwin_archive_failure_injected(TestDarwinArchiveFailurePoint::InputRecheckBeforeHold) {
+        return Err(uncertain(Error::Changed, Phase::InputRecheck));
+    }
+    record_archive_later_action();
+    recheck_named_regular(cwd, &prepared.input_name, input)
+        .map_err(|error| uncertain(error, Phase::InputRecheck))?;
+    #[cfg(test)]
+    if darwin_archive_failure_injected(TestDarwinArchiveFailurePoint::OutputHold) {
+        return Err(uncertain(Error::Changed, Phase::OutputHold));
+    }
+    record_archive_later_action();
+    let archive =
+        hold_regular_file_name_bounded_prepared(cwd, &prepared.output_name, SDK_ARCHIVE_MAX_BYTES)
+            .map_err(|error| uncertain(error, Phase::OutputHold))?;
+    #[cfg(test)]
+    if darwin_archive_failure_injected(TestDarwinArchiveFailurePoint::ExactArchive) {
+        return Err(uncertain(Error::Changed, Phase::ExactArchive));
+    }
+    record_archive_later_action();
+    exact_archive_member(&archive, input).map_err(|error| uncertain(error, Phase::ExactArchive))?;
+
+    let post_authentication = (|| {
+        if archive_post_authentication_failure_injected() {
+            return Err((Error::Changed, Phase::ArchiverRecheck));
+        }
+        #[cfg(test)]
+        if darwin_archive_failure_injected(
+            TestDarwinArchiveFailurePoint::ArchiverRecheckAfterAuthentication,
+        ) {
+            return Err((Error::Changed, Phase::ArchiverRecheck));
+        }
+        record_archive_later_action();
+        recheck_executable(archiver).map_err(|error| (error, Phase::ArchiverRecheck))?;
+        #[cfg(test)]
+        if darwin_archive_failure_injected(TestDarwinArchiveFailurePoint::LaunchPathRecheck) {
+            return Err((Error::Changed, Phase::LaunchPathRecheck));
+        }
+        record_archive_later_action();
+        recheck_executable_launch_path(archiver)
+            .map_err(|error| (error, Phase::LaunchPathRecheck))?;
+        #[cfg(test)]
+        if darwin_archive_failure_injected(
+            TestDarwinArchiveFailurePoint::WorkingDirectoryRecheckAfterAuthentication,
+        ) {
+            return Err((Error::Changed, Phase::WorkingDirectoryRecheck));
+        }
+        record_archive_later_action();
+        recheck_directory(cwd).map_err(|error| (error, Phase::WorkingDirectoryRecheck))?;
+        #[cfg(test)]
+        if darwin_archive_failure_injected(
+            TestDarwinArchiveFailurePoint::InputRecheckAfterAuthentication,
+        ) {
+            return Err((Error::Changed, Phase::InputRecheck));
+        }
+        record_archive_later_action();
+        recheck_named_regular(cwd, &prepared.input_name, input)
+            .map_err(|error| (error, Phase::InputRecheck))?;
+        #[cfg(test)]
+        if darwin_archive_failure_injected(TestDarwinArchiveFailurePoint::OutputRecheck) {
+            return Err((Error::Changed, Phase::OutputRecheck));
+        }
+        record_archive_later_action();
+        recheck_named_regular(cwd, &prepared.output_name, &archive)
+            .map_err(|error| (error, Phase::OutputRecheck))?;
+        Ok::<(), (Error, Phase)>(())
+    })();
+    post_authentication.map_err(|(error, phase)| uncertain(error, phase))?;
+    Ok(archive)
 }
 
 pub fn prepare_run_invocation() -> Result<PreparedRunInvocation, Error> {

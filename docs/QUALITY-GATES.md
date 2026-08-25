@@ -162,6 +162,25 @@ and a Phase-C pre-reserved cumulative-memory or allocation-failure-recovery
 proof remain held. Hosted promotion requires the exact-head three-OS SDK job;
 local success alone is not promotion evidence.
 
+On Darwin, the archive boundary must distinguish pre-effect settled failures
+from namespace-creating and post-process uncertainty. A post-`mkdirat` reopen
+failure and every rejection after process entry must be absorbing: no later
+scratch cleanup, pathname deletion, recheck, stage discard, outer-stage
+creation, tool invocation, or publication may occur. Focused evidence must
+exercise every closed post-process phase and preserve both inert archive bytes
+and a subsequently installed foreign pathname. Linux and Windows errors may be
+treated as settled only when the sys result carries affirmative settlement
+evidence; an erased platform error is fail-stop uncertain.
+
+On Windows, every nested Cargo setup, lockfile, and consumer command must bind
+the validated absolute `SEMAPRAX_LINKER` through
+`CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER` and remove both ambient `LINK` and
+`_LINK_` while preserving `LIB` and `INCLUDE`. This is a bounded pathname
+configuration gate only: it does not prove held-image execution, ancestor
+reparse attestation, or resistance to same-path linker substitution. The
+diagnostic/masked Windows lanes cannot be promoted until the complete consumer
+and deterministic-inventory assertions pass without `continue-on-error`.
+
 Project Native Rust SDK v1 additionally requires the direct Project-subject
 and exact/minus-one allocation/replay unit evidence plus this full local
 consumer gate:

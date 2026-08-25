@@ -1,7 +1,7 @@
 #[path = "support/project_product.rs"]
 mod support;
 
-use semaprax::{codegen, project};
+use semaprax::{codegen, project, wasm};
 use serde_json::{json, Value};
 use support::{
     native_rust_sdk_required, run_core_wasm, run_native_c, run_project_rust_sdk, run_web_carrier,
@@ -55,6 +55,9 @@ fn calculator_project_survives_the_complete_agent_change_and_consumer_cycle() {
         let entry_c =
             codegen::emit_hir_c(snapshot.entry_program()).map_err(|diagnostic| vec![diagnostic])?;
         run_native_c(&entry_c, "baseline-entry", "42", &["-O0", "-O2"]);
+        let entry_wasm =
+            wasm::emit_resolved_module(snapshot.entry_program()).map_err(|error| vec![error])?;
+        run_core_wasm(&entry_wasm, "baseline-entry", "42");
         let test_c =
             codegen::emit_hir_c(snapshot.test_program()).map_err(|diagnostic| vec![diagnostic])?;
         run_native_c(&test_c, "baseline-tests", "0", &["-O0", "-O2"]);
@@ -262,12 +265,33 @@ fn calculator_project_survives_the_complete_agent_change_and_consumer_cycle() {
     assert_eq!(renamed_carrier["schema"], project::PROJECT_WEB_BUILD_SCHEMA);
     assert_eq!(renamed_carrier["project_revision"], candidate_project);
     let renamed_web = run_web_carrier(renamed_carrier, "renamed-daemon");
-    for stable_artifact in ["app.wasm", "semaprax.bindings.js", "semaprax.bindings.d.ts"] {
+    for stable_artifact in [
+        "app.wasm",
+        "semaprax.js",
+        "semaprax.bindings.js",
+        "semaprax.bindings.d.ts",
+    ] {
         assert_eq!(
             baseline_web[stable_artifact], renamed_web[stable_artifact],
             "display rename changed stable-ID Web artifact {stable_artifact}"
         );
     }
+    let baseline_manifest: Value =
+        serde_json::from_slice(&baseline_web["semaprax.scalar-exports.json"]).unwrap();
+    let renamed_manifest: Value =
+        serde_json::from_slice(&renamed_web["semaprax.scalar-exports.json"]).unwrap();
+    assert_ne!(
+        baseline_manifest["project_revision"],
+        renamed_manifest["project_revision"]
+    );
+    assert_ne!(
+        baseline_manifest["workspace_revision"],
+        renamed_manifest["workspace_revision"]
+    );
+    assert_eq!(
+        baseline_manifest["scalar_abi"], renamed_manifest["scalar_abi"],
+        "display rename changed the stable-ID scalar ABI"
+    );
     let tests = daemon.call(
         13,
         "test",
@@ -284,9 +308,21 @@ fn calculator_project_survives_the_complete_agent_change_and_consumer_cycle() {
             entry.outcome(),
             &project::ProjectExecutionOutcome::Returned(42)
         );
-        let c =
+        let tests = snapshot.execute_test(&project::ProjectExecutionOptions::default())?;
+        assert_eq!(
+            tests.outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
+        let entry_c =
             codegen::emit_hir_c(snapshot.entry_program()).map_err(|diagnostic| vec![diagnostic])?;
-        run_native_c(&c, "renamed-entry", "42", &["-O2"]);
+        run_native_c(&entry_c, "renamed-entry", "42", &["-O0", "-O2"]);
+        let entry_wasm =
+            wasm::emit_resolved_module(snapshot.entry_program()).map_err(|error| vec![error])?;
+        run_core_wasm(&entry_wasm, "renamed-entry", "42");
+        let test_c =
+            codegen::emit_hir_c(snapshot.test_program()).map_err(|diagnostic| vec![diagnostic])?;
+        run_native_c(&test_c, "renamed-tests", "0", &["-O0", "-O2"]);
+        run_core_wasm(&snapshot.test_wasm_module()?, "renamed-tests", "0");
         Ok(())
     })
     .unwrap();
@@ -303,5 +339,9 @@ fn calculator_project_survives_the_complete_agent_change_and_consumer_cycle() {
             renamed_rust.source_revisions
         );
         assert!(renamed_rust.source_revisions.contains(&candidate_source));
+        assert_eq!(
+            baseline_rust.manifest_exports, renamed_rust.manifest_exports,
+            "display rename changed the stable-ID Project Rust SDK export inventory"
+        );
     }
 }

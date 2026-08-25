@@ -2010,6 +2010,9 @@ fn drain_disposal_frames(
                 ResolvedExprKind::NativeRustImportCall(call) => {
                     disposal_push(frames, ResolvedDisposeFrame::Exprs(call.args));
                 }
+                ResolvedExprKind::HostCommandCall(call) => {
+                    disposal_push(frames, ResolvedDisposeFrame::Exprs(call.args));
+                }
                 ResolvedExprKind::Unary { value, .. }
                 | ResolvedExprKind::Project { base: value, .. }
                 | ResolvedExprKind::Upcast { source: value } => {
@@ -3537,6 +3540,7 @@ fn resolved_call_child(expression: &ResolvedExpr, index: usize) -> Option<&Resol
     match &expression.kind {
         ResolvedExprKind::Call { args, .. } => args.get(index),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
+        ResolvedExprKind::HostCommandCall(call) => call.args.get(index),
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
@@ -4634,6 +4638,11 @@ fn fingerprint_expression_types_scratch(
                         &mut stack_len,
                         Frame::Exprs(&call.args, 0, child_depth),
                     )?,
+                    ResolvedExprKind::HostCommandCall(call) => push(
+                        &mut stack,
+                        &mut stack_len,
+                        Frame::Exprs(&call.args, 0, child_depth),
+                    )?,
                     ResolvedExprKind::Unary { value, .. } => {
                         push(&mut stack, &mut stack_len, Frame::Expr(value, child_depth))?
                     }
@@ -5287,6 +5296,11 @@ fn hash_expr(
                         );
                         hash_count(hasher, "arguments", call.args.len());
                         actions.push(HirFingerprintAction::Exprs(&call.args, 0, child_depth));
+                    }
+                    ResolvedExprKind::HostCommandCall(_) => {
+                        // Public Native Rust SDKs do not carry invocation
+                        // command-input/output authority.
+                        return Err(b107("scalar value signature required"));
                     }
                     ResolvedExprKind::Unary { op, value } => {
                         frame(
@@ -6579,6 +6593,10 @@ fn validate_selected_scalar_closure(functions: &[&ResolvedFunction]) -> Result<(
                 ..
             } if type_arguments.is_empty() && instance.is_none() => pending.extend(args),
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(&call.args),
+            ResolvedExprKind::HostCommandCall(_) => {
+                // Keep command I/O outside the promoted scalar Rust boundary.
+                return Err(b107("scalar value signature required"));
+            }
             ResolvedExprKind::Unary { value, .. } => pending.push(value),
             ResolvedExprKind::Binary { left, right, .. } => {
                 pending.push(left);

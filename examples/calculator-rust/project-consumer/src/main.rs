@@ -10,6 +10,8 @@ impl NativeRustSdkImports for Host {}
 fn main() {
     let mut calculator = NativeRustSdk::new(Host, &[]).expect("admit generated Project SDK");
     assert_eq!(calculator.spx_calculator_dot_add(19, 23), Ok(42));
+    assert_eq!(calculator.spx_calculator_dot_subtract(23, 19), Ok(4));
+    assert_eq!(calculator.spx_calculator_dot_multiply(6, 7), Ok(42));
     assert_eq!(calculator.spx_calculator_dot_divide(84, 2), Ok(42));
     assert_eq!(
         calculator.spx_calculator_dot_divide(1, 0),

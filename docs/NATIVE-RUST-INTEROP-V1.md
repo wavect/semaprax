@@ -270,7 +270,7 @@ The returned `ProjectNativeRustSdkBundle` exposes the authenticated Project
 revision, workspace revision, and Project-subject digest in addition to the
 ordinary SDK bundle.
 
-Focused local evidence builds and runs the four-export calculator Project as
+Focused local evidence builds and runs the six-export calculator Project as
 both Web/Node and generated Rust consumers, applies the opt-in daemon display
 rename, shuts the daemon down, then independently rebuilds and reruns both
 consumers. It proves stable-ID behavior while requiring the Project,

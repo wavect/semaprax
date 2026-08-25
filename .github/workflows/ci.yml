@@ -88,6 +88,107 @@ jobs:
         working-directory: platform-tests/wasm-scalar-browser-v1
         run: npm test -- --workers=1 --retries=0
 
+  project-product-acceptance-v1:
+    name: Project Product Acceptance v1 (${{ matrix.os }}, ${{ matrix.evidence }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    continue-on-error: ${{ matrix.diagnostic }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            evidence: blocking
+            diagnostic: false
+          - os: macos-15
+            evidence: blocking
+            diagnostic: false
+          - os: windows-2025
+            evidence: diagnostic-only
+            diagnostic: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: "1.88"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Install the repository-pinned TypeScript compiler (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        working-directory: platform-tests/wasm-scalar-browser-v1
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          tsc_path="$(pwd)/node_modules/.bin/tsc"
+          test -x "$tsc_path"
+          test "$($tsc_path --version)" = "Version 5.8.3"
+          echo "TSC=$tsc_path" >> "$GITHUB_ENV"
+      - name: Install the repository-pinned TypeScript compiler (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        working-directory: platform-tests/wasm-scalar-browser-v1
+        run: |
+          call npm ci --ignore-scripts
+          if errorlevel 1 exit /b 1
+          if not exist "%CD%\node_modules\.bin\tsc.cmd" exit /b 1
+          for /f "tokens=*" %%i in ('call "%CD%\node_modules\.bin\tsc.cmd" --version') do set "TSC_VERSION=%%i"
+          if not "%TSC_VERSION%"=="Version 5.8.3" exit /b 1
+          echo TSC=%CD%\node_modules\.bin\tsc.cmd>>"%GITHUB_ENV%"
+      - name: Resolve exact held native tools (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc_path="$(rustup which rustc)"
+          clang_path="$(command -v clang)"
+          test -x "$rustc_path"
+          test -x "$clang_path"
+          echo "RUSTC=$rustc_path" >> "$GITHUB_ENV"
+          echo "CLANG=$clang_path" >> "$GITHUB_ENV"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            archiver_path=/usr/bin/libtool
+          else
+            archiver_path="$(readlink -f /usr/bin/ar)"
+          fi
+          test -x "$archiver_path"
+          echo "SEMAPRAX_ARCHIVER=$archiver_path" >> "$GITHUB_ENV"
+      - name: Resolve exact held native tools and MSVC environment (Windows diagnostic only)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSINSTALL=%%i"
+          if not defined VSINSTALL exit /b 1
+          call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -no_logo -arch=x64 -host_arch=x64
+          if not defined VCToolsInstallDir exit /b 1
+          set "SEMAPRAX_VCTOOLS=%VCToolsInstallDir%"
+          if "%SEMAPRAX_VCTOOLS:~-1%"=="\" set "SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS:~0,-1%"
+          set "SEMAPRAX_LINKER=%SEMAPRAX_VCTOOLS%\bin\Hostx64\x64\link.exe"
+          set "SEMAPRAX_ARCHIVER=%SEMAPRAX_VCTOOLS%\bin\Hostx64\x64\lib.exe"
+          if not exist "%SEMAPRAX_LINKER%" exit /b 1
+          if not exist "%SEMAPRAX_ARCHIVER%" exit /b 1
+          for /f "tokens=*" %%i in ('rustup which rustc') do set "RUSTC=%%i"
+          for /f "tokens=*" %%i in ('where clang.exe') do if not defined CLANG set "CLANG=%%i"
+          if not defined RUSTC exit /b 1
+          if not defined CLANG exit /b 1
+          echo INCLUDE=%INCLUDE%>>"%GITHUB_ENV%"
+          echo LIB=%LIB%>>"%GITHUB_ENV%"
+          echo RUSTC=%RUSTC%>>"%GITHUB_ENV%"
+          echo CLANG=%CLANG%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_LINKER=%SEMAPRAX_LINKER%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_ARCHIVER=%SEMAPRAX_ARCHIVER%>>"%GITHUB_ENV%"
+      - name: Fetch the standalone Rust consumer dependency closure
+        run: cargo fetch --locked --manifest-path examples/calculator-rust/Cargo.toml
+      - name: Freeze the focused acceptance workflow contract
+        run: cargo test --locked --offline -p semaprax --test project_product_acceptance_ci_contract -- --nocapture
+      - name: Require the complete project, daemon, Web, native, Wasm, TypeScript, and Rust cycle
+        env:
+          SEMAPRAX_REQUIRE_PROJECT_TYPESCRIPT: "1"
+          SEMAPRAX_REQUIRE_PROJECT_NATIVE_RUST_SDK: "1"
+        run: cargo test --locked --offline -p semaprax --test project_product_acceptance_v1 -- --test-threads=1 --nocapture
+
   project-v1:
     name: Project Manifest v1 (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

@@ -1421,10 +1421,15 @@ Project boundary to generate a local Rust package from the manifest's exact
 Web-export set and the already linked entry HIR. Its canonical Project subject
 binds every source and revision before any builder effect; it does not flatten
 or reparse the Project and does not add a Project CLI target. Local evidence
-rebuilds Web/Node and Rust consumers after the opt-in daemon rename and proves
-stable-ID behavior across changed authenticated revisions. Hosted promotion
-and general Project SDK/package/import/capability/aggregate/resource support
-remain open.
+uses the complete six-operation calculator export surface, rebuilds Web/Node
+and Rust consumers after the opt-in daemon rename, compares the semantic Web
+scalar ABI and exact Rust export inventory rather than revision-bound whole
+manifests, and proves stable-ID behavior across changed authenticated
+revisions. A focused CI lane requires the TypeScript and held-tool Rust paths
+on Ubuntu and macOS; Windows remains explicitly diagnostic until its existing
+SDK publication boundary can be promoted. Exact-head full-matrix promotion and
+general Project SDK/package/import/capability/aggregate/resource support remain
+open.
 See [Project Manifest v1](PROJECT-MANIFEST-V1.md).
 
 ## Project Manifest v2 and Useful Text Consumer v1
@@ -1705,10 +1710,11 @@ a later action. See [Project Agent Workflow v1](PROJECT-AGENT-WORKFLOW-V1.md).
 
 The additive `project_product_acceptance_v1` integration runner composes these
 previously separate product lanes without granting the daemon new authority.
-For one copied calculator Project it executes entry and test meaning in the
-interpreter and native C11 at O0/O2, the test closure in Core Wasm, and the
+For one copied six-operation calculator Project it executes entry and test
+meaning in the interpreter, native C11 at O0/O2, and Core Wasm, plus the
 authenticated Web carrier; then it drives the complete v4 rename workflow and
-repeats the stable-ID Web and native consumer checks. Explicit environment
+repeats those target checks and the stable-ID Web/native consumer checks.
+Explicit environment
 gates additionally compile the generated declarations with pinned TypeScript
 5.8.3 and build and run the baseline and renamed Project Rust SDK consumers
 under the existing held-tool authority. Keeping this orchestration in

@@ -249,7 +249,11 @@ import { readFile } from "node:fs/promises";
 import { instantiateBytes } from "./semaprax.bindings.js";
 const runtime = await instantiateBytes(await readFile("./app.wasm"));
 assert.deepEqual(runtime.call("calculator.add", 19n, 23n), {ok:true,value:42n});
+assert.deepEqual(runtime.call("calculator.subtract", 84n, 42n), {ok:true,value:42n});
+assert.deepEqual(runtime.call("calculator.multiply", 6n, 7n), {ok:true,value:42n});
 assert.deepEqual(runtime.call("calculator.divide", 84n, 2n), {ok:true,value:42n});
+assert.deepEqual(runtime.call("calculator.is-negative", -1n), {ok:true,value:true});
+assert.deepEqual(runtime.call("calculator.not", true), {ok:true,value:false});
 "#,
     )
     .unwrap();

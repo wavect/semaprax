@@ -5449,6 +5449,17 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
                 )?;
                 pending.extend(&call.args);
             }
+            ResolvedExprKind::HostCommandCall(call) => {
+                total = total
+                    .checked_add(call.expression.as_str().len())
+                    .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                add_capacity(
+                    &mut total,
+                    call.args.capacity(),
+                    std::mem::size_of::<ResolvedExpr>(),
+                )?;
+                pending.extend(&call.args);
+            }
             ResolvedExprKind::Unary { value, .. } => pending.push(value),
             ResolvedExprKind::Try {
                 operand,
@@ -6049,6 +6060,9 @@ pub(super) fn validate_native_rust_expression_budget_for_closure(
                 pending.extend(args.iter().map(|value| (value, child_depth)))
             }
             ResolvedExprKind::NativeRustImportCall(call) => {
+                pending.extend(call.args.iter().map(|value| (value, child_depth)))
+            }
+            ResolvedExprKind::HostCommandCall(call) => {
                 pending.extend(call.args.iter().map(|value| (value, child_depth)))
             }
             ResolvedExprKind::Unary { value, .. }

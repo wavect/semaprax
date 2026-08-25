@@ -67,7 +67,9 @@ fn expected_project_function_rows() -> Vec<String> {
         ("calculator.add", &["i64", "i64"][..], "i64"),
         ("calculator.divide", &["i64", "i64"][..], "i64"),
         ("calculator.is-negative", &["i64"][..], "bool"),
+        ("calculator.multiply", &["i64", "i64"][..], "i64"),
         ("calculator.not", &["bool"][..], "bool"),
+        ("calculator.subtract", &["i64", "i64"][..], "i64"),
     ]
     .iter()
     .map(|(id, parameters, result)| {
@@ -244,7 +246,9 @@ fn project_web_package_is_deterministic_exact_and_node_executable() {
                 "calculator.add",
                 "calculator.divide",
                 "calculator.is-negative",
+                "calculator.multiply",
                 "calculator.not",
+                "calculator.subtract",
             ]
             .map(raw_symbol)
         );
@@ -361,6 +365,9 @@ import { instantiateBytes } from "./semaprax.bindings.js";
 const bytes = await readFile("./app.wasm");
 const runtime = await instantiateBytes(bytes);
 assert.deepEqual(runtime.call("calculator.add", 19n, 23n), {ok:true,value:42n});
+assert.deepEqual(runtime.call("calculator.subtract", 84n, 42n), {ok:true,value:42n});
+assert.deepEqual(runtime.call("calculator.multiply", 6n, 7n), {ok:true,value:42n});
+assert.deepEqual(runtime.call("calculator.divide", 84n, 2n), {ok:true,value:42n});
 assert.deepEqual(runtime.call("calculator.is-negative", -1n), {ok:true,value:true});
 assert.deepEqual(runtime.call("calculator.not", true), {ok:true,value:false});
 assert.deepEqual(runtime.call("calculator.add", (1n << 63n) - 1n, 1n), {ok:false,status:{schema:"semaprax.status.v1",domain_id:"semaprax.arithmetic.v1",code:1}});

@@ -24,7 +24,9 @@ const WEB_EXPORTS: &[&str] = &[
     "calculator.add",
     "calculator.divide",
     "calculator.is-negative",
+    "calculator.multiply",
     "calculator.not",
+    "calculator.subtract",
 ];
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);

@@ -6,6 +6,18 @@ fn add(left: i64, right: i64) -> i64
     left + right
 }
 
+@id("calculator.subtract")
+fn subtract(left: i64, right: i64) -> i64
+{
+    left - right
+}
+
+@id("calculator.multiply")
+fn multiply(left: i64, right: i64) -> i64
+{
+    left * right
+}
+
 @id("calculator.divide")
 fn divide(left: i64, right: i64) -> i64
     requires right != 0

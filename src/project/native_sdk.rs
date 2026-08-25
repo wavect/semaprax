@@ -194,10 +194,29 @@ mod tests {
                 assert_eq!(subject.project_name(), "calculator");
                 assert_eq!(subject.entry_module(), "calculator.app");
                 assert_eq!(subject.sources().len(), 3);
-                assert_eq!(subject.exports().len(), 4);
-                assert_eq!(subject.exports()[0].stable_id(), "calculator.add");
-                assert_eq!(subject.exports()[0].module(), "calculator.core");
-                assert_eq!(subject.exports()[0].path(), "src/core.spx");
+                assert_eq!(
+                    subject
+                        .exports()
+                        .iter()
+                        .map(|export| export.stable_id())
+                        .collect::<Vec<_>>(),
+                    [
+                        "calculator.add",
+                        "calculator.divide",
+                        "calculator.is-negative",
+                        "calculator.multiply",
+                        "calculator.not",
+                        "calculator.subtract",
+                    ]
+                );
+                assert!(subject
+                    .exports()
+                    .iter()
+                    .all(|export| export.module() == "calculator.core"));
+                assert!(subject
+                    .exports()
+                    .iter()
+                    .all(|export| export.path() == "src/core.spx"));
                 assert_eq!(subject.program().module, "calculator.app");
                 Ok((
                     subject.project_revision().to_owned(),

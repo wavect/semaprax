@@ -1253,6 +1253,11 @@ fn c_expression_linear(
                 ResolvedExprKind::NativeRustImportCall(call) => {
                     frames.push(CExpressionFrame::NativeArgs(call, 0, arguments.len()));
                 }
+                ResolvedExprKind::HostCommandCall(_) => {
+                    // Command I/O is not part of the public Native Rust SDK
+                    // boundary. Closure admission rejects it before emission.
+                    return Err(b107("scalar value signature required"));
+                }
                 ResolvedExprKind::Unary { op, value } => {
                     frames.push(CExpressionFrame::Unary(*op));
                     frames.push(CExpressionFrame::Enter(value));

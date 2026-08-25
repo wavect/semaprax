@@ -412,10 +412,12 @@ cargo test --locked -p semaprax --all-features \
   --test project_product_acceptance_v1 -- --test-threads=1 --nocapture
 ```
 
-The unified product gate must execute Project entry/test meaning, native C11
-entry and test closures at O0/O2, the Core-Wasm test closure, direct and v4
-inline Web consumers, the complete derive/preview/impact/review/apply/build
-cycle, changed authenticated revisions, and unchanged stable-ID behavior. A
+The unified product gate must execute all six calculator exports, Project
+entry/test meaning, native C11 entry and test closures at O0/O2, both Core-Wasm
+closures, direct and v4 inline Web consumers, the complete derive/preview/
+impact/review/apply/build cycle, changed authenticated revisions, unchanged
+semantic Web scalar ABI, exact Rust export inventory, and unchanged stable-ID
+behavior. A
 qualifying held-tool promotion run additionally sets
 `SEMAPRAX_REQUIRE_PROJECT_NATIVE_RUST_SDK=1` so baseline and post-rename Rust
 packages are generated and their compiler-free consumers execute. It also sets
@@ -424,8 +426,12 @@ TypeScript 5.8.3 executable so the generated declarations are consumed under
 strict NodeNext checking. A run without either explicit switch is local
 non-Rust/non-TypeScript evidence only.
 
-Exact-head Ubuntu/macOS/Windows and minimum-Rust promotion remains mandatory;
-local success does not complete the v0.2 objective.
+The focused `project-product-acceptance-v1` CI lane pins Rust 1.88, Node 22,
+and TypeScript 5.8.3 and requires both explicit switches on blocking Ubuntu
+24.04 and macOS 15 jobs. Its Windows 2025 leg is deliberately diagnostic-only
+while the existing Windows SDK publication boundary is nonblocking. Exact-head
+blocking Ubuntu/macOS/Windows promotion remains mandatory; local or diagnostic
+success does not complete the v0.2 objective.
 
 Quality gates are executable evidence, not a checklist substitute for reasoning. Every pull request must pass the baseline and the gates for each changed semantic layer.
 

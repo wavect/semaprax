@@ -759,6 +759,41 @@ fn prepare_source(
 }
 
 #[test]
+fn language_command_io_is_outside_the_public_native_rust_sdk_closure() {
+    let source = r#"module interop.command;
+
+permit { process.args.read }
+
+@id("interop.command.selected")
+fn selected() -> i64 uses { process.args.read }
+{
+    if args_len() == 0usize { 0 } else { 1 }
+}
+
+@id("interop.command.main")
+fn main() -> i64
+{
+    0
+}
+"#;
+    let program = crate::parse(source, Path::new("native-rust-command-io.spx")).unwrap();
+    let diagnostics = semaprax::verify::verify(&program);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let resolved = hir::resolve(&program).unwrap();
+    let selected = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "interop.command.selected")
+        .unwrap();
+    let error = validate_selected_scalar_closure(&[selected]).unwrap_err();
+    assert_eq!(error.code, "SPX-B107");
+    assert_eq!(
+        error.message,
+        "Native Rust Interop declaration set is unsupported: scalar value signature required"
+    );
+}
+
+#[test]
 fn native_unit_import_is_exact_direct_unused_let_and_resolved_identity_scoped() {
     const UNIT_SOURCE: &str = r#"module interop.unit;
 

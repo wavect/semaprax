@@ -56,7 +56,16 @@ fn project_snapshot_is_deterministic_and_closures_exclude_reverse_consumers() {
             .map(|function| function.id.as_str())
             .collect::<Vec<_>>();
         assert!(entry_ids.contains(&"calculator.app.main"));
-        assert!(entry_ids.contains(&"calculator.add"));
+        for stable_id in [
+            "calculator.add",
+            "calculator.divide",
+            "calculator.is-negative",
+            "calculator.multiply",
+            "calculator.not",
+            "calculator.subtract",
+        ] {
+            assert!(entry_ids.contains(&stable_id));
+        }
         assert!(!entry_ids.contains(&"calculator.tests.main"));
 
         let test_ids = snapshot
@@ -66,7 +75,16 @@ fn project_snapshot_is_deterministic_and_closures_exclude_reverse_consumers() {
             .map(|function| function.id.as_str())
             .collect::<Vec<_>>();
         assert!(test_ids.contains(&"calculator.tests.main"));
-        assert!(test_ids.contains(&"calculator.add"));
+        for stable_id in [
+            "calculator.add",
+            "calculator.divide",
+            "calculator.is-negative",
+            "calculator.multiply",
+            "calculator.not",
+            "calculator.subtract",
+        ] {
+            assert!(test_ids.contains(&stable_id));
+        }
         assert!(!test_ids.contains(&"calculator.app.main"));
         Ok((
             snapshot.project_revision().to_owned(),

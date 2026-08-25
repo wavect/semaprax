@@ -2,10 +2,12 @@ module calculator.tests;
 use function @id("calculator.add") from calculator.core as add;
 use function @id("calculator.divide") from calculator.core as divide;
 use function @id("calculator.is-negative") from calculator.core as is_negative;
+use function @id("calculator.multiply") from calculator.core as multiply;
 use function @id("calculator.not") from calculator.core as not;
+use function @id("calculator.subtract") from calculator.core as subtract;
 
 @id("calculator.tests.main")
 fn main() -> i64
 {
-    if add(19, 23) == 42 && divide(84, 2) == 42 && is_negative(-1) && not(false) { 0 } else { 1 }
+    if add(19, 23) == 42 && subtract(23, 19) == 4 && multiply(6, 7) == 42 && divide(84, 2) == 42 && is_negative(-1) && not(false) { 0 } else { 1 }
 }

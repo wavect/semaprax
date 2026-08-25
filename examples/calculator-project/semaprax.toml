@@ -2,5 +2,5 @@ schema = "semaprax.project.v1"
 name = "calculator"
 entry = "calculator.app"
 sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
-web_exports = ["calculator.add", "calculator.divide", "calculator.is-negative", "calculator.not"]
+web_exports = ["calculator.add", "calculator.divide", "calculator.is-negative", "calculator.multiply", "calculator.not", "calculator.subtract"]
 tests = ["calculator.tests"]

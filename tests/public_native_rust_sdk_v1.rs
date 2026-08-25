@@ -316,7 +316,9 @@ fn project_example_selects_manifest_exports_for_a_compiler_free_consumer() {
         "calculator.add",
         "calculator.divide",
         "calculator.is-negative",
+        "calculator.multiply",
         "calculator.not",
+        "calculator.subtract",
     ] {
         assert!(manifest.contains(stable_id));
     }
@@ -340,7 +342,9 @@ fn project_example_selects_manifest_exports_for_a_compiler_free_consumer() {
         "spx_calculator_dot_add",
         "spx_calculator_dot_divide",
         "spx_calculator_dot_is_hyphen_negative",
+        "spx_calculator_dot_multiply",
         "spx_calculator_dot_not",
+        "spx_calculator_dot_subtract",
     ] {
         assert!(
             consumer_source.contains(required),

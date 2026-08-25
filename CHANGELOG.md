@@ -158,18 +158,20 @@
   iteration, general text processing, dependency resolution, or npm registry
   publication; the separate internal indexed-byte tranche remains non-public.
 
-- Added one locally evidenced v0.2 product-acceptance runner over the
+- Expanded the v0.2 product-acceptance runner to the complete six-operation
   multi-module calculator Project. It executes the authenticated entry and test
-  closures through the interpreter and native C11 at O0/O2, the test closure
-  through Core Wasm, the direct and daemon-returned Web package, and the
+  closures through the interpreter, native C11 at O0/O2, and Core Wasm, the
+  direct and daemon-returned Web package, and the
   complete Transport-v4 derive/preview/impact/review/apply/build cycle. The
   same runner optionally requires the pinned TypeScript 5.8.3 declaration
   consumer when `SEMAPRAX_REQUIRE_PROJECT_TYPESCRIPT=1` and baseline plus
   post-rename Project Rust SDK consumers when
   `SEMAPRAX_REQUIRE_PROJECT_NATIVE_RUST_SDK=1`, while preserving stable-ID Web
   and Rust behavior across changed Project/workspace/source/subject revisions.
-  Hosted promotion remains pending; the ordinary local gate does not claim the
-  TypeScript or held-tool Rust paths when their explicit switches are absent.
+  It compares semantic Web scalar ABI and exact Rust export facts instead of
+  revision-bound whole manifests. A focused pinned CI lane requires the
+  TypeScript and held-tool Rust paths on Ubuntu and macOS; Windows remains
+  explicitly diagnostic-only, so full hosted promotion is still pending.
 
 - Added locally evidenced Project Agent Workflow v1. The explicit
   `semapraxd --stdio --allow-project-workflow` v4 profile preserves v2/v3 and

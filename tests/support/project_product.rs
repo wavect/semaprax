@@ -217,8 +217,27 @@ fn compile_typescript_consumer(root: &Path) {
         root.join("acceptance.ts"),
         r#"import { instantiateBytes, type ScalarResult } from "./semaprax.bindings.js";
 const runtime = await instantiateBytes(new Uint8Array());
-const outcome: ScalarResult<bigint> = runtime.functions["calculator.add"](19n, 23n);
-if (outcome.ok && outcome.value !== 42n) throw new Error("unexpected calculator result");
+const added: ScalarResult<bigint> = runtime.functions["calculator.add"](19n, 23n);
+const subtracted: ScalarResult<bigint> = runtime.functions["calculator.subtract"](84n, 42n);
+const multiplied: ScalarResult<bigint> = runtime.functions["calculator.multiply"](6n, 7n);
+const divided: ScalarResult<bigint> = runtime.functions["calculator.divide"](84n, 2n);
+const negative: ScalarResult<boolean> = runtime.functions["calculator.is-negative"](-1n);
+const negated: ScalarResult<boolean> = runtime.functions["calculator.not"](true);
+for (const outcome of [added, subtracted, multiplied, divided]) {
+  if (outcome.ok) {
+    const value: bigint = outcome.value;
+    if (value !== 42n) throw new Error("unexpected calculator result");
+  } else {
+    const domain: "semaprax.arithmetic.v1" | "semaprax.contract.v1" = outcome.status.domain_id;
+    if (domain.length === 0) throw new Error("unreachable status domain");
+  }
+}
+if (!negative.ok) throw new Error(`unexpected predicate status ${negative.status.code}`);
+const negativeValue: boolean = negative.value;
+if (!negativeValue) throw new Error("unexpected is-negative result");
+if (!negated.ok) throw new Error(`unexpected predicate status ${negated.status.code}`);
+const negatedValue: boolean = negated.value;
+if (negatedValue) throw new Error("unexpected not result");
 "#,
     )
     .unwrap();
@@ -250,7 +269,8 @@ if (outcome.ok && outcome.value !== 42n) throw new Error("unexpected calculator 
         .unwrap();
     assert!(
         checked.status.success(),
-        "generated Project TypeScript consumer failed: {}",
+        "generated Project TypeScript consumer failed:\nstdout: {}\nstderr: {}",
+        String::from_utf8_lossy(&checked.stdout),
         String::from_utf8_lossy(&checked.stderr)
     );
 }
@@ -263,9 +283,13 @@ import { readFile } from "node:fs/promises";
 import { instantiateBytes } from "./semaprax.bindings.js";
 const runtime = await instantiateBytes(await readFile("./app.wasm"));
 assert.deepEqual(runtime.call("calculator.add", 19n, 23n), {ok:true,value:42n});
+assert.deepEqual(runtime.call("calculator.subtract", 84n, 42n), {ok:true,value:42n});
+assert.deepEqual(runtime.call("calculator.multiply", 6n, 7n), {ok:true,value:42n});
 assert.deepEqual(runtime.call("calculator.divide", 84n, 2n), {ok:true,value:42n});
 assert.deepEqual(runtime.call("calculator.is-negative", -1n), {ok:true,value:true});
 assert.deepEqual(runtime.call("calculator.not", true), {ok:true,value:false});
+assert.deepEqual(runtime.call("calculator.add", (1n << 63n) - 1n, 1n), {ok:false,status:{schema:"semaprax.status.v1",domain_id:"semaprax.arithmetic.v1",code:1}});
+assert.deepEqual(runtime.call("calculator.divide", 1n, 0n), {ok:false,status:{schema:"semaprax.status.v1",domain_id:"semaprax.contract.v1",code:1}});
 "#,
     )
     .unwrap();
@@ -352,6 +376,7 @@ pub struct RustSdkFacts {
     pub workspace_revision: String,
     pub subject_digest: String,
     pub source_revisions: Vec<String>,
+    pub manifest_exports: Vec<Value>,
 }
 
 pub fn native_rust_sdk_required() -> bool {
@@ -435,6 +460,10 @@ pub fn run_project_rust_sdk(fixture: &ProjectFixture, label: &str) -> RustSdkFac
         .iter()
         .map(|source| source["source_revision"].as_str().unwrap().to_owned())
         .collect();
+    let manifest_exports = manifest["project_subject"]["exports"]
+        .as_array()
+        .expect("Project Rust SDK manifest must carry exact export inventory")
+        .clone();
     let descriptor: Value =
         serde_json::from_slice(&std::fs::read(generated.join("native/descriptor.json")).unwrap())
             .unwrap();
@@ -449,6 +478,7 @@ pub fn run_project_rust_sdk(fixture: &ProjectFixture, label: &str) -> RustSdkFac
         workspace_revision: fields[4].to_owned(),
         subject_digest: fields[5].to_owned(),
         source_revisions,
+        manifest_exports,
     }
 }
 

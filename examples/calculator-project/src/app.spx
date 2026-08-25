@@ -1,9 +1,11 @@
 module calculator.app;
 use function @id("calculator.add") from calculator.core as add;
 use function @id("calculator.divide") from calculator.core as divide;
+use function @id("calculator.multiply") from calculator.core as multiply;
+use function @id("calculator.subtract") from calculator.core as subtract;
 
 @id("calculator.app.main")
 fn main() -> i64
 {
-    add(40, divide(4, 2))
+    add(multiply(6, 7), subtract(divide(4, 2), 2))
 }

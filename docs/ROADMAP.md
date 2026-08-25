@@ -87,8 +87,8 @@ bounded Project subject. The unpublished builder accepts the authenticated
 linked entry HIR and exact manifest export origins directly, emits the existing
 nine-file dependency-free Rust package, and binds canonical manifest,
 Project/workspace/graph, and complete source facts in distinct Project
-subject/descriptor/bundle/outer schemas. The calculator evidence runs Web/Node
-and Rust consumers before and after an opt-in daemon display rename and proves
+subject/descriptor/bundle/outer schemas. The six-operation calculator evidence
+runs Web/Node and Rust consumers before and after an opt-in daemon display rename and proves
 stable-ID behavior across changed revisions without asserting whole-package
 byte equality. Exact-head Ubuntu/macOS/Windows promotion remains pending, and
 this adds no root CLI, registry, dependency, general Project SDK, import,
@@ -105,14 +105,17 @@ filesystem, process, native, Rust, tool, or environment authority. General
 change/build, hosted promotion, and persistent indexing remain open, so totals
 remain unchanged.
 
-One unified local product-acceptance runner now composes calculator Project
-entry/test interpreter and native O0/O2 execution, the Core-Wasm test closure,
+One unified product-acceptance runner now composes all six calculator exports,
+Project entry/test interpreter, native O0/O2, and Core-Wasm execution,
 direct/inline Web consumers, the complete v4 change workflow, and stable-ID
-rename checks. Explicit switches additionally require pinned TypeScript 5.8.3
-declaration consumption and rebuild and execute the Project Rust consumer
-before and after the rename. This closes the local evidence-fragmentation gap
-but not hosted promotion; new language breadth follows only after the mandatory
-matrix carries both optional paths successfully.
+rename checks. It compares semantic Web ABI and exact Rust export facts across
+the revision-changing rename. Explicit switches additionally require pinned
+TypeScript 5.8.3 declaration consumption and rebuild and execute the Project
+Rust consumer before and after the rename. A focused CI lane requires both
+paths on Ubuntu and macOS; Windows is diagnostic-only until its SDK publication
+boundary is promotable. This closes the local evidence-fragmentation gap but
+not full hosted promotion; new language breadth follows only after the
+mandatory matrix carries both optional paths successfully.
 
 ## Useful Text Consumer v1 and Project Manifest v2
 

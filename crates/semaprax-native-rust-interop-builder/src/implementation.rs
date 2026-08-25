@@ -1991,11 +1991,14 @@ fn drain_disposal_frames(
                 | ResolvedExprKind::Char(_)
                 | ResolvedExprKind::Uint8(_)
                 | ResolvedExprKind::Usize(_)
+                | ResolvedExprKind::ArrayU8(_)
+                | ResolvedExprKind::RepeatArrayU8 { .. }
                 | ResolvedExprKind::Float32(_)
                 | ResolvedExprKind::Float64(_)
                 | ResolvedExprKind::Bool(_)
                 | ResolvedExprKind::String(_)
-                | ResolvedExprKind::Place(_) => {}
+                | ResolvedExprKind::Place(_)
+                | ResolvedExprKind::BorrowPlace { .. } => {}
                 ResolvedExprKind::Call {
                     type_arguments,
                     args,
@@ -3580,11 +3583,14 @@ fn resolved_call_child(expression: &ResolvedExpr, index: usize) -> Option<&Resol
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Usize(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_) => None,
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => None,
     }
 }
 
@@ -4217,10 +4223,17 @@ fn type_identity_metrics(
                     ResolvedType::Char => Some(leaf("char".len())),
                     ResolvedType::U8 => Some(leaf("u8".len())),
                     ResolvedType::Usize => Some(leaf("usize".len())),
+                    ResolvedType::ArrayU8(length) => Some(leaf(
+                        "array:u8:"
+                            .len()
+                            .checked_add(decimal_bytes(*length as usize))
+                            .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
+                    )),
                     ResolvedType::F32 => Some(leaf("f32".len())),
                     ResolvedType::F64 => Some(leaf("f64".len())),
                     ResolvedType::Bool => Some(leaf("bool".len())),
                     ResolvedType::String => Some(leaf("string".len())),
+                    ResolvedType::Bytes => Some(leaf("bytes".len())),
                     ResolvedType::Str => Some(leaf("str".len())),
                     ResolvedType::SliceU8 => Some(leaf("slice-u8".len())),
                     ResolvedType::TypeParameter { owner, index } => {
@@ -4359,6 +4372,7 @@ fn fingerprint_type_identity(
                 | ResolvedType::F64
                 | ResolvedType::Bool
                 | ResolvedType::String
+                | ResolvedType::Bytes
                 | ResolvedType::Str
                 | ResolvedType::SliceU8 => {
                     let text = match ty {
@@ -4372,12 +4386,23 @@ fn fingerprint_type_identity(
                         ResolvedType::F64 => "f64",
                         ResolvedType::Bool => "bool",
                         ResolvedType::String => "string",
+                        ResolvedType::Bytes => "bytes",
                         ResolvedType::Str => "str",
                         ResolvedType::SliceU8 => "slice-u8",
                         _ => unreachable!(),
                     };
                     let mut key = String::with_capacity(text.len());
                     key.push_str(text);
+                    keys.push(key);
+                }
+                ResolvedType::ArrayU8(length) => {
+                    let key_bytes = "array:u8:"
+                        .len()
+                        .checked_add(decimal_bytes(*length as usize))
+                        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                    let mut key = String::with_capacity(key_bytes);
+                    write!(key, "array:u8:{length}")
+                        .map_err(|_| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                     keys.push(key);
                 }
                 ResolvedType::TypeParameter { owner, index } => {
@@ -4582,11 +4607,14 @@ fn fingerprint_expression_types_scratch(
                     | ResolvedExprKind::Char(_)
                     | ResolvedExprKind::Uint8(_)
                     | ResolvedExprKind::Usize(_)
+                    | ResolvedExprKind::ArrayU8(_)
+                    | ResolvedExprKind::RepeatArrayU8 { .. }
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_)
                     | ResolvedExprKind::String(_)
-                    | ResolvedExprKind::Place(_) => {}
+                    | ResolvedExprKind::Place(_)
+                    | ResolvedExprKind::BorrowPlace { .. } => {}
                     ResolvedExprKind::Call {
                         type_arguments,
                         args,
@@ -5172,9 +5200,12 @@ fn hash_expr(
                     | ResolvedExprKind::Char(_)
                     | ResolvedExprKind::Uint8(_)
                     | ResolvedExprKind::Usize(_)
+                    | ResolvedExprKind::ArrayU8(_)
+                    | ResolvedExprKind::RepeatArrayU8 { .. }
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
-                    | ResolvedExprKind::String(_) => {
+                    | ResolvedExprKind::String(_)
+                    | ResolvedExprKind::BorrowPlace { .. } => {
                         // Non-i64 scalar signatures are outside the scalar
                         // native boundary; admission rejects them first.
                         return Err(b107("scalar value signature required"));
@@ -6578,6 +6609,9 @@ fn validate_selected_scalar_closure(functions: &[&ResolvedFunction]) -> Result<(
                 pending.push(else_branch);
             }
             ResolvedExprKind::ConstructRecord { .. }
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
+            | ResolvedExprKind::BorrowPlace { .. }
             | ResolvedExprKind::Call { .. }
             | ResolvedExprKind::ConstructVariant { .. }
             | ResolvedExprKind::Match { .. }

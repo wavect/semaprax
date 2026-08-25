@@ -248,11 +248,14 @@ fn reported_binding_ids_equal_the_resolved_hir_inventory() {
             | hir::ResolvedExprKind::Char(_)
             | hir::ResolvedExprKind::Uint8(_)
             | hir::ResolvedExprKind::Usize(_)
+            | hir::ResolvedExprKind::ArrayU8(_)
+            | hir::ResolvedExprKind::RepeatArrayU8 { .. }
             | hir::ResolvedExprKind::Float32(_)
             | hir::ResolvedExprKind::Float64(_)
             | hir::ResolvedExprKind::Bool(_)
             | hir::ResolvedExprKind::String(_)
-            | hir::ResolvedExprKind::Place(_) => {}
+            | hir::ResolvedExprKind::Place(_)
+            | hir::ResolvedExprKind::BorrowPlace { .. } => {}
         }
     }
 

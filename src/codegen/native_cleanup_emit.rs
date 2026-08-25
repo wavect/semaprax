@@ -49,6 +49,8 @@ pub(crate) struct NativeCleanupBindings {
     pub(crate) scalar_results: BTreeMap<ExpressionId, String>,
     pub(crate) result_out: Option<String>,
     pub(crate) semantic_events: Option<SemanticEventDictionary>,
+    /// Planner-produced boolean observations for exact decision-chain edges.
+    pub(crate) decision_edges: BTreeMap<crate::cleanup_plan::EdgeId, String>,
 }
 
 /// Emit one deterministic function-body fragment from an already-classified
@@ -134,6 +136,11 @@ pub(crate) fn emit_with_block_prologues(
                 &action.lifecycle_id,
                 action.guard_flag,
             )?;
+            if action.lifecycle_id.as_str() == crate::cleanup::BYTES_DROP_LIFECYCLE_ID {
+                let value = storage_binding(bindings, &action.source.storage)?;
+                writeln!(output, "    spx_bytes_drop(&{value});")
+                    .expect("writing to a string cannot fail");
+            }
             emit_finalize_trace(
                 &mut output,
                 index,
@@ -561,7 +568,7 @@ fn emit_transition(
     match transition {
         CleanupTransition::Initialize { at, .. } => {
             return Err(cleanup_error(format!(
-                "initialize transition `{at}` has no physical payload source in the first native cleanup slice"
+                "initialize transition `{at}` has no physical payload source in the cleanup scaffold"
             )));
         }
         CleanupTransition::Transfer {
@@ -585,8 +592,19 @@ fn emit_transition(
                 "if (!{source_flag} || {destination_flag}) spx_runtime_invariant_failure(\"cleanup transfer liveness\");"
             )
             .expect("writing to a string cannot fail");
-            writeln!(output, "{destination_value} = {source_value};")
+            let source_slot = index.slot(&source.storage).ok_or_else(|| {
+                cleanup_error(format!("transfer `{at}` has no classified source slot"))
+            })?;
+            if matches!(source_slot.slot.ty, crate::hir::ResolvedType::Bytes) {
+                writeln!(
+                    output,
+                    "{destination_value} = spx_bytes_move(&{source_value});"
+                )
                 .expect("writing to a string cannot fail");
+            } else {
+                writeln!(output, "{destination_value} = {source_value};")
+                    .expect("writing to a string cannot fail");
+            }
             writeln!(output, "{source_flag} = false;").expect("writing to a string cannot fail");
             writeln!(output, "{destination_flag} = true;")
                 .expect("writing to a string cannot fail");
@@ -594,7 +612,7 @@ fn emit_transition(
         }
         CleanupTransition::CallCommit { call, .. } => {
             return Err(cleanup_error(format!(
-                "call-commit transition `{call}` reached the single-frame cleanup scaffold"
+                "call-commit transition `{call}` reached the cleanup scaffold"
             )));
         }
         CleanupTransition::SelectFailure { source } => {
@@ -665,7 +683,7 @@ fn emit_terminator(
                         edge.id.0, owner.0
                     )));
                 }
-                let condition = edge_condition(bindings, &edge.condition)?;
+                let condition = edge_condition(bindings, edge.id, &edge.condition)?;
                 let keyword = if position == 0 { "if" } else { "else if" };
                 writeln!(
                     output,
@@ -738,8 +756,13 @@ fn emit_continuation(
                     let flag = flag_symbol(leaf.flag);
                     let value = storage_binding(bindings, &storage.storage)?;
                     emit_assert_only_leaf_live(output, index, leaf.flag);
-                    writeln!(output, "*{result_out} = {value};")
-                        .expect("writing to a string cannot fail");
+                    if leaf.lifecycle_id.as_str() == crate::cleanup::BYTES_DROP_LIFECYCLE_ID {
+                        writeln!(output, "*{result_out} = spx_bytes_move(&{value});")
+                            .expect("writing to a string cannot fail");
+                    } else {
+                        writeln!(output, "*{result_out} = {value};")
+                            .expect("writing to a string cannot fail");
+                    }
                     writeln!(output, "{flag} = false;").expect("writing to a string cannot fail");
                 }
             }
@@ -889,6 +912,7 @@ fn emit_assert_only_leaf_live(
 
 fn edge_condition(
     bindings: &NativeCleanupBindings,
+    edge: crate::cleanup_plan::EdgeId,
     condition: &EdgeCondition,
 ) -> Result<String, Diagnostic> {
     match condition {
@@ -916,9 +940,9 @@ fn edge_condition(
             status_binding(bindings, source)?
         )),
         EdgeCondition::VariantCase { .. } | EdgeCondition::ArmSelected { .. } => {
-            Err(cleanup_error(
-                "decision-chain cleanup edges are outside the native owned-resource slice",
-            ))
+            bindings.decision_edges.get(&edge).cloned().ok_or_else(|| {
+                cleanup_error("decision-chain edge has no exact observation binding")
+            })
         }
     }
 }
@@ -963,11 +987,7 @@ fn validate_bindings(
             EdgeCondition::StatusZero(source) | EdgeCondition::StatusNonzero(source) => {
                 expected_statuses.insert(source.clone());
             }
-            EdgeCondition::VariantCase { .. } | EdgeCondition::ArmSelected { .. } => {
-                return Err(cleanup_error(
-                    "decision-chain cleanup edges are outside the native owned-resource slice",
-                ));
-            }
+            EdgeCondition::VariantCase { .. } | EdgeCondition::ArmSelected { .. } => {}
             EdgeCondition::Always => {}
         }
     }
@@ -979,12 +999,9 @@ fn validate_bindings(
                 CleanupTransition::SelectFailure { source } => {
                     expected_statuses.insert(source.clone());
                 }
-                CleanupTransition::CallCommit { call, .. } => {
-                    return Err(cleanup_error(format!(
-                        "call-commit transition `{call}` reached binding preflight"
-                    )));
-                }
-                CleanupTransition::Initialize { .. } | CleanupTransition::Transfer { .. } => {}
+                CleanupTransition::CallCommit { .. }
+                | CleanupTransition::Initialize { .. }
+                | CleanupTransition::Transfer { .. } => {}
                 CleanupTransition::StageCopyResult { .. } => {
                     return Err(cleanup_error(
                         "staged Copy result reached owned-resource binding preflight",
@@ -1019,6 +1036,22 @@ fn validate_bindings(
         &expected_booleans,
         bindings.boolean_values.keys().cloned().collect(),
         "boolean",
+    )?;
+    let expected_decisions = index
+        .edges()
+        .iter()
+        .filter(|edge| {
+            matches!(
+                edge.condition,
+                EdgeCondition::VariantCase { .. } | EdgeCondition::ArmSelected { .. }
+            )
+        })
+        .map(|edge| edge.id)
+        .collect::<BTreeSet<_>>();
+    require_exact_keys(
+        &expected_decisions,
+        bindings.decision_edges.keys().copied().collect(),
+        "decision edge",
     )?;
     require_exact_keys(
         &expected_statuses,
@@ -1081,6 +1114,7 @@ fn all_binding_identifiers(bindings: &NativeCleanupBindings) -> impl Iterator<It
             .chain(bindings.status_tokens.values())
             .chain(bindings.scalar_results.values())
             .chain(bindings.result_out.iter())
+            .chain(bindings.decision_edges.values())
             .map(String::as_str),
     )
 }

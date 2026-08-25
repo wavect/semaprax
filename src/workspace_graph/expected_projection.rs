@@ -552,6 +552,8 @@ fn ast_expr_identity_slots(expression: &Expr) -> Result<usize, Vec<Diagnostic>> 
         | ExprKind::Float64(_)
         | ExprKind::Bool(_)
         | ExprKind::String(_)
+        | ExprKind::ArrayU8(_)
+        | ExprKind::RepeatArrayU8 { .. }
         | ExprKind::Var(_) => {}
     }
     Ok(slots)
@@ -718,6 +720,8 @@ fn ast_expr_cost(expression: &Expr, cost: &mut StructuralCost) -> Result<(), Vec
     cost.value(expression)?;
     match &expression.kind {
         ExprKind::Var(name) => cost.string(name)?,
+        ExprKind::ArrayU8(values) => cost.add(values.len())?,
+        ExprKind::RepeatArrayU8 { .. } => {}
         ExprKind::Call {
             name,
             type_arguments,
@@ -941,6 +945,10 @@ fn default_expr_expanded_cost(
         Type::SliceU8 => Err(vec![graph_error(
             "SPX-G173",
             "borrowed `Slice<u8>` has no synthesizable workspace default",
+        )]),
+        Type::ArrayU8(_) | Type::Bytes => Err(vec![graph_error(
+            "SPX-G173",
+            "internal byte-data types have no synthesizable workspace default",
         )]),
         Type::Named { name, arguments } if arguments.is_empty() => {
             let target_id = resolve_type_id(module, name, programs).ok_or_else(|| {
@@ -1354,6 +1362,12 @@ fn default_expr(
             return Err(vec![graph_error(
                 "SPX-G173",
                 "borrowed `Slice<u8>` has no synthesizable workspace default",
+            )]);
+        }
+        Type::ArrayU8(_) | Type::Bytes => {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "internal byte-data types have no synthesizable workspace default",
             )]);
         }
         Type::Named { name, arguments } if arguments.is_empty() => {
@@ -2170,6 +2184,8 @@ fn collect_expression_type_edges(
         | ExprKind::Float64(_)
         | ExprKind::Bool(_)
         | ExprKind::String(_)
+        | ExprKind::ArrayU8(_)
+        | ExprKind::RepeatArrayU8 { .. }
         | ExprKind::Var(_) => {}
     }
     Ok(())

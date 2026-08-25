@@ -98,6 +98,7 @@ const REASON_GENERIC_CALL: &str = "generic_call";
 const REASON_UNSUPPORTED_CALLEE: &str = "unsupported_callee";
 const REASON_CLASS_DECLARATION: &str = "class_declaration";
 const REASON_METHOD_CALL: &str = "method_call";
+const REASON_BYTE_DATA_EXPRESSION: &str = "byte_data_expression";
 
 const TRUNCATION_BYTE_BUDGET: &str = "byte_budget";
 
@@ -402,6 +403,9 @@ impl ScanState<'_> {
             | ExprKind::Var(_) => None,
             ExprKind::Float32(_) | ExprKind::Float64(_) => Some(REASON_FLOAT_LITERAL),
             ExprKind::Char(_) => Some(REASON_CHAR_LITERAL),
+            ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. } => {
+                Some(REASON_BYTE_DATA_EXPRESSION)
+            }
             ExprKind::Call {
                 name,
                 type_arguments,

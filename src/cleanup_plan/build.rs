@@ -341,10 +341,11 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
         | ResolvedType::Char
         | ResolvedType::U8
         | ResolvedType::Usize
+        | ResolvedType::ArrayU8(_)
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => 0,
-        ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 => 0,
+        ResolvedType::String | ResolvedType::Bytes | ResolvedType::Str | ResolvedType::SliceU8 => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,
@@ -811,6 +812,30 @@ impl<'a> PlanBuilder<'a> {
     ) -> Result<FieldLivenessShape, Diagnostic> {
         if !self.needs_drop(ty)? {
             return Ok(FieldLivenessShape::NoDrop);
+        }
+        if matches!(ty, ResolvedType::Bytes) {
+            if !projections.is_empty() {
+                return Err(plan_error(
+                    "compiler-owned Bytes cleanup leaf is not direct",
+                ));
+            }
+            let flag = LivenessFlagId(self.next_flag);
+            self.next_flag = self
+                .next_flag
+                .checked_add(1)
+                .ok_or_else(|| plan_error("too many cleanup liveness flags"))?;
+            let lifecycle = DeclarationId::new(crate::cleanup::BYTES_DROP_LIFECYCLE_ID);
+            self.leaves.insert(
+                flag,
+                LeafMetadata {
+                    place: CleanupPlace {
+                        storage: storage.clone(),
+                        projections: projections.clone(),
+                    },
+                    lifecycle: lifecycle.clone(),
+                },
+            );
+            return Ok(FieldLivenessShape::Leaf { flag, lifecycle });
         }
         let ResolvedType::Nominal {
             declaration,
@@ -2228,10 +2253,17 @@ impl<'a> PlanBuilder<'a> {
                     | ResolvedExprKind::Char(_)
                     | ResolvedExprKind::Uint8(_)
                     | ResolvedExprKind::Usize(_)
+                    | ResolvedExprKind::ArrayU8(_)
+                    | ResolvedExprKind::RepeatArrayU8 { .. }
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_)
                     | ResolvedExprKind::String(_) => results.push(EvalResult {
+                        block,
+                        state,
+                        owned_source: None,
+                    }),
+                    ResolvedExprKind::BorrowPlace { .. } => results.push(EvalResult {
                         block,
                         state,
                         owned_source: None,
@@ -2886,6 +2918,23 @@ impl<'a> PlanBuilder<'a> {
                                 arguments: commits,
                             },
                         );
+                        if crate::byte_ops::by_id(callee.as_str()).is_some() {
+                            let destination = self.expression_slot(expression, active_region)?;
+                            if let Some(destination) = destination.clone() {
+                                self.initialize(
+                                    flow.block,
+                                    expression.id.clone(),
+                                    destination,
+                                    &mut state,
+                                )?;
+                            }
+                            results.push(EvalResult {
+                                block: flow.block,
+                                state,
+                                owned_source: destination,
+                            });
+                            continue;
+                        }
                         let source = StatusSourceId {
                             expression: expression.id.clone(),
                             lane: StatusLane::OperationFailure,
@@ -3346,10 +3395,12 @@ impl<'a> PlanBuilder<'a> {
                         | ResolvedType::Char
                         | ResolvedType::U8
                         | ResolvedType::Usize
+                        | ResolvedType::ArrayU8(_)
                         | ResolvedType::F32
                         | ResolvedType::F64
                         | ResolvedType::Bool
                         | ResolvedType::String
+                        | ResolvedType::Bytes
                         | ResolvedType::Str
                         | ResolvedType::SliceU8
                         | ResolvedType::TypeParameter { .. } => false,
@@ -3931,6 +3982,8 @@ impl<'a> PlanBuilder<'a> {
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Usize(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -3953,6 +4006,11 @@ impl<'a> PlanBuilder<'a> {
                     owned_source,
                 })
             }
+            ResolvedExprKind::BorrowPlace { .. } => Ok(EvalResult {
+                block,
+                state,
+                owned_source: None,
+            }),
             ResolvedExprKind::Call {
                 callee,
                 instance,
@@ -4215,6 +4273,23 @@ impl<'a> PlanBuilder<'a> {
                 arguments: commits,
             },
         );
+
+        if crate::byte_ops::by_id(callee.as_str()).is_some() {
+            let destination = self.expression_slot(expression, region)?;
+            if let Some(destination) = destination.clone() {
+                self.initialize(
+                    current,
+                    expression.id.clone(),
+                    destination,
+                    &mut current_state,
+                )?;
+            }
+            return Ok(EvalResult {
+                block: current,
+                state: current_state,
+                owned_source: destination,
+            });
+        }
 
         let source = StatusSourceId {
             expression: expression.id.clone(),
@@ -5143,10 +5218,12 @@ impl<'a> PlanBuilder<'a> {
             | ResolvedType::Char
             | ResolvedType::U8
             | ResolvedType::Usize
+            | ResolvedType::ArrayU8(_)
             | ResolvedType::F32
             | ResolvedType::F64
             | ResolvedType::Bool
             | ResolvedType::String
+            | ResolvedType::Bytes
             | ResolvedType::Str
             | ResolvedType::SliceU8
             | ResolvedType::TypeParameter { .. } => false,

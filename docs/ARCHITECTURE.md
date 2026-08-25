@@ -33,10 +33,13 @@ links here instead of duplicating it.
 - `src/trace_path_certificate.rs`: canonical compiler-owned cleanup trace trie-DFA and outcome certificate.
 - `src/native_settlement.rs`: hidden target-neutral callable-v3 settlement model; no loader, host, provider, or public backend wiring.
 - `src/graph_cleanup.rs`: deterministic tagged cleanup projection inside the
-  program-level Graph v10/v11/v12/v13/v14 lattice; bounded generic function
-  declarations select v14 above authenticated explicit Copy-record patterns at
-  v13, while CleanupPlan v2 remains canonical unless authenticated Option
-  propagation requires v3.
+  program-level Graph v10-v17 lattice; byte-data facts select v17 above
+  refutable match v16, bounded while v15, generic-function v14, explicit
+  Copy-record-pattern v13, and the lower schemas. CleanupPlan v2 remains
+  canonical unless authenticated Option propagation requires v3.
+- `src/byte_ops.rs`, `src/byte_data_capacity.rs`: closed Useful Data operation
+  identities plus the target-neutral inline-array/call-path/allocation
+  authority independently projected by source and hostile-HIR validation.
 - `src/graph.rs`, `patch.rs`: agent representation and atomic single-file
   transactions.
 - `src/workspace.rs`: bounded managed immutable-generation workspace
@@ -83,7 +86,10 @@ links here instead of duplicating it.
   and structurally validated Wasm-core projection evidence.
 - `src/patch_evidence.rs`: canonical Semantic Patch Evidence v1/v2 generation,
   independent verification receipts, and evidence-gated A0 application.
-- `src/codegen.rs`, `src/codegen/native_callable_*`, `wasm.rs`: native C11/Clang, private callable-v2, and browser/Wasm lanes.
+- `src/codegen.rs`, `src/codegen/native_byte_data.rs`,
+  `src/codegen/native_bytes.rs`, `src/codegen/native_callable_*`, `wasm.rs`:
+  native C11/Clang, plan-driven internal byte ownership, private callable-v2,
+  and browser/Wasm lanes.
 - `src/wit_component.rs`: default-off deterministic WIT/schema/JavaScript boundary evidence; not a Component Model runtime.
 - `crates/semaprax-native-loader`, `crates/semaprax-native-host`: unpublished unsafe loader quarantine and connected callable authority/ledger host.
 - `platform-tests/`: private installed-app/native-process packaging and runtime gates; claims count only after their hosted jobs are green.
@@ -1462,15 +1468,20 @@ The next Useful Data expansion is normatively bounded by
 [Portable Indexed Byte Data v1](PORTABLE-INDEXED-BYTE-DATA-V1.md). It fixes a
 target-independent checked `usize`, inline byte arrays, unique owned `Bytes`,
 provenance-carrying non-escaping `Slice<u8>`, total `Option<u8>` indexing, and
-closed capacity/cleanup/Graph-v17 rules. The first internal tranche now lowers
-semantic-u64 `usize` and external non-escaping `Slice<u8>` parameters with
-symbolic parameter-root provenance, immutable aliases, cumulative 65,536-byte
-host admission, `byte_len`, and total guarded `byte_get` through interpreter,
-native C, and the internal Wasm aggregate lane. Slice forwarding preserves the
-caller root and does not recharge it; Graph v17 serializes the complete
-parameter/alias provenance table. Arrays, owned `Bytes`, view/copy operations,
-and public Project/npm useful-data adapters remain unimplemented, and no
-hosted or complete-profile claim is made.
+closed capacity/cleanup/Graph-v17 rules. The second local internal tranche now
+lowers semantic-u64 `usize`, fixed arrays, uniquely owned `Bytes`, external and
+derived `Slice<u8>` roots, and all six closed byte operations through the
+interpreter, native C, and internal Core-Wasm/Node lanes. Source verification,
+HIR resolution, and hostile-HIR validation independently reconstruct frame,
+active-call-path, allocation, lexical-borrow, and provenance facts. `Bytes`
+uses one compiler-owned `core.bytes.drop` leaf and canonical plan-driven move,
+call-argument, failure, guarded-finalization, and result-publication state.
+Native erases physical zero arrays; Wasm uses fixed memory plus exact
+generation-checked owned tokens. Graph v17 serializes provenance and capacity
+summaries while lower schemas remain selected for legacy programs. Public
+Project/npm useful-data adapters, the typed-array facade, complete hostile
+public-boundary evidence, and hosted promotion remain unimplemented, so no
+complete-profile claim is made.
 
 ### Project Agent Transport v2
 

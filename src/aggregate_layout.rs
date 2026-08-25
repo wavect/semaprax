@@ -226,8 +226,17 @@ fn layout_type(
             let (size, align) = scalar_size_align(target, ty)?;
             scalar_layout(target, ty, size, align)
         }
+        ResolvedType::ArrayU8(length) => Ok(ValueLayout {
+            size: *length,
+            align: 1,
+            digest: digest_value(target, ty, *length, 1, &[]),
+            kind: ValueLayoutKind::Scalar,
+        }),
         ResolvedType::String => Err(layout_error(
             "owned string values have no aggregate value layout in v1",
+        )),
+        ResolvedType::Bytes => Err(layout_error(
+            "owned byte buffers have no aggregate value layout in v1",
         )),
         ResolvedType::Str => Err(layout_error(
             "borrowed string views have no aggregate value layout",
@@ -550,11 +559,14 @@ fn collect_expr_record_types(
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Usize(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_) => {}
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => {}
     }
     Ok(())
 }
@@ -659,6 +671,14 @@ record Outer {
 @id("empty.type")
 record Empty {}
 
+@id("array-holder.type")
+record ArrayHolder {
+    @id("array-holder.bytes")
+    bytes: [u8; 7],
+    @id("array-holder.zero")
+    zero: [u8; 0],
+}
+
 @id("app.main")
 fn main() -> i64 { 0 }
 "#;
@@ -733,6 +753,28 @@ fn main() -> i64 { 0 }
         let mut zero_sized = native_empty;
         zero_sized.size = 0;
         assert!(zero_sized.validate(&program).is_err());
+    }
+
+    #[test]
+    fn fixed_byte_arrays_have_target_independent_size_n_alignment_one() {
+        let program = program();
+        let record = DeclarationId::new("array-holder.type");
+        for target in [AggregateTarget::Native64, AggregateTarget::Wasm32] {
+            let layout = AggregateLayout::for_record(&program, target, &record).unwrap();
+            assert_eq!((layout.size, layout.align), (7, 1));
+            assert_eq!(
+                layout
+                    .fields
+                    .iter()
+                    .map(|field| (field.field.as_str(), field.offset, field.size, field.align))
+                    .collect::<Vec<_>>(),
+                vec![
+                    ("array-holder.bytes", 0, 7, 1),
+                    ("array-holder.zero", 7, 0, 1),
+                ]
+            );
+            layout.validate(&program).unwrap();
+        }
     }
 
     #[test]

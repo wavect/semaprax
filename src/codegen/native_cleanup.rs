@@ -219,10 +219,14 @@ pub(crate) fn classify<'a>(
     let mut leaves = Vec::with_capacity(plan.slots.len());
     let mut slot_positions = BTreeMap::new();
     let mut leaf_positions = BTreeMap::new();
+    let bytes_lifecycle = DeclarationId::new(crate::cleanup::BYTES_DROP_LIFECYCLE_ID);
 
     for slot in &plan.slots {
-        let expected_lifecycle =
-            direct_resource_lifecycle(program, function, &slot.ty, "cleanup slot")?;
+        let expected_lifecycle = if matches!(slot.ty, ResolvedType::Bytes) {
+            &bytes_lifecycle
+        } else {
+            direct_resource_lifecycle(program, function, &slot.ty, "cleanup slot")?
+        };
         let FieldLivenessShape::Leaf { flag, lifecycle } = &slot.field_liveness_shape else {
             let detail = match &slot.field_liveness_shape {
                 FieldLivenessShape::NoDrop => "has a no-drop cleanup shape",
@@ -244,7 +248,16 @@ pub(crate) fn classify<'a>(
                 ),
             ));
         }
-        validate_trivial_lifecycle(program, function, lifecycle)?;
+        if matches!(slot.ty, ResolvedType::Bytes) {
+            if lifecycle.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID {
+                return Err(unsupported(
+                    function,
+                    "compiler-owned Bytes slot has a noncanonical lifecycle",
+                ));
+            }
+        } else {
+            validate_trivial_lifecycle(program, function, lifecycle)?;
+        }
         let place = CleanupPlace {
             storage: slot.storage.clone(),
             projections: Vec::new(),
@@ -553,11 +566,14 @@ fn validate_supported_type(
         | ResolvedType::Char
         | ResolvedType::U8
         | ResolvedType::Usize
+        | ResolvedType::ArrayU8(_)
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => Ok(()),
         // Owned strings are ordinary values with backend-inline drops.
-        ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 => Ok(()),
+        ResolvedType::String | ResolvedType::Bytes | ResolvedType::Str | ResolvedType::SliceU8 => {
+            Ok(())
+        }
         ResolvedType::TypeParameter { .. } => Err(unsupported(
             function,
             format!(
@@ -698,10 +714,23 @@ fn validate_expression(
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Usize(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_) => {}
+        ResolvedExprKind::BorrowPlace { place, .. } => {
+            if !place.projections.is_empty() {
+                return Err(unsupported(
+                    function,
+                    format!(
+                        "uses projected borrowed place expression `{}`",
+                        expression.id
+                    ),
+                ));
+            }
+        }
         ResolvedExprKind::Place(place) => {
             if !place.projections.is_empty() {
                 return Err(unsupported(
@@ -710,14 +739,10 @@ fn validate_expression(
                 ));
             }
         }
-        ResolvedExprKind::Call { callee, .. } => {
-            return Err(unsupported(
-                function,
-                format!(
-                    "does not support call execution `{}` to `{callee}` while native cleanup conformance is single-frame",
-                    expression.id
-                ),
-            ));
+        ResolvedExprKind::Call { args, .. } => {
+            for argument in args {
+                validate_expression(program, function, argument)?;
+            }
         }
         ResolvedExprKind::NativeRustImportCall(call) => {
             return Err(unsupported(
@@ -868,12 +893,19 @@ fn validate_transition(
     indexed_slots: &[NativeCleanupSlot<'_>],
 ) -> Result<(), Diagnostic> {
     match transition {
-        CleanupTransition::Initialize { at, .. } => Err(unsupported(
-            function,
-            format!(
-                "does not support initialize transition `{at}` without a physical payload source"
-            ),
-        )),
+        CleanupTransition::Initialize { at, destination } => {
+            validate_place(function, destination, slots, "initialize destination")?;
+            let destination_slot = &indexed_slots[*slots
+                .get(&destination.storage)
+                .expect("validated initialize destination is indexed")];
+            if !matches!(destination_slot.slot.ty, ResolvedType::Bytes) {
+                return Err(unsupported(
+                    function,
+                    format!("initialize transition `{at}` is not compiler-owned Bytes"),
+                ));
+            }
+            Ok(())
+        }
         CleanupTransition::Transfer {
             at,
             source,
@@ -899,12 +931,22 @@ fn validate_transition(
             }
             Ok(())
         }
-        CleanupTransition::CallCommit { call, .. } => Err(unsupported(
-            function,
-            format!(
-                "does not support call-commit transition `{call}` while native cleanup conformance is single-frame"
-            ),
-        )),
+        CleanupTransition::CallCommit { call, arguments } => {
+            for argument in arguments {
+                validate_place(function, &argument.source, slots, "call-commit source")?;
+                if !matches!(
+                    argument.source.storage,
+                    StorageId::CallArgument { call: ref owner, parameter_index, .. }
+                        if owner == call && parameter_index == argument.parameter_index
+                ) {
+                    return Err(unsupported(
+                        function,
+                        format!("call-commit transition `{call}` has a foreign argument epoch"),
+                    ));
+                }
+            }
+            Ok(())
+        }
         CleanupTransition::SelectFailure { .. } => Ok(()),
         CleanupTransition::StageCopyResult { .. } => Err(unsupported(
             function,

@@ -405,6 +405,16 @@ fn check_type(
             &method.name,
             "borrowed `Slice<u8>` is outside Protocol Projection v1".to_owned(),
         )),
+        Type::ArrayU8(length) => Err(signature_error(
+            &protocol.name,
+            &method.name,
+            format!("fixed byte array `[u8; {length}]` is outside Protocol Projection v1"),
+        )),
+        Type::Bytes => Err(signature_error(
+            &protocol.name,
+            &method.name,
+            "owned `Bytes` is outside Protocol Projection v1".to_owned(),
+        )),
         Type::Named { name, arguments } => {
             if !arguments.is_empty() {
                 return Err(signature_error(

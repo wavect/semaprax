@@ -212,8 +212,11 @@ fn program_uses_strings(program: &ResolvedProgram) -> bool {
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::String(_)
-            | ResolvedExprKind::Place(_) => {}
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::BorrowPlace { .. } => {}
         }
     }
     false
@@ -222,19 +225,30 @@ fn program_uses_strings(program: &ResolvedProgram) -> bool {
 fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
     let mut pending = Vec::new();
     for function in &program.functions {
-        if matches!(function.return_type, ResolvedType::SliceU8)
-            || function
-                .params
-                .iter()
-                .any(|param| matches!(param.ty, ResolvedType::SliceU8))
-        {
+        if matches!(
+            function.return_type,
+            ResolvedType::SliceU8 | ResolvedType::Bytes | ResolvedType::ArrayU8(_)
+        ) || function.params.iter().any(|param| {
+            matches!(
+                param.ty,
+                ResolvedType::SliceU8 | ResolvedType::Bytes | ResolvedType::ArrayU8(_)
+            )
+        }) {
             return true;
         }
         pending.push(&function.body);
         pending.extend(function.requires.iter().chain(&function.ensures));
     }
     while let Some(expression) = pending.pop() {
-        if matches!(expression.ty, ResolvedType::SliceU8) {
+        if matches!(
+            expression.ty,
+            ResolvedType::SliceU8 | ResolvedType::Bytes | ResolvedType::ArrayU8(_)
+        ) || matches!(
+            expression.kind,
+            ResolvedExprKind::ArrayU8(_)
+                | ResolvedExprKind::RepeatArrayU8 { .. }
+                | ResolvedExprKind::BorrowPlace { .. }
+        ) {
             return true;
         }
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
@@ -298,8 +312,11 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::String(_)
-            | ResolvedExprKind::Place(_) => {}
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::BorrowPlace { .. } => {}
         }
     }
     false
@@ -375,8 +392,11 @@ fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::String(_)
-            | ResolvedExprKind::Place(_) => {}
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::BorrowPlace { .. } => {}
         }
     }
     false
@@ -449,8 +469,11 @@ fn program_uses_string_ops_v2(program: &ResolvedProgram) -> bool {
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::String(_)
-            | ResolvedExprKind::Place(_) => {}
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::BorrowPlace { .. } => {}
         }
     }
     false
@@ -538,8 +561,11 @@ fn collect_string_data(program: &ResolvedProgram) -> StringData {
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::String(_)
-            | ResolvedExprKind::Place(_) => {}
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::BorrowPlace { .. } => {}
         }
     }
     data
@@ -3052,8 +3078,11 @@ fn collect_locals(
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_) => {}
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => {}
     }
     Ok(())
 }
@@ -3785,6 +3814,9 @@ fn emit_expr(
             ));
         }
         ResolvedExprKind::ConstructRecord { .. }
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::BorrowPlace { .. }
         | ResolvedExprKind::ConstructVariant { .. }
         | ResolvedExprKind::Try { .. }
         | ResolvedExprKind::TryOption { .. }
@@ -4215,8 +4247,11 @@ pub(crate) fn needs_i32_wide_scratch(expression: &ResolvedExpr) -> bool {
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::String(_)
-            | ResolvedExprKind::Place(_) => {}
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::BorrowPlace { .. } => {}
         }
     }
     false
@@ -4314,8 +4349,11 @@ fn contains_checked_arithmetic(expression: &ResolvedExpr, target: &ResolvedType)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_) => false,
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => false,
     }
 }
 
@@ -4334,7 +4372,13 @@ fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
         ResolvedType::F64 => Ok(F64),
         ResolvedType::Bool | ResolvedType::Nominal { .. } => Ok(I32),
         // Owned strings lower to an abstract host handle riding the i64 lane.
-        ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 => Ok(I64),
+        ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 | ResolvedType::Bytes => {
+            Ok(I64)
+        }
+        ResolvedType::ArrayU8(_) => Err(Diagnostic::io(
+            "SPX-W101",
+            "fixed byte arrays require the aggregate WebAssembly path",
+        )),
         ResolvedType::TypeParameter { .. } => Err(Diagnostic::io(
             "SPX-W109",
             format!(
@@ -4497,6 +4541,75 @@ function checked(value, operation) {
     throw new RangeError(`SEMAPRAX checked arithmetic failure: ${operation}`);
   }
   return value;
+}
+
+function createByteDataRuntime(options = {}) {
+  const entries = new Map();
+  const maxLiveEntries = boundedLimit(options.maxOwnedByteEntries, 16, "owned-byte-entry");
+  let nextToken = 1;
+  let instance = null;
+  const decode = carrier => {
+    if (typeof carrier !== "bigint") throw new TypeError("SEMAPRAX byte carrier is not i64");
+    const word = BigInt.asUintN(64, carrier);
+    const length = Number(word & 0xffffffffn);
+    const root = Number((word >> 32n) & 0xffffffffn);
+    if (length > 65536) throw new Error("SEMAPRAX byte carrier length invariant");
+    return { carrier: word, length, root, tagged: (root & 0x80000000) !== 0, token: root & 0x7fffffff };
+  };
+  const memory = () => {
+    const candidate = instance?.exports.__spx_byte_memory;
+    if (!(candidate instanceof WebAssembly.Memory) || candidate.buffer.byteLength !== 131072) {
+      throw new Error("SEMAPRAX fixed byte memory invariant");
+    }
+    return new Uint8Array(candidate.buffer);
+  };
+  const resolve = decoded => {
+    if (!decoded.tagged || decoded.token === 0) throw new Error("SEMAPRAX owned Bytes token invariant");
+    const entry = entries.get(decoded.token);
+    if (!(entry instanceof Uint8Array) || entry.byteLength !== decoded.length) {
+      throw new Error("SEMAPRAX stale or malformed owned Bytes carrier");
+    }
+    return entry;
+  };
+  const read = decoded => {
+    if (decoded.tagged) return resolve(decoded);
+    if (decoded.root > 131072 - decoded.length) throw new Error("SEMAPRAX fixed byte range invariant");
+    return memory().slice(decoded.root, decoded.root + decoded.length);
+  };
+  const allocate = bytes => {
+    if (entries.size >= maxLiveEntries) throw new Error("SEMAPRAX owned Bytes live entry limit exceeded");
+    if (nextToken > 0x7fffffff) throw new Error("SEMAPRAX owned Bytes token space exhausted");
+    const token = nextToken++;
+    const owned = new Uint8Array(bytes);
+    entries.set(token, owned);
+    const root = 0x80000000n | BigInt(token);
+    return BigInt.asIntN(64, (root << 32n) | BigInt(owned.byteLength));
+  };
+  const byteImports = Object.freeze({
+    spx_bytes_copy: carrier => allocate(read(decode(carrier))),
+    spx_bytes_get: (carrier, index) => {
+      const bytes = read(decode(carrier));
+      const unsigned = BigInt.asUintN(64, index);
+      return unsigned >= BigInt(bytes.byteLength) ? -1 : bytes[Number(unsigned)];
+    },
+    spx_bytes_drop: carrier => {
+      const decoded = decode(carrier);
+      resolve(decoded);
+      entries.delete(decoded.token);
+    },
+    spx_bytes_as_slice: carrier => {
+      const decoded = decode(carrier);
+      if (decoded.tagged) resolve(decoded); else read(decoded);
+      return BigInt.asIntN(64, decoded.carrier);
+    },
+  });
+  return Object.freeze({
+    imports: byteImports,
+    bind(wasmInstance) {
+      if (instance !== null) throw new Error("SEMAPRAX byte runtime already bound");
+      instance = wasmInstance;
+    },
+  });
 }
 
 export const imports = {
@@ -4857,12 +4970,17 @@ function createOwnedRuntime(options = {}) {
 
 export async function instantiateBytes(bytes, options = {}) {
   const authenticatedBytes = await authenticatedWasmBytes(bytes);
+  const byteRuntime = createByteDataRuntime(options);
   if (Object.keys(SPX_OWNED_EXPORTS).length === 0) {
-    return Object.freeze(await WebAssembly.instantiate(authenticatedBytes, imports));
+    const linkedImports = { env: { ...imports.env, ...byteRuntime.imports } };
+    const result = await WebAssembly.instantiate(authenticatedBytes, linkedImports);
+    byteRuntime.bind(result.instance);
+    return Object.freeze(result);
   }
   const runtime = createOwnedRuntime(options);
-  const linkedImports = { env: { ...imports.env, ...runtime.linkImports.env } };
+  const linkedImports = { env: { ...imports.env, ...byteRuntime.imports, ...runtime.linkImports.env } };
   const result = await WebAssembly.instantiate(authenticatedBytes, linkedImports);
+  byteRuntime.bind(result.instance);
   runtime.bind(result.instance);
   return Object.freeze({ ...result, owned: runtime.facade });
 }

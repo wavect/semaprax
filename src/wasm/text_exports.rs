@@ -416,6 +416,14 @@ fn validate_function(
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
             | ResolvedExprKind::Place(_) => {}
+            ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
+            | ResolvedExprKind::BorrowPlace { .. } => {
+                return Err(admission(format!(
+                    "Public Borrowed Text Export Profile v1 function `{}` reaches portable byte data",
+                    function.id
+                )));
+            }
             ResolvedExprKind::ConstructRecord { .. }
             | ResolvedExprKind::ConstructVariant { .. }
             | ResolvedExprKind::Match { .. }

@@ -295,11 +295,13 @@ pub fn build_trace_path_certificate(
                             | ResolvedType::Char
                             | ResolvedType::U8
                             | ResolvedType::Usize
+                            | ResolvedType::ArrayU8(_)
                             | ResolvedType::F32
                             | ResolvedType::F64
                             | ResolvedType::Bool
                             | ResolvedType::String
                             | ResolvedType::Str => TracePathOutcome::ScalarSuccess,
+                            ResolvedType::Bytes => TracePathOutcome::OwnedSuccess,
                             ResolvedType::SliceU8 => {
                                 return Err(certificate_error(
                                     "borrowed byte-slice result is outside callable v2",
@@ -803,7 +805,8 @@ mod tests {
                 | crate::conformance::TraceResult::F32(_)
                 | crate::conformance::TraceResult::F64(_)
                 | crate::conformance::TraceResult::Bool(_) => TracePathOutcome::ScalarSuccess,
-                crate::conformance::TraceResult::Owned { .. } => TracePathOutcome::OwnedSuccess,
+                crate::conformance::TraceResult::Bytes
+                | crate::conformance::TraceResult::Owned { .. } => TracePathOutcome::OwnedSuccess,
                 crate::conformance::TraceResult::Unit => panic!("unit is outside callable v2"),
             },
             TraceOutcome::Failure {

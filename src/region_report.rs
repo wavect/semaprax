@@ -418,6 +418,9 @@ fn collect_expr(
         ResolvedExprKind::Place(place) => {
             facts.uses.push((place.root.as_str().to_owned(), scope_end));
         }
+        ResolvedExprKind::BorrowPlace { place, .. } => {
+            facts.uses.push((place.root.as_str().to_owned(), scope_end));
+        }
         ResolvedExprKind::Call {
             callee,
             instance,
@@ -546,7 +549,9 @@ fn collect_expr(
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
-        | ResolvedExprKind::String(_) => {}
+        | ResolvedExprKind::String(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. } => {}
     }
 }
 

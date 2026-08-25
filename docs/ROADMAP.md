@@ -143,14 +143,15 @@ Its closed target-independent model defines checked `usize` as semantic `u64`,
 `[u8; N]`, unique `Bytes`, provenance-carrying non-escaping `Slice<u8>`, total
 `byte_get -> Option<u8>`, fixed allocation/input limits, and an additive Graph
 v17 trigger above the existing while-v15/refutable-match-v16 schemas. The
-first internal tranche now executes semantic-u64 `usize` and external
-non-escaping `Slice<u8>` parameters with symbolic forwarding provenance,
-`byte_len`, and total `byte_get -> Option<u8>` in the interpreter, native C,
-and internal Wasm aggregate lane. Local native O0/O2, Node boundary, Graph,
-provenance, cleanup-inertness, and diagnostic gates cover that bounded slice.
-Arrays, owned `Bytes`, conversions, allocation budgets, public Project/npm
-adapters, exact-head hosted evidence, and the rest of the complete profile
-remain on the roadmap.
+second local internal tranche now executes semantic-u64 `usize`, fixed arrays,
+owned `Bytes`, all view/copy operations, lexical borrowing, exact allocation
+and active-call-path budgets, canonical cleanup settlement, and Graph v17
+through the interpreter, native C O0/O2, and internal Core-Wasm/Node lanes.
+The next product work is Project Manifest v3 selection of `useful-data.v1`, the
+generated JS/TS `Uint8Array` facade, an installed multi-module npm acceptance
+project, the full hostile public-boundary matrix, and exact-head hosted
+promotion. Iteration, files/stdin/stdout, general collections, mutable views,
+and registry publication remain on the roadmap.
 
 ## 0.1 — Executable semantic seed
 

@@ -301,10 +301,11 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
         | ResolvedType::Char
         | ResolvedType::U8
         | ResolvedType::Usize
+        | ResolvedType::ArrayU8(_)
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => 0,
-        ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 => 0,
+        ResolvedType::String | ResolvedType::Bytes | ResolvedType::Str | ResolvedType::SliceU8 => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,
@@ -345,6 +346,10 @@ fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
     };
     match &expression.kind {
         ResolvedExprKind::Place(place) => bytes += resolved_place_owned_capacity(place),
+        ResolvedExprKind::BorrowPlace { operation, place } => {
+            bytes += operation.as_str().len() + resolved_place_owned_capacity(place);
+        }
+        ResolvedExprKind::ArrayU8(values) => bytes += values.capacity(),
         ResolvedExprKind::Unary { value: operand, .. } => bytes += child(operand),
         ResolvedExprKind::Upcast { source } => bytes += child(source),
         ResolvedExprKind::Project { base, field } => {
@@ -486,6 +491,7 @@ fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Usize(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -893,6 +899,9 @@ pub enum ByteSliceRootKind {
     /// A symbolic function-parameter root. Callers substitute the argument's
     /// existing root; only a concrete host entry turns it into external input.
     FunctionParameter,
+    OwnedBytes,
+    FixedArray,
+    BorrowedStr,
 }
 
 /// A symbolic extent deliberately independent of the compiler host's pointer
@@ -901,6 +910,7 @@ pub enum ByteSliceRootKind {
 pub enum ByteSliceExtent {
     Constant(u64),
     ParameterLength,
+    ValueLength,
 }
 
 /// Exact provenance for a byte view. In this first tranche every admitted
@@ -914,6 +924,9 @@ pub struct ByteSliceProvenance {
     pub root_length: ByteSliceExtent,
     pub offset: ByteSliceExtent,
     pub length: ByteSliceExtent,
+    /// The authenticated compiler-owned view expression, absent only for a
+    /// symbolic external parameter root.
+    pub producer: Option<ExpressionId>,
 }
 
 /// A deterministic, display-name-to-identity index.
@@ -1257,21 +1270,33 @@ impl DeclarationIndex {
                         ResolvedType::Char => Some((true, false, false, "scalar:char")),
                         ResolvedType::U8 => Some((true, false, false, "scalar:u8")),
                         ResolvedType::Usize => Some((true, false, false, "scalar:usize")),
+                        ResolvedType::ArrayU8(_) => None,
                         ResolvedType::F32 => Some((true, false, false, "scalar:f32")),
                         ResolvedType::F64 => Some((true, false, false, "scalar:f64")),
                         ResolvedType::Bool => Some((true, false, false, "scalar:bool")),
                         ResolvedType::String => Some((false, false, true, "owned:string")),
+                        ResolvedType::Bytes => Some((false, false, true, "owned:bytes")),
                         ResolvedType::Str => Some((false, false, false, "borrowed:str")),
                         ResolvedType::SliceU8 => Some((false, false, false, "borrowed:slice-u8")),
                         ResolvedType::TypeParameter { .. } | ResolvedType::Nominal { .. } => None,
                     };
+                    if let ResolvedType::ArrayU8(length) = &ty {
+                        results.push(TypeFacts {
+                            copy: true,
+                            contains_resource: false,
+                            sized: true,
+                            needs_drop: false,
+                            layout_key: format!("array:u8:{length}"),
+                        });
+                        continue;
+                    }
                     if let Some((copy, contains_resource, needs_drop, key)) = scalar {
                         results.push(TypeFacts {
                             copy,
                             contains_resource,
                             sized: true,
                             needs_drop,
-                            layout_key: key.to_owned(),
+                            layout_key: key.to_string(),
                         });
                         continue;
                     }
@@ -2199,10 +2224,12 @@ impl DeclarationIndex {
                     Type::Char => resolved.push(ResolvedType::Char),
                     Type::U8 => resolved.push(ResolvedType::U8),
                     Type::Usize => resolved.push(ResolvedType::Usize),
+                    Type::ArrayU8(length) => resolved.push(ResolvedType::ArrayU8(*length)),
                     Type::F32 => resolved.push(ResolvedType::F32),
                     Type::F64 => resolved.push(ResolvedType::F64),
                     Type::Bool => resolved.push(ResolvedType::Bool),
                     Type::String => resolved.push(ResolvedType::String),
+                    Type::Bytes => resolved.push(ResolvedType::Bytes),
                     Type::Str => resolved.push(ResolvedType::Str),
                     Type::SliceU8 => resolved.push(ResolvedType::SliceU8),
                     Type::Named { name, arguments } => {
@@ -2251,6 +2278,8 @@ pub enum ResolvedType {
     U8,
     /// A target-independent checked unsigned 64-bit semantic integer.
     Usize,
+    /// Inline Copy byte storage with exact target-independent length.
+    ArrayU8(u32),
     /// IEEE-754 single precision.
     F32,
     /// IEEE-754 double precision.
@@ -2258,6 +2287,8 @@ pub enum ResolvedType {
     Bool,
     /// An owned heap UTF-8 string value; never `Copy`.
     String,
+    /// Uniquely owned immutable bytes. This needs drop but is not a resource.
+    Bytes,
     /// A non-owning UTF-8 view rooted in the current invocation.
     Str,
     /// A non-owning byte view rooted in the current invocation.
@@ -2273,6 +2304,12 @@ pub enum ResolvedType {
 }
 
 impl ResolvedType {
+    /// Canonical ownership classification shared by the resolver, cleanup
+    /// builder, hostile validator, and backends. Unique ownership is not the
+    /// same fact as containing an opaque resource.
+    pub fn is_uniquely_owned(&self) -> bool {
+        matches!(self, Self::String | Self::Bytes)
+    }
     pub fn is_compiler_byte_option(&self) -> bool {
         matches!(
             self,
@@ -2293,10 +2330,12 @@ impl ResolvedType {
             | Self::Char
             | Self::U8
             | Self::Usize
+            | Self::ArrayU8(_)
             | Self::F32
             | Self::F64
             | Self::Bool
             | Self::String
+            | Self::Bytes
             | Self::Str
             | Self::SliceU8
             | Self::TypeParameter { .. } => None,
@@ -2320,10 +2359,12 @@ impl ResolvedType {
                     Self::Char => keys.push("char".to_owned()),
                     Self::U8 => keys.push("u8".to_owned()),
                     Self::Usize => keys.push("usize".to_owned()),
+                    Self::ArrayU8(length) => keys.push(format!("array:u8:{length}")),
                     Self::F32 => keys.push("f32".to_owned()),
                     Self::F64 => keys.push("f64".to_owned()),
                     Self::Bool => keys.push("bool".to_owned()),
                     Self::String => keys.push("string".to_owned()),
+                    Self::Bytes => keys.push("bytes".to_owned()),
                     Self::Str => keys.push("str".to_owned()),
                     Self::SliceU8 => keys.push("slice-u8".to_owned()),
                     Self::TypeParameter { owner, index } => keys.push(format!(
@@ -2404,10 +2445,12 @@ pub(crate) fn substitute_type(
                 ResolvedType::Char => resolved.push(ResolvedType::Char),
                 ResolvedType::U8 => resolved.push(ResolvedType::U8),
                 ResolvedType::Usize => resolved.push(ResolvedType::Usize),
+                ResolvedType::ArrayU8(length) => resolved.push(ResolvedType::ArrayU8(*length)),
                 ResolvedType::F32 => resolved.push(ResolvedType::F32),
                 ResolvedType::F64 => resolved.push(ResolvedType::F64),
                 ResolvedType::Bool => resolved.push(ResolvedType::Bool),
                 ResolvedType::String => resolved.push(ResolvedType::String),
+                ResolvedType::Bytes => resolved.push(ResolvedType::Bytes),
                 ResolvedType::Str => resolved.push(ResolvedType::Str),
                 ResolvedType::SliceU8 => resolved.push(ResolvedType::SliceU8),
                 ResolvedType::TypeParameter {
@@ -2480,10 +2523,12 @@ fn substitute_source_function_type(
                 Type::Char => resolved.push(Type::Char),
                 Type::U8 => resolved.push(Type::U8),
                 Type::Usize => resolved.push(Type::Usize),
+                Type::ArrayU8(length) => resolved.push(Type::ArrayU8(*length)),
                 Type::F32 => resolved.push(Type::F32),
                 Type::F64 => resolved.push(Type::F64),
                 Type::Bool => resolved.push(Type::Bool),
                 Type::String => resolved.push(Type::String),
+                Type::Bytes => resolved.push(Type::Bytes),
                 Type::Str => resolved.push(Type::Str),
                 Type::SliceU8 => resolved.push(Type::SliceU8),
                 Type::Named {
@@ -2656,6 +2701,13 @@ fn materialize_template_expr(
         ResolvedExprKind::Char(value) => ResolvedExprKind::Char(*value),
         ResolvedExprKind::Uint8(value) => ResolvedExprKind::Uint8(*value),
         ResolvedExprKind::Usize(value) => ResolvedExprKind::Usize(*value),
+        ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::BorrowPlace { .. } => {
+            return Err(hir_error(
+                "generic template uses portable byte data outside the generic slice",
+            ));
+        }
         ResolvedExprKind::Float32(bits) => ResolvedExprKind::Float32(*bits),
         ResolvedExprKind::Float64(bits) => ResolvedExprKind::Float64(*bits),
         ResolvedExprKind::Bool(value) => ResolvedExprKind::Bool(*value),
@@ -2950,6 +3002,416 @@ impl ResolvedProgram {
     }
 }
 
+fn inline_array_payload_bytes(
+    program: &ResolvedProgram,
+    ty: &ResolvedType,
+) -> Result<u32, Diagnostic> {
+    let mut total = 0_u32;
+    let mut pending = vec![ty.clone()];
+    let mut expanded = 0_usize;
+    while let Some(ty) = pending.pop() {
+        expanded = expanded
+            .checked_add(1)
+            .ok_or_else(|| hir_error("inline-array type traversal overflowed"))?;
+        if expanded > 65_536 {
+            return Err(hir_error(
+                "inline-array type traversal exceeds the compiler bound",
+            ));
+        }
+        match ty {
+            ResolvedType::ArrayU8(length) => {
+                total = total
+                    .checked_add(length)
+                    .ok_or_else(|| hir_error("inline-array payload calculation overflowed"))?;
+            }
+            ResolvedType::Nominal {
+                declaration,
+                arguments,
+            } => {
+                let declaration = program
+                    .types
+                    .iter()
+                    .find(|candidate| candidate.id == declaration)
+                    .ok_or_else(|| hir_error("inline-array slot references an unknown type"))?;
+                let fields = match &declaration.kind {
+                    ResolvedTypeDeclarationKind::Record { fields }
+                    | ResolvedTypeDeclarationKind::Class { fields, .. } => fields.as_slice(),
+                    ResolvedTypeDeclarationKind::Variant { .. }
+                    | ResolvedTypeDeclarationKind::Resource { .. } => &[],
+                };
+                for field in fields.iter().rev() {
+                    pending.push(substitute_type(&field.ty, &declaration.id, &arguments)?);
+                }
+            }
+            ResolvedType::Unit
+            | ResolvedType::I64
+            | ResolvedType::I32
+            | ResolvedType::Char
+            | ResolvedType::U8
+            | ResolvedType::Usize
+            | ResolvedType::F32
+            | ResolvedType::F64
+            | ResolvedType::Bool
+            | ResolvedType::String
+            | ResolvedType::Bytes
+            | ResolvedType::Str
+            | ResolvedType::SliceU8 => {}
+            ResolvedType::TypeParameter { .. } => {
+                return Err(hir_error(
+                    "inline-array capacity cannot inspect an unresolved type parameter",
+                ));
+            }
+        }
+    }
+    Ok(total)
+}
+
+fn push_array_slot(
+    program: &ResolvedProgram,
+    slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
+    identity: String,
+    kind: crate::byte_data_capacity::ArrayStorageKind,
+    ty: &ResolvedType,
+) -> Result<(), Diagnostic> {
+    let length = inline_array_payload_bytes(program, ty)?;
+    if length != 0 || matches!(ty, ResolvedType::ArrayU8(0)) {
+        slots.push(crate::byte_data_capacity::ArrayStorageSlot {
+            identity,
+            kind,
+            length,
+        });
+    }
+    Ok(())
+}
+
+fn push_array_pattern_slots(
+    program: &ResolvedProgram,
+    pattern: &ResolvedMatchPattern,
+    slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
+) -> Result<(), Diagnostic> {
+    match pattern {
+        ResolvedMatchPattern::Binding(binding) => push_array_slot(
+            program,
+            slots,
+            binding.id.as_str().to_owned(),
+            crate::byte_data_capacity::ArrayStorageKind::Binding,
+            &binding.ty,
+        ),
+        ResolvedMatchPattern::Variant { fields, .. } => {
+            for field in fields {
+                push_array_slot(
+                    program,
+                    slots,
+                    field.binding.id.as_str().to_owned(),
+                    crate::byte_data_capacity::ArrayStorageKind::Binding,
+                    &field.binding.ty,
+                )?;
+            }
+            Ok(())
+        }
+        ResolvedMatchPattern::Record { fields, .. } => {
+            fn visit(
+                program: &ResolvedProgram,
+                fields: &[ResolvedRecordMatchPatternField],
+                slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
+            ) -> Result<(), Diagnostic> {
+                for field in fields {
+                    match &field.pattern {
+                        ResolvedRecordMatchFieldPattern::Binding(binding) => push_array_slot(
+                            program,
+                            slots,
+                            binding.id.as_str().to_owned(),
+                            crate::byte_data_capacity::ArrayStorageKind::Binding,
+                            &binding.ty,
+                        )?,
+                        ResolvedRecordMatchFieldPattern::Record { fields, .. } => {
+                            visit(program, fields, slots)?;
+                        }
+                        ResolvedRecordMatchFieldPattern::Wildcard => {}
+                    }
+                }
+                Ok(())
+            }
+            visit(program, fields, slots)
+        }
+        ResolvedMatchPattern::Wildcard
+        | ResolvedMatchPattern::Literal(_)
+        | ResolvedMatchPattern::Or(_) => Ok(()),
+    }
+}
+
+fn byte_capacity_expression(
+    program: &ResolvedProgram,
+    expression: &ResolvedExpr,
+    slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
+    direct_destination: bool,
+) -> Result<crate::byte_data_capacity::CapacityFlow, Diagnostic> {
+    use crate::byte_data_capacity::{ArrayStorageKind, CapacityFlow};
+
+    let payload = inline_array_payload_bytes(program, &expression.ty)?;
+    if payload != 0 || matches!(expression.ty, ResolvedType::ArrayU8(0)) {
+        let kind = match &expression.kind {
+            ResolvedExprKind::Call { .. } => Some(ArrayStorageKind::CallStaging),
+            ResolvedExprKind::ArrayU8(_) | ResolvedExprKind::RepeatArrayU8 { .. }
+                if direct_destination =>
+            {
+                None
+            }
+            ResolvedExprKind::Place(_) | ResolvedExprKind::BorrowPlace { .. } => None,
+            ResolvedExprKind::Block { .. }
+            | ResolvedExprKind::If { .. }
+            | ResolvedExprKind::Match { .. } => None,
+            _ => Some(ArrayStorageKind::Temporary),
+        };
+        if let Some(kind) = kind {
+            slots.push(crate::byte_data_capacity::ArrayStorageSlot {
+                identity: expression.id.as_str().to_owned(),
+                kind,
+                length: payload,
+            });
+        }
+    }
+
+    let sequence = |children: Vec<CapacityFlow>| {
+        if children.is_empty() {
+            CapacityFlow::Empty
+        } else {
+            CapacityFlow::Sequence(children)
+        }
+    };
+    let flow = match &expression.kind {
+        ResolvedExprKind::Call {
+            callee,
+            instance,
+            args,
+            ..
+        } => {
+            let mut children = Vec::with_capacity(args.len() + 1);
+            for (index, argument) in args.iter().enumerate() {
+                push_array_slot(
+                    program,
+                    slots,
+                    format!("{}.arg.{index}", expression.id.as_str()),
+                    ArrayStorageKind::CallStaging,
+                    &argument.ty,
+                )?;
+                children.push(byte_capacity_expression(program, argument, slots, false)?);
+            }
+            if callee.as_str() == crate::byte_ops::COPY_ID {
+                children.push(CapacityFlow::BytesCopy {
+                    site: expression.id.as_str().to_owned(),
+                    conservative_payload_bytes: crate::byte_data_capacity::MAX_ARRAY_BYTES,
+                });
+            } else if program
+                .resolve_call_target(callee, instance.as_ref())
+                .is_some()
+            {
+                children.push(CapacityFlow::Call {
+                    site: expression.id.as_str().to_owned(),
+                    callee: instance
+                        .as_ref()
+                        .map_or_else(|| callee.as_str(), FunctionInstanceId::as_str)
+                        .to_owned(),
+                });
+            }
+            sequence(children)
+        }
+        ResolvedExprKind::NativeRustImportCall(call) => sequence(
+            call.args
+                .iter()
+                .map(|argument| byte_capacity_expression(program, argument, slots, false))
+                .collect::<Result<Vec<_>, _>>()?,
+        ),
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::TryOption { operand: value, .. }
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => {
+            byte_capacity_expression(program, value, slots, false)?
+        }
+        ResolvedExprKind::Binary { left, right, .. } => sequence(vec![
+            byte_capacity_expression(program, left, slots, false)?,
+            byte_capacity_expression(program, right, slots, false)?,
+        ]),
+        ResolvedExprKind::Block { statements, tail } => {
+            let mut children = Vec::with_capacity(statements.len() + 1);
+            for statement in statements {
+                match statement {
+                    ResolvedStatement::Let { binding, value, .. } => {
+                        push_array_slot(
+                            program,
+                            slots,
+                            binding.id.as_str().to_owned(),
+                            ArrayStorageKind::Binding,
+                            &binding.ty,
+                        )?;
+                        children.push(byte_capacity_expression(program, value, slots, true)?);
+                    }
+                    ResolvedStatement::Assign { value, .. } => {
+                        children.push(byte_capacity_expression(program, value, slots, true)?);
+                    }
+                    ResolvedStatement::Unsafe { body, .. } => {
+                        children.push(byte_capacity_expression(program, body, slots, true)?);
+                    }
+                    ResolvedStatement::While {
+                        condition, body, ..
+                    } => children.push(CapacityFlow::Loop {
+                        condition: Box::new(byte_capacity_expression(
+                            program, condition, slots, false,
+                        )?),
+                        body: Box::new(byte_capacity_expression(program, body, slots, false)?),
+                    }),
+                }
+            }
+            children.push(byte_capacity_expression(
+                program,
+                tail,
+                slots,
+                direct_destination,
+            )?);
+            sequence(children)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => sequence(vec![
+            byte_capacity_expression(program, condition, slots, false)?,
+            CapacityFlow::Alternative(vec![
+                byte_capacity_expression(program, then_branch, slots, direct_destination)?,
+                byte_capacity_expression(program, else_branch, slots, direct_destination)?,
+            ]),
+        ]),
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => sequence(
+            fields
+                .iter()
+                .map(|field| byte_capacity_expression(program, &field.value, slots, false))
+                .collect::<Result<Vec<_>, _>>()?,
+        ),
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            for arm in arms {
+                push_array_pattern_slots(program, &arm.pattern, slots)?;
+            }
+            let alternatives = arms
+                .iter()
+                .map(|arm| {
+                    let mut arm_flow = Vec::with_capacity(2);
+                    if let Some(guard) = &arm.guard {
+                        arm_flow.push(byte_capacity_expression(program, guard, slots, false)?);
+                    }
+                    arm_flow.push(byte_capacity_expression(
+                        program,
+                        &arm.value,
+                        slots,
+                        direct_destination,
+                    )?);
+                    Ok(sequence(arm_flow))
+                })
+                .collect::<Result<Vec<_>, Diagnostic>>()?;
+            sequence(vec![
+                byte_capacity_expression(program, scrutinee, slots, false)?,
+                CapacityFlow::Alternative(alternatives),
+            ])
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            let mut children = vec![byte_capacity_expression(program, base, slots, false)?];
+            children.extend(
+                fields
+                    .iter()
+                    .map(|field| byte_capacity_expression(program, &field.value, slots, false))
+                    .collect::<Result<Vec<_>, _>>()?,
+            );
+            sequence(children)
+        }
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
+        | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => CapacityFlow::Empty,
+    };
+    Ok(flow)
+}
+
+pub(crate) fn byte_data_capacity_inputs(
+    program: &ResolvedProgram,
+) -> Result<Vec<crate::byte_data_capacity::FunctionCapacityInput>, Diagnostic> {
+    use crate::byte_data_capacity::{ArrayStorageKind, CapacityFlow, FunctionCapacityInput};
+
+    let functions = program
+        .functions
+        .iter()
+        .map(|function| (function.id.as_str(), function))
+        .chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| (instance.id.as_str(), &instance.function)),
+        );
+    functions
+        .map(|(identity, function)| {
+            let mut slots = Vec::new();
+            for parameter in &function.params {
+                push_array_slot(
+                    program,
+                    &mut slots,
+                    parameter.id.as_str().to_owned(),
+                    ArrayStorageKind::Parameter,
+                    &parameter.ty,
+                )?;
+            }
+            push_array_slot(
+                program,
+                &mut slots,
+                function.result_id.as_str().to_owned(),
+                ArrayStorageKind::ProvisionalResult,
+                &function.return_type,
+            )?;
+            let mut execution = function
+                .requires
+                .iter()
+                .map(|expression| byte_capacity_expression(program, expression, &mut slots, false))
+                .collect::<Result<Vec<_>, _>>()?;
+            execution.push(byte_capacity_expression(
+                program,
+                &function.body,
+                &mut slots,
+                true,
+            )?);
+            execution.extend(
+                function
+                    .ensures
+                    .iter()
+                    .map(|expression| {
+                        byte_capacity_expression(program, expression, &mut slots, false)
+                    })
+                    .collect::<Result<Vec<_>, _>>()?,
+            );
+            Ok(FunctionCapacityInput {
+                function: identity.to_owned(),
+                array_slots: slots,
+                execution: CapacityFlow::Sequence(execution),
+            })
+        })
+        .collect()
+}
+
+pub(crate) fn analyze_byte_data_capacity(
+    program: &ResolvedProgram,
+) -> Result<crate::byte_data_capacity::ProgramCapacitySummary, Diagnostic> {
+    let inputs = byte_data_capacity_inputs(program)?;
+    crate::byte_data_capacity::analyze(&inputs)
+        .map_err(|error| Diagnostic::io(error.diagnostic.code(), error.to_string()))
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedTypeDeclaration {
     pub id: DeclarationId,
@@ -3150,6 +3612,11 @@ pub enum ResolvedExprKind {
     Uint8(u8),
     /// A target-independent `usize` literal held as its exact u64 value.
     Usize(u64),
+    ArrayU8(Vec<u8>),
+    RepeatArrayU8 {
+        value: u8,
+        count: u32,
+    },
     /// An `f32` literal held as its exact IEEE-754 bit pattern.
     Float32(u32),
     /// An `f64` literal held as its exact IEEE-754 bit pattern.
@@ -3158,6 +3625,11 @@ pub enum ResolvedExprKind {
     /// A string literal held as its exact owned UTF-8 contents.
     String(String),
     Place(Place),
+    /// A compiler-owned, non-consuming view of one exact named storage root.
+    BorrowPlace {
+        operation: DeclarationId,
+        place: Place,
+    },
     Call {
         callee: DeclarationId,
         type_arguments: Vec<ResolvedType>,
@@ -3462,9 +3934,11 @@ fn derive_byte_slice_provenance(
     functions: &[ResolvedFunction],
 ) -> Result<BTreeMap<ValueId, ByteSliceProvenance>, Diagnostic> {
     let mut facts = BTreeMap::new();
+    let mut root_types = BTreeMap::<ValueId, ResolvedType>::new();
     let mut aliases = Vec::<(&ResolvedBinding, bool, &ResolvedExpr)>::new();
     for function in functions {
         for parameter in &function.params {
+            root_types.insert(parameter.id.clone(), parameter.ty.clone());
             if parameter.ty == ResolvedType::SliceU8 {
                 facts.insert(
                     parameter.id.clone(),
@@ -3474,6 +3948,7 @@ fn derive_byte_slice_provenance(
                         root_length: ByteSliceExtent::ParameterLength,
                         offset: ByteSliceExtent::Constant(0),
                         length: ByteSliceExtent::ParameterLength,
+                        producer: None,
                     },
                 );
             }
@@ -3507,6 +3982,7 @@ fn derive_byte_slice_provenance(
                             ..
                         } = statement
                         {
+                            root_types.insert(binding.id.clone(), binding.ty.clone());
                             if binding.ty == ResolvedType::SliceU8 {
                                 aliases.push((binding, *mutable, value));
                             }
@@ -3551,11 +4027,14 @@ fn derive_byte_slice_provenance(
                 | ResolvedExprKind::Char(_)
                 | ResolvedExprKind::Uint8(_)
                 | ResolvedExprKind::Usize(_)
+                | ResolvedExprKind::ArrayU8(_)
+                | ResolvedExprKind::RepeatArrayU8 { .. }
                 | ResolvedExprKind::Float32(_)
                 | ResolvedExprKind::Float64(_)
                 | ResolvedExprKind::Bool(_)
                 | ResolvedExprKind::String(_)
-                | ResolvedExprKind::Place(_) => {}
+                | ResolvedExprKind::Place(_)
+                | ResolvedExprKind::BorrowPlace { .. } => {}
             }
         }
     }
@@ -3563,6 +4042,39 @@ fn derive_byte_slice_provenance(
     loop {
         let before = unresolved.len();
         unresolved.retain(|(binding, mutable, value)| {
+            if let ResolvedExprKind::BorrowPlace { place, .. } = &value.kind {
+                if *mutable || !place.projections.is_empty() {
+                    return true;
+                }
+                let Some(root_ty) = root_types.get(&place.root) else {
+                    return true;
+                };
+                let (root_kind, root_length) = match root_ty {
+                    ResolvedType::Bytes => {
+                        (ByteSliceRootKind::OwnedBytes, ByteSliceExtent::ValueLength)
+                    }
+                    ResolvedType::ArrayU8(length) => (
+                        ByteSliceRootKind::FixedArray,
+                        ByteSliceExtent::Constant(u64::from(*length)),
+                    ),
+                    ResolvedType::Str => {
+                        (ByteSliceRootKind::BorrowedStr, ByteSliceExtent::ValueLength)
+                    }
+                    _ => return true,
+                };
+                facts.insert(
+                    binding.id.clone(),
+                    ByteSliceProvenance {
+                        root: place.root.clone(),
+                        root_kind,
+                        root_length,
+                        offset: ByteSliceExtent::Constant(0),
+                        length: root_length,
+                        producer: Some(value.id.clone()),
+                    },
+                );
+                return false;
+            }
             let ResolvedExprKind::Place(place) = &value.kind else {
                 return true;
             };
@@ -3634,6 +4146,8 @@ struct ValidationBinding {
     availability: Availability,
     moved_places: BTreeMap<Vec<PlaceProjection>, Availability>,
     definitely_partial: BTreeSet<Vec<PlaceProjection>>,
+    /// Conservative lexical borrow held through the owning block.
+    lexically_borrowed: bool,
 }
 
 /// Restores the most recently published ownership scope on every early
@@ -4097,10 +4611,12 @@ fn audit_resolved_type(root: &ResolvedType) -> Result<(), Diagnostic> {
             | ResolvedType::Char
             | ResolvedType::U8
             | ResolvedType::Usize
+            | ResolvedType::ArrayU8(_)
             | ResolvedType::F32
             | ResolvedType::F64
             | ResolvedType::Bool
             | ResolvedType::String
+            | ResolvedType::Bytes
             | ResolvedType::Str
             | ResolvedType::SliceU8 => {}
             ResolvedType::TypeParameter { owner, .. } => {
@@ -4154,11 +4670,17 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Usize(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
             | ResolvedExprKind::String(_) => {}
             ResolvedExprKind::Place(place) => audit_hir_place(place)?,
+            ResolvedExprKind::BorrowPlace { operation, place } => {
+                reject_nul_identity("resolved byte-view operation", operation.as_str())?;
+                audit_hir_place(place)?;
+            }
             ResolvedExprKind::Call { callee, args, .. } => {
                 reject_nul_identity("resolved call target", callee.as_str())?;
                 pending.extend(args);
@@ -4768,11 +5290,14 @@ fn visit_resolved_calls(
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Usize(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_) => {}
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => {}
     }
 }
 
@@ -4879,11 +5404,14 @@ pub(crate) fn workspace_call_sites(
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Usize(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
             | ResolvedExprKind::String(_)
-            | ResolvedExprKind::Place(_) => {}
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::BorrowPlace { .. } => {}
         }
     }
 
@@ -5161,6 +5689,7 @@ impl Resolver<'_> {
             functions,
             function_instances,
         };
+        analyze_byte_data_capacity(&resolved)?;
         let inventories = resolved
             .functions
             .iter()
@@ -5425,7 +5954,7 @@ impl Resolver<'_> {
                 let id = ValueId::parameter(function_scope, index);
                 // Owned strings are non-Copy: even a by-value `string`
                 // parameter carries unique ownership.
-                let ownership = if ty == ResolvedType::String {
+                let ownership = if ty.is_uniquely_owned() {
                     OwnershipMode::Own
                 } else if matches!(ty, ResolvedType::Str | ResolvedType::SliceU8) {
                     if param.mode != ParamMode::Borrow {
@@ -5552,10 +6081,14 @@ impl Resolver<'_> {
                 Frame::Enter(Type::Char) => result = Some(ResolvedType::Char),
                 Frame::Enter(Type::U8) => result = Some(ResolvedType::U8),
                 Frame::Enter(Type::Usize) => result = Some(ResolvedType::Usize),
+                Frame::Enter(Type::ArrayU8(length)) => {
+                    result = Some(ResolvedType::ArrayU8(*length));
+                }
                 Frame::Enter(Type::F32) => result = Some(ResolvedType::F32),
                 Frame::Enter(Type::F64) => result = Some(ResolvedType::F64),
                 Frame::Enter(Type::Bool) => result = Some(ResolvedType::Bool),
                 Frame::Enter(Type::String) => result = Some(ResolvedType::String),
+                Frame::Enter(Type::Bytes) => result = Some(ResolvedType::Bytes),
                 Frame::Enter(Type::Str) => result = Some(ResolvedType::Str),
                 Frame::Enter(Type::SliceU8) => result = Some(ResolvedType::SliceU8),
                 Frame::Enter(Type::Named { name, arguments }) => {
@@ -6048,6 +6581,11 @@ impl Resolver<'_> {
             ExprKind::String(_) => Err(self.error(
                 "SPX-T252",
                 "string literals are not yet admitted in while bodies",
+                expression.span,
+            )),
+            ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. } => Err(self.error(
+                "SPX-T252",
+                "fixed-array literals are not admitted in bounded while bodies",
                 expression.span,
             )),
             ExprKind::Unary { value, .. } => self.reject_while_disallowed(value),
@@ -6718,10 +7256,11 @@ impl Resolver<'_> {
                             | Type::Char
                             | Type::U8
                             | Type::Usize
+                            | Type::ArrayU8(_)
                             | Type::F32
                             | Type::F64
                             | Type::Bool => 0,
-                            Type::String | Type::Str | Type::SliceU8 => 0,
+                            Type::String | Type::Bytes | Type::Str | Type::SliceU8 => 0,
                             Type::Named { name, arguments } => {
                                 name.capacity() + arguments.capacity() * std::mem::size_of::<Type>()
                             }
@@ -6902,6 +7441,23 @@ impl Resolver<'_> {
                         ty: ResolvedType::Usize,
                         ownership: OwnershipMode::Value,
                         kind: ResolvedExprKind::Usize(*value),
+                        span: expr.span,
+                    }),
+                    ExprKind::ArrayU8(values) => results.push(ResolvedExpr {
+                        id: ExpressionId::new(function, &path),
+                        ty: ResolvedType::ArrayU8(values.len() as u32),
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::ArrayU8(values.clone()),
+                        span: expr.span,
+                    }),
+                    ExprKind::RepeatArrayU8 { value, count } => results.push(ResolvedExpr {
+                        id: ExpressionId::new(function, &path),
+                        ty: ResolvedType::ArrayU8(*count),
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::RepeatArrayU8 {
+                            value: *value,
+                            count: *count,
+                        },
                         span: expr.span,
                     }),
                     ExprKind::Float32(bits) => results.push(ResolvedExpr {
@@ -7673,7 +8229,7 @@ impl Resolver<'_> {
                 } => {
                     let args = take_results(&mut results, argument_count);
                     for (index, argument) in args.iter().enumerate() {
-                        if argument.ty != op.param_types()[index] {
+                        if !op.accepts_resolved(index, &argument.ty) {
                             return Err(self.error(
                                 "SPX-H006",
                                 format!(
@@ -7687,6 +8243,29 @@ impl Resolver<'_> {
                     }
                     let ty = op.return_type();
                     let ownership = self.expression_ownership(&ty, OwnershipMode::Own, span)?;
+                    if op.is_view() {
+                        let ResolvedExprKind::Place(place) = &args[0].kind else {
+                            return Err(self.error(
+                                "SPX-T266",
+                                format!(
+                                    "byte view `{}` requires an exact named storage root",
+                                    op.name()
+                                ),
+                                args[0].span,
+                            ));
+                        };
+                        results.push(ResolvedExpr {
+                            id: ExpressionId::new(function, &path),
+                            ty,
+                            ownership: OwnershipMode::Borrow,
+                            kind: ResolvedExprKind::BorrowPlace {
+                                operation: DeclarationId::new(op.id()),
+                                place: place.clone(),
+                            },
+                            span,
+                        });
+                        continue;
+                    }
                     results.push(ResolvedExpr {
                         id: ExpressionId::new(function, &path),
                         ty,
@@ -9686,6 +10265,19 @@ impl Resolver<'_> {
                 ResolvedType::Usize,
                 OwnershipMode::Value,
             ),
+            ExprKind::ArrayU8(values) => (
+                ResolvedExprKind::ArrayU8(values.clone()),
+                ResolvedType::ArrayU8(values.len() as u32),
+                OwnershipMode::Value,
+            ),
+            ExprKind::RepeatArrayU8 { value, count } => (
+                ResolvedExprKind::RepeatArrayU8 {
+                    value: *value,
+                    count: *count,
+                },
+                ResolvedType::ArrayU8(*count),
+                OwnershipMode::Value,
+            ),
             ExprKind::Float32(bits) => (
                 ResolvedExprKind::Float32(*bits),
                 ResolvedType::F32,
@@ -9934,7 +10526,7 @@ impl Resolver<'_> {
                         })
                         .collect::<Result<Vec<_>, _>>()?;
                     for (index, argument) in args.iter().enumerate() {
-                        if argument.ty != op.param_types()[index] {
+                        if !op.accepts_resolved(index, &argument.ty) {
                             return Err(self.error(
                                 "SPX-H006",
                                 format!(
@@ -9949,6 +10541,25 @@ impl Resolver<'_> {
                     let ty = op.return_type();
                     let ownership =
                         self.expression_ownership(&ty, OwnershipMode::Own, expr.span)?;
+                    if op.is_view() {
+                        let ResolvedExprKind::Place(place) = &args[0].kind else {
+                            return Err(self.error(
+                                "SPX-T266",
+                                format!("byte view `{name}` requires an exact named storage root"),
+                                args[0].span,
+                            ));
+                        };
+                        return Ok(ResolvedExpr {
+                            id,
+                            ty,
+                            ownership: OwnershipMode::Borrow,
+                            kind: ResolvedExprKind::BorrowPlace {
+                                operation: DeclarationId::new(op.id()),
+                                place: place.clone(),
+                            },
+                            span: expr.span,
+                        });
+                    }
                     return Ok(ResolvedExpr {
                         id,
                         ty,
@@ -11609,6 +12220,7 @@ fn main() -> i64 { 0 }
                         ty: param.ty.clone(),
                         ownership: param.ownership,
                         availability: Availability::Available,
+                        lexically_borrowed: false,
                         moved_places: BTreeMap::new(),
                         definitely_partial: BTreeSet::new(),
                     },

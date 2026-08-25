@@ -1704,6 +1704,9 @@ fn resolved_function_callees(function: &hir::ResolvedFunction) -> BTreeSet<hir::
             | hir::ResolvedExprKind::Float64(_)
             | hir::ResolvedExprKind::Bool(_)
             | hir::ResolvedExprKind::String(_)
+            | hir::ResolvedExprKind::ArrayU8(_)
+            | hir::ResolvedExprKind::RepeatArrayU8 { .. }
+            | hir::ResolvedExprKind::BorrowPlace { .. }
             | hir::ResolvedExprKind::Place(_) => {}
         }
     }
@@ -5463,6 +5466,9 @@ fn visit_resolved_calls(
             visit_resolved_calls(right, visit);
         }
         hir::ResolvedExprKind::String(_) => {}
+        hir::ResolvedExprKind::ArrayU8(_)
+        | hir::ResolvedExprKind::RepeatArrayU8 { .. }
+        | hir::ResolvedExprKind::BorrowPlace { .. } => {}
         hir::ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
                 visit_resolved_calls(statement.value(), visit);
@@ -5839,6 +5845,9 @@ fn collect_resolved_expression_type_sites(
     let expression_id = crate::bounded_output::budgeted_format(format_args!("{}", expression.id));
     match &expression.kind {
         hir::ResolvedExprKind::String(_) => {}
+        hir::ResolvedExprKind::ArrayU8(_)
+        | hir::ResolvedExprKind::RepeatArrayU8 { .. }
+        | hir::ResolvedExprKind::BorrowPlace { .. } => {}
         hir::ResolvedExprKind::Call {
             type_arguments,
             args,
@@ -6500,7 +6509,9 @@ fn type_contains_name_from(ty: &Type, names: &BTreeSet<&str>) -> bool {
         | Type::Bool
         | Type::String
         | Type::Str
-        | Type::SliceU8 => false,
+        | Type::SliceU8
+        | Type::ArrayU8(_)
+        | Type::Bytes => false,
         Type::Named { name, arguments } => {
             names.contains(name.as_str())
                 || arguments
@@ -6573,7 +6584,7 @@ fn signature_type_is_admitted(
         | Type::Bool
         | Type::String
         | Type::Str => true,
-        Type::SliceU8 => false,
+        Type::SliceU8 | Type::ArrayU8(_) | Type::Bytes => false,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
                 return false;
@@ -6694,7 +6705,7 @@ fn exposed_type_reference_is_directly_imported(
         | Type::Bool
         | Type::String
         | Type::Str => true,
-        Type::SliceU8 => false,
+        Type::SliceU8 | Type::ArrayU8(_) | Type::Bytes => false,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
                 return false;
@@ -6770,7 +6781,7 @@ fn type_reference_is_admitted(
         | Type::Bool
         | Type::String
         | Type::Str => true,
-        Type::SliceU8 => false,
+        Type::SliceU8 | Type::ArrayU8(_) | Type::Bytes => false,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(program) = programs.iter().find(|item| item.module == module) else {
                 return false;
@@ -6853,6 +6864,7 @@ fn visit_ast_call_sites(
                 )?;
             }
         }
+        ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. } => {}
         ExprKind::Unary { value, .. } => {
             visit_ast_call_sites(
                 value,

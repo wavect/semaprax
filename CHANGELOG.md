@@ -2,20 +2,25 @@
 
 ## Unreleased
 
-- Added the first internal Portable Indexed Byte Data v1 tranche. `usize` is
-  one target-independent checked semantic `u64` with exact unsigned source,
-  HIR, Graph-v17, interpreter, native C, and Wasm behavior. Non-escaping
-  `borrow Slice<u8>` parameters carry independently validated symbolic
-  parameter-root provenance through immutable aliases and internal calls;
-  concrete host boundaries enforce a cumulative 65,536-byte root limit once.
-  Compiler-owned `byte_len` and total `byte_get -> Option<u8>` are NUL-safe and
-  never perform an out-of-range load. Local evidence covers checked usize
-  failure codes, native O0/O2, internal Node/Wasm parity, malformed carriers,
-  exact capacity boundaries, cleanup inertness, Graph provenance, and stable
-  diagnostics. Fixed arrays, owned `Bytes`, conversions, public Project/npm
-  adapters, and hosted promotion remain open. Economic Agent unit proof code
-  was also moved from the production module into `economic_agent/tests.rs`
-  while preserving every existing test path and behavior.
+- Added the second local internal Portable Indexed Byte Data v1 tranche.
+  Target-independent checked `usize`, fixed `[u8; N]` syntax and size-N/align-1
+  layouts, uniquely owned immutable `Bytes`, and non-escaping `Slice<u8>` now
+  reach source/HIR/hostile validation, Graph v17, the interpreter, native C
+  O0/O2, and internal Core-Wasm/Node execution. The closed `byte_len`,
+  `byte_get`, `bytes_copy`, `bytes_as_slice`, `array_as_slice`, and
+  `str_as_bytes` operations preserve exact NUL/`0xff`/invalid-UTF-8 bytes.
+  Independent capacity analysis enforces frame, active-call-path, allocation
+  site, payload, and mixed text/slice external-root bounds. Conservative
+  lexical borrowing protects named owners, and `Bytes` moves, call epochs,
+  failures, guarded finalizers, and result publication consume canonical
+  CleanupPlan state through one `core.bytes.drop` leaf. Public Project/npm
+  adapters, the typed-array facade, multi-module acceptance, complete hostile
+  boundary evidence, hosted promotion, and registry publication remain open;
+  this is local internal evidence only.
+
+- Moved Economic Agent unit proof code from the production module into
+  `economic_agent/tests.rs` while preserving every existing test path and
+  behavior.
 
 - Added the locally evidenced Useful Text Consumer v1 / Project Manifest v2
   tranche. Source and hostile HIR now admit a non-escaping `borrow str` input

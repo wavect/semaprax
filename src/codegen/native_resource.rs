@@ -61,6 +61,14 @@ impl NativeResourceAbi {
             // definition is emitted only for programs reaching Str ops.
             ResolvedType::Str => Ok("spx_str_v1"),
             ResolvedType::SliceU8 => Ok("spx_slice_u8_v1"),
+            ResolvedType::Bytes => Ok("spx_bytes_v1"),
+            // Fixed arrays have a length-specific inline C representation
+            // emitted by the ordinary native backend.  Returning a generic
+            // spelling here would erase `N`, so callers must route them
+            // through `c_value_type` instead.
+            ResolvedType::ArrayU8(length) => Err(resource_error(format!(
+                "fixed byte array `[u8; {length}]` requires its exact native inline type"
+            ))),
             ResolvedType::TypeParameter { .. } => Err(resource_error(format!(
                 "native representation is unavailable for generic type `{}`",
                 ty.identity_key()

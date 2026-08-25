@@ -856,6 +856,7 @@ impl Parser {
                 kind: ExprKind::Usize(value),
                 span: token.span,
             },
+            TokenKind::LBracket => self.byte_array_literal(token.span)?,
             TokenKind::String(value) => Expr {
                 kind: ExprKind::String(value),
                 span: token.span,
@@ -1692,7 +1693,104 @@ impl Parser {
         Ok(effects)
     }
 
+    fn fixed_array_count(&mut self) -> Result<u32, Diagnostic> {
+        let token = self.bump().clone();
+        let value = match token.kind {
+            TokenKind::Int(value) if value >= 0 => u32::try_from(value).ok(),
+            _ => None,
+        }
+        .filter(|value| *value <= 65_536)
+        .ok_or_else(|| {
+            Diagnostic::error(
+                "SPX-T261",
+                "fixed byte-array length must be a decimal constant in 0..=65536",
+                token.span,
+            )
+            .at_path(&self.path)
+        })?;
+        Ok(value)
+    }
+
+    fn byte_array_literal(&mut self, start: Span) -> Result<Expr, Diagnostic> {
+        if self.at(&TokenKind::RBracket) {
+            let end = self.bump().span;
+            return Ok(Expr {
+                kind: ExprKind::ArrayU8(Vec::new()),
+                span: start.merge(end),
+            });
+        }
+        let first = self.bump().clone();
+        let TokenKind::Uint8(first_value) = first.kind else {
+            return Err(Diagnostic::error(
+                "SPX-T262",
+                "fixed byte-array literal elements must be exact `u8` literals",
+                first.span,
+            )
+            .at_path(&self.path));
+        };
+        if self.take(&TokenKind::Semicolon) {
+            let count = self.fixed_array_count()?;
+            let end = self
+                .expect(
+                    &TokenKind::RBracket,
+                    "`]` after repeated byte-array literal",
+                )?
+                .span;
+            return Ok(Expr {
+                kind: ExprKind::RepeatArrayU8 {
+                    value: first_value,
+                    count,
+                },
+                span: start.merge(end),
+            });
+        }
+        let mut values = vec![first_value];
+        while self.take(&TokenKind::Comma) {
+            if self.at(&TokenKind::RBracket) {
+                break;
+            }
+            let token = self.bump().clone();
+            let TokenKind::Uint8(value) = token.kind else {
+                return Err(Diagnostic::error(
+                    "SPX-T262",
+                    "fixed byte-array literal elements must be exact `u8` literals",
+                    token.span,
+                )
+                .at_path(&self.path));
+            };
+            values.push(value);
+            if values.len() > 65_536 {
+                return Err(Diagnostic::error(
+                    "SPX-T261",
+                    "fixed byte-array literal length exceeds 65536 bytes",
+                    start.merge(token.span),
+                )
+                .at_path(&self.path));
+            }
+        }
+        let end = self
+            .expect(&TokenKind::RBracket, "`]` after byte-array literal")?
+            .span;
+        Ok(Expr {
+            kind: ExprKind::ArrayU8(values),
+            span: start.merge(end),
+        })
+    }
+
     fn ty(&mut self) -> Result<Type, Diagnostic> {
+        if self.take(&TokenKind::LBracket) {
+            let (element, _) = self.qualified_ident("fixed-array element type")?;
+            if element != "u8" {
+                return Err(self.error_here(
+                    "SPX-T268",
+                    "Portable Indexed Byte Data v1 admits only fixed `[u8; N]` arrays",
+                ));
+            }
+            self.expect(&TokenKind::Semicolon, "`;` after fixed-array element type")?;
+            let length = self.fixed_array_count()?;
+            self.expect(&TokenKind::RBracket, "`]` after fixed-array length")?;
+            return Ok(Type::ArrayU8(length));
+        }
         let (name, _) = self.qualified_ident("type")?;
         if name == "Slice" {
             self.expect(&TokenKind::Lt, "`<` after `Slice`")?;
@@ -1708,7 +1806,17 @@ impl Parser {
         }
         let is_primitive = matches!(
             name.as_str(),
-            "i64" | "i32" | "u8" | "usize" | "char" | "f32" | "f64" | "bool" | "string" | "str"
+            "i64"
+                | "i32"
+                | "u8"
+                | "usize"
+                | "char"
+                | "f32"
+                | "f64"
+                | "bool"
+                | "string"
+                | "str"
+                | "Bytes"
         );
         if is_primitive && self.at(&TokenKind::Lt) {
             return Err(self.error_here(
@@ -1726,6 +1834,7 @@ impl Parser {
             "f64" => Ok(Type::F64),
             "bool" => Ok(Type::Bool),
             "string" => Ok(Type::String),
+            "Bytes" => Ok(Type::Bytes),
             "str" => Ok(Type::Str),
             _ => Ok(Type::Named {
                 name,

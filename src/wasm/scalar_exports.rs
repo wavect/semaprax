@@ -323,6 +323,13 @@ fn validate_expression_profile(
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
             | ResolvedExprKind::String(_) => {}
+            ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
+            | ResolvedExprKind::BorrowPlace { .. } => {
+                return Err(admission(format!(
+                    "Public Scalar Export Profile v1 function `{function_id}` contains portable byte data"
+                )));
+            }
             ResolvedExprKind::Place(place) => {
                 if !place.projections.is_empty() {
                     return Err(admission(format!(
@@ -408,6 +415,8 @@ fn scalar_type(ty: &ResolvedType) -> Option<ScalarType> {
         | ResolvedType::String
         | ResolvedType::Str
         | ResolvedType::SliceU8
+        | ResolvedType::ArrayU8(_)
+        | ResolvedType::Bytes
         | ResolvedType::TypeParameter { .. }
         | ResolvedType::Nominal { .. } => None,
     }

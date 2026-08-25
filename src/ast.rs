@@ -27,10 +27,14 @@ pub enum Type {
     U8,
     /// A target-independent checked unsigned 64-bit semantic integer.
     Usize,
+    /// One inline Copy byte array with an exact target-independent length.
+    ArrayU8(u32),
     F32,
     F64,
     Bool,
     String,
+    /// One uniquely owned immutable byte buffer.
+    Bytes,
     /// A borrowed UTF-8 view. Source functions may receive it only through
     /// an explicit `borrow str` parameter; it has no literal or owned form.
     Str,
@@ -57,10 +61,12 @@ impl fmt::Display for Type {
                 Frame::Type(Type::Char) => f.write_str("char")?,
                 Frame::Type(Type::U8) => f.write_str("u8")?,
                 Frame::Type(Type::Usize) => f.write_str("usize")?,
+                Frame::Type(Type::ArrayU8(length)) => write!(f, "[u8; {length}]")?,
                 Frame::Type(Type::F32) => f.write_str("f32")?,
                 Frame::Type(Type::F64) => f.write_str("f64")?,
                 Frame::Type(Type::Bool) => f.write_str("bool")?,
                 Frame::Type(Type::String) => f.write_str("string")?,
+                Frame::Type(Type::Bytes) => f.write_str("Bytes")?,
                 Frame::Type(Type::Str) => f.write_str("str")?,
                 Frame::Type(Type::SliceU8) => f.write_str("Slice<u8>")?,
                 Frame::Type(Type::Named { name, arguments }) => {
@@ -90,6 +96,12 @@ impl fmt::Display for Type {
 impl Type {
     pub fn is_named(&self) -> bool {
         matches!(self, Type::Named { .. })
+    }
+
+    /// Canonical ownership predicate. `Bytes` transfers uniquely without
+    /// being misclassified as a user resource.
+    pub fn is_uniquely_owned(&self) -> bool {
+        matches!(self, Type::String | Type::Bytes)
     }
 }
 
@@ -340,6 +352,13 @@ pub enum ExprKind {
     Uint8(u8),
     /// A `usize` literal stored as its target-independent unsigned value.
     Usize(u64),
+    /// An explicit byte inventory. Its length is its exact array type.
+    ArrayU8(Vec<u8>),
+    /// A canonical repeated-byte fixed-array literal.
+    RepeatArrayU8 {
+        value: u8,
+        count: u32,
+    },
     /// An `f32` literal stored as its exact IEEE-754 bit pattern.
     Float32(u32),
     /// An `f64` literal stored as its exact IEEE-754 bit pattern.
@@ -821,6 +840,8 @@ impl Expr {
             | ExprKind::Char(_)
             | ExprKind::Uint8(_)
             | ExprKind::Usize(_)
+            | ExprKind::ArrayU8(_)
+            | ExprKind::RepeatArrayU8 { .. }
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)

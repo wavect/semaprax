@@ -1201,7 +1201,10 @@ fn collect_result_propagations<'a>(
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_) => {}
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => {}
     }
 }
 
@@ -1387,7 +1390,10 @@ pub(crate) fn graph_schema_from_parts(
 
 fn type_has_usize(ty: &ResolvedType) -> bool {
     match ty {
-        ResolvedType::Usize | ResolvedType::SliceU8 => true,
+        ResolvedType::Usize
+        | ResolvedType::ArrayU8(_)
+        | ResolvedType::Bytes
+        | ResolvedType::SliceU8 => true,
         ResolvedType::Nominal { arguments, .. } => arguments.iter().any(type_has_usize),
         ResolvedType::Unit
         | ResolvedType::I64
@@ -1487,7 +1493,10 @@ fn expression_has_usize(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_) => false,
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => false,
     }
 }
 
@@ -1544,7 +1553,10 @@ fn expression_has_while(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_) => false,
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => false,
     }
 }
 
@@ -1610,7 +1622,10 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_) => false,
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => false,
     }
 }
 
@@ -1679,7 +1694,10 @@ fn expression_has_refutable_match(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_) => false,
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => false,
     }
 }
 
@@ -1749,8 +1767,13 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
-        | ResolvedExprKind::String(_) => {}
+        | ResolvedExprKind::String(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. } => {}
         ResolvedExprKind::Place(place) => {
+            values.insert(place.root.clone());
+        }
+        ResolvedExprKind::BorrowPlace { place, .. } => {
             values.insert(place.root.clone());
         }
         ResolvedExprKind::Call { args, .. } => {
@@ -1859,6 +1882,14 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
             "{{\"kind\":\"usize\",\"value\":{}}}",
             quote_json(&value.to_string())
         ),
+        ResolvedExprKind::ArrayU8(values) => format!(
+            "{{\"kind\":\"array_u8\",\"form\":\"explicit\",\"length\":{},\"values\":[{}]}}",
+            values.len(),
+            values.iter().map(u8::to_string).collect::<Vec<_>>().budgeted_join(",")
+        ),
+        ResolvedExprKind::RepeatArrayU8 { value, count } => format!(
+            "{{\"kind\":\"array_u8\",\"form\":\"repeat\",\"length\":{count},\"value\":{value}}}"
+        ),
         ResolvedExprKind::Float32(bits) => format!(
             "{{\"kind\":\"float32\",\"bits\":\"{bits:08x}\",\"value\":{}}}",
             quote_json(&crate::format::canonical_f32_bits(*bits))
@@ -1876,6 +1907,11 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
         ResolvedExprKind::Place(place) => {
             format!("{{\"kind\":\"place\",\"place\":{}}}", place_json(place))
         }
+        ResolvedExprKind::BorrowPlace { operation, place } => format!(
+            "{{\"kind\":\"byte_view\",\"operation\":{},\"place\":{}}}",
+            quote_json(operation.as_str()),
+            place_json(place)
+        ),
         ResolvedExprKind::Call {
             callee,
             type_arguments,
@@ -3006,37 +3042,64 @@ fn byte_slice_extent_json(extent: ByteSliceExtent) -> String {
             format!("{{\"kind\":\"constant\",\"value\":{value}}}")
         }
         ByteSliceExtent::ParameterLength => "{\"kind\":\"parameter_length\"}".to_owned(),
+        ByteSliceExtent::ValueLength => "{\"kind\":\"value_length\"}".to_owned(),
     }
 }
 
 fn byte_slice_fact_json(value: &ValueId, provenance: &hir::ByteSliceProvenance) -> String {
     let root_kind = match provenance.root_kind {
         ByteSliceRootKind::FunctionParameter => "function_parameter",
+        ByteSliceRootKind::OwnedBytes => "owned_bytes",
+        ByteSliceRootKind::FixedArray => "fixed_array",
+        ByteSliceRootKind::BorrowedStr => "borrowed_str",
     };
     format!(
-        "{{\"value\":{},\"root\":{},\"root_kind\":{},\"root_length\":{},\"offset\":{},\"length\":{}}}",
+        "{{\"value\":{},\"root\":{},\"root_kind\":{},\"root_length\":{},\"offset\":{},\"length\":{},\"producer\":{}}}",
         quote_json(value.as_str()),
         quote_json(provenance.root.as_str()),
         quote_json(root_kind),
         byte_slice_extent_json(provenance.root_length),
         byte_slice_extent_json(provenance.offset),
-        byte_slice_extent_json(provenance.length)
+        byte_slice_extent_json(provenance.length),
+        provenance.producer.as_ref().map_or_else(|| "null".to_owned(), |id| quote_json(id.as_str()))
     )
 }
 
-fn portable_indexed_byte_data_json(schema: &str, program: &ResolvedProgram) -> String {
+fn portable_indexed_byte_data_json(
+    schema: &str,
+    program: &ResolvedProgram,
+) -> Result<String, Diagnostic> {
     if schema == "semaprax.graph.v17" {
-        format!(
-            ",\"portable_indexed_byte_data\":{{\"profile\":\"external-slice-v1\",\"semantic_usize_bits\":64,\"max_external_root_bytes\":65536,\"max_slice_bytes\":65536,\"indexed_read\":\"total-option-u8\",\"byte_slice_provenance\":[{}]}}",
+        let capacity = hir::analyze_byte_data_capacity(program)?;
+        Ok(format!(
+            ",\"portable_indexed_byte_data\":{{\"profile\":\"useful-data-v1\",\"semantic_usize_bits\":64,\"max_external_root_bytes\":{},\"max_slice_bytes\":{},\"max_array_bytes\":{},\"max_inline_array_frame_bytes\":{},\"max_active_array_call_path_bytes\":{},\"max_bytes_copy_sites\":{},\"max_owned_byte_payload_bytes\":{},\"wasm_arena_token_min_inclusive\":1,\"wasm_arena_token_max_exclusive\":2147483648,\"wasm_arena_tokens_monotonic\":true,\"wasm_arena_tokens_reused\":false,\"wasm_import_binding\":\"exact-token-length\",\"wasm_carrier\":\"root-word-high32-length-u32-low32\",\"empty_bytes_owns_token\":true,\"zero_array_view\":\"root0-length0\",\"indexed_read\":\"total-option-u8\",\"capacity_summaries\":[{}],\"byte_slice_provenance\":[{}]}}",
+            crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES,
+            crate::byte_data_capacity::MAX_ARRAY_BYTES,
+            crate::byte_data_capacity::MAX_ARRAY_BYTES,
+            crate::byte_data_capacity::MAX_INLINE_ARRAY_FRAME_BYTES,
+            crate::byte_data_capacity::MAX_ACTIVE_ARRAY_CALL_PATH_BYTES,
+            crate::byte_data_capacity::MAX_BYTES_COPY_SITES,
+            crate::byte_data_capacity::MAX_OWNED_BYTE_PAYLOAD_BYTES,
+            capacity.functions().map(|(function, _)| {
+                let summary = capacity.function(function).expect("enumerated capacity summary remains addressable");
+                format!(
+                    "{{\"function\":{},\"inline_array_frame_bytes\":{},\"active_array_call_path_bytes\":{},\"bytes_copy_sites\":{},\"owned_byte_payload_bytes\":{}}}",
+                    quote_json(function),
+                    summary.inline_array_frame_bytes,
+                    summary.active_array_call_path_bytes,
+                    summary.bytes_copy_sites,
+                    summary.owned_byte_payload_bytes,
+                )
+            }).collect::<Vec<_>>().budgeted_join(","),
             program
                 .declarations
                 .byte_slice_provenances()
                 .map(|(value, provenance)| byte_slice_fact_json(value, provenance))
                 .collect::<Vec<_>>()
                 .budgeted_join(",")
-        )
+        ))
     } else {
-        String::new()
+        Ok(String::new())
     }
 }
 
@@ -3132,7 +3195,7 @@ fn graph_json(
         quote_json(prelude::SCHEMA_V1),
         quote_json(&prelude::digest_text_v1()),
         view_json(view),
-        portable_indexed_byte_data_json(schema, program),
+        portable_indexed_byte_data_json(schema, program)?,
         quote_json(&program.module),
         string_array(&program.permits),
         quote_json(program.entrypoint.as_str()),
@@ -3830,7 +3893,10 @@ fn visit_expr_call_instances(
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_) => {}
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => {}
         ResolvedExprKind::Call { args, .. } => {
             for argument in args {
                 visit_expr_call_instances(argument, visit);
@@ -3905,7 +3971,10 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_) => {}
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => {}
         ResolvedExprKind::Call { callee, args, .. } => {
             visit(callee);
             for argument in args {
@@ -4003,7 +4072,10 @@ fn collect_expr_type_declarations(
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_) => {}
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => {}
         ResolvedExprKind::Call { args, .. } => {
             for argument in args {
                 collect_expr_type_declarations(argument, declarations);
@@ -4237,6 +4309,14 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
             "{{{header},\"kind\":\"usize\",\"value\":{}}}",
             quote_json(&value.to_string())
         ),
+        ResolvedExprKind::ArrayU8(values) => format!(
+            "{{{header},\"kind\":\"array_u8\",\"form\":\"explicit\",\"length\":{},\"values\":[{}]}}",
+            values.len(),
+            values.iter().map(u8::to_string).collect::<Vec<_>>().budgeted_join(",")
+        ),
+        ResolvedExprKind::RepeatArrayU8 { value, count } => format!(
+            "{{{header},\"kind\":\"array_u8\",\"form\":\"repeat\",\"length\":{count},\"value\":{value}}}"
+        ),
         ResolvedExprKind::Float32(bits) => format!(
             "{{{header},\"kind\":\"float32\",\"bits\":\"{bits:08x}\",\"value\":{}}}",
             quote_json(&crate::format::canonical_f32_bits(*bits))
@@ -4255,6 +4335,11 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
         ),
         ResolvedExprKind::Place(place) => format!(
             "{{{header},\"kind\":\"place\",\"place\":{}}}",
+            place_json(place)
+        ),
+        ResolvedExprKind::BorrowPlace { operation, place } => format!(
+            "{{{header},\"kind\":\"byte_view\",\"operation\":{},\"place\":{}}}",
+            quote_json(operation.as_str()),
             place_json(place)
         ),
         ResolvedExprKind::Call {
@@ -4648,7 +4733,10 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_) => {}
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => {}
         ResolvedExprKind::Call { args, .. } => {
             for argument in args {
                 collect_expr_types(argument, types);
@@ -4783,10 +4871,14 @@ fn type_json(ty: &ResolvedType) -> String {
         ResolvedType::Char => "{\"kind\":\"primitive\",\"name\":\"char\"}".to_owned(),
         ResolvedType::U8 => "{\"kind\":\"primitive\",\"name\":\"u8\"}".to_owned(),
         ResolvedType::Usize => "{\"kind\":\"primitive\",\"name\":\"usize\"}".to_owned(),
+        ResolvedType::ArrayU8(length) => format!(
+            "{{\"element\":{{\"kind\":\"primitive\",\"name\":\"u8\"}},\"kind\":\"fixed_array\",\"length\":{length}}}"
+        ),
         ResolvedType::F32 => "{\"kind\":\"primitive\",\"name\":\"f32\"}".to_owned(),
         ResolvedType::F64 => "{\"kind\":\"primitive\",\"name\":\"f64\"}".to_owned(),
         ResolvedType::Bool => "{\"kind\":\"primitive\",\"name\":\"bool\"}".to_owned(),
         ResolvedType::String => "{\"kind\":\"primitive\",\"name\":\"string\"}".to_owned(),
+        ResolvedType::Bytes => "{\"kind\":\"owned_bytes\"}".to_owned(),
         ResolvedType::Str => "{\"kind\":\"primitive\",\"name\":\"str\"}".to_owned(),
         ResolvedType::SliceU8 => {
             "{\"element\":{\"kind\":\"primitive\",\"name\":\"u8\"},\"kind\":\"borrowed_slice\"}"

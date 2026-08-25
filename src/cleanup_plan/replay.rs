@@ -636,11 +636,14 @@ fn expression_path_counts_with_while(
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Usize(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
             | ResolvedExprKind::String(_)
-            | ResolvedExprKind::Place(_) => HirPathCounts::ONE,
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::BorrowPlace { .. } => HirPathCounts::ONE,
             ResolvedExprKind::Unary { op, value } => {
                 let inner = count(function, value)?;
                 if *op == UnaryOp::Neg {
@@ -926,11 +929,16 @@ fn expression_skeleton_work_upper(
                 | ResolvedExprKind::Char(_)
                 | ResolvedExprKind::Uint8(_)
                 | ResolvedExprKind::Usize(_)
+                | ResolvedExprKind::ArrayU8(_)
+                | ResolvedExprKind::RepeatArrayU8 { .. }
                 | ResolvedExprKind::Float32(_)
                 | ResolvedExprKind::Float64(_)
                 | ResolvedExprKind::Bool(_)
                 | ResolvedExprKind::String(_) => 2,
                 ResolvedExprKind::Place(place) => place.projections.len().saturating_mul(2) + 8,
+                ResolvedExprKind::BorrowPlace { place, .. } => {
+                    place.projections.len().saturating_mul(2) + 8
+                }
                 ResolvedExprKind::Unary { .. } => 8,
                 ResolvedExprKind::Binary { .. } => 12,
                 ResolvedExprKind::Call { args, .. } => args.len().saturating_mul(6) + 14,
@@ -1437,7 +1445,7 @@ fn collect_supplemental_slots(
                         value_expression: argument.id.clone(),
                     };
                     let shape =
-                        expected_shape_for_type(program, function, &argument.ty, next_flag)?;
+                        expected_shape_for_type(program, function, &argument.ty, next_flag, true)?;
                     slots.push(ExpectedSupplementalSlot {
                         storage,
                         ty: argument.ty.clone(),
@@ -1455,9 +1463,26 @@ fn expected_shape_for_type(
     function: &ResolvedFunction,
     ty: &ResolvedType,
     next_flag: &mut u32,
+    direct: bool,
 ) -> Result<FieldLivenessShape, Diagnostic> {
     if !type_needs_drop(program, function, ty)? {
         return Ok(FieldLivenessShape::NoDrop);
+    }
+    if matches!(ty, ResolvedType::Bytes) {
+        if !direct {
+            return Err(replay_error(
+                function,
+                "compiler-owned Bytes cleanup leaf is not direct",
+            ));
+        }
+        let flag = LivenessFlagId(*next_flag);
+        *next_flag = next_flag
+            .checked_add(1)
+            .ok_or_else(|| replay_error(function, "too many cleanup flags"))?;
+        return Ok(FieldLivenessShape::Leaf {
+            flag,
+            lifecycle: DeclarationId::new(crate::cleanup::BYTES_DROP_LIFECYCLE_ID),
+        });
     }
     let ResolvedType::Nominal {
         declaration,
@@ -1498,7 +1523,7 @@ fn expected_shape_for_type(
                 expected_fields.push(FieldLiveness {
                     field: field.id.clone(),
                     field_index: field.index,
-                    shape: expected_shape_for_type(program, function, &field.ty, next_flag)?,
+                    shape: expected_shape_for_type(program, function, &field.ty, next_flag, false)?,
                 });
             }
             Ok(FieldLivenessShape::Record {
@@ -1638,10 +1663,15 @@ fn collect_expression_statuses(
             ResolvedExprKind::Call {
                 callee, instance, ..
             } => {
+                if instance.is_none() && crate::byte_ops::by_id(callee.as_str()).is_some() {
+                    // Byte-data operations are total after HIR admission.
+                    // Physical allocation failure is invariant fail-stop, not
+                    // a recoverable operation status.
+                    continue;
+                }
                 if instance.is_none()
                     && (crate::string_ops::by_id(callee.as_str()).is_some()
-                        || crate::str_ops::by_id(callee.as_str()).is_some()
-                        || crate::byte_ops::by_id(callee.as_str()).is_some())
+                        || crate::str_ops::by_id(callee.as_str()).is_some())
                 {
                     // String operations project like ordinary propagated calls.
                 } else if program
@@ -1721,11 +1751,14 @@ fn collect_expression_statuses(
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Usize(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
             | ResolvedExprKind::String(_)
-            | ResolvedExprKind::Place(_) => {}
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::BorrowPlace { .. } => {}
         }
     }
     Ok(())
@@ -2347,14 +2380,16 @@ fn validate_exits(
                     }
                 }
                 CleanupResultSource::Owned { storage: result } => {
-                    if !matches!(function.return_type, ResolvedType::Nominal { .. })
-                        || !type_needs_drop(program, function, &function.return_type)?
+                    if !matches!(
+                        function.return_type,
+                        ResolvedType::Nominal { .. } | ResolvedType::Bytes
+                    ) || !type_needs_drop(program, function, &function.return_type)?
                         || result.storage != StorageId::ProvisionalResult
                         || !result.projections.is_empty()
                     {
                         return Err(replay_error(
                             function,
-                            "owned result commit must publish the whole droppable nominal provisional result",
+                            "owned result commit must publish the whole droppable provisional result",
                         ));
                     }
                     validate_place(function, result, storage, leaves)?;
@@ -2966,6 +3001,8 @@ fn expression_skeleton(
                     | ResolvedExprKind::Char(_)
                     | ResolvedExprKind::Uint8(_)
                     | ResolvedExprKind::Usize(_)
+                    | ResolvedExprKind::ArrayU8(_)
+                    | ResolvedExprKind::RepeatArrayU8 { .. }
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_)
@@ -2990,6 +3027,10 @@ fn expression_skeleton(
                             },
                             "place skeleton path",
                         )?);
+                    }
+                    ResolvedExprKind::BorrowPlace { .. } => {
+                        produced =
+                            Some(work.singleton_path(empty_expr_path(), "borrow skeleton path")?);
                     }
                     ResolvedExprKind::Unary { op, value } => {
                         push_frame!(
@@ -4185,10 +4226,12 @@ fn validate_match_skeleton_shape(
         | ResolvedType::Char
         | ResolvedType::U8
         | ResolvedType::Usize
+        | ResolvedType::ArrayU8(_)
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool
         | ResolvedType::String
+        | ResolvedType::Bytes
         | ResolvedType::Str
         | ResolvedType::SliceU8
         | ResolvedType::TypeParameter { .. } => false,
@@ -4893,6 +4936,14 @@ fn finish_call_states(
     states: Vec<CallSkeletonState>,
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+    let infallible_byte_operation = matches!(
+        &expression.kind,
+        ResolvedExprKind::Call {
+            callee,
+            instance: None,
+            ..
+        } if crate::byte_ops::by_id(callee.as_str()).is_some()
+    );
     let source_expression =
         work.clone_owned(&expression.id, "call status source expression clone")?;
     let source = StatusSourceId {
@@ -4914,6 +4965,29 @@ fn finish_call_states(
             },
             "call-commit observation",
         )?;
+        if infallible_byte_operation {
+            if expression.ownership == OwnershipMode::Own
+                && type_needs_drop(program, function, &expression.ty)?
+            {
+                let destination = temporary_place(expression, work)?;
+                let at = work.clone_owned(&expression.id, "byte result expression clone")?;
+                let initialized =
+                    work.clone_owned(&destination, "byte result destination clone")?;
+                work.push_observation(
+                    &mut path,
+                    SkeletonObservation::Initialize {
+                        at,
+                        destination: initialized,
+                    },
+                    "owned infallible byte result initialization",
+                )?;
+                path.owned_source = Some(destination);
+            } else {
+                path.owned_source = None;
+            }
+            work.push_expr_path(&mut results, path, "infallible byte call path")?;
+            continue;
+        }
         let mut failure = work.clone_expr_path(&path, "call failure path clone")?;
         let failure_source = work.clone_owned(&source, "call failure status-source clone")?;
         work.push_observation(
@@ -6054,11 +6128,14 @@ fn replay_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&R
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Usize(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_) => None,
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => None,
     }
 }
 
@@ -7298,7 +7375,7 @@ fn main() -> i64 { 0 }
         let diagnostic = validate_structure(&program, &function).unwrap_err();
         assert!(diagnostic
             .message
-            .contains("whole droppable nominal provisional result"));
+            .contains("whole droppable provisional result"));
     }
 
     #[test]

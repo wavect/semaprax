@@ -464,6 +464,8 @@ pub(crate) fn precheck_program(program: &Program) -> Result<(), Vec<Diagnostic>>
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)
             | ExprKind::String(_)
+            | ExprKind::ArrayU8(_)
+            | ExprKind::RepeatArrayU8 { .. }
             | ExprKind::Var(_) => {}
             ExprKind::Call { args, .. } => {
                 call_sites = call_sites.saturating_add(1);
@@ -607,6 +609,7 @@ fn scalar_expr(expression: &Expr) -> bool {
         | ExprKind::Bool(_)
         | ExprKind::String(_)
         | ExprKind::Var(_) => true,
+        ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. } => false,
         ExprKind::Call {
             type_arguments,
             args,
@@ -711,6 +714,9 @@ fn collect_calls(
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::BorrowPlace { .. }
         | ResolvedExprKind::Place(_) => {}
         ResolvedExprKind::Call { callee, args, .. } => {
             *call_sites = call_sites.saturating_add(1);

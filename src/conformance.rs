@@ -293,6 +293,10 @@ pub enum TraceResult {
     F64(u64),
     Bool(bool),
     Unit,
+    /// A uniquely owned immutable byte buffer. Its physical payload and arena
+    /// or allocator identity remain target-private; this marker authenticates
+    /// the primitive result type without inventing a nominal declaration ID.
+    Bytes,
     /// Only the stable resolved type identity is observable. The physical
     /// resource payload remains target-private.
     Owned {
@@ -560,6 +564,7 @@ fn trace_result_json(result: &TraceResult) -> String {
         TraceResult::F64(bits) => format!("{{\"kind\":\"f64\",\"bits\":\"{bits:016x}\"}}",),
         TraceResult::Bool(value) => format!("{{\"kind\":\"bool\",\"value\":{value}}}"),
         TraceResult::Unit => "{\"kind\":\"unit\"}".to_owned(),
+        TraceResult::Bytes => "{\"kind\":\"bytes\"}".to_owned(),
         TraceResult::Owned { type_id } => format!(
             "{{\"kind\":\"owned\",\"type_id\":{}}}",
             quote_json(type_id.as_str())
@@ -829,6 +834,10 @@ fn main() -> i64 { 42 }
                 type_id: DeclarationId::new("token.type"),
             }),
             "{\"kind\":\"owned\",\"type_id\":\"token.type\"}"
+        );
+        assert_eq!(
+            trace_result_json(&TraceResult::Bytes),
+            "{\"kind\":\"bytes\"}"
         );
     }
 

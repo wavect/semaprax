@@ -42,10 +42,11 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
         | ResolvedType::Char
         | ResolvedType::U8
         | ResolvedType::Usize
+        | ResolvedType::ArrayU8(_)
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => 0,
-        ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 => 0,
+        ResolvedType::String | ResolvedType::Bytes | ResolvedType::Str | ResolvedType::SliceU8 => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,
@@ -113,6 +114,11 @@ fn inventory_builder_live_capacity(builder: &InventoryBuilder<'_>) -> usize {
 }
 
 pub const CLEANUP_INVENTORY_SCHEMA_V1: &str = "semaprax.cleanup-inventory.v1";
+/// Canonical compiler-owned lifecycle for one uniquely owned `Bytes` payload.
+///
+/// This identity is derived from the primitive type by both the inventory and
+/// CleanupPlan replay. It is never supplied by source or backend metadata.
+pub const BYTES_DROP_LIFECYCLE_ID: &str = "core.bytes.drop";
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct CleanupStorageId(pub u32);
@@ -368,6 +374,27 @@ impl InventoryBuilder<'_> {
                 Frame::Enter(ty) => {
                     if !self.needs_drop(ty)? {
                         shapes.push(FieldLivenessShape::NoDrop);
+                        continue;
+                    }
+                    if matches!(ty, ResolvedType::Bytes) {
+                        if !projections.is_empty() {
+                            return Err(cleanup_error(
+                                "compiler-owned Bytes cleanup leaf is not direct",
+                            ));
+                        }
+                        let flag_index = u32::try_from(self.flags.len())
+                            .map_err(|_| cleanup_error("too many cleanup liveness flags"))?;
+                        let flag = LivenessFlagId(flag_index);
+                        let lifecycle = DeclarationId::new(BYTES_DROP_LIFECYCLE_ID);
+                        self.flags.push(CleanupFlag {
+                            id: flag,
+                            place: CleanupPlace {
+                                storage,
+                                projections: projections.clone(),
+                            },
+                            lifecycle: lifecycle.clone(),
+                        });
+                        shapes.push(FieldLivenessShape::Leaf { flag, lifecycle });
                         continue;
                     }
                     let ResolvedType::Nominal {
@@ -657,11 +684,14 @@ impl InventoryBuilder<'_> {
                         | ResolvedExprKind::Char(_)
                         | ResolvedExprKind::Uint8(_)
                         | ResolvedExprKind::Usize(_)
+                        | ResolvedExprKind::ArrayU8(_)
+                        | ResolvedExprKind::RepeatArrayU8 { .. }
                         | ResolvedExprKind::Float32(_)
                         | ResolvedExprKind::Float64(_)
                         | ResolvedExprKind::Bool(_)
                         | ResolvedExprKind::String(_)
-                        | ResolvedExprKind::Place(_) => {}
+                        | ResolvedExprKind::Place(_)
+                        | ResolvedExprKind::BorrowPlace { .. } => {}
                     }
                     if enter.is_some() || action.is_some() {
                         frames.push(Frame::Children(expression, index + 1));

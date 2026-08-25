@@ -504,6 +504,9 @@ fn collect_expr_variant_types(
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::BorrowPlace { .. }
         | ResolvedExprKind::Place(_) => {}
     }
     Ok(())

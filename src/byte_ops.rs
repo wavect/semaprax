@@ -1,18 +1,30 @@
 //! Compiler-owned operations over non-escaping borrowed byte slices.
 
-use crate::ast::{Param, ParamMode, Span, Type};
+use crate::ast::{Span, Type};
 use crate::hir::{DeclarationId, OwnershipMode, ResolvedParam, ResolvedType, ValueId};
 
 pub(crate) const LEN_NAME: &str = "byte_len";
 pub(crate) const GET_NAME: &str = "byte_get";
 pub(crate) const LEN_ID: &str = "core.bytes.len";
 pub(crate) const GET_ID: &str = "core.bytes.get";
+pub(crate) const COPY_NAME: &str = "bytes_copy";
+pub(crate) const COPY_ID: &str = "core.bytes.copy";
+pub(crate) const BYTES_AS_SLICE_NAME: &str = "bytes_as_slice";
+pub(crate) const BYTES_AS_SLICE_ID: &str = "core.bytes.as-slice";
+pub(crate) const ARRAY_AS_SLICE_NAME: &str = "array_as_slice";
+pub(crate) const ARRAY_AS_SLICE_ID: &str = "core.array-u8.as-slice";
+pub(crate) const STR_AS_BYTES_NAME: &str = "str_as_bytes";
+pub(crate) const STR_AS_BYTES_ID: &str = "core.str.as-bytes";
 pub(crate) const MAX_EXTERNAL_ROOT_BYTES: u64 = 65_536;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum ByteOp {
     Len,
     Get,
+    Copy,
+    BytesAsSlice,
+    ArrayAsSlice,
+    StrAsBytes,
 }
 
 impl ByteOp {
@@ -20,24 +32,37 @@ impl ByteOp {
         match self {
             Self::Len => LEN_NAME,
             Self::Get => GET_NAME,
+            Self::Copy => COPY_NAME,
+            Self::BytesAsSlice => BYTES_AS_SLICE_NAME,
+            Self::ArrayAsSlice => ARRAY_AS_SLICE_NAME,
+            Self::StrAsBytes => STR_AS_BYTES_NAME,
         }
     }
     pub(crate) const fn id(self) -> &'static str {
         match self {
             Self::Len => LEN_ID,
             Self::Get => GET_ID,
+            Self::Copy => COPY_ID,
+            Self::BytesAsSlice => BYTES_AS_SLICE_ID,
+            Self::ArrayAsSlice => ARRAY_AS_SLICE_ID,
+            Self::StrAsBytes => STR_AS_BYTES_ID,
         }
     }
     pub(crate) const fn arity(self) -> usize {
         match self {
             Self::Len => 1,
             Self::Get => 2,
+            Self::Copy | Self::BytesAsSlice | Self::ArrayAsSlice | Self::StrAsBytes => 1,
         }
     }
     pub(crate) fn param_types(self) -> &'static [ResolvedType] {
         match self {
             Self::Len => &[ResolvedType::SliceU8],
             Self::Get => &[ResolvedType::SliceU8, ResolvedType::Usize],
+            Self::Copy => &[ResolvedType::SliceU8],
+            Self::BytesAsSlice => &[ResolvedType::Bytes],
+            Self::ArrayAsSlice => &[ResolvedType::ArrayU8(0)],
+            Self::StrAsBytes => &[ResolvedType::Str],
         }
     }
     pub(crate) fn return_type(self) -> ResolvedType {
@@ -47,6 +72,8 @@ impl ByteOp {
                 declaration: DeclarationId::new(crate::prelude::OPTION_ID),
                 arguments: vec![ResolvedType::U8],
             },
+            Self::Copy => ResolvedType::Bytes,
+            Self::BytesAsSlice | Self::ArrayAsSlice | Self::StrAsBytes => ResolvedType::SliceU8,
         }
     }
     pub(crate) fn ast_return_type(self) -> Type {
@@ -56,7 +83,40 @@ impl ByteOp {
                 name: "Option".to_owned(),
                 arguments: vec![Type::U8],
             },
+            Self::Copy => Type::Bytes,
+            Self::BytesAsSlice | Self::ArrayAsSlice | Self::StrAsBytes => Type::SliceU8,
         }
+    }
+
+    pub(crate) fn accepts_resolved(self, index: usize, ty: &ResolvedType) -> bool {
+        match (self, index) {
+            (Self::Len | Self::Copy, 0) => *ty == ResolvedType::SliceU8,
+            (Self::Get, 0) => *ty == ResolvedType::SliceU8,
+            (Self::Get, 1) => *ty == ResolvedType::Usize,
+            (Self::BytesAsSlice, 0) => *ty == ResolvedType::Bytes,
+            (Self::ArrayAsSlice, 0) => matches!(ty, ResolvedType::ArrayU8(_)),
+            (Self::StrAsBytes, 0) => *ty == ResolvedType::Str,
+            _ => false,
+        }
+    }
+
+    pub(crate) fn accepts_ast(self, index: usize, ty: &Type) -> bool {
+        match (self, index) {
+            (Self::Len | Self::Copy, 0) => *ty == Type::SliceU8,
+            (Self::Get, 0) => *ty == Type::SliceU8,
+            (Self::Get, 1) => *ty == Type::Usize,
+            (Self::BytesAsSlice, 0) => *ty == Type::Bytes,
+            (Self::ArrayAsSlice, 0) => matches!(ty, Type::ArrayU8(_)),
+            (Self::StrAsBytes, 0) => *ty == Type::Str,
+            _ => false,
+        }
+    }
+
+    pub(crate) const fn is_view(self) -> bool {
+        matches!(
+            self,
+            Self::BytesAsSlice | Self::ArrayAsSlice | Self::StrAsBytes
+        )
     }
 }
 
@@ -64,6 +124,10 @@ pub(crate) fn by_name(name: &str) -> Option<ByteOp> {
     match name {
         LEN_NAME => Some(ByteOp::Len),
         GET_NAME => Some(ByteOp::Get),
+        COPY_NAME => Some(ByteOp::Copy),
+        BYTES_AS_SLICE_NAME => Some(ByteOp::BytesAsSlice),
+        ARRAY_AS_SLICE_NAME => Some(ByteOp::ArrayAsSlice),
+        STR_AS_BYTES_NAME => Some(ByteOp::StrAsBytes),
         _ => None,
     }
 }
@@ -71,6 +135,10 @@ pub(crate) fn by_id(id: &str) -> Option<ByteOp> {
     match id {
         LEN_ID => Some(ByteOp::Len),
         GET_ID => Some(ByteOp::Get),
+        COPY_ID => Some(ByteOp::Copy),
+        BYTES_AS_SLICE_ID => Some(ByteOp::BytesAsSlice),
+        ARRAY_AS_SLICE_ID => Some(ByteOp::ArrayAsSlice),
+        STR_AS_BYTES_ID => Some(ByteOp::StrAsBytes),
         _ => None,
     }
 }
@@ -88,27 +156,6 @@ pub(crate) fn resolved_params(op: ByteOp) -> Vec<ResolvedParam> {
                 OwnershipMode::Value
             },
             ty: ty.clone(),
-            span: Span::default(),
-        })
-        .collect()
-}
-
-pub(crate) fn ast_params(op: ByteOp) -> Vec<Param> {
-    op.param_types()
-        .iter()
-        .enumerate()
-        .map(|(index, ty)| Param {
-            name: if index == 0 { "value" } else { "index" }.to_owned(),
-            mode: if index == 0 {
-                ParamMode::Borrow
-            } else {
-                ParamMode::Value
-            },
-            ty: match ty {
-                ResolvedType::SliceU8 => Type::SliceU8,
-                ResolvedType::Usize => Type::Usize,
-                _ => unreachable!(),
-            },
             span: Span::default(),
         })
         .collect()

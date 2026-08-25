@@ -1,5 +1,31 @@
 # Quality gates
 
+Portable Indexed Byte Data v1 internal-tranche changes additionally require
+exact syntax and diagnostics, independent source/resolved-HIR/hostile-HIR
+capacity agreement, Graph v17 projection with legacy v10-v16 preservation,
+exact minimum and maximum capacity boundaries, canonical Bytes cleanup-plan
+build and replay, and equivalent interpreter, native O0/O2, and Core-Wasm/Node
+execution. The fixed-memory and owned-arena tests must cover exact packed view
+carriers, unique non-reused owned tokens, lexical owner borrowing, failure
+settlement, and mixed borrowed-root accounting. Run:
+
+```sh
+cargo test --locked -p semaprax --test useful_data_usize_v1
+cargo test --locked -p semaprax --test portable_indexed_byte_data_v1
+cargo test --locked -p semaprax --test useful_data_arrays_bytes_frontend_v1
+cargo test --locked -p semaprax --test byte_data_capacity_v1
+cargo test --locked -p semaprax --test bytes_cleanup_v1
+cargo test --locked -p semaprax --test useful_data_interpreter_v1
+cargo test --locked -p semaprax --test useful_data_native_v1
+cargo test --locked -p semaprax --test useful_data_wasm_v1
+```
+
+These are local internal compiler gates. They do not prove the public
+`useful-data.v1` Project/npm adapters, the generated `Uint8Array` facade, an
+installed multi-module consumer, exact-head hosted promotion, or registry
+publication. Useful Text Consumer v1 gates alone likewise do not prove indexed
+byte-data semantics.
+
 Semantic Workspace Operations v1 changes additionally require the focused
 unit and public integration suites, exact derivation/Evidence/two-receipt KATs, canonical
 proposal/wrapper mutation matrices, proposal/per-path input exact/+1 caps,

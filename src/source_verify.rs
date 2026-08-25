@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use crate::ast::{
     BinaryOp, Expr, ExprKind, FieldDeclaration, Function, ImportDeclaration, ImportFailure,
@@ -72,10 +72,11 @@ fn ast_type_owned_capacity(ty: &Type) -> usize {
         | Type::Char
         | Type::U8
         | Type::Usize
+        | Type::ArrayU8(_)
         | Type::F32
         | Type::F64
         | Type::Bool => 0,
-        Type::String | Type::Str | Type::SliceU8 => 0,
+        Type::String | Type::Bytes | Type::Str | Type::SliceU8 => 0,
         Type::Named { name, arguments } => name
             .capacity()
             .saturating_add(arguments.capacity() * std::mem::size_of::<Type>())
@@ -109,6 +110,9 @@ struct Binding {
     native_unit_discard: bool,
     /// Explicit Mutation v1: only local `let mut` bindings are mutable.
     mutable: bool,
+    /// A local byte view keeps its exact owner/storage root borrowed through
+    /// the end of this lexical scope.
+    lexically_borrowed: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -209,7 +213,7 @@ impl CheckedValue {
     }
 
     fn returned(ty: Type, contains_resource: bool) -> Self {
-        let mode = if contains_resource {
+        let mode = if contains_resource || ty.is_uniquely_owned() {
             ParamMode::Own
         } else {
             ParamMode::Value
@@ -355,10 +359,12 @@ impl<'a> TypeTable<'a> {
                     Type::Char => resolved.push(Type::Char),
                     Type::U8 => resolved.push(Type::U8),
                     Type::Usize => resolved.push(Type::Usize),
+                    Type::ArrayU8(length) => resolved.push(Type::ArrayU8(*length)),
                     Type::F32 => resolved.push(Type::F32),
                     Type::F64 => resolved.push(Type::F64),
                     Type::Bool => resolved.push(Type::Bool),
                     Type::String => resolved.push(Type::String),
+                    Type::Bytes => resolved.push(Type::Bytes),
                     Type::Str => resolved.push(Type::Str),
                     Type::SliceU8 => resolved.push(Type::SliceU8),
                     Type::Named {
@@ -423,9 +429,11 @@ impl<'a> TypeTable<'a> {
             | Type::Char
             | Type::U8
             | Type::Usize
+            | Type::ArrayU8(_)
             | Type::F32
             | Type::F64
             | Type::Bool
+            | Type::Bytes
             | Type::Str
             | Type::SliceU8 => false,
             Type::Named { name, arguments } => {
@@ -819,6 +827,17 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                         field.span,
                     ));
                 }
+                if field.ty == Type::Bytes {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T268",
+                        format!(
+                            "aggregate field `{}.{}` cannot store owned `Bytes`",
+                            declaration.name, field.name
+                        ),
+                        field.span,
+                    ));
+                }
                 if !source_identifier(&field.name) {
                     diagnostics.push(error(
                         program,
@@ -956,6 +975,17 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                             "SPX-T264",
                             format!(
                                 "variant field `{}::{}.{}` cannot store borrowed `Slice<u8>`",
+                                declaration.name, case.name, field.name
+                            ),
+                            field.span,
+                        ));
+                    }
+                    if matches!(field.ty, Type::ArrayU8(_) | Type::Bytes) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T268",
+                            format!(
+                                "variant field `{}::{}.{}` cannot store fixed arrays or `Bytes`",
                                 declaration.name, case.name, field.name
                             ),
                             field.span,
@@ -1190,6 +1220,14 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                         program,
                         "SPX-T268",
                         "`Slice<u8>` cannot cross an import boundary",
+                        param.span,
+                    ));
+                }
+                if matches!(param.ty, Type::ArrayU8(_) | Type::Bytes) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T268",
+                        "fixed arrays and `Bytes` cannot cross an import boundary",
                         param.span,
                     ));
                 }
@@ -2130,6 +2168,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                             definitely_partial: HashSet::new(),
                             native_unit_discard: false,
                             mutable: false,
+                            lexically_borrowed: false,
                         },
                     )
                     .is_some()
@@ -2318,6 +2357,29 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
             .at_path(&program.path),
         );
     }
+    if let Err(capacity) = verify_byte_data_capacity(program, &types) {
+        if capacity.diagnostic != crate::byte_data_capacity::CapacityDiagnostic::Invariant
+            || !diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.severity.is_error())
+        {
+            let span = capacity
+                .function
+                .as_deref()
+                .and_then(|identity| {
+                    source_capacity_functions(program)
+                        .into_iter()
+                        .find(|(_, function)| function.stable_id == identity)
+                })
+                .map_or(Span::default(), |(_, function)| function.span);
+            diagnostics.push(error(
+                program,
+                capacity.diagnostic.code(),
+                capacity.detail,
+                span,
+            ));
+        }
+    }
     let mut native_interop_failures = HashSet::new();
     diagnostics.retain(|diagnostic| {
         diagnostic.code != "SPX-B107" || native_interop_failures.insert(diagnostic.message.clone())
@@ -2330,6 +2392,794 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         return vec![native_failure];
     }
     diagnostics
+}
+
+fn source_capacity_functions(program: &Program) -> Vec<(Option<&str>, &Function)> {
+    let mut functions = program
+        .functions
+        .iter()
+        .map(|function| (None, function))
+        .collect::<Vec<_>>();
+    for declaration in &program.types {
+        if let TypeDeclarationKind::Class { methods, .. } = &declaration.kind {
+            functions.extend(
+                methods
+                    .iter()
+                    .map(|method| (Some(declaration.name.as_str()), method)),
+            );
+        }
+    }
+    functions
+}
+
+struct SourceCapacityContext<'a> {
+    types: &'a TypeTable<'a>,
+    ordinary: BTreeMap<&'a str, &'a Function>,
+    enclosing_class: Option<&'a str>,
+}
+
+fn source_array_payload(types: &TypeTable<'_>, ty: &Type) -> Result<u32, ()> {
+    let mut total = 0_u32;
+    let mut pending = vec![ty.clone()];
+    let mut expanded = 0_usize;
+    while let Some(ty) = pending.pop() {
+        expanded = expanded.checked_add(1).ok_or(())?;
+        if expanded > 65_536 {
+            return Err(());
+        }
+        match ty {
+            Type::ArrayU8(length) => total = total.checked_add(length).ok_or(())?,
+            Type::Named { .. } => {
+                if let Some(fields) = types.record_fields(&ty) {
+                    for field in fields.iter().rev() {
+                        pending.push(types.record_field_type(&ty, field).ok_or(())?);
+                    }
+                }
+            }
+            Type::I64
+            | Type::I32
+            | Type::Char
+            | Type::U8
+            | Type::Usize
+            | Type::F32
+            | Type::F64
+            | Type::Bool
+            | Type::String
+            | Type::Bytes
+            | Type::Str
+            | Type::SliceU8 => {}
+        }
+    }
+    Ok(total)
+}
+
+fn source_capacity_super_method<'a>(
+    context: &SourceCapacityContext<'a>,
+    method: &str,
+) -> Option<&'a Function> {
+    let class = context.enclosing_class?;
+    let declaration = context.types.declaration(class)?;
+    let Type::Named { name: parent, .. } = declaration.extends.as_ref()? else {
+        return None;
+    };
+    resolve_class_method(context.types, parent, method).map(|(_, function)| function)
+}
+
+fn source_capacity_expr_type(
+    expression: &Expr,
+    bindings: &BTreeMap<String, Type>,
+    context: &SourceCapacityContext<'_>,
+) -> Option<Type> {
+    match &expression.kind {
+        ExprKind::Int(_) => Some(Type::I64),
+        ExprKind::Int32(_) => Some(Type::I32),
+        ExprKind::Char(_) => Some(Type::Char),
+        ExprKind::Uint8(_) => Some(Type::U8),
+        ExprKind::Usize(_) => Some(Type::Usize),
+        ExprKind::ArrayU8(values) => u32::try_from(values.len()).ok().map(Type::ArrayU8),
+        ExprKind::RepeatArrayU8 { count, .. } => Some(Type::ArrayU8(*count)),
+        ExprKind::Float32(_) => Some(Type::F32),
+        ExprKind::Float64(_) => Some(Type::F64),
+        ExprKind::Bool(_) => Some(Type::Bool),
+        ExprKind::String(_) => Some(Type::String),
+        ExprKind::Var(name) => bindings.get(name).cloned(),
+        ExprKind::Call { name, .. } => crate::byte_ops::by_name(name)
+            .map(crate::byte_ops::ByteOp::ast_return_type)
+            .or_else(|| {
+                context
+                    .ordinary
+                    .get(name.as_str())
+                    .map(|item| item.return_type.clone())
+            }),
+        ExprKind::MethodCall {
+            receiver, method, ..
+        } => {
+            let Type::Named { name, .. } = source_capacity_expr_type(receiver, bindings, context)?
+            else {
+                return None;
+            };
+            resolve_class_method(context.types, &name, method)
+                .map(|(_, function)| function.return_type.clone())
+        }
+        ExprKind::SuperMethod { method, .. } => source_capacity_super_method(context, method)
+            .map(|function| function.return_type.clone()),
+        ExprKind::Unary { value, .. } | ExprKind::Try { operand: value } => {
+            source_capacity_expr_type(value, bindings, context)
+        }
+        ExprKind::Binary { op, left, .. } => match op {
+            BinaryOp::Eq
+            | BinaryOp::Ne
+            | BinaryOp::Lt
+            | BinaryOp::Le
+            | BinaryOp::Gt
+            | BinaryOp::Ge
+            | BinaryOp::And
+            | BinaryOp::Or => Some(Type::Bool),
+            _ => source_capacity_expr_type(left, bindings, context),
+        },
+        ExprKind::If { then_branch, .. } => {
+            source_capacity_expr_type(then_branch, bindings, context)
+        }
+        ExprKind::ConstructRecord {
+            type_name,
+            type_arguments,
+            ..
+        }
+        | ExprKind::ConstructVariant {
+            type_name,
+            type_arguments,
+            ..
+        } => Some(Type::Named {
+            name: type_name.clone(),
+            arguments: type_arguments.clone(),
+        }),
+        ExprKind::UpdateRecord { base, .. } => source_capacity_expr_type(base, bindings, context),
+        ExprKind::Project { base, field, .. } => {
+            let base_ty = source_capacity_expr_type(base, bindings, context)?;
+            let declaration = context
+                .types
+                .record_fields(&base_ty)?
+                .iter()
+                .find(|candidate| candidate.name == *field)?;
+            context.types.record_field_type(&base_ty, declaration)
+        }
+        ExprKind::Block { statements, tail } => {
+            let mut local = bindings.clone();
+            for statement in statements {
+                if let Statement::Let {
+                    name,
+                    declared,
+                    value,
+                    ..
+                } = statement
+                {
+                    if let Some(ty) = declared
+                        .clone()
+                        .or_else(|| source_capacity_expr_type(value, &local, context))
+                    {
+                        local.insert(name.clone(), ty);
+                    }
+                }
+            }
+            source_capacity_expr_type(tail, &local, context)
+        }
+        ExprKind::Match { arms, .. } => arms
+            .first()
+            .and_then(|arm| source_capacity_expr_type(&arm.value, bindings, context)),
+    }
+}
+
+fn source_capacity_slot(
+    slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
+    types: &TypeTable<'_>,
+    identity: String,
+    kind: crate::byte_data_capacity::ArrayStorageKind,
+    ty: &Type,
+) -> Result<(), ()> {
+    let length = source_array_payload(types, ty)?;
+    if length != 0 || matches!(ty, Type::ArrayU8(0)) {
+        slots.push(crate::byte_data_capacity::ArrayStorageSlot {
+            identity,
+            kind,
+            length,
+        });
+    }
+    Ok(())
+}
+
+fn source_capacity_pattern_slots(
+    pattern: &MatchPattern,
+    expected: &Type,
+    path: &str,
+    bindings: &mut BTreeMap<String, Type>,
+    slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
+    types: &TypeTable<'_>,
+) -> Result<(), ()> {
+    match pattern {
+        MatchPattern::Binding { name, .. } => {
+            source_capacity_slot(
+                slots,
+                types,
+                format!("{path}.binding.{name}"),
+                crate::byte_data_capacity::ArrayStorageKind::Binding,
+                expected,
+            )?;
+            bindings.insert(name.clone(), expected.clone());
+        }
+        MatchPattern::Record { fields, .. } => {
+            fn visit(
+                fields: &[RecordMatchPatternField],
+                expected: &Type,
+                path: &str,
+                bindings: &mut BTreeMap<String, Type>,
+                slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
+                types: &TypeTable<'_>,
+            ) -> Result<(), ()> {
+                let declared = types.record_fields(expected).ok_or(())?;
+                for (index, field) in fields.iter().enumerate() {
+                    let declaration = declared
+                        .iter()
+                        .find(|candidate| candidate.name == field.name)
+                        .ok_or(())?;
+                    let field_ty = types.record_field_type(expected, declaration).ok_or(())?;
+                    let field_path = format!("{path}.field.{index}");
+                    match &field.pattern {
+                        RecordMatchFieldPattern::Binding { name, .. } => {
+                            source_capacity_slot(
+                                slots,
+                                types,
+                                format!("{field_path}.binding.{name}"),
+                                crate::byte_data_capacity::ArrayStorageKind::Binding,
+                                &field_ty,
+                            )?;
+                            bindings.insert(name.clone(), field_ty);
+                        }
+                        RecordMatchFieldPattern::Record { fields, .. } => {
+                            visit(fields, &field_ty, &field_path, bindings, slots, types)?
+                        }
+                        RecordMatchFieldPattern::Wildcard { .. } => {}
+                    }
+                }
+                Ok(())
+            }
+            visit(fields, expected, path, bindings, slots, types)?;
+        }
+        MatchPattern::Variant { .. }
+        | MatchPattern::Wildcard { .. }
+        | MatchPattern::Literal { .. }
+        | MatchPattern::Or { .. } => {}
+    }
+    Ok(())
+}
+
+fn source_capacity_expr(
+    expression: &Expr,
+    path: &str,
+    bindings: &mut BTreeMap<String, Type>,
+    slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
+    context: &SourceCapacityContext<'_>,
+    direct_destination: bool,
+) -> Result<crate::byte_data_capacity::CapacityFlow, ()> {
+    use crate::byte_data_capacity::{ArrayStorageKind, CapacityFlow};
+
+    if let Some(ty) = source_capacity_expr_type(expression, bindings, context) {
+        let payload = source_array_payload(context.types, &ty)?;
+        if payload != 0 || matches!(ty, Type::ArrayU8(0)) {
+            let kind = match &expression.kind {
+                ExprKind::Call { .. }
+                | ExprKind::MethodCall { .. }
+                | ExprKind::SuperMethod { .. } => Some(ArrayStorageKind::CallStaging),
+                ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. } if direct_destination => None,
+                ExprKind::Var(_) => None,
+                ExprKind::Block { .. } | ExprKind::If { .. } | ExprKind::Match { .. } => None,
+                _ => Some(ArrayStorageKind::Temporary),
+            };
+            if let Some(kind) = kind {
+                slots.push(crate::byte_data_capacity::ArrayStorageSlot {
+                    identity: path.to_owned(),
+                    kind,
+                    length: payload,
+                });
+            }
+        }
+    }
+
+    let sequence = |children: Vec<CapacityFlow>| {
+        if children.is_empty() {
+            CapacityFlow::Empty
+        } else {
+            CapacityFlow::Sequence(children)
+        }
+    };
+    let flow = match &expression.kind {
+        ExprKind::Call { name, args, .. } => {
+            let mut children = Vec::with_capacity(args.len() + 1);
+            let target = context.ordinary.get(name.as_str()).copied();
+            for (index, argument) in args.iter().enumerate() {
+                if let Some(param) = target.and_then(|function| function.params.get(index)) {
+                    source_capacity_slot(
+                        slots,
+                        context.types,
+                        format!("{path}.arg.{index}"),
+                        ArrayStorageKind::CallStaging,
+                        &param.ty,
+                    )?;
+                }
+                children.push(source_capacity_expr(
+                    argument,
+                    &format!("{path}.arg.{index}.value"),
+                    bindings,
+                    slots,
+                    context,
+                    false,
+                )?);
+            }
+            if name == crate::byte_ops::COPY_NAME {
+                children.push(CapacityFlow::BytesCopy {
+                    site: path.to_owned(),
+                    conservative_payload_bytes: crate::byte_data_capacity::MAX_ARRAY_BYTES,
+                });
+            } else if let Some(target) = target {
+                children.push(CapacityFlow::Call {
+                    site: path.to_owned(),
+                    callee: target.stable_id.clone(),
+                });
+            }
+            sequence(children)
+        }
+        ExprKind::MethodCall {
+            receiver,
+            method,
+            args,
+            ..
+        } => {
+            let target = source_capacity_expr_type(receiver, bindings, context).and_then(|ty| {
+                let Type::Named { name, .. } = ty else {
+                    return None;
+                };
+                resolve_class_method(context.types, &name, method).map(|(_, function)| function)
+            });
+            let mut children = Vec::with_capacity(args.len() + 2);
+            if let Some(param) = target.and_then(|function| function.params.first()) {
+                source_capacity_slot(
+                    slots,
+                    context.types,
+                    format!("{path}.receiver"),
+                    ArrayStorageKind::CallStaging,
+                    &param.ty,
+                )?;
+            }
+            children.push(source_capacity_expr(
+                receiver,
+                &format!("{path}.receiver.value"),
+                bindings,
+                slots,
+                context,
+                false,
+            )?);
+            for (index, argument) in args.iter().enumerate() {
+                if let Some(param) = target.and_then(|function| function.params.get(index + 1)) {
+                    source_capacity_slot(
+                        slots,
+                        context.types,
+                        format!("{path}.arg.{index}"),
+                        ArrayStorageKind::CallStaging,
+                        &param.ty,
+                    )?;
+                }
+                children.push(source_capacity_expr(
+                    argument,
+                    &format!("{path}.arg.{index}.value"),
+                    bindings,
+                    slots,
+                    context,
+                    false,
+                )?);
+            }
+            if let Some(target) = target {
+                children.push(CapacityFlow::Call {
+                    site: path.to_owned(),
+                    callee: target.stable_id.clone(),
+                });
+            }
+            sequence(children)
+        }
+        ExprKind::SuperMethod { method, args, .. } => {
+            let target = source_capacity_super_method(context, method);
+            let mut children = Vec::with_capacity(args.len() + 1);
+            if let Some(param) = target.and_then(|function| function.params.first()) {
+                source_capacity_slot(
+                    slots,
+                    context.types,
+                    format!("{path}.receiver"),
+                    ArrayStorageKind::CallStaging,
+                    &param.ty,
+                )?;
+            }
+            for (index, argument) in args.iter().enumerate() {
+                if let Some(param) = target.and_then(|function| function.params.get(index + 1)) {
+                    source_capacity_slot(
+                        slots,
+                        context.types,
+                        format!("{path}.arg.{index}"),
+                        ArrayStorageKind::CallStaging,
+                        &param.ty,
+                    )?;
+                }
+                children.push(source_capacity_expr(
+                    argument,
+                    &format!("{path}.arg.{index}.value"),
+                    bindings,
+                    slots,
+                    context,
+                    false,
+                )?);
+            }
+            if let Some(target) = target {
+                children.push(CapacityFlow::Call {
+                    site: path.to_owned(),
+                    callee: target.stable_id.clone(),
+                });
+            }
+            sequence(children)
+        }
+        ExprKind::Unary { value, .. } | ExprKind::Try { operand: value } => source_capacity_expr(
+            value,
+            &format!("{path}.operand"),
+            bindings,
+            slots,
+            context,
+            false,
+        )?,
+        ExprKind::Binary { left, right, .. } => sequence(vec![
+            source_capacity_expr(
+                left,
+                &format!("{path}.left"),
+                bindings,
+                slots,
+                context,
+                false,
+            )?,
+            source_capacity_expr(
+                right,
+                &format!("{path}.right"),
+                bindings,
+                slots,
+                context,
+                false,
+            )?,
+        ]),
+        ExprKind::Block { statements, tail } => {
+            let mut local = bindings.clone();
+            let mut children = Vec::with_capacity(statements.len() + 1);
+            for (index, statement) in statements.iter().enumerate() {
+                let statement_path = format!("{path}.s{index}");
+                match statement {
+                    Statement::Let {
+                        name,
+                        declared,
+                        value,
+                        ..
+                    } => {
+                        let ty = declared
+                            .clone()
+                            .or_else(|| source_capacity_expr_type(value, &local, context));
+                        if let Some(ty) = &ty {
+                            source_capacity_slot(
+                                slots,
+                                context.types,
+                                format!("{statement_path}.binding.{name}"),
+                                ArrayStorageKind::Binding,
+                                ty,
+                            )?;
+                        }
+                        children.push(source_capacity_expr(
+                            value,
+                            &format!("{statement_path}.value"),
+                            &mut local,
+                            slots,
+                            context,
+                            true,
+                        )?);
+                        if let Some(ty) = ty {
+                            local.insert(name.clone(), ty);
+                        }
+                    }
+                    Statement::Assign { value, .. } => children.push(source_capacity_expr(
+                        value,
+                        &format!("{statement_path}.value"),
+                        &mut local,
+                        slots,
+                        context,
+                        true,
+                    )?),
+                    Statement::Unsafe { body, .. } => children.push(source_capacity_expr(
+                        body,
+                        &format!("{statement_path}.body"),
+                        &mut local,
+                        slots,
+                        context,
+                        true,
+                    )?),
+                    Statement::While {
+                        condition, body, ..
+                    } => children.push(CapacityFlow::Loop {
+                        condition: Box::new(source_capacity_expr(
+                            condition,
+                            &format!("{statement_path}.condition"),
+                            &mut local,
+                            slots,
+                            context,
+                            false,
+                        )?),
+                        body: Box::new(source_capacity_expr(
+                            body,
+                            &format!("{statement_path}.body"),
+                            &mut local,
+                            slots,
+                            context,
+                            false,
+                        )?),
+                    }),
+                }
+            }
+            children.push(source_capacity_expr(
+                tail,
+                &format!("{path}.tail"),
+                &mut local,
+                slots,
+                context,
+                direct_destination,
+            )?);
+            sequence(children)
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => sequence(vec![
+            source_capacity_expr(
+                condition,
+                &format!("{path}.condition"),
+                bindings,
+                slots,
+                context,
+                false,
+            )?,
+            CapacityFlow::Alternative(vec![
+                source_capacity_expr(
+                    then_branch,
+                    &format!("{path}.then"),
+                    &mut bindings.clone(),
+                    slots,
+                    context,
+                    direct_destination,
+                )?,
+                source_capacity_expr(
+                    else_branch,
+                    &format!("{path}.else"),
+                    &mut bindings.clone(),
+                    slots,
+                    context,
+                    direct_destination,
+                )?,
+            ]),
+        ]),
+        ExprKind::ConstructRecord { fields, .. } | ExprKind::ConstructVariant { fields, .. } => {
+            sequence(
+                fields
+                    .iter()
+                    .enumerate()
+                    .map(|(index, field)| {
+                        source_capacity_expr(
+                            &field.value,
+                            &format!("{path}.field.{index}"),
+                            bindings,
+                            slots,
+                            context,
+                            false,
+                        )
+                    })
+                    .collect::<Result<Vec<_>, _>>()?,
+            )
+        }
+        ExprKind::Match { scrutinee, arms } => {
+            let scrutinee_ty = source_capacity_expr_type(scrutinee, bindings, context);
+            let alternatives = arms
+                .iter()
+                .enumerate()
+                .map(|(index, arm)| {
+                    let mut arm_bindings = bindings.clone();
+                    if let Some(scrutinee_ty) = &scrutinee_ty {
+                        source_capacity_pattern_slots(
+                            &arm.pattern,
+                            scrutinee_ty,
+                            &format!("{path}.arm.{index}.pattern"),
+                            &mut arm_bindings,
+                            slots,
+                            context.types,
+                        )?;
+                    }
+                    let mut children = Vec::with_capacity(2);
+                    if let Some(guard) = &arm.guard {
+                        children.push(source_capacity_expr(
+                            guard,
+                            &format!("{path}.arm.{index}.guard"),
+                            &mut arm_bindings,
+                            slots,
+                            context,
+                            false,
+                        )?);
+                    }
+                    children.push(source_capacity_expr(
+                        &arm.value,
+                        &format!("{path}.arm.{index}.value"),
+                        &mut arm_bindings,
+                        slots,
+                        context,
+                        direct_destination,
+                    )?);
+                    Ok(sequence(children))
+                })
+                .collect::<Result<Vec<_>, ()>>()?;
+            sequence(vec![
+                source_capacity_expr(
+                    scrutinee,
+                    &format!("{path}.scrutinee"),
+                    bindings,
+                    slots,
+                    context,
+                    false,
+                )?,
+                CapacityFlow::Alternative(alternatives),
+            ])
+        }
+        ExprKind::UpdateRecord { base, fields } => {
+            let mut children = vec![source_capacity_expr(
+                base,
+                &format!("{path}.base"),
+                bindings,
+                slots,
+                context,
+                false,
+            )?];
+            for (index, field) in fields.iter().enumerate() {
+                children.push(source_capacity_expr(
+                    &field.value,
+                    &format!("{path}.field.{index}"),
+                    bindings,
+                    slots,
+                    context,
+                    false,
+                )?);
+            }
+            sequence(children)
+        }
+        ExprKind::Project { base, .. } => source_capacity_expr(
+            base,
+            &format!("{path}.base"),
+            bindings,
+            slots,
+            context,
+            false,
+        )?,
+        ExprKind::Int(_)
+        | ExprKind::Int32(_)
+        | ExprKind::Char(_)
+        | ExprKind::Uint8(_)
+        | ExprKind::Usize(_)
+        | ExprKind::ArrayU8(_)
+        | ExprKind::RepeatArrayU8 { .. }
+        | ExprKind::Float32(_)
+        | ExprKind::Float64(_)
+        | ExprKind::Bool(_)
+        | ExprKind::String(_)
+        | ExprKind::Var(_) => CapacityFlow::Empty,
+    };
+    Ok(flow)
+}
+
+fn verify_byte_data_capacity(
+    program: &Program,
+    types: &TypeTable<'_>,
+) -> Result<(), crate::byte_data_capacity::CapacityError> {
+    use crate::byte_data_capacity::{ArrayStorageKind, CapacityFlow, FunctionCapacityInput};
+
+    let ordinary = program
+        .functions
+        .iter()
+        .map(|function| (function.name.as_str(), function))
+        .collect::<BTreeMap<_, _>>();
+    let inputs = source_capacity_functions(program)
+        .into_iter()
+        .map(|(enclosing_class, function)| {
+            let context = SourceCapacityContext {
+                types,
+                ordinary: ordinary.clone(),
+                enclosing_class,
+            };
+            let mut slots = Vec::new();
+            let mut bindings = BTreeMap::new();
+            for (index, parameter) in function.params.iter().enumerate() {
+                source_capacity_slot(
+                    &mut slots,
+                    types,
+                    format!("{}.param.{index}", function.stable_id),
+                    ArrayStorageKind::Parameter,
+                    &parameter.ty,
+                )
+                .map_err(|()| source_capacity_invariant(&function.stable_id))?;
+                bindings.insert(parameter.name.clone(), parameter.ty.clone());
+            }
+            source_capacity_slot(
+                &mut slots,
+                types,
+                format!("{}.result", function.stable_id),
+                ArrayStorageKind::ProvisionalResult,
+                &function.return_type,
+            )
+            .map_err(|()| source_capacity_invariant(&function.stable_id))?;
+            let mut execution = function
+                .requires
+                .iter()
+                .enumerate()
+                .map(|(index, expression)| {
+                    source_capacity_expr(
+                        expression,
+                        &format!("{}.requires.{index}", function.stable_id),
+                        &mut bindings.clone(),
+                        &mut slots,
+                        &context,
+                        false,
+                    )
+                    .map_err(|()| source_capacity_invariant(&function.stable_id))
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            execution.push(
+                source_capacity_expr(
+                    &function.body,
+                    &format!("{}.body", function.stable_id),
+                    &mut bindings,
+                    &mut slots,
+                    &context,
+                    true,
+                )
+                .map_err(|()| source_capacity_invariant(&function.stable_id))?,
+            );
+            execution.extend(
+                function
+                    .ensures
+                    .iter()
+                    .enumerate()
+                    .map(|(index, expression)| {
+                        source_capacity_expr(
+                            expression,
+                            &format!("{}.ensures.{index}", function.stable_id),
+                            &mut bindings.clone(),
+                            &mut slots,
+                            &context,
+                            false,
+                        )
+                        .map_err(|()| source_capacity_invariant(&function.stable_id))
+                    })
+                    .collect::<Result<Vec<_>, _>>()?,
+            );
+            Ok(FunctionCapacityInput {
+                function: function.stable_id.clone(),
+                array_slots: slots,
+                execution: CapacityFlow::Sequence(execution),
+            })
+        })
+        .collect::<Result<Vec<_>, crate::byte_data_capacity::CapacityError>>()?;
+    crate::byte_data_capacity::analyze(&inputs).map(|_| ())
+}
+
+fn source_capacity_invariant(function: &str) -> crate::byte_data_capacity::CapacityError {
+    crate::byte_data_capacity::CapacityError {
+        diagnostic: crate::byte_data_capacity::CapacityDiagnostic::Invariant,
+        function: Some(function.to_owned()),
+        detail: "source byte-data capacity projection could not be reconstructed".to_owned(),
+    }
 }
 
 fn native_rust_status_domain(value: &str) -> bool {
@@ -2501,6 +3351,19 @@ fn check_declared_type(
                 span,
             ));
         }
+        if arguments
+            .iter()
+            .any(|argument| matches!(argument, Type::ArrayU8(_) | Type::Bytes))
+        {
+            diagnostics.push(error(
+                program,
+                "SPX-T268",
+                "fixed arrays and `Bytes` are not admitted as generic arguments",
+                span,
+            ));
+            pending.extend(arguments.iter().rev());
+            continue;
+        }
         if !arguments.is_empty()
             && (!matches!(
                 declaration.kind,
@@ -2533,8 +3396,10 @@ fn generic_function_signature_slot(ty: &Type, parameters: &HashSet<&str>) -> boo
         | Type::Char
         | Type::U8
         | Type::Usize
+        | Type::ArrayU8(_)
         | Type::F32
         | Type::F64
+        | Type::Bytes
         | Type::Str
         | Type::SliceU8 => false,
         Type::Named { name, arguments } => {
@@ -2562,10 +3427,12 @@ fn substitute_function_type(
                 Type::Char => resolved.push(Type::Char),
                 Type::U8 => resolved.push(Type::U8),
                 Type::Usize => resolved.push(Type::Usize),
+                Type::ArrayU8(length) => resolved.push(Type::ArrayU8(*length)),
                 Type::F32 => resolved.push(Type::F32),
                 Type::F64 => resolved.push(Type::F64),
                 Type::Bool => resolved.push(Type::Bool),
                 Type::String => resolved.push(Type::String),
+                Type::Bytes => resolved.push(Type::Bytes),
                 Type::Str => resolved.push(Type::Str),
                 Type::SliceU8 => resolved.push(Type::SliceU8),
                 Type::Named {
@@ -2630,6 +3497,7 @@ fn generic_function_expression_is_direct_scalar(expression: &Expr) -> bool {
             | ExprKind::Bool(_)
             | ExprKind::String(_)
             | ExprKind::Var(_) => {}
+            ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. } => return false,
             ExprKind::Call { args, .. } => pending.extend(args.iter().rev()),
             ExprKind::Unary { value, .. } => pending.push(value),
             ExprKind::Binary { left, right, .. } => {
@@ -2771,6 +3639,20 @@ fn check_ownership_mode(
                 )
                 .with_help(format!("use `{}: borrow Slice<u8>`", param.name)),
             );
+        }
+        return;
+    }
+    if param.ty == Type::Bytes {
+        if param.mode != ParamMode::Own {
+            diagnostics.push(error(
+                program,
+                "SPX-T263",
+                format!(
+                    "owned byte parameter `{}.{}` must use `own Bytes`",
+                    function.name, param.name
+                ),
+                param.span,
+            ));
         }
         return;
     }
@@ -2975,6 +3857,7 @@ fn check_record_pattern(
                                     definitely_partial: HashSet::new(),
                                     native_unit_discard: false,
                                     mutable: false,
+                                    lexically_borrowed: false,
                                 },
                             );
                         }
@@ -3252,6 +4135,7 @@ struct VariantMatchState<'a> {
 
 enum VerifierCallTarget<'a> {
     Native(&'a ImportDeclaration),
+    Byte(crate::byte_ops::ByteOp),
     Ordinary(Option<VerifierFunctionSignature<'a>>),
 }
 
@@ -3452,6 +4336,7 @@ fn verifier_frame_owned_capacity(frame: &VerifierFrame<'_>) -> usize {
         ),
         VerifierFrame::ResumeCallArgument { target, .. } => match target {
             VerifierCallTarget::Native(_) => 0,
+            VerifierCallTarget::Byte(_) => 0,
             VerifierCallTarget::Ordinary(Some(signature)) => {
                 verifier_signature_owned_capacity(signature)
             }
@@ -3678,6 +4563,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     self.program,
                     "SPX-T252",
                     "string literals are not yet admitted in while bodies",
+                    expression.span,
+                ));
+                Err(())
+            }
+            ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. } => {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T252",
+                    "fixed-array literals are not admitted in bounded while bodies",
                     expression.span,
                 ));
                 Err(())
@@ -3912,6 +4806,12 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     ExprKind::Char(_) => self.values.push(Some(CheckedValue::value(Type::Char))),
                     ExprKind::Uint8(_) => self.values.push(Some(CheckedValue::value(Type::U8))),
                     ExprKind::Usize(_) => self.values.push(Some(CheckedValue::value(Type::Usize))),
+                    ExprKind::ArrayU8(values) => self.values.push(Some(CheckedValue::value(
+                        Type::ArrayU8(values.len() as u32),
+                    ))),
+                    ExprKind::RepeatArrayU8 { count, .. } => self
+                        .values
+                        .push(Some(CheckedValue::value(Type::ArrayU8(*count)))),
                     ExprKind::Float32(_) => self.values.push(Some(CheckedValue::value(Type::F32))),
                     ExprKind::Float64(_) => self.values.push(Some(CheckedValue::value(Type::F64))),
                     ExprKind::Bool(_) => self.values.push(Some(CheckedValue::value(Type::Bool))),
@@ -4103,7 +5003,6 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 },
                             ))
                         } else if let Some(op) = crate::byte_ops::by_name(name) {
-                            let params = crate::byte_ops::ast_params(op);
                             if !type_arguments.is_empty() {
                                 self.diagnostics.push(error(
                                     self.program,
@@ -4114,24 +5013,34 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     expression.span,
                                 ));
                             }
-                            if args.len() != params.len() {
+                            if args.len() != op.arity() {
                                 self.diagnostics.push(error(
                                     self.program,
                                     "SPX-T263",
                                     format!(
                                         "byte operation `{name}` expects {} arguments, received {}",
-                                        params.len(),
+                                        op.arity(),
                                         args.len()
                                     ),
                                     expression.span,
                                 ));
                             }
-                            VerifierCallTarget::Ordinary(Some(
-                                VerifierFunctionSignature::Specialized {
-                                    params,
-                                    return_type: op.ast_return_type(),
-                                },
-                            ))
+                            if op.is_view()
+                                && !matches!(
+                                    args.first().map(|arg| &arg.kind),
+                                    Some(ExprKind::Var(_))
+                                )
+                            {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-T266",
+                                    format!(
+                                        "byte view `{name}` requires an exact named storage root"
+                                    ),
+                                    expression.span,
+                                ));
+                            }
+                            VerifierCallTarget::Byte(op)
                         } else {
                             let target = self.functions.get(name.as_str()).copied();
                             if target.is_none() {
@@ -4231,6 +5140,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     });
                                     value.native_unit = import.result == ImportResult::Unit;
                                     value
+                                }
+                                VerifierCallTarget::Byte(op) => {
+                                    CheckedValue::returned(op.ast_return_type(), false)
                                 }
                                 VerifierCallTarget::Ordinary(Some(target)) => {
                                     CheckedValue::returned(
@@ -4886,6 +5798,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             if let (Some(then_binding), Some(else_binding)) =
                                 (then_bindings.get(name), else_bindings.get(name))
                             {
+                                binding.lexically_borrowed = then_binding.lexically_borrowed
+                                    || else_binding.lexically_borrowed;
                                 binding.moved_places =
                                     join_moved_places(then_binding, else_binding);
                                 binding.definitely_partial =
@@ -5007,15 +5921,25 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         binding_ty = declared_ty.clone();
                                         binding_mode = if *declared_ty == Type::SliceU8 {
                                             ParamMode::Borrow
-                                        } else if self.types.contains_resource(declared_ty) {
+                                        } else if self.types.contains_resource(declared_ty)
+                                            || declared_ty.is_uniquely_owned()
+                                        {
                                             ParamMode::Own
                                         } else {
                                             ParamMode::Value
                                         };
                                     } else {
+                                        let diagnostic = if matches!(
+                                            (&actual.ty, declared_ty),
+                                            (Type::ArrayU8(_), Type::ArrayU8(_))
+                                        ) {
+                                            "SPX-T262"
+                                        } else {
+                                            "SPX-T232"
+                                        };
                                         self.diagnostics.push(error(
                                             self.program,
-                                            "SPX-T232",
+                                            diagnostic,
                                             format!(
                                                 "declared binding type `{declared_ty}` does not accept value type `{}`",
                                                 actual.ty
@@ -5024,7 +5948,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         ));
                                     }
                                 }
-                                if self.types.contains_resource(&actual.ty)
+                                if (self.types.contains_resource(&actual.ty)
+                                    || actual.ty.is_uniquely_owned())
                                     && actual.mode == ParamMode::Own
                                 {
                                     if self.allow_moves {
@@ -5042,6 +5967,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         ));
                                     }
                                 }
+                                if let Some(root) = direct_byte_view_root(value) {
+                                    if let Some(owner) =
+                                        self.scopes[block_scope].bindings.get_mut(root)
+                                    {
+                                        owner.lexically_borrowed = true;
+                                    }
+                                }
                                 self.scopes[block_scope].bindings.insert(
                                     name.clone(),
                                     Binding {
@@ -5052,6 +5984,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         definitely_partial: HashSet::new(),
                                         native_unit_discard: actual.native_unit,
                                         mutable: *mutable,
+                                        lexically_borrowed: false,
                                     },
                                 );
                             }
@@ -5077,10 +6010,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             value,
                             ..
                         } => {
-                            let target = self.scopes[block_scope]
-                                .bindings
-                                .get(name.as_str())
-                                .map(|binding| (binding.mutable, binding.ty.clone()));
+                            let target = self.scopes[block_scope].bindings.get(name.as_str()).map(
+                                |binding| {
+                                    (
+                                        binding.mutable,
+                                        binding.ty.clone(),
+                                        binding.lexically_borrowed,
+                                    )
+                                },
+                            );
                             if target.is_none() {
                                 self.diagnostics.push(error(
                                     self.program,
@@ -5089,7 +6027,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     *name_span,
                                 ));
                             }
-                            if let Some((mutable, binding_ty)) = target {
+                            if let Some((mutable, binding_ty, lexically_borrowed)) = target {
+                                if lexically_borrowed {
+                                    self.diagnostics.push(error(
+                                        self.program,
+                                        "SPX-T265",
+                                        "assignment would replace storage held by a lexical byte view",
+                                        *name_span,
+                                    ));
+                                }
                                 match field {
                                     Some(field) => {
                                         // Field Mutation v1: one direct scalar
@@ -5429,6 +6375,24 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 );
                             }
                         }
+                        VerifierCallTarget::Byte(op) => {
+                            if let Some(actual) = &actual {
+                                reject_native_unit_value(
+                                    self.program,
+                                    argument,
+                                    actual,
+                                    self.diagnostics,
+                                );
+                                if !actual.native_unit && !op.accepts_ast(index, &actual.ty) {
+                                    self.diagnostics.push(error(
+                                        self.program,
+                                        "SPX-T263",
+                                        format!("byte operation `{name}` argument {index} has the wrong type"),
+                                        argument.span,
+                                    ));
+                                }
+                            }
+                        }
                     }
                     let next = index + 1;
                     if let Some(argument) = args.get(next) {
@@ -5457,6 +6421,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 });
                                 value.native_unit = import.result == ImportResult::Unit;
                                 Some(value)
+                            }
+                            VerifierCallTarget::Byte(op) => {
+                                Some(CheckedValue::returned(op.ast_return_type(), false))
                             }
                             VerifierCallTarget::Ordinary(Some(target)) => {
                                 Some(CheckedValue::returned(
@@ -6531,10 +7498,12 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             | Type::Char
                             | Type::U8
                             | Type::Usize
+                            | Type::ArrayU8(_)
                             | Type::F32
                             | Type::F64
                             | Type::Bool
                             | Type::String
+                            | Type::Bytes
                             | Type::Str
                             | Type::SliceU8
                             | Type::Named { .. } => None,
@@ -6778,6 +7747,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                             definitely_partial: HashSet::new(),
                                             native_unit_discard: false,
                                             mutable: false,
+                                            lexically_borrowed: false,
                                         },
                                     );
                                 }
@@ -6913,6 +7883,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         definitely_partial: HashSet::new(),
                                         native_unit_discard: false,
                                         mutable: false,
+                                        lexically_borrowed: false,
                                     },
                                 );
                             }
@@ -7081,6 +8052,12 @@ fn check_expr(
         ExprKind::Char(_) => Some(CheckedValue::value(Type::Char)),
         ExprKind::Uint8(_) => Some(CheckedValue::value(Type::U8)),
         ExprKind::Usize(_) => Some(CheckedValue::value(Type::Usize)),
+        ExprKind::ArrayU8(values) => Some(CheckedValue::value(Type::ArrayU8(
+            u32::try_from(values.len()).expect("parsed array length fits u32"),
+        ))),
+        ExprKind::RepeatArrayU8 { count, .. } => {
+            Some(CheckedValue::value(Type::ArrayU8(*count)))
+        }
         ExprKind::Float32(_) => Some(CheckedValue::value(Type::F32)),
         ExprKind::Float64(_) => Some(CheckedValue::value(Type::F64)),
         ExprKind::Bool(_) => Some(CheckedValue::value(Type::Bool)),
@@ -8015,6 +8992,7 @@ fn check_expr(
                                         definitely_partial: HashSet::new(),
                                         native_unit_discard: false,
                                         mutable: false,
+                                        lexically_borrowed: false,
                                     },
                                 );
                             }
@@ -8283,10 +9261,12 @@ fn check_expr(
                 | Type::Char
                 | Type::U8
                 | Type::Usize
+                | Type::ArrayU8(_)
                 | Type::F32
                 | Type::F64
                 | Type::Bool
                 | Type::String
+                | Type::Bytes
                 | Type::Str
                 | Type::SliceU8
                 | Type::Named { .. } => None,
@@ -8413,6 +9393,7 @@ fn check_expr(
                                         definitely_partial: HashSet::new(),
                                         native_unit_discard: false,
                                         mutable: false,
+                                        lexically_borrowed: false,
                                     },
                                 );
                             }
@@ -8839,7 +9820,9 @@ fn check_expr(
                             continue;
                         }
                         if let Some(actual) = actual {
-                            if types.contains_resource(&actual.ty) && actual.mode == ParamMode::Own
+                            if (types.contains_resource(&actual.ty)
+                                || actual.ty.is_uniquely_owned())
+                                && actual.mode == ParamMode::Own
                             {
                                 if allow_moves {
                                     mark_value_sources_moved(value, &mut scope, types);
@@ -8862,6 +9845,7 @@ fn check_expr(
                                     definitely_partial: HashSet::new(),
                                     native_unit_discard: actual.native_unit,
                                     mutable: false,
+                                    lexically_borrowed: false,
                                 },
                             );
                         }
@@ -9157,6 +10141,15 @@ fn reject_while_disallowed_oracle(
         | ExprKind::Float64(_)
         | ExprKind::Bool(_)
         | ExprKind::Var(_) => Ok(()),
+        ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "fixed-array literals are not admitted in bounded while bodies",
+                expression.span,
+            ));
+            Err(())
+        }
         ExprKind::SuperMethod { .. } => {
             diagnostics.push(error(
                 program,
@@ -9365,11 +10358,25 @@ fn check_argument_ownership(
     let Some(actual) = actual else {
         return;
     };
-    if !types.contains_resource(&actual.ty) {
+    if !types.contains_resource(&actual.ty) && !actual.ty.is_uniquely_owned() {
         return;
     }
     match param.mode {
         ParamMode::Own => {
+            if let Some(place) = source_place(arg, variables, types) {
+                if variables
+                    .get(&place.root)
+                    .is_some_and(|binding| binding.lexically_borrowed)
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T265",
+                        "move or call transfer would invalidate a lexical byte view",
+                        arg.span,
+                    ));
+                    return;
+                }
+            }
             if actual.mode != ParamMode::Own {
                 if matches!(actual.mode, ParamMode::Borrow | ParamMode::Shared)
                     && source_place(arg, variables, types)
@@ -9425,6 +10432,23 @@ fn check_argument_ownership(
     }
 }
 
+fn direct_byte_view_root(expression: &Expr) -> Option<&str> {
+    let ExprKind::Call { name, args, .. } = &expression.kind else {
+        return None;
+    };
+    if !crate::byte_ops::by_name(name).is_some_and(crate::byte_ops::ByteOp::is_view) {
+        return None;
+    }
+    let [Expr {
+        kind: ExprKind::Var(root),
+        ..
+    }] = args.as_slice()
+    else {
+        return None;
+    };
+    Some(root)
+}
+
 fn mark_value_sources_moved(
     expr: &Expr,
     variables: &mut HashMap<String, Binding>,
@@ -9453,7 +10477,7 @@ fn mark_value_sources_moved(
             Frame::Enter(expr, scope) => match &expr.kind {
                 ExprKind::Var(name) => {
                     if let Some(binding) = scopes[scope].get_mut(name) {
-                        if types.contains_resource(&binding.ty)
+                        if (types.contains_resource(&binding.ty) || binding.ty.is_uniquely_owned())
                             && binding.mode == ParamMode::Own
                             && binding.availability == Availability::Available
                         {
@@ -9571,6 +10595,7 @@ fn join_conditional(
             let moved_places = join_moved_places(baseline, conditional);
             let definitely_partial = join_definitely_partial(baseline, conditional);
             baseline.availability = baseline.availability.join(conditional.availability);
+            baseline.lexically_borrowed |= conditional.lexically_borrowed;
             baseline.moved_places = moved_places;
             baseline.definitely_partial = definitely_partial;
         }
@@ -9947,6 +10972,7 @@ mod iterative_verifier_tests {
                     definitely_partial: HashSet::new(),
                     native_unit_discard: false,
                     mutable: false,
+                    lexically_borrowed: false,
                 },
             );
         }

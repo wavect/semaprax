@@ -19,24 +19,10 @@ pub(crate) const IS_EMPTY_ID: &str = "core.str.is_empty";
 pub(crate) const STARTS_WITH_ID: &str = "core.str.starts_with";
 pub(crate) const CONTAINS_ID: &str = "core.str.contains";
 
-/// Exact external-invocation byte budget for the borrowed-text profile.
-///
-/// The same bound is enforced by the interpreter, native intrinsic runtime,
-/// and Wasm raw wrappers. Each external argument is charged exactly once at
-/// that boundary. Internal calls may alias or forward one admitted view and
-/// therefore must not charge the same invocation-root storage again.
+/// Per-root length bound for borrowed UTF-8 input. The invocation boundary
+/// combines text and arbitrary-byte roots under the shared Useful Data
+/// cumulative budget; derived and forwarded views do not recharge it.
 pub(crate) const MAX_BORROWED_STR_BYTES: usize = 65_536;
-
-pub(crate) fn within_work_budget(values: &[&str]) -> bool {
-    values
-        .iter()
-        .try_fold(0_usize, |total, value| {
-            total
-                .checked_add(value.len())
-                .filter(|sum| *sum <= MAX_BORROWED_STR_BYTES)
-        })
-        .is_some()
-}
 
 /// Allocation-bounded KMP over exact UTF-8 bytes.  UTF-8 validity is already
 /// established at every profile boundary; searching bytes preserves embedded

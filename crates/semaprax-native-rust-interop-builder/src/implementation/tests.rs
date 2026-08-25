@@ -178,6 +178,8 @@ fn observed_type_bytes(ty: &ResolvedType) -> usize {
         | ResolvedType::F64
         | ResolvedType::Bool
         | ResolvedType::String
+        | ResolvedType::ArrayU8(_)
+        | ResolvedType::Bytes
         | ResolvedType::Str
         | ResolvedType::SliceU8 => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
@@ -5340,30 +5342,30 @@ fn type_facts_hostile_envelopes_are_bound_to_canonical_fixtures() {
             (
                 "sha256:cfa16985be87d169c3fb81d5958126347ec82b4c1afed878e2d98d1fbfe72c80"
                     .to_owned(),
-                220_111_166,
+                220_111_478,
                 438_720_350,
-                658_831_516,
+                658_831_828,
             ),
             (
                 "sha256:461611e4315e312330af0285273568e5d09cd8e5770a35dcf66a82783aa15ae6"
                     .to_owned(),
-                147_075_772,
+                147_076_084,
                 293_107_472,
-                440_183_244,
+                440_183_556,
             ),
             (
                 "sha256:dc19474b86def3eaf6e3c60cc2224694e6aa7cf2811cca6115943c11102f95fc"
                     .to_owned(),
-                42_048_715,
+                42_049_027,
                 80_965_504,
-                123_014_219,
+                123_014_531,
             ),
             (
                 "sha256:d2692d4883957575ee95df8f9ee7057343599e1da945c386cedea714c716f66d"
                     .to_owned(),
-                10_529_688_915,
+                10_529_689_227,
                 21_056_178_704,
-                31_585_867_619,
+                31_585_867_931,
             ),
         ],
         "canonical fixture or independently computed envelope terms drifted"
@@ -6605,7 +6607,7 @@ fn inventory_and_cleanup_hostile_envelopes_bind_the_shared_fixture() {
             peaks[4],
             capacity.retained_upper.checked_add(peaks[4]).unwrap(),
         ],
-        [2_804_031, 38_736, 2_842_767, 299_312, 3_103_343],
+        [2_804_343, 38_736, 2_843_079, 299_312, 3_103_655],
         "retained/inventory/cleanup envelope terms drifted"
     );
     let complete = capacity.complete().unwrap();
@@ -6653,13 +6655,13 @@ fn hir_complete_reservation_is_exact_and_one_less_prevents_resolution() {
     let canonical = crate::format::canonical(&program);
     let mut stack = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
     let capacity = hir_pre_resolve_capacity(&program, canonical.len(), &mut stack).unwrap();
-    assert_eq!(capacity.retained_upper, 49_387);
+    assert_eq!(capacity.retained_upper, 49_699);
     assert_eq!(capacity.scratch_upper, 16_170);
     assert_eq!(
         capacity.phase_peaks(),
         [5_028, 15_620, 4_900, 3_488, 5_792, 3_456, 16_170, 1_032]
     );
-    assert_eq!(capacity.complete().unwrap(), 65_557);
+    assert_eq!(capacity.complete().unwrap(), 65_869);
     assert_eq!(
         capacity.scratch_upper,
         capacity.phase_peaks().into_iter().max().unwrap(),
@@ -7929,6 +7931,8 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
             | ExprKind::Char(_)
             | ExprKind::Uint8(_)
             | ExprKind::Usize(_)
+            | ExprKind::ArrayU8(_)
+            | ExprKind::RepeatArrayU8 { .. }
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)

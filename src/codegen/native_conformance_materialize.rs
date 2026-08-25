@@ -327,6 +327,8 @@ fn materialize_result(
         | (ResolvedType::String, _)
         | (ResolvedType::Str, _)
         | (ResolvedType::SliceU8, _)
+        | (ResolvedType::ArrayU8(_), _)
+        | (ResolvedType::Bytes, _)
         | (ResolvedType::TypeParameter { .. }, _)
         | (ResolvedType::Nominal { .. }, _) => Err(MaterializeError::ResultTypeMismatch),
     }

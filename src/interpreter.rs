@@ -23,7 +23,10 @@
 //! binary operators with left-to-right evaluation and sticky failure
 //! selection, `i64`/`i32`/`u8`/`char`/`f32`/`f64`/`bool` literals,
 //! requires/ensures contracts, and calls to other admitted functions — and
-//! nothing else. Aggregate construction/projection/update, variant
+//! plus verified internal Portable Indexed Byte Data v1 fixed arrays, owned
+//! immutable `Bytes`, non-escaping byte views, and compiler-owned byte
+//! operations. These data values do not widen the public interpreter
+//! boundary. Other aggregate construction/projection/update, variant
 //! construction, matching, postfix `?`, import calls, generic calls, place
 //! projections, strings at the boundary, and backend-unlowerable scalar
 //! operations (`f32`/`f64`/`u8`
@@ -681,18 +684,12 @@ fn interpret_on_current_thread(
             )]
         })?;
 
-    let mut admitted: BTreeMap<&str, &ResolvedFunction> = BTreeMap::new();
-    for candidate in &resolved.functions {
-        if let Some(ast_function) = program
-            .functions
-            .iter()
-            .find(|item| item.stable_id == candidate.id.as_str())
-        {
-            if admission(ast_function).is_none() {
-                admitted.insert(candidate.id.as_str(), candidate);
-            }
-        }
-    }
+    // The selected source boundary remains scalar/borrow-only, while its
+    // internal closure may use the verified Useful Data profile. Keeping
+    // these gates separate prevents owned buffers or fixed arrays from
+    // silently becoming CLI values merely because the evaluator can execute
+    // them internally.
+    let admitted = admitted_resolved_functions(&resolved);
 
     scan_closure(entry.id.as_str(), &admitted)?;
 
@@ -993,6 +990,14 @@ fn admitted_resolved_functions(
     program
         .functions
         .iter()
+        .filter(|function| {
+            program
+                .declarations
+                .declaration(&function.id)
+                .is_some_and(|declaration| {
+                    declaration.identity_origin == hir::IdentityOrigin::Explicit
+                })
+        })
         .filter(|function| resolved_signature_is_admitted(function))
         .map(|function| (function.id.as_str(), function))
         .collect()
@@ -1003,12 +1008,25 @@ fn resolved_signature_is_admitted(function: &ResolvedFunction) -> bool {
         && function
             .params
             .iter()
-            .all(|parameter| parameter.ownership == hir::OwnershipMode::Value)
-        && function
-            .params
-            .iter()
-            .all(|parameter| is_admitted_resolved_scalar(&parameter.ty))
-        && is_admitted_resolved_scalar(&function.return_type)
+            .all(|parameter| match (&parameter.ty, parameter.ownership) {
+                (ty, hir::OwnershipMode::Value)
+                    if is_admitted_resolved_scalar(ty)
+                        || matches!(ty, ResolvedType::ArrayU8(_)) =>
+                {
+                    true
+                }
+                (ResolvedType::Bytes, hir::OwnershipMode::Own)
+                | (ResolvedType::Bytes, hir::OwnershipMode::Borrow)
+                | (ResolvedType::Str, hir::OwnershipMode::Borrow)
+                | (ResolvedType::SliceU8, hir::OwnershipMode::Borrow)
+                | (ResolvedType::ArrayU8(_), hir::OwnershipMode::Borrow) => true,
+                _ => false,
+            })
+        && (is_admitted_resolved_scalar(&function.return_type)
+            || matches!(
+                function.return_type,
+                ResolvedType::ArrayU8(_) | ResolvedType::Bytes
+            ))
 }
 
 fn is_admitted_resolved_scalar(ty: &ResolvedType) -> bool {
@@ -1102,11 +1120,14 @@ fn child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Usize(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_) => Vec::new(),
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => Vec::new(),
     }
 }
 
@@ -1120,10 +1141,15 @@ enum Value {
     Float32(f32),
     Float64(f64),
     Bool(bool),
+    ArrayU8(Arc<[u8]>),
+    Bytes(OwnedBytesValue),
     String(String),
     BorrowedStr(BorrowedStrValue),
     BorrowedSlice(BorrowedSliceValue),
     OptionU8(Option<u8>),
+    /// Runtime tombstone for a verifier-authenticated move from an owned
+    /// storage slot. Reaching it again is an impossible post-verify state.
+    Moved,
 }
 
 fn is_option_u8(ty: &ResolvedType) -> bool {
@@ -1157,7 +1183,7 @@ fn option_u8_pattern_is_admitted(pattern: &crate::hir::ResolvedMatchPattern) -> 
 #[derive(Clone, Debug, PartialEq)]
 struct BorrowedStrValue {
     invocation_root: ValueId,
-    text: Arc<str>,
+    bytes: Arc<[u8]>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -1166,9 +1192,18 @@ struct BorrowedSliceValue {
     bytes: Arc<[u8]>,
 }
 
+/// One logical `bytes_copy` allocation. The monotonically assigned identity
+/// distinguishes even zero-length copies, for which allocators are permitted
+/// to reuse the same dangling physical pointer.
+#[derive(Clone, Debug, PartialEq)]
+struct OwnedBytesValue {
+    allocation: u32,
+    bytes: Arc<[u8]>,
+}
+
 fn borrowed_text(value: &Value) -> Option<&str> {
     match value {
-        Value::BorrowedStr(value) => Some(value.text.as_ref()),
+        Value::BorrowedStr(value) => std::str::from_utf8(value.bytes.as_ref()).ok(),
         _ => None,
     }
 }
@@ -1237,6 +1272,8 @@ struct Evaluator<'a> {
     admitted: &'a BTreeMap<&'a str, &'a ResolvedFunction>,
     steps: usize,
     budget: usize,
+    next_byte_allocation: u32,
+    allocated_byte_payload: u64,
 }
 
 fn evaluate_resolved_entry<'a>(
@@ -1249,6 +1286,8 @@ fn evaluate_resolved_entry<'a>(
         admitted,
         steps: 0,
         budget,
+        next_byte_allocation: 0,
+        allocated_byte_payload: 0,
     };
     let outcome = evaluator.evaluate_entry(entry, arguments);
     (outcome, evaluator.steps)
@@ -1270,7 +1309,19 @@ impl Evaluator<'_> {
             .iter()
             .rev()
             .find(|(key, _)| key == root)
-            .map(|(_, value)| value.clone())
+            .and_then(|(_, value)| (!matches!(value, Value::Moved)).then(|| value.clone()))
+    }
+
+    fn take_owned(environment: &mut Environment, root: &ValueId) -> Option<Value> {
+        let value = environment
+            .iter_mut()
+            .rev()
+            .find(|(key, _)| key == root)
+            .map(|(_, value)| value)?;
+        if matches!(value, Value::Moved) {
+            return None;
+        }
+        Some(std::mem::replace(value, Value::Moved))
     }
 
     fn evaluate_entry(
@@ -1278,29 +1329,33 @@ impl Evaluator<'_> {
         function: &ResolvedFunction,
         arguments: &[(String, ArgumentValue)],
     ) -> Result<Value, Flow> {
-        let borrowed = arguments
+        // Every distinct external parameter position is one invocation root,
+        // irrespective of whether its source carrier is validated UTF-8 or an
+        // arbitrary byte slice. Derived str_as_bytes views preserve that root
+        // and therefore never recharge it.
+        let has_str_root = arguments
             .iter()
-            .filter_map(|(_, argument)| match argument {
-                ArgumentValue::BorrowedStr(value) => Some(value.as_str()),
-                _ => None,
-            })
-            .collect::<Vec<_>>();
-        if !crate::str_ops::within_work_budget(&borrowed) {
-            return Err(Flow::Guard(
-                "borrowed string invocation exceeds byte budget",
-            ));
-        }
+            .any(|(_, argument)| matches!(argument, ArgumentValue::BorrowedStr(_)));
+        let has_slice_root = arguments
+            .iter()
+            .any(|(_, argument)| matches!(argument, ArgumentValue::BorrowedSlice(_)));
+        let budget_error = match (has_str_root, has_slice_root) {
+            (true, false) => "borrowed string invocation exceeds byte budget",
+            (false, true) => "borrowed byte invocation exceeds byte budget",
+            _ => "borrowed invocation exceeds byte budget",
+        };
         let byte_roots = arguments.iter().filter_map(|(_, argument)| match argument {
-            ArgumentValue::BorrowedSlice(value) => Some(value.len() as u64),
+            ArgumentValue::BorrowedStr(value) => u64::try_from(value.len()).ok(),
+            ArgumentValue::BorrowedSlice(value) => u64::try_from(value.len()).ok(),
             _ => None,
         });
         let mut charged = 0u64;
         for length in byte_roots {
             charged = charged
                 .checked_add(length)
-                .ok_or(Flow::Guard("borrowed byte invocation exceeds byte budget"))?;
+                .ok_or(Flow::Guard(budget_error))?;
             if charged > crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES {
-                return Err(Flow::Guard("borrowed byte invocation exceeds byte budget"));
+                return Err(Flow::Guard(budget_error));
             }
         }
         let mut values = Vec::with_capacity(arguments.len());
@@ -1317,7 +1372,7 @@ impl Evaluator<'_> {
                 (ResolvedType::Str, ArgumentValue::BorrowedStr(inner)) => {
                     Value::BorrowedStr(BorrowedStrValue {
                         invocation_root: param.id.clone(),
-                        text: Arc::from(inner.as_str()),
+                        bytes: Arc::from(inner.as_bytes()),
                     })
                 }
                 (ResolvedType::SliceU8, ArgumentValue::BorrowedSlice(inner)) => {
@@ -1387,12 +1442,61 @@ impl Evaluator<'_> {
             ResolvedExprKind::Float32(bits) => Ok(Value::Float32(f32::from_bits(*bits))),
             ResolvedExprKind::Float64(bits) => Ok(Value::Float64(f64::from_bits(*bits))),
             ResolvedExprKind::Bool(value) => Ok(Value::Bool(*value)),
+            ResolvedExprKind::ArrayU8(values) => Ok(Value::ArrayU8(Arc::from(values.as_slice()))),
+            ResolvedExprKind::RepeatArrayU8 { value, count } => {
+                let length = usize::try_from(*count)
+                    .map_err(|_| Flow::Guard("fixed byte array length does not fit host usize"))?;
+                Ok(Value::ArrayU8(Arc::from(vec![*value; length])))
+            }
             ResolvedExprKind::String(value) => Ok(Value::String(value.clone())),
             ResolvedExprKind::Place(place) => {
                 if !place.projections.is_empty() {
                     return Err(Flow::Guard("scalar profile has no place projections"));
                 }
-                Self::lookup(environment, &place.root).ok_or(Flow::Guard("unresolved scalar place"))
+                if expression.ty == ResolvedType::Bytes
+                    && expression.ownership == hir::OwnershipMode::Own
+                {
+                    Self::take_owned(environment, &place.root)
+                        .ok_or(Flow::Guard("use of moved owned byte storage"))
+                } else {
+                    Self::lookup(environment, &place.root)
+                        .ok_or(Flow::Guard("unresolved scalar place"))
+                }
+            }
+            ResolvedExprKind::BorrowPlace { operation, place } => {
+                if !place.projections.is_empty() {
+                    return Err(Flow::Guard("byte view has a projected storage root"));
+                }
+                let op = crate::byte_ops::by_id(operation.as_str())
+                    .ok_or(Flow::Guard("unknown compiler-owned byte view"))?;
+                let source = Self::lookup(environment, &place.root)
+                    .ok_or(Flow::Guard("unresolved byte view storage root"))?;
+                match (op, source) {
+                    (crate::byte_ops::ByteOp::BytesAsSlice, Value::Bytes(value)) => {
+                        if value.allocation == 0 || value.allocation > self.next_byte_allocation {
+                            return Err(Flow::Guard(
+                                "owned byte view has an invalid logical allocation",
+                            ));
+                        }
+                        Ok(Value::BorrowedSlice(BorrowedSliceValue {
+                            invocation_root: place.root.clone(),
+                            bytes: value.bytes,
+                        }))
+                    }
+                    (crate::byte_ops::ByteOp::ArrayAsSlice, Value::ArrayU8(bytes)) => {
+                        Ok(Value::BorrowedSlice(BorrowedSliceValue {
+                            invocation_root: place.root.clone(),
+                            bytes,
+                        }))
+                    }
+                    (crate::byte_ops::ByteOp::StrAsBytes, Value::BorrowedStr(value)) => {
+                        Ok(Value::BorrowedSlice(BorrowedSliceValue {
+                            invocation_root: value.invocation_root,
+                            bytes: value.bytes,
+                        }))
+                    }
+                    _ => Err(Flow::Guard("ill-typed compiler-owned byte view")),
+                }
             }
             ResolvedExprKind::Unary { op, value } => {
                 let inner = self.evaluate(value, environment, depth)?;
@@ -1581,6 +1685,46 @@ impl Evaluator<'_> {
                                 .and_then(|index| value.bytes.get(index))
                                 .copied();
                             Ok(Value::OptionU8(byte))
+                        }
+                        (crate::byte_ops::ByteOp::Copy, [Value::BorrowedSlice(value)]) => {
+                            let length = u64::try_from(value.bytes.len()).map_err(|_| {
+                                Flow::Guard("owned byte payload length does not fit u64")
+                            })?;
+                            if length > crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES {
+                                return Err(Flow::Guard(
+                                    "owned byte payload exceeds the verified profile limit",
+                                ));
+                            }
+                            let next_count = self
+                                .next_byte_allocation
+                                .checked_add(1)
+                                .ok_or(Flow::Guard("owned byte allocation count overflowed"))?;
+                            if next_count > crate::byte_data_capacity::MAX_BYTES_COPY_SITES {
+                                return Err(Flow::Guard(
+                                    "owned byte allocation count exceeds verified capacity",
+                                ));
+                            }
+                            let next_payload = self
+                                .allocated_byte_payload
+                                .checked_add(length)
+                                .ok_or(Flow::Guard("owned byte payload accounting overflowed"))?;
+                            if next_payload
+                                > crate::byte_data_capacity::MAX_OWNED_BYTE_PAYLOAD_BYTES
+                            {
+                                return Err(Flow::Guard(
+                                    "owned byte payload exceeds verified capacity",
+                                ));
+                            }
+                            self.next_byte_allocation = next_count;
+                            self.allocated_byte_payload = next_payload;
+                            // `Arc::from(&[u8])` copies into a fresh backing
+                            // allocation for every non-empty input. The
+                            // logical identity above distinguishes empty
+                            // allocations as required by the language model.
+                            Ok(Value::Bytes(OwnedBytesValue {
+                                allocation: next_count,
+                                bytes: Arc::from(value.bytes.as_ref()),
+                            }))
                         }
                         _ => Err(Flow::Guard("ill-typed borrowed byte operation operand")),
                     };
@@ -2197,12 +2341,12 @@ pub fn verify_envelope(envelope: &str) -> Result<(), Diagnostic> {
         }
         let type_text = match argument["type"].as_str() {
             Some(
-                type_text @ ("i64" | "i32" | "u8" | "usize" | "char" | "f32" | "f64" | "bool"),
+                type_text @ ("i64" | "i32" | "u8" | "usize" | "char" | "f32" | "f64" | "bool"
+                | "str" | "Slice<u8>"),
             ) => type_text,
             _ => {
                 return Err(consistency_error(
-                    "argument type must be one of i64, i32, u8, usize, char, f32, f64, bool"
-                        .to_owned(),
+                    "argument type is outside the canonical interpreter boundary".to_owned(),
                 ))
             }
         };
@@ -2382,6 +2526,11 @@ fn canonical_scalar_value_matches(type_text: &str, value_text: &str) -> bool {
         "str" => matches!(
             parse_argument(value_text),
             Ok(ArgumentValue::BorrowedStr(value))
+                if serde_json::to_string(&value).ok().as_deref() == Some(value_text)
+        ),
+        "Slice<u8>" => matches!(
+            parse_argument(value_text),
+            Ok(ArgumentValue::BorrowedSlice(value))
                 if serde_json::to_string(&value).ok().as_deref() == Some(value_text)
         ),
         "char" => matches!(
@@ -2901,7 +3050,7 @@ mod tests {
         let root = ValueId::intrinsic_parameter("test.borrowed.root", 0);
         let original = Value::BorrowedStr(BorrowedStrValue {
             invocation_root: root.clone(),
-            text: Arc::from("aé\0z"),
+            bytes: Arc::from("aé\0z".as_bytes()),
         });
         let forwarded = original.clone();
         let (Value::BorrowedStr(original), Value::BorrowedStr(forwarded)) = (original, forwarded)
@@ -2910,6 +3059,6 @@ mod tests {
         };
         assert_eq!(original.invocation_root, root);
         assert_eq!(forwarded.invocation_root, root);
-        assert!(Arc::ptr_eq(&original.text, &forwarded.text));
+        assert!(Arc::ptr_eq(&original.bytes, &forwarded.bytes));
     }
 }

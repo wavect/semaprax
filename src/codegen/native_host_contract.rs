@@ -348,6 +348,7 @@ pub(super) fn derive_from_admitted(
             | ResolvedType::Char
             | ResolvedType::U8
             | ResolvedType::Usize
+            | ResolvedType::ArrayU8(_)
             | ResolvedType::F32
             | ResolvedType::F64 => {
                 return Err(host_error(format!(
@@ -355,7 +356,10 @@ pub(super) fn derive_from_admitted(
                     parameter_index
                 )));
             }
-            ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 => {
+            ResolvedType::String
+            | ResolvedType::Bytes
+            | ResolvedType::Str
+            | ResolvedType::SliceU8 => {
                 return Err(host_error(format!(
                     "text or borrowed-data parameter {} is outside the native host slice",
                     parameter_index

@@ -49,6 +49,7 @@ const REASON_UNRESOLVED_VARIABLE: &str = "unresolved_variable";
 const REASON_UNSUPPORTED_CALLEE: &str = "unsupported_callee";
 const REASON_ILL_TYPED_EXPRESSION: &str = "ill_typed_expression";
 const REASON_METHOD_CALL: &str = "method_call";
+const REASON_BYTE_DATA_EXPRESSION: &str = "byte_data_expression";
 
 const RUNTIME_ARITHMETIC_OVERFLOW: &str = "arithmetic_overflow";
 const RUNTIME_DIVISION_BY_ZERO: &str = "division_by_zero";
@@ -591,6 +592,9 @@ impl<'a> Analyzer<'a> {
             | ExprKind::Bool(_)
             | ExprKind::String(_)
             | ExprKind::Var(_) => None,
+            ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. } => {
+                Some(REASON_BYTE_DATA_EXPRESSION)
+            }
             ExprKind::Call {
                 name,
                 type_arguments,
@@ -670,6 +674,9 @@ impl<'a> Analyzer<'a> {
                 Outcome::Unsupported(REASON_METHOD_CALL)
             }
             ExprKind::String(_) => Outcome::Unsupported(REASON_ILL_TYPED_EXPRESSION),
+            ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. } => {
+                Outcome::Unsupported(REASON_BYTE_DATA_EXPRESSION)
+            }
             ExprKind::Var(name) => lookup(environment, name).map_or_else(
                 || Outcome::Unsupported(REASON_UNRESOLVED_VARIABLE),
                 Outcome::Value,
@@ -1129,7 +1136,13 @@ impl ScalarKind {
             Type::F32 => ScalarKind::Float32,
             Type::F64 => ScalarKind::Float64,
             Type::Bool => ScalarKind::Bool,
-            Type::Usize | Type::String | Type::Str | Type::SliceU8 | Type::Named { .. } => unreachable!(
+            Type::Usize
+            | Type::String
+            | Type::Str
+            | Type::SliceU8
+            | Type::ArrayU8(_)
+            | Type::Bytes
+            | Type::Named { .. } => unreachable!(
                 "ScalarKind::of called for unsupported type `{:?}`; admitted scalars are the seven primitive Copy types",
                 ty
             ),
@@ -1158,7 +1171,13 @@ fn scalar_type_text(ty: &Type) -> &'static str {
         Type::F32 => "f32",
         Type::F64 => "f64",
         Type::Bool => "bool",
-        Type::Usize | Type::String | Type::Str | Type::SliceU8 | Type::Named { .. } => unreachable!(
+        Type::Usize
+        | Type::String
+        | Type::Str
+        | Type::SliceU8
+        | Type::ArrayU8(_)
+        | Type::Bytes
+        | Type::Named { .. } => unreachable!(
             "scalar_type_text called for unsupported type `{:?}`; admitted scalars are the seven primitive Copy types",
             ty
         ),

@@ -753,6 +753,8 @@ fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize {
             | ExprKind::Char(_)
             | ExprKind::Uint8(_)
             | ExprKind::Usize(_)
+            | ExprKind::ArrayU8(_)
+            | ExprKind::RepeatArrayU8 { .. }
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)
@@ -1142,6 +1144,19 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                 }
                 ExprKind::Usize(value) => {
                     write!(output, "{value}usize").unwrap();
+                }
+                ExprKind::ArrayU8(values) => {
+                    output.write_char('[').unwrap();
+                    for (index, value) in values.iter().enumerate() {
+                        if index != 0 {
+                            output.write_str(", ").unwrap();
+                        }
+                        write!(output, "{value}u8").unwrap();
+                    }
+                    output.write_char(']').unwrap();
+                }
+                ExprKind::RepeatArrayU8 { value, count } => {
+                    write!(output, "[{value}u8; {count}]").unwrap();
                 }
                 ExprKind::Char(value) => {
                     output.write_str(&canonical_char(*value)).unwrap();
@@ -1581,10 +1596,14 @@ fn write_type(output: &mut impl std::fmt::Write, ty: &crate::ast::Type) {
             Frame::Type(crate::ast::Type::Char) => output.write_str("char").unwrap(),
             Frame::Type(crate::ast::Type::U8) => output.write_str("u8").unwrap(),
             Frame::Type(crate::ast::Type::Usize) => output.write_str("usize").unwrap(),
+            Frame::Type(crate::ast::Type::ArrayU8(length)) => {
+                write!(output, "[u8; {length}]").unwrap();
+            }
             Frame::Type(crate::ast::Type::F32) => output.write_str("f32").unwrap(),
             Frame::Type(crate::ast::Type::F64) => output.write_str("f64").unwrap(),
             Frame::Type(crate::ast::Type::Bool) => output.write_str("bool").unwrap(),
             Frame::Type(crate::ast::Type::String) => output.write_str("string").unwrap(),
+            Frame::Type(crate::ast::Type::Bytes) => output.write_str("Bytes").unwrap(),
             Frame::Type(crate::ast::Type::Str) => output.write_str("str").unwrap(),
             Frame::Type(crate::ast::Type::SliceU8) => output.write_str("Slice<u8>").unwrap(),
             Frame::Type(crate::ast::Type::Named { name, arguments }) => {
@@ -1796,6 +1815,8 @@ fn contains_record_construction(value: &Expr) -> bool {
             | ExprKind::Char(_)
             | ExprKind::Uint8(_)
             | ExprKind::Usize(_)
+            | ExprKind::ArrayU8(_)
+            | ExprKind::RepeatArrayU8 { .. }
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)

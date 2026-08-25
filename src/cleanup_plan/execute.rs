@@ -272,11 +272,14 @@ fn collect_variant_domains(
             | hir::ResolvedExprKind::Char(_)
             | hir::ResolvedExprKind::Uint8(_)
             | hir::ResolvedExprKind::Usize(_)
+            | hir::ResolvedExprKind::ArrayU8(_)
+            | hir::ResolvedExprKind::RepeatArrayU8 { .. }
             | hir::ResolvedExprKind::Float32(_)
             | hir::ResolvedExprKind::Float64(_)
             | hir::ResolvedExprKind::Bool(_)
             | hir::ResolvedExprKind::String(_)
-            | hir::ResolvedExprKind::Place(_) => {}
+            | hir::ResolvedExprKind::Place(_)
+            | hir::ResolvedExprKind::BorrowPlace { .. } => {}
             hir::ResolvedExprKind::Call { args, .. } => {
                 for argument in args {
                     visit(program, argument, domains)?;
@@ -683,11 +686,14 @@ fn find_expression_by<'a>(
         | hir::ResolvedExprKind::Char(_)
         | hir::ResolvedExprKind::Uint8(_)
         | hir::ResolvedExprKind::Usize(_)
+        | hir::ResolvedExprKind::ArrayU8(_)
+        | hir::ResolvedExprKind::RepeatArrayU8 { .. }
         | hir::ResolvedExprKind::Float32(_)
         | hir::ResolvedExprKind::Float64(_)
         | hir::ResolvedExprKind::Bool(_)
         | hir::ResolvedExprKind::String(_)
-        | hir::ResolvedExprKind::Place(_) => None,
+        | hir::ResolvedExprKind::Place(_)
+        | hir::ResolvedExprKind::BorrowPlace { .. } => None,
     }
 }
 
@@ -1281,6 +1287,7 @@ impl<'a> Executor<'a> {
             | (ResolvedType::Usize, TraceResult::Usize(_))
             | (ResolvedType::F32, TraceResult::F32(_))
             | (ResolvedType::F64, TraceResult::F64(_)) => true,
+            (ResolvedType::Bytes, TraceResult::Bytes) => true,
             (ResolvedType::Nominal { declaration, .. }, TraceResult::Owned { type_id }) => {
                 declaration == type_id
             }
@@ -1294,6 +1301,7 @@ impl<'a> Executor<'a> {
                 | ResolvedType::Char
                 | ResolvedType::U8
                 | ResolvedType::Usize
+                | ResolvedType::ArrayU8(_)
                 | ResolvedType::F32
                 | ResolvedType::F64
                 | ResolvedType::Bool,
@@ -1301,9 +1309,13 @@ impl<'a> Executor<'a> {
             (CleanupResultSource::Owned { storage }, ResolvedType::Nominal { .. }) => {
                 storage.storage == StorageId::ProvisionalResult && storage.projections.is_empty()
             }
+            (CleanupResultSource::Owned { storage }, ResolvedType::Bytes) => {
+                storage.storage == StorageId::ProvisionalResult && storage.projections.is_empty()
+            }
             (CleanupResultSource::Scalar { .. }, ResolvedType::Nominal { .. })
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Unit)
             | (CleanupResultSource::Scalar { .. }, ResolvedType::String)
+            | (CleanupResultSource::Scalar { .. }, ResolvedType::Bytes)
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Str)
             | (CleanupResultSource::Scalar { .. }, ResolvedType::SliceU8)
             | (CleanupResultSource::Owned { .. }, ResolvedType::Unit)
@@ -1314,6 +1326,7 @@ impl<'a> Executor<'a> {
                 | ResolvedType::Char
                 | ResolvedType::U8
                 | ResolvedType::Usize
+                | ResolvedType::ArrayU8(_)
                 | ResolvedType::F32
                 | ResolvedType::F64
                 | ResolvedType::Bool

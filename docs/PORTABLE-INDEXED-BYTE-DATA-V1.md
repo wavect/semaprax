@@ -1,13 +1,15 @@
 # Portable Indexed Byte Data v1
 
-Status: partially implemented as an internal compiler tranche. Checked
-target-independent `usize` plus non-escaping external `Slice<u8>` parameters,
-symbolic provenance, `byte_len`, and total `byte_get -> Option<u8>` are locally
-executable across the interpreter, native C, and the internal Wasm aggregate
-lane. Fixed arrays, owned `Bytes`, view/copy operations, and public
-Project/npm adapters remain specification only. No hosted or complete-profile
-capability is claimed until every gate in this document is executable and
-green at one exact head.
+Status: partially implemented as a second local internal compiler tranche.
+Checked target-independent `usize`, fixed `[u8; N]`, uniquely owned `Bytes`,
+non-escaping `Slice<u8>`, all six compiler-owned byte operations, lexical
+owner borrowing, target-neutral capacity analysis, Graph v17, canonical
+CleanupPlan settlement, and interpreter/native O0/O2/internal Core-Wasm Node
+execution have focused local evidence. Public `useful-data.v1` Project/npm
+adapters, the typed-array facade, the complete hostile public-boundary matrix,
+the multi-module acceptance project, exact legacy Graph KAT promotion,
+exact-head hosted evidence, and registry publication remain open. This is not
+a complete or public Useful Data capability claim.
 
 Portable Indexed Byte Data v1 is the first bounded Useful Data profile. It
 adds one target-independent index scalar, fixed byte arrays, uniquely owned
@@ -51,6 +53,18 @@ the existing checked Copy aggregate machinery, including record fields, only
 when that cumulative bound and every existing aggregate bound hold. They are
 not admitted as generic arguments, variant payloads, imports, callbacks, or
 public ABI values in v1.
+
+Inline storage accounting is over canonical HIR storage slots, not backend
+allocations. Parameters, bindings, required expression/call staging, and the
+provisional result are distinct slots. A direct array literal initializer is
+materialized into its destination and is not also counted as a separate
+temporary. Every executable root also has a 65,536-byte **active-array
+call-path budget**. This deterministic semantic over-approximation
+checked-sums sequential calls, takes the maximum of alternatives, and counts
+caller call staging and callee parameters separately. Any call-graph cycle
+from which nonzero array storage is reachable is rejected. The rule is
+target-independent so a backend stack model cannot silently narrow the
+admitted language.
 
 `Bytes` is a uniquely owned, immutable byte buffer with an exact length in
 `0..=65536`. It is non-Copy and NUL-safe. Moving it invalidates the source;
@@ -122,12 +136,20 @@ The verifier and hostile-HIR validator independently prove
 range validity by unchecked `offset + length`. Zero-length views are valid at
 the end of a root and are normalized without dereferencing a pointer.
 
+HIR records view creation as an explicit, non-consuming borrow of an exact
+named storage place. `bytes_as_slice` and `array_as_slice` cannot borrow a
+temporary in v1; an owned buffer or array must first be bound to a name so its
+cleanup lifetime is unambiguous. Slice-producing expressions and value aliases
+have separate authenticated provenance entries. The hostile-HIR validator
+independently reconstructs both tables rather than trusting attached facts.
+
 External roots are charged once when admitted. Forwarding, local aliases,
 array views, `bytes_as_slice`, `str_as_bytes`, and future subviews of an
 already admitted root do not recharge their bytes. Distinct external
 parameter positions are distinct roots even if a host passes the same address
-or JavaScript object twice. One invocation admits at most 65,536 cumulative
-external root bytes.
+or JavaScript object twice. Borrowed `str` and `Slice<u8>` parameters share
+one counter: one invocation admits at most 65,536 cumulative external root
+bytes across both carrier kinds.
 
 Borrowing is shared and immutable. A live `Slice<u8>` derived from `Bytes`
 prevents that owner from being moved or dropped. V1 uses conservative lexical
@@ -143,6 +165,9 @@ stages owned arguments in caller-owned epochs and transfers them only at the
 existing atomic call commit. Failure is sticky; cleanup may not replace it.
 An owned byte result is staged, checked against postconditions, and published
 only after non-result cleanup, exactly like every existing owned result.
+Its reserved lifecycle identity is `core.bytes.drop`. Type facts remain
+`copy=false`, `contains_resource=false`, and `needs_drop=true`; `Bytes` is not
+misclassified as a user resource merely to obtain cleanup behavior.
 
 ## Allocation and capacity contract
 
@@ -154,6 +179,10 @@ v1 bounds are:
 - 65,536 cumulative inline fixed-array bytes per function frame;
 - 16 allocation-producing `bytes_copy` sites on any executable call path;
 - 1,048,576 maximum source-derived owned-byte payload bytes on any such path.
+
+The same checked analysis authenticates the active-array call-path budget
+described above. Its per-function and per-root summaries are target-neutral
+compiler facts and Graph v17 serializes them.
 
 The executable closure containing `bytes_copy` must be acyclic. An
 allocation-producing operation is forbidden in a `while` body or condition,
@@ -252,6 +281,16 @@ entry. The arena enforces the same statically authenticated allocation-site
 and payload bounds. This runtime is an explicit required compiler import, not
 ambient host or network authority. Raw Core-Wasm consumers must provide the
 same contract; only the generated package is claimed by v1.
+
+An internal slice carrier is packed exactly as
+`((root_word as u64) << 32) | length_u32`. A clear root-word high bit denotes
+an authenticated fixed-memory offset; a set high bit denotes an arena token
+whose remaining 31 bits are nonzero. Tokens are issued monotonically, are
+never reused within one runtime instance, and fail-stop before `0x80000000`
+would be exhausted. Every arena import authenticates the exact `(token,
+length)` pair and rejects stale or already-dropped tokens. Even empty `Bytes`
+owns a nonzero token and arena entry; only a zero-length fixed array normalizes
+to root word zero and length zero.
 
 The additive project profile is named `useful-data.v1`. Its selected exports
 may accept `borrow Slice<u8>` and return `i64`, `bool`, or `usize`; owned bytes,

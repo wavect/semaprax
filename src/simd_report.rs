@@ -379,7 +379,7 @@ fn scalar_type_name(ty: &Type) -> Option<&'static str> {
         Type::F64 => Some("f64"),
         Type::Bool => Some("bool"),
         Type::Char => Some("char"),
-        Type::String | Type::Str | Type::SliceU8 => None,
+        Type::String | Type::Str | Type::SliceU8 | Type::ArrayU8(_) | Type::Bytes => None,
         Type::Named { .. } => None,
     }
 }
@@ -601,11 +601,30 @@ fn render_expr(
         ResolvedExprKind::String(value) => {
             output.push_str(&crate::format::canonical_string(value));
         }
+        ResolvedExprKind::ArrayU8(values) => {
+            output.push('[');
+            for (index, value) in values.iter().enumerate() {
+                if index != 0 {
+                    output.push_str(", ");
+                }
+                output.push_str(&format!("{value}u8"));
+            }
+            output.push(']');
+        }
+        ResolvedExprKind::RepeatArrayU8 { value, count } => {
+            output.push_str(&format!("[{value}u8; {count}]"));
+        }
         ResolvedExprKind::Char(value) => {
             output.push_str(&format!("char({value})"));
         }
         ResolvedExprKind::Place(place) => {
             output.push_str(&walker.place_name(&place.root, &place.projections));
+        }
+        ResolvedExprKind::BorrowPlace { operation, place } => {
+            output.push_str(&walker.declaration_name(operation));
+            output.push('(');
+            output.push_str(&walker.place_name(&place.root, &place.projections));
+            output.push(')');
         }
         ResolvedExprKind::Call { callee, args, .. } => {
             let name = walker.declaration_name(callee);
@@ -874,6 +893,11 @@ impl Walker<'_> {
             }
             ResolvedExprKind::String(_) => {
                 self.push_ineligible(expr, REASON_SCALAR_LEAF);
+            }
+            ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
+            | ResolvedExprKind::BorrowPlace { .. } => {
+                self.push_ineligible(expr, REASON_AGGREGATE_OPERATION);
             }
             ResolvedExprKind::Char(_) => {
                 self.push_ineligible(expr, REASON_CHAR_OPERATION);

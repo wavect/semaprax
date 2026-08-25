@@ -2,6 +2,7 @@ mod native_adapter_abi;
 #[cfg(test)]
 pub(crate) mod native_aggregate;
 mod native_byte_data;
+mod native_bytes;
 mod native_callable_abi;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 mod native_callable_abi_v3;
@@ -979,6 +980,7 @@ fn emit_hir_c_with_labels(
     debug_assert!(resource_abi.resources.is_empty());
     let mut output = crate::bounded_output::CappedString::new();
     emit_native_prelude(&mut output, &resource_abi, program);
+    emit_fixed_byte_array_declarations(&mut output, program)?;
     emit_aggregate_declarations(
         &mut output,
         program,
@@ -1049,6 +1051,82 @@ fn emit_hir_c_with_labels(
     Ok(output.into_string())
 }
 
+/// Emit one length-indexed, alignment-one C type for each reachable nonempty
+/// fixed byte array. `[u8; 0]` is erased from physical C storage altogether;
+/// its expressions use a compiler-only scalar sentinel that is never stored,
+/// addressed, copied, or exposed through an ABI.
+fn emit_fixed_byte_array_declarations(
+    output: &mut impl COutput,
+    program: &ResolvedProgram,
+) -> Result<(), Diagnostic> {
+    let mut lengths = BTreeSet::new();
+    let mut include_type = |ty: &ResolvedType| {
+        if let ResolvedType::ArrayU8(length) = ty {
+            lengths.insert(*length);
+        }
+    };
+    for declaration in &program.types {
+        match &declaration.kind {
+            ResolvedTypeDeclarationKind::Record { fields, .. }
+            | ResolvedTypeDeclarationKind::Class { fields, .. } => {
+                for field in fields {
+                    include_type(&field.ty);
+                }
+            }
+            ResolvedTypeDeclarationKind::Variant { cases } => {
+                for field in cases.iter().flat_map(|case| &case.fields) {
+                    include_type(&field.ty);
+                }
+            }
+            ResolvedTypeDeclarationKind::Resource { .. } => {}
+        }
+    }
+    for function in program.functions.iter().chain(
+        program
+            .function_instances
+            .iter()
+            .map(|instance| &instance.function),
+    ) {
+        include_type(&function.return_type);
+        for parameter in &function.params {
+            include_type(&parameter.ty);
+        }
+        let mut pending = vec![&function.body];
+        pending.extend(function.requires.iter().chain(&function.ensures));
+        while let Some(expression) = pending.pop() {
+            include_type(&expression.ty);
+            pending.extend(resolved_expr_children(expression));
+        }
+    }
+    for length in lengths {
+        if u64::from(length) > crate::byte_data_capacity::MAX_ARRAY_BYTES {
+            return Err(backend_error(format!(
+                "fixed byte array length `{length}` exceeds the authenticated native bound"
+            )));
+        }
+        if length == 0 {
+            continue;
+        }
+        writeln!(
+            output,
+            "struct spx_array_u8_{length} {{ uint8_t spx_bytes[{length}]; }};"
+        )
+        .expect("writing to a string cannot fail");
+        writeln!(
+            output,
+            "_Static_assert(sizeof(struct spx_array_u8_{length}) == UINT32_C({length}), \"SEMAPRAX fixed byte array size\");"
+        )
+        .expect("writing to a string cannot fail");
+        writeln!(
+            output,
+            "_Static_assert(_Alignof(struct spx_array_u8_{length}) == UINT32_C(1), \"SEMAPRAX fixed byte array alignment\");"
+        )
+        .expect("writing to a string cannot fail");
+    }
+    output.push('\n');
+    Ok(())
+}
+
 fn emit_native_prelude(
     output: &mut impl COutput,
     resource_abi: &native_resource::NativeResourceAbi,
@@ -1098,19 +1176,25 @@ fn emit_native_prelude(
 fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
     let mut pending: Vec<&ResolvedExpr> = Vec::new();
     for function in &program.functions {
-        if matches!(function.return_type, ResolvedType::SliceU8)
-            || function
-                .params
-                .iter()
-                .any(|param| matches!(param.ty, ResolvedType::SliceU8))
-        {
+        if matches!(
+            function.return_type,
+            ResolvedType::SliceU8 | ResolvedType::Bytes | ResolvedType::ArrayU8(_)
+        ) || function.params.iter().any(|param| {
+            matches!(
+                param.ty,
+                ResolvedType::SliceU8 | ResolvedType::Bytes | ResolvedType::ArrayU8(_)
+            )
+        }) {
             return true;
         }
         pending.push(&function.body);
         pending.extend(function.requires.iter().chain(&function.ensures));
     }
     while let Some(expression) = pending.pop() {
-        if matches!(expression.ty, ResolvedType::SliceU8) {
+        if matches!(
+            expression.ty,
+            ResolvedType::SliceU8 | ResolvedType::Bytes | ResolvedType::ArrayU8(_)
+        ) {
             return true;
         }
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
@@ -1330,6 +1414,7 @@ fn resolved_expr_children<'a>(
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             Box::new(std::iter::once(base.as_ref()).chain(fields.iter().map(|field| &field.value)))
         }
+        ResolvedExprKind::BorrowPlace { .. } => Box::new(std::iter::empty()),
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
@@ -1339,6 +1424,8 @@ fn resolved_expr_children<'a>(
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::Place(_) => Box::new(std::iter::empty()),
     }
 }
@@ -1422,10 +1509,13 @@ fn emit_record_declaration(
 
     let symbol = c_record_symbol(instance);
     writeln!(output, "struct {symbol} {{").expect("writing to a string cannot fail");
-    if layout.fields.is_empty() {
-        output.push_str("    uint8_t spx_empty_record_padding;\n");
+    if layout.size == 0 {
+        // ISO C11 has no empty objects or empty structs. This byte is an ABI
+        // carrier only: the authenticated SEMAPRAX layout remains size zero,
+        // and every zero-sized semantic field stays erased below.
+        output.push_str("    uint8_t spx_zero_sized_record_carrier;\n");
     } else {
-        for field in &layout.fields {
+        for field in layout.fields.iter().filter(|field| field.size != 0) {
             writeln!(
                 output,
                 "    {} {};",
@@ -1436,19 +1526,27 @@ fn emit_record_declaration(
         }
     }
     output.push_str("};\n");
-    writeln!(
-        output,
-        "_Static_assert(sizeof(struct {symbol}) == UINT32_C({}), \"SEMAPRAX native aggregate size\");",
-        layout.size
-    )
-    .expect("writing to a string cannot fail");
+    if layout.size == 0 {
+        writeln!(
+            output,
+            "_Static_assert(sizeof(struct {symbol}) == UINT32_C(1), \"SEMAPRAX zero-sized native aggregate carrier size\");"
+        )
+        .expect("writing to a string cannot fail");
+    } else {
+        writeln!(
+            output,
+            "_Static_assert(sizeof(struct {symbol}) == UINT32_C({}), \"SEMAPRAX native aggregate size\");",
+            layout.size
+        )
+        .expect("writing to a string cannot fail");
+    }
     writeln!(
         output,
         "_Static_assert(_Alignof(struct {symbol}) == UINT32_C({}), \"SEMAPRAX native aggregate alignment\");",
         layout.align
     )
     .expect("writing to a string cannot fail");
-    for field in &layout.fields {
+    for field in layout.fields.iter().filter(|field| field.size != 0) {
         writeln!(
             output,
             "_Static_assert(offsetof(struct {symbol}, {}) == UINT32_C({}), \"SEMAPRAX native aggregate field offset\");",
@@ -1478,7 +1576,7 @@ fn emit_variant_declaration(
         if case.fields.is_empty() {
             output.push_str("            uint8_t spx_empty_variant_payload;\n");
         } else {
-            for field in &case.fields {
+            for field in case.fields.iter().filter(|field| field.size != 0) {
                 writeln!(
                     output,
                     "            {} {};",
@@ -1517,7 +1615,7 @@ fn emit_variant_declaration(
     .expect("writing to a string cannot fail");
     for case in &layout.cases {
         let case_symbol = c_case_symbol(&case.case);
-        for field in &case.fields {
+        for field in case.fields.iter().filter(|field| field.size != 0) {
             let absolute_offset = layout
                 .payload_offset
                 .checked_add(field.offset)
@@ -1540,7 +1638,14 @@ fn c_value_type(
     resource_abi: &native_resource::NativeResourceAbi,
     ty: &ResolvedType,
 ) -> Result<String, Diagnostic> {
-    if record_declaration_id(program, ty)?.is_some() {
+    if matches!(ty, ResolvedType::ArrayU8(0)) {
+        // ISO C11 has no zero-sized value type. Ordinary internal calls use
+        // one byte as a non-semantic ABI carrier while all actual array
+        // storage and element access remain erased.
+        Ok("uint8_t".to_owned())
+    } else if let ResolvedType::ArrayU8(length) = ty {
+        Ok(format!("struct spx_array_u8_{length}"))
+    } else if record_declaration_id(program, ty)?.is_some() {
         Ok(format!("struct {}", c_record_symbol(ty)))
     } else if variant_declaration_id(program, ty)?.is_some() {
         Ok(format!("struct {}", c_variant_symbol(ty)))
@@ -1550,7 +1655,8 @@ fn c_value_type(
 }
 
 fn is_aggregate_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
-    Ok(record_declaration_id(program, ty)?.is_some()
+    Ok(matches!(ty, ResolvedType::ArrayU8(length) if *length != 0)
+        || record_declaration_id(program, ty)?.is_some()
         || variant_declaration_id(program, ty)?.is_some())
 }
 
@@ -2446,6 +2552,7 @@ fn emit_function(
     let functions = emission.functions;
     let contract_labels = emission.contract_labels;
     let has_try = expression_has_try(&function.body);
+    let bytes_plan = native_bytes::NativeBytesPlan::build(function)?;
     let metadata = functions
         .get(execution)
         .ok_or_else(|| backend_error(format!("function `{}` is not indexed", function.id)))?;
@@ -2471,9 +2578,26 @@ fn emit_function(
     )
     .expect("writing to a string cannot fail");
 
+    if let Some(plan) = &bytes_plan {
+        output.push_str(&plan.declarations(function));
+        for (index, parameter) in function.params.iter().enumerate() {
+            if matches!(parameter.ty, ResolvedType::Bytes) {
+                output.push_str(&plan.initialize_parameter(
+                    &crate::cleanup_plan::StorageId::Value(parameter.id.clone()),
+                    &format!("spx_param_{index}"),
+                )?);
+            }
+        }
+    }
     let mut variables = HashMap::new();
     for (index, param) in function.params.iter().enumerate() {
-        let name = if is_aggregate_type(program, &param.ty)? {
+        let name = if matches!(param.ty, ResolvedType::Bytes) {
+            bytes_plan
+                .as_ref()
+                .ok_or_else(|| backend_error("owned Bytes parameter has no cleanup plan"))?
+                .value(&crate::cleanup_plan::StorageId::Value(param.id.clone()))?
+                .to_owned()
+        } else if is_aggregate_type(program, &param.ty)? {
             format!("(*spx_param_{index})")
         } else {
             format!("spx_param_{index}")
@@ -2486,7 +2610,13 @@ fn emit_function(
             },
         );
     }
-    let mut emitter = CEmitter::new(output, variables, &function.return_type, emission);
+    let mut emitter = CEmitter::new(
+        output,
+        variables,
+        &function.return_type,
+        emission,
+        bytes_plan.as_ref(),
+    );
     emitter.line("spx_status_token spx_status = SPX_STATUS_SUCCESS;");
     if has_try {
         emitter.line("bool spx_result_staged = false;");
@@ -2512,20 +2642,21 @@ fn emit_function(
         emitter.line("if (spx_ctx->borrowed_str_depth == UINT32_MAX) spx_runtime_invariant_failure(\"borrowed str call depth exhausted\");");
         emitter.line("if (spx_borrowed_str_root) {");
         emitter.indent += 1;
+        emitter.line("uint64_t spx_borrowed_root_bytes = UINT64_C(0);");
         if !borrowed_params.is_empty() {
-            emitter.line("uint64_t spx_borrowed_str_bytes = UINT64_C(0);");
             for index in &borrowed_params {
                 emitter.line(&format!("spx_str_require_valid(spx_param_{index});"));
                 emitter.line(&format!(
-                    "if (spx_param_{index}.len > SPX_BORROWED_STR_MAX_BYTES - spx_borrowed_str_bytes) spx_runtime_invariant_failure(\"borrowed str invocation exceeds byte budget\");"
+                    "if (spx_param_{index}.len > SPX_BORROWED_STR_MAX_BYTES - spx_borrowed_root_bytes) spx_runtime_invariant_failure(\"borrowed invocation exceeds cumulative root byte budget\");"
                 ));
-                emitter.line(&format!("spx_borrowed_str_bytes += spx_param_{index}.len;"));
+                emitter.line(&format!(
+                    "spx_borrowed_root_bytes += spx_param_{index}.len;"
+                ));
             }
         }
         if !borrowed_byte_params.is_empty() {
-            emitter.line("uint64_t spx_borrowed_byte_roots = UINT64_C(0);");
             for index in &borrowed_byte_params {
-                emitter.line(&format!("spx_borrowed_byte_roots = spx_slice_u8_charge_root(spx_borrowed_byte_roots, spx_param_{index});"));
+                emitter.line(&format!("spx_borrowed_root_bytes = spx_slice_u8_charge_root(spx_borrowed_root_bytes, spx_param_{index});"));
             }
         }
         emitter.indent -= 1;
@@ -2536,6 +2667,9 @@ fn emit_function(
         "{} spx_result = {{0}};",
         c_value_type(program, resource_abi, &function.return_type)?
     ));
+    if matches!(function.return_type, ResolvedType::Bytes) {
+        emitter.line("(void)spx_result;");
+    }
     for index in 0..function.params.len() {
         emitter.line(&format!("(void)spx_param_{index};"));
     }
@@ -2557,7 +2691,9 @@ fn emit_function(
     let body = emitter.emit_expr(&function.body)?;
     emitter.try_target_enabled = false;
     emitter.require_type(&body.ty, &function.return_type, "function body")?;
-    emitter.line(&format!("spx_result = {};", body.code));
+    if !matches!(body.ty, ResolvedType::Bytes) {
+        emitter.line(&format!("spx_result = {};", body.code));
+    }
     if has_try {
         emitter.line("spx_result_staged = true;");
         emitter.label("spx_postconditions");
@@ -2566,7 +2702,16 @@ fn emit_function(
     emitter.variables.insert(
         function.result_id.clone(),
         CBinding {
-            name: "spx_result".to_owned(),
+            name: if matches!(function.return_type, ResolvedType::Bytes) {
+                bytes_plan
+                    .as_ref()
+                    .ok_or_else(|| backend_error("owned Bytes result has no cleanup plan"))?
+                    .provisional()?
+                    .0
+                    .to_owned()
+            } else {
+                "spx_result".to_owned()
+            },
             ty: function.return_type.clone(),
         },
     );
@@ -2591,18 +2736,32 @@ fn emit_function(
         output.push_str("    if (spx_ctx->borrowed_str_depth == UINT32_C(0)) spx_runtime_invariant_failure(\"borrowed str call depth underflow\");\n");
         output.push_str("    --spx_ctx->borrowed_str_depth;\n");
     }
-    // Callee-owned string parameters free their buffers on every exit path;
+    // Callee-owned parameters free their storage on every exit path; a moved
+    // Bytes carrier is normalized by `spx_bytes_move`, making this exact-once.
     // the staged result is handed to the caller instead.
     for (index, param) in function.params.iter().enumerate() {
         if matches!(param.ty, ResolvedType::String) {
             output.push_str(&format!("    spx_string_drop(spx_param_{index});\n"));
         }
     }
+    if let Some(plan) = &bytes_plan {
+        output.push_str(&plan.epilogue());
+    }
     if has_try {
         output.push_str("    if (spx_status == SPX_STATUS_SUCCESS && !spx_result_staged) spx_runtime_invariant_failure(\"unstaged function result\");\n");
     }
     output.push_str("    if (spx_status != SPX_STATUS_SUCCESS) return spx_status;\n");
-    output.push_str("    *spx_result_out = spx_result;\n");
+    if matches!(function.return_type, ResolvedType::Bytes) {
+        let (value, flag) = bytes_plan
+            .as_ref()
+            .ok_or_else(|| backend_error("owned Bytes result has no cleanup plan"))?
+            .provisional()?;
+        output.push_str(&format!(
+            "    if (!{flag}) spx_runtime_invariant_failure(\"dead Bytes provisional result\");\n    *spx_result_out = spx_bytes_move(&{value});\n    {flag} = false;\n"
+        ));
+    } else {
+        output.push_str("    *spx_result_out = spx_result;\n");
+    }
     output.push_str("    return SPX_STATUS_SUCCESS;\n");
     output.push_str("}\n\n");
     Ok(())
@@ -2668,6 +2827,9 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::BorrowPlace { .. }
         | ResolvedExprKind::Place(_) => false,
     }
 }
@@ -2871,6 +3033,7 @@ struct CEmitter<'a, O: COutput> {
     record_layouts: &'a AggregateLayoutCache,
     variant_layouts: &'a VariantLayoutCache,
     return_type: &'a ResolvedType,
+    bytes_plan: Option<&'a native_bytes::NativeBytesPlan>,
     try_target_enabled: bool,
     next_local: usize,
     indent: usize,
@@ -2882,6 +3045,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         variables: HashMap<ValueId, CBinding>,
         return_type: &'a ResolvedType,
         emission: &'a NativeEmissionContext<'a>,
+        bytes_plan: Option<&'a native_bytes::NativeBytesPlan>,
     ) -> Self {
         Self {
             output,
@@ -2892,6 +3056,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             record_layouts: emission.record_layouts,
             variant_layouts: emission.variant_layouts,
             return_type,
+            bytes_plan,
             try_target_enabled: false,
             next_local: 0,
             indent: 1,
@@ -2910,6 +3075,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
     }
 
     fn temporary(&mut self, ty: &ResolvedType) -> Result<String, Diagnostic> {
+        if matches!(ty, ResolvedType::ArrayU8(0)) {
+            return Ok("UINT8_C(0)".to_owned());
+        }
         let name = format!("spx_internal_{}", self.next_local);
         self.next_local += 1;
         self.line(&format!(
@@ -2917,6 +3085,17 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             c_value_type(self.program, self.resource_abi, ty)?
         ));
         Ok(name)
+    }
+
+    fn call_result_temporary(&mut self, ty: &ResolvedType) -> Result<String, Diagnostic> {
+        if matches!(ty, ResolvedType::ArrayU8(0)) {
+            let name = format!("spx_internal_{}", self.next_local);
+            self.next_local += 1;
+            self.line(&format!("uint8_t {name} = UINT8_C(0);"));
+            Ok(name)
+        } else {
+            self.temporary(ty)
+        }
     }
 
     fn require_type(
@@ -2951,7 +3130,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
     ) -> Result<CValue, Diagnostic> {
         let staged = self.temporary(&scrutinee.ty)?;
         self.line(&format!("{staged} = {};", scrutinee.code));
-        let result = self.temporary(&expr.ty)?;
+        let result = if matches!(expr.ty, ResolvedType::Bytes) {
+            self.bytes_plan
+                .ok_or_else(|| backend_error("owned Bytes match has no cleanup plan"))?
+                .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                .to_owned()
+        } else {
+            self.temporary(&expr.ty)?
+        };
         let matched = self.temporary(&ResolvedType::Bool)?;
         self.line(&format!("{matched} = false;"));
         for arm in arms {
@@ -3005,14 +3191,34 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 self.line(&format!("{matched} = true;"));
                 let value = self.emit_expr(&arm.value)?;
                 self.require_type(&value.ty, &expr.ty, "match arm result")?;
-                self.line(&format!("{result} = {};", value.code));
+                if matches!(expr.ty, ResolvedType::Bytes) {
+                    let transitions = self
+                        .bytes_plan
+                        .expect("checked above")
+                        .apply_at(&arm.value.id)?;
+                    for line in transitions.lines() {
+                        self.line(line);
+                    }
+                } else {
+                    self.line(&format!("{result} = {};", value.code));
+                }
                 self.indent -= 1;
                 self.line("}");
             } else {
                 self.line(&format!("{matched} = true;"));
                 let value = self.emit_expr(&arm.value)?;
                 self.require_type(&value.ty, &expr.ty, "match arm result")?;
-                self.line(&format!("{result} = {};", value.code));
+                if matches!(expr.ty, ResolvedType::Bytes) {
+                    let transitions = self
+                        .bytes_plan
+                        .expect("checked above")
+                        .apply_at(&arm.value.id)?;
+                    for line in transitions.lines() {
+                        self.line(line);
+                    }
+                } else {
+                    self.line(&format!("{result} = {};", value.code));
+                }
             }
             self.variables = saved;
             self.indent -= 1;
@@ -3163,6 +3369,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         op: crate::byte_ops::ByteOp,
         args: &[ResolvedExpr],
         result_type: &ResolvedType,
+        expression: &ExpressionId,
     ) -> Result<CValue, Diagnostic> {
         if args.len() != op.arity() {
             return Err(backend_error(format!(
@@ -3180,7 +3387,17 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         }
         let return_type = op.return_type();
         self.require_type(result_type, &return_type, "byte operation result")?;
-        let temporary = self.temporary(&return_type)?;
+        let temporary = if matches!(op, crate::byte_ops::ByteOp::Copy) {
+            self.bytes_plan
+                .as_ref()
+                .ok_or_else(|| backend_error("bytes_copy has no canonical cleanup plan"))?
+                .value(&crate::cleanup_plan::StorageId::Temporary(
+                    expression.clone(),
+                ))?
+                .to_owned()
+        } else {
+            self.temporary(&return_type)?
+        };
         match op {
             crate::byte_ops::ByteOp::Len => {
                 self.line(&format!(
@@ -3222,9 +3439,36 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 self.indent -= 1;
                 self.line("}");
             }
+            crate::byte_ops::ByteOp::Copy => {
+                self.line(&format!(
+                    "{temporary} = spx_bytes_copy({});",
+                    arguments[0].code
+                ));
+            }
+            crate::byte_ops::ByteOp::BytesAsSlice
+            | crate::byte_ops::ByteOp::ArrayAsSlice
+            | crate::byte_ops::ByteOp::StrAsBytes => {
+                return Err(backend_error(format!(
+                    "byte view `{}` reached native lowering without authenticated BorrowPlace HIR",
+                    op.id()
+                )));
+            }
+        }
+        let mut code = temporary;
+        if let Some(plan) = self.bytes_plan {
+            let transitions = plan.apply_at(expression)?;
+            for line in transitions.lines() {
+                self.line(line);
+            }
+            if matches!(return_type, ResolvedType::Bytes) {
+                code = plan
+                    .result_at(expression)
+                    .ok_or_else(|| backend_error("bytes_copy has no initialized result slot"))?
+                    .to_owned();
+            }
         }
         Ok(CValue {
-            code: temporary,
+            code,
             ty: return_type,
         })
     }
@@ -3264,6 +3508,53 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 CValue {
                     code: format!("UINT64_C({value})"),
                     ty: ResolvedType::Usize,
+                }
+            }
+            ResolvedExprKind::ArrayU8(values) => {
+                let expected = ResolvedType::ArrayU8(
+                    u32::try_from(values.len())
+                        .map_err(|_| backend_error("fixed byte array length exceeds u32"))?,
+                );
+                self.require_type(&expr.ty, &expected, "fixed byte array literal")?;
+                if values.is_empty() {
+                    return Ok(CValue {
+                        code: "UINT8_C(0)".to_owned(),
+                        ty: expr.ty.clone(),
+                    });
+                } else {
+                    let temporary = self.temporary(&expr.ty)?;
+                    let bytes = values
+                        .iter()
+                        .map(|value| format!("UINT8_C({value})"))
+                        .collect::<Vec<_>>()
+                        .budgeted_join(", ");
+                    self.line(&format!(
+                        "{temporary} = (struct spx_array_u8_{}) {{ .spx_bytes = {{ {bytes} }} }};",
+                        values.len()
+                    ));
+                    CValue {
+                        code: temporary,
+                        ty: expr.ty.clone(),
+                    }
+                }
+            }
+            ResolvedExprKind::RepeatArrayU8 { value, count } => {
+                let expected = ResolvedType::ArrayU8(*count);
+                self.require_type(&expr.ty, &expected, "repeated fixed byte array literal")?;
+                if *count == 0 {
+                    return Ok(CValue {
+                        code: "UINT8_C(0)".to_owned(),
+                        ty: expr.ty.clone(),
+                    });
+                } else {
+                    let temporary = self.temporary(&expr.ty)?;
+                    self.line(&format!(
+                        "memset({temporary}.spx_bytes, UINT8_C({value}), UINT32_C({count}));"
+                    ));
+                    CValue {
+                        code: temporary,
+                        ty: expr.ty.clone(),
+                    }
                 }
             }
             ResolvedExprKind::Float32(bits) => {
@@ -3315,6 +3606,71 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 }
                 value
             }
+            ResolvedExprKind::BorrowPlace { operation, place } => {
+                let op = crate::byte_ops::by_id(operation.as_str()).ok_or_else(|| {
+                    backend_error(format!(
+                        "unknown compiler-owned byte view identity `{operation}`"
+                    ))
+                })?;
+                if !op.is_view() {
+                    return Err(backend_error(format!(
+                        "non-view byte operation `{operation}` used BorrowPlace HIR"
+                    )));
+                }
+                let source = self.emit_place(place)?;
+                let temporary = self.temporary(&ResolvedType::SliceU8)?;
+                match op {
+                    crate::byte_ops::ByteOp::BytesAsSlice => {
+                        self.require_type(
+                            &source.ty,
+                            &ResolvedType::Bytes,
+                            "owned byte borrow source",
+                        )?;
+                        self.line(&format!(
+                            "{temporary} = spx_bytes_as_slice(&({}));",
+                            source.code
+                        ));
+                    }
+                    crate::byte_ops::ByteOp::ArrayAsSlice => {
+                        let ResolvedType::ArrayU8(length) = source.ty else {
+                            return Err(backend_error(
+                                "fixed byte array borrow has a non-array source",
+                            ));
+                        };
+                        if length == 0 {
+                            self.line(&format!(
+                                "{temporary} = (spx_slice_u8_v1) {{ .ptr = NULL, .len = UINT64_C(0) }};"
+                            ));
+                        } else {
+                            self.line(&format!(
+                                "{temporary} = (spx_slice_u8_v1) {{ .ptr = ({}).spx_bytes, .len = UINT64_C({length}) }};",
+                                source.code
+                            ));
+                        }
+                        self.line(&format!("spx_slice_u8_require_valid({temporary});"));
+                    }
+                    crate::byte_ops::ByteOp::StrAsBytes => {
+                        self.require_type(
+                            &source.ty,
+                            &ResolvedType::Str,
+                            "borrowed UTF-8 byte view source",
+                        )?;
+                        self.line(&format!("spx_str_require_valid({});", source.code));
+                        self.line(&format!(
+                            "{temporary} = (spx_slice_u8_v1) {{ .ptr = ({}).len == UINT64_C(0) ? NULL : (const uint8_t *)({}).data, .len = ({}).len }};",
+                            source.code, source.code, source.code
+                        ));
+                        self.line(&format!("spx_slice_u8_require_valid({temporary});"));
+                    }
+                    crate::byte_ops::ByteOp::Len
+                    | crate::byte_ops::ByteOp::Get
+                    | crate::byte_ops::ByteOp::Copy => unreachable!(),
+                }
+                CValue {
+                    code: temporary,
+                    ty: ResolvedType::SliceU8,
+                }
+            }
             ResolvedExprKind::Call {
                 callee,
                 instance,
@@ -3326,7 +3682,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         return self.emit_str_op(op, args, &expr.ty);
                     }
                     if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
-                        return self.emit_byte_op(op, args, &expr.ty);
+                        return self.emit_byte_op(op, args, &expr.ty, &expr.id);
                     }
                     if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                         return self.emit_string_op(op, args, &expr.ty);
@@ -3351,23 +3707,72 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 for (index, (arg, expected)) in args.iter().zip(&target.params).enumerate() {
                     let argument = self.emit_expr(arg)?;
                     self.require_type(&argument.ty, expected, &format!("call argument {index}"))?;
-                    arguments.push(if is_aggregate_type(self.program, expected)? {
+                    arguments.push(if matches!(expected, ResolvedType::Bytes) {
+                        let plan = self.bytes_plan.ok_or_else(|| {
+                            backend_error("owned Bytes call has no canonical cleanup plan")
+                        })?;
+                        let transitions = plan.apply_at(&arg.id)?;
+                        for line in transitions.lines() {
+                            self.line(line);
+                        }
+                        let parameter_index = u32::try_from(index)
+                            .map_err(|_| backend_error("native call has too many parameters"))?;
+                        let (value, _) = plan.call_argument(&expr.id, parameter_index)?;
+                        format!("spx_bytes_move(&{value})")
+                    } else if is_aggregate_type(self.program, expected)? {
                         format!("&({})", argument.code)
                     } else {
                         argument.code
                     });
                 }
                 self.require_type(&expr.ty, &target.return_type, "call result")?;
-                let temporary = self.temporary(&target.return_type)?;
+                let temporary = if matches!(target.return_type, ResolvedType::Bytes) {
+                    self.bytes_plan
+                        .ok_or_else(|| {
+                            backend_error("owned Bytes call result has no cleanup plan")
+                        })?
+                        .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                        .to_owned()
+                } else {
+                    self.call_result_temporary(&target.return_type)?
+                };
                 self.line(&format!(
                     "spx_status = {}(spx_ctx{}{}, &{temporary});",
                     target.symbol,
                     if arguments.is_empty() { "" } else { ", " },
                     arguments.budgeted_join(", ")
                 ));
+                if let Some(plan) = self.bytes_plan {
+                    for (index, expected) in target.params.iter().enumerate() {
+                        if matches!(expected, ResolvedType::Bytes) {
+                            let (_, flag) = plan.call_argument(
+                                &expr.id,
+                                u32::try_from(index).map_err(|_| {
+                                    backend_error("native call has too many parameters")
+                                })?,
+                            )?;
+                            self.line(&format!("{flag} = false;"));
+                        }
+                    }
+                }
                 self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+                if let Some(plan) = self.bytes_plan {
+                    let transitions = plan.apply_at(&expr.id)?;
+                    for line in transitions.lines() {
+                        self.line(line);
+                    }
+                }
                 CValue {
-                    code: temporary,
+                    code: if matches!(target.return_type, ResolvedType::Bytes) {
+                        self.bytes_plan
+                            .and_then(|plan| plan.result_at(&expr.id))
+                            .ok_or_else(|| {
+                                backend_error("owned call has no canonical result transfer")
+                            })?
+                            .to_owned()
+                    } else {
+                        temporary
+                    },
                     ty: target.return_type,
                 }
             }
@@ -3426,13 +3831,37 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         ResolvedStatement::Let { binding, value, .. } => {
                             let value = self.emit_expr(value)?;
                             self.require_type(&value.ty, &binding.ty, "local binding")?;
-                            let local = format!("spx_local_{}", self.next_local);
-                            self.next_local += 1;
-                            self.line(&format!(
-                                "{} {local} = {};",
-                                c_value_type(self.program, self.resource_abi, &binding.ty)?,
-                                value.code
-                            ));
+                            let local = if matches!(binding.ty, ResolvedType::Bytes) {
+                                let plan = self.bytes_plan.ok_or_else(|| {
+                                    backend_error(
+                                        "owned Bytes binding has no canonical cleanup plan",
+                                    )
+                                })?;
+                                let storage =
+                                    crate::cleanup_plan::StorageId::Value(binding.id.clone());
+                                let expected = plan.value(&storage)?.to_owned();
+                                if value.code != expected {
+                                    let transitions = plan.transfer_to(&storage)?;
+                                    for line in transitions.lines() {
+                                        self.line(line);
+                                    }
+                                }
+                                expected
+                            } else if matches!(binding.ty, ResolvedType::ArrayU8(0)) {
+                                // The expression has already been evaluated;
+                                // its zero-sized Copy value has no C storage.
+                                "UINT8_C(0)".to_owned()
+                            } else {
+                                let local = format!("spx_local_{}", self.next_local);
+                                self.next_local += 1;
+                                self.line(&format!(
+                                    "{} {local} = {};",
+                                    c_value_type(self.program, self.resource_abi, &binding.ty)?,
+                                    value.code
+                                ));
+                                self.line(&format!("(void){local};"));
+                                local
+                            };
                             if self
                                 .variables
                                 .insert(
@@ -3477,25 +3906,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                             "string field assignment has no admitted native lowering",
                                         ));
                                     }
-                                    let target =
-                                        self.variables.get(&binding.id).ok_or_else(|| {
-                                            backend_error(format!(
-                                                "assignment target `{}` has no native local",
-                                                binding.id
-                                            ))
-                                        })?;
-                                    self.line(&format!(
-                                        "{}.{} = {};",
-                                        target.name,
-                                        c_field_symbol(&field.field),
-                                        value.code
-                                    ));
-                                }
-                                None => {
-                                    self.require_type(&value.ty, &binding.ty, "assignment")?;
-                                    if matches!(binding.ty, ResolvedType::String) {
+                                    if matches!(field.ty, ResolvedType::Bytes) {
                                         return Err(backend_error(
-                                            "string assignment has no admitted native lowering",
+                                            "owned Bytes field assignment has no admitted native lowering",
                                         ));
                                     }
                                     let target =
@@ -3505,7 +3918,37 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                                 binding.id
                                             ))
                                         })?;
-                                    self.line(&format!("{} = {};", target.name, value.code));
+                                    if field.size != 0 {
+                                        self.line(&format!(
+                                            "{}.{} = {};",
+                                            target.name,
+                                            c_field_symbol(&field.field),
+                                            value.code
+                                        ));
+                                    }
+                                }
+                                None => {
+                                    self.require_type(&value.ty, &binding.ty, "assignment")?;
+                                    if matches!(binding.ty, ResolvedType::String) {
+                                        return Err(backend_error(
+                                            "string assignment has no admitted native lowering",
+                                        ));
+                                    }
+                                    if matches!(binding.ty, ResolvedType::Bytes) {
+                                        return Err(backend_error(
+                                            "owned Bytes assignment is outside the immutable data profile",
+                                        ));
+                                    }
+                                    let target =
+                                        self.variables.get(&binding.id).ok_or_else(|| {
+                                            backend_error(format!(
+                                                "assignment target `{}` has no native local",
+                                                binding.id
+                                            ))
+                                        })?;
+                                    if !matches!(binding.ty, ResolvedType::ArrayU8(0)) {
+                                        self.line(&format!("{} = {};", target.name, value.code));
+                                    }
                                 }
                             }
                         }
@@ -3552,13 +3995,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         }
                     }
                 }
-                let tail = self.emit_expr(tail)?;
+                let mut tail = self.emit_expr(tail)?;
                 self.require_type(&tail.ty, &expr.ty, "block result")?;
                 // Owned string locals introduced in this block free exactly
                 // their own buffer when the block exits; outer bindings and
                 // the tail value are untouched. The order is sorted so the
                 // projection stays byte-deterministic.
-                let mut introduced: Vec<String> = self
+                let mut introduced_strings: Vec<String> = self
                     .variables
                     .iter()
                     .filter(|(id, binding)| {
@@ -3566,9 +4009,49 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     })
                     .map(|(_, binding)| binding.name.clone())
                     .collect();
-                introduced.sort();
-                for name in introduced {
+                introduced_strings.sort();
+                for name in introduced_strings {
                     self.line(&format!("spx_string_drop({name});"));
+                }
+                if matches!(tail.ty, ResolvedType::Bytes) {
+                    let plan = self.bytes_plan.ok_or_else(|| {
+                        backend_error("owned Bytes block has no canonical cleanup plan")
+                    })?;
+                    let transitions = plan.apply_at(&expr.id)?;
+                    for line in transitions.lines() {
+                        self.line(line);
+                    }
+                    tail.code = plan
+                        .result_at(&expr.id)
+                        .ok_or_else(|| {
+                            backend_error("owned Bytes block has no canonical result transfer")
+                        })?
+                        .to_owned();
+                }
+                if let Some(plan) = self.bytes_plan {
+                    let anchors = statements
+                        .iter()
+                        .flat_map(|statement| {
+                            let mut anchors = Vec::with_capacity(2);
+                            if let ResolvedStatement::Let { binding, .. } = statement {
+                                if binding.ty == ResolvedType::Bytes {
+                                    anchors.push(crate::cleanup_plan::StorageId::Value(
+                                        binding.id.clone(),
+                                    ));
+                                }
+                            }
+                            if statement.value().ty == ResolvedType::Bytes {
+                                anchors.push(crate::cleanup_plan::StorageId::Temporary(
+                                    statement.value().id.clone(),
+                                ));
+                            }
+                            anchors
+                        })
+                        .collect::<BTreeSet<_>>();
+                    let cleanup = plan.scope_exit(&anchors)?;
+                    for line in cleanup.lines() {
+                        self.line(line);
+                    }
                 }
                 self.variables = saved;
                 tail
@@ -3580,18 +4063,47 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             } => {
                 let condition = self.emit_expr(condition)?;
                 self.require_type(&condition.ty, &ResolvedType::Bool, "if condition")?;
-                let temporary = self.temporary(&expr.ty)?;
+                let temporary = if matches!(expr.ty, ResolvedType::Bytes) {
+                    self.bytes_plan
+                        .ok_or_else(|| backend_error("owned Bytes if has no cleanup plan"))?
+                        .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                        .to_owned()
+                } else {
+                    self.temporary(&expr.ty)?
+                };
                 self.line(&format!("if ({}) {{", condition.code));
                 self.indent += 1;
                 let then_value = self.emit_expr(then_branch)?;
                 self.require_type(&then_value.ty, &expr.ty, "then branch")?;
-                self.line(&format!("{temporary} = {};", then_value.code));
+                if matches!(expr.ty, ResolvedType::Bytes) {
+                    let plan = self.bytes_plan.expect("checked above");
+                    let transitions = plan.transfer_from_to(
+                        &then_value.code,
+                        &crate::cleanup_plan::StorageId::Temporary(expr.id.clone()),
+                    )?;
+                    for line in transitions.lines() {
+                        self.line(line);
+                    }
+                } else if !matches!(expr.ty, ResolvedType::ArrayU8(0)) {
+                    self.line(&format!("{temporary} = {};", then_value.code));
+                }
                 self.indent -= 1;
                 self.line("} else {");
                 self.indent += 1;
                 let else_value = self.emit_expr(else_branch)?;
                 self.require_type(&else_value.ty, &expr.ty, "else branch")?;
-                self.line(&format!("{temporary} = {};", else_value.code));
+                if matches!(expr.ty, ResolvedType::Bytes) {
+                    let plan = self.bytes_plan.expect("checked above");
+                    let transitions = plan.transfer_from_to(
+                        &else_value.code,
+                        &crate::cleanup_plan::StorageId::Temporary(expr.id.clone()),
+                    )?;
+                    for line in transitions.lines() {
+                        self.line(line);
+                    }
+                } else if !matches!(expr.ty, ResolvedType::ArrayU8(0)) {
+                    self.line(&format!("{temporary} = {};", else_value.code));
+                }
                 self.indent -= 1;
                 self.line("}");
                 CValue {
@@ -3608,9 +4120,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     )));
                 }
                 let temporary = self.temporary(&expr.ty)?;
-                if layout.fields.is_empty() {
+                if layout.size == 0 {
                     self.line(&format!(
-                        "{temporary}.spx_empty_record_padding = UINT8_C(0);"
+                        "{temporary}.spx_zero_sized_record_carrier = UINT8_C(0);"
                     ));
                 }
                 for initializer in fields {
@@ -3622,11 +4134,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     })?;
                     let value = self.emit_expr(&initializer.value)?;
                     self.require_type(&value.ty, &field.ty, "record field initializer")?;
-                    self.line(&format!(
-                        "{temporary}.{} = {};",
-                        c_field_symbol(&field.field),
-                        value.code
-                    ));
+                    if field.size != 0 {
+                        self.line(&format!(
+                            "{temporary}.{} = {};",
+                            c_field_symbol(&field.field),
+                            value.code
+                        ));
+                    }
                 }
                 CValue {
                     code: temporary,
@@ -3668,11 +4182,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 self.line(&format!("memset(&{temporary}, 0, sizeof({temporary}));"));
                 let case_symbol = c_case_symbol(case);
                 for (field, value) in values {
-                    self.line(&format!(
-                        "{temporary}.spx_payload.{case_symbol}.{} = {};",
-                        c_field_symbol(&field.field),
-                        value.code
-                    ));
+                    if field.size != 0 {
+                        self.line(&format!(
+                            "{temporary}.spx_payload.{case_symbol}.{} = {};",
+                            c_field_symbol(&field.field),
+                            value.code
+                        ));
+                    }
                 }
                 self.line(&format!(
                     "{temporary}.spx_tag = UINT32_C({});",
@@ -3756,7 +4272,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     "if ({staged}.spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid variant tag\");",
                     layout.cases.len()
                 ));
-                let result = self.temporary(&expr.ty)?;
+                let result = if matches!(expr.ty, ResolvedType::Bytes) {
+                    self.bytes_plan
+                        .ok_or_else(|| backend_error("owned Bytes match has no cleanup plan"))?
+                        .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                        .to_owned()
+                } else {
+                    self.temporary(&expr.ty)?
+                };
                 let matched = self.temporary(&ResolvedType::Bool)?;
                 self.line(&format!("{matched} = false;"));
                 for arm in arms {
@@ -3830,7 +4353,17 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     }
                     let value = self.emit_expr(&arm.value)?;
                     self.require_type(&value.ty, &expr.ty, "match arm result")?;
-                    self.line(&format!("{result} = {};", value.code));
+                    if matches!(expr.ty, ResolvedType::Bytes) {
+                        let transitions = self
+                            .bytes_plan
+                            .expect("checked above")
+                            .apply_at(&arm.value.id)?;
+                        for line in transitions.lines() {
+                            self.line(line);
+                        }
+                    } else {
+                        self.line(&format!("{result} = {};", value.code));
+                    }
                     self.variables = saved;
                     self.indent -= 1;
                     self.line("}");
@@ -4030,7 +4563,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 })?;
                 self.require_type(&expr.ty, &field.ty, "record projection")?;
                 CValue {
-                    code: format!("({}).{}", base.code, c_field_symbol(&field.field)),
+                    code: if field.size == 0 {
+                        "UINT8_C(0)".to_owned()
+                    } else {
+                        format!("({}).{}", base.code, c_field_symbol(&field.field))
+                    },
                     ty: field.ty,
                 }
             }
@@ -4071,12 +4608,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ));
                 }
                 for field in &target_layout.fields {
-                    self.line(&format!(
-                        "{temporary}.{} = ({}).{};",
-                        c_field_symbol(&field.field),
-                        source.code,
-                        c_field_symbol(&field.field)
-                    ));
+                    if field.size != 0 {
+                        self.line(&format!(
+                            "{temporary}.{} = ({}).{};",
+                            c_field_symbol(&field.field),
+                            source.code,
+                            c_field_symbol(&field.field)
+                        ));
+                    }
                 }
                 CValue {
                     code: temporary,
@@ -4108,11 +4647,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     })?;
                     let value = self.emit_expr(&replacement.value)?;
                     self.require_type(&value.ty, &field.ty, "record update field")?;
-                    self.line(&format!(
-                        "{temporary}.{} = {};",
-                        c_field_symbol(&field.field),
-                        value.code
-                    ));
+                    if field.size != 0 {
+                        self.line(&format!(
+                            "{temporary}.{} = {};",
+                            c_field_symbol(&field.field),
+                            value.code
+                        ));
+                    }
                 }
                 CValue {
                     code: temporary,
@@ -4143,7 +4684,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     layout.record
                 ))
             })?;
-            code = format!("({code}).{}", c_field_symbol(&field.field));
+            code = if field.size == 0 {
+                "UINT8_C(0)".to_owned()
+            } else {
+                format!("({code}).{}", c_field_symbol(&field.field))
+            };
             ty = field.ty;
         }
         Ok(CValue { code, ty })
@@ -4202,7 +4747,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     field.field
                 )));
             }
-            let field_code = format!("({base}).{}", c_field_symbol(&layout_field.field));
+            let field_code = if layout_field.size == 0 {
+                "UINT8_C(0)".to_owned()
+            } else {
+                format!("({base}).{}", c_field_symbol(&layout_field.field))
+            };
             match &field.pattern {
                 hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
                     self.require_type(&binding.ty, &layout_field.ty, "record pattern binding")?;

@@ -127,6 +127,8 @@ pub(super) fn ast_child(expression: &crate::ast::Expr, index: usize) -> Option<&
         | crate::ast::ExprKind::Char(_)
         | crate::ast::ExprKind::Uint8(_)
         | crate::ast::ExprKind::Usize(_)
+        | crate::ast::ExprKind::ArrayU8(_)
+        | crate::ast::ExprKind::RepeatArrayU8 { .. }
         | crate::ast::ExprKind::Float32(_)
         | crate::ast::ExprKind::Float64(_)
         | crate::ast::ExprKind::Bool(_)
@@ -195,6 +197,8 @@ fn ast_child_identity_path_increment(
         | crate::ast::ExprKind::Char(_)
         | crate::ast::ExprKind::Uint8(_)
         | crate::ast::ExprKind::Usize(_)
+        | crate::ast::ExprKind::ArrayU8(_)
+        | crate::ast::ExprKind::RepeatArrayU8 { .. }
         | crate::ast::ExprKind::Float32(_)
         | crate::ast::ExprKind::Float64(_)
         | crate::ast::ExprKind::Bool(_)
@@ -248,6 +252,12 @@ fn ast_type_identity_key_len(program: &Program, root: &crate::ast::Type) -> Opti
                 results[result_len] = "usize".len();
                 result_len = result_len.checked_add(1)?;
             }
+            Frame::Enter(crate::ast::Type::ArrayU8(length)) => {
+                results[result_len] = "array:u8:"
+                    .len()
+                    .checked_add(decimal_digits(*length as usize))?;
+                result_len = result_len.checked_add(1)?;
+            }
             Frame::Enter(crate::ast::Type::F32) => {
                 results[result_len] = "f32".len();
                 result_len = result_len.checked_add(1)?;
@@ -262,6 +272,10 @@ fn ast_type_identity_key_len(program: &Program, root: &crate::ast::Type) -> Opti
             }
             Frame::Enter(crate::ast::Type::String) => {
                 results[result_len] = "string".len();
+                result_len = result_len.checked_add(1)?;
+            }
+            Frame::Enter(crate::ast::Type::Bytes) => {
+                results[result_len] = "bytes".len();
                 result_len = result_len.checked_add(1)?;
             }
             Frame::Enter(crate::ast::Type::Str) => {
@@ -513,6 +527,8 @@ pub(super) fn scan_ast_capacity<'a>(
                     | crate::ast::ExprKind::Char(_)
                     | crate::ast::ExprKind::Uint8(_)
                     | crate::ast::ExprKind::Usize(_)
+                    | crate::ast::ExprKind::ArrayU8(_)
+                    | crate::ast::ExprKind::RepeatArrayU8 { .. }
                     | crate::ast::ExprKind::Float32(_)
                     | crate::ast::ExprKind::Float64(_)
                     | crate::ast::ExprKind::Bool(_)
@@ -808,10 +824,17 @@ fn ast_resource_leaf_count(
                 | crate::ast::Type::Bool
                 | crate::ast::Type::String
                 | crate::ast::Type::Str
+                | crate::ast::Type::ArrayU8(_)
                 | crate::ast::Type::SliceU8,
                 _,
             ) => {
                 values[value_len] = 0;
+                value_len += 1;
+            }
+            Frame::Enter(crate::ast::Type::Bytes, _) => {
+                // Bytes is one compiler-owned cleanup leaf even though this
+                // native-rust interop profile rejects it at admission.
+                values[value_len] = 1;
                 value_len += 1;
             }
             Frame::Enter(crate::ast::Type::Named { name, .. }, depth) => {
@@ -1822,6 +1845,8 @@ fn cleanup_plan_variable_identity_bytes(
             | crate::ast::ExprKind::Char(_)
             | crate::ast::ExprKind::Uint8(_)
             | crate::ast::ExprKind::Usize(_)
+            | crate::ast::ExprKind::ArrayU8(_)
+            | crate::ast::ExprKind::RepeatArrayU8 { .. }
             | crate::ast::ExprKind::Float32(_)
             | crate::ast::ExprKind::Float64(_)
             | crate::ast::ExprKind::Bool(_)
@@ -2144,6 +2169,8 @@ fn cleanup_binding_flow<'a>(
                 | crate::ast::ExprKind::Char(_)
                 | crate::ast::ExprKind::Uint8(_)
                 | crate::ast::ExprKind::Usize(_)
+                | crate::ast::ExprKind::ArrayU8(_)
+                | crate::ast::ExprKind::RepeatArrayU8 { .. }
                 | crate::ast::ExprKind::Float32(_)
                 | crate::ast::ExprKind::Float64(_)
                 | crate::ast::ExprKind::Bool(_)
@@ -2388,7 +2415,9 @@ fn cleanup_retained_stats(
             | crate::ast::Type::Bool
             | crate::ast::Type::String
             | crate::ast::Type::Str
+            | crate::ast::Type::ArrayU8(_)
             | crate::ast::Type::SliceU8 => CleanupTypeKey::Scalar,
+            crate::ast::Type::Bytes => CleanupTypeKey::Unknown,
             crate::ast::Type::Named { name, .. } => {
                 if let Some(index) = program
                     .types
@@ -3354,6 +3383,8 @@ fn cleanup_retained_stats(
                     | crate::ast::ExprKind::Char(_)
                     | crate::ast::ExprKind::Uint8(_)
                     | crate::ast::ExprKind::Usize(_)
+                    | crate::ast::ExprKind::ArrayU8(_)
+                    | crate::ast::ExprKind::RepeatArrayU8 { .. }
                     | crate::ast::ExprKind::Float32(_)
                     | crate::ast::ExprKind::Float64(_)
                     | crate::ast::ExprKind::Bool(_)
@@ -5232,6 +5263,8 @@ fn hir_type_owned_capacity(ty: &ResolvedType) -> Option<usize> {
         | ResolvedType::F64
         | ResolvedType::Bool
         | ResolvedType::String
+        | ResolvedType::ArrayU8(_)
+        | ResolvedType::Bytes
         | ResolvedType::Str
         | ResolvedType::SliceU8 => Some(0),
         ResolvedType::TypeParameter { owner, .. } => Some(owner.as_str().len()),
@@ -5365,6 +5398,12 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
             .and_then(|bytes| bytes.checked_add(hir_type_owned_capacity(&expression.ty)?))
             .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
         match &expression.kind {
+            ResolvedExprKind::ArrayU8(values) => {
+                total = total
+                    .checked_add(values.capacity())
+                    .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+            }
+            ResolvedExprKind::RepeatArrayU8 { .. } => {}
             ResolvedExprKind::Call {
                 callee,
                 type_arguments,
@@ -5566,7 +5605,12 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
                 pending.push(base);
                 pending.extend(fields.iter().map(|field| &field.value));
             }
-            ResolvedExprKind::Place(place) => {
+            ResolvedExprKind::Place(place) | ResolvedExprKind::BorrowPlace { place, .. } => {
+                if let ResolvedExprKind::BorrowPlace { operation, .. } = &expression.kind {
+                    total = total
+                        .checked_add(operation.as_str().len())
+                        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                }
                 total = total
                     .checked_add(place.root.as_str().len())
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
@@ -6048,11 +6092,14 @@ pub(super) fn validate_native_rust_expression_budget_for_closure(
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Usize(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
             | ResolvedExprKind::String(_)
-            | ResolvedExprKind::Place(_) => {}
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::BorrowPlace { .. } => {}
         }
     }
     Ok(())

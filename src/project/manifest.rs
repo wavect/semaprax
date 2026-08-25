@@ -5,7 +5,12 @@ pub const PROJECT_SCHEMA: &str = "semaprax.project.v1";
 /// Additive Project Manifest v2 schema used by the Useful Text Consumer
 /// profile. V1 parsing and rendering remain byte-for-byte unchanged.
 pub const PROJECT_SCHEMA_V2: &str = "semaprax.project.v2";
+/// Additive Project Manifest v3 schema used by the Portable Indexed Byte Data
+/// public adapter. V1 and v2 parsing and rendering remain byte-for-byte
+/// unchanged.
+pub const PROJECT_SCHEMA_V3: &str = "semaprax.project.v3";
 pub const PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1: &str = "useful-text-consumer.v1";
+pub const PROJECT_PROFILE_USEFUL_DATA_V1: &str = "useful-data.v1";
 pub const MAX_MANIFEST_BYTES: usize = 64 * 1024;
 pub const MAX_NAME_BYTES: usize = 64;
 pub const MAX_VERSION_BYTES: usize = 128;
@@ -16,14 +21,35 @@ pub const MAX_SOURCES: usize = 16;
 pub const MAX_WEB_EXPORTS: usize = 32;
 pub const MAX_TOTAL_SOURCE_BYTES: usize = 16 * 1024 * 1024;
 
+/// One exact Project profile selected by the manifest schema. This enum is the
+/// authority passed to project linking and backend preparation; callers must
+/// not infer profile semantics from a schema comparison or boolean flag.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProjectProfile {
+    ScalarV1,
+    UsefulTextConsumerV1,
+    UsefulDataV1,
+}
+
+impl ProjectProfile {
+    pub const fn name(self) -> Option<&'static str> {
+        match self {
+            Self::ScalarV1 => None,
+            Self::UsefulTextConsumerV1 => Some(PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1),
+            Self::UsefulDataV1 => Some(PROJECT_PROFILE_USEFUL_DATA_V1),
+        }
+    }
+}
+
 /// One exact, closed Project manifest. The schema selects the frozen v1
-/// scalar shape or the additive v2 Useful Text Consumer shape.
+/// scalar shape, additive v2 Useful Text Consumer shape, or additive v3
+/// Useful Data shape.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProjectManifest {
     schema: &'static str,
     name: String,
     package_version: Option<String>,
-    profile: Option<&'static str>,
+    profile: ProjectProfile,
     entry: String,
     sources: Vec<String>,
     web_exports: Vec<String>,
@@ -31,7 +57,7 @@ pub struct ProjectManifest {
 }
 
 impl ProjectManifest {
-    /// Parse either frozen Project v1 or additive Project v2 canonical TOML.
+    /// Parse frozen Project v1 or additive Project v2/v3 canonical TOML.
     pub fn parse(source: &str) -> Result<Self, Vec<Diagnostic>> {
         if source.len() > MAX_MANIFEST_BYTES {
             return Err(capacity("manifest_bytes", MAX_MANIFEST_BYTES));
@@ -58,7 +84,7 @@ impl ProjectManifest {
                         PROJECT_SCHEMA,
                         parse_string_assignment(lines[1], "name")?,
                         None,
-                        None,
+                        ProjectProfile::ScalarV1,
                         parse_string_assignment(lines[2], "entry")?,
                         parse_array_assignment(lines[3], "sources")?,
                         parse_array_assignment(lines[4], "web_exports")?,
@@ -87,7 +113,34 @@ impl ProjectManifest {
                         PROJECT_SCHEMA_V2,
                         parse_string_assignment(lines[1], "name")?,
                         Some(version),
-                        Some(PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1),
+                        ProjectProfile::UsefulTextConsumerV1,
+                        parse_string_assignment(lines[4], "entry")?,
+                        parse_array_assignment(lines[5], "sources")?,
+                        parse_array_assignment(lines[6], "web_exports")?,
+                        parse_array_assignment(lines[7], "tests")?,
+                    )
+                }
+                PROJECT_SCHEMA_V3 => {
+                    if lines.len() != 9 || lines.last() != Some(&"") {
+                        return Err(grammar(
+                            "Project v3 manifest must contain exactly eight ordered assignments and one terminal LF",
+                        ));
+                    }
+                    let version = parse_string_assignment(lines[2], "version")?;
+                    if !valid_semver(&version) {
+                        return Err(grammar(
+                            "Project v3 version must be canonical Semantic Versioning text of at most 128 bytes",
+                        ));
+                    }
+                    let profile = parse_string_assignment(lines[3], "profile")?;
+                    if profile != PROJECT_PROFILE_USEFUL_DATA_V1 {
+                        return Err(grammar("Project v3 profile is not useful-data.v1"));
+                    }
+                    (
+                        PROJECT_SCHEMA_V3,
+                        parse_string_assignment(lines[1], "name")?,
+                        Some(version),
+                        ProjectProfile::UsefulDataV1,
                         parse_string_assignment(lines[4], "entry")?,
                         parse_array_assignment(lines[5], "sources")?,
                         parse_array_assignment(lines[6], "web_exports")?,
@@ -96,14 +149,15 @@ impl ProjectManifest {
                 }
                 _ => {
                     return Err(grammar(
-                        "Project manifest schema is neither semaprax.project.v1 nor semaprax.project.v2",
+                        "Project manifest schema is neither semaprax.project.v1, semaprax.project.v2, nor semaprax.project.v3",
                     ))
                 }
             };
-        let version_label = if schema == PROJECT_SCHEMA {
-            "Project v1"
-        } else {
-            "Project v2"
+        let version_label = match schema {
+            PROJECT_SCHEMA => "Project v1",
+            PROJECT_SCHEMA_V2 => "Project v2",
+            PROJECT_SCHEMA_V3 => "Project v3",
+            _ => unreachable!("schema was selected by the closed parser"),
         };
         if !valid_name(&name) {
             return Err(grammar(format!(
@@ -192,11 +246,19 @@ impl ProjectManifest {
     }
 
     pub fn profile(&self) -> Option<&'static str> {
+        self.profile.name()
+    }
+
+    pub fn project_profile(&self) -> ProjectProfile {
         self.profile
     }
 
     pub fn is_v2(&self) -> bool {
         self.schema == PROJECT_SCHEMA_V2
+    }
+
+    pub fn is_v3(&self) -> bool {
+        self.schema == PROJECT_SCHEMA_V3
     }
 
     pub fn entry(&self) -> &str {
@@ -225,14 +287,31 @@ impl ProjectManifest {
                 render_array(&self.web_exports),
                 self.test_module,
             )
-        } else {
+        } else if self.schema == PROJECT_SCHEMA_V2 {
             format!(
                 "schema = \"{PROJECT_SCHEMA_V2}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ntests = [\"{}\"]\n",
                 self.name,
                 self.package_version
                     .as_deref()
                     .expect("Project v2 carries a package version"),
-                self.profile.expect("Project v2 carries a profile"),
+                self.profile
+                    .name()
+                    .expect("Project v2 carries a named profile"),
+                self.entry,
+                render_array(&self.sources),
+                render_array(&self.web_exports),
+                self.test_module,
+            )
+        } else {
+            format!(
+                "schema = \"{PROJECT_SCHEMA_V3}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ntests = [\"{}\"]\n",
+                self.name,
+                self.package_version
+                    .as_deref()
+                    .expect("Project v3 carries a package version"),
+                self.profile
+                    .name()
+                    .expect("Project v3 carries a named profile"),
                 self.entry,
                 render_array(&self.sources),
                 render_array(&self.web_exports),

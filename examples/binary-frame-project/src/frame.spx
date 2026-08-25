@@ -1,0 +1,37 @@
+module binary_frame.frame;
+
+@id("binary-frame.length")
+fn frame_length(frame: borrow Slice<u8>) -> usize
+{
+    byte_len(frame)
+}
+
+@id("binary-frame.combine-length")
+fn combine_length(left: borrow Slice<u8>, right: borrow Slice<u8>) -> usize
+{
+    byte_len(left) + byte_len(right)
+}
+
+@id("binary-frame.has-magic")
+fn has_magic(frame: borrow Slice<u8>) -> bool
+{
+    let magic = [83u8, 80u8, 88u8, 1u8];
+    let expected = array_as_slice(magic);
+    match byte_get(frame, 0usize) { Option::Some { value: first } => match byte_get(frame, 1usize) { Option::Some { value: second } => match byte_get(frame, 2usize) { Option::Some { value: third } => match byte_get(frame, 3usize) { Option::Some { value: fourth } => match byte_get(expected, 0usize) { Option::Some { value: e0 } => match byte_get(expected, 1usize) { Option::Some { value: e1 } => match byte_get(expected, 2usize) { Option::Some { value: e2 } => match byte_get(expected, 3usize) { Option::Some { value: e3 } => first == e0 && second == e1 && third == e2 && fourth == e3, Option::None {} => false, }, Option::None {} => false, }, Option::None {} => false, }, Option::None {} => false, }, Option::None {} => false, }, Option::None {} => false, }, Option::None {} => false, }, Option::None {} => false, }
+}
+
+@id("binary-frame.checksum")
+fn checksum(frame: borrow Slice<u8>) -> usize
+{
+    let owned = bytes_copy(frame);
+    let bytes = bytes_as_slice(owned);
+    let length = byte_len(bytes);
+    let mut index = 0usize;
+    while index < length {
+        index = index + 1usize;
+        index < length
+    }
+    let fourth = match byte_get(bytes, 4usize) { Option::Some { value: byte } => if byte == 255u8 { 1usize } else { 0usize }, Option::None {} => 0usize, };
+    let sixth = match byte_get(bytes, 6usize) { Option::Some { value: byte } => if byte == 255u8 { 1usize } else { 0usize }, Option::None {} => 0usize, };
+    fourth + sixth
+}

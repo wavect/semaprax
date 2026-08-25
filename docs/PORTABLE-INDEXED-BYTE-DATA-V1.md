@@ -1,15 +1,19 @@
 # Portable Indexed Byte Data v1
 
-Status: partially implemented as a second local internal compiler tranche.
+Status: partially implemented with local internal compiler and bounded public
+Project/npm adapter evidence.
 Checked target-independent `usize`, fixed `[u8; N]`, uniquely owned `Bytes`,
 non-escaping `Slice<u8>`, all six compiler-owned byte operations, lexical
 owner borrowing, target-neutral capacity analysis, Graph v17, canonical
 CleanupPlan settlement, and interpreter/native O0/O2/internal Core-Wasm Node
-execution have focused local evidence. Public `useful-data.v1` Project/npm
-adapters, the typed-array facade, the complete hostile public-boundary matrix,
-the multi-module acceptance project, exact legacy Graph KAT promotion,
-exact-head hosted evidence, and registry publication remain open. This is not
-a complete or public Useful Data capability claim.
+execution have focused local evidence. Project Manifest v3 now selects the
+closed `useful-data.v1` profile and locally proves strict `Uint8Array`
+JavaScript/TypeScript inputs, exact six-file npm carrier replay, and an offline
+installed multi-module binary-frame consumer. Unix publication is
+handle-relative, create-new, and no-clobber; Windows v2 publication remains
+fail-closed. Complete hostile cross-platform boundary evidence, exact-head
+hosted evidence, registry publication, and promotion remain open. This is not
+a complete Useful Data capability claim.
 
 Portable Indexed Byte Data v1 is the first bounded Useful Data profile. It
 adds one target-independent index scalar, fixed byte arrays, uniquely owned

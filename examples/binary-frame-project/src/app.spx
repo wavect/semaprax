@@ -1,0 +1,8 @@
+module binary_frame.app;
+use function @id("binary-frame.ready") from binary_frame.core as ready;
+
+@id("binary-frame.app.main")
+fn main() -> i64
+{
+    ready()
+}

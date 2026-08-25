@@ -6,9 +6,7 @@ use super::codec::{self, RequestId, RequestKind, RpcRequest};
 use super::config::{ServerConfig, ServerProfile};
 use super::framing::{Frame, FrameReader, FrameWriter, WriteDisposition};
 use crate::diagnostic::{quote_json, Diagnostic};
-use crate::project::{
-    PreparedProjectRename, ProjectExecutionOptions, ProjectSnapshot, PROJECT_SCHEMA,
-};
+use crate::project::{PreparedProjectRename, ProjectExecutionOptions, ProjectSnapshot};
 use crate::workspace_analysis::{
     WorkspaceAnalysisDirection, WorkspaceAnalysisTargetKind, WorkspaceContextOptions,
 };
@@ -391,6 +389,12 @@ impl Session {
     }
 
     fn protocol(&self) -> Result<String, Vec<Diagnostic>> {
+        let project_schema = self
+            .snapshot
+            .as_ref()
+            .expect("configured sessions retain their authenticated snapshot")
+            .manifest()
+            .schema();
         let (schema, methods, nonclaims) = match self.profile {
             ServerProfile::ReadOnlyV2 => (
                 super::TRANSPORT_SCHEMA,
@@ -417,7 +421,7 @@ impl Session {
             self.limits.request_bytes(),
             self.limits.response_bytes(),
             quote_json(&self.manifest_path.display().to_string()),
-            quote_json(PROJECT_SCHEMA),
+            quote_json(project_schema),
         ))
     }
 
@@ -486,7 +490,7 @@ fn render_snapshot(snapshot: &ProjectSnapshot) -> String {
         .join(",");
     format!(
         "{{\"schema\":\"semaprax.project-snapshot.v1\",\"project_schema\":{},\"name\":{},\"entry\":{},\"test_module\":{},\"project_revision\":{},\"workspace_revision\":{},\"manifest_bytes\":{},\"sources\":[{sources}]}}",
-        quote_json(PROJECT_SCHEMA),
+        quote_json(snapshot.manifest().schema()),
         quote_json(snapshot.manifest().name()),
         quote_json(snapshot.manifest().entry()),
         quote_json(snapshot.manifest().test_module()),

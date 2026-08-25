@@ -930,6 +930,9 @@ fn is_source_graph_schema(value: &str) -> bool {
             | "semaprax.graph.v12"
             | "semaprax.graph.v13"
             | "semaprax.graph.v14"
+            | "semaprax.graph.v15"
+            | "semaprax.graph.v16"
+            | "semaprax.graph.v17"
     )
 }
 
@@ -1354,7 +1357,7 @@ fn main() -> i64 { 0 }
     }
 
     #[test]
-    fn per_file_graph_v10_through_v14_facts_replay_exactly() {
+    fn per_file_graph_v10_through_v17_facts_replay_exactly() {
         let cases = [
             (
                 "v10.spx",
@@ -1380,6 +1383,21 @@ fn main() -> i64 { 0 }
                 "v14.spx",
                 "module schema.v14; @id(\"v14.target\") fn target<T>()->bool{true} @id(\"v14.main\") fn main()->i64{if target<i64>(){1}else{0}}",
                 "semaprax.graph.v14",
+            ),
+            (
+                "v15.spx",
+                "module schema.v15; @id(\"v15.main\") fn main()->i64{let mut n=0;while n<1{n=n+1;n<1}n}",
+                "semaprax.graph.v15",
+            ),
+            (
+                "v16.spx",
+                "module schema.v16; @id(\"v16.pick\") fn pick(value:i64)->i64{match value { 0 => 1, _ => 2, }} @id(\"v16.main\") fn main()->i64{pick(0)}",
+                "semaprax.graph.v16",
+            ),
+            (
+                "v17.spx",
+                "module schema.v17; @id(\"v17.length\") fn length(value:borrow Slice<u8>)->usize{byte_len(value)} @id(\"v17.main\") fn main()->i64{0}",
+                "semaprax.graph.v17",
             ),
         ];
         let paths = cases.iter().map(|(path, _, _)| *path).collect::<Vec<_>>();

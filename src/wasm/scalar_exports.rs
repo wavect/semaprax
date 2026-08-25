@@ -371,7 +371,13 @@ fn validate_expression_profile(
                             )));
                         }
                     }
-                    pending.push(statement.value());
+                    for index in 0..statement.child_count() {
+                        pending.push(
+                            statement
+                                .child(index)
+                                .expect("resolved statement child count is canonical"),
+                        );
+                    }
                 }
                 pending.push(tail);
             }

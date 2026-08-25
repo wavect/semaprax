@@ -17,6 +17,7 @@ use crate::hir::{
 use crate::variant_layout::{VariantLayoutCache, VariantTarget};
 
 mod aggregate;
+mod data_exports;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod generic_function_component_v9;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
@@ -682,6 +683,23 @@ pub fn emit_module_with_text_exports(
     emit_resolved_module_with_text_exports(&resolved, export_ids)
 }
 
+/// Emit the bounded Public Useful Data Export v1 profile for selected stable
+/// identities. Every public parameter is an exact `borrow Slice<u8>` root and
+/// expands to `(i32 scratch_offset, i32 byte_length)` at the raw boundary.
+pub fn emit_module_with_byte_exports(
+    program: &Program,
+    export_ids: &[String],
+) -> Result<Vec<u8>, Diagnostic> {
+    reject_native_rust_imports(program)?;
+    let resolved = hir::resolve(program).map_err(|diagnostics| {
+        diagnostics
+            .into_iter()
+            .find(|item| item.severity.is_error())
+            .unwrap_or_else(|| Diagnostic::io("SPX-W100", "HIR resolution failed"))
+    })?;
+    emit_resolved_module_with_byte_exports(&resolved, export_ids)
+}
+
 /// Emit a WebAssembly core module from verified, identity-resolved HIR.
 ///
 /// Most callers should use [`emit_module`], which resolves and verifies parsed
@@ -707,6 +725,17 @@ pub fn emit_resolved_module_with_text_exports(
 ) -> Result<Vec<u8>, Diagnostic> {
     let plans = text_exports::prepare(program, export_ids)?;
     emit_resolved_module_internal(program, &[], &plans)
+}
+
+/// Emit Public Useful Data Export v1 from already validated resolved HIR.
+/// The aggregate byte backend emits only selected raw adapters and the exact
+/// public scratch metadata; internal functions remain unexported.
+pub fn emit_resolved_module_with_byte_exports(
+    program: &ResolvedProgram,
+    export_ids: &[String],
+) -> Result<Vec<u8>, Diagnostic> {
+    let plans = data_exports::prepare(program, export_ids)?;
+    aggregate::emit_byte_exports(program, &plans)
 }
 
 fn emit_resolved_module_internal(

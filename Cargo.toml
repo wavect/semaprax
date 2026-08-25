@@ -46,7 +46,7 @@ fs2 = "=0.4.3"
 getrandom = "=0.4.3"
 
 [target.'cfg(unix)'.dependencies]
-rustix = { version = "=1.1.4", default-features = false, features = ["fs"] }
+rustix = { version = "=1.1.4", default-features = false, features = ["fs", "std"] }
 
 [target.'cfg(windows)'.dependencies]
 renamore = { version = "=0.3.2", default-features = false, features = ["always-supported"] }

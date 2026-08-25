@@ -17,6 +17,7 @@ use sha2::{Digest as _, Sha256};
 
 use super::{
     ProjectSnapshot, MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_STABLE_ID_BYTES, PROJECT_SCHEMA,
+    PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3,
 };
 
 pub const PROJECT_EXECUTION_SCHEMA: &str = "semaprax.project-execution.v1";
@@ -187,6 +188,7 @@ fn finish(
         }
     };
     let envelope = render(
+        snapshot.manifest.schema(),
         snapshot.project_revision(),
         snapshot.workspace_revision(),
         snapshot.manifest.name(),
@@ -211,6 +213,7 @@ fn finish(
 
 #[allow(clippy::too_many_arguments)]
 fn render(
+    project_schema: &str,
     project_revision: &str,
     workspace_revision: &str,
     project: &str,
@@ -242,7 +245,7 @@ fn render(
         let payload = budgeted_format(format_args!(
             "{{\"schema\":{},\"project_schema\":{},\"project\":{},\"project_revision\":{},\"workspace_revision\":{},\"role\":{},\"module\":{},\"stable_id\":{},\"limits\":{{\"max_bytes\":{},\"max_steps\":{}}},\"fuel\":{{\"steps_used\":{},\"max_steps\":{}}},\"outcome\":{},\"nonclaims\":[{}]}}",
             quote_json(PROJECT_EXECUTION_SCHEMA),
-            quote_json(PROJECT_SCHEMA),
+            quote_json(project_schema),
             quote_json(project),
             quote_json(project_revision),
             quote_json(workspace_revision),
@@ -321,7 +324,15 @@ pub fn verify_execution_envelope(envelope: &str) -> Result<(), Diagnostic> {
         "envelope",
     )?;
     require_text_eq(object, "schema", PROJECT_EXECUTION_SCHEMA)?;
-    require_text_eq(object, "project_schema", PROJECT_SCHEMA)?;
+    let project_schema = require_text(object, "project_schema")?;
+    if !matches!(
+        project_schema,
+        PROJECT_SCHEMA | PROJECT_SCHEMA_V2 | PROJECT_SCHEMA_V3
+    ) {
+        return Err(verification_error(
+            "project_schema must name an admitted Project v1, v2, or v3 schema".to_owned(),
+        ));
+    }
     let project = require_bounded_text(object, "project", MAX_NAME_BYTES)?;
     let module = require_bounded_text(object, "module", MAX_MODULE_BYTES)?;
     let stable_id = require_bounded_text(object, "stable_id", MAX_STABLE_ID_BYTES)?;
@@ -405,6 +416,7 @@ pub fn verify_execution_envelope(envelope: &str) -> Result<(), Diagnostic> {
     }
 
     let reconstructed = render(
+        project_schema,
         project_revision,
         workspace_revision,
         project,
@@ -675,6 +687,7 @@ mod tests {
 
     fn canonical_return(max_bytes: usize) -> String {
         render(
+            PROJECT_SCHEMA,
             PROJECT_REVISION,
             WORKSPACE_REVISION,
             "calculator",
@@ -691,6 +704,7 @@ mod tests {
 
     fn rendered_return(value: i64) -> serde_json::Value {
         let envelope = render(
+            PROJECT_SCHEMA,
             "sha256:project",
             "sha256:workspace",
             "calculator",
@@ -731,6 +745,7 @@ mod tests {
         let outcome = ProjectExecutionOutcome::Returned(42);
         assert_eq!(
             render(
+                PROJECT_SCHEMA,
                 "sha256:project",
                 "sha256:workspace",
                 "calculator",
@@ -802,6 +817,7 @@ mod tests {
     fn verifier_reconstructs_the_closed_status_table() {
         let status = runtime_status::normalize_arithmetic(StatusCase::DivisionByZero);
         let envelope = render(
+            PROJECT_SCHEMA,
             PROJECT_REVISION,
             WORKSPACE_REVISION,
             "calculator",
@@ -833,6 +849,7 @@ mod tests {
         )
         .unwrap();
         let confused = render(
+            PROJECT_SCHEMA,
             PROJECT_REVISION,
             WORKSPACE_REVISION,
             "calculator",
@@ -851,6 +868,7 @@ mod tests {
     #[test]
     fn verifier_rejects_self_consistent_but_impossible_semantic_facts() {
         let premature_exhaustion = render(
+            PROJECT_SCHEMA,
             PROJECT_REVISION,
             WORKSPACE_REVISION,
             "calculator",
@@ -866,6 +884,7 @@ mod tests {
         assert!(verify_execution_envelope(&premature_exhaustion).is_err());
 
         let invalid_project = render(
+            PROJECT_SCHEMA,
             PROJECT_REVISION,
             WORKSPACE_REVISION,
             "Calculator",
@@ -895,6 +914,7 @@ mod tests {
         while low < high {
             let midpoint = low + (high - low) / 2;
             if render(
+                PROJECT_SCHEMA,
                 PROJECT_REVISION,
                 WORKSPACE_REVISION,
                 &project,
@@ -915,6 +935,7 @@ mod tests {
         }
         let exact_limit = low;
         let exact = render(
+            PROJECT_SCHEMA,
             PROJECT_REVISION,
             WORKSPACE_REVISION,
             &project,
@@ -929,6 +950,7 @@ mod tests {
         .unwrap();
         verify_execution_envelope(&exact).unwrap();
         assert!(render(
+            PROJECT_SCHEMA,
             PROJECT_REVISION,
             WORKSPACE_REVISION,
             &project,

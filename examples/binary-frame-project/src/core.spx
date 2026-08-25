@@ -1,0 +1,7 @@
+module binary_frame.core;
+
+@id("binary-frame.ready")
+fn ready() -> i64
+{
+    0
+}

@@ -782,14 +782,28 @@ fn validate_expression(
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                let ResolvedStatement::Let { binding, .. } = statement else {
-                    // Assignment targets reuse their `let` storage and unsafe
-                    // boundaries add none; only their values contribute.
-                    validate_expression(program, function, statement.value())?;
-                    continue;
-                };
-                validate_supported_type(program, function, &binding.ty, "binding")?;
-                validate_expression(program, function, statement.value())?;
+                match statement {
+                    ResolvedStatement::Let { binding, value, .. } => {
+                        validate_supported_type(program, function, &binding.ty, "binding")?;
+                        validate_expression(program, function, value)?;
+                    }
+                    ResolvedStatement::Assign { value, .. } => {
+                        // Assignment targets reuse their `let` storage.
+                        validate_expression(program, function, value)?;
+                    }
+                    ResolvedStatement::Unsafe { body, .. } => {
+                        validate_expression(program, function, body)?;
+                    }
+                    ResolvedStatement::While {
+                        condition, body, ..
+                    } => return Err(unsupported(
+                        function,
+                        format!(
+                            "does not support while statement `{}..{}` in the first native cleanup slice",
+                            condition.id, body.id
+                        ),
+                    )),
+                }
             }
             validate_expression(program, function, tail)?;
         }

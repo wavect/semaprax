@@ -1478,9 +1478,29 @@ uses one compiler-owned `core.bytes.drop` leaf and canonical plan-driven move,
 call-argument, failure, guarded-finalization, and result-publication state.
 Native erases physical zero arrays; Wasm uses fixed memory plus exact
 generation-checked owned tokens. Graph v17 serializes provenance and capacity
-summaries while lower schemas remain selected for legacy programs. Public
-Project/npm useful-data adapters, the typed-array facade, complete hostile
-public-boundary evidence, and hosted promotion remain unimplemented, so no
+summaries while lower schemas remain selected for legacy programs.
+
+## Project Manifest v3 and public Useful Data v1
+
+[Project Manifest v3](PROJECT-MANIFEST-V3.md) additively selects the closed
+`useful-data.v1` profile through `ProjectProfile`; it does not reinterpret v1
+or v2 bytes. One held snapshot links profile-exact entry, test, and selected
+stable-ID export closures. Useful-data linking reconstructs compiler-owned
+byte-operation call-index, provenance/value, capacity, and cleanup facts before
+validation. Semantic Workspace/Project preflight accepts source Graph v10-v17,
+while Workspace Patch/Change evidence keeps its narrower independent admission
+rules.
+
+The public adapter exposes borrowed `Slice<u8>` inputs and scalar
+`i64`/`bool`/`usize` results. Fixed-memory Core Wasm is wrapped by deterministic
+JavaScript/TypeScript that accepts only ordinary attached fixed-length
+`Uint8Array` values, snapshots inputs before scratch reuse, enforces cumulative
+bounds, and authenticates its data-export metadata. The exact six-file npm
+package and `semaprax.project-npm-build.v2` carrier have local independent
+replay, tamper, offline pack/install, and compiler-free installed-consumer
+evidence. Unix publication is handle-relative and create-new/no-clobber;
+Windows v2 publication remains deliberately fail-closed. Exact-head hosted
+promotion, registry publication, and release promotion remain open, so no
 complete-profile claim is made.
 
 ### Project Agent Transport v2

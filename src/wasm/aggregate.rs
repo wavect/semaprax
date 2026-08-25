@@ -585,10 +585,15 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
             expression_has_try(left) || expression_has_try(right)
         }
         ResolvedExprKind::Block { statements, tail } => {
-            statements
-                .iter()
-                .any(|statement| expression_has_try(statement.value()))
-                || expression_has_try(tail)
+            statements.iter().any(|statement| {
+                (0..statement.child_count()).any(|index| {
+                    expression_has_try(
+                        statement
+                            .child(index)
+                            .expect("resolved statement child count is canonical"),
+                    )
+                })
+            }) || expression_has_try(tail)
         }
         ResolvedExprKind::If {
             condition,
@@ -963,6 +968,258 @@ pub(super) fn lower_selected_function_instances(
 
 pub(super) fn emit(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic> {
     emit_profile(program, false)
+}
+
+/// Emit Public Useful Data Export v1 without widening the legacy aggregate
+/// module. The complete internal function inventory is compiled, but only the
+/// selected raw wrappers and fixed scratch metadata are exported.
+pub(super) fn emit_byte_exports(
+    program: &ResolvedProgram,
+    plans: &[super::data_exports::DataExportPlan],
+) -> Result<Vec<u8>, Diagnostic> {
+    if plans.is_empty() || !super::program_uses_byte_data(program) {
+        return Err(error(
+            "Public Useful Data Export v1 requires selected byte-data exports",
+        ));
+    }
+    if program
+        .types
+        .iter()
+        .any(|item| matches!(item.kind, ResolvedTypeDeclarationKind::Resource { .. }))
+    {
+        return Err(resource_gate());
+    }
+    let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
+    let record_layouts = AggregateLayoutCache::build(program, AggregateTarget::Wasm32)?;
+    for record_layout in record_layouts.layouts() {
+        record_layout.validate(program)?;
+    }
+
+    let executable_functions = program
+        .functions
+        .iter()
+        .map(|function| {
+            (
+                function,
+                FunctionExecutionId::Monomorphic(function.id.clone()),
+            )
+        })
+        .collect::<Vec<_>>();
+    let mut types = Vec::<Signature>::new();
+    let mut type_indexes = HashMap::<Signature, u32>::new();
+    let binary_checked = intern_type(
+        Signature {
+            params: vec![I64, I64],
+            results: vec![I64],
+        },
+        &mut types,
+        &mut type_indexes,
+    );
+    let unary_checked = intern_type(
+        Signature {
+            params: vec![I64],
+            results: vec![I64],
+        },
+        &mut types,
+        &mut type_indexes,
+    );
+    let contract_fail = intern_type(
+        Signature {
+            params: Vec::new(),
+            results: Vec::new(),
+        },
+        &mut types,
+        &mut type_indexes,
+    );
+    let byte_unary = intern_type(
+        Signature {
+            params: vec![I64],
+            results: vec![I64],
+        },
+        &mut types,
+        &mut type_indexes,
+    );
+    let byte_get = intern_type(
+        Signature {
+            params: vec![I64, I64],
+            results: vec![I32],
+        },
+        &mut types,
+        &mut type_indexes,
+    );
+    let byte_drop = intern_type(
+        Signature {
+            params: vec![I64],
+            results: Vec::new(),
+        },
+        &mut types,
+        &mut type_indexes,
+    );
+
+    let mut function_types = Vec::with_capacity(executable_functions.len());
+    for (function, _) in &executable_functions {
+        let mut params = Vec::with_capacity(function.params.len() + 1);
+        for parameter in &function.params {
+            params.push(if is_aggregate(program, &parameter.ty)? {
+                I32
+            } else {
+                scalar_wasm_type(&parameter.ty)?
+            });
+        }
+        params.push(I32); // exact caller-owned result slot
+        function_types.push(intern_type(
+            Signature {
+                params,
+                results: vec![I32], // sticky internal status
+            },
+            &mut types,
+            &mut type_indexes,
+        ));
+    }
+    let wrapper_types = plans
+        .iter()
+        .map(|plan| {
+            intern_type(
+                Signature {
+                    params: plan.raw_params(),
+                    results: vec![plan.result.raw_wasm_type()],
+                },
+                &mut types,
+                &mut type_indexes,
+            )
+        })
+        .collect::<Vec<_>>();
+
+    let function_indexes = executable_functions
+        .iter()
+        .enumerate()
+        .map(|(index, (_, execution))| {
+            (
+                execution.clone(),
+                SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT + u32::try_from(index).unwrap_or(u32::MAX),
+            )
+        })
+        .collect::<HashMap<_, _>>();
+
+    let mut module = b"\0asm\x01\0\0\0".to_vec();
+    let mut type_section = Vec::new();
+    write_u32(&mut type_section, types.len() as u32);
+    for signature in &types {
+        type_section.push(0x60);
+        write_bytes(&mut type_section, &signature.params);
+        write_bytes(&mut type_section, &signature.results);
+    }
+    section(&mut module, 1, type_section);
+
+    let mut imports = Vec::new();
+    write_u32(&mut imports, SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT);
+    for name in ["spx_add", "spx_sub", "spx_mul", "spx_div", "spx_rem"] {
+        function_import(&mut imports, "env", name, binary_checked);
+    }
+    function_import(&mut imports, "env", "spx_neg", unary_checked);
+    function_import(&mut imports, "env", "spx_contract_fail", contract_fail);
+    function_import(&mut imports, "env", "spx_bytes_copy", byte_unary);
+    function_import(&mut imports, "env", "spx_bytes_get", byte_get);
+    function_import(&mut imports, "env", "spx_bytes_drop", byte_drop);
+    function_import(&mut imports, "env", "spx_bytes_as_slice", byte_unary);
+    section(&mut module, 2, imports);
+
+    let mut functions = Vec::new();
+    write_u32(
+        &mut functions,
+        u32::try_from(function_types.len() + wrapper_types.len())
+            .map_err(|_| error("too many Public Useful Data functions"))?,
+    );
+    for type_index in function_types.into_iter().chain(wrapper_types) {
+        write_u32(&mut functions, type_index);
+    }
+    section(&mut module, 3, functions);
+
+    let mut memory = Vec::new();
+    write_u32(&mut memory, 1);
+    memory.extend([
+        0x01,
+        super::data_exports::FIXED_MEMORY_PAGES,
+        super::data_exports::FIXED_MEMORY_PAGES,
+    ]);
+    section(&mut module, 5, memory);
+
+    // Global 0 is the private shadow-stack top. The public globals follow in
+    // exact status/base/capacity order and are the only exported globals.
+    let mut globals = Vec::new();
+    write_u32(&mut globals, 4);
+    globals.extend([I32, 0x01, 0x41]);
+    write_i64(&mut globals, 131_072);
+    globals.push(0x0b);
+    globals.extend([I32, 0x01, 0x41, 0x00, 0x0b]);
+    globals.extend([I32, 0x00, 0x41]);
+    write_i64(&mut globals, i64::from(super::data_exports::SCRATCH_BASE));
+    globals.push(0x0b);
+    globals.extend([I32, 0x00, 0x41]);
+    write_i64(
+        &mut globals,
+        i64::from(super::data_exports::SCRATCH_CAPACITY),
+    );
+    globals.push(0x0b);
+    section(&mut module, 6, globals);
+
+    let mut exports = Vec::new();
+    write_u32(
+        &mut exports,
+        4_u32
+            .checked_add(u32::try_from(plans.len()).map_err(|_| error("too many data exports"))?)
+            .ok_or_else(|| error("Public Useful Data export count overflows u32"))?,
+    );
+    write_name(&mut exports, super::data_exports::MEMORY_EXPORT);
+    exports.push(0x02);
+    write_u32(&mut exports, 0);
+    for (name, index) in [
+        (super::data_exports::STATUS_GLOBAL_EXPORT, 1_u32),
+        (super::data_exports::SCRATCH_BASE_EXPORT, 2_u32),
+        (super::data_exports::SCRATCH_CAPACITY_EXPORT, 3_u32),
+    ] {
+        write_name(&mut exports, name);
+        exports.push(0x03);
+        write_u32(&mut exports, index);
+    }
+    let wrapper_base = SCALAR_IMPORT_COUNT
+        .checked_add(BYTE_IMPORT_COUNT)
+        .and_then(|value| value.checked_add(u32::try_from(executable_functions.len()).ok()?))
+        .ok_or_else(|| error("Public Useful Data wrapper index overflows u32"))?;
+    for (ordinal, plan) in plans.iter().enumerate() {
+        write_name(&mut exports, &plan.wasm_export);
+        exports.push(0x00);
+        write_u32(
+            &mut exports,
+            wrapper_base
+                .checked_add(u32::try_from(ordinal).map_err(|_| error("too many wrappers"))?)
+                .ok_or_else(|| error("Public Useful Data wrapper index overflows u32"))?,
+        );
+    }
+    section(&mut module, 7, exports);
+
+    let mut code = Vec::new();
+    write_u32(
+        &mut code,
+        u32::try_from(executable_functions.len() + plans.len())
+            .map_err(|_| error("too many Public Useful Data bodies"))?,
+    );
+    for (function, _) in &executable_functions {
+        let body = emit_function(program, function, &function_indexes, &variant_layouts)?;
+        write_u32(&mut code, body.len() as u32);
+        code.extend(body);
+    }
+    for plan in plans {
+        let target = function_indexes
+            .get(&FunctionExecutionId::Monomorphic(plan.function_id.clone()))
+            .copied()
+            .ok_or_else(|| error("selected data export target is not indexed"))?;
+        let body = plan.emit_wrapper_body(target, 0, 1)?;
+        write_u32(&mut code, body.len() as u32);
+        code.extend(body);
+    }
+    section(&mut module, 10, code);
+    Ok(module)
 }
 
 fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>, Diagnostic> {
@@ -1684,10 +1941,14 @@ impl Emitter<'_> {
                         anchors.push(crate::cleanup_plan::StorageId::Value(binding.id.clone()));
                     }
                 }
-                if statement.value().ty == ResolvedType::Bytes {
-                    anchors.push(crate::cleanup_plan::StorageId::Temporary(
-                        statement.value().id.clone(),
-                    ));
+                let value = match statement {
+                    ResolvedStatement::Let { value, .. }
+                    | ResolvedStatement::Assign { value, .. } => Some(value),
+                    ResolvedStatement::Unsafe { body, .. } => Some(body.as_ref()),
+                    ResolvedStatement::While { .. } => None,
+                };
+                if let Some(value) = value.filter(|value| value.ty == ResolvedType::Bytes) {
+                    anchors.push(crate::cleanup_plan::StorageId::Temporary(value.id.clone()));
                 }
                 anchors
             })

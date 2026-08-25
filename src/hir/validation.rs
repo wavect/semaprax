@@ -1319,6 +1319,24 @@ impl<'a> HirValidator<'a> {
                 if instance.is_some() || !type_arguments.is_empty() {
                     return Err(hir_error("while loops cannot contain generic calls"));
                 }
+                if let Some(operation) = crate::byte_ops::by_id(callee.as_str()) {
+                    if !matches!(
+                        operation,
+                        crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get
+                    ) || args.len() != operation.arity()
+                        || args.iter().enumerate().any(|(index, argument)| {
+                            !operation.accepts_resolved(index, &argument.ty)
+                        })
+                    {
+                        return Err(hir_error(format!(
+                            "while loop byte operation `{callee}` is outside the read-only indexed profile"
+                        )));
+                    }
+                    for argument in args {
+                        self.validate_while_admission(argument)?;
+                    }
+                    return Ok(());
+                }
                 let target = self
                     .program
                     .resolve_call_target(callee, None)

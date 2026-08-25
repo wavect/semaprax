@@ -132,10 +132,8 @@ native O0/O2, Wasm, generated JS/TS, stable-ID display rename, independent
 carrier replay, and offline pack/install.
 
 This tranche has local evidence only. Exact-head hosted promotion is pending,
-and npm registry publication is not claimed. Public useful-data adapters,
-arrays, owned bytes, iteration, general text processing, mutable/owned view
-conversion, dependencies, lockfiles, signing, provenance, and registry
-distribution stay on the roadmap. Project v1 bytes and behavior remain frozen.
+and npm registry publication is not claimed. Project v1 bytes and behavior
+remain frozen.
 
 [Portable Indexed Byte Data v1](PORTABLE-INDEXED-BYTE-DATA-V1.md) now freezes
 the next implementation boundary rather than leaving those terms ambiguous.
@@ -147,11 +145,16 @@ second local internal tranche now executes semantic-u64 `usize`, fixed arrays,
 owned `Bytes`, all view/copy operations, lexical borrowing, exact allocation
 and active-call-path budgets, canonical cleanup settlement, and Graph v17
 through the interpreter, native C O0/O2, and internal Core-Wasm/Node lanes.
-The next product work is Project Manifest v3 selection of `useful-data.v1`, the
-generated JS/TS `Uint8Array` facade, an installed multi-module npm acceptance
-project, the full hostile public-boundary matrix, and exact-head hosted
-promotion. Iteration, files/stdin/stdout, general collections, mutable views,
-and registry publication remain on the roadmap.
+Project Manifest v3 now locally selects `useful-data.v1` and supplies the
+generated strict JS/TS `Uint8Array` facade, exact v2 npm carrier, and installed
+multi-module binary-frame acceptance project. Unix publication is
+handle-relative and no-clobber; the Windows v2 route stays fail-closed until an
+equally strong primitive is available. The remaining promotion work is the
+complete hostile cross-platform boundary matrix, exact-head hosted Linux,
+macOS, Windows, and Rust-1.85 evidence, safe Windows publication, npm registry
+publication, and release promotion. Iteration, files/stdin/stdout, general
+collections, mutable views, dependencies, lockfiles, signing, and provenance
+remain on the roadmap.
 
 ## 0.1 — Executable semantic seed
 

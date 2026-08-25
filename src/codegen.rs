@@ -4040,9 +4040,17 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                     ));
                                 }
                             }
-                            if statement.value().ty == ResolvedType::Bytes {
+                            let value = match statement {
+                                ResolvedStatement::Let { value, .. }
+                                | ResolvedStatement::Assign { value, .. } => Some(value),
+                                ResolvedStatement::Unsafe { body, .. } => Some(body.as_ref()),
+                                ResolvedStatement::While { .. } => None,
+                            };
+                            if let Some(value) =
+                                value.filter(|value| value.ty == ResolvedType::Bytes)
+                            {
                                 anchors.push(crate::cleanup_plan::StorageId::Temporary(
-                                    statement.value().id.clone(),
+                                    value.id.clone(),
                                 ));
                             }
                             anchors

@@ -497,6 +497,7 @@ pub(crate) struct WorkspaceAnalysis {
 
 #[derive(Clone, Copy)]
 pub(crate) struct ProjectAnalysisSubject<'a> {
+    pub(crate) project_schema: &'a str,
     pub(crate) project_name: &'a str,
     pub(crate) project_revision: &'a str,
     pub(crate) test_module: &'a str,
@@ -2709,7 +2710,9 @@ fn render_project_context_json(
     let mut output = crate::bounded_output::CappedString::new();
     output.push_str("{\"schema\":");
     push_json_string(&mut output, PROJECT_CONTEXT_SCHEMA);
-    output.push_str(",\"project_schema\":\"semaprax.project.v1\",\"project\":");
+    output.push_str(",\"project_schema\":");
+    push_json_string(&mut output, subject.project_schema);
+    output.push_str(",\"project\":");
     push_json_string(&mut output, subject.project_name);
     output.push_str(",\"project_revision\":");
     push_json_string(&mut output, subject.project_revision);
@@ -2796,7 +2799,9 @@ fn render_project_impact_json(
     let mut output = crate::bounded_output::CappedString::new();
     output.push_str("{\"schema\":");
     push_json_string(&mut output, PROJECT_IMPACT_SCHEMA);
-    output.push_str(",\"project_schema\":\"semaprax.project.v1\",\"project\":");
+    output.push_str(",\"project_schema\":");
+    push_json_string(&mut output, subject.project_schema);
+    output.push_str(",\"project\":");
     push_json_string(&mut output, subject.project_name);
     output.push_str(",\"project_revision\":");
     push_json_string(&mut output, subject.project_revision);

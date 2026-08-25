@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- Added the locally evidenced Project Manifest v3 / public Useful Data v1
+  adapter tranche. The closed `useful-data.v1` profile links the authenticated
+  entry, test, and disconnected stable-ID export closures without widening v1
+  or v2 manifest bytes; reconstructs exact byte-operation, provenance,
+  capacity, and cleanup facts across Project linking; and admits source Graph
+  v15-v17 only at Semantic Workspace/Project preflight boundaries. Selected
+  `Slice<u8>` inputs and scalar results lower to fixed-memory Core Wasm and a
+  strict snapshotting JavaScript/TypeScript `Uint8Array` facade. The exact
+  six-file `semaprax.project-npm-build.v2` package has independent carrier
+  replay, tamper rejection, offline pack/install, and compiler-free installed
+  consumer evidence in the multi-module binary-frame fixture. Unix publication
+  uses handle-relative, create-new, no-clobber authority; Windows v2
+  publication deliberately remains fail-closed until an equivalent safe
+  primitive exists. This remains Partial: exact-head hosted promotion, Windows
+  v2 publication, npm registry publication, and release promotion are open,
+  and completion totals are unchanged.
+
 - Added the second local internal Portable Indexed Byte Data v1 tranche.
   Target-independent checked `usize`, fixed `[u8; N]` syntax and size-N/align-1
   layouts, uniquely owned immutable `Bytes`, and non-escaping `Slice<u8>` now
@@ -13,10 +30,10 @@
   site, payload, and mixed text/slice external-root bounds. Conservative
   lexical borrowing protects named owners, and `Bytes` moves, call epochs,
   failures, guarded finalizers, and result publication consume canonical
-  CleanupPlan state through one `core.bytes.drop` leaf. Public Project/npm
-  adapters, the typed-array facade, multi-module acceptance, complete hostile
-  boundary evidence, hosted promotion, and registry publication remain open;
-  this is local internal evidence only.
+  CleanupPlan state through one `core.bytes.drop` leaf. The later Project
+  Manifest v3 tranche supplies bounded public Project, npm, and typed-array
+  adapter evidence; complete hosted promotion and registry publication remain
+  open, so the full Useful Data goal remains Partial.
 
 - Moved Economic Agent unit proof code from the production module into
   `economic_agent/tests.rs` while preserving every existing test path and

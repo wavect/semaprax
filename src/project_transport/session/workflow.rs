@@ -231,7 +231,9 @@ impl Session {
             reject_unknown(&params)?;
             let envelope = match target.as_str() {
                 "web" => {
-                    if snapshot.manifest().is_v2() {
+                    if snapshot.manifest().project_profile()
+                        != crate::project::ProjectProfile::ScalarV1
+                    {
                         let build = snapshot.build_npm_inline(max_bytes)?;
                         build.verify().map_err(|error| vec![error])?;
                         build.envelope().to_owned()

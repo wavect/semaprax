@@ -4,7 +4,10 @@
 //! and the already-admitted public ABI. This module neither reads nor writes a
 //! path and never launches npm, Node, or another process.
 
-use std::io::Write;
+mod data;
+#[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+mod publication;
+
 use std::path::Path;
 
 use sha2::{Digest, Sha256};
@@ -27,7 +30,9 @@ const MAX_EXPORTS: usize = 32;
 const MAX_PARAMETERS: usize = 8;
 
 pub const PROJECT_NPM_BUILD_SCHEMA: &str = "semaprax.project-npm-build.v1";
+pub const PROJECT_NPM_BUILD_SCHEMA_V2: &str = "semaprax.project-npm-build.v2";
 const PROJECT_NPM_BUILD_DIGEST_DOMAIN: &[u8] = b"semaprax.project-npm-build.payload.v1\0";
+const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V2: &[u8] = b"semaprax.project-npm-build.payload.v2\0";
 pub const MAX_PROJECT_NPM_BUILD_BYTES: usize = 40 * 1024 * 1024;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -83,11 +88,12 @@ impl TextPackageExport {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct NpmArtifact {
-    path: &'static str,
-    bytes: Vec<u8>,
+    pub(super) path: &'static str,
+    pub(super) bytes: Vec<u8>,
 }
 
 impl NpmArtifact {
+    #[cfg(test)]
     pub(crate) fn path(&self) -> &'static str {
         self.path
     }
@@ -196,9 +202,11 @@ impl ProjectNpmBuild {
             ],
         )?;
         let schema = json_string(object, "schema")?;
-        if schema != PROJECT_NPM_BUILD_SCHEMA {
-            return Err(package_error("npm build schema is unsupported"));
-        }
+        let expected_paths = match schema {
+            PROJECT_NPM_BUILD_SCHEMA => &USEFUL_TEXT_PACKAGE_PATHS,
+            PROJECT_NPM_BUILD_SCHEMA_V2 => &data::USEFUL_DATA_PACKAGE_PATHS,
+            _ => return Err(package_error("npm build schema is unsupported")),
+        };
         let identity = NpmBuildIdentity {
             project_schema: json_string(object, "project_schema")?,
             package: json_string(object, "package")?,
@@ -227,12 +235,12 @@ impl ProjectNpmBuild {
             .get("artifacts")
             .and_then(serde_json::Value::as_array)
             .ok_or_else(|| package_error("npm build artifacts are invalid"))?;
-        if rows.len() != USEFUL_TEXT_PACKAGE_PATHS.len() {
+        if rows.len() != expected_paths.len() {
             return Err(package_error("npm build artifact inventory is not exact"));
         }
         let mut artifacts = Vec::with_capacity(rows.len());
         let mut total = 0_usize;
-        for (row, expected_path) in rows.iter().zip(USEFUL_TEXT_PACKAGE_PATHS) {
+        for (row, expected_path) in rows.iter().zip(expected_paths.iter().copied()) {
             let row = row
                 .as_object()
                 .ok_or_else(|| package_error("npm build artifact row is invalid"))?;
@@ -270,17 +278,24 @@ impl ProjectNpmBuild {
         if declared_total != total {
             return Err(package_error("npm build artifact byte count disagrees"));
         }
-        let package = UsefulTextNpmPackage {
-            artifacts: artifacts
-                .try_into()
-                .map_err(|_| package_error("npm build artifact inventory is not exact"))?,
+        let artifacts: [NpmArtifact; 6] = artifacts
+            .try_into()
+            .map_err(|_| package_error("npm build artifact inventory is not exact"))?;
+        let payload_digest = if schema == PROJECT_NPM_BUILD_SCHEMA {
+            let package = UsefulTextNpmPackage {
+                artifacts: artifacts.clone(),
+            };
+            validate_replayed_package(identity, &package)?;
+            payload_digest(identity, &package)
+        } else {
+            data::validate_replayed(identity, &artifacts)?;
+            payload_digest_artifacts_v2(identity, &artifacts)
         };
-        validate_replayed_package(identity, &package)?;
-        let payload_digest = payload_digest(identity, &package);
         if json_string(object, "payload_digest")? != payload_digest {
             return Err(package_error("npm build payload digest disagrees"));
         }
-        let canonical = render_carrier(identity, &package, total, &payload_digest);
+        let canonical =
+            render_carrier_artifacts(schema, identity, &artifacts, total, &payload_digest);
         if canonical != envelope {
             return Err(package_error("npm build envelope is not canonical"));
         }
@@ -301,53 +316,28 @@ impl ProjectNpmBuild {
     pub fn publish(&self, output: &Path) -> Result<(), Diagnostic> {
         self.verify()?;
         let package = decode_carrier_artifacts(&self.envelope, self.max_bytes)?;
-        match std::fs::symlink_metadata(output) {
-            Ok(_) => return Err(package_error("npm package destination already exists")),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-            Err(error) => {
-                return Err(package_error(format!(
-                    "cannot inspect npm package destination {}: {error}",
-                    output.display()
-                )))
-            }
+        let value: serde_json::Value = serde_json::from_str(&self.envelope)
+            .map_err(|_| package_error("npm build envelope is not valid JSON"))?;
+        let schema = value
+            .as_object()
+            .ok_or_else(|| package_error("npm build envelope must be one JSON object"))
+            .and_then(|object| json_string(object, "schema"))?;
+        #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+        {
+            publication::publish(output, &package, schema)
         }
-        std::fs::create_dir(output).map_err(|error| {
-            package_error(format!(
-                "cannot create npm package destination {}: {error}",
-                output.display()
+        #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
+        {
+            let _ = (output, package, schema);
+            Err(package_error(
+                "npm package publication is unavailable on a Wasm host",
             ))
-        })?;
-        for artifact in package.artifacts() {
-            let path = output.join(artifact.path());
-            let mut file = std::fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(&path)
-                .map_err(|error| {
-                    package_error(format!(
-                        "cannot create npm package artifact {}; publication stopped and the destination may contain an exact canonical prefix: {error}",
-                        path.display()
-                    ))
-                })?;
-            file.write_all(artifact.bytes()).map_err(|error| {
-                package_error(format!(
-                    "cannot write npm package artifact {}; publication stopped and the destination may contain an exact canonical prefix: {error}",
-                    path.display()
-                ))
-            })?;
-            file.sync_all().map_err(|error| {
-                package_error(format!(
-                    "cannot settle npm package artifact {}; publication stopped and the destination may contain an exact canonical prefix: {error}",
-                    path.display()
-                ))
-            })?;
         }
-        Ok(())
     }
 }
 
 #[derive(Clone, Copy)]
-struct NpmBuildIdentity<'a> {
+pub(super) struct NpmBuildIdentity<'a> {
     project_schema: &'a str,
     package: &'a str,
     version: &'a str,
@@ -426,6 +416,16 @@ pub(crate) fn prepare(
     project_graph_digest: &str,
     max_bytes: usize,
 ) -> Result<ProjectNpmBuild, Diagnostic> {
+    if manifest.is_v3() {
+        return data::prepare(
+            manifest,
+            program,
+            project_revision,
+            workspace_revision,
+            project_graph_digest,
+            max_bytes,
+        );
+    }
     let version = require_useful_text_project(manifest)?;
     validate_carrier_limit(0, max_bytes)?;
     let wasm_bytes =
@@ -523,7 +523,9 @@ fn derive_exports(
         .collect()
 }
 
-fn render_semantic_recipe(program: &crate::hir::ResolvedProgram) -> Result<String, Diagnostic> {
+pub(super) fn render_semantic_recipe(
+    program: &crate::hir::ResolvedProgram,
+) -> Result<String, Diagnostic> {
     use std::collections::BTreeMap;
 
     if program.functions.is_empty() || program.functions.len() > 256 {
@@ -566,7 +568,8 @@ fn render_semantic_recipe(program: &crate::hir::ResolvedProgram) -> Result<Strin
                 let mode = match parameter.ownership {
                     crate::hir::OwnershipMode::Borrow => "borrow ",
                     crate::hir::OwnershipMode::Value => "",
-                    crate::hir::OwnershipMode::Own | crate::hir::OwnershipMode::Shared => {
+                    crate::hir::OwnershipMode::Own => "own ",
+                    crate::hir::OwnershipMode::Shared => {
                         return Err(package_error(
                             "npm semantic recipe parameter ownership is unsupported",
                         ))
@@ -599,11 +602,22 @@ fn render_semantic_recipe(program: &crate::hir::ResolvedProgram) -> Result<Strin
     Ok(output)
 }
 
-fn recipe_type(ty: &crate::hir::ResolvedType) -> Result<&'static str, Diagnostic> {
+fn recipe_type(ty: &crate::hir::ResolvedType) -> Result<String, Diagnostic> {
     match ty {
-        crate::hir::ResolvedType::I64 => Ok("i64"),
-        crate::hir::ResolvedType::Bool => Ok("bool"),
-        crate::hir::ResolvedType::Str => Ok("str"),
+        crate::hir::ResolvedType::I64 => Ok("i64".to_owned()),
+        crate::hir::ResolvedType::Bool => Ok("bool".to_owned()),
+        crate::hir::ResolvedType::U8 => Ok("u8".to_owned()),
+        crate::hir::ResolvedType::Usize => Ok("usize".to_owned()),
+        crate::hir::ResolvedType::Str => Ok("str".to_owned()),
+        crate::hir::ResolvedType::SliceU8 => Ok("Slice<u8>".to_owned()),
+        crate::hir::ResolvedType::Bytes => Ok("Bytes".to_owned()),
+        crate::hir::ResolvedType::ArrayU8(length) => Ok(format!("[u8; {length}]")),
+        crate::hir::ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } if declaration.as_str() == crate::prelude::OPTION_ID && arguments.len() == 1 => {
+            Ok(format!("Option<{}>", recipe_type(&arguments[0])?))
+        }
         _ => Err(package_error("npm semantic recipe type is unsupported")),
     }
 }
@@ -614,15 +628,36 @@ fn render_recipe_expr(
     values: &mut std::collections::BTreeMap<String, String>,
     local_index: &mut usize,
 ) -> Result<String, Diagnostic> {
-    use crate::hir::{ResolvedExprKind, ResolvedStatement};
+    use crate::hir::{ResolvedExprKind, ResolvedMatchPattern, ResolvedStatement};
 
     match &expression.kind {
         ResolvedExprKind::Int(value) => Ok(value.to_string()),
+        ResolvedExprKind::Uint8(value) => Ok(format!("{value}u8")),
+        ResolvedExprKind::Usize(value) => Ok(format!("{value}usize")),
+        ResolvedExprKind::ArrayU8(values) => Ok(format!(
+            "[{}]",
+            values
+                .iter()
+                .map(|value| format!("{value}u8"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )),
+        ResolvedExprKind::RepeatArrayU8 { value, count } => Ok(format!("[{value}u8; {count}]")),
         ResolvedExprKind::Bool(value) => Ok(value.to_string()),
         ResolvedExprKind::Place(place) if place.projections.is_empty() => values
             .get(place.root.as_str())
             .cloned()
             .ok_or_else(|| package_error("npm semantic recipe place is unavailable")),
+        ResolvedExprKind::BorrowPlace { operation, place } if place.projections.is_empty() => {
+            let value = values
+                .get(place.root.as_str())
+                .cloned()
+                .ok_or_else(|| package_error("npm semantic recipe place is unavailable"))?;
+            let operation = crate::byte_ops::by_id(operation.as_str()).ok_or_else(|| {
+                package_error("npm semantic recipe borrow operation is unavailable")
+            })?;
+            Ok(format!("{}({value})", operation.name()))
+        }
         ResolvedExprKind::Call {
             callee,
             type_arguments,
@@ -631,6 +666,10 @@ fn render_recipe_expr(
         } if type_arguments.is_empty() && instance.is_none() => {
             let name = crate::str_ops::by_id(callee.as_str())
                 .map(|operation| operation.name().to_owned())
+                .or_else(|| {
+                    crate::byte_ops::by_id(callee.as_str())
+                        .map(|operation| operation.name().to_owned())
+                })
                 .or_else(|| functions.get(callee.as_str()).cloned())
                 .ok_or_else(|| package_error("npm semantic recipe callee is unavailable"))?;
             let args = args
@@ -703,8 +742,15 @@ fn render_recipe_expr(
                             "@audit(\"canonical npm semantic replay\") unsafe {body}; "
                         ));
                     }
-                    ResolvedStatement::Assign { field: Some(_), .. }
-                    | ResolvedStatement::While { .. } => {
+                    ResolvedStatement::While {
+                        condition, body, ..
+                    } => {
+                        let condition =
+                            render_recipe_expr(condition, functions, values, local_index)?;
+                        let body = render_recipe_expr(body, functions, values, local_index)?;
+                        rendered.push_str(&format!("while {condition} {body} "));
+                    }
+                    ResolvedStatement::Assign { field: Some(_), .. } => {
                         return Err(package_error(
                             "npm semantic recipe statement is unsupported",
                         ))
@@ -713,6 +759,43 @@ fn render_recipe_expr(
             }
             rendered.push_str(&render_recipe_expr(tail, functions, values, local_index)?);
             rendered.push_str(" }");
+            Ok(rendered)
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            let scrutinee = render_recipe_expr(scrutinee, functions, values, local_index)?;
+            let mut rendered = format!("match {scrutinee} {{ ");
+            for arm in arms {
+                let mut arm_values = values.clone();
+                let pattern = match &arm.pattern {
+                    ResolvedMatchPattern::Variant { case, fields, .. }
+                        if case.as_str() == crate::prelude::OPTION_SOME_ID && fields.len() == 1 =>
+                    {
+                        let name = format!("v{}", *local_index);
+                        *local_index += 1;
+                        arm_values.insert(fields[0].binding.id.as_str().to_owned(), name.clone());
+                        format!("Option::Some {{ value: {name} }}")
+                    }
+                    ResolvedMatchPattern::Variant { case, fields, .. }
+                        if case.as_str() == crate::prelude::OPTION_NONE_ID && fields.is_empty() =>
+                    {
+                        "Option::None {}".to_owned()
+                    }
+                    _ => {
+                        return Err(package_error(
+                            "npm semantic recipe match pattern is unsupported",
+                        ))
+                    }
+                };
+                if arm.guard.is_some() {
+                    return Err(package_error(
+                        "npm semantic recipe match guard is unsupported",
+                    ));
+                }
+                let value =
+                    render_recipe_expr(&arm.value, functions, &mut arm_values, local_index)?;
+                rendered.push_str(&format!("{pattern} => {value}, "));
+            }
+            rendered.push('}');
             Ok(rendered)
         }
         _ => Err(package_error(
@@ -738,7 +821,7 @@ fn raw_symbol(stable_id: &str) -> String {
     symbol
 }
 
-fn artifact(path: &'static str, bytes: &[u8]) -> NpmArtifact {
+pub(super) fn artifact(path: &'static str, bytes: &[u8]) -> NpmArtifact {
     NpmArtifact {
         path,
         bytes: bytes.to_vec(),
@@ -1221,7 +1304,7 @@ fn validate_wasm_export_inventory(
     Ok(())
 }
 
-fn valid_package_name(value: &str) -> bool {
+pub(super) fn valid_package_name(value: &str) -> bool {
     (1..=64).contains(&value.len())
         && value.bytes().enumerate().all(|(index, byte)| {
             byte.is_ascii_lowercase() || byte.is_ascii_digit() || (byte == b'-' && index != 0)
@@ -1229,7 +1312,7 @@ fn valid_package_name(value: &str) -> bool {
         && value.as_bytes()[0].is_ascii_lowercase()
 }
 
-fn valid_sha256_fact(value: &str) -> bool {
+pub(super) fn valid_sha256_fact(value: &str) -> bool {
     value.len() == 71
         && value.starts_with("sha256:")
         && value.as_bytes()[7..]
@@ -1237,7 +1320,7 @@ fn valid_sha256_fact(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
 }
 
-fn valid_package_semver(value: &str) -> bool {
+pub(super) fn valid_package_semver(value: &str) -> bool {
     if value.is_empty() || value.len() > 128 || !value.is_ascii() {
         return false;
     }
@@ -1287,8 +1370,30 @@ fn valid_semver_number(value: &str) -> bool {
 }
 
 fn payload_digest(identity: NpmBuildIdentity<'_>, package: &UsefulTextNpmPackage) -> String {
+    payload_digest_artifacts(identity, package.artifacts())
+}
+
+pub(super) fn payload_digest_artifacts(
+    identity: NpmBuildIdentity<'_>,
+    artifacts: &[NpmArtifact],
+) -> String {
+    payload_digest_artifacts_with_domain(PROJECT_NPM_BUILD_DIGEST_DOMAIN, identity, artifacts)
+}
+
+pub(super) fn payload_digest_artifacts_v2(
+    identity: NpmBuildIdentity<'_>,
+    artifacts: &[NpmArtifact],
+) -> String {
+    payload_digest_artifacts_with_domain(PROJECT_NPM_BUILD_DIGEST_DOMAIN_V2, identity, artifacts)
+}
+
+fn payload_digest_artifacts_with_domain(
+    domain: &[u8],
+    identity: NpmBuildIdentity<'_>,
+    artifacts: &[NpmArtifact],
+) -> String {
     let mut digest = Sha256::new();
-    digest.update(PROJECT_NPM_BUILD_DIGEST_DOMAIN);
+    digest.update(domain);
     for value in [
         identity.project_schema,
         identity.package,
@@ -1301,7 +1406,7 @@ fn payload_digest(identity: NpmBuildIdentity<'_>, package: &UsefulTextNpmPackage
         digest.update((value.len() as u64).to_le_bytes());
         digest.update(value.as_bytes());
     }
-    for artifact in package.artifacts() {
+    for artifact in artifacts {
         digest.update((artifact.path.len() as u64).to_le_bytes());
         digest.update(artifact.path.as_bytes());
         digest.update((artifact.bytes.len() as u64).to_le_bytes());
@@ -1319,8 +1424,23 @@ fn render_carrier(
     artifact_bytes: usize,
     payload_digest: &str,
 ) -> String {
+    render_carrier_artifacts(
+        PROJECT_NPM_BUILD_SCHEMA,
+        identity,
+        package.artifacts(),
+        artifact_bytes,
+        payload_digest,
+    )
+}
+
+pub(super) fn render_carrier_artifacts(
+    schema: &str,
+    identity: NpmBuildIdentity<'_>,
+    package: &[NpmArtifact],
+    artifact_bytes: usize,
+    payload_digest: &str,
+) -> String {
     let artifacts = package
-        .artifacts()
         .iter()
         .map(|artifact| {
             format!(
@@ -1334,7 +1454,7 @@ fn render_carrier(
         .join(",");
     format!(
         "{{\"schema\":{},\"project_schema\":{},\"package\":{},\"version\":{},\"project_revision\":{},\"workspace_revision\":{},\"project_graph_digest\":{},\"semantic_recipe\":{},\"artifact_bytes\":{},\"payload_digest\":{},\"artifacts\":[{}]}}",
-        quote_json(PROJECT_NPM_BUILD_SCHEMA),
+        quote_json(schema),
         quote_json(identity.project_schema),
         quote_json(identity.package),
         quote_json(identity.version),
@@ -1418,16 +1538,28 @@ fn validate_carrier_limit(length: usize, max_bytes: usize) -> Result<(), Diagnos
 fn decode_carrier_artifacts(
     envelope: &str,
     max_bytes: usize,
-) -> Result<UsefulTextNpmPackage, Diagnostic> {
+) -> Result<[NpmArtifact; 6], Diagnostic> {
     let value: serde_json::Value = serde_json::from_str(envelope)
         .map_err(|_| package_error("npm build envelope is not valid JSON"))?;
+    let schema = value
+        .get("schema")
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| package_error("npm build schema is invalid"))?;
+    let paths = match schema {
+        PROJECT_NPM_BUILD_SCHEMA => &USEFUL_TEXT_PACKAGE_PATHS,
+        PROJECT_NPM_BUILD_SCHEMA_V2 => &data::USEFUL_DATA_PACKAGE_PATHS,
+        _ => return Err(package_error("npm build schema is unsupported")),
+    };
     let rows = value
         .get("artifacts")
         .and_then(serde_json::Value::as_array)
         .ok_or_else(|| package_error("npm build artifacts are invalid"))?;
     let mut total = 0_usize;
     let mut artifacts = Vec::with_capacity(6);
-    for (row, path) in rows.iter().zip(USEFUL_TEXT_PACKAGE_PATHS) {
+    if rows.len() != paths.len() {
+        return Err(package_error("npm build artifact inventory is not exact"));
+    }
+    for (row, path) in rows.iter().zip(paths.iter().copied()) {
         let encoded = row
             .get("hex")
             .and_then(serde_json::Value::as_str)
@@ -1436,14 +1568,12 @@ fn decode_carrier_artifacts(
         total += bytes.len();
         artifacts.push(NpmArtifact { path, bytes });
     }
-    Ok(UsefulTextNpmPackage {
-        artifacts: artifacts
-            .try_into()
-            .map_err(|_| package_error("npm build artifact inventory is not exact"))?,
-    })
+    artifacts
+        .try_into()
+        .map_err(|_| package_error("npm build artifact inventory is not exact"))
 }
 
-fn package_error(message: impl Into<String>) -> Diagnostic {
+pub(super) fn package_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-W120", message)
 }
 
@@ -1821,5 +1951,72 @@ assert.match(source, /SemapraxTextError\(3/);
             std::fs::remove_dir_all(npm_cache).unwrap();
         }
         std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn handle_relative_publication_never_writes_through_a_substituted_destination() {
+        use std::os::unix::fs::symlink;
+
+        let source = crate::parse(
+            "module config.app;\n@id(\"config.contains\") fn contains(value: borrow str, needle: borrow str) -> bool { str_contains(value, needle) }\n@id(\"config.fail\") fn fail(value: borrow str) -> i64 { str_len_bytes(value) / 0 }\n@id(\"config.len\") fn len(value: borrow str) -> i64 { str_len_bytes(value) }\n@id(\"main\") fn main() -> i64 { 0 }\n",
+            Path::new("publication-race.spx"),
+        )
+        .unwrap();
+        let program = crate::hir::resolve(&source).unwrap();
+        let package = runtime_package();
+        let recipe = render_semantic_recipe(&program).unwrap();
+        let identity = NpmBuildIdentity {
+            project_schema: super::super::PROJECT_SCHEMA_V2,
+            package: "config-validator",
+            version: "1.2.3",
+            project_revision:
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            workspace_revision:
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            project_graph_digest:
+                "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            semantic_recipe: &recipe,
+        };
+        let total = package.artifacts.iter().map(|item| item.bytes.len()).sum();
+        let digest = payload_digest(identity, &package);
+        let envelope = render_carrier(identity, &package, total, &digest);
+        let build = ProjectNpmBuild {
+            envelope,
+            payload_digest: digest,
+            artifact_bytes: total,
+            max_bytes: MAX_PROJECT_NPM_BUILD_BYTES,
+            trusted: trusted_binding(identity),
+        };
+        build.verify().unwrap();
+
+        let root = temporary_directory("npm-handle-relative-race");
+        let output = root.join("package");
+        let moved = root.join("held-package");
+        let foreign = root.join("foreign");
+        std::fs::create_dir(&root).unwrap();
+        std::fs::create_dir(&foreign).unwrap();
+        std::fs::write(foreign.join("marker"), b"foreign").unwrap();
+        let output_for_hook = output.clone();
+        let moved_for_hook = moved.clone();
+        let foreign_for_hook = foreign.clone();
+        publication::set_test_after_create(Box::new(move || {
+            std::fs::rename(&output_for_hook, &moved_for_hook).unwrap();
+            symlink(&foreign_for_hook, &output_for_hook).unwrap();
+        }));
+        let error = build.publish(&output).unwrap_err();
+        assert!(
+            error.message.contains("identity changed"),
+            "{}",
+            error.message
+        );
+        assert_eq!(std::fs::read(foreign.join("marker")).unwrap(), b"foreign");
+        assert_eq!(std::fs::read_dir(&foreign).unwrap().count(), 1);
+        assert!(std::fs::symlink_metadata(&output)
+            .unwrap()
+            .file_type()
+            .is_symlink());
+        std::fs::remove_file(output).unwrap();
+        std::fs::remove_dir_all(root).unwrap();
     }
 }

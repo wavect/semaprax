@@ -13,6 +13,10 @@ fn manifest_v2() -> String {
     "schema = \"semaprax.project.v2\"\nname = \"config-validator\"\nversion = \"1.2.3-rc.1+build.7\"\nprofile = \"useful-text-consumer.v1\"\nentry = \"config.app\"\nsources = [\"a/core.spx\", \"t/tests.spx\", \"z/app.spx\"]\nweb_exports = [\"config.classify\", \"config.valid\"]\ntests = [\"config.tests\"]\n".to_owned()
 }
 
+fn manifest_v3() -> String {
+    "schema = \"semaprax.project.v3\"\nname = \"binary-frame\"\nversion = \"2.0.0-beta.2+local.9\"\nprofile = \"useful-data.v1\"\nentry = \"frame.app\"\nsources = [\"a/core.spx\", \"t/tests.spx\", \"z/app.spx\"]\nweb_exports = [\"frame.checksum\", \"frame.valid\"]\ntests = [\"frame.tests\"]\n".to_owned()
+}
+
 fn fixture() -> PathBuf {
     let root = std::env::temp_dir().join(format!(
         "semaprax-project-v1-{}-{}",
@@ -285,6 +289,94 @@ fn v2_manifest_rejects_noncanonical_semver_profile_and_assignment_confusion() {
             "SPX-J100"
         );
     }
+}
+
+#[test]
+fn canonical_v3_manifest_round_trips_with_closed_useful_data_profile() {
+    let parsed = ProjectManifest::parse(&manifest_v3()).unwrap();
+    assert_eq!(parsed.schema(), PROJECT_SCHEMA_V3);
+    assert_eq!(parsed.name(), "binary-frame");
+    assert_eq!(parsed.package_version(), Some("2.0.0-beta.2+local.9"));
+    assert_eq!(parsed.profile(), Some(PROJECT_PROFILE_USEFUL_DATA_V1));
+    assert_eq!(parsed.project_profile(), ProjectProfile::UsefulDataV1);
+    assert!(parsed.is_v3());
+    assert!(!parsed.is_v2());
+    assert_eq!(parsed.to_canonical_toml(), manifest_v3());
+
+    assert_eq!(
+        ProjectManifest::parse(&manifest())
+            .unwrap()
+            .project_profile(),
+        ProjectProfile::ScalarV1
+    );
+    assert_eq!(
+        ProjectManifest::parse(&manifest_v2())
+            .unwrap()
+            .project_profile(),
+        ProjectProfile::UsefulTextConsumerV1
+    );
+}
+
+#[test]
+fn v3_pathless_web_route_refuses_scalar_carrier_and_names_the_npm_route() {
+    let manifest =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/binary-frame-project/semaprax.toml");
+    with_authenticated_project(&manifest, |snapshot| {
+        let diagnostics = snapshot
+            .build_web_inline(MAX_PROJECT_WEB_BUILD_BYTES)
+            .unwrap_err();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(diagnostics[0].code, "SPX-W120");
+        assert_eq!(
+            diagnostics[0].message,
+            "Project v3 pathless Web builds use build_npm_inline"
+        );
+        let npm = snapshot.build_npm_inline(MAX_PROJECT_NPM_BUILD_BYTES)?;
+        npm.verify().map_err(|error| vec![error])
+    })
+    .unwrap();
+}
+
+#[test]
+fn v3_manifest_rejects_schema_profile_and_assignment_confusion() {
+    for malformed in [
+        manifest_v3().replace("profile = \"useful-data.v1\"", "profile = \"scalar.v1\""),
+        manifest_v3().replace(
+            "schema = \"semaprax.project.v3\"",
+            "schema = \"semaprax.project.v2\"",
+        ),
+        manifest_v3().replace(
+            "version = \"2.0.0-beta.2+local.9\"\nprofile",
+            "profile = \"useful-data.v1\"\nversion",
+        ),
+        manifest_v3().replace("profile =", "adapter ="),
+        manifest_v3().trim_end().to_owned(),
+    ] {
+        assert_eq!(
+            ProjectManifest::parse(&malformed).unwrap_err()[0].code,
+            "SPX-J100"
+        );
+    }
+
+    // A schema-only edit must not reinterpret either legacy shape.
+    assert_eq!(
+        ProjectManifest::parse(&manifest_v2().replace(
+            "schema = \"semaprax.project.v2\"",
+            "schema = \"semaprax.project.v3\"",
+        ))
+        .unwrap_err()[0]
+            .code,
+        "SPX-J100"
+    );
+    assert_eq!(
+        ProjectManifest::parse(&manifest().replace(
+            "schema = \"semaprax.project.v1\"",
+            "schema = \"semaprax.project.v3\"",
+        ))
+        .unwrap_err()[0]
+            .code,
+        "SPX-J100"
+    );
 }
 
 #[test]

@@ -1,0 +1,8 @@
+schema = "semaprax.project.v3"
+name = "binary-frame"
+version = "1.0.0"
+profile = "useful-data.v1"
+entry = "binary_frame.app"
+sources = ["src/app.spx", "src/core.spx", "src/frame.spx", "src/tests.spx"]
+web_exports = ["binary-frame.checksum", "binary-frame.combine-length", "binary-frame.has-magic", "binary-frame.length"]
+tests = ["binary_frame.tests"]

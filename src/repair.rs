@@ -739,7 +739,16 @@ fn collect_calls(
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                collect_calls(statement.value(), known, calls, call_sites);
+                for index in 0..statement.child_count() {
+                    collect_calls(
+                        statement
+                            .child(index)
+                            .expect("resolved statement child count is canonical"),
+                        known,
+                        calls,
+                        call_sites,
+                    );
+                }
             }
             collect_calls(tail, known, calls, call_sites);
         }

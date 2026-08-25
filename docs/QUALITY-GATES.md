@@ -1,6 +1,6 @@
 # Quality gates
 
-Portable Indexed Byte Data v1 internal-tranche changes additionally require
+Portable Indexed Byte Data v1 changes additionally require
 exact syntax and diagnostics, independent source/resolved-HIR/hostile-HIR
 capacity agreement, Graph v17 projection with legacy v10-v16 preservation,
 exact minimum and maximum capacity boundaries, canonical Bytes cleanup-plan
@@ -20,11 +20,9 @@ cargo test --locked -p semaprax --test useful_data_native_v1
 cargo test --locked -p semaprax --test useful_data_wasm_v1
 ```
 
-These are local internal compiler gates. They do not prove the public
-`useful-data.v1` Project/npm adapters, the generated `Uint8Array` facade, an
-installed multi-module consumer, exact-head hosted promotion, or registry
-publication. Useful Text Consumer v1 gates alone likewise do not prove indexed
-byte-data semantics.
+These are the local compiler gates. They do not by themselves prove the public
+Project/npm boundary. Useful Text Consumer v1 gates alone likewise do not prove
+indexed byte-data semantics.
 
 Semantic Workspace Operations v1 changes additionally require the focused
 unit and public integration suites, exact derivation/Evidence/two-receipt KATs, canonical
@@ -274,6 +272,34 @@ These gates are local evidence until the exact-head hosted matrix is green.
 They do not prove `usize`, arrays/slices, indexing, iteration, a general text
 processor, dependency resolution, registry behavior, signing/provenance, or
 npm registry publication.
+
+Project Manifest v3 / public Useful Data v1 additionally requires exact
+schema/profile parsing, canonical rendering, confusion diagnostics, and frozen
+v1/v2 bytes; profile-exact entry/test/export linking; reconstruction and
+validation of byte-operation call-index, provenance, capacity, and cleanup
+facts; exhaustive `while`/`unsafe` workspace traversal; and Semantic
+Workspace/Project replay of source Graph v10-v17 without widening Patch/Change
+evidence admission. Public boundary tests must cover fixed-memory Core Wasm,
+the exact export inventory, scalar status/results, ordinary attached
+fixed-length `Uint8Array` acceptance, shared/resizable/detached/typed/DataView/
+coercible rejection, snapshot isolation, multiple arguments, cumulative
+charging, and metadata/Wasm digest mismatch. Package gates require the exact
+six-file `semaprax.project-npm-build.v2` inventory, independent replay and
+tamper rejection, offline pack/install, and compiler-free installed use of the
+multi-module binary-frame fixture. Publication gates must prove Unix
+handle-relative create-new/no-clobber and substitution resistance; on Windows
+the v2 publication route must continue to reject until equally strong
+handle-relative authority exists. Focused local gates include:
+
+```sh
+cargo test --locked -p semaprax --test useful_data_project_v1 -- --test-threads=1
+cargo test --locked -p semaprax --test useful_data_wasm_v1
+```
+
+These are local Partial evidence only. Promotion requires the repository-wide
+quality suite and exact-head hosted Linux, macOS, Windows, and Rust-1.85 jobs.
+Safe Windows v2 publication, npm registry publication, and release promotion
+remain open.
 
 Project CLI publication is Web (default), explicit native, or npm. For Project
 v2, default/`web`/`wasm` and `npm` deliberately select the same exact six-file

@@ -174,6 +174,14 @@ pub(super) fn prepare(
     from: &str,
     to: &str,
 ) -> Result<PreparedProjectRename, Vec<Diagnostic>> {
+    // The v1 change envelopes below freeze `semaprax.project.v1` and scalar
+    // ownership conclusions. Refuse newer Project schemas before planning so
+    // their richer profiles are never mislabeled as v1 evidence.
+    if snapshot.manifest.schema() != super::PROJECT_SCHEMA {
+        return Err(rename_error(
+            "Project display-rename evidence currently admits only semaprax.project.v1",
+        ));
+    }
     validate_request_text("target_id", target_id, MAX_STABLE_ID_BYTES)?;
     validate_request_text("from", from, MAX_RENAME_NAME_BYTES)?;
     validate_request_text("to", to, MAX_RENAME_NAME_BYTES)?;
@@ -661,6 +669,17 @@ mod tests {
             .prepare_rename("calculator.add", "add", "main")
             .is_err());
         assert_eq!(before, inventory(&fixture.0));
+    }
+
+    #[test]
+    fn newer_project_profiles_fail_before_v1_rename_evidence_is_constructed() {
+        let manifest = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("examples/binary-frame-project/semaprax.toml");
+        let snapshot = super::super::load_snapshot(&manifest).unwrap();
+        assert_rename_error(
+            snapshot.prepare_rename("binary-frame.length", "frame_length", "measured_length"),
+            "only semaprax.project.v1",
+        );
     }
 
     #[test]

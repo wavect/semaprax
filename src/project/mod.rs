@@ -32,12 +32,16 @@ pub use execution::{
 };
 use manifest::{capacity, grammar};
 pub use manifest::{
-    ProjectManifest, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES,
-    MAX_SOURCES, MAX_STABLE_ID_BYTES, MAX_TOTAL_SOURCE_BYTES, MAX_VERSION_BYTES, MAX_WEB_EXPORTS,
-    PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1, PROJECT_SCHEMA, PROJECT_SCHEMA_V2,
+    ProjectManifest, ProjectProfile, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES,
+    MAX_PATH_BYTES, MAX_SOURCES, MAX_STABLE_ID_BYTES, MAX_TOTAL_SOURCE_BYTES, MAX_VERSION_BYTES,
+    MAX_WEB_EXPORTS, PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
+    PROJECT_SCHEMA, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3,
 };
 pub use native_sdk::{ProjectNativeSdkExport, ProjectNativeSdkSubject};
-pub use npm::{ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA};
+pub use npm::{
+    ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
+    PROJECT_NPM_BUILD_SCHEMA_V2,
+};
 pub(crate) use rename::{PreparedProjectRename, ProjectRenameDerivation};
 pub use semantic::{
     PROJECT_SEMANTIC_CONTEXT_SCHEMA, PROJECT_SEMANTIC_GRAPH_SCHEMA, PROJECT_SEMANTIC_IMPACT_SCHEMA,
@@ -162,6 +166,23 @@ impl ProjectSnapshot {
         )
     }
 
+    /// Render bounded Project-specific reverse Impact from the retained typed index.
+    pub fn semantic_impact(
+        &self,
+        target_kind: crate::workspace_analysis::WorkspaceAnalysisTargetKind,
+        target: &str,
+        options: crate::workspace_analysis::WorkspaceImpactOptions,
+    ) -> Result<String, Vec<Diagnostic>> {
+        self.semantic.impact(
+            self.manifest.name(),
+            &self.project_revision,
+            self.manifest.test_module(),
+            target_kind,
+            target,
+            options,
+        )
+    }
+
     /// Prepare one read-only stable-ID display rename over the complete
     /// authenticated Project without granting commit authority.
     pub(crate) fn prepare_rename(
@@ -236,14 +257,15 @@ impl ProjectSnapshot {
         execution::execute(self, role, options)
     }
 
-    /// Build the authenticated project entry closure as one scalar Web package.
+    /// Build the authenticated project entry closure as its profile-selected
+    /// Web product.
     pub fn build_web(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
-        // Project v2 has one public JavaScript product: the exact six-file
-        // Useful Text Consumer npm/Web package. Keeping `web` and the default
-        // route as aliases avoids a scalar-v1 fallback while `npm` remains the
-        // explicit package-manager spelling. Frozen Project v1 bytes and
-        // publication behavior stay on the scalar route below.
-        if self.manifest.is_v2() {
+        // Project v2/v3 each have one public JavaScript product: their exact
+        // six-file npm/Web package. Keeping `web` and the default route as
+        // aliases avoids a scalar-v1 fallback while `npm` remains the explicit
+        // package-manager spelling. Frozen Project v1 bytes and publication
+        // behavior stay on the scalar route below.
+        if self.manifest.project_profile() != ProjectProfile::ScalarV1 {
             return self.build_npm(output);
         }
         let prepared = crate::wasm::prepare_project_web_with_scalar_exports(
@@ -264,16 +286,22 @@ impl ProjectSnapshot {
     }
 
     /// Build a Project v1 authenticated entry closure as one deterministic
-    /// pathless scalar-Web carrier. Project v2 keeps the frozen return type
-    /// honest by using [`Self::build_npm_inline`] for its text Web carrier.
+    /// pathless scalar-Web carrier. Project v2/v3 keep the frozen return type
+    /// honest by using [`Self::build_npm_inline`] for their npm/Web carriers.
     /// This performs no filesystem access, process launch, publication, or
     /// caching. `max_bytes` bounds both the cumulative decoded artifact
     /// inventory and the final canonical hexadecimal envelope.
     pub fn build_web_inline(&self, max_bytes: usize) -> Result<ProjectWebBuild, Vec<Diagnostic>> {
-        if self.manifest.is_v2() {
+        if self.manifest.project_profile() != ProjectProfile::ScalarV1 {
+            let version = if self.manifest.is_v2() {
+                "v2"
+            } else {
+                debug_assert!(self.manifest.is_v3());
+                "v3"
+            };
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
-                "Project v2 pathless Web builds use build_npm_inline",
+                format!("Project {version} pathless Web builds use build_npm_inline"),
             )]);
         }
         crate::wasm::prepare_project_web_with_scalar_exports(

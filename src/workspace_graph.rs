@@ -170,7 +170,7 @@ pub(crate) struct ProjectSemanticParts {
 
 pub(crate) struct ProjectWebRoots<'a> {
     pub(crate) stable_ids: &'a [String],
-    pub(crate) useful_text_profile: bool,
+    pub(crate) profile: crate::project::ProjectProfile,
 }
 
 pub(crate) struct ProjectSemanticGraphArtifact {
@@ -1025,6 +1025,14 @@ impl WorkspaceGraphBuild {
         &self,
         entry_module: &str,
     ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        self.linked_project_program(entry_module, crate::project::ProjectProfile::ScalarV1)
+    }
+
+    fn linked_project_program(
+        &self,
+        entry_module: &str,
+        profile: crate::project::ProjectProfile,
+    ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
         validate_entry_module(entry_module)?;
         let Some(entry_path) = self.hir.module_paths.get(entry_module).cloned() else {
             return Err(vec![graph_error(
@@ -1157,8 +1165,18 @@ impl WorkspaceGraphBuild {
                 "workspace scalar entry module `main` must have an explicit identity",
             )]);
         }
-        hir::link_scalar_workspace(entry_module.to_owned(), entrypoint, functions)
-            .map_err(|error| vec![error])
+        match profile {
+            crate::project::ProjectProfile::ScalarV1 => {
+                hir::link_scalar_workspace(entry_module.to_owned(), entrypoint, functions)
+            }
+            crate::project::ProjectProfile::UsefulTextConsumerV1 => {
+                hir::link_useful_text_workspace(entry_module.to_owned(), entrypoint, functions)
+            }
+            crate::project::ProjectProfile::UsefulDataV1 => {
+                hir::link_useful_data_workspace(entry_module.to_owned(), entrypoint, functions)
+            }
+        }
+        .map_err(|error| vec![error])
     }
 
     /// Link the ordinary entry-provider closure plus exact persistent
@@ -1170,9 +1188,9 @@ impl WorkspaceGraphBuild {
         &self,
         entry_module: &str,
         additional_roots: &[String],
-        useful_text_profile: bool,
+        profile: crate::project::ProjectProfile,
     ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
-        let base = self.linked_scalar_program(entry_module)?;
+        let base = self.linked_project_program(entry_module, profile)?;
         if additional_roots.is_empty() {
             return Ok(base);
         }
@@ -1258,13 +1276,18 @@ impl WorkspaceGraphBuild {
                     })
             })
             .collect::<Result<Vec<_>, _>>()?;
-        if useful_text_profile {
-            hir::link_useful_text_workspace(base.module, base.entrypoint, functions)
-                .map_err(|error| vec![error])
-        } else {
-            hir::link_scalar_workspace(base.module, base.entrypoint, functions)
-                .map_err(|error| vec![error])
+        match profile {
+            crate::project::ProjectProfile::ScalarV1 => {
+                hir::link_scalar_workspace(base.module, base.entrypoint, functions)
+            }
+            crate::project::ProjectProfile::UsefulTextConsumerV1 => {
+                hir::link_useful_text_workspace(base.module, base.entrypoint, functions)
+            }
+            crate::project::ProjectProfile::UsefulDataV1 => {
+                hir::link_useful_data_workspace(base.module, base.entrypoint, functions)
+            }
         }
+        .map_err(|error| vec![error])
     }
 
     /// Consume one Phase-A graph build only after deriving both requested
@@ -1294,17 +1317,13 @@ impl WorkspaceGraphBuild {
         test_module: &str,
         web_roots: ProjectWebRoots<'_>,
     ) -> Result<ProjectSemanticParts, Vec<Diagnostic>> {
-        self.validate_entire_project_workspace(
-            entry_module,
-            test_module,
-            web_roots.useful_text_profile,
-        )?;
+        self.validate_entire_project_workspace(entry_module, test_module, web_roots.profile)?;
         let entry_program = self.linked_scalar_program_with_roots(
             entry_module,
             web_roots.stable_ids,
-            web_roots.useful_text_profile,
+            web_roots.profile,
         )?;
-        let test_program = self.linked_scalar_program(test_module)?;
+        let test_program = self.linked_project_program(test_module, web_roots.profile)?;
         let projection = self.into_project_projection(
             workspace_revision,
             source_facts,
@@ -1424,7 +1443,7 @@ impl WorkspaceGraphBuild {
         &self,
         entry_module: &str,
         test_module: &str,
-        useful_text_profile: bool,
+        profile: crate::project::ProjectProfile,
     ) -> Result<(), Vec<Diagnostic>> {
         validate_entry_module(entry_module)?;
         validate_entry_module(test_module)?;
@@ -1456,31 +1475,51 @@ impl WorkspaceGraphBuild {
                 )]);
             }
             for function in &module.functions {
-                let admitted_parameter = |parameter: &hir::ResolvedParam| {
-                    matches!(
+                let admitted_parameter = |parameter: &hir::ResolvedParam| match profile {
+                    crate::project::ProjectProfile::ScalarV1 => matches!(
                         (&parameter.ty, parameter.ownership),
                         (
                             hir::ResolvedType::I64 | hir::ResolvedType::Bool,
                             hir::OwnershipMode::Value
                         )
-                    ) || (useful_text_profile
-                        && parameter.ty == hir::ResolvedType::Str
-                        && parameter.ownership == hir::OwnershipMode::Borrow)
+                    ),
+                    crate::project::ProjectProfile::UsefulTextConsumerV1 => matches!(
+                        (&parameter.ty, parameter.ownership),
+                        (
+                            hir::ResolvedType::I64 | hir::ResolvedType::Bool,
+                            hir::OwnershipMode::Value
+                        ) | (hir::ResolvedType::Str, hir::OwnershipMode::Borrow)
+                    ),
+                    crate::project::ProjectProfile::UsefulDataV1 => {
+                        hir::useful_data_workspace_parameter_admitted(
+                            &parameter.ty,
+                            parameter.ownership,
+                        )
+                    }
                 };
-                if !function.effects.is_empty()
-                    || !matches!(
+                let admitted_return = match profile {
+                    crate::project::ProjectProfile::ScalarV1
+                    | crate::project::ProjectProfile::UsefulTextConsumerV1 => matches!(
                         function.return_type,
                         hir::ResolvedType::I64 | hir::ResolvedType::Bool
-                    )
+                    ),
+                    crate::project::ProjectProfile::UsefulDataV1 => {
+                        hir::useful_data_workspace_return_admitted(&function.return_type)
+                    }
+                };
+                if !function.effects.is_empty()
+                    || !admitted_return
                     || function
                         .params
                         .iter()
                         .any(|parameter| !admitted_parameter(parameter))
                 {
-                    let profile = if useful_text_profile {
-                        "selected Project linker"
-                    } else {
-                        "pure scalar linker"
+                    let profile = match profile {
+                        crate::project::ProjectProfile::ScalarV1 => "pure scalar linker",
+                        crate::project::ProjectProfile::UsefulTextConsumerV1 => {
+                            "Useful Text Consumer linker"
+                        }
+                        crate::project::ProjectProfile::UsefulDataV1 => "Useful Data linker",
                     };
                     return Err(vec![graph_error(
                         "SPX-G172",
@@ -1506,7 +1545,11 @@ impl WorkspaceGraphBuild {
         entry_module: &str,
         test_module: &str,
     ) -> Result<(), Vec<Diagnostic>> {
-        self.validate_entire_project_workspace(entry_module, test_module, false)
+        self.validate_entire_project_workspace(
+            entry_module,
+            test_module,
+            crate::project::ProjectProfile::ScalarV1,
+        )
     }
 
     pub(crate) fn change_builder_bytes(&self) -> Option<usize> {
@@ -2527,6 +2570,7 @@ fn render_semantic_graph(
 
 pub(crate) fn render_project_semantic_graph(
     projection: &WorkspaceGraphProjection,
+    project_schema: &str,
     project_name: &str,
     project_revision: &str,
     test_module: &str,
@@ -2546,6 +2590,7 @@ pub(crate) fn render_project_semantic_graph(
     let (payload, overflowed) = crate::bounded_output::with_limit(MAX_OUTPUT_BYTES, || {
         render_project_graph_json(
             projection,
+            project_schema,
             project_name,
             project_revision,
             test_module,
@@ -2559,6 +2604,7 @@ pub(crate) fn render_project_semantic_graph(
     let (json, overflowed) = crate::bounded_output::with_limit(MAX_OUTPUT_BYTES, || {
         render_project_graph_json(
             projection,
+            project_schema,
             project_name,
             project_revision,
             test_module,
@@ -2573,6 +2619,7 @@ pub(crate) fn render_project_semantic_graph(
 
 fn render_project_graph_json(
     projection: &WorkspaceGraphProjection,
+    project_schema: &str,
     project_name: &str,
     project_revision: &str,
     test_module: &str,
@@ -2583,7 +2630,9 @@ fn render_project_graph_json(
     let mut output = crate::bounded_output::CappedString::new();
     output.push_str("{\"schema\":");
     push_json_string(&mut output, PROJECT_GRAPH_SCHEMA);
-    output.push_str(",\"project_schema\":\"semaprax.project.v1\",\"project\":");
+    output.push_str(",\"project_schema\":");
+    push_json_string(&mut output, project_schema);
+    output.push_str(",\"project\":");
     push_json_string(&mut output, project_name);
     output.push_str(",\"project_revision\":");
     push_json_string(&mut output, project_revision);
@@ -4340,22 +4389,44 @@ fn collect_operation_expr_occurrences(
                 return Err(operation_sidecar_disagreement());
             }
             for (statement, resolved_statement) in statements.iter().zip(resolved_statements) {
-                if statement.is_assign() != resolved_statement.is_assign() {
+                let same_kind = matches!(
+                    (statement, resolved_statement),
+                    (
+                        crate::ast::Statement::Let { .. },
+                        hir::ResolvedStatement::Let { .. }
+                    ) | (
+                        crate::ast::Statement::Assign { .. },
+                        hir::ResolvedStatement::Assign { .. }
+                    ) | (
+                        crate::ast::Statement::Unsafe { .. },
+                        hir::ResolvedStatement::Unsafe { .. }
+                    ) | (
+                        crate::ast::Statement::While { .. },
+                        hir::ResolvedStatement::While { .. }
+                    )
+                );
+                if !same_kind || statement.child_count() != resolved_statement.child_count() {
                     return Err(operation_sidecar_disagreement());
                 }
-                let value = statement.value();
-                let resolved_value = resolved_statement.value();
-                collect_operation_expr_occurrences(
-                    program,
-                    value,
-                    resolved_value,
-                    tokens,
-                    owner,
-                    declaration_index,
-                    import_index,
-                    declarations,
-                    imports,
-                )?;
+                for index in 0..statement.child_count() {
+                    let value = statement
+                        .child(index)
+                        .ok_or_else(operation_sidecar_disagreement)?;
+                    let resolved_value = resolved_statement
+                        .child(index)
+                        .ok_or_else(operation_sidecar_disagreement)?;
+                    collect_operation_expr_occurrences(
+                        program,
+                        value,
+                        resolved_value,
+                        tokens,
+                        owner,
+                        declaration_index,
+                        import_index,
+                        declarations,
+                        imports,
+                    )?;
+                }
             }
             collect_operation_expr_occurrences(
                 program,
@@ -5471,7 +5542,14 @@ fn visit_resolved_calls(
         | hir::ResolvedExprKind::BorrowPlace { .. } => {}
         hir::ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                visit_resolved_calls(statement.value(), visit);
+                for index in 0..statement.child_count() {
+                    visit_resolved_calls(
+                        statement
+                            .child(index)
+                            .expect("resolved statement child count is canonical"),
+                        visit,
+                    );
+                }
             }
             visit_resolved_calls(tail, visit);
         }
@@ -5913,13 +5991,28 @@ fn collect_resolved_expression_type_sites(
         }
         hir::ResolvedExprKind::Block { statements, tail } => {
             for (index, statement) in statements.iter().enumerate() {
-                collect_resolved_expression_type_sites(
-                    owner,
-                    statement.value(),
-                    &crate::bounded_output::budgeted_format(format_args!("{path}.s{index}.value")),
-                    imported,
-                    out,
-                )?;
+                for child_index in 0..statement.child_count() {
+                    let segment = if matches!(statement, hir::ResolvedStatement::While { .. }) {
+                        if child_index == 0 {
+                            "condition"
+                        } else {
+                            "body"
+                        }
+                    } else {
+                        "value"
+                    };
+                    collect_resolved_expression_type_sites(
+                        owner,
+                        statement
+                            .child(child_index)
+                            .expect("resolved statement child count is canonical"),
+                        &crate::bounded_output::budgeted_format(format_args!(
+                            "{path}.s{index}.{segment}"
+                        )),
+                        imported,
+                        out,
+                    )?;
+                }
             }
             collect_resolved_expression_type_sites(
                 owner,
@@ -6886,11 +6979,41 @@ fn visit_ast_call_sites(
         }
         ExprKind::Block { statements, tail } => {
             for (index, statement) in statements.iter().enumerate() {
-                visit_ast_call_sites(
-                    statement.value(),
-                    &crate::bounded_output::budgeted_format(format_args!("{path}.s{index}.value")),
-                    visit,
-                )?;
+                match statement {
+                    crate::ast::Statement::Let { value, .. }
+                    | crate::ast::Statement::Assign { value, .. } => visit_ast_call_sites(
+                        value,
+                        &crate::bounded_output::budgeted_format(format_args!(
+                            "{path}.s{index}.value"
+                        )),
+                        visit,
+                    )?,
+                    crate::ast::Statement::Unsafe { body, .. } => visit_ast_call_sites(
+                        body,
+                        &crate::bounded_output::budgeted_format(format_args!(
+                            "{path}.s{index}.value"
+                        )),
+                        visit,
+                    )?,
+                    crate::ast::Statement::While {
+                        condition, body, ..
+                    } => {
+                        visit_ast_call_sites(
+                            condition,
+                            &crate::bounded_output::budgeted_format(format_args!(
+                                "{path}.s{index}.condition"
+                            )),
+                            visit,
+                        )?;
+                        visit_ast_call_sites(
+                            body,
+                            &crate::bounded_output::budgeted_format(format_args!(
+                                "{path}.s{index}.body"
+                            )),
+                            visit,
+                        )?;
+                    }
+                }
             }
             visit_ast_call_sites(
                 tail,
@@ -7777,7 +7900,11 @@ fn unselected(value: i64) -> i64 { value + 100 }
             .validate_entire_scalar_workspace("app.main", "test.main")
             .unwrap();
         let linked = build
-            .linked_scalar_program_with_roots("app.main", &["lib.selected".to_owned()], false)
+            .linked_scalar_program_with_roots(
+                "app.main",
+                &["lib.selected".to_owned()],
+                crate::project::ProjectProfile::ScalarV1,
+            )
             .unwrap();
         let ids = linked
             .functions
@@ -7793,12 +7920,106 @@ fn unselected(value: i64) -> i64 { value + 100 }
         hir::validate(&linked).unwrap();
 
         let error = build
-            .linked_scalar_program_with_roots("app.main", &["lib.absent".to_owned()], false)
+            .linked_scalar_program_with_roots(
+                "app.main",
+                &["lib.absent".to_owned()],
+                crate::project::ProjectProfile::ScalarV1,
+            )
             .unwrap_err();
         assert_eq!(error[0].code, "SPX-W115");
         assert!(error[0]
             .message
             .contains("does not name an authenticated function"));
+    }
+
+    #[test]
+    fn useful_data_project_roots_retain_slice_closure_and_exact_provenance() {
+        let app = canonical_source(
+            "app/main.spx",
+            r#"
+module app.main;
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#,
+        );
+        let test = canonical_source(
+            "test/main.spx",
+            r#"
+module test.main;
+
+@id("test.main")
+fn main() -> i64 { 0 }
+"#,
+        );
+        let exports = canonical_source(
+            "lib/exports.spx",
+            r#"
+module lib.exports;
+
+@id("lib.byte-length")
+fn byte_length(value: borrow Slice<u8>) -> usize {
+    let alias = value;
+    byte_len(alias)
+}
+
+@id("lib.byte-count")
+fn byte_count(value: borrow Slice<u8>) -> usize {
+    let mut index = 0usize;
+    while index < byte_len(value) {
+        index = index + 1usize;
+        index < byte_len(value)
+    }
+    match byte_get(value, 0usize) {
+        Option::Some { value: _ } => index,
+        Option::None {} => index,
+    }
+}
+
+@id("lib.unselected")
+fn unselected(value: i64) -> i64 { value + 1 }
+"#,
+        );
+        let build = build_owned(vec![app, test, exports]).unwrap();
+        build
+            .validate_entire_project_workspace(
+                "app.main",
+                "test.main",
+                crate::project::ProjectProfile::UsefulDataV1,
+            )
+            .unwrap();
+        let linked = build
+            .linked_scalar_program_with_roots(
+                "app.main",
+                &["lib.byte-count".to_owned(), "lib.byte-length".to_owned()],
+                crate::project::ProjectProfile::UsefulDataV1,
+            )
+            .unwrap();
+        let ids = linked
+            .functions
+            .iter()
+            .map(|function| function.id.as_str())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            ids,
+            BTreeSet::from(["app.main", "lib.byte-count", "lib.byte-length"])
+        );
+        let function = linked
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "lib.byte-length")
+            .unwrap();
+        let parameter = &function.params[0].id;
+        let provenance = linked
+            .declarations
+            .byte_slice_provenance(parameter)
+            .unwrap();
+        assert_eq!(provenance.root, *parameter);
+        assert_eq!(
+            provenance.root_kind,
+            hir::ByteSliceRootKind::FunctionParameter
+        );
+        hir::validate(&linked).unwrap();
     }
 
     #[test]

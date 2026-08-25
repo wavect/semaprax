@@ -1,0 +1,16 @@
+module binary_frame.tests;
+
+@id("binary-frame.tests.main")
+fn main() -> i64
+{
+    let fixed = [0u8, 255u8, 1u8, 255u8];
+    let fixed_view = array_as_slice(fixed);
+    let copied = bytes_copy(fixed_view);
+    let copied_view = bytes_as_slice(copied);
+    let mut index = 0usize;
+    while index < byte_len(copied_view) {
+        index = index + 1usize;
+        index < byte_len(copied_view)
+    }
+    match byte_get(copied_view, 1usize) { Option::Some { value: byte } => if index == 4usize && byte == 255u8 { 0 } else { 1 }, Option::None {} => 2, }
+}

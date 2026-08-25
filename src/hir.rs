@@ -4371,6 +4371,186 @@ pub(crate) fn link_useful_text_workspace(
     Ok(linked)
 }
 
+/// Assemble one backend-ready Useful Data program from authenticated
+/// workspace functions. The authored entry remains the exact scalar `main`;
+/// additional closure functions may use only the closed byte-data value and
+/// borrow kinds. Slice provenance is reconstructed from retained expressions
+/// before cleanup and hostile-HIR validation, never copied from the source
+/// modules' attached declaration indexes.
+pub(crate) fn link_useful_data_workspace(
+    module: String,
+    entrypoint: DeclarationId,
+    mut linked_functions: Vec<LinkedScalarFunction>,
+) -> Result<ResolvedProgram, Diagnostic> {
+    if linked_functions.is_empty() {
+        return Err(link_error("workspace useful-data closure has no functions"));
+    }
+    linked_functions.sort_by(|left, right| left.function.id.cmp(&right.function.id));
+
+    let mut seen = BTreeSet::new();
+    let mut entry_origin = None;
+    for linked in &linked_functions {
+        let function = &linked.function;
+        if !seen.insert(function.id.clone()) {
+            return Err(link_error(format!(
+                "workspace useful-data closure duplicates function `{}`",
+                function.id
+            )));
+        }
+        if !function.effects.is_empty()
+            || !useful_data_workspace_return_admitted(&function.return_type)
+            || function.params.iter().any(|parameter| {
+                !useful_data_workspace_parameter_admitted(&parameter.ty, parameter.ownership)
+            })
+        {
+            return Err(link_error(format!(
+                "workspace function `{}` is outside the Useful Data linker profile",
+                function.id
+            )));
+        }
+        if function.id == entrypoint {
+            entry_origin = Some(linked.origin);
+            if function.name != "main"
+                || !function.params.is_empty()
+                || function.return_type != ResolvedType::I64
+            {
+                return Err(link_error(
+                    "workspace useful-data entry point must be an authored `fn main() -> i64`",
+                ));
+            }
+        }
+    }
+    if entry_origin != Some(IdentityOrigin::Explicit) {
+        return Err(link_error(
+            "workspace useful-data entry point must have an explicit authored identity",
+        ));
+    }
+
+    let origins = linked_functions
+        .iter()
+        .map(|linked| (linked.function.id.clone(), linked.origin))
+        .collect::<BTreeMap<_, _>>();
+    let functions = linked_functions
+        .drain(..)
+        .map(|linked| linked.function)
+        .collect::<Vec<_>>();
+    let byte_slice_roots = derive_byte_slice_provenance(&functions)?;
+    // Useful-data expressions can carry the compiler-owned `Option<u8>`
+    // result of `byte_get`. Rebuild the canonical prelude declaration facts
+    // before inserting retained workspace functions; a default index would
+    // lose the nominal type behind match/capacity validation.
+    let prelude_only = Program {
+        path: "<useful-data-workspace-linker>".to_owned(),
+        module: "compiler.prelude".to_owned(),
+        module_uses: Vec::new(),
+        permits: Vec::new(),
+        types: Vec::new(),
+        interfaces: Vec::new(),
+        protocols: Vec::new(),
+        functions: Vec::new(),
+    };
+    let mut declarations = DeclarationIndex::from_verified(&prelude_only)?;
+    let compiler_types = crate::prelude::declarations()
+        .iter()
+        .map(|declaration| {
+            let id = DeclarationId::new(declaration.stable_id.clone());
+            let TypeDeclarationKind::Variant { .. } = &declaration.kind else {
+                return Err(link_error(
+                    "workspace useful-data prelude contains an unsupported type kind",
+                ));
+            };
+            Ok(ResolvedTypeDeclaration {
+                type_parameters: declarations
+                    .type_parameters(&id)
+                    .ok_or_else(|| {
+                        link_error("workspace useful-data prelude type parameters are absent")
+                    })?
+                    .to_vec(),
+                kind: ResolvedTypeDeclarationKind::Variant {
+                    cases: declarations
+                        .variant_cases(&id)
+                        .ok_or_else(|| {
+                            link_error("workspace useful-data prelude variant cases are absent")
+                        })?
+                        .to_vec(),
+                },
+                id,
+                name: declaration.name.clone(),
+                span: declaration.span,
+            })
+        })
+        .collect::<Result<Vec<_>, Diagnostic>>()?;
+    for function in &functions {
+        let origin = origins
+            .get(&function.id)
+            .copied()
+            .ok_or_else(|| link_error("workspace useful-data function origin is absent"))?;
+        declarations.insert_top_level(
+            function.name.clone(),
+            function.id.clone(),
+            DeclarationKind::Function,
+            origin,
+        );
+        declarations
+            .type_parameters
+            .insert(function.id.clone(), Vec::new());
+    }
+    declarations.byte_slice_roots = byte_slice_roots;
+    if !declarations.populate_type_facts() {
+        return Err(link_error(
+            "workspace useful-data linker could not construct type facts",
+        ));
+    }
+    let mut linked = ResolvedProgram {
+        module,
+        permits: Vec::new(),
+        entrypoint,
+        declarations,
+        types: compiler_types,
+        interfaces: Vec::new(),
+        function_templates: Vec::new(),
+        functions,
+        function_instances: Vec::new(),
+    };
+    analyze_byte_data_capacity(&linked)?;
+    rebuild_cleanup_metadata(&mut linked)?;
+    validate(&linked)?;
+    Ok(linked)
+}
+
+pub(crate) fn useful_data_workspace_parameter_admitted(
+    ty: &ResolvedType,
+    ownership: OwnershipMode,
+) -> bool {
+    matches!(
+        (ty, ownership),
+        (
+            ResolvedType::I64
+                | ResolvedType::Bool
+                | ResolvedType::U8
+                | ResolvedType::Usize
+                | ResolvedType::ArrayU8(_),
+            OwnershipMode::Value
+        ) | (ResolvedType::Bytes, OwnershipMode::Own)
+            | (
+                ResolvedType::Str | ResolvedType::SliceU8,
+                OwnershipMode::Borrow
+            )
+    )
+}
+
+pub(crate) fn useful_data_workspace_return_admitted(ty: &ResolvedType) -> bool {
+    matches!(
+        ty,
+        ResolvedType::I64
+            | ResolvedType::Bool
+            | ResolvedType::U8
+            | ResolvedType::Usize
+            | ResolvedType::ArrayU8(_)
+            | ResolvedType::Bytes
+    )
+}
+
 fn scalar_type(ty: &ResolvedType) -> bool {
     matches!(ty, ResolvedType::I64 | ResolvedType::Bool)
 }
@@ -12986,5 +13166,102 @@ fn main() -> i64 { helper(1) }
                 "TypeFacts observed total exceeded retained_upper + TypeFacts phase"
             );
         }
+    }
+
+    #[test]
+    fn useful_data_workspace_linker_reconstructs_and_rejects_hostile_slice_provenance() {
+        let source = r#"
+module test.useful_data_link;
+
+@id("data.length")
+fn length(value: borrow Slice<u8>) -> usize {
+    let alias = value;
+    byte_len(alias)
+}
+
+@id("data.count")
+fn count(value: borrow Slice<u8>) -> usize {
+    let mut index = 0usize;
+    while index < byte_len(value) {
+        index = index + 1usize;
+        index < byte_len(value)
+    }
+    match byte_get(value, 0usize) {
+        Option::Some { value: _ } => index,
+        Option::None {} => index,
+    }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+        let parsed = crate::parse(source, "useful-data-link.spx").unwrap();
+        let resolved = super::resolve(&parsed).unwrap();
+        let entrypoint = resolved.entrypoint.clone();
+        let linked_functions = resolved
+            .functions
+            .iter()
+            .cloned()
+            .map(|function| super::LinkedScalarFunction {
+                function,
+                origin: super::IdentityOrigin::Explicit,
+            })
+            .collect::<Vec<_>>();
+        let linked = super::link_useful_data_workspace(
+            resolved.module.clone(),
+            entrypoint.clone(),
+            resolved
+                .functions
+                .iter()
+                .cloned()
+                .map(|function| super::LinkedScalarFunction {
+                    function,
+                    origin: super::IdentityOrigin::Explicit,
+                })
+                .collect(),
+        )
+        .unwrap();
+        let length = linked
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "data.length")
+            .unwrap();
+        let parameter = &length.params[0].id;
+        let provenance = linked
+            .declarations
+            .byte_slice_provenance(parameter)
+            .unwrap();
+        assert_eq!(provenance.root, *parameter);
+        assert_eq!(
+            provenance.root_kind,
+            super::ByteSliceRootKind::FunctionParameter
+        );
+        assert!(linked
+            .functions
+            .iter()
+            .any(|function| function.id.as_str() == "data.count"));
+
+        let mut hostile = linked_functions;
+        let length = hostile
+            .iter_mut()
+            .find(|linked| linked.function.id.as_str() == "data.length")
+            .unwrap();
+        let super::ResolvedExprKind::Block { statements, .. } = &mut length.function.body.kind
+        else {
+            panic!("fixture function body is a block");
+        };
+        let super::ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+            panic!("fixture first statement is a let");
+        };
+        let super::ResolvedExprKind::Place(place) = &mut value.kind else {
+            panic!("fixture slice alias is a place");
+        };
+        place.root = super::ValueId("hostile.missing-root".to_owned());
+        let error =
+            super::link_useful_data_workspace(resolved.module, entrypoint, hostile).unwrap_err();
+        assert_eq!(error.code, "SPX-H006");
+        assert!(error
+            .message
+            .contains("byte-slice alias lacks a canonical symbolic parameter root"));
     }
 }

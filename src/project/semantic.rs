@@ -18,6 +18,7 @@ pub const PROJECT_SEMANTIC_CONTEXT_SCHEMA: &str = "semaprax.project-semantic-con
 pub const PROJECT_SEMANTIC_IMPACT_SCHEMA: &str = crate::workspace_analysis::PROJECT_IMPACT_SCHEMA;
 
 pub(super) struct ProjectSemanticState {
+    project_schema: &'static str,
     graph_json: String,
     graph_digest: String,
     analysis: WorkspaceAnalysis,
@@ -35,6 +36,7 @@ pub(super) struct ProjectRenameFunction {
 impl ProjectSemanticState {
     pub(super) fn new(
         projection: WorkspaceGraphProjection,
+        project_schema: &'static str,
         project_name: &str,
         project_revision: &str,
         test_module: &str,
@@ -63,6 +65,7 @@ impl ProjectSemanticState {
         }
         let graph = workspace_graph::render_project_semantic_graph(
             &projection,
+            project_schema,
             project_name,
             project_revision,
             test_module,
@@ -71,6 +74,7 @@ impl ProjectSemanticState {
         let graph_digest = graph.digest().to_owned();
         let analysis = WorkspaceAnalysis::build_project(projection, &graph_digest)?;
         Ok(Self {
+            project_schema,
             graph_json,
             graph_digest,
             analysis,
@@ -106,6 +110,7 @@ impl ProjectSemanticState {
     ) -> Result<String, Vec<Diagnostic>> {
         self.analysis.render_project_context(
             ProjectAnalysisSubject {
+                project_schema: self.project_schema,
                 project_name,
                 project_revision,
                 test_module,
@@ -128,6 +133,7 @@ impl ProjectSemanticState {
     ) -> Result<String, Vec<Diagnostic>> {
         self.analysis.render_project_impact(
             ProjectAnalysisSubject {
+                project_schema: self.project_schema,
                 project_name,
                 project_revision,
                 test_module,

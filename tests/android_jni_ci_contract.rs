@@ -128,12 +128,58 @@ fn private_android_jni_project_is_offline_closed_and_source_locked() {
         "lib/x86_64/libsemaprax_provider_rf_o2.so",
         "lib/x86_64/libsemaprax_provider_om_o0.so",
         "lib/x86_64/libsemaprax_provider_om_o2.so",
+        "Android JNI native inventory authority must contain exactly seven names",
+        "expected_native+=(\"lib/x86_64/$name\")",
+        "\"${#packaged_native[@]}\" -ne \"${#expected_native[@]}\"",
+        "\"${packaged_native[$index]}\" != \"${expected_native[$index]}\"",
     ] {
         assert!(
             package.contains(required),
             "packaging gate lost `{required}`"
         );
     }
+    let native_names = package
+        .split_once("readonly native_names=(\n")
+        .and_then(|(_, tail)| tail.split_once("\n)"))
+        .map(|(body, _)| {
+            body.lines()
+                .map(str::trim)
+                .filter(|line| !line.is_empty())
+                .collect::<Vec<_>>()
+        })
+        .expect("exact Android JNI native name authority");
+    let expected_names = [
+        "libsemaprax_jni.so",
+        "libsemaprax_provider_o0.so",
+        "libsemaprax_provider_o2.so",
+        "libsemaprax_provider_om_o0.so",
+        "libsemaprax_provider_om_o2.so",
+        "libsemaprax_provider_rf_o0.so",
+        "libsemaprax_provider_rf_o2.so",
+    ];
+    assert_eq!(native_names, expected_names);
+    let zip_block = package
+        .split_once("zip -q -X -0 \"$base_apk\" classes.dex \\\n")
+        .and_then(|(_, tail)| tail.split_once("\n)"))
+        .map(|(body, _)| body)
+        .expect("explicit Android JNI zip inventory");
+    let mut previous = None;
+    for name in expected_names {
+        let path = format!("lib/x86_64/{name}");
+        assert_eq!(zip_block.matches(&path).count(), 1);
+        let position = zip_block.find(&path).unwrap();
+        if let Some(previous) = previous {
+            assert!(previous < position, "zip inventory is not in C order");
+        }
+        previous = Some(position);
+    }
+    assert!(package.contains(
+        "mapfile -t native_files < <(find \"$native_dir\" -mindepth 1 -maxdepth 1 -type f -name '*.so' -print | LC_ALL=C sort)"
+    ));
+    assert!(package.contains(
+        "mapfile -t packaged_native < <(unzip -Z1 \"$output_apk\" | grep '^lib/' | LC_ALL=C sort)"
+    ));
+    assert!(!package.contains("readonly expected_native=("));
 
     for required in [
         "private external fun nativeOpen(providerPathUtf8: ByteArray, selector: Int): Long",

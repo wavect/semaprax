@@ -45,11 +45,15 @@ readonly native_names=(
   libsemaprax_jni.so
   libsemaprax_provider_o0.so
   libsemaprax_provider_o2.so
-  libsemaprax_provider_rf_o0.so
-  libsemaprax_provider_rf_o2.so
   libsemaprax_provider_om_o0.so
   libsemaprax_provider_om_o2.so
+  libsemaprax_provider_rf_o0.so
+  libsemaprax_provider_rf_o2.so
 )
+if [[ "${#native_names[@]}" -ne 7 ]]; then
+  echo "Android JNI native inventory authority must contain exactly seven names" >&2
+  exit 1
+fi
 mapfile -t native_files < <(find "$native_dir" -mindepth 1 -maxdepth 1 -type f -name '*.so' -print | LC_ALL=C sort)
 if [[ "${#native_files[@]}" -ne "${#native_names[@]}" ]]; then
   echo "generated Android JNI directory must contain exactly seven shared libraries" >&2
@@ -142,10 +146,10 @@ done
     lib/x86_64/libsemaprax_jni.so \
     lib/x86_64/libsemaprax_provider_o0.so \
     lib/x86_64/libsemaprax_provider_o2.so \
-    lib/x86_64/libsemaprax_provider_rf_o0.so \
-    lib/x86_64/libsemaprax_provider_rf_o2.so \
     lib/x86_64/libsemaprax_provider_om_o0.so \
-    lib/x86_64/libsemaprax_provider_om_o2.so
+    lib/x86_64/libsemaprax_provider_om_o2.so \
+    lib/x86_64/libsemaprax_provider_rf_o0.so \
+    lib/x86_64/libsemaprax_provider_rf_o2.so
 )
 
 readonly aligned_apk="$work/aligned.apk"
@@ -172,18 +176,20 @@ readonly output_apk="$output_root/semaprax-android-jni.apk"
 "$sdk_build_tools/apksigner" verify --verbose "$output_apk" >/dev/null
 
 mapfile -t packaged_native < <(unzip -Z1 "$output_apk" | grep '^lib/' | LC_ALL=C sort)
-readonly expected_native=(
-  lib/x86_64/libsemaprax_jni.so
-  lib/x86_64/libsemaprax_provider_o0.so
-  lib/x86_64/libsemaprax_provider_o2.so
-  lib/x86_64/libsemaprax_provider_rf_o0.so
-  lib/x86_64/libsemaprax_provider_rf_o2.so
-  lib/x86_64/libsemaprax_provider_om_o0.so
-  lib/x86_64/libsemaprax_provider_om_o2.so
-)
-if [[ "${packaged_native[*]}" != "${expected_native[*]}" ]]; then
+expected_native=()
+for name in "${native_names[@]}"; do
+  expected_native+=("lib/x86_64/$name")
+done
+readonly expected_native
+if [[ "${#packaged_native[@]}" -ne "${#expected_native[@]}" ]]; then
   echo "APK native library inventory is not exact" >&2
   exit 1
 fi
+for index in "${!expected_native[@]}"; do
+  if [[ "${packaged_native[$index]}" != "${expected_native[$index]}" ]]; then
+    echo "APK native library inventory is not exact" >&2
+    exit 1
+  fi
+done
 
 printf '%s\n' "$output_apk"

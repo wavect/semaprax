@@ -24,6 +24,7 @@ mod native_capability_authority;
 mod native_capability_token;
 mod native_cleanup;
 mod native_cleanup_emit;
+mod native_command;
 #[cfg(test)]
 mod native_conformance;
 #[cfg(test)]
@@ -119,7 +120,36 @@ pub fn emit_c_with_stdout_transcript(program: &Program) -> Result<String, Diagno
     let resolved = hir::resolve(program).map_err(first_backend_diagnostic)?;
     crate::host_io_ops::validate_stdout_profile_authority(&resolved)?;
     let labels = contract_labels(program, &resolved);
-    emit_hir_c_with_labels(&resolved, &labels, NativeOutputProfile::StdoutTranscript)
+    emit_hir_c_with_labels(
+        &resolved,
+        &labels,
+        NativeOutputProfile::StdoutTranscript,
+        None,
+    )
+}
+
+/// Resolve source and emit the closed native Useful Data Command process.
+///
+/// The selected stable ID is authenticated by the shared target-neutral
+/// command plan before C generation. The resulting translation unit contains
+/// the memory-only transcript runner and one fixed platform process adapter;
+/// it contains neither the legacy no-argument `main` nor its public failure
+/// reporter.
+pub fn emit_c_with_native_command(
+    program: &Program,
+    command_id: &str,
+) -> Result<String, Diagnostic> {
+    let resolved = hir::resolve(program).map_err(first_backend_diagnostic)?;
+    let plan = crate::command_profile::CommandProfilePlan::prepare(&resolved, command_id)?;
+    require_native_command_capacity(&plan)?;
+    reject_native_rust_for_native(&resolved)?;
+    let labels = contract_labels(program, &resolved);
+    emit_hir_c_with_labels(
+        &resolved,
+        &labels,
+        NativeOutputProfile::UsefulDataCommand,
+        Some(plan.function_id()),
+    )
 }
 
 /// Emit the exact production C11 projection from an already resolved source.
@@ -133,7 +163,7 @@ pub(crate) fn emit_resolved_c_with_source(
 ) -> Result<String, Diagnostic> {
     reject_native_rust_for_native(resolved)?;
     let labels = contract_labels(source, resolved);
-    emit_hir_c_with_labels(resolved, &labels, NativeOutputProfile::Legacy)
+    emit_hir_c_with_labels(resolved, &labels, NativeOutputProfile::Legacy, None)
 }
 
 /// Emit C11 from resolved HIR.
@@ -143,7 +173,7 @@ pub(crate) fn emit_resolved_c_with_source(
 /// rather than reconstructing either from source names.
 pub fn emit_hir_c(program: &ResolvedProgram) -> Result<String, Diagnostic> {
     reject_native_rust_for_native(program)?;
-    emit_hir_c_with_labels(program, &HashMap::new(), NativeOutputProfile::Legacy)
+    emit_hir_c_with_labels(program, &HashMap::new(), NativeOutputProfile::Legacy, None)
 }
 
 /// Emit the bounded native stdout-transcript profile from validated HIR.
@@ -157,7 +187,35 @@ pub fn emit_hir_c_with_stdout_transcript(program: &ResolvedProgram) -> Result<St
         program,
         &HashMap::new(),
         NativeOutputProfile::StdoutTranscript,
+        None,
     )
+}
+
+/// Emit the closed native Useful Data Command process from validated HIR.
+pub fn emit_hir_c_with_native_command(
+    program: &ResolvedProgram,
+    command_id: &str,
+) -> Result<String, Diagnostic> {
+    let plan = crate::command_profile::CommandProfilePlan::prepare(program, command_id)?;
+    require_native_command_capacity(&plan)?;
+    reject_native_rust_for_native(program)?;
+    emit_hir_c_with_labels(
+        program,
+        &HashMap::new(),
+        NativeOutputProfile::UsefulDataCommand,
+        Some(plan.function_id()),
+    )
+}
+
+fn require_native_command_capacity(
+    plan: &crate::command_profile::CommandProfilePlan,
+) -> Result<(), Diagnostic> {
+    if plan.stdout_capacity() != crate::host_io_ops::MAX_STDOUT_TRANSCRIPT_BYTES {
+        return Err(backend_error(
+            "native command transcript capacity disagrees with target-neutral admission",
+        ));
+    }
+    Ok(())
 }
 
 fn reject_native_rust_for_native(program: &ResolvedProgram) -> Result<(), Diagnostic> {
@@ -987,6 +1045,7 @@ fn emit_hir_c_with_labels(
     program: &ResolvedProgram,
     contract_labels: &HashMap<ExpressionId, String>,
     output_profile: NativeOutputProfile,
+    selected_command: Option<&DeclarationId>,
 ) -> Result<String, Diagnostic> {
     hir::validate(program)?;
     if program.types.iter().any(|declaration| {
@@ -1003,8 +1062,12 @@ fn emit_hir_c_with_labels(
     let functions = function_index(program)?;
     debug_assert!(resource_abi.resources.is_empty());
     let mut output = crate::bounded_output::CappedString::new();
-    emit_native_prelude(&mut output, &resource_abi, program);
-    if output_profile == NativeOutputProfile::StdoutTranscript {
+    if output_profile == NativeOutputProfile::UsefulDataCommand {
+        emit_native_prelude_without_public_failure(&mut output, &resource_abi, program);
+    } else {
+        emit_native_prelude(&mut output, &resource_abi, program);
+    }
+    if output_profile.supports_stdout_transcript() {
         native_host_output::emit_runtime(&mut output);
     }
     emit_fixed_byte_array_declarations(&mut output, program)?;
@@ -1043,23 +1106,34 @@ fn emit_hir_c_with_labels(
         )?;
     }
 
-    let main = program
-        .functions
-        .iter()
-        .find(|function| function.id == program.entrypoint)
-        .ok_or_else(|| backend_error("resolved native entry point is not indexed"))?;
-    if !main.params.is_empty() || main.return_type != ResolvedType::I64 {
-        return Err(backend_error(
-            "resolved native entry point must have type `fn main() -> i64`",
-        ));
-    }
-    let symbol = &functions
-        .get(&FunctionExecutionId::Monomorphic(main.id.clone()))
-        .ok_or_else(|| backend_error("native entry point is not indexed"))?
-        .symbol;
-    if output_profile == NativeOutputProfile::StdoutTranscript {
-        native_host_output::emit_root_wrapper(&mut output, symbol);
+    if output_profile == NativeOutputProfile::UsefulDataCommand {
+        let command = selected_command
+            .ok_or_else(|| backend_error("native command selection is unavailable"))?;
+        let symbol = &functions
+            .get(&FunctionExecutionId::Monomorphic(command.clone()))
+            .ok_or_else(|| backend_error("selected native command is not indexed"))?
+            .symbol;
+        native_command::emit_runner(&mut output, symbol);
+        native_command::emit_process_adapter(&mut output);
     } else {
+        let main = program
+            .functions
+            .iter()
+            .find(|function| function.id == program.entrypoint)
+            .ok_or_else(|| backend_error("resolved native entry point is not indexed"))?;
+        if !main.params.is_empty() || main.return_type != ResolvedType::I64 {
+            return Err(backend_error(
+                "resolved native entry point must have type `fn main() -> i64`",
+            ));
+        }
+        let symbol = &functions
+            .get(&FunctionExecutionId::Monomorphic(main.id.clone()))
+            .ok_or_else(|| backend_error("native entry point is not indexed"))?
+            .symbol;
+        if output_profile == NativeOutputProfile::StdoutTranscript {
+            native_host_output::emit_root_wrapper(&mut output, symbol);
+            return Ok(output.into_string());
+        }
         write!(
             output,
         "#ifndef SPX_NO_ENTRY_WRAPPER\n\
@@ -1087,6 +1161,13 @@ fn emit_hir_c_with_labels(
 enum NativeOutputProfile {
     Legacy,
     StdoutTranscript,
+    UsefulDataCommand,
+}
+
+impl NativeOutputProfile {
+    const fn supports_stdout_transcript(self) -> bool {
+        matches!(self, Self::StdoutTranscript | Self::UsefulDataCommand)
+    }
 }
 
 /// Emit one length-indexed, alignment-one C type for each reachable nonempty
@@ -1170,6 +1251,23 @@ fn emit_native_prelude(
     resource_abi: &native_resource::NativeResourceAbi,
     program: &ResolvedProgram,
 ) {
+    emit_native_prelude_inner(output, resource_abi, program, false);
+}
+
+fn emit_native_prelude_without_public_failure(
+    output: &mut impl COutput,
+    resource_abi: &native_resource::NativeResourceAbi,
+    program: &ResolvedProgram,
+) {
+    emit_native_prelude_inner(output, resource_abi, program, true);
+}
+
+fn emit_native_prelude_inner(
+    output: &mut impl COutput,
+    resource_abi: &native_resource::NativeResourceAbi,
+    program: &ResolvedProgram,
+    omit_public_failure: bool,
+) {
     if program_uses_borrowed_str(program) || program_uses_byte_data(program) {
         native_runtime::emit_status_runtime_with_borrowed_str(output);
     } else {
@@ -1177,7 +1275,16 @@ fn emit_native_prelude(
     }
     output.push_str(&resource_abi.declarations);
     output.push_str("#include <stdio.h>\n\n");
-    output.push_str(NATIVE_SCALAR_RUNTIME_C);
+    if omit_public_failure {
+        let marker = "static __attribute__((unused)) int spx_public_failure(";
+        let prefix = NATIVE_SCALAR_RUNTIME_C
+            .split_once(marker)
+            .map(|(prefix, _)| prefix)
+            .expect("native public-failure marker must remain exact");
+        output.push_str(prefix);
+    } else {
+        output.push_str(NATIVE_SCALAR_RUNTIME_C);
+    }
     if program_uses_u8_arithmetic(program) {
         // Checked u8 helpers stay out of programs that cannot reach them, so
         // existing projections keep their exact committed bytes.
@@ -2884,10 +2991,28 @@ pub fn build(program: &Program, output: &Path) -> Result<(), Diagnostic> {
 /// publication and the internal lowering-equivalence evidence consume. This
 /// performs no parsing, HIR resolution, or source projection.
 pub fn compile_native_executable(c_source: &str, output: &Path) -> Result<(), Diagnostic> {
-    write_and_compile_c(c_source, output)
+    write_and_compile_c_with_mode(c_source, output, false)
+}
+
+/// Compile one emitted native Useful Data Command translation unit.
+///
+/// This keeps the ordinary native compiler command byte-for-byte unchanged.
+/// GNU-target Windows Clang alone requires `-municode` to select the `wmain`
+/// CRT startup; MSVC-target Clang selects the wide console entry from the
+/// translation unit without that MinGW-only option.
+pub fn compile_native_command_executable(c_source: &str, output: &Path) -> Result<(), Diagnostic> {
+    write_and_compile_c_with_mode(c_source, output, true)
 }
 
 fn write_and_compile_c(c_source: &str, output: &Path) -> Result<(), Diagnostic> {
+    write_and_compile_c_with_mode(c_source, output, false)
+}
+
+fn write_and_compile_c_with_mode(
+    c_source: &str,
+    output: &Path,
+    native_command: bool,
+) -> Result<(), Diagnostic> {
     static BUILD_ID: AtomicU64 = AtomicU64::new(0);
     let build_id = BUILD_ID.fetch_add(1, Ordering::Relaxed);
     let c_path = std::env::temp_dir().join(format!(
@@ -2903,12 +3028,15 @@ fn write_and_compile_c(c_source: &str, output: &Path) -> Result<(), Diagnostic> 
             ),
         )
     })?;
-    let result = Command::new("clang")
-        .args(["-std=c11", "-O2", "-Wall", "-Wextra", "-Werror"])
-        .arg(&c_path)
-        .arg("-o")
-        .arg(output)
-        .output();
+    let mut compiler = Command::new("clang");
+    compiler.args(["-std=c11", "-O2", "-Wall", "-Wextra", "-Werror"]);
+    #[cfg(all(windows, target_env = "gnu"))]
+    if native_command {
+        compiler.arg("-municode");
+    }
+    #[cfg(not(all(windows, target_env = "gnu")))]
+    let _ = native_command;
+    let result = compiler.arg(&c_path).arg("-o").arg(output).output();
     let _ = std::fs::remove_file(&c_path);
     let result = result.map_err(|error| {
         Diagnostic::io(
@@ -3720,7 +3848,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             } => {
                 if instance.is_none() {
                     if crate::host_io_ops::by_id(callee.as_str()).is_some() {
-                        if self.output_profile != NativeOutputProfile::StdoutTranscript {
+                        if !self.output_profile.supports_stdout_transcript() {
                             return Err(backend_error(
                                 "host stdout write requires the native stdout-transcript profile",
                             ));

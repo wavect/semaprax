@@ -283,15 +283,17 @@ semaprax = {{ path = "{manifest_root}", default-features = false }}
     fs::create_dir(consumer.join("src")).unwrap();
     fs::write(
         consumer.join("src/main.rs"),
-        r#"use semaprax::codegen::{emit_native_callable_v3_descriptor, emit_private_native_callable_v3_android_descriptor, emit_private_native_callable_v3_android_fixture, emit_private_native_callable_v3_corpus_fixture, emit_private_native_callable_v3_fault_fixture, emit_private_native_callable_v3_fixture, emit_private_native_callable_v3_ios_descriptor, emit_private_native_callable_v3_ios_fixture, NativeCallableV3DescriptorArtifact, PrivateNativeCallableV3AndroidTarget, PrivateNativeCallableV3Artifact, PrivateNativeCallableV3Fault, PrivateNativeCallableV3Fixture, PrivateNativeCallableV3IosTarget};
+        r#"use semaprax::codegen::{emit_native_callable_v3_descriptor, emit_private_native_callable_v3_android_descriptor, emit_private_native_callable_v3_android_corpus_fixture, emit_private_native_callable_v3_android_fixture, emit_private_native_callable_v3_corpus_fixture, emit_private_native_callable_v3_fault_fixture, emit_private_native_callable_v3_fixture, emit_private_native_callable_v3_ios_corpus_fixture, emit_private_native_callable_v3_ios_descriptor, emit_private_native_callable_v3_ios_fixture, NativeCallableV3DescriptorArtifact, PrivateNativeCallableV3AndroidTarget, PrivateNativeCallableV3Artifact, PrivateNativeCallableV3Fault, PrivateNativeCallableV3Fixture, PrivateNativeCallableV3IosTarget};
 
 fn main() {
     let _ = emit_native_callable_v3_descriptor;
     let _ = emit_private_native_callable_v3_android_descriptor;
+    let _ = emit_private_native_callable_v3_android_corpus_fixture;
     let _ = emit_private_native_callable_v3_android_fixture;
     let _ = emit_private_native_callable_v3_corpus_fixture;
     let _ = emit_private_native_callable_v3_fault_fixture;
     let _ = emit_private_native_callable_v3_fixture;
+    let _ = emit_private_native_callable_v3_ios_corpus_fixture;
     let _ = emit_private_native_callable_v3_ios_descriptor;
     let _ = emit_private_native_callable_v3_ios_fixture;
     let _ = std::mem::size_of::<NativeCallableV3DescriptorArtifact>();
@@ -322,9 +324,11 @@ fn main() {
             && stderr.contains("NativeCallableV3DescriptorArtifact")
             && stderr.contains("emit_private_native_callable_v3_fixture")
             && stderr.contains("emit_private_native_callable_v3_android_descriptor")
+            && stderr.contains("emit_private_native_callable_v3_android_corpus_fixture")
             && stderr.contains("emit_private_native_callable_v3_android_fixture")
             && stderr.contains("emit_private_native_callable_v3_corpus_fixture")
             && stderr.contains("emit_private_native_callable_v3_fault_fixture")
+            && stderr.contains("emit_private_native_callable_v3_ios_corpus_fixture")
             && stderr.contains("emit_private_native_callable_v3_ios_descriptor")
             && stderr.contains("emit_private_native_callable_v3_ios_fixture")
             && stderr.contains("PrivateNativeCallableV3Artifact")

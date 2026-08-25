@@ -1932,9 +1932,11 @@ separate generated roots: the direct `semaprax.web.v4` package and the linked
 Project `semaprax.web-project.v1` package. A bounded preflight authenticates the
 schema distinction and exact common six-stable-ID inventory before Playwright
 starts; each generated declaration consumer is checked independently and the
-two browser instances use isolated loopback ports. This is locally wired and
-awaits exact-head hosted evidence; it is not a multi-engine or general browser
-claim.
+two browser instances use isolated loopback ports. This dual fixture is
+exact-head hosted green on Ubuntu Chromium at
+`27dbfafe0f6a3c7e68e0434a0a082020104f2241` in
+[job 97930658621](https://github.com/wavect/semaprax/actions/runs/32887305666/job/97930658621);
+it is not a multi-engine or general browser claim.
 
 ## Development integrity
 

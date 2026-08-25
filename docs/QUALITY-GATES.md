@@ -215,9 +215,11 @@ package and source locks, and independent security review. Pinned
 Project-generated declarations. The browser gate must authenticate their
 distinct manifest schemas and exact six-stable-ID inventories, then execute
 both packages serially through the same committed calculator shell. That
-hosted real-browser interaction remains mandatory before claiming independently
-validated Project-browser or general browser-SDK compatibility. The full
-exact-head hosted matrix remains mandatory for promotion.
+exact-head Ubuntu interaction establishes independently validated
+Project-browser execution for this bounded fixture only. It does not establish
+general browser-SDK compatibility, which requires separately defined
+multi-browser and compatibility evidence. The full exact-head hosted matrix
+remains mandatory for promotion.
 
 Project Manifest v1 additionally requires exact six-assignment canonical TOML
 and bounds, explicit-source/root/ancestor held-identity authentication and

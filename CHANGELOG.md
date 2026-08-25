@@ -5,10 +5,11 @@
 - Closed the local v0.2 calculator-product evidence gaps without widening the
   admitted scalar profile. The committed browser calculator now consumes both
   a direct `semaprax.web.v4` package and the multi-module
-  `semaprax.web-project.v1` package through the same six stable-ID calls; its
-  dual-fixture preflight authenticates both schemas and exact export sets,
-  strict TypeScript checks both generated consumers, and one serial Chromium
-  lane exercises both packages. Public Native Rust SDK Phase C now has an
+  `semaprax.web-project.v1` package through the same four interactive
+  arithmetic operations; its dual-fixture preflight authenticates both schemas
+  and all six stable-ID exports, strict TypeScript checks all six calls in both
+  generated consumers, and one serial Chromium lane exercises the four UI
+  operations against both packages. Public Native Rust SDK Phase C now has an
   explicit one-way settled publication state: after the final exact inventory
   replay it releases all nine leaf handles, closes both child-directory
   authorities, and retains only the authenticated root for the no-clobber

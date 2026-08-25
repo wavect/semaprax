@@ -126,9 +126,13 @@ Project package, rather than using Project output only from test-only Node and
 Rust binaries. One exact dual-fixture preflight distinguishes and authenticates
 the direct `semaprax.web.v4` and Project `semaprax.web-project.v1` manifests,
 requires the same six stable IDs, and feeds both generated packages through the
-same TypeScript consumer and serial Chromium interaction. This closes the local
-interactive-Project-consumer gap only; the new exact-head browser job and full
-promotion matrix remain required before widening the hosted claim.
+same TypeScript consumer; the serial Chromium interaction exercises the four
+arithmetic UI operations against each package. This closes the local
+interactive-Project-consumer gap. The dual fixture is exact-head hosted green
+on Ubuntu Chromium at `27dbfafe0f6a3c7e68e0434a0a082020104f2241` in
+[job 97930658621](https://github.com/wavect/semaprax/actions/runs/32887305666/job/97930658621),
+while the full promotion matrix remains required before widening the product
+claim.
 
 ## Useful Text Consumer v1 and Project Manifest v2
 

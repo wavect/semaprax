@@ -4,8 +4,10 @@ Status: implemented as a bounded public Core-Wasm and generated JavaScript/
 TypeScript package profile. Local executable evidence covers admission,
 deterministic artifacts, Node consumption, status normalization, and stable-ID
 rename preservation. Exact TypeScript 5.8.3 independently compiles the real
-generated-declaration consumer locally and is wired into the locked Chromium
-loopback job; that job is not yet exact-head hosted-green.
+generated-declaration consumers for both the direct and Project packages. The
+locked dual-package Chromium loopback job is exact-head hosted green on Ubuntu
+at `27dbfafe0f6a3c7e68e0434a0a082020104f2241` in
+[job 97930658621](https://github.com/wavect/semaprax/actions/runs/32887305666/job/97930658621).
 
 ## Purpose and command
 
@@ -157,13 +159,11 @@ Promotion requires:
 - formatting, strict Clippy, Rust 1.85, package/source locks, the full hosted
   Ubuntu/macOS/Windows matrix, and independent security review.
 
-Until the hosted Chromium/TypeScript job is green, the implementation claims a
-generated ES-module/TypeScript-declaration slice with local Node, pinned-`tsc`,
-and Chromium evidence, not general browser-SDK compatibility, multi-engine
-conformance, or hosted independently validated TypeScript declarations.
-The Chromium job proves only the generated calculator under one pinned browser
-on Ubuntu loopback; it does not establish multi-browser, external-network, or
-production-browser compatibility. It also claims no Components, WIT, npm
+The exact-head hosted Chromium/TypeScript job proves the generated direct and
+Project calculator packages under one pinned browser on Ubuntu loopback. It
+does not establish general browser-SDK compatibility, multi-engine conformance,
+external-network behavior, or production-browser compatibility. It also claims
+no Components, WIT, npm
 publication, dependency resolution, imports/capabilities, resources,
 aggregates, strings, typed arrays, promises, callbacks, async, workers,
 cross-realm identity, CSP generation, SSR/hydration, UI dialect, provenance,

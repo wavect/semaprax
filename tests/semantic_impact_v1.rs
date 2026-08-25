@@ -77,6 +77,10 @@ fn first_call<'a>(expression: &'a ResolvedExpr, template: &str) -> Option<&'a Re
             .args
             .iter()
             .find_map(|argument| first_call(argument, template)),
+        ResolvedExprKind::HostCommandCall(call) => call
+            .args
+            .iter()
+            .find_map(|argument| first_call(argument, template)),
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Project { base: value, .. }
         | ResolvedExprKind::Upcast { source: value }

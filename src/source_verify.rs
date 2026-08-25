@@ -1162,7 +1162,9 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                     import.name_span,
                 ));
             }
-            if crate::host_io_ops::by_name(&import.name).is_some() {
+            if crate::host_io_ops::by_name(&import.name).is_some()
+                || crate::command_io_ops::by_name(&import.name).is_some()
+            {
                 diagnostics.push(error(
                     program,
                     "SPX-S113",
@@ -1648,6 +1650,17 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 "SPX-S113",
                 format!(
                     "function name `{}` is reserved by the compiler-owned host I/O operations",
+                    function.name
+                ),
+                function.name_span,
+            ));
+        }
+        if crate::command_io_ops::by_name(&function.name).is_some() {
+            diagnostics.push(error(
+                program,
+                "SPX-S113",
+                format!(
+                    "function name `{}` is reserved by the compiler-owned command I/O operations",
                     function.name
                 ),
                 function.name_span,
@@ -2278,6 +2291,14 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                             span,
                         ));
                     }
+                    if crate::command_io_ops::by_name(callee).is_some() {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T270",
+                            "command I/O operations are not admitted in contracts",
+                            span,
+                        ));
+                    }
                 });
                 require_bool(
                     program,
@@ -2343,6 +2364,14 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                             program,
                             "SPX-T269",
                             "stdout_write is not admitted in contracts",
+                            span,
+                        ));
+                    }
+                    if crate::command_io_ops::by_name(callee).is_some() {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T270",
+                            "command I/O operations are not admitted in contracts",
                             span,
                         ));
                     }
@@ -2416,6 +2445,21 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                             format!(
                                 "call to `{callee}` requires effect `{}`; add it to `{}`",
                                 op.effect(),
+                                function.name
+                            ),
+                            span,
+                        ));
+                    }
+                    return;
+                }
+                if let Some(op) = crate::command_io_ops::by_name(callee) {
+                    let effect = crate::command_io_ops::effect(op);
+                    if !declared.contains(effect) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-E102",
+                            format!(
+                                "call to `{callee}` requires effect `{effect}`; add it to `{}`",
                                 function.name
                             ),
                             span,
@@ -2609,6 +2653,9 @@ fn source_capacity_expr_type(
                 crate::host_io_ops::by_name(name).map(crate::host_io_ops::HostIoOp::ast_return_type)
             })
             .or_else(|| {
+                crate::command_io_ops::by_name(name).map(crate::command_io_ops::ast_return_type)
+            })
+            .or_else(|| {
                 context
                     .ordinary
                     .get(name.as_str())
@@ -2710,6 +2757,91 @@ fn source_capacity_slot(
     Ok(())
 }
 
+fn source_transcript_source_from_roots(
+    expression: &Expr,
+    roots: &BTreeMap<String, crate::byte_data_capacity::TranscriptSource>,
+) -> crate::byte_data_capacity::TranscriptSource {
+    use crate::byte_data_capacity::TranscriptSource;
+    match &expression.kind {
+        ExprKind::Var(name) => roots
+            .get(name)
+            .copied()
+            .unwrap_or(TranscriptSource::Unknown),
+        ExprKind::ArrayU8(values) => u64::try_from(values.len())
+            .map(TranscriptSource::Fixed)
+            .unwrap_or(TranscriptSource::Unknown),
+        ExprKind::RepeatArrayU8 { count, .. } => TranscriptSource::Fixed(u64::from(*count)),
+        ExprKind::String(value) => u64::try_from(value.len())
+            .map(TranscriptSource::Fixed)
+            .unwrap_or(TranscriptSource::Unknown),
+        ExprKind::Call { name, .. } if name == crate::command_io_ops::ARG_UTF8_NAME => {
+            TranscriptSource::CommandArguments
+        }
+        ExprKind::Call { name, .. } if name == crate::command_io_ops::STDIN_READ_NAME => {
+            TranscriptSource::Stdin
+        }
+        ExprKind::Call { name, args, .. }
+            if matches!(
+                name.as_str(),
+                crate::byte_ops::ARRAY_AS_SLICE_NAME
+                    | crate::byte_ops::STR_AS_BYTES_NAME
+                    | crate::byte_ops::BYTES_AS_SLICE_NAME
+            ) =>
+        {
+            args.first().map_or(TranscriptSource::Unknown, |argument| {
+                source_transcript_source_from_roots(argument, roots)
+            })
+        }
+        ExprKind::If {
+            then_branch,
+            else_branch,
+            ..
+        } => {
+            let then_source = source_transcript_source_from_roots(then_branch, roots);
+            let else_source = source_transcript_source_from_roots(else_branch, roots);
+            if then_source == else_source {
+                then_source
+            } else {
+                TranscriptSource::Unknown
+            }
+        }
+        ExprKind::Block { statements, tail } => {
+            let mut local = roots.clone();
+            let mut declared = BTreeSet::new();
+            for statement in statements {
+                match statement {
+                    Statement::Let { name, value, .. } => {
+                        let source = source_transcript_source_from_roots(value, &local);
+                        if declared.insert(name.clone()) {
+                            local.insert(name.clone(), source);
+                        } else {
+                            local.insert(name.clone(), TranscriptSource::Unknown);
+                        }
+                    }
+                    Statement::Assign { name, .. } => {
+                        local.insert(name.clone(), TranscriptSource::Unknown);
+                    }
+                    Statement::Unsafe { .. } | Statement::While { .. } => {}
+                }
+            }
+            source_transcript_source_from_roots(tail, &local)
+        }
+        ExprKind::Match { arms, .. } => {
+            let mut source = None;
+            for arm in arms {
+                let candidate = source_transcript_source_from_roots(&arm.value, roots);
+                match source {
+                    None => source = Some(candidate),
+                    Some(previous) if previous == candidate => {}
+                    Some(_) => return TranscriptSource::Unknown,
+                }
+            }
+            source.unwrap_or(TranscriptSource::Unknown)
+        }
+        _ => TranscriptSource::Unknown,
+    }
+}
+
 fn source_capacity_pattern_slots(
     pattern: &MatchPattern,
     expected: &Type,
@@ -2775,10 +2907,44 @@ fn source_capacity_pattern_slots(
     Ok(())
 }
 
+fn source_capacity_pattern_transcript_bindings(
+    pattern: &MatchPattern,
+    roots: &mut BTreeMap<String, crate::byte_data_capacity::TranscriptSource>,
+) {
+    use crate::byte_data_capacity::TranscriptSource;
+    fn record_fields(
+        fields: &[RecordMatchPatternField],
+        roots: &mut BTreeMap<String, TranscriptSource>,
+    ) {
+        for field in fields {
+            match &field.pattern {
+                RecordMatchFieldPattern::Binding { name, .. } => {
+                    roots.insert(name.clone(), TranscriptSource::Unknown);
+                }
+                RecordMatchFieldPattern::Record { fields, .. } => record_fields(fields, roots),
+                RecordMatchFieldPattern::Wildcard { .. } => {}
+            }
+        }
+    }
+    match pattern {
+        MatchPattern::Binding { name, .. } => {
+            roots.insert(name.clone(), TranscriptSource::Unknown);
+        }
+        MatchPattern::Variant { fields, .. } => {
+            for field in fields {
+                roots.insert(field.binding.clone(), TranscriptSource::Unknown);
+            }
+        }
+        MatchPattern::Record { fields, .. } => record_fields(fields, roots),
+        MatchPattern::Wildcard { .. } | MatchPattern::Literal { .. } | MatchPattern::Or { .. } => {}
+    }
+}
+
 fn source_capacity_expr(
     expression: &Expr,
     path: &str,
     bindings: &mut BTreeMap<String, Type>,
+    transcript_roots: &mut BTreeMap<String, crate::byte_data_capacity::TranscriptSource>,
     slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
     context: &SourceCapacityContext<'_>,
     direct_destination: bool,
@@ -2832,6 +2998,7 @@ fn source_capacity_expr(
                     argument,
                     &format!("{path}.arg.{index}.value"),
                     bindings,
+                    transcript_roots,
                     slots,
                     context,
                     false,
@@ -2845,6 +3012,17 @@ fn source_capacity_expr(
             } else if name == crate::host_io_ops::STDOUT_WRITE_NAME {
                 children.push(CapacityFlow::StdoutWrite {
                     site: path.to_owned(),
+                    source: source_transcript_source_from_roots(&args[0], transcript_roots),
+                });
+            } else if name == crate::command_io_ops::STDIN_READ_NAME {
+                children.push(CapacityFlow::StdinRead {
+                    site: path.to_owned(),
+                    conservative_payload_bytes: crate::command_io_ops::MAX_INPUT_BYTES,
+                });
+            } else if name == crate::command_io_ops::STDERR_WRITE_NAME {
+                children.push(CapacityFlow::StderrWrite {
+                    site: path.to_owned(),
+                    source: source_transcript_source_from_roots(&args[0], transcript_roots),
                 });
             } else if let Some(target) = target {
                 children.push(CapacityFlow::Call {
@@ -2880,6 +3058,7 @@ fn source_capacity_expr(
                 receiver,
                 &format!("{path}.receiver.value"),
                 bindings,
+                transcript_roots,
                 slots,
                 context,
                 false,
@@ -2898,6 +3077,7 @@ fn source_capacity_expr(
                     argument,
                     &format!("{path}.arg.{index}.value"),
                     bindings,
+                    transcript_roots,
                     slots,
                     context,
                     false,
@@ -2937,6 +3117,7 @@ fn source_capacity_expr(
                     argument,
                     &format!("{path}.arg.{index}.value"),
                     bindings,
+                    transcript_roots,
                     slots,
                     context,
                     false,
@@ -2954,6 +3135,7 @@ fn source_capacity_expr(
             value,
             &format!("{path}.operand"),
             bindings,
+            transcript_roots,
             slots,
             context,
             false,
@@ -2963,6 +3145,7 @@ fn source_capacity_expr(
                 left,
                 &format!("{path}.left"),
                 bindings,
+                transcript_roots,
                 slots,
                 context,
                 false,
@@ -2971,6 +3154,7 @@ fn source_capacity_expr(
                 right,
                 &format!("{path}.right"),
                 bindings,
+                transcript_roots,
                 slots,
                 context,
                 false,
@@ -2978,6 +3162,7 @@ fn source_capacity_expr(
         ]),
         ExprKind::Block { statements, tail } => {
             let mut local = bindings.clone();
+            let mut local_transcript_roots = transcript_roots.clone();
             let mut children = Vec::with_capacity(statements.len() + 1);
             for (index, statement) in statements.iter().enumerate() {
                 let statement_path = format!("{path}.s{index}");
@@ -3004,6 +3189,7 @@ fn source_capacity_expr(
                             value,
                             &format!("{statement_path}.value"),
                             &mut local,
+                            &mut local_transcript_roots,
                             slots,
                             context,
                             true,
@@ -3011,19 +3197,30 @@ fn source_capacity_expr(
                         if let Some(ty) = ty {
                             local.insert(name.clone(), ty);
                         }
+                        let source =
+                            source_transcript_source_from_roots(value, &local_transcript_roots);
+                        local_transcript_roots.insert(name.clone(), source);
                     }
-                    Statement::Assign { value, .. } => children.push(source_capacity_expr(
-                        value,
-                        &format!("{statement_path}.value"),
-                        &mut local,
-                        slots,
-                        context,
-                        true,
-                    )?),
+                    Statement::Assign { name, value, .. } => {
+                        children.push(source_capacity_expr(
+                            value,
+                            &format!("{statement_path}.value"),
+                            &mut local,
+                            &mut local_transcript_roots,
+                            slots,
+                            context,
+                            true,
+                        )?);
+                        local_transcript_roots.insert(
+                            name.clone(),
+                            crate::byte_data_capacity::TranscriptSource::Unknown,
+                        );
+                    }
                     Statement::Unsafe { body, .. } => children.push(source_capacity_expr(
                         body,
                         &format!("{statement_path}.body"),
                         &mut local,
+                        &mut local_transcript_roots,
                         slots,
                         context,
                         true,
@@ -3035,6 +3232,7 @@ fn source_capacity_expr(
                             condition,
                             &format!("{statement_path}.condition"),
                             &mut local,
+                            &mut local_transcript_roots.clone(),
                             slots,
                             context,
                             false,
@@ -3043,6 +3241,7 @@ fn source_capacity_expr(
                             body,
                             &format!("{statement_path}.body"),
                             &mut local,
+                            &mut local_transcript_roots.clone(),
                             slots,
                             context,
                             false,
@@ -3054,6 +3253,7 @@ fn source_capacity_expr(
                 tail,
                 &format!("{path}.tail"),
                 &mut local,
+                &mut local_transcript_roots,
                 slots,
                 context,
                 direct_destination,
@@ -3069,6 +3269,7 @@ fn source_capacity_expr(
                 condition,
                 &format!("{path}.condition"),
                 bindings,
+                transcript_roots,
                 slots,
                 context,
                 false,
@@ -3078,6 +3279,7 @@ fn source_capacity_expr(
                     then_branch,
                     &format!("{path}.then"),
                     &mut bindings.clone(),
+                    &mut transcript_roots.clone(),
                     slots,
                     context,
                     direct_destination,
@@ -3086,6 +3288,7 @@ fn source_capacity_expr(
                     else_branch,
                     &format!("{path}.else"),
                     &mut bindings.clone(),
+                    &mut transcript_roots.clone(),
                     slots,
                     context,
                     direct_destination,
@@ -3102,6 +3305,7 @@ fn source_capacity_expr(
                             &field.value,
                             &format!("{path}.field.{index}"),
                             bindings,
+                            transcript_roots,
                             slots,
                             context,
                             false,
@@ -3117,6 +3321,7 @@ fn source_capacity_expr(
                 .enumerate()
                 .map(|(index, arm)| {
                     let mut arm_bindings = bindings.clone();
+                    let mut arm_transcript_roots = transcript_roots.clone();
                     if let Some(scrutinee_ty) = &scrutinee_ty {
                         source_capacity_pattern_slots(
                             &arm.pattern,
@@ -3126,6 +3331,10 @@ fn source_capacity_expr(
                             slots,
                             context.types,
                         )?;
+                        source_capacity_pattern_transcript_bindings(
+                            &arm.pattern,
+                            &mut arm_transcript_roots,
+                        );
                     }
                     let mut children = Vec::with_capacity(2);
                     if let Some(guard) = &arm.guard {
@@ -3133,6 +3342,7 @@ fn source_capacity_expr(
                             guard,
                             &format!("{path}.arm.{index}.guard"),
                             &mut arm_bindings,
+                            &mut arm_transcript_roots,
                             slots,
                             context,
                             false,
@@ -3142,6 +3352,7 @@ fn source_capacity_expr(
                         &arm.value,
                         &format!("{path}.arm.{index}.value"),
                         &mut arm_bindings,
+                        &mut arm_transcript_roots,
                         slots,
                         context,
                         direct_destination,
@@ -3154,6 +3365,7 @@ fn source_capacity_expr(
                     scrutinee,
                     &format!("{path}.scrutinee"),
                     bindings,
+                    transcript_roots,
                     slots,
                     context,
                     false,
@@ -3166,6 +3378,7 @@ fn source_capacity_expr(
                 base,
                 &format!("{path}.base"),
                 bindings,
+                transcript_roots,
                 slots,
                 context,
                 false,
@@ -3175,6 +3388,7 @@ fn source_capacity_expr(
                     &field.value,
                     &format!("{path}.field.{index}"),
                     bindings,
+                    transcript_roots,
                     slots,
                     context,
                     false,
@@ -3186,6 +3400,7 @@ fn source_capacity_expr(
             base,
             &format!("{path}.base"),
             bindings,
+            transcript_roots,
             slots,
             context,
             false,
@@ -3227,6 +3442,16 @@ fn verify_byte_data_capacity(
             };
             let mut slots = Vec::new();
             let mut bindings = BTreeMap::new();
+            let mut transcript_roots = function
+                .params
+                .iter()
+                .map(|parameter| {
+                    (
+                        parameter.name.clone(),
+                        crate::byte_data_capacity::TranscriptSource::Unknown,
+                    )
+                })
+                .collect::<BTreeMap<_, _>>();
             for (index, parameter) in function.params.iter().enumerate() {
                 source_capacity_slot(
                     &mut slots,
@@ -3255,6 +3480,7 @@ fn verify_byte_data_capacity(
                         expression,
                         &format!("{}.requires.{index}", function.stable_id),
                         &mut bindings.clone(),
+                        &mut transcript_roots.clone(),
                         &mut slots,
                         &context,
                         false,
@@ -3267,6 +3493,7 @@ fn verify_byte_data_capacity(
                     &function.body,
                     &format!("{}.body", function.stable_id),
                     &mut bindings,
+                    &mut transcript_roots,
                     &mut slots,
                     &context,
                     true,
@@ -3283,6 +3510,7 @@ fn verify_byte_data_capacity(
                             expression,
                             &format!("{}.ensures.{index}", function.stable_id),
                             &mut bindings.clone(),
+                            &mut transcript_roots.clone(),
                             &mut slots,
                             &context,
                             false,
@@ -4264,6 +4492,7 @@ enum VerifierCallTarget<'a> {
     Native(&'a ImportDeclaration),
     Byte(crate::byte_ops::ByteOp),
     HostIo(crate::host_io_ops::HostIoOp),
+    CommandIo(crate::hir::ResolvedHostCommandOperation),
     Ordinary(Option<VerifierFunctionSignature<'a>>),
 }
 
@@ -4464,7 +4693,9 @@ fn verifier_frame_owned_capacity(frame: &VerifierFrame<'_>) -> usize {
         ),
         VerifierFrame::ResumeCallArgument { target, .. } => match target {
             VerifierCallTarget::Native(_) => 0,
-            VerifierCallTarget::Byte(_) | VerifierCallTarget::HostIo(_) => 0,
+            VerifierCallTarget::Byte(_)
+            | VerifierCallTarget::HostIo(_)
+            | VerifierCallTarget::CommandIo(_) => 0,
             VerifierCallTarget::Ordinary(Some(signature)) => {
                 verifier_signature_owned_capacity(signature)
             }
@@ -4741,6 +4972,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         self.program,
                         "SPX-T252",
                         "generic calls are not yet admitted in while bodies",
+                        expression.span,
+                    ));
+                    return Err(());
+                }
+                if crate::command_io_ops::by_name(name).is_some() {
+                    self.diagnostics.push(error(
+                        self.program,
+                        "SPX-T270",
+                        format!("command I/O operation `{name}` is not admitted in while bodies"),
                         expression.span,
                     ));
                     return Err(());
@@ -5210,6 +5450,17 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 ));
                             }
                             VerifierCallTarget::HostIo(op)
+                        } else if let Some(op) = crate::command_io_ops::by_name(name) {
+                            let params = crate::command_io_ops::ast_params(op);
+                            if !type_arguments.is_empty() || args.len() != params.len() {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-T270",
+                                    format!("invalid command I/O operation `{name}` call shape"),
+                                    expression.span,
+                                ));
+                            }
+                            VerifierCallTarget::CommandIo(op)
                         } else {
                             let target = self.functions.get(name.as_str()).copied();
                             if target.is_none() {
@@ -5316,6 +5567,22 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 VerifierCallTarget::HostIo(op) => {
                                     CheckedValue::returned(op.ast_return_type(), false)
                                 }
+                                VerifierCallTarget::CommandIo(op) => CheckedValue {
+                                    ty: crate::command_io_ops::ast_return_type(op),
+                                    mode: match op {
+                                        crate::hir::ResolvedHostCommandOperation::ArgUtf8 => {
+                                            ParamMode::Borrow
+                                        }
+                                        crate::hir::ResolvedHostCommandOperation::StdinRead => {
+                                            ParamMode::Own
+                                        }
+                                        crate::hir::ResolvedHostCommandOperation::ArgsLen
+                                        | crate::hir::ResolvedHostCommandOperation::StderrWrite => {
+                                            ParamMode::Value
+                                        }
+                                    },
+                                    native_unit: false,
+                                },
                                 VerifierCallTarget::Ordinary(Some(target)) => {
                                     CheckedValue::returned(
                                         target.return_type().clone(),
@@ -6583,6 +6850,26 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 }
                             }
                         }
+                        VerifierCallTarget::CommandIo(op) => {
+                            if let Some(actual) = &actual {
+                                reject_native_unit_value(
+                                    self.program,
+                                    argument,
+                                    actual,
+                                    self.diagnostics,
+                                );
+                                if !actual.native_unit
+                                    && !crate::command_io_ops::accepts_ast(*op, index, &actual.ty)
+                                {
+                                    self.diagnostics.push(error(
+                                        self.program,
+                                        "SPX-T270",
+                                        format!("command I/O operation `{name}` argument {index} has the wrong type"),
+                                        argument.span,
+                                    ));
+                                }
+                            }
+                        }
                     }
                     let next = index + 1;
                     if let Some(argument) = args.get(next) {
@@ -6618,6 +6905,22 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             VerifierCallTarget::HostIo(op) => {
                                 Some(CheckedValue::returned(op.ast_return_type(), false))
                             }
+                            VerifierCallTarget::CommandIo(op) => Some(CheckedValue {
+                                ty: crate::command_io_ops::ast_return_type(op),
+                                mode: match op {
+                                    crate::hir::ResolvedHostCommandOperation::ArgUtf8 => {
+                                        ParamMode::Borrow
+                                    }
+                                    crate::hir::ResolvedHostCommandOperation::StdinRead => {
+                                        ParamMode::Own
+                                    }
+                                    crate::hir::ResolvedHostCommandOperation::ArgsLen
+                                    | crate::hir::ResolvedHostCommandOperation::StderrWrite => {
+                                        ParamMode::Value
+                                    }
+                                },
+                                native_unit: false,
+                            }),
                             VerifierCallTarget::Ordinary(Some(target)) => {
                                 Some(CheckedValue::returned(
                                     target.return_type().clone(),
@@ -10414,6 +10717,15 @@ fn reject_while_disallowed_oracle(
                 ));
                 return Err(());
             }
+            if crate::command_io_ops::by_name(name).is_some() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T270",
+                    format!("command I/O operation `{name}` is not admitted in while bodies"),
+                    expression.span,
+                ));
+                return Err(());
+            }
             if let Some(operation) = crate::byte_ops::by_name(name) {
                 if !matches!(
                     operation,
@@ -11100,7 +11412,9 @@ fn reject_reserved_host_id(
     span: Span,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
-    if crate::host_io_ops::by_id(stable_id).is_some() {
+    if crate::host_io_ops::by_id(stable_id).is_some()
+        || crate::command_io_ops::by_id(stable_id).is_some()
+    {
         diagnostics.push(error(
             program,
             "SPX-S113",

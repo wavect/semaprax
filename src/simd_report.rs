@@ -636,6 +636,10 @@ fn render_expr(
             output.push_str(&name);
             output.push_str("(<native-rust-import>)");
         }
+        ResolvedExprKind::HostCommandCall(call) => {
+            output.push_str(crate::command_io_ops::name(call.operation));
+            render_args(walker, &call.args, output);
+        }
         ResolvedExprKind::Unary { op, value } => {
             let precedence = 7u8;
             output.push_str(match op {
@@ -926,11 +930,19 @@ impl Walker<'_> {
                     self.scan_expr(argument);
                 }
             }
-            ResolvedExprKind::NativeRustImportCall(_) => {
-                // The HIR node carries no argument payload to descend into;
-                // the import call itself is recorded as one ineligible call.
+            ResolvedExprKind::NativeRustImportCall(call) => {
                 self.record_call();
                 self.push_ineligible(expr, REASON_CALL);
+                for argument in &call.args {
+                    self.scan_expr(argument);
+                }
+            }
+            ResolvedExprKind::HostCommandCall(call) => {
+                self.record_call();
+                self.push_ineligible(expr, REASON_CALL);
+                for argument in &call.args {
+                    self.scan_expr(argument);
+                }
             }
             ResolvedExprKind::Unary { op, value } => {
                 let reason = match op {

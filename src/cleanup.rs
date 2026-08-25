@@ -585,6 +585,9 @@ impl InventoryBuilder<'_> {
                         ResolvedExprKind::NativeRustImportCall(call) => {
                             enter = call.args.get(index);
                         }
+                        ResolvedExprKind::HostCommandCall(call) => {
+                            enter = call.args.get(index);
+                        }
                         ResolvedExprKind::Unary { value, .. }
                         | ResolvedExprKind::Project { base: value, .. }
                         | ResolvedExprKind::Try { operand: value, .. }

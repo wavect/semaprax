@@ -216,6 +216,7 @@ impl PersistentCallIndex {
             match &expression.kind {
                 ResolvedExprKind::Call { args, .. } => args.get(index),
                 ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
+                ResolvedExprKind::HostCommandCall(call) => call.args.get(index),
                 ResolvedExprKind::Unary { value, .. }
                 | ResolvedExprKind::Project { base: value, .. }
                 | ResolvedExprKind::Try { operand: value, .. }

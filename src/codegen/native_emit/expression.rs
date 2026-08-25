@@ -575,6 +575,105 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ty: ResolvedType::SliceU8,
                 }
             }
+            ResolvedExprKind::HostCommandCall(call) => {
+                use hir::ResolvedHostCommandOperation as Operation;
+
+                if !self.output_profile.is_language_command() {
+                    return Err(backend_error(
+                        "command I/O operation requires the native language-command profile",
+                    ));
+                }
+                if call.expression != expr.id {
+                    return Err(backend_error(
+                        "command I/O call identity disagrees with its expression",
+                    ));
+                }
+                let expected = crate::command_io_ops::return_type(call.operation);
+                self.require_type(&expr.ty, &expected, "command I/O result")?;
+                match call.operation {
+                    Operation::ArgsLen => {
+                        if !call.args.is_empty() {
+                            return Err(backend_error("args_len arity disagrees with HIR"));
+                        }
+                        let temporary = self.temporary(&ResolvedType::Usize)?;
+                        self.line(&format!(
+                            "spx_status = spx_host_args_len_v1(spx_ctx, &{temporary});"
+                        ));
+                        self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+                        CValue {
+                            code: temporary,
+                            ty: ResolvedType::Usize,
+                        }
+                    }
+                    Operation::ArgUtf8 => {
+                        let [argument] = call.args.as_slice() else {
+                            return Err(backend_error("arg_utf8 arity disagrees with HIR"));
+                        };
+                        let argument = self.emit_expr(argument)?;
+                        self.require_type(&argument.ty, &ResolvedType::Usize, "arg_utf8 index")?;
+                        let temporary = self.temporary(&ResolvedType::Str)?;
+                        self.line(&format!(
+                            "spx_status = spx_host_arg_utf8_v1(spx_ctx, {}, &{temporary});",
+                            argument.code
+                        ));
+                        self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+                        CValue {
+                            code: temporary,
+                            ty: ResolvedType::Str,
+                        }
+                    }
+                    Operation::StdinRead => {
+                        if !call.args.is_empty() {
+                            return Err(backend_error("stdin_read arity disagrees with HIR"));
+                        }
+                        let plan = self.bytes_plan.ok_or_else(|| {
+                            backend_error("stdin_read owned result has no cleanup plan")
+                        })?;
+                        let temporary = plan
+                            .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                            .to_owned();
+                        self.line(&format!(
+                            "spx_status = spx_host_stdin_read_v1(spx_ctx, &{temporary});"
+                        ));
+                        self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+                        let transitions = plan.apply_at(&expr.id)?;
+                        for line in transitions.lines() {
+                            self.line(line);
+                        }
+                        CValue {
+                            code: plan
+                                .result_at(&expr.id)
+                                .ok_or_else(|| {
+                                    backend_error(
+                                        "stdin_read has no canonical owned result transfer",
+                                    )
+                                })?
+                                .to_owned(),
+                            ty: ResolvedType::Bytes,
+                        }
+                    }
+                    Operation::StderrWrite => {
+                        let [argument] = call.args.as_slice() else {
+                            return Err(backend_error("stderr_write arity disagrees with HIR"));
+                        };
+                        let value = self.emit_expr(argument)?;
+                        self.require_type(
+                            &value.ty,
+                            &ResolvedType::SliceU8,
+                            "stderr_write argument",
+                        )?;
+                        let temporary = self.temporary(&ResolvedType::Usize)?;
+                        self.line(&format!(
+                            "{temporary} = spx_host_command_stderr_write_v1(spx_ctx, {});",
+                            value.code
+                        ));
+                        CValue {
+                            code: temporary,
+                            ty: ResolvedType::Usize,
+                        }
+                    }
+                }
+            }
             ResolvedExprKind::Call {
                 callee,
                 instance,
@@ -605,10 +704,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             "host stdout write result",
                         )?;
                         let temporary = self.temporary(&ResolvedType::Usize)?;
-                        self.line(&format!(
-                            "{temporary} = spx_host_stdout_write_v1(spx_ctx, {});",
-                            value.code
-                        ));
+                        let helper = if self.output_profile.is_language_command() {
+                            "spx_host_command_stdout_write_v1"
+                        } else {
+                            "spx_host_stdout_write_v1"
+                        };
+                        self.line(&format!("{temporary} = {helper}(spx_ctx, {});", value.code));
                         return Ok(CValue {
                             code: temporary,
                             ty: ResolvedType::Usize,

@@ -3,7 +3,7 @@ mod byte_data_capacity;
 
 use byte_data_capacity::{
     analyze, ArrayStorageKind, ArrayStorageSlot, CapacityDiagnostic, CapacityFlow,
-    FunctionCapacityInput, MAX_STDOUT_TRANSCRIPT_BYTES,
+    FunctionCapacityInput, TranscriptSource, MAX_STDOUT_TRANSCRIPT_BYTES,
 };
 
 fn slot(identity: &str, kind: ArrayStorageKind, length: u32) -> ArrayStorageSlot {
@@ -43,7 +43,66 @@ fn copy(site: &str, bytes: u64) -> CapacityFlow {
 fn stdout_write(site: &str) -> CapacityFlow {
     CapacityFlow::StdoutWrite {
         site: site.to_owned(),
+        source: TranscriptSource::Fixed(0),
     }
+}
+
+#[test]
+fn command_input_transcript_sources_are_closed_and_share_one_budget() {
+    let admitted = analyze(&[function(
+        "command",
+        vec![],
+        CapacityFlow::Sequence(vec![
+            CapacityFlow::StdinRead {
+                site: "command.stdin".to_owned(),
+                conservative_payload_bytes: 65_536,
+            },
+            CapacityFlow::StdoutWrite {
+                site: "command.stdout".to_owned(),
+                source: TranscriptSource::Stdin,
+            },
+            CapacityFlow::StderrWrite {
+                site: "command.stderr".to_owned(),
+                source: TranscriptSource::CommandArguments,
+            },
+        ]),
+    )])
+    .unwrap();
+    let summary = admitted.function("command").unwrap();
+    assert_eq!(summary.stdin_read_sites, 1);
+    assert_eq!(summary.transcript_bytes, 65_536);
+
+    let duplicate = analyze(&[function(
+        "command",
+        vec![],
+        CapacityFlow::Sequence(vec![
+            CapacityFlow::StdoutWrite {
+                site: "command.stdout".to_owned(),
+                source: TranscriptSource::CommandArguments,
+            },
+            CapacityFlow::StderrWrite {
+                site: "command.stderr".to_owned(),
+                source: TranscriptSource::CommandArguments,
+            },
+        ]),
+    )])
+    .unwrap_err();
+    assert_eq!(duplicate.diagnostic, CapacityDiagnostic::Transcript);
+    assert!(duplicate.detail.contains("more than once"));
+
+    let unknown = analyze(&[function(
+        "command",
+        vec![],
+        CapacityFlow::StdoutWrite {
+            site: "command.stdout".to_owned(),
+            source: TranscriptSource::Unknown,
+        },
+    )])
+    .unwrap();
+    assert_eq!(
+        unknown.function("command").unwrap().transcript_bytes,
+        65_536
+    );
 }
 
 #[test]

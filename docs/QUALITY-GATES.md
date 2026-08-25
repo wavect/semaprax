@@ -823,6 +823,51 @@ fixture-only reopen without changing the wire contract. No earlier Workspace
 or single-file Evidence run qualifies. Current status remains exactly 39
 Partial/17 Missing.
 
+### Bounded Language Command I/O v1 / Project Manifest v6
+
+Changes to the compiler-owned command operations, HostCommandCall HIR,
+CleanupPlan derivation/replay, Graph v19, native/Wasm command carriers, or
+Project Manifest v6 must run these focused gates:
+
+```sh
+cargo test --locked -p semaprax --test bounded_language_command_io_v1
+cargo test --locked -p semaprax --test language_command_io_native_v1
+cargo test --locked -p semaprax --test project_manifest_v6
+cargo test --locked -p semaprax --lib wasm::command_io::tests
+cargo test --locked -p semaprax --lib project::npm::command_v3::tests
+```
+
+The semantic gate must prove the closed operation/status tables, exact effects,
+one shared immutable command-input snapshot, one CommandArguments plus one
+Stdin source with duplicate-source rejection, cumulative argv-plus-stdin
+capacity, at most one reachable stdin read, one write per channel/path, the
+combined stdout-plus-stderr limit, invocation-root provenance, success-only
+owned-stdin initialization, exact CleanupPlan builder/replay/executor facts,
+Graph v19 selection, and Graph v18 preservation. Hostile HIR mutations must
+fail closed rather than being normalized or repaired.
+
+The execution gate must exercise the hosted interpreter and generated native
+C11 at O0 and O2 with strict UTF-8 arguments, binary stdin, true and false
+semantic success, normalized failure, dual-transcript discard, exact capacity
+edges, and selected stable-ID dispatch. Core-Wasm/Node evidence must additionally
+prove that tagged owned stdin is copied through private staging while live,
+that `arg_utf8` accepts only statuses 0/1/2, that zero-status stdin passes a
+closed recoverable arena-membership and exact-length check before owned-slot
+initialization (including nonexistent, wrong-length, and zero-length cases),
+that rejected provider-owned entries and successful owners settle, that
+private staging is zero after successful publication, that no token is
+interpreted as a memory pointer, and that no WASI/console/process authority is
+imported.
+
+The Project gate must pin the exact v6 profile/input/capability/command shape,
+independently replay the semantic carrier, reject manifest confusion, and keep
+v1-v5 canonical manifest and earlier package/carrier bytes unchanged. Unix
+publication may claim only its existing handle-relative no-clobber boundary;
+Windows publication remains fail-closed until an equally strong primitive is
+implemented. Focused local green results do not qualify as hosted promotion,
+registry publication, release promotion, physical output atomicity/durability,
+or general files/environment/network/process/streaming I/O.
+
 ## Evidence strength
 
 Semantic Patch v2 changes additionally require the exact grammar/schema

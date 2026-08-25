@@ -7,7 +7,7 @@
 
 use crate::diagnostic::Diagnostic;
 use crate::hir::ResolvedProgram;
-use crate::interpreter::ResolvedEvaluation;
+use crate::interpreter::{CommandEvaluation, ResolvedEvaluation};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HostedStdoutTranscript {
@@ -27,5 +27,46 @@ pub fn execute_stdout_transcript(
     Ok(HostedStdoutTranscript {
         evaluation,
         transcript,
+    })
+}
+
+/// Immutable, invocation-owned host input for Language Command I/O v1.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct HostedCommandInput {
+    /// Exact arguments excluding argv[0].
+    pub arguments: Vec<String>,
+    /// Exact arbitrary stdin bytes.
+    pub stdin: Vec<u8>,
+}
+
+/// Settled hosted command result. Both transcripts are empty unless the
+/// language entry returned a bool.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HostedCommandResult {
+    pub evaluation: CommandEvaluation,
+    pub stdout: Vec<u8>,
+    pub stderr: Vec<u8>,
+}
+
+/// Execute the exact selected zero-argument bool command against injected
+/// input. This seam has no ambient argv, stdin, stdout, stderr, filesystem, or
+/// process authority.
+pub fn execute_language_command(
+    program: &ResolvedProgram,
+    entry_id: &str,
+    input: &HostedCommandInput,
+    max_steps: usize,
+) -> Result<HostedCommandResult, Vec<Diagnostic>> {
+    let (evaluation, stdout, stderr) = crate::interpreter::evaluate_resolved_language_command(
+        program,
+        entry_id,
+        &input.arguments,
+        &input.stdin,
+        max_steps,
+    )?;
+    Ok(HostedCommandResult {
+        evaluation,
+        stdout,
+        stderr,
     })
 }

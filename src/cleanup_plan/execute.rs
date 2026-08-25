@@ -12,8 +12,8 @@ use std::fmt;
 
 use crate::cleanup::{FieldLivenessShape, LivenessFlagId};
 use crate::conformance::{
-    ConformanceTrace, ImportSite, InvocationPath, NormalizedStatus, OperationOutcome, TraceEvent,
-    TraceEventKind, TraceOutcome, TraceResult,
+    ConformanceTrace, ImportSite, InvocationPath, NormalizedStatus, OperationOutcome, Retryability,
+    StatusClass, TraceEvent, TraceEventKind, TraceOutcome, TraceResult,
 };
 use crate::hir::{
     self, DeclarationId, ExpressionId, IdentityOrigin, ResolvedFunction, ResolvedProgram,
@@ -286,6 +286,11 @@ fn collect_variant_domains(
                 }
             }
             hir::ResolvedExprKind::NativeRustImportCall(call) => {
+                for argument in &call.args {
+                    visit(program, argument, domains)?;
+                }
+            }
+            hir::ResolvedExprKind::HostCommandCall(call) => {
                 for argument in &call.args {
                     visit(program, argument, domains)?;
                 }
@@ -639,6 +644,10 @@ fn find_expression_by<'a>(
             .args
             .iter()
             .find_map(|argument| find_expression_by(argument, predicate)),
+        hir::ResolvedExprKind::HostCommandCall(call) => call
+            .args
+            .iter()
+            .find_map(|argument| find_expression_by(argument, predicate)),
         hir::ResolvedExprKind::Unary { value, .. }
         | hir::ResolvedExprKind::Project { base: value, .. }
         | hir::ResolvedExprKind::Try { operand: value, .. }
@@ -965,6 +974,25 @@ impl<'a> Executor<'a> {
     }
 
     fn callee_for_call(&self, call: &ExpressionId) -> Result<DeclarationId, CleanupExecutionError> {
+        if let Some(expression) = find_expression(&self.function.body, call) {
+            if let hir::ResolvedExprKind::HostCommandCall(command) = &expression.kind {
+                return Ok(DeclarationId::new(crate::command_io_ops::id(
+                    command.operation,
+                )));
+            }
+            if let hir::ResolvedExprKind::Call {
+                callee,
+                instance: None,
+                ..
+            } = &expression.kind
+            {
+                if crate::byte_ops::by_id(callee.as_str()).is_some()
+                    || crate::host_io_ops::by_id(callee.as_str()).is_some()
+                {
+                    return Ok(callee.clone());
+                }
+            }
+        }
         let source = self
             .function
             .cleanup_plan
@@ -1025,7 +1053,11 @@ impl<'a> Executor<'a> {
                 }
                 status
             }
-            StatusProducer::PropagatedCall { .. } => self.failure_outcome(&source)?,
+            StatusProducer::PropagatedCall { callee } => {
+                let status = self.failure_outcome(&source)?;
+                validate_propagated_status(&callee, &status)?;
+                status
+            }
         };
         let token = self.status_arena.record(status.clone())?;
         self.selected = Some(SelectedFailure {
@@ -1521,6 +1553,31 @@ impl<'a> Executor<'a> {
     }
 }
 
+fn validate_propagated_status(
+    callee: &DeclarationId,
+    status: &NormalizedStatus,
+) -> Result<(), CleanupExecutionError> {
+    let admitted_codes: &[u32] = match callee.as_str() {
+        crate::command_io_ops::ARG_UTF8_ID => &[1, 2],
+        crate::command_io_ops::STDIN_READ_ID => &[3, 4],
+        // Other propagated calls retain their existing target-neutral status
+        // contract. Command input is compiler-owned and therefore must be
+        // authenticated exactly rather than accepting an arbitrary adapter
+        // status supplied by the conformance scenario.
+        _ => return Ok(()),
+    };
+    if status.domain_id() != crate::command_io_ops::STATUS_DOMAIN
+        || !admitted_codes.contains(&status.code())
+        || status.class() != StatusClass::Adapter
+        || status.retryability() != Retryability::Known(false)
+    {
+        return Err(invariant(format!(
+            "command operation `{callee}` supplied a status outside its exact normalized failure domain"
+        )));
+    }
+    Ok(())
+}
+
 fn preflight_finalizer_bindings(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
@@ -1569,6 +1626,9 @@ fn resolve_lifecycle_binding(
     program: &ResolvedProgram,
     lifecycle: &DeclarationId,
 ) -> Result<Option<DeclarationId>, CleanupExecutionError> {
+    if lifecycle.as_str() == crate::cleanup::BYTES_DROP_LIFECYCLE_ID {
+        return Ok(None);
+    }
     let mut binding = None;
     for declaration in &program.types {
         let ResolvedTypeDeclarationKind::Resource { drop } = &declaration.kind else {

@@ -355,6 +355,11 @@ fn validate_expression_profile(
                     "Public Scalar Export Profile v1 function `{function_id}` calls a native import"
                 )));
             }
+            ResolvedExprKind::HostCommandCall(_) => {
+                return Err(admission(format!(
+                    "Public Scalar Export Profile v1 function `{function_id}` uses command I/O"
+                )));
+            }
             ResolvedExprKind::Unary { value, .. } => pending.push(value),
             ResolvedExprKind::Binary { left, right, .. } => {
                 pending.push(left);

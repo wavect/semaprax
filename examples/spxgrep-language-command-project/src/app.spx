@@ -1,0 +1,54 @@
+module spxgrep_language.app;
+
+permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+
+@id("spxgrep-language.contains")
+fn contains(input: borrow Slice<u8>, needle: borrow Slice<u8>) -> bool
+{
+    let input_length = byte_len(input);
+    let needle_length = byte_len(needle);
+    let mut start = 0usize;
+    let mut found = needle_length == 0usize;
+    while !found && start < input_length {
+        let mut offset = 0usize;
+        let mut equal = true;
+        while equal && offset < needle_length {
+            equal = match byte_get(input, start + offset) { Option::Some { value: input_byte } => match byte_get(needle, offset) { Option::Some { value: needle_byte } => input_byte == needle_byte, Option::None {} => false, }, Option::None {} => false, };
+            offset = offset + 1usize;
+            equal && offset < needle_length
+        }
+        found = equal && offset == needle_length;
+        start = start + 1usize;
+        !found && start < input_length
+    }
+    found
+}
+
+@id("spxgrep-language.run")
+fn run() -> bool
+    uses { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+{
+    if args_len() == 1usize {
+        let needle = arg_utf8(0usize);
+        let needle_bytes = str_as_bytes(needle);
+        let input = stdin_read();
+        let input_bytes = bytes_as_slice(input);
+        if contains(input_bytes, needle_bytes) {
+            stdout_write(input_bytes) == byte_len(input_bytes)
+        } else {
+            let message = [110u8, 111u8, 116u8, 32u8, 102u8, 111u8, 117u8, 110u8, 100u8, 10u8];
+            let message_bytes = array_as_slice(message);
+            stderr_write(message_bytes) == byte_len(message_bytes) && false
+        }
+    } else {
+        let usage = [117u8, 115u8, 97u8, 103u8, 101u8, 58u8, 32u8, 115u8, 112u8, 120u8, 103u8, 114u8, 101u8, 112u8, 32u8, 60u8, 110u8, 101u8, 101u8, 100u8, 108u8, 101u8, 62u8, 10u8];
+        let usage_bytes = array_as_slice(usage);
+        stderr_write(usage_bytes) == byte_len(usage_bytes) && false
+    }
+}
+
+@id("main")
+fn main() -> i64
+{
+    0
+}

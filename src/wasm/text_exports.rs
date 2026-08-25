@@ -352,9 +352,11 @@ fn validate_function(
     let mut pending = vec![&function.body];
     while let Some(expression) = pending.pop() {
         match &expression.kind {
-            ResolvedExprKind::String(_) | ResolvedExprKind::NativeRustImportCall(_) => {
+            ResolvedExprKind::String(_)
+            | ResolvedExprKind::NativeRustImportCall(_)
+            | ResolvedExprKind::HostCommandCall(_) => {
                 return Err(admission(format!(
-                    "Public Borrowed Text Export Profile v1 function `{}` reaches an owned string or import",
+                    "Public Borrowed Text Export Profile v1 function `{}` reaches an owned string, import, or command I/O",
                     function.id
                 )));
             }

@@ -17,6 +17,7 @@ use crate::hir::{
 use crate::variant_layout::{VariantLayoutCache, VariantTarget};
 
 mod aggregate;
+mod command_io;
 mod data_exports;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod generic_function_component_v9;
@@ -161,6 +162,7 @@ fn program_uses_strings(program: &ResolvedProgram) -> bool {
         match &expression.kind {
             ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
+            ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::Unary { value, .. }
             | ResolvedExprKind::Try { operand: value, .. }
             | ResolvedExprKind::TryOption { operand: value, .. }
@@ -261,6 +263,7 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
         match &expression.kind {
             ResolvedExprKind::Call { args, .. } => pending.extend(args),
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(&call.args),
+            ResolvedExprKind::HostCommandCall(call) => pending.extend(&call.args),
             ResolvedExprKind::Unary { value, .. }
             | ResolvedExprKind::Try { operand: value, .. }
             | ResolvedExprKind::TryOption { operand: value, .. }
@@ -341,6 +344,7 @@ fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
         match &expression.kind {
             ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
+            ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::Unary { value, .. }
             | ResolvedExprKind::Try { operand: value, .. }
             | ResolvedExprKind::TryOption { operand: value, .. }
@@ -423,6 +427,7 @@ fn program_uses_string_ops_v2(program: &ResolvedProgram) -> bool {
         match &expression.kind {
             ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
+            ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::Unary { value, .. }
             | ResolvedExprKind::Try { operand: value, .. }
             | ResolvedExprKind::TryOption { operand: value, .. }
@@ -502,6 +507,11 @@ fn collect_string_data(program: &ResolvedProgram) -> StringData {
                 }
             }
             ResolvedExprKind::NativeRustImportCall(call) => {
+                for arg in call.args.iter().rev() {
+                    pending.push(arg);
+                }
+            }
+            ResolvedExprKind::HostCommandCall(call) => {
                 for arg in call.args.iter().rev() {
                     pending.push(arg);
                 }
@@ -780,6 +790,15 @@ pub(crate) fn emit_resolved_useful_data_command_v2(
 ) -> Result<Vec<u8>, Diagnostic> {
     let plans = data_exports::prepare_command_v2(program, command_id)?;
     aggregate::emit_useful_data_command_v2(program, &plans)
+}
+
+/// Emit the additive Project-v6 Language Command I/O v1 boundary.
+pub(crate) fn emit_resolved_language_command_io_v1(
+    program: &ResolvedProgram,
+    command_id: &str,
+) -> Result<Vec<u8>, Diagnostic> {
+    let plan = command_io::prepare(program, command_id)?;
+    aggregate::emit_language_command_io(program, &plan)
 }
 
 fn emit_resolved_module_internal(
@@ -3026,6 +3045,11 @@ fn collect_locals(
                 collect_locals(arg, parameter_count, layout)?;
             }
         }
+        ResolvedExprKind::HostCommandCall(call) => {
+            for arg in &call.args {
+                collect_locals(arg, parameter_count, layout)?;
+            }
+        }
         ResolvedExprKind::Unary { value, .. } => {
             collect_locals(value, parameter_count, layout)?;
         }
@@ -3345,6 +3369,12 @@ fn emit_expr(
             return Err(Diagnostic::io(
                 "SPX-W114",
                 "Native Rust imports are unavailable for WebAssembly targets",
+            ));
+        }
+        ResolvedExprKind::HostCommandCall(_) => {
+            return Err(Diagnostic::io(
+                "SPX-W114",
+                "command I/O operations require the Language Command I/O v1 WebAssembly lane",
             ));
         }
         ResolvedExprKind::Unary { op, value } => match op {
@@ -4272,6 +4302,7 @@ pub(crate) fn needs_i32_wide_scratch(expression: &ResolvedExpr) -> bool {
             }
             ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
+            ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
                     for index in 0..statement.child_count() {
@@ -4373,6 +4404,10 @@ fn contains_checked_arithmetic(expression: &ResolvedExpr, target: &ResolvedType)
             .iter()
             .any(|argument| contains_checked_arithmetic(argument, target)),
         ResolvedExprKind::NativeRustImportCall(call) => call
+            .args
+            .iter()
+            .any(|argument| contains_checked_arithmetic(argument, target)),
+        ResolvedExprKind::HostCommandCall(call) => call
             .args
             .iter()
             .any(|argument| contains_checked_arithmetic(argument, target)),

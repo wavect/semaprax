@@ -7,6 +7,67 @@ use super::COutput;
 
 pub(super) const RUN_SYMBOL: &str = "spx_stdout_transcript_run_v1";
 
+/// Emit the additive two-channel staging runtime used only by Bounded
+/// Language Command I/O v1. The legacy stdout-only runtime above is left
+/// byte-for-byte unchanged: this profile needs a combined output budget and
+/// therefore cannot safely reinterpret its `target_state` carrier.
+pub(super) fn emit_language_command_runtime(output: &mut impl COutput) {
+    output.push_str(
+        r#"#define SPX_COMMAND_OUTPUT_CAPACITY_V1 UINT64_C(65536)
+
+struct spx_command_output_staging_v1 {
+    uint64_t stdout_length;
+    uint64_t stderr_length;
+    uint8_t stdout_bytes[SPX_COMMAND_OUTPUT_CAPACITY_V1];
+    uint8_t stderr_bytes[SPX_COMMAND_OUTPUT_CAPACITY_V1];
+};
+
+static uint64_t spx_host_command_output_write_v1(
+    struct spx_context *spx_ctx,
+    spx_slice_u8_v1 value,
+    bool stderr_channel
+) {
+    spx_slice_u8_require_valid(value);
+    if (spx_ctx == NULL || spx_ctx->target_state == NULL) {
+        spx_runtime_invariant_failure("command output state is unavailable");
+    }
+    struct spx_command_output_staging_v1 *staging =
+        (struct spx_command_output_staging_v1 *)spx_ctx->target_state;
+    uint64_t other = stderr_channel ? staging->stdout_length : staging->stderr_length;
+    if (other > SPX_COMMAND_OUTPUT_CAPACITY_V1 ||
+        value.len > SPX_COMMAND_OUTPUT_CAPACITY_V1 - other) {
+        spx_runtime_invariant_failure("combined command output capacity exceeded");
+    }
+    uint8_t *destination = stderr_channel ? staging->stderr_bytes : staging->stdout_bytes;
+    if (value.len != UINT64_C(0)) {
+        memcpy(destination, value.ptr, (size_t)value.len);
+    }
+    if (stderr_channel) {
+        staging->stderr_length = value.len;
+    } else {
+        staging->stdout_length = value.len;
+    }
+    return value.len;
+}
+
+static uint64_t spx_host_command_stdout_write_v1(
+    struct spx_context *spx_ctx,
+    spx_slice_u8_v1 value
+) {
+    return spx_host_command_output_write_v1(spx_ctx, value, false);
+}
+
+static uint64_t spx_host_command_stderr_write_v1(
+    struct spx_context *spx_ctx,
+    spx_slice_u8_v1 value
+) {
+    return spx_host_command_output_write_v1(spx_ctx, value, true);
+}
+
+"#,
+    );
+}
+
 pub(super) fn emit_runtime(output: &mut impl COutput) {
     output.push_str(
         r#"#define SPX_STDOUT_TRANSCRIPT_CAPACITY_V1 UINT64_C(65536)

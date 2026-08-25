@@ -489,6 +489,11 @@ fn collect_expr_record_types(
                 collect_expr_record_types(program, argument, instances)?;
             }
         }
+        ResolvedExprKind::HostCommandCall(call) => {
+            for argument in &call.args {
+                collect_expr_record_types(program, argument, instances)?;
+            }
+        }
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Project { base: value, .. }
         | ResolvedExprKind::Upcast { source: value } => {

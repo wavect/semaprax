@@ -136,6 +136,7 @@ fn children(expression: &hir::ResolvedExpr) -> Vec<&hir::ResolvedExpr> {
     match &expression.kind {
         hir::ResolvedExprKind::Call { args, .. } => args.iter().collect(),
         hir::ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().collect(),
+        hir::ResolvedExprKind::HostCommandCall(call) => call.args.iter().collect(),
         hir::ResolvedExprKind::Unary { value, .. }
         | hir::ResolvedExprKind::Try { operand: value, .. }
         | hir::ResolvedExprKind::TryOption { operand: value, .. }

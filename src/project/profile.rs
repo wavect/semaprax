@@ -5,6 +5,7 @@ pub const PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1: &str = "useful-text-consumer.
 pub const PROJECT_PROFILE_USEFUL_DATA_V1: &str = "useful-data.v1";
 pub const PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1: &str = "useful-data-command.v1";
 pub const PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2: &str = "useful-data-command.v2";
+pub const PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1: &str = "language-command-io.v1";
 
 /// Frozen Project-v4 semantic stdout authority.
 pub const PROJECT_COMMAND_STDOUT_CAPABILITY: &str = "process.stdout.write";
@@ -21,6 +22,8 @@ pub const PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2: [&str; 4] = [
 
 /// Exact fixed input adapter selected by Project v5.
 pub const PROJECT_COMMAND_INPUT_V1: &str = "stdin-bytes+one-utf8-arg.v1";
+/// Exact immutable invocation snapshot selected only by Project v6.
+pub const PROJECT_LANGUAGE_COMMAND_INPUT_V1: &str = "argv-utf8+stdin-bytes.v1";
 
 /// One exact Project profile selected by the manifest schema. This enum is the
 /// authority passed to project linking and backend preparation; callers must
@@ -32,6 +35,7 @@ pub enum ProjectProfile {
     UsefulDataV1,
     UsefulDataCommandV1,
     UsefulDataCommandV2,
+    LanguageCommandIoV1,
 }
 
 impl ProjectProfile {
@@ -42,6 +46,7 @@ impl ProjectProfile {
             Self::UsefulDataV1 => Some(PROJECT_PROFILE_USEFUL_DATA_V1),
             Self::UsefulDataCommandV1 => Some(PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1),
             Self::UsefulDataCommandV2 => Some(PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2),
+            Self::LanguageCommandIoV1 => Some(PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1),
         }
     }
 }

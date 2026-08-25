@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+- Added the locally evidenced [Bounded Language Command I/O
+  v1](docs/BOUNDED-LANGUAGE-COMMAND-IO-V1.md), additive Graph v19, and Project
+  Manifest v6. Checked code gains four compiler-owned operations for argument
+  count, UTF-8 argument views, one owned binary-stdin read, and bounded stderr,
+  under exact declared effects and a closed four-code failure domain. One
+  immutable invocation snapshot excludes `argv[0]`, permits at most 16 strict
+  UTF-8/NUL-free arguments, admits one CommandArguments plus one Stdin source,
+  rejects a duplicate of either, and charges their bytes once against a
+  cumulative 65,536-byte budget. Distinct
+  stdout/stderr transcripts allow at most one write per channel and path,
+  share one 65,536-byte output bound, and publish together only after the bool
+  result and cleanup settle. HIR uses a distinct host-command call; canonical
+  CleanupPlan v2/v3 builder/replay authenticates borrowed argument provenance
+  and success-only owned-stdin initialization. Interpreter, native C11 O0/O2,
+  and Core-Wasm/Node execute the same contract; Wasm privately stages tagged
+  owned stdin bytes while live instead of treating arena tokens as memory
+  addresses, accepts only exact 0/1/2 argument-provider statuses, authenticates
+  zero-status stdin arena membership and recorded length before initialization,
+  and zeroes private staging after successful publication. Project v6 selects
+  `language-command-io.v1`, emits and replays its
+  semantic npm carrier, and preserves earlier manifest/package/carrier bytes.
+  Windows publication remains fail-closed. Hosted promotion, safe Windows npm
+  publication, registry/release promotion, files/environment/network/child
+  processes, streaming or interactive I/O, physical cross-descriptor
+  atomicity, and durable writes are not claimed; affected rows remain Partial
+  and totals remain 56 Partial/0 Missing.
+
 - Reorganized the native C11 compiler implementation along review boundaries:
   `src/codegen.rs` retains its established entry/admission surface and runtime
   payloads, `src/codegen/native_emit/mod.rs` owns emission orchestration and

@@ -55,6 +55,10 @@ proof scaffolding, not a wired native-runtime claim.
 - `src/aggregate_layout.rs`, `src/variant_layout.rs`: checked deterministic Native64/Wasm32 internal layouts for the admitted record and copy-variant field kinds.
 - `src/trace_path_certificate.rs`: canonical compiler-owned cleanup trace trie-DFA and outcome certificate.
 - `src/native_settlement.rs`: hidden target-neutral callable-v3 settlement model; no loader, host, provider, or public backend wiring.
+- `src/command_io_ops.rs`, `src/codegen/native_command_io.rs`,
+  `src/wasm/command_io.rs`: the closed Bounded Language Command I/O v1
+  operation/status contract and its explicit native and Core-Wasm invocation
+  carriers; no ambient process, WASI, or general streaming authority.
 - `src/graph_cleanup.rs`: deterministic tagged cleanup projection inside the
   program-level Graph v10/v11/v12/v13/v14 lattice; bounded generic function
   declarations select v14 above authenticated explicit Copy-record patterns at
@@ -125,6 +129,9 @@ proof scaffolding, not a wired native-runtime claim.
   admission, and runtime-payload surfaces; `native_emit/mod.rs` owns C11
   orchestration and `native_emit/expression.rs` owns expression/place lowering.
 - `src/wit_component.rs`: default-off deterministic WIT/schema/JavaScript boundary evidence; not a Component Model runtime.
+- `src/project/manifest.rs`, `src/project/npm/command_v3.rs`: additive Project
+  Manifest v6 admission and independently replayed language-command npm
+  carrier; Windows publication remains fail-closed.
 - `crates/semaprax-native-loader`, `crates/semaprax-native-host`: unpublished unsafe loader quarantine and connected callable authority/ledger host.
 - `platform-tests/`: private installed-app/native-process packaging and runtime gates; claims count only after their hosted jobs are green.
 - `tests/`: executable language, graph, transaction, ownership, and backend evidence.

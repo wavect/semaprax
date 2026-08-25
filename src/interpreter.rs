@@ -61,7 +61,7 @@ use sha2::{Digest as _, Sha256};
 use crate::ast::{BinaryOp, Function, ParamMode, Program, Type, UnaryOp};
 use crate::bounded_output::{with_limit, BudgetedJoin as _};
 use crate::cleanup_plan::{ContractPhase, StatusCase};
-use crate::conformance::NormalizedStatus;
+use crate::conformance::{NormalizedStatus, Retryability, StatusClass};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::hir::{
     ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedStatement, ResolvedType, ValueId,
@@ -504,6 +504,24 @@ pub enum ResolvedEvaluationOutcome {
     CallDepthExceeded,
     /// An impossible state was observed after the caller's HIR validation.
     GuardError(String),
+}
+
+/// Closed outcomes for one hosted Language Command I/O v1 invocation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CommandEvaluationOutcome {
+    ReturnedBool(bool),
+    LanguageFailure(NormalizedStatus),
+    FuelExhausted,
+    CallDepthExceeded,
+    GuardError(String),
+}
+
+/// Deterministic execution facts for one hosted language-command invocation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CommandEvaluation {
+    pub outcome: CommandEvaluationOutcome,
+    pub steps_used: usize,
+    pub max_steps: usize,
 }
 
 /// Evaluate one exact zero-argument `i64` entry from already-validated HIR.
@@ -1118,6 +1136,142 @@ pub(crate) fn evaluate_resolved_stdout_transcript(
     ))
 }
 
+/// Evaluate one selected zero-argument bool command against an immutable,
+/// invocation-owned argv/stdin snapshot. Both output channels are published
+/// only for a returned bool (including `false`); every other outcome discards
+/// both transcripts.
+pub(crate) fn evaluate_resolved_language_command(
+    program: &hir::ResolvedProgram,
+    entry_id: &str,
+    arguments: &[String],
+    stdin: &[u8],
+    max_steps: usize,
+) -> Result<(CommandEvaluation, Vec<u8>, Vec<u8>), Vec<Diagnostic>> {
+    hir::validate(program).map_err(|diagnostic| vec![diagnostic])?;
+    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
+        return Err(vec![option_error(format!(
+            "hosted command max_steps must be between 1 and {MAX_STEPS_LIMIT}"
+        ))]);
+    }
+    if arguments.len() > crate::command_io_ops::MAX_ARGUMENTS as usize {
+        return Err(vec![argument_error(format!(
+            "hosted command accepts at most {} arguments",
+            crate::command_io_ops::MAX_ARGUMENTS
+        ))]);
+    }
+    let mut input_bytes = stdin.len();
+    for argument in arguments {
+        if argument.as_bytes().contains(&0) {
+            return Err(vec![argument_error(
+                "hosted command arguments must not contain NUL bytes".to_owned(),
+            )]);
+        }
+        input_bytes = input_bytes.checked_add(argument.len()).ok_or_else(|| {
+            vec![argument_error(
+                "hosted command input length overflowed".to_owned(),
+            )]
+        })?;
+    }
+    if input_bytes > crate::command_io_ops::MAX_INPUT_BYTES as usize {
+        return Err(vec![argument_error(format!(
+            "hosted command argv plus stdin exceeds {} bytes",
+            crate::command_io_ops::MAX_INPUT_BYTES
+        ))]);
+    }
+
+    let required_effects = [
+        crate::command_io_ops::ARGS_READ_EFFECT,
+        crate::command_io_ops::STDERR_WRITE_EFFECT,
+        crate::command_io_ops::STDIN_READ_EFFECT,
+        crate::host_io_ops::STDOUT_WRITE_EFFECT,
+    ];
+    if program.permits.as_slice() != required_effects {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_CALLEE,
+            "hosted command requires exactly the Language Command I/O v1 permits".to_owned(),
+        )]);
+    }
+    let admitted = program
+        .functions
+        .iter()
+        .filter(|function| {
+            program
+                .declarations
+                .declaration(&function.id)
+                .is_some_and(|declaration| {
+                    declaration.identity_origin == hir::IdentityOrigin::Explicit
+                })
+        })
+        .filter(|function| {
+            resolved_data_signature_is_admitted(function)
+                && function
+                    .effects
+                    .iter()
+                    .all(|effect| required_effects.iter().any(|admitted| effect == admitted))
+        })
+        .map(|function| (function.id.as_str(), function))
+        .collect::<BTreeMap<_, _>>();
+    let entry = admitted.get(entry_id).copied().ok_or_else(|| {
+        vec![selection_error(
+            REASON_UNSUPPORTED_CALLEE,
+            format!("hosted command entry `{entry_id}` is outside the command profile"),
+        )]
+    })?;
+    if !entry.params.is_empty() || entry.return_type != ResolvedType::Bool {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_RESULT_TYPE,
+            format!("hosted command entry `{entry_id}` must have type `fn () -> bool`"),
+        )]);
+    }
+    hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
+    scan_closure(entry_id, &admitted)?;
+
+    let command_input = CommandInputState {
+        arguments: arguments
+            .iter()
+            .map(|value| Arc::<[u8]>::from(value.as_bytes()))
+            .collect(),
+        stdin: Arc::from(stdin),
+        stdin_consumed: false,
+    };
+    let mut evaluator = Evaluator {
+        admitted: &admitted,
+        steps: 0,
+        budget: max_steps,
+        next_byte_allocation: 0,
+        allocated_byte_payload: 0,
+        stdout_transcript: Some(Vec::new()),
+        stderr_transcript: Some(Vec::new()),
+        command_input: Some(command_input),
+    };
+    let evaluated = evaluator.call_frame(entry, Vec::new(), 0);
+    let outcome = match evaluated {
+        Ok(Value::Bool(value)) => CommandEvaluationOutcome::ReturnedBool(value),
+        Ok(_) => CommandEvaluationOutcome::GuardError(
+            "hosted zero-argument bool command returned a non-bool value".to_owned(),
+        ),
+        Err(Flow::Failure(status)) => CommandEvaluationOutcome::LanguageFailure(status),
+        Err(Flow::Exhausted) => CommandEvaluationOutcome::FuelExhausted,
+        Err(Flow::DepthExceeded) => CommandEvaluationOutcome::CallDepthExceeded,
+        Err(Flow::Guard(detail)) => CommandEvaluationOutcome::GuardError(detail.to_owned()),
+    };
+    let mut stdout = evaluator.stdout_transcript.take().unwrap_or_default();
+    let mut stderr = evaluator.stderr_transcript.take().unwrap_or_default();
+    if !matches!(outcome, CommandEvaluationOutcome::ReturnedBool(_)) {
+        stdout.clear();
+        stderr.clear();
+    }
+    Ok((
+        CommandEvaluation {
+            outcome,
+            steps_used: evaluator.steps,
+            max_steps,
+        },
+        stdout,
+        stderr,
+    ))
+}
+
 fn is_admitted_resolved_scalar(ty: &ResolvedType) -> bool {
     matches!(
         ty,
@@ -1158,6 +1312,7 @@ fn child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
     match &expression.kind {
         ResolvedExprKind::Call { args, .. } => args.iter().collect(),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().collect(),
+        ResolvedExprKind::HostCommandCall(call) => call.args.iter().collect(),
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
@@ -1355,6 +1510,16 @@ fn capacity_outcome(kind: &'static str) -> OutcomeJson {
     }
 }
 
+fn normalize_command_input(code: u32) -> NormalizedStatus {
+    NormalizedStatus::try_new(
+        crate::command_io_ops::STATUS_DOMAIN,
+        code,
+        StatusClass::Adapter,
+        Retryability::Known(false),
+    )
+    .expect("compiler-owned command input status table is valid")
+}
+
 type Environment = Vec<(ValueId, Value)>;
 
 struct Evaluator<'a> {
@@ -1364,6 +1529,14 @@ struct Evaluator<'a> {
     next_byte_allocation: u32,
     allocated_byte_payload: u64,
     stdout_transcript: Option<Vec<u8>>,
+    stderr_transcript: Option<Vec<u8>>,
+    command_input: Option<CommandInputState>,
+}
+
+struct CommandInputState {
+    arguments: Vec<Arc<[u8]>>,
+    stdin: Arc<[u8]>,
+    stdin_consumed: bool,
 }
 
 fn evaluate_resolved_entry<'a>(
@@ -1380,6 +1553,8 @@ fn evaluate_resolved_entry<'a>(
         next_byte_allocation: 0,
         allocated_byte_payload: 0,
         stdout_transcript: host_stdout.then(Vec::new),
+        stderr_transcript: None,
+        command_input: None,
     };
     let outcome = evaluator.evaluate_entry(entry, arguments);
     (
@@ -1650,6 +1825,133 @@ impl Evaluator<'_> {
                     }
                 }
             }
+            ResolvedExprKind::HostCommandCall(call) => {
+                use hir::ResolvedHostCommandOperation as Operation;
+                match call.operation {
+                    Operation::ArgsLen => {
+                        if !call.args.is_empty() {
+                            return Err(Flow::Guard("invalid args_len arity"));
+                        }
+                        let input = self.command_input.as_ref().ok_or(Flow::Guard(
+                            "args_len reached an evaluator without command input",
+                        ))?;
+                        Ok(Value::Usize(input.arguments.len() as u64))
+                    }
+                    Operation::ArgUtf8 => {
+                        let [argument] = call.args.as_slice() else {
+                            return Err(Flow::Guard("invalid arg_utf8 arity"));
+                        };
+                        let index = match self.evaluate(argument, environment, depth)? {
+                            Value::Usize(value) => usize::try_from(value).ok(),
+                            _ => return Err(Flow::Guard("ill-typed arg_utf8 index")),
+                        };
+                        let bytes = index
+                            .and_then(|index| {
+                                self.command_input
+                                    .as_ref()
+                                    .and_then(|input| input.arguments.get(index))
+                            })
+                            .cloned()
+                            .ok_or_else(|| {
+                                Flow::Failure(normalize_command_input(
+                                    crate::command_io_ops::ARG_INDEX_OUT_OF_BOUNDS,
+                                ))
+                            })?;
+                        if std::str::from_utf8(bytes.as_ref()).is_err() {
+                            return Err(Flow::Failure(normalize_command_input(
+                                crate::command_io_ops::ARG_INVALID_UTF8,
+                            )));
+                        }
+                        Ok(Value::BorrowedStr(BorrowedStrValue {
+                            invocation_root: ValueId::intrinsic_parameter(
+                                crate::command_io_ops::ARG_UTF8_ID,
+                                usize::MAX,
+                            ),
+                            bytes,
+                        }))
+                    }
+                    Operation::StdinRead => {
+                        if !call.args.is_empty() {
+                            return Err(Flow::Guard("invalid stdin_read arity"));
+                        }
+                        let input = self.command_input.as_ref().ok_or(Flow::Guard(
+                            "stdin_read reached an evaluator without command input",
+                        ))?;
+                        if input.stdin_consumed {
+                            return Err(Flow::Failure(normalize_command_input(
+                                crate::command_io_ops::STDIN_READ_FAILED,
+                            )));
+                        }
+                        let length = u64::try_from(input.stdin.len()).map_err(|_| {
+                            Flow::Failure(normalize_command_input(
+                                crate::command_io_ops::INPUT_CAPACITY_EXCEEDED,
+                            ))
+                        })?;
+                        if length > crate::command_io_ops::MAX_INPUT_BYTES {
+                            return Err(Flow::Failure(normalize_command_input(
+                                crate::command_io_ops::INPUT_CAPACITY_EXCEEDED,
+                            )));
+                        }
+                        let next_count =
+                            self.next_byte_allocation.checked_add(1).ok_or_else(|| {
+                                Flow::Failure(normalize_command_input(
+                                    crate::command_io_ops::INPUT_CAPACITY_EXCEEDED,
+                                ))
+                            })?;
+                        let next_payload = self
+                            .allocated_byte_payload
+                            .checked_add(length)
+                            .ok_or_else(|| {
+                                Flow::Failure(normalize_command_input(
+                                    crate::command_io_ops::INPUT_CAPACITY_EXCEEDED,
+                                ))
+                            })?;
+                        if next_count > crate::byte_data_capacity::MAX_BYTES_COPY_SITES
+                            || next_payload
+                                > crate::byte_data_capacity::MAX_OWNED_BYTE_PAYLOAD_BYTES
+                        {
+                            return Err(Flow::Failure(normalize_command_input(
+                                crate::command_io_ops::INPUT_CAPACITY_EXCEEDED,
+                            )));
+                        }
+                        let bytes = Arc::from(input.stdin.as_ref());
+                        self.next_byte_allocation = next_count;
+                        self.allocated_byte_payload = next_payload;
+                        self.command_input
+                            .as_mut()
+                            .expect("command input presence was checked")
+                            .stdin_consumed = true;
+                        Ok(Value::Bytes(OwnedBytesValue {
+                            allocation: next_count,
+                            bytes,
+                        }))
+                    }
+                    Operation::StderrWrite => {
+                        let [argument] = call.args.as_slice() else {
+                            return Err(Flow::Guard("invalid stderr_write arity"));
+                        };
+                        let value = self.evaluate(argument, environment, depth)?;
+                        let Value::BorrowedSlice(value) = value else {
+                            return Err(Flow::Guard("ill-typed stderr_write operand"));
+                        };
+                        let stdout_length = self.stdout_transcript.as_ref().map_or(0, Vec::len);
+                        let stderr = self.stderr_transcript.as_mut().ok_or(Flow::Guard(
+                            "stderr_write reached an evaluator without command output",
+                        ))?;
+                        let combined = stdout_length
+                            .checked_add(stderr.len())
+                            .and_then(|length| length.checked_add(value.bytes.len()))
+                            .ok_or(Flow::Guard("command transcript length overflowed"))?;
+                        if combined > crate::host_io_ops::MAX_STDOUT_TRANSCRIPT_BYTES as usize {
+                            return Err(Flow::Guard(
+                                "combined command transcript exceeds verified capacity",
+                            ));
+                        }
+                        stderr.extend_from_slice(value.bytes.as_ref());
+                        Ok(Value::Usize(value.bytes.len() as u64))
+                    }
+                }
+            }
             ResolvedExprKind::If {
                 condition,
                 then_branch,
@@ -1834,6 +2136,7 @@ impl Evaluator<'_> {
                     let Value::BorrowedSlice(value) = value else {
                         return Err(Flow::Guard("ill-typed stdout_write operand"));
                     };
+                    let stderr_length = self.stderr_transcript.as_ref().map_or(0, Vec::len);
                     let transcript = self
                         .stdout_transcript
                         .as_mut()
@@ -1842,7 +2145,9 @@ impl Evaluator<'_> {
                         .len()
                         .checked_add(value.bytes.len())
                         .ok_or(Flow::Guard("stdout transcript length overflowed"))?;
-                    if next > crate::host_io_ops::MAX_STDOUT_TRANSCRIPT_BYTES as usize {
+                    if next.checked_add(stderr_length).is_none_or(|combined| {
+                        combined > crate::host_io_ops::MAX_STDOUT_TRANSCRIPT_BYTES as usize
+                    }) {
                         return Err(Flow::Guard("stdout transcript exceeds verified capacity"));
                     }
                     transcript.extend_from_slice(value.bytes.as_ref());

@@ -1196,6 +1196,12 @@ impl WorkspaceGraphBuild {
                     functions,
                 )
             }
+            crate::project::ProjectProfile::LanguageCommandIoV1 => {
+                // The ordinary project/test entry remains a pure useful-data
+                // closure. The selected command becomes the entrypoint only
+                // in `linked_scalar_program_with_roots` below.
+                hir::link_useful_data_workspace(entry_module.to_owned(), entrypoint, functions)
+            }
         }
         .map_err(|error| vec![error])
     }
@@ -1313,6 +1319,19 @@ impl WorkspaceGraphBuild {
             crate::project::ProjectProfile::UsefulDataCommandV2 => {
                 hir::link_useful_data_command_workspace(base.module, base.entrypoint, functions)
             }
+            crate::project::ProjectProfile::LanguageCommandIoV1 => {
+                let [command_id] = additional_roots else {
+                    return Err(vec![graph_error(
+                        "SPX-G172",
+                        "Language Command I/O v1 must select exactly one command identity",
+                    )]);
+                };
+                hir::link_language_command_io_workspace(
+                    base.module,
+                    hir::DeclarationId::new(command_id.clone()),
+                    functions,
+                )
+            }
         }
         .map_err(|error| vec![error])
     }
@@ -1345,6 +1364,40 @@ impl WorkspaceGraphBuild {
         web_roots: ProjectWebRoots<'_>,
     ) -> Result<ProjectSemanticParts, Vec<Diagnostic>> {
         self.validate_entire_project_workspace(entry_module, test_module, web_roots.profile)?;
+        if web_roots.profile == crate::project::ProjectProfile::LanguageCommandIoV1 {
+            let [command_id] = web_roots.stable_ids else {
+                return Err(vec![graph_error(
+                    "SPX-G172",
+                    "Language Command I/O v1 must select exactly one command identity",
+                )]);
+            };
+            let command = self
+                .hir
+                .modules
+                .iter()
+                .flat_map(|module| module.functions.iter())
+                .find(|function| function.id.as_str() == command_id)
+                .ok_or_else(|| {
+                    vec![graph_error(
+                        "SPX-G172",
+                        "Language Command I/O v1 command identity does not name a function",
+                    )]
+                })?;
+            let explicit = self
+                .hir
+                .declarations
+                .get(command.id.as_str())
+                .is_some_and(|fact| fact.origin == hir::IdentityOrigin::Explicit);
+            if !explicit
+                || !command.params.is_empty()
+                || command.return_type != hir::ResolvedType::Bool
+            {
+                return Err(vec![graph_error(
+                    "SPX-G172",
+                    "Language Command I/O v1 command must have an explicit identity and exact signature fn() -> bool",
+                )]);
+            }
+        }
         let entry_program = self.linked_scalar_program_with_roots(
             entry_module,
             web_roots.stable_ids,
@@ -1482,7 +1535,16 @@ impl WorkspaceGraphBuild {
                     crate::project::ProjectProfile::UsefulDataCommandV1
                         | crate::project::ProjectProfile::UsefulDataCommandV2
                 ) && module.module == entry_module
-                    && module.permits == [crate::host_io_ops::STDOUT_WRITE_EFFECT]);
+                    && module.permits == [crate::host_io_ops::STDOUT_WRITE_EFFECT])
+                || (profile == crate::project::ProjectProfile::LanguageCommandIoV1
+                    && module.module == entry_module
+                    && module.permits
+                        == [
+                            crate::command_io_ops::ARGS_READ_EFFECT,
+                            crate::command_io_ops::STDERR_WRITE_EFFECT,
+                            crate::command_io_ops::STDIN_READ_EFFECT,
+                            crate::host_io_ops::STDOUT_WRITE_EFFECT,
+                        ]);
             if !permits_admitted
                 || !module.types.is_empty()
                 || !module.interfaces.is_empty()
@@ -1526,7 +1588,8 @@ impl WorkspaceGraphBuild {
                     ),
                     crate::project::ProjectProfile::UsefulDataV1
                     | crate::project::ProjectProfile::UsefulDataCommandV1
-                    | crate::project::ProjectProfile::UsefulDataCommandV2 => {
+                    | crate::project::ProjectProfile::UsefulDataCommandV2
+                    | crate::project::ProjectProfile::LanguageCommandIoV1 => {
                         hir::useful_data_workspace_parameter_admitted(
                             &parameter.ty,
                             parameter.ownership,
@@ -1541,7 +1604,8 @@ impl WorkspaceGraphBuild {
                     ),
                     crate::project::ProjectProfile::UsefulDataV1
                     | crate::project::ProjectProfile::UsefulDataCommandV1
-                    | crate::project::ProjectProfile::UsefulDataCommandV2 => {
+                    | crate::project::ProjectProfile::UsefulDataCommandV2
+                    | crate::project::ProjectProfile::LanguageCommandIoV1 => {
                         hir::useful_data_workspace_return_admitted(&function.return_type)
                     }
                 };
@@ -1550,7 +1614,17 @@ impl WorkspaceGraphBuild {
                         profile,
                         crate::project::ProjectProfile::UsefulDataCommandV1
                             | crate::project::ProjectProfile::UsefulDataCommandV2
-                    ) && function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT]);
+                    ) && function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT])
+                    || (profile == crate::project::ProjectProfile::LanguageCommandIoV1
+                        && function.effects.iter().all(|effect| {
+                            matches!(
+                                effect.as_str(),
+                                crate::command_io_ops::ARGS_READ_EFFECT
+                                    | crate::command_io_ops::STDERR_WRITE_EFFECT
+                                    | crate::command_io_ops::STDIN_READ_EFFECT
+                                    | crate::host_io_ops::STDOUT_WRITE_EFFECT
+                            )
+                        }));
                 if !effects_admitted
                     || !admitted_return
                     || function
@@ -1569,6 +1643,9 @@ impl WorkspaceGraphBuild {
                         }
                         crate::project::ProjectProfile::UsefulDataCommandV2 => {
                             "Useful Data Command v2 linker"
+                        }
+                        crate::project::ProjectProfile::LanguageCommandIoV1 => {
+                            "Language Command I/O v1 linker"
                         }
                     };
                     return Err(vec![graph_error(
@@ -1735,6 +1812,11 @@ fn resolved_function_callees(function: &hir::ResolvedFunction) -> BTreeSet<hir::
                 }
             }
             hir::ResolvedExprKind::NativeRustImportCall(call) => {
+                for argument in &call.args {
+                    visit(argument, callees);
+                }
+            }
+            hir::ResolvedExprKind::HostCommandCall(call) => {
                 for argument in &call.args {
                     visit(argument, callees);
                 }
@@ -5581,6 +5663,11 @@ fn visit_resolved_calls(
                 visit_resolved_calls(argument, visit);
             }
         }
+        hir::ResolvedExprKind::HostCommandCall(call) => {
+            for argument in &call.args {
+                visit_resolved_calls(argument, visit);
+            }
+        }
         hir::ResolvedExprKind::Unary { value, .. } => visit_resolved_calls(value, visit),
         hir::ResolvedExprKind::Binary { left, right, .. } => {
             visit_resolved_calls(left, visit);
@@ -6010,6 +6097,19 @@ fn collect_resolved_expression_type_sites(
                     argument,
                     &crate::bounded_output::budgeted_format(format_args!(
                         "{path}.native_rust_arg.{index}"
+                    )),
+                    imported,
+                    out,
+                )?;
+            }
+        }
+        hir::ResolvedExprKind::HostCommandCall(call) => {
+            for (index, argument) in call.args.iter().enumerate() {
+                collect_resolved_expression_type_sites(
+                    owner,
+                    argument,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.host_command_arg.{index}"
                     )),
                     imported,
                     out,

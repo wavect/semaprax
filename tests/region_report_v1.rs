@@ -222,6 +222,11 @@ fn reported_binding_ids_equal_the_resolved_hir_inventory() {
                     collect_expr(argument, ids);
                 }
             }
+            hir::ResolvedExprKind::HostCommandCall(call) => {
+                for argument in &call.args {
+                    collect_expr(argument, ids);
+                }
+            }
             hir::ResolvedExprKind::Unary { value, .. } => collect_expr(value, ids),
             hir::ResolvedExprKind::Binary { left, right, .. } => {
                 collect_expr(left, ids);

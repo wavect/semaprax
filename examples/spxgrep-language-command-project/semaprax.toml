@@ -1,0 +1,11 @@
+schema = "semaprax.project.v6"
+name = "spxgrep-language-command"
+version = "0.1.0"
+profile = "language-command-io.v1"
+entry = "spxgrep_language.app"
+sources = ["src/app.spx", "src/tests.spx"]
+web_exports = ["spxgrep-language.run"]
+command = "spxgrep-language.run"
+input = "argv-utf8+stdin-bytes.v1"
+capabilities = ["process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]
+tests = ["spxgrep_language.tests"]

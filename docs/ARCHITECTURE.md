@@ -1589,6 +1589,59 @@ fixed useful-data command adapter, not general language I/O, WASI, a public
 native ABI, or a general CLI framework; hosted promotion, safe Windows npm
 publication, registry publication, and release promotion remain open.
 
+## Bounded Language Command I/O v1 and Project Manifest v6
+
+[Bounded Language Command I/O v1](BOUNDED-LANGUAGE-COMMAND-IO-V1.md) moves the
+fixed adapter boundary into checked language meaning without granting ambient
+process authority. Four compiler-owned operations expose argument count,
+strict-UTF-8 argument views, one owned binary-stdin read, and bounded stderr.
+The resolved HIR represents these as `HostCommandCall`, disjoint from ordinary
+calls and Native Rust imports, with a closed four-code command-input status
+domain. Argument views share one immutable invocation root; repeated lookup
+does not mint capacity. The shared snapshot admits one CommandArguments and
+one Stdin source while rejecting a duplicate of either; source and hostile-HIR
+admission reject more than one reachable stdin read, including loop and
+call-cycle reachability, so argv plus stdin consume one cumulative
+65,536-byte budget exactly once.
+
+CleanupPlan remains v2/v3. Its canonical builder and independent replay must
+agree on the fallible status source, success-only borrowed argument result,
+success-only initialization of the owned stdin slot, and exact-once owned-byte
+settlement. Reachability selects additive Graph v19, which records the closed
+operation table/status domain, invocation-root provenance, bounds, and
+success-only dual-channel publication; lower Graph bytes remain preserved for
+programs outside the new profile.
+
+Interpreter, native C11, and Core-Wasm use explicit invocation carriers.
+Stdout and stderr stage separately but admit at most one write per channel and
+path and share one 65,536-byte output ceiling. `true` and `false` both seal the
+two-channel semantic envelope after cleanup; any normalized or settlement
+failure discards both. Native generated code never accesses process
+descriptors. Core-Wasm uses four closed synchronous command-provider imports
+and private transcript pages, not WASI: when output derives from owned stdin, the
+wrapper authenticates and copies the tagged arena value while its owner is
+live instead of treating the token as a linear-memory pointer. `arg_utf8`
+admits only provider statuses 0/1/2. Zero-status stdin additionally passes a
+recoverable 0/1 exact-membership check—including nonexistent, wrong-length,
+and zero-length carriers—before the owned slot is initialized. Successful
+publication clears the private staging pages without clearing public output.
+The additive `__spx_command_input_status_v1` global is reset by the wrapper
+and marks only authenticated arg codes 1/2 or stdin codes 3/4. It must equal
+the ordinary nonzero data-status code before an adapter attributes the
+command-input domain; arithmetic, contract, and internal failures leave the
+marker zero, preserving native/Wasm status-domain parity.
+
+Project Manifest v6 additively selects `language-command-io.v1`, exact
+`argv-utf8+stdin-bytes.v1` input, one explicit `() -> bool` stable ID, and the
+sorted four-capability closure. Its generated semantic command carrier is
+independently replayed before publication. Earlier manifest, package, carrier,
+Graph, and command bytes remain frozen. Windows publication stays fail-closed
+rather than substituting weaker path authority. Local focused execution does
+not constitute exact-head hosted promotion. Files, environment, networking,
+child processes, terminals, streaming/interactive I/O, WASI, callbacks/async,
+physical cross-descriptor atomicity, durability, registry publication, and
+release promotion remain nonclaims.
+
 ### Project Agent Transport v2
 
 `src/project_transport/` and `src/bin/semapraxd.rs` add a separate strict

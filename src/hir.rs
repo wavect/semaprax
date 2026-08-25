@@ -25,6 +25,51 @@ macro_rules! format {
     };
 }
 
+#[cfg(test)]
+mod command_io_provenance_hostile_tests {
+    use super::*;
+
+    #[test]
+    fn command_argument_root_provenance_cannot_be_reclassified_or_recharged() {
+        let source = r#"
+module test.command_root_hostile;
+permit { process.args.read }
+@id("command.view")
+fn view() -> usize uses { process.args.read } {
+    let argument = arg_utf8(0usize);
+    let bytes = str_as_bytes(argument);
+    byte_len(bytes)
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+        let ast = crate::parse(source, "command-root-hostile.spx").unwrap();
+        let mut program = resolve(&ast).unwrap();
+        let value = program
+            .declarations
+            .byte_slice_roots
+            .iter()
+            .find_map(|(value, provenance)| {
+                (provenance.root_kind == ByteSliceRootKind::CommandArguments)
+                    .then_some(value.clone())
+            })
+            .expect("arg_utf8/str_as_bytes records its invocation root");
+        let provenance = program
+            .declarations
+            .byte_slice_roots
+            .get_mut(&value)
+            .unwrap();
+        provenance.root_kind = ByteSliceRootKind::BorrowedStr;
+        provenance.root = value;
+        let error = validate(&program).unwrap_err();
+        assert_eq!(error.code, "SPX-H006");
+        assert!(
+            error.message.contains("byte-slice symbolic provenance"),
+            "{}",
+            error.message
+        );
+    }
+}
+
 mod validation;
 
 pub(crate) use validation::validate_core;
@@ -379,6 +424,15 @@ fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
         }
         ResolvedExprKind::NativeRustImportCall(call) => {
             bytes += call.expression.as_str().len() + call.import.as_str().len();
+            bytes += call.args.capacity() * std::mem::size_of::<ResolvedExpr>();
+            bytes += call
+                .args
+                .iter()
+                .map(resolved_expr_owned_capacity)
+                .sum::<usize>();
+        }
+        ResolvedExprKind::HostCommandCall(call) => {
+            bytes += call.expression.as_str().len();
             bytes += call.args.capacity() * std::mem::size_of::<ResolvedExpr>();
             bytes += call
                 .args
@@ -902,6 +956,9 @@ pub enum ByteSliceRootKind {
     OwnedBytes,
     FixedArray,
     BorrowedStr,
+    /// The one immutable argument arena owned by the enclosing command
+    /// invocation. Every `arg_utf8` view authenticates this same root.
+    CommandArguments,
 }
 
 /// A symbolic extent deliberately independent of the compiler host's pointer
@@ -2703,7 +2760,8 @@ fn materialize_template_expr(
         ResolvedExprKind::Usize(value) => ResolvedExprKind::Usize(*value),
         ResolvedExprKind::ArrayU8(_)
         | ResolvedExprKind::RepeatArrayU8 { .. }
-        | ResolvedExprKind::BorrowPlace { .. } => {
+        | ResolvedExprKind::BorrowPlace { .. }
+        | ResolvedExprKind::HostCommandCall(_) => {
             return Err(hir_error(
                 "generic template uses portable byte data outside the generic slice",
             ));
@@ -2982,6 +3040,21 @@ pub struct ResolvedNativeRustImportCall {
     pub result: ResolvedImportResultKind,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ResolvedHostCommandOperation {
+    ArgsLen,
+    ArgUtf8,
+    StdinRead,
+    StderrWrite,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedHostCommandCall {
+    pub expression: ExpressionId,
+    pub operation: ResolvedHostCommandOperation,
+    pub args: Vec<ResolvedExpr>,
+}
+
 impl ResolvedProgram {
     pub fn resolve_call_target(
         &self,
@@ -3140,6 +3213,255 @@ fn push_array_pattern_slots(
     }
 }
 
+fn byte_slice_transcript_source(
+    program: &ResolvedProgram,
+    expression: &ResolvedExpr,
+) -> crate::byte_data_capacity::TranscriptSource {
+    use crate::byte_data_capacity::TranscriptSource;
+    match &expression.kind {
+        ResolvedExprKind::Place(place) | ResolvedExprKind::BorrowPlace { place, .. } => {
+            if let Some(fact) = program.declarations.byte_slice_provenance(&place.root) {
+                return match fact.root_kind {
+                    ByteSliceRootKind::CommandArguments => TranscriptSource::CommandArguments,
+                    ByteSliceRootKind::FixedArray => match fact.length {
+                        ByteSliceExtent::Constant(length) => TranscriptSource::Fixed(length),
+                        ByteSliceExtent::ParameterLength | ByteSliceExtent::ValueLength => {
+                            TranscriptSource::Unknown
+                        }
+                    },
+                    ByteSliceRootKind::OwnedBytes
+                        if resolved_value_is_stdin(program, &fact.root) =>
+                    {
+                        TranscriptSource::Stdin
+                    }
+                    ByteSliceRootKind::FunctionParameter
+                    | ByteSliceRootKind::OwnedBytes
+                    | ByteSliceRootKind::BorrowedStr => TranscriptSource::Unknown,
+                };
+            }
+            resolved_value_type(program, &place.root).map_or(TranscriptSource::Unknown, |ty| {
+                match ty {
+                    ResolvedType::ArrayU8(length) => TranscriptSource::Fixed(u64::from(length)),
+                    _ => TranscriptSource::Unknown,
+                }
+            })
+        }
+        ResolvedExprKind::Call { callee, args, .. }
+            if callee.as_str() == crate::byte_ops::ARRAY_AS_SLICE_ID =>
+        {
+            args.first()
+                .map_or(TranscriptSource::Unknown, |argument| match argument.ty {
+                    ResolvedType::ArrayU8(length) => TranscriptSource::Fixed(u64::from(length)),
+                    _ => TranscriptSource::Unknown,
+                })
+        }
+        ResolvedExprKind::If {
+            then_branch,
+            else_branch,
+            ..
+        } => {
+            let then_source = byte_slice_transcript_source(program, then_branch);
+            let else_source = byte_slice_transcript_source(program, else_branch);
+            if then_source == else_source {
+                then_source
+            } else {
+                TranscriptSource::Unknown
+            }
+        }
+        ResolvedExprKind::Block { tail, .. } => byte_slice_transcript_source(program, tail),
+        _ => TranscriptSource::Unknown,
+    }
+}
+
+fn resolved_value_is_stdin(program: &ResolvedProgram, value: &ValueId) -> bool {
+    fn in_expression(expression: &ResolvedExpr, value: &ValueId) -> bool {
+        let mut children = Vec::new();
+        match &expression.kind {
+            ResolvedExprKind::Block { statements, tail } => {
+                for statement in statements {
+                    if let ResolvedStatement::Let {
+                        binding,
+                        value: initializer,
+                        ..
+                    } = statement
+                    {
+                        if binding.id == *value {
+                            return matches!(
+                                &initializer.kind,
+                                ResolvedExprKind::HostCommandCall(ResolvedHostCommandCall {
+                                    operation: ResolvedHostCommandOperation::StdinRead,
+                                    ..
+                                })
+                            );
+                        }
+                    }
+                    for index in 0..statement.child_count() {
+                        if let Some(child) = statement.child(index) {
+                            children.push(child);
+                        }
+                    }
+                }
+                children.push(tail);
+            }
+            ResolvedExprKind::Call { args, .. } => children.extend(args),
+            ResolvedExprKind::NativeRustImportCall(call) => children.extend(&call.args),
+            ResolvedExprKind::HostCommandCall(call) => children.extend(&call.args),
+            ResolvedExprKind::Unary { value, .. }
+            | ResolvedExprKind::Try { operand: value, .. }
+            | ResolvedExprKind::TryOption { operand: value, .. }
+            | ResolvedExprKind::Project { base: value, .. }
+            | ResolvedExprKind::Upcast { source: value } => children.push(value),
+            ResolvedExprKind::Binary { left, right, .. } => {
+                children.extend([left.as_ref(), right.as_ref()]);
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => children.extend([
+                condition.as_ref(),
+                then_branch.as_ref(),
+                else_branch.as_ref(),
+            ]),
+            ResolvedExprKind::ConstructRecord { fields, .. }
+            | ResolvedExprKind::ConstructVariant { fields, .. } => {
+                children.extend(fields.iter().map(|field| &field.value));
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                children.push(scrutinee);
+                for arm in arms {
+                    if let Some(guard) = &arm.guard {
+                        children.push(guard);
+                    }
+                    children.push(&arm.value);
+                }
+            }
+            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                children.push(base);
+                children.extend(fields.iter().map(|field| &field.value));
+            }
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::BorrowPlace { .. } => {}
+        }
+        children
+            .into_iter()
+            .any(|child| in_expression(child, value))
+    }
+    program
+        .functions
+        .iter()
+        .any(|function| in_expression(&function.body, value))
+        || program
+            .function_instances
+            .iter()
+            .any(|instance| in_expression(&instance.function.body, value))
+}
+
+fn resolved_value_type(program: &ResolvedProgram, value: &ValueId) -> Option<ResolvedType> {
+    fn in_expression(expression: &ResolvedExpr, value: &ValueId) -> Option<ResolvedType> {
+        let mut children = Vec::new();
+        match &expression.kind {
+            ResolvedExprKind::Block { statements, tail } => {
+                for statement in statements {
+                    if let ResolvedStatement::Let { binding, .. }
+                    | ResolvedStatement::Assign { binding, .. } = statement
+                    {
+                        if binding.id == *value {
+                            return Some(binding.ty.clone());
+                        }
+                    }
+                    for index in 0..statement.child_count() {
+                        children.push(statement.child(index)?);
+                    }
+                }
+                children.push(tail);
+            }
+            ResolvedExprKind::Call { args, .. } => children.extend(args),
+            ResolvedExprKind::NativeRustImportCall(call) => children.extend(&call.args),
+            ResolvedExprKind::HostCommandCall(call) => children.extend(&call.args),
+            ResolvedExprKind::Unary { value, .. }
+            | ResolvedExprKind::Try { operand: value, .. }
+            | ResolvedExprKind::TryOption { operand: value, .. }
+            | ResolvedExprKind::Project { base: value, .. }
+            | ResolvedExprKind::Upcast { source: value } => children.push(value),
+            ResolvedExprKind::Binary { left, right, .. } => {
+                children.extend([left.as_ref(), right.as_ref()]);
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => children.extend([
+                condition.as_ref(),
+                then_branch.as_ref(),
+                else_branch.as_ref(),
+            ]),
+            ResolvedExprKind::ConstructRecord { fields, .. }
+            | ResolvedExprKind::ConstructVariant { fields, .. } => {
+                children.extend(fields.iter().map(|field| &field.value));
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                children.push(scrutinee);
+                for arm in arms {
+                    if let Some(guard) = &arm.guard {
+                        children.push(guard);
+                    }
+                    children.push(&arm.value);
+                }
+            }
+            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                children.push(base);
+                children.extend(fields.iter().map(|field| &field.value));
+            }
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::BorrowPlace { .. } => {}
+        }
+        children
+            .into_iter()
+            .find_map(|child| in_expression(child, value))
+    }
+
+    program
+        .functions
+        .iter()
+        .chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        )
+        .find_map(|function| {
+            function
+                .params
+                .iter()
+                .find(|parameter| parameter.id == *value)
+                .map(|parameter| parameter.ty.clone())
+                .or_else(|| in_expression(&function.body, value))
+        })
+}
+
 fn byte_capacity_expression(
     program: &ResolvedProgram,
     expression: &ResolvedExpr,
@@ -3205,6 +3527,7 @@ fn byte_capacity_expression(
             } else if callee.as_str() == crate::host_io_ops::STDOUT_WRITE_ID {
                 children.push(CapacityFlow::StdoutWrite {
                     site: expression.id.as_str().to_owned(),
+                    source: byte_slice_transcript_source(program, &args[0]),
                 });
             } else if program
                 .resolve_call_target(callee, instance.as_ref())
@@ -3226,6 +3549,25 @@ fn byte_capacity_expression(
                 .map(|argument| byte_capacity_expression(program, argument, slots, false))
                 .collect::<Result<Vec<_>, _>>()?,
         ),
+        ResolvedExprKind::HostCommandCall(call) => {
+            let mut children = call
+                .args
+                .iter()
+                .map(|argument| byte_capacity_expression(program, argument, slots, false))
+                .collect::<Result<Vec<_>, _>>()?;
+            if call.operation == ResolvedHostCommandOperation::StdinRead {
+                children.push(CapacityFlow::StdinRead {
+                    site: expression.id.as_str().to_owned(),
+                    conservative_payload_bytes: crate::command_io_ops::MAX_INPUT_BYTES,
+                });
+            } else if call.operation == ResolvedHostCommandOperation::StderrWrite {
+                children.push(CapacityFlow::StderrWrite {
+                    site: expression.id.as_str().to_owned(),
+                    source: byte_slice_transcript_source(program, &call.args[0]),
+                });
+            }
+            sequence(children)
+        }
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
@@ -3641,6 +3983,7 @@ pub enum ResolvedExprKind {
         args: Vec<ResolvedExpr>,
     },
     NativeRustImportCall(ResolvedNativeRustImportCall),
+    HostCommandCall(ResolvedHostCommandCall),
     Unary {
         op: UnaryOp,
         value: Box<ResolvedExpr>,
@@ -3939,6 +4282,9 @@ fn derive_byte_slice_provenance(
 ) -> Result<BTreeMap<ValueId, ByteSliceProvenance>, Diagnostic> {
     let mut facts = BTreeMap::new();
     let mut root_types = BTreeMap::<ValueId, ResolvedType>::new();
+    let command_argument_root =
+        ValueId::intrinsic_parameter(crate::command_io_ops::ARG_UTF8_ID, usize::MAX);
+    let mut command_argument_views = BTreeSet::<ValueId>::new();
     let mut aliases = Vec::<(&ResolvedBinding, bool, &ResolvedExpr)>::new();
     for function in functions {
         for parameter in &function.params {
@@ -3967,6 +4313,7 @@ fn derive_byte_slice_provenance(
             match &expression.kind {
                 ResolvedExprKind::Call { args, .. } => pending.extend(args),
                 ResolvedExprKind::NativeRustImportCall(call) => pending.extend(&call.args),
+                ResolvedExprKind::HostCommandCall(call) => pending.extend(&call.args),
                 ResolvedExprKind::Unary { value, .. }
                 | ResolvedExprKind::Try { operand: value, .. }
                 | ResolvedExprKind::TryOption { operand: value, .. }
@@ -3987,6 +4334,15 @@ fn derive_byte_slice_provenance(
                         } = statement
                         {
                             root_types.insert(binding.id.clone(), binding.ty.clone());
+                            if matches!(
+                                &value.kind,
+                                ResolvedExprKind::HostCommandCall(ResolvedHostCommandCall {
+                                    operation: ResolvedHostCommandOperation::ArgUtf8,
+                                    ..
+                                })
+                            ) {
+                                command_argument_views.insert(binding.id.clone());
+                            }
                             if binding.ty == ResolvedType::SliceU8 {
                                 aliases.push((binding, *mutable, value));
                             }
@@ -4062,14 +4418,25 @@ fn derive_byte_slice_provenance(
                         ByteSliceExtent::Constant(u64::from(*length)),
                     ),
                     ResolvedType::Str => {
-                        (ByteSliceRootKind::BorrowedStr, ByteSliceExtent::ValueLength)
+                        if command_argument_views.contains(&place.root) {
+                            (
+                                ByteSliceRootKind::CommandArguments,
+                                ByteSliceExtent::ValueLength,
+                            )
+                        } else {
+                            (ByteSliceRootKind::BorrowedStr, ByteSliceExtent::ValueLength)
+                        }
                     }
                     _ => return true,
                 };
                 facts.insert(
                     binding.id.clone(),
                     ByteSliceProvenance {
-                        root: place.root.clone(),
+                        root: if root_kind == ByteSliceRootKind::CommandArguments {
+                            command_argument_root.clone()
+                        } else {
+                            place.root.clone()
+                        },
                         root_kind,
                         root_length,
                         offset: ByteSliceExtent::Constant(0),
@@ -4386,7 +4753,12 @@ pub(crate) fn link_useful_data_workspace(
     entrypoint: DeclarationId,
     linked_functions: Vec<LinkedScalarFunction>,
 ) -> Result<ResolvedProgram, Diagnostic> {
-    link_useful_data_workspace_profile(module, entrypoint, linked_functions, false)
+    link_useful_data_workspace_profile(
+        module,
+        entrypoint,
+        linked_functions,
+        WorkspaceIoProfile::Pure,
+    )
 }
 
 /// Assemble the additive Project v4 command closure. This keeps the Useful
@@ -4397,14 +4769,42 @@ pub(crate) fn link_useful_data_command_workspace(
     entrypoint: DeclarationId,
     linked_functions: Vec<LinkedScalarFunction>,
 ) -> Result<ResolvedProgram, Diagnostic> {
-    link_useful_data_workspace_profile(module, entrypoint, linked_functions, true)
+    link_useful_data_workspace_profile(
+        module,
+        entrypoint,
+        linked_functions,
+        WorkspaceIoProfile::Stdout,
+    )
+}
+
+/// Assemble the exact Project-v6 bounded language-command closure. This is a
+/// separate admission route: it cannot inherit the older stdout-only profile
+/// or broaden that profile's entrypoint/result contract.
+pub(crate) fn link_language_command_io_workspace(
+    module: String,
+    entrypoint: DeclarationId,
+    linked_functions: Vec<LinkedScalarFunction>,
+) -> Result<ResolvedProgram, Diagnostic> {
+    link_useful_data_workspace_profile(
+        module,
+        entrypoint,
+        linked_functions,
+        WorkspaceIoProfile::LanguageCommand,
+    )
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum WorkspaceIoProfile {
+    Pure,
+    Stdout,
+    LanguageCommand,
 }
 
 fn link_useful_data_workspace_profile(
     module: String,
     entrypoint: DeclarationId,
     mut linked_functions: Vec<LinkedScalarFunction>,
-    stdout_command: bool,
+    profile: WorkspaceIoProfile,
 ) -> Result<ResolvedProgram, Diagnostic> {
     if linked_functions.is_empty() {
         return Err(link_error("workspace useful-data closure has no functions"));
@@ -4421,8 +4821,22 @@ fn link_useful_data_workspace_profile(
                 function.id
             )));
         }
-        let effects_admitted = function.effects.is_empty()
-            || (stdout_command && function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT]);
+        let effects_admitted = match profile {
+            WorkspaceIoProfile::Pure => function.effects.is_empty(),
+            WorkspaceIoProfile::Stdout => {
+                function.effects.is_empty()
+                    || function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT]
+            }
+            WorkspaceIoProfile::LanguageCommand => function.effects.iter().all(|effect| {
+                matches!(
+                    effect.as_str(),
+                    crate::command_io_ops::ARGS_READ_EFFECT
+                        | crate::command_io_ops::STDIN_READ_EFFECT
+                        | crate::command_io_ops::STDERR_WRITE_EFFECT
+                        | crate::host_io_ops::STDOUT_WRITE_EFFECT
+                )
+            }),
+        };
         if !effects_admitted
             || !useful_data_workspace_return_admitted(&function.return_type)
             || function.params.iter().any(|parameter| {
@@ -4436,12 +4850,21 @@ fn link_useful_data_workspace_profile(
         }
         if function.id == entrypoint {
             entry_origin = Some(linked.origin);
-            if function.name != "main"
+            if (profile != WorkspaceIoProfile::LanguageCommand && function.name != "main")
                 || !function.params.is_empty()
-                || function.return_type != ResolvedType::I64
+                || function.return_type
+                    != if profile == WorkspaceIoProfile::LanguageCommand {
+                        ResolvedType::Bool
+                    } else {
+                        ResolvedType::I64
+                    }
             {
                 return Err(link_error(
-                    "workspace useful-data entry point must be an authored `fn main() -> i64`",
+                    if profile == WorkspaceIoProfile::LanguageCommand {
+                        "workspace language-command entry point must be an explicit stable-ID `fn () -> bool`"
+                    } else {
+                        "workspace useful-data entry point must be an authored `fn main() -> i64`"
+                    },
                 ));
             }
         }
@@ -4529,10 +4952,15 @@ fn link_useful_data_workspace_profile(
     }
     let mut linked = ResolvedProgram {
         module,
-        permits: if stdout_command {
-            vec![crate::host_io_ops::STDOUT_WRITE_EFFECT.to_owned()]
-        } else {
-            Vec::new()
+        permits: match profile {
+            WorkspaceIoProfile::Pure => Vec::new(),
+            WorkspaceIoProfile::Stdout => vec![crate::host_io_ops::STDOUT_WRITE_EFFECT.to_owned()],
+            WorkspaceIoProfile::LanguageCommand => vec![
+                crate::command_io_ops::ARGS_READ_EFFECT.to_owned(),
+                crate::command_io_ops::STDERR_WRITE_EFFECT.to_owned(),
+                crate::command_io_ops::STDIN_READ_EFFECT.to_owned(),
+                crate::host_io_ops::STDOUT_WRITE_EFFECT.to_owned(),
+            ],
         },
         entrypoint,
         declarations,
@@ -4901,6 +5329,14 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
                 if call.expression != expression.id {
                     return Err(hir_error(
                         "resolved native Rust import call identity is inconsistent",
+                    ));
+                }
+                pending.extend(&call.args);
+            }
+            ResolvedExprKind::HostCommandCall(call) => {
+                if call.expression != expression.id {
+                    return Err(hir_error(
+                        "resolved host-command call identity is inconsistent",
                     ));
                 }
                 pending.extend(&call.args);
@@ -5445,6 +5881,11 @@ fn visit_resolved_calls(
                 visit_resolved_calls(arg, visit);
             }
         }
+        ResolvedExprKind::HostCommandCall(call) => {
+            for arg in &call.args {
+                visit_resolved_calls(arg, visit);
+            }
+        }
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
@@ -5559,6 +6000,11 @@ pub(crate) fn workspace_call_sites(
                 }
             }
             ResolvedExprKind::NativeRustImportCall(call) => {
+                for argument in &call.args {
+                    walk(owner, argument, sites);
+                }
+            }
+            ResolvedExprKind::HostCommandCall(call) => {
                 for argument in &call.args {
                     walk(owner, argument, sites);
                 }
@@ -7104,6 +7550,12 @@ impl Resolver<'_> {
                 op: crate::host_io_ops::HostIoOp,
                 argument_count: usize,
             },
+            FinishHostCommandOp {
+                span: Span,
+                path: String,
+                op: ResolvedHostCommandOperation,
+                argument_count: usize,
+            },
             ChildNext {
                 children: &'expr [Expr],
                 index: usize,
@@ -7408,6 +7860,7 @@ impl Resolver<'_> {
                 | Frame::FinishStrOp { path, .. }
                 | Frame::FinishByteOp { path, .. }
                 | Frame::FinishHostIoOp { path, .. }
+                | Frame::FinishHostCommandOp { path, .. }
                 | Frame::ChildNext { path, .. }
                 | Frame::MethodArgNext { path, .. }
                 | Frame::FinishUnary { path, .. }
@@ -7875,6 +8328,29 @@ impl Resolver<'_> {
                                 ));
                             }
                             frames.push(Frame::FinishHostIoOp {
+                                span: expr.span,
+                                path: path.clone(),
+                                op,
+                                argument_count: args.len(),
+                            });
+                            frames.push(Frame::ChildNext {
+                                children: args,
+                                index: 0,
+                                bindings,
+                                path,
+                                segment: "arg",
+                            });
+                        } else if let Some(op) = crate::command_io_ops::by_name(name) {
+                            if !type_arguments.is_empty()
+                                || args.len() != crate::command_io_ops::arity(op)
+                            {
+                                return Err(self.error(
+                                    "SPX-T270",
+                                    format!("invalid command I/O operation `{name}` call shape"),
+                                    expr.span,
+                                ));
+                            }
+                            frames.push(Frame::FinishHostCommandOp {
                                 span: expr.span,
                                 path: path.clone(),
                                 op,
@@ -8574,6 +9050,38 @@ impl Resolver<'_> {
                             instance: None,
                             args,
                         },
+                        span,
+                    });
+                }
+                Frame::FinishHostCommandOp {
+                    span,
+                    path,
+                    op,
+                    argument_count,
+                } => {
+                    let args = take_results(&mut results, argument_count);
+                    for (index, argument) in args.iter().enumerate() {
+                        if !crate::command_io_ops::accepts_resolved(op, index, &argument.ty) {
+                            return Err(self.error(
+                                "SPX-T270",
+                                format!(
+                                    "command I/O operation `{}` argument {index} has the wrong type",
+                                    crate::command_io_ops::name(op)
+                                ),
+                                argument.span,
+                            ));
+                        }
+                    }
+                    let expression = ExpressionId::new(function, &path);
+                    results.push(ResolvedExpr {
+                        id: expression.clone(),
+                        ty: crate::command_io_ops::return_type(op),
+                        ownership: crate::command_io_ops::result_ownership(op),
+                        kind: ResolvedExprKind::HostCommandCall(ResolvedHostCommandCall {
+                            expression,
+                            operation: op,
+                            args,
+                        }),
                         span,
                     });
                 }
@@ -10914,6 +11422,48 @@ impl Resolver<'_> {
                             instance: None,
                             args,
                         },
+                        span: expr.span,
+                    });
+                }
+                if let Some(op) = crate::command_io_ops::by_name(name) {
+                    if !type_arguments.is_empty() || args.len() != crate::command_io_ops::arity(op)
+                    {
+                        return Err(self.error(
+                            "SPX-T270",
+                            format!("invalid command I/O operation `{name}` call shape"),
+                            expr.span,
+                        ));
+                    }
+                    let args = args
+                        .iter()
+                        .enumerate()
+                        .map(|(index, argument)| {
+                            self.resolve_expr_recursive_reference(
+                                function,
+                                argument,
+                                bindings,
+                                &format!("{path}.arg.{index}"),
+                            )
+                        })
+                        .collect::<Result<Vec<_>, _>>()?;
+                    for (index, argument) in args.iter().enumerate() {
+                        if !crate::command_io_ops::accepts_resolved(op, index, &argument.ty) {
+                            return Err(self.error(
+                                "SPX-T270",
+                                format!("command I/O operation `{name}` argument {index} has the wrong type"),
+                                argument.span,
+                            ));
+                        }
+                    }
+                    return Ok(ResolvedExpr {
+                        id: id.clone(),
+                        ty: crate::command_io_ops::return_type(op),
+                        ownership: crate::command_io_ops::result_ownership(op),
+                        kind: ResolvedExprKind::HostCommandCall(ResolvedHostCommandCall {
+                            expression: id,
+                            operation: op,
+                            args,
+                        }),
                         span: expr.span,
                     });
                 }

@@ -28,6 +28,7 @@ fn contains_unsafe_boundary(expression: &ResolvedExpr) -> bool {
         ResolvedExprKind::NativeRustImportCall(call) => {
             call.args.iter().any(contains_unsafe_boundary)
         }
+        ResolvedExprKind::HostCommandCall(call) => call.args.iter().any(contains_unsafe_boundary),
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
@@ -102,7 +103,9 @@ impl<'a> HirValidator<'a> {
     pub(super) fn new(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
         validate_nul_free_identities(program)?;
         for declaration in program.declarations.declarations() {
-            if crate::host_io_ops::by_id(declaration.id.as_str()).is_some() {
+            if crate::host_io_ops::by_id(declaration.id.as_str()).is_some()
+                || crate::command_io_ops::by_id(declaration.id.as_str()).is_some()
+            {
                 return Err(hir_error(format!(
                     "resolved {:?} declaration `{}` aliases a compiler-owned host I/O operation",
                     declaration.kind, declaration.id
@@ -111,7 +114,9 @@ impl<'a> HirValidator<'a> {
         }
         let mut functions = BTreeMap::new();
         for function in &program.functions {
-            if crate::host_io_ops::by_id(function.id.as_str()).is_some() {
+            if crate::host_io_ops::by_id(function.id.as_str()).is_some()
+                || crate::command_io_ops::by_id(function.id.as_str()).is_some()
+            {
                 return Err(hir_error(format!(
                     "resolved function `{}` aliases a compiler-owned host I/O operation",
                     function.id
@@ -142,7 +147,9 @@ impl<'a> HirValidator<'a> {
             }
         }
         for template in &program.function_templates {
-            if crate::host_io_ops::by_id(template.id.as_str()).is_some() {
+            if crate::host_io_ops::by_id(template.id.as_str()).is_some()
+                || crate::command_io_ops::by_id(template.id.as_str()).is_some()
+            {
                 return Err(hir_error(format!(
                     "resolved function template `{}` aliases a compiler-owned host I/O operation",
                     template.id
@@ -1285,6 +1292,11 @@ impl<'a> HirValidator<'a> {
                     "generic template byte view is outside the direct-scalar slice",
                 ));
             }
+            ResolvedExprKind::HostCommandCall(_) => {
+                return Err(hir_error(
+                    "generic template command I/O is outside the direct-scalar slice",
+                ));
+            }
         }
         Ok(())
     }
@@ -1324,6 +1336,9 @@ impl<'a> HirValidator<'a> {
             }
             ResolvedExprKind::BorrowPlace { .. } => {
                 Err(hir_error("while loops cannot construct byte views"))
+            }
+            ResolvedExprKind::HostCommandCall(_) => {
+                Err(hir_error("while loops cannot contain command I/O"))
             }
             ResolvedExprKind::Unary { value, .. } => self.validate_while_admission(value),
             ResolvedExprKind::Binary { left, right, .. } => {
@@ -2129,6 +2144,7 @@ impl<'a> HirValidator<'a> {
                 args: &'e [ResolvedExpr],
                 params: Vec<ResolvedParam>,
                 return_type: ResolvedType,
+                return_ownership: OwnershipMode,
                 index: usize,
                 scope: BTreeMap<ValueId, ValidationBinding>,
                 path: String,
@@ -2138,6 +2154,7 @@ impl<'a> HirValidator<'a> {
                 args: &'e [ResolvedExpr],
                 params: Vec<ResolvedParam>,
                 return_type: ResolvedType,
+                return_ownership: OwnershipMode,
                 index: usize,
                 path: String,
             },
@@ -3028,11 +3045,53 @@ impl<'a> HirValidator<'a> {
                                 }
                                 (target.params.clone(), target.return_type.clone())
                             };
+                            let return_ownership =
+                                self.expected_ownership(&return_type, OwnershipMode::Own)?;
                             frames.push(Frame::CallNext {
                                 expression,
                                 args,
                                 params,
                                 return_type,
+                                return_ownership,
+                                index: 0,
+                                scope,
+                                path,
+                            });
+                        }
+                        ResolvedExprKind::HostCommandCall(call) => {
+                            if call.expression != expression.id
+                                || call.args.len() != crate::command_io_ops::arity(call.operation)
+                            {
+                                return Err(hir_error(
+                                    "host-command call has a non-canonical identity or shape",
+                                ));
+                            }
+                            match allowed_effects {
+                                Some(allowed)
+                                    if !allowed.contains(crate::command_io_ops::effect(
+                                        call.operation,
+                                    )) =>
+                                {
+                                    return Err(hir_error(format!(
+                                        "host-command operation requires undeclared effect `{}`",
+                                        crate::command_io_ops::effect(call.operation)
+                                    )));
+                                }
+                                None => {
+                                    return Err(hir_error(
+                                        "contract calls effectful host-command operation",
+                                    ));
+                                }
+                                _ => {}
+                            }
+                            frames.push(Frame::CallNext {
+                                expression,
+                                args: &call.args,
+                                params: crate::command_io_ops::resolved_params(call.operation),
+                                return_type: crate::command_io_ops::return_type(call.operation),
+                                return_ownership: crate::command_io_ops::result_ownership(
+                                    call.operation,
+                                ),
                                 index: 0,
                                 scope,
                                 path,
@@ -3352,14 +3411,13 @@ impl<'a> HirValidator<'a> {
                     args,
                     params,
                     return_type,
+                    return_ownership,
                     index,
                     scope,
                     path,
                 } => {
                     if index == args.len() {
-                        let ownership =
-                            self.expected_ownership(&return_type, OwnershipMode::Own)?;
-                        self.finish_expr(expression, &return_type, ownership)?;
+                        self.finish_expr(expression, &return_type, return_ownership)?;
                         scopes.push(scope);
                     } else {
                         frames.push(Frame::CallAfterArg {
@@ -3367,6 +3425,7 @@ impl<'a> HirValidator<'a> {
                             args,
                             params,
                             return_type,
+                            return_ownership,
                             index,
                             path: path.clone(),
                         });
@@ -3382,6 +3441,7 @@ impl<'a> HirValidator<'a> {
                     args,
                     params,
                     return_type,
+                    return_ownership,
                     index,
                     path,
                 } => {
@@ -3422,6 +3482,7 @@ impl<'a> HirValidator<'a> {
                         args,
                         params,
                         return_type,
+                        return_ownership,
                         index: index + 1,
                         scope,
                         path,
@@ -5671,6 +5732,63 @@ impl<'a> HirValidator<'a> {
                 let ownership = self.expected_ownership(&return_type, OwnershipMode::Own)?;
                 (return_type, ownership)
             }
+            ResolvedExprKind::HostCommandCall(call) => {
+                if call.expression != expression.id
+                    || call.args.len() != crate::command_io_ops::arity(call.operation)
+                {
+                    return Err(hir_error(
+                        "host-command call has a non-canonical identity or shape",
+                    ));
+                }
+                match allowed_effects {
+                    Some(allowed)
+                        if !allowed.contains(crate::command_io_ops::effect(call.operation)) =>
+                    {
+                        return Err(hir_error(format!(
+                            "host-command operation requires undeclared effect `{}`",
+                            crate::command_io_ops::effect(call.operation)
+                        )));
+                    }
+                    None => {
+                        return Err(hir_error("contract calls effectful host-command operation"));
+                    }
+                    _ => {}
+                }
+                let params = crate::command_io_ops::resolved_params(call.operation);
+                for (index, (argument, param)) in call.args.iter().zip(&params).enumerate() {
+                    self.validate_expr_recursive_reference(
+                        function,
+                        argument,
+                        scope,
+                        &format!("{path}.arg.{index}"),
+                        allow_moves,
+                        allowed_effects,
+                    )?;
+                    self.require_type(&argument.ty, &param.ty, "host-command argument")?;
+                    self.validate_argument_ownership(argument.ownership, param)?;
+                    if param.ty == ResolvedType::SliceU8
+                        && !matches!(
+                            &argument.kind,
+                            ResolvedExprKind::Place(place)
+                                if place.projections.is_empty()
+                                    && self.byte_slice_aliases.contains_key(&place.root)
+                        )
+                        && !matches!(
+                            &argument.kind,
+                            ResolvedExprKind::BorrowPlace { place, .. }
+                                if place.projections.is_empty()
+                        )
+                    {
+                        return Err(hir_error(
+                            "host-command byte slice lacks authenticated root provenance",
+                        ));
+                    }
+                }
+                (
+                    crate::command_io_ops::return_type(call.operation),
+                    crate::command_io_ops::result_ownership(call.operation),
+                )
+            }
             ResolvedExprKind::NativeRustImportCall(call) => {
                 if call.expression != expression.id {
                     return Err(hir_error(
@@ -7160,6 +7278,7 @@ impl<'a> HirValidator<'a> {
                     | ResolvedExprKind::BorrowPlace { .. }
                     | ResolvedExprKind::Call { .. }
                     | ResolvedExprKind::NativeRustImportCall(_)
+                    | ResolvedExprKind::HostCommandCall(_)
                     | ResolvedExprKind::Unary { .. }
                     | ResolvedExprKind::Binary { .. }
                     | ResolvedExprKind::ConstructRecord { .. }

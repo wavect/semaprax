@@ -176,11 +176,25 @@ broken stdout/SIGPIPE. The independently replayed npm carrier advances to v4,
 while every Project v1-v4 byte remains frozen. Native executable bytes are not
 claimed deterministic.
 
+[Bounded Language Command I/O v1](BOUNDED-LANGUAGE-COMMAND-IO-V1.md) and
+Project Manifest v6 are the next locally evidenced bounded slice. The language
+now exposes compiler-owned argument count/UTF-8 lookup, one owned binary-stdin
+read, and stderr under explicit effects, a closed status domain, and one exact
+`() -> bool` stable-ID command. One immutable invocation snapshot admits one
+CommandArguments source and one Stdin source, rejects either duplicate source,
+and charges their combined bytes once against 65,536 bytes. Dual stdout/stderr
+staging allows one write per channel/path and shares the same-size combined
+output ceiling. Graph v19, exact CleanupPlan v2/v3 replay, interpreter, native
+C11 O0/O2, Core-Wasm/Node private staging, and the independently replayed
+Project v6 semantic carrier are local evidence; older graph/manifest/package/
+carrier bytes remain frozen. Windows publication remains fail-closed, and no
+hosted promotion follows.
+
 The remaining promotion work is the
 complete hostile cross-platform boundary matrix, exact-head hosted Linux,
 macOS, Windows, and Rust-1.85 evidence, safe Windows publication, npm registry
 publication, and release promotion. General aggregate/resource iteration,
-language-level files/stdin/argv and general streaming stdout, general
+language-level files and general streaming or interactive command I/O, general
 collections, mutable views, dependencies, lockfiles, signing, and provenance
 remain on the roadmap.
 

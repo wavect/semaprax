@@ -2,7 +2,8 @@ use crate::diagnostic::Diagnostic;
 
 use super::profile::{
     ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_INPUT_V1,
-    PROJECT_COMMAND_STDOUT_CAPABILITY, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
+    PROJECT_COMMAND_STDOUT_CAPABILITY, PROJECT_LANGUAGE_COMMAND_INPUT_V1,
+    PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
     PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
     PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
 };
@@ -22,6 +23,9 @@ pub const PROJECT_SCHEMA_V4: &str = "semaprax.project.v4";
 /// Additive Project Manifest v5 schema for the fixed native/Web command
 /// adapter. V1-v4 parsing and rendering remain byte-for-byte unchanged.
 pub const PROJECT_SCHEMA_V5: &str = "semaprax.project.v5";
+/// Additive Project Manifest v6 schema for compiler-owned language command
+/// input and dual success-only output transcripts.
+pub const PROJECT_SCHEMA_V6: &str = "semaprax.project.v6";
 pub const MAX_MANIFEST_BYTES: usize = 64 * 1024;
 pub const MAX_NAME_BYTES: usize = 64;
 pub const MAX_VERSION_BYTES: usize = 128;
@@ -50,7 +54,7 @@ pub struct ProjectManifest {
 }
 
 impl ProjectManifest {
-    /// Parse one frozen Project v1-v5 canonical manifest.
+    /// Parse one frozen Project v1-v6 canonical manifest.
     pub fn parse(source: &str) -> Result<Self, Vec<Diagnostic>> {
         if source.len() > MAX_MANIFEST_BYTES {
             return Err(capacity("manifest_bytes", MAX_MANIFEST_BYTES));
@@ -237,9 +241,59 @@ impl ProjectManifest {
                         parse_array_assignment(lines[10], "tests")?,
                     )
                 }
+                PROJECT_SCHEMA_V6 => {
+                    if lines.len() != 12 || lines.last() != Some(&"") {
+                        return Err(grammar(
+                            "Project v6 manifest must contain exactly eleven ordered assignments and one terminal LF",
+                        ));
+                    }
+                    let version = parse_string_assignment(lines[2], "version")?;
+                    if !valid_semver(&version) {
+                        return Err(grammar(
+                            "Project v6 version must be canonical Semantic Versioning text of at most 128 bytes",
+                        ));
+                    }
+                    if parse_string_assignment(lines[3], "profile")?
+                        != PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1
+                    {
+                        return Err(grammar(
+                            "Project v6 profile is not language-command-io.v1",
+                        ));
+                    }
+                    let command = parse_string_assignment(lines[7], "command")?;
+                    let input = parse_string_assignment(lines[8], "input")?;
+                    if input != PROJECT_LANGUAGE_COMMAND_INPUT_V1 {
+                        return Err(grammar(
+                            "Project v6 input is not argv-utf8+stdin-bytes.v1",
+                        ));
+                    }
+                    let capabilities = parse_array_assignment(lines[9], "capabilities")?;
+                    if !capabilities
+                        .iter()
+                        .map(String::as_str)
+                        .eq(PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2)
+                    {
+                        return Err(grammar(
+                            "Project v6 capabilities must be exactly [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]",
+                        ));
+                    }
+                    (
+                        PROJECT_SCHEMA_V6,
+                        parse_string_assignment(lines[1], "name")?,
+                        Some(version),
+                        ProjectProfile::LanguageCommandIoV1,
+                        parse_string_assignment(lines[4], "entry")?,
+                        parse_array_assignment(lines[5], "sources")?,
+                        parse_array_assignment(lines[6], "web_exports")?,
+                        Some(command),
+                        Some(input),
+                        capabilities,
+                        parse_array_assignment(lines[10], "tests")?,
+                    )
+                }
                 _ => {
                     return Err(grammar(
-                        "Project manifest schema is neither semaprax.project.v1, semaprax.project.v2, semaprax.project.v3, semaprax.project.v4, nor semaprax.project.v5",
+                        "Project manifest schema is neither semaprax.project.v1, semaprax.project.v2, semaprax.project.v3, semaprax.project.v4, semaprax.project.v5, nor semaprax.project.v6",
                     ))
                 }
             };
@@ -249,6 +303,7 @@ impl ProjectManifest {
             PROJECT_SCHEMA_V3 => "Project v3",
             PROJECT_SCHEMA_V4 => "Project v4",
             PROJECT_SCHEMA_V5 => "Project v5",
+            PROJECT_SCHEMA_V6 => "Project v6",
             _ => unreachable!("schema was selected by the closed parser"),
         };
         if !valid_name(&name) {
@@ -374,6 +429,10 @@ impl ProjectManifest {
         self.schema == PROJECT_SCHEMA_V5
     }
 
+    pub fn is_v6(&self) -> bool {
+        self.schema == PROJECT_SCHEMA_V6
+    }
+
     pub fn entry(&self) -> &str {
         &self.entry
     }
@@ -455,8 +514,7 @@ impl ProjectManifest {
                 render_array(&self.capabilities),
                 self.test_module,
             )
-        } else {
-            debug_assert_eq!(self.schema, PROJECT_SCHEMA_V5);
+        } else if self.schema == PROJECT_SCHEMA_V5 {
             format!(
                 "schema = \"{PROJECT_SCHEMA_V5}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ncommand = \"{}\"\ninput = \"{}\"\ncapabilities = {}\ntests = [\"{}\"]\n",
                 self.name,
@@ -467,6 +525,21 @@ impl ProjectManifest {
                 render_array(&self.web_exports),
                 self.command.as_deref().expect("Project v5 carries a command stable ID"),
                 self.command_input.as_deref().expect("Project v5 carries a command input profile"),
+                render_array(&self.capabilities),
+                self.test_module,
+            )
+        } else {
+            debug_assert_eq!(self.schema, PROJECT_SCHEMA_V6);
+            format!(
+                "schema = \"{PROJECT_SCHEMA_V6}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ncommand = \"{}\"\ninput = \"{}\"\ncapabilities = {}\ntests = [\"{}\"]\n",
+                self.name,
+                self.package_version.as_deref().expect("Project v6 carries a package version"),
+                self.profile.name().expect("Project v6 carries a named profile"),
+                self.entry,
+                render_array(&self.sources),
+                render_array(&self.web_exports),
+                self.command.as_deref().expect("Project v6 carries a command stable ID"),
+                self.command_input.as_deref().expect("Project v6 carries a command input profile"),
                 render_array(&self.capabilities),
                 self.test_module,
             )

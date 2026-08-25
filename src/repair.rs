@@ -732,6 +732,11 @@ fn collect_calls(
                 collect_calls(argument, known, calls, call_sites);
             }
         }
+        ResolvedExprKind::HostCommandCall(call) => {
+            for argument in &call.args {
+                collect_calls(argument, known, calls, call_sites);
+            }
+        }
         ResolvedExprKind::Unary { value, .. } => collect_calls(value, known, calls, call_sites),
         ResolvedExprKind::Binary { left, right, .. } => {
             collect_calls(left, known, calls, call_sites);

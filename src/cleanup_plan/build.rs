@@ -1906,6 +1906,19 @@ impl<'a> PlanBuilder<'a> {
                 args: &'e [ResolvedExpr],
                 index: usize,
             },
+            HostCommandNext {
+                expression: &'e ResolvedExpr,
+                operation: crate::hir::ResolvedHostCommandOperation,
+                args: &'e [ResolvedExpr],
+                index: usize,
+                flow: EvalResult,
+            },
+            HostCommandAfterArg {
+                expression: &'e ResolvedExpr,
+                operation: crate::hir::ResolvedHostCommandOperation,
+                args: &'e [ResolvedExpr],
+                index: usize,
+            },
             CallNext {
                 expression: &'e ResolvedExpr,
                 callee: &'e DeclarationId,
@@ -2096,9 +2109,9 @@ impl<'a> PlanBuilder<'a> {
                     destination: place,
                     ..
                 } => eval_result_owned_capacity(then_result) + destination(place),
-                Frame::NativeNext { flow, .. } | Frame::VariantNext { flow, .. } => {
-                    eval_result_owned_capacity(flow)
-                }
+                Frame::NativeNext { flow, .. }
+                | Frame::HostCommandNext { flow, .. }
+                | Frame::VariantNext { flow, .. } => eval_result_owned_capacity(flow),
                 Frame::BlockNext {
                     flow,
                     destination: place,
@@ -2372,6 +2385,19 @@ impl<'a> PlanBuilder<'a> {
                                 owned_source: None,
                             },
                         })
+                    }
+                    ResolvedExprKind::HostCommandCall(call) => {
+                        frames.push(Frame::HostCommandNext {
+                            expression,
+                            operation: call.operation,
+                            args: &call.args,
+                            index: 0,
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
+                        });
                     }
                     ResolvedExprKind::Call {
                         callee,
@@ -2900,6 +2926,84 @@ impl<'a> PlanBuilder<'a> {
                         ));
                     }
                     frames.push(Frame::NativeNext {
+                        args,
+                        index: index + 1,
+                        flow: evaluated,
+                    });
+                }
+                Frame::HostCommandNext {
+                    expression,
+                    operation,
+                    args,
+                    index,
+                    flow,
+                } => {
+                    if index < args.len() {
+                        frames.push(Frame::HostCommandAfterArg {
+                            expression,
+                            operation,
+                            args,
+                            index,
+                        });
+                        frames.push(Frame::Enter {
+                            expression: &args[index],
+                            block: flow.block,
+                            state: flow.state,
+                        });
+                        continue;
+                    }
+                    self.push_transition(
+                        flow.block,
+                        CleanupTransition::CallCommit {
+                            call: expression.id.clone(),
+                            arguments: Vec::new(),
+                        },
+                    );
+                    let state = flow.state;
+                    let (block, mut state) = if crate::command_io_ops::failure(operation)
+                        == crate::command_io_ops::CommandIoFailure::Status
+                    {
+                        let source = StatusSourceId {
+                            expression: expression.id.clone(),
+                            lane: StatusLane::OperationFailure,
+                        };
+                        self.add_status_source(
+                            source.clone(),
+                            StatusProducer::PropagatedCall {
+                                callee: DeclarationId::new(crate::command_io_ops::id(operation)),
+                            },
+                        )?;
+                        self.split_status(flow.block, state, active_region, source)?
+                    } else {
+                        (flow.block, state)
+                    };
+                    let destination = self.expression_slot(expression, active_region)?;
+                    if let Some(destination) = destination.clone() {
+                        self.initialize(block, expression.id.clone(), destination, &mut state)?;
+                    }
+                    results.push(EvalResult {
+                        block,
+                        state,
+                        owned_source: destination,
+                    });
+                }
+                Frame::HostCommandAfterArg {
+                    expression,
+                    operation,
+                    args,
+                    index,
+                } => {
+                    let evaluated = results
+                        .pop()
+                        .expect("host-command argument result retained");
+                    if evaluated.owned_source.is_some() {
+                        return Err(plan_error(
+                            "host-command operation received an owned argument",
+                        ));
+                    }
+                    frames.push(Frame::HostCommandNext {
+                        expression,
+                        operation,
                         args,
                         index: index + 1,
                         flow: evaluated,
@@ -4057,6 +4161,16 @@ impl<'a> PlanBuilder<'a> {
                     owned_source: None,
                 })
             }
+            ResolvedExprKind::HostCommandCall(call) => {
+                let callee = DeclarationId::new(crate::command_io_ops::id(call.operation));
+                self.lower_call(
+                    expression,
+                    &callee,
+                    None,
+                    &call.args,
+                    (block, state, region),
+                )
+            }
             ResolvedExprKind::Unary { .. } => unreachable!("unary chain handled above"),
             ResolvedExprKind::Binary { op, left, right }
                 if matches!(op, BinaryOp::And | BinaryOp::Or) =>
@@ -4219,6 +4333,8 @@ impl<'a> PlanBuilder<'a> {
                 crate::byte_ops::resolved_params(op)
             } else if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
                 crate::host_io_ops::resolved_params(op)
+            } else if let Some(op) = crate::command_io_ops::by_id(callee.as_str()) {
+                crate::command_io_ops::resolved_params(op)
             } else {
                 let target = self
                     .program
@@ -4288,6 +4404,10 @@ impl<'a> PlanBuilder<'a> {
 
         if crate::byte_ops::by_id(callee.as_str()).is_some()
             || crate::host_io_ops::by_id(callee.as_str()).is_some()
+            || crate::command_io_ops::by_id(callee.as_str()).is_some_and(|op| {
+                crate::command_io_ops::failure(op)
+                    == crate::command_io_ops::CommandIoFailure::Infallible
+            })
         {
             let destination = self.expression_slot(expression, region)?;
             if let Some(destination) = destination.clone() {

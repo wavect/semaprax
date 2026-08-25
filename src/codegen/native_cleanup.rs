@@ -739,9 +739,22 @@ fn validate_expression(
                 ));
             }
         }
-        ResolvedExprKind::Call { args, .. } => {
+        ResolvedExprKind::Call { callee, args, .. } => {
             for argument in args {
                 validate_expression(program, function, argument)?;
+            }
+            let compiler_owned = crate::string_ops::by_id(callee.as_str()).is_some()
+                || crate::str_ops::by_id(callee.as_str()).is_some()
+                || crate::byte_ops::by_id(callee.as_str()).is_some()
+                || crate::host_io_ops::by_id(callee.as_str()).is_some();
+            if !compiler_owned {
+                return Err(unsupported(
+                    function,
+                    format!(
+                        "does not support call execution `{}` to `{callee}` in the single-frame native cleanup slice",
+                        expression.id
+                    ),
+                ));
             }
         }
         ResolvedExprKind::NativeRustImportCall(call) => {
@@ -750,6 +763,18 @@ fn validate_expression(
                 format!(
                     "does not support native Rust import execution `{}` to `{}` in the ordinary native cleanup backend",
                     expression.id, call.import
+                ),
+            ));
+        }
+        ResolvedExprKind::HostCommandCall(call) => {
+            for argument in &call.args {
+                validate_expression(program, function, argument)?;
+            }
+            return Err(unsupported(
+                function,
+                format!(
+                    "does not support language-command host operation `{:?}` in the ordinary native cleanup backend",
+                    call.operation
                 ),
             ));
         }
@@ -909,16 +934,12 @@ fn validate_transition(
     match transition {
         CleanupTransition::Initialize { at, destination } => {
             validate_place(function, destination, slots, "initialize destination")?;
-            let destination_slot = &indexed_slots[*slots
-                .get(&destination.storage)
-                .expect("validated initialize destination is indexed")];
-            if !matches!(destination_slot.slot.ty, ResolvedType::Bytes) {
-                return Err(unsupported(
-                    function,
-                    format!("initialize transition `{at}` is not compiler-owned Bytes"),
-                ));
-            }
-            Ok(())
+            Err(unsupported(
+                function,
+                format!(
+                    "initialize transition `{at}` has no authenticated physical payload source in the single-frame native cleanup slice"
+                ),
+            ))
         }
         CleanupTransition::Transfer {
             at,
@@ -959,7 +980,12 @@ fn validate_transition(
                     ));
                 }
             }
-            Ok(())
+            Err(unsupported(
+                function,
+                format!(
+                    "call-commit transition `{call}` requires call execution outside the single-frame native cleanup slice"
+                ),
+            ))
         }
         CleanupTransition::SelectFailure { .. } => Ok(()),
         CleanupTransition::StageCopyResult { .. } => Err(unsupported(

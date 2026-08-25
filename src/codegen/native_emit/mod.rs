@@ -17,8 +17,9 @@ use crate::hir::{
 use crate::variant_layout::{VariantLayout, VariantLayoutCache, VariantTarget};
 
 use super::{
-    backend_error, c_i64, native_byte_data, native_bytes, native_command, native_host_output,
-    native_resource, native_runtime, resource_lowering_gate, COutput, NATIVE_SCALAR_RUNTIME_C,
+    backend_error, c_i64, native_byte_data, native_bytes, native_command, native_command_io,
+    native_host_output, native_resource, native_runtime, resource_lowering_gate, COutput,
+    NATIVE_SCALAR_RUNTIME_C,
 };
 #[cfg(test)]
 use super::{
@@ -49,12 +50,18 @@ pub(super) fn emit_hir_c_with_labels(
     let functions = function_index(program)?;
     debug_assert!(resource_abi.resources.is_empty());
     let mut output = crate::bounded_output::CappedString::new();
-    if output_profile == NativeOutputProfile::UsefulDataCommand {
+    if matches!(
+        output_profile,
+        NativeOutputProfile::UsefulDataCommand | NativeOutputProfile::LanguageCommandIo
+    ) {
         emit_native_prelude_without_public_failure(&mut output, &resource_abi, program);
     } else {
         emit_native_prelude(&mut output, &resource_abi, program);
     }
-    if output_profile.supports_stdout_transcript() {
+    if output_profile == NativeOutputProfile::LanguageCommandIo {
+        native_host_output::emit_language_command_runtime(&mut output);
+        native_command_io::emit_runtime(&mut output);
+    } else if output_profile.supports_stdout_transcript() {
         native_host_output::emit_runtime(&mut output);
     }
     emit_fixed_byte_array_declarations(&mut output, program)?;
@@ -93,15 +100,23 @@ pub(super) fn emit_hir_c_with_labels(
         )?;
     }
 
-    if output_profile == NativeOutputProfile::UsefulDataCommand {
+    if matches!(
+        output_profile,
+        NativeOutputProfile::UsefulDataCommand | NativeOutputProfile::LanguageCommandIo
+    ) {
         let command = selected_command
             .ok_or_else(|| backend_error("native command selection is unavailable"))?;
         let symbol = &functions
             .get(&FunctionExecutionId::Monomorphic(command.clone()))
             .ok_or_else(|| backend_error("selected native command is not indexed"))?
             .symbol;
-        native_command::emit_runner(&mut output, symbol);
-        native_command::emit_process_adapter(&mut output);
+        if output_profile == NativeOutputProfile::LanguageCommandIo {
+            native_command_io::emit_runner(&mut output, symbol);
+            native_command_io::emit_process_adapter(&mut output);
+        } else {
+            native_command::emit_runner(&mut output, symbol);
+            native_command::emit_process_adapter(&mut output);
+        }
     } else {
         let main = program
             .functions
@@ -149,11 +164,19 @@ pub(super) enum NativeOutputProfile {
     Legacy,
     StdoutTranscript,
     UsefulDataCommand,
+    LanguageCommandIo,
 }
 
 impl NativeOutputProfile {
     const fn supports_stdout_transcript(self) -> bool {
-        matches!(self, Self::StdoutTranscript | Self::UsefulDataCommand)
+        matches!(
+            self,
+            Self::StdoutTranscript | Self::UsefulDataCommand | Self::LanguageCommandIo
+        )
+    }
+
+    const fn is_language_command(self) -> bool {
+        matches!(self, Self::LanguageCommandIo)
     }
 }
 
@@ -204,6 +227,7 @@ fn emit_fixed_byte_array_declarations(
             pending.extend(resolved_expr_children(expression));
         }
     }
+    let mut emitted = false;
     for length in lengths {
         if u64::from(length) > crate::byte_data_capacity::MAX_ARRAY_BYTES {
             return Err(backend_error(format!(
@@ -213,6 +237,7 @@ fn emit_fixed_byte_array_declarations(
         if length == 0 {
             continue;
         }
+        emitted = true;
         writeln!(
             output,
             "struct spx_array_u8_{length} {{ uint8_t spx_bytes[{length}]; }};"
@@ -229,7 +254,9 @@ fn emit_fixed_byte_array_declarations(
         )
         .expect("writing to a string cannot fail");
     }
-    output.push('\n');
+    if emitted {
+        output.push('\n');
+    }
     Ok(())
 }
 
@@ -532,6 +559,7 @@ fn resolved_expr_children<'a>(
         ),
         ResolvedExprKind::Call { args, .. } => Box::new(args.iter()),
         ResolvedExprKind::NativeRustImportCall(call) => Box::new(call.args.iter()),
+        ResolvedExprKind::HostCommandCall(call) => Box::new(call.args.iter()),
         ResolvedExprKind::ConstructRecord { fields, .. }
         | ResolvedExprKind::ConstructVariant { fields, .. } => {
             Box::new(fields.iter().map(|field| &field.value))
@@ -1643,6 +1671,7 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
         ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => true,
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_try),
+        ResolvedExprKind::HostCommandCall(call) => call.args.iter().any(expression_has_try),
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Project { base: value, .. }
         | ResolvedExprKind::Upcast { source: value } => expression_has_try(value),

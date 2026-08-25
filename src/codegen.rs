@@ -25,6 +25,7 @@ mod native_capability_token;
 mod native_cleanup;
 mod native_cleanup_emit;
 mod native_command;
+mod native_command_io;
 #[cfg(test)]
 mod native_conformance;
 #[cfg(test)]
@@ -150,6 +151,17 @@ pub fn emit_c_with_native_command(
     )
 }
 
+/// Resolve source and emit Bounded Language Command I/O v1 for one selected
+/// zero-argument boolean command. Process authority remains confined to the
+/// generated adapter; semantic functions receive only the injected context.
+pub fn emit_c_with_language_command_io(
+    program: &Program,
+    command_id: &str,
+) -> Result<String, Diagnostic> {
+    let resolved = hir::resolve(program).map_err(first_backend_diagnostic)?;
+    emit_hir_c_with_language_command_io(&resolved, command_id)
+}
+
 /// Emit the exact production C11 projection from an already resolved source.
 ///
 /// The parsed source remains necessary only for canonical contract labels. This
@@ -202,6 +214,54 @@ pub fn emit_hir_c_with_native_command(
         &HashMap::new(),
         NativeOutputProfile::UsefulDataCommand,
         Some(plan.function_id()),
+    )
+}
+
+/// Emit Bounded Language Command I/O v1 from validated HIR.
+pub fn emit_hir_c_with_language_command_io(
+    program: &ResolvedProgram,
+    command_id: &str,
+) -> Result<String, Diagnostic> {
+    hir::validate(program)?;
+    reject_native_rust_for_native(program)?;
+    let required_permits = [
+        crate::command_io_ops::ARGS_READ_EFFECT,
+        crate::command_io_ops::STDERR_WRITE_EFFECT,
+        crate::command_io_ops::STDIN_READ_EFFECT,
+        crate::host_io_ops::STDOUT_WRITE_EFFECT,
+    ];
+    if program.permits.as_slice() != required_permits {
+        return Err(backend_error(
+            "language command requires the exact canonical command-I/O permit inventory",
+        ));
+    }
+    let command = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == command_id)
+        .ok_or_else(|| {
+            backend_error(format!(
+                "selected language command `{command_id}` is absent"
+            ))
+        })?;
+    if program
+        .declarations
+        .declaration(&command.id)
+        .is_none_or(|declaration| {
+            declaration.identity_origin != crate::hir::IdentityOrigin::Explicit
+        })
+        || !command.params.is_empty()
+        || command.return_type != crate::hir::ResolvedType::Bool
+    {
+        return Err(backend_error(
+            "selected language command must be an explicit stable-ID `fn () -> bool`",
+        ));
+    }
+    emit_hir_c_with_labels(
+        program,
+        &HashMap::new(),
+        NativeOutputProfile::LanguageCommandIo,
+        Some(&command.id),
     )
 }
 

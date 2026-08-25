@@ -171,9 +171,11 @@ fn validate_function(
             )));
         }
         match &expression.kind {
-            ResolvedExprKind::String(_) | ResolvedExprKind::NativeRustImportCall(_) => {
+            ResolvedExprKind::String(_)
+            | ResolvedExprKind::NativeRustImportCall(_)
+            | ResolvedExprKind::HostCommandCall(_) => {
                 return Err(admission(format!(
-                    "Useful Data Command v2 function `{}` reaches text allocation or an import",
+                    "Useful Data Command v2 function `{}` reaches text allocation, an import, or command I/O",
                     function.id
                 )));
             }

@@ -1,0 +1,9 @@
+module spxgrep_language.tests;
+
+@id("spxgrep-language.tests.main")
+fn main() -> i64
+{
+    let sample = [97u8, 98u8, 99u8];
+    let view = array_as_slice(sample);
+    match byte_get(view, 1usize) { Option::Some { value: byte } => if byte == 98u8 { 0 } else { 1 }, Option::None {} => 2, }
+}

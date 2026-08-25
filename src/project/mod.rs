@@ -36,6 +36,7 @@ pub use manifest::{
     ProjectManifest, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES,
     MAX_SOURCES, MAX_STABLE_ID_BYTES, MAX_TOTAL_SOURCE_BYTES, MAX_VERSION_BYTES, MAX_WEB_EXPORTS,
     PROJECT_SCHEMA, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5,
+    PROJECT_SCHEMA_V6,
 };
 pub use native_sdk::{ProjectNativeSdkExport, ProjectNativeSdkSubject};
 pub use npm::{
@@ -46,6 +47,7 @@ pub use profile::{
     ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_ARGS_READ_CAPABILITY,
     PROJECT_COMMAND_INPUT_V1, PROJECT_COMMAND_STDERR_WRITE_CAPABILITY,
     PROJECT_COMMAND_STDIN_READ_CAPABILITY, PROJECT_COMMAND_STDOUT_CAPABILITY,
+    PROJECT_LANGUAGE_COMMAND_INPUT_V1, PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1,
     PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2,
     PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
 };
@@ -267,7 +269,7 @@ impl ProjectSnapshot {
     /// Build the authenticated project entry closure as its profile-selected
     /// Web product.
     pub fn build_web(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
-        // Project v2-v5 each have one public JavaScript product: their exact
+        // Project v2-v6 each have one public JavaScript product: their exact
         // schema-selected npm/Web package. Keeping `web` and the default route as
         // aliases avoids a scalar-v1 fallback while `npm` remains the explicit
         // package-manager spelling. Frozen Project v1 bytes and publication
@@ -293,7 +295,7 @@ impl ProjectSnapshot {
     }
 
     /// Build a Project v1 authenticated entry closure as one deterministic
-    /// pathless scalar-Web carrier. Project v2-v5 keep the frozen return type
+    /// pathless scalar-Web carrier. Project v2-v6 keep the frozen return type
     /// honest by using [`Self::build_npm_inline`] for their npm/Web carriers.
     /// This performs no filesystem access, process launch, publication, or
     /// caching. `max_bytes` bounds both the cumulative decoded artifact
@@ -306,9 +308,11 @@ impl ProjectSnapshot {
                 "v3"
             } else if self.manifest.is_v4() {
                 "v4"
-            } else {
-                debug_assert!(self.manifest.is_v5());
+            } else if self.manifest.is_v5() {
                 "v5"
+            } else {
+                debug_assert!(self.manifest.is_v6());
+                "v6"
             };
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
@@ -376,6 +380,12 @@ impl ProjectSnapshot {
     /// destination must not exist, so publication never clobbers a file the
     /// caller did not create for this exact operation.
     pub fn build_native(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
+        if self.manifest.is_v6() {
+            return Err(vec![Diagnostic::io(
+                "SPX-J107",
+                "Project v6 language command I/O native publication is not wired",
+            )]);
+        }
         match std::fs::symlink_metadata(output) {
             Ok(_) => {
                 return Err(vec![Diagnostic::io(

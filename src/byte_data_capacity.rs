@@ -14,6 +14,9 @@ pub(crate) const MAX_BYTES_COPY_SITES: u32 = 16;
 pub(crate) const MAX_OWNED_BYTE_PAYLOAD_BYTES: u64 = 1_048_576;
 pub(crate) const MAX_STDOUT_TRANSCRIPT_BYTES: u64 = 65_536;
 pub(crate) const MAX_STDOUT_WRITES_PER_PATH: u64 = 1;
+pub(crate) const MAX_STDERR_WRITES_PER_PATH: u64 = 1;
+pub(crate) const MAX_STDIN_READS_PER_PATH: u64 = 1;
+pub(crate) const MAX_COMBINED_TRANSCRIPT_BYTES: u64 = 65_536;
 
 const MAX_FUNCTIONS: usize = 4_096;
 const MAX_FLOW_NODES: usize = 65_536;
@@ -48,13 +51,30 @@ pub(crate) enum CapacityFlow {
         site: String,
         conservative_payload_bytes: u64,
     },
+    StdinRead {
+        site: String,
+        conservative_payload_bytes: u64,
+    },
     StdoutWrite {
         site: String,
+        source: TranscriptSource,
+    },
+    StderrWrite {
+        site: String,
+        source: TranscriptSource,
     },
     Loop {
         condition: Box<CapacityFlow>,
         body: Box<CapacityFlow>,
     },
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(crate) enum TranscriptSource {
+    Fixed(u64),
+    CommandArguments,
+    Stdin,
+    Unknown,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -64,13 +84,33 @@ pub(crate) struct FunctionCapacityInput {
     pub execution: CapacityFlow,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct FunctionCapacitySummary {
     pub inline_array_frame_bytes: u64,
     pub active_array_call_path_bytes: u64,
     pub bytes_copy_sites: u32,
     pub owned_byte_payload_bytes: u64,
+    pub stdin_read_sites: u64,
     pub stdout_write_sites: u64,
+    pub stderr_write_sites: u64,
+    pub transcript_bytes: u64,
+    transcript_paths: Vec<TranscriptPath>,
+}
+
+impl Default for FunctionCapacitySummary {
+    fn default() -> Self {
+        Self {
+            inline_array_frame_bytes: 0,
+            active_array_call_path_bytes: 0,
+            bytes_copy_sites: 0,
+            owned_byte_payload_bytes: 0,
+            stdin_read_sites: 0,
+            stdout_write_sites: 0,
+            stderr_write_sites: 0,
+            transcript_bytes: 0,
+            transcript_paths: vec![TranscriptPath::default()],
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -138,7 +178,28 @@ impl std::error::Error for CapacityError {}
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 struct AllocationSummary {
     sites: u32,
+    stdin_sites: u64,
     payload_bytes: u64,
+}
+
+#[derive(Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+struct TranscriptPath {
+    stdout_sites: u64,
+    stderr_sites: u64,
+    sources: Vec<TranscriptSource>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct TranscriptSummary {
+    paths: Vec<TranscriptPath>,
+}
+
+impl Default for TranscriptSummary {
+    fn default() -> Self {
+        Self {
+            paths: vec![TranscriptPath::default()],
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -153,7 +214,8 @@ struct ValidatedFunction<'a> {
     frame_bytes: u64,
     callees: BTreeSet<&'a str>,
     has_local_copy: bool,
-    has_local_stdout_write: bool,
+    has_local_stdin_read: bool,
+    has_local_transcript_write: bool,
 }
 
 pub(crate) fn analyze(
@@ -179,7 +241,8 @@ pub(crate) fn analyze(
     let mut validated = BTreeMap::<&str, ValidatedFunction<'_>>::new();
     for (identity, function) in &by_id {
         let frame_bytes = validate_slots(function)?;
-        let (callees, has_local_copy, has_local_stdout_write) = validate_flow(function, &by_id)?;
+        let (callees, has_local_copy, has_local_stdin_read, has_local_transcript_write) =
+            validate_flow(function, &by_id)?;
         validated.insert(
             identity,
             ValidatedFunction {
@@ -187,14 +250,17 @@ pub(crate) fn analyze(
                 frame_bytes,
                 callees,
                 has_local_copy,
-                has_local_stdout_write,
+                has_local_stdin_read,
+                has_local_transcript_write,
             },
         );
     }
 
     let array_relevant = reverse_reachable(&validated, |item| item.frame_bytes != 0);
-    let allocation_relevant = reverse_reachable(&validated, |item| item.has_local_copy);
-    let transcript_relevant = reverse_reachable(&validated, |item| item.has_local_stdout_write);
+    let allocation_relevant = reverse_reachable(&validated, |item| {
+        item.has_local_copy || item.has_local_stdin_read
+    });
+    let transcript_relevant = reverse_reachable(&validated, |item| item.has_local_transcript_write);
     let array_order =
         relevant_topological_order(&validated, &array_relevant, CapacityDiagnostic::Array)?;
     let allocation_order = relevant_topological_order(
@@ -262,6 +328,15 @@ pub(crate) fn analyze(
                 ),
             ));
         }
+        if allocation.stdin_sites > MAX_STDIN_READS_PER_PATH {
+            return Err(allocation_error(
+                identity,
+                format!(
+                    "stdin_read path reaches {} sites; limit is {MAX_STDIN_READS_PER_PATH}",
+                    allocation.stdin_sites
+                ),
+            ));
+        }
         if allocation.payload_bytes > MAX_OWNED_BYTE_PAYLOAD_BYTES {
             return Err(allocation_error(
                 identity,
@@ -275,30 +350,51 @@ pub(crate) fn analyze(
             .get_mut(identity)
             .expect("validated function has a summary");
         summary.bytes_copy_sites = allocation.sites;
+        summary.stdin_read_sites = allocation.stdin_sites;
         summary.owned_byte_payload_bytes = allocation.payload_bytes;
     }
 
     for identity in transcript_order.into_iter().rev() {
         let item = &validated[identity];
-        let (_, _, sites) = fold_flow(
+        let (_, _, transcript) = fold_flow(
             &item.input.execution,
             FoldMode::Transcript,
             identity,
             &summaries,
         )?;
-        if sites > MAX_STDOUT_WRITES_PER_PATH {
-            return Err(transcript_error(
-                identity,
-                format!(
-                    "stdout_write path reaches {sites} sites; limit is {}",
-                    MAX_STDOUT_WRITES_PER_PATH
-                ),
-            ));
+        let mut stdout_sites = 0;
+        let mut stderr_sites = 0;
+        let mut transcript_bytes = 0;
+        for path in &transcript.paths {
+            if path.stdout_sites > MAX_STDOUT_WRITES_PER_PATH {
+                return Err(transcript_error(
+                    identity,
+                    format!(
+                        "stdout_write path reaches {} sites; limit is {}",
+                        path.stdout_sites, MAX_STDOUT_WRITES_PER_PATH
+                    ),
+                ));
+            }
+            if path.stderr_sites > MAX_STDERR_WRITES_PER_PATH {
+                return Err(transcript_error(
+                    identity,
+                    format!(
+                        "stderr_write path reaches {} sites; limit is {}",
+                        path.stderr_sites, MAX_STDERR_WRITES_PER_PATH
+                    ),
+                ));
+            }
+            stdout_sites = stdout_sites.max(path.stdout_sites);
+            stderr_sites = stderr_sites.max(path.stderr_sites);
+            transcript_bytes = transcript_bytes.max(transcript_path_bytes(identity, path)?);
         }
-        summaries
+        let summary = summaries
             .get_mut(identity)
-            .expect("validated function has a summary")
-            .stdout_write_sites = sites;
+            .expect("validated function has a summary");
+        summary.stdout_write_sites = stdout_sites;
+        summary.stderr_write_sites = stderr_sites;
+        summary.transcript_bytes = transcript_bytes;
+        summary.transcript_paths = transcript.paths;
     }
 
     Ok(ProgramCapacitySummary {
@@ -358,13 +454,14 @@ fn validate_slots(function: &FunctionCapacityInput) -> Result<u64, CapacityError
 fn validate_flow<'a>(
     function: &'a FunctionCapacityInput,
     functions: &BTreeMap<&str, &FunctionCapacityInput>,
-) -> Result<(BTreeSet<&'a str>, bool, bool), CapacityError> {
+) -> Result<(BTreeSet<&'a str>, bool, bool, bool), CapacityError> {
     let mut pending = vec![&function.execution];
     let mut nodes = 0usize;
     let mut callees = BTreeSet::new();
     let mut sites = BTreeSet::new();
     let mut has_local_copy = false;
-    let mut has_local_stdout_write = false;
+    let mut has_local_stdin_read = false;
+    let mut has_local_transcript_write = false;
     while let Some(flow) = pending.pop() {
         nodes = nodes.checked_add(1).ok_or_else(|| {
             invariant(
@@ -421,7 +518,28 @@ fn validate_flow<'a>(
                 }
                 has_local_copy = true;
             }
-            CapacityFlow::StdoutWrite { site } => {
+            CapacityFlow::StdinRead {
+                site,
+                conservative_payload_bytes,
+            } => {
+                require_identity(site, Some(&function.function), "stdin_read site")?;
+                if !sites.insert(site.as_str()) {
+                    return Err(invariant(
+                        Some(&function.function),
+                        format!("duplicate capacity site `{site}`"),
+                    ));
+                }
+                if *conservative_payload_bytes > MAX_ARRAY_BYTES {
+                    return Err(allocation_error(
+                        &function.function,
+                        format!(
+                            "stdin_read site `{site}` admits {conservative_payload_bytes} bytes; per-value limit is {MAX_ARRAY_BYTES}"
+                        ),
+                    ));
+                }
+                has_local_stdin_read = true;
+            }
+            CapacityFlow::StdoutWrite { site, .. } => {
                 require_identity(site, Some(&function.function), "stdout_write site")?;
                 if !sites.insert(site.as_str()) {
                     return Err(invariant(
@@ -429,7 +547,17 @@ fn validate_flow<'a>(
                         format!("duplicate capacity site `{site}`"),
                     ));
                 }
-                has_local_stdout_write = true;
+                has_local_transcript_write = true;
+            }
+            CapacityFlow::StderrWrite { site, .. } => {
+                require_identity(site, Some(&function.function), "stderr_write site")?;
+                if !sites.insert(site.as_str()) {
+                    return Err(invariant(
+                        Some(&function.function),
+                        format!("duplicate capacity site `{site}`"),
+                    ));
+                }
+                has_local_transcript_write = true;
             }
             CapacityFlow::Loop { condition, body } => {
                 pending.push(body);
@@ -437,7 +565,12 @@ fn validate_flow<'a>(
             }
         }
     }
-    Ok((callees, has_local_copy, has_local_stdout_write))
+    Ok((
+        callees,
+        has_local_copy,
+        has_local_stdin_read,
+        has_local_transcript_write,
+    ))
 }
 
 fn reverse_reachable<'a>(
@@ -510,7 +643,7 @@ fn relevant_topological_order<'a>(
         let detail = match diagnostic {
             CapacityDiagnostic::Array => "call-graph cycle can reach nonzero inline array storage",
             CapacityDiagnostic::Allocation => "bytes_copy executable closure is cyclic",
-            CapacityDiagnostic::Transcript => "stdout_write executable closure is cyclic",
+            CapacityDiagnostic::Transcript => "transcript-write executable closure is cyclic",
             CapacityDiagnostic::Invariant => unreachable!(),
         };
         return Err(CapacityError {
@@ -527,26 +660,33 @@ fn fold_flow(
     mode: FoldMode,
     function: &str,
     summaries: &BTreeMap<String, FunctionCapacitySummary>,
-) -> Result<(u64, AllocationSummary, u64), CapacityError> {
+) -> Result<(u64, AllocationSummary, TranscriptSummary), CapacityError> {
     enum Frame<'a> {
         Enter(&'a CapacityFlow),
         Finish(&'a CapacityFlow, usize),
     }
     let mut frames = vec![Frame::Enter(flow)];
-    let mut values = Vec::<(u64, AllocationSummary, u64)>::new();
+    let mut values = Vec::<(u64, AllocationSummary, TranscriptSummary)>::new();
     while let Some(frame) = frames.pop() {
         match frame {
             Frame::Enter(node) => match node {
-                CapacityFlow::Empty => values.push((0, AllocationSummary::default(), 0)),
+                CapacityFlow::Empty => values.push((
+                    0,
+                    AllocationSummary::default(),
+                    TranscriptSummary::default(),
+                )),
                 CapacityFlow::Call { callee, .. } => {
                     let summary = &summaries[callee];
                     values.push((
                         summary.active_array_call_path_bytes,
                         AllocationSummary {
                             sites: summary.bytes_copy_sites,
+                            stdin_sites: summary.stdin_read_sites,
                             payload_bytes: summary.owned_byte_payload_bytes,
                         },
-                        summary.stdout_write_sites,
+                        TranscriptSummary {
+                            paths: summary.transcript_paths.clone(),
+                        },
                     ));
                 }
                 CapacityFlow::BytesCopy {
@@ -556,12 +696,48 @@ fn fold_flow(
                     0,
                     AllocationSummary {
                         sites: 1,
+                        stdin_sites: 0,
                         payload_bytes: *conservative_payload_bytes,
                     },
-                    0,
+                    TranscriptSummary::default(),
                 )),
-                CapacityFlow::StdoutWrite { .. } => {
-                    values.push((0, AllocationSummary::default(), 1));
+                CapacityFlow::StdinRead {
+                    conservative_payload_bytes,
+                    ..
+                } => values.push((
+                    0,
+                    AllocationSummary {
+                        sites: 0,
+                        stdin_sites: 1,
+                        payload_bytes: *conservative_payload_bytes,
+                    },
+                    TranscriptSummary::default(),
+                )),
+                CapacityFlow::StdoutWrite { source, .. } => {
+                    values.push((
+                        0,
+                        AllocationSummary::default(),
+                        TranscriptSummary {
+                            paths: vec![TranscriptPath {
+                                stdout_sites: 1,
+                                stderr_sites: 0,
+                                sources: vec![*source],
+                            }],
+                        },
+                    ));
+                }
+                CapacityFlow::StderrWrite { source, .. } => {
+                    values.push((
+                        0,
+                        AllocationSummary::default(),
+                        TranscriptSummary {
+                            paths: vec![TranscriptPath {
+                                stdout_sites: 0,
+                                stderr_sites: 1,
+                                sources: vec![*source],
+                            }],
+                        },
+                    ));
                 }
                 CapacityFlow::Sequence(children) | CapacityFlow::Alternative(children) => {
                     frames.push(Frame::Finish(node, children.len()));
@@ -581,14 +757,19 @@ fn fold_flow(
                 let alternative = matches!(node, CapacityFlow::Alternative(_));
                 let mut array_bytes = 0u64;
                 let mut allocation = AllocationSummary::default();
-                let mut stdout_write_sites = 0u64;
-                for (child_array, child_allocation, child_stdout_write_sites) in children {
+                let transcript = if alternative {
+                    alternative_transcripts(function, &children)?
+                } else {
+                    sequence_transcripts(function, &children)?
+                };
+                for (child_array, child_allocation, _) in children {
                     if alternative {
                         array_bytes = array_bytes.max(child_array);
                         allocation.sites = allocation.sites.max(child_allocation.sites);
                         allocation.payload_bytes =
                             allocation.payload_bytes.max(child_allocation.payload_bytes);
-                        stdout_write_sites = stdout_write_sites.max(child_stdout_write_sites);
+                        allocation.stdin_sites =
+                            allocation.stdin_sites.max(child_allocation.stdin_sites);
                     } else {
                         array_bytes = array_bytes.checked_add(child_array).ok_or_else(|| {
                             array_error(function, "active array call-path calculation overflowed")
@@ -605,16 +786,17 @@ fn fold_flow(
                             .ok_or_else(|| {
                                 allocation_error(function, "owned byte payload sum overflowed")
                             })?;
-                        stdout_write_sites = stdout_write_sites
-                            .checked_add(child_stdout_write_sites)
+                        allocation.stdin_sites = allocation
+                            .stdin_sites
+                            .checked_add(child_allocation.stdin_sites)
                             .ok_or_else(|| {
-                                transcript_error(function, "stdout_write site count overflowed")
+                                allocation_error(function, "stdin_read site count overflowed")
                             })?;
                     }
                 }
                 if matches!(mode, FoldMode::Allocation)
                     && matches!(node, CapacityFlow::Loop { .. })
-                    && allocation.sites != 0
+                    && (allocation.sites != 0 || allocation.stdin_sites != 0)
                 {
                     return Err(allocation_error(
                         function,
@@ -623,14 +805,17 @@ fn fold_flow(
                 }
                 if matches!(mode, FoldMode::Transcript)
                     && matches!(node, CapacityFlow::Loop { .. })
-                    && stdout_write_sites != 0
+                    && transcript
+                        .paths
+                        .iter()
+                        .any(|path| path.stdout_sites != 0 || path.stderr_sites != 0)
                 {
                     return Err(transcript_error(
                         function,
-                        "stdout_write is reachable from a while condition or body",
+                        "transcript write is reachable from a while condition or body",
                     ));
                 }
-                values.push((array_bytes, allocation, stdout_write_sites));
+                values.push((array_bytes, allocation, transcript));
             }
         }
     }
@@ -641,6 +826,130 @@ fn fold_flow(
         ));
     }
     Ok(values.pop().expect("capacity fold result count checked"))
+}
+
+fn alternative_transcripts(
+    function: &str,
+    children: &[(u64, AllocationSummary, TranscriptSummary)],
+) -> Result<TranscriptSummary, CapacityError> {
+    if children.is_empty() {
+        return Ok(TranscriptSummary::default());
+    }
+    let mut paths = BTreeSet::new();
+    for (_, _, transcript) in children {
+        paths.extend(transcript.paths.iter().cloned());
+        if paths.len() > MAX_FLOW_NODES {
+            return Err(invariant(
+                Some(function),
+                "transcript alternative path set exceeds the compiler bound",
+            ));
+        }
+    }
+    Ok(TranscriptSummary {
+        paths: paths.into_iter().collect(),
+    })
+}
+
+fn sequence_transcripts(
+    function: &str,
+    children: &[(u64, AllocationSummary, TranscriptSummary)],
+) -> Result<TranscriptSummary, CapacityError> {
+    let mut paths = vec![TranscriptPath::default()];
+    for (_, _, transcript) in children {
+        let product = paths
+            .len()
+            .checked_mul(transcript.paths.len())
+            .ok_or_else(|| invariant(Some(function), "transcript path product overflowed"))?;
+        if product > MAX_FLOW_NODES {
+            return Err(invariant(
+                Some(function),
+                "transcript sequence path set exceeds the compiler bound",
+            ));
+        }
+        let mut next = BTreeSet::new();
+        for prefix in &paths {
+            for suffix in &transcript.paths {
+                let mut sources = prefix.sources.clone();
+                sources.extend_from_slice(&suffix.sources);
+                sources.sort_unstable();
+                next.insert(TranscriptPath {
+                    stdout_sites: prefix
+                        .stdout_sites
+                        .checked_add(suffix.stdout_sites)
+                        .ok_or_else(|| {
+                            transcript_error(function, "stdout_write site count overflowed")
+                        })?,
+                    stderr_sites: prefix
+                        .stderr_sites
+                        .checked_add(suffix.stderr_sites)
+                        .ok_or_else(|| {
+                            transcript_error(function, "stderr_write site count overflowed")
+                        })?,
+                    sources,
+                });
+            }
+        }
+        paths = next.into_iter().collect();
+    }
+    Ok(TranscriptSummary { paths })
+}
+
+fn transcript_path_bytes(function: &str, path: &TranscriptPath) -> Result<u64, CapacityError> {
+    let mut fixed = 0u64;
+    let mut arguments = 0u64;
+    let mut stdin = 0u64;
+    let mut unknown = 0u64;
+    for source in &path.sources {
+        match source {
+            TranscriptSource::Fixed(bytes) => {
+                fixed = fixed.checked_add(*bytes).ok_or_else(|| {
+                    transcript_error(function, "fixed transcript byte sum overflowed")
+                })?;
+            }
+            TranscriptSource::CommandArguments => arguments += 1,
+            TranscriptSource::Stdin => stdin += 1,
+            TranscriptSource::Unknown => unknown += 1,
+        }
+    }
+    if arguments > 1 {
+        return Err(transcript_error(
+            function,
+            "one command-argument root is published more than once on an executable path",
+        ));
+    }
+    if stdin > 1 {
+        return Err(transcript_error(
+            function,
+            "one stdin root is published more than once on an executable path",
+        ));
+    }
+    let dynamic = arguments + stdin + unknown;
+    if unknown != 0 && path.sources.len() > 1 {
+        return Err(transcript_error(
+            function,
+            "an unauthenticated slice root cannot share a transcript path",
+        ));
+    }
+    if fixed != 0 && dynamic != 0 {
+        return Err(transcript_error(
+            function,
+            "fixed bytes cannot be added to an invocation-bounded transcript root",
+        ));
+    }
+    let bytes = if dynamic == 0 {
+        fixed
+    } else {
+        MAX_COMBINED_TRANSCRIPT_BYTES
+    };
+    if bytes > MAX_COMBINED_TRANSCRIPT_BYTES {
+        return Err(transcript_error(
+            function,
+            format!(
+                "combined stdout/stderr path admits {bytes} bytes; limit is {MAX_COMBINED_TRANSCRIPT_BYTES}"
+            ),
+        ));
+    }
+    Ok(bytes)
 }
 
 fn require_identity(

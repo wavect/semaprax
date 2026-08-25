@@ -1143,6 +1143,11 @@ fn collect_result_propagations<'a>(
                 collect_result_propagations(argument, propagations);
             }
         }
+        ResolvedExprKind::HostCommandCall(call) => {
+            for argument in &call.args {
+                collect_result_propagations(argument, propagations);
+            }
+        }
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Project { base: value, .. }
         | ResolvedExprKind::Upcast { source: value } => {
@@ -1280,7 +1285,12 @@ pub fn reject_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
 }
 
 pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
-    if schema == "semaprax.graph.v18" {
+    if schema == "semaprax.graph.v19" {
+        Err(Diagnostic::io(
+            "SPX-G410",
+            "bounded language-command I/O programs select `semaprax.graph.v19`, which is outside this evidence flow's admission",
+        ))
+    } else if schema == "semaprax.graph.v18" {
         Err(Diagnostic::io(
             "SPX-G410",
             "bounded-stdout-transcript programs select `semaprax.graph.v18`, which is outside this evidence flow's admission",
@@ -1310,6 +1320,23 @@ pub(crate) fn graph_schema_from_parts(
     functions: &[ResolvedFunction],
     function_templates: &[hir::ResolvedFunctionTemplate],
 ) -> &'static str {
+    if functions.iter().any(|function| {
+        function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .any(expression_has_command_io)
+    }) || function_templates.iter().any(|template| {
+        template
+            .requires
+            .iter()
+            .chain(std::iter::once(&template.body))
+            .chain(&template.ensures)
+            .any(expression_has_command_io)
+    }) {
+        return "semaprax.graph.v19";
+    }
     if functions.iter().any(|function| {
         function
             .requires
@@ -1473,6 +1500,7 @@ fn expression_has_usize(expression: &ResolvedExpr) -> bool {
         }
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_usize),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_usize),
+        ResolvedExprKind::HostCommandCall(call) => call.args.iter().any(expression_has_usize),
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
@@ -1535,6 +1563,7 @@ fn expression_has_while(expression: &ResolvedExpr) -> bool {
         }
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_while),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_while),
+        ResolvedExprKind::HostCommandCall(call) => call.args.iter().any(expression_has_while),
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
@@ -1591,6 +1620,9 @@ fn expression_has_stdout_write(expression: &ResolvedExpr) -> bool {
         ResolvedExprKind::NativeRustImportCall(call) => {
             call.args.iter().any(expression_has_stdout_write)
         }
+        ResolvedExprKind::HostCommandCall(call) => {
+            call.args.iter().any(expression_has_stdout_write)
+        }
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
@@ -1640,10 +1672,79 @@ fn expression_has_stdout_write(expression: &ResolvedExpr) -> bool {
     }
 }
 
+fn expression_has_command_io(expression: &ResolvedExpr) -> bool {
+    match &expression.kind {
+        ResolvedExprKind::HostCommandCall(_) => true,
+        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_command_io),
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            call.args.iter().any(expression_has_command_io)
+        }
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::TryOption { operand: value, .. }
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => expression_has_command_io(value),
+        ResolvedExprKind::Binary { left, right, .. } => {
+            expression_has_command_io(left) || expression_has_command_io(right)
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            statements.iter().any(|statement| {
+                (0..statement.child_count()).any(|index| {
+                    statement
+                        .child(index)
+                        .is_some_and(expression_has_command_io)
+                })
+            }) || expression_has_command_io(tail)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            expression_has_command_io(condition)
+                || expression_has_command_io(then_branch)
+                || expression_has_command_io(else_branch)
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => fields
+            .iter()
+            .any(|field| expression_has_command_io(&field.value)),
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            expression_has_command_io(scrutinee)
+                || arms.iter().any(|arm| {
+                    arm.guard.as_deref().is_some_and(expression_has_command_io)
+                        || expression_has_command_io(&arm.value)
+                })
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            expression_has_command_io(base)
+                || fields
+                    .iter()
+                    .any(|field| expression_has_command_io(&field.value))
+        }
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
+        | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => false,
+    }
+}
+
 fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_record_pattern),
         ResolvedExprKind::NativeRustImportCall(call) => {
+            call.args.iter().any(expression_has_record_pattern)
+        }
+        ResolvedExprKind::HostCommandCall(call) => {
             call.args.iter().any(expression_has_record_pattern)
         }
         ResolvedExprKind::Unary { value, .. }
@@ -1725,6 +1826,9 @@ fn expression_has_refutable_match(expression: &ResolvedExpr) -> bool {
         }
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_refutable_match),
         ResolvedExprKind::NativeRustImportCall(call) => {
+            call.args.iter().any(expression_has_refutable_match)
+        }
+        ResolvedExprKind::HostCommandCall(call) => {
             call.args.iter().any(expression_has_refutable_match)
         }
         ResolvedExprKind::Unary { value, .. }
@@ -1862,6 +1966,11 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
             }
         }
         ResolvedExprKind::NativeRustImportCall(call) => {
+            for argument in &call.args {
+                collect_agent_contract_values(argument, values);
+            }
+        }
+        ResolvedExprKind::HostCommandCall(call) => {
             for argument in &call.args {
                 collect_agent_contract_values(argument, values);
             }
@@ -2023,6 +2132,12 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
             return Err(Diagnostic::io(
                 "SPX-G218",
                 "Native Rust import declarations are outside the current semantic Graph schemas",
+            ));
+        }
+        ResolvedExprKind::HostCommandCall(_) => {
+            return Err(Diagnostic::io(
+                "SPX-G218",
+                "host-command operations are outside semantic Graph contract projections",
             ));
         }
         ResolvedExprKind::Unary { op, value } => format!(
@@ -3132,6 +3247,7 @@ fn byte_slice_fact_json(value: &ValueId, provenance: &hir::ByteSliceProvenance) 
         ByteSliceRootKind::OwnedBytes => "owned_bytes",
         ByteSliceRootKind::FixedArray => "fixed_array",
         ByteSliceRootKind::BorrowedStr => "borrowed_str",
+        ByteSliceRootKind::CommandArguments => "command_arguments",
     };
     format!(
         "{{\"value\":{},\"root\":{},\"root_kind\":{},\"root_length\":{},\"offset\":{},\"length\":{},\"producer\":{}}}",
@@ -3149,7 +3265,10 @@ fn portable_indexed_byte_data_json(
     schema: &str,
     program: &ResolvedProgram,
 ) -> Result<String, Diagnostic> {
-    if matches!(schema, "semaprax.graph.v17" | "semaprax.graph.v18") {
+    if matches!(
+        schema,
+        "semaprax.graph.v17" | "semaprax.graph.v18" | "semaprax.graph.v19"
+    ) {
         let capacity = hir::analyze_byte_data_capacity(program)?;
         let portable = format!(
             ",\"portable_indexed_byte_data\":{{\"profile\":\"useful-data-v1\",\"semantic_usize_bits\":64,\"max_external_root_bytes\":{},\"max_slice_bytes\":{},\"max_array_bytes\":{},\"max_inline_array_frame_bytes\":{},\"max_active_array_call_path_bytes\":{},\"max_bytes_copy_sites\":{},\"max_owned_byte_payload_bytes\":{},\"wasm_arena_token_min_inclusive\":1,\"wasm_arena_token_max_exclusive\":2147483648,\"wasm_arena_tokens_monotonic\":true,\"wasm_arena_tokens_reused\":false,\"wasm_import_binding\":\"exact-token-length\",\"wasm_carrier\":\"root-word-high32-length-u32-low32\",\"empty_bytes_owns_token\":true,\"zero_array_view\":\"root0-length0\",\"indexed_read\":\"total-option-u8\",\"capacity_summaries\":[{}],\"byte_slice_provenance\":[{}]}}",
@@ -3162,7 +3281,20 @@ fn portable_indexed_byte_data_json(
             crate::byte_data_capacity::MAX_OWNED_BYTE_PAYLOAD_BYTES,
             capacity.functions().map(|(function, _)| {
                 let summary = capacity.function(function).expect("enumerated capacity summary remains addressable");
-                if schema == "semaprax.graph.v18" {
+                if schema == "semaprax.graph.v19" {
+                    format!(
+                        "{{\"function\":{},\"inline_array_frame_bytes\":{},\"active_array_call_path_bytes\":{},\"bytes_copy_sites\":{},\"stdin_read_sites\":{},\"owned_byte_payload_bytes\":{},\"stdout_write_sites\":{},\"stderr_write_sites\":{},\"combined_transcript_bytes\":{}}}",
+                        quote_json(function),
+                        summary.inline_array_frame_bytes,
+                        summary.active_array_call_path_bytes,
+                        summary.bytes_copy_sites,
+                        summary.stdin_read_sites,
+                        summary.owned_byte_payload_bytes,
+                        summary.stdout_write_sites,
+                        summary.stderr_write_sites,
+                        summary.transcript_bytes,
+                    )
+                } else if schema == "semaprax.graph.v18" {
                     format!(
                         "{{\"function\":{},\"inline_array_frame_bytes\":{},\"active_array_call_path_bytes\":{},\"bytes_copy_sites\":{},\"owned_byte_payload_bytes\":{},\"stdout_write_sites\":{}}}",
                         quote_json(function),
@@ -3190,7 +3322,15 @@ fn portable_indexed_byte_data_json(
                 .collect::<Vec<_>>()
                 .budgeted_join(",")
         );
-        let transcript = if schema == "semaprax.graph.v18" {
+        let transcript = if matches!(schema, "semaprax.graph.v18" | "semaprax.graph.v19")
+            && program.functions.iter().any(|function| {
+                function
+                    .requires
+                    .iter()
+                    .chain(std::iter::once(&function.body))
+                    .chain(&function.ensures)
+                    .any(expression_has_stdout_write)
+            }) {
             format!(
                 ",\"bounded_stdout_transcript\":{{\"profile\":\"bounded-stdout-transcript-v1\",\"operation\":{},\"effect\":{},\"max_transcript_bytes\":{},\"max_writes_per_executable_path\":{},\"publication\":\"terminal-success-only\",\"failure\":\"discard-staged-transcript\"}}",
                 quote_json(crate::host_io_ops::STDOUT_WRITE_ID),
@@ -3201,7 +3341,22 @@ fn portable_indexed_byte_data_json(
         } else {
             String::new()
         };
-        Ok(format!("{portable}{transcript}"))
+        let command_io = if schema == "semaprax.graph.v19" {
+            format!(
+                ",\"bounded_language_command_io\":{{\"profile\":\"language-command-io.v1\",\"operations\":[{{\"name\":{},\"id\":{},\"effect\":{},\"failure\":\"infallible\"}},{{\"name\":{},\"id\":{},\"effect\":{},\"failure\":\"status\"}},{{\"name\":{},\"id\":{},\"effect\":{},\"failure\":\"status\"}},{{\"name\":{},\"id\":{},\"effect\":{},\"failure\":\"infallible\"}}],\"status_domain\":{},\"status_codes\":{{\"arg_index_out_of_bounds\":1,\"arg_invalid_utf8\":2,\"stdin_read_failed\":3,\"input_capacity_exceeded\":4}},\"max_arguments\":{},\"max_input_bytes\":{},\"argument_root\":\"immutable-invocation-owned-arena\",\"max_stdin_reads_per_path\":1,\"max_writes_per_channel_per_path\":1,\"max_combined_output_bytes\":{},\"publication\":\"terminal-success-only\",\"failure\":\"discard-staged-transcripts\"}}",
+                quote_json(crate::command_io_ops::ARGS_LEN_NAME), quote_json(crate::command_io_ops::ARGS_LEN_ID), quote_json(crate::command_io_ops::ARGS_READ_EFFECT),
+                quote_json(crate::command_io_ops::ARG_UTF8_NAME), quote_json(crate::command_io_ops::ARG_UTF8_ID), quote_json(crate::command_io_ops::ARGS_READ_EFFECT),
+                quote_json(crate::command_io_ops::STDIN_READ_NAME), quote_json(crate::command_io_ops::STDIN_READ_ID), quote_json(crate::command_io_ops::STDIN_READ_EFFECT),
+                quote_json(crate::command_io_ops::STDERR_WRITE_NAME), quote_json(crate::command_io_ops::STDERR_WRITE_ID), quote_json(crate::command_io_ops::STDERR_WRITE_EFFECT),
+                quote_json(crate::command_io_ops::STATUS_DOMAIN),
+                crate::command_io_ops::MAX_ARGUMENTS,
+                crate::command_io_ops::MAX_INPUT_BYTES,
+                crate::byte_data_capacity::MAX_COMBINED_TRANSCRIPT_BYTES,
+            )
+        } else {
+            String::new()
+        };
+        Ok(format!("{portable}{transcript}{command_io}"))
     } else {
         Ok(String::new())
     }
@@ -4011,6 +4166,11 @@ fn visit_expr_call_instances(
                 visit_expr_call_instances(argument, visit);
             }
         }
+        ResolvedExprKind::HostCommandCall(call) => {
+            for argument in &call.args {
+                visit_expr_call_instances(argument, visit);
+            }
+        }
         ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
             visit_expr_call_instances(value, visit);
         }
@@ -4086,6 +4246,11 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
             }
         }
         ResolvedExprKind::NativeRustImportCall(call) => {
+            for argument in &call.args {
+                visit_expr_calls(argument, visit);
+            }
+        }
+        ResolvedExprKind::HostCommandCall(call) => {
             for argument in &call.args {
                 visit_expr_calls(argument, visit);
             }
@@ -4186,6 +4351,11 @@ fn collect_expr_type_declarations(
             }
         }
         ResolvedExprKind::NativeRustImportCall(call) => {
+            for argument in &call.args {
+                collect_expr_type_declarations(argument, declarations);
+            }
+        }
+        ResolvedExprKind::HostCommandCall(call) => {
             for argument in &call.args {
                 collect_expr_type_declarations(argument, declarations);
             }
@@ -4478,6 +4648,19 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
                 "SPX-G218",
                 "Native Rust import declarations are outside the current semantic Graph schemas",
             ));
+        }
+        ResolvedExprKind::HostCommandCall(call) => {
+            let args = call
+                .args
+                .iter()
+                .map(|argument| expr_json(program, argument))
+                .collect::<Result<Vec<_>, _>>()?
+                .budgeted_join(",");
+            format!(
+                "{{{header},\"kind\":\"host_command_call\",\"operation\":{},\"args\":[{}]}}",
+                quote_json(crate::command_io_ops::id(call.operation)),
+                args
+            )
         }
         ResolvedExprKind::Unary { op, value } => format!(
             "{{{header},\"kind\":\"unary\",\"op\":{},\"value\":{}}}",
@@ -4847,6 +5030,11 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
             }
         }
         ResolvedExprKind::NativeRustImportCall(call) => {
+            for argument in &call.args {
+                collect_expr_types(argument, types);
+            }
+        }
+        ResolvedExprKind::HostCommandCall(call) => {
             for argument in &call.args {
                 collect_expr_types(argument, types);
             }

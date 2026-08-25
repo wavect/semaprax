@@ -7,6 +7,7 @@
 mod carrier;
 mod command;
 mod command_v2;
+mod command_v3;
 mod data;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 mod publication;
@@ -21,13 +22,14 @@ use super::{ProjectManifest, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1};
 
 use carrier::{
     artifact, json_string, payload_digest, payload_digest_artifacts_v2,
-    payload_digest_artifacts_v3, payload_digest_artifacts_v4, render_carrier,
-    render_carrier_artifacts, require_exact_keys, trusted_binding, validate_carrier_limit,
-    NpmArtifact, NpmBuildIdentity,
+    payload_digest_artifacts_v3, payload_digest_artifacts_v4, payload_digest_artifacts_v5,
+    render_carrier, render_carrier_artifacts, require_exact_keys, trusted_binding,
+    validate_carrier_limit, NpmArtifact, NpmBuildIdentity,
 };
 pub use carrier::{
     ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
     PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
+    PROJECT_NPM_BUILD_SCHEMA_V5,
 };
 
 pub(crate) const USEFUL_TEXT_PACKAGE_PATHS: [&str; 6] = [
@@ -157,6 +159,16 @@ pub(crate) fn prepare(
     project_graph_digest: &str,
     max_bytes: usize,
 ) -> Result<ProjectNpmBuild, Diagnostic> {
+    if manifest.is_v6() {
+        return command_v3::prepare(
+            manifest,
+            program,
+            project_revision,
+            workspace_revision,
+            project_graph_digest,
+            max_bytes,
+        );
+    }
     if manifest.is_v5() {
         return command_v2::prepare(
             manifest,
@@ -311,17 +323,34 @@ pub(super) fn render_semantic_recipe(
         .functions
         .iter()
         .any(|function| function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT]);
-    let mut output = if has_stdout {
+    let command_io = program.permits
+        == [
+            crate::command_io_ops::ARGS_READ_EFFECT,
+            crate::command_io_ops::STDERR_WRITE_EFFECT,
+            crate::command_io_ops::STDIN_READ_EFFECT,
+            crate::host_io_ops::STDOUT_WRITE_EFFECT,
+        ];
+    let mut output = if command_io {
+        format!(
+            "module semaprax_npm_recipe;\n\npermit {{ {} }}\n\n",
+            program.permits.join(", ")
+        )
+    } else if has_stdout {
         String::from("module semaprax_npm_recipe;\n\npermit { process.stdout.write }\n\n")
     } else {
         String::from("module semaprax_npm_recipe;\n\n")
     };
     for function in &program.functions {
-        if (!function.effects.is_empty()
-            && function.effects != [crate::host_io_ops::STDOUT_WRITE_EFFECT])
-            || !function.requires.is_empty()
-            || !function.ensures.is_empty()
-        {
+        let effects_admitted = if command_io {
+            function
+                .effects
+                .iter()
+                .all(|effect| program.permits.iter().any(|permit| permit == effect))
+        } else {
+            function.effects.is_empty()
+                || function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT]
+        };
+        if !effects_admitted || !function.requires.is_empty() || !function.ensures.is_empty() {
             return Err(package_error(
                 "npm semantic recipe does not admit these effects or contracts",
             ));
@@ -358,6 +387,8 @@ pub(super) fn render_semantic_recipe(
             recipe_type(&function.return_type)?,
             if function.effects.is_empty() {
                 "".to_owned()
+            } else if command_io {
+                format!("    uses {{ {} }}\n", function.effects.join(", "))
             } else {
                 format!(
                     "    uses {{ {} }}\n",
@@ -435,6 +466,18 @@ fn render_recipe_expr(
                 package_error("npm semantic recipe borrow operation is unavailable")
             })?;
             Ok(format!("{}({value})", operation.name()))
+        }
+        ResolvedExprKind::HostCommandCall(call) => {
+            let args = call
+                .args
+                .iter()
+                .map(|argument| render_recipe_expr(argument, functions, values, local_index))
+                .collect::<Result<Vec<_>, _>>()?
+                .join(", ");
+            Ok(format!(
+                "{}({args})",
+                crate::command_io_ops::name(call.operation)
+            ))
         }
         ResolvedExprKind::Call {
             callee,

@@ -450,6 +450,11 @@ fn collect_expr(
                 collect_expr(argument, scope_end, resolved, facts);
             }
         }
+        ResolvedExprKind::HostCommandCall(call) => {
+            for argument in &call.args {
+                collect_expr(argument, scope_end, resolved, facts);
+            }
+        }
         ResolvedExprKind::Unary { value, .. } => {
             collect_expr(value, scope_end, resolved, facts);
         }

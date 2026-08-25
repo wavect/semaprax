@@ -711,6 +711,22 @@ fn expression_path_counts_with_while(
                     ..accumulator
                 }
             }
+            ResolvedExprKind::HostCommandCall(call) => {
+                let mut accumulator = HirPathCounts::ONE;
+                for argument in &call.args {
+                    accumulator = sequence_path_counts(accumulator, count(function, argument)?);
+                }
+                if crate::command_io_ops::failure(call.operation)
+                    == crate::command_io_ops::CommandIoFailure::Status
+                {
+                    HirPathCounts {
+                        failed: accumulator.failed.saturating_add(accumulator.normal),
+                        ..accumulator
+                    }
+                } else {
+                    accumulator
+                }
+            }
             ResolvedExprKind::If {
                 condition,
                 then_branch,
@@ -945,6 +961,7 @@ fn expression_skeleton_work_upper(
                 ResolvedExprKind::NativeRustImportCall(call) => {
                     call.args.len().saturating_mul(4) + 8
                 }
+                ResolvedExprKind::HostCommandCall(call) => call.args.len().saturating_mul(6) + 14,
                 ResolvedExprKind::Block { statements, .. } => {
                     // While statements add two continuation pushes plus their
                     // Boolean split beyond the ordinary statement budget.
@@ -1583,6 +1600,9 @@ fn resolved_call_params(
         if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
             return Ok(crate::host_io_ops::resolved_params(op));
         }
+        if let Some(op) = crate::command_io_ops::by_id(callee.as_str()) {
+            return Ok(crate::command_io_ops::resolved_params(op));
+        }
     }
     let target = program
         .resolve_call_target(callee, instance)
@@ -1698,6 +1718,21 @@ fn collect_expression_statuses(
                         callee: callee.clone(),
                     },
                 });
+            }
+            ResolvedExprKind::HostCommandCall(call) => {
+                if crate::command_io_ops::failure(call.operation)
+                    == crate::command_io_ops::CommandIoFailure::Status
+                {
+                    statuses.push(StatusSource {
+                        id: StatusSourceId {
+                            expression: expression.id.clone(),
+                            lane: StatusLane::OperationFailure,
+                        },
+                        producer: StatusProducer::PropagatedCall {
+                            callee: DeclarationId::new(crate::command_io_ops::id(call.operation)),
+                        },
+                    });
+                }
             }
             ResolvedExprKind::Unary {
                 op: UnaryOp::Neg, ..
@@ -3154,6 +3189,28 @@ fn expression_skeleton(
                             push_frame!(frames, Frame::Eval(argument));
                         } else {
                             produced = Some(paths);
+                        }
+                    }
+                    ResolvedExprKind::HostCommandCall(call) => {
+                        let params = crate::command_io_ops::resolved_params(call.operation);
+                        work.charge(1, "host-command skeleton root state")?;
+                        let states = vec![(empty_expr_path(), Vec::new())];
+                        if let Some(argument) = call.args.first() {
+                            push_frame!(
+                                frames,
+                                Frame::CallArgument {
+                                    expression,
+                                    params,
+                                    args: &call.args,
+                                    index: 0,
+                                    states,
+                                }
+                            );
+                            push_frame!(frames, Frame::Eval(argument));
+                        } else {
+                            produced = Some(finish_call_states(
+                                program, function, expression, states, work,
+                            )?);
                         }
                     }
                     ResolvedExprKind::Block { statements, tail } => {
@@ -4957,6 +5014,13 @@ fn finish_call_states(
         } if crate::byte_ops::by_id(callee.as_str()).is_some()
             || crate::host_io_ops::by_id(callee.as_str()).is_some()
     );
+    let infallible_compiler_operation = infallible_compiler_operation
+        || matches!(
+            &expression.kind,
+            ResolvedExprKind::HostCommandCall(call)
+                if crate::command_io_ops::failure(call.operation)
+                    == crate::command_io_ops::CommandIoFailure::Infallible
+        );
     let source_expression =
         work.clone_owned(&expression.id, "call status source expression clone")?;
     let source = StatusSourceId {
@@ -6077,6 +6141,7 @@ fn replay_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&R
     match &expression.kind {
         ResolvedExprKind::Call { args, .. } => args.get(index),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
+        ResolvedExprKind::HostCommandCall(call) => call.args.get(index),
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
@@ -6552,6 +6617,15 @@ fn collect_expression_facts(
                     callee: callee.clone(),
                     instance: instance.clone(),
                     arguments: args.iter().map(|argument| argument.id.clone()).collect(),
+                }),
+                ResolvedExprKind::HostCommandCall(call) => Some(CallFact {
+                    callee: DeclarationId::new(crate::command_io_ops::id(call.operation)),
+                    instance: None,
+                    arguments: call
+                        .args
+                        .iter()
+                        .map(|argument| argument.id.clone())
+                        .collect(),
                 }),
                 _ => None,
             };

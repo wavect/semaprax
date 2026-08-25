@@ -1483,6 +1483,7 @@ pub fn create_directory_new_prepared(
 #[derive(Clone, Copy)]
 struct CreateDirectoryNewFailure {
     error: Error,
+    #[cfg(target_os = "macos")]
     namespace_created: bool,
 }
 
@@ -1493,6 +1494,7 @@ fn create_directory_new_prepared_with_creation_state(
 ) -> Result<Directory, CreateDirectoryNewFailure> {
     let settled = |error| CreateDirectoryNewFailure {
         error,
+        #[cfg(target_os = "macos")]
         namespace_created: false,
     };
     recheck_directory(parent).map_err(settled)?;
@@ -1516,6 +1518,7 @@ fn create_directory_new_prepared_with_creation_state(
     }
     open_directory_at(parent.file.as_raw_fd(), name).map_err(|error| CreateDirectoryNewFailure {
         error,
+        #[cfg(target_os = "macos")]
         namespace_created: true,
     })
 }

@@ -11,6 +11,10 @@ mod native_rust_cargo;
 
 const CALCULATOR: &str = include_str!("../examples/calculator.spx");
 const CALLBACK: &str = include_str!("../examples/calculator-rust/callback.spx");
+#[cfg(windows)]
+const EXPECTED_42_LINE: &[u8] = b"42\r\n";
+#[cfg(not(windows))]
+const EXPECTED_42_LINE: &[u8] = b"42\n";
 static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
 
 struct Fixture(PathBuf);
@@ -366,6 +370,9 @@ fn external_example_has_a_closed_two_phase_dependency_topology() {
         "spx_calculator_dot_divide(1, 0)",
         "NativeRustSdkCallError::Semantic",
         "semaprax.native-rust-semantics.v1",
+        "const OUTPUT: &[u8] = b\"42\\r\\n\"",
+        "const OUTPUT: &[u8] = b\"42\\n\"",
+        "write_all(OUTPUT)",
     ] {
         assert!(
             consumer_source.contains(required),
@@ -383,6 +390,9 @@ fn external_example_has_a_closed_two_phase_dependency_topology() {
         "NativeRustSdkCallError::HostFailed",
         "NativeRustSdkCallError::HostPanicked",
         "NativeRustSdkCallError::AdapterRejected",
+        "const OUTPUT: &[u8] = b\"42\\r\\n\"",
+        "const OUTPUT: &[u8] = b\"42\\n\"",
+        "write_all(OUTPUT)",
     ] {
         assert!(
             callback_consumer.contains(required),
@@ -443,6 +453,9 @@ fn project_example_selects_manifest_exports_for_a_compiler_free_consumer() {
         "spx_calculator_dot_multiply",
         "spx_calculator_dot_not",
         "spx_calculator_dot_subtract",
+        "const OUTPUT: &[u8] = b\"42\\r\\n\"",
+        "const OUTPUT: &[u8] = b\"42\\n\"",
+        "write_all(OUTPUT)",
     ] {
         assert!(
             consumer_source.contains(required),
@@ -598,7 +611,7 @@ fn hosted_external_consumers_are_deterministic_and_match_native_c_and_wasm() {
             .arg(consumer.join("Cargo.toml")),
         "run calculator consumer",
     );
-    assert_eq!(rust.stdout, b"42\n");
+    assert_eq!(rust.stdout, EXPECTED_42_LINE);
 
     let renamed_root = fixture.0.join("renamed");
     fs::create_dir(&renamed_root).unwrap();
@@ -657,7 +670,7 @@ fn hosted_external_consumers_are_deterministic_and_match_native_c_and_wasm() {
             .arg(callback_consumer.join("Cargo.toml")),
         "run callback consumer",
     );
-    assert_eq!(callback.stdout, b"42\n");
+    assert_eq!(callback.stdout, EXPECTED_42_LINE);
 
     let program = semaprax::check(CALCULATOR, "examples/calculator.spx").unwrap();
     let c_path = fixture.0.join("calculator.c");
@@ -695,10 +708,14 @@ const bytes=await readFile(new URL("calculator.wasm",import.meta.url));
 const checked=(operation)=>(a,b)=>{const value=operation(a,b);if(value<-(1n<<63n)||value>(1n<<63n)-1n)throw new RangeError();return value;};
 const imports={env:{spx_add:checked((a,b)=>a+b),spx_sub:checked((a,b)=>a-b),spx_mul:checked((a,b)=>a*b),spx_div:(a,b)=>a/b,spx_rem:(a,b)=>a%b,spx_neg:(a)=>-a,spx_contract_fail:()=>{throw new Error();}}};
 const linked=await WebAssembly.instantiate(bytes,imports);
-console.log(linked.instance.exports.semaprax_main().toString());
+const value=linked.instance.exports.semaprax_main().toString();
+process.stdout.write(value+(process.platform==="win32"?"\r\n":"\n"));
 "#,
     )
     .unwrap();
+    assert!(!fs::read_to_string(fixture.0.join("calculator.mjs"))
+        .unwrap()
+        .contains("console.log"));
     let wasm = run(
         Command::new("node").arg(fixture.0.join("calculator.mjs")),
         "run calculator Wasm backend",

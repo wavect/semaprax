@@ -1,8 +1,15 @@
 use core::num::NonZeroU32;
+use std::io::Write as _;
+
 use semaprax_generated_native_rust_sdk::{
     NativeRustSdk, NativeRustSdkCallError, NativeRustSdkImportResult, NativeRustSdkImports,
     NativeRustSdkStatusClass,
 };
+
+#[cfg(windows)]
+const OUTPUT: &[u8] = b"42\r\n";
+#[cfg(not(windows))]
+const OUTPUT: &[u8] = b"42\n";
 
 struct Host {
     mode: u8,
@@ -65,5 +72,6 @@ fn main() {
         wrong_class.spx_calculator_dot_callback_dot_apply(19, 22),
         Err(NativeRustSdkCallError::AdapterRejected)
     );
-    println!("42");
+    let mut stdout = std::io::stdout().lock();
+    stdout.write_all(OUTPUT).unwrap();
 }

@@ -20,6 +20,10 @@ const PROJECT_FILES: &[&str] = &[
 ];
 
 pub const BUILD_MAX_BYTES: usize = 512 * 1024;
+#[cfg(windows)]
+const EXPECTED_42_LINE: &[u8] = b"42\r\n";
+#[cfg(not(windows))]
+const EXPECTED_42_LINE: &[u8] = b"42\n";
 
 struct TempDir(PathBuf);
 
@@ -450,7 +454,7 @@ pub fn run_project_rust_sdk(fixture: &ProjectFixture, label: &str) -> RustSdkFac
         "run {label} Project Rust consumer: {}",
         String::from_utf8_lossy(&run.stderr)
     );
-    assert_eq!(run.stdout, b"42\n");
+    assert_eq!(run.stdout, EXPECTED_42_LINE);
 
     let manifest: Value = serde_json::from_slice(
         &std::fs::read(generated.join("semaprax.native-rust-sdk.json")).unwrap(),

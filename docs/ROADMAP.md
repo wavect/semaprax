@@ -147,12 +147,15 @@ and active-call-path budgets, canonical cleanup settlement, and Graph v17
 through the interpreter, native C O0/O2, and internal Core-Wasm/Node lanes.
 Project Manifest v3 now locally selects `useful-data.v1` and supplies the
 generated strict JS/TS `Uint8Array` facade, exact v2 npm carrier, and installed
-multi-module binary-frame acceptance project. Unix publication is
+multi-module binary-frame acceptance project. Indexed Byte Loop v2 locally
+adds true dynamic traversal through exact compiler-owned `byte_get` /
+`Option<u8>` matching while preserving cleanup-inert loops. Unix publication is
 handle-relative and no-clobber; the Windows v2 route stays fail-closed until an
 equally strong primitive is available. The remaining promotion work is the
 complete hostile cross-platform boundary matrix, exact-head hosted Linux,
 macOS, Windows, and Rust-1.85 evidence, safe Windows publication, npm registry
-publication, and release promotion. Iteration, files/stdin/stdout, general
+publication, and release promotion. General aggregate/resource iteration,
+files/stdin/stdout, general
 collections, mutable views, dependencies, lockfiles, signing, and provenance
 remain on the roadmap.
 

@@ -116,6 +116,16 @@ compiler-owned `Option` profile is widened only to the exact Copy payload
 `u8` needed by this operation; `Option<usize>`, non-Copy options, and general
 generic widening are not implied.
 
+Indexed Byte Loop v2 permits this exact compiler-owned `Option<u8>` result to
+be matched inside bounded `while` conditions and bodies. The match must be
+exhaustive and guard-free with exact `Some { value: u8 }` and `None {}` cases,
+and every arm result remains a Copy scalar. This is an immutable read-only
+widening: `byte_len` and `byte_get` are the only byte operations admitted in a
+loop, a slice view must already exist, and `bytes_copy`, view construction,
+owned values, general variants, effects, imports, and cleanup-bearing work stay
+rejected. A dynamic index at or beyond the slice length selects `None` through
+the same target-independent semantics as a straight-line read.
+
 `bytes_copy` copies the exact byte sequence, including embedded NUL and bytes
 that are not valid UTF-8. It never aliases its input. `str_as_bytes` preserves
 the already validated UTF-8 byte sequence and the original invocation root;
@@ -383,7 +393,8 @@ Completion requires all of the following at one exact head:
     charging, digest mismatch, offline pack/install, and compiler-free use.
 11. A multi-module binary-frame validator/checksum Project that uses a magic
     fixed array, borrowed slices, total indexed reads, `usize`, existing
-    `while`/mutation, an owned copy/move/drop path, explicit stable-ID exports,
+    `while`/mutation with an exact `Option<u8>` match per dynamic index, an
+    owned copy/move/drop path, explicit stable-ID exports,
     and stable-ID display rename; it must execute equivalently through the
     interpreter, native O0/O2, Wasm, generated JS, and installed npm package.
 12. Repository fmt, check, clippy with `-D warnings`, workspace tests,
@@ -403,4 +414,5 @@ decoding, byte-to-string conversion, owned-byte public return ABI, allocator
 interoperability, aggregate/resource/generic data exports, imported byte
 input or owned-byte output, files, stdin/stdout, WASI, callbacks, async,
 threads, atomics, shared memory, memory growth, SIMD, components, registry
-publication, signing, provenance, or general-purpose data processing.
+publication, signing, provenance, general aggregate matching in loops, or
+general-purpose data processing.

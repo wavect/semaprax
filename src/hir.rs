@@ -6739,12 +6739,15 @@ impl Resolver<'_> {
         Ok((field_id, field_ty))
     }
 
-    /// Bounded While-Loops v1 admission profile: a loop condition or body may
-    /// contain only Copy-scalar operations — scalar literals, names, checked
+    /// Bounded While-Loops v1 plus Indexed Byte Loop v2 admission profile: a
+    /// loop condition or body may contain Copy-scalar operations — scalar
+    /// literals, names, checked
     /// scalar arithmetic and comparisons, nested `if`s over scalars, blocks
     /// with scalar statements, scalar `let`/assignment statements, nested
-    /// while loops, and monomorphic calls to scalar-value functions. Every
-    /// other construct (records, variants, matches, `?`, projections, method
+    /// while loops, monomorphic calls to scalar-value functions, exact
+    /// read-only `byte_len`/`byte_get`, and one guard-free direct
+    /// `byte_get`/`Option<u8>` match. Every other construct (records, variants,
+    /// general matches, `?`, projections, method
     /// calls, strings, unsafe boundaries, generic calls, non-scalar calls)
     /// is rejected fail-closed so loop cleanup stays edge-free.
     fn reject_while_disallowed(&self, expression: &Expr) -> Result<(), Diagnostic> {
@@ -6800,6 +6803,21 @@ impl Resolver<'_> {
                         "generic calls are not yet admitted in while bodies",
                         expression.span,
                     ));
+                }
+                if let Some(operation) = crate::byte_ops::by_name(name) {
+                    if !matches!(
+                        operation,
+                        crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get
+                    ) || args.len() != operation.arity()
+                    {
+                        return Err(self.error(
+                            "SPX-T252",
+                            format!(
+                                "byte operation `{name}` is not admitted in while bodies; only exact byte_len and byte_get reads qualify"
+                            ),
+                            expression.span,
+                        ));
+                    }
                 }
                 // Only calls that resolve to a monomorphic function with
                 // by-value scalar parameters and a scalar result keep the
@@ -6860,6 +6878,15 @@ impl Resolver<'_> {
                 "record updates are not yet admitted in while bodies",
                 expression.span,
             )),
+            ExprKind::Match { scrutinee, arms }
+                if crate::byte_ops::is_indexed_byte_option_match_source(expression) =>
+            {
+                self.reject_while_disallowed(scrutinee)?;
+                for arm in arms {
+                    self.reject_while_disallowed(&arm.value)?;
+                }
+                Ok(())
+            }
             ExprKind::Match { .. } => Err(self.error(
                 "SPX-T252",
                 "match expressions are not yet admitted in while bodies",

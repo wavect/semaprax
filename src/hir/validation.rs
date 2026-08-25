@@ -1261,10 +1261,12 @@ impl<'a> HirValidator<'a> {
         Ok(())
     }
 
-    /// Bounded While-Loops v1 admission re-check at the HIR trust boundary.
-    /// Loop conditions and bodies may contain only Copy-scalar operations;
-    /// anything else fails closed as malformed HIR because source resolution
-    /// already rejected it with `SPX-T252`.
+    /// Bounded While-Loops v1 plus Indexed Byte Loop v2 admission re-check at
+    /// the HIR trust boundary. Loop conditions and bodies admit Copy-scalar
+    /// operations plus exact read-only `byte_len`/`byte_get` and one direct
+    /// guard-free compiler-owned `byte_get`/`Option<u8>` match. Anything else
+    /// fails closed as malformed HIR because source resolution rejected it
+    /// with `SPX-T252`.
     fn validate_while_admission(&self, expression: &ResolvedExpr) -> Result<(), Diagnostic> {
         match &expression.kind {
             ResolvedExprKind::Int(_)
@@ -1274,8 +1276,18 @@ impl<'a> HirValidator<'a> {
             | ResolvedExprKind::Usize(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
-            | ResolvedExprKind::Bool(_)
-            | ResolvedExprKind::Place(_) => Ok(()),
+            | ResolvedExprKind::Bool(_) => Ok(()),
+            ResolvedExprKind::Place(_) => {
+                if crate::hir::is_scalar_resolved_type(&expression.ty)
+                    && expression.ownership == OwnershipMode::Value
+                {
+                    Ok(())
+                } else {
+                    Err(hir_error(
+                        "while loop places must be Copy scalars outside an indexed byte read",
+                    ))
+                }
+            }
             ResolvedExprKind::String(_) => {
                 Err(hir_error("while loops cannot contain string literals"))
             }
@@ -1327,12 +1339,29 @@ impl<'a> HirValidator<'a> {
                         || args.iter().enumerate().any(|(index, argument)| {
                             !operation.accepts_resolved(index, &argument.ty)
                         })
+                        || expression.ty != operation.return_type()
+                        || expression.ownership != OwnershipMode::Value
                     {
                         return Err(hir_error(format!(
                             "while loop byte operation `{callee}` is outside the read-only indexed profile"
                         )));
                     }
-                    for argument in args {
+                    let slice = &args[0];
+                    let ResolvedExprKind::Place(place) = &slice.kind else {
+                        return Err(hir_error(
+                            "while loop indexed byte reads require an existing byte-slice alias",
+                        ));
+                    };
+                    if slice.ty != ResolvedType::SliceU8
+                        || slice.ownership != OwnershipMode::Borrow
+                        || !place.projections.is_empty()
+                        || !self.byte_slice_aliases.contains_key(&place.root)
+                    {
+                        return Err(hir_error(
+                            "while loop indexed byte read lacks authenticated slice provenance",
+                        ));
+                    }
+                    for argument in &args[1..] {
                         self.validate_while_admission(argument)?;
                     }
                     return Ok(());
@@ -1376,13 +1405,140 @@ impl<'a> HirValidator<'a> {
             ResolvedExprKind::UpdateRecord { .. } => {
                 Err(hir_error("while loops cannot update records"))
             }
-            ResolvedExprKind::Match { .. } => {
-                Err(hir_error("while loops cannot contain match expressions"))
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                self.validate_indexed_byte_option_match_admission(expression, scrutinee, arms)
             }
             ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => Err(hir_error(
                 "while loops cannot contain postfix `?` propagation",
             )),
         }
+    }
+
+    /// Authenticate the one aggregate-shaped expression admitted by Indexed
+    /// Byte Loop v2. The match is cleanup-inert: its scrutinee is exactly the
+    /// compiler byte getter, its case inventory is exactly compiler-owned
+    /// `Option<u8>::Some/None`, and every arm still belongs to the existing
+    /// Copy-scalar while profile.
+    fn validate_indexed_byte_option_match_admission(
+        &self,
+        expression: &ResolvedExpr,
+        scrutinee: &ResolvedExpr,
+        arms: &[ResolvedMatchArm],
+    ) -> Result<(), Diagnostic> {
+        if !crate::hir::is_scalar_resolved_type(&expression.ty)
+            || expression.ownership != OwnershipMode::Value
+        {
+            return Err(hir_error(
+                "while loop byte match must produce a Copy scalar value",
+            ));
+        }
+        let ResolvedExprKind::Call {
+            callee,
+            instance,
+            type_arguments,
+            args,
+        } = &scrutinee.kind
+        else {
+            return Err(hir_error(
+                "while loops cannot match an aggregate other than compiler-owned byte_get",
+            ));
+        };
+        let operation = crate::byte_ops::by_id(callee.as_str());
+        if operation != Some(crate::byte_ops::ByteOp::Get)
+            || instance.is_some()
+            || !type_arguments.is_empty()
+            || args.len() != crate::byte_ops::ByteOp::Get.arity()
+            || args.iter().enumerate().any(|(index, argument)| {
+                !crate::byte_ops::ByteOp::Get.accepts_resolved(index, &argument.ty)
+            })
+            || scrutinee.ty != crate::byte_ops::ByteOp::Get.return_type()
+            || !scrutinee.ty.is_compiler_byte_option()
+            || scrutinee.ownership != OwnershipMode::Value
+        {
+            return Err(hir_error(
+                "while loop byte match scrutinee is not the exact compiler-owned byte_get result",
+            ));
+        }
+        for id in [
+            crate::prelude::OPTION_ID,
+            crate::prelude::OPTION_SOME_ID,
+            crate::prelude::OPTION_SOME_VALUE_ID,
+            crate::prelude::OPTION_NONE_ID,
+        ] {
+            let id = DeclarationId::new(id);
+            if self
+                .program
+                .declarations
+                .declaration(&id)
+                .is_none_or(|declaration| {
+                    declaration.identity_origin != IdentityOrigin::CompilerOwned
+                })
+            {
+                return Err(hir_error(format!(
+                    "while loop byte match identity `{id}` is not compiler-owned"
+                )));
+            }
+        }
+        if arms.len() != 2 {
+            return Err(hir_error(
+                "while loop byte match must contain exactly Some and None arms",
+            ));
+        }
+
+        let mut some_seen = false;
+        let mut none_seen = false;
+        for arm in arms {
+            if arm.guard.is_some()
+                || arm.value.ty != expression.ty
+                || arm.value.ownership != OwnershipMode::Value
+                || !crate::hir::is_scalar_resolved_type(&arm.value.ty)
+            {
+                return Err(hir_error(
+                    "while loop byte match arms must be guard-free Copy-scalar expressions",
+                ));
+            }
+            let ResolvedMatchPattern::Variant {
+                variant,
+                case,
+                fields,
+            } = &arm.pattern
+            else {
+                return Err(hir_error(
+                    "while loop byte match contains a non-Option case pattern",
+                ));
+            };
+            if variant.as_str() != crate::prelude::OPTION_ID {
+                return Err(hir_error(
+                    "while loop byte match pattern has a foreign variant identity",
+                ));
+            }
+            match case.as_str() {
+                crate::prelude::OPTION_SOME_ID
+                    if !some_seen
+                        && fields.len() == 1
+                        && fields[0].field.as_str() == crate::prelude::OPTION_SOME_VALUE_ID
+                        && fields[0].binding.ty == ResolvedType::U8
+                        && fields[0].binding.ownership == OwnershipMode::Value =>
+                {
+                    some_seen = true;
+                }
+                crate::prelude::OPTION_NONE_ID if !none_seen && fields.is_empty() => {
+                    none_seen = true;
+                }
+                _ => {
+                    return Err(hir_error(
+                        "while loop byte match is not the exact exhaustive Some/None inventory",
+                    ));
+                }
+            }
+            self.validate_while_admission(&arm.value)?;
+        }
+        if !some_seen || !none_seen {
+            return Err(hir_error(
+                "while loop byte match is not exhaustive over Some and None",
+            ));
+        }
+        self.validate_while_admission(scrutinee)
     }
 
     fn reachable_function_instances(

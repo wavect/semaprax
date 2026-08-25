@@ -1,6 +1,6 @@
 //! Compiler-owned operations over non-escaping borrowed byte slices.
 
-use crate::ast::{Span, Type};
+use crate::ast::{Expr, ExprKind, MatchPattern, Span, Type};
 use crate::hir::{DeclarationId, OwnershipMode, ResolvedParam, ResolvedType, ValueId};
 
 pub(crate) const LEN_NAME: &str = "byte_len";
@@ -141,6 +141,61 @@ pub(crate) fn by_id(id: &str) -> Option<ByteOp> {
         STR_AS_BYTES_ID => Some(ByteOp::StrAsBytes),
         _ => None,
     }
+}
+
+/// Indexed Byte Loop v2 source-shape gate. This deliberately recognizes only
+/// the reserved `byte_get` spelling and the complete, guard-free `Option<u8>`
+/// case inventory. Resolution and hostile-HIR validation then authenticate the
+/// corresponding compiler-owned identities and concrete types.
+pub(crate) fn is_indexed_byte_option_match_source(expression: &Expr) -> bool {
+    let ExprKind::Match { scrutinee, arms } = &expression.kind else {
+        return false;
+    };
+    let ExprKind::Call {
+        name,
+        type_arguments,
+        args,
+    } = &scrutinee.kind
+    else {
+        return false;
+    };
+    if by_name(name) != Some(ByteOp::Get)
+        || !type_arguments.is_empty()
+        || args.len() != ByteOp::Get.arity()
+        || arms.len() != 2
+    {
+        return false;
+    }
+
+    let mut some_seen = false;
+    let mut none_seen = false;
+    for arm in arms {
+        if arm.guard.is_some() {
+            return false;
+        }
+        let MatchPattern::Variant {
+            type_name,
+            case_name,
+            fields,
+            ..
+        } = &arm.pattern
+        else {
+            return false;
+        };
+        if type_name != "Option" {
+            return false;
+        }
+        match case_name.as_str() {
+            "Some" if !some_seen && fields.len() == 1 && fields[0].name == "value" => {
+                some_seen = true;
+            }
+            "None" if !none_seen && fields.is_empty() => {
+                none_seen = true;
+            }
+            _ => return false,
+        }
+    }
+    some_seen && none_seen
 }
 
 pub(crate) fn resolved_params(op: ByteOp) -> Vec<ResolvedParam> {

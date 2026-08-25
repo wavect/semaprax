@@ -27,11 +27,11 @@ fn checksum(frame: borrow Slice<u8>) -> usize
     let bytes = bytes_as_slice(owned);
     let length = byte_len(bytes);
     let mut index = 0usize;
-    while index < length {
+    let mut total = 0usize;
+    while index <= length {
+        total = total + match byte_get(bytes, index) { Option::Some { value: byte } => if byte == 255u8 { 1usize } else { 0usize }, Option::None {} => 0usize, };
         index = index + 1usize;
-        index < length
+        index <= length
     }
-    let fourth = match byte_get(bytes, 4usize) { Option::Some { value: byte } => if byte == 255u8 { 1usize } else { 0usize }, Option::None {} => 0usize, };
-    let sixth = match byte_get(bytes, 6usize) { Option::Some { value: byte } => if byte == 255u8 { 1usize } else { 0usize }, Option::None {} => 0usize, };
-    fourth + sixth
+    total
 }

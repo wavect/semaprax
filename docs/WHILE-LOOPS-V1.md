@@ -1,10 +1,9 @@
 # Bounded While-Loops v1
 
-Status: Partial — this tranche adds statement-level `while` loops over an
-explicitly admitted Copy-scalar profile, evidenced by
-`tests/while_loops_v1.rs` and `examples/while_loops.spx`. The broader control
-flow row of [COMPLETION-MATRIX.md](COMPLETION-MATRIX.md) is unchanged by this
-document alone.
+Status: Partial — v1 adds statement-level `while` loops over an explicitly
+admitted Copy-scalar profile. Indexed Byte Loop v2 additively admits one exact
+cleanup-inert `byte_get`/`Option<u8>` read profile. The broader control-flow
+row of [COMPLETION-MATRIX.md](COMPLETION-MATRIX.md) remains Partial.
 
 ## Objective
 
@@ -82,6 +81,31 @@ This restriction means admitted loops contribute **zero** new cleanup slots,
 transitions, or finalizers: the CleanupPlan v2/v3 schema set, the plan
 builder, the independent replay gate, and every serialized plan for programs
 without while syntax are byte-identical to pre-feature output.
+
+## Indexed Byte Loop v2
+
+The additive v2 profile admits immutable indexed byte inspection without
+opening general aggregate execution inside loops. A loop condition or body may
+call only the compiler-owned `byte_len` and `byte_get` byte operations in
+addition to the v1 forms. The slice argument must already be an authenticated
+non-escaping `Slice<u8>` place; constructing a view, copying `Bytes`, or
+performing any allocation in the loop remains rejected.
+
+The sole admitted aggregate expression is an exhaustive, guard-free match over
+the direct result of compiler-owned `byte_get` with the exact authenticated
+compiler-prelude `Option<u8>` instance. It has exactly the `Option::Some {
+value: <u8 binding> }` and `Option::None {}` cases, and both arm results must
+remain Copy scalars admitted by the surrounding loop profile. Out-of-range
+indices are ordinary total reads selecting `None`; they are not diagnostics or
+target traps. General variant matches, aliases of authored `Option<u8>`,
+guards, nested aggregate patterns/results, `?`, owned data, imports, effects,
+and calls that can allocate or alter cleanup liveness remain closed.
+
+The indexed match itself adds no storage leaf, cleanup action, failure source,
+or plan back-edge. Source resolution and hostile-HIR validation independently
+authenticate the byte-operation identity, exact carrier/member identities,
+field binding type, arm inventory, result type, and recursively admitted arm
+expressions before existing interpreter, native, or Wasm match lowering runs.
 
 ## Cleanup-plan contract for loops
 

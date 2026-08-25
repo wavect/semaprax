@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Added locally evidenced Indexed Byte Loop v2. Bounded loops may perform
+  immutable `byte_len`/`byte_get` reads and exhaustively match the exact
+  compiler-owned `Option<u8>` result with guard-free `Some`/`None` arms. Source
+  and hostile-HIR gates keep view construction, allocation, owned values,
+  general aggregate matching, effects, and imports closed; the indexed match
+  itself adds no cleanup slot, action, status source, or back-edge. The
+  binary-frame fixture now
+  traverses dynamic indices rather than checking fixed offsets, with
+  interpreter, native O0/O2, and Core-Wasm/Node evidence. Useful Data and the
+  completion matrix remain Partial pending their existing hosted and public
+  promotion gates.
+
 - Added the locally evidenced Project Manifest v3 / public Useful Data v1
   adapter tranche. The closed `useful-data.v1` profile links the authenticated
   entry, test, and disconnected stable-ID export closures without widening v1

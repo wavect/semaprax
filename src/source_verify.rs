@@ -4540,13 +4540,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         });
     }
 
-    /// Bounded While-Loops v1 admission profile: a loop condition or body may
-    /// contain only Copy-scalar operations — scalar literals, names, checked
+    /// Bounded While-Loops v1 plus Indexed Byte Loop v2 admission profile: a
+    /// loop condition or body may contain Copy-scalar operations — scalar
+    /// literals, names, checked
     /// scalar arithmetic and comparisons, nested `if`s over scalars, blocks
     /// with scalar statements, scalar `let`/assignment statements, nested
-    /// while loops, and monomorphic calls to scalar-value functions. Every
-    /// other construct is rejected fail-closed so loop cleanup stays
-    /// edge-free.
+    /// while loops, monomorphic calls to scalar-value functions, exact
+    /// read-only `byte_len`/`byte_get`, and one guard-free direct
+    /// `byte_get`/`Option<u8>` match. Every other construct is rejected
+    /// fail-closed so loop cleanup stays edge-free.
     fn reject_while_disallowed(&mut self, expression: &'p Expr) -> Result<(), ()> {
         match &expression.kind {
             ExprKind::Int(_)
@@ -4614,6 +4616,23 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         expression.span,
                     ));
                     return Err(());
+                }
+                if let Some(operation) = crate::byte_ops::by_name(name) {
+                    if !matches!(
+                        operation,
+                        crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get
+                    ) || args.len() != operation.arity()
+                    {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T252",
+                            format!(
+                                "byte operation `{name}` is not admitted in while bodies; only exact byte_len and byte_get reads qualify"
+                            ),
+                            expression.span,
+                        ));
+                        return Err(());
+                    }
                 }
                 // Only calls that resolve to a monomorphic function with
                 // by-value scalar parameters and a scalar result keep the
@@ -4696,6 +4715,17 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     expression.span,
                 ));
                 Err(())
+            }
+            ExprKind::Match { scrutinee, arms }
+                if crate::byte_ops::is_indexed_byte_option_match_source(expression) =>
+            {
+                self.reject_while_disallowed(scrutinee)?;
+                let mut result = Ok(());
+                for arm in arms {
+                    result = self.reject_while_disallowed(&arm.value);
+                    result?;
+                }
+                result
             }
             ExprKind::Match { .. } => {
                 self.diagnostics.push(error(
@@ -10221,6 +10251,23 @@ fn reject_while_disallowed_oracle(
                 ));
                 return Err(());
             }
+            if let Some(operation) = crate::byte_ops::by_name(name) {
+                if !matches!(
+                    operation,
+                    crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get
+                ) || args.len() != operation.arity()
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T252",
+                        format!(
+                            "byte operation `{name}` is not admitted in while bodies; only exact byte_len and byte_get reads qualify"
+                        ),
+                        expression.span,
+                    ));
+                    return Err(());
+                }
+            }
             if let Some(declared) = functions.get(name.as_str()) {
                 let scalar_signature = is_scalar_source_type(&declared.return_type)
                     && declared.params.iter().all(|param| {
@@ -10289,6 +10336,18 @@ fn reject_while_disallowed_oracle(
                 expression.span,
             ));
             Err(())
+        }
+        ExprKind::Match { scrutinee, arms }
+            if crate::byte_ops::is_indexed_byte_option_match_source(expression) =>
+        {
+            reject_while_disallowed_oracle(program, scrutinee, functions, diagnostics)?;
+            let mut result = Ok(());
+            for arm in arms {
+                result =
+                    reject_while_disallowed_oracle(program, &arm.value, functions, diagnostics);
+                result?;
+            }
+            result
         }
         ExprKind::Match { .. } => {
             diagnostics.push(error(

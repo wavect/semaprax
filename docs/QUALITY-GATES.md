@@ -18,7 +18,13 @@ cargo test --locked -p semaprax --test bytes_cleanup_v1
 cargo test --locked -p semaprax --test useful_data_interpreter_v1
 cargo test --locked -p semaprax --test useful_data_native_v1
 cargo test --locked -p semaprax --test useful_data_wasm_v1
+cargo test --locked -p semaprax --test indexed_byte_loops_v2
 ```
+
+Indexed Byte Loop v2 additionally requires exact source and hostile-HIR
+rejection outside its compiler-owned `byte_get -> Option<u8>` match profile,
+dynamic in-range and out-of-range traversal, unchanged cleanup inventory/plan
+meaning, and interpreter/native O0/O2/Core-Wasm-Node agreement.
 
 These are the local compiler gates. They do not by themselves prove the public
 Project/npm boundary. Useful Text Consumer v1 gates alone likewise do not prove

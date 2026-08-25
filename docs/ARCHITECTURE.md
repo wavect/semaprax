@@ -1480,6 +1480,16 @@ Native erases physical zero arrays; Wasm uses fixed memory plus exact
 generation-checked owned tokens. Graph v17 serializes provenance and capacity
 summaries while lower schemas remain selected for legacy programs.
 
+Indexed Byte Loop v2 keeps that same Graph-v17 and CleanupPlan-v2/v3 authority.
+Inside bounded loops, the source resolver and hostile-HIR validator admit only
+compiler-owned `byte_len`/`byte_get` reads and one exhaustive, guard-free match
+over the exact compiler-prelude `Option<u8>` result of `byte_get`. The slice is
+an already authenticated non-escaping place; view construction, allocation,
+owned data, general aggregate matching, imports, and effects remain closed.
+The match binding and both arms are Copy-scalar, so interpreter, native, and
+Wasm reuse their existing variant lowering; the indexed match itself introduces
+no cleanup slot, status source, or plan back-edge.
+
 ## Project Manifest v3 and public Useful Data v1
 
 [Project Manifest v3](PROJECT-MANIFEST-V3.md) additively selects the closed

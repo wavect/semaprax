@@ -104,12 +104,19 @@ int main(void) {{
     struct spx_context context = {{0}};
     if (!spx_context_init(&context, UINT64_C(64), entries, UINT32_C(16), NULL, NULL, NULL)) return 10;
     const uint8_t payload[] = {{UINT8_C(83),UINT8_C(80),UINT8_C(88),UINT8_C(1),UINT8_C(255),UINT8_C(0),UINT8_C(255)}};
+    const uint8_t moved_payload[] = {{UINT8_C(255),UINT8_C(83),UINT8_C(80),UINT8_C(255),UINT8_C(88),UINT8_C(1),UINT8_C(0)}};
     spx_slice_u8_v1 frame = {{payload, UINT64_C(7)}};
+    spx_slice_u8_v1 moved_frame = {{moved_payload, UINT64_C(7)}};
+    spx_slice_u8_v1 empty_frame = {{NULL, UINT64_C(0)}};
     uint64_t length = UINT64_C(0), checksum = UINT64_C(0), combined = UINT64_C(0);
     bool magic = false;
     if ({length_fn}(&context, frame, &length) != SPX_STATUS_SUCCESS || length != UINT64_C(7)) return 11;
     if ({magic_fn}(&context, frame, &magic) != SPX_STATUS_SUCCESS || !magic) return 12;
     if ({checksum_fn}(&context, frame, &checksum) != SPX_STATUS_SUCCESS || checksum != UINT64_C(2)) return 13;
+    checksum = UINT64_C(0);
+    if ({checksum_fn}(&context, moved_frame, &checksum) != SPX_STATUS_SUCCESS || checksum != UINT64_C(2)) return 15;
+    checksum = UINT64_C(99);
+    if ({checksum_fn}(&context, empty_frame, &checksum) != SPX_STATUS_SUCCESS || checksum != UINT64_C(0)) return 16;
     if ({combined_fn}(&context, frame, frame, &combined) != SPX_STATUS_SUCCESS || combined != UINT64_C(14)) return 14;
     return 0;
 }}
@@ -197,9 +204,12 @@ const pending = instantiate(original);
 original.fill(0);
 const runtime = await pending;
 const frame = Uint8Array.from([83,80,88,1,255,0,255]);
+const movedFrame = Uint8Array.from([255,83,80,255,88,1,0]);
 assert.equal(runtime.functions["binary-frame.length"](frame), 7n);
 assert.equal(runtime.functions["binary-frame.has-magic"](frame), true);
 assert.equal(runtime.functions["binary-frame.checksum"](frame), 2n);
+assert.equal(runtime.functions["binary-frame.checksum"](movedFrame), 2n);
+assert.equal(runtime.functions["binary-frame.checksum"](new Uint8Array()), 0n);
 assert.equal(runtime.functions["binary-frame.combine-length"](frame, frame), 14n);
 assert.equal(runtime.functions["binary-frame.length"](new Uint8Array(65536)), 65536n);
 let boundary;
@@ -331,9 +341,12 @@ const wasmUrl = new URL(import.meta.resolve("binary-frame/app.wasm"));
 const bytes = Uint8Array.from(fs.readFileSync(wasmUrl));
 const runtime = await instantiate(bytes);
 const frame = Uint8Array.from([83,80,88,1,255,0,255]);
+const movedFrame = Uint8Array.from([255,83,80,255,88,1,0]);
 assert.equal(runtime.functions["binary-frame.length"](frame), 7n);
 assert.equal(runtime.functions["binary-frame.has-magic"](frame), true);
 assert.equal(runtime.functions["binary-frame.checksum"](frame), 2n);
+assert.equal(runtime.functions["binary-frame.checksum"](movedFrame), 2n);
+assert.equal(runtime.functions["binary-frame.checksum"](new Uint8Array()), 0n);
 "#,
             )
             .unwrap();

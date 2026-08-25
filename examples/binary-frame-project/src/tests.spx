@@ -8,9 +8,11 @@ fn main() -> i64
     let copied = bytes_copy(fixed_view);
     let copied_view = bytes_as_slice(copied);
     let mut index = 0usize;
-    while index < byte_len(copied_view) {
+    let mut total = 0usize;
+    while index <= byte_len(copied_view) {
+        total = total + match byte_get(copied_view, index) { Option::Some { value: byte } => if byte == 255u8 { 1usize } else { 0usize }, Option::None {} => 0usize, };
         index = index + 1usize;
-        index < byte_len(copied_view)
+        index <= byte_len(copied_view)
     }
-    match byte_get(copied_view, 1usize) { Option::Some { value: byte } => if index == 4usize && byte == 255u8 { 0 } else { 1 }, Option::None {} => 2, }
+    match byte_get(copied_view, 1usize) { Option::Some { value: byte } => if index == 5usize && total == 2usize && byte == 255u8 { 0 } else { 1 }, Option::None {} => 2, }
 }

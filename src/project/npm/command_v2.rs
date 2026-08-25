@@ -38,7 +38,7 @@ pub(super) fn prepare(
         command_id,
         &data::hex_sha256(&wasm),
     );
-    let artifacts = command::render_package_with_metadata(
+    let artifacts = render_package(
         manifest.name(),
         version,
         command_id,
@@ -110,6 +110,110 @@ fn render_metadata(name: &str, version: &str, command: &str, wasm_sha256: &str) 
     )
 }
 
+/// Render the v5-only Node facade. The frozen v4 renderer supplies the common
+/// runtime, declarations, and package bytes, then this closed profile replaces
+/// only the two authority-sensitive JavaScript leaves.
+fn render_package(
+    name: &str,
+    version: &str,
+    command_id: &str,
+    wasm: &[u8],
+    exports: &[data::DataExport],
+    metadata: &[u8],
+) -> Result<[NpmArtifact; 7], Diagnostic> {
+    let mut artifacts =
+        command::render_package_with_metadata(name, version, command_id, wasm, exports, metadata)?;
+    let bindings = artifact_text(&artifacts, "semaprax.bindings.js")?;
+    let bindings = replace_once(
+        bindings,
+        "takeTranscript, wasmSha256: EXPECTED_WASM_SHA256",
+        "takeTranscript, discardTranscript, wasmSha256: EXPECTED_WASM_SHA256",
+    )?;
+    replace_artifact(
+        &mut artifacts,
+        "semaprax.bindings.js",
+        bindings.into_bytes(),
+    )?;
+    replace_artifact(
+        &mut artifacts,
+        "semaprax.command.js",
+        render_command_adapter(command_id).into_bytes(),
+    )?;
+    Ok(artifacts)
+}
+
+fn replace_once(source: String, from: &str, to: &str) -> Result<String, Diagnostic> {
+    if source.matches(from).count() != 1 {
+        return Err(package_error(
+            "npm command v2 facade template binding drifted",
+        ));
+    }
+    Ok(source.replacen(from, to, 1))
+}
+
+fn artifact_text(artifacts: &[NpmArtifact; 7], path: &str) -> Result<String, Diagnostic> {
+    String::from_utf8(artifact_bytes(artifacts, path)?.to_vec())
+        .map_err(|_| package_error(format!("npm command v2 artifact `{path}` is not UTF-8")))
+}
+
+fn replace_artifact(
+    artifacts: &mut [NpmArtifact; 7],
+    path: &str,
+    bytes: Vec<u8>,
+) -> Result<(), Diagnostic> {
+    let artifact = artifacts
+        .iter_mut()
+        .find(|artifact| artifact.path == path)
+        .ok_or_else(|| package_error(format!("npm command v2 artifact `{path}` is absent")))?;
+    artifact.bytes = bytes;
+    Ok(())
+}
+
+fn render_command_adapter(command: &str) -> String {
+    format!(
+        r#"#!/usr/bin/env node
+import {{ readFile }} from "node:fs/promises";
+import {{ stdin, stdout, stderr, argv }} from "node:process";
+import {{ fileURLToPath }} from "node:url";
+import {{ instantiate }} from "./semaprax.bindings.js";
+const flush = (stream, bytes) => new Promise((resolve, reject) => stream.write(bytes, error => error ? reject(error) : resolve()));
+const fail = async () => {{ try {{ await flush(stderr, "spxgrep: command failed\n"); }} catch {{}} finally {{ process.exitCode = 2; }} }};
+const rejectLoneSurrogate = value => {{
+  for (let index = 0; index < value.length; index += 1) {{
+    const unit = value.charCodeAt(index);
+    if (unit >= 0xd800 && unit <= 0xdbff) {{
+      if (index + 1 >= value.length) throw new Error("argument contains an unpaired surrogate");
+      const tail = value.charCodeAt(index + 1);
+      if (tail < 0xdc00 || tail > 0xdfff) throw new Error("argument contains an unpaired surrogate");
+      index += 1;
+    }} else if (unit >= 0xdc00 && unit <= 0xdfff) {{
+      throw new Error("argument contains an unpaired surrogate");
+    }}
+  }}
+}};
+try {{
+  if (argv.length !== 3) throw new Error("usage");
+  rejectLoneSurrogate(argv[2]);
+  const storage = new Uint8Array(65536), encoder = new TextEncoder();
+  const encoded = encoder.encodeInto(argv[2], storage);
+  if (encoded.read !== argv[2].length) throw new Error("argument exceeds bound");
+  const needle = storage.subarray(0, encoded.written); let used = encoded.written;
+  for await (const chunk of stdin) {{
+    if (!(chunk instanceof Uint8Array) || chunk.byteLength > 65536 - used) throw new Error("stdin exceeds bound");
+    storage.set(chunk, used); used += chunk.byteLength;
+  }}
+  const input = storage.subarray(encoded.written, used);
+  const wasm = new Uint8Array(await readFile(fileURLToPath(new URL("./app.wasm", import.meta.url))));
+  const runtime = await instantiate(wasm);
+  const matched = runtime.call({command}, input, needle);
+  if (!matched) {{ runtime.discardTranscript(); process.exitCode = 1; }}
+  else {{ const transcript = runtime.takeTranscript(); await flush(stdout, transcript); process.exitCode = 0; }}
+}} catch {{ await fail(); }}
+"#,
+        command = quote_json(command),
+    )
+}
+
 pub(super) fn validate_replayed(
     identity: NpmBuildIdentity<'_>,
     artifacts: &[NpmArtifact; 7],
@@ -173,7 +277,7 @@ pub(super) fn validate_replayed(
         command_id,
         &data::hex_sha256(&wasm),
     );
-    let expected = command::render_package_with_metadata(
+    let expected = render_package(
         identity.package,
         identity.version,
         command_id,

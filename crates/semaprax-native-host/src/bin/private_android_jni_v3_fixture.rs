@@ -329,11 +329,11 @@ static jlong spx_adopt_single(JNIEnv *env,jobject self,jlong payload,jlongArray 
   }}
   if(words==NULL)return (jlong)SPX_UNEXPECTED_STATUS;
   uint64_t handle=UINT64_C(0);
-   uint64_t status=spx_private_android_jni_v1_adopt_single((uint64_t)payload,&handle);
-   if(status==UINT64_C(0))words[0]=(jlong)handle;
-   (*env)->ReleaseLongArrayElements(env,output,words,status==UINT64_C(0)?0:JNI_ABORT);
-   return (jlong)status;
- }}
+  uint64_t status=spx_private_android_jni_v1_adopt_single((uint64_t)payload,&handle);
+  if(status==UINT64_C(0))words[0]=(jlong)handle;
+  (*env)->ReleaseLongArrayElements(env,output,words,status==UINT64_C(0)?0:JNI_ABORT);
+  return (jlong)status;
+}}
 
 static jlong spx_adopt_owned(JNIEnv *env,jobject self,jlong payload,jlongArray output){{
   (void)self;
@@ -355,7 +355,7 @@ static jlong spx_adopt_owned(JNIEnv *env,jobject self,jlong payload,jlongArray o
   if(status==UINT64_C(0))words[0]=(jlong)handle;
   (*env)->ReleaseLongArrayElements(env,output,words,status==UINT64_C(0)?0:JNI_ABORT);
   return (jlong)status;
- }}
+}}
 
 static jlong spx_consume(JNIEnv *env,jobject self,jlong handle,jlongArray output){{
   (void)self;
@@ -428,9 +428,19 @@ static jlong spx_execute_requires_false(JNIEnv *env,jobject self,jlong handle,jl
        evidence.proof_flags!=SPX_REQUIRES_FALSE_SELECTED_ORDINAL||
        evidence.postcommit_allocations!=UINT64_C(0)||evidence.host_state_flags!=UINT64_C(0)||
        count!=UINT32_C(1)||owners[0]!=UINT32_C(0)||payloads[0]!=SPX_REQUIRES_FALSE_PAYLOAD||
+       owners[1]!=UINT32_C(0)||payloads[1]!=UINT64_C(0)){{
+      (void)spx_private_android_jni_v1_poison_runtime();status=SPX_HOOK_STATUS;
+    }}
+    else{{
+      words[0]=(jlong)UINT64_C(1);words[1]=(jlong)evidence.module_instance_id;
+      words[2]=(jlong)evidence.proof_flags;words[3]=(jlong)evidence.postcommit_allocations;
+      words[4]=(jlong)count;words[5]=(jlong)(((uint64_t)owners[0]<<32)|payloads[0]);
+      words[6]=(jlong)(((uint64_t)owners[1]<<32)|payloads[1]);words[7]=(jlong)evidence.host_state_flags;
+    }}
+  }}
   (*env)->ReleaseLongArrayElements(env,output,words,status==UINT64_C(0)?0:JNI_ABORT);
   return (jlong)status;
- }}
+}}
 
 static jlong spx_execute_identity_max(JNIEnv *env,jobject self,jlong handle,jlongArray output){{
   (void)self;
@@ -473,7 +483,7 @@ static jlong spx_execute_identity_max(JNIEnv *env,jobject self,jlong handle,jlon
   }}
   (*env)->ReleaseLongArrayElements(env,output,words,status==UINT64_C(0)?0:JNI_ABORT);
   return (jlong)status;
- }}
+}}
 
 static jlong spx_close(JNIEnv *env,jobject self){{
   (void)env;(void)self;
@@ -600,6 +610,27 @@ mod tests {
         ] {
             assert!(shim.contains(required), "missing `{required}`");
         }
+        // The requires-false and identity-max snapshot guards must each keep
+        // their complete two-line condition; a truncated tail previously
+        // rendered syntactically invalid C while every substring pin held.
+        assert!(shim.contains(
+            "count!=UINT32_C(1)||owners[0]!=UINT32_C(0)||\
+             payloads[0]!=SPX_REQUIRES_FALSE_PAYLOAD||\n       \
+             owners[1]!=UINT32_C(0)||payloads[1]!=UINT64_C(0)){"
+        ));
+        assert!(shim.contains(
+            "count!=UINT32_C(0)||owners[0]!=UINT32_C(0)||payloads[0]!=UINT64_C(0)||\n       \
+             owners[1]!=UINT32_C(0)||payloads[1]!=UINT64_C(0)){"
+        ));
+        assert_eq!(
+            shim.matches(
+                "words[6]=(jlong)(((uint64_t)owners[1]<<32)|payloads[1]);\
+                 words[7]=(jlong)evidence.host_state_flags;"
+            )
+            .count(),
+            3,
+            "consume, requires-false, and identity-max must each publish evidence words"
+        );
     }
 
     #[test]

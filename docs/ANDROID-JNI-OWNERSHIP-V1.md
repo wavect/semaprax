@@ -7,12 +7,14 @@ This is bounded hosted Android application evidence, not a public Android
 application boundary.
 
 This document freezes the first bounded Kotlin/JNI projection of SEMAPRAX
-ownership. It connects two exact generated callable-v3 providers to the
+ownership. It connects three exact generated callable-v3 providers to the
 unpublished native host and authenticated receipt ledger: the success-direction
-`token.discard-two` fixture and one canonical semantic-failure witness built by
+`token.discard-two` fixture, one canonical semantic-failure witness built by
 `emit_private_native_callable_v3_android_corpus_fixture` from the
-owned-resource corpus `requires-false` case over `token.requires`. Both are
-private fixtures for the ownership boundary described by
+owned-resource corpus `requires-false` case over `token.requires`, and one
+canonical owned-result witness built by the same emitter from the corpus
+`identity-max` case over `token.identity`. All are private fixtures for the
+ownership boundary described by
 [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md), not a public resource ABI and
 not permission to open `SPX-B104`.
 
@@ -24,6 +26,11 @@ ordinal 1 before ordinal 0 and publishes scalar zero. The second fixture adopts
 one single owner at the corpus-maximum payload and executes
 `token.requires(own Token, false)`, which selects the `requires allowed`
 contract failure, publishes no owned result, and finalizes exactly that owner.
+The third fixture adopts one single owner at the corpus-maximum payload and
+executes `token.identity`, which publishes that argument outward as the owned
+result without any physical finalization: the pre-publication generation
+becomes stale, the refreshed published owner remains a live caller-owned
+capability, and re-adopting it publishes exactly one more owned result.
 The non-throwing
 `AutoCloseable.close()` wrapper and Cleaner-compatible fallback both dispatch
 the same native consume operation asynchronously; they are not SEMAPRAX's
@@ -45,7 +52,13 @@ The adapter must prove:
 - sticky failure selection on the requires-false witness: replayed committed
   bytes reproduce the receipt, a second canonical execution observes the stale
   owner without poisoning the host, and no owned result is published;
-- exact O0/O2 behavior for both fixture directions in an installed API-35
+- outward owned-result publication on the identity-max witness:
+  `ExecuteOutcome::Owned` at owner ordinal 0 with `Publication::Owned(0)` and a
+  live published owner, zero postcommit allocations, replay-equal committed
+  bytes, zero physical finalizers, a stale pre-publication generation that
+  fails closed without poisoning the host, and exactly one further owned
+  publication through the refreshed published owner;
+- exact O0/O2 behavior for all fixture directions in an installed API-35
   x86_64 Emulator APK; and
 - arm64 Android JNI/provider compilation and ELF inspection without claiming
   arm64 device execution.
@@ -179,7 +192,7 @@ dependencies, absence of workspace search paths, method registration table,
 pending-exception discipline, and status known answers are inspected.
 
 The configured no-UI instrumentation APK is required to exercise both O0 and O2
-providers of both fixture directions and publish one exact app-private result.
+providers of every fixture direction and publish one exact app-private result.
 Its assertions cover explicit `consume()`,
 deterministic fallback cleanup, a consume-versus-Cleaner race, copied/stale/forged/
 cross-runtime/wrong-thread rejection, declared and unexpected exception
@@ -192,13 +205,19 @@ selector, adopting one single owner at `u64::MAX`, executing
 `token.requires(own Token, false)`, observing selection ordinal 1 with
 `Publication::NoOwned`, zero postcommit allocations, exactly one physical
 finalizer (`0:18446744073709551615`), replay-equal committed bytes, a stale
-second execution, and cross-selector rejection in both directions.
+second execution, and cross-selector rejection in both directions. It also
+asserts the canonical identity-max owned-result witness: opening the
+owned-result image through its dedicated selector, adopting one single owner at
+`u64::MAX`, executing `token.identity`, observing the outward publication word
+2 with zero physical finalizers and zero mutated finalizer slots, zero postcommit
+allocations, replay-equal committed bytes, cross-selector and forged-handle
+rejection, and a stale second execution after the consumed session.
 The exact file is `files/semaprax-android-jni-v1.txt`, read with `run-as`, and
 its canonical success line includes API 35, x86_64, the O0 explicit-consume and
 O2 Cleaner paths, all known answers, `finalizers=1:13,0:11`,
-`publication=no-owned`, `allocations=0`, `handles=0`, and `rf=1`. This paragraph
-describes the implemented assertion contract; it becomes hosted execution
-evidence only after the dedicated job is green.
+`publication=no-owned`, `allocations=0`, `handles=0`, `rf=1`, and `om=1`. This
+paragraph describes the implemented assertion contract; it becomes hosted
+execution evidence only after the dedicated job is green.
 
 The APK and every native library are inspected before installation. The build
 uses no AndroidX, JUnit, Compose, UI resource, dynamic dependency version, or
@@ -214,7 +233,7 @@ handle ABI, postcommit JVM callbacks, reentrant or nested calls, async,
 cancellation, cross-thread resource transfer, hot reload, general quiescence,
 process-kill cleanup, malicious-code containment, signed artifact provenance,
 arm64 device execution, UI/Compose/View/accessibility behavior, AAR
-publication, the broader callable corpus beyond the two private fixture
+publication, the broader callable corpus beyond the three private fixture
 directions above, or public compiler admission.
 
 The Java/Kotlin and Android completion rows remain incomplete. Ordinary

@@ -66,7 +66,13 @@ impl DataExportPlan {
         stack_global_index: u32,
         status_global_index: u32,
     ) -> Result<Vec<u8>, Diagnostic> {
-        self.emit_wrapper_body_profile(target_index, stack_global_index, status_global_index, None)
+        self.emit_wrapper_body_profile(
+            target_index,
+            stack_global_index,
+            status_global_index,
+            None,
+            false,
+        )
     }
 
     pub(super) fn emit_wrapper_body_with_stdout_transcript(
@@ -81,6 +87,23 @@ impl DataExportPlan {
             stack_global_index,
             status_global_index,
             Some(globals),
+            false,
+        )
+    }
+
+    pub(super) fn emit_command_v2_wrapper_body(
+        &self,
+        target_index: u32,
+        stack_global_index: u32,
+        status_global_index: u32,
+        globals: super::host_output::Globals,
+    ) -> Result<Vec<u8>, Diagnostic> {
+        self.emit_wrapper_body_profile(
+            target_index,
+            stack_global_index,
+            status_global_index,
+            Some(globals),
+            true,
         )
     }
 
@@ -90,6 +113,7 @@ impl DataExportPlan {
         stack_global_index: u32,
         status_global_index: u32,
         host_output: Option<super::host_output::Globals>,
+        publish_only_truthy: bool,
     ) -> Result<Vec<u8>, Diagnostic> {
         let raw_count = u32::try_from(self.parameter_count * 2)
             .map_err(|_| admission("data wrapper raw parameter count overflows u32"))?;
@@ -199,7 +223,17 @@ impl DataExportPlan {
         if let Some(globals) = host_output {
             // The bool carrier check above is still part of target
             // authentication. Seal only after it has succeeded.
-            super::host_output::emit_publish(&mut body, globals);
+            if publish_only_truthy {
+                debug_assert_eq!(self.result, DataResultType::Bool);
+                local_get(&mut body, status);
+                body.extend_from_slice(&[0x45, 0x04, 0x40]); // i32.eqz; if void
+                super::host_output::emit_discard(&mut body, globals);
+                body.push(0x05); // else
+                super::host_output::emit_publish(&mut body, globals);
+                body.push(0x0b);
+            } else {
+                super::host_output::emit_publish(&mut body, globals);
+            }
         }
         body.push(0x0b);
         Ok(body)
@@ -218,6 +252,14 @@ pub(super) fn prepare_with_stdout_transcript(
     export_ids: &[String],
 ) -> Result<Vec<DataExportPlan>, Diagnostic> {
     prepare_profile(program, export_ids, true)
+}
+
+pub(super) fn prepare_command_v2(
+    program: &ResolvedProgram,
+    command_id: &str,
+) -> Result<Vec<DataExportPlan>, Diagnostic> {
+    crate::command_profile::CommandProfilePlan::prepare(program, command_id)?;
+    prepare_profile(program, &[command_id.to_owned()], true)
 }
 
 fn prepare_profile(

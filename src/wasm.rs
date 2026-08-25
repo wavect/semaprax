@@ -771,6 +771,17 @@ pub(crate) fn emit_resolved_module_with_byte_exports_and_stdout_transcript(
     aggregate::emit_byte_exports_with_stdout_transcript(program, &plans)
 }
 
+/// Emit the closed Useful Data Command v2 Wasm boundary. Unlike the frozen
+/// v1 helper above, this authenticates the exact two-slice/bool command shape
+/// through the target-neutral command plan shared with native projection.
+pub(crate) fn emit_resolved_useful_data_command_v2(
+    program: &ResolvedProgram,
+    command_id: &str,
+) -> Result<Vec<u8>, Diagnostic> {
+    let plans = data_exports::prepare_command_v2(program, command_id)?;
+    aggregate::emit_useful_data_command_v2(program, &plans)
+}
+
 fn emit_resolved_module_internal(
     program: &ResolvedProgram,
     scalar_exports: &[scalar_exports::ScalarExportPlan],

@@ -984,20 +984,28 @@ pub(super) fn emit_byte_exports(
     program: &ResolvedProgram,
     plans: &[super::data_exports::DataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
-    emit_byte_exports_profile(program, plans, false)
+    emit_byte_exports_profile(program, plans, false, false)
 }
 
 pub(super) fn emit_byte_exports_with_stdout_transcript(
     program: &ResolvedProgram,
     plans: &[super::data_exports::DataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
-    emit_byte_exports_profile(program, plans, true)
+    emit_byte_exports_profile(program, plans, true, false)
+}
+
+pub(super) fn emit_useful_data_command_v2(
+    program: &ResolvedProgram,
+    plans: &[super::data_exports::DataExportPlan],
+) -> Result<Vec<u8>, Diagnostic> {
+    emit_byte_exports_profile(program, plans, true, true)
 }
 
 fn emit_byte_exports_profile(
     program: &ResolvedProgram,
     plans: &[super::data_exports::DataExportPlan],
     host_output: bool,
+    publish_only_truthy: bool,
 ) -> Result<Vec<u8>, Diagnostic> {
     if plans.is_empty() || !super::program_uses_byte_data(program) {
         return Err(error(
@@ -1249,7 +1257,9 @@ fn emit_byte_exports_profile(
             .get(&FunctionExecutionId::Monomorphic(plan.function_id.clone()))
             .copied()
             .ok_or_else(|| error("selected data export target is not indexed"))?;
-        let body = if host_output {
+        let body = if publish_only_truthy {
+            plan.emit_command_v2_wrapper_body(target, 0, 1, super::host_output::DATA_GLOBALS)?
+        } else if host_output {
             plan.emit_wrapper_body_with_stdout_transcript(
                 target,
                 0,

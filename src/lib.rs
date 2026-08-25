@@ -21,6 +21,7 @@ pub mod capability_manifest;
 pub mod cleanup;
 pub mod cleanup_plan;
 pub mod codegen;
+pub(crate) mod command_profile;
 pub mod conformance;
 pub mod cxx_shim;
 pub mod diagnostic;

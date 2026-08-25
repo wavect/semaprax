@@ -58,9 +58,12 @@ before a write or flush failure; success-only publication describes the sealed
 semantic transcript, not atomic or durable operating-system output.
 
 The existing Wasm/Node route retains its fixed guest transcript and performs
-the same UTF-8-argument, binary-stdin, cumulative-limit, result, transcript,
-and exit mapping. This is bounded native and Wasm/Node command parity, not
-general process I/O.
+the same binary-stdin, cumulative-limit, result, transcript, and exit mapping
+for admitted well-formed JavaScript scalar strings. Node exposes an
+already-decoded argument string, so this route does not attest the original
+Unix argv bytes; raw-byte UTF-8 validation belongs only to the native Unix
+adapter. This is bounded native and Wasm/Node command parity over their stated
+input boundaries, not general process I/O.
 
 ## Package evidence
 

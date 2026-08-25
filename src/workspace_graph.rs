@@ -1095,8 +1095,11 @@ impl WorkspaceGraphBuild {
             }
             retained_modules += 1;
             let permits_admitted = module.permits.is_empty()
-                || (profile == crate::project::ProjectProfile::UsefulDataCommandV1
-                    && module.module == entry_module
+                || (matches!(
+                    profile,
+                    crate::project::ProjectProfile::UsefulDataCommandV1
+                        | crate::project::ProjectProfile::UsefulDataCommandV2
+                ) && module.module == entry_module
                     && module.permits == [crate::host_io_ops::STDOUT_WRITE_EFFECT]);
             if !permits_admitted
                 || !module.types.is_empty()
@@ -1180,6 +1183,13 @@ impl WorkspaceGraphBuild {
                 hir::link_useful_data_workspace(entry_module.to_owned(), entrypoint, functions)
             }
             crate::project::ProjectProfile::UsefulDataCommandV1 => {
+                hir::link_useful_data_command_workspace(
+                    entry_module.to_owned(),
+                    entrypoint,
+                    functions,
+                )
+            }
+            crate::project::ProjectProfile::UsefulDataCommandV2 => {
                 hir::link_useful_data_command_workspace(
                     entry_module.to_owned(),
                     entrypoint,
@@ -1298,6 +1308,9 @@ impl WorkspaceGraphBuild {
                 hir::link_useful_data_workspace(base.module, base.entrypoint, functions)
             }
             crate::project::ProjectProfile::UsefulDataCommandV1 => {
+                hir::link_useful_data_command_workspace(base.module, base.entrypoint, functions)
+            }
+            crate::project::ProjectProfile::UsefulDataCommandV2 => {
                 hir::link_useful_data_command_workspace(base.module, base.entrypoint, functions)
             }
         }
@@ -1464,8 +1477,11 @@ impl WorkspaceGraphBuild {
         let roots = BTreeSet::from([entry_module, test_module]);
         for module in &self.hir.modules {
             let permits_admitted = module.permits.is_empty()
-                || (profile == crate::project::ProjectProfile::UsefulDataCommandV1
-                    && module.module == entry_module
+                || (matches!(
+                    profile,
+                    crate::project::ProjectProfile::UsefulDataCommandV1
+                        | crate::project::ProjectProfile::UsefulDataCommandV2
+                ) && module.module == entry_module
                     && module.permits == [crate::host_io_ops::STDOUT_WRITE_EFFECT]);
             if !permits_admitted
                 || !module.types.is_empty()
@@ -1509,7 +1525,8 @@ impl WorkspaceGraphBuild {
                         ) | (hir::ResolvedType::Str, hir::OwnershipMode::Borrow)
                     ),
                     crate::project::ProjectProfile::UsefulDataV1
-                    | crate::project::ProjectProfile::UsefulDataCommandV1 => {
+                    | crate::project::ProjectProfile::UsefulDataCommandV1
+                    | crate::project::ProjectProfile::UsefulDataCommandV2 => {
                         hir::useful_data_workspace_parameter_admitted(
                             &parameter.ty,
                             parameter.ownership,
@@ -1523,13 +1540,17 @@ impl WorkspaceGraphBuild {
                         hir::ResolvedType::I64 | hir::ResolvedType::Bool
                     ),
                     crate::project::ProjectProfile::UsefulDataV1
-                    | crate::project::ProjectProfile::UsefulDataCommandV1 => {
+                    | crate::project::ProjectProfile::UsefulDataCommandV1
+                    | crate::project::ProjectProfile::UsefulDataCommandV2 => {
                         hir::useful_data_workspace_return_admitted(&function.return_type)
                     }
                 };
                 let effects_admitted = function.effects.is_empty()
-                    || (profile == crate::project::ProjectProfile::UsefulDataCommandV1
-                        && function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT]);
+                    || (matches!(
+                        profile,
+                        crate::project::ProjectProfile::UsefulDataCommandV1
+                            | crate::project::ProjectProfile::UsefulDataCommandV2
+                    ) && function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT]);
                 if !effects_admitted
                     || !admitted_return
                     || function
@@ -1545,6 +1566,9 @@ impl WorkspaceGraphBuild {
                         crate::project::ProjectProfile::UsefulDataV1 => "Useful Data linker",
                         crate::project::ProjectProfile::UsefulDataCommandV1 => {
                             "Useful Data Command linker"
+                        }
+                        crate::project::ProjectProfile::UsefulDataCommandV2 => {
+                            "Useful Data Command v2 linker"
                         }
                     };
                     return Err(vec![graph_error(

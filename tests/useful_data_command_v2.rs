@@ -31,10 +31,13 @@ fn decode_hex(value: &str) -> Vec<u8> {
         b'a'..=b'f' => byte - b'a' + 10,
         _ => panic!("carrier hex is not lowercase"),
     };
-    encoded
-        .chunks_exact(2)
-        .map(|pair| (nibble(pair[0]) << 4) | nibble(pair[1]))
-        .collect()
+    let mut decoded = Vec::with_capacity(encoded.len() / 2);
+    let mut offset = 0;
+    while offset < encoded.len() {
+        decoded.push((nibble(encoded[offset]) << 4) | nibble(encoded[offset + 1]));
+        offset += 2;
+    }
+    decoded
 }
 
 fn artifacts(value: &serde_json::Value) -> Vec<(&str, Vec<u8>)> {
@@ -302,7 +305,7 @@ fn v5_node_adapter_rejects_surrogates_and_maps_stdout_failure_to_exit_two() {
         root.join("broken-stdout.mjs"),
         r#"import process from "node:process";
 process.argv.splice(0, process.argv.length, "node", "semaprax.command.js", "");
-Object.defineProperty(process.stdout, "write", { value: (_bytes, callback) => { queueMicrotask(() => callback(new Error("injected stdout failure"))); return false; } });
+Object.defineProperty(process.stdout, "write", { value: () => { queueMicrotask(() => process.stdout.emit("error", new Error("injected stdout failure"))); return false; } });
 await import("./semaprax.command.js");
 "#,
     )

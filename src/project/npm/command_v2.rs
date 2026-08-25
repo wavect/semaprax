@@ -176,7 +176,18 @@ import {{ readFile }} from "node:fs/promises";
 import {{ stdin, stdout, stderr, argv }} from "node:process";
 import {{ fileURLToPath }} from "node:url";
 import {{ instantiate }} from "./semaprax.bindings.js";
-const flush = (stream, bytes) => new Promise((resolve, reject) => stream.write(bytes, error => error ? reject(error) : resolve()));
+const flush = (stream, bytes) => new Promise((resolve, reject) => {{
+  let settled = false;
+  const settle = error => {{ if (settled) return; settled = true; error ? reject(error) : resolve(); }};
+  const onError = error => settle(error);
+  stream.once("error", onError);
+  try {{
+    stream.write(bytes, error => {{
+      if (error) {{ settle(error); setImmediate(() => stream.off("error", onError)); }}
+      else {{ stream.off("error", onError); settle(); }}
+    }});
+  }} catch (error) {{ stream.off("error", onError); settle(error); }}
+}});
 const fail = async () => {{ try {{ await flush(stderr, "spxgrep: command failed\n"); }} catch {{}} finally {{ process.exitCode = 2; }} }};
 const rejectLoneSurrogate = value => {{
   for (let index = 0; index < value.length; index += 1) {{

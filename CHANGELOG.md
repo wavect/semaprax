@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- Added locally evidenced Project Manifest v5 and the fixed
+  `useful-data-command.v2` adapter while preserving Project v1-v4 manifests,
+  packages, carriers, and behavior. The exact manifest separates the SEMAPRAX
+  closure's existing `process.stdout.write` effect from the adapter's closed
+  `process.args.read`, `process.stderr.write`, `process.stdin.read`, and
+  `process.stdout.write` authority. One UTF-8 argument plus binary stdin share
+  a checked 65,536-byte bound; native Project builds invoke the authenticated
+  command stable ID rather than legacy `main`, matching the existing Wasm/Node
+  result, success-only transcript, and 0/1/2 exit policy. Windows uses `wmain`,
+  strict UTF-16-to-UTF-8 conversion, and binary stdio; Unix validates argument
+  UTF-8 and treats broken stdout/SIGPIPE as adapter failure. The seven-file npm
+  package is independently replayed under `semaprax.project-npm-build.v4` with
+  `semaprax.useful-data-command.v2` metadata. Hosted CI, safe Windows npm
+  publication, registry/release promotion, general I/O, atomic physical stdout,
+  executable determinism, and a stable public native runner ABI are not
+  claimed; completion rows remain Partial.
+
 - Added locally evidenced Bounded Stdout Transcript v1 and Project Manifest
   v4. Compiler-owned `stdout_write` has exact `process.stdout.write` authority,
   a 65,536-byte success-published transcript, one-write-per-path analysis, and

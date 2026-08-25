@@ -163,6 +163,19 @@ fixed `spxgrep` npm command snapshots one UTF-8 needle plus stdin under one
 the sealed transcript once. Exact match/no-match/error exits, settlement
 fail-stop, carrier replay, and compiler-free Node execution are locally green.
 
+[Project Manifest v5](PROJECT-MANIFEST-V5.md) now adds the fixed native command
+adapter without widening the language I/O surface. One authenticated command
+stable ID with exact `(borrow Slice<u8>, borrow Slice<u8>) -> bool` shape runs
+on both native and the existing Wasm/Node route. The manifest fixes adapter
+authority to argument read, stderr write, stdin read, and stdout write; one
+UTF-8 argument plus arbitrary binary stdin share the cumulative 65,536-byte
+bound. Both routes retain the success-only semantic transcript and exact
+0/1/2 match/no-match/failure exits. Windows uses `wmain`, strict UTF-16 to
+UTF-8 conversion, and binary stdio; Unix validates UTF-8 and fails stop on
+broken stdout/SIGPIPE. The independently replayed npm carrier advances to v4,
+while every Project v1-v4 byte remains frozen. Native executable bytes are not
+claimed deterministic.
+
 The remaining promotion work is the
 complete hostile cross-platform boundary matrix, exact-head hosted Linux,
 macOS, Windows, and Rust-1.85 evidence, safe Windows publication, npm registry

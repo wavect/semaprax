@@ -40,6 +40,9 @@ links here instead of duplicating it.
 - `src/byte_ops.rs`, `src/byte_data_capacity.rs`: closed Useful Data operation
   identities plus the target-neutral inline-array/call-path/allocation
   authority independently projected by source and hostile-HIR validation.
+- `src/command_profile.rs`: shared target-neutral admission for the exact
+  Project command stable ID, signature, effect/permit closure, transcript path
+  bound, and external-slice provenance used by native and Wasm command lanes.
 - `src/graph.rs`, `patch.rs`: agent representation and atomic single-file
   transactions.
 - `src/workspace.rs`: bounded managed immutable-generation workspace
@@ -86,10 +89,11 @@ links here instead of duplicating it.
   and structurally validated Wasm-core projection evidence.
 - `src/patch_evidence.rs`: canonical Semantic Patch Evidence v1/v2 generation,
   independent verification receipts, and evidence-gated A0 application.
-- `src/codegen.rs`, `src/codegen/native_byte_data.rs`,
-  `src/codegen/native_bytes.rs`, `src/codegen/native_callable_*`, `wasm.rs`:
-  native C11/Clang, plan-driven internal byte ownership, private callable-v2,
-  and browser/Wasm lanes.
+- `src/codegen.rs`, `src/codegen/native_command.rs`,
+  `src/codegen/native_byte_data.rs`, `src/codegen/native_bytes.rs`,
+  `src/codegen/native_callable_*`, `wasm.rs`: native C11/Clang including the
+  fixed Project-v5 command adapter, plan-driven internal byte ownership,
+  private callable-v2, and browser/Wasm lanes.
 - `src/wit_component.rs`: default-off deterministic WIT/schema/JavaScript boundary evidence; not a Component Model runtime.
 - `crates/semaprax-native-loader`, `crates/semaprax-native-host`: unpublished unsafe loader quarantine and connected callable authority/ledger host.
 - `platform-tests/`: private installed-app/native-process packaging and runtime gates; claims count only after their hosted jobs are green.
@@ -1548,6 +1552,36 @@ under one 65,536-byte limit, invokes the exact stable-ID bool command, awaits
 one physical stdout flush after settlement, and maps match/no-match/adapter
 failure to exits 0/1/2. The `spxgrep` fixture is compiler-free after generation
 and performs a real nested `byte_get` search over arbitrary stdin bytes.
+
+## Project Manifest v5 and native command parity
+
+[Project Manifest v5](PROJECT-MANIFEST-V5.md) additively selects
+`useful-data-command.v2` without reinterpreting v1-v4 manifests, package bytes,
+or carriers. Its exact manifest distinguishes the SEMAPRAX command closure,
+which still owns only `process.stdout.write`, from the fixed process adapter,
+which owns exactly `process.args.read`, `process.stderr.write`,
+`process.stdin.read`, and `process.stdout.write`. The adapter accepts one UTF-8
+argument plus arbitrary binary stdin under one checked cumulative 65,536-byte
+bound and maps match, no-match, and adapter failure to exits 0, 1, and 2.
+
+The target-neutral command-profile admission authenticates the selected stable
+ID, exact two-borrowed-slice-to-bool signature, stdout effect/permit closure,
+one-write path bound, and external-slice provenance before native or Wasm
+emission. Native Project builds dispatch this profile to that selected command,
+not to the legacy `main`. The fixed native adapter uses `wmain`, strict UTF-16
+to UTF-8 conversion, and binary stdin/stdout mode on Windows; Unix validates
+argument UTF-8 and makes broken stdout/SIGPIPE an adapter failure. Both native
+and the existing Wasm/Node adapter preserve success-only semantic transcript
+meaning. A physical write can still emit a prefix before failing, so no atomic
+or durable process-stdout claim follows.
+
+The exact seven-file npm package is bound by the new independently replayed
+`semaprax.project-npm-build.v4` carrier and
+`semaprax.useful-data-command.v2` metadata. Native executables have no
+deterministic carrier and their bytes are not claimed reproducible. This is a
+fixed useful-data command adapter, not general language I/O, WASI, a public
+native ABI, or a general CLI framework; hosted promotion, safe Windows npm
+publication, registry publication, and release promotion remain open.
 
 ### Project Agent Transport v2
 

@@ -43,6 +43,9 @@ const EVIDENCE_VERSION: u32 = 1;
 const COMPLETE_PROOF_FLAGS: u64 = 0x0f;
 const REQUIRES_FALSE_PAYLOAD: u64 = u64::MAX;
 const REQUIRES_FALSE_SELECTED_ORDINAL: u32 = 1;
+const IDENTITY_MAX_PAYLOAD: u64 = u64::MAX;
+const IDENTITY_MAX_OWNER_ORDINAL: u32 = 0;
+const IDENTITY_MAX_PUBLICATIONS: u64 = 2;
 const OWNER_GENERATION: u64 = 1;
 
 const DOMAIN_ANDROID: u16 = 1;
@@ -90,6 +93,7 @@ thread_local! {
 enum SessionShape {
     Pair,
     SingleWitness,
+    SingleOwnedResult,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -385,6 +389,21 @@ impl AndroidJniRuntimeV1 {
             .map_err(map_table_error)
     }
 
+    fn adopt_owned_result(&mut self, payload: u64) -> Result<u64, u64> {
+        if self.poisoned || self.host.is_poisoned() {
+            return Err(android_status(CODE_HOST_UNHEALTHY));
+        }
+        if payload != IDENTITY_MAX_PAYLOAD {
+            return Err(android_status(CODE_WRONG_PAYLOAD));
+        }
+        self.sessions
+            .insert(Session {
+                shape: SessionShape::SingleOwnedResult,
+                payloads: [payload, 0],
+            })
+            .map_err(map_table_error)
+    }
+
     fn consume_pair(&mut self, handle: u64) -> Result<PrivateAndroidJniEvidenceV1, u64> {
         if self.poisoned || self.host.is_poisoned() {
             return Err(android_status(CODE_HOST_UNHEALTHY));
@@ -574,6 +593,146 @@ impl AndroidJniRuntimeV1 {
             version: EVIDENCE_VERSION,
             module_instance_id: self.host.module_instance_id().get(),
             proof_flags: u64::from(REQUIRES_FALSE_SELECTED_ORDINAL),
+            postcommit_allocations: allocations.unwrap_or(usize::MAX) as u64,
+            host_state_flags: 0,
+        })
+    }
+
+    fn identity_max_witness(&mut self, handle: u64) -> Result<PrivateAndroidJniEvidenceV1, u64> {
+        if self.poisoned || self.host.is_poisoned() {
+            return Err(android_status(CODE_HOST_UNHEALTHY));
+        }
+        let session = self.sessions.claim(handle).map_err(map_table_error)?;
+        if session.shape != SessionShape::SingleOwnedResult {
+            self.sessions.restore(handle);
+            return Err(android_status(CODE_INVALID_HANDLE));
+        }
+        let payload = session.payloads[0];
+        let slot = match take_owner_slot(&mut self.next_owner_slot) {
+            Ok(slot) => slot,
+            Err(status) => {
+                self.sessions.restore(handle);
+                return Err(status);
+            }
+        };
+        let owner = match self.host.register_owner(slot, OWNER_GENERATION) {
+            Ok(owner) => owner,
+            Err(_) => {
+                self.sessions.restore(handle);
+                return Err(android_status(CODE_CAPACITY));
+            }
+        };
+        // The canonical `identity-max` corpus witness: one owned argument at
+        // the corpus-maximum payload is published outward as the owned result.
+        let arguments = [PrivateSettlementArgumentV3::Owned {
+            handle: owner,
+            payload,
+        }];
+        let committed = match self.host.execute_canonical(&arguments) {
+            Ok(committed) => committed,
+            Err(_) => {
+                self.sessions.quarantine(handle);
+                self.poisoned = true;
+                return Err(android_status(CODE_EXECUTION_UNCERTAIN));
+            }
+        };
+        let allocations = crate::postcommit_allocation_probe::take_last();
+        let healthy = !self.host.is_poisoned()
+            && !self.host.is_draining()
+            && self.host.quarantined_count() == 0;
+        if committed.outcome
+            != (ExecuteOutcome::Owned {
+                owner_ordinal: IDENTITY_MAX_OWNER_ORDINAL,
+                payload,
+            })
+            || committed.committed.publication != Publication::Owned(IDENTITY_MAX_OWNER_ORDINAL)
+            || committed.committed.published_owner.is_none()
+            || allocations != Some(0)
+            || !healthy
+        {
+            self.sessions.quarantine(handle);
+            self.poisoned = true;
+            return Err(android_status(CODE_EVIDENCE_MISMATCH));
+        }
+        if self
+            .host
+            .replay_committed(committed.identity, &committed.candidate_bytes)
+            != Ok(committed.committed)
+        {
+            self.sessions.quarantine(handle);
+            self.poisoned = true;
+            return Err(android_status(CODE_EVIDENCE_MISMATCH));
+        }
+        // Outward publication rotates the consumed generation in place: a stale
+        // replay of the exact pre-publication argument must fail closed without
+        // poisoning the host.
+        if self.host.execute_canonical(&arguments)
+            != Err(PrivateSettlementExecutionError::Ledger(
+                SettlementLedgerError::StaleOwner,
+            ))
+            || self.host.is_poisoned()
+            || self.host.is_draining()
+            || self.host.quarantined_count() != 0
+        {
+            self.sessions.quarantine(handle);
+            self.poisoned = true;
+            return Err(android_status(CODE_EVIDENCE_MISMATCH));
+        }
+        let refreshed = match committed.committed.published_owner {
+            Some(owner) => owner,
+            None => {
+                self.sessions.quarantine(handle);
+                self.poisoned = true;
+                return Err(android_status(CODE_EVIDENCE_MISMATCH));
+            }
+        };
+        // The refreshed published owner is a live caller-owned capability: it
+        // must re-adopt and publish exactly one more owned result.
+        let readopted = [PrivateSettlementArgumentV3::Owned {
+            handle: refreshed,
+            payload,
+        }];
+        let second = match self.host.execute_canonical(&readopted) {
+            Ok(committed) => committed,
+            Err(_) => {
+                self.sessions.quarantine(handle);
+                self.poisoned = true;
+                return Err(android_status(CODE_EXECUTION_UNCERTAIN));
+            }
+        };
+        let reallocated = crate::postcommit_allocation_probe::take_last();
+        let still_healthy = !self.host.is_poisoned()
+            && !self.host.is_draining()
+            && self.host.quarantined_count() == 0;
+        if second.outcome
+            != (ExecuteOutcome::Owned {
+                owner_ordinal: IDENTITY_MAX_OWNER_ORDINAL,
+                payload,
+            })
+            || second.committed.publication != Publication::Owned(IDENTITY_MAX_OWNER_ORDINAL)
+            || second.committed.published_owner.is_none()
+            || reallocated != Some(0)
+            || !still_healthy
+        {
+            self.sessions.quarantine(handle);
+            self.poisoned = true;
+            return Err(android_status(CODE_EVIDENCE_MISMATCH));
+        }
+        if self
+            .host
+            .replay_committed(second.identity, &second.candidate_bytes)
+            != Ok(second.committed)
+        {
+            self.sessions.quarantine(handle);
+            self.poisoned = true;
+            return Err(android_status(CODE_EVIDENCE_MISMATCH));
+        }
+        self.sessions.consume(handle);
+        Ok(PrivateAndroidJniEvidenceV1 {
+            size: mem::size_of::<PrivateAndroidJniEvidenceV1>() as u32,
+            version: EVIDENCE_VERSION,
+            module_instance_id: self.host.module_instance_id().get(),
+            proof_flags: IDENTITY_MAX_PUBLICATIONS,
             postcommit_allocations: allocations.unwrap_or(usize::MAX) as u64,
             host_state_flags: 0,
         })
@@ -831,6 +990,53 @@ pub unsafe extern "C" fn spx_private_android_jni_v1_execute_requires_false(
 
 #[cfg(target_os = "android")]
 #[no_mangle]
+pub unsafe extern "C" fn spx_private_android_jni_v1_adopt_owned(
+    payload: u64,
+    out_handle: *mut u64,
+) -> u64 {
+    ffi_guard(|| {
+        if out_handle.is_null() || (out_handle as usize) % mem::align_of::<u64>() != 0 {
+            return android_status(CODE_INVALID_ARGUMENT);
+        }
+        match with_runtime_mut(|runtime| runtime.adopt_owned_result(payload)) {
+            Ok(handle) => {
+                // SAFETY: The generated shim supplies aligned writable storage.
+                unsafe { out_handle.write(handle) };
+                0
+            }
+            Err(status) => status,
+        }
+    })
+}
+
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub unsafe extern "C" fn spx_private_android_jni_v1_execute_identity_max(
+    handle: u64,
+    out_evidence: *mut PrivateAndroidJniEvidenceV1,
+    out_evidence_len: u32,
+) -> u64 {
+    ffi_guard(|| {
+        if out_evidence.is_null()
+            || out_evidence_len as usize != mem::size_of::<PrivateAndroidJniEvidenceV1>()
+            || (out_evidence as usize) % mem::align_of::<PrivateAndroidJniEvidenceV1>() != 0
+        {
+            return android_status(CODE_INVALID_ARGUMENT);
+        }
+        match with_runtime_mut(|runtime| runtime.identity_max_witness(handle)) {
+            Ok(evidence) => {
+                // SAFETY: Exact aligned output storage was checked above and is
+                // written only after authenticated receipt commit.
+                unsafe { ptr::write(out_evidence, evidence) };
+                0
+            }
+            Err(status) => status,
+        }
+    })
+}
+
+#[cfg(target_os = "android")]
+#[no_mangle]
 pub extern "C" fn spx_private_android_jni_v1_poison_runtime() -> u64 {
     ffi_guard(|| {
         match with_runtime_mut(|runtime| {
@@ -1066,6 +1272,13 @@ mod tests {
         assert_eq!(REQUIRES_FALSE_PAYLOAD, u64::MAX);
         assert_eq!(REQUIRES_FALSE_SELECTED_ORDINAL, 1);
         assert_eq!(OWNER_GENERATION, 1);
+    }
+
+    #[test]
+    fn identity_max_witness_constants_are_frozen() {
+        assert_eq!(IDENTITY_MAX_PAYLOAD, u64::MAX);
+        assert_eq!(IDENTITY_MAX_OWNER_ORDINAL, 0);
+        assert_eq!(IDENTITY_MAX_PUBLICATIONS, 2);
     }
 
     #[test]

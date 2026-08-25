@@ -36,7 +36,16 @@ internal class NativeRuntime(private val bridge: NativeBridge) : AutoCloseable {
         return adopted.handle
     }
 
+    fun adoptOwnedWitness(): Long {
+        val adopted = call { bridge.adoptOwned() }
+        require(adopted.status.isSuccess) { "native owned-result adoption failed" }
+        OpaqueHandle.decode(adopted.handle)
+        return adopted.handle
+    }
+
     fun executeRequiresFalse(handle: Long): ConsumeResult = call { bridge.executeRequiresFalse(handle) }
+
+    fun executeIdentityMax(handle: Long): ConsumeResult = call { bridge.executeIdentityMax(handle) }
 
     fun consume(handle: Long): ConsumeResult = call { bridge.consume(handle) }
 

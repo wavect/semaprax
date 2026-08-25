@@ -11,8 +11,10 @@ internal class NativeBridge private constructor() {
     ): Long
 
     private external fun nativeAdoptSingle(payload: Long, outHandle: LongArray): Long
+    private external fun nativeAdoptOwned(payload: Long, outHandle: LongArray): Long
     private external fun nativeConsume(handle: Long, outEvidence: LongArray): Long
     private external fun nativeExecuteRequiresFalse(handle: Long, outEvidence: LongArray): Long
+    private external fun nativeExecuteIdentityMax(handle: Long, outEvidence: LongArray): Long
     private external fun nativeCloseRuntime(): Long
     private external fun nativeProbeException(callback: Runnable): Long
     private external fun nativeConsumeRawWrongThread(handle: Long, outEvidence: LongArray): Long
@@ -34,6 +36,12 @@ internal class NativeBridge private constructor() {
         return AdoptResult(status, output[0])
     }
 
+    fun adoptOwned(payload: Long = IDENTITY_MAX_OWNER_PAYLOAD): AdoptResult {
+        val output = longArrayOf(POISON)
+        val status = StatusWord.decode(nativeAdoptOwned(payload, output))
+        return AdoptResult(status, output[0])
+    }
+
     fun consume(handle: Long): ConsumeResult {
         val output = LongArray(EVIDENCE_WORDS) { POISON }
         val status = StatusWord.decode(nativeConsume(handle, output))
@@ -43,6 +51,12 @@ internal class NativeBridge private constructor() {
     fun executeRequiresFalse(handle: Long): ConsumeResult {
         val output = LongArray(EVIDENCE_WORDS) { POISON }
         val status = StatusWord.decode(nativeExecuteRequiresFalse(handle, output))
+        return ConsumeResult(status, output)
+    }
+
+    fun executeIdentityMax(handle: Long): ConsumeResult {
+        val output = LongArray(EVIDENCE_WORDS) { POISON }
+        val status = StatusWord.decode(nativeExecuteIdentityMax(handle, output))
         return ConsumeResult(status, output)
     }
 
@@ -66,11 +80,14 @@ internal class NativeBridge private constructor() {
         const val EXPECTED_SECOND_FINALIZER = 11L
         const val SELECTOR_DISCARD = 0
         const val SELECTOR_REQUIRES_FALSE = 1
+        const val SELECTOR_IDENTITY_MAX = 2
         const val REQUIRE_FALSE_OWNER_PAYLOAD = -1L
         const val REQUIRE_FALSE_STATUS_WORD = 1L
         const val REQUIRE_FALSE_FINALIZER_COUNT = 1L
         const val REQUIRE_FALSE_FINALIZER =
             (0L shl 32) or REQUIRE_FALSE_OWNER_PAYLOAD
+        const val IDENTITY_MAX_OWNER_PAYLOAD = -1L
+        const val IDENTITY_MAX_PUBLICATIONS = 2L
         const val POISON = -0x3501450135014502L
 
         fun loadExact(nativeLibraryDirectory: File): NativeBridge {
@@ -123,6 +140,22 @@ internal data class ConsumeResult(val status: StatusWord, val evidence: LongArra
             "witness finalizer owner and payload are not the canonical corpus values"
         }
         require(evidence[6] == 0L) { "witness mutated a second owner slot" }
+        require(evidence[7] == 0L) { "native host state is unhealthy" }
+    }
+
+    fun requireIdentityMaxExact() {
+        require(status.isSuccess) { "identity-max witness status is nonzero" }
+        require(evidence.size == NativeBridge.EVIDENCE_WORDS)
+        require(evidence[0] == NativeBridge.EVIDENCE_VERSION)
+        require(evidence[1] > 0L) { "module instance identity is zero" }
+        require(evidence[2] == NativeBridge.IDENTITY_MAX_PUBLICATIONS) {
+            "outward publication word is not the canonical identity-max count"
+        }
+        require(evidence[3] == 0L) { "postcommit allocation count is nonzero" }
+        require(evidence[4] == 0L) { "published identity was physically finalized" }
+        require(evidence[5] == 0L && evidence[6] == 0L) {
+            "publication mutated a finalizer slot"
+        }
         require(evidence[7] == 0L) { "native host state is unhealthy" }
     }
 

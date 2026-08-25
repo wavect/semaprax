@@ -44,6 +44,8 @@ class ContractInstrumentation : Instrumentation() {
         runConsumeCleanerRace(bridge, nativeDirectory)
         runRequiresFalseWitness(bridge, nativeDirectory, "libsemaprax_provider_rf_o0.so")
         runRequiresFalseWitness(bridge, nativeDirectory, "libsemaprax_provider_rf_o2.so")
+        runIdentityMaxWitness(bridge, nativeDirectory, "libsemaprax_provider_om_o0.so")
+        runIdentityMaxWitness(bridge, nativeDirectory, "libsemaprax_provider_om_o2.so")
     }
 
     private fun runProvider(
@@ -206,12 +208,49 @@ class ContractInstrumentation : Instrumentation() {
         runtime.close()
     }
 
+    private fun runIdentityMaxWitness(
+        bridge: NativeBridge,
+        nativeDirectory: File,
+        providerName: String,
+    ) {
+        val provider = File(nativeDirectory, providerName).canonicalFile
+        require(provider.parentFile == nativeDirectory && provider.isFile) {
+            "provider is not the exact installed image"
+        }
+        val runtime = NativeRuntime(bridge)
+        runtime.open(provider, NativeBridge.SELECTOR_IDENTITY_MAX)
+        val handle = runtime.adoptOwnedWitness()
+
+        // The discard selector cannot consume inside the owned-result image.
+        val wrongSelector = runtime.call { bridge.consume(handle) }
+        require(wrongSelector.status.raw == StatusWord.KAT_ANDROID_ADAPTER) {
+            "discard consume was not rejected on the identity-max selector"
+        }
+        wrongSelector.requireUntouchedFailure()
+
+        val forged = runtime.call { bridge.executeIdentityMax(handle xor 1L) }
+        require(forged.status.raw == StatusWord.KAT_INVALID_HANDLE)
+        forged.requireUntouchedFailure()
+
+        // The canonical identity-max corpus witness: one adopted owner at the
+        // maximum payload is published outward as the owned result without any
+        // physical finalization, re-adopts through its refreshed published
+        // owner for exactly one more publication, and leaves the original
+        // generation stale after publication.
+        runtime.executeIdentityMax(handle).requireIdentityMaxExact()
+
+        val stale = runtime.call { bridge.executeIdentityMax(handle) }
+        require(stale.status.raw == StatusWord.KAT_STALE_HANDLE)
+        stale.requireUntouchedFailure()
+        runtime.close()
+    }
+
     companion object {
         const val RESULT_FILE = "semaprax-android-jni-v1.txt"
         const val EXPECTED_RESULT =
             "SEMAPRAX_ANDROID_JNI_V1_OK api=35 abi=x86_64 o0=explicit o2=cleaner " +
                 "handle=0001000001000001 declared=0000006b00000007 " +
                 "unexpected=0000004500000001 finalizers=1:13,0:11 " +
-                "publication=no-owned allocations=0 handles=0 rf=1\n"
+                "publication=no-owned allocations=0 handles=0 rf=1 om=1\n"
     }
 }

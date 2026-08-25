@@ -77,6 +77,32 @@ fn run(command: &mut Command, label: &str) -> std::process::Output {
     output
 }
 
+fn calculator_node_command(fixture: &Path) -> Command {
+    let mut command = Command::new("node");
+    command.current_dir(fixture).arg("calculator.mjs");
+    command
+}
+
+#[test]
+fn node_entrypoint_is_relative_to_canonical_fixture_root() {
+    use std::ffi::OsStr;
+    use std::path::Component;
+
+    let fixture = Fixture::create();
+    let command = calculator_node_command(&fixture.0);
+    assert_eq!(command.get_current_dir(), Some(fixture.0.as_path()));
+    let args = command.get_args().collect::<Vec<_>>();
+    assert_eq!(args, [OsStr::new("calculator.mjs")]);
+    let entrypoint = Path::new(args[0]);
+    assert!(entrypoint.is_relative());
+    let mut components = entrypoint.components();
+    assert!(matches!(
+        components.next(),
+        Some(Component::Normal(name)) if name == OsStr::new("calculator.mjs")
+    ));
+    assert_eq!(components.next(), None);
+}
+
 #[cfg(windows)]
 #[test]
 fn nested_cargo_rebinds_a_poisoned_command_to_the_validated_linker_path() {
@@ -717,7 +743,7 @@ process.stdout.write(value+(process.platform==="win32"?"\r\n":"\n"));
         .unwrap()
         .contains("console.log"));
     let wasm = run(
-        Command::new("node").arg(fixture.0.join("calculator.mjs")),
+        &mut calculator_node_command(&fixture.0),
         "run calculator Wasm backend",
     );
     assert_eq!(wasm.stdout, rust.stdout);

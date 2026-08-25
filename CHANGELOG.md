@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Promoted the focused calculator Product Acceptance and Public Native Rust
+  SDK matrices to blocking Ubuntu, macOS, and Windows configuration while
+  keeping hosted promotion pending until the resulting exact-head run passes.
+  The Windows SDK's archive, live-descendant denial, and minimal inventory
+  gates passed at `d27ba9c`, but its masked final consumer exposed Node 22's
+  upstream failure to resolve a canonical `\\?\` entrypoint. The real Wasm
+  execution now preserves the canonical fixture authority as its working
+  directory and gives Node the single relative `calculator.mjs` leaf; command
+  inspection and source contracts prohibit reintroducing the incompatible
+  absolute entrypoint. The unrelated private A+B Windows lane remains
+  diagnostic and no broader interop or package claim follows.
+
 - Hardened Public Native Rust SDK Phase C at the archive and nested-Cargo
   boundaries without claiming hosted promotion. Darwin archive execution now
   returns a closed failure phase plus `Settled`/`Uncertain` evidence. A

@@ -48,7 +48,7 @@ fn hosted_matrix_routes_public_sdk_evidence_on_all_three_operating_systems() {
         "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=%SEMAPRAX_LINKER%",
         "echo LINK=",
         "echo _LINK_=",
-        "continue-on-error: ${{ runner.os == 'Windows' }}",
+        "Require minimal effectful public SDK build on Windows",
     ] {
         assert!(
             public_sdk.contains(required),
@@ -61,6 +61,32 @@ fn hosted_matrix_routes_public_sdk_evidence_on_all_three_operating_systems() {
             .count(),
         1,
         "Public SDK Windows setup must bind Cargo's target linker exactly once"
+    );
+    assert!(
+        !public_sdk.contains("continue-on-error"),
+        "every Public Native Rust SDK host and step must be blocking"
+    );
+}
+
+#[test]
+fn node_entrypoint_stays_relative_to_the_canonical_fixture_authority() {
+    let consumer = read("tests/public_native_rust_sdk_v1.rs");
+    let helper = consumer
+        .split_once("fn calculator_node_command(fixture: &Path) -> Command {")
+        .and_then(|(_, tail)| tail.split_once("\n}\n"))
+        .map(|(body, _)| body)
+        .expect("calculator Node command helper");
+    assert!(helper.contains("command.current_dir(fixture).arg(\"calculator.mjs\");"));
+    assert_eq!(
+        consumer
+            .matches("calculator_node_command(&fixture.0)")
+            .count(),
+        2,
+        "the command-inspection regression and real Wasm execution must share the helper"
+    );
+    assert!(
+        !consumer.contains(".arg(fixture.0.join(\"calculator.mjs\"))"),
+        "Node 22 on Windows cannot resolve a verbatim absolute entrypoint"
     );
 }
 

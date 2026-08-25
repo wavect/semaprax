@@ -1456,11 +1456,10 @@ uses the complete six-operation calculator export surface, rebuilds Web/Node
 and Rust consumers after the opt-in daemon rename, compares the semantic Web
 scalar ABI and exact Rust export inventory rather than revision-bound whole
 manifests, and proves stable-ID behavior across changed authenticated
-revisions. A focused CI lane requires the TypeScript and held-tool Rust paths
-on Ubuntu and macOS; Windows remains explicitly diagnostic until its existing
-SDK publication boundary can be promoted. Exact-head full-matrix promotion and
-general Project SDK/package/import/capability/aggregate/resource support remain
-open.
+revisions. The focused CI lane requires the TypeScript and held-tool Rust paths
+on blocking Ubuntu, macOS, and Windows jobs. Exact-head success of this newly
+unmasked full matrix remains pending, and general Project SDK/package/import/
+capability/aggregate/resource support remains open.
 See [Project Manifest v1](PROJECT-MANIFEST-V1.md).
 
 ## Project Manifest v2 and Useful Text Consumer v1

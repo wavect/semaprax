@@ -102,23 +102,13 @@ jobs:
           "$SEMAPRAX_PROJECT_CALCULATOR_ROOT"
 
   project-product-acceptance-v1:
-    name: Project Product Acceptance v1 (${{ matrix.os }}, ${{ matrix.evidence }})
+    name: Project Product Acceptance v1 (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
-    continue-on-error: ${{ matrix.diagnostic }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-24.04
-            evidence: blocking
-            diagnostic: false
-          - os: macos-15
-            evidence: blocking
-            diagnostic: false
-          - os: windows-2025
-            evidence: diagnostic-only
-            diagnostic: true
+        os: [ubuntu-24.04, macos-15, windows-2025]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
@@ -167,7 +157,7 @@ jobs:
           fi
           test -x "$archiver_path"
           echo "SEMAPRAX_ARCHIVER=$archiver_path" >> "$GITHUB_ENV"
-      - name: Resolve exact held native tools and MSVC environment (Windows diagnostic only)
+      - name: Resolve exact held native tools and MSVC environment (Windows)
         if: runner.os == 'Windows'
         shell: cmd
         run: |
@@ -307,14 +297,12 @@ jobs:
       - name: Require exact Windows live-descendant publication denial
         if: runner.os == 'Windows'
         run: cargo test --locked --offline -p semaprax-native-rust-interop-platform-sys --lib tests::windows_live_descendant_authorities_deny_root_publish_without_later_action -- --ignored --exact --nocapture --test-threads=1
-      - name: Diagnose minimal effectful public SDK build on Windows (non-blocking)
+      - name: Require minimal effectful public SDK build on Windows
         if: runner.os == 'Windows'
-        continue-on-error: true
         env:
           SEMAPRAX_REQUIRE_PUBLIC_SDK_BUILD: "1"
         run: cargo test --locked --offline -p semaprax-native-rust-interop --lib public_sdk::tests::effectful_no_import_sdk_builds_the_exact_public_inventory -- --exact --nocapture --test-threads=1
       - name: Require package, consumer, callback, and backend-equivalence evidence
-        continue-on-error: ${{ runner.os == 'Windows' }}
         env:
           SEMAPRAX_REQUIRE_PUBLIC_NATIVE_RUST_SDK: "1"
         run: |

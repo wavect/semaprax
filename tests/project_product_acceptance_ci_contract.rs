@@ -60,8 +60,8 @@ fn focused_product_acceptance_is_locked_offline_and_tool_authenticated() {
         );
     }
     assert!(
-        !acceptance.contains("continue-on-error: true"),
-        "a literal non-blocking step must not masquerade as product promotion"
+        !acceptance.contains("continue-on-error"),
+        "no non-blocking job or step may masquerade as product promotion"
     );
     let root_fetch = acceptance
         .find("cargo fetch --locked\n")
@@ -156,26 +156,22 @@ fn generated_project_consumers_bind_the_bounded_windows_linker_path_at_both_revi
 }
 
 #[test]
-fn unix_is_blocking_while_windows_remains_explicitly_diagnostic() {
+fn all_three_product_hosts_are_blocking() {
     let workflow = workflow();
     let acceptance = job(&workflow, "project-product-acceptance-v1");
     for required in [
-        "name: Project Product Acceptance v1 (${{ matrix.os }}, ${{ matrix.evidence }})",
-        "continue-on-error: ${{ matrix.diagnostic }}",
-        "- os: ubuntu-24.04\n            evidence: blocking\n            diagnostic: false",
-        "- os: macos-15\n            evidence: blocking\n            diagnostic: false",
-        "- os: windows-2025\n            evidence: diagnostic-only\n            diagnostic: true",
-        "Resolve exact held native tools and MSVC environment (Windows diagnostic only)",
+        "name: Project Product Acceptance v1 (${{ matrix.os }})",
+        "os: [ubuntu-24.04, macos-15, windows-2025]",
+        "Resolve exact held native tools and MSVC environment (Windows)",
     ] {
         assert!(
             acceptance.contains(required),
             "product acceptance evidence boundary lost `{required}`"
         );
     }
-    assert_eq!(
-        acceptance.matches("continue-on-error:").count(),
-        1,
-        "only the matrix-level diagnostic switch may be non-blocking"
+    assert!(
+        !acceptance.contains("continue-on-error"),
+        "all three Product Acceptance hosts must be blocking"
     );
 }
 

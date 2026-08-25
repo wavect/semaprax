@@ -722,7 +722,7 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
 }
 
 #[test]
-fn public_sdk_windows_runs_exact_early_archive_and_minimal_effectful_diagnostics() {
+fn public_sdk_windows_runs_exact_blocking_archive_publication_and_consumer_gates() {
     let workflow = read(".github/workflows/ci.yml");
     let public_job = workflow
         .split("\n  native-rust-sdk-v1:\n")
@@ -753,6 +753,14 @@ fn public_sdk_windows_runs_exact_early_archive_and_minimal_effectful_diagnostics
     assert!(
         !inventory_step.contains("continue-on-error"),
         "the exact AccessDenied negative control must be blocking",
+    );
+    assert!(
+        public_job.contains("- name: Require minimal effectful public SDK build on Windows"),
+        "the minimal effectful public SDK gate must be mandatory",
+    );
+    assert!(
+        !public_job.contains("continue-on-error"),
+        "the entire Public Native Rust SDK matrix must be blocking",
     );
     assert_eq!(
         public_job

@@ -128,11 +128,11 @@ direct/inline Web consumers, the complete v4 change workflow, and stable-ID
 rename checks. It compares semantic Web ABI and exact Rust export facts across
 the revision-changing rename. Explicit switches additionally require pinned
 TypeScript 5.8.3 declaration consumption and rebuild and execute the Project
-Rust consumer before and after the rename. A focused CI lane requires both
-paths on Ubuntu and macOS; Windows is diagnostic-only until its SDK publication
-boundary is promotable. This closes the local evidence-fragmentation gap but
-not full hosted promotion; new language breadth follows only after the
-mandatory matrix carries both optional paths successfully.
+Rust consumer before and after the rename. The focused CI lane now requires
+both paths on blocking Ubuntu, macOS, and Windows jobs. This closes the local
+evidence-fragmentation gap but not full hosted promotion: the newly unmasked
+configuration must still pass at the resulting exact head before new language
+breadth follows.
 
 The committed browser calculator shell now also consumes the multi-module
 Project package, rather than using Project output only from test-only Node and

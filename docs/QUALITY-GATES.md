@@ -183,8 +183,10 @@ production Windows C plan must include
 same source twice, require byte-identical objects with a zero COFF
 `TimeDateStamp`, and only then run `lib.exe /BREPRO` plus exact member replay.
 Archive `/BREPRO` without deterministic member bytes is insufficient. The
-diagnostic/masked Windows lanes cannot be promoted until the complete consumer
-and deterministic-inventory assertions pass without `continue-on-error`.
+Windows lanes are configured blocking only after the deterministic inventory,
+publication, and complete consumer assertions were made mandatory; hosted
+promotion still requires those exact unmasked steps to pass at the resulting
+head.
 
 Project Native Rust SDK v1 additionally requires the direct Project-subject
 and exact/minus-one allocation/replay unit evidence plus this full local
@@ -457,10 +459,11 @@ non-Rust/non-TypeScript evidence only.
 
 The focused `project-product-acceptance-v1` CI lane pins Rust 1.88, Node 22,
 and TypeScript 5.8.3 and requires both explicit switches on blocking Ubuntu
-24.04 and macOS 15 jobs. Its Windows 2025 leg is deliberately diagnostic-only
-while the existing Windows SDK publication boundary is nonblocking. Exact-head
-blocking Ubuntu/macOS/Windows promotion remains mandatory; local or diagnostic
-success does not complete the v0.2 objective.
+24.04, macOS 15, and Windows 2025 jobs. The Public Native Rust SDK matrix also
+requires its minimal Windows publication and complete consumer steps without
+`continue-on-error`. Exact-head success of this blocking configuration remains
+mandatory; earlier local or diagnostic success does not complete the v0.2
+objective.
 
 Quality gates are executable evidence, not a checklist substitute for reasoning. Every pull request must pass the baseline and the gates for each changed semantic layer.
 
@@ -579,15 +582,16 @@ the safe platform regression
 `windows_settled_nested_inventory_publishes_after_descendant_authorities_close`
 is blocking. Any failure after the one-way settlement boundary preserves inert
 residue and cannot attempt partial cleanup. The brepro archive admission gate
-remains mandatory and green. Hosted promotion of native-publication lanes
-remains held until the new Windows regression and full consumers are exact-head
-green and the diagnostics return to mandatory blocking status. The Windows
-minimal effectful public SDK build step, the Windows half of the final
-package/consumer/callback/backend-equivalence step, and the Windows-bounded
-A+B replay step carry the same non-blocking diagnostic classification because
-their previous hosted boundaries reproduced the identical `SPX-I233`
-ACCESS_DENIED signature and the corrected path has not yet completed an
-exact-head run; the Ubuntu and macOS SDK gates remain fully mandatory.
+remains mandatory and green. The focused Windows Product and both Public SDK
+steps are now configured blocking; hosted promotion remains held until that
+exact configuration completes successfully. At `d27ba9c`, the archive,
+live-descendant denial, minimal SDK inventory, and complete Product cycle
+passed, while the then-masked final SDK consumer exposed Node 22's `\\?\`
+entrypoint-resolution failure. The current command boundary preserves the
+canonical fixture as the working directory and supplies a single relative
+script leaf. Only the separate Windows-bounded private A+B replay step retains
+its non-blocking diagnostic classification; its scope and prior evidence are
+independent of the public v0.2 promotion.
 
 [Run 31320436726, job
 93262427248](https://github.com/wavect/semaprax/actions/runs/31320436726/job/93262427248)

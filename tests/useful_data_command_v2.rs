@@ -253,8 +253,9 @@ process.stdout.write("guest-false-pristine\n");
     assert!(guest.stderr.is_empty());
 
     let mut child = Command::new("node")
-        .arg(package.join("semaprax.command.js"))
+        .arg("semaprax.command.js")
         .arg("unused")
+        .current_dir(&package)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -269,7 +270,11 @@ process.stdout.write("guest-false-pristine\n");
     let output = child.wait_with_output().unwrap();
     assert_eq!(output.status.code(), Some(1));
     assert!(output.stdout.is_empty());
-    assert!(output.stderr.is_empty());
+    assert!(
+        output.stderr.is_empty(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     std::fs::remove_dir_all(root).unwrap();
 }
 

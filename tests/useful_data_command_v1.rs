@@ -129,8 +129,9 @@ fn compiler_free_command_matches_flushes_once_and_enforces_the_combined_bound() 
     }
     let run = |needle: &str, input: &[u8]| {
         let mut child = Command::new("node")
-            .arg(root.join("semaprax.command.js"))
+            .arg("semaprax.command.js")
             .arg(needle)
+            .current_dir(&root)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -169,8 +170,9 @@ fn compiler_free_command_matches_flushes_once_and_enforces_the_combined_bound() 
 
     for args in [Vec::<&str>::new(), vec!["x", "extra"]] {
         let usage = Command::new("node")
-            .arg(root.join("semaprax.command.js"))
+            .arg("semaprax.command.js")
             .args(args)
+            .current_dir(&root)
             .stdin(Stdio::null())
             .output()
             .unwrap();

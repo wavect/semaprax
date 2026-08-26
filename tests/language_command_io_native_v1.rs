@@ -186,25 +186,19 @@ fn native_o0_o2_process_adapter_round_trips_exact_binary_input() {
         assert!(false_output.stdout.is_empty());
         assert_eq!(false_output.stderr, b"usage\n");
 
-        let mut oversized = Command::new(&executable)
-            .arg("needle")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
+        let oversized_input = std::env::temp_dir().join(format!("{stem}.stdin"));
+        std::fs::write(&oversized_input, vec![0; 65_537]).unwrap();
+        assert_eq!(std::fs::metadata(&oversized_input).unwrap().len(), 65_537);
+        let oversized = Command::new(&executable)
+            .stdin(Stdio::from(std::fs::File::open(&oversized_input).unwrap()))
+            .output()
             .unwrap();
-        oversized
-            .stdin
-            .take()
-            .unwrap()
-            .write_all(&vec![0; 65_537])
-            .unwrap();
-        let oversized = oversized.wait_with_output().unwrap();
         assert_eq!(oversized.status.code(), Some(2));
         assert!(oversized.stdout.is_empty());
         assert_eq!(oversized.stderr, b"SEMAPRAX language command failed\n");
 
         let _ = std::fs::remove_file(source);
         let _ = std::fs::remove_file(executable);
+        let _ = std::fs::remove_file(oversized_input);
     }
 }

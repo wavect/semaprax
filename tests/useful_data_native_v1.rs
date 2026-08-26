@@ -165,6 +165,19 @@ fn native_arrays_and_owned_bytes_are_exact_at_o0_and_o2() {
     assert!(generated.contains("spx_bytes_drop"));
     assert!(generated.contains("spx_borrowed_root_bytes"));
     assert!(!generated.contains("strlen(value.ptr)"));
+    let (freestanding, entry_wrapper) = generated
+        .split_once("#ifndef SPX_NO_ENTRY_WRAPPER")
+        .expect("ordinary native output must contain one process entry wrapper");
+    assert!(!freestanding.contains("#include <fcntl.h>"));
+    assert!(entry_wrapper.contains("#include <fcntl.h>"));
+    assert!(entry_wrapper.contains("#include <io.h>"));
+    let binary_mode = entry_wrapper
+        .find("_setmode(_fileno(stdout), _O_BINARY)")
+        .expect("Windows stdout must be made byte-exact");
+    let stdout_write = entry_wrapper
+        .find("printf(\"%lld\\n\"")
+        .expect("ordinary native result write must remain present");
+    assert!(binary_mode < stdout_write);
 
     let mixed_probe = format!(
         r#"

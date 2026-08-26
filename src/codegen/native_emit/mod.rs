@@ -139,6 +139,10 @@ pub(super) fn emit_hir_c_with_labels(
         write!(
             output,
         "#ifndef SPX_NO_ENTRY_WRAPPER\n\
+         #if defined(_WIN32)\n\
+         #include <fcntl.h>\n\
+         #include <io.h>\n\
+         #endif\n\
          int main(void) {{\n\
              struct spx_status_entry spx_status_entries[UINT32_C(1)];\n\
              struct spx_context spx_ctx = {{0}};\n\
@@ -149,6 +153,12 @@ pub(super) fn emit_hir_c_with_labels(
              int64_t result;\n\
              spx_status_token status = {symbol}(&spx_ctx, &result);\n\
              if (status != SPX_STATUS_SUCCESS) return spx_public_failure(&spx_ctx, status);\n\
+             #if defined(_WIN32)\n\
+             if (_setmode(_fileno(stdout), _O_BINARY) == -1) {{\n\
+                 fputs(\"SEMAPRAX native runtime invariant failure: stdout binary mode\\n\", stderr);\n\
+                 return 72;\n\
+             }}\n\
+             #endif\n\
              printf(\"%lld\\n\", (long long)result);\n\
              return 0;\n\
          }}\n\

@@ -366,9 +366,9 @@ fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
     assert_eq!(
         reports.each_ref().map(|report| sha256(report)),
         [
-            "634c39c5fdd2aff0c4b068a500b27454f52597169cdf316a6c65e7725e6f85c6".to_owned(),
-            "bc3bb87586c085a04cc5d45bb6fc674fffdd5a69774a09b9fa0d58ab1beb49d1".to_owned(),
-            "84dd01b9c93c73759915c4db1526f7b47d52e99c273d756bd7a86912e35f65f5".to_owned(),
+            "85f23fa7922fc6083aa8cf1559dcf81d4657dc64cbb8931b5d08885842e3fb89".to_owned(),
+            "17587113aab9af67a8b4c8ad4707db1929bbefdd695dd5ae9b85b31f61c8d5d5".to_owned(),
+            "f06c0569a76de27c2b082096730106a728d5910ae3b6ae9389e1bd39f5fe6cda".to_owned(),
         ]
     );
 }

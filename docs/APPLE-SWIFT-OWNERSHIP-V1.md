@@ -44,6 +44,22 @@ or permission to open `SPX-B104`.
   finalizer at payload `u64::MAX`, and a sticky stale-owner rejection on a
   second canonical execution; any drift quarantines and poisons the runtime.
   Each application appends the deterministic marker `rf=1` to its result.
+- After the requires-false pass closes, both applications additionally execute
+  the canonical `token.identity` `identity-max` owned-result witness once per
+  pass against a third target-bound registration of the corpus fixture. The
+  witness adopts one single owner at `u64::MAX` through a dedicated
+  `adopt_owned` entry point and executes `token.identity`, requiring
+  `ExecuteOutcome::Owned` at owner ordinal 0, `Publication::Owned(0)` with a
+  live published owner, zero physical finalizers, zero mutated finalizer slots,
+  zero postcommit allocations, and exact replay equality for the committed
+  receipt; a stale re-execution of the pre-publication argument must fail
+  closed with `StaleOwner` without poisoning the host, and executing through
+  the refreshed published owner must publish exactly one further owned result
+  with replay equality before the session is consumed. Any drift quarantines
+  and poisons the runtime, and each application appends the deterministic
+  marker `om=1` to its result. This paragraph describes the implemented
+  assertion contract; it becomes hosted execution evidence only after the
+  dedicated Simulator job is green.
 
 ## Executable gate
 
@@ -57,8 +73,9 @@ on an arm64 Simulator:
 - provider `-O0` with explicit `consume()`;
 - provider `-O2` with deterministic ARC `deinit` cleanup.
 
-Both applications must additionally execute the `requires-false` witness
-described above and publish one exact app-container result. Missing output,
+Both applications must additionally execute the `requires-false` and
+`identity-max` witnesses described above and publish one exact app-container
+result. Missing output,
 fallback to host execution, an extra dynamic image, an unexpected exported
 symbol, or a mismatched result fails the gate.
 

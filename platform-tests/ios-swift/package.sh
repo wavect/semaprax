@@ -17,6 +17,9 @@ for variable in \
   SEMAPRAX_IOS_SWIFT_DEVICE_REQUIRES_FALSE_SOURCE \
   SEMAPRAX_IOS_SWIFT_SIM_ARM64_REQUIRES_FALSE_SOURCE \
   SEMAPRAX_IOS_SWIFT_SIM_X86_64_REQUIRES_FALSE_SOURCE \
+  SEMAPRAX_IOS_SWIFT_DEVICE_IDENTITY_MAX_SOURCE \
+  SEMAPRAX_IOS_SWIFT_SIM_ARM64_IDENTITY_MAX_SOURCE \
+  SEMAPRAX_IOS_SWIFT_SIM_X86_64_IDENTITY_MAX_SOURCE \
   SEMAPRAX_IOS_SWIFT_DEVICE_HOST \
   SEMAPRAX_IOS_SWIFT_SIM_ARM64_HOST \
   SEMAPRAX_IOS_SWIFT_SIM_X86_64_HOST
@@ -59,6 +62,9 @@ copy_input "$SEMAPRAX_IOS_SWIFT_SIM_X86_64_SOURCE" "$work/simulator-x86_64.c"
 copy_input "$SEMAPRAX_IOS_SWIFT_DEVICE_REQUIRES_FALSE_SOURCE" "$work/device-requires-false.c"
 copy_input "$SEMAPRAX_IOS_SWIFT_SIM_ARM64_REQUIRES_FALSE_SOURCE" "$work/simulator-arm64-requires-false.c"
 copy_input "$SEMAPRAX_IOS_SWIFT_SIM_X86_64_REQUIRES_FALSE_SOURCE" "$work/simulator-x86_64-requires-false.c"
+copy_input "$SEMAPRAX_IOS_SWIFT_DEVICE_IDENTITY_MAX_SOURCE" "$work/device-identity-max.c"
+copy_input "$SEMAPRAX_IOS_SWIFT_SIM_ARM64_IDENTITY_MAX_SOURCE" "$work/simulator-arm64-identity-max.c"
+copy_input "$SEMAPRAX_IOS_SWIFT_SIM_X86_64_IDENTITY_MAX_SOURCE" "$work/simulator-x86_64-identity-max.c"
 copy_input "$SEMAPRAX_IOS_SWIFT_DEVICE_HOST" "$work/host-device.a"
 copy_input "$SEMAPRAX_IOS_SWIFT_SIM_ARM64_HOST" "$work/host-simulator-arm64.a"
 copy_input "$SEMAPRAX_IOS_SWIFT_SIM_X86_64_HOST" "$work/host-simulator-x86_64.a"
@@ -76,12 +82,16 @@ compile_fixture() {
 
 compile_fixture iphoneos "$device_target" 2 "$work/device.c" "$work/device-o2.o"
 compile_fixture iphoneos "$device_target" 2 "$work/device-requires-false.c" "$work/device-requires-false-o2.o"
+compile_fixture iphoneos "$device_target" 2 "$work/device-identity-max.c" "$work/device-identity-max-o2.o"
 compile_fixture iphonesimulator "$simulator_arm64_target" 0 "$work/simulator-arm64.c" "$work/simulator-arm64-o0.o"
 compile_fixture iphonesimulator "$simulator_arm64_target" 0 "$work/simulator-arm64-requires-false.c" "$work/simulator-arm64-requires-false-o0.o"
+compile_fixture iphonesimulator "$simulator_arm64_target" 0 "$work/simulator-arm64-identity-max.c" "$work/simulator-arm64-identity-max-o0.o"
 compile_fixture iphonesimulator "$simulator_arm64_target" 2 "$work/simulator-arm64.c" "$work/simulator-arm64-o2.o"
 compile_fixture iphonesimulator "$simulator_arm64_target" 2 "$work/simulator-arm64-requires-false.c" "$work/simulator-arm64-requires-false-o2.o"
+compile_fixture iphonesimulator "$simulator_arm64_target" 2 "$work/simulator-arm64-identity-max.c" "$work/simulator-arm64-identity-max-o2.o"
 compile_fixture iphonesimulator "$simulator_x86_target" 2 "$work/simulator-x86_64.c" "$work/simulator-x86_64-o2.o"
 compile_fixture iphonesimulator "$simulator_x86_target" 2 "$work/simulator-x86_64-requires-false.c" "$work/simulator-x86_64-requires-false-o2.o"
+compile_fixture iphonesimulator "$simulator_x86_target" 2 "$work/simulator-x86_64-identity-max.c" "$work/simulator-x86_64-identity-max-o2.o"
 
 combine_archive() {
   local output="$1"
@@ -90,16 +100,17 @@ combine_archive() {
   test -s "$output"
 }
 combine_archive "$work/lib-device.a" \
-  "$work/device-o2.o" "$work/device-requires-false-o2.o" "$work/host-device.a"
+  "$work/device-o2.o" "$work/device-requires-false-o2.o" \
+  "$work/device-identity-max-o2.o" "$work/host-device.a"
 combine_archive "$work/lib-simulator-arm64-o0.a" \
   "$work/simulator-arm64-o0.o" "$work/simulator-arm64-requires-false-o0.o" \
-  "$work/host-simulator-arm64.a"
+  "$work/simulator-arm64-identity-max-o0.o" "$work/host-simulator-arm64.a"
 combine_archive "$work/lib-simulator-arm64-o2.a" \
   "$work/simulator-arm64-o2.o" "$work/simulator-arm64-requires-false-o2.o" \
-  "$work/host-simulator-arm64.a"
+  "$work/simulator-arm64-identity-max-o2.o" "$work/host-simulator-arm64.a"
 combine_archive "$work/lib-simulator-x86_64-o2.a" \
   "$work/simulator-x86_64-o2.o" "$work/simulator-x86_64-requires-false-o2.o" \
-  "$work/host-simulator-x86_64.a"
+  "$work/simulator-x86_64-identity-max-o2.o" "$work/host-simulator-x86_64.a"
 xcrun lipo -create "$work/lib-simulator-arm64-o2.a" "$work/lib-simulator-x86_64-o2.a" \
   -output "$work/lib-simulator-universal.a"
 
@@ -109,8 +120,10 @@ test "$(xcrun lipo -archs "$work/lib-simulator-universal.a")" = "x86_64 arm64" |
   test "$(xcrun lipo -archs "$work/lib-simulator-universal.a")" = "arm64 x86_64"
 vtool -show-build "$work/simulator-arm64-o2.o" | grep -F 'platform IOSSIMULATOR' >/dev/null
 vtool -show-build "$work/simulator-arm64-requires-false-o2.o" | grep -F 'platform IOSSIMULATOR' >/dev/null
+vtool -show-build "$work/simulator-arm64-identity-max-o2.o" | grep -F 'platform IOSSIMULATOR' >/dev/null
 vtool -show-build "$work/device-o2.o" | grep -F 'platform IOS' >/dev/null
 vtool -show-build "$work/device-requires-false-o2.o" | grep -F 'platform IOS' >/dev/null
+vtool -show-build "$work/device-identity-max-o2.o" | grep -F 'platform IOS' >/dev/null
 
 mkdir -p "$work/xc-device/Headers" "$work/xc-simulator/Headers"
 cp "$project_root/include/SemapraxPrivateSwift.h" "$work/xc-device/Headers/"
@@ -136,20 +149,26 @@ grep -F '<string>x86_64</string>' "$work/xc-info.xml" >/dev/null
 
 cat >"$work/app.exports" <<'EOF'
 _main
+_spx_private_apple_swift_fixture_id_v1_open
 _spx_private_apple_swift_fixture_rf_v1_open
 _spx_private_apple_swift_fixture_v1_open
+_spx_private_apple_swift_v1_adopt_owned
 _spx_private_apple_swift_v1_adopt_pair
 _spx_private_apple_swift_v1_adopt_single
 _spx_private_apple_swift_v1_close_runtime
 _spx_private_apple_swift_v1_consume
+_spx_private_apple_swift_v1_execute_identity_max
 _spx_private_apple_swift_v1_execute_requires_false
 EOF
-expected_app_exports='_spx_private_apple_swift_fixture_rf_v1_open
+expected_app_exports='_spx_private_apple_swift_fixture_id_v1_open
+_spx_private_apple_swift_fixture_rf_v1_open
 _spx_private_apple_swift_fixture_v1_open
+_spx_private_apple_swift_v1_adopt_owned
 _spx_private_apple_swift_v1_adopt_pair
 _spx_private_apple_swift_v1_adopt_single
 _spx_private_apple_swift_v1_close_runtime
 _spx_private_apple_swift_v1_consume
+_spx_private_apple_swift_v1_execute_identity_max
 _spx_private_apple_swift_v1_execute_requires_false'
 
 swift_sources=("$project_root"/Sources/*.swift)

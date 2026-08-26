@@ -2,8 +2,8 @@
 set -euo pipefail
 
 readonly minimum_ios_version="15.0"
-readonly expected_o0="SEMAPRAX_IOS_SWIFT_V1_OK mode=explicit optimization=O0 target=arm64-simulator handle=0001000001000001 wrong-thread=0000002d00000002 invalid=0000002d00000007 stale=0000002d00000008 finalizers=1:13,0:11 publication=no-owned allocations=0 handles=0 rf=1"
-readonly expected_o2="SEMAPRAX_IOS_SWIFT_V1_OK mode=deinit optimization=O2 target=arm64-simulator handle=0001000001000001 wrong-thread=0000002d00000002 invalid=0000002d00000007 stale=0000002d00000008 finalizers=1:13,0:11 publication=no-owned allocations=0 handles=0 rf=1"
+readonly expected_o0="SEMAPRAX_IOS_SWIFT_V1_OK mode=explicit optimization=O0 target=arm64-simulator handle=0001000001000001 wrong-thread=0000002d00000002 invalid=0000002d00000007 stale=0000002d00000008 finalizers=1:13,0:11 publication=no-owned allocations=0 handles=0 rf=1 om=1"
+readonly expected_o2="SEMAPRAX_IOS_SWIFT_V1_OK mode=deinit optimization=O2 target=arm64-simulator handle=0001000001000001 wrong-thread=0000002d00000002 invalid=0000002d00000007 stale=0000002d00000008 finalizers=1:13,0:11 publication=no-owned allocations=0 handles=0 rf=1 om=1"
 
 if [[ "$(uname -s)" != "Darwin" || "$(uname -m)" != "arm64" ]]; then
   echo "private Swift application evidence requires an arm64 macOS host" >&2
@@ -44,15 +44,22 @@ readonly simulator_x86_64_source="$scratch/simulator-x86_64.c"
 readonly device_requires_false_source="$scratch/device-arm64-requires-false.c"
 readonly simulator_arm64_requires_false_source="$scratch/simulator-arm64-requires-false.c"
 readonly simulator_x86_64_requires_false_source="$scratch/simulator-x86_64-requires-false.c"
+readonly device_identity_max_source="$scratch/device-arm64-identity-max.c"
+readonly simulator_arm64_identity_max_source="$scratch/simulator-arm64-identity-max.c"
+readonly simulator_x86_64_identity_max_source="$scratch/simulator-x86_64-identity-max.c"
 cargo run --locked -p semaprax-native-host \
   --features unstable-apple-swift-harness \
   --bin private-apple-swift-v1-fixture -- \
   "$device_source" "$simulator_arm64_source" "$simulator_x86_64_source" \
   "$device_requires_false_source" "$simulator_arm64_requires_false_source" \
-  "$simulator_x86_64_requires_false_source"
+  "$simulator_x86_64_requires_false_source" \
+  "$device_identity_max_source" "$simulator_arm64_identity_max_source" \
+  "$simulator_x86_64_identity_max_source"
 for source in "$device_source" "$simulator_arm64_source" "$simulator_x86_64_source" \
   "$device_requires_false_source" "$simulator_arm64_requires_false_source" \
-  "$simulator_x86_64_requires_false_source"; do test -s "$source"; done
+  "$simulator_x86_64_requires_false_source" \
+  "$device_identity_max_source" "$simulator_arm64_identity_max_source" \
+  "$simulator_x86_64_identity_max_source"; do test -s "$source"; done
 
 for target in aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios; do
   cargo check --locked -p semaprax-native-host --features unstable-apple-swift-harness \
@@ -72,6 +79,9 @@ SEMAPRAX_IOS_SWIFT_SIM_X86_64_SOURCE="$simulator_x86_64_source" \
 SEMAPRAX_IOS_SWIFT_DEVICE_REQUIRES_FALSE_SOURCE="$device_requires_false_source" \
 SEMAPRAX_IOS_SWIFT_SIM_ARM64_REQUIRES_FALSE_SOURCE="$simulator_arm64_requires_false_source" \
 SEMAPRAX_IOS_SWIFT_SIM_X86_64_REQUIRES_FALSE_SOURCE="$simulator_x86_64_requires_false_source" \
+SEMAPRAX_IOS_SWIFT_DEVICE_IDENTITY_MAX_SOURCE="$device_identity_max_source" \
+SEMAPRAX_IOS_SWIFT_SIM_ARM64_IDENTITY_MAX_SOURCE="$simulator_arm64_identity_max_source" \
+SEMAPRAX_IOS_SWIFT_SIM_X86_64_IDENTITY_MAX_SOURCE="$simulator_x86_64_identity_max_source" \
 SEMAPRAX_IOS_SWIFT_DEVICE_HOST="$device_host" \
 SEMAPRAX_IOS_SWIFT_SIM_ARM64_HOST="$simulator_arm64_host" \
 SEMAPRAX_IOS_SWIFT_SIM_X86_64_HOST="$simulator_x86_64_host" \

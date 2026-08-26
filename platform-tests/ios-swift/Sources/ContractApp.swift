@@ -26,11 +26,11 @@ enum ContractRunner {
     #if SEMAPRAX_EXPLICIT
     static let mode = "explicit"
     static let optimization = "O0"
-    static let expected = "SEMAPRAX_IOS_SWIFT_V1_OK mode=explicit optimization=O0 target=arm64-simulator handle=0001000001000001 wrong-thread=0000002d00000002 invalid=0000002d00000007 stale=0000002d00000008 finalizers=1:13,0:11 publication=no-owned allocations=0 handles=0 rf=1\n"
+    static let expected = "SEMAPRAX_IOS_SWIFT_V1_OK mode=explicit optimization=O0 target=arm64-simulator handle=0001000001000001 wrong-thread=0000002d00000002 invalid=0000002d00000007 stale=0000002d00000008 finalizers=1:13,0:11 publication=no-owned allocations=0 handles=0 rf=1 om=1\n"
     #elseif SEMAPRAX_DEINIT
     static let mode = "deinit"
     static let optimization = "O2"
-    static let expected = "SEMAPRAX_IOS_SWIFT_V1_OK mode=deinit optimization=O2 target=arm64-simulator handle=0001000001000001 wrong-thread=0000002d00000002 invalid=0000002d00000007 stale=0000002d00000008 finalizers=1:13,0:11 publication=no-owned allocations=0 handles=0 rf=1\n"
+    static let expected = "SEMAPRAX_IOS_SWIFT_V1_OK mode=deinit optimization=O2 target=arm64-simulator handle=0001000001000001 wrong-thread=0000002d00000002 invalid=0000002d00000007 stale=0000002d00000008 finalizers=1:13,0:11 publication=no-owned allocations=0 handles=0 rf=1 om=1\n"
     #else
     #error("the private Swift app requires an exact evidence mode")
     #endif
@@ -71,6 +71,7 @@ enum ContractRunner {
         try runConsumeDeinitRace(runtime: runtime)
         try runtime.close()
         try runRequiresFalseWitness()
+        try runIdentityMaxWitness()
     }
 
     private static func runRequiresFalseWitness() throws {
@@ -105,6 +106,45 @@ enum ContractRunner {
             handle: witness.raw, length: RequiresFalseEvidence.byteCount)
         try requireContract(stale.0.raw == StatusWord.staleHandleKAT,
                             "stale witness handle KAT changed")
+        try stale.1.requirePoisoned()
+        try runtime.close()
+    }
+
+    private static func runIdentityMaxWitness() throws {
+        let runtime = NativeRuntime()
+        try runtime.openIdentityMax()
+        let alreadyOpen = try runtime.openIdentityMaxAgainRaw()
+        try requireContract(alreadyOpen.raw == StatusWord.alreadyOpenKAT,
+                            "owned-result already-open KAT changed")
+
+        let witness = try runtime.adoptOwnedWitness()
+
+        // The pair-consume lane cannot consume inside the owned-result image.
+        let wrongShape = try runtime.consumeRawOnOwner(
+            handle: witness.raw, length: ConsumeEvidence.byteCount)
+        try requireContract(wrongShape.0.raw == StatusWord.invalidHandleKAT,
+                            "owned-result-shape consume was not rejected")
+        try wrongShape.1.requirePoisoned()
+
+        let forged = try runtime.executeIdentityMaxOnOwner(
+            handle: witness.raw ^ 1, length: IdentityMaxEvidence.byteCount)
+        try requireContract(forged.0.raw == StatusWord.invalidHandleKAT,
+                            "forged owned-result handle KAT changed")
+        try forged.1.requirePoisoned()
+
+        // The canonical identity-max corpus witness: one adopted owner at the
+        // maximum payload is published outward as the owned result without any
+        // physical finalization; the pre-publication generation becomes stale
+        // and the refreshed published owner re-adopts for exactly one more
+        // publication.
+        try runtime.executeIdentityMax(witness.raw).requireExact()
+
+        // Outward publication rotated the consumed generation: the stale handle
+        // cannot retry without poisoning the host.
+        let stale = try runtime.executeIdentityMaxOnOwner(
+            handle: witness.raw, length: IdentityMaxEvidence.byteCount)
+        try requireContract(stale.0.raw == StatusWord.staleHandleKAT,
+                            "stale owned-result handle KAT changed")
         try stale.1.requirePoisoned()
         try runtime.close()
     }

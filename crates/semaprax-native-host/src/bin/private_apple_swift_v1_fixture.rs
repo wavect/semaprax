@@ -1,4 +1,4 @@
-//! Generate six target-bound private Apple Swift ownership fixtures.
+//! Generate nine target-bound private Apple Swift ownership fixtures.
 
 use std::error::Error;
 use std::fmt::Write as _;
@@ -21,12 +21,12 @@ const FINALIZE_EXTERN_DECLARATION: &str =
 
 fn main() -> Result<(), Box<dyn Error>> {
     let outputs: Vec<PathBuf> = std::env::args_os().skip(1).map(PathBuf::from).collect();
-    if outputs.len() != 6
+    if outputs.len() != 9
         || outputs.iter().any(|path| !path.is_absolute())
         || (0..outputs.len())
             .any(|left| (left + 1..outputs.len()).any(|right| outputs[left] == outputs[right]))
     {
-        return Err(io::Error::new(io::ErrorKind::InvalidInput,"expected six distinct absolute create-new output paths: device-arm64, simulator-arm64, simulator-x86_64, device-requires-false, simulator-arm64-requires-false, simulator-x86_64-requires-false").into());
+        return Err(io::Error::new(io::ErrorKind::InvalidInput,"expected nine distinct absolute create-new output paths: device-arm64, simulator-arm64, simulator-x86_64, device-requires-false, simulator-arm64-requires-false, simulator-x86_64-requires-false, device-identity-max, simulator-arm64-identity-max, simulator-x86_64-identity-max").into());
     }
     let corpus = build_owned_resource_corpus_v1()
         .map_err(|e| io::Error::other(format!("build corpus: {e:?}")))?;
@@ -36,8 +36,20 @@ fn main() -> Result<(), Box<dyn Error>> {
         .find(|case| case.scenario_id == "requires-false")
         .ok_or_else(|| io::Error::other("requires-false corpus case is absent"))?;
     let requires_false_function = DeclarationId::new(requires_false.function_id);
-    for ((discard_path, requires_false_path), (target, tag)) in
-        outputs[..3].iter().zip(outputs[3..].iter()).zip([
+    let identity_max = corpus
+        .cases
+        .iter()
+        .find(|case| case.scenario_id == "identity-max")
+        .ok_or_else(|| io::Error::other("identity-max corpus case is absent"))?;
+    if identity_max.expected_owned_result_ordinal != Some(0) {
+        return Err(io::Error::other("identity-max corpus result ordinal diverged").into());
+    }
+    let identity_max_function = DeclarationId::new(identity_max.function_id);
+    for (((discard_path, requires_false_path), identity_max_path), (target, tag)) in outputs[..3]
+        .iter()
+        .zip(outputs[3..6].iter())
+        .zip(outputs[6..].iter())
+        .zip([
             (PrivateNativeCallableV3IosTarget::DeviceArm64, 1_u32),
             (PrivateNativeCallableV3IosTarget::SimulatorArm64, 2),
             (PrivateNativeCallableV3IosTarget::SimulatorX86_64, 3),
@@ -83,6 +95,29 @@ fn main() -> Result<(), Box<dyn Error>> {
                 requires_false_artifact.getter_symbol(),
                 requires_false_artifact.execute_symbol(),
                 requires_false_artifact.settle_symbol(),
+                tag,
+            )
+            .as_bytes(),
+        )?;
+        let identity_max_artifact = emit_private_native_callable_v3_ios_corpus_fixture(
+            &corpus.program,
+            &identity_max_function,
+            &identity_max.arguments,
+            identity_max.expected_owned_result_ordinal,
+            &identity_max.reference,
+            target,
+        )
+        .map_err(|e| io::Error::other(format!("emit Apple identity-max fixture: {e:?}")))?;
+        let bound_identity_max = shared_trace_provider(identity_max_artifact.source())
+            .map_err(|e| io::Error::other(format!("bind identity-max finalize: {e}")))?;
+        write_new(
+            identity_max_path,
+            render_identity_max(
+                &bound_identity_max,
+                identity_max_artifact.descriptor().len(),
+                identity_max_artifact.getter_symbol(),
+                identity_max_artifact.execute_symbol(),
+                identity_max_artifact.settle_symbol(),
                 tag,
             )
             .as_bytes(),
@@ -179,9 +214,38 @@ __attribute__((visibility("default"))) uint64_t spx_private_apple_swift_fixture_
     source
 }
 
+fn render_identity_max(
+    provider: &str,
+    descriptor_len: usize,
+    getter: &str,
+    execute: &str,
+    settle: &str,
+    target: u32,
+) -> String {
+    let mut source = String::new();
+    write!(source,r#"{provider}
+
+#include <stdint.h>
+
+typedef const uint8_t *(*spx_getter_fn)(void);
+typedef uint32_t (*spx_execute_fn)(const uint8_t *,uint32_t,uint8_t *,uint32_t,uint8_t *,uint32_t);
+typedef uint32_t (*spx_settle_fn)(uint8_t *,uint32_t,const uint8_t *,uint32_t,uint8_t *,uint32_t);
+
+__attribute__((visibility("hidden"))) extern uint64_t spx_private_apple_swift_fixture_register_v1(uint32_t,const uint8_t *,uint32_t,spx_getter_fn,spx_execute_fn,spx_settle_fn);
+
+__attribute__((visibility("default"))) uint64_t spx_private_apple_swift_fixture_id_v1_open(void){{
+  return spx_private_apple_swift_fixture_register_v1(UINT32_C({target}),{getter}(),UINT32_C({descriptor_len}),{getter},{execute},{settle});
+}}
+"#).expect("string write");
+    source
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{render, render_requires_false, shared_trace_provider, FINALIZE_DECLARATION};
+    use super::{
+        render, render_identity_max, render_requires_false, shared_trace_provider,
+        FINALIZE_DECLARATION,
+    };
 
     #[test]
     fn generated_fixture_freezes_closed_abi() {
@@ -218,6 +282,27 @@ mod tests {
             assert!(source.contains(required), "missing `{required}`");
         }
         assert!(!source.contains("spx_private_apple_swift_fixture_v1_open"));
+        assert!(!source.contains("spx_private_apple_swift_fixture_reset_v1"));
+        assert!(!source.contains("spx_private_apple_swift_fixture_snapshot_v1"));
+        assert!(!source.contains("static _Thread_local uint32_t spx_swift_count"));
+        assert!(!source.contains("static void spx_v3_generated_finalize"));
+    }
+
+    #[test]
+    fn identity_max_fixture_shares_hidden_trace_hooks() {
+        let provider = format!("/*provider*/\n{FINALIZE_DECLARATION}");
+        let bound = shared_trace_provider(&provider).unwrap();
+        let source = render_identity_max(&bound, 738, "id_getter", "id_execute", "id_settle", 3);
+        for required in [
+            "/*provider*/",
+            "extern void spx_v3_generated_finalize(uint32_t,uint64_t);",
+            "spx_private_apple_swift_fixture_id_v1_open",
+            "spx_private_apple_swift_fixture_register_v1(UINT32_C(3),id_getter(),UINT32_C(738),id_getter,id_execute,id_settle)",
+        ] {
+            assert!(source.contains(required), "missing `{required}`");
+        }
+        assert!(!source.contains("spx_private_apple_swift_fixture_v1_open"));
+        assert!(!source.contains("spx_private_apple_swift_fixture_rf_v1_open"));
         assert!(!source.contains("spx_private_apple_swift_fixture_reset_v1"));
         assert!(!source.contains("spx_private_apple_swift_fixture_snapshot_v1"));
         assert!(!source.contains("static _Thread_local uint32_t spx_swift_count"));

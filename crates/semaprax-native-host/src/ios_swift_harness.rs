@@ -57,6 +57,9 @@ const HANDLE_KAT: u64 = 0x0001_0000_0100_0001;
 const PROOF_FLAGS: u64 = 0x0f;
 const REQUIRES_FALSE_PAYLOAD: u64 = u64::MAX;
 const REQUIRES_FALSE_SELECTED_ORDINAL: u32 = 1;
+const IDENTITY_MAX_PAYLOAD: u64 = u64::MAX;
+const IDENTITY_MAX_OWNER_ORDINAL: u32 = 0;
+const IDENTITY_MAX_PUBLICATIONS: u64 = 2;
 const OWNER_GENERATION: u64 = 1;
 
 const CODE_INVALID_ARGUMENT: u32 = 1;
@@ -92,6 +95,7 @@ thread_local! { static RUNTIME: RefCell<Option<Runtime>> = const { RefCell::new(
 enum SessionShape {
     Pair,
     SingleWitness,
+    SingleOwnedResult,
 }
 
 #[derive(Clone, Copy)]
@@ -284,6 +288,21 @@ impl Runtime {
             .map_err(map_table)
     }
 
+    fn adopt_owned_result(&mut self, payload: u64) -> Result<u64, u64> {
+        if self.poisoned || self.host.is_poisoned() {
+            return Err(status(CODE_UNHEALTHY));
+        }
+        if payload != IDENTITY_MAX_PAYLOAD {
+            return Err(status(CODE_WRONG_PAYLOAD));
+        }
+        self.table
+            .insert(Session {
+                shape: SessionShape::SingleOwnedResult,
+                payloads: [payload, 0],
+            })
+            .map_err(map_table)
+    }
+
     fn requires_false_witness(&mut self, handle: u64) -> Result<PrivateAppleSwiftEvidenceV1, u64> {
         if self.poisoned || self.host.is_poisoned() {
             return Err(status(CODE_UNHEALTHY));
@@ -387,6 +406,163 @@ impl Runtime {
                 0,
                 1,
                 REQUIRES_FALSE_PAYLOAD,
+                0,
+                0,
+            ],
+        })
+    }
+
+    fn identity_max_witness(&mut self, handle: u64) -> Result<PrivateAppleSwiftEvidenceV1, u64> {
+        if self.poisoned || self.host.is_poisoned() {
+            return Err(status(CODE_UNHEALTHY));
+        }
+        let session = self.table.claim(handle).map_err(map_table)?;
+        if session.shape != SessionShape::SingleOwnedResult {
+            self.table.restore(handle);
+            return Err(status(CODE_INVALID_HANDLE));
+        }
+        let payload = session.payloads[0];
+        if unsafe { (self.reset)() } != 0 {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        let slot = self.next_owner;
+        let Some(next) = slot.checked_add(1) else {
+            self.table.restore(handle);
+            return Err(status(CODE_CAPACITY));
+        };
+        let owner = match self.host.register_owner(slot, OWNER_GENERATION) {
+            Ok(owner) => owner,
+            Err(_) => {
+                self.table.restore(handle);
+                return Err(status(CODE_CAPACITY));
+            }
+        };
+        self.next_owner = next;
+        // The canonical `identity-max` corpus witness: one owned argument at
+        // the corpus-maximum payload is published outward as the owned result.
+        let arguments = [PrivateSettlementArgumentV3::Owned {
+            handle: owner,
+            payload,
+        }];
+        let committed = match self.host.execute_canonical(&arguments) {
+            Ok(committed) => committed,
+            Err(_) => {
+                self.poisoned = true;
+                self.table.quarantine(handle);
+                return Err(status(CODE_UNCERTAIN));
+            }
+        };
+        let allocations = crate::postcommit_allocation_probe::take_last();
+        let mut count = 0;
+        let mut ordinals = [0; 2];
+        let mut payloads = [0; 2];
+        let trace =
+            unsafe { (self.snapshot)(&mut count, ordinals.as_mut_ptr(), payloads.as_mut_ptr(), 2) };
+        let healthy = !self.host.is_poisoned()
+            && !self.host.is_draining()
+            && self.host.quarantined_count() == 0;
+        if committed.outcome
+            != (ExecuteOutcome::Owned {
+                owner_ordinal: IDENTITY_MAX_OWNER_ORDINAL,
+                payload,
+            })
+            || committed.committed.publication != Publication::Owned(IDENTITY_MAX_OWNER_ORDINAL)
+            || committed.committed.published_owner.is_none()
+            || allocations != Some(0)
+            || trace != 0
+            || count != 0
+            || ordinals != [0, 0]
+            || payloads != [0, 0]
+            || !healthy
+        {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        if self
+            .host
+            .replay_committed(committed.identity, &committed.candidate_bytes)
+            != Ok(committed.committed)
+        {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        // Outward publication rotates the consumed generation in place: a stale
+        // replay of the exact pre-publication argument must fail closed without
+        // poisoning the host.
+        if self.host.execute_canonical(&arguments)
+            != Err(PrivateSettlementExecutionError::Ledger(
+                SettlementLedgerError::StaleOwner,
+            ))
+            || self.host.is_poisoned()
+            || self.host.is_draining()
+            || self.host.quarantined_count() != 0
+        {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        let refreshed = match committed.committed.published_owner {
+            Some(owner) => owner,
+            None => {
+                self.poisoned = true;
+                self.table.quarantine(handle);
+                return Err(status(CODE_EVIDENCE));
+            }
+        };
+        // The refreshed published owner is a live caller-owned capability: it
+        // must re-adopt and publish exactly one more owned result.
+        let readopted = [PrivateSettlementArgumentV3::Owned {
+            handle: refreshed,
+            payload,
+        }];
+        let second = match self.host.execute_canonical(&readopted) {
+            Ok(committed) => committed,
+            Err(_) => {
+                self.poisoned = true;
+                self.table.quarantine(handle);
+                return Err(status(CODE_UNCERTAIN));
+            }
+        };
+        let reallocated = crate::postcommit_allocation_probe::take_last();
+        let still_healthy = !self.host.is_poisoned()
+            && !self.host.is_draining()
+            && self.host.quarantined_count() == 0;
+        if second.outcome
+            != (ExecuteOutcome::Owned {
+                owner_ordinal: IDENTITY_MAX_OWNER_ORDINAL,
+                payload,
+            })
+            || second.committed.publication != Publication::Owned(IDENTITY_MAX_OWNER_ORDINAL)
+            || second.committed.published_owner.is_none()
+            || reallocated != Some(0)
+            || !still_healthy
+        {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        if self
+            .host
+            .replay_committed(second.identity, &second.candidate_bytes)
+            != Ok(second.committed)
+        {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        self.table.consume(handle);
+        Ok(PrivateAppleSwiftEvidenceV1 {
+            words: [
+                1,
+                self.host.module_instance_id().get(),
+                IDENTITY_MAX_PUBLICATIONS,
+                0,
+                0,
+                0,
                 0,
                 0,
             ],
@@ -733,6 +909,52 @@ pub unsafe extern "C" fn spx_private_apple_swift_v1_execute_requires_false(
 
 #[cfg(target_os = "ios")]
 #[no_mangle]
+pub unsafe extern "C" fn spx_private_apple_swift_v1_adopt_owned(
+    payload: u64,
+    output: *mut u64,
+) -> u64 {
+    guard(|| {
+        if output.is_null() || (output as usize) % mem::align_of::<u64>() != 0 {
+            return status(CODE_INVALID_ARGUMENT);
+        }
+        match with_runtime(|runtime| runtime.adopt_owned_result(payload)) {
+            Ok(handle) => {
+                unsafe { output.write(handle) };
+                0
+            }
+            Err(error) => error,
+        }
+    })
+}
+
+#[cfg(target_os = "ios")]
+#[no_mangle]
+pub unsafe extern "C" fn spx_private_apple_swift_v1_execute_identity_max(
+    handle: u64,
+    output: *mut PrivateAppleSwiftEvidenceV1,
+    output_len: u32,
+) -> u64 {
+    guard(|| {
+        if output.is_null()
+            || output_len as usize != mem::size_of::<PrivateAppleSwiftEvidenceV1>()
+            || (output as usize) % mem::align_of::<PrivateAppleSwiftEvidenceV1>() != 0
+        {
+            return status(CODE_INVALID_ARGUMENT);
+        }
+        match with_runtime(|runtime| runtime.identity_max_witness(handle)) {
+            Ok(evidence) => {
+                // SAFETY: Exact aligned output storage was checked above and is
+                // written only after authenticated receipt commit.
+                unsafe { ptr::write(output, evidence) };
+                0
+            }
+            Err(error) => error,
+        }
+    })
+}
+
+#[cfg(target_os = "ios")]
+#[no_mangle]
 pub extern "C" fn spx_private_apple_swift_v1_close_runtime() -> u64 {
     guard(|| {
         RUNTIME.with(|cell| {
@@ -856,11 +1078,30 @@ mod tests {
     #[test]
     fn witness_sessions_are_shaped_and_distinct_from_pairs() {
         assert_ne!(SessionShape::Pair, SessionShape::SingleWitness);
+        assert_ne!(SessionShape::Pair, SessionShape::SingleOwnedResult);
+        assert_ne!(SessionShape::SingleWitness, SessionShape::SingleOwnedResult);
         let witness = Session {
             shape: SessionShape::SingleWitness,
             payloads: [REQUIRES_FALSE_PAYLOAD, 0],
         };
         assert_eq!(witness.payloads[0], u64::MAX);
         assert_eq!(witness.shape, SessionShape::SingleWitness);
+        let owned = Session {
+            shape: SessionShape::SingleOwnedResult,
+            payloads: [IDENTITY_MAX_PAYLOAD, 0],
+        };
+        assert_eq!(owned.payloads[0], u64::MAX);
+        assert_eq!(owned.shape, SessionShape::SingleOwnedResult);
+    }
+
+    #[test]
+    fn identity_max_witness_constants_are_frozen() {
+        assert_eq!(IDENTITY_MAX_PAYLOAD, u64::MAX);
+        assert_eq!(IDENTITY_MAX_OWNER_ORDINAL, 0);
+        assert_eq!(IDENTITY_MAX_PUBLICATIONS, 2);
+        let evidence = PrivateAppleSwiftEvidenceV1 {
+            words: [1, 7, IDENTITY_MAX_PUBLICATIONS, 0, 0, 0, 0, 0],
+        };
+        assert_eq!(evidence.words, [1, 7, 2, 0, 0, 0, 0, 0]);
     }
 }

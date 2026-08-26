@@ -165,3 +165,28 @@ struct RequiresFalseEvidence: Equatable, Sendable {
                             "native rejection modified witness output evidence")
     }
 }
+
+struct IdentityMaxEvidence: Equatable, Sendable {
+    static let publicationsKAT: UInt64 = 2
+    static let ownedPayloadKAT: UInt64 = UInt64.max
+    static let byteCount: UInt32 = 64
+    let words: [UInt64]
+
+    func requireExact() throws {
+        try requireContract(words.count == 8, "identity-max evidence width changed")
+        try requireContract(words[0] == 1, "identity-max evidence version changed")
+        try requireContract(words[1] != 0, "identity-max module identity is zero")
+        try requireContract(words[2] == Self.publicationsKAT,
+                            "outward publication word is not the canonical identity-max count")
+        try requireContract(words[3] == 0, "identity-max postcommit allocation count is nonzero")
+        try requireContract(words[4] == 0, "published identity was physically finalized")
+        try requireContract(words[5] == 0 && words[6] == 0,
+                            "publication mutated a finalizer slot")
+        try requireContract(words[7] == 0, "identity-max host flags changed")
+    }
+
+    func requirePoisoned() throws {
+        try requireContract(words == Array(repeating: ConsumeEvidence.poison, count: 8),
+                            "native rejection modified identity-max output evidence")
+    }
+}

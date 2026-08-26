@@ -339,8 +339,10 @@ fn main() -> i64 {
 "#;
     let moved = hir::resolve(&parse(moved_source, Path::new("moves_v2.spx")).unwrap()).unwrap_err();
     assert!(
-        moved.iter().any(|item| item.code == "SPX-H006"
-            && item.message.contains("used after it was moved")),
+        moved
+            .iter()
+            .any(|item| item.code == "SPX-O101"
+                && item.message.contains("after ownership was moved")),
         "using a consumed operand behind a borrowed read must be rejected: {moved:?}"
     );
 

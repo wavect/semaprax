@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, mem};
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Span {
@@ -147,6 +147,196 @@ pub struct Program {
     /// future conformance carriers and no backend consumes protocols yet.
     pub protocols: Vec<ProtocolDeclaration>,
     pub functions: Vec<Function>,
+}
+
+impl Drop for Program {
+    fn drop(&mut self) {
+        // Accepted source trees may reach the compiler's exact depth limit.
+        // Take every recursive root before field drop glue runs, then replace
+        // each node with a leaf before releasing its children from worklists.
+        let mut functions = mem::take(&mut self.functions);
+        let mut types = Vec::new();
+        let mut expressions = Vec::new();
+        let mut patterns = Vec::new();
+        let mut record_patterns = Vec::new();
+
+        for declaration in mem::take(&mut self.types) {
+            if let Some(parent) = declaration.extends {
+                types.push(parent);
+            }
+            match declaration.kind {
+                TypeDeclarationKind::Resource { .. } => {}
+                TypeDeclarationKind::Record { fields } => {
+                    types.extend(fields.into_iter().map(|field| field.ty));
+                }
+                TypeDeclarationKind::Variant { cases } => {
+                    types.extend(
+                        cases
+                            .into_iter()
+                            .flat_map(|case| case.fields)
+                            .map(|field| field.ty),
+                    );
+                }
+                TypeDeclarationKind::Class { fields, methods } => {
+                    types.extend(fields.into_iter().map(|field| field.ty));
+                    functions.extend(methods);
+                }
+            }
+        }
+
+        for interface in mem::take(&mut self.interfaces) {
+            for import in interface.imports {
+                types.extend(import.params.into_iter().map(|param| param.ty));
+            }
+        }
+        for protocol in mem::take(&mut self.protocols) {
+            for method in protocol.methods {
+                types.extend(method.params.into_iter().map(|param| param.ty));
+                types.push(method.return_type);
+            }
+        }
+        for function in functions {
+            types.extend(function.params.into_iter().map(|param| param.ty));
+            types.push(function.return_type);
+            expressions.extend(function.requires);
+            expressions.extend(function.ensures);
+            expressions.push(function.body);
+        }
+
+        while let Some(mut expression) = expressions.pop() {
+            match mem::replace(&mut expression.kind, ExprKind::Int(0)) {
+                ExprKind::Call {
+                    type_arguments,
+                    args,
+                    ..
+                } => {
+                    types.extend(type_arguments);
+                    expressions.extend(args);
+                }
+                ExprKind::SuperMethod { args, .. } => expressions.extend(args),
+                ExprKind::MethodCall {
+                    receiver,
+                    type_arguments,
+                    args,
+                    ..
+                } => {
+                    types.extend(type_arguments);
+                    expressions.push(*receiver);
+                    expressions.extend(args);
+                }
+                ExprKind::Unary { value, .. }
+                | ExprKind::Try { operand: value }
+                | ExprKind::Project { base: value, .. } => expressions.push(*value),
+                ExprKind::Binary { left, right, .. } => {
+                    expressions.push(*left);
+                    expressions.push(*right);
+                }
+                ExprKind::Block { statements, tail } => {
+                    expressions.push(*tail);
+                    for statement in statements {
+                        match statement {
+                            Statement::Let {
+                                declared, value, ..
+                            } => {
+                                types.extend(declared);
+                                expressions.push(value);
+                            }
+                            Statement::Assign { value, .. } => expressions.push(value),
+                            Statement::Unsafe { body, .. } => expressions.push(*body),
+                            Statement::While {
+                                condition, body, ..
+                            } => {
+                                expressions.push(*condition);
+                                expressions.push(*body);
+                            }
+                        }
+                    }
+                }
+                ExprKind::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => {
+                    expressions.push(*condition);
+                    expressions.push(*then_branch);
+                    expressions.push(*else_branch);
+                }
+                ExprKind::ConstructRecord {
+                    type_arguments,
+                    fields,
+                    ..
+                }
+                | ExprKind::ConstructVariant {
+                    type_arguments,
+                    fields,
+                    ..
+                } => {
+                    types.extend(type_arguments);
+                    expressions.extend(fields.into_iter().map(|field| field.value));
+                }
+                ExprKind::Match { scrutinee, arms } => {
+                    expressions.push(*scrutinee);
+                    for arm in arms {
+                        patterns.push(arm.pattern);
+                        expressions.extend(arm.guard.map(|guard| *guard));
+                        expressions.push(arm.value);
+                    }
+                }
+                ExprKind::UpdateRecord { base, fields } => {
+                    expressions.push(*base);
+                    expressions.extend(fields.into_iter().map(|field| field.value));
+                }
+                ExprKind::Int(_)
+                | ExprKind::Int32(_)
+                | ExprKind::Char(_)
+                | ExprKind::Uint8(_)
+                | ExprKind::Usize(_)
+                | ExprKind::ArrayU8(_)
+                | ExprKind::RepeatArrayU8 { .. }
+                | ExprKind::Float32(_)
+                | ExprKind::Float64(_)
+                | ExprKind::Bool(_)
+                | ExprKind::String(_)
+                | ExprKind::Var(_) => {}
+            }
+        }
+
+        while let Some(mut pattern) = patterns.pop() {
+            match mem::replace(
+                &mut pattern,
+                MatchPattern::Wildcard {
+                    span: Span::default(),
+                },
+            ) {
+                MatchPattern::Record { fields, .. } => record_patterns.extend(fields),
+                MatchPattern::Or { alternatives, .. } => patterns.extend(alternatives),
+                MatchPattern::Variant { .. }
+                | MatchPattern::Wildcard { .. }
+                | MatchPattern::Literal { .. }
+                | MatchPattern::Binding { .. } => {}
+            }
+        }
+        while let Some(mut field) = record_patterns.pop() {
+            match mem::replace(
+                &mut field.pattern,
+                RecordMatchFieldPattern::Wildcard {
+                    span: Span::default(),
+                },
+            ) {
+                RecordMatchFieldPattern::Record { fields, .. } => {
+                    record_patterns.extend(fields);
+                }
+                RecordMatchFieldPattern::Binding { .. }
+                | RecordMatchFieldPattern::Wildcard { .. } => {}
+            }
+        }
+
+        while let Some(mut ty) = types.pop() {
+            if let Type::Named { arguments, .. } = mem::replace(&mut ty, Type::I64) {
+                types.extend(arguments);
+            }
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -1093,5 +1283,186 @@ mod call_visitor_tests {
                 .collect::<Vec<_>>(),
             (0..=17).collect::<Vec<_>>()
         );
+    }
+}
+
+#[cfg(test)]
+mod iterative_program_drop_tests {
+    use super::*;
+    use std::path::Path;
+
+    const EXACT_DEPTH: usize = 512;
+
+    fn nested_type() -> Type {
+        let mut ty = Type::I64;
+        for index in 0..EXACT_DEPTH {
+            ty = Type::Named {
+                name: format!("T{index}"),
+                arguments: vec![ty],
+            };
+        }
+        ty
+    }
+
+    fn nested_expression() -> Expr {
+        let mut expression = Expr {
+            kind: ExprKind::Int(0),
+            span: Span::default(),
+        };
+        for _ in 0..EXACT_DEPTH {
+            expression = Expr {
+                kind: ExprKind::Unary {
+                    op: UnaryOp::Neg,
+                    value: Box::new(expression),
+                },
+                span: Span::default(),
+            };
+        }
+        expression
+    }
+
+    fn nested_if_expression() -> Expr {
+        let span = Span::default();
+        let mut expression = Expr {
+            kind: ExprKind::Bool(false),
+            span,
+        };
+        for _ in 0..EXACT_DEPTH {
+            expression = Expr {
+                kind: ExprKind::If {
+                    condition: Box::new(Expr {
+                        kind: ExprKind::Bool(true),
+                        span,
+                    }),
+                    then_branch: Box::new(expression),
+                    else_branch: Box::new(Expr {
+                        kind: ExprKind::Bool(false),
+                        span,
+                    }),
+                },
+                span,
+            };
+        }
+        expression
+    }
+
+    fn nested_record_pattern() -> MatchPattern {
+        let span = Span::default();
+        let mut pattern = RecordMatchFieldPattern::Binding {
+            name: "value".to_owned(),
+            span,
+        };
+        for index in 0..EXACT_DEPTH {
+            pattern = RecordMatchFieldPattern::Record {
+                type_name: format!("R{index}"),
+                type_span: span,
+                fields: vec![RecordMatchPatternField {
+                    name: "next".to_owned(),
+                    name_span: span,
+                    pattern,
+                    span,
+                }],
+                span,
+            };
+        }
+        MatchPattern::Record {
+            type_name: "Root".to_owned(),
+            type_span: span,
+            fields: vec![RecordMatchPatternField {
+                name: "next".to_owned(),
+                name_span: span,
+                pattern,
+                span,
+            }],
+            span,
+        }
+    }
+
+    fn nested_or_pattern() -> MatchPattern {
+        let span = Span::default();
+        let mut pattern = MatchPattern::Literal {
+            value: PatternLiteral::Int(0),
+            span,
+        };
+        for _ in 0..EXACT_DEPTH {
+            pattern = MatchPattern::Or {
+                alternatives: vec![pattern],
+                span,
+            };
+        }
+        pattern
+    }
+
+    #[test]
+    fn program_drop_is_iterative_for_every_recursive_ast_root_at_exact_depth() {
+        let span = Span::default();
+        let mut program = crate::parse(
+            "module ast.drop; @id(\"ast.drop.method\") fn method() -> i64 { 0 }",
+            Path::new("ast-drop.spx"),
+        )
+        .unwrap();
+        let mut method = program.functions.pop().unwrap();
+        method.return_type = nested_type();
+        method.requires.push(Expr {
+            kind: ExprKind::Match {
+                scrutinee: Box::new(Expr {
+                    kind: ExprKind::Int(0),
+                    span,
+                }),
+                arms: vec![
+                    MatchArm {
+                        pattern: nested_record_pattern(),
+                        guard: None,
+                        value: Expr {
+                            kind: ExprKind::Int(0),
+                            span,
+                        },
+                        span,
+                    },
+                    MatchArm {
+                        pattern: nested_or_pattern(),
+                        guard: Some(Box::new(nested_expression())),
+                        value: Expr {
+                            kind: ExprKind::Int(0),
+                            span,
+                        },
+                        span,
+                    },
+                ],
+            },
+            span,
+        });
+        method.body = Expr {
+            kind: ExprKind::Binary {
+                op: BinaryOp::Add,
+                left: Box::new(nested_expression()),
+                right: Box::new(nested_if_expression()),
+            },
+            span,
+        };
+        program.types.push(TypeDeclaration {
+            stable_id: "ast.drop.class".to_owned(),
+            explicit_id: true,
+            name: "DropClass".to_owned(),
+            name_span: span,
+            type_parameters: Vec::new(),
+            kind: TypeDeclarationKind::Class {
+                fields: vec![FieldDeclaration {
+                    stable_id: "ast.drop.class.value".to_owned(),
+                    explicit_id: true,
+                    name: "value".to_owned(),
+                    name_span: span,
+                    ty: nested_type(),
+                    span,
+                }],
+                methods: vec![method],
+            },
+            extends: Some(nested_type()),
+            span,
+        });
+
+        // Normal lexical scope owns teardown: no leak, subprocess, or stack
+        // configuration may mask a recursively dropped AST carrier.
+        drop(program);
     }
 }

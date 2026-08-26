@@ -210,60 +210,146 @@ fn native_inheritance_executes_identically_at_o0_and_o2() {
     }
     let program = parse_ok(CORPUS);
     let generated = semaprax::codegen::emit_c(&program).unwrap();
-    use std::fmt::Write as _;
-    let mut hex = String::new();
-    for byte in b"app.main" {
-        write!(hex, "{byte:02x}").unwrap();
+    assert_native_main_exit_at_o0_o2(&generated, "inheritance", 6);
+}
+
+#[test]
+fn native_zero_sized_upcasts_initialize_each_exact_physical_carrier() {
+    if !command_available("clang") {
+        return;
     }
-    let main_symbol = format!("spx_decl_{hex}");
-    let probe = format!(
-        r#"
-int main(void) {{
-    struct spx_status_entry entries[UINT32_C(32)];
-    struct spx_context context = {{0}};
-    if (!spx_context_init(&context, UINT64_C(64), entries, UINT32_C(32), NULL, NULL, NULL)) return 10;
-    int64_t result = 0;
-    if ({main}(&context, &result) != SPX_STATUS_SUCCESS) return 11;
-    return (int)result;
-}}
-"#,
-        main = main_symbol,
+    let source = r#"module test.inheritance.zero_sized;
+
+@id("zero.empty")
+class Empty {}
+
+@id("zero.empty_child")
+class EmptyChild : Empty {
+    @id("zero.empty_child.marker") marker: i64,
+}
+
+@id("zero.only")
+record ZeroOnly {
+    @id("zero.only.empty") empty: [u8; 0],
+}
+
+@id("zero.base")
+class ZeroBase {
+    @id("zero.base.payload") payload: ZeroOnly,
+}
+
+@id("zero.child")
+class ZeroChild : ZeroBase {
+    @id("zero.child.marker") marker: i64,
+}
+
+@id("zero.touch_empty")
+fn touch_empty(value: Empty) -> i64 { 1 }
+
+@id("zero.touch_base")
+fn touch_base(value: ZeroBase) -> i64 { 40 }
+
+@id("app.main")
+fn main() -> i64 {
+    let direct = Empty {};
+    let inherited: Empty = EmptyChild { marker: 1 };
+    let erased: ZeroBase = ZeroChild {
+        payload: ZeroOnly { empty: [] },
+        marker: 2,
+    };
+    touch_empty(direct) + touch_empty(inherited) + touch_base(erased)
+}
+"#;
+    let program = parse_ok(source);
+    assert!(verify::verify(&program).is_empty());
+    let generated = semaprax::codegen::emit_c(&program).unwrap();
+
+    assert_eq!(
+        generated
+            .matches(".spx_empty_record_padding = UINT8_C(0);")
+            .count(),
+        2,
+        "direct construction and empty-ancestor upcast must each initialize the frozen byte"
     );
-    for optimization in ["-O0", "-O2"] {
+    assert_eq!(
+        generated
+            .matches(".spx_zero_sized_record_carrier = UINT8_C(0);")
+            .count(),
+        2,
+        "all-zero record construction and ancestor upcast must each initialize a C carrier"
+    );
+    assert_native_main_exit_at_o0_o2(&generated, "zero-sized-inheritance", 42);
+}
+
+#[test]
+fn projected_zero_sized_nominal_keeps_its_exact_carrier_across_backends() {
+    let source = r#"module test.zero_sized_projection;
+
+@id("zero.projected")
+record Zero {
+    @id("zero.projected.empty") empty: [u8; 0],
+}
+
+@id("zero.holder")
+record Holder {
+    @id("zero.holder.zero") zero: Zero,
+    @id("zero.holder.value") value: i64,
+}
+
+@id("zero.consume")
+fn consume(value: Zero) -> i64 { 7 }
+
+@id("app.main")
+fn main() -> i64 {
+    let holder = Holder {
+        zero: Zero { empty: [] },
+        value: 1,
+    };
+    let projected = consume(holder.zero) + consume(Holder {
+        zero: Zero { empty: [] },
+        value: 2,
+    }.zero);
+    let match_input = Holder {
+        zero: Zero { empty: [] },
+        value: 3,
+    };
+    let matched = match match_input {
+        Holder { zero, value } => consume(zero) + value,
+    };
+    projected + matched
+}
+"#;
+    let program = parse_ok(source);
+    assert!(verify::verify(&program).is_empty());
+    let generated = semaprax::codegen::emit_c(&program).unwrap();
+    assert_eq!(
+        generated
+            .matches(".spx_zero_sized_record_carrier = UINT8_C(0);")
+            .count(),
+        6,
+        "place, rvalue, and pattern projection must each materialize the exact nominal carrier"
+    );
+    if command_available("clang") {
+        assert_native_main_exit_at_o0_o2(&generated, "zero-sized-projection", 24);
+    }
+    if command_available("node") {
         let id = unique_id();
-        let stem = format!("semaprax-inheritance-native-{id}");
-        let source = std::env::temp_dir().join(format!("{stem}.c"));
-        std::fs::write(&source, format!("{generated}\n{probe}")).unwrap();
-        let executable =
-            std::env::temp_dir().join(format!("{stem}{}", std::env::consts::EXE_SUFFIX));
-        let compiled = Command::new("clang")
-            .args([
-                "-std=c11",
-                optimization,
-                "-Wall",
-                "-Wextra",
-                "-Werror",
-                "-DSPX_NO_ENTRY_WRAPPER",
-            ])
-            .arg(&source)
-            .arg("-o")
-            .arg(&executable)
-            .output()
-            .unwrap();
+        let output = std::env::temp_dir().join(format!("semaprax-zero-sized-web-{id}"));
+        wasm::build_web(&program, &output).unwrap();
+        let script = Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts/verify-web.mjs");
+        let result = Command::new("node")
+            .arg(script)
+            .arg(&output)
+            .arg("24")
+            .output();
+        let _ = std::fs::remove_dir_all(&output);
+        let result = result.unwrap();
         assert!(
-            compiled.status.success(),
-            "inheritance C failed at {optimization}: {}",
-            String::from_utf8_lossy(&compiled.stderr)
+            result.status.success(),
+            "zero-sized projection node failed: {}",
+            String::from_utf8_lossy(&result.stderr)
         );
-        let executed = Command::new(&executable).output().unwrap();
-        let _ = std::fs::remove_file(&source);
-        let _ = std::fs::remove_file(&executable);
-        assert_eq!(
-            executed.status.code(),
-            Some(6),
-            "inheritance program exited unexpectedly at {optimization}: {}",
-            String::from_utf8_lossy(&executed.stderr)
-        );
+        assert_eq!(String::from_utf8_lossy(&result.stdout).trim(), "24");
     }
 }
 
@@ -695,6 +781,61 @@ fn hex_identity(value: &str) -> String {
         write!(output, "{byte:02x}").unwrap();
     }
     output
+}
+
+fn assert_native_main_exit_at_o0_o2(generated: &str, label: &str, expected: i32) {
+    let main_symbol = format!("spx_decl_{}", hex_identity("app.main"));
+    let probe = format!(
+        r#"
+int main(void) {{
+    struct spx_status_entry entries[UINT32_C(32)];
+    struct spx_context context = {{0}};
+    if (!spx_context_init(&context, UINT64_C(64), entries, UINT32_C(32), NULL, NULL, NULL)) return 10;
+    int64_t result = 0;
+    if ({main_symbol}(&context, &result) != SPX_STATUS_SUCCESS) return 11;
+    return (int)result;
+}}
+"#,
+    );
+    for optimization in ["-O0", "-O2"] {
+        let id = unique_id();
+        let stem = format!("semaprax-{label}-{id}");
+        let source = std::env::temp_dir().join(format!("{stem}.c"));
+        let executable =
+            std::env::temp_dir().join(format!("{stem}{}", std::env::consts::EXE_SUFFIX));
+        std::fs::write(&source, format!("{generated}\n{probe}")).unwrap();
+        let compiled = Command::new("clang")
+            .args([
+                "-std=c11",
+                optimization,
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-DSPX_NO_ENTRY_WRAPPER",
+            ])
+            .arg(&source)
+            .arg("-o")
+            .arg(&executable)
+            .output()
+            .unwrap();
+        if !compiled.status.success() {
+            let _ = std::fs::remove_file(&source);
+            let _ = std::fs::remove_file(&executable);
+            panic!(
+                "{label} C failed at {optimization}: {}",
+                String::from_utf8_lossy(&compiled.stderr)
+            );
+        }
+        let executed = Command::new(&executable).output().unwrap();
+        let _ = std::fs::remove_file(&source);
+        let _ = std::fs::remove_file(&executable);
+        assert_eq!(
+            executed.status.code(),
+            Some(expected),
+            "{label} program exited unexpectedly at {optimization}: {}",
+            String::from_utf8_lossy(&executed.stderr)
+        );
+    }
 }
 
 fn command_available(name: &str) -> bool {

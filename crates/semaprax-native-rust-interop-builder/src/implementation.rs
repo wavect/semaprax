@@ -1862,7 +1862,11 @@ impl Drop for ResolvedProgramOwner {
                 }
             }
         }
-        drop((module, permits, entrypoint, declarations));
+        crate::hir::dispose_declaration_index_for_private_contract(declarations, |ty| {
+            disposal_push(&mut self.frames, ResolvedDisposeFrame::Type(ty));
+            drain_disposal_frames(&mut self.frames, None);
+        });
+        drop((module, permits, entrypoint));
         for declaration in types {
             match declaration.kind {
                 crate::hir::ResolvedTypeDeclarationKind::Resource { .. } => {}
@@ -2075,10 +2079,22 @@ fn drain_disposal_frames(
             ResolvedDisposeFrame::Statements(mut statements) => {
                 if let Some(statement) = statements.pop() {
                     disposal_push(frames, ResolvedDisposeFrame::Statements(statements));
-                    let value = statement.value().clone();
-                    let ty = statement.binding().ty.clone();
-                    disposal_push(frames, ResolvedDisposeFrame::Type(ty));
-                    pending_expression = Some(value);
+                    match statement {
+                        crate::hir::ResolvedStatement::Let { binding, value, .. }
+                        | crate::hir::ResolvedStatement::Assign { binding, value, .. } => {
+                            disposal_push(frames, ResolvedDisposeFrame::Type(binding.ty));
+                            pending_expression = Some(value);
+                        }
+                        crate::hir::ResolvedStatement::Unsafe { body, .. } => {
+                            pending_expression = Some(*body);
+                        }
+                        crate::hir::ResolvedStatement::While {
+                            condition, body, ..
+                        } => {
+                            disposal_push(frames, ResolvedDisposeFrame::ExprBox(body));
+                            pending_expression = Some(*condition);
+                        }
+                    }
                 }
             }
             ResolvedDisposeFrame::Fields(mut fields) => {
@@ -2091,6 +2107,9 @@ fn drain_disposal_frames(
                 if let Some(arm) = arms.pop() {
                     disposal_push(frames, ResolvedDisposeFrame::Arms(arms));
                     dispose_match_pattern(frames, arm.pattern);
+                    if let Some(guard) = arm.guard {
+                        disposal_push(frames, ResolvedDisposeFrame::ExprBox(guard));
+                    }
                     pending_expression = Some(arm.value);
                 }
             }
@@ -2546,11 +2565,12 @@ fn ast_expression_type_depth(root: &crate::ast::Expr) -> Result<usize, Diagnosti
                 _ => {}
             }
         }
-        if let Some(child) = ast_child(expression, next) {
+        let mut child_cursor = next;
+        if let Some((_, child)) = ast_child(expression, &mut child_cursor) {
             if len + 2 > expressions.len() {
                 return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
             }
-            expressions[len] = Some((expression, next + 1));
+            expressions[len] = Some((expression, child_cursor));
             expressions[len + 1] = Some((child, 0));
             len += 2;
         }
@@ -2601,11 +2621,12 @@ fn ast_pattern_depth(root: &crate::ast::Expr) -> Result<usize, Diagnostic> {
                 }
             }
         }
-        if let Some(child) = ast_child(expression, next) {
+        let mut child_cursor = next;
+        if let Some((_, child)) = ast_child(expression, &mut child_cursor) {
             if expression_len + 2 > expressions.len() {
                 return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
             }
-            expressions[expression_len] = Some((expression, next + 1));
+            expressions[expression_len] = Some((expression, child_cursor));
             expressions[expression_len + 1] = Some((child, 0));
             expression_len += 2;
         }
@@ -3497,9 +3518,6 @@ fn visit_calls(
     _capacity_baseline: usize,
     _scratch_baseline: usize,
 ) -> Result<(), Diagnostic> {
-    fn child(expression: &ResolvedExpr, index: usize) -> Option<&ResolvedExpr> {
-        resolved_call_child(expression, index)
-    }
     let mut frames = Vec::with_capacity(MAX_SEMANTIC_EXPRESSION_DEPTH + 1);
     frames.push((expression, 0usize));
     while let Some((expression, next)) = frames.pop() {
@@ -3514,14 +3532,15 @@ fn visit_calls(
                 _ => {}
             }
         }
-        if let Some(child) = child(expression, next) {
+        let mut child_cursor = next;
+        if let Some((_, child)) = resolved_expression_child(expression, &mut child_cursor) {
             if frames.len() + 2 > frames.capacity() {
                 return Err(b109(
                     "max_semantic_expression_depth",
                     MAX_SEMANTIC_EXPRESSION_DEPTH,
                 ));
             }
-            frames.push((expression, next + 1));
+            frames.push((expression, child_cursor));
             frames.push((child, 0));
         }
         #[cfg(test)]
@@ -3536,23 +3555,82 @@ fn visit_calls(
     Ok(())
 }
 
-fn resolved_call_child(expression: &ResolvedExpr, index: usize) -> Option<&ResolvedExpr> {
+const RESOLVED_COMPLEX_CURSOR: usize = 1usize << (usize::BITS - 1);
+const RESOLVED_CURSOR_INDEX_MASK: usize = RESOLVED_COMPLEX_CURSOR - 1;
+
+fn resolved_expression_child<'a>(
+    expression: &'a ResolvedExpr,
+    cursor: &mut usize,
+) -> Option<(usize, &'a ResolvedExpr)> {
+    let complex = *cursor & RESOLVED_COMPLEX_CURSOR != 0;
+    let mut index = *cursor & RESOLVED_CURSOR_INDEX_MASK;
+    let mut advance = |next: usize, path_index: usize, child| {
+        *cursor = usize::from(complex)
+            .checked_mul(RESOLVED_COMPLEX_CURSOR)?
+            .checked_add(next)?;
+        Some((path_index, child))
+    };
     match &expression.kind {
-        ResolvedExprKind::Call { args, .. } => args.get(index),
-        ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
-        ResolvedExprKind::HostCommandCall(call) => call.args.get(index),
+        ResolvedExprKind::Call { args, .. } => {
+            advance(index.checked_add(1)?, index, args.get(index)?)
+        }
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            advance(index.checked_add(1)?, index, call.args.get(index)?)
+        }
+        ResolvedExprKind::HostCommandCall(call) => {
+            advance(index.checked_add(1)?, index, call.args.get(index)?)
+        }
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
         | ResolvedExprKind::Project { base: value, .. }
-        | ResolvedExprKind::Upcast { source: value } => (index == 0).then_some(value),
-        ResolvedExprKind::Binary { left, right, .. } => {
-            [left.as_ref(), right.as_ref()].get(index).copied()
+        | ResolvedExprKind::Upcast { source: value } => {
+            (index == 0).then(|| advance(1, 0, value.as_ref()))?
         }
-        ResolvedExprKind::Block { statements, tail } => statements
-            .get(index)
-            .map(|statement| statement.value())
-            .or_else(|| (index == statements.len()).then_some(tail)),
+        ResolvedExprKind::Binary { left, right, .. } => {
+            let child = [left.as_ref(), right.as_ref()].get(index).copied()?;
+            advance(index.checked_add(1)?, index, child)
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            let has_while = complex
+                || (index == 0
+                    && statements
+                        .iter()
+                        .any(|statement| matches!(statement, ResolvedStatement::While { .. })));
+            if has_while {
+                if !complex {
+                    *cursor = RESOLVED_COMPLEX_CURSOR;
+                    index = 0;
+                }
+                loop {
+                    let slot_limit = statements.len().checked_mul(2)?;
+                    if index < slot_limit {
+                        let statement_index = index / 2;
+                        let statement_child = index % 2;
+                        let path_index = index;
+                        index = index.checked_add(1)?;
+                        *cursor = RESOLVED_COMPLEX_CURSOR.checked_add(index)?;
+                        if let Some(child) = statements[statement_index].child(statement_child) {
+                            return Some((path_index, child));
+                        }
+                        continue;
+                    }
+                    if index == slot_limit {
+                        *cursor = RESOLVED_COMPLEX_CURSOR.checked_add(index.checked_add(1)?)?;
+                        return Some((index, tail));
+                    }
+                    return None;
+                }
+            }
+            let child = if index < statements.len() {
+                statements[index].child(0)?
+            } else if index == statements.len() {
+                tail
+            } else {
+                return None;
+            };
+            advance(index.checked_add(1)?, index, child)
+        }
         ResolvedExprKind::If {
             condition,
             then_branch,
@@ -3563,24 +3641,55 @@ fn resolved_call_child(expression: &ResolvedExpr, index: usize) -> Option<&Resol
             else_branch.as_ref(),
         ]
         .get(index)
-        .copied(),
+        .copied()
+        .and_then(|child| advance(index.checked_add(1)?, index, child)),
         ResolvedExprKind::ConstructRecord { fields, .. }
         | ResolvedExprKind::ConstructVariant { fields, .. } => {
-            fields.get(index).map(|field| &field.value)
+            let child = &fields.get(index)?.value;
+            advance(index.checked_add(1)?, index, child)
         }
         ResolvedExprKind::Match { scrutinee, arms } => {
-            if index == 0 {
-                Some(scrutinee)
-            } else {
-                arms.get(index - 1).map(|arm| &arm.value)
+            let has_guard = complex || (index == 0 && arms.iter().any(|arm| arm.guard.is_some()));
+            if has_guard {
+                if !complex {
+                    *cursor = RESOLVED_COMPLEX_CURSOR;
+                    index = 0;
+                }
+                loop {
+                    if index == 0 {
+                        *cursor = RESOLVED_COMPLEX_CURSOR + 1;
+                        return Some((0, scrutinee));
+                    }
+                    let arm_slot = index.checked_sub(1)?;
+                    let arm_index = arm_slot / 2;
+                    let arm_child = arm_slot % 2;
+                    let arm = arms.get(arm_index)?;
+                    let path_index = index;
+                    index = index.checked_add(1)?;
+                    *cursor = RESOLVED_COMPLEX_CURSOR.checked_add(index)?;
+                    if arm_child == 0 {
+                        if let Some(guard) = &arm.guard {
+                            return Some((path_index, guard));
+                        }
+                    } else {
+                        return Some((path_index, &arm.value));
+                    }
+                }
             }
+            let child = if index == 0 {
+                scrutinee.as_ref()
+            } else {
+                &arms.get(index - 1)?.value
+            };
+            advance(index.checked_add(1)?, index, child)
         }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-            if index == 0 {
-                Some(base)
+            let child = if index == 0 {
+                base.as_ref()
             } else {
-                fields.get(index - 1).map(|field| &field.value)
-            }
+                &fields.get(index - 1)?.value
+            };
+            advance(index.checked_add(1)?, index, child)
         }
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
@@ -3641,14 +3750,15 @@ fn expression_call_site_census(root: &ResolvedExpr) -> Result<TraversalCallSiteC
                 _ => {}
             }
         }
-        if let Some(child) = resolved_call_child(expression, next) {
+        let mut child_cursor = next;
+        if let Some((_, child)) = resolved_expression_child(expression, &mut child_cursor) {
             if frame_len + 2 > frames.len() {
                 return Err(b109(
                     "max_semantic_expression_depth",
                     MAX_SEMANTIC_EXPRESSION_DEPTH,
                 ));
             }
-            frames[frame_len] = Some((expression, next + 1));
+            frames[frame_len] = Some((expression, child_cursor));
             frames[frame_len + 1] = Some((child, 0));
             frame_len += 2;
         }
@@ -4742,17 +4852,27 @@ fn fingerprint_expression_types_scratch(
             }
             Frame::Statements(statements, index, depth) => {
                 if let Some(statement) = statements.get(index) {
-                    maximum = maximum.max(fingerprint_binding_type_scratch(statement.binding())?);
                     push(
                         &mut stack,
                         &mut stack_len,
                         Frame::Statements(statements, index + 1, depth),
                     )?;
-                    push(
-                        &mut stack,
-                        &mut stack_len,
-                        Frame::Expr(statement.value(), depth),
-                    )?;
+                    match statement {
+                        ResolvedStatement::Let { binding, value, .. }
+                        | ResolvedStatement::Assign { binding, value, .. } => {
+                            maximum = maximum.max(fingerprint_binding_type_scratch(binding)?);
+                            push(&mut stack, &mut stack_len, Frame::Expr(value, depth))?;
+                        }
+                        ResolvedStatement::Unsafe { body, .. } => {
+                            push(&mut stack, &mut stack_len, Frame::Expr(body, depth))?;
+                        }
+                        ResolvedStatement::While {
+                            condition, body, ..
+                        } => {
+                            push(&mut stack, &mut stack_len, Frame::Expr(body, depth))?;
+                            push(&mut stack, &mut stack_len, Frame::Expr(condition, depth))?;
+                        }
+                    }
                 }
             }
             Frame::Fields(fields, index, depth) => {
@@ -4774,6 +4894,9 @@ fn fingerprint_expression_types_scratch(
                         Frame::Arms(arms, index + 1, depth),
                     )?;
                     push(&mut stack, &mut stack_len, Frame::Expr(&arm.value, depth))?;
+                    if let Some(guard) = &arm.guard {
+                        push(&mut stack, &mut stack_len, Frame::Expr(guard, depth))?;
+                    }
                 }
             }
         }
@@ -4899,9 +5022,11 @@ enum HirFingerprintAction<'a> {
     Field(&'a crate::hir::ResolvedFieldInitializer, usize),
     Fields(&'a [crate::hir::ResolvedFieldInitializer], usize, usize),
     Pattern(&'a crate::hir::ResolvedMatchPattern),
+    Patterns(&'a [crate::hir::ResolvedMatchPattern], usize),
     RecordPatternField(&'a crate::hir::ResolvedRecordMatchPatternField),
     RecordPatternFields(&'a [crate::hir::ResolvedRecordMatchPatternField], usize),
     Arms(&'a [crate::hir::ResolvedMatchArm], usize, usize),
+    Arm(&'a crate::hir::ResolvedMatchArm, usize),
     TryIds([&'a DeclarationId; 5], usize),
     OptionIds([&'a DeclarationId; 4], usize),
     Bytes(&'a [u8]),
@@ -4946,35 +5071,54 @@ fn hash_expr(
                 frame(hasher, identity.as_bytes());
             }
             HirFingerprintAction::Statement(statement, depth) => {
-                let binding = statement.binding();
-                // The tag distinguishes lets from assignments; existing
-                // let fingerprints keep their exact byte sequence.
-                frame(
-                    hasher,
-                    if statement.is_assign() {
-                        b"assign"
-                    } else {
-                        b"let"
-                    },
-                );
-                frame(hasher, binding.id.as_str().as_bytes());
-                frame(hasher, binding.name.as_bytes());
-                let action_bytes = actions
-                    .capacity()
-                    .saturating_mul(std::mem::size_of::<HirFingerprintAction<'_>>());
-                let binding_identity =
-                    fingerprint_type_identity(&binding.ty, _capacity_baseline, action_bytes)?;
-                #[cfg(test)]
-                note_post_hir_facts_live(
-                    _capacity_baseline,
-                    actions
-                        .capacity()
-                        .saturating_mul(std::mem::size_of::<HirFingerprintAction<'_>>())
-                        .saturating_add(binding_identity.capacity()),
-                );
-                frame(hasher, binding_identity.as_bytes());
-                frame(hasher, ownership(binding.ownership));
-                actions.push(HirFingerprintAction::Expr(statement.value(), depth));
+                match statement {
+                    ResolvedStatement::Let { binding, value, .. }
+                    | ResolvedStatement::Assign { binding, value, .. } => {
+                        // These tags and the following byte sequence preserve
+                        // the pre-While fingerprint contract exactly.
+                        frame(
+                            hasher,
+                            if matches!(statement, ResolvedStatement::Assign { .. }) {
+                                b"assign"
+                            } else {
+                                b"let"
+                            },
+                        );
+                        frame(hasher, binding.id.as_str().as_bytes());
+                        frame(hasher, binding.name.as_bytes());
+                        let action_bytes = actions
+                            .capacity()
+                            .saturating_mul(std::mem::size_of::<HirFingerprintAction<'_>>());
+                        let binding_identity = fingerprint_type_identity(
+                            &binding.ty,
+                            _capacity_baseline,
+                            action_bytes,
+                        )?;
+                        #[cfg(test)]
+                        note_post_hir_facts_live(
+                            _capacity_baseline,
+                            actions
+                                .capacity()
+                                .saturating_mul(std::mem::size_of::<HirFingerprintAction<'_>>())
+                                .saturating_add(binding_identity.capacity()),
+                        );
+                        frame(hasher, binding_identity.as_bytes());
+                        frame(hasher, ownership(binding.ownership));
+                        actions.push(HirFingerprintAction::Expr(value, depth));
+                    }
+                    ResolvedStatement::Unsafe { audit, body, .. } => {
+                        frame(hasher, b"unsafe");
+                        frame(hasher, audit.as_bytes());
+                        actions.push(HirFingerprintAction::Expr(body, depth));
+                    }
+                    ResolvedStatement::While {
+                        condition, body, ..
+                    } => {
+                        frame(hasher, b"while");
+                        actions.push(HirFingerprintAction::Expr(body, depth));
+                        actions.push(HirFingerprintAction::Expr(condition, depth));
+                    }
+                }
             }
             HirFingerprintAction::Statements(statements, index, depth) => {
                 if let Some(statement) = statements.get(index) {
@@ -5023,9 +5167,16 @@ fn hash_expr(
                 }
                 if let Some(arm) = arms.get(index) {
                     actions.push(HirFingerprintAction::Arms(arms, index + 1, depth));
-                    actions.push(HirFingerprintAction::Expr(&arm.value, depth));
-                    actions.push(HirFingerprintAction::Pattern(&arm.pattern));
+                    actions.push(HirFingerprintAction::Arm(arm, depth));
                 }
+            }
+            HirFingerprintAction::Arm(arm, depth) => {
+                actions.push(HirFingerprintAction::Expr(&arm.value, depth));
+                if let Some(guard) = &arm.guard {
+                    actions.push(HirFingerprintAction::Expr(guard, depth));
+                    actions.push(HirFingerprintAction::Bytes(b"guard"));
+                }
+                actions.push(HirFingerprintAction::Pattern(&arm.pattern));
             }
             HirFingerprintAction::RecordPatternFields(fields, index) => {
                 if let Some(field) = fields.get(index) {
@@ -5112,10 +5263,7 @@ fn hash_expr(
                 crate::hir::ResolvedMatchPattern::Or(alternatives) => {
                     frame(hasher, b"or");
                     hash_count(hasher, "or-alternatives", alternatives.len());
-                    for alternative in alternatives {
-                        actions.push(HirFingerprintAction::Pattern(alternative));
-                    }
-                    return Ok(());
+                    actions.push(HirFingerprintAction::Patterns(alternatives, 0));
                 }
                 crate::hir::ResolvedMatchPattern::Binding(binding) => {
                     frame(hasher, b"binding");
@@ -5174,6 +5322,12 @@ fn hash_expr(
                     actions.push(HirFingerprintAction::RecordPatternFields(fields, 0));
                 }
             },
+            HirFingerprintAction::Patterns(patterns, index) => {
+                if let Some(pattern) = patterns.get(index) {
+                    actions.push(HirFingerprintAction::Patterns(patterns, index + 1));
+                    actions.push(HirFingerprintAction::Pattern(pattern));
+                }
+            }
             HirFingerprintAction::Expr(expression, depth) => {
                 if depth > MAX_SEMANTIC_EXPRESSION_DEPTH {
                     return Err(b109(
@@ -6604,7 +6758,13 @@ fn validate_selected_scalar_closure(functions: &[&ResolvedFunction]) -> Result<(
             }
             ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
-                    let (binding, value) = (statement.binding(), statement.value());
+                    let (binding, value) = match statement {
+                        ResolvedStatement::Let { binding, value, .. }
+                        | ResolvedStatement::Assign { binding, value, .. } => (binding, value),
+                        ResolvedStatement::Unsafe { .. } | ResolvedStatement::While { .. } => {
+                            return Err(b107("scalar value signature required"));
+                        }
+                    };
                     let unit_discard = binding.ty == ResolvedType::Unit
                         && value.ty == ResolvedType::Unit
                         && matches!(value.kind, ResolvedExprKind::NativeRustImportCall(_));
@@ -6668,7 +6828,13 @@ fn validate_native_unit_discard_bindings(
             match &expression.kind {
                 ResolvedExprKind::Block { statements, tail } => {
                     for statement in statements {
-                        let (binding, value) = (statement.binding(), statement.value());
+                        let (binding, value) = match statement {
+                            ResolvedStatement::Let { binding, value, .. }
+                            | ResolvedStatement::Assign { binding, value, .. } => (binding, value),
+                            ResolvedStatement::Unsafe { .. } | ResolvedStatement::While { .. } => {
+                                return Err(b107("scalar value signature required"));
+                            }
+                        };
                         if value.ty == ResolvedType::Unit {
                             if !matches!(value.kind, ResolvedExprKind::NativeRustImportCall(_))
                                 || binding.ty != ResolvedType::Unit

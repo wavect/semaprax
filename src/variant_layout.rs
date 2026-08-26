@@ -416,103 +416,122 @@ fn collect_expr_variant_types(
     expression: &ResolvedExpr,
     instances: &mut BTreeSet<ResolvedType>,
 ) -> Result<(), Diagnostic> {
-    collect_variant_type(program, &expression.ty, instances)?;
-    match &expression.kind {
-        ResolvedExprKind::Call { args, .. } => {
-            for argument in args {
-                collect_expr_variant_types(program, argument, instances)?;
+    enum Work<'a> {
+        Expression(&'a ResolvedExpr),
+        Type(&'a ResolvedType),
+    }
+
+    let mut pending = vec![Work::Expression(expression)];
+    while let Some(work) = pending.pop() {
+        let Work::Expression(expression) = work else {
+            let Work::Type(ty) = work else { unreachable!() };
+            collect_variant_type(program, ty, instances)?;
+            continue;
+        };
+        collect_variant_type(program, &expression.ty, instances)?;
+        match &expression.kind {
+            ResolvedExprKind::Call { args, .. } => {
+                pending.extend(args.iter().rev().map(Work::Expression));
             }
-        }
-        ResolvedExprKind::NativeRustImportCall(call) => {
-            for argument in &call.args {
-                collect_expr_variant_types(program, argument, instances)?;
+            ResolvedExprKind::NativeRustImportCall(call) => {
+                pending.extend(call.args.iter().rev().map(Work::Expression));
             }
-        }
-        ResolvedExprKind::HostCommandCall(call) => {
-            for argument in &call.args {
-                collect_expr_variant_types(program, argument, instances)?;
+            ResolvedExprKind::HostCommandCall(call) => {
+                pending.extend(call.args.iter().rev().map(Work::Expression));
             }
-        }
-        ResolvedExprKind::Unary { value, .. }
-        | ResolvedExprKind::Project { base: value, .. }
-        | ResolvedExprKind::Upcast { source: value } => {
-            collect_expr_variant_types(program, value, instances)?;
-        }
-        ResolvedExprKind::Try {
-            operand,
-            residual_type,
-            ..
-        }
-        | ResolvedExprKind::TryOption {
-            operand,
-            residual_type,
-            ..
-        } => {
-            collect_expr_variant_types(program, operand, instances)?;
-            collect_variant_type(program, residual_type, instances)?;
-        }
-        ResolvedExprKind::Binary { left, right, .. } => {
-            collect_expr_variant_types(program, left, instances)?;
-            collect_expr_variant_types(program, right, instances)?;
-        }
-        ResolvedExprKind::Block { statements, tail } => {
-            for statement in statements {
-                if let crate::hir::ResolvedStatement::Let { binding, .. } = statement {
-                    collect_variant_type(program, &binding.ty, instances)?;
-                }
-                for index in 0..statement.child_count() {
-                    if let Some(child) = statement.child(index) {
-                        collect_expr_variant_types(program, child, instances)?;
+            ResolvedExprKind::Unary { value, .. }
+            | ResolvedExprKind::Project { base: value, .. }
+            | ResolvedExprKind::Upcast { source: value } => {
+                pending.push(Work::Expression(value));
+            }
+            ResolvedExprKind::Try {
+                operand,
+                residual_type,
+                ..
+            }
+            | ResolvedExprKind::TryOption {
+                operand,
+                residual_type,
+                ..
+            } => {
+                pending.push(Work::Type(residual_type));
+                pending.push(Work::Expression(operand));
+            }
+            ResolvedExprKind::Binary { left, right, .. } => {
+                pending.push(Work::Expression(right));
+                pending.push(Work::Expression(left));
+            }
+            ResolvedExprKind::Block { statements, tail } => {
+                pending.push(Work::Expression(tail));
+                for statement in statements.iter().rev() {
+                    for index in (0..statement.child_count()).rev() {
+                        if let Some(child) = statement.child(index) {
+                            pending.push(Work::Expression(child));
+                        }
+                    }
+                    if let crate::hir::ResolvedStatement::Let { binding, .. } = statement {
+                        pending.push(Work::Type(&binding.ty));
                     }
                 }
             }
-            collect_expr_variant_types(program, tail, instances)?;
-        }
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            collect_expr_variant_types(program, condition, instances)?;
-            collect_expr_variant_types(program, then_branch, instances)?;
-            collect_expr_variant_types(program, else_branch, instances)?;
-        }
-        ResolvedExprKind::ConstructRecord { fields, .. }
-        | ResolvedExprKind::ConstructVariant { fields, .. } => {
-            for field in fields {
-                collect_expr_variant_types(program, &field.value, instances)?;
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                pending.push(Work::Expression(else_branch));
+                pending.push(Work::Expression(then_branch));
+                pending.push(Work::Expression(condition));
             }
-        }
-        ResolvedExprKind::Match { scrutinee, arms } => {
-            collect_expr_variant_types(program, scrutinee, instances)?;
-            for arm in arms {
-                if let crate::hir::ResolvedMatchPattern::Variant { fields, .. } = &arm.pattern {
-                    for field in fields {
-                        collect_variant_type(program, &field.binding.ty, instances)?;
+            ResolvedExprKind::ConstructRecord { fields, .. }
+            | ResolvedExprKind::ConstructVariant { fields, .. } => {
+                pending.extend(
+                    fields
+                        .iter()
+                        .rev()
+                        .map(|field| Work::Expression(&field.value)),
+                );
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                for arm in arms.iter().rev() {
+                    pending.push(Work::Expression(&arm.value));
+                    if let Some(guard) = &arm.guard {
+                        pending.push(Work::Expression(guard));
+                    }
+                    if let crate::hir::ResolvedMatchPattern::Variant { fields, .. } = &arm.pattern {
+                        pending.extend(
+                            fields
+                                .iter()
+                                .rev()
+                                .map(|field| Work::Type(&field.binding.ty)),
+                        );
                     }
                 }
-                collect_expr_variant_types(program, &arm.value, instances)?;
+                pending.push(Work::Expression(scrutinee));
             }
-        }
-        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-            collect_expr_variant_types(program, base, instances)?;
-            for field in fields {
-                collect_expr_variant_types(program, &field.value, instances)?;
+            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                pending.extend(
+                    fields
+                        .iter()
+                        .rev()
+                        .map(|field| Work::Expression(&field.value)),
+                );
+                pending.push(Work::Expression(base));
             }
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
+            | ResolvedExprKind::BorrowPlace { .. }
+            | ResolvedExprKind::Place(_) => {}
         }
-        ResolvedExprKind::Int(_)
-        | ResolvedExprKind::Int32(_)
-        | ResolvedExprKind::Char(_)
-        | ResolvedExprKind::Uint8(_)
-        | ResolvedExprKind::Usize(_)
-        | ResolvedExprKind::Float32(_)
-        | ResolvedExprKind::Float64(_)
-        | ResolvedExprKind::Bool(_)
-        | ResolvedExprKind::String(_)
-        | ResolvedExprKind::ArrayU8(_)
-        | ResolvedExprKind::RepeatArrayU8 { .. }
-        | ResolvedExprKind::BorrowPlace { .. }
-        | ResolvedExprKind::Place(_) => {}
     }
     Ok(())
 }

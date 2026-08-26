@@ -295,18 +295,18 @@ fn render_descriptor_for_subject_with_limit(
         let result = result_json(export.result);
         let call_contract_digest = quote_json(&export.call_contract_digest);
         let row = format!(
-                "{{\"id\":{},\"rust_method\":{},\"c_symbol\":{},\"parameters\":[{}],\"result\":{},\"effects\":[{}],\"capabilities\":[{}],\"required_imports\":[{}],\"status_domain_ordinals\":[{}],\"call_contract_digest\":{}}}",
-                id,
-                rust_method,
-                c_symbol,
-                parameters,
-                result,
-                effects,
-                capabilities,
-                required_imports,
-                ordinals,
-                call_contract_digest
-            );
+            "{{\"id\":{},\"rust_method\":{},\"c_symbol\":{},\"parameters\":[{}],\"result\":{},\"effects\":[{}],\"capabilities\":[{}],\"required_imports\":[{}],\"status_domain_ordinals\":[{}],\"call_contract_digest\":{}}}",
+            id,
+            rust_method,
+            c_symbol,
+            parameters,
+            result,
+            effects,
+            capabilities,
+            required_imports,
+            ordinals,
+            call_contract_digest
+        );
         #[cfg(test)]
         note_post_hir_render_capacity(
             status_scratch
@@ -374,19 +374,19 @@ fn render_descriptor_for_subject_with_limit(
         let result = result_json(import.result);
         let call_contract_digest = quote_json(&import.call_contract_digest);
         let row = format!(
-                "{{\"id\":{},\"interface\":{},\"import_key\":{},\"rust_method\":{},\"c_field\":{},\"parameters\":[{}],\"result\":{},\"effects\":[{}],\"capabilities\":[{}],\"failure\":{},\"call_contract_digest\":{}}}",
-                id,
-                interface,
-                import_key,
-                rust_method,
-                c_field,
-                parameters,
-                result,
-                effects,
-                capabilities,
-                failure,
-                call_contract_digest
-            );
+            "{{\"id\":{},\"interface\":{},\"import_key\":{},\"rust_method\":{},\"c_field\":{},\"parameters\":[{}],\"result\":{},\"effects\":[{}],\"capabilities\":[{}],\"failure\":{},\"call_contract_digest\":{}}}",
+            id,
+            interface,
+            import_key,
+            rust_method,
+            c_field,
+            parameters,
+            result,
+            effects,
+            capabilities,
+            failure,
+            call_contract_digest
+        );
         #[cfg(test)]
         note_post_hir_render_capacity(
             status_scratch
@@ -1053,33 +1053,6 @@ fn move_root_c_lines(lines: &mut Vec<String>, contexts: &mut [Vec<String>]) {
     }
 }
 
-fn c_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&ResolvedExpr> {
-    match &expression.kind {
-        ResolvedExprKind::Call { args, .. } => args.get(index),
-        ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
-        ResolvedExprKind::Unary { value, .. } => (index == 0).then_some(value),
-        ResolvedExprKind::Binary { left, right, .. } => {
-            [left.as_ref(), right.as_ref()].get(index).copied()
-        }
-        ResolvedExprKind::Block { statements, tail } => statements
-            .get(index)
-            .map(|statement| statement.value())
-            .or_else(|| (index == statements.len()).then_some(tail)),
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => [
-            condition.as_ref(),
-            then_branch.as_ref(),
-            else_branch.as_ref(),
-        ]
-        .get(index)
-        .copied(),
-        _ => None,
-    }
-}
-
 pub(super) fn c_expression_shape(expression: &ResolvedExpr) -> Result<(usize, usize), Diagnostic> {
     let mut stack = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
     stack[0] = Some((expression, 0usize, 1usize));
@@ -1095,14 +1068,15 @@ pub(super) fn c_expression_shape(expression: &ResolvedExpr) -> Result<(usize, us
                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
             depth = depth.max(node_depth);
         }
-        if let Some(child) = c_expression_child(node, next_child) {
+        let mut child_cursor = next_child;
+        if let Some((_, child)) = super::resolved_expression_child(node, &mut child_cursor) {
             if stack_len + 2 > stack.len() {
                 return Err(b109(
                     "max_semantic_expression_depth",
                     MAX_SEMANTIC_EXPRESSION_DEPTH,
                 ));
             }
-            stack[stack_len] = Some((node, next_child + 1, node_depth));
+            stack[stack_len] = Some((node, child_cursor, node_depth));
             stack[stack_len + 1] = Some((child, 0, node_depth + 1));
             stack_len += 2;
         }
@@ -2590,7 +2564,9 @@ fn generate_private_ffi_into(
         let publish = match export.result {
             ScalarType::Unit => "Ok(())",
             ScalarType::I64 => "Ok(result.assume_init())",
-            ScalarType::Bool => "let value=result.assume_init();if value>1{return Err(NativeRustCallError::AdapterRejected)}Ok(value!=0)",
+            ScalarType::Bool => {
+                "let value=result.assume_init();if value>1{return Err(NativeRustCallError::AdapterRejected)}Ok(value!=0)"
+            }
         };
         let parameters = rust_parameters(&export.parameters);
         let callback_values = imports
@@ -3494,33 +3470,6 @@ fn replay_c_expression(
     values.pop().ok_or_else(b111)
 }
 
-fn replay_c_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&ResolvedExpr> {
-    match &expression.kind {
-        ResolvedExprKind::Call { args, .. } => args.get(index),
-        ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
-        ResolvedExprKind::Unary { value, .. } => (index == 0).then_some(value),
-        ResolvedExprKind::Binary { left, right, .. } => {
-            [left.as_ref(), right.as_ref()].get(index).copied()
-        }
-        ResolvedExprKind::Block { statements, tail } => statements
-            .get(index)
-            .map(|statement| statement.value())
-            .or_else(|| (index == statements.len()).then_some(tail)),
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => [
-            condition.as_ref(),
-            then_branch.as_ref(),
-            else_branch.as_ref(),
-        ]
-        .get(index)
-        .copied(),
-        _ => None,
-    }
-}
-
 fn replay_c_expression_shape(expression: &ResolvedExpr) -> Result<(usize, usize), Diagnostic> {
     let mut pending = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
     pending[0] = Some((expression, 0usize, 1usize));
@@ -3536,14 +3485,15 @@ fn replay_c_expression_shape(expression: &ResolvedExpr) -> Result<(usize, usize)
                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
             maximum_depth = maximum_depth.max(node_depth);
         }
-        if let Some(child) = replay_c_expression_child(node, child_index) {
+        let mut child_cursor = child_index;
+        if let Some((_, child)) = super::resolved_expression_child(node, &mut child_cursor) {
             if pending_len + 2 > pending.len() {
                 return Err(b109(
                     "max_semantic_expression_depth",
                     MAX_SEMANTIC_EXPRESSION_DEPTH,
                 ));
             }
-            pending[pending_len] = Some((node, child_index + 1, node_depth));
+            pending[pending_len] = Some((node, child_cursor, node_depth));
             pending[pending_len + 1] = Some((child, 0, node_depth + 1));
             pending_len += 2;
         }

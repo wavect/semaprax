@@ -15,11 +15,26 @@ const CLEANUP_LOWER_FRAME_BYTES: usize = 344;
 const CLEANUP_EVAL_RESULT_BYTES: usize = 128;
 const CALL_INDEX_FRAME_BYTES: usize = 16;
 
+fn source_functions(program: &Program) -> impl Iterator<Item = &crate::ast::Function> {
+    program
+        .functions
+        .iter()
+        .chain(
+            program
+                .types
+                .iter()
+                .flat_map(|declaration| match &declaration.kind {
+                    crate::ast::TypeDeclarationKind::Class { methods, .. } => methods.as_slice(),
+                    _ => &[],
+                }),
+        )
+}
+
 pub(super) fn validate_native_rust_source_expression_budget(
     program: &Program,
 ) -> Result<(), Diagnostic> {
     let mut stack = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
-    for function in &program.functions {
+    for function in source_functions(program) {
         for root in function
             .requires
             .iter()
@@ -42,14 +57,15 @@ pub(super) fn validate_native_rust_source_expression_budget(
                         ));
                     }
                 }
-                if let Some(child) = ast_child(expression, next_child) {
+                let mut child_cursor = next_child;
+                if let Some((_, child)) = ast_child(expression, &mut child_cursor) {
                     if stack_len + 2 > stack.len() {
                         return Err(b109(
                             "max_semantic_expression_depth",
                             MAX_SEMANTIC_EXPRESSION_DEPTH,
                         ));
                     }
-                    stack[stack_len] = Some((expression, depth, next_child + 1));
+                    stack[stack_len] = Some((expression, depth, child_cursor));
                     stack[stack_len + 1] = Some((child, depth + 1, 0));
                     stack_len += 2;
                 }
@@ -76,23 +92,139 @@ pub(super) struct AstCapacityStats {
     pub(super) max_index_digits: usize,
 }
 
-pub(super) fn ast_child(expression: &crate::ast::Expr, index: usize) -> Option<&crate::ast::Expr> {
+const AST_COMPLEX_CURSOR: usize = 1usize << (usize::BITS - 1);
+const AST_CURSOR_INDEX_MASK: usize = AST_COMPLEX_CURSOR - 1;
+
+fn ast_previous_child_path_index(cursor: usize) -> Option<usize> {
+    (cursor & AST_CURSOR_INDEX_MASK).checked_sub(1)
+}
+
+fn ast_block_statement_index(
+    statements: &[crate::ast::Statement],
+    child_path_index: usize,
+) -> usize {
+    if statements
+        .iter()
+        .any(|statement| matches!(statement, crate::ast::Statement::While { .. }))
+    {
+        child_path_index / 2
+    } else {
+        child_path_index
+    }
+}
+
+fn ast_block_statement_result_index(
+    statements: &[crate::ast::Statement],
+    statement_index: usize,
+) -> Option<usize> {
+    statements
+        .get(..statement_index)?
+        .iter()
+        .try_fold(0usize, |result_index, statement| {
+            result_index.checked_add(statement.child_count())
+        })
+}
+
+fn ast_match_arm_index(arms: &[crate::ast::MatchArm], child_path_index: usize) -> Option<usize> {
+    let arm_path_index = child_path_index.checked_sub(1)?;
+    Some(if arms.iter().any(|arm| arm.guard.is_some()) {
+        arm_path_index / 2
+    } else {
+        arm_path_index
+    })
+}
+
+fn ast_match_arm_value_result_index(
+    arms: &[crate::ast::MatchArm],
+    arm_index: usize,
+) -> Option<usize> {
+    let preceding_arm_results = arms
+        .get(..arm_index)?
+        .iter()
+        .try_fold(0usize, |results, arm| {
+            results.checked_add(1 + usize::from(arm.guard.is_some()))
+        })?;
+    1usize
+        .checked_add(preceding_arm_results)?
+        .checked_add(usize::from(arms.get(arm_index)?.guard.is_some()))
+}
+
+pub(super) fn ast_child<'a>(
+    expression: &'a crate::ast::Expr,
+    cursor: &mut usize,
+) -> Option<(usize, &'a crate::ast::Expr)> {
+    let complex = *cursor & AST_COMPLEX_CURSOR != 0;
+    let mut index = *cursor & AST_CURSOR_INDEX_MASK;
+    let mut advance = |next: usize, path_index: usize, child| {
+        *cursor = usize::from(complex)
+            .checked_mul(AST_COMPLEX_CURSOR)?
+            .checked_add(next)?;
+        Some((path_index, child))
+    };
     match &expression.kind {
-        crate::ast::ExprKind::Call { args, .. } => args.get(index),
-        crate::ast::ExprKind::MethodCall { receiver, args, .. } => (index == 0)
-            .then_some(receiver.as_ref())
-            .or_else(|| args.get(index - 1)),
-        crate::ast::ExprKind::SuperMethod { args, .. } => args.get(index),
+        crate::ast::ExprKind::Call { args, .. } => {
+            advance(index.checked_add(1)?, index, args.get(index)?)
+        }
+        crate::ast::ExprKind::MethodCall { receiver, args, .. } => {
+            let child = if index == 0 {
+                receiver.as_ref()
+            } else {
+                args.get(index - 1)?
+            };
+            advance(index.checked_add(1)?, index, child)
+        }
+        crate::ast::ExprKind::SuperMethod { args, .. } => {
+            advance(index.checked_add(1)?, index, args.get(index)?)
+        }
         crate::ast::ExprKind::Unary { value, .. }
         | crate::ast::ExprKind::Try { operand: value }
-        | crate::ast::ExprKind::Project { base: value, .. } => (index == 0).then_some(value),
-        crate::ast::ExprKind::Binary { left, right, .. } => {
-            [left.as_ref(), right.as_ref()].get(index).copied()
+        | crate::ast::ExprKind::Project { base: value, .. } => {
+            (index == 0).then(|| advance(1, 0, value.as_ref()))?
         }
-        crate::ast::ExprKind::Block { statements, tail } => statements
-            .get(index)
-            .map(|statement| statement.value())
-            .or_else(|| (index == statements.len()).then_some(tail)),
+        crate::ast::ExprKind::Binary { left, right, .. } => {
+            let child = [left.as_ref(), right.as_ref()].get(index).copied()?;
+            advance(index.checked_add(1)?, index, child)
+        }
+        crate::ast::ExprKind::Block { statements, tail } => {
+            let has_while = complex
+                || (index == 0
+                    && statements
+                        .iter()
+                        .any(|statement| matches!(statement, crate::ast::Statement::While { .. })));
+            if has_while {
+                if !complex {
+                    *cursor = AST_COMPLEX_CURSOR;
+                    index = 0;
+                }
+                loop {
+                    let slot_limit = statements.len().checked_mul(2)?;
+                    if index < slot_limit {
+                        let statement_index = index / 2;
+                        let statement_child = index % 2;
+                        let path_index = index;
+                        index = index.checked_add(1)?;
+                        *cursor = AST_COMPLEX_CURSOR.checked_add(index)?;
+                        if let Some(child) = statements[statement_index].child(statement_child) {
+                            return Some((path_index, child));
+                        }
+                        continue;
+                    }
+                    if index == slot_limit {
+                        *cursor = AST_COMPLEX_CURSOR.checked_add(index.checked_add(1)?)?;
+                        return Some((index, tail));
+                    }
+                    return None;
+                }
+            }
+            let child = if index < statements.len() {
+                statements[index].child(0)?
+            } else if index == statements.len() {
+                tail
+            } else {
+                return None;
+            };
+            advance(index.checked_add(1)?, index, child)
+        }
         crate::ast::ExprKind::If {
             condition,
             then_branch,
@@ -103,24 +235,55 @@ pub(super) fn ast_child(expression: &crate::ast::Expr, index: usize) -> Option<&
             else_branch.as_ref(),
         ]
         .get(index)
-        .copied(),
+        .copied()
+        .and_then(|child| advance(index.checked_add(1)?, index, child)),
         crate::ast::ExprKind::ConstructRecord { fields, .. }
         | crate::ast::ExprKind::ConstructVariant { fields, .. } => {
-            fields.get(index).map(|field| &field.value)
+            let child = &fields.get(index)?.value;
+            advance(index.checked_add(1)?, index, child)
         }
         crate::ast::ExprKind::Match { scrutinee, arms } => {
-            if index == 0 {
-                Some(scrutinee)
-            } else {
-                arms.get(index - 1).map(|arm| &arm.value)
+            let has_guard = complex || (index == 0 && arms.iter().any(|arm| arm.guard.is_some()));
+            if has_guard {
+                if !complex {
+                    *cursor = AST_COMPLEX_CURSOR;
+                    index = 0;
+                }
+                loop {
+                    if index == 0 {
+                        *cursor = AST_COMPLEX_CURSOR + 1;
+                        return Some((0, scrutinee));
+                    }
+                    let arm_slot = index - 1;
+                    let arm_index = arm_slot / 2;
+                    let arm_child = arm_slot % 2;
+                    let arm = arms.get(arm_index)?;
+                    let path_index = index;
+                    index = index.checked_add(1)?;
+                    *cursor = AST_COMPLEX_CURSOR.checked_add(index)?;
+                    if arm_child == 0 {
+                        if let Some(guard) = &arm.guard {
+                            return Some((path_index, guard));
+                        }
+                    } else {
+                        return Some((path_index, &arm.value));
+                    }
+                }
             }
+            let child = if index == 0 {
+                scrutinee.as_ref()
+            } else {
+                &arms.get(index - 1)?.value
+            };
+            advance(index.checked_add(1)?, index, child)
         }
         crate::ast::ExprKind::UpdateRecord { base, fields } => {
-            if index == 0 {
-                Some(base)
+            let child = if index == 0 {
+                base.as_ref()
             } else {
-                fields.get(index - 1).map(|field| &field.value)
-            }
+                &fields.get(index - 1)?.value
+            };
+            advance(index.checked_add(1)?, index, child)
         }
         crate::ast::ExprKind::Int(_)
         | crate::ast::ExprKind::Int32(_)
@@ -163,8 +326,25 @@ fn ast_child_identity_path_increment(
             if child_index == 0 { ".left" } else { ".right" }.len()
         }
         crate::ast::ExprKind::Block { statements, .. } => {
-            if child_index < statements.len() {
-                ".s".len() + decimal_digits(child_index) + ".value".len()
+            let complex = statements
+                .iter()
+                .any(|statement| matches!(statement, crate::ast::Statement::While { .. }));
+            let statement_index = if complex {
+                child_index / 2
+            } else {
+                child_index
+            };
+            if statement_index < statements.len() {
+                let suffix = match (
+                    &statements[statement_index],
+                    complex && child_index % 2 == 1,
+                ) {
+                    (crate::ast::Statement::While { .. }, false) => ".condition",
+                    (crate::ast::Statement::While { .. }, true)
+                    | (crate::ast::Statement::Unsafe { .. }, _) => ".body",
+                    _ => ".value",
+                };
+                ".s".len() + decimal_digits(statement_index) + suffix.len()
             } else {
                 ".tail".len()
             }
@@ -176,9 +356,17 @@ fn ast_child_identity_path_increment(
         | crate::ast::ExprKind::ConstructVariant { .. } => {
             ".field.".len() + decimal_digits(child_index) + ".value".len()
         }
-        crate::ast::ExprKind::Match { .. } => {
+        crate::ast::ExprKind::Match { arms, .. } => {
             if child_index == 0 {
                 ".scrutinee".len()
+            } else if arms.iter().any(|arm| arm.guard.is_some()) {
+                let arm_index = (child_index - 1) / 2;
+                let suffix = if (child_index - 1) & 1 == 0 {
+                    ".guard"
+                } else {
+                    ".value"
+                };
+                ".arm.".len() + decimal_digits(arm_index) + suffix.len()
             } else {
                 ".arm.".len() + decimal_digits(child_index - 1) + ".value".len()
             }
@@ -398,11 +586,12 @@ pub(super) fn generic_function_instance_identity_upper(
                         }
                     }
                 }
-                if let Some(child) = ast_child(expression, next_child) {
+                let mut child_cursor = next_child;
+                if let Some((_, child)) = ast_child(expression, &mut child_cursor) {
                     if len + 2 > traversal.len() {
                         return None;
                     }
-                    traversal[len] = Some((expression, next_child + 1, 0));
+                    traversal[len] = Some((expression, child_cursor, 0));
                     traversal[len + 1] = Some((child, 0, 0));
                     len += 2;
                 }
@@ -509,12 +698,36 @@ pub(super) fn scan_ast_capacity<'a>(
                     crate::ast::ExprKind::Call { args, .. } => args.len(),
                     crate::ast::ExprKind::MethodCall { args, .. } => args.len() + 1,
                     crate::ast::ExprKind::SuperMethod { args, .. } => args.len(),
-                    crate::ast::ExprKind::Block { statements, .. } => statements.len() + 1,
+                    crate::ast::ExprKind::Block { statements, .. } => {
+                        if statements.iter().any(|statement| {
+                            matches!(statement, crate::ast::Statement::While { .. })
+                        }) {
+                            statements
+                                .len()
+                                .checked_mul(2)
+                                .and_then(|slots| slots.checked_add(1))
+                                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?
+                        } else {
+                            statements
+                                .len()
+                                .checked_add(1)
+                                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?
+                        }
+                    }
                     crate::ast::ExprKind::ConstructRecord { fields, .. }
                     | crate::ast::ExprKind::ConstructVariant { fields, .. } => fields.len(),
                     crate::ast::ExprKind::Match { arms, .. } => {
                         stats.max_match_arms = stats.max_match_arms.max(arms.len());
-                        arms.len() + 1
+                        if arms.iter().any(|arm| arm.guard.is_some()) {
+                            arms.len()
+                                .checked_mul(2)
+                                .and_then(|slots| slots.checked_add(1))
+                                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?
+                        } else {
+                            arms.len()
+                                .checked_add(1)
+                                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?
+                        }
                     }
                     crate::ast::ExprKind::UpdateRecord { fields, .. } => fields.len() + 1,
                     crate::ast::ExprKind::If { .. } => 3,
@@ -540,21 +753,33 @@ pub(super) fn scan_ast_capacity<'a>(
                     .max_index_digits
                     .max(decimal_digits(indexed_children.saturating_sub(1)));
                 if let crate::ast::ExprKind::Block { statements, .. } = &expression.kind {
+                    let (binding_statements, binding_name_bytes) = statements
+                        .iter()
+                        .try_fold(
+                            (0usize, 0usize),
+                            |(count, bytes), statement| match statement {
+                                crate::ast::Statement::Let { name, .. }
+                                | crate::ast::Statement::Assign { name, .. } => {
+                                    Some((count.checked_add(1)?, bytes.checked_add(name.len())?))
+                                }
+                                crate::ast::Statement::Unsafe { .. }
+                                | crate::ast::Statement::While { .. } => Some((count, bytes)),
+                            },
+                        )
+                        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                     stats.local_bindings = stats
                         .local_bindings
-                        .checked_add(statements.len())
+                        .checked_add(binding_statements)
                         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
-                    stats.binding_name_bytes = statements
-                        .iter()
-                        .try_fold(stats.binding_name_bytes, |bytes, statement| {
-                            bytes.checked_add(statement.name().len())
-                        })
+                    stats.binding_name_bytes = stats
+                        .binding_name_bytes
+                        .checked_add(binding_name_bytes)
                         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                     stats.binding_depth_sum = stats
                         .binding_depth_sum
                         .checked_add(
                             depth
-                                .checked_mul(statements.len())
+                                .checked_mul(binding_statements)
                                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
                         )
                         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
@@ -618,14 +843,15 @@ pub(super) fn scan_ast_capacity<'a>(
                     }
                 }
             }
-            if let Some(child) = ast_child(expression, next_child) {
+            let mut child_cursor = next_child;
+            if let Some((_, child)) = ast_child(expression, &mut child_cursor) {
                 if stack_len + 2 > stack.len() {
                     return Err(b109(
                         "max_semantic_expression_depth",
                         MAX_SEMANTIC_EXPRESSION_DEPTH,
                     ));
                 }
-                stack[stack_len] = Some((expression, depth, next_child + 1));
+                stack[stack_len] = Some((expression, depth, child_cursor));
                 stack[stack_len + 1] = Some((child, depth + 1, 0));
                 stack_len += 2;
             }
@@ -1292,7 +1518,7 @@ pub(super) fn declaration_dag_expansion(
 
     let mut cleanup_node_count = 0usize;
     let mut cleanup_scan = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
-    for function in &program.functions {
+    for function in source_functions(program) {
         for root in function
             .requires
             .iter()
@@ -1311,14 +1537,15 @@ pub(super) fn declaration_dag_expansion(
                         .checked_add(1)
                         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 }
-                if let Some(child) = ast_child(expression, next_child) {
+                let mut child_cursor = next_child;
+                if let Some((_, child)) = ast_child(expression, &mut child_cursor) {
                     if len + 2 > cleanup_scan.len() {
                         return Err(b109(
                             "max_semantic_expression_depth",
                             MAX_SEMANTIC_EXPRESSION_DEPTH,
                         ));
                     }
-                    cleanup_scan[len] = Some((expression, next_child + 1, 0));
+                    cleanup_scan[len] = Some((expression, child_cursor, 0));
                     cleanup_scan[len + 1] = Some((child, 0, 0));
                     len += 2;
                 }
@@ -1615,14 +1842,15 @@ pub(super) fn cleanup_function_exit_events<'a>(
                         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 }
             }
-            if let Some(child) = ast_child(expression, next_child) {
+            let mut child_cursor = next_child;
+            if let Some((_, child)) = ast_child(expression, &mut child_cursor) {
                 if len + 2 > traversal.len() {
                     return Err(b109(
                         "max_semantic_expression_depth",
                         MAX_SEMANTIC_EXPRESSION_DEPTH,
                     ));
                 }
-                traversal[len] = Some((expression, next_child + 1, 0));
+                traversal[len] = Some((expression, child_cursor, 0));
                 traversal[len + 1] = Some((child, 0, 0));
                 len += 2;
             }
@@ -1649,14 +1877,15 @@ fn cleanup_expression_exit_events<'a>(
                 .checked_add(cleanup_source_exit_events(expression))
                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
         }
-        if let Some(child) = ast_child(expression, next_child) {
+        let mut child_cursor = next_child;
+        if let Some((_, child)) = ast_child(expression, &mut child_cursor) {
             if len + 2 > traversal.len() {
                 return Err(b109(
                     "max_semantic_expression_depth",
                     MAX_SEMANTIC_EXPRESSION_DEPTH,
                 ));
             }
-            traversal[len] = Some((expression, next_child + 1, 0));
+            traversal[len] = Some((expression, child_cursor, 0));
             traversal[len + 1] = Some((child, 0, 0));
             len += 2;
         }
@@ -1682,14 +1911,15 @@ fn cleanup_expression_failure_events<'a>(
                 .checked_add(cleanup_source_failure_events(expression))
                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
         }
-        if let Some(child) = ast_child(expression, next_child) {
+        let mut child_cursor = next_child;
+        if let Some((_, child)) = ast_child(expression, &mut child_cursor) {
             if len + 2 > traversal.len() {
                 return Err(b109(
                     "max_semantic_expression_depth",
                     MAX_SEMANTIC_EXPRESSION_DEPTH,
                 ));
             }
-            traversal[len] = Some((expression, next_child + 1, 0));
+            traversal[len] = Some((expression, child_cursor, 0));
             traversal[len + 1] = Some((child, 0, 0));
             len += 2;
         }
@@ -1724,14 +1954,15 @@ fn cleanup_expression_call_events<'a>(
                 }
             }
         }
-        if let Some(child) = ast_child(expression, next_child) {
+        let mut child_cursor = next_child;
+        if let Some((_, child)) = ast_child(expression, &mut child_cursor) {
             if len + 2 > traversal.len() {
                 return Err(b109(
                     "max_semantic_expression_depth",
                     MAX_SEMANTIC_EXPRESSION_DEPTH,
                 ));
             }
-            traversal[len] = Some((expression, next_child + 1, 0));
+            traversal[len] = Some((expression, child_cursor, 0));
             traversal[len + 1] = Some((child, 0, 0));
             len += 2;
         }
@@ -1766,14 +1997,15 @@ fn cleanup_expression_boolean_branch_events<'a>(
                 .checked_add(1)
                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
         }
-        if let Some(child) = ast_child(expression, next_child) {
+        let mut child_cursor = next_child;
+        if let Some((_, child)) = ast_child(expression, &mut child_cursor) {
             if len + 2 > traversal.len() {
                 return Err(b109(
                     "max_semantic_expression_depth",
                     MAX_SEMANTIC_EXPRESSION_DEPTH,
                 ));
             }
-            traversal[len] = Some((expression, next_child + 1, 0));
+            traversal[len] = Some((expression, child_cursor, 0));
             traversal[len + 1] = Some((child, 0, 0));
             len += 2;
         }
@@ -1791,68 +2023,7 @@ fn cleanup_plan_variable_identity_bytes(
         child_index: usize,
         program: &Program,
     ) -> usize {
-        match &expression.kind {
-            crate::ast::ExprKind::Call { name, .. } => {
-                let prefix =
-                    if program.interfaces.iter().any(|interface| {
-                        interface.imports.iter().any(|import| import.name == *name)
-                    }) {
-                        ".native-rust-arg."
-                    } else {
-                        ".arg."
-                    };
-                prefix.len() + decimal_digits(child_index)
-            }
-            crate::ast::ExprKind::MethodCall { .. } | crate::ast::ExprKind::SuperMethod { .. } => {
-                ".arg.".len() + decimal_digits(child_index)
-            }
-            crate::ast::ExprKind::Unary { .. } => ".value".len(),
-            crate::ast::ExprKind::Binary { .. } => {
-                if child_index == 0 { ".left" } else { ".right" }.len()
-            }
-            crate::ast::ExprKind::Block { statements, .. } => {
-                if child_index < statements.len() {
-                    ".s".len() + decimal_digits(child_index) + ".value".len()
-                } else {
-                    ".tail".len()
-                }
-            }
-            crate::ast::ExprKind::If { .. } => [".condition", ".then", ".else"]
-                .get(child_index)
-                .map_or(0, |segment| segment.len()),
-            crate::ast::ExprKind::ConstructRecord { .. }
-            | crate::ast::ExprKind::ConstructVariant { .. } => {
-                ".field.".len() + decimal_digits(child_index) + ".value".len()
-            }
-            crate::ast::ExprKind::Match { .. } => {
-                if child_index == 0 {
-                    ".scrutinee".len()
-                } else {
-                    ".arm.".len() + decimal_digits(child_index - 1) + ".value".len()
-                }
-            }
-            crate::ast::ExprKind::UpdateRecord { .. } => {
-                if child_index == 0 {
-                    ".base".len()
-                } else {
-                    ".field.".len() + decimal_digits(child_index - 1) + ".value".len()
-                }
-            }
-            crate::ast::ExprKind::Try { .. } => ".operand".len(),
-            crate::ast::ExprKind::Project { .. } => ".base".len(),
-            crate::ast::ExprKind::Int(_)
-            | crate::ast::ExprKind::Int32(_)
-            | crate::ast::ExprKind::Char(_)
-            | crate::ast::ExprKind::Uint8(_)
-            | crate::ast::ExprKind::Usize(_)
-            | crate::ast::ExprKind::ArrayU8(_)
-            | crate::ast::ExprKind::RepeatArrayU8 { .. }
-            | crate::ast::ExprKind::Float32(_)
-            | crate::ast::ExprKind::Float64(_)
-            | crate::ast::ExprKind::Bool(_)
-            | crate::ast::ExprKind::String(_)
-            | crate::ast::ExprKind::Var(_) => 0,
-        }
+        ast_child_identity_path_increment(expression, child_index, program)
     }
 
     let generic_instance_identity_len = generic_function_instance_identity_upper(program, function)
@@ -1951,7 +2122,8 @@ fn cleanup_plan_variable_identity_bytes(
                     )
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
             }
-            if let Some(child) = ast_child(expression, next_child) {
+            let mut child_cursor = next_child;
+            if let Some((child_index, child)) = ast_child(expression, &mut child_cursor) {
                 if len + 2 > traversal.len() {
                     return Err(b109(
                         "max_semantic_expression_depth",
@@ -1959,9 +2131,9 @@ fn cleanup_plan_variable_identity_bytes(
                     ));
                 }
                 let child_path_len = path_len
-                    .checked_add(child_path_increment(expression, next_child, program))
+                    .checked_add(child_path_increment(expression, child_index, program))
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
-                traversal[len] = Some((expression, path_len, next_child + 1));
+                traversal[len] = Some((expression, path_len, child_cursor));
                 traversal[len + 1] = Some((child, child_path_len, 0));
                 len += 2;
             }
@@ -2028,7 +2200,8 @@ fn cleanup_function_region_depth<'a>(
             let (expression, next_child, region_depth) = traversal[len]
                 .take()
                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
-            if let Some(child) = ast_child(expression, next_child) {
+            let mut child_cursor = next_child;
+            if let Some((_, child)) = ast_child(expression, &mut child_cursor) {
                 if len + 2 > traversal.len() {
                     return Err(b109(
                         "max_semantic_expression_depth",
@@ -2043,7 +2216,7 @@ fn cleanup_function_region_depth<'a>(
                     )))
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 maximum = maximum.max(child_depth);
-                traversal[len] = Some((expression, next_child + 1, region_depth));
+                traversal[len] = Some((expression, child_cursor, region_depth));
                 traversal[len + 1] = Some((child, 0, child_depth));
                 len += 2;
             }
@@ -2081,8 +2254,7 @@ fn cleanup_binding_flow<'a>(
             traversal[frame_index].ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
 
         if let Some(child) = returned.take() {
-            let child_index = next_child
-                .checked_sub(1)
+            let child_index = ast_previous_child_path_index(next_child)
                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
             let flow = &mut flows[frame_index];
             let sequence = |flow: &mut CleanupBindingFlow,
@@ -2126,7 +2298,8 @@ fn cleanup_binding_flow<'a>(
             }
         }
 
-        if let Some(child) = ast_child(expression, next_child) {
+        let mut child_cursor = next_child;
+        if let Some((child_index, child)) = ast_child(expression, &mut child_cursor) {
             if stack_len == traversal.len() {
                 return Err(b109(
                     "max_semantic_expression_depth",
@@ -2138,7 +2311,7 @@ fn cleanup_binding_flow<'a>(
                     .functions
                     .iter()
                     .find(|function| function.name == *name)
-                    .and_then(|function| function.params.get(next_child))
+                    .and_then(|function| function.params.get(child_index))
                     .is_some_and(|parameter| parameter.mode == crate::ast::ParamMode::Own),
                 crate::ast::ExprKind::MethodCall { method, .. } => program
                     .types
@@ -2149,21 +2322,27 @@ fn cleanup_binding_flow<'a>(
                         }
                         _ => None,
                     })
-                    .and_then(|method_function| method_function.params.get(next_child))
+                    .and_then(|method_function| method_function.params.get(child_index))
                     .is_some_and(|parameter| parameter.mode == crate::ast::ParamMode::Own),
                 crate::ast::ExprKind::Block { statements, .. } => {
-                    next_child < statements.len() || consume
+                    let statement_index = ast_block_statement_index(statements, child_index);
+                    statement_index < statements.len() || consume
                 }
-                crate::ast::ExprKind::If { .. } => next_child != 0 && consume,
+                crate::ast::ExprKind::If { .. } => child_index != 0 && consume,
                 crate::ast::ExprKind::ConstructRecord { .. }
                 | crate::ast::ExprKind::ConstructVariant { .. }
                 | crate::ast::ExprKind::UpdateRecord { .. } => true,
-                crate::ast::ExprKind::Match { .. } => next_child == 0 || consume,
+                crate::ast::ExprKind::Match { arms, .. } => {
+                    let is_guard = arms.iter().any(|arm| arm.guard.is_some())
+                        && child_index != 0
+                        && (child_index - 1) & 1 == 0;
+                    child_index == 0 || (!is_guard && consume)
+                }
                 crate::ast::ExprKind::Try { .. } => true,
                 crate::ast::ExprKind::Project { .. }
                 | crate::ast::ExprKind::Unary { .. }
                 | crate::ast::ExprKind::Binary { .. } => false,
-                crate::ast::ExprKind::SuperMethod { .. } => next_child != 0 && consume,
+                crate::ast::ExprKind::SuperMethod { .. } => child_index != 0 && consume,
                 crate::ast::ExprKind::Int(_)
                 | crate::ast::ExprKind::Int32(_)
                 | crate::ast::ExprKind::Char(_)
@@ -2177,7 +2356,7 @@ fn cleanup_binding_flow<'a>(
                 | crate::ast::ExprKind::String(_)
                 | crate::ast::ExprKind::Var(_) => false,
             };
-            traversal[frame_index] = Some((expression, next_child + 1, 0));
+            traversal[frame_index] = Some((expression, child_cursor, 0));
             traversal[stack_len] = Some((child, 0, 0));
             consumes[stack_len] = child_consumes;
             flows[stack_len] = CleanupBindingFlow {
@@ -2227,8 +2406,8 @@ fn cleanup_block_binding_finalizer_events<'a>(
 ) -> Result<usize, Diagnostic> {
     let mut events = 0usize;
     let mut live = true;
-    let mut child_index = next_child;
-    while let Some(child) = ast_child(block, child_index) {
+    let mut child_cursor = next_child;
+    while let Some((_, child)) = ast_child(block, &mut child_cursor) {
         if live {
             let flow = cleanup_binding_flow(child, binding, true, program, traversal)?;
             events = events
@@ -2236,9 +2415,6 @@ fn cleanup_block_binding_finalizer_events<'a>(
                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
             live = flow.live_after;
         }
-        child_index = child_index
-            .checked_add(1)
-            .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
     }
     if live && std::ptr::eq(block, &function.body) {
         for ensure in &function.ensures {
@@ -2319,11 +2495,11 @@ fn cleanup_parent_local_remaining_finalizer_events<'a>(
 ) -> Result<usize, Diagnostic> {
     let mut events = 0usize;
     for (ancestor, next_child, _) in traversal[..stack_len].iter().rev().flatten().copied() {
-        let active_child = next_child
-            .checked_sub(1)
+        let active_child = ast_previous_child_path_index(next_child)
             .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
-        let mut add_later_child = |child_index: usize| -> Result<(), Diagnostic> {
-            if let Some(child) = ast_child(ancestor, child_index) {
+        let mut add_later_child = |child_cursor: usize| -> Result<(), Diagnostic> {
+            let mut child_cursor = child_cursor;
+            if let Some((_, child)) = ast_child(ancestor, &mut child_cursor) {
                 events = events
                     .checked_add(cleanup_expression_failure_events(child, event_traversal)?)
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
@@ -2339,8 +2515,12 @@ fn cleanup_parent_local_remaining_finalizer_events<'a>(
             }
             crate::ast::ExprKind::Match { arms, .. } => {
                 if active_child == 0 {
-                    for arm_index in 0..arms.len() {
-                        add_later_child(arm_index + 1)?;
+                    let _ = arms;
+                    let mut child_cursor = next_child;
+                    while let Some((_, child)) = ast_child(ancestor, &mut child_cursor) {
+                        events = events
+                            .checked_add(cleanup_expression_failure_events(child, event_traversal)?)
+                            .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                     }
                 }
             }
@@ -2353,11 +2533,10 @@ fn cleanup_parent_local_remaining_finalizer_events<'a>(
                 }
             }
             _ => {
-                let mut child_index = next_child;
-                while ast_child(ancestor, child_index).is_some() {
-                    add_later_child(child_index)?;
-                    child_index = child_index
-                        .checked_add(1)
+                let mut child_cursor = next_child;
+                while let Some((_, child)) = ast_child(ancestor, &mut child_cursor) {
+                    events = events
+                        .checked_add(cleanup_expression_failure_events(child, event_traversal)?)
                         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 }
             }
@@ -2956,24 +3135,29 @@ fn cleanup_retained_stats(
         {
             match &ancestor.kind {
                 crate::ast::ExprKind::Block { statements, .. } => {
-                    let active_child = next_child.saturating_sub(1);
-                    let completed_statements = active_child.min(statements.len());
+                    let active_child = ast_previous_child_path_index(next_child)
+                        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                    let completed_statements =
+                        ast_block_statement_index(statements, active_child).min(statements.len());
                     for index in (0..completed_statements).rev() {
                         let crate::ast::Statement::Let { name: binding, .. } = &statements[index]
                         else {
                             continue;
                         };
                         if binding == name {
+                            let result_index = ast_block_statement_result_index(statements, index)
+                                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                             return Ok(results
-                                .get(result_start + index)
+                                .get(result_start + result_index)
                                 .copied()
                                 .unwrap_or(CleanupTypeKey::Unknown));
                         }
                     }
                 }
                 crate::ast::ExprKind::Match { arms, .. } => {
-                    let active_child = next_child.saturating_sub(1);
-                    if let Some(arm_index) = active_child.checked_sub(1) {
+                    let active_child = ast_previous_child_path_index(next_child)
+                        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                    if let Some(arm_index) = ast_match_arm_index(arms, active_child) {
                         if let Some(key) = arms
                             .get(arm_index)
                             .map(|arm| pattern_binding_key(program, &arm.pattern, name))
@@ -3061,7 +3245,7 @@ fn cleanup_retained_stats(
     let mut traversal = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
     let mut event_traversal = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
 
-    for function in &program.functions {
+    for function in source_functions(program) {
         let generic_instance_identity_len =
             generic_function_instance_identity_upper(program, function)
                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
@@ -3162,12 +3346,12 @@ fn cleanup_retained_stats(
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 if next_child != 0 {
                     if let crate::ast::ExprKind::Block { statements, .. } = &expression.kind {
-                        let previous = next_child - 1;
-                        if previous < statements.len() {
-                            let crate::ast::Statement::Let { name, .. } = &statements[previous]
-                            else {
-                                continue;
-                            };
+                        let previous = ast_previous_child_path_index(next_child)
+                            .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                        let statement_index = ast_block_statement_index(statements, previous);
+                        if let Some(crate::ast::Statement::Let { name, .. }) =
+                            statements.get(statement_index)
+                        {
                             let key = results
                                 .last()
                                 .copied()
@@ -3175,7 +3359,9 @@ fn cleanup_retained_stats(
                             let storage_identity_bytes = value_storage_identity_bytes_for_path(
                                 expression_path_len
                                     .checked_add(".s".len())
-                                    .and_then(|bytes| bytes.checked_add(decimal_digits(previous)))
+                                    .and_then(|bytes| {
+                                        bytes.checked_add(decimal_digits(statement_index))
+                                    })
                                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
                             )
                             .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
@@ -3357,19 +3543,22 @@ fn cleanup_retained_stats(
                         _ => {}
                     }
                 }
-                if let Some(child) = ast_child(expression, next_child) {
+                let mut child_cursor = next_child;
+                if let Some((child_index, child)) = ast_child(expression, &mut child_cursor) {
                     if stack_len + 2 > traversal.len() {
                         return Err(b109(
                             "max_semantic_expression_depth",
                             MAX_SEMANTIC_EXPRESSION_DEPTH,
                         ));
                     }
-                    traversal[stack_len] = Some((expression, next_child + 1, result_start));
+                    traversal[stack_len] = Some((expression, child_cursor, result_start));
                     traversal_path_lengths[stack_len] = expression_path_len;
                     traversal[stack_len + 1] = Some((child, 0, results.len()));
                     traversal_path_lengths[stack_len + 1] = expression_path_len
                         .checked_add(ast_child_identity_path_increment(
-                            expression, next_child, program,
+                            expression,
+                            child_index,
+                            program,
                         ))
                         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                     stack_len += 2;
@@ -3505,7 +3694,9 @@ fn cleanup_retained_stats(
                                 pattern_binding_key(program, &arm.pattern, name)?
                                     .unwrap_or(CleanupTypeKey::Unknown)
                             } else {
-                                children.get(1).copied().unwrap_or(CleanupTypeKey::Unknown)
+                                ast_match_arm_value_result_index(arms, 0)
+                                    .and_then(|index| children.get(index).copied())
+                                    .unwrap_or(CleanupTypeKey::Unknown)
                             }
                         } else {
                             CleanupTypeKey::Unknown
@@ -3964,7 +4155,7 @@ pub(super) fn hir_pre_resolve_capacity<'a>(
     source_bytes: usize,
     stack: &mut [Option<(&'a crate::ast::Expr, usize, usize)>; MAX_SEMANTIC_EXPRESSION_DEPTH + 1],
 ) -> Result<HirPreResolveCapacity, Diagnostic> {
-    let all_roots = program.functions.iter().flat_map(|function| {
+    let all_roots = source_functions(program).flat_map(|function| {
         function
             .requires
             .iter()
@@ -3972,15 +4163,13 @@ pub(super) fn hir_pre_resolve_capacity<'a>(
             .chain(&function.ensures)
     });
     let stats = scan_ast_capacity(all_roots, program, false, stack)?;
-    let contract_index_digits = program.functions.iter().fold(1usize, |digits, function| {
+    let contract_index_digits = source_functions(program).fold(1usize, |digits, function| {
         digits
             .max(decimal_digits(function.requires.len().saturating_sub(1)))
             .max(decimal_digits(function.ensures.len().saturating_sub(1)))
             .max(decimal_digits(function.params.len().saturating_sub(1)))
     });
-    let monomorphic_roots = program
-        .functions
-        .iter()
+    let monomorphic_roots = source_functions(program)
         .filter(|function| function.type_parameters.is_empty())
         .flat_map(|function| {
             function
@@ -3992,7 +4181,7 @@ pub(super) fn hir_pre_resolve_capacity<'a>(
     let reachable_generic_calls =
         scan_ast_capacity(monomorphic_roots, program, true, stack)?.generic_calls;
     let mut largest_template = AstCapacityStats::default();
-    for function in &program.functions {
+    for function in source_functions(program) {
         if function.type_parameters.is_empty() {
             continue;
         }
@@ -4037,7 +4226,7 @@ pub(super) fn hir_pre_resolve_capacity<'a>(
         .types
         .len()
         .checked_add(program.interfaces.len())
-        .and_then(|value| value.checked_add(program.functions.len()))
+        .and_then(|value| value.checked_add(source_functions(program).count()))
         .and_then(|value| {
             program
                 .interfaces
@@ -4068,7 +4257,7 @@ pub(super) fn hir_pre_resolve_capacity<'a>(
             }
         })
         .and_then(|count| {
-            program.functions.iter().try_fold(count, |count, function| {
+            source_functions(program).try_fold(count, |count, function| {
                 count
                     .checked_add(function.type_parameters.len())?
                     .checked_add(function.params.len())
@@ -4133,7 +4322,7 @@ pub(super) fn hir_pre_resolve_capacity<'a>(
     let cleanup_path_copies = maximum_resource_leaves.min(5);
     let mut exact_expression_identity_bytes = 0usize;
     let mut cleanup_plan_uncovered_identity_bytes = 0usize;
-    for function in &program.functions {
+    for function in source_functions(program) {
         let multiplicity = if function.type_parameters.is_empty() {
             1
         } else {
@@ -4170,9 +4359,7 @@ pub(super) fn hir_pre_resolve_capacity<'a>(
     // Branch continuations retain at most depth copies; Match retains one
     // FlowState per authored arm. Indexed child vectors/commit lists are
     // bounded by the widest authored node.
-    let parameter_bindings = program
-        .functions
-        .iter()
+    let parameter_bindings = source_functions(program)
         .try_fold(0usize, |count, function| {
             count.checked_add(function.params.len())
         })
@@ -4793,7 +4980,7 @@ pub(super) fn hir_pre_resolve_capacity<'a>(
     let mut cleanup_contracts = 0usize;
     let mut cleanup_function_instances = 0usize;
     let cleanup_expression_identity_bytes = exact_expression_identity_bytes;
-    for function in &program.functions {
+    for function in source_functions(program) {
         let function_stats = scan_ast_capacity(
             function
                 .requires
@@ -5522,13 +5709,31 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
                     std::mem::size_of::<ResolvedStatement>(),
                 )?;
                 for statement in statements {
-                    let binding = statement.binding();
-                    total = total
-                        .checked_add(binding.id.as_str().len())
-                        .and_then(|bytes| bytes.checked_add(binding.name.capacity()))
-                        .and_then(|bytes| bytes.checked_add(hir_type_owned_capacity(&binding.ty)?))
-                        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
-                    pending.push(statement.value());
+                    match statement {
+                        ResolvedStatement::Let { binding, value, .. }
+                        | ResolvedStatement::Assign { binding, value, .. } => {
+                            total = total
+                                .checked_add(binding.id.as_str().len())
+                                .and_then(|bytes| bytes.checked_add(binding.name.capacity()))
+                                .and_then(|bytes| {
+                                    bytes.checked_add(hir_type_owned_capacity(&binding.ty)?)
+                                })
+                                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                            pending.push(value);
+                        }
+                        ResolvedStatement::Unsafe { audit, body, .. } => {
+                            total = total
+                                .checked_add(audit.capacity())
+                                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                            pending.push(body);
+                        }
+                        ResolvedStatement::While {
+                            condition, body, ..
+                        } => {
+                            pending.push(condition);
+                            pending.push(body);
+                        }
+                    }
                 }
                 pending.push(tail);
             }
@@ -5591,6 +5796,9 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
                                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
                         )
                         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                    if let Some(guard) = &arm.guard {
+                        pending.push(guard);
+                    }
                 }
                 pending.push(scrutinee);
                 pending.extend(arms.iter().map(|arm| &arm.value));
@@ -6076,7 +6284,11 @@ pub(super) fn validate_native_rust_expression_budget_for_closure(
             }
             ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
-                    pending.push((statement.value(), child_depth));
+                    pending.extend(
+                        (0..statement.child_count())
+                            .filter_map(|index| statement.child(index))
+                            .map(|child| (child, child_depth)),
+                    );
                 }
                 pending.push((tail, child_depth));
             }
@@ -6095,6 +6307,11 @@ pub(super) fn validate_native_rust_expression_budget_for_closure(
             }
             ResolvedExprKind::Match { scrutinee, arms } => {
                 pending.push((scrutinee, child_depth));
+                pending.extend(
+                    arms.iter()
+                        .filter_map(|arm| arm.guard.as_deref())
+                        .map(|guard| (guard, child_depth)),
+                );
                 pending.extend(arms.iter().map(|arm| (&arm.value, child_depth)));
             }
             ResolvedExprKind::UpdateRecord { base, fields, .. } => {

@@ -96,6 +96,70 @@ mod private_capacity_contract_tests {
     }
 
     #[test]
+    fn declaration_index_drops_exact_depth_generic_record_and_variant_fields_iteratively() {
+        fn nested_type(prefix: &str) -> ResolvedType {
+            let mut ty = ResolvedType::I64;
+            // One scalar leaf plus 511 nominal wrappers exercises the exact
+            // 512-slot semantic type-workspace boundary. This HIR carrier is
+            // forged because source admission rejects nested user generics.
+            for depth in 1..512 {
+                ty = ResolvedType::Nominal {
+                    declaration: DeclarationId::new(format!("{prefix}.{depth}")),
+                    arguments: vec![ty],
+                };
+            }
+            ty
+        }
+
+        std::thread::Builder::new()
+            .name("declaration-index-iterative-drop".to_owned())
+            .stack_size(64 * 1024)
+            .spawn(|| {
+                let mut index = DeclarationIndex::default();
+                index.record_fields.insert(
+                    DeclarationId::new("drop.record"),
+                    vec![ResolvedFieldDeclaration {
+                        id: DeclarationId::new("drop.record.field"),
+                        name: "field".to_owned(),
+                        index: 0,
+                        ty: nested_type("drop.record.generic"),
+                        span: Span::default(),
+                    }],
+                );
+                index.variant_cases.insert(
+                    DeclarationId::new("drop.variant"),
+                    vec![ResolvedVariantCaseDeclaration {
+                        id: DeclarationId::new("drop.variant.case"),
+                        name: "Case".to_owned(),
+                        index: 0,
+                        fields: vec![ResolvedFieldDeclaration {
+                            id: DeclarationId::new("drop.variant.case.field"),
+                            name: "field".to_owned(),
+                            index: 0,
+                            ty: nested_type("drop.variant.generic"),
+                            span: Span::default(),
+                        }],
+                        span: Span::default(),
+                    }],
+                );
+                index.case_fields.insert(
+                    DeclarationId::new("drop.variant.case"),
+                    vec![ResolvedFieldDeclaration {
+                        id: DeclarationId::new("drop.variant.case.field"),
+                        name: "field".to_owned(),
+                        index: 0,
+                        ty: nested_type("drop.case-index.generic"),
+                        span: Span::default(),
+                    }],
+                );
+                drop(index);
+            })
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
+    #[test]
     fn opaque_declaration_index_is_bounded_by_shared_private_contract() {
         fn maximum_occurrences(program: &crate::ast::Program) -> usize {
             fn type_occurrences(
@@ -1011,6 +1075,32 @@ pub struct DeclarationIndex {
 }
 
 impl DeclarationIndex {
+    /// Moves every recursively nested resolved type out of the declaration
+    /// index before ordinary field drop glue runs. Private bounded owners use
+    /// this hook to feed their existing preallocated iterative disposer.
+    fn drain_recursive_types_for_private_contract(
+        &mut self,
+        mut dispose: impl FnMut(ResolvedType),
+    ) {
+        for (_, fields) in std::mem::take(&mut self.record_fields) {
+            for field in fields {
+                dispose(field.ty);
+            }
+        }
+        for (_, cases) in std::mem::take(&mut self.variant_cases) {
+            for case in cases {
+                for field in case.fields {
+                    dispose(field.ty);
+                }
+            }
+        }
+        for (_, fields) in std::mem::take(&mut self.case_fields) {
+            for field in fields {
+                dispose(field.ty);
+            }
+        }
+    }
+
     pub fn byte_slice_provenance(&self, value: &ValueId) -> Option<&ByteSliceProvenance> {
         self.byte_slice_roots.get(value)
     }
@@ -2323,6 +2413,28 @@ impl DeclarationIndex {
     }
 }
 
+/// Consumes an opaque declaration index while moving every recursive type
+/// through the caller's bounded iterative disposer.
+#[doc(hidden)]
+pub fn dispose_declaration_index_for_private_contract(
+    mut index: DeclarationIndex,
+    dispose: impl FnMut(ResolvedType),
+) {
+    index.drain_recursive_types_for_private_contract(dispose);
+}
+
+impl Drop for DeclarationIndex {
+    fn drop(&mut self) {
+        let mut pending = Vec::new();
+        self.drain_recursive_types_for_private_contract(|ty| pending.push(ty));
+        while let Some(ty) = pending.pop() {
+            if let ResolvedType::Nominal { arguments, .. } = ty {
+                pending.extend(arguments);
+            }
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum ResolvedType {
     Unit,
@@ -3183,29 +3295,27 @@ fn push_array_pattern_slots(
             Ok(())
         }
         ResolvedMatchPattern::Record { fields, .. } => {
-            fn visit(
-                program: &ResolvedProgram,
-                fields: &[ResolvedRecordMatchPatternField],
-                slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
-            ) -> Result<(), Diagnostic> {
-                for field in fields {
-                    match &field.pattern {
-                        ResolvedRecordMatchFieldPattern::Binding(binding) => push_array_slot(
-                            program,
-                            slots,
-                            binding.id.as_str().to_owned(),
-                            crate::byte_data_capacity::ArrayStorageKind::Binding,
-                            &binding.ty,
-                        )?,
-                        ResolvedRecordMatchFieldPattern::Record { fields, .. } => {
-                            visit(program, fields, slots)?;
-                        }
-                        ResolvedRecordMatchFieldPattern::Wildcard => {}
+            let mut pending = fields
+                .iter()
+                .rev()
+                .map(|field| &field.pattern)
+                .collect::<Vec<_>>();
+            while let Some(pattern) = pending.pop() {
+                match pattern {
+                    ResolvedRecordMatchFieldPattern::Binding(binding) => push_array_slot(
+                        program,
+                        slots,
+                        binding.id.as_str().to_owned(),
+                        crate::byte_data_capacity::ArrayStorageKind::Binding,
+                        &binding.ty,
+                    )?,
+                    ResolvedRecordMatchFieldPattern::Record { fields, .. } => {
+                        pending.extend(fields.iter().rev().map(|field| &field.pattern));
                     }
+                    ResolvedRecordMatchFieldPattern::Wildcard => {}
                 }
-                Ok(())
             }
-            visit(program, fields, slots)
+            Ok(())
         }
         ResolvedMatchPattern::Wildcard
         | ResolvedMatchPattern::Literal(_)
@@ -3218,66 +3328,162 @@ fn byte_slice_transcript_source(
     expression: &ResolvedExpr,
 ) -> crate::byte_data_capacity::TranscriptSource {
     use crate::byte_data_capacity::TranscriptSource;
-    match &expression.kind {
-        ResolvedExprKind::Place(place) | ResolvedExprKind::BorrowPlace { place, .. } => {
-            if let Some(fact) = program.declarations.byte_slice_provenance(&place.root) {
-                return match fact.root_kind {
-                    ByteSliceRootKind::CommandArguments => TranscriptSource::CommandArguments,
-                    ByteSliceRootKind::FixedArray => match fact.length {
-                        ByteSliceExtent::Constant(length) => TranscriptSource::Fixed(length),
-                        ByteSliceExtent::ParameterLength | ByteSliceExtent::ValueLength => {
-                            TranscriptSource::Unknown
-                        }
-                    },
-                    ByteSliceRootKind::OwnedBytes
-                        if resolved_value_is_stdin(program, &fact.root) =>
-                    {
-                        TranscriptSource::Stdin
+    enum Frame<'a> {
+        Visit(&'a ResolvedExpr),
+        If,
+    }
+    let mut frames = vec![Frame::Visit(expression)];
+    let mut results = Vec::new();
+    while let Some(frame) = frames.pop() {
+        match frame {
+            Frame::Visit(expression) => match &expression.kind {
+                ResolvedExprKind::Place(place) | ResolvedExprKind::BorrowPlace { place, .. } => {
+                    if let Some(fact) = program.declarations.byte_slice_provenance(&place.root) {
+                        results.push(match fact.root_kind {
+                            ByteSliceRootKind::CommandArguments => {
+                                TranscriptSource::CommandArguments
+                            }
+                            ByteSliceRootKind::FixedArray => match fact.length {
+                                ByteSliceExtent::Constant(length) => {
+                                    TranscriptSource::Fixed(length)
+                                }
+                                ByteSliceExtent::ParameterLength | ByteSliceExtent::ValueLength => {
+                                    TranscriptSource::Unknown
+                                }
+                            },
+                            ByteSliceRootKind::OwnedBytes
+                                if resolved_value_is_stdin(program, &fact.root) =>
+                            {
+                                TranscriptSource::Stdin
+                            }
+                            ByteSliceRootKind::FunctionParameter
+                            | ByteSliceRootKind::OwnedBytes
+                            | ByteSliceRootKind::BorrowedStr => TranscriptSource::Unknown,
+                        });
+                    } else {
+                        results.push(resolved_value_type(program, &place.root).map_or(
+                            TranscriptSource::Unknown,
+                            |ty| match ty {
+                                ResolvedType::ArrayU8(length) => {
+                                    TranscriptSource::Fixed(u64::from(length))
+                                }
+                                _ => TranscriptSource::Unknown,
+                            },
+                        ));
                     }
-                    ByteSliceRootKind::FunctionParameter
-                    | ByteSliceRootKind::OwnedBytes
-                    | ByteSliceRootKind::BorrowedStr => TranscriptSource::Unknown,
-                };
-            }
-            resolved_value_type(program, &place.root).map_or(TranscriptSource::Unknown, |ty| {
-                match ty {
-                    ResolvedType::ArrayU8(length) => TranscriptSource::Fixed(u64::from(length)),
-                    _ => TranscriptSource::Unknown,
                 }
-            })
+                ResolvedExprKind::Call { callee, args, .. }
+                    if callee.as_str() == crate::byte_ops::ARRAY_AS_SLICE_ID =>
+                {
+                    results.push(args.first().map_or(TranscriptSource::Unknown, |argument| {
+                        match argument.ty {
+                            ResolvedType::ArrayU8(length) => {
+                                TranscriptSource::Fixed(u64::from(length))
+                            }
+                            _ => TranscriptSource::Unknown,
+                        }
+                    }));
+                }
+                ResolvedExprKind::If {
+                    then_branch,
+                    else_branch,
+                    ..
+                } => {
+                    frames.push(Frame::If);
+                    frames.push(Frame::Visit(else_branch));
+                    frames.push(Frame::Visit(then_branch));
+                }
+                ResolvedExprKind::Block { tail, .. } => frames.push(Frame::Visit(tail)),
+                _ => results.push(TranscriptSource::Unknown),
+            },
+            Frame::If => {
+                let else_source = results.pop().unwrap_or(TranscriptSource::Unknown);
+                let then_source = results.pop().unwrap_or(TranscriptSource::Unknown);
+                results.push(if then_source == else_source {
+                    then_source
+                } else {
+                    TranscriptSource::Unknown
+                });
+            }
         }
-        ResolvedExprKind::Call { callee, args, .. }
-            if callee.as_str() == crate::byte_ops::ARRAY_AS_SLICE_ID =>
-        {
-            args.first()
-                .map_or(TranscriptSource::Unknown, |argument| match argument.ty {
-                    ResolvedType::ArrayU8(length) => TranscriptSource::Fixed(u64::from(length)),
-                    _ => TranscriptSource::Unknown,
-                })
+    }
+    results.pop().unwrap_or(TranscriptSource::Unknown)
+}
+
+fn push_resolved_expression_children_in_authored_order<'a>(
+    expression: &'a ResolvedExpr,
+    pending: &mut Vec<&'a ResolvedExpr>,
+) {
+    match &expression.kind {
+        ResolvedExprKind::Block { statements, tail } => {
+            pending.push(tail);
+            for statement in statements.iter().rev() {
+                for index in (0..statement.child_count()).rev() {
+                    if let Some(child) = statement.child(index) {
+                        pending.push(child);
+                    }
+                }
+            }
+        }
+        ResolvedExprKind::Call { args, .. } => pending.extend(args.iter().rev()),
+        ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter().rev()),
+        ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter().rev()),
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::TryOption { operand: value, .. }
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => pending.push(value),
+        ResolvedExprKind::Binary { left, right, .. } => {
+            pending.push(right);
+            pending.push(left);
         }
         ResolvedExprKind::If {
+            condition,
             then_branch,
             else_branch,
-            ..
         } => {
-            let then_source = byte_slice_transcript_source(program, then_branch);
-            let else_source = byte_slice_transcript_source(program, else_branch);
-            if then_source == else_source {
-                then_source
-            } else {
-                TranscriptSource::Unknown
-            }
+            pending.push(else_branch);
+            pending.push(then_branch);
+            pending.push(condition);
         }
-        ResolvedExprKind::Block { tail, .. } => byte_slice_transcript_source(program, tail),
-        _ => TranscriptSource::Unknown,
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => {
+            pending.extend(fields.iter().rev().map(|field| &field.value));
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            for arm in arms.iter().rev() {
+                pending.push(&arm.value);
+                if let Some(guard) = &arm.guard {
+                    pending.push(guard);
+                }
+            }
+            pending.push(scrutinee);
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            pending.extend(fields.iter().rev().map(|field| &field.value));
+            pending.push(base);
+        }
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
+        | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => {}
     }
 }
 
 fn resolved_value_is_stdin(program: &ResolvedProgram, value: &ValueId) -> bool {
-    fn in_expression(expression: &ResolvedExpr, value: &ValueId) -> bool {
-        let mut children = Vec::new();
-        match &expression.kind {
-            ResolvedExprKind::Block { statements, tail } => {
+    let in_expression = |root: &ResolvedExpr| {
+        let mut pending = vec![root];
+        while let Some(expression) = pending.pop() {
+            if let ResolvedExprKind::Block { statements, .. } = &expression.kind {
                 for statement in statements {
                     if let ResolvedStatement::Let {
                         binding,
@@ -3295,84 +3501,27 @@ fn resolved_value_is_stdin(program: &ResolvedProgram, value: &ValueId) -> bool {
                             );
                         }
                     }
-                    for index in 0..statement.child_count() {
-                        if let Some(child) = statement.child(index) {
-                            children.push(child);
-                        }
-                    }
-                }
-                children.push(tail);
-            }
-            ResolvedExprKind::Call { args, .. } => children.extend(args),
-            ResolvedExprKind::NativeRustImportCall(call) => children.extend(&call.args),
-            ResolvedExprKind::HostCommandCall(call) => children.extend(&call.args),
-            ResolvedExprKind::Unary { value, .. }
-            | ResolvedExprKind::Try { operand: value, .. }
-            | ResolvedExprKind::TryOption { operand: value, .. }
-            | ResolvedExprKind::Project { base: value, .. }
-            | ResolvedExprKind::Upcast { source: value } => children.push(value),
-            ResolvedExprKind::Binary { left, right, .. } => {
-                children.extend([left.as_ref(), right.as_ref()]);
-            }
-            ResolvedExprKind::If {
-                condition,
-                then_branch,
-                else_branch,
-            } => children.extend([
-                condition.as_ref(),
-                then_branch.as_ref(),
-                else_branch.as_ref(),
-            ]),
-            ResolvedExprKind::ConstructRecord { fields, .. }
-            | ResolvedExprKind::ConstructVariant { fields, .. } => {
-                children.extend(fields.iter().map(|field| &field.value));
-            }
-            ResolvedExprKind::Match { scrutinee, arms } => {
-                children.push(scrutinee);
-                for arm in arms {
-                    if let Some(guard) = &arm.guard {
-                        children.push(guard);
-                    }
-                    children.push(&arm.value);
                 }
             }
-            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-                children.push(base);
-                children.extend(fields.iter().map(|field| &field.value));
-            }
-            ResolvedExprKind::Int(_)
-            | ResolvedExprKind::Int32(_)
-            | ResolvedExprKind::Char(_)
-            | ResolvedExprKind::Uint8(_)
-            | ResolvedExprKind::Usize(_)
-            | ResolvedExprKind::ArrayU8(_)
-            | ResolvedExprKind::RepeatArrayU8 { .. }
-            | ResolvedExprKind::Float32(_)
-            | ResolvedExprKind::Float64(_)
-            | ResolvedExprKind::Bool(_)
-            | ResolvedExprKind::String(_)
-            | ResolvedExprKind::Place(_)
-            | ResolvedExprKind::BorrowPlace { .. } => {}
+            push_resolved_expression_children_in_authored_order(expression, &mut pending);
         }
-        children
-            .into_iter()
-            .any(|child| in_expression(child, value))
-    }
+        false
+    };
     program
         .functions
         .iter()
-        .any(|function| in_expression(&function.body, value))
+        .any(|function| in_expression(&function.body))
         || program
             .function_instances
             .iter()
-            .any(|instance| in_expression(&instance.function.body, value))
+            .any(|instance| in_expression(&instance.function.body))
 }
 
 fn resolved_value_type(program: &ResolvedProgram, value: &ValueId) -> Option<ResolvedType> {
-    fn in_expression(expression: &ResolvedExpr, value: &ValueId) -> Option<ResolvedType> {
-        let mut children = Vec::new();
-        match &expression.kind {
-            ResolvedExprKind::Block { statements, tail } => {
+    let in_expression = |root: &ResolvedExpr| {
+        let mut pending = vec![root];
+        while let Some(expression) = pending.pop() {
+            if let ResolvedExprKind::Block { statements, .. } = &expression.kind {
                 for statement in statements {
                     if let ResolvedStatement::Let { binding, .. }
                     | ResolvedStatement::Assign { binding, .. } = statement
@@ -3381,67 +3530,12 @@ fn resolved_value_type(program: &ResolvedProgram, value: &ValueId) -> Option<Res
                             return Some(binding.ty.clone());
                         }
                     }
-                    for index in 0..statement.child_count() {
-                        children.push(statement.child(index)?);
-                    }
-                }
-                children.push(tail);
-            }
-            ResolvedExprKind::Call { args, .. } => children.extend(args),
-            ResolvedExprKind::NativeRustImportCall(call) => children.extend(&call.args),
-            ResolvedExprKind::HostCommandCall(call) => children.extend(&call.args),
-            ResolvedExprKind::Unary { value, .. }
-            | ResolvedExprKind::Try { operand: value, .. }
-            | ResolvedExprKind::TryOption { operand: value, .. }
-            | ResolvedExprKind::Project { base: value, .. }
-            | ResolvedExprKind::Upcast { source: value } => children.push(value),
-            ResolvedExprKind::Binary { left, right, .. } => {
-                children.extend([left.as_ref(), right.as_ref()]);
-            }
-            ResolvedExprKind::If {
-                condition,
-                then_branch,
-                else_branch,
-            } => children.extend([
-                condition.as_ref(),
-                then_branch.as_ref(),
-                else_branch.as_ref(),
-            ]),
-            ResolvedExprKind::ConstructRecord { fields, .. }
-            | ResolvedExprKind::ConstructVariant { fields, .. } => {
-                children.extend(fields.iter().map(|field| &field.value));
-            }
-            ResolvedExprKind::Match { scrutinee, arms } => {
-                children.push(scrutinee);
-                for arm in arms {
-                    if let Some(guard) = &arm.guard {
-                        children.push(guard);
-                    }
-                    children.push(&arm.value);
                 }
             }
-            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-                children.push(base);
-                children.extend(fields.iter().map(|field| &field.value));
-            }
-            ResolvedExprKind::Int(_)
-            | ResolvedExprKind::Int32(_)
-            | ResolvedExprKind::Char(_)
-            | ResolvedExprKind::Uint8(_)
-            | ResolvedExprKind::Usize(_)
-            | ResolvedExprKind::ArrayU8(_)
-            | ResolvedExprKind::RepeatArrayU8 { .. }
-            | ResolvedExprKind::Float32(_)
-            | ResolvedExprKind::Float64(_)
-            | ResolvedExprKind::Bool(_)
-            | ResolvedExprKind::String(_)
-            | ResolvedExprKind::Place(_)
-            | ResolvedExprKind::BorrowPlace { .. } => {}
+            push_resolved_expression_children_in_authored_order(expression, &mut pending);
         }
-        children
-            .into_iter()
-            .find_map(|child| in_expression(child, value))
-    }
+        None
+    };
 
     program
         .functions
@@ -3458,10 +3552,9 @@ fn resolved_value_type(program: &ResolvedProgram, value: &ValueId) -> Option<Res
                 .iter()
                 .find(|parameter| parameter.id == *value)
                 .map(|parameter| parameter.ty.clone())
-                .or_else(|| in_expression(&function.body, value))
+                .or_else(|| in_expression(&function.body))
         })
 }
-
 fn byte_capacity_expression(
     program: &ResolvedProgram,
     expression: &ResolvedExpr,
@@ -3470,221 +3563,291 @@ fn byte_capacity_expression(
 ) -> Result<crate::byte_data_capacity::CapacityFlow, Diagnostic> {
     use crate::byte_data_capacity::{ArrayStorageKind, CapacityFlow};
 
-    let payload = inline_array_payload_bytes(program, &expression.ty)?;
-    if payload != 0 || matches!(expression.ty, ResolvedType::ArrayU8(0)) {
-        let kind = match &expression.kind {
-            ResolvedExprKind::Call { .. } => Some(ArrayStorageKind::CallStaging),
-            ResolvedExprKind::ArrayU8(_) | ResolvedExprKind::RepeatArrayU8 { .. }
-                if direct_destination =>
-            {
-                None
-            }
-            ResolvedExprKind::Place(_) | ResolvedExprKind::BorrowPlace { .. } => None,
-            ResolvedExprKind::Block { .. }
-            | ResolvedExprKind::If { .. }
-            | ResolvedExprKind::Match { .. } => None,
-            _ => Some(ArrayStorageKind::Temporary),
-        };
-        if let Some(kind) = kind {
-            slots.push(crate::byte_data_capacity::ArrayStorageSlot {
-                identity: expression.id.as_str().to_owned(),
-                kind,
-                length: payload,
-            });
-        }
+    enum Frame<'a> {
+        Visit(&'a ResolvedExpr, bool),
+        Argument(
+            &'a ResolvedExpr,
+            Option<(String, ArrayStorageKind, ResolvedType)>,
+            bool,
+        ),
+        Sequence(usize),
+        Alternative(usize),
+        Loop,
+        Match(usize),
+        Emit(CapacityFlow),
     }
-
-    let sequence = |children: Vec<CapacityFlow>| {
+    fn sequence(children: Vec<CapacityFlow>) -> CapacityFlow {
         if children.is_empty() {
             CapacityFlow::Empty
         } else {
             CapacityFlow::Sequence(children)
         }
-    };
-    let flow = match &expression.kind {
-        ResolvedExprKind::Call {
-            callee,
-            instance,
-            args,
-            ..
-        } => {
-            let mut children = Vec::with_capacity(args.len() + 1);
-            for (index, argument) in args.iter().enumerate() {
-                push_array_slot(
-                    program,
-                    slots,
-                    format!("{}.arg.{index}", expression.id.as_str()),
-                    ArrayStorageKind::CallStaging,
-                    &argument.ty,
-                )?;
-                children.push(byte_capacity_expression(program, argument, slots, false)?);
-            }
-            if callee.as_str() == crate::byte_ops::COPY_ID {
-                children.push(CapacityFlow::BytesCopy {
-                    site: expression.id.as_str().to_owned(),
-                    conservative_payload_bytes: crate::byte_data_capacity::MAX_ARRAY_BYTES,
-                });
-            } else if callee.as_str() == crate::host_io_ops::STDOUT_WRITE_ID {
-                children.push(CapacityFlow::StdoutWrite {
-                    site: expression.id.as_str().to_owned(),
-                    source: byte_slice_transcript_source(program, &args[0]),
-                });
-            } else if program
-                .resolve_call_target(callee, instance.as_ref())
-                .is_some()
-            {
-                children.push(CapacityFlow::Call {
-                    site: expression.id.as_str().to_owned(),
-                    callee: instance
-                        .as_ref()
-                        .map_or_else(|| callee.as_str(), FunctionInstanceId::as_str)
-                        .to_owned(),
-                });
-            }
-            sequence(children)
-        }
-        ResolvedExprKind::NativeRustImportCall(call) => sequence(
-            call.args
-                .iter()
-                .map(|argument| byte_capacity_expression(program, argument, slots, false))
-                .collect::<Result<Vec<_>, _>>()?,
-        ),
-        ResolvedExprKind::HostCommandCall(call) => {
-            let mut children = call
-                .args
-                .iter()
-                .map(|argument| byte_capacity_expression(program, argument, slots, false))
-                .collect::<Result<Vec<_>, _>>()?;
-            if call.operation == ResolvedHostCommandOperation::StdinRead {
-                children.push(CapacityFlow::StdinRead {
-                    site: expression.id.as_str().to_owned(),
-                    conservative_payload_bytes: crate::command_io_ops::MAX_INPUT_BYTES,
-                });
-            } else if call.operation == ResolvedHostCommandOperation::StderrWrite {
-                children.push(CapacityFlow::StderrWrite {
-                    site: expression.id.as_str().to_owned(),
-                    source: byte_slice_transcript_source(program, &call.args[0]),
-                });
-            }
-            sequence(children)
-        }
-        ResolvedExprKind::Unary { value, .. }
-        | ResolvedExprKind::Try { operand: value, .. }
-        | ResolvedExprKind::TryOption { operand: value, .. }
-        | ResolvedExprKind::Project { base: value, .. }
-        | ResolvedExprKind::Upcast { source: value } => {
-            byte_capacity_expression(program, value, slots, false)?
-        }
-        ResolvedExprKind::Binary { left, right, .. } => sequence(vec![
-            byte_capacity_expression(program, left, slots, false)?,
-            byte_capacity_expression(program, right, slots, false)?,
-        ]),
-        ResolvedExprKind::Block { statements, tail } => {
-            let mut children = Vec::with_capacity(statements.len() + 1);
-            for statement in statements {
-                match statement {
-                    ResolvedStatement::Let { binding, value, .. } => {
-                        push_array_slot(
-                            program,
-                            slots,
-                            binding.id.as_str().to_owned(),
-                            ArrayStorageKind::Binding,
-                            &binding.ty,
-                        )?;
-                        children.push(byte_capacity_expression(program, value, slots, true)?);
+    }
+
+    let mut frames = vec![Frame::Visit(expression, direct_destination)];
+    let mut results = Vec::new();
+    while let Some(frame) = frames.pop() {
+        match frame {
+            Frame::Visit(expression, direct_destination) => {
+                let payload = inline_array_payload_bytes(program, &expression.ty)?;
+                if payload != 0 || matches!(expression.ty, ResolvedType::ArrayU8(0)) {
+                    let kind = match &expression.kind {
+                        ResolvedExprKind::Call { .. } => Some(ArrayStorageKind::CallStaging),
+                        ResolvedExprKind::ArrayU8(_) | ResolvedExprKind::RepeatArrayU8 { .. }
+                            if direct_destination =>
+                        {
+                            None
+                        }
+                        ResolvedExprKind::Place(_) | ResolvedExprKind::BorrowPlace { .. } => None,
+                        ResolvedExprKind::Block { .. }
+                        | ResolvedExprKind::If { .. }
+                        | ResolvedExprKind::Match { .. } => None,
+                        _ => Some(ArrayStorageKind::Temporary),
+                    };
+                    if let Some(kind) = kind {
+                        slots.push(crate::byte_data_capacity::ArrayStorageSlot {
+                            identity: expression.id.as_str().to_owned(),
+                            kind,
+                            length: payload,
+                        });
                     }
-                    ResolvedStatement::Assign { value, .. } => {
-                        children.push(byte_capacity_expression(program, value, slots, true)?);
+                }
+                match &expression.kind {
+                    ResolvedExprKind::Call {
+                        callee,
+                        instance,
+                        args,
+                        ..
+                    } => {
+                        let effect = if callee.as_str() == crate::byte_ops::COPY_ID {
+                            Some(CapacityFlow::BytesCopy {
+                                site: expression.id.as_str().to_owned(),
+                                conservative_payload_bytes:
+                                    crate::byte_data_capacity::MAX_ARRAY_BYTES,
+                            })
+                        } else if callee.as_str() == crate::host_io_ops::STDOUT_WRITE_ID {
+                            Some(CapacityFlow::StdoutWrite {
+                                site: expression.id.as_str().to_owned(),
+                                source: byte_slice_transcript_source(program, &args[0]),
+                            })
+                        } else if program
+                            .resolve_call_target(callee, instance.as_ref())
+                            .is_some()
+                        {
+                            Some(CapacityFlow::Call {
+                                site: expression.id.as_str().to_owned(),
+                                callee: instance
+                                    .as_ref()
+                                    .map_or_else(|| callee.as_str(), FunctionInstanceId::as_str)
+                                    .to_owned(),
+                            })
+                        } else {
+                            None
+                        };
+                        frames.push(Frame::Sequence(args.len() + usize::from(effect.is_some())));
+                        if let Some(effect) = effect {
+                            frames.push(Frame::Emit(effect));
+                        }
+                        for (index, argument) in args.iter().enumerate().rev() {
+                            frames.push(Frame::Argument(
+                                argument,
+                                Some((
+                                    format!("{}.arg.{index}", expression.id.as_str()),
+                                    ArrayStorageKind::CallStaging,
+                                    argument.ty.clone(),
+                                )),
+                                false,
+                            ));
+                        }
                     }
-                    ResolvedStatement::Unsafe { body, .. } => {
-                        children.push(byte_capacity_expression(program, body, slots, true)?);
+                    ResolvedExprKind::NativeRustImportCall(call) => {
+                        frames.push(Frame::Sequence(call.args.len()));
+                        for argument in call.args.iter().rev() {
+                            frames.push(Frame::Visit(argument, false));
+                        }
                     }
-                    ResolvedStatement::While {
-                        condition, body, ..
-                    } => children.push(CapacityFlow::Loop {
-                        condition: Box::new(byte_capacity_expression(
-                            program, condition, slots, false,
-                        )?),
-                        body: Box::new(byte_capacity_expression(program, body, slots, false)?),
-                    }),
+                    ResolvedExprKind::HostCommandCall(call) => {
+                        let effect = if call.operation == ResolvedHostCommandOperation::StdinRead {
+                            Some(CapacityFlow::StdinRead {
+                                site: expression.id.as_str().to_owned(),
+                                conservative_payload_bytes: crate::command_io_ops::MAX_INPUT_BYTES,
+                            })
+                        } else if call.operation == ResolvedHostCommandOperation::StderrWrite {
+                            Some(CapacityFlow::StderrWrite {
+                                site: expression.id.as_str().to_owned(),
+                                source: byte_slice_transcript_source(program, &call.args[0]),
+                            })
+                        } else {
+                            None
+                        };
+                        frames.push(Frame::Sequence(
+                            call.args.len() + usize::from(effect.is_some()),
+                        ));
+                        if let Some(effect) = effect {
+                            frames.push(Frame::Emit(effect));
+                        }
+                        for argument in call.args.iter().rev() {
+                            frames.push(Frame::Visit(argument, false));
+                        }
+                    }
+                    ResolvedExprKind::Unary { value, .. }
+                    | ResolvedExprKind::Try { operand: value, .. }
+                    | ResolvedExprKind::TryOption { operand: value, .. }
+                    | ResolvedExprKind::Project { base: value, .. }
+                    | ResolvedExprKind::Upcast { source: value } => {
+                        frames.push(Frame::Visit(value, false));
+                    }
+                    ResolvedExprKind::Binary { left, right, .. } => {
+                        frames.push(Frame::Sequence(2));
+                        frames.push(Frame::Visit(right, false));
+                        frames.push(Frame::Visit(left, false));
+                    }
+                    ResolvedExprKind::Block { statements, tail } => {
+                        frames.push(Frame::Sequence(statements.len() + 1));
+                        frames.push(Frame::Visit(tail, direct_destination));
+                        for statement in statements.iter().rev() {
+                            match statement {
+                                ResolvedStatement::Let { binding, value, .. } => {
+                                    frames.push(Frame::Argument(
+                                        value,
+                                        Some((
+                                            binding.id.as_str().to_owned(),
+                                            ArrayStorageKind::Binding,
+                                            binding.ty.clone(),
+                                        )),
+                                        true,
+                                    ));
+                                }
+                                ResolvedStatement::Assign { value, .. } => {
+                                    frames.push(Frame::Visit(value, true));
+                                }
+                                ResolvedStatement::Unsafe { body, .. } => {
+                                    frames.push(Frame::Visit(body, true));
+                                }
+                                ResolvedStatement::While {
+                                    condition, body, ..
+                                } => {
+                                    frames.push(Frame::Loop);
+                                    frames.push(Frame::Visit(body, false));
+                                    frames.push(Frame::Visit(condition, false));
+                                }
+                            }
+                        }
+                    }
+                    ResolvedExprKind::If {
+                        condition,
+                        then_branch,
+                        else_branch,
+                    } => {
+                        frames.push(Frame::Sequence(2));
+                        frames.push(Frame::Alternative(2));
+                        frames.push(Frame::Visit(else_branch, direct_destination));
+                        frames.push(Frame::Visit(then_branch, direct_destination));
+                        frames.push(Frame::Visit(condition, false));
+                    }
+                    ResolvedExprKind::ConstructRecord { fields, .. }
+                    | ResolvedExprKind::ConstructVariant { fields, .. } => {
+                        frames.push(Frame::Sequence(fields.len()));
+                        for field in fields.iter().rev() {
+                            frames.push(Frame::Visit(&field.value, false));
+                        }
+                    }
+                    ResolvedExprKind::Match { scrutinee, arms } => {
+                        for arm in arms {
+                            push_array_pattern_slots(program, &arm.pattern, slots)?;
+                        }
+                        frames.push(Frame::Match(arms.len()));
+                        frames.push(Frame::Visit(scrutinee, false));
+                        for arm in arms.iter().rev() {
+                            frames.push(Frame::Sequence(1 + usize::from(arm.guard.is_some())));
+                            frames.push(Frame::Visit(&arm.value, direct_destination));
+                            if let Some(guard) = &arm.guard {
+                                frames.push(Frame::Visit(guard, false));
+                            }
+                        }
+                    }
+                    ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                        frames.push(Frame::Sequence(1 + fields.len()));
+                        for field in fields.iter().rev() {
+                            frames.push(Frame::Visit(&field.value, false));
+                        }
+                        frames.push(Frame::Visit(base, false));
+                    }
+                    ResolvedExprKind::Int(_)
+                    | ResolvedExprKind::Int32(_)
+                    | ResolvedExprKind::Char(_)
+                    | ResolvedExprKind::Uint8(_)
+                    | ResolvedExprKind::Usize(_)
+                    | ResolvedExprKind::ArrayU8(_)
+                    | ResolvedExprKind::RepeatArrayU8 { .. }
+                    | ResolvedExprKind::Float32(_)
+                    | ResolvedExprKind::Float64(_)
+                    | ResolvedExprKind::Bool(_)
+                    | ResolvedExprKind::String(_)
+                    | ResolvedExprKind::Place(_)
+                    | ResolvedExprKind::BorrowPlace { .. } => results.push(CapacityFlow::Empty),
                 }
             }
-            children.push(byte_capacity_expression(
-                program,
-                tail,
-                slots,
-                direct_destination,
-            )?);
-            sequence(children)
-        }
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => sequence(vec![
-            byte_capacity_expression(program, condition, slots, false)?,
-            CapacityFlow::Alternative(vec![
-                byte_capacity_expression(program, then_branch, slots, direct_destination)?,
-                byte_capacity_expression(program, else_branch, slots, direct_destination)?,
-            ]),
-        ]),
-        ResolvedExprKind::ConstructRecord { fields, .. }
-        | ResolvedExprKind::ConstructVariant { fields, .. } => sequence(
-            fields
-                .iter()
-                .map(|field| byte_capacity_expression(program, &field.value, slots, false))
-                .collect::<Result<Vec<_>, _>>()?,
-        ),
-        ResolvedExprKind::Match { scrutinee, arms } => {
-            for arm in arms {
-                push_array_pattern_slots(program, &arm.pattern, slots)?;
+            Frame::Argument(expression, slot, direct_destination) => {
+                if let Some((identity, kind, ty)) = slot {
+                    push_array_slot(program, slots, identity, kind, &ty)?;
+                }
+                frames.push(Frame::Visit(expression, direct_destination));
             }
-            let alternatives = arms
-                .iter()
-                .map(|arm| {
-                    let mut arm_flow = Vec::with_capacity(2);
-                    if let Some(guard) = &arm.guard {
-                        arm_flow.push(byte_capacity_expression(program, guard, slots, false)?);
-                    }
-                    arm_flow.push(byte_capacity_expression(
-                        program,
-                        &arm.value,
-                        slots,
-                        direct_destination,
-                    )?);
-                    Ok(sequence(arm_flow))
-                })
-                .collect::<Result<Vec<_>, Diagnostic>>()?;
-            sequence(vec![
-                byte_capacity_expression(program, scrutinee, slots, false)?,
-                CapacityFlow::Alternative(alternatives),
-            ])
+            Frame::Sequence(count) => {
+                let start = results
+                    .len()
+                    .checked_sub(count)
+                    .ok_or_else(|| hir_error("byte-capacity traversal stack underflowed"))?;
+                let children = results.drain(start..).collect::<Vec<_>>();
+                results.push(sequence(children));
+            }
+            Frame::Alternative(count) => {
+                let start = results
+                    .len()
+                    .checked_sub(count)
+                    .ok_or_else(|| hir_error("byte-capacity traversal stack underflowed"))?;
+                let children = results.drain(start..).collect::<Vec<_>>();
+                results.push(CapacityFlow::Alternative(children));
+            }
+            Frame::Loop => {
+                let body = results
+                    .pop()
+                    .ok_or_else(|| hir_error("byte-capacity traversal stack underflowed"))?;
+                let condition = results
+                    .pop()
+                    .ok_or_else(|| hir_error("byte-capacity traversal stack underflowed"))?;
+                results.push(CapacityFlow::Loop {
+                    condition: Box::new(condition),
+                    body: Box::new(body),
+                });
+            }
+            Frame::Match(arm_count) => {
+                let scrutinee = results
+                    .pop()
+                    .ok_or_else(|| hir_error("byte-capacity traversal stack underflowed"))?;
+                let start = results
+                    .len()
+                    .checked_sub(arm_count)
+                    .ok_or_else(|| hir_error("byte-capacity traversal stack underflowed"))?;
+                let alternatives = results.drain(start..).collect::<Vec<_>>();
+                results.push(sequence(vec![
+                    scrutinee,
+                    CapacityFlow::Alternative(alternatives),
+                ]));
+            }
+            Frame::Emit(flow) => results.push(flow),
         }
-        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-            let mut children = vec![byte_capacity_expression(program, base, slots, false)?];
-            children.extend(
-                fields
-                    .iter()
-                    .map(|field| byte_capacity_expression(program, &field.value, slots, false))
-                    .collect::<Result<Vec<_>, _>>()?,
-            );
-            sequence(children)
-        }
-        ResolvedExprKind::Int(_)
-        | ResolvedExprKind::Int32(_)
-        | ResolvedExprKind::Char(_)
-        | ResolvedExprKind::Uint8(_)
-        | ResolvedExprKind::Usize(_)
-        | ResolvedExprKind::ArrayU8(_)
-        | ResolvedExprKind::RepeatArrayU8 { .. }
-        | ResolvedExprKind::Float32(_)
-        | ResolvedExprKind::Float64(_)
-        | ResolvedExprKind::Bool(_)
-        | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_)
-        | ResolvedExprKind::BorrowPlace { .. } => CapacityFlow::Empty,
-    };
-    Ok(flow)
+    }
+    if results.len() == 1 {
+        results
+            .pop()
+            .ok_or_else(|| hir_error("byte-capacity traversal produced no result"))
+    } else {
+        Err(hir_error(
+            "byte-capacity traversal produced an invalid result stack",
+        ))
+    }
 }
 
 pub(crate) fn byte_data_capacity_inputs(
@@ -7227,173 +7390,196 @@ impl Resolver<'_> {
     /// calls, strings, unsafe boundaries, generic calls, non-scalar calls)
     /// is rejected fail-closed so loop cleanup stays edge-free.
     fn reject_while_disallowed(&self, expression: &Expr) -> Result<(), Diagnostic> {
-        match &expression.kind {
-            ExprKind::Int(_)
-            | ExprKind::Int32(_)
-            | ExprKind::Char(_)
-            | ExprKind::Uint8(_)
-            | ExprKind::Usize(_)
-            | ExprKind::Float32(_)
-            | ExprKind::Float64(_)
-            | ExprKind::Bool(_)
-            | ExprKind::Var(_) => Ok(()),
-            ExprKind::String(_) => Err(self.error(
-                "SPX-T252",
-                "string literals are not yet admitted in while bodies",
-                expression.span,
-            )),
-            ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. } => Err(self.error(
-                "SPX-T252",
-                "fixed-array literals are not admitted in bounded while bodies",
-                expression.span,
-            )),
-            ExprKind::Unary { value, .. } => self.reject_while_disallowed(value),
-            ExprKind::Binary { left, right, .. } => {
-                self.reject_while_disallowed(left)?;
-                self.reject_while_disallowed(right)
-            }
-            ExprKind::If {
-                condition,
-                then_branch,
-                else_branch,
-            } => {
-                self.reject_while_disallowed(condition)?;
-                self.reject_while_disallowed(then_branch)?;
-                self.reject_while_disallowed(else_branch)
-            }
-            ExprKind::Block { statements, tail } => {
-                for statement in statements {
-                    self.reject_while_disallowed_statement(statement)?;
-                }
-                self.reject_while_disallowed(tail)
-            }
-            ExprKind::Call {
-                type_arguments,
-                args,
-                name,
-                ..
-            } => {
-                if !type_arguments.is_empty() {
+        enum Item<'a> {
+            Expression(&'a Expr),
+            Statement(&'a Statement),
+        }
+
+        let mut pending = vec![Item::Expression(expression)];
+        while let Some(item) = pending.pop() {
+            let expression = match item {
+                Item::Statement(statement) => match statement {
+                    Statement::Let { value, .. } | Statement::Assign { value, .. } => value,
+                    Statement::Unsafe { span, .. } => {
+                        return Err(self.error(
+                            "SPX-T252",
+                            "unsafe boundary statements are not yet admitted in while bodies",
+                            *span,
+                        ));
+                    }
+                    Statement::While {
+                        condition, body, ..
+                    } => {
+                        pending.push(Item::Expression(body));
+                        pending.push(Item::Expression(condition));
+                        continue;
+                    }
+                },
+                Item::Expression(expression) => expression,
+            };
+
+            match &expression.kind {
+                ExprKind::Int(_)
+                | ExprKind::Int32(_)
+                | ExprKind::Char(_)
+                | ExprKind::Uint8(_)
+                | ExprKind::Usize(_)
+                | ExprKind::Float32(_)
+                | ExprKind::Float64(_)
+                | ExprKind::Bool(_)
+                | ExprKind::Var(_) => {}
+                ExprKind::String(_) => {
                     return Err(self.error(
                         "SPX-T252",
-                        "generic calls are not yet admitted in while bodies",
+                        "string literals are not yet admitted in while bodies",
                         expression.span,
                     ));
                 }
-                if let Some(operation) = crate::byte_ops::by_name(name) {
-                    if !matches!(
-                        operation,
-                        crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get
-                    ) || args.len() != operation.arity()
-                    {
+                ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. } => {
+                    return Err(self.error(
+                        "SPX-T252",
+                        "fixed-array literals are not admitted in bounded while bodies",
+                        expression.span,
+                    ));
+                }
+                ExprKind::Unary { value, .. } => pending.push(Item::Expression(value)),
+                ExprKind::Binary { left, right, .. } => {
+                    pending.push(Item::Expression(right));
+                    pending.push(Item::Expression(left));
+                }
+                ExprKind::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => {
+                    pending.push(Item::Expression(else_branch));
+                    pending.push(Item::Expression(then_branch));
+                    pending.push(Item::Expression(condition));
+                }
+                ExprKind::Block { statements, tail } => {
+                    pending.push(Item::Expression(tail));
+                    pending.extend(statements.iter().rev().map(Item::Statement));
+                }
+                ExprKind::Call {
+                    type_arguments,
+                    args,
+                    name,
+                    ..
+                } => {
+                    if !type_arguments.is_empty() {
                         return Err(self.error(
                             "SPX-T252",
-                            format!(
-                                "byte operation `{name}` is not admitted in while bodies; only exact byte_len and byte_get reads qualify"
-                            ),
+                            "generic calls are not yet admitted in while bodies",
                             expression.span,
                         ));
                     }
-                }
-                // Only calls that resolve to a monomorphic function with
-                // by-value scalar parameters and a scalar result keep the
-                // loop cleanup-edge-free; everything else is rejected here
-                // even when the callee itself resolves cleanly.
-                let declared = self
-                    .program
-                    .functions
-                    .iter()
-                    .find(|function| function.name == *name);
-                if let Some(declared) = declared {
-                    let scalar_signature = is_scalar_source_type(&declared.return_type)
-                        && declared.params.iter().all(|param| {
-                            param.mode == ParamMode::Value && is_scalar_source_type(&param.ty)
-                        });
-                    if !scalar_signature {
-                        return Err(self.error(
-                            "SPX-T252",
-                            format!(
-                                "call `{name}` is not admitted in while bodies; only scalar functions qualify"
-                            ),
-                            expression.span,
-                        ));
+                    if let Some(operation) = crate::byte_ops::by_name(name) {
+                        if !matches!(
+                            operation,
+                            crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get
+                        ) || args.len() != operation.arity()
+                        {
+                            return Err(self.error(
+                                "SPX-T252",
+                                format!(
+                                    "byte operation `{name}` is not admitted in while bodies; only exact byte_len and byte_get reads qualify"
+                                ),
+                                expression.span,
+                            ));
+                        }
                     }
+                    // Only calls that resolve to a monomorphic function with
+                    // by-value scalar parameters and a scalar result keep the
+                    // loop cleanup-edge-free; everything else is rejected
+                    // before any argument in the same order as the recursive
+                    // admission scan.
+                    let declared = self
+                        .program
+                        .functions
+                        .iter()
+                        .find(|function| function.name == *name);
+                    if let Some(declared) = declared {
+                        let scalar_signature = is_scalar_source_type(&declared.return_type)
+                            && declared.params.iter().all(|param| {
+                                param.mode == ParamMode::Value && is_scalar_source_type(&param.ty)
+                            });
+                        if !scalar_signature {
+                            return Err(self.error(
+                                "SPX-T252",
+                                format!(
+                                    "call `{name}` is not admitted in while bodies; only scalar functions qualify"
+                                ),
+                                expression.span,
+                            ));
+                        }
+                    }
+                    pending.extend(args.iter().rev().map(Item::Expression));
                 }
-                for argument in args {
-                    self.reject_while_disallowed(argument)?;
+                ExprKind::MethodCall { .. } => {
+                    return Err(self.error(
+                        "SPX-T252",
+                        "method calls are not yet admitted in while bodies",
+                        expression.span,
+                    ));
                 }
-                Ok(())
+                ExprKind::SuperMethod { .. } => {
+                    return Err(self.error(
+                        "SPX-T252",
+                        "super method calls are not yet admitted in while bodies",
+                        expression.span,
+                    ));
+                }
+                ExprKind::Project { .. } => {
+                    return Err(self.error(
+                        "SPX-T252",
+                        "record field projection is not yet admitted in while bodies",
+                        expression.span,
+                    ));
+                }
+                ExprKind::ConstructRecord { .. } => {
+                    return Err(self.error(
+                        "SPX-T252",
+                        "record construction is not yet admitted in while bodies",
+                        expression.span,
+                    ));
+                }
+                ExprKind::ConstructVariant { .. } => {
+                    return Err(self.error(
+                        "SPX-T252",
+                        "variant construction is not yet admitted in while bodies",
+                        expression.span,
+                    ));
+                }
+                ExprKind::UpdateRecord { .. } => {
+                    return Err(self.error(
+                        "SPX-T252",
+                        "record updates are not yet admitted in while bodies",
+                        expression.span,
+                    ));
+                }
+                ExprKind::Match { scrutinee, arms }
+                    if crate::byte_ops::is_indexed_byte_option_match_source(expression) =>
+                {
+                    pending.extend(arms.iter().rev().map(|arm| Item::Expression(&arm.value)));
+                    pending.push(Item::Expression(scrutinee));
+                }
+                ExprKind::Match { .. } => {
+                    return Err(self.error(
+                        "SPX-T252",
+                        "match expressions are not yet admitted in while bodies",
+                        expression.span,
+                    ));
+                }
+                ExprKind::Try { .. } => {
+                    return Err(self.error(
+                        "SPX-T252",
+                        "postfix `?` propagation is not yet admitted in while bodies",
+                        expression.span,
+                    ));
+                }
             }
-            ExprKind::MethodCall { .. } => Err(self.error(
-                "SPX-T252",
-                "method calls are not yet admitted in while bodies",
-                expression.span,
-            )),
-            ExprKind::SuperMethod { .. } => Err(self.error(
-                "SPX-T252",
-                "super method calls are not yet admitted in while bodies",
-                expression.span,
-            )),
-            ExprKind::Project { .. } => Err(self.error(
-                "SPX-T252",
-                "record field projection is not yet admitted in while bodies",
-                expression.span,
-            )),
-            ExprKind::ConstructRecord { .. } => Err(self.error(
-                "SPX-T252",
-                "record construction is not yet admitted in while bodies",
-                expression.span,
-            )),
-            ExprKind::ConstructVariant { .. } => Err(self.error(
-                "SPX-T252",
-                "variant construction is not yet admitted in while bodies",
-                expression.span,
-            )),
-            ExprKind::UpdateRecord { .. } => Err(self.error(
-                "SPX-T252",
-                "record updates are not yet admitted in while bodies",
-                expression.span,
-            )),
-            ExprKind::Match { scrutinee, arms }
-                if crate::byte_ops::is_indexed_byte_option_match_source(expression) =>
-            {
-                self.reject_while_disallowed(scrutinee)?;
-                for arm in arms {
-                    self.reject_while_disallowed(&arm.value)?;
-                }
-                Ok(())
-            }
-            ExprKind::Match { .. } => Err(self.error(
-                "SPX-T252",
-                "match expressions are not yet admitted in while bodies",
-                expression.span,
-            )),
-            ExprKind::Try { .. } => Err(self.error(
-                "SPX-T252",
-                "postfix `?` propagation is not yet admitted in while bodies",
-                expression.span,
-            )),
         }
-    }
-
-    /// Statement-level half of the Bounded While-Loops v1 admission scan.
-    fn reject_while_disallowed_statement(&self, statement: &Statement) -> Result<(), Diagnostic> {
-        match statement {
-            Statement::Let { value, .. } | Statement::Assign { value, .. } => {
-                self.reject_while_disallowed(value)
-            }
-            Statement::Unsafe { span, .. } => Err(self.error(
-                "SPX-T252",
-                "unsafe boundary statements are not yet admitted in while bodies",
-                *span,
-            )),
-            Statement::While {
-                condition, body, ..
-            } => {
-                self.reject_while_disallowed(condition)?;
-                self.reject_while_disallowed(body)
-            }
-        }
+        Ok(())
     }
 
     /// Refutable Match v1 admission over a Copy-scalar scrutinee: literal
@@ -7851,7 +8037,10 @@ impl Resolver<'_> {
         }
 
         #[cfg(test)]
-        fn frame_owned_capacity(frame: &Frame<'_>) -> usize {
+        fn frame_owned_capacity(
+            frame: &Frame<'_>,
+            seen_scopes: &mut std::collections::HashSet<*const BTreeMap<String, Binding>>,
+        ) -> usize {
             let path = match frame {
                 Frame::Enter { path, .. }
                 | Frame::FinishNativeCall { path, .. }
@@ -7899,6 +8088,15 @@ impl Resolver<'_> {
                     slot_path: path, ..
                 } => path.capacity(),
             };
+            // Continuations share immutable binding maps through `Rc`. Count
+            // the owned map allocation once, not once per retaining frame.
+            let mut unique_scope_capacity = |scope: &Rc<BTreeMap<String, Binding>>| {
+                if seen_scopes.insert(Rc::as_ptr(scope)) {
+                    resolver_scope_owned_capacity(scope)
+                } else {
+                    0
+                }
+            };
             let scope = match frame {
                 Frame::Enter { bindings, .. }
                 | Frame::ChildNext { bindings, .. }
@@ -7918,15 +8116,13 @@ impl Resolver<'_> {
                 | Frame::ScalarMatchAfterArm { bindings, .. }
                 | Frame::AfterUpdateBase { bindings, .. }
                 | Frame::UpdateNext { bindings, .. }
-                | Frame::UpdateAfterField { bindings, .. } => {
-                    resolver_scope_owned_capacity(bindings)
-                }
+                | Frame::UpdateAfterField { bindings, .. } => unique_scope_capacity(bindings),
                 Frame::BlockNext { scope, .. }
                 | Frame::BlockAfterLet { scope, .. }
                 | Frame::BlockAfterAssign { scope, .. }
                 | Frame::BlockAfterUnsafe { scope, .. }
                 | Frame::BlockWhileCondition { scope, .. }
-                | Frame::BlockWhileBody { scope, .. } => resolver_scope_owned_capacity(scope),
+                | Frame::BlockWhileBody { scope, .. } => unique_scope_capacity(scope),
                 _ => 0,
             };
             let retained = match frame {
@@ -8074,17 +8270,24 @@ impl Resolver<'_> {
 
         while let Some(frame) = frames.pop() {
             #[cfg(test)]
-            note_iterative_phase_capacity(
-                0,
-                frames.capacity() * std::mem::size_of::<Frame<'_>>()
-                    + results.capacity() * std::mem::size_of::<ResolvedExpr>()
-                    + results
-                        .iter()
-                        .map(resolved_expr_owned_capacity)
-                        .sum::<usize>()
-                    + frames.iter().map(frame_owned_capacity).sum::<usize>()
-                    + frame_owned_capacity(&frame),
-            );
+            {
+                let mut seen_scopes = std::collections::HashSet::new();
+                let frame_owned = frames.iter().fold(0_usize, |total, candidate| {
+                    total.saturating_add(frame_owned_capacity(candidate, &mut seen_scopes))
+                });
+                let current_owned = frame_owned_capacity(&frame, &mut seen_scopes);
+                note_iterative_phase_capacity(
+                    0,
+                    frames.capacity() * std::mem::size_of::<Frame<'_>>()
+                        + results.capacity() * std::mem::size_of::<ResolvedExpr>()
+                        + results
+                            .iter()
+                            .map(resolved_expr_owned_capacity)
+                            .sum::<usize>()
+                        + frame_owned
+                        + current_owned,
+                );
+            }
             match frame {
                 Frame::Enter {
                     expr,

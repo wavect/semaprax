@@ -599,7 +599,11 @@ fn build_race_hooks_reject_each_pre_effect_mutation_and_preserve_foreign_bytes()
             | NativeRustBuildPoint::BeforeRustLink
             | NativeRustBuildPoint::BeforeExecutableAuthentication
             | NativeRustBuildPoint::BeforeExecute => {
-                assert_eq!(stages.len(), 1, "mutated held bytes must leave one inert stage rather than deleting uncertain data");
+                assert_eq!(
+                    stages.len(),
+                    1,
+                    "mutated held bytes must leave one inert stage rather than deleting uncertain data"
+                );
             }
             NativeRustBuildPoint::BeforeObjectRead => {
                 let expected = if cfg!(any(target_os = "linux", windows)) {
@@ -2109,23 +2113,23 @@ fn phase_b_direct_rustc_fixed_point_mismatch_is_b110_before_artifact_processes()
 #[test]
 fn phase_b_fixed_rustc_version_parser_is_no_growth_at_representative_and_maximum() {
     for source in [
-            String::from(
-                "rustc 1.88.0 (012345678 2026-01-01)\nbinary: rustc\ncommit-hash: 0123456789abcdef\ncommit-date: 2026-01-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.0",
-            ),
-            format!(
-                "rustc 1.88.0 (012345678 2026-01-01)\nbinary: rustc\ncommit-hash: 0123456789abcdef\ncommit-date: 2026-01-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: {}",
-                "1".repeat(PHASE_B_TOOL_VERSION_CAPACITY - 200)
-            ),
-        ] {
-            assert!(source.len() <= PHASE_B_TOOL_VERSION_CAPACITY);
-            let mut parsed = RustcVersion::prepared().unwrap();
-            let capacity = parsed.capacity();
-            parse_rustc_version(&source, &mut parsed).unwrap();
-            assert_eq!(parsed.capacity(), capacity);
-            assert_eq!(parsed.release(), "1.88.0");
-            assert_eq!(parsed.commit_hash(), "0123456789abcdef");
-            assert_eq!(parsed.host(), "x86_64-unknown-linux-gnu");
-        }
+        String::from(
+            "rustc 1.88.0 (012345678 2026-01-01)\nbinary: rustc\ncommit-hash: 0123456789abcdef\ncommit-date: 2026-01-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.0",
+        ),
+        format!(
+            "rustc 1.88.0 (012345678 2026-01-01)\nbinary: rustc\ncommit-hash: 0123456789abcdef\ncommit-date: 2026-01-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: {}",
+            "1".repeat(PHASE_B_TOOL_VERSION_CAPACITY - 200)
+        ),
+    ] {
+        assert!(source.len() <= PHASE_B_TOOL_VERSION_CAPACITY);
+        let mut parsed = RustcVersion::prepared().unwrap();
+        let capacity = parsed.capacity();
+        parse_rustc_version(&source, &mut parsed).unwrap();
+        assert_eq!(parsed.capacity(), capacity);
+        assert_eq!(parsed.release(), "1.88.0");
+        assert_eq!(parsed.commit_hash(), "0123456789abcdef");
+        assert_eq!(parsed.host(), "x86_64-unknown-linux-gnu");
+    }
 
     let exact_first = "r".repeat(PHASE_B_TOOL_VERSION_CAPACITY - 3);
     let mut exact = RustcVersion::prepared().unwrap();
@@ -2148,16 +2152,16 @@ fn phase_b_fixed_rustc_version_parser_is_no_growth_at_representative_and_maximum
     assert_eq!(overflow.storage.as_ptr(), overflow_pointer);
 
     for invalid in [
-            "rustc 1.88.0\nrelease: 1.88.0\nrelease: 1.88.0\ncommit-hash: 0123456\nhost: h\nLLVM version: 1",
-            "rustc 1.88.0\nrelease: 1.88.0\ncommit-hash: 0123456\nhost: h\nunknown: value\nLLVM version: 1",
-            "rustc 1.88.0\nrelease: 1.88.0\ncommit-hash: 0123456\nhost: h",
-        ] {
-            let mut parsed = RustcVersion::prepared().unwrap();
-            assert_eq!(
-                parse_rustc_version(invalid, &mut parsed),
-                Err(PhaseBLocalError::Unsupported),
-            );
-        }
+        "rustc 1.88.0\nrelease: 1.88.0\nrelease: 1.88.0\ncommit-hash: 0123456\nhost: h\nLLVM version: 1",
+        "rustc 1.88.0\nrelease: 1.88.0\ncommit-hash: 0123456\nhost: h\nunknown: value\nLLVM version: 1",
+        "rustc 1.88.0\nrelease: 1.88.0\ncommit-hash: 0123456\nhost: h",
+    ] {
+        let mut parsed = RustcVersion::prepared().unwrap();
+        assert_eq!(
+            parse_rustc_version(invalid, &mut parsed),
+            Err(PhaseBLocalError::Unsupported),
+        );
+    }
 }
 
 #[test]
@@ -3940,8 +3944,7 @@ fn specification_parser_is_canonical_bounded_and_intent_bound() {
 
     let (program, canonical) = fixture();
     parse_spec(&program, canonical.as_bytes()).unwrap();
-    let b106_message =
-            "Native Rust Interop specification is not canonical semaprax.native-rust-interop-spec.v1 JSON";
+    let b106_message = "Native Rust Interop specification is not canonical semaprax.native-rust-interop-spec.v1 JSON";
     let schema_prefix = format!("\"schema\":{},", quote_json(SPEC_SCHEMA));
     let malformed = [
         format!(" \n{canonical}"),
@@ -4202,9 +4205,9 @@ fn specification_shape_rejects_flat_container_and_scalar_explosions_before_decod
         };
         assert_eq!(error.code, "SPX-B106");
         assert_eq!(
-                error.message,
-                "Native Rust Interop specification is not canonical semaprax.native-rust-interop-spec.v1 JSON"
-            );
+            error.message,
+            "Native Rust Interop specification is not canonical semaprax.native-rust-interop-spec.v1 JSON"
+        );
     }
 }
 
@@ -4294,8 +4297,8 @@ fn closure_effect_and_identifier_limits_are_exact() {
         .collect::<Vec<_>>();
     let effect_list = effects.join(", ");
     let source = format!(
-            "module interop.effects;\n\npermit {{ {effect_list} }}\n\n@id(\"host.effects\")\ninterface HostEffects\n    permits {{ {effect_list} }}\n{{\n    @id(\"host.effects.call\")\n    import rust fn host_call(value: i64) -> i64\n        effects {{ {effect_list} }}\n        failure infallible;\n}}\n\n@id(\"export.effects\")\nfn export_effects(value: i64) -> i64\n    uses {{ {effect_list} }}\n{{\n    host_call(value)\n}}\n\n@id(\"interop.effects.main\")\nfn main() -> i64\n{{\n    0\n}}\n"
-        );
+        "module interop.effects;\n\npermit {{ {effect_list} }}\n\n@id(\"host.effects\")\ninterface HostEffects\n    permits {{ {effect_list} }}\n{{\n    @id(\"host.effects.call\")\n    import rust fn host_call(value: i64) -> i64\n        effects {{ {effect_list} }}\n        failure infallible;\n}}\n\n@id(\"export.effects\")\nfn export_effects(value: i64) -> i64\n    uses {{ {effect_list} }}\n{{\n    host_call(value)\n}}\n\n@id(\"interop.effects.main\")\nfn main() -> i64\n{{\n    0\n}}\n"
+    );
     let program = crate::parse(&source, Path::new("native-rust-effects.spx")).unwrap();
     let canonical_source = crate::format::canonical(&program);
     let spec = Spec {
@@ -4345,8 +4348,8 @@ fn closure_effect_and_identifier_limits_are_exact() {
 
     fn closure_fixture(count: usize) -> (Program, Spec) {
         let mut source = String::from(
-                "module interop.closure;\n\n@id(\"host.closure\")\ninterface HostClosure\n    permits {  }\n{\n    @id(\"host.closure.leaf\")\n    import rust fn host_leaf(value: i64) -> i64\n        effects {  }\n        failure infallible;\n}\n\n",
-            );
+            "module interop.closure;\n\n@id(\"host.closure\")\ninterface HostClosure\n    permits {  }\n{\n    @id(\"host.closure.leaf\")\n    import rust fn host_leaf(value: i64) -> i64\n        effects {  }\n        failure infallible;\n}\n\n",
+        );
         for index in 0..count {
             let body = if index + 1 == count {
                 "host_leaf(value)".to_owned()
@@ -4483,19 +4486,15 @@ fn semantic_expression_depth_512_is_exact_for_source_and_hir() {
 
     fn wrap_hir(mut expression: ResolvedExpr, count: usize) -> ResolvedExpr {
         for _ in 0..count {
-            let id = expression.id.clone();
-            let ty = expression.ty.clone();
-            let ownership = expression.ownership;
-            let span = expression.span;
             expression = ResolvedExpr {
-                id,
-                ty,
-                ownership,
+                id: expression.id.clone(),
+                ty: expression.ty.clone(),
+                ownership: expression.ownership,
+                span: expression.span,
                 kind: ResolvedExprKind::Unary {
                     op: crate::ast::UnaryOp::Neg,
                     value: Box::new(expression),
                 },
-                span,
             };
         }
         expression
@@ -4520,35 +4519,73 @@ fn semantic_expression_depth_512_is_exact_for_source_and_hir() {
     assert!(hir_upper.complete().unwrap() >= canonical_exact.len());
     let resolved_exact_source = hir::resolve(&exact_source).unwrap();
     validate_native_rust_expression_budget(&resolved_exact_source).unwrap();
-    let mut over_source = exact_source;
-    let function = over_source
-        .functions
-        .iter_mut()
-        .find(|function| function.stable_id == "interop.add")
-        .unwrap();
-    function.body = wrap_source(function.body.clone(), 1);
-    let error = validate_native_rust_source_expression_budget(&over_source).unwrap_err();
-    assert_eq!(error.code, "SPX-B109");
-    assert_eq!(
-        error.message,
-        "Native Rust Interop max_semantic_expression_depth exceeds 512"
+    assert_resolved_owner_disposes_once_without_growth(
+        resolved_exact_source,
+        hir_upper.disposal_frames,
     );
 
+    // Keep the HIR boundary independent from source-depth admission: forge
+    // exact and over-limit HIR from the shallow fixture, moving each tree
+    // into its wrapper so neither construction nor replacement drops it
+    // recursively.
     let mut exact_hir = hir::resolve(&program).unwrap();
     let function = exact_hir
         .functions
         .iter_mut()
         .find(|function| function.id.as_str() == "interop.add")
         .unwrap();
-    function.body = wrap_hir(function.body.clone(), EXACT_WRAPPERS);
+    let placeholder = ResolvedExpr {
+        id: function.body.id.clone(),
+        ty: function.body.ty.clone(),
+        ownership: function.body.ownership,
+        kind: ResolvedExprKind::Int(0),
+        span: function.body.span,
+    };
+    let body = std::mem::replace(&mut function.body, placeholder);
+    function.body = wrap_hir(body, EXACT_WRAPPERS);
     validate_native_rust_expression_budget(&exact_hir).unwrap();
-    let function = exact_hir
+    assert_resolved_owner_disposes_once_without_growth(exact_hir, hir_upper.disposal_frames);
+
+    let mut over_hir = hir::resolve(&program).unwrap();
+    let function = over_hir
         .functions
         .iter_mut()
         .find(|function| function.id.as_str() == "interop.add")
         .unwrap();
-    function.body = wrap_hir(function.body.clone(), 1);
-    let error = validate_native_rust_expression_budget(&exact_hir).unwrap_err();
+    let placeholder = ResolvedExpr {
+        id: function.body.id.clone(),
+        ty: function.body.ty.clone(),
+        ownership: function.body.ownership,
+        kind: ResolvedExprKind::Int(0),
+        span: function.body.span,
+    };
+    let body = std::mem::replace(&mut function.body, placeholder);
+    function.body = wrap_hir(body, EXACT_WRAPPERS + 1);
+    let over_hir_disposal_frames = hir_upper.disposal_frames.checked_add(4).unwrap();
+
+    let error = validate_native_rust_expression_budget(&over_hir).unwrap_err();
+    assert_eq!(error.code, "SPX-B109");
+    assert_eq!(
+        error.message,
+        "Native Rust Interop max_semantic_expression_depth exceeds 512"
+    );
+    assert_resolved_owner_disposes_once_without_growth(over_hir, over_hir_disposal_frames);
+
+    let mut over_source = exact_source;
+    let function = over_source
+        .functions
+        .iter_mut()
+        .find(|function| function.stable_id == "interop.add")
+        .unwrap();
+    let body = std::mem::replace(
+        &mut function.body,
+        crate::ast::Expr {
+            kind: crate::ast::ExprKind::Int(0),
+            span: crate::ast::Span::default(),
+        },
+    );
+    function.body = wrap_source(body, 1);
+    let error = validate_native_rust_source_expression_budget(&over_source).unwrap_err();
     assert_eq!(error.code, "SPX-B109");
     assert_eq!(
         error.message,
@@ -4568,8 +4605,8 @@ fn canonical_formatter_census_admits_shallow_wide_types_and_patterns() {
         .collect::<Vec<_>>()
         .join(", ");
     let source = format!(
-            "module formatter.wide;\n\n@id(\"wide.record\")\nrecord Wide {{\n{fields}}}\n\n@id(\"wide.read\")\nfn read(value: Wide) -> i64\n{{\n    match value {{\n        Wide {{ {pattern} }} => 0,\n    }}\n}}\n\n@id(\"app.main\")\nfn main() -> i64\n{{\n    0\n}}\n"
-        );
+        "module formatter.wide;\n\n@id(\"wide.record\")\nrecord Wide {{\n{fields}}}\n\n@id(\"wide.read\")\nfn read(value: Wide) -> i64\n{{\n    match value {{\n        Wide {{ {pattern} }} => 0,\n    }}\n}}\n\n@id(\"app.main\")\nfn main() -> i64\n{{\n    0\n}}\n"
+    );
     let program = crate::parse(&source, Path::new("formatter-shallow-wide.spx")).unwrap();
     let canonical = crate::format::canonical(&program);
     let scratch = canonical_format_scratch_capacity(&program).unwrap();
@@ -4811,8 +4848,8 @@ fn declaration_dag_capacity_counts_layered_leaf_and_layout_expansion_once() {
 
     let long = "x".repeat(128);
     let long_source = format!(
-            "module capacity.long; @id(\"life.{long}\") resource Leaf {{ @id(\"drop.{long}\") drop trivial; }} @id(\"outer.{long}\") record Outer {{ @id(\"field.{long}\") leaf: Leaf, }} @id(\"app.main\") fn main() -> i64 {{ 0 }}"
-        );
+        "module capacity.long; @id(\"life.{long}\") resource Leaf {{ @id(\"drop.{long}\") drop trivial; }} @id(\"outer.{long}\") record Outer {{ @id(\"field.{long}\") leaf: Leaf, }} @id(\"app.main\") fn main() -> i64 {{ 0 }}"
+    );
     let long_program = crate::parse(&long_source, Path::new("long-capacity.spx")).unwrap();
     let long_expansion = declaration_dag_expansion(&long_program, 0).unwrap();
     assert_eq!(long_expansion.maximum_resource_leaves, 1);
@@ -4845,8 +4882,8 @@ fn declaration_dag_capacity_counts_layered_leaf_and_layout_expansion_once() {
     assert_eq!(expansion.maximum_type_occurrences, 2);
 
     let mut chain = String::from(
-            "module capacity.chain;\n\n@id(\"chain.r0\")\nrecord R0 {\n    @id(\"chain.r0.value\")\n    value: i64,\n}\n\n",
-        );
+        "module capacity.chain;\n\n@id(\"chain.r0\")\nrecord R0 {\n    @id(\"chain.r0.value\")\n    value: i64,\n}\n\n",
+    );
     for index in 1..514 {
         writeln!(
                 chain,
@@ -4977,7 +5014,13 @@ fn cleanup_retained_census_admits_depth_by_live_roots_with_long_identities() {
     let mut scan = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
     let capacity = hir_pre_resolve_capacity(&program, canonical.len(), &mut scan).unwrap();
     let resolved = hir::resolve(&program).unwrap();
-    let actual = resolved
+    let owner = ResolvedProgramOwner::new(
+        resolved,
+        Vec::with_capacity(capacity.disposal_frames),
+        capacity.disposal_frames,
+    );
+    let actual = owner
+        .program()
         .functions
         .iter()
         .try_fold(0usize, |bytes, function| {
@@ -5004,6 +5047,7 @@ fn cleanup_retained_census_admits_depth_by_live_roots_with_long_identities() {
         "depth×live capacity terms: {:?}; actual cleanup: {actual}",
         hir_capacity_terms_for_test(&program, canonical.len()).unwrap()
     );
+    drop(owner);
 }
 
 #[test]
@@ -5045,7 +5089,13 @@ fn cleanup_retained_census_releases_sequential_early_move_epochs() {
         let mut scan = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
         let capacity = hir_pre_resolve_capacity(&program, canonical.len(), &mut scan).unwrap();
         let resolved = hir::resolve(&program).unwrap();
-        let actual = resolved
+        let owner = ResolvedProgramOwner::new(
+            resolved,
+            Vec::with_capacity(capacity.disposal_frames),
+            capacity.disposal_frames,
+        );
+        let actual = owner
+            .program()
             .functions
             .iter()
             .try_fold(0usize, |bytes, function| {
@@ -5063,6 +5113,7 @@ fn cleanup_retained_census_releases_sequential_early_move_epochs() {
             })
             .unwrap();
         assert!(actual <= capacity.cleanup_authority_upper);
+        drop(owner);
         (capacity, actual)
     }
 
@@ -5130,67 +5181,67 @@ fn cleanup_binding_flow_releases_nested_moves_and_preserves_partial_projection()
 @id("flow.consume") fn consume(value: own R) -> i64 { 1 }
 "#;
     let cases = [
-            (
-                "block",
-                "{ let moved = { consume(value) }; let observed = checked + 1; moved + observed }",
-                "{ let observed = checked + 1; let moved = { consume(value) }; moved + observed }",
-                false,
-                true,
-                "",
-                "value: own R, checked: i64",
-            ),
-            (
-                "if",
-                "{ let moved = if condition { consume(value) } else { consume(value) }; let observed = checked + 1; moved + observed }",
-                "{ let observed = checked + 1; let moved = if condition { consume(value) } else { consume(value) }; moved + observed }",
-                false,
-                true,
-                "",
-                "value: own R, checked: i64, condition: bool",
-            ),
-            (
-                "match",
-                "{ let moved = match choice { Choice::A {} => consume(value), Choice::B {} => consume(value), }; let observed = checked + 1; moved + observed }",
-                "{ let observed = checked + 1; let moved = match choice { Choice::A {} => consume(value), Choice::B {} => consume(value), }; moved + observed }",
-                false,
-                true,
-                "@id(\"flow.choice\") variant Choice { @id(\"flow.choice.a\") A {}, @id(\"flow.choice.b\") B {}, }",
-                "value: own R, checked: i64, choice: Choice",
-            ),
-            (
-                "construct",
-                "{ let moved = consume_box(Box { value: value }); let observed = checked + 1; moved + observed }",
-                "{ let observed = checked + 1; let moved = consume_box(Box { value: value }); moved + observed }",
-                false,
-                false,
-                "@id(\"flow.box\") record Box { @id(\"flow.box.value\") value: R, } @id(\"flow.consume_box\") fn consume_box(value: own Box) -> i64 { 1 }",
-                "value: own R, checked: i64",
-            ),
-            (
-                "update",
-                "{ let moved = consume_box(value with { item: replacement }); let observed = checked + 1; moved + observed }",
-                "{ let observed = checked + 1; let moved = consume_box(value with { item: replacement }); moved + observed }",
-                false,
-                false,
-                "@id(\"flow.box\") record Box { @id(\"flow.box.item\") item: R, } @id(\"flow.consume_box\") fn consume_box(value: own Box) -> i64 { 1 }",
-                "value: own Box, replacement: own R, checked: i64",
-            ),
-            (
-                "projection",
-                "{ let moved = consume(value.left); let observed = checked + 1; moved + observed }",
-                "{ let observed = checked + 1; let moved = consume(value.left); moved + observed }",
-                true,
-                false,
-                "@id(\"flow.pair\") record Pair { @id(\"flow.pair.left\") left: R, @id(\"flow.pair.right\") right: R, }",
-                "value: own Pair, checked: i64",
-            ),
-        ];
+        (
+            "block",
+            "{ let moved = { consume(value) }; let observed = checked + 1; moved + observed }",
+            "{ let observed = checked + 1; let moved = { consume(value) }; moved + observed }",
+            false,
+            true,
+            "",
+            "value: own R, checked: i64",
+        ),
+        (
+            "if",
+            "{ let moved = if condition { consume(value) } else { consume(value) }; let observed = checked + 1; moved + observed }",
+            "{ let observed = checked + 1; let moved = if condition { consume(value) } else { consume(value) }; moved + observed }",
+            false,
+            true,
+            "",
+            "value: own R, checked: i64, condition: bool",
+        ),
+        (
+            "match",
+            "{ let moved = match choice { Choice::A {} => consume(value), Choice::B {} => consume(value), }; let observed = checked + 1; moved + observed }",
+            "{ let observed = checked + 1; let moved = match choice { Choice::A {} => consume(value), Choice::B {} => consume(value), }; moved + observed }",
+            false,
+            true,
+            "@id(\"flow.choice\") variant Choice { @id(\"flow.choice.a\") A {}, @id(\"flow.choice.b\") B {}, }",
+            "value: own R, checked: i64, choice: Choice",
+        ),
+        (
+            "construct",
+            "{ let moved = consume_box(Box { value: value }); let observed = checked + 1; moved + observed }",
+            "{ let observed = checked + 1; let moved = consume_box(Box { value: value }); moved + observed }",
+            false,
+            false,
+            "@id(\"flow.box\") record Box { @id(\"flow.box.value\") value: R, } @id(\"flow.consume_box\") fn consume_box(value: own Box) -> i64 { 1 }",
+            "value: own R, checked: i64",
+        ),
+        (
+            "update",
+            "{ let moved = consume_box(value with { item: replacement }); let observed = checked + 1; moved + observed }",
+            "{ let observed = checked + 1; let moved = consume_box(value with { item: replacement }); moved + observed }",
+            false,
+            false,
+            "@id(\"flow.box\") record Box { @id(\"flow.box.item\") item: R, } @id(\"flow.consume_box\") fn consume_box(value: own Box) -> i64 { 1 }",
+            "value: own Box, replacement: own R, checked: i64",
+        ),
+        (
+            "projection",
+            "{ let moved = consume(value.left); let observed = checked + 1; moved + observed }",
+            "{ let observed = checked + 1; let moved = consume(value.left); moved + observed }",
+            true,
+            false,
+            "@id(\"flow.pair\") record Pair { @id(\"flow.pair.left\") left: R, @id(\"flow.pair.right\") right: R, }",
+            "value: own Pair, checked: i64",
+        ),
+    ];
     for (shape, early_body, delayed_body, conservative, authority_drop, extra, parameters) in cases
     {
         let source = |body: &str| {
             format!(
-                    "module capacity.flow_{shape};\n{definitions}\n{extra}\n@id(\"flow.stress\") fn stress({parameters}) -> i64 {body}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n"
-                )
+                "module capacity.flow_{shape};\n{definitions}\n{extra}\n@id(\"flow.stress\") fn stress({parameters}) -> i64 {body}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n"
+            )
         };
         let (early_events, early, _, early_nodes) = measure(&source(early_body));
         let (delayed_events, delayed, _, delayed_nodes) = measure(&source(delayed_body));
@@ -5213,8 +5264,8 @@ fn cleanup_binding_flow_releases_nested_moves_and_preserves_partial_projection()
 fn cleanup_retained_census_joins_mutually_exclusive_owned_branches() {
     let long = "x".repeat(128);
     let mut source = format!(
-            "module capacity.cleanup_branch_live;\n@id(\"resource.{long}\") resource R {{ @id(\"lifecycle.{long}\") drop trivial; }}\n@id(\"identity\") fn identity(value: own R) -> R {{ value }}\n@id(\"consume\") fn consume(value: own R) -> i64 {{ 1 }}\n"
-        );
+        "module capacity.cleanup_branch_live;\n@id(\"resource.{long}\") resource R {{ @id(\"lifecycle.{long}\") drop trivial; }}\n@id(\"identity\") fn identity(value: own R) -> R {{ value }}\n@id(\"consume\") fn consume(value: own R) -> i64 {{ 1 }}\n"
+    );
     let parameters = (0..MAX_PARAMETERS)
         .map(|index| format!("p{index}: own R"))
         .chain(["condition: bool".to_owned(), "value: i64".to_owned()])
@@ -5273,7 +5324,13 @@ fn cleanup_retained_census_joins_mutually_exclusive_owned_branches() {
         capacity.complete().unwrap()
     );
     let resolved = hir::resolve(&program).unwrap();
-    let actual = resolved
+    let owner = ResolvedProgramOwner::new(
+        resolved,
+        Vec::with_capacity(capacity.disposal_frames),
+        capacity.disposal_frames,
+    );
+    let actual = owner
+        .program()
         .functions
         .iter()
         .try_fold(0usize, |bytes, function| {
@@ -5296,6 +5353,322 @@ fn cleanup_retained_census_joins_mutually_exclusive_owned_branches() {
         capacity.cleanup_authority_upper,
         capacity.cleanup_retained_upper,
         capacity.cleanup_authority_upper - capacity.cleanup_retained_upper
+    );
+    drop(owner);
+}
+
+#[test]
+fn guarded_owned_match_result_census_is_position_independent_and_fail_closed() {
+    fn fixture(guard: &str) -> Program {
+        let source = format!(
+            r#"
+module capacity.cleanup_guarded_owned;
+
+@id("cleanup.guard.resource")
+resource R {{
+    @id("cleanup.guard.resource.drop")
+    drop trivial;
+}}
+
+@id("cleanup.guard.identity")
+fn identity(value: own R) -> R {{ value }}
+
+@id("cleanup.guard.choose")
+fn choose(tag: i64, condition: bool, value: own R) -> R {{
+    let selected = match tag {{
+        0{guard} => identity(value),
+        _ => identity(value),
+    }};
+    selected
+}}
+
+@id("app.main")
+fn main() -> i64 {{ 0 }}
+"#
+        );
+        crate::parse(&source, Path::new("cleanup-guarded-owned.spx")).unwrap()
+    }
+
+    let unguarded = fixture("");
+    let guarded = fixture(" if condition");
+    let unguarded_canonical = crate::format::canonical(&unguarded);
+    let guarded_canonical = crate::format::canonical(&guarded);
+    let mut scan = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
+    let unguarded_capacity =
+        hir_pre_resolve_capacity(&unguarded, unguarded_canonical.len(), &mut scan).unwrap();
+    let guarded_capacity =
+        hir_pre_resolve_capacity(&guarded, guarded_canonical.len(), &mut scan).unwrap();
+
+    // A scalar guard adds no owned carrier. The guarded and unguarded first
+    // arm values must therefore contribute the same resource roots; indexing
+    // the guard as the arm value would make this exact equality fail.
+    assert_eq!(
+        guarded_capacity.cleanup_proof.stats.roots,
+        unguarded_capacity.cleanup_proof.stats.roots
+    );
+    assert_eq!(
+        guarded_capacity.cleanup_proof.stats.leaves,
+        unguarded_capacity.cleanup_proof.stats.leaves
+    );
+
+    let diagnostic = hir::resolve(&guarded).unwrap_err();
+    assert!(diagnostic.iter().any(|diagnostic| {
+        diagnostic.code == "SPX-H006"
+            && diagnostic
+                .message
+                .contains("droppable match result reached the copy-only cleanup slice")
+    }));
+}
+
+#[test]
+fn resolved_positional_walkers_cover_every_statement_child_and_match_guard() {
+    let source = r#"
+module traversal.total;
+permit { unsafe }
+
+@id("traversal.predicate")
+fn predicate(value: i64) -> bool { value > 0 }
+
+@id("traversal.id")
+fn id(value: i64) -> i64 { value }
+
+@id("traversal.carrier")
+fn carrier(value: i64) -> i64 { id(value) }
+
+@id("traversal.counter")
+class Counter {
+    @id("traversal.counter.value")
+    value: i64,
+    @id("traversal.counter.add")
+    fn add(self: Counter, delta: i64) -> i64 { self.value + delta }
+}
+
+@id("traversal.method_user")
+fn method_user(payload: i64) -> i64 { Counter { value: 0 }.add(payload) }
+
+@id("traversal.base")
+class Base {
+    @id("traversal.base.value")
+    value: i64,
+    @id("traversal.base.add")
+    fn add(self: Base, delta: i64) -> i64 { self.value + delta }
+}
+
+@id("traversal.child")
+class Child : Base {
+    @id("traversal.child.extra")
+    extra: i64,
+    @id("traversal.super_user")
+    fn add(self: Child, payload: i64) -> i64 { super.add(payload) + self.extra }
+}
+
+@id("traversal.deep")
+fn deep(tag: i64, payload: i64) -> i64 {
+    let mut output = 0;
+    output = payload;
+    @audit("total traversal") unsafe { payload }
+    while payload > 0 { payload }
+    output
+}
+
+@id("traversal.guarded")
+fn guarded(tag: i64, payload: i64) -> i64 {
+    match tag {
+        0 if predicate(payload) => payload,
+        _ => 0,
+    }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    let program = crate::parse(source, Path::new("resolved-total-traversal.spx")).unwrap();
+    let canonical = crate::format::canonical(&program);
+    let mut scan = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
+    hir_pre_resolve_capacity(&program, canonical.len(), &mut scan).unwrap();
+    let resolved = hir::resolve(&program).unwrap();
+    let deep = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "traversal.deep")
+        .unwrap();
+
+    let guarded = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "traversal.guarded")
+        .unwrap();
+    let carrier = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "traversal.carrier")
+        .unwrap();
+    let method_user = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "traversal.method_user")
+        .unwrap();
+    let super_user = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "traversal.super_user")
+        .unwrap();
+    let ResolvedExprKind::Block { statements, .. } = &deep.body.kind else {
+        panic!("deep fixture body must resolve to a block");
+    };
+    assert_eq!(statements.len(), 4);
+    let mut block_cursor = 0;
+    let mut block_paths = Vec::new();
+    while let Some((path, _)) = resolved_expression_child(&deep.body, &mut block_cursor) {
+        block_paths.push(path);
+    }
+    assert_eq!(block_paths, [0, 2, 4, 6, 7, 8]);
+
+    let ResolvedExprKind::Block { tail, .. } = &guarded.body.kind else {
+        panic!("guarded fixture body must resolve to a block");
+    };
+    let mut match_cursor = 0;
+    let mut match_paths = Vec::new();
+    while let Some((path, _)) = resolved_expression_child(tail, &mut match_cursor) {
+        match_paths.push(path);
+    }
+    assert_eq!(match_paths, [0, 1, 2, 4]);
+
+    let deep_census = expression_call_site_census(&deep.body).unwrap();
+    let guarded_census = expression_call_site_census(&guarded.body).unwrap();
+    assert_eq!(deep_census.function_sites, 0);
+    assert_eq!(guarded_census.function_sites, 1);
+    assert_eq!(deep_census.import_sites, 0);
+    assert_eq!(guarded_census.import_sites, 0);
+    let mut functions = BTreeSet::new();
+    let mut imports = BTreeSet::new();
+    visit_calls(&deep.body, &mut functions, &mut imports, 0, 0).unwrap();
+    visit_calls(&guarded.body, &mut functions, &mut imports, 0, 0).unwrap();
+    assert_eq!(
+        functions.iter().map(|id| id.as_str()).collect::<Vec<_>>(),
+        ["traversal.predicate"]
+    );
+    assert!(imports.is_empty());
+    fingerprint_expression_types_scratch(&deep.body, 1).unwrap();
+    fingerprint_expression_types_scratch(&guarded.body, 1).unwrap();
+    fingerprint_expression_types_scratch(&method_user.body, 1).unwrap();
+    fingerprint_expression_types_scratch(&super_user.body, 1).unwrap();
+
+    for (function, expected) in [
+        (method_user, "traversal.counter.add"),
+        (super_user, "traversal.base.add"),
+    ] {
+        let census = expression_call_site_census(&function.body).unwrap();
+        assert_eq!(census.function_sites, 1, "{}", function.id);
+        let mut callees = BTreeSet::new();
+        visit_calls(&function.body, &mut callees, &mut imports, 0, 0).unwrap();
+        assert_eq!(
+            callees.iter().map(|id| id.as_str()).collect::<Vec<_>>(),
+            [expected]
+        );
+    }
+
+    let fingerprint = |expression: &ResolvedExpr| {
+        let mut hasher = Sha256::new();
+        hash_expr(&mut hasher, expression, 0).unwrap();
+        hasher.finalize().to_vec()
+    };
+    let baseline = fingerprint(&guarded.body);
+    let mut changed = guarded.body.clone();
+    let ResolvedExprKind::Block { tail, .. } = &mut changed.kind else {
+        unreachable!();
+    };
+    let ResolvedExprKind::Match { arms, .. } = &mut tail.kind else {
+        unreachable!();
+    };
+    let guard = arms[0].guard.as_mut().unwrap();
+    guard.kind = ResolvedExprKind::Bool(false);
+    assert_ne!(fingerprint(&changed), baseline);
+
+    let ResolvedExprKind::Block {
+        tail: carrier_tail, ..
+    } = &carrier.body.kind
+    else {
+        panic!("carrier fixture body must resolve to a block");
+    };
+    let scalar_call = carrier_tail.as_ref().clone();
+    let ResolvedExprKind::Block {
+        tail: guarded_tail, ..
+    } = &guarded.body.kind
+    else {
+        unreachable!();
+    };
+    let ResolvedExprKind::Match { arms, .. } = &guarded_tail.kind else {
+        unreachable!();
+    };
+    let boolean_call = arms[0].guard.as_deref().unwrap().clone();
+    for (label, child_index, replacement) in [
+        ("assign", 2usize, scalar_call.clone()),
+        ("unsafe", 4usize, scalar_call.clone()),
+        ("while-condition", 6usize, boolean_call),
+        ("while-body", 7usize, scalar_call),
+    ] {
+        let mut changed = deep.body.clone();
+        let mut cursor = 0;
+        let mut selected = None;
+        while let Some((path, child)) = resolved_expression_child(&changed, &mut cursor) {
+            if path == child_index {
+                selected = Some(child.id.clone());
+                break;
+            }
+        }
+        let selected = selected.expect("statement child path must exist");
+        let ResolvedExprKind::Block { statements, .. } = &mut changed.kind else {
+            unreachable!();
+        };
+        let target = match label {
+            "assign" => match &mut statements[1] {
+                ResolvedStatement::Assign { value, .. } => value,
+                _ => unreachable!(),
+            },
+            "unsafe" => match &mut statements[2] {
+                ResolvedStatement::Unsafe { body, .. } => body,
+                _ => unreachable!(),
+            },
+            "while-condition" => match &mut statements[3] {
+                ResolvedStatement::While { condition, .. } => condition,
+                _ => unreachable!(),
+            },
+            "while-body" => match &mut statements[3] {
+                ResolvedStatement::While { body, .. } => body,
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        };
+        assert_eq!(target.id, selected);
+        *target = replacement;
+        assert_eq!(
+            expression_call_site_census(&changed)
+                .unwrap()
+                .function_sites,
+            1,
+            "{label}"
+        );
+        assert_ne!(fingerprint(&changed), fingerprint(&deep.body), "{label}");
+        fingerprint_expression_types_scratch(&changed, 1).unwrap();
+    }
+
+    let spec = Spec {
+        module: program.module.clone(),
+        source_revision: Some(domain_digest(SOURCE_DOMAIN, canonical.as_bytes())),
+        target: current_target().unwrap(),
+        exports: vec!["traversal.deep".to_owned()],
+        imports: Vec::new(),
+        capabilities: Vec::new(),
+    };
+    let diagnostics = match prepare_native_rust_interop(&program, render_spec(&spec).as_bytes()) {
+        Ok(_) => panic!("unsupported scalar-profile statements must fail closed"),
+        Err(diagnostics) => diagnostics,
+    };
+    assert_eq!(diagnostics[0].code, "SPX-B107");
+    assert_eq!(
+        diagnostics[0].message,
+        "Native Rust Interop declaration set is unsupported: scalar value signature required"
     );
 }
 
@@ -5354,8 +5727,8 @@ fn type_facts_hostile_envelopes_are_bound_to_canonical_fixtures() {
     }
     wide.push_str("@id(\"app.main\")\nfn main() -> i64 { 0 }\n");
     let mut chain = String::from(
-            "module capacity.typefacts.chain;\n\n@id(\"chain.r0\")\nrecord R0 {\n    @id(\"chain.r0.value\")\n    value: i64,\n}\n\n",
-        );
+        "module capacity.typefacts.chain;\n\n@id(\"chain.r0\")\nrecord R0 {\n    @id(\"chain.r0.value\")\n    value: i64,\n}\n\n",
+    );
     for index in 1..514 {
         writeln!(
                 chain,
@@ -5851,8 +6224,8 @@ fn cleanup_retained_census_covers_update_region_with_live_long_id_roots() {
         .collect::<Vec<_>>()
         .join(", ");
     let source = format!(
-            "module capacity.cleanup_update;\n@id(\"resource.{long}\") resource R {{ @id(\"lifecycle.{long}\") drop trivial; }}\n@id(\"box.{long}\") record Box {{ @id(\"box.value.{long}\") value: R, }}\n@id(\"update.stress\") fn stress(base: own Box, replacement: own R, {parameters}) -> Box {{ base with {{ value: replacement }} }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n"
-        );
+        "module capacity.cleanup_update;\n@id(\"resource.{long}\") resource R {{ @id(\"lifecycle.{long}\") drop trivial; }}\n@id(\"box.{long}\") record Box {{ @id(\"box.value.{long}\") value: R, }}\n@id(\"update.stress\") fn stress(base: own Box, replacement: own R, {parameters}) -> Box {{ base with {{ value: replacement }} }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n"
+    );
     let program = crate::parse(&source, Path::new("cleanup-update-live.spx")).unwrap();
     let canonical = crate::format::canonical(&program);
     let mut scan = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
@@ -5914,8 +6287,8 @@ fn cleanup_retained_census_covers_update_region_with_live_long_id_roots() {
 fn cleanup_update_staged_base_survives_replacement_failure() {
     let long = "x".repeat(128);
     let source = format!(
-            "module capacity.cleanup_update_failure;\n@id(\"resource.{long}\") resource R {{ @id(\"lifecycle.{long}\") drop trivial; }}\n@id(\"box.{long}\") record Box {{ @id(\"box.value.{long}\") value: R, }}\n@id(\"update.failure\") fn stress(base: own Box, replacement: own R, checked: i64) -> Box {{ base with {{ value: {{ let observed = checked + 1; replacement }} }} }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n"
-        );
+        "module capacity.cleanup_update_failure;\n@id(\"resource.{long}\") resource R {{ @id(\"lifecycle.{long}\") drop trivial; }}\n@id(\"box.{long}\") record Box {{ @id(\"box.value.{long}\") value: R, }}\n@id(\"update.failure\") fn stress(base: own Box, replacement: own R, checked: i64) -> Box {{ base with {{ value: {{ let observed = checked + 1; replacement }} }} }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n"
+    );
     let program = crate::parse(&source, Path::new("cleanup-update-failure.spx")).unwrap();
     let canonical = crate::format::canonical(&program);
     let mut scan = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
@@ -5974,8 +6347,8 @@ fn cleanup_parent_local_update_prefix_survives_later_replacement_failure() {
     let left_field_id = format!("pair.left.{long}");
     let lifecycle_id = format!("resource.drop.{long}");
     let source = format!(
-            "module capacity.cleanup_update_prefix;\n@id(\"resource.{long}\") resource R {{ @id(\"{lifecycle_id}\") drop trivial; }}\n@id(\"pair.{long}\") record Pair {{ @id(\"{left_field_id}\") left: R, @id(\"pair.right.{long}\") right: R, }}\n@id(\"update.prefix.stress.{long}\") fn stress(base: own Pair, new_left: own R, new_right: own R, checked: i64) -> Pair {{ base with {{ left: new_left, right: {{ let observed = checked + 1; new_right }}, }} }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n"
-        );
+        "module capacity.cleanup_update_prefix;\n@id(\"resource.{long}\") resource R {{ @id(\"{lifecycle_id}\") drop trivial; }}\n@id(\"pair.{long}\") record Pair {{ @id(\"{left_field_id}\") left: R, @id(\"pair.right.{long}\") right: R, }}\n@id(\"update.prefix.stress.{long}\") fn stress(base: own Pair, new_left: own R, new_right: own R, checked: i64) -> Pair {{ base with {{ left: new_left, right: {{ let observed = checked + 1; new_right }}, }} }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n"
+    );
     let program = crate::parse(&source, Path::new("cleanup-update-prefix.spx")).unwrap();
     let canonical = crate::format::canonical(&program);
     let mut scan = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
@@ -6108,8 +6481,8 @@ fn cleanup_parent_local_record_prefix_survives_later_field_failure() {
     let first_field_id = format!("pair.first.{long}");
     let lifecycle_id = format!("resource.drop.{long}");
     let source = format!(
-            "module capacity.cleanup_record_prefix;\n@id(\"resource.{long}\") resource R {{ @id(\"{lifecycle_id}\") drop trivial; }}\n@id(\"pair.{long}\") record Pair {{ @id(\"{first_field_id}\") first: R, @id(\"pair.second.{long}\") second: R, }}\n@id(\"record.prefix.stress.{long}\") fn stress(first: own R, second: own R, checked: i64) -> Pair {{ Pair {{ first: first, second: {{ let observed = checked + 1; second }}, }} }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n"
-        );
+        "module capacity.cleanup_record_prefix;\n@id(\"resource.{long}\") resource R {{ @id(\"{lifecycle_id}\") drop trivial; }}\n@id(\"pair.{long}\") record Pair {{ @id(\"{first_field_id}\") first: R, @id(\"pair.second.{long}\") second: R, }}\n@id(\"record.prefix.stress.{long}\") fn stress(first: own R, second: own R, checked: i64) -> Pair {{ Pair {{ first: first, second: {{ let observed = checked + 1; second }}, }} }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n"
+    );
     let program = crate::parse(&source, Path::new("cleanup-record-prefix.spx")).unwrap();
     let canonical = crate::format::canonical(&program);
     let mut scan = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
@@ -6177,8 +6550,8 @@ fn cleanup_parent_local_projection_residual_survives_failure_and_success() {
     let right_field_id = format!("pair.right.{long}");
     let lifecycle_id = format!("resource.drop.{long}");
     let source = format!(
-            "module capacity.cleanup_projection_residual;\n@id(\"resource.{long}\") resource R {{ @id(\"{lifecycle_id}\") drop trivial; }}\n@id(\"pair.{long}\") record Pair {{ @id(\"pair.left.{long}\") left: R, @id(\"{right_field_id}\") right: R, }}\n@id(\"projection.residual.stress.{long}\") fn stress(left: own R, right: own R, checked: i64) -> R {{ let selected = Pair {{ left: left, right: right, }}.left; let observed = checked + 1; selected }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n"
-        );
+        "module capacity.cleanup_projection_residual;\n@id(\"resource.{long}\") resource R {{ @id(\"{lifecycle_id}\") drop trivial; }}\n@id(\"pair.{long}\") record Pair {{ @id(\"pair.left.{long}\") left: R, @id(\"{right_field_id}\") right: R, }}\n@id(\"projection.residual.stress.{long}\") fn stress(left: own R, right: own R, checked: i64) -> R {{ let selected = Pair {{ left: left, right: right, }}.left; let observed = checked + 1; selected }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n"
+    );
     let program = crate::parse(&source, Path::new("cleanup-projection-residual.spx")).unwrap();
     let canonical = crate::format::canonical(&program);
     let mut scan = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
@@ -6567,8 +6940,8 @@ fn cleanup_pattern_binding_lookup_is_iterative_at_exact_depth() {
 fn cleanup_call_argument_epoch_covers_later_argument_failure() {
     let long = "x".repeat(128);
     let source = format!(
-            "module capacity.cleanup_call_epoch;\n@id(\"resource.{long}\") resource R {{ @id(\"lifecycle.{long}\") drop trivial; }}\n@id(\"identity\") fn identity(value: own R) -> R {{ value }}\n@id(\"consume\") fn consume(value: own R) -> i64 {{ 1 }}\n@id(\"combine\") fn combine(first: own R, second: own R) -> i64 {{ let left = consume(first); let right = consume(second); left + right }}\n@id(\"stress\") fn stress(first: own R, second: own R, checked: i64) -> i64 {{ combine(identity(first), {{ let observed = checked + 1; let staged = identity(second); staged }}) }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n"
-        );
+        "module capacity.cleanup_call_epoch;\n@id(\"resource.{long}\") resource R {{ @id(\"lifecycle.{long}\") drop trivial; }}\n@id(\"identity\") fn identity(value: own R) -> R {{ value }}\n@id(\"consume\") fn consume(value: own R) -> i64 {{ 1 }}\n@id(\"combine\") fn combine(first: own R, second: own R) -> i64 {{ let left = consume(first); let right = consume(second); left + right }}\n@id(\"stress\") fn stress(first: own R, second: own R, checked: i64) -> i64 {{ combine(identity(first), {{ let observed = checked + 1; let staged = identity(second); staged }}) }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n"
+    );
     let program = crate::parse(&source, Path::new("cleanup-call-epoch.spx")).unwrap();
     let canonical = crate::format::canonical(&program);
     let mut scan = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
@@ -6612,13 +6985,13 @@ fn cleanup_call_argument_epoch_covers_later_argument_failure() {
         .unwrap();
     let actual = actual_inventory.checked_add(actual_plan).unwrap();
     assert!(
-            actual <= capacity.cleanup_authority_upper,
-            "call-epoch inventory {actual_inventory} + plan {actual_plan} = {actual} exceeds authority {} (retained {}, structural {}, call epoch {})",
-            capacity.cleanup_authority_upper,
-            capacity.cleanup_retained_upper,
-            capacity.cleanup_authority_upper - capacity.cleanup_retained_upper,
-            capacity.cleanup_call_argument_owned_upper
-        );
+        actual <= capacity.cleanup_authority_upper,
+        "call-epoch inventory {actual_inventory} + plan {actual_plan} = {actual} exceeds authority {} (retained {}, structural {}, call epoch {})",
+        capacity.cleanup_authority_upper,
+        capacity.cleanup_retained_upper,
+        capacity.cleanup_authority_upper - capacity.cleanup_retained_upper,
+        capacity.cleanup_call_argument_owned_upper
+    );
     assert!(capacity.complete().unwrap() <= MAX_BUILDER_BYTES);
 }
 
@@ -7018,12 +7391,21 @@ fn post_hir_named_phase_envelopes_cover_representative_and_depth_512_c() {
     fn measure(program: &Program, spec: &Spec) -> ([usize; 4], [usize; 3]) {
         let canonical_source = crate::format::canonical(program);
         let canonical_spec = render_spec(spec);
+        let mut scan = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
+        let disposal_frames = hir_pre_resolve_capacity(program, canonical_source.len(), &mut scan)
+            .unwrap()
+            .disposal_frames;
         let resolved = hir::resolve(program).unwrap();
-        let (closure, _) = selected_closure(&resolved, &spec.exports).unwrap();
+        let resolved = ResolvedProgramOwner::new(
+            resolved,
+            Vec::with_capacity(disposal_frames),
+            disposal_frames,
+        );
+        let (closure, _) = selected_closure(resolved.program(), &spec.exports).unwrap();
         let capacity = post_hir_facts_capacity(
             canonical_source.len(),
             canonical_spec.len(),
-            &resolved,
+            resolved.program(),
             &closure,
             spec,
         )
@@ -7046,7 +7428,7 @@ fn post_hir_named_phase_envelopes_cover_representative_and_depth_512_c() {
         );
         assert!(actual[1] <= capacity.render_scratch_upper);
         assert!(actual[2] <= capacity.replay_scratch_upper);
-        (
+        let measured = (
             [
                 capacity.retained_upper,
                 capacity.facts_scratch_upper,
@@ -7054,7 +7436,9 @@ fn post_hir_named_phase_envelopes_cover_representative_and_depth_512_c() {
                 capacity.replay_scratch_upper,
             ],
             actual,
-        )
+        );
+        drop(resolved);
+        measured
     }
 
     // This historical evidence tuple was authorized for the Apple-arm
@@ -7083,7 +7467,13 @@ fn post_hir_named_phase_envelopes_cover_representative_and_depth_512_c() {
                 .find(|function| function.stable_id == "interop.add")
                 .unwrap();
             for _ in 0..MAX_SEMANTIC_EXPRESSION_DEPTH - 4 {
-                let expression = function.body.clone();
+                let expression = std::mem::replace(
+                    &mut function.body,
+                    crate::ast::Expr {
+                        kind: crate::ast::ExprKind::Int(0),
+                        span: crate::ast::Span::default(),
+                    },
+                );
                 function.body = crate::ast::Expr {
                     span: expression.span,
                     kind: crate::ast::ExprKind::Unary {
@@ -7137,8 +7527,8 @@ fn post_hir_facts_cross_product_maxima_stay_inside_named_scratch() {
         .collect::<Vec<_>>()
         .join(", ");
     let mut source = format!(
-            "module post.cross_product; permit {{ {capability_list} }} @id(\"host.cross\") interface HostCross permits {{ {capability_list} }} {{ "
-        );
+        "module post.cross_product; permit {{ {capability_list} }} @id(\"host.cross\") interface HostCross permits {{ {capability_list} }} {{ "
+    );
     for index in 0..MAX_IMPORTS {
         write!(
                 source,
@@ -7309,8 +7699,8 @@ fn post_hir_facts_zero_entry_collections_have_zero_backing_and_stay_bounded() {
 #[test]
 fn post_hir_dense_fan_in_duplicates_and_all_interface_imports_stay_bounded() {
     let mut source = String::from(
-            "module post.fanin; permit { cap.fan } @id(\"host.fan\") interface HostFan permits { cap.fan } { @id(\"import.fan\") import rust fn host_fan() -> i64 effects { cap.fan } failure status \"status.fan\"; } @id(\"host.unused\") interface HostUnused permits { cap.fan } { ",
-        );
+        "module post.fanin; permit { cap.fan } @id(\"host.fan\") interface HostFan permits { cap.fan } { @id(\"import.fan\") import rust fn host_fan() -> i64 effects { cap.fan } failure status \"status.fan\"; } @id(\"host.unused\") interface HostUnused permits { cap.fan } { ",
+    );
     for index in 0..24 {
         write!(source, "@id(\"unused.{index:02}\") import rust fn unused_{index:02}() -> i64 effects {{ cap.fan }} failure status \"status.unused.{index:02}\"; ").unwrap();
     }
@@ -7582,8 +7972,8 @@ fn resolved_owner_disposes_nested_patterns_and_514_level_resource_cleanup() {
     assert_resolved_owner_disposes_once_without_growth(pattern_resolved, pattern_capacity);
 
     let mut chain = String::from(
-            "module disposal.cleanup_chain; @id(\"cleanup.r0\") resource R0 { @id(\"cleanup.r0.drop\") drop trivial; } ",
-        );
+        "module disposal.cleanup_chain; @id(\"cleanup.r0\") resource R0 { @id(\"cleanup.r0.drop\") drop trivial; } ",
+    );
     for index in 1..514 {
         use std::fmt::Write as _;
         write!(
@@ -7621,6 +8011,115 @@ fn resolved_owner_disposes_nested_patterns_and_514_level_resource_cleanup() {
     }
     assert_eq!(maximum_shape_depth, 514);
     assert_resolved_owner_disposes_once_without_growth(chain_resolved, chain_capacity);
+}
+
+#[test]
+fn resolved_owner_disposes_every_statement_variant_without_growth() {
+    let statement_source = r#"
+module disposal.statements;
+permit { unsafe }
+
+@id("app.main")
+fn main() -> i64 {
+    let mut count = 0;
+    @audit("disposal only")
+    unsafe { 0 }
+    while count < 1 {
+        count = count + 1;
+        false
+    }
+    count
+}
+"#;
+    let statement_program =
+        crate::parse(statement_source, Path::new("disposal-statements.spx")).unwrap();
+    let mut scan = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
+    let statement_stats = scan_ast_capacity(
+        statement_program.functions.iter().flat_map(|function| {
+            function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+        }),
+        &statement_program,
+        false,
+        &mut scan,
+    )
+    .unwrap();
+    // This scalar-only fixture has no nominal declaration occurrence; the
+    // shared disposal formula's minimum type-occurrence upper is exactly one.
+    let maximum_type_occurrences = 1usize;
+    let statement_capacity = statement_stats
+        .max_depth
+        .checked_mul(4)
+        .and_then(|frames| frames.checked_add(maximum_type_occurrences.checked_mul(2)?))
+        .and_then(|frames| frames.checked_add(16))
+        .unwrap();
+    let statement_resolved = hir::resolve(&statement_program).unwrap();
+    assert_resolved_owner_disposes_once_without_growth(statement_resolved, statement_capacity);
+}
+
+#[test]
+fn resolved_owner_disposes_exact_depth_guard_without_growth() {
+    fn first_guard_arm(program: &mut Program) -> &mut crate::ast::MatchArm {
+        let crate::ast::ExprKind::Block { tail, .. } = &mut program.functions[0].body.kind else {
+            panic!("guard fixture function body must be a block");
+        };
+        let crate::ast::ExprKind::Match { arms, .. } = &mut tail.kind else {
+            panic!("guard fixture tail must be a match");
+        };
+        &mut arms[0]
+    }
+
+    let guard_source = "module disposal.guard; @id(\"disposal.guard\") fn guarded(input: i64) -> i64 { match input { 0 if true => 0, _ => 1, } } @id(\"app.main\") fn main() -> i64 { 0 }";
+    let mut guard_program =
+        crate::parse(guard_source, Path::new("disposal-exact-guard.spx")).unwrap();
+    let guard = first_guard_arm(&mut guard_program).guard.take().unwrap();
+    let mut guard = *guard;
+    // Function block -> match -> guard is depth three.
+    for _ in 0..MAX_SEMANTIC_EXPRESSION_DEPTH - 3 {
+        let span = guard.span;
+        guard = crate::ast::Expr {
+            kind: crate::ast::ExprKind::Unary {
+                op: crate::ast::UnaryOp::Not,
+                value: Box::new(guard),
+            },
+            span,
+        };
+    }
+    first_guard_arm(&mut guard_program).guard = Some(Box::new(guard));
+    validate_native_rust_source_expression_budget(&guard_program).unwrap();
+
+    let exact_guard = first_guard_arm(&mut guard_program).guard.take().unwrap();
+    let span = exact_guard.span;
+    first_guard_arm(&mut guard_program).guard = Some(Box::new(crate::ast::Expr {
+        kind: crate::ast::ExprKind::Unary {
+            op: crate::ast::UnaryOp::Not,
+            value: exact_guard,
+        },
+        span,
+    }));
+    assert_eq!(
+        validate_native_rust_source_expression_budget(&guard_program)
+            .unwrap_err()
+            .code,
+        "SPX-B109"
+    );
+    let over_guard = first_guard_arm(&mut guard_program).guard.take().unwrap();
+    first_guard_arm(&mut guard_program).guard = match over_guard.kind {
+        crate::ast::ExprKind::Unary { value, .. } => Some(value),
+        _ => unreachable!(),
+    };
+
+    let guard_canonical = crate::format::canonical(&guard_program);
+    let mut scan = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
+    let guard_capacity = hir_pre_resolve_capacity(&guard_program, guard_canonical.len(), &mut scan)
+        .unwrap()
+        .disposal_frames;
+    let guard_resolved = hir::resolve(&guard_program).unwrap();
+    validate_native_rust_expression_budget(&guard_resolved).unwrap();
+    assert_resolved_owner_disposes_once_without_growth(guard_resolved, guard_capacity);
 }
 
 fn assert_resolved_owner_disposes_once_without_growth(
@@ -7728,8 +8227,8 @@ fn prebuilt_exact_depth_program_prepares_and_disposes_in_child() {
         let marker_root =
             std::path::PathBuf::from(std::env::var_os(CHILD_MARKER_ENV).expect("marker root"));
         let source = format!(
-                "module prebuilt.{shape}; @id(\"prebuilt.{shape}.deep\") fn deep(value: bool) -> bool {{ value }} @id(\"app.main\") fn main() -> i64 {{ 0 }}"
-            );
+            "module prebuilt.{shape}; @id(\"prebuilt.{shape}.deep\") fn deep(value: bool) -> bool {{ value }} @id(\"app.main\") fn main() -> i64 {{ 0 }}"
+        );
         let mut program = crate::parse(&source, Path::new("prebuilt-depth.spx")).unwrap();
         let mut serial = 1usize;
         loop {
@@ -7925,10 +8424,21 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
                 replace_payload(left, replacement) || replace_payload(right, replacement)
             }
             ExprKind::Block { statements, tail } => {
-                statements
-                    .iter_mut()
-                    .any(|statement| replace_payload(statement.value_mut(), replacement))
-                    || replace_payload(tail, replacement)
+                statements.iter_mut().any(|statement| match statement {
+                    crate::ast::Statement::Let { value, .. }
+                    | crate::ast::Statement::Assign { value, .. } => {
+                        replace_payload(value, replacement)
+                    }
+                    crate::ast::Statement::Unsafe { body, .. } => {
+                        replace_payload(body, replacement)
+                    }
+                    crate::ast::Statement::While {
+                        condition, body, ..
+                    } => {
+                        replace_payload(condition, replacement)
+                            || replace_payload(body, replacement)
+                    }
+                }) || replace_payload(tail, replacement)
             }
             ExprKind::If {
                 condition,
@@ -7945,9 +8455,12 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
                 .any(|field| replace_payload(&mut field.value, replacement)),
             ExprKind::Match { scrutinee, arms } => {
                 replace_payload(scrutinee, replacement)
-                    || arms
-                        .iter_mut()
-                        .any(|arm| replace_payload(&mut arm.value, replacement))
+                    || arms.iter_mut().any(|arm| {
+                        arm.guard
+                            .as_mut()
+                            .is_some_and(|guard| replace_payload(guard, replacement))
+                            || replace_payload(&mut arm.value, replacement)
+                    })
             }
             ExprKind::UpdateRecord { base, fields } => {
                 replace_payload(base, replacement)
@@ -7976,11 +8489,53 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
         }
     }
 
-    fn source_depth(program: &Program) -> usize {
-        let mut maximum = 0;
-        let mut pending = program
+    fn functions(program: &Program) -> impl Iterator<Item = &crate::ast::Function> {
+        program
             .functions
             .iter()
+            .chain(
+                program
+                    .types
+                    .iter()
+                    .flat_map(|declaration| match &declaration.kind {
+                        crate::ast::TypeDeclarationKind::Class { methods, .. } => {
+                            methods.as_slice()
+                        }
+                        _ => &[],
+                    }),
+            )
+    }
+
+    fn deep_function(program: &Program) -> &crate::ast::Function {
+        functions(program)
+            .find(|function| function.stable_id.ends_with(".deep"))
+            .expect("fixture deep function must exist")
+    }
+
+    fn deep_function_mut(program: &mut Program) -> &mut crate::ast::Function {
+        if let Some(index) = program
+            .functions
+            .iter()
+            .position(|function| function.stable_id.ends_with(".deep"))
+        {
+            return &mut program.functions[index];
+        }
+        for declaration in &mut program.types {
+            if let crate::ast::TypeDeclarationKind::Class { methods, .. } = &mut declaration.kind {
+                if let Some(index) = methods
+                    .iter()
+                    .position(|function| function.stable_id.ends_with(".deep"))
+                {
+                    return &mut methods[index];
+                }
+            }
+        }
+        panic!("fixture deep function must exist")
+    }
+
+    fn source_depth(program: &Program) -> usize {
+        let mut maximum = 0;
+        let mut pending = functions(program)
             .flat_map(|function| {
                 function
                     .requires
@@ -7992,30 +8547,24 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
             .collect::<Vec<_>>();
         while let Some((expression, depth)) = pending.pop() {
             maximum = maximum.max(depth);
-            let mut index = 0;
-            while let Some(child) = ast_child(expression, index) {
+            let mut cursor = 0;
+            while let Some((_, child)) = ast_child(expression, &mut cursor) {
                 pending.push((child, depth + 1));
-                index += 1;
             }
         }
         maximum
     }
 
     fn payload_depth(program: &Program) -> usize {
-        let deep = program
-            .functions
-            .iter()
-            .find(|function| function.stable_id.ends_with(".deep"))
-            .expect("fixture deep function must exist");
+        let deep = deep_function(program);
         let mut pending = vec![(&deep.body, 1_usize)];
         while let Some((expression, depth)) = pending.pop() {
             if matches!(&expression.kind, crate::ast::ExprKind::Var(name) if name == "payload") {
                 return depth;
             }
-            let mut index = 0;
-            while let Some(child) = ast_child(expression, index) {
+            let mut cursor = 0;
+            while let Some((_, child)) = ast_child(expression, &mut cursor) {
                 pending.push((child, depth + 1));
-                index += 1;
             }
         }
         panic!("fixture payload must be present")
@@ -8027,7 +8576,14 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
             .iter_mut()
             .find(|function| function.id.as_str().ends_with(".deep"))
             .expect("fixture deep function must resolve");
-        let body = function.body.clone();
+        let placeholder = ResolvedExpr {
+            id: function.body.id.clone(),
+            ty: function.body.ty.clone(),
+            ownership: function.body.ownership,
+            span: function.body.span,
+            kind: ResolvedExprKind::Int(0),
+        };
+        let body = std::mem::replace(&mut function.body, placeholder);
         function.body = ResolvedExpr {
             id: body.id.clone(),
             ty: body.ty.clone(),
@@ -8041,111 +8597,139 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
     }
 
     let cases = [
-            (
-                "unary",
-                "module depth.unary; @id(\"depth.unary.deep\") fn deep(payload: i64) -> i64 { -payload } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "binary",
-                "module depth.binary; @id(\"depth.binary.deep\") fn deep(payload: i64) -> i64 { payload + 0 } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "binary-right",
-                "module depth.binary_right; @id(\"depth.binary_right.deep\") fn deep(payload: i64) -> i64 { 0 + payload } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "if",
-                "module depth.if_shape; @id(\"depth.if.deep\") fn deep(payload: i64) -> i64 { if true { payload } else { 0 } } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "if-condition",
-                "module depth.if_condition; @id(\"depth.if_condition.deep\") fn deep(payload: i64) -> i64 { if payload > 0 { 1 } else { 0 } } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "if-else",
-                "module depth.if_else; @id(\"depth.if_else.deep\") fn deep(payload: i64) -> i64 { if true { 0 } else { payload } } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "block",
-                "module depth.block; @id(\"depth.block.deep\") fn deep(payload: i64) -> i64 { let before = 0; payload } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "block-let-rhs",
-                "module depth.block_let; @id(\"depth.block_let.deep\") fn deep(payload: i64) -> i64 { let value = payload; value } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "call",
-                "module depth.call; @id(\"depth.call.id\") fn id(value: i64) -> i64 { value } @id(\"depth.call.deep\") fn deep(payload: i64) -> i64 { id(payload) } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "call-first",
-                "module depth.call_first; @id(\"depth.call_first.sum\") fn sum(a: i64, b: i64, c: i64) -> i64 { a + b + c } @id(\"depth.call_first.deep\") fn deep(payload: i64) -> i64 { sum(payload, 0, 0) } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "call-middle",
-                "module depth.call_middle; @id(\"depth.call_middle.sum\") fn sum(a: i64, b: i64, c: i64) -> i64 { a + b + c } @id(\"depth.call_middle.deep\") fn deep(payload: i64) -> i64 { sum(0, payload, 0) } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "call-last",
-                "module depth.call_last; @id(\"depth.call_last.sum\") fn sum(a: i64, b: i64, c: i64) -> i64 { a + b + c } @id(\"depth.call_last.deep\") fn deep(payload: i64) -> i64 { sum(0, 0, payload) } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "native-call",
-                "module depth.native_call; permit { host.math } @id(\"host.math\") interface HostMath permits { host.math } { @id(\"host.add\") import rust fn host_add(left: i64, right: i64) -> i64 effects { host.math } failure status \"host.math.v1\"; } @id(\"depth.native_call.deep\") fn deep(payload: i64) -> i64 uses { host.math } { host_add(0, payload) } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "try",
-                "module depth.try_shape; @id(\"depth.try.ok\") fn ok(value: i64) -> Result<i64, bool> { Result<i64, bool>::Ok { value: value } } @id(\"depth.try.deep\") fn deep(payload: i64) -> Result<i64, bool> { Result<i64, bool>::Ok { value: ok(payload)? } } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "try-option",
-                "module depth.try_option; @id(\"depth.try_option.some\") fn some(value: i64) -> Option<i64> { Option<i64>::Some { value: value } } @id(\"depth.try_option.deep\") fn deep(payload: i64) -> Option<i64> { Option<i64>::Some { value: some(payload)? } } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "record-project",
-                "module depth.record_project; @id(\"depth.pair\") record Pair { @id(\"depth.pair.x\") x: i64, } @id(\"depth.record_project.deep\") fn deep(payload: i64) -> i64 { Pair { x: payload }.x } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "record-field-first",
-                "module depth.record_first; @id(\"depth.record_first.triple\") record Triple { @id(\"depth.record_first.triple.a\") a: i64, @id(\"depth.record_first.triple.b\") b: i64, @id(\"depth.record_first.triple.c\") c: i64, } @id(\"depth.record_first.deep\") fn deep(payload: i64) -> Triple { Triple { a: payload, b: 0, c: 0 } } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "record-field-middle",
-                "module depth.record_middle; @id(\"depth.record_middle.triple\") record Triple { @id(\"depth.record_middle.triple.a\") a: i64, @id(\"depth.record_middle.triple.b\") b: i64, @id(\"depth.record_middle.triple.c\") c: i64, } @id(\"depth.record_middle.deep\") fn deep(payload: i64) -> Triple { Triple { a: 0, b: payload, c: 0 } } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "record-field-last",
-                "module depth.record_last; @id(\"depth.record_last.triple\") record Triple { @id(\"depth.record_last.triple.a\") a: i64, @id(\"depth.record_last.triple.b\") b: i64, @id(\"depth.record_last.triple.c\") c: i64, } @id(\"depth.record_last.deep\") fn deep(payload: i64) -> Triple { Triple { a: 0, b: 0, c: payload } } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "variant",
-                "module depth.variant; @id(\"depth.choice\") variant Choice { @id(\"depth.choice.value\") Value { @id(\"depth.choice.value.value\") value: i64, }, } @id(\"depth.variant.deep\") fn deep(payload: i64) -> Choice { Choice::Value { value: payload } } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "match",
-                "module depth.match_shape; @id(\"depth.match.choice\") variant Choice { @id(\"depth.match.choice.none\") None, @id(\"depth.match.choice.value\") Value { @id(\"depth.match.choice.value.value\") value: i64, }, } @id(\"depth.match.deep\") fn deep(payload: i64) -> i64 { match Choice::Value { value: 0 } { Choice::Value { value } => payload, Choice::None {} => 0, } } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "match-scrutinee",
-                "module depth.match_scrutinee; @id(\"depth.match_scrutinee.choice\") variant Choice { @id(\"depth.match_scrutinee.choice.none\") None, @id(\"depth.match_scrutinee.choice.value\") Value { @id(\"depth.match_scrutinee.choice.value.value\") value: i64, }, } @id(\"depth.match_scrutinee.deep\") fn deep(payload: i64) -> i64 { match Choice::Value { value: payload } { Choice::Value { value } => value, Choice::None {} => 0, } } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "match-later-arm",
-                "module depth.match_later; @id(\"depth.match_later.choice\") variant Choice { @id(\"depth.match_later.choice.a\") A, @id(\"depth.match_later.choice.b\") B, @id(\"depth.match_later.choice.c\") C, } @id(\"depth.match_later.deep\") fn deep(choice: Choice, payload: i64) -> i64 { match choice { Choice::A {} => 0, Choice::B {} => payload, Choice::C {} => 0, } } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "match-nested-record-pattern",
-                "module depth.match_nested; @id(\"depth.match_nested.inner\") record Inner { @id(\"depth.match_nested.inner.value\") value: i64, } @id(\"depth.match_nested.outer\") record Outer { @id(\"depth.match_nested.outer.inner\") inner: Inner, @id(\"depth.match_nested.outer.other\") other: i64, } @id(\"depth.match_nested.deep\") fn deep(input: Outer, payload: i64) -> i64 { match input { Outer { inner: Inner { value }, other: _ } => payload, } } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "update",
-                "module depth.update; @id(\"depth.update.pair\") record Pair { @id(\"depth.update.pair.x\") x: i64, } @id(\"depth.update.deep\") fn deep(payload: i64) -> i64 { let pair = Pair { x: 0 }; (pair with { x: payload }).x } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-            (
-                "update-base",
-                "module depth.update_base; @id(\"depth.update_base.pair\") record Pair { @id(\"depth.update_base.pair.x\") x: i64, } @id(\"depth.update_base.deep\") fn deep(payload: i64) -> i64 { (Pair { x: payload } with { x: 0 }).x } @id(\"app.main\") fn main() -> i64 { 0 }",
-            ),
-        ];
+        (
+            "unary",
+            "module depth.unary; @id(\"depth.unary.deep\") fn deep(payload: i64) -> i64 { -payload } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "binary",
+            "module depth.binary; @id(\"depth.binary.deep\") fn deep(payload: i64) -> i64 { payload + 0 } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "binary-right",
+            "module depth.binary_right; @id(\"depth.binary_right.deep\") fn deep(payload: i64) -> i64 { 0 + payload } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "if",
+            "module depth.if_shape; @id(\"depth.if.deep\") fn deep(payload: i64) -> i64 { if true { payload } else { 0 } } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "if-condition",
+            "module depth.if_condition; @id(\"depth.if_condition.deep\") fn deep(payload: i64) -> i64 { if payload > 0 { 1 } else { 0 } } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "if-else",
+            "module depth.if_else; @id(\"depth.if_else.deep\") fn deep(payload: i64) -> i64 { if true { 0 } else { payload } } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "block",
+            "module depth.block; @id(\"depth.block.deep\") fn deep(payload: i64) -> i64 { let before = 0; payload } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "block-let-rhs",
+            "module depth.block_let; @id(\"depth.block_let.deep\") fn deep(payload: i64) -> i64 { let value = payload; value } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "block-assign-rhs",
+            "module depth.block_assign; @id(\"depth.block_assign.deep\") fn deep(payload: i64) -> i64 { let mut value = 0; value = payload; value } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "block-unsafe-body",
+            "module depth.block_unsafe; permit { unsafe } @id(\"depth.block_unsafe.deep\") fn deep(payload: i64) -> i64 uses { unsafe } { @audit(\"depth fixture\") unsafe { payload } 0 } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "block-while-condition",
+            "module depth.block_while_condition; @id(\"depth.block_while_condition.deep\") fn deep(payload: i64) -> i64 { while payload > 0 { 0 } 0 } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "block-while-body",
+            "module depth.block_while_body; @id(\"depth.block_while_body.deep\") fn deep(payload: i64) -> i64 { while false { payload } 0 } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "call",
+            "module depth.call; @id(\"depth.call.id\") fn id(value: i64) -> i64 { value } @id(\"depth.call.deep\") fn deep(payload: i64) -> i64 { id(payload) } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "call-first",
+            "module depth.call_first; @id(\"depth.call_first.sum\") fn sum(a: i64, b: i64, c: i64) -> i64 { a + b + c } @id(\"depth.call_first.deep\") fn deep(payload: i64) -> i64 { sum(payload, 0, 0) } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "call-middle",
+            "module depth.call_middle; @id(\"depth.call_middle.sum\") fn sum(a: i64, b: i64, c: i64) -> i64 { a + b + c } @id(\"depth.call_middle.deep\") fn deep(payload: i64) -> i64 { sum(0, payload, 0) } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "call-last",
+            "module depth.call_last; @id(\"depth.call_last.sum\") fn sum(a: i64, b: i64, c: i64) -> i64 { a + b + c } @id(\"depth.call_last.deep\") fn deep(payload: i64) -> i64 { sum(0, 0, payload) } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "native-call",
+            "module depth.native_call; permit { host.math } @id(\"host.math\") interface HostMath permits { host.math } { @id(\"host.add\") import rust fn host_add(left: i64, right: i64) -> i64 effects { host.math } failure status \"host.math.v1\"; } @id(\"depth.native_call.deep\") fn deep(payload: i64) -> i64 uses { host.math } { host_add(0, payload) } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "try",
+            "module depth.try_shape; @id(\"depth.try.ok\") fn ok(value: i64) -> Result<i64, bool> { Result<i64, bool>::Ok { value: value } } @id(\"depth.try.deep\") fn deep(payload: i64) -> Result<i64, bool> { Result<i64, bool>::Ok { value: ok(payload)? } } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "try-option",
+            "module depth.try_option; @id(\"depth.try_option.some\") fn some(value: i64) -> Option<i64> { Option<i64>::Some { value: value } } @id(\"depth.try_option.deep\") fn deep(payload: i64) -> Option<i64> { Option<i64>::Some { value: some(payload)? } } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "record-project",
+            "module depth.record_project; @id(\"depth.pair\") record Pair { @id(\"depth.pair.x\") x: i64, } @id(\"depth.record_project.deep\") fn deep(payload: i64) -> i64 { Pair { x: payload }.x } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "record-field-first",
+            "module depth.record_first; @id(\"depth.record_first.triple\") record Triple { @id(\"depth.record_first.triple.a\") a: i64, @id(\"depth.record_first.triple.b\") b: i64, @id(\"depth.record_first.triple.c\") c: i64, } @id(\"depth.record_first.deep\") fn deep(payload: i64) -> Triple { Triple { a: payload, b: 0, c: 0 } } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "record-field-middle",
+            "module depth.record_middle; @id(\"depth.record_middle.triple\") record Triple { @id(\"depth.record_middle.triple.a\") a: i64, @id(\"depth.record_middle.triple.b\") b: i64, @id(\"depth.record_middle.triple.c\") c: i64, } @id(\"depth.record_middle.deep\") fn deep(payload: i64) -> Triple { Triple { a: 0, b: payload, c: 0 } } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "record-field-last",
+            "module depth.record_last; @id(\"depth.record_last.triple\") record Triple { @id(\"depth.record_last.triple.a\") a: i64, @id(\"depth.record_last.triple.b\") b: i64, @id(\"depth.record_last.triple.c\") c: i64, } @id(\"depth.record_last.deep\") fn deep(payload: i64) -> Triple { Triple { a: 0, b: 0, c: payload } } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "variant",
+            "module depth.variant; @id(\"depth.choice\") variant Choice { @id(\"depth.choice.value\") Value { @id(\"depth.choice.value.value\") value: i64, }, } @id(\"depth.variant.deep\") fn deep(payload: i64) -> Choice { Choice::Value { value: payload } } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "match",
+            "module depth.match_shape; @id(\"depth.match.choice\") variant Choice { @id(\"depth.match.choice.none\") None, @id(\"depth.match.choice.value\") Value { @id(\"depth.match.choice.value.value\") value: i64, }, } @id(\"depth.match.deep\") fn deep(payload: i64) -> i64 { match Choice::Value { value: 0 } { Choice::Value { value } => payload, Choice::None {} => 0, } } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "match-scrutinee",
+            "module depth.match_scrutinee; @id(\"depth.match_scrutinee.choice\") variant Choice { @id(\"depth.match_scrutinee.choice.none\") None, @id(\"depth.match_scrutinee.choice.value\") Value { @id(\"depth.match_scrutinee.choice.value.value\") value: i64, }, } @id(\"depth.match_scrutinee.deep\") fn deep(payload: i64) -> i64 { match Choice::Value { value: payload } { Choice::Value { value } => value, Choice::None {} => 0, } } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "match-later-arm",
+            "module depth.match_later; @id(\"depth.match_later.choice\") variant Choice { @id(\"depth.match_later.choice.a\") A, @id(\"depth.match_later.choice.b\") B, @id(\"depth.match_later.choice.c\") C, } @id(\"depth.match_later.deep\") fn deep(choice: Choice, payload: i64) -> i64 { match choice { Choice::A {} => 0, Choice::B {} => payload, Choice::C {} => 0, } } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "match-guard",
+            "module depth.match_guard; @id(\"depth.match_guard.deep\") fn deep(tag: i64, payload: i64) -> i64 { match tag { 0 if payload > 0 => 1, _ => 0, } } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "match-nested-record-pattern",
+            "module depth.match_nested; @id(\"depth.match_nested.inner\") record Inner { @id(\"depth.match_nested.inner.value\") value: i64, } @id(\"depth.match_nested.outer\") record Outer { @id(\"depth.match_nested.outer.inner\") inner: Inner, @id(\"depth.match_nested.outer.other\") other: i64, } @id(\"depth.match_nested.deep\") fn deep(input: Outer, payload: i64) -> i64 { match input { Outer { inner: Inner { value }, other: _ } => payload, } } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "update",
+            "module depth.update; @id(\"depth.update.pair\") record Pair { @id(\"depth.update.pair.x\") x: i64, } @id(\"depth.update.deep\") fn deep(payload: i64) -> i64 { let pair = Pair { x: 0 }; (pair with { x: payload }).x } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "update-base",
+            "module depth.update_base; @id(\"depth.update_base.pair\") record Pair { @id(\"depth.update_base.pair.x\") x: i64, } @id(\"depth.update_base.deep\") fn deep(payload: i64) -> i64 { (Pair { x: payload } with { x: 0 }).x } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "method-call-argument",
+            "module depth.method_call; @id(\"depth.method_call.counter\") class Counter { @id(\"depth.method_call.counter.value\") value: i64, @id(\"depth.method_call.counter.add\") fn add(self: Counter, delta: i64) -> i64 { self.value + delta } } @id(\"depth.method_call.deep\") fn deep(payload: i64) -> i64 { Counter { value: 0 }.add(payload) } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+        (
+            "super-method-argument",
+            "module depth.super_method; @id(\"depth.super_method.base\") class Base { @id(\"depth.super_method.base.value\") value: i64, @id(\"depth.super_method.base.add\") fn add(self: Base, delta: i64) -> i64 { self.value + delta } } @id(\"depth.super_method.child\") class Child : Base { @id(\"depth.super_method.child.extra\") extra: i64, @id(\"depth.super_method.deep\") fn add(self: Child, payload: i64) -> i64 { super.add(payload) + self.extra } } @id(\"app.main\") fn main() -> i64 { 0 }",
+        ),
+    ];
 
     for (shape, source) in cases {
         let mut exact = crate::parse(source, Path::new("all-shape-depth.spx")).unwrap();
@@ -8159,11 +8743,7 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
             },
             MAX_SEMANTIC_EXPRESSION_DEPTH - payload_depth,
         );
-        let function = exact
-            .functions
-            .iter_mut()
-            .find(|function| function.stable_id.ends_with(".deep"))
-            .expect("fixture deep function must exist");
+        let function = deep_function_mut(&mut exact);
         assert!(replace_payload(&mut function.body, &mut Some(replacement)));
         assert_eq!(
             source_depth(&exact),
@@ -8183,23 +8763,28 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
 
         let mut resolved = hir::resolve(&exact)
             .unwrap_or_else(|diagnostics| panic!("{shape} failed resolution: {diagnostics:?}"));
+        wrap_hir_body_once(&mut resolved);
+        let over_disposal_capacity = disposal_capacity.checked_add(4).unwrap();
 
-        let mut over_source = exact;
-        let function = over_source
-            .functions
-            .iter_mut()
-            .find(|function| function.stable_id.ends_with(".deep"))
-            .unwrap();
-        function.body = wrap_source(function.body.clone(), 1);
-        let error = validate_native_rust_source_expression_budget(&over_source).unwrap_err();
+        let error = validate_native_rust_expression_budget(&resolved).unwrap_err();
         assert_eq!(error.code, "SPX-B109", "{shape}");
         assert_eq!(
             error.message, "Native Rust Interop max_semantic_expression_depth exceeds 512",
             "{shape}"
         );
+        assert_resolved_owner_disposes_once_without_growth(resolved, over_disposal_capacity);
 
-        wrap_hir_body_once(&mut resolved);
-        let error = validate_native_rust_expression_budget(&resolved).unwrap_err();
+        let mut over_source = exact;
+        let function = deep_function_mut(&mut over_source);
+        let body = std::mem::replace(
+            &mut function.body,
+            crate::ast::Expr {
+                kind: crate::ast::ExprKind::Int(0),
+                span: crate::ast::Span::default(),
+            },
+        );
+        function.body = wrap_source(body, 1);
+        let error = validate_native_rust_source_expression_budget(&over_source).unwrap_err();
         assert_eq!(error.code, "SPX-B109", "{shape}");
         assert_eq!(
             error.message, "Native Rust Interop max_semantic_expression_depth exceeds 512",

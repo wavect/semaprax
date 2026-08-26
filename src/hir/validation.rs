@@ -16,64 +16,73 @@ pub(crate) fn validate_core(program: &ResolvedProgram) -> Result<(), Diagnostic>
 /// `true` when the resolved expression tree contains an unsafe boundary
 /// statement anywhere inside its blocks, branches, arms, or nested bodies.
 fn contains_unsafe_boundary(expression: &ResolvedExpr) -> bool {
-    match &expression.kind {
-        ResolvedExprKind::Block { statements, tail } => {
-            statements.iter().any(|statement| match statement {
-                ResolvedStatement::Unsafe { .. } => true,
-                _ => (0..statement.child_count())
-                    .any(|index| statement.child(index).is_some_and(contains_unsafe_boundary)),
-            }) || contains_unsafe_boundary(tail)
+    let mut pending = vec![expression];
+    while let Some(expression) = pending.pop() {
+        match &expression.kind {
+            ResolvedExprKind::Block { statements, tail } => {
+                pending.push(tail);
+                for statement in statements.iter().rev() {
+                    if matches!(statement, ResolvedStatement::Unsafe { .. }) {
+                        return true;
+                    }
+                    for index in (0..statement.child_count()).rev() {
+                        if let Some(child) = statement.child(index) {
+                            pending.push(child);
+                        }
+                    }
+                }
+            }
+            ResolvedExprKind::Call { args, .. } => pending.extend(args.iter().rev()),
+            ResolvedExprKind::NativeRustImportCall(call) => {
+                pending.extend(call.args.iter().rev());
+            }
+            ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter().rev()),
+            ResolvedExprKind::Unary { value, .. }
+            | ResolvedExprKind::Try { operand: value, .. }
+            | ResolvedExprKind::TryOption { operand: value, .. }
+            | ResolvedExprKind::Project { base: value, .. }
+            | ResolvedExprKind::Upcast { source: value } => pending.push(value),
+            ResolvedExprKind::Binary { left, right, .. } => {
+                pending.push(right);
+                pending.push(left);
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                pending.push(else_branch);
+                pending.push(then_branch);
+                pending.push(condition);
+            }
+            ResolvedExprKind::ConstructRecord { fields, .. }
+            | ResolvedExprKind::ConstructVariant { fields, .. } => {
+                pending.extend(fields.iter().rev().map(|field| &field.value));
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                pending.extend(arms.iter().rev().map(|arm| &arm.value));
+                pending.push(scrutinee);
+            }
+            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                pending.extend(fields.iter().rev().map(|field| &field.value));
+                pending.push(base);
+            }
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::BorrowPlace { .. } => {}
         }
-        ResolvedExprKind::Call { args, .. } => args.iter().any(contains_unsafe_boundary),
-        ResolvedExprKind::NativeRustImportCall(call) => {
-            call.args.iter().any(contains_unsafe_boundary)
-        }
-        ResolvedExprKind::HostCommandCall(call) => call.args.iter().any(contains_unsafe_boundary),
-        ResolvedExprKind::Unary { value, .. }
-        | ResolvedExprKind::Try { operand: value, .. }
-        | ResolvedExprKind::TryOption { operand: value, .. }
-        | ResolvedExprKind::Project { base: value, .. }
-        | ResolvedExprKind::Upcast { source: value } => contains_unsafe_boundary(value),
-        ResolvedExprKind::Binary { left, right, .. } => {
-            contains_unsafe_boundary(left) || contains_unsafe_boundary(right)
-        }
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            contains_unsafe_boundary(condition)
-                || contains_unsafe_boundary(then_branch)
-                || contains_unsafe_boundary(else_branch)
-        }
-        ResolvedExprKind::ConstructRecord { fields, .. }
-        | ResolvedExprKind::ConstructVariant { fields, .. } => fields
-            .iter()
-            .any(|field| contains_unsafe_boundary(&field.value)),
-        ResolvedExprKind::Match { scrutinee, arms } => {
-            contains_unsafe_boundary(scrutinee)
-                || arms.iter().any(|arm| contains_unsafe_boundary(&arm.value))
-        }
-        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-            contains_unsafe_boundary(base)
-                || fields
-                    .iter()
-                    .any(|field| contains_unsafe_boundary(&field.value))
-        }
-        ResolvedExprKind::Int(_)
-        | ResolvedExprKind::Int32(_)
-        | ResolvedExprKind::Char(_)
-        | ResolvedExprKind::Uint8(_)
-        | ResolvedExprKind::Usize(_)
-        | ResolvedExprKind::ArrayU8(_)
-        | ResolvedExprKind::RepeatArrayU8 { .. }
-        | ResolvedExprKind::Float32(_)
-        | ResolvedExprKind::Float64(_)
-        | ResolvedExprKind::Bool(_)
-        | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_)
-        | ResolvedExprKind::BorrowPlace { .. } => false,
     }
+    false
 }
 
 #[derive(Clone)]
@@ -1308,153 +1317,211 @@ impl<'a> HirValidator<'a> {
     /// fails closed as malformed HIR because source resolution rejected it
     /// with `SPX-T252`.
     fn validate_while_admission(&self, expression: &ResolvedExpr) -> Result<(), Diagnostic> {
-        match &expression.kind {
-            ResolvedExprKind::Int(_)
-            | ResolvedExprKind::Int32(_)
-            | ResolvedExprKind::Char(_)
-            | ResolvedExprKind::Uint8(_)
-            | ResolvedExprKind::Usize(_)
-            | ResolvedExprKind::Float32(_)
-            | ResolvedExprKind::Float64(_)
-            | ResolvedExprKind::Bool(_) => Ok(()),
-            ResolvedExprKind::Place(_) => {
-                if crate::hir::is_scalar_resolved_type(&expression.ty)
-                    && expression.ownership == OwnershipMode::Value
-                {
-                    Ok(())
-                } else {
-                    Err(hir_error(
-                        "while loop places must be Copy scalars outside an indexed byte read",
-                    ))
+        enum Item<'a> {
+            Expression(&'a ResolvedExpr),
+            IndexedMatchNext {
+                expression: &'a ResolvedExpr,
+                scrutinee: &'a ResolvedExpr,
+                arms: &'a [ResolvedMatchArm],
+                next: usize,
+                some_seen: bool,
+                none_seen: bool,
+            },
+        }
+
+        let mut pending = vec![Item::Expression(expression)];
+        while let Some(item) = pending.pop() {
+            let expression = match item {
+                Item::Expression(expression) => expression,
+                Item::IndexedMatchNext {
+                    expression,
+                    scrutinee,
+                    arms,
+                    next,
+                    mut some_seen,
+                    mut none_seen,
+                } => {
+                    let Some(arm) = arms.get(next) else {
+                        if !some_seen || !none_seen {
+                            return Err(hir_error(
+                                "while loop byte match is not exhaustive over Some and None",
+                            ));
+                        }
+                        pending.push(Item::Expression(scrutinee));
+                        continue;
+                    };
+                    self.validate_indexed_byte_option_match_arm(
+                        expression,
+                        arm,
+                        &mut some_seen,
+                        &mut none_seen,
+                    )?;
+                    pending.push(Item::IndexedMatchNext {
+                        expression,
+                        scrutinee,
+                        arms,
+                        next: next + 1,
+                        some_seen,
+                        none_seen,
+                    });
+                    pending.push(Item::Expression(&arm.value));
+                    continue;
                 }
-            }
-            ResolvedExprKind::String(_) => {
-                Err(hir_error("while loops cannot contain string literals"))
-            }
-            ResolvedExprKind::ArrayU8(_) | ResolvedExprKind::RepeatArrayU8 { .. } => {
-                Err(hir_error("while loops cannot contain fixed-array literals"))
-            }
-            ResolvedExprKind::BorrowPlace { .. } => {
-                Err(hir_error("while loops cannot construct byte views"))
-            }
-            ResolvedExprKind::HostCommandCall(_) => {
-                Err(hir_error("while loops cannot contain command I/O"))
-            }
-            ResolvedExprKind::Unary { value, .. } => self.validate_while_admission(value),
-            ResolvedExprKind::Binary { left, right, .. } => {
-                self.validate_while_admission(left)?;
-                self.validate_while_admission(right)
-            }
-            ResolvedExprKind::If {
-                condition,
-                then_branch,
-                else_branch,
-            } => {
-                self.validate_while_admission(condition)?;
-                self.validate_while_admission(then_branch)?;
-                self.validate_while_admission(else_branch)
-            }
-            ResolvedExprKind::Block { statements, tail } => {
-                for statement in statements {
-                    for index in 0..statement.child_count() {
-                        let child = statement
-                            .child(index)
-                            .ok_or_else(|| hir_error("while statement child is missing"))?;
-                        self.validate_while_admission(child)?;
-                    }
-                }
-                self.validate_while_admission(tail)
-            }
-            ResolvedExprKind::Call {
-                callee,
-                instance,
-                type_arguments,
-                args,
-            } => {
-                if instance.is_some() || !type_arguments.is_empty() {
-                    return Err(hir_error("while loops cannot contain generic calls"));
-                }
-                if let Some(operation) = crate::byte_ops::by_id(callee.as_str()) {
-                    if !matches!(
-                        operation,
-                        crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get
-                    ) || args.len() != operation.arity()
-                        || args.iter().enumerate().any(|(index, argument)| {
-                            !operation.accepts_resolved(index, &argument.ty)
-                        })
-                        || expression.ty != operation.return_type()
+            };
+            match &expression.kind {
+                ResolvedExprKind::Int(_)
+                | ResolvedExprKind::Int32(_)
+                | ResolvedExprKind::Char(_)
+                | ResolvedExprKind::Uint8(_)
+                | ResolvedExprKind::Usize(_)
+                | ResolvedExprKind::Float32(_)
+                | ResolvedExprKind::Float64(_)
+                | ResolvedExprKind::Bool(_) => {}
+                ResolvedExprKind::Place(_) => {
+                    if !crate::hir::is_scalar_resolved_type(&expression.ty)
                         || expression.ownership != OwnershipMode::Value
                     {
-                        return Err(hir_error(format!(
+                        return Err(hir_error(
+                            "while loop places must be Copy scalars outside an indexed byte read",
+                        ));
+                    }
+                }
+                ResolvedExprKind::String(_) => {
+                    return Err(hir_error("while loops cannot contain string literals"));
+                }
+                ResolvedExprKind::ArrayU8(_) | ResolvedExprKind::RepeatArrayU8 { .. } => {
+                    return Err(hir_error("while loops cannot contain fixed-array literals"));
+                }
+                ResolvedExprKind::BorrowPlace { .. } => {
+                    return Err(hir_error("while loops cannot construct byte views"));
+                }
+                ResolvedExprKind::HostCommandCall(_) => {
+                    return Err(hir_error("while loops cannot contain command I/O"));
+                }
+                ResolvedExprKind::Unary { value, .. } => pending.push(Item::Expression(value)),
+                ResolvedExprKind::Binary { left, right, .. } => {
+                    pending.push(Item::Expression(right));
+                    pending.push(Item::Expression(left));
+                }
+                ResolvedExprKind::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => {
+                    pending.push(Item::Expression(else_branch));
+                    pending.push(Item::Expression(then_branch));
+                    pending.push(Item::Expression(condition));
+                }
+                ResolvedExprKind::Block { statements, tail } => {
+                    pending.push(Item::Expression(tail));
+                    for statement in statements.iter().rev() {
+                        for index in (0..statement.child_count()).rev() {
+                            let child = statement
+                                .child(index)
+                                .ok_or_else(|| hir_error("while statement child is missing"))?;
+                            pending.push(Item::Expression(child));
+                        }
+                    }
+                }
+                ResolvedExprKind::Call {
+                    callee,
+                    instance,
+                    type_arguments,
+                    args,
+                } => {
+                    if instance.is_some() || !type_arguments.is_empty() {
+                        return Err(hir_error("while loops cannot contain generic calls"));
+                    }
+                    if let Some(operation) = crate::byte_ops::by_id(callee.as_str()) {
+                        if !matches!(
+                            operation,
+                            crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get
+                        ) || args.len() != operation.arity()
+                            || args.iter().enumerate().any(|(index, argument)| {
+                                !operation.accepts_resolved(index, &argument.ty)
+                            })
+                            || expression.ty != operation.return_type()
+                            || expression.ownership != OwnershipMode::Value
+                        {
+                            return Err(hir_error(format!(
                             "while loop byte operation `{callee}` is outside the read-only indexed profile"
                         )));
-                    }
-                    let slice = &args[0];
-                    let ResolvedExprKind::Place(place) = &slice.kind else {
-                        return Err(hir_error(
+                        }
+                        let slice = &args[0];
+                        let ResolvedExprKind::Place(place) = &slice.kind else {
+                            return Err(hir_error(
                             "while loop indexed byte reads require an existing byte-slice alias",
                         ));
-                    };
-                    if slice.ty != ResolvedType::SliceU8
-                        || slice.ownership != OwnershipMode::Borrow
-                        || !place.projections.is_empty()
-                        || !self.byte_slice_aliases.contains_key(&place.root)
-                    {
-                        return Err(hir_error(
-                            "while loop indexed byte read lacks authenticated slice provenance",
-                        ));
+                        };
+                        if slice.ty != ResolvedType::SliceU8
+                            || slice.ownership != OwnershipMode::Borrow
+                            || !place.projections.is_empty()
+                            || !self.byte_slice_aliases.contains_key(&place.root)
+                        {
+                            return Err(hir_error(
+                                "while loop indexed byte read lacks authenticated slice provenance",
+                            ));
+                        }
+                        pending.extend(args[1..].iter().rev().map(Item::Expression));
+                        continue;
                     }
-                    for argument in &args[1..] {
-                        self.validate_while_admission(argument)?;
+                    let target =
+                        self.program
+                            .resolve_call_target(callee, None)
+                            .ok_or_else(|| {
+                                hir_error(format!("while loop call `{callee}` is not indexed"))
+                            })?;
+                    let scalar_signature = crate::hir::is_scalar_resolved_type(&target.return_type)
+                        && target.params.iter().all(|param| {
+                            param.ownership == OwnershipMode::Value
+                                && crate::hir::is_scalar_resolved_type(&param.ty)
+                        });
+                    if !scalar_signature {
+                        return Err(hir_error(format!(
+                            "while loop call `{callee}` is not a scalar-value function"
+                        )));
                     }
-                    return Ok(());
+                    pending.extend(args.iter().rev().map(Item::Expression));
                 }
-                let target = self
-                    .program
-                    .resolve_call_target(callee, None)
-                    .ok_or_else(|| {
-                        hir_error(format!("while loop call `{callee}` is not indexed"))
-                    })?;
-                let scalar_signature = crate::hir::is_scalar_resolved_type(&target.return_type)
-                    && target.params.iter().all(|param| {
-                        param.ownership == OwnershipMode::Value
-                            && crate::hir::is_scalar_resolved_type(&param.ty)
+                ResolvedExprKind::NativeRustImportCall(_) => {
+                    return Err(hir_error(
+                        "while loops cannot contain native Rust import calls",
+                    ));
+                }
+                ResolvedExprKind::Upcast { .. } => {
+                    return Err(hir_error("while loops cannot contain inheritance upcasts"));
+                }
+                ResolvedExprKind::Project { .. } => {
+                    return Err(hir_error("while loops cannot project record fields"));
+                }
+                ResolvedExprKind::ConstructRecord { .. } => {
+                    return Err(hir_error("while loops cannot construct records"));
+                }
+                ResolvedExprKind::ConstructVariant { .. } => {
+                    return Err(hir_error("while loops cannot construct variants"));
+                }
+                ResolvedExprKind::UpdateRecord { .. } => {
+                    return Err(hir_error("while loops cannot update records"));
+                }
+                ResolvedExprKind::Match { scrutinee, arms } => {
+                    self.validate_indexed_byte_option_match_admission(expression, scrutinee, arms)?;
+                    pending.push(Item::IndexedMatchNext {
+                        expression,
+                        scrutinee,
+                        arms,
+                        next: 0,
+                        some_seen: false,
+                        none_seen: false,
                     });
-                if !scalar_signature {
-                    return Err(hir_error(format!(
-                        "while loop call `{callee}` is not a scalar-value function"
-                    )));
                 }
-                for argument in args {
-                    self.validate_while_admission(argument)?;
+                ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => {
+                    return Err(hir_error(
+                        "while loops cannot contain postfix `?` propagation",
+                    ));
                 }
-                Ok(())
             }
-            ResolvedExprKind::NativeRustImportCall(_) => Err(hir_error(
-                "while loops cannot contain native Rust import calls",
-            )),
-            ResolvedExprKind::Upcast { .. } => {
-                Err(hir_error("while loops cannot contain inheritance upcasts"))
-            }
-            ResolvedExprKind::Project { .. } => {
-                Err(hir_error("while loops cannot project record fields"))
-            }
-            ResolvedExprKind::ConstructRecord { .. } => {
-                Err(hir_error("while loops cannot construct records"))
-            }
-            ResolvedExprKind::ConstructVariant { .. } => {
-                Err(hir_error("while loops cannot construct variants"))
-            }
-            ResolvedExprKind::UpdateRecord { .. } => {
-                Err(hir_error("while loops cannot update records"))
-            }
-            ResolvedExprKind::Match { scrutinee, arms } => {
-                self.validate_indexed_byte_option_match_admission(expression, scrutinee, arms)
-            }
-            ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => Err(hir_error(
-                "while loops cannot contain postfix `?` propagation",
-            )),
         }
+        Ok(())
     }
 
     /// Authenticate the one aggregate-shaped expression admitted by Indexed
@@ -1528,60 +1595,60 @@ impl<'a> HirValidator<'a> {
             ));
         }
 
-        let mut some_seen = false;
-        let mut none_seen = false;
-        for arm in arms {
-            if arm.guard.is_some()
-                || arm.value.ty != expression.ty
-                || arm.value.ownership != OwnershipMode::Value
-                || !crate::hir::is_scalar_resolved_type(&arm.value.ty)
-            {
-                return Err(hir_error(
-                    "while loop byte match arms must be guard-free Copy-scalar expressions",
-                ));
-            }
-            let ResolvedMatchPattern::Variant {
-                variant,
-                case,
-                fields,
-            } = &arm.pattern
-            else {
-                return Err(hir_error(
-                    "while loop byte match contains a non-Option case pattern",
-                ));
-            };
-            if variant.as_str() != crate::prelude::OPTION_ID {
-                return Err(hir_error(
-                    "while loop byte match pattern has a foreign variant identity",
-                ));
-            }
-            match case.as_str() {
-                crate::prelude::OPTION_SOME_ID
-                    if !some_seen
-                        && fields.len() == 1
-                        && fields[0].field.as_str() == crate::prelude::OPTION_SOME_VALUE_ID
-                        && fields[0].binding.ty == ResolvedType::U8
-                        && fields[0].binding.ownership == OwnershipMode::Value =>
-                {
-                    some_seen = true;
-                }
-                crate::prelude::OPTION_NONE_ID if !none_seen && fields.is_empty() => {
-                    none_seen = true;
-                }
-                _ => {
-                    return Err(hir_error(
-                        "while loop byte match is not the exact exhaustive Some/None inventory",
-                    ));
-                }
-            }
-            self.validate_while_admission(&arm.value)?;
-        }
-        if !some_seen || !none_seen {
+        Ok(())
+    }
+
+    fn validate_indexed_byte_option_match_arm(
+        &self,
+        expression: &ResolvedExpr,
+        arm: &ResolvedMatchArm,
+        some_seen: &mut bool,
+        none_seen: &mut bool,
+    ) -> Result<(), Diagnostic> {
+        if arm.guard.is_some()
+            || arm.value.ty != expression.ty
+            || arm.value.ownership != OwnershipMode::Value
+            || !crate::hir::is_scalar_resolved_type(&arm.value.ty)
+        {
             return Err(hir_error(
-                "while loop byte match is not exhaustive over Some and None",
+                "while loop byte match arms must be guard-free Copy-scalar expressions",
             ));
         }
-        self.validate_while_admission(scrutinee)
+        let ResolvedMatchPattern::Variant {
+            variant,
+            case,
+            fields,
+        } = &arm.pattern
+        else {
+            return Err(hir_error(
+                "while loop byte match contains a non-Option case pattern",
+            ));
+        };
+        if variant.as_str() != crate::prelude::OPTION_ID {
+            return Err(hir_error(
+                "while loop byte match pattern has a foreign variant identity",
+            ));
+        }
+        match case.as_str() {
+            crate::prelude::OPTION_SOME_ID
+                if !*some_seen
+                    && fields.len() == 1
+                    && fields[0].field.as_str() == crate::prelude::OPTION_SOME_VALUE_ID
+                    && fields[0].binding.ty == ResolvedType::U8
+                    && fields[0].binding.ownership == OwnershipMode::Value =>
+            {
+                *some_seen = true;
+            }
+            crate::prelude::OPTION_NONE_ID if !*none_seen && fields.is_empty() => {
+                *none_seen = true;
+            }
+            _ => {
+                return Err(hir_error(
+                    "while loop byte match is not the exact exhaustive Some/None inventory",
+                ));
+            }
+        }
+        Ok(())
     }
 
     fn reachable_function_instances(
@@ -7827,5 +7894,96 @@ impl<'a> HirValidator<'a> {
                 "duplicate resolved value identity `{id}`"
             )))
         }
+    }
+}
+
+#[cfg(test)]
+mod iterative_while_admission_tests {
+    use super::*;
+
+    const INDEXED_LOOP: &str = r#"
+module test.validation_indexed_depth;
+@id("indexed.deep")
+fn deep(bytes: borrow Slice<u8>) -> usize {
+    let length = byte_len(bytes);
+    let mut index = 0usize;
+    let mut total = 0usize;
+    while index <= length {
+        total = total + match byte_get(bytes, index) {
+            Option::Some { value: byte } => if byte == 255u8 { 1usize } else { 0usize },
+            Option::None {} => 0usize,
+        };
+        index = index + 1usize;
+        index <= length
+    }
+    total
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+
+    #[test]
+    fn exact_512_nested_indexed_matches_validate_on_a_low_stack() {
+        let parsed = crate::parse(
+            INDEXED_LOOP,
+            std::path::Path::new("validation-indexed-depth.spx"),
+        )
+        .unwrap();
+        let program = crate::hir::resolve(&parsed).unwrap();
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "indexed.deep")
+            .unwrap();
+        let slice_parameter = function.params[0].id.clone();
+        let mut pending = vec![&function.body];
+        let template = loop {
+            let expression = pending.pop().expect("indexed match retained");
+            if matches!(expression.kind, ResolvedExprKind::Match { .. }) {
+                break expression.clone();
+            }
+            crate::hir::push_resolved_expression_children_in_authored_order(
+                expression,
+                &mut pending,
+            );
+        };
+        let mut nested = template.clone();
+        for _ in 1..512 {
+            let mut outer = template.clone();
+            let ResolvedExprKind::Match { arms, .. } = &mut outer.kind else {
+                unreachable!();
+            };
+            arms[0].value = nested;
+            nested = outer;
+        }
+        let mut cursor = &nested;
+        let mut depth = 0;
+        while let ResolvedExprKind::Match { arms, .. } = &cursor.kind {
+            depth += 1;
+            cursor = &arms[0].value;
+        }
+        assert_eq!(depth, 512);
+        let baseline = template;
+
+        let (program, nested) = std::thread::Builder::new()
+            .name("indexed-match-admission-depth".to_owned())
+            .stack_size(128 * 1024)
+            .spawn(move || {
+                let mut validator = HirValidator::new(&program).unwrap();
+                // `validate_function` authenticates borrowed slice parameters
+                // before invoking this private admission pass. Recreate that
+                // exact prerequisite because this focused test calls the pass
+                // directly instead of revalidating the whole function.
+                validator
+                    .byte_slice_aliases
+                    .insert(slice_parameter.clone(), slice_parameter);
+                validator.validate_while_admission(&baseline).unwrap();
+                validator.validate_while_admission(&nested).unwrap();
+                (program, nested)
+            })
+            .unwrap()
+            .join()
+            .unwrap();
+        drop(nested);
+        drop(program);
     }
 }

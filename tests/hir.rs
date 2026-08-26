@@ -145,10 +145,10 @@ fn resource_names_resolve_to_persistent_type_identities() {
 #[test]
 fn type_facts_and_layout_keys_survive_display_name_renames() {
     let renamed = SOURCE
-        .replace("resource Buffer {", "resource Bytes {")
+        .replace("resource Buffer {", "resource Store {")
         .replace(
             "fn consume(value: own Buffer)",
-            "fn consume(value: own Bytes)",
+            "fn consume(value: own Store)",
         );
     let original = resolve(&parse(SOURCE, Path::new("original.spx")).unwrap()).unwrap();
     let renamed = resolve(&parse(&renamed, Path::new("renamed.spx")).unwrap()).unwrap();

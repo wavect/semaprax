@@ -85,6 +85,15 @@ fn stderr(output: &Output) -> String {
     String::from_utf8(output.stderr.clone()).unwrap()
 }
 
+fn replace_exactly_once(source: &str, needle: &str, replacement: &str) -> String {
+    assert_eq!(
+        source.matches(needle).count(),
+        1,
+        "fixture mutation needle must match exactly once: {needle}"
+    );
+    source.replacen(needle, replacement, 1)
+}
+
 fn replay_payload_digest(envelope: &str) -> String {
     let marker = ",\"payload_digest\":";
     let offset = envelope.rfind(marker).unwrap();
@@ -136,8 +145,9 @@ fn manifest_test_result_controls_test_status_without_affecting_entry_run() {
     let source = std::fs::read_to_string(&tests).unwrap();
     std::fs::write(
         &tests,
-        source.replace(
-            "if add(19, 23) == 42 && divide(84, 2) == 42 && is_negative(-1) && not(false) { 0 } else { 1 }",
+        replace_exactly_once(
+            &source,
+            "if add(19, 23) == 42 && subtract(23, 19) == 4 && multiply(6, 7) == 42 && divide(84, 2) == 42 && is_negative(-1) && not(false) { 0 } else { 1 }",
             "7",
         ),
     )
@@ -210,7 +220,11 @@ fn language_failure_is_not_misreported_as_fuel_or_test_assertion_failure() {
     let source = std::fs::read_to_string(&app).unwrap();
     std::fs::write(
         &app,
-        source.replace("add(40, divide(4, 2))", "divide(1, 0)"),
+        replace_exactly_once(
+            &source,
+            "add(multiply(6, 7), subtract(divide(4, 2), 2))",
+            "divide(1, 0)",
+        ),
     )
     .unwrap();
 

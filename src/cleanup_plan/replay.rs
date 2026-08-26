@@ -621,16 +621,8 @@ fn expression_path_counts_with_while(
     function: &ResolvedFunction,
     expression: &ResolvedExpr,
 ) -> Result<HirPathCounts, Diagnostic> {
-    fn count(
-        function: &ResolvedFunction,
-        expression: &ResolvedExpr,
-    ) -> Result<HirPathCounts, Diagnostic> {
-        let saturating_total = HirPathCounts {
-            normal: MAX_REPLAY_PATHS + 1,
-            failed: 0,
-            residual: 0,
-        };
-        let counts = match &expression.kind {
+    fn child(expression: &ResolvedExpr, mut index: usize) -> Option<&ResolvedExpr> {
+        match &expression.kind {
             ResolvedExprKind::Int(_)
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
@@ -643,203 +635,288 @@ fn expression_path_counts_with_while(
             | ResolvedExprKind::Bool(_)
             | ResolvedExprKind::String(_)
             | ResolvedExprKind::Place(_)
-            | ResolvedExprKind::BorrowPlace { .. } => HirPathCounts::ONE,
-            ResolvedExprKind::Unary { op, value } => {
-                let inner = count(function, value)?;
-                if *op == UnaryOp::Neg {
-                    HirPathCounts {
-                        normal: inner.normal,
-                        failed: inner.failed.saturating_add(inner.normal),
-                        residual: inner.residual,
-                    }
-                } else {
-                    inner
-                }
+            | ResolvedExprKind::BorrowPlace { .. } => None,
+            ResolvedExprKind::Unary { value, .. }
+            | ResolvedExprKind::Upcast { source: value }
+            | ResolvedExprKind::Try { operand: value, .. }
+            | ResolvedExprKind::TryOption { operand: value, .. }
+            | ResolvedExprKind::Project { base: value, .. } => {
+                (index == 0).then_some(value.as_ref())
             }
-            ResolvedExprKind::Upcast { source } => count(function, source)?,
-            ResolvedExprKind::Binary { op, left, right } => {
-                let left_counts = count(function, left)?;
-                let right_counts = count(function, right)?;
-                if matches!(op, BinaryOp::And | BinaryOp::Or) {
-                    HirPathCounts {
-                        normal: left_counts
-                            .normal
-                            .saturating_mul(right_counts.normal.saturating_add(1)),
-                        failed: left_counts
-                            .failed
-                            .saturating_add(left_counts.normal.saturating_mul(right_counts.failed)),
-                        residual: left_counts.residual.saturating_add(
-                            left_counts.normal.saturating_mul(right_counts.residual),
-                        ),
-                    }
-                } else {
-                    let sequenced = sequence_path_counts(left_counts, right_counts);
-                    if matches!(
-                        op,
-                        BinaryOp::Add
-                            | BinaryOp::Sub
-                            | BinaryOp::Mul
-                            | BinaryOp::Div
-                            | BinaryOp::Rem
-                    ) {
-                        HirPathCounts {
-                            failed: sequenced.failed.saturating_add(sequenced.normal),
-                            ..sequenced
-                        }
-                    } else {
-                        sequenced
-                    }
-                }
+            ResolvedExprKind::Binary { left, right, .. } => {
+                [left.as_ref(), right.as_ref()].get(index).copied()
             }
-            ResolvedExprKind::Call { args, .. } => {
-                let mut accumulator = HirPathCounts::ONE;
-                for argument in args {
-                    accumulator = sequence_path_counts(accumulator, count(function, argument)?);
-                }
-                HirPathCounts {
-                    failed: accumulator.failed.saturating_add(accumulator.normal),
-                    ..accumulator
-                }
-            }
-            ResolvedExprKind::NativeRustImportCall(call) => {
-                let mut accumulator = HirPathCounts::ONE;
-                for argument in &call.args {
-                    accumulator = sequence_path_counts(accumulator, count(function, argument)?);
-                }
-                HirPathCounts {
-                    failed: accumulator.failed.saturating_add(accumulator.normal),
-                    ..accumulator
-                }
-            }
-            ResolvedExprKind::HostCommandCall(call) => {
-                let mut accumulator = HirPathCounts::ONE;
-                for argument in &call.args {
-                    accumulator = sequence_path_counts(accumulator, count(function, argument)?);
-                }
-                if crate::command_io_ops::failure(call.operation)
-                    == crate::command_io_ops::CommandIoFailure::Status
-                {
-                    HirPathCounts {
-                        failed: accumulator.failed.saturating_add(accumulator.normal),
-                        ..accumulator
-                    }
-                } else {
-                    accumulator
-                }
-            }
+            ResolvedExprKind::Call { args, .. } => args.get(index),
+            ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
+            ResolvedExprKind::HostCommandCall(call) => call.args.get(index),
             ResolvedExprKind::If {
                 condition,
                 then_branch,
                 else_branch,
-            } => {
-                let condition_counts = count(function, condition)?;
-                let then_counts = count(function, then_branch)?;
-                let else_counts = count(function, else_branch)?;
-                HirPathCounts {
-                    normal: condition_counts
-                        .normal
-                        .saturating_mul(then_counts.normal.saturating_add(else_counts.normal)),
-                    failed: condition_counts.failed.saturating_add(
-                        condition_counts
-                            .normal
-                            .saturating_mul(then_counts.failed.saturating_add(else_counts.failed)),
-                    ),
-                    residual: condition_counts.residual.saturating_add(
-                        condition_counts.normal.saturating_mul(
-                            then_counts.residual.saturating_add(else_counts.residual),
-                        ),
-                    ),
-                }
-            }
+            } => [
+                condition.as_ref(),
+                then_branch.as_ref(),
+                else_branch.as_ref(),
+            ]
+            .get(index)
+            .copied(),
             ResolvedExprKind::Match { scrutinee, arms } => {
-                let scrutinee_counts = count(function, scrutinee)?;
-                let mut arms_normal = 0usize;
-                let mut arms_failed = 0usize;
-                let mut arms_residual = 0usize;
-                for arm in arms {
-                    let arm_counts = count(function, &arm.value)?;
-                    arms_normal = arms_normal.saturating_add(arm_counts.normal);
-                    arms_failed = arms_failed.saturating_add(arm_counts.failed);
-                    arms_residual = arms_residual.saturating_add(arm_counts.residual);
-                }
-                HirPathCounts {
-                    normal: scrutinee_counts.normal.saturating_mul(arms_normal),
-                    failed: scrutinee_counts
-                        .failed
-                        .saturating_add(scrutinee_counts.normal.saturating_mul(arms_failed)),
-                    residual: scrutinee_counts
-                        .residual
-                        .saturating_add(scrutinee_counts.normal.saturating_mul(arms_residual)),
+                if index == 0 {
+                    Some(scrutinee)
+                } else {
+                    arms.get(index - 1).map(|arm| &arm.value)
                 }
             }
-            ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
-                let operand_counts = count(function, operand)?;
-                HirPathCounts {
-                    residual: operand_counts
-                        .residual
-                        .saturating_add(operand_counts.normal),
-                    ..operand_counts
-                }
-            }
-            ResolvedExprKind::Project { base, .. } => count(function, base)?,
             ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-                let mut accumulator = count(function, base)?;
-                for field in fields {
-                    accumulator = sequence_path_counts(accumulator, count(function, &field.value)?);
+                if index == 0 {
+                    Some(base)
+                } else {
+                    fields.get(index - 1).map(|field| &field.value)
                 }
-                accumulator
             }
             ResolvedExprKind::ConstructRecord { fields, .. }
             | ResolvedExprKind::ConstructVariant { fields, .. } => {
-                let mut accumulator = HirPathCounts::ONE;
-                for field in fields {
-                    accumulator = sequence_path_counts(accumulator, count(function, &field.value)?);
-                }
-                accumulator
+                fields.get(index).map(|field| &field.value)
             }
             ResolvedExprKind::Block { statements, tail } => {
-                let mut accumulator = HirPathCounts::ONE;
                 for statement in statements {
-                    match statement {
-                        ResolvedStatement::While {
-                            condition, body, ..
-                        } => {
-                            let condition_counts = count(function, condition)?;
-                            let body_counts = count(function, body)?;
-                            let contribution = HirPathCounts {
-                                normal: condition_counts
-                                    .normal
-                                    .saturating_mul(body_counts.normal.saturating_add(1)),
-                                failed: condition_counts.failed.saturating_add(
-                                    condition_counts.normal.saturating_mul(body_counts.failed),
-                                ),
-                                residual: condition_counts.residual.saturating_add(
-                                    condition_counts.normal.saturating_mul(body_counts.residual),
-                                ),
-                            };
-                            accumulator = sequence_path_counts(accumulator, contribution);
+                    let child_count = statement.child_count();
+                    if index < child_count {
+                        return statement.child(index);
+                    }
+                    index -= child_count;
+                }
+                (index == 0).then_some(tail.as_ref())
+            }
+        }
+    }
+
+    enum Frame<'a> {
+        Enter(&'a ResolvedExpr),
+        Finish {
+            expression: &'a ResolvedExpr,
+            result_base: usize,
+        },
+    }
+
+    let saturating_total = HirPathCounts {
+        normal: MAX_REPLAY_PATHS + 1,
+        failed: 0,
+        residual: 0,
+    };
+    let mut frames = vec![Frame::Enter(expression)];
+    let mut results: Vec<HirPathCounts> = Vec::new();
+    while let Some(frame) = frames.pop() {
+        match frame {
+            Frame::Enter(expression) => {
+                let mut child_count = 0usize;
+                while child(expression, child_count).is_some() {
+                    child_count = child_count.saturating_add(1);
+                }
+                frames
+                    .try_reserve(child_count.saturating_add(1))
+                    .map_err(|_| {
+                        replay_error(function, "while path census capacity exceeds address space")
+                    })?;
+                frames.push(Frame::Finish {
+                    expression,
+                    result_base: results.len(),
+                });
+                for index in (0..child_count).rev() {
+                    frames.push(Frame::Enter(
+                        child(expression, index).expect("counted expression child is present"),
+                    ));
+                }
+            }
+            Frame::Finish {
+                expression,
+                result_base,
+            } => {
+                let children = results.get(result_base..).ok_or_else(|| {
+                    replay_error(function, "while path census result stack is invalid")
+                })?;
+                let sequence = |children: &[HirPathCounts]| {
+                    children
+                        .iter()
+                        .copied()
+                        .fold(HirPathCounts::ONE, sequence_path_counts)
+                };
+                let counts = match &expression.kind {
+                    ResolvedExprKind::Int(_)
+                    | ResolvedExprKind::Int32(_)
+                    | ResolvedExprKind::Char(_)
+                    | ResolvedExprKind::Uint8(_)
+                    | ResolvedExprKind::Usize(_)
+                    | ResolvedExprKind::ArrayU8(_)
+                    | ResolvedExprKind::RepeatArrayU8 { .. }
+                    | ResolvedExprKind::Float32(_)
+                    | ResolvedExprKind::Float64(_)
+                    | ResolvedExprKind::Bool(_)
+                    | ResolvedExprKind::String(_)
+                    | ResolvedExprKind::Place(_)
+                    | ResolvedExprKind::BorrowPlace { .. } => HirPathCounts::ONE,
+                    ResolvedExprKind::Unary { op, .. } => {
+                        let inner = children[0];
+                        if *op == UnaryOp::Neg {
+                            HirPathCounts {
+                                normal: inner.normal,
+                                failed: inner.failed.saturating_add(inner.normal),
+                                residual: inner.residual,
+                            }
+                        } else {
+                            inner
                         }
-                        other => {
-                            for index in 0..other.child_count() {
-                                let child = other.child(index).ok_or_else(|| {
-                                    replay_error(function, "while statement child is missing")
-                                })?;
-                                accumulator =
-                                    sequence_path_counts(accumulator, count(function, child)?);
+                    }
+                    ResolvedExprKind::Upcast { .. } | ResolvedExprKind::Project { .. } => {
+                        children[0]
+                    }
+                    ResolvedExprKind::Binary { op, .. } => {
+                        let left = children[0];
+                        let right = children[1];
+                        if matches!(op, BinaryOp::And | BinaryOp::Or) {
+                            HirPathCounts {
+                                normal: left.normal.saturating_mul(right.normal.saturating_add(1)),
+                                failed: left
+                                    .failed
+                                    .saturating_add(left.normal.saturating_mul(right.failed)),
+                                residual: left
+                                    .residual
+                                    .saturating_add(left.normal.saturating_mul(right.residual)),
+                            }
+                        } else {
+                            let sequenced = sequence_path_counts(left, right);
+                            if matches!(
+                                op,
+                                BinaryOp::Add
+                                    | BinaryOp::Sub
+                                    | BinaryOp::Mul
+                                    | BinaryOp::Div
+                                    | BinaryOp::Rem
+                            ) {
+                                HirPathCounts {
+                                    failed: sequenced.failed.saturating_add(sequenced.normal),
+                                    ..sequenced
+                                }
+                            } else {
+                                sequenced
                             }
                         }
                     }
-                }
-                accumulator = sequence_path_counts(accumulator, count(function, tail)?);
-                accumulator
+                    ResolvedExprKind::Call { .. } | ResolvedExprKind::NativeRustImportCall(_) => {
+                        let accumulator = sequence(children);
+                        HirPathCounts {
+                            failed: accumulator.failed.saturating_add(accumulator.normal),
+                            ..accumulator
+                        }
+                    }
+                    ResolvedExprKind::HostCommandCall(call) => {
+                        let accumulator = sequence(children);
+                        if crate::command_io_ops::failure(call.operation)
+                            == crate::command_io_ops::CommandIoFailure::Status
+                        {
+                            HirPathCounts {
+                                failed: accumulator.failed.saturating_add(accumulator.normal),
+                                ..accumulator
+                            }
+                        } else {
+                            accumulator
+                        }
+                    }
+                    ResolvedExprKind::If { .. } => {
+                        let condition = children[0];
+                        let then_branch = children[1];
+                        let else_branch = children[2];
+                        HirPathCounts {
+                            normal: condition.normal.saturating_mul(
+                                then_branch.normal.saturating_add(else_branch.normal),
+                            ),
+                            failed: condition.failed.saturating_add(
+                                condition.normal.saturating_mul(
+                                    then_branch.failed.saturating_add(else_branch.failed),
+                                ),
+                            ),
+                            residual: condition.residual.saturating_add(
+                                condition.normal.saturating_mul(
+                                    then_branch.residual.saturating_add(else_branch.residual),
+                                ),
+                            ),
+                        }
+                    }
+                    ResolvedExprKind::Match { .. } => {
+                        let scrutinee = children[0];
+                        let arms = &children[1..];
+                        let arms_normal = arms
+                            .iter()
+                            .fold(0usize, |sum, arm| sum.saturating_add(arm.normal));
+                        let arms_failed = arms
+                            .iter()
+                            .fold(0usize, |sum, arm| sum.saturating_add(arm.failed));
+                        let arms_residual = arms
+                            .iter()
+                            .fold(0usize, |sum, arm| sum.saturating_add(arm.residual));
+                        HirPathCounts {
+                            normal: scrutinee.normal.saturating_mul(arms_normal),
+                            failed: scrutinee
+                                .failed
+                                .saturating_add(scrutinee.normal.saturating_mul(arms_failed)),
+                            residual: scrutinee
+                                .residual
+                                .saturating_add(scrutinee.normal.saturating_mul(arms_residual)),
+                        }
+                    }
+                    ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => {
+                        let operand = children[0];
+                        HirPathCounts {
+                            residual: operand.residual.saturating_add(operand.normal),
+                            ..operand
+                        }
+                    }
+                    ResolvedExprKind::UpdateRecord { .. }
+                    | ResolvedExprKind::ConstructRecord { .. }
+                    | ResolvedExprKind::ConstructVariant { .. } => sequence(children),
+                    ResolvedExprKind::Block { statements, .. } => {
+                        let mut accumulator = HirPathCounts::ONE;
+                        let mut index = 0usize;
+                        for statement in statements {
+                            if matches!(statement, ResolvedStatement::While { .. }) {
+                                let condition = children[index];
+                                let body = children[index + 1];
+                                index += 2;
+                                let contribution = HirPathCounts {
+                                    normal: condition
+                                        .normal
+                                        .saturating_mul(body.normal.saturating_add(1)),
+                                    failed: condition.failed.saturating_add(
+                                        condition.normal.saturating_mul(body.failed),
+                                    ),
+                                    residual: condition.residual.saturating_add(
+                                        condition.normal.saturating_mul(body.residual),
+                                    ),
+                                };
+                                accumulator = sequence_path_counts(accumulator, contribution);
+                            } else {
+                                for _ in 0..statement.child_count() {
+                                    accumulator =
+                                        sequence_path_counts(accumulator, children[index]);
+                                    index += 1;
+                                }
+                            }
+                        }
+                        sequence_path_counts(accumulator, children[index])
+                    }
+                };
+                results.truncate(result_base);
+                results.push(if counts.total() > MAX_REPLAY_PATHS {
+                    saturating_total
+                } else {
+                    counts
+                });
             }
-        };
-        if counts.total() > MAX_REPLAY_PATHS {
-            return Ok(saturating_total);
         }
-        Ok(counts)
     }
-    count(function, expression)
+    results
+        .pop()
+        .ok_or_else(|| replay_error(function, "while path census produced no result"))
 }
 
 fn hir_terminal_path_bound(function: &ResolvedFunction) -> Result<usize, Diagnostic> {
@@ -2867,6 +2944,7 @@ fn expression_skeleton(
             statements: &'a [ResolvedStatement],
             tail: &'a ResolvedExpr,
             index: usize,
+            results: Vec<ExprSkeletonPath>,
             true_prefixes: Vec<ExprSkeletonPath>,
             false_prefixes: Vec<ExprSkeletonPath>,
         },
@@ -3557,7 +3635,7 @@ fn expression_skeleton(
             } => {
                 let condition_paths = produced.take().expect("while condition path retained");
                 let prefixed = sequence_skeleton_paths(prefixes, &condition_paths, work)?;
-                let (_, true_prefixes, false_prefixes) =
+                let (results, true_prefixes, false_prefixes) =
                     split_boolean_prefixes(prefixed, &condition.id, work)?;
                 push_frame!(
                     frames,
@@ -3566,6 +3644,7 @@ fn expression_skeleton(
                         statements,
                         tail,
                         index,
+                        results,
                         true_prefixes,
                         false_prefixes,
                     }
@@ -3577,6 +3656,7 @@ fn expression_skeleton(
                 statements,
                 tail,
                 index,
+                mut results,
                 true_prefixes,
                 false_prefixes,
             } => {
@@ -3584,9 +3664,8 @@ fn expression_skeleton(
                 let joined = sequence_skeleton_paths(true_prefixes, &body_paths, work)?;
                 // The skip branch joins the body branch at the loop
                 // continuation without further observations.
-                let mut combined = Vec::new();
                 for path in joined.into_iter().chain(false_prefixes) {
-                    work.push_expr_path(&mut combined, path, "while join path")?;
+                    work.push_expr_path(&mut results, path, "while join path")?;
                 }
                 if let Some(settled) = advance_block_value(
                     function,
@@ -3596,7 +3675,7 @@ fn expression_skeleton(
                     statements,
                     tail,
                     index,
-                    combined,
+                    results,
                 )? {
                     produced = Some(settled);
                 }

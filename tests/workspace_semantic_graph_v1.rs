@@ -473,10 +473,9 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
     );
     assert_eq!(
         document_digest(graph.to_json().as_bytes()),
-        // Re-pinned for Field Mutation v1: `ResolvedStatement::Assign` gained one
-        // `Option<DeclarationId>` field, growing the deterministic
-        // `HIR_EXPR_FIXED_BUNDLE` budget term.
-        "sha256:a5aacb46e6c3a2b05fd16db8b32eae1b2561548422c4415ee6554ddf00e2288b"
+        // Re-pinned after cumulative authenticated HIR carrier growth through
+        // the host-command profile enlarged `HIR_EXPR_FIXED_BUNDLE`.
+        "sha256:36504e9f04414b1c53594d3fb6e30d5ac6c2be76c8ccde3c0b50d28c6e3b06a6"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -890,14 +889,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:bf513c039331206211e00d61df9e1b84b8cf94e7da65e0de28d65e32a1e78352",
-            "sha256:25ba35798667eeb560242d920686b23d58ecba1c40510bd06b2f6983b4fc55dd",
-            "sha256:340be08153f93ea9001120b6b7dc4fce3d62dd4e3f579e38c3fff2b547e2f61e",
-            "sha256:869def246de39004e8f90606e33a7a0bc371d7a813058a1ea8deb5202cffe2cf",
-            "sha256:c9b45318033cdec7ed98db59e535691f4582c748f496763bc5d06952fb54e688",
-            "sha256:0e7be7a2b497aaec8f15a7b34a5a8716e74950de53a7daf8984910840cacd22b",
-            "sha256:52b3ebade0a34ac7834c4ed97581763a1632e25b17b8bad074d42b861ae16026",
-            "sha256:23ca502a005bc7bfae1c30f8e05027bb986c761148fa138ef4e5c21061d61687",
+            "sha256:1f4c7a06894f8b76bddca0105bd8acda50f710982cf2c32e8c243b96d4e75b9a",
+            "sha256:4787119381e822ad12490b6ab9f29eb998184a34f5e9c205297c6c599a654dc3",
+            "sha256:9b3ba22ea6de7ae5aeb8db209e30270fe4b6e1f6c3b9691fd7f84b8d9496ef58",
+            "sha256:6c928c73a0ab062260d7004657d69e3f84aa91c2873f0757c3ccb2c82b752db8",
+            "sha256:6f4d77019096180af8270ec9e836f0451dfebd1551d412f58f38a33f0b592002",
+            "sha256:8730724033b918e45ed87a95398b4f13f1dd9bf583c6b0af2b9c043133f0f46d",
+            "sha256:7b12c8b313c4610d2e8c6fec46d06d2171bd653f34795b179afa8c5b0de5a35b",
+            "sha256:2f51d61dc9cda87ac07d6d1f66dd808941165d79786a3861dc6d17d409726b76",
         ]
     );
 

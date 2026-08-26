@@ -226,8 +226,10 @@ fn main() -> i64 {
 "#;
     let moved = hir::resolve(&parse(moved_source, Path::new("moves.spx")).unwrap()).unwrap_err();
     assert!(
-        moved.iter().any(|item| item.code == "SPX-H006"
-            && item.message.contains("used after it was moved")),
+        moved
+            .iter()
+            .any(|item| item.code == "SPX-O101"
+                && item.message.contains("after ownership was moved")),
         "using a consumed concat argument must be rejected: {moved:?}"
     );
 }
@@ -249,6 +251,30 @@ fn main() -> i64 {
     let program = hir::resolve(&parse(borrows_source, Path::new("borrows.spx")).unwrap())
         .expect("borrowed reads keep their operand available");
     assert!(!program.functions.is_empty());
+}
+
+#[test]
+fn by_value_string_parameters_consume_user_call_arguments() {
+    let moved = diagnostics(
+        r#"
+module test.string_parameter_move;
+@id("text.consume")
+fn consume(value: string) -> i64 { string_len(value) }
+@id("app.main")
+fn main() -> i64 {
+    let value = "owned";
+    let length = consume(value);
+    length + string_len(value)
+}
+"#,
+    );
+    assert!(
+        moved
+            .iter()
+            .any(|item| item.code == "SPX-O101"
+                && item.message.contains("after ownership was moved")),
+        "a user-call string transfer must invalidate its argument: {moved:?}"
+    );
 }
 
 #[test]

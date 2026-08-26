@@ -669,7 +669,12 @@ fn emit_record_declaration(
 
     let symbol = c_record_symbol(instance);
     writeln!(output, "struct {symbol} {{").expect("writing to a string cannot fail");
-    if layout.size == 0 {
+    if layout.fields.is_empty() {
+        // The canonical empty product has a frozen one-byte representation
+        // on every target. Keep that semantic byte distinct from the
+        // physical carrier used by nonempty, semantically zero-sized records.
+        output.push_str("    uint8_t spx_empty_record_padding;\n");
+    } else if layout.size == 0 {
         // ISO C11 has no empty objects or empty structs. This byte is an ABI
         // carrier only: the authenticated SEMAPRAX layout remains size zero,
         // and every zero-sized semantic field stays erased below.
@@ -1667,62 +1672,17 @@ fn contract_label<'a>(
 }
 
 fn expression_has_try(expression: &ResolvedExpr) -> bool {
-    match &expression.kind {
-        ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => true,
-        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
-        ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_try),
-        ResolvedExprKind::HostCommandCall(call) => call.args.iter().any(expression_has_try),
-        ResolvedExprKind::Unary { value, .. }
-        | ResolvedExprKind::Project { base: value, .. }
-        | ResolvedExprKind::Upcast { source: value } => expression_has_try(value),
-        ResolvedExprKind::Binary { left, right, .. } => {
-            expression_has_try(left) || expression_has_try(right)
+    let mut pending = vec![expression];
+    while let Some(expression) = pending.pop() {
+        if matches!(
+            expression.kind,
+            ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. }
+        ) {
+            return true;
         }
-        ResolvedExprKind::Block { statements, tail } => {
-            statements.iter().any(|statement| {
-                (0..statement.child_count())
-                    .any(|index| statement.child(index).is_some_and(expression_has_try))
-            }) || expression_has_try(tail)
-        }
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            expression_has_try(condition)
-                || expression_has_try(then_branch)
-                || expression_has_try(else_branch)
-        }
-        ResolvedExprKind::ConstructRecord { fields, .. }
-        | ResolvedExprKind::ConstructVariant { fields, .. } => {
-            fields.iter().any(|field| expression_has_try(&field.value))
-        }
-        ResolvedExprKind::Match { scrutinee, arms } => {
-            expression_has_try(scrutinee)
-                || arms.iter().any(|arm| {
-                    arm.guard
-                        .as_ref()
-                        .is_some_and(|guard| expression_has_try(guard))
-                        || expression_has_try(&arm.value)
-                })
-        }
-        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-            expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
-        }
-        ResolvedExprKind::Int(_)
-        | ResolvedExprKind::Int32(_)
-        | ResolvedExprKind::Char(_)
-        | ResolvedExprKind::Uint8(_)
-        | ResolvedExprKind::Usize(_)
-        | ResolvedExprKind::Float32(_)
-        | ResolvedExprKind::Float64(_)
-        | ResolvedExprKind::Bool(_)
-        | ResolvedExprKind::String(_)
-        | ResolvedExprKind::ArrayU8(_)
-        | ResolvedExprKind::RepeatArrayU8 { .. }
-        | ResolvedExprKind::BorrowPlace { .. }
-        | ResolvedExprKind::Place(_) => false,
+        pending.extend(resolved_expr_children(expression));
     }
+    false
 }
 
 pub(super) fn write_and_compile_c(c_source: &str, output: &Path) -> Result<(), Diagnostic> {

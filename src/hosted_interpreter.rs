@@ -33,7 +33,7 @@ pub fn execute_stdout_transcript(
 /// Immutable, invocation-owned host input for Language Command I/O v1.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct HostedCommandInput {
-    /// Exact arguments excluding argv[0].
+    /// Exact arguments excluding `argv[0]`.
     pub arguments: Vec<String>,
     /// Exact arbitrary stdin bytes.
     pub stdin: Vec<u8>,

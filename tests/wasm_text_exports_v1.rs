@@ -17,7 +17,7 @@ fn starts(value: borrow str, prefix: borrow str) -> bool {
 }
 
 @id("text.len")
-fn byte_len(value: borrow str) -> i64 {
+fn text_byte_len(value: borrow str) -> i64 {
     str_len_bytes(value)
 }
 
@@ -217,7 +217,7 @@ assert.equal(targetEntries, 6);
 fn profile_rejects_unreachable_owned_string_and_loop_inventory() {
     let owned = parse(
         r#"module text.hostile;
-@id("text.len") fn byte_len(value: borrow str) -> i64 { str_len_bytes(value) }
+@id("text.len") fn text_byte_len(value: borrow str) -> i64 { str_len_bytes(value) }
 @id("text.unused") fn unused(value: string) -> i64 { string_len(value) }
 @id("main") fn main() -> i64 { 0 }
 "#,
@@ -248,7 +248,7 @@ fn profile_rejects_unreachable_owned_string_and_loop_inventory() {
 
     let looped = parse(
         r#"module text.looped;
-@id("text.len") fn byte_len(value: borrow str) -> i64 { str_len_bytes(value) }
+@id("text.len") fn text_byte_len(value: borrow str) -> i64 { str_len_bytes(value) }
 @id("text.unused") fn unused(value: i64) -> i64 {
     let mut n = value;
     while n > 0 { n = n - 1; 0 }

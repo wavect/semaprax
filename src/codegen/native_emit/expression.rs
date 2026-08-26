@@ -377,7 +377,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         })
     }
 
-    pub(super) fn emit_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+    fn emit_leaf_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
         let value = match &expr.kind {
             ResolvedExprKind::Int(value) => {
                 self.require_type(&expr.ty, &ResolvedType::I64, "integer literal")?;
@@ -575,6 +575,111 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ty: ResolvedType::SliceU8,
                 }
             }
+            _ => unreachable!("non-leaf expression reached native leaf lowering"),
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    pub(super) fn emit_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        match &expr.kind {
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::BorrowPlace { .. } => self.emit_leaf_expr(expr),
+            ResolvedExprKind::HostCommandCall(_) => self.emit_host_command_expr(expr),
+            ResolvedExprKind::Call { .. } => self.emit_call_expr(expr),
+            ResolvedExprKind::NativeRustImportCall(call) => Err(backend_error(format!(
+                "native Rust import `{}` is unavailable in the ordinary native backend",
+                call.import
+            ))),
+            ResolvedExprKind::Unary { op, value } => self.emit_unary_expr(expr, *op, value),
+            ResolvedExprKind::Binary { op, left, right } => {
+                self.emit_binary(*op, left, right, &expr.ty)
+            }
+            ResolvedExprKind::Block { statements, .. } if statements.is_empty() => {
+                self.emit_empty_block_expr(expr)
+            }
+            ResolvedExprKind::Block { .. } => self.emit_block_expr(expr),
+            ResolvedExprKind::If { .. } => self.emit_if_expr(expr),
+            ResolvedExprKind::ConstructRecord { .. } => self.emit_construct_record_expr(expr),
+            ResolvedExprKind::ConstructVariant { .. } => self.emit_construct_variant_expr(expr),
+            ResolvedExprKind::Match { .. } => self.emit_match_expr(expr),
+            ResolvedExprKind::Try { .. } => self.emit_try_expr(expr),
+            ResolvedExprKind::TryOption { .. } => self.emit_try_option_expr(expr),
+            ResolvedExprKind::Project { .. } => self.emit_project_expr(expr),
+            ResolvedExprKind::Upcast { .. } => self.emit_upcast_expr(expr),
+            ResolvedExprKind::UpdateRecord { .. } => self.emit_update_record_expr(expr),
+        }
+    }
+
+    fn emit_unary_expr(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: UnaryOp,
+        operand: &ResolvedExpr,
+    ) -> Result<CValue, Diagnostic> {
+        let value = self.emit_expr(operand)?;
+        self.emit_unary_value(expr, op, value)
+    }
+
+    fn emit_unary_value(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: UnaryOp,
+        value: CValue,
+    ) -> Result<CValue, Diagnostic> {
+        let (ty, operand_type) = match op {
+            UnaryOp::Neg => match &value.ty {
+                ResolvedType::F32 => (ResolvedType::F32, ResolvedType::F32),
+                ResolvedType::F64 => (ResolvedType::F64, ResolvedType::F64),
+                ResolvedType::I32 => (ResolvedType::I32, ResolvedType::I32),
+                _ => (ResolvedType::I64, ResolvedType::I64),
+            },
+            UnaryOp::Not => (ResolvedType::Bool, ResolvedType::Bool),
+        };
+        self.require_type(&value.ty, &operand_type, "unary operand")?;
+        self.require_type(&expr.ty, &ty, "unary result")?;
+        let temporary = self.temporary(&ty)?;
+        match op {
+            UnaryOp::Neg if matches!(ty, ResolvedType::F32 | ResolvedType::F64) => {
+                self.line(&format!("{temporary} = (-({}));", value.code));
+            }
+            UnaryOp::Neg if ty == ResolvedType::I32 => {
+                self.line(&format!(
+                    "spx_status = spx_rt_neg_i32(spx_ctx, {}, &{temporary});",
+                    value.code
+                ));
+                self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+            }
+            UnaryOp::Neg => {
+                self.line(&format!(
+                    "spx_status = spx_rt_neg(spx_ctx, {}, &{temporary});",
+                    value.code
+                ));
+                self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+            }
+            UnaryOp::Not => self.line(&format!("{temporary} = (!{});", value.code)),
+        }
+        let value = CValue {
+            code: temporary,
+            ty,
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    fn emit_host_command_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
             ResolvedExprKind::HostCommandCall(call) => {
                 use hir::ResolvedHostCommandOperation as Operation;
 
@@ -674,6 +779,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     }
                 }
             }
+            _ => unreachable!("non-HostCommandCall expression reached emit_host_command_expr"),
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    fn emit_call_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        match &expr.kind {
             ResolvedExprKind::Call {
                 callee,
                 instance,
@@ -725,142 +838,167 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         return self.emit_string_op(op, args, &expr.ty);
                     }
                 }
-                let execution = instance.as_ref().map_or_else(
-                    || FunctionExecutionId::Monomorphic(callee.clone()),
-                    |instance| FunctionExecutionId::Generic(instance.clone()),
-                );
-                let target = self.functions.get(&execution).ok_or_else(|| {
-                    backend_error(format!("resolved callee `{callee}` is not indexed"))
-                })?;
-                if args.len() != target.params.len() {
-                    return Err(backend_error(format!(
-                        "resolved call to `{callee}` has {} arguments; expected {}",
-                        args.len(),
-                        target.params.len()
-                    )));
-                }
-                let target = target.clone();
-                let mut arguments = Vec::with_capacity(args.len());
-                for (index, (arg, expected)) in args.iter().zip(&target.params).enumerate() {
-                    let argument = self.emit_expr(arg)?;
-                    self.require_type(&argument.ty, expected, &format!("call argument {index}"))?;
-                    arguments.push(if matches!(expected, ResolvedType::Bytes) {
-                        let plan = self.bytes_plan.ok_or_else(|| {
-                            backend_error("owned Bytes call has no canonical cleanup plan")
-                        })?;
-                        let transitions = plan.apply_at(&arg.id)?;
-                        for line in transitions.lines() {
-                            self.line(line);
-                        }
-                        let parameter_index = u32::try_from(index)
-                            .map_err(|_| backend_error("native call has too many parameters"))?;
-                        let (value, _) = plan.call_argument(&expr.id, parameter_index)?;
-                        format!("spx_bytes_move(&{value})")
-                    } else if is_aggregate_type(self.program, expected)? {
-                        format!("&({})", argument.code)
-                    } else {
-                        argument.code
-                    });
-                }
-                self.require_type(&expr.ty, &target.return_type, "call result")?;
-                let temporary = if matches!(target.return_type, ResolvedType::Bytes) {
-                    self.bytes_plan
-                        .ok_or_else(|| {
-                            backend_error("owned Bytes call result has no cleanup plan")
-                        })?
-                        .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
-                        .to_owned()
-                } else {
-                    self.call_result_temporary(&target.return_type)?
-                };
-                self.line(&format!(
-                    "spx_status = {}(spx_ctx{}{}, &{temporary});",
-                    target.symbol,
-                    if arguments.is_empty() { "" } else { ", " },
-                    arguments.budgeted_join(", ")
-                ));
-                if let Some(plan) = self.bytes_plan {
-                    for (index, expected) in target.params.iter().enumerate() {
-                        if matches!(expected, ResolvedType::Bytes) {
-                            let (_, flag) = plan.call_argument(
-                                &expr.id,
-                                u32::try_from(index).map_err(|_| {
-                                    backend_error("native call has too many parameters")
-                                })?,
-                            )?;
-                            self.line(&format!("{flag} = false;"));
-                        }
-                    }
-                }
-                self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
-                if let Some(plan) = self.bytes_plan {
-                    let transitions = plan.apply_at(&expr.id)?;
-                    for line in transitions.lines() {
-                        self.line(line);
-                    }
-                }
-                CValue {
-                    code: if matches!(target.return_type, ResolvedType::Bytes) {
-                        self.bytes_plan
-                            .and_then(|plan| plan.result_at(&expr.id))
-                            .ok_or_else(|| {
-                                backend_error("owned call has no canonical result transfer")
-                            })?
-                            .to_owned()
-                    } else {
-                        temporary
-                    },
-                    ty: target.return_type,
-                }
+                self.emit_user_call_expr(expr, callee, instance.as_ref(), args)
             }
-            ResolvedExprKind::NativeRustImportCall(call) => {
+            _ => unreachable!("non-Call expression reached emit_call_expr"),
+        }
+    }
+
+    fn emit_user_call_expr(
+        &mut self,
+        expr: &ResolvedExpr,
+        callee: &hir::DeclarationId,
+        instance: Option<&hir::FunctionInstanceId>,
+        args: &[ResolvedExpr],
+    ) -> Result<CValue, Diagnostic> {
+        struct PendingCall<'a> {
+            expr: &'a ResolvedExpr,
+            args: &'a [ResolvedExpr],
+            target: super::CFunction,
+        }
+
+        let mut pending = Vec::new();
+        let mut current_expr = expr;
+        let mut current_callee = callee;
+        let mut current_instance = instance;
+        let mut current_args = args;
+        let mut value = loop {
+            let execution = current_instance.map_or_else(
+                || FunctionExecutionId::Monomorphic(current_callee.clone()),
+                |instance| FunctionExecutionId::Generic(instance.clone()),
+            );
+            let target = self.functions.get(&execution).cloned().ok_or_else(|| {
+                backend_error(format!("resolved callee `{current_callee}` is not indexed"))
+            })?;
+            if current_args.len() != target.params.len() {
                 return Err(backend_error(format!(
-                    "native Rust import `{}` is unavailable in the ordinary native backend",
-                    call.import
+                    "resolved call to `{current_callee}` has {} arguments; expected {}",
+                    current_args.len(),
+                    target.params.len()
                 )));
             }
-            ResolvedExprKind::Unary { op, value } => {
-                let value = self.emit_expr(value)?;
-                let (ty, operand_type) = match op {
-                    UnaryOp::Neg => match &value.ty {
-                        ResolvedType::F32 => (ResolvedType::F32, ResolvedType::F32),
-                        ResolvedType::F64 => (ResolvedType::F64, ResolvedType::F64),
-                        ResolvedType::I32 => (ResolvedType::I32, ResolvedType::I32),
-                        _ => (ResolvedType::I64, ResolvedType::I64),
-                    },
-                    UnaryOp::Not => (ResolvedType::Bool, ResolvedType::Bool),
-                };
-                self.require_type(&value.ty, &operand_type, "unary operand")?;
-                self.require_type(&expr.ty, &ty, "unary result")?;
-                let temporary = self.temporary(&ty)?;
-                match op {
-                    UnaryOp::Neg if matches!(ty, ResolvedType::F32 | ResolvedType::F64) => {
-                        self.line(&format!("{temporary} = (-({}));", value.code));
-                    }
-                    UnaryOp::Neg if ty == ResolvedType::I32 => {
-                        self.line(&format!(
-                            "spx_status = spx_rt_neg_i32(spx_ctx, {}, &{temporary});",
-                            value.code
-                        ));
-                        self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
-                    }
-                    UnaryOp::Neg => {
-                        self.line(&format!(
-                            "spx_status = spx_rt_neg(spx_ctx, {}, &{temporary});",
-                            value.code
-                        ));
-                        self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
-                    }
-                    UnaryOp::Not => self.line(&format!("{temporary} = (!{});", value.code)),
+            pending.push(PendingCall {
+                expr: current_expr,
+                args: current_args,
+                target,
+            });
+            let Some(first) = current_args.first() else {
+                break None;
+            };
+            let ResolvedExprKind::Call {
+                callee,
+                instance,
+                args,
+                ..
+            } = &first.kind
+            else {
+                break Some(self.emit_expr(first)?);
+            };
+            let execution = instance.as_ref().map_or_else(
+                || FunctionExecutionId::Monomorphic(callee.clone()),
+                |instance| FunctionExecutionId::Generic(instance.clone()),
+            );
+            if !self.functions.contains_key(&execution) {
+                break Some(self.emit_expr(first)?);
+            }
+            current_expr = first;
+            current_callee = callee;
+            current_instance = instance.as_ref();
+            current_args = args;
+        };
+
+        while let Some(call) = pending.pop() {
+            let mut values = Vec::with_capacity(call.args.len());
+            if let Some(first) = value.take() {
+                values.push(first);
+            }
+            for argument in call.args.iter().skip(values.len()) {
+                values.push(self.emit_expr(argument)?);
+            }
+            value = Some(self.emit_user_call_values(call.expr, &call.target, call.args, values)?);
+        }
+        value.ok_or_else(|| backend_error("user-call traversal produced no result"))
+    }
+
+    fn emit_user_call_values(
+        &mut self,
+        expr: &ResolvedExpr,
+        target: &super::CFunction,
+        args: &[ResolvedExpr],
+        values: Vec<CValue>,
+    ) -> Result<CValue, Diagnostic> {
+        let mut arguments = Vec::with_capacity(args.len());
+        for (index, ((arg, expected), argument)) in
+            args.iter().zip(&target.params).zip(values).enumerate()
+        {
+            self.require_type(&argument.ty, expected, &format!("call argument {index}"))?;
+            arguments.push(if matches!(expected, ResolvedType::Bytes) {
+                let plan = self.bytes_plan.ok_or_else(|| {
+                    backend_error("owned Bytes call has no canonical cleanup plan")
+                })?;
+                let transitions = plan.apply_at(&arg.id)?;
+                for line in transitions.lines() {
+                    self.line(line);
                 }
-                CValue {
-                    code: temporary,
-                    ty,
+                let parameter_index = u32::try_from(index)
+                    .map_err(|_| backend_error("native call has too many parameters"))?;
+                let (value, _) = plan.call_argument(&expr.id, parameter_index)?;
+                format!("spx_bytes_move(&{value})")
+            } else if is_aggregate_type(self.program, expected)? {
+                format!("&({})", argument.code)
+            } else {
+                argument.code
+            });
+        }
+        self.require_type(&expr.ty, &target.return_type, "call result")?;
+        let temporary = if matches!(target.return_type, ResolvedType::Bytes) {
+            self.bytes_plan
+                .ok_or_else(|| backend_error("owned Bytes call result has no cleanup plan"))?
+                .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                .to_owned()
+        } else {
+            self.call_result_temporary(&target.return_type)?
+        };
+        self.line(&format!(
+            "spx_status = {}(spx_ctx{}{}, &{temporary});",
+            target.symbol,
+            if arguments.is_empty() { "" } else { ", " },
+            arguments.budgeted_join(", ")
+        ));
+        if let Some(plan) = self.bytes_plan {
+            for (index, expected) in target.params.iter().enumerate() {
+                if matches!(expected, ResolvedType::Bytes) {
+                    let (_, flag) = plan.call_argument(
+                        &expr.id,
+                        u32::try_from(index)
+                            .map_err(|_| backend_error("native call has too many parameters"))?,
+                    )?;
+                    self.line(&format!("{flag} = false;"));
                 }
             }
-            ResolvedExprKind::Binary { op, left, right } => {
-                return self.emit_binary(*op, left, right, &expr.ty);
+        }
+        self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+        if let Some(plan) = self.bytes_plan {
+            let transitions = plan.apply_at(&expr.id)?;
+            for line in transitions.lines() {
+                self.line(line);
             }
+        }
+        Ok(CValue {
+            code: if matches!(target.return_type, ResolvedType::Bytes) {
+                self.bytes_plan
+                    .and_then(|plan| plan.result_at(&expr.id))
+                    .ok_or_else(|| backend_error("owned call has no canonical result transfer"))?
+                    .to_owned()
+            } else {
+                temporary
+            },
+            ty: target.return_type.clone(),
+        })
+    }
+
+    fn emit_block_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
             ResolvedExprKind::Block { statements, tail } => {
                 let saved = self.variables.clone();
                 for statement in statements {
@@ -1101,61 +1239,148 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 self.variables = saved;
                 tail
             }
-            ResolvedExprKind::If {
+            _ => unreachable!("non-Block expression reached emit_block_expr"),
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    fn emit_empty_block_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let mut blocks = Vec::new();
+        let mut current = expr;
+        loop {
+            let ResolvedExprKind::Block { statements, tail } = &current.kind else {
+                unreachable!("non-Block expression reached emit_empty_block_expr")
+            };
+            debug_assert!(statements.is_empty());
+            blocks.push(current);
+            match &tail.kind {
+                ResolvedExprKind::Block { statements, .. } if statements.is_empty() => {
+                    current = tail;
+                }
+                _ => {
+                    current = tail;
+                    break;
+                }
+            }
+        }
+
+        let mut value = self.emit_expr(current)?;
+        while let Some(block) = blocks.pop() {
+            self.require_type(&value.ty, &block.ty, "block result")?;
+            if matches!(value.ty, ResolvedType::Bytes) {
+                let plan = self.bytes_plan.ok_or_else(|| {
+                    backend_error("owned Bytes block has no canonical cleanup plan")
+                })?;
+                let transitions = plan.apply_at(&block.id)?;
+                for line in transitions.lines() {
+                    self.line(line);
+                }
+                value.code = plan
+                    .result_at(&block.id)
+                    .ok_or_else(|| {
+                        backend_error("owned Bytes block has no canonical result transfer")
+                    })?
+                    .to_owned();
+            }
+            if let Some(plan) = self.bytes_plan {
+                let cleanup = plan.scope_exit(&BTreeSet::new())?;
+                for line in cleanup.lines() {
+                    self.line(line);
+                }
+            }
+        }
+        Ok(value)
+    }
+
+    fn emit_if_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        struct Continuation<'a> {
+            expr: &'a ResolvedExpr,
+            else_branch: &'a ResolvedExpr,
+            temporary: String,
+        }
+
+        let mut continuations = Vec::new();
+        let mut current = expr;
+        let mut value = loop {
+            let ResolvedExprKind::If {
                 condition,
                 then_branch,
                 else_branch,
-            } => {
-                let condition = self.emit_expr(condition)?;
-                self.require_type(&condition.ty, &ResolvedType::Bool, "if condition")?;
-                let temporary = if matches!(expr.ty, ResolvedType::Bytes) {
-                    self.bytes_plan
-                        .ok_or_else(|| backend_error("owned Bytes if has no cleanup plan"))?
-                        .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
-                        .to_owned()
-                } else {
-                    self.temporary(&expr.ty)?
-                };
-                self.line(&format!("if ({}) {{", condition.code));
-                self.indent += 1;
-                let then_value = self.emit_expr(then_branch)?;
-                self.require_type(&then_value.ty, &expr.ty, "then branch")?;
-                if matches!(expr.ty, ResolvedType::Bytes) {
-                    let plan = self.bytes_plan.expect("checked above");
-                    let transitions = plan.transfer_from_to(
-                        &then_value.code,
-                        &crate::cleanup_plan::StorageId::Temporary(expr.id.clone()),
-                    )?;
-                    for line in transitions.lines() {
-                        self.line(line);
-                    }
-                } else if !matches!(expr.ty, ResolvedType::ArrayU8(0)) {
-                    self.line(&format!("{temporary} = {};", then_value.code));
-                }
-                self.indent -= 1;
-                self.line("} else {");
-                self.indent += 1;
-                let else_value = self.emit_expr(else_branch)?;
-                self.require_type(&else_value.ty, &expr.ty, "else branch")?;
-                if matches!(expr.ty, ResolvedType::Bytes) {
-                    let plan = self.bytes_plan.expect("checked above");
-                    let transitions = plan.transfer_from_to(
-                        &else_value.code,
-                        &crate::cleanup_plan::StorageId::Temporary(expr.id.clone()),
-                    )?;
-                    for line in transitions.lines() {
-                        self.line(line);
-                    }
-                } else if !matches!(expr.ty, ResolvedType::ArrayU8(0)) {
-                    self.line(&format!("{temporary} = {};", else_value.code));
-                }
-                self.indent -= 1;
-                self.line("}");
-                CValue {
-                    code: temporary,
-                    ty: expr.ty.clone(),
-                }
+            } = &current.kind
+            else {
+                unreachable!("non-If expression reached emit_if_expr")
+            };
+            let condition = self.emit_expr(condition)?;
+            self.require_type(&condition.ty, &ResolvedType::Bool, "if condition")?;
+            let temporary = if matches!(current.ty, ResolvedType::Bytes) {
+                self.bytes_plan
+                    .ok_or_else(|| backend_error("owned Bytes if has no cleanup plan"))?
+                    .value(&crate::cleanup_plan::StorageId::Temporary(
+                        current.id.clone(),
+                    ))?
+                    .to_owned()
+            } else {
+                self.temporary(&current.ty)?
+            };
+            self.line(&format!("if ({}) {{", condition.code));
+            self.indent += 1;
+            continuations.push(Continuation {
+                expr: current,
+                else_branch,
+                temporary,
+            });
+            if matches!(then_branch.kind, ResolvedExprKind::If { .. }) {
+                current = then_branch;
+            } else {
+                break self.emit_expr(then_branch)?;
             }
+        };
+
+        while let Some(continuation) = continuations.pop() {
+            self.require_type(&value.ty, &continuation.expr.ty, "then branch")?;
+            self.assign_branch_result(continuation.expr, &continuation.temporary, &value)?;
+            self.indent -= 1;
+            self.line("} else {");
+            self.indent += 1;
+            let else_value = self.emit_expr(continuation.else_branch)?;
+            self.require_type(&else_value.ty, &continuation.expr.ty, "else branch")?;
+            self.assign_branch_result(continuation.expr, &continuation.temporary, &else_value)?;
+            self.indent -= 1;
+            self.line("}");
+            value = CValue {
+                code: continuation.temporary,
+                ty: continuation.expr.ty.clone(),
+            };
+        }
+        Ok(value)
+    }
+
+    fn assign_branch_result(
+        &mut self,
+        expr: &ResolvedExpr,
+        temporary: &str,
+        value: &CValue,
+    ) -> Result<(), Diagnostic> {
+        if matches!(expr.ty, ResolvedType::Bytes) {
+            let plan = self
+                .bytes_plan
+                .ok_or_else(|| backend_error("owned Bytes if has no cleanup plan"))?;
+            let transitions = plan.transfer_from_to(
+                &value.code,
+                &crate::cleanup_plan::StorageId::Temporary(expr.id.clone()),
+            )?;
+            for line in transitions.lines() {
+                self.line(line);
+            }
+        } else if !matches!(expr.ty, ResolvedType::ArrayU8(0)) {
+            self.line(&format!("{temporary} = {};", value.code));
+        }
+        Ok(())
+    }
+
+    fn emit_construct_record_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
             ResolvedExprKind::ConstructRecord { record, fields } => {
                 let layout = self.record_layout(&expr.ty)?;
                 if layout.record != *record {
@@ -1165,11 +1390,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     )));
                 }
                 let temporary = self.temporary(&expr.ty)?;
-                if layout.size == 0 {
-                    self.line(&format!(
-                        "{temporary}.spx_zero_sized_record_carrier = UINT8_C(0);"
-                    ));
-                }
+                self.initialize_record_carrier(&temporary, &layout);
                 for initializer in fields {
                     let field = layout.field(&initializer.field).cloned().ok_or_else(|| {
                         backend_error(format!(
@@ -1192,6 +1413,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ty: expr.ty.clone(),
                 }
             }
+            _ => unreachable!("non-ConstructRecord expression reached emit_construct_record_expr"),
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    fn emit_construct_variant_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
             ResolvedExprKind::ConstructVariant {
                 variant,
                 case,
@@ -1244,6 +1473,16 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ty: expr.ty.clone(),
                 }
             }
+            _ => {
+                unreachable!("non-ConstructVariant expression reached emit_construct_variant_expr")
+            }
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    fn emit_match_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
             ResolvedExprKind::Match { scrutinee, arms } => {
                 if is_aggregate_type(self.program, &expr.ty)? {
                     return Err(backend_error("copy match arms must produce i64 or bool"));
@@ -1421,6 +1660,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ty: expr.ty.clone(),
                 }
             }
+            _ => unreachable!("non-Match expression reached emit_match_expr"),
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    fn emit_try_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
             ResolvedExprKind::Try {
                 operand,
                 result,
@@ -1516,6 +1763,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ty: expr.ty.clone(),
                 }
             }
+            _ => unreachable!("non-Try expression reached emit_try_expr"),
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    fn emit_try_option_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
             ResolvedExprKind::TryOption {
                 operand,
                 option,
@@ -1597,6 +1852,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ty: expr.ty.clone(),
                 }
             }
+            _ => unreachable!("non-TryOption expression reached emit_try_option_expr"),
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    fn emit_project_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
             ResolvedExprKind::Project { base, field } => {
                 let base = self.emit_expr(base)?;
                 let layout = self.record_layout(&base.ty)?;
@@ -1607,15 +1870,23 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ))
                 })?;
                 self.require_type(&expr.ty, &field.ty, "record projection")?;
-                CValue {
-                    code: if field.size == 0 {
-                        "UINT8_C(0)".to_owned()
-                    } else {
-                        format!("({}).{}", base.code, c_field_symbol(&field.field))
-                    },
-                    ty: field.ty,
+                if field.size == 0 {
+                    self.emit_erased_record_field_value(&field.ty)?
+                } else {
+                    CValue {
+                        code: format!("({}).{}", base.code, c_field_symbol(&field.field)),
+                        ty: field.ty,
+                    }
                 }
             }
+            _ => unreachable!("non-Project expression reached emit_project_expr"),
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    fn emit_upcast_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
             ResolvedExprKind::Upcast { source } => {
                 // Class Inheritance v1: the ancestor prefix moves
                 // field-by-field from the consumed descendant value; the
@@ -1647,11 +1918,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     }
                 }
                 let temporary = self.temporary(&expr.ty)?;
-                if target_layout.fields.is_empty() {
-                    self.line(&format!(
-                        "{temporary}.spx_empty_record_padding = UINT8_C(0);"
-                    ));
-                }
+                self.initialize_record_carrier(&temporary, &target_layout);
                 for field in &target_layout.fields {
                     if field.size != 0 {
                         self.line(&format!(
@@ -1667,6 +1934,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ty: expr.ty.clone(),
                 }
             }
+            _ => unreachable!("non-Upcast expression reached emit_upcast_expr"),
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    fn emit_update_record_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
             ResolvedExprKind::UpdateRecord {
                 base,
                 record,
@@ -1705,12 +1980,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ty: expr.ty.clone(),
                 }
             }
+            _ => unreachable!("non-UpdateRecord expression reached emit_update_record_expr"),
         };
         self.require_type(&value.ty, &expr.ty, "expression")?;
         Ok(value)
     }
 
-    fn emit_place(&self, place: &hir::Place) -> Result<CValue, Diagnostic> {
+    fn emit_place(&mut self, place: &hir::Place) -> Result<CValue, Diagnostic> {
         let binding = self.variables.get(&place.root).cloned().ok_or_else(|| {
             backend_error(format!("resolved value `{}` is not in scope", place.root))
         })?;
@@ -1730,7 +2006,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 ))
             })?;
             code = if field.size == 0 {
-                "UINT8_C(0)".to_owned()
+                self.emit_erased_record_field_value(&field.ty)?.code
             } else {
                 format!("({code}).{}", c_field_symbol(&field.field))
             };
@@ -1749,6 +2025,43 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         let layout = self.record_layouts.layout(ty)?.clone();
         layout.validate(self.program)?;
         Ok(layout)
+    }
+
+    fn initialize_record_carrier(&mut self, temporary: &str, layout: &AggregateLayout) {
+        if layout.fields.is_empty() {
+            // Empty products own one frozen semantic byte on every target.
+            self.line(&format!(
+                "{temporary}.spx_empty_record_padding = UINT8_C(0);"
+            ));
+        } else if layout.size == 0 {
+            // Nonempty records whose semantic fields are all zero-sized need
+            // one physical C byte without acquiring semantic storage.
+            self.line(&format!(
+                "{temporary}.spx_zero_sized_record_carrier = UINT8_C(0);"
+            ));
+        }
+    }
+
+    fn emit_erased_record_field_value(&mut self, ty: &ResolvedType) -> Result<CValue, Diagnostic> {
+        if matches!(ty, ResolvedType::ArrayU8(0)) {
+            return Ok(CValue {
+                code: "UINT8_C(0)".to_owned(),
+                ty: ty.clone(),
+            });
+        }
+        let layout = self.record_layout(ty)?;
+        if layout.size != 0 || layout.fields.is_empty() {
+            return Err(backend_error(format!(
+                "erased native record field `{}` has a nonzero physical layout",
+                ty.identity_key()
+            )));
+        }
+        let temporary = self.temporary(ty)?;
+        self.initialize_record_carrier(&temporary, &layout);
+        Ok(CValue {
+            code: temporary,
+            ty: ty.clone(),
+        })
     }
 
     fn variant_layout(&self, ty: &ResolvedType) -> Result<VariantLayout, Diagnostic> {
@@ -1793,7 +2106,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 )));
             }
             let field_code = if layout_field.size == 0 {
-                "UINT8_C(0)".to_owned()
+                self.emit_erased_record_field_value(&layout_field.ty)?.code
             } else {
                 format!("({base}).{}", c_field_symbol(&layout_field.field))
             };
@@ -1841,6 +2154,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         right: &ResolvedExpr,
         result_type: &ResolvedType,
     ) -> Result<CValue, Diagnostic> {
+        if matches!(op, BinaryOp::And | BinaryOp::Or) {
+            return self.emit_lazy_binary(op, left, right, result_type);
+        }
         let left = self.emit_expr(left)?;
         if matches!(op, BinaryOp::Eq | BinaryOp::Ne) && is_aggregate_type(self.program, &left.ty)? {
             return Err(backend_error(
@@ -1935,36 +2251,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 "char arithmetic has no admitted native lowering",
             ));
         }
-        if matches!(op, BinaryOp::And | BinaryOp::Or) {
-            let temporary = self.temporary(&ResolvedType::Bool)?;
-            if op == BinaryOp::And {
-                self.line(&format!("if ({}) {{", left.code));
-                self.indent += 1;
-                let right = self.emit_expr(right)?;
-                self.require_type(&right.ty, &ResolvedType::Bool, "lazy right operand")?;
-                self.line(&format!("{temporary} = {};", right.code));
-                self.indent -= 1;
-                self.line("} else {");
-                self.indent += 1;
-                self.line(&format!("{temporary} = false;"));
-            } else {
-                self.line(&format!("if ({}) {{", left.code));
-                self.indent += 1;
-                self.line(&format!("{temporary} = true;"));
-                self.indent -= 1;
-                self.line("} else {");
-                self.indent += 1;
-                let right = self.emit_expr(right)?;
-                self.require_type(&right.ty, &ResolvedType::Bool, "lazy right operand")?;
-                self.line(&format!("{temporary} = {};", right.code));
-            }
-            self.indent -= 1;
-            self.line("}");
-            return Ok(CValue {
-                code: temporary,
-                ty: ResolvedType::Bool,
-            });
-        }
         let right = self.emit_expr(right)?;
         self.require_type(&right.ty, &operand_type, "binary right operand")?;
         let temporary = self.temporary(&expected_result)?;
@@ -2056,5 +2342,177 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             code: temporary,
             ty: expected_result,
         })
+    }
+
+    fn emit_lazy_binary(
+        &mut self,
+        op: BinaryOp,
+        left: &ResolvedExpr,
+        right: &ResolvedExpr,
+        result_type: &ResolvedType,
+    ) -> Result<CValue, Diagnostic> {
+        struct Continuation {
+            op: BinaryOp,
+            temporary: String,
+        }
+
+        self.require_type(result_type, &ResolvedType::Bool, "binary result")?;
+        let mut continuations = Vec::new();
+        let mut current_op = op;
+        let mut current_left = left;
+        let mut current_right = right;
+        loop {
+            let left = self.emit_expr(current_left)?;
+            self.require_type(&left.ty, &ResolvedType::Bool, "binary left operand")?;
+            let temporary = self.temporary(&ResolvedType::Bool)?;
+            self.line(&format!("if ({}) {{", left.code));
+            self.indent += 1;
+            if current_op == BinaryOp::Or {
+                self.line(&format!("{temporary} = true;"));
+                self.indent -= 1;
+                self.line("} else {");
+                self.indent += 1;
+            }
+            continuations.push(Continuation {
+                op: current_op,
+                temporary,
+            });
+            match &current_right.kind {
+                ResolvedExprKind::Binary {
+                    op: next_op,
+                    left: next_left,
+                    right: next_right,
+                } if matches!(next_op, BinaryOp::And | BinaryOp::Or) => {
+                    self.require_type(&current_right.ty, &ResolvedType::Bool, "binary result")?;
+                    current_op = *next_op;
+                    current_left = next_left;
+                    current_right = next_right;
+                }
+                _ => break,
+            }
+        }
+
+        let mut value = self.emit_expr(current_right)?;
+        self.require_type(&value.ty, &ResolvedType::Bool, "lazy right operand")?;
+        while let Some(continuation) = continuations.pop() {
+            self.line(&format!("{} = {};", continuation.temporary, value.code));
+            if continuation.op == BinaryOp::And {
+                self.indent -= 1;
+                self.line("} else {");
+                self.indent += 1;
+                self.line(&format!("{} = false;", continuation.temporary));
+            }
+            self.indent -= 1;
+            self.line("}");
+            value = CValue {
+                code: continuation.temporary,
+                ty: ResolvedType::Bool,
+            };
+        }
+        Ok(value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    const EXACT_DEPTH: usize = 512;
+
+    #[derive(Clone, Copy)]
+    enum RecursiveFamily {
+        Unary,
+        LazyBinary,
+        Call,
+        Block,
+        If,
+    }
+
+    fn assert_native_codegen(family: RecursiveFamily, label: &str) {
+        let source = "module test.native_codegen_depth;\n\n@id(\"depth.identity\")\nfn identity(value: bool) -> bool { value }\n\n@id(\"depth.deep\")\nfn deep() -> bool { true }\n\n@id(\"app.main\")\nfn main() -> i64 { if deep() { 0 } else { 1 } }\n";
+        let source_path = format!("native-codegen-{label}.spx");
+        let mut parsed = crate::parse(source, Path::new(&source_path))
+            .expect("native-codegen seed source must parse on the default stack");
+        let function = parsed
+            .functions
+            .iter_mut()
+            .find(|function| function.stable_id == "depth.deep")
+            .expect("depth fixture function exists");
+        for _ in 1..EXACT_DEPTH {
+            let child = std::mem::replace(
+                &mut function.body,
+                crate::ast::Expr {
+                    kind: crate::ast::ExprKind::Bool(true),
+                    span: crate::ast::Span::default(),
+                },
+            );
+            function.body = crate::ast::Expr {
+                kind: match family {
+                    RecursiveFamily::Unary => crate::ast::ExprKind::Unary {
+                        op: crate::ast::UnaryOp::Not,
+                        value: Box::new(child),
+                    },
+                    RecursiveFamily::LazyBinary => crate::ast::ExprKind::Binary {
+                        op: crate::ast::BinaryOp::And,
+                        left: Box::new(crate::ast::Expr {
+                            kind: crate::ast::ExprKind::Bool(true),
+                            span: crate::ast::Span::default(),
+                        }),
+                        right: Box::new(child),
+                    },
+                    RecursiveFamily::Call => crate::ast::ExprKind::Call {
+                        name: "identity".to_owned(),
+                        type_arguments: Vec::new(),
+                        args: vec![child],
+                    },
+                    RecursiveFamily::Block => crate::ast::ExprKind::Block {
+                        statements: Vec::new(),
+                        tail: Box::new(child),
+                    },
+                    RecursiveFamily::If => crate::ast::ExprKind::If {
+                        condition: Box::new(crate::ast::Expr {
+                            kind: crate::ast::ExprKind::Bool(true),
+                            span: crate::ast::Span::default(),
+                        }),
+                        then_branch: Box::new(child),
+                        else_branch: Box::new(crate::ast::Expr {
+                            kind: crate::ast::ExprKind::Bool(false),
+                            span: crate::ast::Span::default(),
+                        }),
+                    },
+                },
+                span: crate::ast::Span::default(),
+            };
+        }
+        let resolved = crate::hir::resolve(&parsed)
+            .expect("exact-depth native-codegen AST must resolve on the default stack");
+        let generated = crate::codegen::emit_hir_c(&resolved)
+            .expect("exact-depth HIR must lower on the default 2 MiB test-thread stack");
+        assert!(generated.contains("int main(void)"));
+    }
+
+    #[test]
+    fn native_codegen_handles_deep_unary_on_the_default_stack() {
+        assert_native_codegen(RecursiveFamily::Unary, "unary");
+    }
+
+    #[test]
+    fn native_codegen_handles_deep_binary_on_the_default_stack() {
+        assert_native_codegen(RecursiveFamily::LazyBinary, "binary");
+    }
+
+    #[test]
+    fn native_codegen_handles_deep_calls_on_the_default_stack() {
+        assert_native_codegen(RecursiveFamily::Call, "call");
+    }
+
+    #[test]
+    fn native_codegen_handles_deep_blocks_on_the_default_stack() {
+        assert_native_codegen(RecursiveFamily::Block, "block");
+    }
+
+    #[test]
+    fn native_codegen_handles_deep_if_on_the_default_stack() {
+        assert_native_codegen(RecursiveFamily::If, "if");
     }
 }

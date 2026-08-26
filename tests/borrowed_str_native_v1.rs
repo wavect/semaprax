@@ -18,7 +18,7 @@ fn starts(value: borrow str, prefix: borrow str) -> bool {
 }
 
 @id("text.len")
-fn byte_len(value: borrow str) -> i64 {
+fn text_byte_len(value: borrow str) -> i64 {
     str_len_bytes(value)
 }
 

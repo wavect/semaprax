@@ -21,9 +21,10 @@ class ContractInstrumentation : Instrumentation() {
 
     override fun onStart() {
         val output = File(targetContext.filesDir, RESULT_FILE)
+        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull()
         val result = runCatching { verifyExactContract() }
         if (result.isSuccess) {
-            output.writeText(EXPECTED_RESULT, Charsets.UTF_8)
+            output.writeText(expectedResultForAbi(abi), Charsets.UTF_8)
             finish(Activity.RESULT_OK, Bundle().apply { putString("semaprax", "pass") })
         } else {
             output.writeText("SEMAPRAX_ANDROID_JNI_V1_FAIL\n", Charsets.UTF_8)
@@ -35,7 +36,8 @@ class ContractInstrumentation : Instrumentation() {
         OpaqueHandle.requireKnownAnswer()
         StatusWord.requireKnownAnswers()
         require(android.os.Build.VERSION.SDK_INT == 35) { "emulator API changed" }
-        require(android.os.Build.SUPPORTED_ABIS.firstOrNull() == "x86_64") { "emulator ABI changed" }
+        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull()
+        require(abi == "x86_64" || abi == "arm64-v8a") { "emulator ABI changed: $abi" }
         val nativeDirectory = File(targetContext.applicationInfo.nativeLibraryDir).canonicalFile
         val bridge = NativeBridge.loadExact(nativeDirectory)
 
@@ -252,5 +254,14 @@ class ContractInstrumentation : Instrumentation() {
                 "handle=0001000001000001 declared=0000006b00000007 " +
                 "unexpected=0000004500000001 finalizers=1:13,0:11 " +
                 "publication=no-owned allocations=0 handles=0 rf=1 om=1\n"
+        const val EXPECTED_RESULT_ARM64 =
+            "SEMAPRAX_ANDROID_JNI_V1_OK api=35 abi=arm64-v8a o0=explicit o2=cleaner " +
+                "handle=0001000001000001 declared=0000006b00000007 " +
+                "unexpected=0000004500000001 finalizers=1:13,0:11 " +
+                "publication=no-owned allocations=0 handles=0 rf=1 om=1\n"
+        fun expectedResultForAbi(abi: String?): String = when (abi) {
+            "arm64-v8a" -> EXPECTED_RESULT_ARM64
+            else -> EXPECTED_RESULT
+        }
     }
 }

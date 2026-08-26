@@ -526,6 +526,36 @@ Each phase is incomplete until its executable evidence passes. An RFC, type defi
    arm64/x86_64-Simulator slices feed a private XCFramework and installed
    arm64-Simulator app gate. Hosted execution is pending, so this is neither
    phase-6 completion nor public framework/device/lifecycle evidence.
+
+   A third private phase-6 adapter is a plain-C dynamic consumer lane and is
+   the first non-Rust consumer of the same generated callable-v3 provider ABI.
+   A generator bin (`private-c-consumer-v1-fixture`) emits the three canonical
+   corpus directions — discard-two success, requires-false semantic failure,
+   and identity-max owned publication — as provider sources plus their exact
+   SPXNABI3 descriptors and manifests. A hand-written strict C11 consumer
+   (`consumer.c`) then dlopens each compiled provider at O0 and O2 on the
+   local Linux/macOS host, resolves the descriptor getter, execute, and
+   settle symbols, byte-compares the returned descriptor, derives the call,
+   recovery, and settlement-graph fingerprints directly from the descriptor
+   bytes, packs arguments descriptor-driven for the `[Owned(u64)]` and
+   `[Owned, Bool]` shapes (failing closed on anything else), computes request
+   and frame digests with its own SHA-256, replicates the fixed 172-byte
+   settlement-decision layout with static size asserts, and executes the full
+   getter → execute → settle sequence with no Rust host in the loop. The
+   executable gate
+   (`cargo test --locked -p semaprax-native-host --test runtime_c_consumer_lane`,
+   pinned as one Linux step of the shared `verify` job) exact-matches the
+   printed outcome lines per optimization level: scalar success `0` with
+   execute-time finalizers exactly `1:13` then `0:11`; the requires-false
+   semantic failure whose selected status ordinal appears inside the emitted
+   trace and whose single finalizer runs before the failure is published;
+   and identity-max publication of ordinal `0` with payload
+   `18446744073709551615`. Each case additionally proves byte-identical
+   idempotent re-settlement and that stale re-execution after settlement is
+   rejected with return code 1. This lane proves only local dynamic-library
+   consumption of already-generated providers; it is not evidence for hosted
+   devices or simulators, general fallible close, bidirectional calls,
+   public admission, or `SPX-B104`.
 7. **Broader control flow.** Extend the plan and trace suite before enabling loops, variants/matching, `?`, closures, regions, concurrency, cancellation, or async resources.
 
 At every phase, source-verifier and hostile-HIR replay diagnostics must agree, failed imports and failed postconditions must not initialize caller result storage, automatic finalizers must remain infallible and non-trapping, explicit close failure must obey its declared consumption contract, and native/Wasm normalized event traces must match. The rows in the [completion matrix](COMPLETION-MATRIX.md) remain Partial or Missing until their complete gates pass.

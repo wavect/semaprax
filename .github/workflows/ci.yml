@@ -461,6 +461,11 @@ jobs:
         run: |
           cargo test --locked -p semaprax --lib codegen::native_callable_provider_v3::tests::authoritative_fourteen_case_graph_providers_execute_and_settle_at_o0_o2 -- --exact
           cargo test --locked -p semaprax --lib codegen::native_callable_provider_v3::tests::physical_failure_injection_and_durable_settlement_boundaries_are_exact_at_o0_o2 -- --exact
+      - name: Require private callable-v3 plain-C dynamic consumer evidence (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cc --version
+          cargo test --locked -p semaprax-native-host --test runtime_c_consumer_lane -- --nocapture
       - name: Require private Native Rust Interop ASan + UBSan round trip (Linux)
         if: runner.os == 'Linux'
         env:

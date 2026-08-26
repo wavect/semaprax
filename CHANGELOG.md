@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- Added a private plain-C dynamic consumer lane for the callable-v3 provider
+  ABI, the first non-Rust consumer of the same generated corpus providers.
+  The new `private-c-consumer-v1-fixture` bin emits the discard-two,
+  requires-false, and identity-max directions as provider sources with exact
+  SPXNABI3 descriptors and manifests, and a hand-written strict C11 consumer
+  dlopens each compiled provider at O0/O2 on the local Linux/macOS host to
+  drive the descriptor getter, execute, and settle wire sequence directly:
+  descriptor-driven argument packing for `[Owned(u64)]` and `[Owned, Bool]`
+  shapes only (fail-closed otherwise), its own SHA-256 for request/frame
+  digests, a replicated fixed 172-byte settlement-decision layout with static
+  size asserts, exact outcome-line matching (scalar `0` with finalizers
+  `1:13` then `0:11`; the selected failure ordinal inside the emitted trace;
+  owned publication of ordinal `0` with payload `u64::MAX`), byte-identical
+  idempotent re-settlement, and stale re-execution rejection. The executable
+  gate lives in `crates/semaprax-native-host/tests/runtime_c_consumer_lane.rs`
+  and is pinned as one Linux step of the shared `verify` CI job; no hosted
+  device, simulator, public-admission, or `SPX-B104` claim follows.
+
 - Promoted the focused calculator Product Acceptance and Public Native Rust
   SDK matrices to blocking Ubuntu, macOS, and Windows configuration while
   keeping hosted promotion pending until the resulting exact-head run passes.

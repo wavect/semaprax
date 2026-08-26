@@ -11,9 +11,6 @@ mod native_rust_cargo;
 
 const CALCULATOR: &str = include_str!("../examples/calculator.spx");
 const CALLBACK: &str = include_str!("../examples/calculator-rust/callback.spx");
-#[cfg(windows)]
-const EXPECTED_42_LINE: &[u8] = b"42\r\n";
-#[cfg(not(windows))]
 const EXPECTED_42_LINE: &[u8] = b"42\n";
 static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
 
@@ -396,15 +393,17 @@ fn external_example_has_a_closed_two_phase_dependency_topology() {
         "spx_calculator_dot_divide(1, 0)",
         "NativeRustSdkCallError::Semantic",
         "semaprax.native-rust-semantics.v1",
-        "const OUTPUT: &[u8] = b\"42\\r\\n\"",
         "const OUTPUT: &[u8] = b\"42\\n\"",
         "write_all(OUTPUT)",
+        "stdout.flush()",
     ] {
         assert!(
             consumer_source.contains(required),
             "calculator consumer is missing `{required}`"
         );
     }
+    assert!(!consumer_source.contains("42\\r\\n"));
+    assert!(!consumer_source.contains("#[cfg(windows)]"));
     assert!(!consumer_source.contains("unsafe"));
 
     let callback_consumer = read("examples/calculator-rust/callback-consumer/src/main.rs");
@@ -416,15 +415,17 @@ fn external_example_has_a_closed_two_phase_dependency_topology() {
         "NativeRustSdkCallError::HostFailed",
         "NativeRustSdkCallError::HostPanicked",
         "NativeRustSdkCallError::AdapterRejected",
-        "const OUTPUT: &[u8] = b\"42\\r\\n\"",
         "const OUTPUT: &[u8] = b\"42\\n\"",
         "write_all(OUTPUT)",
+        "stdout.flush()",
     ] {
         assert!(
             callback_consumer.contains(required),
             "callback consumer is missing `{required}`"
         );
     }
+    assert!(!callback_consumer.contains("42\\r\\n"));
+    assert!(!callback_consumer.contains("#[cfg(windows)]"));
     assert!(!callback_consumer.contains("unsafe"));
 }
 
@@ -479,15 +480,17 @@ fn project_example_selects_manifest_exports_for_a_compiler_free_consumer() {
         "spx_calculator_dot_multiply",
         "spx_calculator_dot_not",
         "spx_calculator_dot_subtract",
-        "const OUTPUT: &[u8] = b\"42\\r\\n\"",
         "const OUTPUT: &[u8] = b\"42\\n\"",
         "write_all(OUTPUT)",
+        "stdout.flush()",
     ] {
         assert!(
             consumer_source.contains(required),
             "Project consumer is missing `{required}`"
         );
     }
+    assert!(!consumer_source.contains("42\\r\\n"));
+    assert!(!consumer_source.contains("#[cfg(windows)]"));
     assert!(!consumer_source.contains("unsafe"));
 }
 
@@ -735,13 +738,14 @@ const checked=(operation)=>(a,b)=>{const value=operation(a,b);if(value<-(1n<<63n
 const imports={env:{spx_add:checked((a,b)=>a+b),spx_sub:checked((a,b)=>a-b),spx_mul:checked((a,b)=>a*b),spx_div:(a,b)=>a/b,spx_rem:(a,b)=>a%b,spx_neg:(a)=>-a,spx_contract_fail:()=>{throw new Error();}}};
 const linked=await WebAssembly.instantiate(bytes,imports);
 const value=linked.instance.exports.semaprax_main().toString();
-process.stdout.write(value+(process.platform==="win32"?"\r\n":"\n"));
+process.stdout.write(value+"\n");
 "#,
     )
     .unwrap();
-    assert!(!fs::read_to_string(fixture.0.join("calculator.mjs"))
-        .unwrap()
-        .contains("console.log"));
+    let node_source = fs::read_to_string(fixture.0.join("calculator.mjs")).unwrap();
+    assert!(!node_source.contains("console.log"));
+    assert!(!node_source.contains("process.platform"));
+    assert!(!node_source.contains("\\r\\n"));
     let wasm = run(
         &mut calculator_node_command(&fixture.0),
         "run calculator Wasm backend",

@@ -20,9 +20,6 @@ const PROJECT_FILES: &[&str] = &[
 ];
 
 pub const BUILD_MAX_BYTES: usize = 512 * 1024;
-#[cfg(windows)]
-const EXPECTED_42_LINE: &[u8] = b"42\r\n";
-#[cfg(not(windows))]
 const EXPECTED_42_LINE: &[u8] = b"42\n";
 
 struct TempDir(PathBuf);

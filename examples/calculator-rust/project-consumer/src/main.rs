@@ -5,9 +5,6 @@ use semaprax_generated_native_rust_sdk::{
     NativeRustSdk, NativeRustSdkCallError, NativeRustSdkImports, NativeRustSdkStatusClass,
 };
 
-#[cfg(windows)]
-const OUTPUT: &[u8] = b"42\r\n";
-#[cfg(not(windows))]
 const OUTPUT: &[u8] = b"42\n";
 
 struct Host;
@@ -36,4 +33,5 @@ fn main() {
     assert_eq!(calculator.spx_calculator_dot_not(true), Ok(false));
     let mut stdout = std::io::stdout().lock();
     stdout.write_all(OUTPUT).unwrap();
+    stdout.flush().unwrap();
 }

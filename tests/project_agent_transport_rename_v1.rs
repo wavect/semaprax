@@ -15,9 +15,6 @@ const PROJECT_FILES: &[&str] = &[
     "src/core.spx",
     "src/tests.spx",
 ];
-#[cfg(windows)]
-const EXPECTED_42_LINE: &[u8] = b"42\r\n";
-#[cfg(not(windows))]
 const EXPECTED_42_LINE: &[u8] = b"42\n";
 
 struct Fixture(PathBuf);

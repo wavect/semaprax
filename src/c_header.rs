@@ -869,4 +869,73 @@ fn main() -> i64
         );
         cleanup(&path);
     }
+
+    #[test]
+    fn indexed_byte_loop_scalar_header_is_pinned_and_matches_native() {
+        let source = r#"
+module test.c_header_byte_loop;
+
+@id("probe.count-ff")
+fn count_ff() -> i64 {
+    let fixed = [0u8, 255u8, 1u8, 255u8];
+    let fixed_view = array_as_slice(fixed);
+    let copied = bytes_copy(fixed_view);
+    let copied_view = bytes_as_slice(copied);
+    let length = byte_len(copied_view);
+    let mut index = 0usize;
+    let mut total = 0usize;
+    while index <= length {
+        total = total + match byte_get(copied_view, index) {
+            Option::Some { value: byte } => if byte == 255u8 { 1usize } else { 0usize },
+            Option::None {} => 0usize,
+        };
+        index = index + 1usize;
+        index <= length
+    }
+    if total == 2usize { 0 } else { 1 }
+}
+
+@id("app.main")
+fn main() -> i64 { count_ff() }
+"#;
+        let path = write_temp(source);
+        let options =
+            CHeaderOptions::new(vec!["probe.count-ff".to_owned()], DEFAULT_MAX_BYTES).unwrap();
+        let header = header_text(&path, &options).expect("header");
+        let second = header_text(&path, &options).expect("header");
+        assert_eq!(header, second, "header must be deterministic");
+        let envelope = generate(&path, &options).expect("envelope");
+        assert_eq!(header, verify_envelope(&envelope).expect("verified"));
+        let mut hasher = sha2::Sha256::new();
+        use sha2::Digest as _;
+        hasher.update(header.as_bytes());
+        let digest = format!(
+            "sha256:{:x}",
+            crate::digest_hex::LowerHex(hasher.finalize())
+        );
+        assert_eq!(
+            digest,
+            "sha256:45fe0a969633ce8c5ad5cdcb14ed705311c3010b2ff305a551b78f5c55d18b02"
+        );
+        assert!(header.contains(
+            "static __attribute__((unused)) spx_status_token spx_decl_70726f62652e636f756e742d6666(struct spx_context *spx_ctx, int64_t *spx_result_out);"
+        ));
+        let program =
+            crate::parse(&std::fs::read_to_string(&path).unwrap(), &path).expect("parses");
+        let native = crate::codegen::emit_c(&program).expect("native projection");
+        for line in header.lines() {
+            if line.starts_with("static __attribute__((unused))") {
+                assert!(
+                    native
+                        .lines()
+                        .any(|native_line| native_line.trim_end() == line),
+                    "header line must appear verbatim in native projection"
+                );
+            }
+        }
+        let graph_json = crate::graph::to_json(&program).expect("graph");
+        assert!(graph_json.contains("\"kind\":\"while\""));
+        assert!(graph_json.contains("core.bytes.get"));
+        cleanup(&path);
+    }
 }

@@ -7,3 +7,4 @@ android.minimum_api=28
 android.build_tools=35.0.0
 android.ndk=27.2.12479018
 android.abi=x86_64
+android.abi.arm64-v8a=arm64-v8a

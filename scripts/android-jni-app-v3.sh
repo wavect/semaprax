@@ -6,7 +6,13 @@ readonly android_api_level="35"
 readonly android_minimum_api="28"
 readonly package_name="dev.semaprax.runtime"
 readonly instrumentation_name="dev.semaprax.instrumentation.ContractInstrumentation"
-readonly expected_result="SEMAPRAX_ANDROID_JNI_V1_OK api=35 abi=x86_64 o0=explicit o2=cleaner handle=0001000001000001 declared=0000006b00000007 unexpected=0000004500000001 finalizers=1:13,0:11 publication=no-owned allocations=0 handles=0 rf=1 om=1 ca=1 ef=1"
+android_abi="${ANDROID_ARCH:-x86_64}"
+case "$android_abi" in
+  x86_64|arm64-v8a) ;;
+  *) echo "unsupported ANDROID_ARCH=$android_abi" >&2; exit 1 ;;
+esac
+readonly android_abi
+readonly expected_result="SEMAPRAX_ANDROID_JNI_V1_OK api=35 abi=$android_abi o0=explicit o2=cleaner handle=0001000001000001 declared=0000006b00000007 unexpected=0000004500000001 finalizers=1:13,0:11 publication=no-owned allocations=0 handles=0 rf=1 om=1 ca=1 ef=1"
 
 for command in adb cargo file find gradle grep mktemp realpath sed tr; do
   if ! which "$command" >/dev/null 2>&1; then
@@ -51,8 +57,8 @@ if [[ "$(adb shell getprop ro.build.version.sdk | tr -d '\r')" != "$android_api_
   echo "Android emulator API level does not match the pinned runtime" >&2
   exit 1
 fi
-if [[ "$(adb shell getprop ro.product.cpu.abi | tr -d '\r')" != "x86_64" ]]; then
-  echo "Android emulator primary ABI is not x86_64" >&2
+if [[ "$(adb shell getprop ro.product.cpu.abi | tr -d '\r')" != "$android_abi" ]]; then
+  echo "Android emulator primary ABI is not $android_abi" >&2
   exit 1
 fi
 
@@ -187,12 +193,26 @@ test -s "$packaged_provider_ef_o2"
   -Wl,--version-script="$export_map" \
   -pthread -ldl -llog -lm -o "$scratch/libsemaprax_jni_arm64.so"
 
+if [[ "$android_abi" == "arm64-v8a" ]]; then
+  cp "$scratch/libsemaprax_provider_arm64_o0.so" "$packaged_provider_o0"
+  cp "$scratch/libsemaprax_provider_arm64_o2.so" "$packaged_provider_o2"
+  cp "$scratch/libsemaprax_provider_rf_arm64_o0.so" "$packaged_provider_rf_o0"
+  cp "$scratch/libsemaprax_provider_rf_arm64_o2.so" "$packaged_provider_rf_o2"
+  cp "$scratch/libsemaprax_provider_om_arm64_o0.so" "$packaged_provider_om_o0"
+  cp "$scratch/libsemaprax_provider_om_arm64_o2.so" "$packaged_provider_om_o2"
+  cp "$scratch/libsemaprax_jni_arm64.so" "$packaged_jni"
+fi
+
+case "$android_abi" in
+  x86_64) expected_machine="Advanced Micro Devices X86-64" ;;
+  arm64-v8a) expected_machine="AArch64" ;;
+esac
 for artifact in "$native_dir"/*.so; do
   file "$artifact" | grep -F 'ELF 64-bit LSB' >/dev/null
-  "$llvm_readelf" -h "$artifact" | grep -F 'Machine:' | grep -F 'Advanced Micro Devices X86-64' >/dev/null
+  "$llvm_readelf" -h "$artifact" | grep -F 'Machine:' | grep -F "$expected_machine" >/dev/null
   dynamic="$($llvm_readelf -d "$artifact")"
   if grep -E 'RPATH|RUNPATH|AI-Lang|target/' <<<"$dynamic" >/dev/null; then
-    echo "Android JNI x86_64 artifact contains a forbidden path" >&2
+    echo "Android JNI $android_abi artifact contains a forbidden path" >&2
     exit 1
   fi
 done

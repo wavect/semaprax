@@ -41,6 +41,15 @@ if [[ ! -d "$native_dir" ]]; then
   echo "generated Android JNI native directory is unavailable: $native_dir" >&2
   exit 1
 fi
+android_abi="${ANDROID_ARCH:-x86_64}"
+case "$android_abi" in
+  x86_64|arm64-v8a) ;;
+  *)
+    echo "ANDROID_ARCH must be x86_64 or arm64-v8a: $android_abi" >&2
+    exit 1
+    ;;
+esac
+readonly android_abi
 readonly native_names=(
   libsemaprax_jni.so
   libsemaprax_provider_ca_o0.so
@@ -139,25 +148,25 @@ readonly base_apk="$work/base.apk"
   -o "$base_apk"
 test -s "$base_apk"
 
-mkdir -p "$work/payload/lib/x86_64"
+mkdir -p "$work/payload/lib/$android_abi"
 cp "$work/dex/classes.dex" "$work/payload/classes.dex"
 for name in "${native_names[@]}"; do
-  cp "$native_dir/$name" "$work/payload/lib/x86_64/$name"
+  cp "$native_dir/$name" "$work/payload/lib/$android_abi/$name"
 done
 (
   cd "$work/payload"
   zip -q -X -0 "$base_apk" classes.dex \
-    lib/x86_64/libsemaprax_jni.so \
-    lib/x86_64/libsemaprax_provider_ca_o0.so \
-    lib/x86_64/libsemaprax_provider_ca_o2.so \
-    lib/x86_64/libsemaprax_provider_ef_o0.so \
-    lib/x86_64/libsemaprax_provider_ef_o2.so \
-    lib/x86_64/libsemaprax_provider_o0.so \
-    lib/x86_64/libsemaprax_provider_o2.so \
-    lib/x86_64/libsemaprax_provider_om_o0.so \
-    lib/x86_64/libsemaprax_provider_om_o2.so \
-    lib/x86_64/libsemaprax_provider_rf_o0.so \
-    lib/x86_64/libsemaprax_provider_rf_o2.so
+    "lib/$android_abi/libsemaprax_jni.so" \
+    "lib/$android_abi/libsemaprax_provider_ca_o0.so" \
+    "lib/$android_abi/libsemaprax_provider_ca_o2.so" \
+    "lib/$android_abi/libsemaprax_provider_ef_o0.so" \
+    "lib/$android_abi/libsemaprax_provider_ef_o2.so" \
+    "lib/$android_abi/libsemaprax_provider_o0.so" \
+    "lib/$android_abi/libsemaprax_provider_o2.so" \
+    "lib/$android_abi/libsemaprax_provider_om_o0.so" \
+    "lib/$android_abi/libsemaprax_provider_om_o2.so" \
+    "lib/$android_abi/libsemaprax_provider_rf_o0.so" \
+    "lib/$android_abi/libsemaprax_provider_rf_o2.so"
 )
 
 readonly aligned_apk="$work/aligned.apk"
@@ -186,7 +195,7 @@ readonly output_apk="$output_root/semaprax-android-jni.apk"
 mapfile -t packaged_native < <(unzip -Z1 "$output_apk" | grep '^lib/' | LC_ALL=C sort)
 expected_native=()
 for name in "${native_names[@]}"; do
-  expected_native+=("lib/x86_64/$name")
+  expected_native+=("lib/$android_abi/$name")
 done
 readonly expected_native
 if [[ "${#packaged_native[@]}" -ne "${#expected_native[@]}" ]]; then

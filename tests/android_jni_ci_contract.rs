@@ -71,6 +71,7 @@ fn private_android_jni_project_is_offline_closed_and_source_locked() {
         "android.build_tools=35.0.0",
         "android.ndk=27.2.12479018",
         "android.abi=x86_64",
+        "android.abi.arm64-v8a=arm64-v8a",
     ] {
         assert!(lock.contains(required), "toolchain lock lost `{required}`");
     }
@@ -169,7 +170,7 @@ fn private_android_jni_project_is_offline_closed_and_source_locked() {
         .expect("explicit Android JNI zip inventory");
     let mut previous = None;
     for name in expected_names {
-        let path = format!("lib/x86_64/{name}");
+        let path = format!("lib/$android_abi/{name}");
         assert_eq!(zip_block.matches(&path).count(), 1);
         let position = zip_block.find(&path).unwrap();
         if let Some(previous) = previous {
@@ -349,11 +350,25 @@ fn private_android_jni_hosted_gate_is_mandatory_and_fail_closed() {
     let workflow = read(root, ".github/workflows/ci.yml");
     let gate = read(root, "scripts/android-jni-app-v3.sh");
     for required in [
-        "Private Android JNI/Kotlin application runtime",
+        "Private Android JNI/Kotlin application runtime (${{ matrix.arch }})",
+        "runs-on: ${{ matrix.runs-on }}",
+        "strategy:",
+        "fail-fast: false",
+        "matrix:",
+        "include:",
+        "arch: x86_64",
+        "runs-on: ubuntu-latest",
+        "abi: x86_64",
+        "emulator-arch: x86_64",
+        "arch: arm64-v8a",
+        "runs-on: ubuntu-24.04-arm",
+        "abi: arm64-v8a",
+        "emulator-arch: arm64-v8a",
+        "ANDROID_ARCH: ${{ matrix.abi }}",
+        "arch: ${{ matrix.emulator-arch }}",
         "Build offline and run the private JNI/Kotlin instrumentation APK",
         "ReactiveCircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0",
         "api-level: 35",
-        "arch: x86_64",
         "ndk: 27.2.12479018",
         "script: scripts/android-jni-app-v3.sh",
     ] {
@@ -363,6 +378,18 @@ fn private_android_jni_hosted_gate_is_mandatory_and_fail_closed() {
         );
     }
     for required in [
+        "android_abi=\"${ANDROID_ARCH:-x86_64}\"",
+        "case \"$android_abi\" in",
+        "x86_64|arm64-v8a",
+        "abi=$android_abi",
+        "expected_machine=\"Advanced Micro Devices X86-64\"",
+        "expected_machine=\"AArch64\"",
+        "grep -F \"$expected_machine\"",
+        "Android JNI $android_abi artifact contains a forbidden path",
+        "if [[ \"$android_abi\" == \"arm64-v8a\" ]]",
+        "cp \"$scratch/libsemaprax_provider_arm64_o0.so\" \"$packaged_provider_o0\"",
+        "cp \"$scratch/libsemaprax_jni_arm64.so\" \"$packaged_jni\"",
+        "getprop ro.product.cpu.abi | tr -d '\\r')\" != \"$android_abi\"",
         "gradle --offline",
         "--features unstable-android-jni-harness",
         "--bin private-android-jni-v3-fixture",

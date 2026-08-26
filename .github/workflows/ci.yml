@@ -589,9 +589,23 @@ jobs:
           script: scripts/android-emulator-v3.sh
 
   android-jni-app-cross-check:
-    name: Private Android JNI/Kotlin application runtime
-    runs-on: ubuntu-latest
+    name: Private Android JNI/Kotlin application runtime (${{ matrix.arch }})
+    runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runs-on: ubuntu-latest
+            abi: x86_64
+            emulator-arch: x86_64
+          - arch: arm64-v8a
+            runs-on: ubuntu-24.04-arm
+            abi: arm64-v8a
+            emulator-arch: arm64-v8a
+    env:
+      ANDROID_ARCH: ${{ matrix.abi }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
@@ -610,7 +624,7 @@ jobs:
         with:
           api-level: 35
           target: default
-          arch: x86_64
+          arch: ${{ matrix.emulator-arch }}
           ndk: 27.2.12479018
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true

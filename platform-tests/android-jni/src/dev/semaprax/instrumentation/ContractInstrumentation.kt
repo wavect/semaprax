@@ -21,9 +21,10 @@ class ContractInstrumentation : Instrumentation() {
 
     override fun onStart() {
         val output = File(targetContext.filesDir, RESULT_FILE)
+        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull()
         val result = runCatching { verifyExactContract() }
         if (result.isSuccess) {
-            output.writeText(EXPECTED_RESULT, Charsets.UTF_8)
+            output.writeText(expectedResultForAbi(abi), Charsets.UTF_8)
             finish(Activity.RESULT_OK, Bundle().apply { putString("semaprax", "pass") })
         } else {
             output.writeText("SEMAPRAX_ANDROID_JNI_V1_FAIL\n", Charsets.UTF_8)
@@ -35,7 +36,8 @@ class ContractInstrumentation : Instrumentation() {
         OpaqueHandle.requireKnownAnswer()
         StatusWord.requireKnownAnswers()
         require(android.os.Build.VERSION.SDK_INT == 35) { "emulator API changed" }
-        require(android.os.Build.SUPPORTED_ABIS.firstOrNull() == "x86_64") { "emulator ABI changed" }
+        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull()
+        require(abi == "x86_64" || abi == "arm64-v8a") { "emulator ABI changed: $abi" }
         val nativeDirectory = File(targetContext.applicationInfo.nativeLibraryDir).canonicalFile
         val bridge = NativeBridge.loadExact(nativeDirectory)
 

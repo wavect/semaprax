@@ -19,16 +19,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         .skip(1)
         .map(PathBuf::from)
         .collect::<Vec<_>>();
-    if outputs.len() != 8
+    if outputs.len() != 12
         || outputs.iter().any(|path| !path.is_absolute())
         || (0..outputs.len())
             .any(|left| (left + 1..outputs.len()).any(|right| outputs[left] == outputs[right]))
     {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "expected eight distinct absolute outputs: x86-discard.c arm64-discard.c \
+            "expected twelve distinct absolute outputs: x86-discard.c arm64-discard.c \
              x86-requires-false.c arm64-requires-false.c x86-identity-max.c \
-             arm64-identity-max.c x86-jni.c arm64-jni.c",
+             arm64-identity-max.c x86-checked-add-overflow.c arm64-checked-add-overflow.c \
+             x86-ensures-false.c arm64-ensures-false.c x86-jni.c arm64-jni.c",
         )
         .into());
     }
@@ -49,6 +50,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err(io::Error::other("identity-max corpus result ordinal diverged").into());
     }
     let identity_max_function = DeclarationId::new(identity_max.function_id);
+    let checked_add_overflow = corpus
+        .cases
+        .iter()
+        .find(|case| case.scenario_id == "checked-add-overflow")
+        .ok_or_else(|| io::Error::other("checked-add-overflow corpus case is absent"))?;
+    let checked_add_overflow_function = DeclarationId::new(checked_add_overflow.function_id);
+    let ensures_false = corpus
+        .cases
+        .iter()
+        .find(|case| case.scenario_id == "ensures-false")
+        .ok_or_else(|| io::Error::other("ensures-false corpus case is absent"))?;
+    let ensures_false_function = DeclarationId::new(ensures_false.function_id);
     let emit = |target| {
         emit_private_native_callable_v3_android_fixture(
             &corpus.program,
@@ -86,12 +99,44 @@ fn main() -> Result<(), Box<dyn Error>> {
             io::Error::other(format!("emit Android JNI identity-max fixture: {error:?}"))
         })
     };
+    let emit_checked_add_overflow = |target| {
+        emit_private_native_callable_v3_android_corpus_fixture(
+            &corpus.program,
+            &checked_add_overflow_function,
+            &checked_add_overflow.arguments,
+            checked_add_overflow.expected_owned_result_ordinal,
+            &checked_add_overflow.reference,
+            target,
+        )
+        .map_err(|error| {
+            io::Error::other(format!(
+                "emit Android JNI checked-add-overflow fixture: {error:?}"
+            ))
+        })
+    };
+    let emit_ensures_false = |target| {
+        emit_private_native_callable_v3_android_corpus_fixture(
+            &corpus.program,
+            &ensures_false_function,
+            &ensures_false.arguments,
+            ensures_false.expected_owned_result_ordinal,
+            &ensures_false.reference,
+            target,
+        )
+        .map_err(|error| {
+            io::Error::other(format!("emit Android JNI ensures-false fixture: {error:?}"))
+        })
+    };
     let x86 = emit(PrivateNativeCallableV3AndroidTarget::X86_64)?;
     let arm64 = emit(PrivateNativeCallableV3AndroidTarget::Arm64)?;
     let x86_requires_false = emit_requires_false(PrivateNativeCallableV3AndroidTarget::X86_64)?;
     let arm64_requires_false = emit_requires_false(PrivateNativeCallableV3AndroidTarget::Arm64)?;
     let x86_identity_max = emit_identity_max(PrivateNativeCallableV3AndroidTarget::X86_64)?;
     let arm64_identity_max = emit_identity_max(PrivateNativeCallableV3AndroidTarget::Arm64)?;
+    let x86_checked = emit_checked_add_overflow(PrivateNativeCallableV3AndroidTarget::X86_64)?;
+    let arm64_checked = emit_checked_add_overflow(PrivateNativeCallableV3AndroidTarget::Arm64)?;
+    let x86_ensures = emit_ensures_false(PrivateNativeCallableV3AndroidTarget::X86_64)?;
+    let arm64_ensures = emit_ensures_false(PrivateNativeCallableV3AndroidTarget::Arm64)?;
     write_new(&outputs[0], render_provider(x86.source()).as_bytes())?;
     write_new(&outputs[1], render_provider(arm64.source()).as_bytes())?;
     write_new(
@@ -112,19 +157,39 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     write_new(
         &outputs[6],
+        render_provider(x86_checked.source()).as_bytes(),
+    )?;
+    write_new(
+        &outputs[7],
+        render_provider(arm64_checked.source()).as_bytes(),
+    )?;
+    write_new(
+        &outputs[8],
+        render_provider(x86_ensures.source()).as_bytes(),
+    )?;
+    write_new(
+        &outputs[9],
+        render_provider(arm64_ensures.source()).as_bytes(),
+    )?;
+    write_new(
+        &outputs[10],
         render_jni_shim(
             x86.descriptor(),
             x86_requires_false.descriptor(),
             x86_identity_max.descriptor(),
+            x86_checked.descriptor(),
+            x86_ensures.descriptor(),
         )
         .as_bytes(),
     )?;
     write_new(
-        &outputs[7],
+        &outputs[11],
         render_jni_shim(
             arm64.descriptor(),
             arm64_requires_false.descriptor(),
             arm64_identity_max.descriptor(),
+            arm64_checked.descriptor(),
+            arm64_ensures.descriptor(),
         )
         .as_bytes(),
     )?;
@@ -191,6 +256,8 @@ fn render_jni_shim(
     discard_descriptor: &[u8],
     requires_false_descriptor: &[u8],
     identity_max_descriptor: &[u8],
+    checked_add_overflow_descriptor: &[u8],
+    ensures_false_descriptor: &[u8],
 ) -> String {
     format!(
         r#"#define _GNU_SOURCE 1
@@ -210,13 +277,21 @@ fn render_jni_shim(
 #define SPX_SELECTOR_DISCARD INT32_C(0)
 #define SPX_SELECTOR_REQUIRES_FALSE INT32_C(1)
 #define SPX_SELECTOR_IDENTITY_MAX INT32_C(2)
+#define SPX_SELECTOR_CHECKED_ADD_OVERFLOW INT32_C(3)
+#define SPX_SELECTOR_ENSURES_FALSE INT32_C(4)
 #define SPX_REQUIRES_FALSE_SELECTED_ORDINAL UINT64_C(1)
 #define SPX_REQUIRES_FALSE_PAYLOAD UINT64_C(18446744073709551615)
 #define SPX_IDENTITY_MAX_PUBLICATIONS UINT64_C(2)
+#define SPX_CHECKED_ADD_OVERFLOW_SELECTED_ORDINAL UINT64_C(2)
+#define SPX_CHECKED_ADD_OVERFLOW_PAYLOAD UINT64_C(18446744073709551615)
+#define SPX_ENSURES_FALSE_SELECTED_ORDINAL UINT64_C(3)
+#define SPX_ENSURES_FALSE_PAYLOAD UINT64_C(18446744073709551615)
 
 static const uint8_t spx_descriptor[]={{{}}};
 static const uint8_t spx_rf_descriptor[]={{{}}};
 static const uint8_t spx_id_descriptor[]={{{}}};
+static const uint8_t spx_ca_descriptor[]={{{}}};
+static const uint8_t spx_ef_descriptor[]={{{}}};
 struct spx_jni_evidence_v1 {{
   uint32_t size;uint32_t version;uint64_t module_instance_id;uint64_t proof_flags;
   uint64_t postcommit_allocations;uint64_t host_state_flags;
@@ -230,6 +305,10 @@ extern uint64_t spx_private_android_jni_v1_adopt_owned(uint64_t,uint64_t *);
 extern uint64_t spx_private_android_jni_v1_consume_pair(uint64_t,struct spx_jni_evidence_v1 *,uint32_t);
 extern uint64_t spx_private_android_jni_v1_execute_requires_false(uint64_t,struct spx_jni_evidence_v1 *,uint32_t);
 extern uint64_t spx_private_android_jni_v1_execute_identity_max(uint64_t,struct spx_jni_evidence_v1 *,uint32_t);
+extern uint64_t spx_private_android_jni_v1_adopt_checked_add_overflow(uint64_t,uint64_t *);
+extern uint64_t spx_private_android_jni_v1_adopt_ensures_false(uint64_t,uint64_t *);
+extern uint64_t spx_private_android_jni_v1_execute_checked_add_overflow(uint64_t,struct spx_jni_evidence_v1 *,uint32_t);
+extern uint64_t spx_private_android_jni_v1_execute_ensures_false(uint64_t,struct spx_jni_evidence_v1 *,uint32_t);
 extern uint64_t spx_private_android_jni_v1_poison_runtime(void);
 extern uint64_t spx_private_android_jni_v1_validate_hooks(const void *,const void *);
 extern uint64_t spx_private_android_jni_v1_close_runtime(void);
@@ -246,7 +325,7 @@ static jlong spx_open(JNIEnv *env,jobject self,jbyteArray path_array,jint select
   (void)self;
   if(spx_in_callback)return (jlong)SPX_REENTRANT_STATUS;
   if(path_array==NULL||spx_hook_image!=NULL)return (jlong)SPX_INVALID_STATUS;
-  if(selector!=SPX_SELECTOR_DISCARD&&selector!=SPX_SELECTOR_REQUIRES_FALSE&&selector!=SPX_SELECTOR_IDENTITY_MAX)return (jlong)SPX_INVALID_STATUS;
+  if(selector!=SPX_SELECTOR_DISCARD&&selector!=SPX_SELECTOR_REQUIRES_FALSE&&selector!=SPX_SELECTOR_IDENTITY_MAX&&selector!=SPX_SELECTOR_CHECKED_ADD_OVERFLOW&&selector!=SPX_SELECTOR_ENSURES_FALSE)return (jlong)SPX_INVALID_STATUS;
   const uint8_t *embedded_descriptor=spx_descriptor;
   uint32_t embedded_length=(uint32_t)sizeof(spx_descriptor);
   if(selector==SPX_SELECTOR_REQUIRES_FALSE){{
@@ -256,6 +335,14 @@ static jlong spx_open(JNIEnv *env,jobject self,jbyteArray path_array,jint select
   if(selector==SPX_SELECTOR_IDENTITY_MAX){{
     embedded_descriptor=spx_id_descriptor;
     embedded_length=(uint32_t)sizeof(spx_id_descriptor);
+  }}
+  if(selector==SPX_SELECTOR_CHECKED_ADD_OVERFLOW){{
+    embedded_descriptor=spx_ca_descriptor;
+    embedded_length=(uint32_t)sizeof(spx_ca_descriptor);
+  }}
+  if(selector==SPX_SELECTOR_ENSURES_FALSE){{
+    embedded_descriptor=spx_ef_descriptor;
+    embedded_length=(uint32_t)sizeof(spx_ef_descriptor);
   }}
   jsize length=(*env)->GetArrayLength(env,path_array);
   if((*env)->ExceptionCheck(env)){{(*env)->ExceptionClear(env);return (jlong)SPX_UNEXPECTED_STATUS;}}
@@ -352,6 +439,50 @@ static jlong spx_adopt_owned(JNIEnv *env,jobject self,jlong payload,jlongArray o
   if(words==NULL)return (jlong)SPX_UNEXPECTED_STATUS;
   uint64_t handle=UINT64_C(0);
   uint64_t status=spx_private_android_jni_v1_adopt_owned((uint64_t)payload,&handle);
+  if(status==UINT64_C(0))words[0]=(jlong)handle;
+  (*env)->ReleaseLongArrayElements(env,output,words,status==UINT64_C(0)?0:JNI_ABORT);
+  return (jlong)status;
+}}
+
+static jlong spx_adopt_checked_add_overflow(JNIEnv *env,jobject self,jlong payload,jlongArray output){{
+  (void)self;
+  if(spx_in_callback)return (jlong)SPX_REENTRANT_STATUS;
+  if(spx_selector!=SPX_SELECTOR_CHECKED_ADD_OVERFLOW)return (jlong)SPX_INVALID_STATUS;
+  if(output==NULL)return (jlong)SPX_INVALID_STATUS;
+  jsize length=(*env)->GetArrayLength(env,output);
+  if((*env)->ExceptionCheck(env)){{(*env)->ExceptionClear(env);return (jlong)SPX_UNEXPECTED_STATUS;}}
+  if(length<1)return (jlong)SPX_INVALID_STATUS;
+  jboolean copied=JNI_FALSE;
+  jlong *words=(*env)->GetLongArrayElements(env,output,&copied);
+  if((*env)->ExceptionCheck(env)){{
+    (*env)->ExceptionClear(env);if(words!=NULL)(*env)->ReleaseLongArrayElements(env,output,words,JNI_ABORT);
+    return (jlong)SPX_UNEXPECTED_STATUS;
+  }}
+  if(words==NULL)return (jlong)SPX_UNEXPECTED_STATUS;
+  uint64_t handle=UINT64_C(0);
+  uint64_t status=spx_private_android_jni_v1_adopt_checked_add_overflow((uint64_t)payload,&handle);
+  if(status==UINT64_C(0))words[0]=(jlong)handle;
+  (*env)->ReleaseLongArrayElements(env,output,words,status==UINT64_C(0)?0:JNI_ABORT);
+  return (jlong)status;
+}}
+
+static jlong spx_adopt_ensures_false(JNIEnv *env,jobject self,jlong payload,jlongArray output){{
+  (void)self;
+  if(spx_in_callback)return (jlong)SPX_REENTRANT_STATUS;
+  if(spx_selector!=SPX_SELECTOR_ENSURES_FALSE)return (jlong)SPX_INVALID_STATUS;
+  if(output==NULL)return (jlong)SPX_INVALID_STATUS;
+  jsize length=(*env)->GetArrayLength(env,output);
+  if((*env)->ExceptionCheck(env)){{(*env)->ExceptionClear(env);return (jlong)SPX_UNEXPECTED_STATUS;}}
+  if(length<1)return (jlong)SPX_INVALID_STATUS;
+  jboolean copied=JNI_FALSE;
+  jlong *words=(*env)->GetLongArrayElements(env,output,&copied);
+  if((*env)->ExceptionCheck(env)){{
+    (*env)->ExceptionClear(env);if(words!=NULL)(*env)->ReleaseLongArrayElements(env,output,words,JNI_ABORT);
+    return (jlong)SPX_UNEXPECTED_STATUS;
+  }}
+  if(words==NULL)return (jlong)SPX_UNEXPECTED_STATUS;
+  uint64_t handle=UINT64_C(0);
+  uint64_t status=spx_private_android_jni_v1_adopt_ensures_false((uint64_t)payload,&handle);
   if(status==UINT64_C(0))words[0]=(jlong)handle;
   (*env)->ReleaseLongArrayElements(env,output,words,status==UINT64_C(0)?0:JNI_ABORT);
   return (jlong)status;
@@ -485,6 +616,92 @@ static jlong spx_execute_identity_max(JNIEnv *env,jobject self,jlong handle,jlon
   return (jlong)status;
 }}
 
+static jlong spx_execute_checked_add_overflow(JNIEnv *env,jobject self,jlong handle,jlongArray output){{
+  (void)self;
+  if(spx_in_callback)return (jlong)SPX_REENTRANT_STATUS;
+  if(spx_selector!=SPX_SELECTOR_CHECKED_ADD_OVERFLOW)return (jlong)SPX_INVALID_STATUS;
+  if(output==NULL)return (jlong)SPX_INVALID_STATUS;
+  jsize length=(*env)->GetArrayLength(env,output);
+  if((*env)->ExceptionCheck(env)){{(*env)->ExceptionClear(env);return (jlong)SPX_UNEXPECTED_STATUS;}}
+  if(length<8)return (jlong)SPX_INVALID_STATUS;
+  jboolean copied=JNI_FALSE;
+  jlong *words=(*env)->GetLongArrayElements(env,output,&copied);
+  if((*env)->ExceptionCheck(env)){{
+    (*env)->ExceptionClear(env);if(words!=NULL)(*env)->ReleaseLongArrayElements(env,output,words,JNI_ABORT);
+    return (jlong)SPX_UNEXPECTED_STATUS;
+  }}
+  if(words==NULL)return (jlong)SPX_UNEXPECTED_STATUS;
+  if(spx_hook_image!=NULL&&(spx_reset==NULL||spx_reset()!=UINT32_C(0))){{
+    (void)spx_private_android_jni_v1_poison_runtime();
+    (*env)->ReleaseLongArrayElements(env,output,words,JNI_ABORT);return (jlong)SPX_HOOK_STATUS;
+  }}
+  struct spx_jni_evidence_v1 evidence={{0}};
+  uint64_t status=spx_private_android_jni_v1_execute_checked_add_overflow((uint64_t)handle,&evidence,(uint32_t)sizeof(evidence));
+  if(status==UINT64_C(0)){{
+    uint32_t count=0,owners[2]={{0,0}};uint64_t payloads[2]={{0,0}};
+    if(spx_snapshot==NULL||spx_snapshot(&count,owners,payloads,UINT32_C(2))!=UINT32_C(0)||
+       evidence.size!=(uint32_t)sizeof(evidence)||evidence.version!=UINT32_C(1)||
+       evidence.module_instance_id==UINT64_C(0)||
+       evidence.proof_flags!=SPX_CHECKED_ADD_OVERFLOW_SELECTED_ORDINAL||
+       evidence.postcommit_allocations!=UINT64_C(0)||evidence.host_state_flags!=UINT64_C(0)||
+       count!=UINT32_C(1)||owners[0]!=UINT32_C(0)||payloads[0]!=SPX_CHECKED_ADD_OVERFLOW_PAYLOAD||
+       owners[1]!=UINT32_C(0)||payloads[1]!=UINT64_C(0)){{
+      (void)spx_private_android_jni_v1_poison_runtime();status=SPX_HOOK_STATUS;
+    }}
+    else{{
+      words[0]=(jlong)UINT64_C(1);words[1]=(jlong)evidence.module_instance_id;
+      words[2]=(jlong)evidence.proof_flags;words[3]=(jlong)evidence.postcommit_allocations;
+      words[4]=(jlong)count;words[5]=(jlong)(((uint64_t)owners[0]<<32)|payloads[0]);
+      words[6]=(jlong)(((uint64_t)owners[1]<<32)|payloads[1]);words[7]=(jlong)evidence.host_state_flags;
+    }}
+  }}
+  (*env)->ReleaseLongArrayElements(env,output,words,status==UINT64_C(0)?0:JNI_ABORT);
+  return (jlong)status;
+}}
+
+static jlong spx_execute_ensures_false(JNIEnv *env,jobject self,jlong handle,jlongArray output){{
+  (void)self;
+  if(spx_in_callback)return (jlong)SPX_REENTRANT_STATUS;
+  if(spx_selector!=SPX_SELECTOR_ENSURES_FALSE)return (jlong)SPX_INVALID_STATUS;
+  if(output==NULL)return (jlong)SPX_INVALID_STATUS;
+  jsize length=(*env)->GetArrayLength(env,output);
+  if((*env)->ExceptionCheck(env)){{(*env)->ExceptionClear(env);return (jlong)SPX_UNEXPECTED_STATUS;}}
+  if(length<8)return (jlong)SPX_INVALID_STATUS;
+  jboolean copied=JNI_FALSE;
+  jlong *words=(*env)->GetLongArrayElements(env,output,&copied);
+  if((*env)->ExceptionCheck(env)){{
+    (*env)->ExceptionClear(env);if(words!=NULL)(*env)->ReleaseLongArrayElements(env,output,words,JNI_ABORT);
+    return (jlong)SPX_UNEXPECTED_STATUS;
+  }}
+  if(words==NULL)return (jlong)SPX_UNEXPECTED_STATUS;
+  if(spx_hook_image!=NULL&&(spx_reset==NULL||spx_reset()!=UINT32_C(0))){{
+    (void)spx_private_android_jni_v1_poison_runtime();
+    (*env)->ReleaseLongArrayElements(env,output,words,JNI_ABORT);return (jlong)SPX_HOOK_STATUS;
+  }}
+  struct spx_jni_evidence_v1 evidence={{0}};
+  uint64_t status=spx_private_android_jni_v1_execute_ensures_false((uint64_t)handle,&evidence,(uint32_t)sizeof(evidence));
+  if(status==UINT64_C(0)){{
+    uint32_t count=0,owners[2]={{0,0}};uint64_t payloads[2]={{0,0}};
+    if(spx_snapshot==NULL||spx_snapshot(&count,owners,payloads,UINT32_C(2))!=UINT32_C(0)||
+       evidence.size!=(uint32_t)sizeof(evidence)||evidence.version!=UINT32_C(1)||
+       evidence.module_instance_id==UINT64_C(0)||
+       evidence.proof_flags!=SPX_ENSURES_FALSE_SELECTED_ORDINAL||
+       evidence.postcommit_allocations!=UINT64_C(0)||evidence.host_state_flags!=UINT64_C(0)||
+       count!=UINT32_C(1)||owners[0]!=UINT32_C(0)||payloads[0]!=SPX_ENSURES_FALSE_PAYLOAD||
+       owners[1]!=UINT32_C(0)||payloads[1]!=UINT64_C(0)){{
+      (void)spx_private_android_jni_v1_poison_runtime();status=SPX_HOOK_STATUS;
+    }}
+    else{{
+      words[0]=(jlong)UINT64_C(1);words[1]=(jlong)evidence.module_instance_id;
+      words[2]=(jlong)evidence.proof_flags;words[3]=(jlong)evidence.postcommit_allocations;
+      words[4]=(jlong)count;words[5]=(jlong)(((uint64_t)owners[0]<<32)|payloads[0]);
+      words[6]=(jlong)(((uint64_t)owners[1]<<32)|payloads[1]);words[7]=(jlong)evidence.host_state_flags;
+    }}
+  }}
+  (*env)->ReleaseLongArrayElements(env,output,words,status==UINT64_C(0)?0:JNI_ABORT);
+  return (jlong)status;
+}}
+
 static jlong spx_close(JNIEnv *env,jobject self){{
   (void)env;(void)self;
   if(spx_in_callback)return (jlong)SPX_REENTRANT_STATUS;
@@ -522,9 +739,13 @@ static const JNINativeMethod spx_methods[]={{
   {{"nativeAdoptPair","(JJ[J)J",(void *)spx_adopt}},
   {{"nativeAdoptSingle","(J[J)J",(void *)spx_adopt_single}},
   {{"nativeAdoptOwned","(J[J)J",(void *)spx_adopt_owned}},
+  {{"nativeAdoptCheckedAddOverflow","(J[J)J",(void *)spx_adopt_checked_add_overflow}},
+  {{"nativeAdoptEnsuresFalse","(J[J)J",(void *)spx_adopt_ensures_false}},
   {{"nativeConsume","(J[J)J",(void *)spx_consume}},
   {{"nativeExecuteRequiresFalse","(J[J)J",(void *)spx_execute_requires_false}},
   {{"nativeExecuteIdentityMax","(J[J)J",(void *)spx_execute_identity_max}},
+  {{"nativeExecuteCheckedAddOverflow","(J[J)J",(void *)spx_execute_checked_add_overflow}},
+  {{"nativeExecuteEnsuresFalse","(J[J)J",(void *)spx_execute_ensures_false}},
   {{"nativeCloseRuntime","()J",(void *)spx_close}},
   {{"nativeProbeException","(Ljava/lang/Runnable;)J",(void *)spx_probe}},
   {{"nativeConsumeRawWrongThread","(J[J)J",(void *)spx_consume}}
@@ -543,6 +764,8 @@ JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm,void *reserved){{(void)vm;(void)r
         descriptor_literal(discard_descriptor),
         descriptor_literal(requires_false_descriptor),
         descriptor_literal(identity_max_descriptor),
+        descriptor_literal(checked_add_overflow_descriptor),
+        descriptor_literal(ensures_false_descriptor),
     )
 }
 
@@ -556,11 +779,19 @@ mod tests {
         assert!(provider.contains("spx_private_android_jni_finalizer_snapshot_v1"));
         assert!(provider.contains("spx_v3_generated_finalize"));
         assert!(provider.contains("static _Thread_local uint32_t spx_jni_finalizer_count"));
-        let shim = render_jni_shim(&[0x53, 0x50, 0x58], &[0x52, 0x46], &[0x49, 0x44]);
+        let shim = render_jni_shim(
+            &[0x53, 0x50, 0x58],
+            &[0x52, 0x46],
+            &[0x49, 0x44],
+            &[0x43, 0x41],
+            &[0x45, 0x46],
+        );
         for required in [
             "static const uint8_t spx_descriptor[]={0x53,0x50,0x58,}",
             "static const uint8_t spx_rf_descriptor[]={0x52,0x46,}",
             "static const uint8_t spx_id_descriptor[]={0x49,0x44,}",
+            "static const uint8_t spx_ca_descriptor[]={0x43,0x41,}",
+            "static const uint8_t spx_ef_descriptor[]={0x45,0x46,}",
             "dev/semaprax/runtime/NativeBridge",
             "dev/semaprax/runtime/DeclaredFixtureException",
             "nativeOpen\",\"([BI)J",
@@ -577,13 +808,21 @@ mod tests {
             "SPX_SELECTOR_DISCARD INT32_C(0)",
             "SPX_SELECTOR_REQUIRES_FALSE INT32_C(1)",
             "SPX_SELECTOR_IDENTITY_MAX INT32_C(2)",
+            "SPX_SELECTOR_CHECKED_ADD_OVERFLOW INT32_C(3)",
+            "SPX_SELECTOR_ENSURES_FALSE INT32_C(4)",
             "SPX_REQUIRES_FALSE_SELECTED_ORDINAL UINT64_C(1)",
             "SPX_REQUIRES_FALSE_PAYLOAD UINT64_C(18446744073709551615)",
             "SPX_IDENTITY_MAX_PUBLICATIONS UINT64_C(2)",
-            "selector!=SPX_SELECTOR_DISCARD&&selector!=SPX_SELECTOR_REQUIRES_FALSE&&selector!=SPX_SELECTOR_IDENTITY_MAX",
+            "SPX_CHECKED_ADD_OVERFLOW_SELECTED_ORDINAL UINT64_C(2)",
+            "SPX_CHECKED_ADD_OVERFLOW_PAYLOAD UINT64_C(18446744073709551615)",
+            "SPX_ENSURES_FALSE_SELECTED_ORDINAL UINT64_C(3)",
+            "SPX_ENSURES_FALSE_PAYLOAD UINT64_C(18446744073709551615)",
+            "selector!=SPX_SELECTOR_DISCARD&&selector!=SPX_SELECTOR_REQUIRES_FALSE&&selector!=SPX_SELECTOR_IDENTITY_MAX&&selector!=SPX_SELECTOR_CHECKED_ADD_OVERFLOW&&selector!=SPX_SELECTOR_ENSURES_FALSE",
             "spx_selector!=SPX_SELECTOR_DISCARD)return (jlong)SPX_INVALID_STATUS",
             "spx_selector!=SPX_SELECTOR_REQUIRES_FALSE)return (jlong)SPX_INVALID_STATUS",
             "spx_selector!=SPX_SELECTOR_IDENTITY_MAX)return (jlong)SPX_INVALID_STATUS",
+            "spx_selector!=SPX_SELECTOR_CHECKED_ADD_OVERFLOW)return (jlong)SPX_INVALID_STATUS",
+            "spx_selector!=SPX_SELECTOR_ENSURES_FALSE)return (jlong)SPX_INVALID_STATUS",
             "spx_selector=(int)selector",
             "spx_reset()!=UINT32_C(0)",
             "reset_info.dli_fbase!=snapshot_info.dli_fbase",
@@ -594,13 +833,21 @@ mod tests {
             "owners[0]!=UINT32_C(1)||payloads[0]!=UINT64_C(13)",
             "evidence.proof_flags!=SPX_REQUIRES_FALSE_SELECTED_ORDINAL",
             "count!=UINT32_C(1)||owners[0]!=UINT32_C(0)||payloads[0]!=SPX_REQUIRES_FALSE_PAYLOAD",
+            "evidence.proof_flags!=SPX_CHECKED_ADD_OVERFLOW_SELECTED_ORDINAL",
+            "count!=UINT32_C(1)||owners[0]!=UINT32_C(0)||payloads[0]!=SPX_CHECKED_ADD_OVERFLOW_PAYLOAD",
+            "evidence.proof_flags!=SPX_ENSURES_FALSE_SELECTED_ORDINAL",
+            "count!=UINT32_C(1)||owners[0]!=UINT32_C(0)||payloads[0]!=SPX_ENSURES_FALSE_PAYLOAD",
             "owners[1]!=UINT32_C(0)||payloads[1]!=UINT64_C(0)",
             "evidence.proof_flags!=SPX_IDENTITY_MAX_PUBLICATIONS",
             "count!=UINT32_C(0)||owners[0]!=UINT32_C(0)||payloads[0]!=UINT64_C(0)",
             "spx_private_android_jni_v1_adopt_single((uint64_t)payload,&handle)",
             "spx_private_android_jni_v1_adopt_owned((uint64_t)payload,&handle)",
+            "spx_private_android_jni_v1_adopt_checked_add_overflow((uint64_t)payload,&handle)",
+            "spx_private_android_jni_v1_adopt_ensures_false((uint64_t)payload,&handle)",
             "spx_private_android_jni_v1_execute_requires_false((uint64_t)handle,&evidence,(uint32_t)sizeof(evidence))",
             "spx_private_android_jni_v1_execute_identity_max((uint64_t)handle,&evidence,(uint32_t)sizeof(evidence))",
+            "spx_private_android_jni_v1_execute_checked_add_overflow((uint64_t)handle,&evidence,(uint32_t)sizeof(evidence))",
+            "spx_private_android_jni_v1_execute_ensures_false((uint64_t)handle,&evidence,(uint32_t)sizeof(evidence))",
             "GetLongArrayElements",
             "status==UINT64_C(0)?0:JNI_ABORT",
             "spx_private_android_jni_v1_poison_runtime()",
@@ -628,8 +875,8 @@ mod tests {
                  words[7]=(jlong)evidence.host_state_flags;"
             )
             .count(),
-            3,
-            "consume, requires-false, and identity-max must each publish evidence words"
+            5,
+            "consume, requires-false, identity-max, checked-add-overflow, and ensures-false must each publish evidence words"
         );
     }
 

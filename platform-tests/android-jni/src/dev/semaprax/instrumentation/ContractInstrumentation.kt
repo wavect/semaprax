@@ -46,6 +46,10 @@ class ContractInstrumentation : Instrumentation() {
         runRequiresFalseWitness(bridge, nativeDirectory, "libsemaprax_provider_rf_o2.so")
         runIdentityMaxWitness(bridge, nativeDirectory, "libsemaprax_provider_om_o0.so")
         runIdentityMaxWitness(bridge, nativeDirectory, "libsemaprax_provider_om_o2.so")
+        runCheckedAddOverflowWitness(bridge, nativeDirectory, "libsemaprax_provider_ca_o0.so")
+        runCheckedAddOverflowWitness(bridge, nativeDirectory, "libsemaprax_provider_ca_o2.so")
+        runEnsuresFalseWitness(bridge, nativeDirectory, "libsemaprax_provider_ef_o0.so")
+        runEnsuresFalseWitness(bridge, nativeDirectory, "libsemaprax_provider_ef_o2.so")
     }
 
     private fun runProvider(
@@ -245,12 +249,84 @@ class ContractInstrumentation : Instrumentation() {
         runtime.close()
     }
 
+    private fun runCheckedAddOverflowWitness(
+        bridge: NativeBridge,
+        nativeDirectory: File,
+        providerName: String,
+    ) {
+        val provider = File(nativeDirectory, providerName).canonicalFile
+        require(provider.parentFile == nativeDirectory && provider.isFile) {
+            "provider is not the exact installed image"
+        }
+        val runtime = NativeRuntime(bridge)
+        runtime.open(provider, NativeBridge.SELECTOR_CHECKED_ADD_OVERFLOW)
+        val handle = runtime.adoptCheckedAddOverflowWitness()
+
+        // The discard selector cannot consume inside the checked-add-overflow image.
+        val wrongSelector = runtime.call { bridge.consume(handle) }
+        require(wrongSelector.status.raw == StatusWord.KAT_ANDROID_ADAPTER) {
+            "discard consume was not rejected on the checked-add-overflow selector"
+        }
+        wrongSelector.requireUntouchedFailure()
+
+        val forged = runtime.call { bridge.executeCheckedAddOverflow(handle xor 1L) }
+        require(forged.status.raw == StatusWord.KAT_INVALID_HANDLE)
+        forged.requireUntouchedFailure()
+
+        // The canonical checked-add-overflow corpus witness: one adopted owner
+        // at the maximum payload plus one i64::MAX scalar that overflows the
+        // checked addition, publishing no owned result and finalizing exactly
+        // that one owner after selection.
+        runtime.executeCheckedAddOverflow(handle).requireCheckedAddOverflowExact()
+
+        val stale = runtime.call { bridge.executeCheckedAddOverflow(handle) }
+        require(stale.status.raw == StatusWord.KAT_STALE_HANDLE)
+        stale.requireUntouchedFailure()
+        runtime.close()
+    }
+
+    private fun runEnsuresFalseWitness(
+        bridge: NativeBridge,
+        nativeDirectory: File,
+        providerName: String,
+    ) {
+        val provider = File(nativeDirectory, providerName).canonicalFile
+        require(provider.parentFile == nativeDirectory && provider.isFile) {
+            "provider is not the exact installed image"
+        }
+        val runtime = NativeRuntime(bridge)
+        runtime.open(provider, NativeBridge.SELECTOR_ENSURES_FALSE)
+        val handle = runtime.adoptEnsuresFalseWitness()
+
+        // The discard selector cannot consume inside the ensures-false image.
+        val wrongSelector = runtime.call { bridge.consume(handle) }
+        require(wrongSelector.status.raw == StatusWord.KAT_ANDROID_ADAPTER) {
+            "discard consume was not rejected on the ensures-false selector"
+        }
+        wrongSelector.requireUntouchedFailure()
+
+        val forged = runtime.call { bridge.executeEnsuresFalse(handle xor 1L) }
+        require(forged.status.raw == StatusWord.KAT_INVALID_HANDLE)
+        forged.requireUntouchedFailure()
+
+        // The canonical ensures-false corpus witness: one adopted owner at the
+        // maximum payload that fails the `ensures false` postcondition,
+        // publishing no owned result and finalizing exactly that one owner after
+        // selection.
+        runtime.executeEnsuresFalse(handle).requireEnsuresFalseExact()
+
+        val stale = runtime.call { bridge.executeEnsuresFalse(handle) }
+        require(stale.status.raw == StatusWord.KAT_STALE_HANDLE)
+        stale.requireUntouchedFailure()
+        runtime.close()
+    }
+
     companion object {
         const val RESULT_FILE = "semaprax-android-jni-v1.txt"
         const val EXPECTED_RESULT =
             "SEMAPRAX_ANDROID_JNI_V1_OK api=35 abi=x86_64 o0=explicit o2=cleaner " +
                 "handle=0001000001000001 declared=0000006b00000007 " +
                 "unexpected=0000004500000001 finalizers=1:13,0:11 " +
-                "publication=no-owned allocations=0 handles=0 rf=1 om=1\n"
+                "publication=no-owned allocations=0 handles=0 rf=1 om=1 ca=1 ef=1\n"
     }
 }

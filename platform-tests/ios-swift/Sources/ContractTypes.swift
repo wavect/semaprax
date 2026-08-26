@@ -190,3 +190,55 @@ struct IdentityMaxEvidence: Equatable, Sendable {
                             "native rejection modified identity-max output evidence")
     }
 }
+
+struct CheckedAddOverflowEvidence: Equatable, Sendable {
+    static let selectedOrdinalKAT: UInt64 = 2
+    static let finalizerPayloadKAT: UInt64 = UInt64.max
+    static let byteCount: UInt32 = 64
+    let words: [UInt64]
+
+    func requireExact() throws {
+        try requireContract(words.count == 8, "checked-add-overflow evidence width changed")
+        try requireContract(words[0] == 1, "checked-add-overflow evidence version changed")
+        try requireContract(words[1] != 0, "checked-add-overflow module identity is zero")
+        try requireContract(words[2] == Self.selectedOrdinalKAT,
+                            "semantic failure selection word is not the canonical checked-add ordinal")
+        try requireContract(words[3] == 0, "checked-add-overflow postcommit allocation count is nonzero")
+        try requireContract(words[4] == 1, "checked-add-overflow finalizer count is not exactly one")
+        try requireContract(words[5] == Self.finalizerPayloadKAT,
+                            "checked-add-overflow finalizer payload is not the canonical corpus value")
+        try requireContract(words[6] == 0, "checked-add-overflow mutated a second owner slot")
+        try requireContract(words[7] == 0, "checked-add-overflow host flags changed")
+    }
+
+    func requirePoisoned() throws {
+        try requireContract(words == Array(repeating: ConsumeEvidence.poison, count: 8),
+                            "native rejection modified checked-add-overflow output evidence")
+    }
+}
+
+struct EnsuresFalseEvidence: Equatable, Sendable {
+    static let selectedOrdinalKAT: UInt64 = 3
+    static let finalizerPayloadKAT: UInt64 = UInt64.max
+    static let byteCount: UInt32 = 64
+    let words: [UInt64]
+
+    func requireExact() throws {
+        try requireContract(words.count == 8, "ensures-false evidence width changed")
+        try requireContract(words[0] == 1, "ensures-false evidence version changed")
+        try requireContract(words[1] != 0, "ensures-false module identity is zero")
+        try requireContract(words[2] == Self.selectedOrdinalKAT,
+                            "semantic failure selection word is not the canonical ensures ordinal")
+        try requireContract(words[3] == 0, "ensures-false postcommit allocation count is nonzero")
+        try requireContract(words[4] == 1, "ensures-false finalizer count is not exactly one")
+        try requireContract(words[5] == Self.finalizerPayloadKAT,
+                            "ensures-false finalizer payload is not the canonical corpus value")
+        try requireContract(words[6] == 0, "ensures-false mutated a second owner slot")
+        try requireContract(words[7] == 0, "ensures-false host flags changed")
+    }
+
+    func requirePoisoned() throws {
+        try requireContract(words == Array(repeating: ConsumeEvidence.poison, count: 8),
+                            "native rejection modified ensures-false output evidence")
+    }
+}

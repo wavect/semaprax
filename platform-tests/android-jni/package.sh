@@ -43,6 +43,10 @@ if [[ ! -d "$native_dir" ]]; then
 fi
 readonly native_names=(
   libsemaprax_jni.so
+  libsemaprax_provider_ca_o0.so
+  libsemaprax_provider_ca_o2.so
+  libsemaprax_provider_ef_o0.so
+  libsemaprax_provider_ef_o2.so
   libsemaprax_provider_o0.so
   libsemaprax_provider_o2.so
   libsemaprax_provider_om_o0.so
@@ -50,13 +54,13 @@ readonly native_names=(
   libsemaprax_provider_rf_o0.so
   libsemaprax_provider_rf_o2.so
 )
-if [[ "${#native_names[@]}" -ne 7 ]]; then
-  echo "Android JNI native inventory authority must contain exactly seven names" >&2
+if [[ "${#native_names[@]}" -ne 11 ]]; then
+  echo "Android JNI native inventory authority must contain exactly eleven names" >&2
   exit 1
 fi
 mapfile -t native_files < <(find "$native_dir" -mindepth 1 -maxdepth 1 -type f -name '*.so' -print | LC_ALL=C sort)
 if [[ "${#native_files[@]}" -ne "${#native_names[@]}" ]]; then
-  echo "generated Android JNI directory must contain exactly seven shared libraries" >&2
+  echo "generated Android JNI directory must contain exactly eleven shared libraries" >&2
   exit 1
 fi
 for name in "${native_names[@]}"; do
@@ -99,7 +103,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 mapfile -t kotlin_sources < <(find "$project_root/src" -type f -name '*.kt' -print | LC_ALL=C sort)
-if [[ "${#kotlin_sources[@]}" -lt 7 ]]; then
+if [[ "${#kotlin_sources[@]}" -lt 9 ]]; then
   echo "private Android JNI Kotlin source set is incomplete" >&2
   exit 1
 fi
@@ -144,6 +148,10 @@ done
   cd "$work/payload"
   zip -q -X -0 "$base_apk" classes.dex \
     lib/x86_64/libsemaprax_jni.so \
+    lib/x86_64/libsemaprax_provider_ca_o0.so \
+    lib/x86_64/libsemaprax_provider_ca_o2.so \
+    lib/x86_64/libsemaprax_provider_ef_o0.so \
+    lib/x86_64/libsemaprax_provider_ef_o2.so \
     lib/x86_64/libsemaprax_provider_o0.so \
     lib/x86_64/libsemaprax_provider_o2.so \
     lib/x86_64/libsemaprax_provider_om_o0.so \

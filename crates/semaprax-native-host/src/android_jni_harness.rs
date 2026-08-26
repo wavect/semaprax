@@ -46,6 +46,11 @@ const REQUIRES_FALSE_SELECTED_ORDINAL: u32 = 1;
 const IDENTITY_MAX_PAYLOAD: u64 = u64::MAX;
 const IDENTITY_MAX_OWNER_ORDINAL: u32 = 0;
 const IDENTITY_MAX_PUBLICATIONS: u64 = 2;
+const CHECKED_ADD_OVERFLOW_PAYLOAD: u64 = u64::MAX;
+const CHECKED_ADD_OVERFLOW_I64: i64 = i64::MAX;
+const CHECKED_ADD_OVERFLOW_SELECTED_ORDINAL: u32 = 2;
+const ENSURES_FALSE_PAYLOAD: u64 = u64::MAX;
+const ENSURES_FALSE_SELECTED_ORDINAL: u32 = 3;
 const OWNER_GENERATION: u64 = 1;
 
 const DOMAIN_ANDROID: u16 = 1;
@@ -94,6 +99,8 @@ enum SessionShape {
     Pair,
     SingleWitness,
     SingleOwnedResult,
+    CheckedAddOverflow,
+    EnsuresFalse,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -399,6 +406,36 @@ impl AndroidJniRuntimeV1 {
         self.sessions
             .insert(Session {
                 shape: SessionShape::SingleOwnedResult,
+                payloads: [payload, 0],
+            })
+            .map_err(map_table_error)
+    }
+
+    fn adopt_checked_add_overflow(&mut self, payload: u64) -> Result<u64, u64> {
+        if self.poisoned || self.host.is_poisoned() {
+            return Err(android_status(CODE_HOST_UNHEALTHY));
+        }
+        if payload != CHECKED_ADD_OVERFLOW_PAYLOAD {
+            return Err(android_status(CODE_WRONG_PAYLOAD));
+        }
+        self.sessions
+            .insert(Session {
+                shape: SessionShape::CheckedAddOverflow,
+                payloads: [payload, 0],
+            })
+            .map_err(map_table_error)
+    }
+
+    fn adopt_ensures_false(&mut self, payload: u64) -> Result<u64, u64> {
+        if self.poisoned || self.host.is_poisoned() {
+            return Err(android_status(CODE_HOST_UNHEALTHY));
+        }
+        if payload != ENSURES_FALSE_PAYLOAD {
+            return Err(android_status(CODE_WRONG_PAYLOAD));
+        }
+        self.sessions
+            .insert(Session {
+                shape: SessionShape::EnsuresFalse,
                 payloads: [payload, 0],
             })
             .map_err(map_table_error)
@@ -738,6 +775,194 @@ impl AndroidJniRuntimeV1 {
         })
     }
 
+    fn checked_add_overflow_witness(
+        &mut self,
+        handle: u64,
+    ) -> Result<PrivateAndroidJniEvidenceV1, u64> {
+        if self.poisoned || self.host.is_poisoned() {
+            return Err(android_status(CODE_HOST_UNHEALTHY));
+        }
+        let session = self.sessions.claim(handle).map_err(map_table_error)?;
+        if session.shape != SessionShape::CheckedAddOverflow {
+            self.sessions.restore(handle);
+            return Err(android_status(CODE_INVALID_HANDLE));
+        }
+        let payload = session.payloads[0];
+        let slot = match take_owner_slot(&mut self.next_owner_slot) {
+            Ok(slot) => slot,
+            Err(status) => {
+                self.sessions.restore(handle);
+                return Err(status);
+            }
+        };
+        let owner = match self.host.register_owner(slot, OWNER_GENERATION) {
+            Ok(owner) => owner,
+            Err(_) => {
+                self.sessions.restore(handle);
+                return Err(android_status(CODE_CAPACITY));
+            }
+        };
+        // The canonical `checked-add-overflow` corpus witness: one owned
+        // argument at the corpus-maximum payload plus one i64::MAX scalar that
+        // overflows the checked addition, publishing no owned result and
+        // finalizing exactly that one owner after selection.
+        let arguments = [
+            PrivateSettlementArgumentV3::Owned {
+                handle: owner,
+                payload,
+            },
+            PrivateSettlementArgumentV3::I64(CHECKED_ADD_OVERFLOW_I64),
+        ];
+        let committed = match self.host.execute_canonical(&arguments) {
+            Ok(committed) => committed,
+            Err(_) => {
+                self.sessions.quarantine(handle);
+                self.poisoned = true;
+                return Err(android_status(CODE_EXECUTION_UNCERTAIN));
+            }
+        };
+        let allocations = crate::postcommit_allocation_probe::take_last();
+        let healthy = !self.host.is_poisoned()
+            && !self.host.is_draining()
+            && self.host.quarantined_count() == 0;
+        if committed.outcome
+            != (ExecuteOutcome::SemanticFailure {
+                selected_ordinal: CHECKED_ADD_OVERFLOW_SELECTED_ORDINAL,
+            })
+            || committed.committed.publication != Publication::NoOwned
+            || committed.committed.published_owner.is_some()
+            || allocations != Some(0)
+            || !healthy
+        {
+            self.sessions.quarantine(handle);
+            self.poisoned = true;
+            return Err(android_status(CODE_EVIDENCE_MISMATCH));
+        }
+        if self
+            .host
+            .replay_committed(committed.identity, &committed.candidate_bytes)
+            != Ok(committed.committed)
+        {
+            self.sessions.quarantine(handle);
+            self.poisoned = true;
+            return Err(android_status(CODE_EVIDENCE_MISMATCH));
+        }
+        // Failure selection is sticky: the consumed owner must make a second
+        // canonical execution fail closed without poisoning the host.
+        if self.host.execute_canonical(&arguments)
+            != Err(PrivateSettlementExecutionError::Ledger(
+                SettlementLedgerError::StaleOwner,
+            ))
+            || self.host.is_poisoned()
+            || self.host.is_draining()
+            || self.host.quarantined_count() != 0
+        {
+            self.sessions.quarantine(handle);
+            self.poisoned = true;
+            return Err(android_status(CODE_EVIDENCE_MISMATCH));
+        }
+        self.sessions.consume(handle);
+        Ok(PrivateAndroidJniEvidenceV1 {
+            size: mem::size_of::<PrivateAndroidJniEvidenceV1>() as u32,
+            version: EVIDENCE_VERSION,
+            module_instance_id: self.host.module_instance_id().get(),
+            proof_flags: u64::from(CHECKED_ADD_OVERFLOW_SELECTED_ORDINAL),
+            postcommit_allocations: allocations.unwrap_or(usize::MAX) as u64,
+            host_state_flags: 0,
+        })
+    }
+
+    fn ensures_false_witness(&mut self, handle: u64) -> Result<PrivateAndroidJniEvidenceV1, u64> {
+        if self.poisoned || self.host.is_poisoned() {
+            return Err(android_status(CODE_HOST_UNHEALTHY));
+        }
+        let session = self.sessions.claim(handle).map_err(map_table_error)?;
+        if session.shape != SessionShape::EnsuresFalse {
+            self.sessions.restore(handle);
+            return Err(android_status(CODE_INVALID_HANDLE));
+        }
+        let payload = session.payloads[0];
+        let slot = match take_owner_slot(&mut self.next_owner_slot) {
+            Ok(slot) => slot,
+            Err(status) => {
+                self.sessions.restore(handle);
+                return Err(status);
+            }
+        };
+        let owner = match self.host.register_owner(slot, OWNER_GENERATION) {
+            Ok(owner) => owner,
+            Err(_) => {
+                self.sessions.restore(handle);
+                return Err(android_status(CODE_CAPACITY));
+            }
+        };
+        // The canonical `ensures-false` corpus witness: one owned argument at
+        // the corpus-maximum payload that fails the `ensures false` postcondition,
+        // publishing no owned result and finalizing exactly that one owner after
+        // selection.
+        let arguments = [PrivateSettlementArgumentV3::Owned {
+            handle: owner,
+            payload,
+        }];
+        let committed = match self.host.execute_canonical(&arguments) {
+            Ok(committed) => committed,
+            Err(_) => {
+                self.sessions.quarantine(handle);
+                self.poisoned = true;
+                return Err(android_status(CODE_EXECUTION_UNCERTAIN));
+            }
+        };
+        let allocations = crate::postcommit_allocation_probe::take_last();
+        let healthy = !self.host.is_poisoned()
+            && !self.host.is_draining()
+            && self.host.quarantined_count() == 0;
+        if committed.outcome
+            != (ExecuteOutcome::SemanticFailure {
+                selected_ordinal: ENSURES_FALSE_SELECTED_ORDINAL,
+            })
+            || committed.committed.publication != Publication::NoOwned
+            || committed.committed.published_owner.is_some()
+            || allocations != Some(0)
+            || !healthy
+        {
+            self.sessions.quarantine(handle);
+            self.poisoned = true;
+            return Err(android_status(CODE_EVIDENCE_MISMATCH));
+        }
+        if self
+            .host
+            .replay_committed(committed.identity, &committed.candidate_bytes)
+            != Ok(committed.committed)
+        {
+            self.sessions.quarantine(handle);
+            self.poisoned = true;
+            return Err(android_status(CODE_EVIDENCE_MISMATCH));
+        }
+        // Failure selection is sticky: the consumed owner must make a second
+        // canonical execution fail closed without poisoning the host.
+        if self.host.execute_canonical(&arguments)
+            != Err(PrivateSettlementExecutionError::Ledger(
+                SettlementLedgerError::StaleOwner,
+            ))
+            || self.host.is_poisoned()
+            || self.host.is_draining()
+            || self.host.quarantined_count() != 0
+        {
+            self.sessions.quarantine(handle);
+            self.poisoned = true;
+            return Err(android_status(CODE_EVIDENCE_MISMATCH));
+        }
+        self.sessions.consume(handle);
+        Ok(PrivateAndroidJniEvidenceV1 {
+            size: mem::size_of::<PrivateAndroidJniEvidenceV1>() as u32,
+            version: EVIDENCE_VERSION,
+            module_instance_id: self.host.module_instance_id().get(),
+            proof_flags: u64::from(ENSURES_FALSE_SELECTED_ORDINAL),
+            postcommit_allocations: allocations.unwrap_or(usize::MAX) as u64,
+            host_state_flags: 0,
+        })
+    }
+
     fn can_close(&mut self) -> Result<(), u64> {
         if self.sessions.has_quarantine() || self.poisoned || self.host.is_poisoned() {
             return Err(android_status(CODE_HOST_UNHEALTHY));
@@ -1037,6 +1262,100 @@ pub unsafe extern "C" fn spx_private_android_jni_v1_execute_identity_max(
 
 #[cfg(target_os = "android")]
 #[no_mangle]
+pub unsafe extern "C" fn spx_private_android_jni_v1_adopt_checked_add_overflow(
+    payload: u64,
+    out_handle: *mut u64,
+) -> u64 {
+    ffi_guard(|| {
+        if out_handle.is_null() || (out_handle as usize) % mem::align_of::<u64>() != 0 {
+            return android_status(CODE_INVALID_ARGUMENT);
+        }
+        match with_runtime_mut(|runtime| runtime.adopt_checked_add_overflow(payload)) {
+            Ok(handle) => {
+                // SAFETY: The generated shim supplies aligned writable storage.
+                unsafe { out_handle.write(handle) };
+                0
+            }
+            Err(status) => status,
+        }
+    })
+}
+
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub unsafe extern "C" fn spx_private_android_jni_v1_adopt_ensures_false(
+    payload: u64,
+    out_handle: *mut u64,
+) -> u64 {
+    ffi_guard(|| {
+        if out_handle.is_null() || (out_handle as usize) % mem::align_of::<u64>() != 0 {
+            return android_status(CODE_INVALID_ARGUMENT);
+        }
+        match with_runtime_mut(|runtime| runtime.adopt_ensures_false(payload)) {
+            Ok(handle) => {
+                // SAFETY: The generated shim supplies aligned writable storage.
+                unsafe { out_handle.write(handle) };
+                0
+            }
+            Err(status) => status,
+        }
+    })
+}
+
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub unsafe extern "C" fn spx_private_android_jni_v1_execute_checked_add_overflow(
+    handle: u64,
+    out_evidence: *mut PrivateAndroidJniEvidenceV1,
+    out_evidence_len: u32,
+) -> u64 {
+    ffi_guard(|| {
+        if out_evidence.is_null()
+            || out_evidence_len as usize != mem::size_of::<PrivateAndroidJniEvidenceV1>()
+            || (out_evidence as usize) % mem::align_of::<PrivateAndroidJniEvidenceV1>() != 0
+        {
+            return android_status(CODE_INVALID_ARGUMENT);
+        }
+        match with_runtime_mut(|runtime| runtime.checked_add_overflow_witness(handle)) {
+            Ok(evidence) => {
+                // SAFETY: Exact aligned output storage was checked above and is
+                // written only after authenticated receipt commit.
+                unsafe { ptr::write(out_evidence, evidence) };
+                0
+            }
+            Err(status) => status,
+        }
+    })
+}
+
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub unsafe extern "C" fn spx_private_android_jni_v1_execute_ensures_false(
+    handle: u64,
+    out_evidence: *mut PrivateAndroidJniEvidenceV1,
+    out_evidence_len: u32,
+) -> u64 {
+    ffi_guard(|| {
+        if out_evidence.is_null()
+            || out_evidence_len as usize != mem::size_of::<PrivateAndroidJniEvidenceV1>()
+            || (out_evidence as usize) % mem::align_of::<PrivateAndroidJniEvidenceV1>() != 0
+        {
+            return android_status(CODE_INVALID_ARGUMENT);
+        }
+        match with_runtime_mut(|runtime| runtime.ensures_false_witness(handle)) {
+            Ok(evidence) => {
+                // SAFETY: Exact aligned output storage was checked above and is
+                // written only after authenticated receipt commit.
+                unsafe { ptr::write(out_evidence, evidence) };
+                0
+            }
+            Err(status) => status,
+        }
+    })
+}
+
+#[cfg(target_os = "android")]
+#[no_mangle]
 pub extern "C" fn spx_private_android_jni_v1_poison_runtime() -> u64 {
     ffi_guard(|| {
         match with_runtime_mut(|runtime| {
@@ -1290,5 +1609,37 @@ mod tests {
         assert_eq!(table.claim(handle), Ok(7));
         table.restore(handle);
         assert!(!table.draining);
+    }
+
+    #[test]
+    fn checked_add_overflow_witness_constants_are_frozen() {
+        assert_eq!(CHECKED_ADD_OVERFLOW_PAYLOAD, u64::MAX);
+        assert_eq!(CHECKED_ADD_OVERFLOW_I64, i64::MAX);
+        assert_eq!(CHECKED_ADD_OVERFLOW_SELECTED_ORDINAL, 2);
+        assert_eq!(OWNER_GENERATION, 1);
+    }
+
+    #[test]
+    fn ensures_false_witness_constants_are_frozen() {
+        assert_eq!(ENSURES_FALSE_PAYLOAD, u64::MAX);
+        assert_eq!(ENSURES_FALSE_SELECTED_ORDINAL, 3);
+        assert_eq!(OWNER_GENERATION, 1);
+    }
+
+    #[test]
+    fn witness_shapes_are_distinct() {
+        assert_ne!(SessionShape::Pair, SessionShape::CheckedAddOverflow);
+        assert_ne!(
+            SessionShape::SingleWitness,
+            SessionShape::CheckedAddOverflow
+        );
+        assert_ne!(
+            SessionShape::SingleOwnedResult,
+            SessionShape::CheckedAddOverflow
+        );
+        assert_ne!(SessionShape::Pair, SessionShape::EnsuresFalse);
+        assert_ne!(SessionShape::SingleWitness, SessionShape::EnsuresFalse);
+        assert_ne!(SessionShape::SingleOwnedResult, SessionShape::EnsuresFalse);
+        assert_ne!(SessionShape::CheckedAddOverflow, SessionShape::EnsuresFalse);
     }
 }

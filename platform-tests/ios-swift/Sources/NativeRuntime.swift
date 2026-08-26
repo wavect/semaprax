@@ -45,6 +45,30 @@ final class NativeRuntime: @unchecked Sendable {
         StatusWord(raw: try fifo.call { spx_private_apple_swift_fixture_id_v1_open() })
     }
 
+    func openCheckedAddOverflow() throws {
+        let status = StatusWord(raw: try fifo.call {
+            spx_private_apple_swift_fixture_ca_v1_open()
+        })
+        try status.requireWellFormed()
+        try requireContract(status.isSuccess, "private Swift checked-add-overflow fixture open failed")
+    }
+
+    func openCheckedAddOverflowAgainRaw() throws -> StatusWord {
+        StatusWord(raw: try fifo.call { spx_private_apple_swift_fixture_ca_v1_open() })
+    }
+
+    func openEnsuresFalse() throws {
+        let status = StatusWord(raw: try fifo.call {
+            spx_private_apple_swift_fixture_ef_v1_open()
+        })
+        try status.requireWellFormed()
+        try requireContract(status.isSuccess, "private Swift ensures-false fixture open failed")
+    }
+
+    func openEnsuresFalseAgainRaw() throws -> StatusWord {
+        StatusWord(raw: try fifo.call { spx_private_apple_swift_fixture_ef_v1_open() })
+    }
+
     func adopt() throws -> OwnedSession {
         let call: (StatusWord, UInt64) = try fifo.call {
             var output = UInt64.max
@@ -155,6 +179,80 @@ final class NativeRuntime: @unchecked Sendable {
             let status = StatusWord(raw: spx_private_apple_swift_v1_execute_identity_max(
                 handle, &native, length))
             return (status, IdentityMaxEvidence(words: evidenceWords(&native)))
+        }
+        let status = call.0
+        try status.requireWellFormed()
+        return call
+    }
+
+    func adoptCheckedAddOverflow() throws -> OpaqueHandle {
+        let call: (StatusWord, UInt64) = try fifo.call {
+            var output: UInt64 = 0
+            let status = StatusWord(raw: spx_private_apple_swift_v1_adopt_checked_add_overflow(
+                CheckedAddOverflowEvidence.finalizerPayloadKAT, &output))
+            return (status, output)
+        }
+        let status = call.0
+        let output = call.1
+        try status.requireWellFormed()
+        if !status.isSuccess {
+            try requireContract(output == 0, "checked-add-overflow adoption rejection modified output handle")
+            throw ContractFailure(description: "private Swift checked-add-overflow adoption failed")
+        }
+        return try OpaqueHandle(output)
+    }
+
+    func executeCheckedAddOverflow(_ handle: UInt64) throws -> CheckedAddOverflowEvidence {
+        let result = try executeCheckedAddOverflowOnOwner(
+            handle: handle, length: CheckedAddOverflowEvidence.byteCount)
+        try requireContract(result.0.isSuccess, "private Swift checked-add-overflow witness failed")
+        return result.1
+    }
+
+    func executeCheckedAddOverflowOnOwner(
+        handle: UInt64, length: UInt32) throws -> (StatusWord, CheckedAddOverflowEvidence) {
+        let call: (StatusWord, CheckedAddOverflowEvidence) = try fifo.call {
+            var native = poisonedEvidence()
+            let status = StatusWord(raw: spx_private_apple_swift_v1_execute_checked_add_overflow(
+                handle, &native, length))
+            return (status, CheckedAddOverflowEvidence(words: evidenceWords(&native)))
+        }
+        let status = call.0
+        try status.requireWellFormed()
+        return call
+    }
+
+    func adoptEnsuresFalse() throws -> OpaqueHandle {
+        let call: (StatusWord, UInt64) = try fifo.call {
+            var output: UInt64 = 0
+            let status = StatusWord(raw: spx_private_apple_swift_v1_adopt_ensures_false(
+                EnsuresFalseEvidence.finalizerPayloadKAT, &output))
+            return (status, output)
+        }
+        let status = call.0
+        let output = call.1
+        try status.requireWellFormed()
+        if !status.isSuccess {
+            try requireContract(output == 0, "ensures-false adoption rejection modified output handle")
+            throw ContractFailure(description: "private Swift ensures-false adoption failed")
+        }
+        return try OpaqueHandle(output)
+    }
+
+    func executeEnsuresFalse(_ handle: UInt64) throws -> EnsuresFalseEvidence {
+        let result = try executeEnsuresFalseOnOwner(
+            handle: handle, length: EnsuresFalseEvidence.byteCount)
+        try requireContract(result.0.isSuccess, "private Swift ensures-false witness failed")
+        return result.1
+    }
+
+    func executeEnsuresFalseOnOwner(
+        handle: UInt64, length: UInt32) throws -> (StatusWord, EnsuresFalseEvidence) {
+        let call: (StatusWord, EnsuresFalseEvidence) = try fifo.call {
+            var native = poisonedEvidence()
+            let status = StatusWord(raw: spx_private_apple_swift_v1_execute_ensures_false(
+                handle, &native, length))
+            return (status, EnsuresFalseEvidence(words: evidenceWords(&native)))
         }
         let status = call.0
         try status.requireWellFormed()

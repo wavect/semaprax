@@ -60,6 +60,11 @@ const REQUIRES_FALSE_SELECTED_ORDINAL: u32 = 1;
 const IDENTITY_MAX_PAYLOAD: u64 = u64::MAX;
 const IDENTITY_MAX_OWNER_ORDINAL: u32 = 0;
 const IDENTITY_MAX_PUBLICATIONS: u64 = 2;
+const CHECKED_ADD_OVERFLOW_PAYLOAD: u64 = u64::MAX;
+const CHECKED_ADD_OVERFLOW_I64: i64 = i64::MAX;
+const CHECKED_ADD_OVERFLOW_SELECTED_ORDINAL: u32 = 2;
+const ENSURES_FALSE_PAYLOAD: u64 = u64::MAX;
+const ENSURES_FALSE_SELECTED_ORDINAL: u32 = 3;
 const OWNER_GENERATION: u64 = 1;
 
 const CODE_INVALID_ARGUMENT: u32 = 1;
@@ -96,6 +101,8 @@ enum SessionShape {
     Pair,
     SingleWitness,
     SingleOwnedResult,
+    CheckedAddOverflow,
+    EnsuresFalse,
 }
 
 #[derive(Clone, Copy)]
@@ -298,6 +305,36 @@ impl Runtime {
         self.table
             .insert(Session {
                 shape: SessionShape::SingleOwnedResult,
+                payloads: [payload, 0],
+            })
+            .map_err(map_table)
+    }
+
+    fn adopt_checked_add_overflow(&mut self, payload: u64) -> Result<u64, u64> {
+        if self.poisoned || self.host.is_poisoned() {
+            return Err(status(CODE_UNHEALTHY));
+        }
+        if payload != CHECKED_ADD_OVERFLOW_PAYLOAD {
+            return Err(status(CODE_WRONG_PAYLOAD));
+        }
+        self.table
+            .insert(Session {
+                shape: SessionShape::CheckedAddOverflow,
+                payloads: [payload, 0],
+            })
+            .map_err(map_table)
+    }
+
+    fn adopt_ensures_false(&mut self, payload: u64) -> Result<u64, u64> {
+        if self.poisoned || self.host.is_poisoned() {
+            return Err(status(CODE_UNHEALTHY));
+        }
+        if payload != ENSURES_FALSE_PAYLOAD {
+            return Err(status(CODE_WRONG_PAYLOAD));
+        }
+        self.table
+            .insert(Session {
+                shape: SessionShape::EnsuresFalse,
                 payloads: [payload, 0],
             })
             .map_err(map_table)
@@ -563,6 +600,228 @@ impl Runtime {
                 0,
                 0,
                 0,
+                0,
+                0,
+            ],
+        })
+    }
+
+    fn checked_add_overflow_witness(
+        &mut self,
+        handle: u64,
+    ) -> Result<PrivateAppleSwiftEvidenceV1, u64> {
+        if self.poisoned || self.host.is_poisoned() {
+            return Err(status(CODE_UNHEALTHY));
+        }
+        let session = self.table.claim(handle).map_err(map_table)?;
+        if session.shape != SessionShape::CheckedAddOverflow {
+            self.table.restore(handle);
+            return Err(status(CODE_INVALID_HANDLE));
+        }
+        let payload = session.payloads[0];
+        if unsafe { (self.reset)() } != 0 {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        let slot = self.next_owner;
+        let Some(next) = slot.checked_add(1) else {
+            self.table.restore(handle);
+            return Err(status(CODE_CAPACITY));
+        };
+        let owner = match self.host.register_owner(slot, OWNER_GENERATION) {
+            Ok(owner) => owner,
+            Err(_) => {
+                self.table.restore(handle);
+                return Err(status(CODE_CAPACITY));
+            }
+        };
+        self.next_owner = next;
+        // The canonical `checked-add-overflow` corpus witness: one owned
+        // argument at the corpus-maximum payload plus one i64::MAX scalar that
+        // overflows the checked addition, publishing no owned result and
+        // finalizing exactly that one owner after selection.
+        let arguments = [
+            PrivateSettlementArgumentV3::Owned {
+                handle: owner,
+                payload,
+            },
+            PrivateSettlementArgumentV3::I64(CHECKED_ADD_OVERFLOW_I64),
+        ];
+        let committed = match self.host.execute_canonical(&arguments) {
+            Ok(committed) => committed,
+            Err(_) => {
+                self.poisoned = true;
+                self.table.quarantine(handle);
+                return Err(status(CODE_UNCERTAIN));
+            }
+        };
+        let allocations = crate::postcommit_allocation_probe::take_last();
+        let mut count = 0;
+        let mut ordinals = [0; 2];
+        let mut payloads = [0; 2];
+        let trace =
+            unsafe { (self.snapshot)(&mut count, ordinals.as_mut_ptr(), payloads.as_mut_ptr(), 2) };
+        let healthy = !self.host.is_poisoned()
+            && !self.host.is_draining()
+            && self.host.quarantined_count() == 0;
+        if committed.outcome
+            != (ExecuteOutcome::SemanticFailure {
+                selected_ordinal: CHECKED_ADD_OVERFLOW_SELECTED_ORDINAL,
+            })
+            || committed.committed.publication != Publication::NoOwned
+            || committed.committed.published_owner.is_some()
+            || allocations != Some(0)
+            || trace != 0
+            || count != 1
+            || ordinals != [0, 0]
+            || payloads != [CHECKED_ADD_OVERFLOW_PAYLOAD, 0]
+            || !healthy
+        {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        if self
+            .host
+            .replay_committed(committed.identity, &committed.candidate_bytes)
+            != Ok(committed.committed)
+        {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        // Failure selection is sticky: the consumed owner must make a second
+        // canonical execution fail closed without poisoning the host.
+        if self.host.execute_canonical(&arguments)
+            != Err(PrivateSettlementExecutionError::Ledger(
+                SettlementLedgerError::StaleOwner,
+            ))
+            || self.host.is_poisoned()
+            || self.host.is_draining()
+            || self.host.quarantined_count() != 0
+        {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        self.table.consume(handle);
+        Ok(PrivateAppleSwiftEvidenceV1 {
+            words: [
+                1,
+                self.host.module_instance_id().get(),
+                u64::from(CHECKED_ADD_OVERFLOW_SELECTED_ORDINAL),
+                0,
+                1,
+                CHECKED_ADD_OVERFLOW_PAYLOAD,
+                0,
+                0,
+            ],
+        })
+    }
+
+    fn ensures_false_witness(&mut self, handle: u64) -> Result<PrivateAppleSwiftEvidenceV1, u64> {
+        if self.poisoned || self.host.is_poisoned() {
+            return Err(status(CODE_UNHEALTHY));
+        }
+        let session = self.table.claim(handle).map_err(map_table)?;
+        if session.shape != SessionShape::EnsuresFalse {
+            self.table.restore(handle);
+            return Err(status(CODE_INVALID_HANDLE));
+        }
+        let payload = session.payloads[0];
+        if unsafe { (self.reset)() } != 0 {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        let slot = self.next_owner;
+        let Some(next) = slot.checked_add(1) else {
+            self.table.restore(handle);
+            return Err(status(CODE_CAPACITY));
+        };
+        let owner = match self.host.register_owner(slot, OWNER_GENERATION) {
+            Ok(owner) => owner,
+            Err(_) => {
+                self.table.restore(handle);
+                return Err(status(CODE_CAPACITY));
+            }
+        };
+        self.next_owner = next;
+        // The canonical `ensures-false` corpus witness: one owned argument at
+        // the corpus-maximum payload that fails the `ensures false`
+        // postcondition, publishing no owned result and finalizing exactly that
+        // one owner after selection.
+        let arguments = [PrivateSettlementArgumentV3::Owned {
+            handle: owner,
+            payload,
+        }];
+        let committed = match self.host.execute_canonical(&arguments) {
+            Ok(committed) => committed,
+            Err(_) => {
+                self.poisoned = true;
+                self.table.quarantine(handle);
+                return Err(status(CODE_UNCERTAIN));
+            }
+        };
+        let allocations = crate::postcommit_allocation_probe::take_last();
+        let mut count = 0;
+        let mut ordinals = [0; 2];
+        let mut payloads = [0; 2];
+        let trace =
+            unsafe { (self.snapshot)(&mut count, ordinals.as_mut_ptr(), payloads.as_mut_ptr(), 2) };
+        let healthy = !self.host.is_poisoned()
+            && !self.host.is_draining()
+            && self.host.quarantined_count() == 0;
+        if committed.outcome
+            != (ExecuteOutcome::SemanticFailure {
+                selected_ordinal: ENSURES_FALSE_SELECTED_ORDINAL,
+            })
+            || committed.committed.publication != Publication::NoOwned
+            || committed.committed.published_owner.is_some()
+            || allocations != Some(0)
+            || trace != 0
+            || count != 1
+            || ordinals != [0, 0]
+            || payloads != [ENSURES_FALSE_PAYLOAD, 0]
+            || !healthy
+        {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        if self
+            .host
+            .replay_committed(committed.identity, &committed.candidate_bytes)
+            != Ok(committed.committed)
+        {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        // Failure selection is sticky: the consumed owner must make a second
+        // canonical execution fail closed without poisoning the host.
+        if self.host.execute_canonical(&arguments)
+            != Err(PrivateSettlementExecutionError::Ledger(
+                SettlementLedgerError::StaleOwner,
+            ))
+            || self.host.is_poisoned()
+            || self.host.is_draining()
+            || self.host.quarantined_count() != 0
+        {
+            self.poisoned = true;
+            self.table.quarantine(handle);
+            return Err(status(CODE_EVIDENCE));
+        }
+        self.table.consume(handle);
+        Ok(PrivateAppleSwiftEvidenceV1 {
+            words: [
+                1,
+                self.host.module_instance_id().get(),
+                u64::from(ENSURES_FALSE_SELECTED_ORDINAL),
+                0,
+                1,
+                ENSURES_FALSE_PAYLOAD,
                 0,
                 0,
             ],
@@ -955,6 +1214,98 @@ pub unsafe extern "C" fn spx_private_apple_swift_v1_execute_identity_max(
 
 #[cfg(target_os = "ios")]
 #[no_mangle]
+pub unsafe extern "C" fn spx_private_apple_swift_v1_adopt_checked_add_overflow(
+    payload: u64,
+    output: *mut u64,
+) -> u64 {
+    guard(|| {
+        if output.is_null() || (output as usize) % mem::align_of::<u64>() != 0 {
+            return status(CODE_INVALID_ARGUMENT);
+        }
+        match with_runtime(|runtime| runtime.adopt_checked_add_overflow(payload)) {
+            Ok(handle) => {
+                unsafe { output.write(handle) };
+                0
+            }
+            Err(error) => error,
+        }
+    })
+}
+
+#[cfg(target_os = "ios")]
+#[no_mangle]
+pub unsafe extern "C" fn spx_private_apple_swift_v1_adopt_ensures_false(
+    payload: u64,
+    output: *mut u64,
+) -> u64 {
+    guard(|| {
+        if output.is_null() || (output as usize) % mem::align_of::<u64>() != 0 {
+            return status(CODE_INVALID_ARGUMENT);
+        }
+        match with_runtime(|runtime| runtime.adopt_ensures_false(payload)) {
+            Ok(handle) => {
+                unsafe { output.write(handle) };
+                0
+            }
+            Err(error) => error,
+        }
+    })
+}
+
+#[cfg(target_os = "ios")]
+#[no_mangle]
+pub unsafe extern "C" fn spx_private_apple_swift_v1_execute_checked_add_overflow(
+    handle: u64,
+    output: *mut PrivateAppleSwiftEvidenceV1,
+    output_len: u32,
+) -> u64 {
+    guard(|| {
+        if output.is_null()
+            || output_len as usize != mem::size_of::<PrivateAppleSwiftEvidenceV1>()
+            || (output as usize) % mem::align_of::<PrivateAppleSwiftEvidenceV1>() != 0
+        {
+            return status(CODE_INVALID_ARGUMENT);
+        }
+        match with_runtime(|runtime| runtime.checked_add_overflow_witness(handle)) {
+            Ok(evidence) => {
+                // SAFETY: Exact aligned output storage was checked above and is
+                // written only after authenticated receipt commit.
+                unsafe { ptr::write(output, evidence) };
+                0
+            }
+            Err(error) => error,
+        }
+    })
+}
+
+#[cfg(target_os = "ios")]
+#[no_mangle]
+pub unsafe extern "C" fn spx_private_apple_swift_v1_execute_ensures_false(
+    handle: u64,
+    output: *mut PrivateAppleSwiftEvidenceV1,
+    output_len: u32,
+) -> u64 {
+    guard(|| {
+        if output.is_null()
+            || output_len as usize != mem::size_of::<PrivateAppleSwiftEvidenceV1>()
+            || (output as usize) % mem::align_of::<PrivateAppleSwiftEvidenceV1>() != 0
+        {
+            return status(CODE_INVALID_ARGUMENT);
+        }
+        match with_runtime(|runtime| runtime.ensures_false_witness(handle)) {
+            Ok(evidence) => {
+                // SAFETY: Exact aligned output storage was checked above and is
+                // written only after authenticated receipt commit.
+                unsafe { ptr::write(output, evidence) };
+                0
+            }
+            Err(error) => error,
+        }
+    })
+}
+
+#[cfg(target_os = "ios")]
+#[no_mangle]
 pub extern "C" fn spx_private_apple_swift_v1_close_runtime() -> u64 {
     guard(|| {
         RUNTIME.with(|cell| {
@@ -1103,5 +1454,61 @@ mod tests {
             words: [1, 7, IDENTITY_MAX_PUBLICATIONS, 0, 0, 0, 0, 0],
         };
         assert_eq!(evidence.words, [1, 7, 2, 0, 0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn checked_add_overflow_witness_constants_are_frozen() {
+        assert_eq!(CHECKED_ADD_OVERFLOW_PAYLOAD, u64::MAX);
+        assert_eq!(CHECKED_ADD_OVERFLOW_I64, i64::MAX);
+        assert_eq!(CHECKED_ADD_OVERFLOW_SELECTED_ORDINAL, 2);
+        let evidence = PrivateAppleSwiftEvidenceV1 {
+            words: [
+                1,
+                7,
+                u64::from(CHECKED_ADD_OVERFLOW_SELECTED_ORDINAL),
+                0,
+                1,
+                CHECKED_ADD_OVERFLOW_PAYLOAD,
+                0,
+                0,
+            ],
+        };
+        assert_eq!(evidence.words, [1, 7, 2, 0, 1, 0xffff_ffff_ffff_ffff, 0, 0]);
+    }
+
+    #[test]
+    fn ensures_false_witness_constants_are_frozen() {
+        assert_eq!(ENSURES_FALSE_PAYLOAD, u64::MAX);
+        assert_eq!(ENSURES_FALSE_SELECTED_ORDINAL, 3);
+        let evidence = PrivateAppleSwiftEvidenceV1 {
+            words: [
+                1,
+                7,
+                u64::from(ENSURES_FALSE_SELECTED_ORDINAL),
+                0,
+                1,
+                ENSURES_FALSE_PAYLOAD,
+                0,
+                0,
+            ],
+        };
+        assert_eq!(evidence.words, [1, 7, 3, 0, 1, 0xffff_ffff_ffff_ffff, 0, 0]);
+    }
+
+    #[test]
+    fn witness_shapes_are_distinct() {
+        assert_ne!(SessionShape::Pair, SessionShape::CheckedAddOverflow);
+        assert_ne!(
+            SessionShape::SingleWitness,
+            SessionShape::CheckedAddOverflow
+        );
+        assert_ne!(
+            SessionShape::SingleOwnedResult,
+            SessionShape::CheckedAddOverflow
+        );
+        assert_ne!(SessionShape::Pair, SessionShape::EnsuresFalse);
+        assert_ne!(SessionShape::SingleWitness, SessionShape::EnsuresFalse);
+        assert_ne!(SessionShape::SingleOwnedResult, SessionShape::EnsuresFalse);
+        assert_ne!(SessionShape::CheckedAddOverflow, SessionShape::EnsuresFalse);
     }
 }

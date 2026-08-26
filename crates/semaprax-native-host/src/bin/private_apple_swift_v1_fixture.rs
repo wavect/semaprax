@@ -1,4 +1,4 @@
-//! Generate nine target-bound private Apple Swift ownership fixtures.
+//! Generate fifteen target-bound private Apple Swift ownership fixtures.
 
 use std::error::Error;
 use std::fmt::Write as _;
@@ -21,12 +21,12 @@ const FINALIZE_EXTERN_DECLARATION: &str =
 
 fn main() -> Result<(), Box<dyn Error>> {
     let outputs: Vec<PathBuf> = std::env::args_os().skip(1).map(PathBuf::from).collect();
-    if outputs.len() != 9
+    if outputs.len() != 15
         || outputs.iter().any(|path| !path.is_absolute())
         || (0..outputs.len())
             .any(|left| (left + 1..outputs.len()).any(|right| outputs[left] == outputs[right]))
     {
-        return Err(io::Error::new(io::ErrorKind::InvalidInput,"expected nine distinct absolute create-new output paths: device-arm64, simulator-arm64, simulator-x86_64, device-requires-false, simulator-arm64-requires-false, simulator-x86_64-requires-false, device-identity-max, simulator-arm64-identity-max, simulator-x86_64-identity-max").into());
+        return Err(io::Error::new(io::ErrorKind::InvalidInput,"expected fifteen distinct absolute create-new output paths: device-arm64, simulator-arm64, simulator-x86_64, device-requires-false, simulator-arm64-requires-false, simulator-x86_64-requires-false, device-identity-max, simulator-arm64-identity-max, simulator-x86_64-identity-max, device-checked-add-overflow, simulator-arm64-checked-add-overflow, simulator-x86_64-checked-add-overflow, device-ensures-false, simulator-arm64-ensures-false, simulator-x86_64-ensures-false").into());
     }
     let corpus = build_owned_resource_corpus_v1()
         .map_err(|e| io::Error::other(format!("build corpus: {e:?}")))?;
@@ -45,16 +45,55 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err(io::Error::other("identity-max corpus result ordinal diverged").into());
     }
     let identity_max_function = DeclarationId::new(identity_max.function_id);
-    for (((discard_path, requires_false_path), identity_max_path), (target, tag)) in outputs[..3]
+    let checked_add_overflow = corpus
+        .cases
         .iter()
-        .zip(outputs[3..6].iter())
-        .zip(outputs[6..].iter())
-        .zip([
-            (PrivateNativeCallableV3IosTarget::DeviceArm64, 1_u32),
-            (PrivateNativeCallableV3IosTarget::SimulatorArm64, 2),
-            (PrivateNativeCallableV3IosTarget::SimulatorX86_64, 3),
-        ])
-    {
+        .find(|case| case.scenario_id == "checked-add-overflow")
+        .ok_or_else(|| io::Error::other("checked-add-overflow corpus case is absent"))?;
+    let checked_add_overflow_function = DeclarationId::new(checked_add_overflow.function_id);
+    let ensures_false = corpus
+        .cases
+        .iter()
+        .find(|case| case.scenario_id == "ensures-false")
+        .ok_or_else(|| io::Error::other("ensures-false corpus case is absent"))?;
+    let ensures_false_function = DeclarationId::new(ensures_false.function_id);
+    for (
+        target,
+        tag,
+        discard_path,
+        requires_false_path,
+        identity_max_path,
+        checked_path,
+        ensures_path,
+    ) in [
+        (
+            PrivateNativeCallableV3IosTarget::DeviceArm64,
+            1_u32,
+            &outputs[0],
+            &outputs[3],
+            &outputs[6],
+            &outputs[9],
+            &outputs[12],
+        ),
+        (
+            PrivateNativeCallableV3IosTarget::SimulatorArm64,
+            2_u32,
+            &outputs[1],
+            &outputs[4],
+            &outputs[7],
+            &outputs[10],
+            &outputs[13],
+        ),
+        (
+            PrivateNativeCallableV3IosTarget::SimulatorX86_64,
+            3_u32,
+            &outputs[2],
+            &outputs[5],
+            &outputs[8],
+            &outputs[11],
+            &outputs[14],
+        ),
+    ] {
         let artifact = emit_private_native_callable_v3_ios_fixture(
             &corpus.program,
             &DeclarationId::new("token.discard-two"),
@@ -118,6 +157,52 @@ fn main() -> Result<(), Box<dyn Error>> {
                 identity_max_artifact.getter_symbol(),
                 identity_max_artifact.execute_symbol(),
                 identity_max_artifact.settle_symbol(),
+                tag,
+            )
+            .as_bytes(),
+        )?;
+        let checked_artifact = emit_private_native_callable_v3_ios_corpus_fixture(
+            &corpus.program,
+            &checked_add_overflow_function,
+            &checked_add_overflow.arguments,
+            checked_add_overflow.expected_owned_result_ordinal,
+            &checked_add_overflow.reference,
+            target,
+        )
+        .map_err(|e| io::Error::other(format!("emit Apple checked-add-overflow fixture: {e:?}")))?;
+        let bound_checked = shared_trace_provider(checked_artifact.source())
+            .map_err(|e| io::Error::other(format!("bind checked-add-overflow finalize: {e}")))?;
+        write_new(
+            checked_path,
+            render_checked_add_overflow(
+                &bound_checked,
+                checked_artifact.descriptor().len(),
+                checked_artifact.getter_symbol(),
+                checked_artifact.execute_symbol(),
+                checked_artifact.settle_symbol(),
+                tag,
+            )
+            .as_bytes(),
+        )?;
+        let ensures_artifact = emit_private_native_callable_v3_ios_corpus_fixture(
+            &corpus.program,
+            &ensures_false_function,
+            &ensures_false.arguments,
+            ensures_false.expected_owned_result_ordinal,
+            &ensures_false.reference,
+            target,
+        )
+        .map_err(|e| io::Error::other(format!("emit Apple ensures-false fixture: {e:?}")))?;
+        let bound_ensures = shared_trace_provider(ensures_artifact.source())
+            .map_err(|e| io::Error::other(format!("bind ensures-false finalize: {e}")))?;
+        write_new(
+            ensures_path,
+            render_ensures_false(
+                &bound_ensures,
+                ensures_artifact.descriptor().len(),
+                ensures_artifact.getter_symbol(),
+                ensures_artifact.execute_symbol(),
+                ensures_artifact.settle_symbol(),
                 tag,
             )
             .as_bytes(),
@@ -240,11 +325,63 @@ __attribute__((visibility("default"))) uint64_t spx_private_apple_swift_fixture_
     source
 }
 
+fn render_checked_add_overflow(
+    provider: &str,
+    descriptor_len: usize,
+    getter: &str,
+    execute: &str,
+    settle: &str,
+    target: u32,
+) -> String {
+    let mut source = String::new();
+    write!(source,r#"{provider}
+
+#include <stdint.h>
+
+typedef const uint8_t *(*spx_getter_fn)(void);
+typedef uint32_t (*spx_execute_fn)(const uint8_t *,uint32_t,uint8_t *,uint32_t,uint8_t *,uint32_t);
+typedef uint32_t (*spx_settle_fn)(uint8_t *,uint32_t,const uint8_t *,uint32_t,uint8_t *,uint32_t);
+
+__attribute__((visibility("hidden"))) extern uint64_t spx_private_apple_swift_fixture_register_v1(uint32_t,const uint8_t *,uint32_t,spx_getter_fn,spx_execute_fn,spx_settle_fn);
+
+__attribute__((visibility("default"))) uint64_t spx_private_apple_swift_fixture_ca_v1_open(void){{
+  return spx_private_apple_swift_fixture_register_v1(UINT32_C({target}),{getter}(),UINT32_C({descriptor_len}),{getter},{execute},{settle});
+}}
+"#).expect("string write");
+    source
+}
+
+fn render_ensures_false(
+    provider: &str,
+    descriptor_len: usize,
+    getter: &str,
+    execute: &str,
+    settle: &str,
+    target: u32,
+) -> String {
+    let mut source = String::new();
+    write!(source,r#"{provider}
+
+#include <stdint.h>
+
+typedef const uint8_t *(*spx_getter_fn)(void);
+typedef uint32_t (*spx_execute_fn)(const uint8_t *,uint32_t,uint8_t *,uint32_t,uint8_t *,uint32_t);
+typedef uint32_t (*spx_settle_fn)(uint8_t *,uint32_t,const uint8_t *,uint32_t,uint8_t *,uint32_t);
+
+__attribute__((visibility("hidden"))) extern uint64_t spx_private_apple_swift_fixture_register_v1(uint32_t,const uint8_t *,uint32_t,spx_getter_fn,spx_execute_fn,spx_settle_fn);
+
+__attribute__((visibility("default"))) uint64_t spx_private_apple_swift_fixture_ef_v1_open(void){{
+  return spx_private_apple_swift_fixture_register_v1(UINT32_C({target}),{getter}(),UINT32_C({descriptor_len}),{getter},{execute},{settle});
+}}
+"#).expect("string write");
+    source
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        render, render_identity_max, render_requires_false, shared_trace_provider,
-        FINALIZE_DECLARATION,
+        render, render_checked_add_overflow, render_ensures_false, render_identity_max,
+        render_requires_false, shared_trace_provider, FINALIZE_DECLARATION,
     };
 
     #[test]
@@ -303,6 +440,52 @@ mod tests {
         }
         assert!(!source.contains("spx_private_apple_swift_fixture_v1_open"));
         assert!(!source.contains("spx_private_apple_swift_fixture_rf_v1_open"));
+        assert!(!source.contains("spx_private_apple_swift_fixture_reset_v1"));
+        assert!(!source.contains("spx_private_apple_swift_fixture_snapshot_v1"));
+        assert!(!source.contains("static _Thread_local uint32_t spx_swift_count"));
+        assert!(!source.contains("static void spx_v3_generated_finalize"));
+    }
+
+    #[test]
+    fn checked_add_overflow_fixture_shares_hidden_trace_hooks() {
+        let provider = format!("/*provider*/\n{FINALIZE_DECLARATION}");
+        let bound = shared_trace_provider(&provider).unwrap();
+        let source =
+            render_checked_add_overflow(&bound, 735, "ca_getter", "ca_execute", "ca_settle", 2);
+        for required in [
+            "/*provider*/",
+            "extern void spx_v3_generated_finalize(uint32_t,uint64_t);",
+            "spx_private_apple_swift_fixture_ca_v1_open",
+            "spx_private_apple_swift_fixture_register_v1(UINT32_C(2),ca_getter(),UINT32_C(735),ca_getter,ca_execute,ca_settle)",
+        ] {
+            assert!(source.contains(required), "missing `{required}`");
+        }
+        assert!(!source.contains("spx_private_apple_swift_fixture_v1_open"));
+        assert!(!source.contains("spx_private_apple_swift_fixture_rf_v1_open"));
+        assert!(!source.contains("spx_private_apple_swift_fixture_id_v1_open"));
+        assert!(!source.contains("spx_private_apple_swift_fixture_reset_v1"));
+        assert!(!source.contains("spx_private_apple_swift_fixture_snapshot_v1"));
+        assert!(!source.contains("static _Thread_local uint32_t spx_swift_count"));
+        assert!(!source.contains("static void spx_v3_generated_finalize"));
+    }
+
+    #[test]
+    fn ensures_false_fixture_shares_hidden_trace_hooks() {
+        let provider = format!("/*provider*/\n{FINALIZE_DECLARATION}");
+        let bound = shared_trace_provider(&provider).unwrap();
+        let source = render_ensures_false(&bound, 736, "ef_getter", "ef_execute", "ef_settle", 3);
+        for required in [
+            "/*provider*/",
+            "extern void spx_v3_generated_finalize(uint32_t,uint64_t);",
+            "spx_private_apple_swift_fixture_ef_v1_open",
+            "spx_private_apple_swift_fixture_register_v1(UINT32_C(3),ef_getter(),UINT32_C(736),ef_getter,ef_execute,ef_settle)",
+        ] {
+            assert!(source.contains(required), "missing `{required}`");
+        }
+        assert!(!source.contains("spx_private_apple_swift_fixture_v1_open"));
+        assert!(!source.contains("spx_private_apple_swift_fixture_rf_v1_open"));
+        assert!(!source.contains("spx_private_apple_swift_fixture_id_v1_open"));
+        assert!(!source.contains("spx_private_apple_swift_fixture_ca_v1_open"));
         assert!(!source.contains("spx_private_apple_swift_fixture_reset_v1"));
         assert!(!source.contains("spx_private_apple_swift_fixture_snapshot_v1"));
         assert!(!source.contains("static _Thread_local uint32_t spx_swift_count"));

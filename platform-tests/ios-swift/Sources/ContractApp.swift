@@ -26,11 +26,11 @@ enum ContractRunner {
     #if SEMAPRAX_EXPLICIT
     static let mode = "explicit"
     static let optimization = "O0"
-    static let expected = "SEMAPRAX_IOS_SWIFT_V1_OK mode=explicit optimization=O0 target=arm64-simulator handle=0001000001000001 wrong-thread=0000002d00000002 invalid=0000002d00000007 stale=0000002d00000008 finalizers=1:13,0:11 publication=no-owned allocations=0 handles=0 rf=1 om=1\n"
+    static let expected = "SEMAPRAX_IOS_SWIFT_V1_OK mode=explicit optimization=O0 target=arm64-simulator handle=0001000001000001 wrong-thread=0000002d00000002 invalid=0000002d00000007 stale=0000002d00000008 finalizers=1:13,0:11 publication=no-owned allocations=0 handles=0 rf=1 om=1 ca=1 ef=1\n"
     #elseif SEMAPRAX_DEINIT
     static let mode = "deinit"
     static let optimization = "O2"
-    static let expected = "SEMAPRAX_IOS_SWIFT_V1_OK mode=deinit optimization=O2 target=arm64-simulator handle=0001000001000001 wrong-thread=0000002d00000002 invalid=0000002d00000007 stale=0000002d00000008 finalizers=1:13,0:11 publication=no-owned allocations=0 handles=0 rf=1 om=1\n"
+    static let expected = "SEMAPRAX_IOS_SWIFT_V1_OK mode=deinit optimization=O2 target=arm64-simulator handle=0001000001000001 wrong-thread=0000002d00000002 invalid=0000002d00000007 stale=0000002d00000008 finalizers=1:13,0:11 publication=no-owned allocations=0 handles=0 rf=1 om=1 ca=1 ef=1\n"
     #else
     #error("the private Swift app requires an exact evidence mode")
     #endif
@@ -72,6 +72,8 @@ enum ContractRunner {
         try runtime.close()
         try runRequiresFalseWitness()
         try runIdentityMaxWitness()
+        try runCheckedAddOverflowWitness()
+        try runEnsuresFalseWitness()
     }
 
     private static func runRequiresFalseWitness() throws {
@@ -145,6 +147,80 @@ enum ContractRunner {
             handle: witness.raw, length: IdentityMaxEvidence.byteCount)
         try requireContract(stale.0.raw == StatusWord.staleHandleKAT,
                             "stale owned-result handle KAT changed")
+        try stale.1.requirePoisoned()
+        try runtime.close()
+    }
+
+    private static func runCheckedAddOverflowWitness() throws {
+        let runtime = NativeRuntime()
+        try runtime.openCheckedAddOverflow()
+        let alreadyOpen = try runtime.openCheckedAddOverflowAgainRaw()
+        try requireContract(alreadyOpen.raw == StatusWord.alreadyOpenKAT,
+                            "checked-add-overflow already-open KAT changed")
+
+        let witness = try runtime.adoptCheckedAddOverflow()
+
+        // The pair-consume lane cannot drive a checked witness session.
+        let wrongShape = try runtime.consumeRawOnOwner(
+            handle: witness.raw, length: ConsumeEvidence.byteCount)
+        try requireContract(wrongShape.0.raw == StatusWord.invalidHandleKAT,
+                            "checked-add-overflow-shape consume was not rejected")
+        try wrongShape.1.requirePoisoned()
+
+        let forged = try runtime.executeCheckedAddOverflowOnOwner(
+            handle: witness.raw ^ 1, length: CheckedAddOverflowEvidence.byteCount)
+        try requireContract(forged.0.raw == StatusWord.invalidHandleKAT,
+                            "forged checked-add-overflow handle KAT changed")
+        try forged.1.requirePoisoned()
+
+        // The canonical checked-add-overflow corpus witness: one adopted owner
+        // at the maximum payload plus one i64::MAX scalar that overflows the
+        // checked addition, publishing no owned result and finalizing exactly
+        // that one owner after selection.
+        try runtime.executeCheckedAddOverflow(witness.raw).requireExact()
+
+        // Failure selection is sticky: the consumed owner cannot retry.
+        let stale = try runtime.executeCheckedAddOverflowOnOwner(
+            handle: witness.raw, length: CheckedAddOverflowEvidence.byteCount)
+        try requireContract(stale.0.raw == StatusWord.staleHandleKAT,
+                            "stale checked-add-overflow handle KAT changed")
+        try stale.1.requirePoisoned()
+        try runtime.close()
+    }
+
+    private static func runEnsuresFalseWitness() throws {
+        let runtime = NativeRuntime()
+        try runtime.openEnsuresFalse()
+        let alreadyOpen = try runtime.openEnsuresFalseAgainRaw()
+        try requireContract(alreadyOpen.raw == StatusWord.alreadyOpenKAT,
+                            "ensures-false already-open KAT changed")
+
+        let witness = try runtime.adoptEnsuresFalse()
+
+        // The pair-consume lane cannot drive an ensures-false session.
+        let wrongShape = try runtime.consumeRawOnOwner(
+            handle: witness.raw, length: ConsumeEvidence.byteCount)
+        try requireContract(wrongShape.0.raw == StatusWord.invalidHandleKAT,
+                            "ensures-false-shape consume was not rejected")
+        try wrongShape.1.requirePoisoned()
+
+        let forged = try runtime.executeEnsuresFalseOnOwner(
+            handle: witness.raw ^ 1, length: EnsuresFalseEvidence.byteCount)
+        try requireContract(forged.0.raw == StatusWord.invalidHandleKAT,
+                            "forged ensures-false handle KAT changed")
+        try forged.1.requirePoisoned()
+
+        // The canonical ensures-false corpus witness: one adopted owner at the
+        // maximum payload that fails the `ensures false` postcondition,
+        // publishing no owned result and finalizing exactly that one owner after
+        // selection.
+        try runtime.executeEnsuresFalse(witness.raw).requireExact()
+
+        // Failure selection is sticky: the consumed owner cannot retry.
+        let stale = try runtime.executeEnsuresFalseOnOwner(
+            handle: witness.raw, length: EnsuresFalseEvidence.byteCount)
+        try requireContract(stale.0.raw == StatusWord.staleHandleKAT,
+                            "stale ensures-false handle KAT changed")
         try stale.1.requirePoisoned()
         try runtime.close()
     }

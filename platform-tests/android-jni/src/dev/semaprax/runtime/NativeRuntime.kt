@@ -36,6 +36,20 @@ internal class NativeRuntime(private val bridge: NativeBridge) : AutoCloseable {
         return adopted.handle
     }
 
+    fun adoptCheckedAddOverflowWitness(): Long {
+        val adopted = call { bridge.adoptCheckedAddOverflow() }
+        require(adopted.status.isSuccess) { "native checked-add-overflow adoption failed" }
+        OpaqueHandle.decode(adopted.handle)
+        return adopted.handle
+    }
+
+    fun adoptEnsuresFalseWitness(): Long {
+        val adopted = call { bridge.adoptEnsuresFalse() }
+        require(adopted.status.isSuccess) { "native ensures-false adoption failed" }
+        OpaqueHandle.decode(adopted.handle)
+        return adopted.handle
+    }
+
     fun adoptOwnedWitness(): Long {
         val adopted = call { bridge.adoptOwned() }
         require(adopted.status.isSuccess) { "native owned-result adoption failed" }
@@ -44,6 +58,10 @@ internal class NativeRuntime(private val bridge: NativeBridge) : AutoCloseable {
     }
 
     fun executeRequiresFalse(handle: Long): ConsumeResult = call { bridge.executeRequiresFalse(handle) }
+
+    fun executeCheckedAddOverflow(handle: Long): ConsumeResult = call { bridge.executeCheckedAddOverflow(handle) }
+
+    fun executeEnsuresFalse(handle: Long): ConsumeResult = call { bridge.executeEnsuresFalse(handle) }
 
     fun executeIdentityMax(handle: Long): ConsumeResult = call { bridge.executeIdentityMax(handle) }
 

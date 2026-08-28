@@ -216,11 +216,11 @@ fn public_api_cli_kat_parity_and_opaque_getters() {
     assert!(preview.ends_with('\n') && evidence.ends_with('\n'));
     assert_eq!(
         raw_sha(&preview),
-        "sha256:39851d52ac30b1af3bd9411c1f733590788432b9e3b14f1c5b57ca9a5d3c6e85"
+        "sha256:973f9c540e7bcb4ba7536815667fb638a411ee04c4f3a3b9675849cc0b69e643"
     );
     assert_eq!(
         raw_sha(&evidence),
-        "sha256:748cbea459f66afd9aedc9725900af2e71dd9514bfd0c3230759d379e385d970"
+        "sha256:7f9b62ddf9d577e7e82271831659319c1e9fb0a94370a0a36897fbc70d63e747"
     );
     for value in [
         artifacts.proposal_digest(),
@@ -449,7 +449,7 @@ fn verification_receipt_api_cli_kat_shared_lock_and_no_write() {
     assert!(!receipt[..receipt.len() - 1].contains('\n'));
     assert_eq!(
         raw_sha(&receipt),
-        "sha256:ea3b4077a326c9b0be8d28abf59b2a289722642e6306a251e873aefb08af7725"
+        "sha256:f66fea1b1873dbae8418c67f8612a7698907ec15cdfde7c5a2cbdf82fe53b196"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(
@@ -660,7 +660,7 @@ fn application_receipt_api_cli_kat_fixed_point_and_raw_no_write() {
     assert!(!receipt[..receipt.len() - 1].contains('\n'));
     assert_eq!(
         raw_sha(&receipt),
-        "sha256:05c73d01de9879f999bf421cc0c541feb61119216c2f61539450eee319825943"
+        "sha256:a7b4d68e459d54bd59c9b515dd46e5b406d86e7f27c3cef8a89cc61e39095650"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(

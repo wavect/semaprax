@@ -473,9 +473,9 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
     );
     assert_eq!(
         document_digest(graph.to_json().as_bytes()),
-        // Re-pinned after cumulative authenticated HIR carrier growth through
-        // the host-command profile enlarged `HIR_EXPR_FIXED_BUNDLE`.
-        "sha256:36504e9f04414b1c53594d3fb6e30d5ac6c2be76c8ccde3c0b50d28c6e3b06a6"
+        // Re-pinned after the authenticated owned-byte-variant HIR carriers
+        // enlarged the shared graph-capacity facts.
+        "sha256:e5875197d7e09df2788c6fc69c44fa62886d4a700c3793b3c0a9734984b49637"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -889,14 +889,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:1f4c7a06894f8b76bddca0105bd8acda50f710982cf2c32e8c243b96d4e75b9a",
-            "sha256:4787119381e822ad12490b6ab9f29eb998184a34f5e9c205297c6c599a654dc3",
-            "sha256:9b3ba22ea6de7ae5aeb8db209e30270fe4b6e1f6c3b9691fd7f84b8d9496ef58",
-            "sha256:6c928c73a0ab062260d7004657d69e3f84aa91c2873f0757c3ccb2c82b752db8",
-            "sha256:6f4d77019096180af8270ec9e836f0451dfebd1551d412f58f38a33f0b592002",
-            "sha256:8730724033b918e45ed87a95398b4f13f1dd9bf583c6b0af2b9c043133f0f46d",
-            "sha256:7b12c8b313c4610d2e8c6fec46d06d2171bd653f34795b179afa8c5b0de5a35b",
-            "sha256:2f51d61dc9cda87ac07d6d1f66dd808941165d79786a3861dc6d17d409726b76",
+            "sha256:dc2d7f1357414d87e7c1c46d9f0fdf44439f78cc52eab6ce2614713c6fe28e77",
+            "sha256:dd123751514752f2e45801c34be2d7c896bb9324d440f119a1d5974c3bb7c173",
+            "sha256:3a7b18d605ca4dcafab394cd8743fa4ebde5224bce0863b0db1fdc0d39a31876",
+            "sha256:38eb1c579b863b1b2530e1609f1d9cd1eae04f5b310e33da1b07aa278b861bf7",
+            "sha256:1d9497d4697c1555030247ecadc6c39127c93b93830d1c59c9de884897682e4f",
+            "sha256:84bd1bd99537933adfdde6afe7dbf10565eacedd3b903b3869366322b9270f14",
+            "sha256:5de0cf2b1d52bc08466499cb9f71e4ce6d67e69e633a2fb679ebdd775e7384ea",
+            "sha256:70759dbd1dcdc15cff7f2c7aa10d46042951ff7853fedbef94d98d8b65a27532",
         ]
     );
 

@@ -267,7 +267,8 @@ fn main() -> i64 { 0 }
 "#,
         r#"
 module test.variant_bytes;
-variant Packet { Data { payload: Bytes, }, }
+record Marker { value: i64, }
+variant Packet { Data { payload: Bytes, nested: Marker, }, }
 fn main() -> i64 { 0 }
 "#,
         r#"

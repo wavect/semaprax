@@ -368,6 +368,7 @@ fn private_android_jni_hosted_gate_is_mandatory_and_fail_closed() {
         "emulator-arch: arm64-v8a",
         "ANDROID_ARCH: ${{ matrix.abi }}",
         "arch: ${{ matrix.emulator-arch }}",
+        "if: matrix.arch == 'x86_64'",
         "test -c /dev/kvm",
         "sudo chmod 0666 /dev/kvm",
         "test -r /dev/kvm",
@@ -376,6 +377,7 @@ fn private_android_jni_hosted_gate_is_mandatory_and_fail_closed() {
         "ReactiveCircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0",
         "api-level: 35",
         "ndk: 27.2.12479018",
+        "disable-linux-hw-accel: ${{ matrix.arch == 'arm64-v8a' }}",
         "script: scripts/android-jni-app-v3.sh",
     ] {
         assert!(

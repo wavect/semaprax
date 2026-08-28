@@ -267,7 +267,9 @@ pub(super) fn resolved_expression_child<'a>(
             let child = &fields.get(index)?.value;
             advance(index.checked_add(1)?, index, child)
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             let has_guard = complex || (index == 0 && arms.iter().any(|arm| arm.guard.is_some()));
             if has_guard {
                 if !complex {
@@ -1427,7 +1429,9 @@ pub(super) fn fingerprint_expression_types_scratch(
                         &mut stack_len,
                         Frame::Fields(fields, 0, child_depth),
                     )?,
-                    ResolvedExprKind::Match { scrutinee, arms } => {
+                    ResolvedExprKind::Match {
+                        scrutinee, arms, ..
+                    } => {
                         push(
                             &mut stack,
                             &mut stack_len,
@@ -2154,7 +2158,9 @@ pub(super) fn hash_expr(
                         frame(hasher, case.as_str().as_bytes());
                         actions.push(HirFingerprintAction::Fields(fields, 0, child_depth));
                     }
-                    ResolvedExprKind::Match { scrutinee, arms } => {
+                    ResolvedExprKind::Match {
+                        scrutinee, arms, ..
+                    } => {
                         frame(hasher, b"match");
                         actions.push(HirFingerprintAction::Arms(arms, 0, child_depth));
                         actions.push(HirFingerprintAction::Expr(scrutinee, child_depth));

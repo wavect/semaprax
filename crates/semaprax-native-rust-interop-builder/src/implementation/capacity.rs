@@ -242,7 +242,9 @@ pub(super) fn ast_child<'a>(
             let child = &fields.get(index)?.value;
             advance(index.checked_add(1)?, index, child)
         }
-        crate::ast::ExprKind::Match { scrutinee, arms } => {
+        crate::ast::ExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             let has_guard = complex || (index == 0 && arms.iter().any(|arm| arm.guard.is_some()));
             if has_guard {
                 if !complex {
@@ -5796,7 +5798,9 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
                 }
                 pending.extend(fields.iter().map(|field| &field.value));
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 add_capacity(
                     &mut total,
                     arms.capacity(),
@@ -6325,7 +6329,9 @@ pub(super) fn validate_native_rust_expression_budget_for_closure(
             | ResolvedExprKind::ConstructVariant { fields, .. } => {
                 pending.extend(fields.iter().map(|field| (&field.value, child_depth)));
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 pending.push((scrutinee, child_depth));
                 pending.extend(
                     arms.iter()

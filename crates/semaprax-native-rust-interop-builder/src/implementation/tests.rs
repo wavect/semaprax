@@ -4756,6 +4756,7 @@ fn formatter_frame_capacity_covers_nested_delimiters_and_helper_stacks() {
     .unwrap();
     program.functions[0].body = Expr {
         kind: ExprKind::Match {
+            mode: crate::ast::MatchMode::Value,
             scrutinee: Box::new(scrutinee),
             arms: vec![MatchArm {
                 guard: None,
@@ -6847,6 +6848,7 @@ fn cleanup_pattern_binding_lookup_is_iterative_at_exact_depth() {
         }];
         program.functions[0].body = Expr {
             kind: ExprKind::Match {
+                mode: crate::ast::MatchMode::Value,
                 scrutinee: Box::new(Expr {
                     kind: ExprKind::Var("scrutinee".into()),
                     span,
@@ -8453,7 +8455,9 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
             | ExprKind::ConstructVariant { fields, .. } => fields
                 .iter_mut()
                 .any(|field| replace_payload(&mut field.value, replacement)),
-            ExprKind::Match { scrutinee, arms } => {
+            ExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 replace_payload(scrutinee, replacement)
                     || arms.iter_mut().any(|arm| {
                         arm.guard

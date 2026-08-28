@@ -1268,7 +1268,9 @@ pub(super) fn validate_native_unit_discard_bindings(
                 | ResolvedExprKind::ConstructVariant { fields, .. } => {
                     pending.extend(fields.iter().map(|field| (&field.value, false)));
                 }
-                ResolvedExprKind::Match { scrutinee, arms } => {
+                ResolvedExprKind::Match {
+                    scrutinee, arms, ..
+                } => {
                     pending.push((scrutinee, false));
                     pending.extend(arms.iter().map(|arm| (&arm.value, false)));
                 }

@@ -2061,7 +2061,9 @@ fn drain_disposal_frames(
                 | ResolvedExprKind::ConstructVariant { fields, .. } => {
                     disposal_push(frames, ResolvedDisposeFrame::Fields(fields));
                 }
-                ResolvedExprKind::Match { scrutinee, arms } => {
+                ResolvedExprKind::Match {
+                    scrutinee, arms, ..
+                } => {
                     disposal_push(frames, ResolvedDisposeFrame::Arms(arms));
                     pending_expression = Some(*scrutinee);
                 }

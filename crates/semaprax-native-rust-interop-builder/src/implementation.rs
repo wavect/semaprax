@@ -2014,6 +2014,13 @@ fn drain_disposal_frames(
                 | ResolvedExprKind::String(_)
                 | ResolvedExprKind::Place(_)
                 | ResolvedExprKind::BorrowPlace { .. } => {}
+                ResolvedExprKind::ByteRange {
+                    source, start, end, ..
+                } => {
+                    disposal_push(frames, ResolvedDisposeFrame::ExprBox(end));
+                    disposal_push(frames, ResolvedDisposeFrame::ExprBox(start));
+                    pending_expression = Some(*source);
+                }
                 ResolvedExprKind::Call {
                     type_arguments,
                     args,

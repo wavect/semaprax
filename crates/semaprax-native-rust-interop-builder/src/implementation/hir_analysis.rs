@@ -191,6 +191,14 @@ pub(super) fn resolved_expression_child<'a>(
         ResolvedExprKind::HostCommandCall(call) => {
             advance(index.checked_add(1)?, index, call.args.get(index)?)
         }
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            let child = [source.as_ref(), start.as_ref(), end.as_ref()]
+                .get(index)
+                .copied()?;
+            advance(index.checked_add(1)?, index, child)
+        }
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
@@ -1346,6 +1354,13 @@ pub(super) fn fingerprint_expression_types_scratch(
                     | ResolvedExprKind::String(_)
                     | ResolvedExprKind::Place(_)
                     | ResolvedExprKind::BorrowPlace { .. } => {}
+                    ResolvedExprKind::ByteRange {
+                        source, start, end, ..
+                    } => {
+                        push(&mut stack, &mut stack_len, Frame::Expr(end, child_depth))?;
+                        push(&mut stack, &mut stack_len, Frame::Expr(start, child_depth))?;
+                        push(&mut stack, &mut stack_len, Frame::Expr(source, child_depth))?;
+                    }
                     ResolvedExprKind::Call {
                         type_arguments,
                         args,
@@ -1987,7 +2002,8 @@ pub(super) fn hash_expr(
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::String(_)
-                    | ResolvedExprKind::BorrowPlace { .. } => {
+                    | ResolvedExprKind::BorrowPlace { .. }
+                    | ResolvedExprKind::ByteRange { .. } => {
                         // Non-i64 scalar signatures are outside the scalar
                         // native boundary; admission rejects them first.
                         return Err(b107("scalar value signature required"));

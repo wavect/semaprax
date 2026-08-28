@@ -5591,6 +5591,19 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
             }
             ResolvedExprKind::RepeatArrayU8 { .. } => {}
+            ResolvedExprKind::ByteRange {
+                operation,
+                source,
+                start,
+                end,
+            } => {
+                total = total
+                    .checked_add(operation.as_str().len())
+                    .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                pending.push(source);
+                pending.push(start);
+                pending.push(end);
+            }
             ResolvedExprKind::Call {
                 callee,
                 type_arguments,
@@ -6266,6 +6279,13 @@ pub(super) fn validate_native_rust_expression_budget_for_closure(
         match &expression.kind {
             ResolvedExprKind::Call { args, .. } => {
                 pending.extend(args.iter().map(|value| (value, child_depth)))
+            }
+            ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => {
+                pending.push((source, child_depth));
+                pending.push((start, child_depth));
+                pending.push((end, child_depth));
             }
             ResolvedExprKind::NativeRustImportCall(call) => {
                 pending.extend(call.args.iter().map(|value| (value, child_depth)))

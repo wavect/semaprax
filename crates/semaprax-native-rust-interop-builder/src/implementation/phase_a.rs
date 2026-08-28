@@ -1178,6 +1178,7 @@ pub(super) fn validate_selected_scalar_closure(
             | ResolvedExprKind::ArrayU8(_)
             | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::BorrowPlace { .. }
+            | ResolvedExprKind::ByteRange { .. }
             | ResolvedExprKind::Call { .. }
             | ResolvedExprKind::ConstructVariant { .. }
             | ResolvedExprKind::Match { .. }

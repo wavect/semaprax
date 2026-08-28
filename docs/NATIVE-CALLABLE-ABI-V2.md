@@ -1,5 +1,7 @@
 # Native callable ABI v2
 
+Audience: maintainers, host integrators, and compiler contributors.
+
 Status: public build-only bundle and connected private execution. Public
 preflight/CLI emission produces the complete guarded C11 provider, canonical
 descriptor v2, semantic dictionary, trace-path certificate, host shared

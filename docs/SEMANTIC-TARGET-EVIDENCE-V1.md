@@ -1,5 +1,9 @@
 # Semantic Target Evidence v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: agent and tool authors, plus compiler contributors.
+
 Semantic Target Evidence v1 is a bounded, read-only projection of one admitted
 single-file Semantic Patch v1/v2 operation set or the sole canonical Patch v3
 identity rebase. It independently rebuilds exact base and candidate Graph JSON,

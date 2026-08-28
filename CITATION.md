@@ -19,14 +19,16 @@ specifications, implementation status, limitations, and executable evidence.
 |---|---|
 | Language and compiler contract | [`docs/RFC-0001.md`](docs/RFC-0001.md) |
 | Current implementation and trust boundaries | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
-| Implemented, partial, and roadmap status | [`docs/COMPLETION-MATRIX.md`](docs/COMPLETION-MATRIX.md) |
+| Current implementation status and completion gates | [`docs/COMPLETION-MATRIX.md`](docs/COMPLETION-MATRIX.md) |
 | Agent context semantics | [`docs/AGENT-CONTEXT-V2.md`](docs/AGENT-CONTEXT-V2.md) |
 | Context benchmark scope and nonclaims | [`docs/AGENT-ECONOMICS-V1.md`](docs/AGENT-ECONOMICS-V1.md) |
 | Semantic patch contract | [`docs/SEMANTIC-PATCH-V2.md`](docs/SEMANTIC-PATCH-V2.md) |
 | Patch replay evidence | [`docs/SEMANTIC-PATCH-EVIDENCE-V2.md`](docs/SEMANTIC-PATCH-EVIDENCE-V2.md) |
-| Milestones and future work | [`docs/ROADMAP.md`](docs/ROADMAP.md) |
+| Future sequencing | [`docs/ROADMAP.md`](docs/ROADMAP.md) |
+| Historical repository changes | [`CHANGELOG.md`](CHANGELOG.md) |
 
-Do not cite a roadmap row as an implemented capability. Do not generalize a
+Do not cite a roadmap or changelog entry as current implementation evidence.
+Do not generalize a
 bounded target gate into universal platform support, complete ecosystem
 interoperability, model-token savings, production readiness, or security.
 

@@ -1,5 +1,7 @@
 # Bounded Semantic Impact v1
 
+Audience: agent and tool authors, plus compiler contributors.
+
 Status: implemented as a deterministic, read-only, single-file patch preview.
 The exact `1b3731a` full hosted matrix is green in [run 31408654657 attempt
 2](https://github.com/wavect/semaprax/actions/runs/31408654657/attempts/2),

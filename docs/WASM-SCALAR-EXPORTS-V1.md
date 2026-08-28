@@ -1,5 +1,7 @@
 # Public Wasm Scalar Exports v1
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: implemented as a bounded public Core-Wasm and generated JavaScript/
 TypeScript package profile. Local executable evidence covers admission,
 deterministic artifacts, Node consumption, status normalization, and stable-ID

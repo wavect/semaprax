@@ -1,5 +1,7 @@
 # Bounded Language Command I/O v1
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: locally evidenced implementation tranche. This document freezes the
 reviewed contract; exact-head hosted promotion, registry publication, and
 release completion remain pending.

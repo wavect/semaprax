@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Reorganized documentation by audience without moving established
+  specification paths. The README and `docs/index.md` now form the public
+  entry path; `docs/DEVELOPMENT.md` owns contributor navigation; the mdBook
+  separates public references from internal, private, and proof-only
+  contracts. Architecture, quality gates, and roadmap now each have one clear
+  responsibility. The completion matrix replaces the ambiguous mixed
+  “56-row” dashboard with a fixed 49-requirement product contract and a
+  separate v0.2 release-exit audit; historical milestone narration remains in
+  this changelog. Every book document now states its status and audience near
+  the title, and the documentation test enforces metadata plus exhaustive
+  `SUMMARY.md` catalog coverage.
+
 - Added the locally evidenced Owned Byte Record Algebra v1 tranche: flat
   monomorphic records with direct `Bytes` plus direct Copy scalars, explicit
   `match own`/`match borrow`, propagated drop-aware type facts, exact projected

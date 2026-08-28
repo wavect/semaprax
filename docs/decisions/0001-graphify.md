@@ -1,5 +1,7 @@
 # ADR 0001: Defer Graphify repository indexing
 
+Audience: maintainers and compiler contributors.
+
 Status: accepted, revisit as the platform-host codebase grows.
 
 ## Decision

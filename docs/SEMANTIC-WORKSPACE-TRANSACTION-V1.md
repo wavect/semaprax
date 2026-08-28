@@ -1,5 +1,9 @@
 # Semantic Workspace Transaction v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: workspace tool authors and compiler contributors.
+
 Semantic Workspace Transaction v1 is a bounded multi-file publication
 protocol for cooperating SEMAPRAX readers and writers. It manages immutable
 source generations under one authenticated workspace control directory and

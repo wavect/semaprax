@@ -1,5 +1,9 @@
 # Region Structure Report v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: integration tool authors and compiler contributors.
+
 `semaprax region-report <file.spx> [--max-bytes N]` is a deterministic,
 read-only projection that describes one verified module's lifetime structure.
 It is the first executable slice of the completion-matrix row "Regions/arenas"

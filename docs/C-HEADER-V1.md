@@ -1,5 +1,9 @@
 # C Header Emission v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: integration tool authors and compiler contributors.
+
 `semaprax c-header <file.spx>` is a deterministic, read-only projection that
 derives one C11 header from verified program facts for explicitly selected
 public monomorphic scalar functions. It is the first executable slice of the

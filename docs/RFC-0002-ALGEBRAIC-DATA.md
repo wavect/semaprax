@@ -1,5 +1,7 @@
 # RFC 0002: Algebraic data, matching, and aggregate ownership
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: partially implemented.
 
 This RFC defines the next useful-core tranche: nominal records, algebraic variants, `Option`, `Result`, exhaustive matching, and ownership of aggregate places. It deliberately introduces a resolved semantic layer before new syntax reaches either backend.

@@ -1,5 +1,7 @@
 # Field Mutation v1
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: Partial — extends Explicit Mutation v1 with direct scalar-field
 stores on `let mut` record/class locals; evidence lives in
 `tests/field_mutation_v1.rs` plus `examples/field_mutation.spx`.

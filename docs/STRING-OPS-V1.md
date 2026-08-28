@@ -1,5 +1,7 @@
 # String Operations v1
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: implemented in this tranche. Three prelude-style intrinsic functions
 admitted wherever owned `string` values are already admitted.
 

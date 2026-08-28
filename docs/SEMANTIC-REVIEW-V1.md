@@ -1,5 +1,7 @@
 # Bounded Semantic Review v1
 
+Audience: agent and tool authors, plus compiler contributors.
+
 Status: implemented as a deterministic, read-only, single-file review. The
 exact `2634011f3d205077d4533701e412bec8fdcff7c8` full matrix is hosted green in
 [run 31423743369 attempt

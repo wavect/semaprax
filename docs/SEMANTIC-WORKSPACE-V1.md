@@ -1,5 +1,9 @@
 # Semantic Workspace v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: workspace tool authors and compiler contributors.
+
 Semantic Workspace v1 is the managed, read-only source authority for unified
 cross-file SEMAPRAX semantics. It authenticates 2–16 existing canonical `.spx`
 files, resolves them together once, and publishes an immutable generation by

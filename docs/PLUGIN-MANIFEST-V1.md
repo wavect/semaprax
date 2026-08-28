@@ -1,5 +1,9 @@
 # Plugin Manifest Projection v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: integration tool authors and compiler contributors.
+
 `semaprax plugin-manifest <file.spx>` is a deterministic, read-only
 projection that derives one canonical digest-authenticated envelope
 (`semaprax.plugin-manifest.v1`) describing a capability-limited plugin

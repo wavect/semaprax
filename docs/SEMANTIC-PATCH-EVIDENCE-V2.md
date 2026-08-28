@@ -1,5 +1,9 @@
 # Semantic Patch Evidence v2
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: agent and tool authors, plus compiler contributors.
+
 Semantic Patch Evidence v2 additively binds the unchanged Semantic Review v1
 facts and complete supporting evidence to one independently rebuilt Semantic
 Target Evidence v1 report. It remains a bounded single-file proof carrier:

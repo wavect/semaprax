@@ -1,5 +1,7 @@
 # Private native desktop application v1
 
+Audience: maintainers, host integrators, and compiler contributors.
+
 Status: the bounded macOS and Windows package/runtime paths are hosted green:
 macOS in [run 31338834586, job 93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230)
 and Windows in [run 31343897595, job 93322134480](https://github.com/wavect/semaprax/actions/runs/31343897595/job/93322134480).

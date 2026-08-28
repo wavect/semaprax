@@ -1,5 +1,7 @@
 # Project Agent Workflow v1
 
+Audience: agent and tool authors, plus compiler contributors.
+
 Status: locally evidenced additive Project Agent Transport v4; exact-head
 hosted promotion pending.
 
@@ -118,4 +120,5 @@ carrier mutations, and no managed-Workspace schema confusion.
 General/multi-file change, import-alias/identity operations, request-selected
 patches or outputs, native/Rust daemon builds, persistent indexing, network
 service, concurrency, recovery, exactly-once delivery, target execution, and
-hosted promotion remain open. Completion totals remain 56 Partial/0 Missing.
+hosted promotion remain open. This bounded workflow does not complete any
+long-term product-contract row; see the completion matrix for current totals.

@@ -1,5 +1,7 @@
 # Private Apple Swift ownership adapter v1
 
+Audience: maintainers, host integrators, and compiler contributors.
+
 Status: implemented and CI-configured behind
 `unstable-apple-swift-harness`. Local Rust, generator, source-lock, and strict
 host gates pass. The Apple device/simulator compilation, XCFramework

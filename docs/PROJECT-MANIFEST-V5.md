@@ -1,5 +1,7 @@
 # Project Manifest v5 and Useful Data Command v2
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: locally evidenced. Hosted promotion, safe Windows npm publication,
 registry publication, and release promotion remain open, so the completion
 claim remains Partial.

@@ -1,5 +1,7 @@
 # Rust-host sanitizer evidence
 
+Audience: maintainers, host integrators, and compiler contributors.
+
 Status: **green public Linux Rust-host ASan evidence**.
 
 SEMAPRAX has two intentionally separate Linux sanitizer lanes:

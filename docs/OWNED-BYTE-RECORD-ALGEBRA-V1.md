@@ -1,5 +1,7 @@
 # Owned Byte Record Algebra v1
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: local implementation tranche; hosted promotion is not claimed.
 
 ## Purpose

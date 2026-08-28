@@ -1,5 +1,7 @@
 # Bounded While-Loops v1
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: Partial — v1 adds statement-level `while` loops over an explicitly
 admitted Copy-scalar profile. Indexed Byte Loop v2 additively admits one exact
 cleanup-inert `byte_get`/`Option<u8>` read profile. The broader control-flow

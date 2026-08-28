@@ -1,5 +1,9 @@
 # Project Manifest v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: language users, tool authors, and compiler contributors.
+
 Project Manifest v1 is a bounded, invocation-local way to check, execute, test,
 or build one explicit
 multi-file pure-scalar program. It reuses the existing Semantic Workspace

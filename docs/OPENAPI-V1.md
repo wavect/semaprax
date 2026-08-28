@@ -1,5 +1,9 @@
 # OpenAPI Schema Generation v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: integration tool authors and compiler contributors.
+
 `semaprax openapi <file.spx>` is a deterministic, read-only projection that
 turns admitted function signatures of one verified module into a canonical
 OpenAPI 3.1 document, wrapped in a `semaprax.openapi.v1` envelope. The

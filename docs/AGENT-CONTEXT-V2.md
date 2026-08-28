@@ -1,5 +1,7 @@
 # Agent Context v2
 
+Audience: agent and tool authors, plus compiler contributors.
+
 Status: implemented additive semantic-query contract. V1 remains the default
 and retains its exact API, CLI behavior, and bytes. Supplying an explicit
 direction selects v2:

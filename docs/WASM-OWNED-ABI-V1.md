@@ -1,5 +1,7 @@
 # WebAssembly owned-resource ABI v1
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: implemented narrow Core Wasm slice; the full cross-target vertical
 contract remains open
 

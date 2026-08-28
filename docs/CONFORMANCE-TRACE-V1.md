@@ -1,5 +1,7 @@
 # Conformance trace v1
 
+Audience: integration tool authors and compiler contributors.
+
 Status: the public Rust data model, deterministic JSON projection, independent
 attached-plan replay, scenario-driven single-frame reference executor, and
 native scalar status/out execution are implemented. The narrow public

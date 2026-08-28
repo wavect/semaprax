@@ -1,5 +1,7 @@
 # Class Inheritance v1
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: Bounded tranche — RFC-STRING-OO badge 4. This document plus
 `tests/class_inheritance_v1.rs` are the executable evidence for everything
 claimed here. Nothing in this file claims completion-matrix promotion.

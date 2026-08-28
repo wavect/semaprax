@@ -1,5 +1,7 @@
 # RFC 0003: Exactly-once cleanup and the resource ABI
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: accepted; phases 1–2 implemented, phases 3–4 partially implemented,
 one private Android tranche of phase 6 implemented with bounded hosted APK
 evidence, phase 5 target-neutral groundwork partially implemented, and phase 7 proposed.

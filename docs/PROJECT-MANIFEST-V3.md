@@ -1,5 +1,7 @@
 # Project Manifest v3
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: locally evidenced, Partial. Exact-head hosted promotion, safe Windows
 v2 package publication, npm registry publication, and release promotion remain
 open.

@@ -1,5 +1,9 @@
 # Protocol migrations
 
+Status: living compatibility reference for versioned protocols.
+
+Audience: agent and tool authors, plus compiler contributors.
+
 SEMAPRAX is pre-alpha, but agent-facing changes are still explicit. Consumers must inspect the declared schema field rather than assuming every JSON object has the latest shape.
 
 Bounded Native Agent Runtime v1 C1 is additive. Existing consumers require no

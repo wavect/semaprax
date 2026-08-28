@@ -1,5 +1,9 @@
 # Project Manifest v2
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: language users, tool authors, and compiler contributors.
+
 Project Manifest v2 is the locally evidenced packaging profile for one Useful
 Text Consumer v1 project. Exact-head hosted promotion is pending.
 

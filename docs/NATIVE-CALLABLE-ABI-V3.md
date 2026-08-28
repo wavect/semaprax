@@ -1,5 +1,7 @@
 # Native callable ABI v3
 
+Audience: maintainers, host integrators, and compiler contributors.
+
 Status: private physical tranche. `SPXNABI3` fixes the compiler/host descriptor
 projection and seven bounded physical wire formats. Independent compiler and
 host codecs are joined by a private dynamic-image loader with root-image

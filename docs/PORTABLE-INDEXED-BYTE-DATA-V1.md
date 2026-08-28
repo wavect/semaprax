@@ -1,5 +1,7 @@
 # Portable Indexed Byte Data v1
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: partially implemented with local internal compiler and bounded public
 Project/npm adapter evidence.
 Checked target-independent `usize`, fixed `[u8; N]`, uniquely owned `Bytes`,

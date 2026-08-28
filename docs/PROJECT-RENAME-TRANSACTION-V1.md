@@ -1,5 +1,7 @@
 # Project Rename Transaction v1
 
+Audience: agent and tool authors, plus compiler contributors.
+
 Status: locally implemented and bounded. Hosted promotion is not claimed.
 
 Project Rename Transaction v1 is an explicit opt-in extension of

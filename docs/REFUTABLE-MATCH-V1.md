@@ -1,5 +1,7 @@
 # Refutable Match v1 (Literal Patterns + Guards)
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: Partial — this tranche adds refutable `match` arms over an explicitly
 admitted Copy-scalar profile, evidenced by `tests/refutable_match_v1.rs` and
 `examples/refutable_match.spx`. The broader matching rows of

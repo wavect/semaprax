@@ -1,5 +1,7 @@
 # Bounded Stdout Transcript v1
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: locally evidenced. This justifies only a Partial claim; exact-head
 hosted promotion remains separate.
 

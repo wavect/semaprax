@@ -40,6 +40,59 @@ fn local_markdown_links_resolve() {
     }
 }
 
+#[test]
+fn documentation_catalog_and_metadata_are_complete() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let docs = root.join("docs");
+    let summary = std::fs::read_to_string(docs.join("SUMMARY.md")).unwrap();
+    let mut documents = Vec::new();
+    collect_markdown(&docs, &mut documents);
+    documents.sort();
+
+    for document in documents {
+        let source = std::fs::read_to_string(&document).unwrap();
+        let mut lines = source.lines();
+        let title = lines.next().unwrap_or_default();
+        assert!(
+            title.starts_with("# "),
+            "{} must start with one H1 title",
+            document.display()
+        );
+
+        let metadata = source.lines().take(12).collect::<Vec<_>>();
+        assert!(
+            metadata.iter().any(|line| line
+                .strip_prefix("- ")
+                .unwrap_or(line)
+                .starts_with("Status:")),
+            "{} must state its status within the first 12 lines",
+            document.display()
+        );
+        assert!(
+            metadata.iter().any(|line| line
+                .strip_prefix("- ")
+                .unwrap_or(line)
+                .starts_with("Audience:")),
+            "{} must state its audience within the first 12 lines",
+            document.display()
+        );
+
+        if document
+            .file_name()
+            .is_some_and(|name| name == "SUMMARY.md")
+        {
+            continue;
+        }
+        let relative = document.strip_prefix(&docs).unwrap();
+        let catalog_entry = format!("]({})", relative.to_string_lossy().replace('\\', "/"));
+        assert!(
+            summary.contains(&catalog_entry),
+            "{} is missing from docs/SUMMARY.md",
+            document.display()
+        );
+    }
+}
+
 fn collect_markdown(directory: &Path, output: &mut Vec<PathBuf>) {
     for entry in std::fs::read_dir(directory).unwrap() {
         let path = entry.unwrap().path();

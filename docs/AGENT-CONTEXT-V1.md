@@ -1,5 +1,7 @@
 # Agent context v1
 
+Audience: agent and tool authors, plus compiler contributors.
+
 Status: implemented, additive semantic-query contract. It bounds deterministic
 UTF-8 JSON bytes and function facts; it does not claim an exact model-token
 budget, relevance ranking, repository-wide impact analysis, or facts absent

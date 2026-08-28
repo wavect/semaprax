@@ -1,5 +1,9 @@
 # Workspace Semantic Graph v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: workspace tool authors and compiler contributors.
+
 Workspace Semantic Graph v1 is a bounded, canonical, read-only projection of
 one authenticated Semantic Workspace v1 generation. It validates the complete
 managed set before selecting an entry closure. The projection contains the

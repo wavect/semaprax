@@ -1,5 +1,7 @@
 # RFC: String + Object-Oriented Types — Large Implementation Badges
 
+Audience: maintainers and compiler contributors.
+
 Status: Draft — feat/string-oo-types branch
 Author: Muse (isolated worktree .agent-worktrees/string-oo)
 Date: 2026-08-23

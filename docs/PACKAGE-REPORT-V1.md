@@ -1,5 +1,9 @@
 # Interface Package Report v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: integration tool authors and compiler contributors.
+
 `semaprax package-report <file.spx>` is a deterministic, read-only projection
 that describes one verified module as an interface-first package descriptor.
 It is the first executable slice of the completion-matrix row

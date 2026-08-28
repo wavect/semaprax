@@ -1,5 +1,7 @@
 # Native capability tokens v1
 
+Audience: maintainers, host integrators, and compiler contributors.
+
 Status: connected private protocol mechanics. The publishable compiler exposes
 no authority, but the unpublished callable-v2 host uses this audited
 codec/authority with the exact loader lease and synchronized ownership ledger.

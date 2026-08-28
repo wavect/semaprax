@@ -1,5 +1,7 @@
 # Explicit Mutation v1
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: Partial — the Immutable-by-default values and explicit mutation row of
 [COMPLETION-MATRIX.md](COMPLETION-MATRIX.md) moves from Missing to Partial on
 the strength of this document plus `tests/explicit_mutation_v1.rs`.

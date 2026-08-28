@@ -1,5 +1,9 @@
 # Canonical ABI Report v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: integration tool authors and compiler contributors.
+
 `semaprax abi-report <file.spx>` is a deterministic, read-only projection that
 describes, for explicitly selected public monomorphic scalar functions, both
 the native fast ABI and the portable canonical ABI of the same declaration. It

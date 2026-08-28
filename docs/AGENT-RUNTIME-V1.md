@@ -1,5 +1,7 @@
 # Bounded Native Agent Runtime v1
 
+Audience: maintainers, host integrators, and compiler contributors.
+
 Status: the A+B private proof and additive C1 injected-host Rust API are hosted
 green. It does
 not add language syntax, compiler semantics, a provider transport, a CLI, or a

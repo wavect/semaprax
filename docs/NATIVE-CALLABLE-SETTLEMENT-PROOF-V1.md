@@ -1,5 +1,7 @@
 # Native callable settlement proof v1
 
+Audience: maintainers, host integrators, and compiler contributors.
+
 Status: private, authority-free compiler/host proof format. This format binds
 one exact callable-v2 descriptor to one compiler-derived settlement graph. It
 does not define callable ABI v3, a provider export, a settlement entry point,

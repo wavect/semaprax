@@ -1,5 +1,9 @@
 # Freestanding Object Profile v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: integration tool authors and compiler contributors.
+
 `semaprax freestanding-object <file.spx>` is a deterministic, read-only
 projection that derives one complete freestanding C11 translation unit from a
 verified effect-free scalar module — the same admission profile as C Header

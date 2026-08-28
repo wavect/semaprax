@@ -1,5 +1,7 @@
 # Owned resource vertical slice v1
 
+Audience: maintainers, host integrators, and compiler contributors.
+
 Status: implementation contract. This document defines the first public
 resource-execution slice; it does not make the slice implemented. Native
 `SPX-B104` and WebAssembly `SPX-W111` remain mandatory until every admission

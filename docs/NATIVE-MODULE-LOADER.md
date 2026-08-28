@@ -1,5 +1,7 @@
 # Native module loader quarantine
 
+Audience: maintainers, host integrators, and compiler contributors.
+
 Status: private, workspace-only quarantine. It is used by the unpublished
 `semaprax-native-host` physical ownership stage and its private generated
 callable path, but not by ordinary compiler preflight or any public adapter,

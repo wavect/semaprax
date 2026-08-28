@@ -1,5 +1,7 @@
 # ADR 0002: Managed immutable generations and an ACTIVE pivot
 
+Audience: maintainers and compiler contributors.
+
 - Status: accepted
 - Date: 2026-08-11
 

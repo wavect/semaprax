@@ -1,5 +1,9 @@
 # Build Capability Manifest v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: integration tool authors and compiler contributors.
+
 `semaprax capability-manifest <file.spx>` is a deterministic, read-only
 projection that declares the EXACT build capabilities one verified module
 requires. It is the first executable slice of the completion-matrix row

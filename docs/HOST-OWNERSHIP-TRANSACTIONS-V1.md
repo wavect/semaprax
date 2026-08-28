@@ -1,5 +1,7 @@
 # Host ownership transactions v1
 
+Audience: maintainers, host integrators, and compiler contributors.
+
 Status: a private, target-neutral Rust reference model is implemented in
 `src/host_ownership.rs`. It fixes the semantic transaction that future native,
 Wasm, Swift, Kotlin/JNI, and JavaScript adapters must preserve. It is not a

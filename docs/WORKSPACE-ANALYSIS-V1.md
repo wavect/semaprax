@@ -1,5 +1,9 @@
 # Workspace Analysis v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: workspace tool authors and compiler contributors.
+
 Workspace Analysis v1 defines deterministic, read-only Context, Impact, and
 Review artifacts over one authenticated Workspace Semantic Graph v1. The three
 artifacts operate only on the six admitted cross-file edge families and retain

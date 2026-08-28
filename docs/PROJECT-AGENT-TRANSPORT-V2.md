@@ -1,5 +1,7 @@
 # Project Agent Transport v2
 
+Audience: agent and tool authors, plus compiler contributors.
+
 Status: locally implemented and bounded. Hosted promotion is not claimed.
 
 `semapraxd --stdio` is a persistent, sequential agent session over one exact

@@ -1,5 +1,9 @@
 # Property-Test Generation v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: agent and tool authors, plus compiler contributors.
+
 `semaprax properties <file.spx>` is a deterministic, read-only analysis that
 generates bounded test inputs from admitted function signatures and evaluates
 the authored `requires`/`ensures` contracts against them. It is the first

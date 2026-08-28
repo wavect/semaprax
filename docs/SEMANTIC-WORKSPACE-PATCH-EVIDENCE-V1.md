@@ -1,5 +1,9 @@
 # Semantic Workspace Patch Evidence v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: workspace tool authors and compiler contributors.
+
 Semantic Workspace Patch Evidence v1 is the bounded proof carrier for one
 admitted [Semantic Workspace Transaction
 v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md). It independently rebuilds the exact

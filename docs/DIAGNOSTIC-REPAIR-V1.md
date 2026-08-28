@@ -1,5 +1,9 @@
 # Bounded Diagnostic Repair v1 and Semantic Patch v3
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: agent and tool authors, plus compiler contributors.
+
 This document freezes the first executable diagnostic-repair contract. It is
 deliberately narrow: Phase A discovers and instantiates one repair for an exact
 `SPX-S103` automatic function identity, and Phase B applies the resulting one-

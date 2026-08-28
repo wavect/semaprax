@@ -1,5 +1,7 @@
 # Private Android JNI ownership adapter v1
 
+Audience: maintainers, host integrators, and compiler contributors.
+
 Status: private implementation, local Rust/C/source-lock evidence, and the exact
 API-35 x86_64 APK build/install/Instrumentation path are green in [run
 31324497016, job 93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149).

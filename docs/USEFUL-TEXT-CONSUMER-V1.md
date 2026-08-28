@@ -1,5 +1,9 @@
 # Useful Text Consumer v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: language users, tool authors, and compiler contributors.
+
 Useful Text Consumer v1 is a deliberately restrictive borrowed UTF-8 input
 profile. It is locally evidenced; exact-head hosted promotion is pending.
 

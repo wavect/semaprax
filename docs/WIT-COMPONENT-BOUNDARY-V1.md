@@ -1,5 +1,7 @@
 # Private WIT boundary v1
 
+Audience: maintainers, host integrators, and compiler contributors.
+
 Status: implemented behind `unstable-wit-component-harness`, disabled by
 default. This is deterministic private boundary evidence, not a public
 Component Model backend.

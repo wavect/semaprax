@@ -1,5 +1,7 @@
 # Agent context economics v1
 
+Audience: agent and tool authors, plus compiler contributors.
+
 Status: deterministic offline evidence for the current context contract. It is
 not a model-token, latency, answer-quality, or repository-scale benchmark.
 

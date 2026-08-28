@@ -1,5 +1,7 @@
 # Project Manifest v4 and Useful Data Command v1
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: locally evidenced. Hosted promotion and registry publication remain
 open, so the completion claim remains Partial.
 

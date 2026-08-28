@@ -1,5 +1,9 @@
 # Semantic Workspace Change v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: workspace tool authors and compiler contributors.
+
 Semantic Workspace Change v1 is a bounded replacements-only protocol for an
 authenticated Semantic Workspace v1. One canonical proposal names 2–16
 existing managed paths and supplies complete replacement source for each. The

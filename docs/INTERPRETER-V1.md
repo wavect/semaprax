@@ -1,5 +1,9 @@
 # Reference Interpreter v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: language users, tool authors, and compiler contributors.
+
 `semaprax interpret <file.spx> --function <name|stable-id>
 [--arg <scalar literal>]... [--max-bytes N]` is a deterministic, read-only
 reference evaluator that runs ONE explicitly selected explicit-ID monomorphic

@@ -1,5 +1,7 @@
 # Native adapter descriptor v1
 
+Audience: maintainers, host integrators, and compiler contributors.
+
 Status: private, descriptor-only phase-3 evidence. This is not a public or
 stable ecosystem ABI.
 

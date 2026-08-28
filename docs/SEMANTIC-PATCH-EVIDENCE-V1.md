@@ -1,5 +1,9 @@
 # Semantic Patch Evidence v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: agent and tool authors, plus compiler contributors.
+
 Semantic Patch Evidence v1 is the first bounded proof-carrying-patch slice. It
 turns the already admitted single-file Patch v1/v2 operations and the sole
 canonical Patch v3 `assign-function-id` operation into an independently

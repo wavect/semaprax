@@ -1,5 +1,7 @@
 # Native Rust Interoperability v1
 
+Audience: maintainers, host integrators, and compiler contributors.
+
 Status: private A+B design and implementation are exact-head hosted green at
 `50b96dccabe3b3dcbcdf38bab380f3eb8699184c` in [run
 32402944574](https://github.com/wavect/semaprax/actions/runs/32402944574).

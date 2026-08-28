@@ -1,5 +1,9 @@
 # Semantic Workspace Operations v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: workspace tool authors and compiler contributors.
+
 Semantic Workspace Operations v1 is a bounded stable-identity compiler from
 one authenticated managed workspace pre-state to one canonical existing
 Semantic Workspace Change v1 replacements proposal. Read-only derivation,

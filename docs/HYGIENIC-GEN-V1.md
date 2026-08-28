@@ -1,5 +1,7 @@
 # Typed Hygienic Generation v1
 
+Audience: agent and tool authors, plus compiler contributors.
+
 Status: locally evidenced, read-only, single-file. Schema
 `semaprax.hygienic-gen.v1`. Diagnostic family `SPX-Y`.
 

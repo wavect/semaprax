@@ -1,5 +1,7 @@
 # Unsafe Boundary Mechanics v1
 
+Audience: language users, tool authors, and compiler contributors.
+
 Status: Partial — the Restricted `unsafe` and raw memory row of
 [COMPLETION-MATRIX.md](COMPLETION-MATRIX.md) moves from Missing to Partial on
 the strength of this document plus `tests/unsafe_boundaries_v1.rs`.

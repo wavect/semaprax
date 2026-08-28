@@ -1,5 +1,7 @@
 # Graph Agent Transport v1
 
+Audience: agent and tool authors, plus compiler contributors.
+
 Status: locally implemented and bounded. This is the first executable slice of
 the roadmap 0.2 item "a persistent graph daemon and JSON-RPC agent
 transport". It adds the transport and one warm in-memory session per process;

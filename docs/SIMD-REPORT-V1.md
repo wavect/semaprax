@@ -1,5 +1,9 @@
 # Portable SIMD Eligibility Report v1
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: integration tool authors and compiler contributors.
+
 `semaprax simd-report <file.spx>` is a deterministic, read-only projection
 that performs a static vectorization-eligibility analysis of one verified
 module. It is the first executable slice of the completion-matrix row "SIMD

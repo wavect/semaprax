@@ -1,5 +1,9 @@
 # Bounded Semantic Patch v2
 
+Status: versioned bounded reference; the completion matrix owns product status.
+
+Audience: agent and tool authors, plus compiler contributors.
+
 Semantic Patch v2 is an additive, single-file transaction format for exact
 identity-scoped source changes. Schema-less patches retain the v1 behavior and
 the legacy `rename` domain: explicitly identified functions and resources only.

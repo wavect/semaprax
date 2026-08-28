@@ -1,2111 +1,250 @@
 # Compiler architecture
 
-SEMAPRAX v0.2 is a vertical slice through the future compiler. Each layer has a narrow contract so the prototype can grow without turning its source syntax into its internal API.
+Status: living internal implementation and trust-boundary map.
+
+Audience: compiler contributors and reviewers.
+
+This document owns the current implementation map, data flow, and trust
+boundaries. It does not own product status, protocol details, historical
+changes, or test inventories:
+
+- current status: [completion matrix](COMPLETION-MATRIX.md);
+- exact protocols and ABIs: their versioned reference documents;
+- required checks: [quality gates](QUALITY-GATES.md);
+- history: [changelog](../CHANGELOG.md).
+
+SEMAPRAX v0.2 is a set of bounded vertical slices through a larger language
+design. The architecture keeps human source, verified meaning, agent
+projections, mutation authority, and target execution distinct.
+
+## System shape
 
 ```text
-.spx source
-    |
-lexer -> parser -> parsed AST
+canonical .spx source or held Project inputs
                     |
-              semantic verifier
+              lexer + parser
                     |
-                resolved HIR
-                     |
-         replay-validated cleanup plan
-                /    |     \
- semantic graph  C11 IR  Wasm core
-    /       \             |           |
- agent queries    tx    Clang     browser host
-                         |           |
-                  native executable  web package
+                 AST
+                    |
+        resolver + semantic verifier
+                    |
+          validated stable-ID HIR
+                    |
+       canonical cleanup-plan builder
+                    |
+          independent plan replay
+             /       |       \
+ semantic graph   interpreter   target lowering
+      |                         /            \
+ context/impact/review      native C11    Wasm Core
+      |                          |             |
+ evidence + transactions      Clang       JS/Node host
 ```
 
-## Repository module map
+No backend bypasses source verification or validated-HIR checks. Cleanup-plan
+vectors are canonical execution order and must not be sorted or repaired by a
+graph projection or backend.
 
-Single source of truth for which source area implements what. `AGENTS.md`
-links here instead of duplicating it.
+## Representations
 
-- `src/ast.rs`, `lexer.rs`, `parser.rs`, `format.rs`: human source projection.
-- `src/verify.rs`, `src/hir.rs`: checked semantics and the stable-ID resolved representation.
-- `src/cleanup.rs`: structural cleanup storage/leaf inventory.
-- `src/cleanup_plan.rs`, `src/cleanup_plan/`: target-neutral cleanup CFG schema, canonical builder, and independent replay gate.
-- `src/aggregate_layout.rs`, `src/variant_layout.rs`: checked deterministic Native64/Wasm32 internal layouts for the admitted record and copy-variant field kinds.
-- `src/trace_path_certificate.rs`: canonical compiler-owned cleanup trace trie-DFA and outcome certificate.
-- `src/native_settlement.rs`: hidden target-neutral callable-v3 settlement model; no loader, host, provider, or public backend wiring.
-- `src/graph_cleanup.rs`: deterministic tagged cleanup projection inside the
-  program-level Graph v10-v17 lattice; byte-data facts select v17 above
-  refutable match v16, bounded while v15, generic-function v14, explicit
-  Copy-record-pattern v13, and the lower schemas. CleanupPlan v2 remains
-  canonical unless authenticated Option propagation requires v3.
-- `src/byte_ops.rs`, `src/byte_data_capacity.rs`: closed Useful Data operation
-  identities plus the target-neutral inline-array/call-path/allocation
-  authority independently projected by source and hostile-HIR validation.
-- `src/command_profile.rs`: shared target-neutral admission for the exact
-  Project command stable ID, signature, effect/permit closure, transcript path
-  bound, and external-slice provenance used by native and Wasm command lanes.
-- `src/graph.rs`, `patch.rs`: agent representation and atomic single-file
-  transactions.
-- `src/workspace.rs`: bounded managed immutable-generation workspace
-  transactions; atomic visibility is through the authenticated `ACTIVE` pivot
-  for cooperating readers, not through raw source paths.
-- `src/workspace_patch_evidence.rs`: canonical multi-file Workspace Patch
-  Evidence v1 generation, exact replay receipts, and replay-before-candidate
-  application through the existing Workspace authority.
-- `src/semantic_workspace.rs`, `src/workspace_graph.rs`: additive semantic
-  workspace initialization and the bounded authenticated unified cross-file
-  graph over one managed generation.
-- `src/workspace_analysis.rs`: read-only workspace Context, Impact, and Review
-  over the six admitted cross-file edge families.
-- `src/semantic_workspace_change.rs`, `src/semantic_workspace_change/`:
-  replacements-only proposal analysis, canonical Evidence and receipts, exact
-  replay, and the invocation-local evidence-gated `ACTIVE` publication route.
-- `src/semantic_workspace_operations.rs`: bounded stable-ID derivation,
-  additive Operations-intent Evidence and exact replay, and exclusive
-  replay-before-publication through the existing immutable workspace core;
-  declaration/import-alias operations compile under one shared authority into
-  an exact existing Change-v1 replacements proposal and derivation wrapper.
-- `src/call_index.rs`, `impact.rs`: shared validated-HIR call index and bounded,
-  read-only single-file Semantic Impact v1 preview.
-- `src/agent_transport.rs`: bounded deterministic JSON-RPC 2.0 loop
-  (`semaprax serve`) over one checked program; closed method set, no ambient
-  authority, no persistent index.
-- `src/agent_runtime.rs`, `src/agent_runtime/`: bounded injected-host Agent
-  profile, runtime-owned streaming sinks, cancellation, Trace, and Evidence;
-  no built-in transport, write tool, durable memory, or economic authority.
-- `src/economic_agent.rs`: public injected-host test-network/native-asset Economic Agent
-  policy, intent, chain-plan, approval, custody, journal, reconciliation,
-  Trace, and Evidence core; no built-in transport, key, or
-  mainnet authority. Its proof-only unit corpus is isolated in
-  `src/economic_agent/tests.rs` without widening production visibility or
-  changing the exact `economic_agent::tests::*` paths used by hosted gates.
-- `src/repair.rs`: bounded read-only Diagnostic Repair v1 discovery and
-  instantiation plus the independently replayed Patch-v3 identity-rebase gate.
-- `src/properties.rs`, `tests/property_tests_v1.rs`: read-only deterministic
-  Property-Test Generation v1 over verified single-file sources; no symbolic
-  execution, shrinking, test running, or target execution.
-- `src/review.rs`: bounded read-only Semantic Review v1 over complete Impact-v1
-  or shared identity-rebase evidence.
-- `src/target_evidence.rs`: bounded read-only Graph, capability, native-C11,
-  and structurally validated Wasm-core projection evidence.
-- `src/patch_evidence.rs`: canonical Semantic Patch Evidence v1/v2 generation,
-  independent verification receipts, and evidence-gated A0 application.
-- `src/codegen.rs`, `src/codegen/native_emit/`,
-  `src/codegen/native_command.rs`, `src/codegen/native_byte_data.rs`,
-  `src/codegen/native_bytes.rs`, `src/codegen/native_callable_*`, `wasm.rs`:
-  native C11/Clang and browser/Wasm lanes. `codegen.rs` retains the established
-  native entry/admission surface, fixed runtime payloads, and private callable
-  fixture APIs; `native_emit/mod.rs` owns validated-HIR C11 orchestration,
-  declarations, function emission, and toolchain invocation; and
-  `native_emit/expression.rs` owns source-ordered expression and place
-  lowering. The fixed Project-v5 command adapter, plan-driven internal byte
-  ownership, and private callable lanes retain their existing authority
-  boundaries.
-- `src/wit_component.rs`: default-off deterministic WIT/schema/JavaScript boundary evidence; not a Component Model runtime.
-- `crates/semaprax-native-loader`, `crates/semaprax-native-host`: unpublished unsafe loader quarantine and connected callable authority/ledger host.
-- `platform-tests/`: private installed-app/native-process packaging and runtime gates; claims count only after their hosted jobs are green.
-- `tests/`: executable language, graph, transaction, ownership, and backend evidence.
-- `examples/`: canonical programs exercised directly in CI.
+### Canonical source
 
-## Source projection
+`src/lexer.rs`, `src/parser.rs`, and `src/ast.rs` parse human-readable source.
+`src/format.rs` is the canonical source projection. Revision digests bind the
+canonical bytes, not incidental whitespace.
 
-`lexer` and `parser` accept a deliberately small grammar.
-[Explicit Mutation v1](EXPLICIT-MUTATION-V1.md) extends that grammar with a
-`let mut` modifier and statement-only `<binding> = <expr>;`: the verifier
-tracks per-binding mutability and rejects immutable targets, exact type
-mismatches, and non-scalar admission (`SPX-U101`-`SPX-U106`) before lowering;
-HIR assignments reuse their target's `ValueId`, Graph serialization stays
-additive with byte-identical non-mutation output, native C11 lowers to plain
-locals plus stores, Wasm stores via `local.set`, and CleanupPlan v2 shapes
-are unchanged for straight-line mutation.
-`format::canonical` is the single source projection. Graph revisions hash this canonical form rather than incidental whitespace, so formatting-only edits do not invalidate an agent transaction. The cross-protocol revision token is `sha256:<64 lowercase hex digits>` over `b"semaprax.graph-revision.v1\0" || canonical_source_utf8`. It is collision-resistant content addressing and stale-base detection, not a signature or MAC.
+Source is the canonical Git representation. A managed workspace publishes an
+immutable generated source set for cooperating readers; it does not rewrite the
+original files or grant atomic visibility to Git, editors, or arbitrary raw
+path readers.
 
-Declarations should carry an explicit `@id`. Automatic identities are accepted
-for exploration but produce `SPX-S103`, because a name-derived ID cannot
-survive a rename. The first bounded repair can assign one eligible automatic
-function a caller-selected persistent ID, but it is explicitly classified
-`breaking_identity_rebase`; see
-[`DIAGNOSTIC-REPAIR-V1.md`](DIAGNOSTIC-REPAIR-V1.md).
+### Validated HIR
 
-## Verification
+`src/verify.rs`, `src/source_verify.rs`, and `src/hir.rs` own checked meaning.
+The `src/hir/` modules own validation, inspection indexes, declaration lookup,
+and bounded Project linking.
 
-The public verifier compatibility facade and HIR analysis boundary share one source verifier, preserving the established ordered diagnostics while removing a `hir -> verify` dependency cycle. Warnings-only analysis retains diagnostics and still produces resolved HIR; any source error fails closed before lowering. The verifier builds the module symbol table and checks:
+HIR carries resolved identities and typed operations. A backend or report may
+apply a stricter admission profile, but it may not reinterpret unresolved AST
+or silently widen the verified program.
 
-1. Unique names and stable IDs.
-2. Parameter, expression, call, and return types.
-3. Boolean preconditions and postconditions.
-4. Function effects against module permits.
-5. Transitive effect declarations at each call edge.
-6. Lexical local scope and conservative ownership joins across branches and lazy boolean paths.
-7. Explicit resource lifecycle cardinality, interface/import authority and failure contracts, and lifecycle effects on every function that can own a resource.
-8. The native entry-point shape.
+### Cleanup meaning
 
-The initial contract lane is progressive: contracts are type-checked at compile time, required to be effect-free, and guarded in generated native and Wasm code. Static proof is a later lane, and its absence is reported honestly in the project status.
+`src/cleanup.rs` inventories structurally owned leaves.
+`src/cleanup_plan.rs` and `src/cleanup_plan/` own the target-neutral cleanup
+control-flow schema, builder, validation, execution model, and independent
+replay.
 
-The read-only `semaprax properties` command adds the first bounded property-test generation tranche over verified sources: deterministic boundary-lattice and seeded candidates from admitted scalar signatures, `requires` domain filtering, checked-semantics body/callee evaluation under one step budget, and exact `ensures` counterexample reporting in canonical digest-bound JSON (`semaprax.property-tests.v1`). It performs no symbolic execution, shrinking, or target execution; see `docs/PROPERTY-TESTS-V1.md`.
+Current graph versions select the minimum schema needed by the admitted
+feature, from legacy scalar/Result meaning through Option, aggregates,
+generics, loops, byte data, command I/O, and owned-byte record matching. The
+owning feature specifications define exact schema numbers and preservation
+requirements; architecture depends only on monotonic, deterministic selection.
 
-The read-only `semaprax hygienic-gen` command adds the first bounded typed-generation tranche over verified sources: default constructors and scalar field accessors synthesized as typed AST nodes for admitted non-generic scalar records, admitted by the ordinary verifier on the combined program, and projected through the real Graph module so every generated declaration resolves to a graph identity. Derived `__gen_` names are pure functions of the record's persistent stable ID; hygiene collisions and envelope exhaustion fail closed. It performs no textual rewriting, macro expansion, cross-file scope, persistence, or target execution; see `docs/HYGIENIC-GEN-V1.md`.
+### Semantic graph
 
-The read-only `semaprax openapi` and `semaprax openapi-compat` commands add a bounded schema-projection tranche over the same admitted scalar profile: a deterministic canonical OpenAPI 3.1 document under a digest-bound `semaprax.openapi.v1` envelope, and exact-authenticated compatibility classification between two such envelopes (`semaprax.openapi-compat.v1`) with closed breaking/non-breaking/informational finding families. They import no schemas, run no conformance fixtures, host nothing, execute no target, and fail closed rather than emitting truncated or unauthenticated bytes; see `docs/OPENAPI-V1.md`.
+`src/graph.rs` and `src/graph_cleanup.rs` project validated program and cleanup
+meaning. `src/call_index.rs`, `src/impact.rs`, `src/review.rs`,
+`src/properties.rs`, and `src/hygienic.rs` build bounded read-only views over
+verified representations.
 
-The read-only `semaprax cxx-shim` command adds the C++ interoperability projection over the same admitted scalar profile as `c-header`: an `extern "C"` header fragment whose declaration lines are extracted verbatim from the production native C11 projection and annotated with typed stable-ID, contract, effect, status-contract, and ownership facts, wrapped in a digest-authenticated `semaprax.cxx-shim.v1` envelope that `verify_envelope` independently replays through the closed fail-closed `SPX-X1xx` family. It imports no headers or C++, compiles nothing, adds no exception or ownership policy beyond the bounded slice, and executes nothing; see `docs/CXX-SHIM-V1.md`.
+A graph, report, review, or evidence capsule is descriptive data. It is not a
+capability, signature, approval, or commit token.
 
-Generated arithmetic is checked for overflow, zero division, and the signed division edge case. Failures have stable process exit codes and explicit diagnostics rather than C undefined behavior.
+## Compiler and execution lanes
 
-The locally evidenced floating-point tranche adds IEEE-754 `f32`/`f64` Copy
-value types end-to-end: decimal literals with an optional `f32` suffix and a
-canonical shortest round-trip projection (whole values keep `.0`, f32 keeps
-its suffix, so graph revisions are stable), exact bit-pattern HIR literals
-validated finite (`SPX-H006` otherwise) before any backend, Native64/Wasm32
-scalar layouts (4/4 and 8/8 bytes), float-bearing record fields, variant
-payloads, params, returns, locals, branches, contracts, cleanup plans, Graph
-JSON nodes, native C11, and Wasm. Float `+`, `-`, `*`, `/`, negation, and
-comparisons are total IEEE-754 operations that never select a failure status;
-`%` on floats is `SPX-T208`; mixed-width operands are rejected by the
-verifier and re-checked fail-closed in HIR validation and both backends.
-The locally evidenced Unicode-scalar tranche adds `char` as a Copy value
-type end-to-end on exactly the same spine: single-scalar literals with named
-and `\u{...}` escapes (stable `SPX-P006`/`SPX-P007`/`SPX-P008` lexer
-diagnostics), a canonical projection that keeps revisions round-trip exact
-(printable ASCII direct, lowercase `\u{...}` otherwise), HIR literal
-validation (`SPX-H006` for non-scalar payloads), Native64/Wasm32 4-byte/4-byte
-layouts in records and variants, cleanup plans, Graph JSON `"kind":"char"`
-nodes with the exact scalar value plus display text, native C11 `uint32_t`
-with unsigned comparison semantics, and Wasm `i32` with unsigned ordering
-opcodes. Ordered comparison is scalar ordering; char arithmetic and negation
-are stable verifier diagnostics (`SPX-T208`/`SPX-T206`); equality requires
-same types (`SPX-T207`). Chars stay outside generic arguments, template
-signature slots, Public Scalar Export Profile v1, and the native host/callable
-corpus. The locally evidenced checked-integer tranche adds `i32` as a Copy
-value type on the same spine: explicit suffixed literals (`SPX-P003` for out-
-of-range values and glued identifiers; unsuffixed literals stay `i64`),
-canonical `{value}i32` projection, checked `+`/`-`/`*`/`/` that keep the
-declared width (`%` stays `i64`-only via `SPX-T208`), negation with
-`INT32_MIN` rejection, 4-byte/4-byte layouts, Graph JSON `"kind":"int32"`
-nodes, native C11 `int32_t` computing in `int64_t` before a range-checked
-store that reuses the exact `i64` failure-status codes, and Wasm `i32` with
-signed ordering opcodes plus inline branchless overflow detection (the
-aggregate lane selects its `STATUS_*` codes; the core lane has no status
-plumbing and traps on detected overflow). Mixed-width operands are rejected
-by the verifier and re-checked fail-closed in HIR validation and both
-backends. i32 stays outside generic arguments, template signature slots,
-Public Scalar Export Profile v1, the native host/callable corpus, and the
-Native Rust interop boundary. Owned `string` values are implemented separately
-through the compiler-owned allocation/clone/drop model and bounded operations.
-The additive Useful Text Consumer profile admits only non-escaping `borrow
-str` inputs; general borrowed slicing, byte collections, indexing/iteration,
-and general heap-backed aggregates remain unimplemented.
-The locally evidenced unsigned-byte tranche adds `u8` as a checked-arithmetic
-Copy scalar on the same spine: integer literals carry an exact `u8` suffix
-(unsuffixed digit runs stay `i64`; out-of-range or malformed suffixes select
-stable `SPX-P003`), the canonical projection re-prints the suffix so declared
-widths round-trip exactly, and `+`, `-`, `*`, `/` stay checked — underflow
-below 0 and overflow above 255 select the same normalized
-`SPX_STATUS_ARITHMETIC_*` statuses as i64 in native C11 (`uint8_t`
-temporaries computed in `int64_t`) while aggregate-lane Wasm mirrors those
-status codes with inline unsigned range checks and legacy-lane Wasm traps
-without new host imports. `%` remains i64-only and negation is rejected for
-u8 (`SPX-T208`/`SPX-T206`). Native64 gives u8 one byte (records pad like any
-other aligned field); Wasm32 gives it four. Graph JSON exposes
-`"kind":"uint8"` nodes plus `"layout_key":"scalar:u8"`. U8 stays outside
-generic arguments, template signature slots, Public Scalar Export Profile v1,
-the native host callable corpus, and the Rust-interop boundary.
+### Interpreter
 
-## Resolved HIR groundwork
+`src/interpreter.rs` evaluates an admitted verified-HIR profile with bounded
+fuel and normalized runtime statuses. `src/hosted_interpreter.rs` adds the
+bounded host-facing execution used by Project profiles. The interpreter is a
+development and conformance lane, not a target backend or proof engine.
 
-`hir` is the fail-closed boundary between verified human syntax and future semantic consumers. It resolves nominal types, resource lifecycles, interfaces, logical imports, record fields, projections, and calls through persistent declaration IDs, assigns deterministic structural identities to parameters, locals, expressions, and result values, and represents rooted field references as places. Spans and display names remain diagnostic metadata rather than semantic identity.
+### Native bootstrap backend
 
-The declaration index is the single current source of target-independent type facts: whether a type is copyable, contains resources, is sized, needs destruction, and its name-independent layout key. Generic parameter identities include their owner declaration plus index, and nominal identities include the complete resolved argument tree.
+`src/codegen.rs` owns native orchestration and admission. The
+`src/codegen/native_*` modules own C11 emission, runtime statuses, aggregate
+and byte-data lowering, command I/O, callable bundles, resource fixtures,
+capability envelopes, conformance traces, and private host contracts.
 
-The native and Wasm emitters now consume only validated HIR for semantic lowering; their parsed-AST entry points are compatibility wrappers that resolve first. `hir.rs` owns the public resolved model, stable-ID construction, source resolver, and attached-metadata validation, while the leaf `hir/validation.rs` owns the core hostile-HIR validator without source-resolution, cleanup-building, or physical authority. That validator rejects duplicate/non-canonical identities, invalid declarations and nominal types, lexical-scope violations, inconsistent expression/call types, definite or conditional resource reuse, contract transfers, undeclared or unpermitted effects, effectful contracts, invalid result bindings, and an invalid entrypoint before either backend emits an artifact. Only after those checks pass, `cleanup` independently rebuilds the structural storage inventory; `cleanup_plan` then rebuilds and exact-compares the complete target-neutral plan. A hostile direct-HIR transform therefore cannot remove, retarget, reorder, or forge cleanup meaning before reaching Graph or a backend.
+The public executable lane emits C11 and invokes an explicitly admitted Clang.
+Private callable and resource lanes are narrower host-integration evidence;
+they do not establish a stable general native ABI.
 
-The private Native Rust Interoperability v1 A+B lane is a separate unpublished
-current-host bridge, not another public backend. Its additive `import rust fn`
-declarations require an explicit `failure infallible;` or status-domain clause
-and resolve to a distinct scalar-only HIR call kind. Rust imports alone may
-return unit; selected Rust-facing exports return `i64` or `bool`. A pure preflight
-selects explicit-ID exports/imports and their bounded acyclic closure, derives
-canonical Spec and Descriptor documents, and emits the generated C
-header/source plus safe Rust facade and private unsafe FFI sibling. Descriptor
-and Manifest, header, C, safe Rust, and private FFI replay now use independently
-structured ordered exact-byte consumers. Exhaustive byte-edit tests cover the
-canonical Spec input and all six outputs, and a portable fixed-target fixture
-freezes each output's byte length and raw SHA-256 plus the existing Descriptor
-and Manifest protocol-domain digests. This freezes those wire identities without
-claiming hosted execution or public promotion.
-Public Phase C wraps that lane in an unpublished bounded builder which emits
-one exact dependency-free nine-file local Cargo package. Its additive Project
-entry point receives a root-owned authenticated subject through
-`ProjectSnapshot::with_authenticated_native_rust_sdk_subject`, then passes the
-already linked and validated entry `ResolvedProgram` directly into the
-builder. The target-neutral `semaprax.project-native-rust-subject.v1` binds the
-canonical manifest, Project/workspace/graph revisions, exact declared-source
-facts, entry module, and exact stable-ID export origins. Separate Project
-Descriptor, private Bundle, and outer SDK schemas bind target-specific ABI and
-artifact facts under distinct domains. The callback gains no Project mutation
-or filesystem-publication authority; input drift after it starts is
-conservatively `SPX-J103` because the root cannot infer whether the external
-builder crossed its publication boundary.
-Preparation reserves its cumulative authority before each semantic phase. The
-local capacity corpus separates persistent HIR/facts/artifact storage from
-sequential scratch, iteratively traverses admitted depth, transfers the Spec
-allocation once, and exercises named post-HIR fact/render/replay high waters and
-minimum-minus-one zero-entry boundaries. This is evidence for the private
-preparation route only, not a general compiler allocation claim.
-The build stage requires an explicitly configured absolute Rust launcher and
-uses it only for one bounded sysroot discovery. It independently holds the
-direct compiler at that sysroot, requires the direct compiler to reproduce the
-same held sysroot, validates its version, and restricts every Rust artifact
-operation to the distinct direct-compiler authority. Rust discovery/version,
-Clang version, and the eight build/link/run operations consume one exact
-pre-effect 12-use process arena. Windows queries and bounds the attribute-list
-size before reserving and materializing that arena. Windows also freezes the
-absolute Visual C++ tools root and its verified `bin\Hostx64\x64\link.exe`,
-prepares `-Xmicrosoft-visualc-tools-root <root> -fuse-ld=link` before effects,
-holds and rechecks that linker around each Clang link, and does not restore
-ambient `PATH` to the isolated child environment. The four retained
-`rustc -vV` fields occupy one
-fixed-capacity no-growth store, and prepared target arguments admit the host's
-underscore-bearing components without widening the closed punctuation grammar.
-Prepared native names, inventories, artifact
-comparisons, and the final no-clobber rename leave no allocation or new local
-budget failure after the final inventory scan. The build uses statically linked
-generated objects, executes a generated round trip, and publishes one
-create-new exact inventory through held platform authority. Windows directory
-authority binds volume, full file identity, and reparse state rather than
-mutable directory length. Each private build
-stage is required to retain its create-returned directory authority until
-settlement and attempt one exact-inventory cleanup on success or failure.
-Cleanup must stop on identity, reparse/symlink, or inventory disagreement,
-preserve foreign sentinels, and expose no generic recursive-delete primitive.
-Local builder 100/100, platform-system 24/24, platform 10/10, source-contract
-6/6, strict-Clippy, formatting, and security evidence are green. The complete
-private A+B gate is exact-head hosted green at
-`50b96dccabe3b3dcbcdf38bab380f3eb8699184c` in [run
-32402944574](https://github.com/wavect/semaprax/actions/runs/32402944574),
-including Ubuntu, macOS, Windows, Rust 1.85, Linux sanitizer, and Windows
-process-arena/capacity settlement evidence. Compiler sysroot/dynamic-library descendant
-provenance and exact descendant linker-image execution under a same-path
-replacement race are not claimed. Graph
-and Wasm
-reject programs containing the private declaration kind with `SPX-G218` and
-`SPX-W114`; callable v2/v3, the loader/host, and ordinary native/Wasm bytes are
-unchanged. The scalar C ABI carries caller-owned result storage, a
-capability-digest-bound context, a typed callback table, and closed canonical
-status words; generated safe Rust contains panic, thread, reentry, and call
-budgets around the private unsafe quarantine. This lane grants no dynamic
-loading, allocator, resource, pointer, async, cross-thread, network, custody,
-public root CLI/API, general Rust ABI, or production-readiness claim. See
-[`NATIVE-RUST-INTEROP-V1.md`](NATIVE-RUST-INTEROP-V1.md). The additive Public
-Native Rust SDK v1 Phase C API is now exposed from the still-unpublished builder
-crate and generates a dependency-free local Cargo package; exact-head hosted
-promotion remains pending. The root package still exposes no Native Rust
-Interoperability API or CLI, and registry publication remains held.
+### WebAssembly backend
 
-Phase C prepares every filesystem/process authority before invoking private B,
-then authenticates B's exact seven-entry output through held handles. It builds
-one capped deterministic archive in a separate held nonce stage, settles both
-scratch stages, writes the generated Cargo facade into a third exact-inventory
-stage, and independently replays `semaprax.native-rust-sdk.v1`. Its final
-cleanup-capable replay precedes a consuming one-way transition that settles all
-nine leaf handles, closes both child-directory handles, and retains only the
-authenticated root stage for the sole create-new directory pivot. Failure at
-or after that transition preserves inert residue rather than attempting
-cleanup with incomplete authority. Post-pivot verification is read-only and a
-failure retains the complete digest-bound package for reconciliation. The
-outer root inventory is checked handle-relatively across its three files and
-two child directories; raw path scans are not publication authority. Phase C
-inherits private B's exact Descriptor/Manifest replay rather than duplicating
-that grammar. Its new per-carrier caps do not extend private A+B's cumulative
-memory proof, and platform linker-index payload semantics remain opaque,
-bounded, archive-digest-bound, and real-link exercised.
+`src/wasm.rs` and `src/wasm/` emit Core WebAssembly and generated host
+carriers for admitted profiles. Scalar, selected aggregate, text, byte-data,
+owned, and command-I/O paths remain separately admitted. The default product
+is not a general WebAssembly Component Model runtime.
 
-Darwin archive execution additionally carries one closed phase and an explicit
-`Settled`/`Uncertain` result across the sys and safe-platform boundaries. A
-scratch `mkdirat` that succeeds before its held-directory reopen fails is
-uncertain, as is every rejection after the archive process may have run.
-Uncertainty is absorbing: the builder preserves the complete inert inner and
-archive stages and performs no scratch cleanup, stage discard, outer-stage
-creation, later tool action, or publication. In particular, it never performs
-post-effect compare-then-unlink pathname cleanup, which cannot close a namespace
-substitution race. Linux and Windows sys errors currently expose no equivalent
-settlement proof, so the safe facade conservatively marks them uncertain.
-These rules establish fail-stop behavior and phase-visible diagnostics; they do
-not prove that the hosted macOS successful path accepts every real archive.
+`src/wit_component.rs` and `src/wit_component/` provide default-off private
+boundary evidence. They cannot be cited as public Component Model execution.
 
-The hosted Windows test harness also binds the validated absolute
-`SEMAPRAX_LINKER` pathname through Cargo's target-specific MSVC linker variable
-for every nested generated-package command and removes ambient `LINK` and
-`_LINK_` option channels before Cargo can link a build script. `LIB` and
-`INCLUDE` remain the authenticated toolchain inputs. This closes the observed
-ambient `.obj` injection channel but holds neither the linker image nor its
-ancestors and does not attest ancestor reparses or close a same-path
-substitution race. The Windows C compile plan separately disables incremental-
-linker-compatible COFF timestamps. This zeroes the object-header
-`TimeDateStamp` before `lib.exe /BREPRO` builds the archive; archive metadata
-reproducibility alone cannot repair a nondeterministic member payload. The real
-archive gate compiles the production plan twice and requires exact object bytes
-before archive admission.
+### Shared runtime status
 
-The Native Rust implementation is partitioned along trust and review
-boundaries so agents do not need to load one monolithic source file. The
-private A+B orchestration and physical authority remain in `implementation.rs`;
-its pure bounded source/HIR census and capacity proofs live in
-`implementation/capacity.rs`; deterministic Descriptor/header/C/Rust
-projection and structurally independent byte replay live in
-`implementation/artifacts.rs`; the shared fail-closed byte cursor used by both
-artifact and Manifest replay lives in `implementation/exact_replay.rs`; and the
-proof-only corpus lives in `implementation/tests.rs`. The artifact and cursor
-modules have no filesystem, process, platform, settlement, or publication
-authority, and the independent C replay cannot call generator traversal.
-Public Phase C uses
-`public_sdk/descriptor.rs` for semantic admission and descriptor facts,
-`public_sdk/package.rs` for deterministic package and manifest projection,
-`public_sdk/authentication.rs` for read-only staged-input and post-publication
-replay,
-`public_sdk/authority.rs` for held staging, settlement, and publication, and
-`public_sdk/build.rs` for the narrow orchestration entry point. The platform
-quarantine keeps shared archive grammar and errors in its crate root, with the
-complete Unix and Windows authorities isolated in `unix.rs` and `windows.rs`;
-their source-lock tests live in `tests.rs`. Those file moves are review
-boundaries only: they do not widen visibility, reorder effects, or split the
-settlement state machine.
+`src/runtime_status.rs`, `src/semantic_trace.rs`, `src/conformance.rs`, and
+`src/trace_path_certificate.rs` normalize failures and execution traces. The
+first selected failure is sticky: cleanup cannot replace it, and result
+publication occurs only after postconditions and non-result cleanup.
+
+## Agent query and mutation architecture
 
-The same change separately corrects Linux archive execution authority. The
-zero-output archive runner stops treating EOF from an unrelated escaped pipe
-holder as completion evidence after the leader has been reaped and the owned
-process group quiesced. Before spawn it creates and holds one exact
-`O_EXCL` archive seed; GNU `ar` must update that inode. Success still requires
-the complete archive parser and final identity rechecks. Every process,
-authentication, or parser failure removes only that exact held inode;
-substitution and settlement uncertainty remain fail-stop. This correction
-changes no public capability or completion claim and requires its Linux
-executable regression plus exact-head hosted promotion.
+### Single-file queries and changes
 
-This remains staged groundwork rather than the sole compiler IR: the current verifier still establishes meaning from parsed AST before HIR resolution. Explicit trivial/imported resource lifecycles, declaration-only interface/import contracts, record declarations/updates, bounded explicitly instantiated generic Copy records, bounded copy-variant templates/construction/exhaustive matching, typed ordinary-`Result` and ordinary-`Option` propagation, stable type/member/case identities, recursive resource/type facts, and by-value recursion rejection now reach validated HIR and the semantic graph. Generic parameters are owner/index-stable and the admitted concrete arguments are direct `i64`/`bool`; generic record fields are restricted to direct scalars or parameters owned by that record, and every construction/update/projection substitutes the exact ordered concrete instance. The compiler-owned `semaprax.prelude.v1` injects ordinary `Option<T>` and `Result<T, E>` variants before checking. The bounded postfix `?` form accepts only direct-scalar Copy instances: `Result<T, E>` requires an enclosing `Result<U, E>`, while `Option<T>` requires an enclosing `Option<U>`. It evaluates its operand once, reconstructs the exact outer `Err` or payload-free `None`, and routes both ordinary-body and propagated results through shared postconditions and publication. The source checker and HIR validator independently replay lifecycle compatibility, lifecycle-effect authority, prefix-aware partial-place availability, exact generic substitution, exact construction, copy-match exhaustiveness, and every compiler-owned carrier/member/source/target identity. `aggregate_layout` computes checked deterministic Native64 and Wasm32 record layouts keyed by the full record ID plus ordered arguments; its digest and native symbol bind the same exact instance even when two instances have identical physical fields. `variant_layout` computes independently reconstructable per-concrete-instance internal layouts with declaration-order `u32` tags, an aligned maximum-payload area, and one inert byte for an empty payload. Its v2 digest authenticates the full concrete instance and both template and substituted field types; physical tags and representation are unchanged from v1. `CleanupInventory` remains a structural discovery boundary. Every `ResolvedFunction` carries a cleanup plan: v2 remains canonical unless authenticated Option propagation is present, which requires v3. Both schemas include typed blocks, edges, lexical regions, entry liveness, storage/leaf flags, atomic call commits, sticky status sources, guarded finalizers, scalar/owned result publication, and exact body-versus-propagated Copy-result staging; v3 adds an authenticated payload-free Option-None source. Generic records add no cleanup action because the admitted instances are direct-scalar Copy values; canonical replay remains bound to exact HIR types. Immutable update consumes its base first, evaluates replacements in authored order, transfers untouched fields, and cleans displaced live fields exactly once in reverse order. Copy matches branch on an exact scrutinee expression and stable case IDs without inventing droppable payload leaves; distinct concrete instances therefore cannot share a cleanup decision. Propagation uses complementary predicates on the authenticated success case and cannot be confused with physical failure selection. The builder covers every current HIR expression and normal/checked-failure path; the validator reconstructs the plan from core HIR rather than trusting attached metadata.
-
-The bounded record-pattern tranche is irrefutable and Copy-only. One explicit
-named record pattern or a top-level wildcard consumes exactly one evaluated
-record scrutinee and has exactly one scalar `i64`/`bool` arm. Explicit patterns
-require every stable field exactly once and admit recursive record subpatterns,
-shorthand or renamed bindings, ignored fields, and whole Copy-record bindings.
-HIR binds the full concrete record instance, stable record/field IDs, and
-canonical binding identities recursively, so equal layouts cannot substitute
-for equal type identity. Record matching adds no cleanup slot, transition,
-status source, or decision edge: CleanupPlan v2/v3 replay authenticates the HIR
-skeleton and lowers the match straight-line. Native stages the aggregate once;
-Wasm projects from one frame value and copies whole-record bindings into their
-own frame slots. Refutable/literal/guard/or/rest/nested-variant patterns,
-resource/non-Copy modes, and aggregate arm results remain outside admission.
-
-Owned Byte Record Algebra v1 is a separate non-Copy internal execution slice.
-It admits only flat monomorphic records containing direct `Bytes` plus direct
-Copy scalars. Type facts propagate `needs_drop` without misclassifying Bytes as
-an authored resource. Cleanup inventory addresses each byte field as an exact
-stable-ID projection; CleanupPlan v5 independently derives `match own`
-projected transfers and `match borrow` no-transfer child regions. Graph v21
-serializes only explicit modes, leaving legacy Value-match bytes unchanged.
-The interpreter stores fields by declaration identity. Native C11 and Wasm32
-move each owned carrier field-by-field and poison the source; neither aggregate
-copy primitive may duplicate a Bytes-bearing record. Exact-once success and
-failure settlement is locally exercised across interpreter, C11 `-O0`/`-O2`,
-and Node/Core-Wasm. Public ABI, Project, component, callable, and interop
-selectors remain unchanged and fail closed. See
-[Owned Byte Record Algebra v1](OWNED-BYTE-RECORD-ALGEBRA-V1.md).
-
-The bounded generic-function tranche is likewise direct-scalar and Copy-only.
-Source admits one or two owner/index-stable function type parameters and
-requires explicit ordered `i64`/`bool` arguments at every call. Parameter and
-result slots are by-value direct scalars or parameters owned by that function;
-templates are effect-free and reject aggregate/resource syntax, ownership
-modes, generic-to-generic calls, transitive generic cycles, recursion, and a
-generic entrypoint. Verification checks every unused template over all `2^N`
-direct-scalar substitutions without creating executable evidence. Resolved HIR
-keeps monomorphic functions, function templates, and explicitly referenced
-concrete instances in separate vectors. A concrete `FunctionInstanceId`
-derives from the persistent template ID plus ordered arguments, and its
-domain-separated execution identity scopes parameter/result/expression IDs;
-same-signature templates and instances cannot substitute for one another.
-Only explicitly referenced instances lower to native or Wasm. Their attached
-CleanupPlan remains canonical v2 and its propagated-call status producer stays
-template-ID-only; HIR validates the exact concrete instance before independent
-plan replay, while Graph v14 carries the exact instance meaning. Generic
-functions grant no callable, settlement, semantic-trace, resource/owned, or
-FFI authority. Component authority is limited to the separately authenticated
-exact private v9 profile below; no general/public mapping follows.
-
-The target-neutral runtime protocol is split from physical target state. `semaprax.status.v1` contains only a stable `domain_id`, nonzero code, class, and retryability; the invocation-local arena assigns immutable one-based tokens while reserving zero for success and rejects cross-context and same-nonce cross-arena resolution. `semaprax.conformance-trace.v1` records semantic ownership, import, write-once failure selection, finalization, and result publication without pointers, handles, tokens, offsets, or host exceptions. Attached plans are independently checked against inventory and exact typed-HIR control/event coverage, then exhaustively replayed across the current acyclic CFG for ordered liveness, sticky failures, exact region-leave chains, reverse cleanup, and typed whole-result publication. The deterministic single-frame reference executor models an uninitialized/published caller out slot; record results remain rejected until the trace schema can preserve aggregate semantic values. The native scalar C lane shares one caller-supplied context across nested calls, returns exact compiler statuses, and commits its out slot only after postconditions.
-
-For callable-v2 admission, `semaprax.trace-path-certificate.v1` compiles that
-independently replay-validated cleanup CFG into a canonical trie-DFA. Its
-accepting states bind both the exact semantic-ordinal sequence and terminal
-scalar-success, owned-success, or selected-failure outcome. Descriptor v2 binds
-the certificate fingerprint separately from the event-dictionary fingerprint;
-the host authenticates both and performs an allocation-free DFA walk before it
-materializes any semantic events. The dictionary is therefore only the
-vocabulary, never an authorization to omit, duplicate, or reorder cleanup.
-
-For the admitted native resource shape, compiler preflight derives and discards
-an authority-free host template and its canonical pointer-free [native adapter
-descriptor v1](NATIVE-ADAPTER-DESCRIPTOR-V1.md). That descriptor-only provider
-still exports only its immutable getter. A second private compiler stage now
-derives exact [callable descriptor-v2
-metadata](NATIVE-CALLABLE-ABI-V2.md) from the sealed template, generated
-execution/cleanup fingerprint, deterministic semantic-event dictionary, and
-trace-path certificate. It binds twelve independently domain-separated
-fingerprints, exact getter and callable symbols, request/response capacities,
-the complete ordered signature, and result mapping. The unpublished host
-independently parses that v2 wire and rejects every single-byte mutation,
-truncation, or trailing byte in cross-crate fixtures.
-
-The public build-only compiler callable stage emits the complete provider
-translation unit: generated value/cleanup/status/trace execution, strict
-bounded request and response codecs, physical target guards, one descriptor-v2
-getter, and one callable. The target guards fail C compilation when
-architecture, OS, environment, object format, pointer width, or endianness
-cannot be proven; MSVC uses its supported target architecture instead of
-assuming GNU byte-order builtins.
-
-`preflight_native_callable_bundle` accepts one explicitly identified function
-with at least one direct `own` trivial-resource parameter. The CLI target
-`native-callable` compiles that exact provider for the host and commits a new
-bundle containing the shared library, C source, descriptor, event dictionary,
-trace certificate, canonical file-hash manifest, and manifest checksum. It
-refuses observed files, directories, and dangling symlinks and stages beside a
-canonical trusted output parent; portable `std` cannot make the final directory
-rename no-replace against an adversarial concurrent parent mutation. The API
-does not load, invoke, adopt, mint authority, or connect callable v3. Exact
-build-only bundle emission is green on [Ubuntu](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277094),
-[macOS](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277081),
-and [Windows](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277085)
-hosted CI; this is not mobile or application-host evidence.
-
-Callable v3 is a separate private tranche. Graph-derived strict-C11 providers
-execute all 14 authoritative normal corpus scenarios at `-O0` and `-O2`. The
-loader independently admits an exact
-dynamic image only when the getter, execute, settle, and returned descriptor
-storage share canonical root-image provenance, then retains an immutable copy
-of the admitted bytes. The host independently creates
-one 64-byte OS fill split into a receipt MAC key and instance binding, and its
-fixed-capacity ledger/facade atomically commits authenticated terminal state
-and exact replay. One joint O0/O2 test now invokes all 14 authoritative
-scenarios through generated provider, dynamic loader, and host ledger, proving
-copied-evidence decoding, replay, generation refresh, finalizer order,
-cross-instance rejection, and pin lifetime. Its counting allocator observes
-zero Rust heap growth from immediately before `CallCommit` through
-`ReceiptCommit`; injected decode-reserve failure quarantines exact evidence and
-the image pin. Seven returned-physical-failure, malformed-wire, durable-boundary,
-replay, and conflict fixtures also cross provider, loader, and host at O0/O2.
-Canonical pre-execute unwind skips provider execute, binds exact zero response
-storage, settles certified abort cleanup, and commits one host receipt.
-Exhaustive process-crash/fatal-allocator evidence and broader Android/iOS
-application execution,
-quiescence, malicious-code containment, public admission, and `SPX-B104`
-remain closed.
-
-The unpublished `semaprax-native-host` now performs the complete private
-connection. It strictly decodes descriptor v2, authenticates the dictionary and
-trace certificate, opens and retains one exact callable loader instance,
-constructs an OS-seeded same-thread [capability
-authority](NATIVE-CAPABILITY-TOKENS-V1.md), verifies owner/result credentials,
-builds a non-mutating fully allocated ledger plan, and commits all owners once
-before invoking the prepared byte call. The safe scalar and owned APIs decode
-only physical completion, walk the certificate, reconcile success or semantic
-failure, and return authenticated semantic events. Hostile providers cover all
-defined and reserved physical results, malformed response fields, dictionary
-and certificate rejection, draining, reusable precommit rejection, and
-cross-instance confinement.
-
-The authoritative 14-case fixture compiles real generated shared libraries at
-O0 and O2, loads them through this host, and exactly matches reference outcome,
-status, trace, publication, owner rotation, and final logical liveness. This is
-still a private feature, and `SPX-B104` remains closed. After a physical failure
-or malformed response the guard retires committed logical owners as an adapter
-failure, but general canonical fallback cleanup/finalizer trace and physical
-quiescence are not yet proven. The dedicated Linux
-[callable-host sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
-passed all 14 O0/O2 cases from dynamically loaded ASan/UBSan-instrumented
-generated providers through the Rust host. It supplied the sanitizer runtimes
-without sanitizer-instrumenting the Rust host code itself. The overall workflow
-run remained red because of unrelated Clippy/GCC failures. The distinct pinned-
-nightly [Rust-host ASan job](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277065)
-later passed with the Rust host instrumented inside a fully green current hosted-
-CI run; it does not claim Rust-host UBSan or mobile/app-platform coverage.
-
-The hidden `native_settlement` module and proposed [RFC
-0004](RFC-0004-NATIVE-CALL-SETTLEMENT.md) now make the target-neutral recovery
-state machine executable: bounded dense checkpoints, one all-live start, exact
-typed progress, accept/abort action permutations, idempotent cached receipts,
-terminal owner dispositions, quiescence validation, and a separate linear
-phase-aware transaction. That transaction exposes only its closed phase,
-records `Finalizing` before issuing a noncopying finalizer ticket, caches
-provider-candidate and model-committed receipt evidence separately, and makes
-conflict or uncertainty an absorbing quarantine. A private compiler
-deriver now constructs this graph from validated cleanup HIR for the current
-direct-trivial owned slice, preserves exact result-staging/finalization timing,
-and binds terminal edges to accepted semantic trace paths. Exhaustive tests
-cover every valid live/dead/single-provisional combination through six owners,
-the authoritative 14-case corpus, exact bounds and known answers, hostile graph
-and receipt mutations, and non-cloneable/non-formattable frame API gates. The
-private [settlement-proof v1](NATIVE-CALLABLE-SETTLEMENT-PROOF-V1.md) encoder now
-embeds the exact v2 descriptor and canonical binary graph under a 64 KiB cap.
-The unpublished host independently parses and canonically re-encodes the graph,
-validates its transition semantics, and requires its source call-contract and
-trace-certificate fingerprints to match v2. The v2 loader rejects the proof
-magic before opening an image. This proof path has no invocation reservation,
-module-instance or frame-generation binding, physical finalizer authority,
-embedded descriptor-v3 contract, provider, loader admission, host execution,
-or public compiler connection; it is not physical fallback evidence and does
-not change `SPX-B104`.
-
-The hidden phase model now keeps the eligibility evidence for three
-irreversible physical boundaries distinct: `CallCommit`,
-`SettlementDecisionCommit`, and host `ReceiptCommit`. Unwind after
-the call commit but before the decision lock selects `Abort(HostUnwind)`;
-unwind after the lock resumes the exact decision, while an unknown or
-conflicting phase makes the model enter absorbing `Quarantined` while preserving
-its evidence. A physical host must additionally quarantine the exact instance.
-A physical action must record `Finalizing` before entering its effect and may
-record `Dead` only after normal return, so interruption is quarantined and never
-retried. A provider terminal state and candidate receipt are evidence
-only—including its `Published` disposition. Only independent host validation
-plus host-only authentication may commit one public ledger publication. The
-model's `ReceiptCommitted` phase is only exact candidate-validation evidence:
-it allocates and owns no host secret, ledger, exact-instance reservation,
-loader pin, or physical finalizer. The current proof envelope and callable host
-do not wire the physical v3 boundary.
-
-The separate [native callable ABI v3](NATIVE-CALLABLE-ABI-V3.md) now fixes that
-boundary's private descriptor and wires: sequential `SPXNABI3` fields, an
-acyclic hash DAG, bounded graph, exact buffer/instance capacities, a
-six-argument execute ABI, payload-bearing frame cells, six provider codecs, a
-distinct 524-byte host-only committed receipt, and dynamic-image versus
-iOS-static linkage metadata. Each `CertifyOutcome` carries its ordinal/outcome
-witness and a nonzero digest bound to the trace-certificate fingerprint; the
-host recomputes that digest without independently accepting or walking the
-trace-path DFA certificate. Resealed witness/digest mutations fail. Independent
-compiler encoders and host parsers freeze the seven complete byte/tag/digest/
-HMAC transcripts and their changed private known answers. The
-ordinary compiler encoder is bound to its build target and exposes no
-public/general machine-code cross-target configuration; a hidden closed selector
-emits complete target-bound iOS evidence providers for five enumerated targets.
-The same hidden seam emits arm64 and x86_64-emulator Android dynamic
-providers whose guards require Android, Bionic, ELF, 64-bit pointers, and
-little-endian code generation. Windows dynamic runtime and the bounded
-arm64-Simulator path are green. [Run 31320436726, job
-93262427248](https://github.com/wavect/semaprax/actions/runs/31320436726/job/93262427248)
-also proves the bounded Android Emulator path. The legacy loader constructors reject the full v3 magic in their shared
-input validator before canonicalization, image loading, getter lookup, or
-callable lookup; their exact callable-v2 classifier remains unchanged. A
-separate private v3 constructor binds the getter, execute, settle, and returned
-descriptor address to one canonical root image, retains an immutable copy of
-the admitted bytes, and returns one exact instance lease. Graph-derived
-strict-C11 providers execute all 14 normal corpus scenarios at `-O0`/`-O2`,
-and the private host now combines an exact-descriptor-bound receipt
-authority with authoritative owner generations, allocation-free `CallCommit`,
-atomic receipt/ledger publication, cached replay, and a drop-safe transaction
-guard whose postcommit uncertainty is quarantined without retry. One joint
-generated-provider → loader → host test covers all 14 normal scenarios at
-`-O0`/`-O2`, with zero measured Rust allocations/reallocations across the
-irreversible interval and exact quarantine on injected decode-reserve failure.
-It does not cover fatal allocator or process-crash containment, iOS device
-execution, or Android device/lifecycle breadth, and exposes no public
-admission. The separate bounded Android JNI/APK path is green in [run
-31338834586, job 93309086206](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086206).
-Private bounded process-lifetime static-registration logic
-now binds exact descriptor and entry addresses to the same host ledger; its
-non-Apple fake-function test proves retention and quarantine only, with no
-`dlopen` or unload claim.
-
-The private [native desktop application v1](DESKTOP-NATIVE-APP-V1.md) packages
-that same dynamic callable-v3 boundary as a headless macOS `APPL` bundle and a
-Windows portable PE application directory. Local macOS execution admits its
-co-located exact provider/descriptor, performs two owned receipt commits with
-generation rotation, and replays the first commit exactly. That macOS
-package/runtime is green in [run 31338834586, job
-93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230).
-The Windows package/runtime is green in [run 31343897595, job
-93322134480](https://github.com/wavect/semaprax/actions/runs/31343897595/job/93322134480),
-including the strict PE inspection path. This is an application
-process and native-packaging seam only: there is no UI toolkit, accessibility,
-lifecycle API, signing, installer, public admission, or `SPX-B104` change.
-
-Private [native desktop UI v1](DESKTOP-NATIVE-UI-V1.md) keeps that Rust process
-as a package-bound sibling engine and adds no loader or host authority. A foreground
-AppKit executable and a Win32 GUI-subsystem executable own their respective
-native window, button, accessibility-name query, timer-dispatched action,
-event loop, close, and termination evidence. Only the engine's exact output can
-advance the UI fixture to success publication. The UI packagers consume the
-already verified engine package, compile the platform frontend twice with the
-pinned native linker/SDK roots, inspect a closed artifact/import/framework
-inventory, publish and verify a canonical SHA-256 engine manifest before launch,
-and launch it in the ordinary platform matrix. AppKit enforces a bounded
-terminate/kill deadline; Windows freezes the exact DLL set and rejects any
-export directory, including ordinal-only functions. The colocated digest is not
-signed provenance. The macOS engine plus AppKit package/runtime is green in
-[run 31338834586, job
-93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230);
-The Windows Win32 package/runtime is green in [run 31343897595, job
-93322134480](https://github.com/wavect/semaprax/actions/runs/31343897595/job/93322134480).
-The adapter remains private
-with `SPX-B104` closed.
-
-A mandatory macOS gate requires the loader and host
-static-only path to type-check for five iOS device, simulator, and Catalyst Rust
-targets, excluding `libloading`, dynamic `open_*`, and the desktop v1/v2 host
-API. That same job is configured to cross-emit one exact arm64-Simulator
-provider, link it with the private host into a standalone ad-hoc-signed Mach-O,
-and execute the unchanged static-registration and receipt ledger at `-O0` and
-`-O2` through `simctl`. It requires exact finalizer order/payload, authenticated
-no-owned publication, and zero measured Rust allocations across the irreversible
-interval. [Run 31318280135, job
-93257002836](https://github.com/wavect/semaprax/actions/runs/31318280135/job/93257002836)
-proved that exact path. It is not an installed app, device run, lifecycle/UI/Swift
-integration, general iOS backend, or public admission. `SPX-B104` remains
-closed.
-
-The callable-v2 Windows CI lane explicitly reruns its generated O0/O2 corpus
-and a loader fixture that places a same-name dependency in CWD and legacy
-`PATH`, then removes the root sibling to require fail-closed `LibraryOpen`.
-Those v2 gates passed in [run 31257545008, job
-93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756),
-confirming narrow callable-v2 corpus and dependency-isolation evidence. For
-callable v3, [run 31313341303](https://github.com/wavect/semaprax/actions/runs/31313341303)
-proved Windows, Linux, macOS, MSRV, dependency policy, generated-provider
-ASan+UBSan, and Rust-host ASan gates. None of this is broader Windows
-application-platform completion. [Run
-31316677457](https://github.com/wavect/semaprax/actions/runs/31316677457)
-proved the five-target iOS type-check and no-`libloading` dependency gate. [Run
-31318280135, job
-93257002836](https://github.com/wavect/semaprax/actions/runs/31318280135/job/93257002836)
-then proved the bounded single-Simulator runtime; representative Android/iOS
-device and broader Simulator/app execution plus
-public native execution/admission remain required.
-
-The mandatory Android job compiles the dynamic loader and unchanged host
-for `x86_64-linux-android` and `aarch64-linux-android`, builds both exact
-Bionic/ELF providers with NDK r27.2, inspects the resulting x86_64 and AArch64
-ELFs, and runs `token.discard-two` at O0/O2 in an API-35 x86_64 emulator. It
-requires canonical-path `dladdr` provenance, exact finalizer order/payload,
-receipt/ledger evidence, and zero measured Rust allocations. [Run 31320436726,
-job 93262427248](https://github.com/wavect/semaprax/actions/runs/31320436726/job/93262427248)
-proved this bounded runtime path. That standalone process is not the separate
-JNI/Kotlin APK, and it proves no public/general JNI, APK/AAR distribution,
-lifecycle/UI, device, or general-corpus behavior.
-
-## Private Android JNI application adapter
-
-The separate [`unstable-android-jni-harness`](ANDROID-JNI-OWNERSHIP-V1.md)
-tranche implements one private Kotlin/JNI projection of that bounded v3 host.
-Its generator emits target-matched strict-C provider and JNI shim sources for
-x86_64 and arm64 Android. The build links each shim to the target Rust static
-host, requires `JNI_OnLoad` as the only defined global export, checks the exact
-Android system-library dependency allowlist and absence of workspace paths,
-and packages the x86_64 shim plus O0/O2 providers under their exact names.
-arm64 is compile-and-ELF-inspect evidence only.
-
-The application fixture is a same-package, no-UI framework `Instrumentation`
-APK with minSdk 28 and target/compile API 35. Its Gradle 9 project declares no
-plugin or repository; the offline task invokes a checked packaging script that
-requires runner Kotlin 2 and Android build-tools 35.0.0. The resulting APK has
-one exact native-library inventory and is aligned, signed with an ephemeral
-fixture key, verified, installed only after removing any prior package, and
-required to publish an exact app-private
-`files/semaprax-android-jni-v1.txt` result.
-
-One `NativeRuntime` owns one `HandlerThread`; all provider admission, adoption,
-consumption, receipt commit, drain barriers, and thread-local host destruction
-occur there. `SPXAJH01` positive generation-tagged handles keep JVM values
-opaque. `OwnedSession.consume()` atomically claims the wrapper cell, restores
-the exact handle only for a defined precommit Android-domain rejection, and
-never restores it after success or terminal/uncertain execution.
-`AutoCloseable.close()` and the API-28 `PhantomReference`/`ReferenceQueue`
-Cleaner fallback are non-throwing dispatch paths. The Cleaner thread never
-enters native state; deterministic tests call the identical registered action
-through `cleanForTest()` and cross a FIFO drain barrier rather than depending on
-GC or process exit.
-
-`SPXAJS01` projects only the closed status class/retry/domain fields into a
-fixed `u64`; JVM exception class, text, stack, and object remain nonsemantic.
-The precommit callback probe recognizes the one declared fixture exception,
-maps every other throwable to `semaprax.adapter.unexpected.v1`, clears the JNI
-exception, and returns with no pending exception. The installed assertion
-contract covers O0 explicit consume, O2 Cleaner consumption, their one-winner
-race, stale/forged/cross-runtime/wrong-thread/reentrant rejection, poisoned
-output preservation, exact finalizer order `1:13,0:11`, no-owned publication,
-zero measured Rust postcommit allocations, healthy host state, and an empty
-outer handle table.
-
-The implementation, local Rust/strict-C checks, packaging contract, and CI
-source locks are backed by a green API-35 x86_64 APK/Instrumentation execution
-in [run 31338834586, job
-93309086206](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086206).
-Consequently this is partial Java/Kotlin and Android application evidence, not AAR, UI,
-lifecycle/accessibility breadth, device support, general resource/imported-
-finalizer execution, public ABI/admission, or permission to open `SPX-B104`.
-
-The private [Apple Swift ownership adapter
-v1](APPLE-SWIFT-OWNERSHIP-V1.md) composes the same iOS static lease and receipt
-ledger with a Swift-owned stable thread, opaque generation-tagged sessions,
-poison-preserving outputs, and explicit-versus-ARC cleanup arbitration.
-Generated C binds fixed hidden evidence hooks; caller-selected hooks and the
-legacy raw open are absent. A Swift 6 lane is configured to construct device
-and universal Simulator slices plus two installed no-UI apps. Local gates and
-the bounded hosted Apple link/app path are green in [run 31338834586, job
-93309086228](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086228).
-
-The private [WIT boundary v1](WIT-COMPONENT-BOUNDARY-V1.md) freezes one scalar
-result/status WIT mapping and JavaScript adapter over the existing Wasm
-semantics. The same default-off harness now emits a separate standards-valid
-scalar Component Model binary with a frozen digest, independently parses its
-exact canonical-lift profile, and executes the extracted import-free core
-module through Node's standard WebAssembly engine. That bounded runtime parses
-the component container but is not engine-native Component Model
-instantiation. Checked component v2 separately embeds the unmodified
-SEMAPRAX-generated scalar core beside a frozen checked-runtime core, wires the
-runtime instance as its exact `env` import, and lifts `semaprax_main` as a
-zero-argument `evaluate`. A pinned upstream `wasmparser` gate validates that
-composition and rejects rehashed invalid signatures, bodies, cardinalities,
-and canonical-lift cross-typing. Node executes generated success, overflow,
-and contract-failure paths through the authenticated v2 API.
-
-Portable Result Component v3 is a third exact private profile. It canonically
-lifts the checked two-`i64` generated core as `result<s64, status>`, binds
-component/core/profile/source digests, and is admitted by both an independent
-bounded parser and maintained upstream validation. The standalone Wasmtime
-47.0.3 runner re-authenticates immutable bytes, requires zero imports,
-instantiates with an empty linker and no WASI or host callbacks, then uses
-generated typed bindings for success, addition overflow, division by zero,
-false precondition, and false postcondition. Node core evidence independently
-freezes poisoned result-slot preservation and sticky first-failure status
-selection. Fuel exhaustion is an out-of-band engine error, never a typed
-SEMAPRAX status. The runner's unpublished workspace, lockfile, Rust 1.97.1
-toolchain, and dependency-denial policy isolate Wasmtime from the root compiler
-dependency and MSRV graph. The current prelude-bound KAT migration and
-standalone runner are hosted green in [run 31347109201, job
-93330959212](https://github.com/wavect/semaprax/actions/runs/31347109201/job/93330959212).
-
-Private Source-Result Component v4 is a fourth, separately versioned profile.
-It admits only the exact effect-free `component.source`/`component.evaluate`
-closure whose selected signature is
-`(i64, bool, i64) -> Result<bool, bool>`. The generated core is derived from
-validated source/HIR and CleanupPlan v2; admission independently binds the
-compiler-owned prelude, exact `Result<i64, bool>` and `Result<bool, bool>`
-Wasm32 layout-v2 digests, selected closure, source revision, core bytes, and
-profile. Its WIT 0.2 interface lifts the source value as
-`result<result<bool, bool>, status>`: language `Ok` and residual `Err` remain
-the inner result, while a recognized contract/arithmetic status becomes the
-outer error. The canonical adapter checks status before reading poisoned
-source-result storage, validates boolean values, lowers into separately sized
-canonical memory, and traps on invalid internal tags or unknown statuses. It
-never transmutes the compiler's internal variant representation into WIT.
-
-The import-free component has an independent exact-profile parser, canonical
-LEB/every-byte/truncation/trailing and rehashed cross-profile/type/lift
-rejection, plus maintained upstream validation. Local core execution covers
-language values, residual short-circuiting, status precedence, poison, and
-re-entry. The isolated Wasmtime runner is extended with generated v4 bindings
-and ten exact same-instance/fresh-instance outcomes; its execution is hosted
-green in [run 31356536123, job
-93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796).
-V1-v3 remain unchanged.
-Private Scalar Algebraic Component v5 is a separate default-off profile with
-six fixed exports for `Option<i64>`, `Option<bool>`, and the complete
-direct-copy `Result<T, E>` matrix over `i64`/`bool`. Each language carrier is
-nested inside the unchanged outer physical-status result. Admission binds the
-capability-free seven-function source table/order, prelude and six Wasm32
-layout-v2 digests, stable-ID/core-index/distinct-WIT-type mapping, canonical
-outer layouts, fieldwise tag-last reconstruction, and the complete
-source/core/profile/component DAG. Exact-profile, reindexing, mutation,
-cross-version, invalid-value, upstream-validation, and source-lock gates are
-green; isolated typed Wasmtime execution on pinned Rust 1.97.1 is hosted green
-in [run 31360176398, job 93367728269](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728269).
-V1-v4 bytes remain unchanged. General source `Result`/`Option`/`?`
-mapping, user records/variants/resources,
-imports, async, capabilities, callable/FFI signatures, multi-engine/browser
-execution, public component API/ABI, and `SPX-B104` remain outside this trust
-boundary.
-
-Private Nested Record Component v6 is a sixth separate default-off profile for
-WIT package `semaprax:private@0.4.0`, interface `nested-records`, and world
-`semaprax-private-v6`. It admits only the fixed source IDs `component.inner`,
-`component.outer`, `component.transform`, and `app.main`, and exports one
-`transform(input: outer, delta: s64) -> result<outer, status>`. The exact source,
-generated core, Inner/Outer Wasm32 layouts, profile, component, and complete DAG
-are independently authenticated; nested reconstruction remains fieldwise and
-publication remains status-first/poison-preserving. Local exact-profile and
-upstream validation, mutation/reindexing/cross-version closure, generated-core
-execution, default-consumer hiding, source locks, and independent security
-review are green. The isolated pinned Rust 1.97.1/Wasmtime 47 typed runtime is
-hosted green in [run 31365363898, job
-93383304974](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304974).
-This remains exact private-profile evidence rather than a broader runtime-complete
-claim. V1-v5 remain unchanged;
-the frozen SHA-256 KATs are source
-`d1fcbc45b3d86fa1d7910378578828df3c557dba92f90ed9459f928c5bf2fe8a`,
-core `42835dcbf98078ac24bfd36568f1b6917b5b64ca2d8265ef4ded161d26438da1`,
-Inner layout `186a97e659ee80b641bde566c9875122f8eea4ea265c3a1af97cfb11bef98a87`,
-Outer layout `4885c0353cb05928018d3527a13e363cbe10f3a0b9c4f5b0ba15792097fbbe6f`,
-profile `9ed506e78134b7de29ed693084ad685068792b80321e29b819cbeb8cf96f17a3`,
-component `ad408a7a6a3596a026eb73bc423e59f30350c0e4f7cbc507ce60510eff2b530f`,
-and DAG `ca0856fed4eef6ac7d3ab7ed466075c60d7ff4ec0372a891ddf483d199941a3f`;
-general/empty/generic/resource records, algebraic nesting, imports,
-capabilities, callbacks/async, public ABI, browser/multi-engine support,
-package/version negotiation, and `SPX-B104`/`SPX-W111` remain closed.
-
-Private Generic Record Component v7 is a seventh separate default-off profile
-for WIT package `semaprax:private@0.5.0`, interface `generic-records`, and world
-`semaprax-private-v7`. Four fixed exports cover `Duo<i64, bool>`,
-`Duo<bool, i64>`, `Phantom<i64>`, and `Phantom<bool>` while preserving the
-unchanged outer status result. Admission binds the exact capability-free source
-closure, Graph v12 digest, ordered concrete arguments, four Wasm32 layout
-digests, stable source-ID/core-index/distinct-WIT-type/export map, plan/profile/
-component digests, and the distinct identity of physically identical Phantom
-instances. Exact/upstream validation, same-signature reindexing and cross-
-version hostility, generated-core Node execution, default-consumer hiding,
-source locks, strict gates, and independent security review are locally green.
-The isolated Rust 1.97.1/Wasmtime 47 typed runtime is hosted green in [run
-31373317800, job
-93406924922](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406924922).
-V1-v6 bytes remain unchanged;
-there is no general source selection/exporter, nested/resource/non-Copy record
-mapping, imports/capabilities/callbacks/async, callable/FFI or public ABI,
-browser/multi-engine claim, package negotiation, or `SPX-B104`/`SPX-W111`
-widening.
-
-Private Record-Pattern Projection Component v8 is an eighth separate
-default-off profile for WIT package `semaprax:private@0.6.0`, interface
-`record-pattern-projections`, and world `semaprax-private-v8`. Its exact source
-declares generic record `Phantom<T> { marker: bool }`, but all four exported
-functions are monomorphic and the profile rejects every generic function
-template or instance. Ordered preserve/invert exports cover exact
-`Phantom<i64>` and `Phantom<bool>` inputs plus a scalar control and return the
-projected boolean inside the unchanged outer status result. Admission binds
-the exact source, generated core, two distinct same-layout Wasm32 instance
-digests, Graph v13, stable function/core-index/named-WIT-type mapping, fixed
-scratch/result plan, profile, component, and artifact DAG. The canonical
-adapter validates input booleans before calling, checks physical status before
-reading output, reconstructs fieldwise, publishes the result tag last, and
-keeps the complete 20-byte result poisoned on failure or invalid values.
-Independent/upstream validation rejects every byte mutation and all six
-same-signature function-index swaps; only the four polarity-changing swaps are
-behaviorally distinguishable, while the two same-polarity cross-instance swaps
-remain identity/KAT evidence. Local Node execution, source locks, strict gates,
-and independent security review are green. The zero-import, empty-linker,
-no-WASI pinned Rust 1.97.1/Wasmtime 47 runner is hosted green in [run
-31385406865, job
-93445428268](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428268).
-V1-v7 bytes remain unchanged. V8 provides no generic-
-function component, general source selection, imports/capabilities/resources,
-callable/FFI or public ABI, browser/multi-engine claim, package negotiation, or
-`SPX-B104`/`SPX-W111` widening.
-
-Private Generic-Function Instance Component v9 is a ninth separate default-off
-profile for WIT package `semaprax:private@0.7.0`, interface
-`generic-function-instances`, and world `semaprax-private-v9`. It admits exactly
-the three phantom Copy templates `preserve<T>`, `invert<T>`, and
-`ordered<T,U>`, exactly six explicitly referenced Graph-v14
-`FunctionInstanceId`s in frozen export order, one exact monomorphic
-materializer, and `app.main`. Every export has the identical
-`(marker: bool, control: s64) -> result<bool, status>` WIT signature; no authored
-record or layout root is present. The lowering selector authenticates exact
-instance identities and ordered concrete arguments rather than accepting
-declaration IDs or monomorphic wrappers. Admission binds the exact source,
-Graph v14, generated core, plan, profile, raw component, and artifact DAG with
-SHA-256 KATs
-`218085fb5ea1bcc090c04ac0acb3395912d0dad09027b9118d8817978b2fde0c`,
-`62907c4b95495bb573b2b37de9f0b08c7a82218934154521e8c0c8396158cc6e`,
-`9f178207a0406f740198ee8c71d5d008efdf4d995ff04e11e80ea73b79155d44`,
-`edd11c98bbc902d9dbc9c942375477fcf1e6c3f1befbe3c4a9f260107104485e`,
-`365897ddb2770cc25a11690dddbfef5d232244ec5d328c79a24a1410e684615e`,
-`3cf6c7d7d02e838fb374478a2b5b25077c7c612ad36e30deaffd15311a25a688`,
-and `2623ff9a7eda5526616a15befd4951de86874a59911dcba2a7d3bcc2d178a474`.
-The adapter preserves the status-first/output-boolean/tag-last result protocol
-and 20-byte poison closure. Independent validation rejects every mutation and
-all 15 same-signature pair swaps; eight swaps change polarity behavior and
-seven are identity-only evidence. Local core 5/5, component 4/4, CI-lock 4/4,
-full gates, and independent security review are green. The zero-import,
-empty-linker, no-WASI pinned Rust 1.97.1/Wasmtime 47 typed runtime is hosted
-green in [run 31392541096, job
-93467490492](https://github.com/wavect/semaprax/actions/runs/31392541096/job/93467490492).
-V1-v8 bytes remain unchanged. This exact profile grants no
-general source selection/exporter or generic-function Component authority,
-inference/constraints, aggregate/resource/non-Copy admission,
-imports/capabilities/callbacks/async, callable/FFI or public ABI,
-browser/multi-engine conformance, package negotiation, or
-`SPX-B104`/`SPX-W111` widening.
-
-Private Source-Option Propagation Component v10 is a tenth separate default-off
-profile for WIT package `semaprax:private@0.8.0`, interface
-`option-propagation`, and world `semaprax-private-v10`. It admits the sole
-`component.option-propagation.evaluate` source function plus `app.main`, then
-exports exactly
-`evaluate(input: option<s64>, divisor: s64) -> result<option<bool>, status>`.
-The source maps compiler-owned `Option<i64>` through postfix `?` to
-`Option<bool>`; no authored types, resources, templates, instances, imports, or
-capabilities enter the selected closure. Admission binds exact source,
-compiler prelude, Graph v11, CleanupPlan v3, both Option layout-v2 instances,
-generated core, profile, raw component, and artifact DAG. Their SHA-256 KATs
-are `98b8fc892c183499153142d5bbdb4162e31bda95ef145d34dbb1ff57c9b8fc72`,
-`96083f90fab18c919a96cee48109e606e089159e109869a42bdf48831743d45d`,
-`d37bad7e3911669bbf2c66b25c8b31d5c2e36eb181cc54fdc86c3a49a8fb9c5e`,
-`79194fc88011ac060877e60293d0a4272429dd9e2d720674d0d54e804562deda`,
-`dec126293ece7ec0e48d3d85ccdb494f7c7cfe4c3d4a9b1a61b50f6f862ff038`,
-`d07fa51fc6f192a43318140264fa0e5964933ed90bc065cc8c74708e258ff92f`,
-`16d1d34024e3fad920d8d00a61d7cb3bd010335ca382f23615b3b3da4143aaec`,
-`f53a0c21638b5a360faa19ad4fdef68f6d861a5baffe39422847128686e82bef`,
-`f5770bdfdbc862ea39640b2c706c1d9ea171164c220d18366e25b3219443ad0d`,
-and `90ab80260c84abfe85d1edc666ab3750b81388e6e4cffd7ca21c301b9d0ee589`.
-Typed and raw gates cover `Some`/`None`, contracts, checked arithmetic, sticky
-failure, status-first/tag-last publication, full poison, invalid input/output
-tags and booleans, unknown status, repeated/fresh instances, and out-of-band
-fuel exhaustion. The pinned Rust 1.97.1/Wasmtime 47 v3-v10 runtime is hosted
-green in [run 31396483313, job
-93481068502](https://github.com/wavect/semaprax/actions/runs/31396483313/job/93481068502).
-V1-v9 bytes remain unchanged. V10 grants no general source selection/export,
-general `Result`/`Option`/`?` or algebraic Component mapping,
-nested/resource/non-Copy carriers, imports/capabilities, callbacks/async,
-callable/FFI or public ABI, browser/multi-engine conformance, package
-negotiation, or `SPX-B104`/`SPX-W111` widening.
-
-## Record lowering and backend gate
-
-Canonical source accepts nominal records with persistent field IDs, source-ordered construction, shorthand expansion, chained projection, and immutable `with` update. The verifier reports unknown, duplicate, missing, or mismatched fields deterministically and rejects direct or indirect by-value layout cycles. Resolved HIR distinguishes place projections from projections of temporary values, preserves base-first and authored replacement order for update, and its validator rejects foreign/reordered fields and inconsistent facts.
-
-Checked declaration-ordered Native64 and Wasm32 layouts cover nested `i64`,
-`bool`, and direct trivial-resource fields. Both profiles freeze the empty record
-to size and alignment one, giving C11 an inert byte and preventing Wasm frame
-slots from aliasing. The production-reachable scalar-record slice lowers nested
-`i64`/`bool` construction, projection, and update through native C11/Clang at
-O0/O2 and browser Wasm executed under Node. Internal aggregate parameters are
-pointers, results use caller-owned storage, failures preserve poisoned output,
-and Wasm restores its shadow stack across repeated same-instance calls.
-
-Resources now require one explicitly identified `drop trivial` or `drop
-import` strategy. Imported strategies resolve through an explicitly identified
-interface/import contract with ownership, authority, consumption,
-result-publication, and failure meaning; the v1 source grammar uses the import
-`@id` as its logical key while HIR keeps those concepts separate. Resources
-and records containing resources remain semantically non-copy. The compiler has
-a shared cleanup plan plus target-neutral reference replay/execution, and the
-native scalar lane has a non-trapping status/out ABI. The deterministic
-`semaprax.semantic-event-dictionary.v1` maps compiler-generated nonzero
-ordinals back to exact semantic events without reconstructing execution.
-Generated native C at O0/O2 now runs through the physical ownership host, while
-real Node/Wasm runs the same authoritative 14-case direct-trivial-resource
-corpus. Both materialize to the exact reference trace and normalized outcome;
-native additionally verifies publication, owner rotation, and final logical
-liveness through the ledger. Native public resource lowering still rejects
-with `SPX-B104` for the remaining evidence boundaries above.
-
-Aggregate-resource execution has a narrower private proof boundary. One
-test-only scenario is derived from the same validated cleanup plan and projected
-into C11 O0/O2 and real Wasm. It covers move-in/out, whole-record leaf
-expansion, displaced reverse cleanup, propagated call failure, poisoned result
-storage, one exact cross-backend finalization trace, and zero final liveness.
-This is not an ordinary production emitter/runtime path and grants no public
-resource-record, callable/component aggregate-signature, or ABI authority.
-
-WebAssembly now has one public but deliberately narrow exception to the former
-blanket resource gate. `semaprax.wasm-owned.v1` admits exactly one direct,
-non-generic `drop trivial` resource identity, direct `own` parameters, scalar
-parameters, and either an `i64` or selected owned-input result for a restricted
-statement-free contract/body shape. The emitter consumes replay-validated
-terminal cleanup vectors without sorting them. Its generated instance host uses
-exact export metadata, SHA-256 binding to the exact generated Wasm bytes,
-private imports, canonical ABI argument checks, one-shot trusted adoption
-tickets, checked/aligned out ranges before ownership commit, instance-tagged
-slot/generation handles, a pre-reserved normalized-status cell, semantic ordinal
-storage, and poison-preserving publication. One same-realm global allocator
-prevents tag reuse across separately evaluated copies of the generated host when
-the surrounding realm and reserved binding are trusted; scalar-only packages
-allocate no tag. Real Node execution covers the narrow runtime boundary and the
-shared 14-case semantic conformance corpus. Imported lifecycles, calls,
-resource-containing aggregates, multiple resource identities, broader control flow, hostile
-co-resident JavaScript, cross-realm/worker identity, and Components remain gated
-with `SPX-W111` or the record diagnostic; the native production-host connection
-is still absent.
-
-## Semantic graph
-
-Graph serialization is exclusively from validated resolved HIR. The
-program-wide schema lattice is `semaprax.graph.v14` when any authenticated
-generic function declaration exists, even when unused; otherwise v13 applies
-to an explicit record pattern, v12 to a generic record declaration, v11 to
-Option propagation, and byte-compatible v10 to legacy/Result programs. Every
-bounded and Agent Context reports the same program choice. V14 adds persistent
-or visibly automatic `function_template` declarations, nonpersistent exact
-`function_instance` nodes, and `call_instance` expressions carrying the
-template, derived instance ID, and ordered concrete arguments. A same-schema
-v14 serialization correction adds the previously missing array delimiters
-around function-template `type_parameters`; without them, two-parameter
-templates produced invalid JSON in module, bounded-context, and Agent Context
-projections. Unused templates
-have no fabricated instance; v10-v13 bytes remain unchanged when no generic
-function is declared. The frozen v14 SHA-256 KATs are module
-`7a61fa6229f2db7aca6a035fd961720e8a401c138cc66c9cd71c64d45bed5efd`,
-Agent Context
-`2841401e7ba85fa8e47b3c35a15ae401b4a271d2500d70bbf3627f1453869eb6`,
-and bounded context
-`d7bda2be1fc366195ffb00a9e20b2b03204b4dd6f46e8019842dd84f70b54ab8`.
-These corrected projections parse under `serde_json` locally and are hosted
-green in [run 31390043736, Ubuntu job
-93459346296](https://github.com/wavect/semaprax/actions/runs/31390043736/job/93459346296).
-The earlier hosted generic execution [run 31385406865, Ubuntu job
-93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338)
-predates this serializer correction and remains separate backend evidence.
-V13 pattern nodes bind exact concrete record/member/binding identity; v12 record
-nodes carry ordered owner/index parameters; v11 authenticates Option
-propagation. The graph otherwise retains the canonical source/prelude revision,
-declarations, exact types, structural bodies/contracts/calls, and complete
-per-function CleanupPlan v2/v3. Cleanup vectors preserve canonical execution
-order and never repair malformed input. Generic-function CleanupPlan v2 status
-producers intentionally remain template-ID-only; exact instance meaning is
-carried by validated HIR and v14 call/instance nodes. Context closure includes
-selected function templates and their exact referenced instances without
-inventing executable evidence for an unused template. Graph revision v2 and
-cache binding remain unchanged.
-
-Integer literals are decimal JSON strings rather than JSON numbers, so JavaScript and TypeScript agents preserve every `i64` value exactly. `let` bindings expose one value identity; the enclosing statement does not reuse that ID as a second identity domain.
-
-Expression and value IDs are deterministic but revision-scoped; only explicitly authored declaration IDs are persistent across revisions. Automatic name-derived declaration IDs remain visibly marked unstable. Spans are intentionally absent because canonical source revisions ignore whitespace while spans do not.
-
-Context slicing starts from a display name or exact declaration ID, with exact IDs taking precedence on collisions. It walks declaration-ID call dependencies from preconditions, bodies, and postconditions to a bounded depth and closes referenced record types transitively through their field types. Unrelated declarations remain excluded. Every result declares a `module` or `context` view. Context views record root, depth, truncation, and frontier IDs so an omitted call dependency is distinguishable from a dangling reference. Callers, tests, packages, targets, and generated artifacts will become additional typed edges.
-
-The additive [`semaprax.agent-context.v1`](AGENT-CONTEXT-V1.md) projection is
-the exact default CLI context contract. It applies exact whole-document byte and
-function-node budgets, reports used/omitted budgets, and turns known omitted
-functions into stable-ID progress frontiers, with exact deferred counts,
-non-dangling emitted call edges, a query-bound minimum-byte cursor, aggregate
-pagination by stable-ID re-rooting, and fail-closed rejection only when an
-individual page cannot fit the contract maximum. Compact contracts, parameter/result
-ownership, effects, and reference-closed types are selectable; cleanup,
-lifecycle, and import subgraphs are not claimed by this projection. Graph v10
-has no target, diagnostic, or test nodes, so those requests are marked
-unavailable rather than inferred. The legacy Rust depth-slice API over Graph v10
-remains compatible.
-
-Supplying `--direction forward|reverse|both` selects the additive
-[`semaprax.agent-context.v2`](AGENT-CONTEXT-V2.md) contract. V2 builds an
-independent caller index over validated HIR, traverses the selected call-edge
-direction breadth-first with global stable-ID order at each depth, and records
-only minimum-depth direction provenance. Its `frontier` contains omitted
-selected-direction traversal nodes, while `reference_frontier` contains
-non-selected relation targets referenced by emitted facts; their counts and
-resume contracts remain separate and direction-bound. Exact forward, reverse,
-and both SHA-256 KATs are
-`922404133444942ab86607772362098e0f5656add6bea607a890be2bcfe5b7c9`,
-`9a2ebfe569926e67f436379cf2b5c96d510daadd11d0a295ed54903cb612627b`,
-and `4ec8a62a17551e87dc301d08f0a09c6159445757bca6dd9920a7db4e3790ce17`.
-The full hosted matrix is green in [run 31397881268, Ubuntu job
-93485198327](https://github.com/wavect/semaprax/actions/runs/31397881268/job/93485198327).
-V2 does not change Graph v10-v14, source revisions, HIR, type/layout facts, or
-CleanupPlan v2/v3. It remains a call-graph query, not general reverse semantic
-edges, impact analysis, ranking, repository indexing, persistence, or a graph
-daemon.
-
-The shared internal `PersistentCallIndex` validates its HIR input and records exact
-function/function-template owners, identity origins, calls in
-`requires`/body/`ensures`, expression-to-owner call sites, and deterministic
-forward/reverse persistent-call maps. Agent Context v2 consumes the maps
-without changing its schema or frozen bytes. The separate
-[`semaprax.semantic-impact.v1`](SEMANTIC-IMPACT-V1.md) command reuses the same
-index for a bounded read-only patch preview; this does not turn Agent Context
-v2 itself into impact analysis.
-
-Semantic Impact v1 owns source and patch buffers, runs the same pure
-pre-state Patch v1/v2 preflight used by apply, resolves and validates both HIR
-programs, requires their program-selected Graph schema to agree, and renders a
-canonical report with base/candidate revisions, exact patch-byte digest,
-operation/change/source-consumer provenance, and an optional reverse-call
-closure. Only exact generic-call instance changes seed behavioral closure;
-renames report source-projection consumers but no behavioral callers. Closure
-is computed completely over current explicit persistent callables before any
-output limit, breadth-first by depth then stable ID, with minimum-depth
-operation provenance and exact byte/node/depth frontier accounting. Operations,
-changes, and source consumers are mandatory; only affected-function output is
-truncated. A generic call inside a function template remains an unreachable
-Impact seed under `SPX-T226`, while persistent template reverse callers remain
-indexed.
-
-Preview performs no lock, stage, rename, or source write. It authenticates one
-canonical regular source snapshot and rechecks exact identity, bytes, and
-revision before return. Unix identity is exact device/inode; Windows uses held
-same-file volume plus the available 64-bit file index and does not claim ReFS
-128-bit or hostile non-unique-index uniqueness. The patch is read once and its
-exact owned bytes are domain-separated-digest-bound, but the patch path remains
-trusted input and is not re-authenticated. `SPX-G110` fails closed when a
-behavioral call owner or reverse caller is automatic rather than explicitly
-persistent; existing
-`SPX-T226` generic-function closure remains unchanged. This is neither a
-persistent/incremental repository index nor general type/contract/test/schema/
-migration/target/capability impact, repair, ranking, review, or commit
-authority. The exact `1b3731a` full hosted matrix is green in [run 31408654657
-attempt
-2](https://github.com/wavect/semaprax/actions/runs/31408654657/attempts/2),
-including [Ubuntu job
-93530141404](https://github.com/wavect/semaprax/actions/runs/31408654657/job/93530141404).
-
-The additive [`semaprax.agent-context-economics.v1`](AGENT-ECONOMICS-V1.md)
-layer runs strict checked-in maintenance manifests offline. Canonical
-exact-case, separator-normal, Windows-forbidden/reserved-name-safe,
-non-symlink source containment, a manifest
-digest, exact label arrays, source revision, and context digest bind every
-score. Only facets available in Graph
-v8 may be scored. It records exact bytes, emitted nodes, and a
-repository-defined lexical unit explicitly marked as non-model-token data. The
-quality router exposes advisory `quick`, explicit-or-unique-target-merge-base
-to HEAD plus dirty-Git-state-reconciled `changed`, and default `full` profiles; its closed v2 plan
-carries a canonical base, exact path/invariant/test records, and the profile's
-exact ordered gates, which the executor validates before dispatch. Broad graph/CLI,
-unknown, wide, or router changes fail closed to the full workspace baseline.
-
-The public parsed-AST graph functions resolve and validate HIR and return diagnostics on failure. Direct HIR rendering remains internal so a caller cannot attach a forged canonical-source revision to transformed HIR. The graph still rebuilds per query; the additive [`semaprax.agent-transport.v1`](AGENT-TRANSPORT-V1.md) loop (`semaprax serve <file>`) now keeps one checked program warm across many JSON-RPC requests in one process, while persistent indexed revisions remain open.
-
-## Bounded diagnostic repair and Patch v3
-
-`src/repair.rs` owns the closed `SPX-S103` Diagnostic Repair v1 domain.
-`repairs` discovers one exact automatic-function target and returns canonical
-`semaprax.diagnostic-repair.v1` JSON. `repair` accepts one closed persistent-ID
-value, independently reconstructs and validates the candidate, and returns
-canonical `semaprax.diagnostic-repair-preview.v1` JSON. Both operations are
-read-only.
-
-The admitted program is an acyclic, effect-free, contract-free, monomorphic
-scalar Graph-v10 program with no types, interfaces, permits, aggregates,
-resources, or generics. The target must have the exact `SPX-S103` on its name
-span and may not be `main`, the entrypoint, or already persistent. Hard source,
-function, call-site, and output limits fail closed rather than truncate.
-The parsed AST is structurally checked for the function and complete call-site
-bounds before HIR resolution. Once patch text is parsed as v3, its A0 initial
-source read and both final source rechecks are each bounded to 16 MiB; initial
-oversize fails `SPX-R101`, while concurrent over-bound final growth fails
-`SPX-I207` without replacing the grown source. V1/v2 read behavior is unchanged.
-
-Instantiation proves exactly one edit: an `@id` annotation on the selected
-function. A structural HIR comparison permits only the automatic-to-persistent
-declaration rebase, the bijective revision-scoped ID rebase below that
-function, and direct callers changing their callee reference. An independently
-serialized and normalized before/candidate Graph must then compare byte-for-
-byte as JSON. The classification is `breaking_identity_rebase`, not a stable-
-identity-preserving rename. Excessive delta fails `SPX-G112`.
-
-Consequently, the candidate changes Graph-v10 revision and identity-bearing
-declaration/callee/derived-ID content, and identity-bearing CleanupPlan content
-may rebase. It does not widen a Graph or CleanupPlan schema/version or semantic
-shape, admit Graph v11-v14 repair, or change backend/runtime semantics.
-
-The preview embeds the only admitted `semaprax.semantic-patch.v3` grammar:
-exactly one canonical LF-terminated schema line, base line, and
-`assign-function-id` line. General patch preflight recognizes v3 only for that
-single operation, authenticates every selector through the same closed repair
-gate, and then hands the proven canonical candidate to unchanged A0 commit.
-Impact v1 deliberately accepts only Patch v1/v2 and rejects every syntactically
-valid, canonical v3 as `SPX-G110` before semantic selector interpretation;
-malformed or noncanonical v3 remains `SPX-G101`. Its existing v1/v2 bytes and
-meaning are preserved. The exact wire
-schemas, digest domains, key order, limits, KATs, and nonclaims are frozen in
-[`DIAGNOSTIC-REPAIR-V1.md`](DIAGNOSTIC-REPAIR-V1.md).
-
-## Bounded semantic human review
-
-`src/review.rs` owns the deterministic, read-only
-`semaprax.semantic-review.v1` projection. `review <file> <patch.spatch>` has
-fixed arity and no flags. It authenticates one bounded canonical regular source
-snapshot, owns the bounded patch bytes, runs the same pure Patch preflight,
-checks parsed-AST declaration/callable/call-site limits before HIR, proves the
-closed review classifications, renders one exact report, and rechecks source
-identity, bytes, revision, and size before return. It never enters A0.
-
-Patch v1/v2 review uses `impact::complete_review_evidence`: the complete
-canonical Impact v1 report is rebuilt with fixed depth 1,024, 16-MiB, and
-1,024-node options, and any truncation, omitted/deferred node, or frontier
-rejects as `SPX-G120`. The entire report is embedded and separately
-domain-digest-bound; its operation/change/source-consumer/affected-function
-facts and accounting are not summarized away. Patch v3 instead accepts only
-the canonical Diagnostic Repair `assign-function-id` operation, embeds the
-same shared `semaprax.identity-rebase.v1` object, and records zero Impact use.
-This separate v3 path does not widen Impact v1's v1/v2-only contract.
-
-Every authored operation produces one evidence-linked finding in each of seven
-fixed wire sections, in order: `behavior`, `api_identity`,
-`security_authority`, `memory_ownership`, `target_artifact`, `migration`, and
-`unsafe`. They map to RFC 0001's conceptual behavior, API, security, memory,
-target, migration, and unsafe-code categories without changing the protocol
-identifiers. Rename classifications are independently checked against a
-name-normalized before/candidate Graph including Cleanup projection. Exact
-effect/capability/import facts are compared for every v1/v2 review. The v3
-classification retains the shared structural-HIR and normalized-Graph
-`breaking_identity_rebase` proof.
-
-The seven sections are bounded facts, changes, or explicit unknowns, not a
-general security/memory/unsafe/target/migration analysis. Review creates no
-Agent Context, executes no test or target, exposes no public report-verification
-API or proof artifact, authenticates no continuing patch provenance, and owns
-no approval, lock, stage, apply, or commit authority. Exact wire, bounds,
-digests, KATs, nonclaims, and diagnostics are frozen in
-[`SEMANTIC-REVIEW-V1.md`](SEMANTIC-REVIEW-V1.md). Local Review integration is
-10/10, hook/limit units are 4/4, library 408/408, full preservation and security
-gates are green. The exact `2634011f3d205077d4533701e412bec8fdcff7c8` full
-matrix is hosted green in [run 31423743369 attempt
-1](https://github.com/wavect/semaprax/actions/runs/31423743369/attempts/1),
-including [Ubuntu job
-93570423170](https://github.com/wavect/semaprax/actions/runs/31423743369/job/93570423170);
-all 12 jobs passed. Hosted backend jobs are preservation evidence, not target
-execution by Review.
-
-## Semantic Patch Evidence v1
-
-`src/patch_evidence.rs` is a separate layer above Review. It does not change
-the `semaprax.semantic-review.v1` report, whose own
-`no_public_verify_api_or_proof_artifact` nonclaim remains exact. Review keeps
-the same bytes, KATs, read-only `review::preview` API, and no `review::verify`.
-Instead, `patch-evidence` packages Review-derived Graph/revision/source/Patch
-bindings, seven assessments, and complete Impact-v1 or shared identity-rebase
-digest into canonical `semaprax.semantic-patch-evidence.v1`.
-`verify-patch-evidence` independently rebuilds Review, requires exact typed
-bindings and byte-for-byte capsule replay, and emits canonical
-`semaprax.semantic-patch-evidence-verification.v1`. Both are read-only; only
-the separate capsule is the bounded proof carrier.
-
-The separate `patch-with-evidence` route acquires the unchanged create-new A0
-lock first. While holding it, it owns bounded patch/evidence bytes,
-authenticates the bounded canonical regular source, independently rebuilds
-Review and the expected capsule, and rejects any mismatch before stage
-preparation. Only exact replay reaches `prepare_a0_commit`; unchanged A0 then
-rechecks source and stage path/handle identity and bytes at its two final
-boundaries before rename. The capsule itself carries no commit authority or
-reusable authorization. Ordinary `patch` remains the legacy evidence-optional
-route.
-Rejected evidence may acquire and release the A0 lock, but it creates no stage
-and performs no source write; the capsule itself never owns authority.
-
-Patch v1/v2 evidence binds complete nontruncated Impact v1; Patch v3 binds only
-the shared identity rebase and does not widen Impact. Exact closed JSON order,
-digest domains, bounds, KATs, diagnostics, APIs, and nonclaims are frozen in
-[`SEMANTIC-PATCH-EVIDENCE-V1.md`](SEMANTIC-PATCH-EVIDENCE-V1.md). A+B is
-11/11 integration plus 5/5 internal units; Phase C is 16/16 integration plus
-11/11 hook/limit units. Library 420/420, doctest 37/37, full preservation, and
-independent security are locally green. The exact
-`34a8ed82e9ae96277aa51e7994c19644331f5e78` replacement matrix is hosted green
-in [run
-31431768632](https://github.com/wavect/semaprax/actions/runs/31431768632),
-including [Ubuntu job
-93596706949](https://github.com/wavect/semaprax/actions/runs/31431768632/job/93596706949);
-all 12 jobs passed. The earlier `e04c2c9` run failed only the Rust 1.97 lint
-and is not green evidence.
-
-Evidence v1 is not a signature, MAC, authenticated provenance,
-theorem/SMT/general proof, human approval, target/test execution, Agent
-Context/repository analysis, multi-file transaction, external-consumer
-compatibility guarantee, or new Patch/Repair/Impact/Review,
-Graph/CleanupPlan, backend, or runtime semantic surface. Existing A0
-collision, stale-lock, crash-left-lock, trusted-directory-window, durability,
-and platform-identity nonclaims remain.
-
-## Semantic Target Evidence v1 and Patch Evidence v2
-
-`src/target_evidence.rs` owns the read-only
-`semaprax.semantic-target-evidence.v1` projection. It reuses bounded Review
-preflight, then renders exact base/candidate Graph JSON, a canonical typed
-capability manifest whose delta must be zero, production C11 source, and
-production Wasm core bytes structurally validated by pinned wasmparser 0.256.0.
-The public `target_evidence::preview` returns one canonical JSON line without
-LF; the fixed-arity CLI adds one LF. No target or project test is executed and
-the route never enters A0.
-
-Additive `patch_evidence::{generate_v2, verify_v2, apply_v2}` bind the exact
-Target report alongside unchanged Review v1 and complete Impact-v1 or
-identity-rebase support. Apply remains lock-first: bounded input reads and
-exact replay occur while holding the unchanged A0 lock and before staging. The
-capsule has no authority; A0 owns source/stage checks and commit. Exact wire,
-KATs, limits, and nonclaims are frozen in
-[`SEMANTIC-TARGET-EVIDENCE-V1.md`](SEMANTIC-TARGET-EVIDENCE-V1.md) and
-[`SEMANTIC-PATCH-EVIDENCE-V2.md`](SEMANTIC-PATCH-EVIDENCE-V2.md).
-
-Target is 9/9, target units 4/4, Evidence-v2 is 8/8, and library is 439/439.
-Full local gates and security are green. The exact
-`fcdf3861d79faea27c526a8dc5105b92c6738213` matrix is hosted green in [run
-31440359793](https://github.com/wavect/semaprax/actions/runs/31440359793),
-including [Ubuntu job
-93624123631](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123631);
-all 12 jobs passed. Hosted C
-O0/O2 and Node/Wasm execution validates emitted artifacts only and is not a
-report fact or authority. This adds no multi-file transaction and changes no
-completion status.
-
-## Managed semantic workspace transactions
-
-`src/workspace.rs` owns the bounded
-`semaprax.semantic-workspace-patch.v1` transaction and its
-`semaprax.workspace-path-set.v1`, `semaprax.workspace-root.v1`,
-`semaprax.workspace-manifest.v1`, `semaprax.workspace-snapshot.v1`, and
-`semaprax.semantic-workspace-preview.v1` projections. Exact wire order,
-domains, bounds, diagnostics, KATs, APIs, commands, and nonclaims are frozen in
-[Semantic Workspace Transaction v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md);
-the publication choice is recorded in [ADR
-0002](decisions/0002-managed-workspace-generations.md).
-
-The protocol authenticates 2–16 pre-existing canonical `.spx` sources and
-copies them into an immutable generation below `.semaprax-workspace`. A
-permanent zero-byte `LOCK` gives cooperating snapshot/preview readers shared
-access and initialization/apply writers exclusive access. `ACTIVE` is a
-canonical revision pointer. Apply independently preflights every changed file,
-builds or deeply reuses the complete candidate generation, publishes it
-without replacement, authenticates a staged pointer at two final boundaries,
-and atomically replaces only `ACTIVE`. A managed reader resolving `ACTIVE`
-under the shared lock therefore sees the complete old or new generation.
-
-Original source paths are never rewritten. Consequently Git, editors, build
-tools, and other raw-path readers receive no atomic-visibility guarantee.
-Pre-pivot rejection can retain bounded authenticated owned generation/staging
-residue, while foreign replacements are preserved and fail closed rather than
-deleted; post-pivot failure is explicit `SPX-I212` ambiguity, not automatic
-rollback. There is no automatic cleanup/GC, power-loss durability,
-network/NFS/overlay guarantee, or raw-tree materialization.
-
-Workspace patch entries embed unchanged admitted Patch v1/v2 or the sole
-canonical Patch v3 operation. Each file verifies independently, with only
-global authored module/declaration identity uniqueness. There is no cross-file
-module/type/call/capability/ownership resolution, repository Graph,
-Impact/Review/Context/Target/test analysis, evidence/proof/provenance, new
-Patch/Graph/CleanupPlan/backend/runtime semantics, or create/delete/move.
-Snapshot and preview artifacts carry no authority; the live initialize/apply
-invocation owns the bounded lock, generation-publication, and `ACTIVE`-pivot
-authority. Local integration 12/12, hostile wire/CLI 5/5, workspace units
-37/37, library 482/482, full gates, preservation, and security are green.
-The exact `afde3b3302e0f88fd8af3278efaf0ddd72e6dfe7` matrix is hosted green in
-[run 31472847068](https://github.com/wavect/semaprax/actions/runs/31472847068),
-including [Ubuntu job
-93719800613](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800613)
-and [Windows job
-93719800611](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800611);
-all 12 jobs passed. Earlier run 31471716036 on `4daa407` failed only Windows
-strict Clippy and is not green evidence. That tranche added no status
-transition; after Public Wasm Scalar Exports v1, the current matrix is 39
-Partial/17 Missing. The locally evidenced Typed Hygienic Generation v1
-tranche then moved the Typed hygienic generation row to Partial; the current
-matrix is 40 Partial/16 Missing.
-
-### Workspace Patch Evidence v1
-
-`src/workspace_patch_evidence.rs` owns the additive
-`semaprax.semantic-workspace-patch-evidence.v1` capsule and
-`semaprax.semantic-workspace-patch-evidence-verification.v1` receipt. One
-shared path-keyed Workspace plan feeds the exact preview binding and each
-changed path's existing Review-v1 and child Patch-Evidence-v1 build. The outer
-file entry records only closed source/Graph/Patch/Review/assessment/supporting-
-evidence facts plus the independently rendered child artifact digest; it does
-not embed the child bytes, Target Evidence, or Evidence v2 and performs no
-cross-file semantic reasoning.
-
-`workspace_patch_evidence::{generate, verify}` hold the permanent shared lock.
-Generate owns the exact Workspace Patch once and emits the canonical capsule;
-verify owns evidence then Patch bytes, independently rebuilds every binding,
-and emits a receipt only for exact typed and byte replay. The apply route takes
-the exclusive lock before input authority work, owns Patch and evidence once,
-and requires exact replay before candidate generation or staging. It then
-converts the sealed read build into the same `WorkspaceCommitAuthority` used
-by ordinary apply and enters the unchanged candidate/two-final-check/`ACTIVE`-
-pivot core. The capsule and receipt have no authority; the live invocation
-does. `SPX-I212` remains post-pivot only.
-
-Exact schema/key order, bounds, domains, diagnostics, eight whole-artifact
-KATs, and the ordered nonclaims are frozen in [Semantic Workspace Patch
-Evidence v1](SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md). Local evidence is public
-6/6, apply 5/5, hostile 2/2, module units 8/8, shared Workspace core 39/39,
-Workspace integration 12/12, root library 496/496, and preservation 107/107.
-Full local gates and security are green. The exact
-`cda4892ee74100fd11c5161ad857d469ec5e5421` matrix is hosted green in [run
-31491573287](https://github.com/wavect/semaprax/actions/runs/31491573287), with
-all 12 jobs passing, including [Ubuntu job
-93779117078](https://github.com/wavect/semaprax/actions/runs/31491573287/job/93779117078)
-and [Windows job
-93779117130](https://github.com/wavect/semaprax/actions/runs/31491573287/job/93779117130).
-That tranche made no matrix status change; after Public Wasm Scalar Exports
-v1, current totals are 39 Partial/17 Missing.
-
-## Project Manifest v1
-
-`src/project/` is a separate invocation-local input authority for a
-fixed `semaprax.toml` project. It authenticates the manifest, every explicitly
-listed canonical source, and their held directory/file identities; sends the
-exact bytes through the existing Semantic Workspace Phase-A preflight once in
-memory; and rechecks those held inputs after the caller operation. It neither
-initializes nor reads a managed `.semaprax-workspace`, so it creates no third
-workspace, generation, `ACTIVE` pivot, cache, lock, source rewrite, dependency
-lookup, or publication authority.
-
-The initial profile is deliberately pure scalar over the complete listed set:
-2–16 sorted explicit sources, one entry module, one test module, 1–32 selected
-web stable IDs, no permits, types, interface declarations or interface/native
-imports, `use type`, generics, or effects, and only by-value `i64`/`bool`
-functions. Explicit stable-ID `use function` provider edges are the sole
-cross-file composition mechanism. The linker retains real provider bodies and
-stable-ID calls for independently validated entry/test closures, excludes
-reverse consumers, rebuilds cleanup metadata, and lets duplicate display names
-coexist because declaration identity rather than name selects a function.
-Internal native C lowering/equivalence evidence and Web lowering consume the
-same linked entry HIR. The public Project CLI publishes that closure as the
-digest-bound Web package (default) or, through Public Project Native
-Publication v1, as one explicit create-new native executable compiled by the
-unchanged shared Clang C11 lane from exactly the same linked entry HIR. Native
-publication rechecks every held input before and after the boundary, rejects an
-existing destination with `SPX-I307`, and never clobbers a caller file. That
-package binds project and Phase-A revisions in `semaprax.web-project.v1`.
-Public project `run` and `test` evaluate the retained authenticated entry or
-sole manifest test closure in process through the target-neutral scalar
-interpreter. The deterministic `semaprax.project-execution.v1` envelope binds
-both revisions, the exact closure role/module/stable ID, fuel, outcome, and
-nonclaims. This route creates no artifact, process, cache, or target-execution
-claim and performs no source reparse or relink. Its public verifier checks the
-closed schema, bounds, compiler-owned status table, canonical reconstruction,
-and digest without granting execution authority. A final post-publication input
-drift is `SPX-J103`: the complete retained output remains for caller
-reconciliation and is never deleted automatically.
-The separate unpublished Project Native Rust SDK builder uses the same held
-Project boundary to generate a local Rust package from the manifest's exact
-Web-export set and the already linked entry HIR. Its canonical Project subject
-binds every source and revision before any builder effect; it does not flatten
-or reparse the Project and does not add a Project CLI target. Local evidence
-uses the complete six-operation calculator export surface, rebuilds Web/Node
-and Rust consumers after the opt-in daemon rename, compares the semantic Web
-scalar ABI and exact Rust export inventory rather than revision-bound whole
-manifests, and proves stable-ID behavior across changed authenticated
-revisions. The focused CI lane requires the TypeScript and held-tool Rust paths
-on blocking Ubuntu, macOS, and Windows jobs. Exact-head success of this newly
-unmasked full matrix remains pending, and general Project SDK/package/import/
-capability/aggregate/resource support remains open.
-See [Project Manifest v1](PROJECT-MANIFEST-V1.md).
-
-## Project Manifest v2 and Useful Text Consumer v1
-
-[Project Manifest v2](PROJECT-MANIFEST-V2.md) is additive and locally
-evidenced. Its canonical manifest requires package `version` and the closed
-`useful-text-consumer.v1` profile while retaining the v1 held-input authority,
-single Phase-A link, exact stable-ID export roots, and post-operation drift
-checks. Selected export roots are linked even when disconnected from the entry
-root. V1 manifests, Web artifacts, and carrier bytes remain unchanged.
-
-The language-side [`str` profile](USEFUL-TEXT-CONSUMER-V1.md) is an
-invocation-bounded borrowed UTF-8 view. Source/HIR validation admits it only as
-`borrow str`, forbids return and aggregate storage, and assigns no cleanup
-slot. The interpreter carries invocation-root provenance instead of cloned
-owned-string evidence. Native C lowers it as a pointer plus `u64` length and
-checks null, length bounds, and UTF-8 after the host has supplied readable
-storage; it cannot authenticate an arbitrary non-null C pointer. A text-only,
-invocation-local context depth makes native root-call admission charge every
-borrowed parameter exactly once while nested forwarding/aliasing does not
-recharge it; the profile excludes imports and callbacks, so reentrant host
-entry is not admitted. The public
-Wasm adapter additionally validates that every view lies in the public 64-KiB
-scratch region and that cumulative borrowed input is at most 65,536 bytes.
-The fixed three-page memory reserves page zero for public scratch and pages one
-and two for a caller-visible reserved `u16` KMP prefix table whose sentinel is
-reset on every call; memory cannot grow. The native
-and interpreter paths enforce the same cumulative byte ceiling. `contains`
-uses fixed-capacity byte-KMP across all three paths, giving linear work on
-periodic inputs without treating embedded NUL as a terminator. The four
-compiler-owned operations are byte length, empty, prefix, and contains.
-The exact text-profile compiled call graph must be acyclic; direct and mutual
-recursion reject alongside loops before Wasm emission.
-
-The Project-v2 npm route renders an exact six-file, dependency-free package and
-a context-bound `semaprax.project-npm-build.v1` carrier. The carrier binds
-package identity/version, Project/workspace/graph revisions, a canonical
-semantic recipe, artifact order/bytes/digests, cumulative bounds, and its
-payload digest. Context-free inspection replays the recipe through the real
-parser, resolver, text planner, and emitter and proves exact compiler
-consistency, but it does not authenticate the self-claimed Project facts or
-mint a publishable build. Only the opaque build prepared by the retained
-Project snapshot carries the trusted facts required by `verify` and `publish`. The
-daemon returns this carrier pathlessly and gains no output-path, filesystem,
-process, npm, network, or registry authority. Local gates perform offline
-pack/install, declaration consumption, runtime execution, carrier tamper
-replay, and stable-ID display-rename preservation. Exact-head hosted promotion
-and registry publication remain pending.
-
-The next Useful Data expansion is normatively bounded by
-[Portable Indexed Byte Data v1](PORTABLE-INDEXED-BYTE-DATA-V1.md). It fixes a
-target-independent checked `usize`, inline byte arrays, unique owned `Bytes`,
-provenance-carrying non-escaping `Slice<u8>`, total `Option<u8>` indexing, and
-closed capacity/cleanup/Graph-v17 rules. The second local internal tranche now
-lowers semantic-u64 `usize`, fixed arrays, uniquely owned `Bytes`, external and
-derived `Slice<u8>` roots, and all six closed byte operations through the
-interpreter, native C, and internal Core-Wasm/Node lanes. Source verification,
-HIR resolution, and hostile-HIR validation independently reconstruct frame,
-active-call-path, allocation, lexical-borrow, and provenance facts. `Bytes`
-uses one compiler-owned `core.bytes.drop` leaf and canonical plan-driven move,
-call-argument, failure, guarded-finalization, and result-publication state.
-Native erases physical zero arrays; Wasm uses fixed memory plus exact
-generation-checked owned tokens. Graph v17 serializes provenance and capacity
-summaries while lower schemas remain selected for legacy programs.
-
-Indexed Byte Loop v2 keeps that same Graph-v17 and CleanupPlan-v2/v3 authority.
-Inside bounded loops, the source resolver and hostile-HIR validator admit only
-compiler-owned `byte_len`/`byte_get` reads and one exhaustive, guard-free match
-over the exact compiler-prelude `Option<u8>` result of `byte_get`. The slice is
-an already authenticated non-escaping place; view construction, allocation,
-owned data, general aggregate matching, imports, and effects remain closed.
-The match binding and both arms are Copy-scalar, so interpreter, native, and
-Wasm reuse their existing variant lowering; the indexed match itself introduces
-no cleanup slot, status source, or plan back-edge.
-
-## Project Manifest v3 and public Useful Data v1
-
-[Project Manifest v3](PROJECT-MANIFEST-V3.md) additively selects the closed
-`useful-data.v1` profile through `ProjectProfile`; it does not reinterpret v1
-or v2 bytes. One held snapshot links profile-exact entry, test, and selected
-stable-ID export closures. Useful-data linking reconstructs compiler-owned
-byte-operation call-index, provenance/value, capacity, and cleanup facts before
-validation. Semantic Workspace/Project preflight accepts source Graph v10-v17,
-while Workspace Patch/Change evidence keeps its narrower independent admission
-rules.
-
-The public adapter exposes borrowed `Slice<u8>` inputs and scalar
-`i64`/`bool`/`usize` results. Fixed-memory Core Wasm is wrapped by deterministic
-JavaScript/TypeScript that accepts only ordinary attached fixed-length
-`Uint8Array` values, snapshots inputs before scratch reuse, enforces cumulative
-bounds, and authenticates its data-export metadata. The exact six-file npm
-package and `semaprax.project-npm-build.v2` carrier have local independent
-replay, tamper, offline pack/install, and compiler-free installed-consumer
-evidence. Unix publication is handle-relative and create-new/no-clobber;
-Windows v2 publication remains deliberately fail-closed. Exact-head hosted
-promotion, registry publication, and release promotion remain open, so no
-complete-profile claim is made.
-
-## Bounded stdout transcript and Project Manifest v4
-
-[Bounded Stdout Transcript v1](BOUNDED-STDOUT-TRANSCRIPT-V1.md) adds one
-compiler-authenticated `stdout_write(borrow Slice<u8>) -> usize` operation with
-the exact `process.stdout.write` effect. Source and hostile HIR independently
-reserve its spelling and stable ID, reconstruct its slice provenance and
-effect, and reject contracts, loops, reachable cycles, and more than one write
-on any executable path. It is an infallible Copy-result call with no cleanup
-leaf or status producer. Reachability selects Graph v18; legacy programs retain
-their previous graph and backend schemas.
-
-The hosted interpreter, native C, and Core Wasm all use fresh invocation-owned
-staging. Publication happens only after root success; failure wipes the staged
-range. Native exposes a caller-owned fixed transcript result without stdio.
-The public Wasm command profile uses a fixed third memory page and exported
-authenticated base, capacity, and published-length globals. Its stdout operand
-must be rooted in one selected external Slice parameter. The intrinsic records
-only the authenticated scratch pointer/length in private globals; the root
-wrapper copies bytes into the transcript page only after target status and
-canonical result validation. Thus even a raw consumer-supplied import that
-throws after the intrinsic leaves the exported range zero. The JS facade makes
-the range available only after arena settlement, copies it once, then clears
-it; every failed primary or settlement path wipes the entire range. No
-stdout/WASI/console import is added, and raw general stdout-profile Wasm
-emitters remain crate-private.
-
-[Project Manifest v4](PROJECT-MANIFEST-V4.md) additively selects the exact
-`useful-data-command.v1` profile. A distinct linker admits only the stdout
-effect in the entry closure while legacy Useful Data and the test closure stay
-effect-free. Its seven-file `semaprax.project-npm-build.v3` package contains a
-fixed Node command adapter. The adapter prebuffers its UTF-8 needle and stdin
-under one 65,536-byte limit, invokes the exact stable-ID bool command, awaits
-one physical stdout flush after settlement, and maps match/no-match/adapter
-failure to exits 0/1/2. The `spxgrep` fixture is compiler-free after generation
-and performs a real nested `byte_get` search over arbitrary stdin bytes.
-
-## Project Manifest v5 and native command parity
-
-[Project Manifest v5](PROJECT-MANIFEST-V5.md) additively selects
-`useful-data-command.v2` without reinterpreting v1-v4 manifests, package bytes,
-or carriers. Its exact manifest distinguishes the SEMAPRAX command closure,
-which still owns only `process.stdout.write`, from the fixed process adapter,
-which owns exactly `process.args.read`, `process.stderr.write`,
-`process.stdin.read`, and `process.stdout.write`. The adapter accepts one UTF-8
-argument plus arbitrary binary stdin under one checked cumulative 65,536-byte
-bound and maps match, no-match, and adapter failure to exits 0, 1, and 2.
-
-The target-neutral command-profile admission authenticates the selected stable
-ID, exact two-borrowed-slice-to-bool signature, stdout effect/permit closure,
-one-write path bound, and external-slice provenance before native or Wasm
-emission. Native Project builds dispatch this profile to that selected command,
-not to the legacy `main`. The fixed native adapter uses `wmain`, strict UTF-16
-to UTF-8 conversion, and binary stdin/stdout mode on Windows; Unix validates
-argument UTF-8 and makes broken stdout/SIGPIPE an adapter failure. Both native
-and the existing Wasm/Node adapter preserve success-only semantic transcript
-meaning. A physical write can still emit a prefix before failing, so no atomic
-or durable process-stdout claim follows.
-
-The exact seven-file npm package is bound by the new independently replayed
-`semaprax.project-npm-build.v4` carrier and
-`semaprax.useful-data-command.v2` metadata. Native executables have no
-deterministic carrier and their bytes are not claimed reproducible. This is a
-fixed useful-data command adapter, not general language I/O, WASI, a public
-native ABI, or a general CLI framework; hosted promotion, safe Windows npm
-publication, registry publication, and release promotion remain open.
-
-## Bounded Language Command I/O v1 and Project Manifest v6
-
-[Bounded Language Command I/O v1](BOUNDED-LANGUAGE-COMMAND-IO-V1.md) moves the
-fixed adapter boundary into checked language meaning without granting ambient
-process authority. Four compiler-owned operations expose argument count,
-strict-UTF-8 argument views, one owned binary-stdin read, and bounded stderr.
-The resolved HIR represents these as `HostCommandCall`, disjoint from ordinary
-calls and Native Rust imports, with a closed four-code command-input status
-domain. Argument views share one immutable invocation root; repeated lookup
-does not mint capacity. The shared snapshot admits one CommandArguments and
-one Stdin source while rejecting a duplicate of either; source and hostile-HIR
-admission reject more than one reachable stdin read, including loop and
-call-cycle reachability, so argv plus stdin consume one cumulative
-65,536-byte budget exactly once.
-
-CleanupPlan remains v2/v3. Its canonical builder and independent replay must
-agree on the fallible status source, success-only borrowed argument result,
-success-only initialization of the owned stdin slot, and exact-once owned-byte
-settlement. Reachability selects additive Graph v19, which records the closed
-operation table/status domain, invocation-root provenance, bounds, and
-success-only dual-channel publication; lower Graph bytes remain preserved for
-programs outside the new profile.
-
-Interpreter, native C11, and Core-Wasm use explicit invocation carriers.
-Stdout and stderr stage separately but admit at most one write per channel and
-path and share one 65,536-byte output ceiling. `true` and `false` both seal the
-two-channel semantic envelope after cleanup; any normalized or settlement
-failure discards both. Native generated code never accesses process
-descriptors. Core-Wasm uses four closed synchronous command-provider imports
-and private transcript pages, not WASI: when output derives from owned stdin, the
-wrapper authenticates and copies the tagged arena value while its owner is
-live instead of treating the token as a linear-memory pointer. `arg_utf8`
-admits only provider statuses 0/1/2. Zero-status stdin additionally passes a
-recoverable 0/1 exact-membership check—including nonexistent, wrong-length,
-and zero-length carriers—before the owned slot is initialized. Successful
-publication clears the private staging pages without clearing public output.
-The additive `__spx_command_input_status_v1` global is reset by the wrapper
-and marks only authenticated arg codes 1/2 or stdin codes 3/4. It must equal
-the ordinary nonzero data-status code before an adapter attributes the
-command-input domain; arithmetic, contract, and internal failures leave the
-marker zero, preserving native/Wasm status-domain parity.
-
-Project Manifest v6 additively selects `language-command-io.v1`, exact
-`argv-utf8+stdin-bytes.v1` input, one explicit `() -> bool` stable ID, and the
-sorted four-capability closure. Its generated semantic command carrier is
-independently replayed before publication. Earlier manifest, package, carrier,
-Graph, and command bytes remain frozen. Windows npm publication stays
-fail-closed rather than substituting weaker path authority. Local focused
-execution does not constitute exact-head hosted promotion.
-
-Project loading now separates immutable `ProjectRevision` meaning from live
-`ProjectSnapshot` authority. The revision owns canonical manifest/source facts,
-linked entry/test HIR, and the semantic graph/analysis index; the snapshot alone
-owns root paths, held filesystem identities, drift invalidation, rename, process
-execution, and held-input-bound publication/rechecks. A pathless carrier built
-from the revision can still be published later using authority explicitly
-supplied by its caller; that publication does not inherit live input authority.
-This is the authority-neutral prerequisite for a future replayed revision
-index, not persistence: no revision store or recovery claim is made here.
-
-The v6 native Project route admits Graph v19 in Semantic Workspace replay,
-builds the ordinary pure-main closure without smuggling effectful command
-functions into it, then adds exactly the manifest-selected command root. The
-language-command linker retains `main` as the HIR entrypoint while validating
-the separate explicit `() -> bool` command, and the native emitter receives
-that command identity explicitly. This closes the previous Project-CLI
-rejection without widening v1-v5 profiles.
-
-Files, environment, networking, child processes, terminals,
-streaming/interactive I/O, WASI, callbacks/async,
-physical cross-descriptor atomicity, durability, registry publication, and
-release promotion remain nonclaims.
-
-## Line Command I/O v1 and Project Manifest v7
-
-Project Manifest v7 additively selects the closed `line-command-io.v1`
-profile. The manifest binds one `() -> bool` command, the existing
-`argv-utf8+stdin-bytes.v1` input envelope, and the exact four command
-capabilities. Its committed product is the multi-module `spxgrep-lines`
-application, not general streaming I/O.
-
-`byte_range(value, start, end)` is an explicit fallible HIR expression, not an
-ordinary call. It evaluates source, start, and end left-to-right, constructs a
-half-open borrowed view, and reports only `semaprax.byte-range.v1` code 1
-(`start > end`) or code 2 (`end > source length`). Nested named views retain a
-bounded acyclic derivation. Their presence selects additive Graph v20; lower
-Graph bytes remain unchanged. CleanupPlan v4 records and independently replays
-the range/output status and settlement edges.
-
-`stdout_append` and `stderr_append` are the only command-output operations
-admitted in bounded loop bodies. They share one exact cumulative 65,536-byte
-invocation budget. Both transcripts publish atomically with the terminal bool
-only after cleanup succeeds; failure discards both semantic transcripts. This
-does not claim atomic or durable physical writes across OS descriptors.
-
-Core-Wasm represents a live range through fixed private invocation-local
-descriptor slots that authenticate the underlying arena token, absolute
-offset, and length without copying bytes or minting ownership. Slots are
-reusable only because views are lexical and cannot escape or remain live across
-iterations; cyclic range reachability is rejected. This is private runtime
-representation, not a public ABI or linear-memory pointer capability.
-
-The v7 npm route emits independently replayed
-`semaprax.project-npm-build.v6`. Cross-module imports widen only to monomorphic
-functions accepting `borrow Slice<u8>` and returning a non-borrowing scalar.
-Borrowed returns, owned byte/string results, aggregates, resources, generics,
-and all other non-Value modes remain rejected. Local interpreter, native, and
-Core-Wasm/Node evidence covers `spxgrep-lines`; hosted promotion, real-browser,
-multi-engine, and general
-streams/files/WASI, registry publication, and broad v0.2 completion remain
-open.
-
-### Project Agent Transport v2
-
-`src/project_transport/` and `src/bin/semapraxd.rs` add a separate strict
-stdio protocol without changing Graph Agent Transport v1. The startup path is
-the sole manifest-selection authority. The one Phase-A build yields validated
-entry/test linked HIR, a complete declared-project projection, and a typed
-analysis index. Project graph/context renderers bind raw declared Project
-inputs and never reuse managed-Workspace provenance.
-
-Every semantic request binds both revisions inside a pre/post held-input guard;
-drift is absorbing and no already-rendered semantic payload is written. Raw
-framing is bounded, duplicate-detecting, and invalid-UTF-8/CR rejecting.
-Responses are all-or-error under a cap including the LF. The sequential
-read-only method set admits snapshot, check, graph, context, and the in-process
-manifest test closure. Build, impact/review, rename/change/apply, network
-service, and disk persistence are absent. See [Project Agent Transport
-v2](PROJECT-AGENT-TRANSPORT-V2.md).
-
-### Project Rename Transaction v1
-
-`--allow-project-rename` selects additive Project Agent Transport v3 without
-widening default v2. Its closed router adds only `rename/preview` and
-`rename/apply` for the display name of one explicit-ID monomorphic function
-already selected by the bound manifest's `web_exports`. The server derives the
-source path and canonical Patch-v1 bytes from retained Project meaning; no
-request-selected path, source, patch, evidence, or output authority enters the
-session.
-
-Preview performs pure patch preflight and one complete candidate Project build,
-then retains one digest-bound plan only after the response fits. Apply renders
-both possible post-effect responses before acquiring authority. While Project
-handles remain live it acquires the unchanged single-file A0 lock and source
-snapshot, checks A0 base/candidate/canonical bytes against the retained plan,
-then transfers exclusive ownership to one consuming A0 commit. The ordinary
-create-new staging and two final source/stage checks remain the sole mutation
-core. After commit, a full manifest reload must exactly match candidate source,
-Project/Workspace revisions, and Project graph before success is reported;
-otherwise the session fail-stops with `SPX-J110`. This adds no multi-file or
-managed-Workspace publication authority. See [Project Rename Transaction
-v1](PROJECT-RENAME-TRANSACTION-V1.md).
-
-### Project Agent Workflow v1
-
-`--allow-project-workflow` selects additive Project Agent Transport v4 while
-leaving v2/v3 byte-preserved. Its `rename/derive` -> `change/preview` ->
-`impact`/`review` -> `change/apply` state machine reuses the exact retained
-Project meaning, complete candidate builder, and existing Project/A0 handoff.
-The new Impact and Review schemas are Project-specific and digest-domain
-separated from managed Workspace artifacts; both typed base and candidate
-reverse closures are bound to the exact preview.
-
-After exact candidate reload, `build {target:"web"}` may return the same fixed
-seven Project Web artifacts as one bounded hexadecimal
-`semaprax.project-web-build.v1` carrier. Independent replay checks inventory,
-order, bytes, SHA-256 values, cumulative cap, manifest binding, and canonical
-payload digest. That is transport integrity and Project binding, not compiler
-provenance or target execution. This method owns no output path, filesystem
-write, process, tool, environment, native, or Rust build authority. Apply and
-build are separate, and build is open-state-only, so uncertainty cannot trigger
-a later action. See [Project Agent Workflow v1](PROJECT-AGENT-WORKFLOW-V1.md).
-
-The additive `project_product_acceptance_v1` integration runner composes these
-previously separate product lanes without granting the daemon new authority.
-For one copied six-operation calculator Project it executes entry and test
-meaning in the interpreter, native C11 at O0/O2, and Core Wasm, plus the
-authenticated Web carrier; then it drives the complete v4 rename workflow and
-repeats those target checks and the stable-ID Web/native consumer checks.
-Explicit environment
-gates additionally compile the generated declarations with pinned TypeScript
-5.8.3 and build and run the baseline and renamed Project Rust SDK consumers
-under the existing held-tool authority. Keeping this orchestration in
-`tests/support/project_product.rs` avoids duplicating compiler or publication
-logic in another monolithic test.
-
-## Semantic workspace graph, analysis, and evidence-gated changes
-
-`src/semantic_workspace.rs` additively initializes a Semantic Workspace v1 in
-the existing `.semaprax-workspace` managed-generation layout. Its path-set,
-`ACTIVE`, and manifest schemas are disjoint from ordinary Workspace v1, so the
-two modes fail closed rather than silently reinterpret one another. Original
-source paths are authenticated inputs only and are never rewritten.
-
-`src/workspace_graph.rs` holds one shared semantic-workspace lock through a
-single retained full managed-set build, entry-provider projection, bounded
-canonical render, final held-object/inventory recheck, and checked unlock. It
-authenticates explicit cross-file function/type imports and emits the six
-closed call, type, import, effect, and capability edge families. The public
-graph excludes reverse consumers and disconnected modules from its selected
-entry closure, while its work budget still covers the complete managed set.
-`src/workspace_graph/expected_projection.rs` isolates the pure authored-tree
-cost prebinding, deterministic dependency-depth reconstruction, and independent
-expected-edge reconstruction. Builder
-reservation, edge append, and AST call walking remain in the root module, so
-the projection gains no separate ledger, ordering, or workspace authority.
-`src/workspace_analysis.rs` consumes that same sealed authority to produce
-typed, namespace-safe Context, reverse structural Impact, and fixed-section
-Review. These are current-state read-only projections; they are not patch
-delta, target/test execution, approval, or commit authority.
-
-`src/semantic_workspace_change.rs` owns the separate replacements-only change
-protocol. Generate owns one canonical proposal under the shared lock and
-derives one base build plus one complete candidate build. Verification owns
-proposal bytes, then owns and strict-parses submitted Evidence before parsing
-the proposal, rebuilds every typed artifact, exact-compares the complete
-capsule, and returns a non-authorizing receipt only after final recheck and
-checked unlock. Context, Impact, and Review in this protocol describe the
-hypothetical candidate delta across the full authenticated managed graph; they
-do not reuse the current-state Workspace Analysis artifacts.
-
-Apply repeats that replay under one exclusive lock. Exact replay precedes any
-candidate or staging write. An invocation-local sealed authority then creates
-or deeply reuses the immutable candidate without clobbering, stages a new
-semantic `ACTIVE`, performs two complete final checks with the last check
-immediately before the sole rename, and sets the pivot bit only after that
-rename succeeds. Post-pivot authentication is structural and uses the held
-objects rather than a second resolver pass. Every pre-pivot publication error
-after exact replay is `SPX-I211`; validation and authentication failures retain
-their frozen diagnostics. Every uncertainty after the pivot, including
-checked-unlock failure, is `SPX-I212`.
-
-Candidate and staging residue is bounded and never automatically deleted.
-Because retained-generation and staging counts are authenticated evidence,
-residue changes the state to which Evidence is bound: old Evidence can fail
-`SPX-G187`, while freshly regenerated Evidence may authorize exact physical
-candidate reuse. Receipt bytes are deterministic only for the same
-authenticated pre-apply state, proposal, and Evidence; no receipt exposes the
-create/reuse strategy and neither receipt is an authorization token.
-
-The exact contracts are frozen in [Semantic Workspace v1](SEMANTIC-WORKSPACE-V1.md),
-[Workspace Semantic Graph v1](WORKSPACE-SEMANTIC-GRAPH-V1.md),
-[Workspace Analysis v1](WORKSPACE-ANALYSIS-V1.md), and
-[Semantic Workspace Change v1](SEMANTIC-WORKSPACE-CHANGE-V1.md). Local public
-C3 is 10/10 and private authority evidence is 11/11. The exact-head hosted
-matrix is pending, so no hosted or completion-status promotion is claimed.
-Real process termination at the two pivot boundaries proves only lock release
-and authenticated old/new state on tested filesystems; it does not prove
-parent-directory, journal, storage-device, reboot, or power-loss durability.
-
-Semantic Workspace Operations v1 is a separate bounded stable-identity layer
-over this authenticated workspace. Its derivation, Evidence-generation, and
-verification routes are read-only. One Operations-specific shared snapshot build retains
-the base AST/HIR occurrence sidecar together with the unified graph. A canonical
-2–64-operation proposal selects explicit stable-ID declarations or direct
-function/type import aliases across 2–16 existing paths; one simultaneous edit
-plan and one candidate graph then derive the exact unchanged Change-v1
-replacements proposal. The canonical derivation wrapper binds both proposal
-digests and exact usage, but is not Evidence or authority. Final recheck is over
-held structural/byte/permission/inventory facts and performs no second resolver
-pass. Additive outer Operations Evidence embeds the exact unchanged Change-v1
-Evidence and binds it to Operations proposal and derivation digests. Shared
-verification regenerates both layers once. Exclusive apply performs the same
-fresh whole replay and prerenders its receipt before a sealed invocation-local
-commit proof can enter the existing immutable candidate/`ACTIVE` publisher.
-Neither Evidence nor either receipt is reusable authority. The contract is
-[Semantic Workspace Operations v1](SEMANTIC-WORKSPACE-OPERATIONS-V1.md).
-The exact `dfc04278c6ba9a7dd247d4cc4add3af91f55b936` matrix is hosted green in
-[run 31570834457](https://github.com/wavect/semaprax/actions/runs/31570834457);
-all 12 jobs passed, including the Operations process-termination gate on
-Ubuntu, macOS, and Windows. That tranche made no status change; after Public
-Wasm Scalar Exports v1, current totals were 39 Partial/17 Missing; the locally evidenced Typed Hygienic Generation v1 tranche moved the Typed hygienic generation row to Partial, and current totals are 40 Partial/16 Missing.
-
-## Transactions
-
-The `.spatch` protocol is intentionally smaller than a text patch:
-
-```text
-base <graph-revision>
-rename <stable-id> to <new-name>
-require no-new-effects
-```
-
-Application is all-or-nothing:
-
-1. Parse the current source and compare its canonical revision.
-2. Resolve operations through stable IDs.
-3. Apply declaration and call-edge changes in memory.
-4. Reparse and verify the candidate program.
-5. Evaluate patch requirements.
-6. Canonically render through a bounded create-new sibling staging file while
-   preserving source permissions and synchronizing the staged bytes.
-7. Recheck exact source identity/bytes/revision and staging path/handle
-   identity/bytes at both final commit boundaries, then atomically rename the
-   authenticated stage over the original.
-
-Commit A0 resolves the supplied regular non-symlink source to one authenticated
-canonical path so parent aliases share the same deterministic create-new
-sibling lock. The held lock serializes cooperating writers through the final
-rename. Staging never truncates or follows preplanted objects, and cleanup
-removes only a path whose current identity still matches the implementation's
-owned handle. Unix identity is exact device/inode. Windows holds same-file
-handles and compares volume plus the available 64-bit file index; it explicitly
-does not claim uniqueness on ReFS 128-bit or hostile non-unique-index
-environments. Internal commit-race/failure/path-swap tests are 5/5, integration
-patch tests are 17/17, and the full matrix is hosted green in [run 31396483313,
-including Windows job
-93481068538](https://github.com/wavect/semaprax/actions/runs/31396483313/job/93481068538).
-
-This A0 path remains a single-file cooperative protocol. Predictable sibling names
-permit collision or stale-lock denial of service, crashes may leave locks, the
-containing directory remains trusted against non-cooperating mutation in the
-final portable path-based rename window, and parent-directory synchronization,
-power-loss durability, general raw-source/repository multi-file commits, and
-general typed repair/impact are not claimed. The separate managed workspace
-protocol above supplies only its bounded cooperating-reader publication model.
-
-The broader protocol will evolve toward structured JSON/CBOR operations with
-typed payloads, affected-node proofs, target requirements, and general
-multi-file graph commits.
-
-## Native backend
-
-The v0.2 native backend emits readable C11, then invokes Clang. C is an implementation IR, not a promised ecosystem boundary. This gives the prototype real native binaries, easy inspection, sanitizers, and broad host support with almost no backend dependency surface.
-
-The C emitter materializes subexpressions in source order before calls and operators. This is required because C does not define function-argument evaluation order, while SEMAPRAX does. Lazy boolean operators and `if` expressions lower to explicit branches, and generated local names cannot collide with source identifiers. Generic function symbols derive from the domain-separated exact template-plus-ordered-argument execution identity, so same-signature templates and `i64`/`bool` instances remain distinct; only explicitly referenced instances are emitted. Generic record structs likewise use exact-instance symbols. The bounded copy-variant lane emits deterministic structs with an explicit `uint32_t` tag, a declaration-order payload union, and compile-time size/alignment/offset assertions. Constructors evaluate payloads in authored order, zero the full representation, write payload fields, and publish the tag last. Matches stage the scrutinee once, validate the tag before union access, and execute only the selected arm. Invalid tags terminate through the runtime-invariant path rather than becoming a semantic status. Every function uses `(context, parameters..., result_out) -> status_token`, with internal aggregate parameters passed by pointer and caller-owned aggregate results; nested calls share one invocation-local arena, zero means success, contract and checked-arithmetic failures return exact normalized records, and `result_out` is written only at the final success commit. The executable wrapper translates a completed root failure back into the existing process diagnostics and exit codes.
-
-The planned development backend is Cranelift. The planned optimizing pipeline uses multi-level IR with LLVM, while portable components lower through the WebAssembly Component Model. Backend changes must preserve the graph and verification contracts.
-
-## C header emission
-
-`src/c_header.rs` owns the deterministic, read-only `semaprax.c-header.v1`
-projection (`semaprax c-header <file> --function ...`). It selects explicit-ID
-monomorphic by-value `i64`/`bool` functions, extracts each declaration line
-verbatim from the production native C11 projection so headers can never
-disagree with the emitted ABI, annotates them with typed stable-ID,
-canonical-contract, effect, status-contract, and by-value ownership facts
-under a fail-closed comment-hygiene guard, derives include guards from
-sorted admitted stable identities alone, and wraps everything in a
-domain-separated digest-authenticated envelope that `verify_envelope`
-independently replays. Budget overflow, selection errors, hygiene
-violations, and native-projection mismatches all fail closed through the
-closed `SPX-D1xx` family; nothing is imported, wrapped, compiled, or
-executed. See [C-HEADER-V1.md](C-HEADER-V1.md).
-
-## Ownership seed
-
-Resource declarations and records containing resources introduce non-copy semantic values. Function parameters state whether they receive ownership, borrow for the duration of a call, or participate in explicit shared ownership. `let` and record construction transfer owned values left-to-right while preserving borrowed/shared modes. Moving an owned record field invalidates that place and its parents while leaving disjoint siblings available. The verifier joins field state across `if` and lazy boolean control flow, distinguishes definite from conditional partial moves, replays the same rules at the public HIR boundary, and prevents borrowed/shared fields from crossing owned boundaries.
-
-This is the first ownership IR, not a complete borrow checker. Mutable alias exclusion, inferred reborrows, lifetime parameters, regions, destructors, ARC operations, and FFI ownership remain explicit completion gates.
-
-## WebAssembly bootstrap backend
-
-The direct Wasm encoder emits standard WebAssembly core modules without requiring a Rust target installation or an external assembler. Monomorphic functions and explicitly referenced generic-function instances compile to distinct typed Wasm functions; unused templates allocate no index, and `main` remains exported as `semaprax_main`. The aggregate profile lowers bounded copy variants into checked Wasm32 frame layouts with a `u32` tag and aligned maximum payload, zero-fills before tag-last publication, evaluates a match scrutinee once, and evaluates only the selected scalar arm. An invalid tag uses a private negative sentinel, restores the shadow stack, and traps out of band at the public wrapper; it is never mapped to a language failure. Contracts trap through a host import. Arithmetic lowers to a small generated JavaScript host that performs checked `i64` operations with `BigInt`, preserving the safe arithmetic semantics instead of silently accepting Wasm's wrapping operators.
-
-The web package contains `app.wasm`, `semaprax.js`, `index.html`, `package.json`, and a `semaprax.web.v3` graph-revision/capability manifest. Version 3 adds a required `semaprax.wasm-owned.v1` function map; scalar-only packages carry an empty map and do not allocate owned-runtime identity. The additive Useful Text Consumer profile has a separate export planner and fixed-scratch UTF-8 adapter; it does not widen or rewrite legacy scalar Web output. This is real browser-executable output; it is not yet the UI dialect, DOM renderer, SSR/hydration system, WASI target, or Component Model backend.
-
-The additive [Public Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md)
-profile selects 1–32 explicit stable-ID functions from a completely
-monomorphic, effect-free `i64`/`bool` program. It emits only collision-free
-stable-ID-derived adapters—never the legacy `semaprax_main`—plus a
-`semaprax.web.v4` digest manifest, a digest-authenticating ES runtime, frozen
-stable-ID JavaScript bindings, and TypeScript declarations. The fresh output
-directory has a seven-file exact inventory and refuses pre-existing
-destinations. The path-based publisher rejects symlink/reparse parents and
-children, retains parent/output identities, creates every fixed-name file with
-create-new, rebinds both identities, and replays the exact inventory and bytes
-again immediately before success. Cleanup reauthenticates both identities and
-removes only expected-name regular files whose bytes still match. The caller must
-exclusively control the parent and child namespace throughout publication;
-concurrent same-authority rename, replacement, insertion, deletion,
-symlink/reparse creation, or byte mutation remains outside v1; this is not a
-hostile-concurrent-writer claim. JavaScript
-converts signed-range `bigint` and canonical
-`boolean`, and normalizes only private branded arithmetic/contract failures to
-the closed status result. Legacy builds without `--export` retain web v3.
-Aggregate/resource programs, imports, capabilities, generics, callbacks,
-async, Components, package publication, provenance, general browser support,
-and production readiness remain outside this profile. Node evidence exists. A
-locked one-worker/no-retry Chromium loopback calculator job is wired separately
-from compiler semantics and is exact-head hosted green at
-`d883ace579bfd86f723cdc6819224fde51f0677d` in [run 32523952912, job
-96901973072](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973072);
-exact TypeScript 5.8.3 compilation of the real generated consumer is part of
-that same hosted gate. That browser job proves only the
-generated calculator in one Ubuntu Chromium configuration, not general browser
-compatibility.
-
-The additive product fixture reuses that committed calculator shell for two
-separate generated roots: the direct `semaprax.web.v4` package and the linked
-Project `semaprax.web-project.v1` package. A bounded preflight authenticates the
-schema distinction and exact common six-stable-ID inventory before Playwright
-starts; each generated declaration consumer is checked independently and the
-two browser instances use isolated loopback ports. This dual fixture is
-exact-head hosted green on Ubuntu Chromium at
-`27dbfafe0f6a3c7e68e0434a0a082020104f2241` in
-[job 97930658621](https://github.com/wavect/semaprax/actions/runs/32887305666/job/97930658621);
-it is not a multi-engine or general browser claim.
-
-## Development integrity
-
-Semantic Patch v2 is an additive identity-scoped transaction layer over the
-existing A0 single-file commit protocol. It resolves record/case members and
-generic call arguments against verified pre-edit HIR, preserves pattern binding
-identity through shorthand expansion, and runs a selective Graph/HIR semantic
-delta gate before staging. Schema-less v1 patches retain their original path.
-See `docs/SEMANTIC-PATCH-V2.md`; Graph remains v14 and CleanupPlan is unchanged.
-The focused v2 suite is 9/9, and the exact `f95d243` full hosted matrix is green
-in [run 31401200449 attempt
-2](https://github.com/wavect/semaprax/actions/runs/31401200449/attempts/2),
-including [Ubuntu job
-93505622044](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622044)
-and the isolated runtime lock in green [Wasmtime job
-93505622110](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622110).
-
-Separate Semantic Patch v3 admits only the exact three-line
-`assign-function-id` operation generated by Diagnostic Repair v1. It reruns the
-closed repair and breaking-rebase proof before using the same A0 commit path.
-Local Phase A integration is 13/13; the Phase B semantic integration corpus is
-7/7; v3 A0 hook units are 4/4; aggregate v3 integration-plus-hook evidence is
-9/9; and the library suite is 404/404. Full preservation is green and
-independent security review is clean. The exact `dae957a` full matrix is hosted
-green in [run 31418476217 attempt
-1](https://github.com/wavect/semaprax/actions/runs/31418476217/attempts/1),
-including [Ubuntu job
-93553147265](https://github.com/wavect/semaprax/actions/runs/31418476217/job/93553147265);
-all 12 jobs passed. V3 adds no other operation,
-batching, general repair language, multi-file authority, or authenticated patch
-provenance.
-
-`AGENTS.md` defines the repository invariants and change protocol. `docs/QUALITY-GATES.md` defines baseline and semantic-layer-specific evidence. CI runs formatting, strict linting, tests, release builds, native execution, Wasm instantiation, crate packaging, and the declared Rust minimum version. These gates reduce regressions; they do not turn a partial completion-matrix row into a completed one.
-
-The [Bounded Native Agent Runtime v1](AGENT-RUNTIME-V1.md) is an isolated safe-
-Rust runtime. A caller-authenticated catalog and an
-injected `AgentHost` drive one sequential, bounded loop; canonical model actions
-can select only registered contractually read-only typed tools after immediate schema,
-effect, capability, policy, cancellation, deadline, and budget checks. Provider
-and tool bytes enter runtime-owned incremental sinks, and Trace/Evidence records
-only digests, lengths, usage, and decisions. C1 publicly exposes the opaque Agent,
-runtime-owned sinks, closed provider attempt values, cancellation handle, and
-opaque run getters; the unsealed host is injected and trusted for its declared
-transport/tools. The module has no built-in transport, process/environment/home access, filesystem mutation, durable
-memory, wallet, payment, signing, language, Graph, cleanup, or backend surface.
-Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows). Private Economic Agent v1 A+B is exact-head hosted green at fe75c38d898b71e3ed5c57411fb46d0dbd4fc34b in run 31611748969, including both Economic gates on Ubuntu, macOS, and Windows. Public Economic Agent v1 C is exact-head hosted green at 03f1f2736de23d03b298f265f93409de89a6be95 in run 31616168124 (12/12 jobs), including the private, process-termination, and public Economic gates on Ubuntu, macOS, and Windows.
-That additive injected-host surface made no status transition; after Public
-Wasm Scalar Exports v1, current totals were 39 Partial/17 Missing; the locally evidenced Typed Hygienic Generation v1 tranche moved the Typed hygienic generation row to Partial, and current totals are 40 Partial/16 Missing.
-
-## Trust boundaries
-
-- Source is authenticated and patch text is fully parsed. Patch-file path/content
-  provenance is trusted input unless the caller snapshots/authenticates it;
-  A0 does not authenticate a concurrent `read_to_string(patch_path)`.
-- Diagnostic-repair discovery and instantiation are read-only. Patch v3 commit
-  authority exists only for its canonical single `assign-function-id`
-  operation after the repair ID, target/name/input, reduced source domain, and
-  complete breaking identity rebase are independently revalidated.
-- Names are restricted before reaching C identifiers.
-- String data embedded into C diagnostics is escaped.
-- Generated C is compiled without shell interpolation.
-- Patch writes are revision-bound, verified, and atomic.
-- Native dynamic-library loading is confined to unpublished quarantine crates.
-  The private callable-v2 host connects exact descriptor/dictionary/certificate
-  admission, loader lease, authority, ledger, strict wire transport, and
-  compiler-generated execution. Its unsafe admission contract still trusts the
-  selected native image and dependencies; it is not a sandbox or code-identity
-  proof. Public bundle construction adds no unsafe loading authority; the
-  public execution/admission gate remains closed.
-- `prepareTrustedAdoption` is the Wasm host's explicit trusted assertion that one unique external ownership identity is being transferred. Tickets are one-shot; exact Wasm byte binding keeps the mutating imports private to the generated artifact; canonical arguments, generated export metadata, and the result range are checked before ownership commit.
-- Same-realm Wasm instance tags are coordinated through one host-global allocator. The realm and its reserved binding are trusted host state; hostile pre-poisoning, cross-realm, and worker identity remain outside the implemented guarantee.
-- The compiler currently invokes the host `clang`; sandboxed build execution is roadmap work.
+`src/agent_transport.rs` serves a bounded JSON-RPC loop over one checked
+program. `src/patch.rs` owns the supported single-file transaction format and
+A0 commit boundary. `src/repair.rs`, `src/impact.rs`, and `src/review.rs` are
+read-only planners and projections.
+
+`src/patch_evidence.rs` independently reconstructs supported evidence. The
+evidence-gated apply route acquires ordinary A0 authority first, replays before
+staging, and rechecks the unchanged source before commit. Ordinary `patch`
+remains a separate legacy route.
+
+### Managed workspace
+
+`src/workspace.rs` owns immutable generations and the authenticated `ACTIVE`
+pivot. `src/workspace_patch_evidence.rs` binds exact per-file child evidence
+and replays it before candidate creation.
+
+`src/semantic_workspace.rs`, `src/workspace_graph.rs`, and
+`src/workspace_analysis.rs` own cross-file initialization, graph construction,
+context, impact, and review. `src/semantic_workspace_change.rs` and its modules
+own replacements-only evidence and publication. Operations and structural
+change are separate, bounded derivation layers in
+`src/semantic_workspace_operations.rs` and
+`src/semantic_workspace_structural_change.rs`.
+
+Only the live workspace invocation owns the final publication pivot. Evidence
+capsules never carry reusable authority.
+
+### Project profile and daemon
+
+`src/project/manifest.rs` parses the bounded `semaprax.toml` profiles.
+`src/project/` owns held input authority, immutable revisions, semantic
+admission, linking, execution, builds, npm carriers, rename planning, and the
+unpublished native Rust SDK bridge.
+
+`src/project_transport/` and `src/bin/semapraxd.rs` retain one authenticated
+Project revision for bounded requests. Read-only v2 is the default. Explicit
+opt-ins add one server-derived rename and workflow; they do not add general
+patch, filesystem, network, persistence, or recovery authority.
+
+## Reports and projections
+
+Read-only commands are implemented in focused modules such as
+`src/abi_report.rs`, `src/c_header.rs`, `src/cxx_shim.rs`,
+`src/capability_manifest.rs`, `src/freestanding_object.rs`, `src/openapi.rs`,
+`src/package_report.rs`, `src/plugin_manifest.rs`, `src/region_report.rs`,
+`src/simd_report.rs`, and `src/ui_schema.rs`.
+
+These modules must:
+
+- consume verified representations;
+- use closed admission and exclusion vocabularies;
+- emit deterministic bounded output;
+- independently replay digest-authenticated envelopes where specified;
+- make target execution and unsupported surfaces explicit non-claims.
+
+A report can deepen a completion row from Missing to Partial. It cannot prove
+the runtime or ecosystem feature it describes.
+
+## Private host and proof boundaries
+
+The following areas are deliberately quarantined from the public compiler
+contract:
+
+- `crates/semaprax-native-loader`: unsafe dynamic-loader boundary;
+- `crates/semaprax-native-host`: connected callable and settlement host;
+- `crates/semaprax-native-rust-interop-*`: unpublished deterministic Rust SDK
+  builder and platform-specific publication authority;
+- `src/native_settlement.rs`, `src/arc_zones.rs`, and `src/scoped_tasks.rs`:
+  target-neutral proof models rather than wired runtime features;
+- `src/agent_runtime.rs` and `src/economic_agent.rs`: injected-host Rust APIs
+  with no built-in provider transport, keys, wallet, or ambient authority;
+- `platform-tests/`: installed application and runtime fixtures whose claims
+  count only when the owning hosted jobs are green.
+
+Private or proof-only evidence may validate a design boundary without creating
+a supported language, CLI, ABI, or runtime surface.
+
+## Trust boundaries and invariants
+
+1. Safe source must have equivalent checked behavior on every backend that
+   claims to implement the admitted feature.
+2. Evaluation order is left to right; lazy boolean operands execute only when
+   required.
+3. Public declaration IDs persist; expression IDs may be revision-scoped.
+4. Source formatting, graph JSON, reports, diagnostics, patches, and generated
+   artifacts covered by a contract are deterministic.
+5. Failed or stale transactions leave authoritative source or the active
+   generation unchanged.
+6. Capabilities are explicit. Compiler and generated code gain no ambient
+   filesystem, process, network, home, or secret authority.
+7. Ownership errors are compile-time diagnostics, never backend accidents.
+8. Owned calls stage arguments left to right and transfer them together at the
+   declared commit boundary.
+9. Proof data never authorizes a physical finalizer, build, or publication.
+10. No feature is complete without the completion matrix's executable gate.
+
+## Repository map
+
+| Area | Primary owners |
+| --- | --- |
+| Source projection | `src/ast.rs`, `src/lexer.rs`, `src/parser.rs`, `src/format.rs` |
+| Verification and HIR | `src/verify.rs`, `src/source_verify.rs`, `src/hir.rs`, `src/hir/` |
+| Cleanup and layouts | `src/cleanup.rs`, `src/cleanup_plan.rs`, `src/cleanup_plan/`, `src/aggregate_layout.rs`, `src/variant_layout.rs` |
+| Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs` |
+| Single-file transactions | `src/patch.rs`, `src/patch/`, `src/patch_evidence.rs`, `src/repair.rs` |
+| Managed workspace | `src/workspace.rs`, `src/workspace_*`, `src/semantic_workspace*` |
+| Project and daemon | `src/project/`, `src/project_transport/`, `src/bin/semapraxd.rs` |
+| Interpreter | `src/interpreter.rs`, `src/hosted_interpreter.rs` |
+| Native backend | `src/codegen.rs`, `src/codegen/native_*` |
+| WebAssembly backend | `src/wasm.rs`, `src/wasm/` |
+| Reports | the focused `*_report`, schema, manifest, header, and shim modules |
+| Private host/runtime evidence | `crates/semaprax-native-*`, `platform-tests/` |
+| Executable evidence | `tests/`, crate-local tests, `platform-tests/`, `.github/workflows/` |
+
+This table is the single module-level map. Other contributor documents should
+link here instead of copying it.

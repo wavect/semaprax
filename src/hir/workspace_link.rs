@@ -231,21 +231,22 @@ pub(crate) fn link_useful_data_command_workspace(
 pub(crate) fn link_language_command_io_workspace(
     module: String,
     entrypoint: DeclarationId,
+    command: DeclarationId,
     linked_functions: Vec<LinkedScalarFunction>,
 ) -> Result<ResolvedProgram, Diagnostic> {
     link_useful_data_workspace_profile(
         module,
         entrypoint,
         linked_functions,
-        WorkspaceIoProfile::LanguageCommand,
+        WorkspaceIoProfile::LanguageCommand { command },
     )
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 enum WorkspaceIoProfile {
     Pure,
     Stdout,
-    LanguageCommand,
+    LanguageCommand { command: DeclarationId },
 }
 
 fn link_useful_data_workspace_profile(
@@ -269,13 +270,13 @@ fn link_useful_data_workspace_profile(
                 function.id
             )));
         }
-        let effects_admitted = match profile {
+        let effects_admitted = match &profile {
             WorkspaceIoProfile::Pure => function.effects.is_empty(),
             WorkspaceIoProfile::Stdout => {
                 function.effects.is_empty()
                     || function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT]
             }
-            WorkspaceIoProfile::LanguageCommand => function.effects.iter().all(|effect| {
+            WorkspaceIoProfile::LanguageCommand { .. } => function.effects.iter().all(|effect| {
                 matches!(
                     effect.as_str(),
                     crate::command_io_ops::ARGS_READ_EFFECT
@@ -298,21 +299,12 @@ fn link_useful_data_workspace_profile(
         }
         if function.id == entrypoint {
             entry_origin = Some(linked.origin);
-            if (profile != WorkspaceIoProfile::LanguageCommand && function.name != "main")
+            if function.name != "main"
                 || !function.params.is_empty()
-                || function.return_type
-                    != if profile == WorkspaceIoProfile::LanguageCommand {
-                        ResolvedType::Bool
-                    } else {
-                        ResolvedType::I64
-                    }
+                || function.return_type != ResolvedType::I64
             {
                 return Err(link_error(
-                    if profile == WorkspaceIoProfile::LanguageCommand {
-                        "workspace language-command entry point must be an explicit stable-ID `fn () -> bool`"
-                    } else {
-                        "workspace useful-data entry point must be an authored `fn main() -> i64`"
-                    },
+                    "workspace useful-data entry point must be an authored `fn main() -> i64`",
                 ));
             }
         }
@@ -321,6 +313,20 @@ fn link_useful_data_workspace_profile(
         return Err(link_error(
             "workspace useful-data entry point must have an explicit authored identity",
         ));
+    }
+    if let WorkspaceIoProfile::LanguageCommand { command } = &profile {
+        let selected = linked_functions
+            .iter()
+            .find(|linked| &linked.function.id == command)
+            .ok_or_else(|| link_error("workspace language-command identity is absent"))?;
+        if selected.origin != IdentityOrigin::Explicit
+            || !selected.function.params.is_empty()
+            || selected.function.return_type != ResolvedType::Bool
+        {
+            return Err(link_error(
+                "workspace language command must be an explicit stable-ID `fn () -> bool`",
+            ));
+        }
     }
 
     let origins = linked_functions
@@ -400,10 +406,10 @@ fn link_useful_data_workspace_profile(
     }
     let mut linked = ResolvedProgram {
         module,
-        permits: match profile {
+        permits: match &profile {
             WorkspaceIoProfile::Pure => Vec::new(),
             WorkspaceIoProfile::Stdout => vec![crate::host_io_ops::STDOUT_WRITE_EFFECT.to_owned()],
-            WorkspaceIoProfile::LanguageCommand => vec![
+            WorkspaceIoProfile::LanguageCommand { .. } => vec![
                 crate::command_io_ops::ARGS_READ_EFFECT.to_owned(),
                 crate::command_io_ops::STDERR_WRITE_EFFECT.to_owned(),
                 crate::command_io_ops::STDIN_READ_EFFECT.to_owned(),

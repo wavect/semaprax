@@ -13,12 +13,15 @@ mod native_sdk;
 mod npm;
 mod profile;
 mod rename;
+mod revision;
 mod semantic;
 #[cfg(test)]
 mod tests;
 
 use std::collections::BTreeSet;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use crate::diagnostic::Diagnostic;
 use crate::semantic_workspace::SemanticWorkspaceSource;
@@ -52,6 +55,7 @@ pub use profile::{
     PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
 };
 pub(crate) use rename::{PreparedProjectRename, ProjectRenameDerivation};
+pub use revision::ProjectRevision;
 pub use semantic::{
     PROJECT_SEMANTIC_CONTEXT_SCHEMA, PROJECT_SEMANTIC_GRAPH_SCHEMA, PROJECT_SEMANTIC_IMPACT_SCHEMA,
 };
@@ -95,20 +99,21 @@ impl ProjectSource {
 /// An invocation-local authenticated project snapshot.
 pub struct ProjectSnapshot {
     root: PathBuf,
-    manifest: ProjectManifest,
-    sources: Vec<ProjectSource>,
-    workspace_manifest: String,
-    workspace_revision: String,
-    project_revision: String,
-    entry_program: crate::hir::ResolvedProgram,
-    test_program: crate::hir::ResolvedProgram,
-    semantic: semantic::ProjectSemanticState,
+    revision: Arc<ProjectRevision>,
     declared_inputs: Vec<DeclaredPathSelection>,
     held_manifest: HeldFile,
     held_sources: Vec<HeldFile>,
     held_directories: Vec<HeldDirectory>,
     published_subject: Option<&'static str>,
     request_invalidation: Option<Vec<Diagnostic>>,
+}
+
+impl Deref for ProjectSnapshot {
+    type Target = ProjectRevision;
+
+    fn deref(&self) -> &Self::Target {
+        &self.revision
+    }
 }
 
 impl ProjectSnapshot {
@@ -123,73 +128,101 @@ impl ProjectSnapshot {
         &self.root
     }
 
+    // Keep the established ProjectSnapshot API as inherent methods. Deref
+    // makes ordinary calls ergonomic, but it does not preserve UFCS or
+    // function-item uses such as `ProjectSnapshot::check`.
     pub fn manifest(&self) -> &ProjectManifest {
-        &self.manifest
+        self.revision.manifest()
     }
 
     pub fn sources(&self) -> &[ProjectSource] {
-        &self.sources
+        self.revision.sources()
     }
 
     pub fn workspace_manifest(&self) -> &str {
-        &self.workspace_manifest
+        self.revision.workspace_manifest()
     }
 
     pub fn workspace_revision(&self) -> &str {
-        &self.workspace_revision
+        self.revision.workspace_revision()
     }
 
     pub fn project_revision(&self) -> &str {
-        &self.project_revision
+        self.revision.project_revision()
     }
 
     pub fn entry_program(&self) -> &crate::hir::ResolvedProgram {
-        &self.entry_program
+        self.revision.entry_program()
     }
 
     pub fn test_program(&self) -> &crate::hir::ResolvedProgram {
-        &self.test_program
+        self.revision.test_program()
     }
 
-    /// Return the retained complete declared-project graph. This performs no
-    /// filesystem access and carries Project-specific, not managed-Workspace,
-    /// provenance.
     pub fn semantic_graph(&self) -> &str {
-        self.semantic.graph()
+        self.revision.semantic_graph()
     }
 
-    /// Render bounded Project-specific Context from the retained typed index.
     pub fn semantic_context(
         &self,
         target_kind: crate::workspace_analysis::WorkspaceAnalysisTargetKind,
         target: &str,
         options: crate::workspace_analysis::WorkspaceContextOptions,
     ) -> Result<String, Vec<Diagnostic>> {
-        self.semantic.context(
-            self.manifest.name(),
-            &self.project_revision,
-            self.manifest.test_module(),
-            target_kind,
-            target,
-            options,
-        )
+        self.revision.semantic_context(target_kind, target, options)
     }
 
-    /// Render bounded Project-specific reverse Impact from the retained typed index.
     pub fn semantic_impact(
         &self,
         target_kind: crate::workspace_analysis::WorkspaceAnalysisTargetKind,
         target: &str,
         options: crate::workspace_analysis::WorkspaceImpactOptions,
     ) -> Result<String, Vec<Diagnostic>> {
-        self.semantic.impact(
-            self.manifest.name(),
-            &self.project_revision,
-            self.manifest.test_module(),
-            target_kind,
-            target,
-            options,
-        )
+        self.revision.semantic_impact(target_kind, target, options)
+    }
+
+    pub fn check(&self) -> Result<(), Vec<Diagnostic>> {
+        self.revision.check()
+    }
+
+    pub fn execute_entry(
+        &self,
+        options: &ProjectExecutionOptions,
+    ) -> Result<ProjectExecution, Vec<Diagnostic>> {
+        self.revision.execute_entry(options)
+    }
+
+    pub fn execute_test(
+        &self,
+        options: &ProjectExecutionOptions,
+    ) -> Result<ProjectExecution, Vec<Diagnostic>> {
+        self.revision.execute_test(options)
+    }
+
+    pub fn execute(
+        &self,
+        role: ProjectExecutionRole,
+        options: &ProjectExecutionOptions,
+    ) -> Result<ProjectExecution, Vec<Diagnostic>> {
+        self.revision.execute(role, options)
+    }
+
+    pub fn build_web_inline(&self, max_bytes: usize) -> Result<ProjectWebBuild, Vec<Diagnostic>> {
+        self.revision.build_web_inline(max_bytes)
+    }
+
+    pub fn build_npm_inline(&self, max_bytes: usize) -> Result<ProjectNpmBuild, Vec<Diagnostic>> {
+        self.revision.build_npm_inline(max_bytes)
+    }
+
+    pub fn test_wasm_module(&self) -> Result<Vec<u8>, Vec<Diagnostic>> {
+        self.revision.test_wasm_module()
+    }
+
+    /// Retain the immutable, authority-neutral Project revision independently
+    /// of this live authenticated snapshot and its held filesystem handles.
+    pub fn retain_revision(&self) -> Arc<ProjectRevision> {
+        Arc::clone(&self.revision)
     }
 
     /// Prepare one read-only stable-ID display rename over the complete
@@ -235,37 +268,6 @@ impl ProjectSnapshot {
         }
     }
 
-    /// Report successful admission. The linked scalar profile was validated
-    /// before this snapshot became observable.
-    pub fn check(&self) -> Result<(), Vec<Diagnostic>> {
-        Ok(())
-    }
-
-    /// Evaluate the exact authenticated entry closure in memory.
-    pub fn execute_entry(
-        &self,
-        options: &ProjectExecutionOptions,
-    ) -> Result<ProjectExecution, Vec<Diagnostic>> {
-        execution::execute(self, ProjectExecutionRole::Entry, options)
-    }
-
-    /// Evaluate the exact authenticated test closure in memory.
-    pub fn execute_test(
-        &self,
-        options: &ProjectExecutionOptions,
-    ) -> Result<ProjectExecution, Vec<Diagnostic>> {
-        execution::execute(self, ProjectExecutionRole::Test, options)
-    }
-
-    /// Evaluate one exact authenticated closure selected by its closed role.
-    pub fn execute(
-        &self,
-        role: ProjectExecutionRole,
-        options: &ProjectExecutionOptions,
-    ) -> Result<ProjectExecution, Vec<Diagnostic>> {
-        execution::execute(self, role, options)
-    }
-
     /// Build the authenticated project entry closure as its profile-selected
     /// Web product.
     pub fn build_web(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
@@ -294,53 +296,6 @@ impl ProjectSnapshot {
             .map_err(|drift| self.publication_uncertainty(drift))
     }
 
-    /// Build a Project v1 authenticated entry closure as one deterministic
-    /// pathless scalar-Web carrier. Project v2-v6 keep the frozen return type
-    /// honest by using [`Self::build_npm_inline`] for their npm/Web carriers.
-    /// This performs no filesystem access, process launch, publication, or
-    /// caching. `max_bytes` bounds both the cumulative decoded artifact
-    /// inventory and the final canonical hexadecimal envelope.
-    pub fn build_web_inline(&self, max_bytes: usize) -> Result<ProjectWebBuild, Vec<Diagnostic>> {
-        if self.manifest.project_profile() != ProjectProfile::ScalarV1 {
-            let version = if self.manifest.is_v2() {
-                "v2"
-            } else if self.manifest.is_v3() {
-                "v3"
-            } else if self.manifest.is_v4() {
-                "v4"
-            } else if self.manifest.is_v5() {
-                "v5"
-            } else {
-                debug_assert!(self.manifest.is_v6());
-                "v6"
-            };
-            return Err(vec![Diagnostic::io(
-                "SPX-W120",
-                format!("Project {version} pathless Web builds use build_npm_inline"),
-            )]);
-        }
-        crate::wasm::prepare_project_web_with_scalar_exports(
-            &self.entry_program,
-            self.manifest.name(),
-            &self.project_revision,
-            &self.workspace_revision,
-            self.semantic.graph_digest(),
-            self.manifest.entry(),
-            self.manifest.web_exports(),
-        )
-        .and_then(|prepared| {
-            prepared.into_inline(
-                self.manifest.name(),
-                &self.project_revision,
-                &self.workspace_revision,
-                self.semantic.graph_digest(),
-                self.manifest.entry(),
-                max_bytes,
-            )
-        })
-        .map_err(|error| vec![error])
-    }
-
     /// Build and publish the exact installable schema-selected npm package.
     pub fn build_npm(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
         let prepared = npm::prepare(
@@ -359,20 +314,6 @@ impl ProjectSnapshot {
             .map_err(|drift| self.publication_uncertainty(drift))
     }
 
-    /// Build one deterministic, pathless, context-bound npm carrier whose
-    /// self-consistency can be replayed without filesystem or process authority.
-    pub fn build_npm_inline(&self, max_bytes: usize) -> Result<ProjectNpmBuild, Vec<Diagnostic>> {
-        npm::prepare(
-            &self.manifest,
-            &self.entry_program,
-            &self.project_revision,
-            &self.workspace_revision,
-            self.semantic.graph_digest(),
-            max_bytes,
-        )
-        .map_err(|error| vec![error])
-    }
-
     /// Build the authenticated project entry closure as one native executable.
     ///
     /// The executable is compiled from exactly the linked entry HIR that Web
@@ -380,12 +321,6 @@ impl ProjectSnapshot {
     /// destination must not exist, so publication never clobbers a file the
     /// caller did not create for this exact operation.
     pub fn build_native(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
-        if self.manifest.is_v6() {
-            return Err(vec![Diagnostic::io(
-                "SPX-J107",
-                "Project v6 language command I/O native publication is not wired",
-            )]);
-        }
         match std::fs::symlink_metadata(output) {
             Ok(_) => {
                 return Err(vec![Diagnostic::io(
@@ -407,18 +342,26 @@ impl ProjectSnapshot {
                 )]);
             }
         }
-        let native_command = self.manifest.project_profile() == ProjectProfile::UsefulDataCommandV2;
-        let prepared = if native_command {
-            crate::codegen::emit_hir_c_with_native_command(
+        let profile = self.manifest.project_profile();
+        let prepared = match profile {
+            ProjectProfile::UsefulDataCommandV2 => crate::codegen::emit_hir_c_with_native_command(
                 &self.entry_program,
                 self.manifest.command().unwrap_or(""),
-            )
-        } else {
-            crate::codegen::emit_hir_c(&self.entry_program)
+            ),
+            ProjectProfile::LanguageCommandIoV1 => {
+                crate::codegen::emit_hir_c_with_language_command_io(
+                    &self.entry_program,
+                    self.manifest.command().unwrap_or(""),
+                )
+            }
+            _ => crate::codegen::emit_hir_c(&self.entry_program),
         }
         .map_err(|error| vec![error])?;
         self.recheck()?;
-        if native_command {
+        if matches!(
+            profile,
+            ProjectProfile::UsefulDataCommandV2 | ProjectProfile::LanguageCommandIoV1
+        ) {
             crate::codegen::compile_native_command_executable(&prepared, output)
         } else {
             crate::codegen::compile_native_executable(&prepared, output)
@@ -439,12 +382,6 @@ impl ProjectSnapshot {
         )];
         diagnostics.append(&mut drift);
         diagnostics
-    }
-
-    /// Emit the sole authenticated test-module closure as legacy core Wasm
-    /// with `semaprax_main`, for backend-equivalence runners.
-    pub fn test_wasm_module(&self) -> Result<Vec<u8>, Vec<Diagnostic>> {
-        crate::wasm::emit_resolved_module(&self.test_program).map_err(|error| vec![error])
     }
 
     fn recheck(&mut self) -> Result<(), Vec<Diagnostic>> {
@@ -574,16 +511,10 @@ pub(crate) fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec
     }
 
     let built = build::build_owned(&manifest, workspace_sources)?;
+    let revision = Arc::new(ProjectRevision::from_built(manifest, built));
     let mut snapshot = ProjectSnapshot {
         root,
-        manifest,
-        sources: built.sources,
-        workspace_manifest: built.workspace_manifest,
-        workspace_revision: built.workspace_revision,
-        project_revision: built.project_revision,
-        entry_program: built.entry_program,
-        test_program: built.test_program,
-        semantic: built.semantic,
+        revision,
         declared_inputs,
         held_manifest,
         held_sources,

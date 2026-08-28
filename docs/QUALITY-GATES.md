@@ -876,6 +876,7 @@ Project Manifest v6 must run these focused gates:
 cargo test --locked -p semaprax --test bounded_language_command_io_v1
 cargo test --locked -p semaprax --test language_command_io_native_v1
 cargo test --locked -p semaprax --test project_manifest_v6
+cargo test --locked -p semaprax --test project_language_command_native_v1 -- --test-threads=1
 cargo test --locked -p semaprax --lib wasm::command_io::tests
 cargo test --locked -p semaprax --lib project::npm::command_v3::tests
 ```
@@ -903,11 +904,15 @@ interpreted as a memory pointer, and that no WASI/console/process authority is
 imported.
 
 The Project gate must pin the exact v6 profile/input/capability/command shape,
-independently replay the semantic carrier, reject manifest confusion, and keep
-v1-v5 canonical manifest and earlier package/carrier bytes unchanged. Unix
+ordinary CLI native dispatch to the selected stable ID rather than `main`,
+binary match/miss/usage behavior, exact cumulative capacity and plus-one
+failure, pre-existing destination preservation under the trusted precheck,
+display-rename stability,
+independent semantic-carrier replay, manifest-confusion rejection, and
+unchanged v1-v5 canonical manifest and earlier package/carrier bytes. Unix npm
 publication may claim only its existing handle-relative no-clobber boundary;
-Windows publication remains fail-closed until an equally strong primitive is
-implemented. Focused local green results do not qualify as hosted promotion,
+Windows npm publication remains fail-closed until an equally strong primitive
+is implemented. Focused local green results do not qualify as hosted promotion,
 registry publication, release promotion, physical output atomicity/durability,
 or general files/environment/network/process/streaming I/O.
 

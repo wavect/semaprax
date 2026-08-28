@@ -1670,10 +1670,30 @@ Project Manifest v6 additively selects `language-command-io.v1`, exact
 `argv-utf8+stdin-bytes.v1` input, one explicit `() -> bool` stable ID, and the
 sorted four-capability closure. Its generated semantic command carrier is
 independently replayed before publication. Earlier manifest, package, carrier,
-Graph, and command bytes remain frozen. Windows publication stays fail-closed
-rather than substituting weaker path authority. Local focused execution does
-not constitute exact-head hosted promotion. Files, environment, networking,
-child processes, terminals, streaming/interactive I/O, WASI, callbacks/async,
+Graph, and command bytes remain frozen. Windows npm publication stays
+fail-closed rather than substituting weaker path authority. Local focused
+execution does not constitute exact-head hosted promotion.
+
+Project loading now separates immutable `ProjectRevision` meaning from live
+`ProjectSnapshot` authority. The revision owns canonical manifest/source facts,
+linked entry/test HIR, and the semantic graph/analysis index; the snapshot alone
+owns root paths, held filesystem identities, drift invalidation, rename, process
+execution, and held-input-bound publication/rechecks. A pathless carrier built
+from the revision can still be published later using authority explicitly
+supplied by its caller; that publication does not inherit live input authority.
+This is the authority-neutral prerequisite for a future replayed revision
+index, not persistence: no revision store or recovery claim is made here.
+
+The v6 native Project route admits Graph v19 in Semantic Workspace replay,
+builds the ordinary pure-main closure without smuggling effectful command
+functions into it, then adds exactly the manifest-selected command root. The
+language-command linker retains `main` as the HIR entrypoint while validating
+the separate explicit `() -> bool` command, and the native emitter receives
+that command identity explicitly. This closes the previous Project-CLI
+rejection without widening v1-v5 profiles.
+
+Files, environment, networking, child processes, terminals,
+streaming/interactive I/O, WASI, callbacks/async,
 physical cross-descriptor atomicity, durability, registry publication, and
 release promotion remain nonclaims.
 

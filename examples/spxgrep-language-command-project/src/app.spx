@@ -28,23 +28,7 @@ fn contains(input: borrow Slice<u8>, needle: borrow Slice<u8>) -> bool
 fn run() -> bool
     uses { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 {
-    if args_len() == 1usize {
-        let needle = arg_utf8(0usize);
-        let needle_bytes = str_as_bytes(needle);
-        let input = stdin_read();
-        let input_bytes = bytes_as_slice(input);
-        if contains(input_bytes, needle_bytes) {
-            stdout_write(input_bytes) == byte_len(input_bytes)
-        } else {
-            let message = [110u8, 111u8, 116u8, 32u8, 102u8, 111u8, 117u8, 110u8, 100u8, 10u8];
-            let message_bytes = array_as_slice(message);
-            stderr_write(message_bytes) == byte_len(message_bytes) && false
-        }
-    } else {
-        let usage = [117u8, 115u8, 97u8, 103u8, 101u8, 58u8, 32u8, 115u8, 112u8, 120u8, 103u8, 114u8, 101u8, 112u8, 32u8, 60u8, 110u8, 101u8, 101u8, 100u8, 108u8, 101u8, 62u8, 10u8];
-        let usage_bytes = array_as_slice(usage);
-        stderr_write(usage_bytes) == byte_len(usage_bytes) && false
-    }
+    if args_len() == 1usize { let needle = arg_utf8(0usize); let needle_bytes = str_as_bytes(needle); let input = stdin_read(); let input_bytes = bytes_as_slice(input); if contains(input_bytes, needle_bytes) { stdout_write(input_bytes) == byte_len(input_bytes) } else { let message = [110u8, 111u8, 116u8, 32u8, 102u8, 111u8, 117u8, 110u8, 100u8, 10u8]; let message_bytes = array_as_slice(message); stderr_write(message_bytes) == byte_len(message_bytes) && false } } else { let usage = [117u8, 115u8, 97u8, 103u8, 101u8, 58u8, 32u8, 115u8, 112u8, 120u8, 103u8, 114u8, 101u8, 112u8, 32u8, 60u8, 110u8, 101u8, 101u8, 100u8, 108u8, 101u8, 62u8, 10u8]; let usage_bytes = array_as_slice(usage); stderr_write(usage_bytes) == byte_len(usage_bytes) && false }
 }
 
 @id("main")

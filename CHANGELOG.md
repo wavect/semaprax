@@ -87,6 +87,18 @@
   changes are locally evidenced; exact-head hosted promotion, registry
   publication, and general SDK/browser claims remain pending.
 
+- Closed the ordinary Project v6 native product path. Semantic Workspace now
+  admits current Graph v19 source facts; the Project linker keeps pure `main`
+  and effectful command roots distinct, then retains both while binding the
+  manifest-selected stable command identity explicitly. `semaprax build
+  semaprax.toml --target native` now proves binary match/miss/usage, exact
+  cumulative input capacity and plus-one failure, pre-existing destination
+  preservation under the documented trusted precheck, and display-rename
+  stability. Project meaning is also split
+  into authority-neutral immutable `ProjectRevision` state and live
+  `ProjectSnapshot` filesystem/publication authority; this adds no persistence
+  or recovery claim.
+
 - Added the locally evidenced [Bounded Language Command I/O
   v1](docs/BOUNDED-LANGUAGE-COMMAND-IO-V1.md), additive Graph v19, and Project
   Manifest v6. Checked code gains four compiler-owned operations for argument

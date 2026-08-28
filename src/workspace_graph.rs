@@ -1107,7 +1107,16 @@ impl WorkspaceGraphBuild {
                     crate::project::ProjectProfile::UsefulDataCommandV1
                         | crate::project::ProjectProfile::UsefulDataCommandV2
                 ) && module.module == entry_module
-                    && module.permits == [crate::host_io_ops::STDOUT_WRITE_EFFECT]);
+                    && module.permits == [crate::host_io_ops::STDOUT_WRITE_EFFECT])
+                || (profile == crate::project::ProjectProfile::LanguageCommandIoV1
+                    && module.module == entry_module
+                    && module.permits
+                        == [
+                            crate::command_io_ops::ARGS_READ_EFFECT,
+                            crate::command_io_ops::STDERR_WRITE_EFFECT,
+                            crate::command_io_ops::STDIN_READ_EFFECT,
+                            crate::host_io_ops::STDOUT_WRITE_EFFECT,
+                        ]);
             if !permits_admitted
                 || !module.types.is_empty()
                 || !module.interfaces.is_empty()
@@ -1154,10 +1163,20 @@ impl WorkspaceGraphBuild {
                     }
                     entrypoints.push((function.id.clone(), fact.origin));
                 }
-                functions.push(hir::LinkedScalarFunction {
-                    function: function.clone(),
-                    origin: fact.origin,
-                });
+                // Project v6 has two deliberately distinct roots: the ordinary
+                // pure `main` closure and the manifest-selected effectful
+                // command closure. Build the former without effectful authored
+                // functions; `linked_scalar_program_with_roots` independently
+                // adds the exact stable-ID command and its callees before using
+                // the language-command linker.
+                if profile != crate::project::ProjectProfile::LanguageCommandIoV1
+                    || function.effects.is_empty()
+                {
+                    functions.push(hir::LinkedScalarFunction {
+                        function: function.clone(),
+                        origin: fact.origin,
+                    });
+                }
             }
         }
         if retained_modules != reachable_paths.len() {
@@ -1205,8 +1224,8 @@ impl WorkspaceGraphBuild {
             }
             crate::project::ProjectProfile::LanguageCommandIoV1 => {
                 // The ordinary project/test entry remains a pure useful-data
-                // closure. The selected command becomes the entrypoint only
-                // in `linked_scalar_program_with_roots` below.
+                // closure. `linked_scalar_program_with_roots` below retains
+                // the selected command as a distinct authenticated root.
                 hir::link_useful_data_workspace(entry_module.to_owned(), entrypoint, functions)
             }
         }
@@ -1335,6 +1354,7 @@ impl WorkspaceGraphBuild {
                 };
                 hir::link_language_command_io_workspace(
                     base.module,
+                    base.entrypoint,
                     hir::DeclarationId::new(command_id.clone()),
                     functions,
                 )

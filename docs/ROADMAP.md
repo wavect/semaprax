@@ -228,9 +228,11 @@ and charges their combined bytes once against 65,536 bytes. Dual stdout/stderr
 staging allows one write per channel/path and shares the same-size combined
 output ceiling. Graph v19, exact CleanupPlan v2/v3 replay, interpreter, native
 C11 O0/O2, Core-Wasm/Node private staging, and the independently replayed
-Project v6 semantic carrier are local evidence; older graph/manifest/package/
-carrier bytes remain frozen. Windows publication remains fail-closed, and no
-hosted promotion follows.
+Project v6 semantic carrier are local evidence. The ordinary Project CLI now
+also publishes and executes that exact stable-ID-selected native command at the
+cumulative capacity boundary without clobbering an existing destination;
+older graph/manifest/package/carrier bytes remain frozen. Windows npm
+publication remains fail-closed, and no hosted promotion follows.
 
 The remaining promotion work is the
 complete hostile cross-platform boundary matrix, exact-head hosted Linux,

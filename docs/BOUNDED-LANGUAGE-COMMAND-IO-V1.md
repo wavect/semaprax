@@ -143,6 +143,14 @@ capabilities `process.args.read`, `process.stderr.write`,
 `process.stdin.read`, and `process.stdout.write`. Earlier manifests, Graphs,
 Wasm, packages, carriers, and command adapters remain byte-frozen.
 
+The ordinary `semaprax build semaprax.toml --target native` Project route now
+links the pure `main` root and the command root separately, retains both inside
+one admitted HIR, and passes the manifest-authenticated command ID to the
+language-command emitter. Its process product proves match, miss, usage,
+binary stdin, the exact cumulative input boundary and maximum-plus-one failure,
+create-new destination preservation, and stable-ID selection across a display
+rename. It grants no new process authority beyond the existing fixed adapter.
+
 Reachable command-input or stderr meaning selects additive
 `semaprax.graph.v19` above v18. Graph v19 records the closed operation table,
 status domain, immutable invocation-root provenance, input/output bounds, and
@@ -161,6 +169,7 @@ The focused local gates are:
 cargo test --locked -p semaprax --test bounded_language_command_io_v1
 cargo test --locked -p semaprax --test language_command_io_native_v1
 cargo test --locked -p semaprax --test project_manifest_v6
+cargo test --locked -p semaprax --test project_language_command_native_v1 -- --test-threads=1
 cargo test --locked -p semaprax --lib wasm::command_io::tests
 cargo test --locked -p semaprax --lib project::npm::command_v3::tests
 ```
@@ -169,9 +178,9 @@ They cover source/HIR hostility, shared invocation-root provenance, cumulative
 input and dual-output bounds, one-read/one-write path restrictions, exact
 CleanupPlan builder/replay facts, Graph v19 projection, interpreter and native
 C11 O0/O2 settlement, Core-Wasm/Node command execution, Project v6 canonical
-manifest and carrier replay, and preservation of earlier schema/package
-bytes. These are local artifact and execution facts only; they do not promote
-the affected completion rows.
+manifest and carrier replay, ordinary Project-CLI native command publication,
+and preservation of earlier schema/package bytes. These are local artifact and
+execution facts only; they do not promote the affected completion rows.
 
 ## Nonclaims
 

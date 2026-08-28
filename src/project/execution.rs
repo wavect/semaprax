@@ -1,7 +1,7 @@
 //! Bounded, deterministic execution over one authenticated Project v1 snapshot.
 //!
 //! This module receives only the already-linked entry or test HIR retained by
-//! [`super::ProjectSnapshot`]. It never parses, resolves, links, reads, writes,
+//! [`super::ProjectRevision`]. It never parses, resolves, links, reads, writes,
 //! spawns, or invokes a backend. The enclosing authenticated-project operation
 //! retains ownership of the final held-input recheck.
 
@@ -11,7 +11,7 @@ use crate::conformance::NormalizedStatus;
 use crate::diagnostic::Diagnostic;
 use crate::interpreter::{self, ResolvedEvaluation, ResolvedEvaluationOutcome, DEFAULT_MAX_STEPS};
 
-use super::ProjectSnapshot;
+use super::ProjectRevision;
 use report::render;
 pub use report::{verify_execution_envelope, PROJECT_EXECUTION_SCHEMA};
 
@@ -130,7 +130,7 @@ impl ProjectExecution {
 }
 
 pub(super) fn execute(
-    snapshot: &ProjectSnapshot,
+    snapshot: &ProjectRevision,
     role: ProjectExecutionRole,
     options: &ProjectExecutionOptions,
 ) -> Result<ProjectExecution, Vec<Diagnostic>> {
@@ -156,7 +156,7 @@ pub(super) fn execute(
 }
 
 fn finish(
-    snapshot: &ProjectSnapshot,
+    snapshot: &ProjectRevision,
     role: ProjectExecutionRole,
     module: &str,
     entry_id: &str,

@@ -594,8 +594,9 @@ fn project_execution_distinguishes_language_fuel_depth_and_test_failure() {
 fn project_execution_guard_state_is_diagnostic_not_an_outcome() {
     let root = fixture();
     let error = with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
-        let entrypoint = snapshot.entry_program.entrypoint.clone();
-        let entry = snapshot
+        let revision = std::sync::Arc::get_mut(&mut snapshot.revision).unwrap();
+        let entrypoint = revision.entry_program.entrypoint.clone();
+        let entry = revision
             .entry_program
             .functions
             .iter_mut()

@@ -107,9 +107,11 @@ The entry and web exports come exclusively from the authenticated manifest, so
 
 Native publication compiles exactly the linked entry HIR that Web publication
 and internal native lowering-equivalence evidence consume; it performs no
-parsing or re-resolution. The destination must not exist (`SPX-I307`), so a
-native build never clobbers an existing file; the immediate pre-check window is
-trusted and is not a hostile-window publication contract.
+parsing or re-resolution. Project v5 and v6 dispatch their manifest-selected
+command stable ID through the fixed native-command process compiler; they do
+not fall back to the ordinary `main`. The destination must not exist
+(`SPX-I307`), so a native build never clobbers an existing file; the immediate
+pre-check window is trusted and is not a hostile-window publication contract.
 
 The linked entry HIR also feeds internal native C lowering/equivalence evidence.
 The Web package has the separate `semaprax.web-project.v1` manifest binding
@@ -158,6 +160,7 @@ cargo test --locked -p semaprax --all-features --lib project::tests::
 cargo test --locked -p semaprax --all-features --test project_cli_v1 -- --test-threads=1
 cargo test --locked -p semaprax --all-features --test project_developer_loop_v1 -- --test-threads=1
 cargo test --locked -p semaprax --all-features --test project_native_publication_v1 -- --test-threads=1
+cargo test --locked -p semaprax --test project_language_command_native_v1 -- --test-threads=1
 cargo test --locked -p semaprax --test project_manifest_v1
 cargo test --locked -p semaprax --test project_backend_equivalence_v1 -- --test-threads=1
 cargo test --locked -p semaprax-native-rust-interop --test project_sdk_cli

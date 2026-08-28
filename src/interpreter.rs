@@ -1914,7 +1914,12 @@ impl Evaluator<'_> {
                 if !place.projections.is_empty() {
                     return Err(Flow::Guard("scalar profile has no place projections"));
                 }
-                if expression.ownership == hir::OwnershipMode::Own {
+                let moves_storage = expression.ownership == hir::OwnershipMode::Own
+                    && matches!(
+                        &expression.ty,
+                        ResolvedType::Bytes | ResolvedType::Nominal { .. }
+                    );
+                if moves_storage {
                     Self::take_owned(environment, &place.root)
                         .ok_or(Flow::Guard("use of moved owned storage"))
                 } else {

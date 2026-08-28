@@ -483,6 +483,62 @@ impl<'a> TypeTable<'a> {
         }
     }
 
+    /// Whether a type is or transitively contains an authored resource.
+    ///
+    /// This deliberately excludes compiler-owned `string` and `Bytes` values:
+    /// they have drop-aware storage, but are not authored resource types and
+    /// retain their existing parameter-mode rules.
+    fn contains_resource(&self, ty: &Type) -> bool {
+        enum Frame {
+            Enter(Type),
+            Exit(String),
+        }
+
+        let mut visiting = HashSet::new();
+        let mut frames = vec![Frame::Enter(ty.clone())];
+        while let Some(frame) = frames.pop() {
+            match frame {
+                Frame::Exit(instance) => {
+                    visiting.remove(&instance);
+                }
+                Frame::Enter(ty) => {
+                    let Type::Named { name, arguments } = &ty else {
+                        continue;
+                    };
+                    let Some(declaration) = self.declaration(name) else {
+                        continue;
+                    };
+                    if matches!(declaration.kind, TypeDeclarationKind::Resource { .. }) {
+                        return true;
+                    }
+                    let instance = ty.to_string();
+                    if !visiting.insert(instance.clone()) {
+                        return true;
+                    }
+                    frames.push(Frame::Exit(instance));
+                    let fields: Box<dyn DoubleEndedIterator<Item = &FieldDeclaration>> =
+                        match &declaration.kind {
+                            TypeDeclarationKind::Record { fields }
+                            | TypeDeclarationKind::Class { fields, .. } => Box::new(fields.iter()),
+                            TypeDeclarationKind::Variant { cases } => {
+                                Box::new(cases.iter().flat_map(|case| &case.fields))
+                            }
+                            TypeDeclarationKind::Resource { .. } => unreachable!(),
+                        };
+                    for field in fields.rev() {
+                        let Some(field_ty) =
+                            Self::substitute_variant_type(declaration, arguments, &field.ty)
+                        else {
+                            return true;
+                        };
+                        frames.push(Frame::Enter(field_ty));
+                    }
+                }
+            }
+        }
+        false
+    }
+
     /// Whether a value carries unique destruction authority, either directly
     /// or through an aggregate field. This is deliberately broader than
     /// `contains_resource`: compiler-owned `Bytes` is not an opaque resource,
@@ -3233,7 +3289,9 @@ fn check_ownership_mode(
         }
         return;
     }
-    match (types.needs_drop(&param.ty), param.mode) {
+    let requires_explicit_mode =
+        types.contains_resource(&param.ty) || types.contains_owned_bytes(&param.ty);
+    match (requires_explicit_mode, param.mode) {
         (true, ParamMode::Value) => diagnostics.push(
             error(
                 program,

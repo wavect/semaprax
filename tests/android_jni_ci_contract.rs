@@ -337,6 +337,8 @@ fn private_android_jni_project_is_offline_closed_and_source_locked() {
         "requireUntouchedFailure",
         "semaprax-android-jni-v1.txt",
         "SEMAPRAX_ANDROID_JNI_V1_OK",
+        "private fun expectedResultForAbi(abi: String?): String",
+        "\"arm64-v8a\" -> EXPECTED_RESULT.replace(\"abi=x86_64\", \"abi=arm64-v8a\")",
         "handles=0 rf=1 om=1 ca=1 ef=1",
     ] {
         assert!(

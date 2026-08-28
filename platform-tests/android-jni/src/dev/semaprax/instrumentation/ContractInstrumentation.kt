@@ -330,5 +330,12 @@ class ContractInstrumentation : Instrumentation() {
                 "handle=0001000001000001 declared=0000006b00000007 " +
                 "unexpected=0000004500000001 finalizers=1:13,0:11 " +
                 "publication=no-owned allocations=0 handles=0 rf=1 om=1 ca=1 ef=1\n"
+
+        private fun expectedResultForAbi(abi: String?): String =
+            when (abi) {
+                "x86_64" -> EXPECTED_RESULT
+                "arm64-v8a" -> EXPECTED_RESULT.replace("abi=x86_64", "abi=arm64-v8a")
+                else -> error("unsupported emulator ABI: $abi")
+            }
     }
 }

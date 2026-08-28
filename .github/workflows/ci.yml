@@ -615,10 +615,12 @@ jobs:
             runs-on: ubuntu-latest
             abi: x86_64
             emulator-arch: x86_64
+            emulator-target: default
           - arch: arm64-v8a
             runs-on: ubuntu-latest
             abi: arm64-v8a
-            emulator-arch: arm64-v8a
+            emulator-arch: x86_64
+            emulator-target: google_apis
     env:
       ANDROID_ARCH: ${{ matrix.abi }}
     steps:
@@ -628,7 +630,6 @@ jobs:
           toolchain: stable
           targets: x86_64-linux-android,aarch64-linux-android
       - name: Enable Android JNI emulator hardware acceleration
-        if: matrix.arch == 'x86_64'
         shell: bash
         run: |
           set -euo pipefail
@@ -640,11 +641,10 @@ jobs:
         uses: ReactiveCircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
         with:
           api-level: 35
-          target: default
+          target: ${{ matrix.emulator-target }}
           arch: ${{ matrix.emulator-arch }}
           ndk: 27.2.12479018
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
-          disable-linux-hw-accel: ${{ matrix.arch == 'arm64-v8a' }}
           disable-animations: true
           script: scripts/android-jni-app-v3.sh
 

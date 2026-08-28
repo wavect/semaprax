@@ -57,10 +57,19 @@ if [[ "$(adb shell getprop ro.build.version.sdk | tr -d '\r')" != "$android_api_
   echo "Android emulator API level does not match the pinned runtime" >&2
   exit 1
 fi
-if [[ "$(adb shell getprop ro.product.cpu.abi | tr -d '\r')" != "$android_abi" ]]; then
-  echo "Android emulator primary ABI is not $android_abi" >&2
-  exit 1
-fi
+emulator_abi="$(adb shell getprop ro.product.cpu.abi | tr -d '\r')"
+readonly emulator_abi
+case "$android_abi:$emulator_abi" in
+  x86_64:x86_64) ;;
+  # API 35 Google APIs images execute the arm64-only APK through Android's
+  # native translator. The exact ELF checks and native contract run below are
+  # the fail-closed proof that translated AArch64 code was actually exercised.
+  arm64-v8a:x86_64) ;;
+  *)
+    echo "Android emulator ABI $emulator_abi cannot execute $android_abi artifacts" >&2
+    exit 1
+    ;;
+esac
 
 scratch="$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/semaprax-android-jni-v3.XXXXXX")"
 cleanup() {
@@ -200,6 +209,10 @@ if [[ "$android_abi" == "arm64-v8a" ]]; then
   cp "$scratch/libsemaprax_provider_rf_arm64_o2.so" "$packaged_provider_rf_o2"
   cp "$scratch/libsemaprax_provider_om_arm64_o0.so" "$packaged_provider_om_o0"
   cp "$scratch/libsemaprax_provider_om_arm64_o2.so" "$packaged_provider_om_o2"
+  cp "$scratch/libsemaprax_provider_ca_arm64_o0.so" "$packaged_provider_ca_o0"
+  cp "$scratch/libsemaprax_provider_ca_arm64_o2.so" "$packaged_provider_ca_o2"
+  cp "$scratch/libsemaprax_provider_ef_arm64_o0.so" "$packaged_provider_ef_o0"
+  cp "$scratch/libsemaprax_provider_ef_arm64_o2.so" "$packaged_provider_ef_o2"
   cp "$scratch/libsemaprax_jni_arm64.so" "$packaged_jni"
 fi
 
@@ -265,7 +278,7 @@ if adb shell pm path "$package_name" | grep -F 'package:' >/dev/null; then
   adb uninstall "$package_name" >/dev/null
 fi
 adb install --no-streaming "$apk" >/dev/null
-instrumentation_output="$(adb shell am instrument -w \
+instrumentation_output="$(adb shell am instrument -w -e semaprax_abi "$android_abi" \
   "$package_name/$instrumentation_name" | tr -d '\r')"
 if ! grep -F 'INSTRUMENTATION_CODE: -1' <<<"$instrumentation_output" >/dev/null; then
   echo "$instrumentation_output" >&2

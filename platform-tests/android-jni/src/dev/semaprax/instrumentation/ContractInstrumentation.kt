@@ -14,17 +14,19 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicReference
 
 class ContractInstrumentation : Instrumentation() {
+    private lateinit var testedAbi: String
+
     override fun onCreate(arguments: Bundle?) {
+        testedAbi = arguments?.getString("semaprax_abi") ?: error("tested ABI argument is required")
         super.onCreate(arguments)
         start()
     }
 
     override fun onStart() {
         val output = File(targetContext.filesDir, RESULT_FILE)
-        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull()
         val result = runCatching { verifyExactContract() }
         if (result.isSuccess) {
-            output.writeText(expectedResultForAbi(abi), Charsets.UTF_8)
+            output.writeText(expectedResultForAbi(testedAbi), Charsets.UTF_8)
             finish(Activity.RESULT_OK, Bundle().apply { putString("semaprax", "pass") })
         } else {
             output.writeText("SEMAPRAX_ANDROID_JNI_V1_FAIL\n", Charsets.UTF_8)
@@ -36,8 +38,14 @@ class ContractInstrumentation : Instrumentation() {
         OpaqueHandle.requireKnownAnswer()
         StatusWord.requireKnownAnswers()
         require(android.os.Build.VERSION.SDK_INT == 35) { "emulator API changed" }
-        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull()
-        require(abi == "x86_64" || abi == "arm64-v8a") { "emulator ABI changed: $abi" }
+        val deviceAbis = android.os.Build.SUPPORTED_ABIS.toList()
+        require(testedAbi == "x86_64" || testedAbi == "arm64-v8a") {
+            "tested ABI changed: $testedAbi"
+        }
+        require(
+            deviceAbis.contains(testedAbi) ||
+                (testedAbi == "arm64-v8a" && deviceAbis.firstOrNull() == "x86_64"),
+        ) { "emulator ABIs $deviceAbis cannot execute $testedAbi" }
         val nativeDirectory = File(targetContext.applicationInfo.nativeLibraryDir).canonicalFile
         val bridge = NativeBridge.loadExact(nativeDirectory)
 
@@ -331,7 +339,7 @@ class ContractInstrumentation : Instrumentation() {
                 "unexpected=0000004500000001 finalizers=1:13,0:11 " +
                 "publication=no-owned allocations=0 handles=0 rf=1 om=1 ca=1 ef=1\n"
 
-        private fun expectedResultForAbi(abi: String?): String =
+        private fun expectedResultForAbi(abi: String): String =
             when (abi) {
                 "x86_64" -> EXPECTED_RESULT
                 "arm64-v8a" -> EXPECTED_RESULT.replace("abi=x86_64", "abi=arm64-v8a")

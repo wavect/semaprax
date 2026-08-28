@@ -47,6 +47,7 @@ fn run(path: &Path, arguments: &[&str], stdin: &[u8]) -> Output {
     child.wait_with_output().unwrap()
 }
 
+#[cfg(not(windows))]
 fn run_node(path: &Path, arguments: &[&str], stdin: &[u8]) -> Output {
     let mut child = Command::new("node")
         .arg(path)
@@ -175,6 +176,7 @@ fn project_v6_cannot_downgrade_a_reachable_v7_operation_closure() {
     assert!(!output.with_extension(std::env::consts::EXE_SUFFIX).exists());
 }
 
+#[cfg(not(windows))]
 #[test]
 fn project_v7_npm_package_runs_the_same_multimodule_line_filter() {
     let node = Command::new("node")
@@ -215,4 +217,32 @@ fn project_v7_npm_package_runs_the_same_multimodule_line_filter() {
     assert_eq!(missed.status.code(), Some(1));
     assert!(missed.stdout.is_empty());
     assert!(missed.stderr.is_empty());
+}
+
+#[cfg(windows)]
+#[test]
+fn project_v7_npm_publication_fails_closed_without_windows_authority() {
+    let project = fixture();
+    let package = project.0.join("package");
+    let rejected = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .args([
+            "build",
+            "semaprax.toml",
+            "--target",
+            "npm",
+            "-o",
+            package.to_str().unwrap(),
+        ])
+        .current_dir(&project.0)
+        .output()
+        .unwrap();
+    assert!(!rejected.status.success());
+    assert!(
+        String::from_utf8_lossy(&rejected.stderr).contains(
+            "error[SPX-W120]: useful-data npm publication requires safe handle-relative Windows authority"
+        ),
+        "{}",
+        String::from_utf8_lossy(&rejected.stderr)
+    );
+    assert!(!package.exists());
 }

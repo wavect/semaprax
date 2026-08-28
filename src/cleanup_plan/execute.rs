@@ -295,6 +295,13 @@ fn collect_variant_domains(
                     visit(program, argument, domains)?;
                 }
             }
+            hir::ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => {
+                visit(program, source, domains)?;
+                visit(program, start, domains)?;
+                visit(program, end, domains)?;
+            }
             hir::ResolvedExprKind::Unary { value, .. }
             | hir::ResolvedExprKind::Project { base: value, .. }
             | hir::ResolvedExprKind::Upcast { source: value } => {
@@ -648,6 +655,11 @@ fn find_expression_by<'a>(
             .args
             .iter()
             .find_map(|argument| find_expression_by(argument, predicate)),
+        hir::ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => find_expression_by(source, predicate)
+            .or_else(|| find_expression_by(start, predicate))
+            .or_else(|| find_expression_by(end, predicate)),
         hir::ResolvedExprKind::Unary { value, .. }
         | hir::ResolvedExprKind::Project { base: value, .. }
         | hir::ResolvedExprKind::Try { operand: value, .. }
@@ -975,6 +987,14 @@ impl<'a> Executor<'a> {
 
     fn callee_for_call(&self, call: &ExpressionId) -> Result<DeclarationId, CleanupExecutionError> {
         if let Some(expression) = find_expression(&self.function.body, call) {
+            if let hir::ResolvedExprKind::ByteRange { operation, .. } = &expression.kind {
+                if operation.as_str() != crate::byte_ops::RANGE_ID {
+                    return Err(invariant(
+                        "byte range carries an unknown operation identity",
+                    ));
+                }
+                return Ok(operation.clone());
+            }
             if let hir::ResolvedExprKind::HostCommandCall(command) = &expression.kind {
                 return Ok(DeclarationId::new(crate::command_io_ops::id(
                     command.operation,
@@ -1557,17 +1577,34 @@ fn validate_propagated_status(
     callee: &DeclarationId,
     status: &NormalizedStatus,
 ) -> Result<(), CleanupExecutionError> {
-    let admitted_codes: &[u32] = match callee.as_str() {
-        crate::command_io_ops::ARG_UTF8_ID => &[1, 2],
-        crate::command_io_ops::STDIN_READ_ID => &[3, 4],
-        // Other propagated calls retain their existing target-neutral status
-        // contract. Command input is compiler-owned and therefore must be
-        // authenticated exactly rather than accepting an arbitrary adapter
-        // status supplied by the conformance scenario.
-        _ => return Ok(()),
+    if callee.as_str() == crate::byte_ops::RANGE_ID {
+        if status.domain_id() != crate::byte_ops::RANGE_STATUS_DOMAIN
+            || ![
+                crate::byte_ops::RANGE_START_AFTER_END_CODE,
+                crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE,
+            ]
+            .contains(&status.code())
+            || status.class() != StatusClass::Adapter
+            || status.retryability() != Retryability::Known(false)
+        {
+            return Err(invariant(
+                "byte range supplied a status outside its exact normalized failure domain",
+            ));
+        }
+        return Ok(());
+    }
+    let Some(operation) = crate::command_io_ops::by_id(callee.as_str()) else {
+        // Authored and other target-neutral calls retain their existing
+        // normalized-status contract.
+        return Ok(());
     };
-    if status.domain_id() != crate::command_io_ops::STATUS_DOMAIN
-        || !admitted_codes.contains(&status.code())
+    let metadata = crate::command_io_ops::status_metadata(operation).ok_or_else(|| {
+        invariant(format!(
+            "infallible command operation `{callee}` supplied a propagated status"
+        ))
+    })?;
+    if status.domain_id() != metadata.domain
+        || !metadata.codes.contains(&status.code())
         || status.class() != StatusClass::Adapter
         || status.retryability() != Retryability::Known(false)
     {
@@ -1696,6 +1733,75 @@ mod tests {
     use crate::{hir, parse};
 
     use super::*;
+
+    fn adapter_status(domain: &str, code: u32) -> NormalizedStatus {
+        NormalizedStatus::try_new(
+            domain,
+            code,
+            StatusClass::Adapter,
+            Retryability::Known(false),
+        )
+        .expect("test adapter status is normalized")
+    }
+
+    #[test]
+    fn compiler_operation_status_domains_are_exact_and_non_interchangeable() {
+        let range = DeclarationId::new(crate::byte_ops::RANGE_ID);
+        validate_propagated_status(
+            &range,
+            &adapter_status(
+                crate::byte_ops::RANGE_STATUS_DOMAIN,
+                crate::byte_ops::RANGE_START_AFTER_END_CODE,
+            ),
+        )
+        .expect("first byte-range status is admitted");
+        validate_propagated_status(
+            &range,
+            &adapter_status(
+                crate::byte_ops::RANGE_STATUS_DOMAIN,
+                crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE,
+            ),
+        )
+        .expect("second byte-range status is admitted");
+        assert!(validate_propagated_status(
+            &range,
+            &adapter_status(
+                crate::command_io_ops::OUTPUT_STATUS_DOMAIN,
+                crate::command_io_ops::OUTPUT_CAPACITY_EXCEEDED,
+            ),
+        )
+        .is_err());
+
+        let append = DeclarationId::new(crate::command_io_ops::STDOUT_APPEND_ID);
+        validate_propagated_status(
+            &append,
+            &adapter_status(
+                crate::command_io_ops::OUTPUT_STATUS_DOMAIN,
+                crate::command_io_ops::OUTPUT_CAPACITY_EXCEEDED,
+            ),
+        )
+        .expect("exact append capacity status is admitted");
+        assert!(validate_propagated_status(
+            &append,
+            &adapter_status(
+                crate::command_io_ops::INPUT_STATUS_DOMAIN,
+                crate::command_io_ops::ARG_INDEX_OUT_OF_BOUNDS,
+            ),
+        )
+        .is_err());
+        assert!(validate_propagated_status(
+            &append,
+            &adapter_status(crate::command_io_ops::OUTPUT_STATUS_DOMAIN, 2),
+        )
+        .is_err());
+
+        let infallible = DeclarationId::new(crate::command_io_ops::ARGS_LEN_ID);
+        assert!(validate_propagated_status(
+            &infallible,
+            &adapter_status(crate::command_io_ops::INPUT_STATUS_DOMAIN, 1),
+        )
+        .is_err());
+    }
 
     const SOURCE: &str = r#"module test.cleanup_execute;
 permit { io.release }

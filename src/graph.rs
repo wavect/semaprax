@@ -1148,6 +1148,13 @@ fn collect_result_propagations<'a>(
                 collect_result_propagations(argument, propagations);
             }
         }
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            collect_result_propagations(source, propagations);
+            collect_result_propagations(start, propagations);
+            collect_result_propagations(end, propagations);
+        }
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Project { base: value, .. }
         | ResolvedExprKind::Upcast { source: value } => {
@@ -1285,7 +1292,12 @@ pub fn reject_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
 }
 
 pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
-    if schema == "semaprax.graph.v19" {
+    if schema == "semaprax.graph.v20" {
+        Err(Diagnostic::io(
+            "SPX-G410",
+            "dynamic byte-range programs select `semaprax.graph.v20`, which is outside this evidence flow's admission",
+        ))
+    } else if schema == "semaprax.graph.v19" {
         Err(Diagnostic::io(
             "SPX-G410",
             "bounded language-command I/O programs select `semaprax.graph.v19`, which is outside this evidence flow's admission",
@@ -1315,11 +1327,92 @@ pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diag
     }
 }
 
+fn expression_has_byte_range(expression: &ResolvedExpr) -> bool {
+    let mut pending = vec![expression];
+    while let Some(expression) = pending.pop() {
+        match &expression.kind {
+            ResolvedExprKind::ByteRange { .. } => return true,
+            ResolvedExprKind::Call { args, .. } => pending.extend(args),
+            ResolvedExprKind::NativeRustImportCall(call) => pending.extend(&call.args),
+            ResolvedExprKind::HostCommandCall(call) => pending.extend(&call.args),
+            ResolvedExprKind::Unary { value, .. }
+            | ResolvedExprKind::Try { operand: value, .. }
+            | ResolvedExprKind::TryOption { operand: value, .. }
+            | ResolvedExprKind::Project { base: value, .. }
+            | ResolvedExprKind::Upcast { source: value } => pending.push(value),
+            ResolvedExprKind::Binary { left, right, .. } => {
+                pending.push(left);
+                pending.push(right);
+            }
+            ResolvedExprKind::Block { statements, tail } => {
+                pending.push(tail);
+                for statement in statements {
+                    for index in 0..statement.child_count() {
+                        if let Some(child) = statement.child(index) {
+                            pending.push(child);
+                        }
+                    }
+                }
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                pending.push(condition);
+                pending.push(then_branch);
+                pending.push(else_branch);
+            }
+            ResolvedExprKind::ConstructRecord { fields, .. }
+            | ResolvedExprKind::ConstructVariant { fields, .. } => {
+                pending.extend(fields.iter().map(|field| &field.value));
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                pending.push(scrutinee);
+                for arm in arms {
+                    if let Some(guard) = &arm.guard {
+                        pending.push(guard);
+                    }
+                    pending.push(&arm.value);
+                }
+            }
+            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                pending.push(base);
+                pending.extend(fields.iter().map(|field| &field.value));
+            }
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::BorrowPlace { .. } => {}
+        }
+    }
+    false
+}
+
 pub(crate) fn graph_schema_from_parts(
     types: &[hir::ResolvedTypeDeclaration],
     functions: &[ResolvedFunction],
     function_templates: &[hir::ResolvedFunctionTemplate],
 ) -> &'static str {
+    if functions.iter().any(|function| {
+        function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .any(expression_has_byte_range)
+    }) {
+        return "semaprax.graph.v20";
+    }
     if functions.iter().any(|function| {
         function
             .requires
@@ -1501,6 +1594,11 @@ fn expression_has_usize(expression: &ResolvedExpr) -> bool {
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_usize),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_usize),
         ResolvedExprKind::HostCommandCall(call) => call.args.iter().any(expression_has_usize),
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            expression_has_usize(source) || expression_has_usize(start) || expression_has_usize(end)
+        }
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
@@ -1554,6 +1652,11 @@ fn expression_has_usize(expression: &ResolvedExpr) -> bool {
 /// statement anywhere inside its blocks, branches, arms, or nested bodies.
 fn expression_has_while(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            expression_has_while(source) || expression_has_while(start) || expression_has_while(end)
+        }
         ResolvedExprKind::Block { statements, tail } => {
             statements.iter().any(|statement| match statement {
                 ResolvedStatement::While { .. } => true,
@@ -1675,6 +1778,13 @@ fn expression_has_stdout_write(expression: &ResolvedExpr) -> bool {
 fn expression_has_command_io(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
         ResolvedExprKind::HostCommandCall(_) => true,
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            expression_has_command_io(source)
+                || expression_has_command_io(start)
+                || expression_has_command_io(end)
+        }
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_command_io),
         ResolvedExprKind::NativeRustImportCall(call) => {
             call.args.iter().any(expression_has_command_io)
@@ -1738,8 +1848,34 @@ fn expression_has_command_io(expression: &ResolvedExpr) -> bool {
     }
 }
 
+fn expression_has_command_append(expression: &ResolvedExpr) -> bool {
+    let mut pending = vec![expression];
+    while let Some(expression) = pending.pop() {
+        if matches!(
+            &expression.kind,
+            ResolvedExprKind::HostCommandCall(call)
+                if matches!(
+                    call.operation,
+                    hir::ResolvedHostCommandOperation::StdoutAppend
+                        | hir::ResolvedHostCommandOperation::StderrAppend
+                )
+        ) {
+            return true;
+        }
+        hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    false
+}
+
 fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            expression_has_record_pattern(source)
+                || expression_has_record_pattern(start)
+                || expression_has_record_pattern(end)
+        }
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_record_pattern),
         ResolvedExprKind::NativeRustImportCall(call) => {
             call.args.iter().any(expression_has_record_pattern)
@@ -1815,6 +1951,13 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
 /// blocks, branches, nested matches, or guards.
 fn expression_has_refutable_match(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            expression_has_refutable_match(source)
+                || expression_has_refutable_match(start)
+                || expression_has_refutable_match(end)
+        }
         ResolvedExprKind::Block { statements, tail } => {
             statements.iter().any(|statement| {
                 (0..statement.child_count()).any(|index| {
@@ -1943,6 +2086,13 @@ fn agent_reference_index_json(
 
 fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSet<ValueId>) {
     match &expression.kind {
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            collect_agent_contract_values(source, values);
+            collect_agent_contract_values(start, values);
+            collect_agent_contract_values(end, values);
+        }
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
@@ -2100,6 +2250,14 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
             "{{\"kind\":\"byte_view\",\"operation\":{},\"place\":{}}}",
             quote_json(operation.as_str()),
             place_json(place)
+        ),
+        ResolvedExprKind::ByteRange { operation, source, start, end } => format!(
+            "{{\"kind\":\"byte_range\",\"operation\":{},\"source\":{},\"start\":{},\"end\":{},\"status_domain\":{},\"status_codes\":{{\"start_after_end\":{},\"end_out_of_bounds\":{}}}}}",
+            quote_json(operation.as_str()), agent_contract_expr_json(source)?,
+            agent_contract_expr_json(start)?, agent_contract_expr_json(end)?,
+            quote_json(crate::byte_ops::RANGE_STATUS_DOMAIN),
+            crate::byte_ops::RANGE_START_AFTER_END_CODE,
+            crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE,
         ),
         ResolvedExprKind::Call {
             callee,
@@ -3241,7 +3399,11 @@ fn byte_slice_extent_json(extent: ByteSliceExtent) -> String {
     }
 }
 
-fn byte_slice_fact_json(value: &ValueId, provenance: &hir::ByteSliceProvenance) -> String {
+fn byte_slice_fact_json(
+    schema: &str,
+    value: &ValueId,
+    provenance: &hir::ByteSliceProvenance,
+) -> String {
     let root_kind = match provenance.root_kind {
         ByteSliceRootKind::FunctionParameter => "function_parameter",
         ByteSliceRootKind::OwnedBytes => "owned_bytes",
@@ -3249,7 +3411,7 @@ fn byte_slice_fact_json(value: &ValueId, provenance: &hir::ByteSliceProvenance) 
         ByteSliceRootKind::BorrowedStr => "borrowed_str",
         ByteSliceRootKind::CommandArguments => "command_arguments",
     };
-    format!(
+    let base = format!(
         "{{\"value\":{},\"root\":{},\"root_kind\":{},\"root_length\":{},\"offset\":{},\"length\":{},\"producer\":{}}}",
         quote_json(value.as_str()),
         quote_json(provenance.root.as_str()),
@@ -3258,6 +3420,28 @@ fn byte_slice_fact_json(value: &ValueId, provenance: &hir::ByteSliceProvenance) 
         byte_slice_extent_json(provenance.offset),
         byte_slice_extent_json(provenance.length),
         provenance.producer.as_ref().map_or_else(|| "null".to_owned(), |id| quote_json(id.as_str()))
+    );
+    if schema != "semaprax.graph.v20" {
+        return base;
+    }
+    let ranges = provenance
+        .ranges
+        .iter()
+        .map(|range| {
+            format!(
+                "{{\"source\":{},\"producer\":{},\"start\":{},\"end\":{}}}",
+                quote_json(range.source.as_str()),
+                quote_json(range.producer.as_str()),
+                quote_json(range.start.as_str()),
+                quote_json(range.end.as_str())
+            )
+        })
+        .collect::<Vec<_>>()
+        .budgeted_join(",");
+    format!(
+        "{},\"ranges\":[{}]}}",
+        base.strip_suffix('}').expect("object suffix"),
+        ranges
     )
 }
 
@@ -3267,7 +3451,7 @@ fn portable_indexed_byte_data_json(
 ) -> Result<String, Diagnostic> {
     if matches!(
         schema,
-        "semaprax.graph.v17" | "semaprax.graph.v18" | "semaprax.graph.v19"
+        "semaprax.graph.v17" | "semaprax.graph.v18" | "semaprax.graph.v19" | "semaprax.graph.v20"
     ) {
         let capacity = hir::analyze_byte_data_capacity(program)?;
         let portable = format!(
@@ -3281,7 +3465,7 @@ fn portable_indexed_byte_data_json(
             crate::byte_data_capacity::MAX_OWNED_BYTE_PAYLOAD_BYTES,
             capacity.functions().map(|(function, _)| {
                 let summary = capacity.function(function).expect("enumerated capacity summary remains addressable");
-                if schema == "semaprax.graph.v19" {
+                if matches!(schema, "semaprax.graph.v19" | "semaprax.graph.v20") {
                     format!(
                         "{{\"function\":{},\"inline_array_frame_bytes\":{},\"active_array_call_path_bytes\":{},\"bytes_copy_sites\":{},\"stdin_read_sites\":{},\"owned_byte_payload_bytes\":{},\"stdout_write_sites\":{},\"stderr_write_sites\":{},\"combined_transcript_bytes\":{}}}",
                         quote_json(function),
@@ -3318,19 +3502,21 @@ fn portable_indexed_byte_data_json(
             program
                 .declarations
                 .byte_slice_provenances()
-                .map(|(value, provenance)| byte_slice_fact_json(value, provenance))
+                .map(|(value, provenance)| byte_slice_fact_json(schema, value, provenance))
                 .collect::<Vec<_>>()
                 .budgeted_join(",")
         );
-        let transcript = if matches!(schema, "semaprax.graph.v18" | "semaprax.graph.v19")
-            && program.functions.iter().any(|function| {
-                function
-                    .requires
-                    .iter()
-                    .chain(std::iter::once(&function.body))
-                    .chain(&function.ensures)
-                    .any(expression_has_stdout_write)
-            }) {
+        let transcript = if matches!(
+            schema,
+            "semaprax.graph.v18" | "semaprax.graph.v19" | "semaprax.graph.v20"
+        ) && program.functions.iter().any(|function| {
+            function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+                .any(expression_has_stdout_write)
+        }) {
             format!(
                 ",\"bounded_stdout_transcript\":{{\"profile\":\"bounded-stdout-transcript-v1\",\"operation\":{},\"effect\":{},\"max_transcript_bytes\":{},\"max_writes_per_executable_path\":{},\"publication\":\"terminal-success-only\",\"failure\":\"discard-staged-transcript\"}}",
                 quote_json(crate::host_io_ops::STDOUT_WRITE_ID),
@@ -3341,7 +3527,7 @@ fn portable_indexed_byte_data_json(
         } else {
             String::new()
         };
-        let command_io = if schema == "semaprax.graph.v19" {
+        let command_io = if matches!(schema, "semaprax.graph.v19" | "semaprax.graph.v20") {
             format!(
                 ",\"bounded_language_command_io\":{{\"profile\":\"language-command-io.v1\",\"operations\":[{{\"name\":{},\"id\":{},\"effect\":{},\"failure\":\"infallible\"}},{{\"name\":{},\"id\":{},\"effect\":{},\"failure\":\"status\"}},{{\"name\":{},\"id\":{},\"effect\":{},\"failure\":\"status\"}},{{\"name\":{},\"id\":{},\"effect\":{},\"failure\":\"infallible\"}}],\"status_domain\":{},\"status_codes\":{{\"arg_index_out_of_bounds\":1,\"arg_invalid_utf8\":2,\"stdin_read_failed\":3,\"input_capacity_exceeded\":4}},\"max_arguments\":{},\"max_input_bytes\":{},\"argument_root\":\"immutable-invocation-owned-arena\",\"max_stdin_reads_per_path\":1,\"max_writes_per_channel_per_path\":1,\"max_combined_output_bytes\":{},\"publication\":\"terminal-success-only\",\"failure\":\"discard-staged-transcripts\"}}",
                 quote_json(crate::command_io_ops::ARGS_LEN_NAME), quote_json(crate::command_io_ops::ARGS_LEN_ID), quote_json(crate::command_io_ops::ARGS_READ_EFFECT),
@@ -3356,13 +3542,52 @@ fn portable_indexed_byte_data_json(
         } else {
             String::new()
         };
-        Ok(format!("{portable}{transcript}{command_io}"))
+        let byte_range = if schema == "semaprax.graph.v20" {
+            format!(
+                ",\"bounded_byte_range\":{{\"profile\":\"byte-range-v1\",\"operation\":{},\"interval\":\"half-open\",\"evaluation_order\":[\"source\",\"start\",\"end\"],\"status_domain\":{},\"status_codes\":{{\"start_after_end\":{},\"end_out_of_bounds\":{}}},\"failure_order\":[\"start_after_end\",\"end_out_of_bounds\"],\"max_derivation_depth\":{},\"provenance\":\"bounded-acyclic-root-preserving-chain\"}}",
+                quote_json(crate::byte_ops::RANGE_ID),
+                quote_json(crate::byte_ops::RANGE_STATUS_DOMAIN),
+                crate::byte_ops::RANGE_START_AFTER_END_CODE,
+                crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE,
+                crate::byte_ops::MAX_RANGE_DEPTH,
+            )
+        } else {
+            String::new()
+        };
+        let line_command_io = if schema == "semaprax.graph.v20"
+            && program.functions.iter().any(|function| {
+                function
+                    .requires
+                    .iter()
+                    .chain(std::iter::once(&function.body))
+                    .chain(&function.ensures)
+                    .any(expression_has_command_append)
+            }) {
+            format!(
+                ",\"bounded_line_command_io\":{{\"profile\":\"line-command-io.v1\",\"operations\":[{{\"name\":{},\"id\":{},\"effect\":{},\"return\":\"usize\",\"failure\":\"status\"}},{{\"name\":{},\"id\":{},\"effect\":{},\"return\":\"usize\",\"failure\":\"status\"}}],\"status_domain\":{},\"status_codes\":{{\"output_capacity_exceeded\":{}}},\"status_marker\":\"__spx_command_output_status_v1\",\"write_mode\":\"cumulative-append.v1\",\"max_combined_output_bytes\":{},\"publication\":\"terminal-success-only\",\"failure\":\"discard-staged-transcripts\"}}",
+                quote_json(crate::command_io_ops::STDOUT_APPEND_NAME),
+                quote_json(crate::command_io_ops::STDOUT_APPEND_ID),
+                quote_json(crate::command_io_ops::STDOUT_WRITE_EFFECT),
+                quote_json(crate::command_io_ops::STDERR_APPEND_NAME),
+                quote_json(crate::command_io_ops::STDERR_APPEND_ID),
+                quote_json(crate::command_io_ops::STDERR_WRITE_EFFECT),
+                quote_json(crate::command_io_ops::OUTPUT_STATUS_DOMAIN),
+                crate::command_io_ops::OUTPUT_CAPACITY_EXCEEDED,
+                crate::command_io_ops::MAX_OUTPUT_BYTES,
+            )
+        } else {
+            String::new()
+        };
+        Ok(format!(
+            "{portable}{transcript}{command_io}{byte_range}{line_command_io}"
+        ))
     } else {
         Ok(String::new())
     }
 }
 
 fn byte_slice_provenance_json(
+    schema: &str,
     program: &ResolvedProgram,
     parameter: &hir::ResolvedParam,
 ) -> Result<Option<String>, Diagnostic> {
@@ -3381,7 +3606,11 @@ fn byte_slice_provenance_json(
                 ),
             )
         })?;
-    Ok(Some(byte_slice_fact_json(&parameter.id, provenance)))
+    Ok(Some(byte_slice_fact_json(
+        schema,
+        &parameter.id,
+        provenance,
+    )))
 }
 
 fn graph_json(
@@ -3883,7 +4112,7 @@ fn graph_json(
             .params
             .iter()
             .map(|param| {
-                let provenance = byte_slice_provenance_json(program, param)?;
+                let provenance = byte_slice_provenance_json(schema, program, param)?;
                 Ok(match provenance {
                     Some(provenance) => format!(
                         "{{\"id\":{},\"name\":{},\"type_id\":{},\"ownership_mode\":{},\"byte_slice_provenance\":{provenance}}}",
@@ -4143,6 +4372,13 @@ fn visit_expr_call_instances(
         visit(expression, callee, type_arguments, instance);
     }
     match &expression.kind {
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            visit_expr_call_instances(source, visit);
+            visit_expr_call_instances(start, visit);
+            visit_expr_call_instances(end, visit);
+        }
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
@@ -4226,6 +4462,13 @@ fn visit_expr_call_instances(
 
 fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&DeclarationId)) {
     match &expression.kind {
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            visit_expr_calls(source, visit);
+            visit_expr_calls(start, visit);
+            visit_expr_calls(end, visit);
+        }
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
@@ -4332,6 +4575,13 @@ fn collect_expr_type_declarations(
 ) {
     collect_nominal_declarations(&expression.ty, declarations);
     match &expression.kind {
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            collect_expr_type_declarations(source, declarations);
+            collect_expr_type_declarations(start, declarations);
+            collect_expr_type_declarations(end, declarations);
+        }
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
@@ -4615,6 +4865,14 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
             "{{{header},\"kind\":\"byte_view\",\"operation\":{},\"place\":{}}}",
             quote_json(operation.as_str()),
             place_json(place)
+        ),
+        ResolvedExprKind::ByteRange { operation, source, start, end } => format!(
+            "{{{header},\"kind\":\"byte_range\",\"operation\":{},\"source\":{},\"start\":{},\"end\":{},\"status_domain\":{},\"status_codes\":{{\"start_after_end\":{},\"end_out_of_bounds\":{}}}}}",
+            quote_json(operation.as_str()), expr_json(program, source)?,
+            expr_json(program, start)?, expr_json(program, end)?,
+            quote_json(crate::byte_ops::RANGE_STATUS_DOMAIN),
+            crate::byte_ops::RANGE_START_AFTER_END_CODE,
+            crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE,
         ),
         ResolvedExprKind::Call {
             callee,
@@ -5011,6 +5269,13 @@ fn type_facts_array(
 fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, ResolvedType>) {
     collect_type(&expression.ty, types);
     match &expression.kind {
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            collect_expr_types(source, types);
+            collect_expr_types(start, types);
+            collect_expr_types(end, types);
+        }
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
@@ -5280,7 +5545,7 @@ fn string_array(values: &[String]) -> String {
 mod tests {
     use std::path::Path;
 
-    use super::{to_hir_json, DeclarationId, ResolvedExprKind, ResolvedProgram};
+    use super::{graph_schema, to_hir_json, DeclarationId, ResolvedExprKind, ResolvedProgram};
     use crate::{hir, parse};
 
     fn resolved_program() -> ResolvedProgram {
@@ -5365,6 +5630,105 @@ fn main() -> i64 { 0 }
     fn internal_hir_renderer_preserves_its_trusted_source_revision() {
         let graph = to_hir_json(&resolved_program(), "trusted-source-revision").unwrap();
         assert!(graph.contains("\"revision\":\"trusted-source-revision\""));
+    }
+
+    #[test]
+    fn dynamic_byte_ranges_select_v20_and_publish_exact_contract() {
+        let source = r#"
+module test.graph_byte_range;
+@id("range.length")
+fn range_length(input: borrow Slice<u8>) -> usize {
+    let outer = byte_range(input, 1usize, 4usize);
+    let inner = byte_range(outer, 0usize, 2usize);
+    byte_len(inner)
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+        let program = hir::resolve(&parse(source, Path::new("graph-byte-range.spx")).unwrap())
+            .expect("range program resolves");
+        assert_eq!(graph_schema(&program), "semaprax.graph.v20");
+        let graph = to_hir_json(&program, "trusted-source-revision").unwrap();
+        assert!(graph.contains("\"kind\":\"byte_range\""));
+        assert!(graph.contains("\"status_domain\":\"semaprax.byte-range.v1\""));
+        assert!(graph.contains("\"ranges\":[{"));
+        assert!(!graph.contains("\"bounded_line_command_io\""));
+    }
+
+    #[test]
+    fn graph_v20_publishes_exact_line_command_append_contract_and_v19_does_not() {
+        let v19_source = r#"
+module test.graph_command_v19;
+permit { process.args.read }
+@id("command.count")
+fn count() -> usize uses { process.args.read } { args_len() }
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+        let v19 = hir::resolve(&parse(v19_source, Path::new("graph-command-v19.spx")).unwrap())
+            .expect("legacy command program resolves");
+        assert_eq!(graph_schema(&v19), "semaprax.graph.v19");
+        let v19_graph = to_hir_json(&v19, "trusted-source-revision").unwrap();
+        assert!(v19_graph.contains("\"bounded_language_command_io\""));
+        assert!(!v19_graph.contains("\"bounded_line_command_io\""));
+        assert!(!v19_graph.contains("core.host.stdout-append"));
+        assert!(!v19_graph.contains("semaprax.command-output.v1"));
+        assert!(!v19_graph.contains("__spx_command_output_status_v1"));
+
+        let v20_source = r#"
+module test.graph_line_command_v20;
+permit { process.stderr.write, process.stdout.write }
+@id("command.append")
+fn append(value: borrow Slice<u8>) -> usize
+    uses { process.stderr.write, process.stdout.write }
+{
+    let selected = byte_range(value, 0usize, byte_len(value));
+    let stdout = stdout_append(selected);
+    stdout + stderr_append(selected)
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+        let v20 =
+            hir::resolve(&parse(v20_source, Path::new("graph-line-command-v20.spx")).unwrap())
+                .expect("line command program resolves");
+        assert_eq!(graph_schema(&v20), "semaprax.graph.v20");
+        let v20_graph = to_hir_json(&v20, "trusted-source-revision").unwrap();
+        let exact = "\"bounded_line_command_io\":{\"profile\":\"line-command-io.v1\",\"operations\":[{\"name\":\"stdout_append\",\"id\":\"core.host.stdout-append\",\"effect\":\"process.stdout.write\",\"return\":\"usize\",\"failure\":\"status\"},{\"name\":\"stderr_append\",\"id\":\"core.host.stderr-append\",\"effect\":\"process.stderr.write\",\"return\":\"usize\",\"failure\":\"status\"}],\"status_domain\":\"semaprax.command-output.v1\",\"status_codes\":{\"output_capacity_exceeded\":1},\"status_marker\":\"__spx_command_output_status_v1\",\"write_mode\":\"cumulative-append.v1\",\"max_combined_output_bytes\":65536,\"publication\":\"terminal-success-only\",\"failure\":\"discard-staged-transcripts\"}";
+        assert!(v20_graph.contains(exact), "{v20_graph}");
+    }
+
+    #[test]
+    fn internal_hir_renderer_rejects_forged_byte_range_operation() {
+        let source = r#"
+module test.graph_forged_byte_range;
+@id("range.length")
+fn range_length(input: borrow Slice<u8>) -> usize {
+    let selected = byte_range(input, 0usize, 1usize);
+    byte_len(selected)
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+        let mut program =
+            hir::resolve(&parse(source, Path::new("graph-forged-byte-range.spx")).unwrap())
+                .expect("range program resolves");
+        let ResolvedExprKind::Block { statements, .. } = &mut program.functions[0].body.kind else {
+            panic!("range function body is a block");
+        };
+        let hir::ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+            panic!("first statement binds the range");
+        };
+        let ResolvedExprKind::ByteRange { operation, .. } = &mut value.kind else {
+            panic!("initializer is an explicit byte range");
+        };
+        *operation = DeclarationId::new("foreign.byte.range");
+        assert_eq!(
+            to_hir_json(&program, "trusted-source-revision")
+                .unwrap_err()
+                .code,
+            "SPX-H006"
+        );
     }
 
     #[test]

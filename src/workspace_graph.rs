@@ -1108,8 +1108,11 @@ impl WorkspaceGraphBuild {
                         | crate::project::ProjectProfile::UsefulDataCommandV2
                 ) && module.module == entry_module
                     && module.permits == [crate::host_io_ops::STDOUT_WRITE_EFFECT])
-                || (profile == crate::project::ProjectProfile::LanguageCommandIoV1
-                    && module.module == entry_module
+                || (matches!(
+                    profile,
+                    crate::project::ProjectProfile::LanguageCommandIoV1
+                        | crate::project::ProjectProfile::LineCommandIoV1
+                ) && module.module == entry_module
                     && module.permits
                         == [
                             crate::command_io_ops::ARGS_READ_EFFECT,
@@ -1169,8 +1172,11 @@ impl WorkspaceGraphBuild {
                 // functions; `linked_scalar_program_with_roots` independently
                 // adds the exact stable-ID command and its callees before using
                 // the language-command linker.
-                if profile != crate::project::ProjectProfile::LanguageCommandIoV1
-                    || function.effects.is_empty()
+                if !matches!(
+                    profile,
+                    crate::project::ProjectProfile::LanguageCommandIoV1
+                        | crate::project::ProjectProfile::LineCommandIoV1
+                ) || function.effects.is_empty()
                 {
                     functions.push(hir::LinkedScalarFunction {
                         function: function.clone(),
@@ -1226,6 +1232,9 @@ impl WorkspaceGraphBuild {
                 // The ordinary project/test entry remains a pure useful-data
                 // closure. `linked_scalar_program_with_roots` below retains
                 // the selected command as a distinct authenticated root.
+                hir::link_useful_data_workspace(entry_module.to_owned(), entrypoint, functions)
+            }
+            crate::project::ProjectProfile::LineCommandIoV1 => {
                 hir::link_useful_data_workspace(entry_module.to_owned(), entrypoint, functions)
             }
         }
@@ -1359,6 +1368,20 @@ impl WorkspaceGraphBuild {
                     functions,
                 )
             }
+            crate::project::ProjectProfile::LineCommandIoV1 => {
+                let [command_id] = additional_roots else {
+                    return Err(vec![graph_error(
+                        "SPX-G172",
+                        "Line Command I/O v1 must select exactly one command identity",
+                    )]);
+                };
+                hir::link_line_command_io_workspace(
+                    base.module,
+                    base.entrypoint,
+                    hir::DeclarationId::new(command_id.clone()),
+                    functions,
+                )
+            }
         }
         .map_err(|error| vec![error])
     }
@@ -1391,11 +1414,15 @@ impl WorkspaceGraphBuild {
         web_roots: ProjectWebRoots<'_>,
     ) -> Result<ProjectSemanticParts, Vec<Diagnostic>> {
         self.validate_entire_project_workspace(entry_module, test_module, web_roots.profile)?;
-        if web_roots.profile == crate::project::ProjectProfile::LanguageCommandIoV1 {
+        if matches!(
+            web_roots.profile,
+            crate::project::ProjectProfile::LanguageCommandIoV1
+                | crate::project::ProjectProfile::LineCommandIoV1
+        ) {
             let [command_id] = web_roots.stable_ids else {
                 return Err(vec![graph_error(
                     "SPX-G172",
-                    "Language Command I/O v1 must select exactly one command identity",
+                    "command I/O profile must select exactly one command identity",
                 )]);
             };
             let command = self
@@ -1407,7 +1434,7 @@ impl WorkspaceGraphBuild {
                 .ok_or_else(|| {
                     vec![graph_error(
                         "SPX-G172",
-                        "Language Command I/O v1 command identity does not name a function",
+                        "command I/O profile command identity does not name a function",
                     )]
                 })?;
             let explicit = self
@@ -1421,7 +1448,7 @@ impl WorkspaceGraphBuild {
             {
                 return Err(vec![graph_error(
                     "SPX-G172",
-                    "Language Command I/O v1 command must have an explicit identity and exact signature fn() -> bool",
+                    "command I/O profile command must have an explicit identity and exact signature fn() -> bool",
                 )]);
             }
         }
@@ -1563,8 +1590,11 @@ impl WorkspaceGraphBuild {
                         | crate::project::ProjectProfile::UsefulDataCommandV2
                 ) && module.module == entry_module
                     && module.permits == [crate::host_io_ops::STDOUT_WRITE_EFFECT])
-                || (profile == crate::project::ProjectProfile::LanguageCommandIoV1
-                    && module.module == entry_module
+                || (matches!(
+                    profile,
+                    crate::project::ProjectProfile::LanguageCommandIoV1
+                        | crate::project::ProjectProfile::LineCommandIoV1
+                ) && module.module == entry_module
                     && module.permits
                         == [
                             crate::command_io_ops::ARGS_READ_EFFECT,
@@ -1616,7 +1646,8 @@ impl WorkspaceGraphBuild {
                     crate::project::ProjectProfile::UsefulDataV1
                     | crate::project::ProjectProfile::UsefulDataCommandV1
                     | crate::project::ProjectProfile::UsefulDataCommandV2
-                    | crate::project::ProjectProfile::LanguageCommandIoV1 => {
+                    | crate::project::ProjectProfile::LanguageCommandIoV1
+                    | crate::project::ProjectProfile::LineCommandIoV1 => {
                         hir::useful_data_workspace_parameter_admitted(
                             &parameter.ty,
                             parameter.ownership,
@@ -1632,7 +1663,8 @@ impl WorkspaceGraphBuild {
                     crate::project::ProjectProfile::UsefulDataV1
                     | crate::project::ProjectProfile::UsefulDataCommandV1
                     | crate::project::ProjectProfile::UsefulDataCommandV2
-                    | crate::project::ProjectProfile::LanguageCommandIoV1 => {
+                    | crate::project::ProjectProfile::LanguageCommandIoV1
+                    | crate::project::ProjectProfile::LineCommandIoV1 => {
                         hir::useful_data_workspace_return_admitted(&function.return_type)
                     }
                 };
@@ -1642,16 +1674,19 @@ impl WorkspaceGraphBuild {
                         crate::project::ProjectProfile::UsefulDataCommandV1
                             | crate::project::ProjectProfile::UsefulDataCommandV2
                     ) && function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT])
-                    || (profile == crate::project::ProjectProfile::LanguageCommandIoV1
-                        && function.effects.iter().all(|effect| {
-                            matches!(
-                                effect.as_str(),
-                                crate::command_io_ops::ARGS_READ_EFFECT
-                                    | crate::command_io_ops::STDERR_WRITE_EFFECT
-                                    | crate::command_io_ops::STDIN_READ_EFFECT
-                                    | crate::host_io_ops::STDOUT_WRITE_EFFECT
-                            )
-                        }));
+                    || (matches!(
+                        profile,
+                        crate::project::ProjectProfile::LanguageCommandIoV1
+                            | crate::project::ProjectProfile::LineCommandIoV1
+                    ) && function.effects.iter().all(|effect| {
+                        matches!(
+                            effect.as_str(),
+                            crate::command_io_ops::ARGS_READ_EFFECT
+                                | crate::command_io_ops::STDERR_WRITE_EFFECT
+                                | crate::command_io_ops::STDIN_READ_EFFECT
+                                | crate::host_io_ops::STDOUT_WRITE_EFFECT
+                        )
+                    }));
                 if !effects_admitted
                     || !admitted_return
                     || function
@@ -1673,6 +1708,9 @@ impl WorkspaceGraphBuild {
                         }
                         crate::project::ProjectProfile::LanguageCommandIoV1 => {
                             "Language Command I/O v1 linker"
+                        }
+                        crate::project::ProjectProfile::LineCommandIoV1 => {
+                            "Line Command I/O v1 linker"
                         }
                     };
                     return Err(vec![graph_error(
@@ -1833,6 +1871,13 @@ fn resolved_function_callees(function: &hir::ResolvedFunction) -> BTreeSet<hir::
             callees.insert(callee.clone());
         }
         match &expression.kind {
+            hir::ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => {
+                visit(source, callees);
+                visit(start, callees);
+                visit(end, callees);
+            }
             hir::ResolvedExprKind::Call { args, .. } => {
                 for argument in args {
                     visit(argument, callees);
@@ -4319,23 +4364,53 @@ fn validate_imported_function(
     programs: &[Program],
 ) -> Result<(), Vec<Diagnostic>> {
     let function = target.function.expect("function target carries a function");
+    let borrowed_slice =
+        |param: &crate::ast::Param| param.mode == ParamMode::Borrow && param.ty == Type::SliceU8;
+    let has_borrowed_slice = function.params.iter().any(borrowed_slice);
+    let scalar_return = matches!(
+        function.return_type,
+        Type::I64
+            | Type::I32
+            | Type::Char
+            | Type::U8
+            | Type::Usize
+            | Type::F32
+            | Type::F64
+            | Type::Bool
+    );
     if !function.type_parameters.is_empty()
         || function
             .params
             .iter()
-            .any(|param| param.mode != ParamMode::Value)
+            .any(|param| param.mode != ParamMode::Value && !borrowed_slice(param))
+        || (has_borrowed_slice && !scalar_return)
     {
         return Err(vec![use_error(
             caller,
             module_use,
-            "function target must be monomorphic with value parameters",
+            "function target must be monomorphic with admitted value parameters, or borrowed byte-slice parameters and a scalar return",
         )]);
     }
-    for ty in function
-        .params
-        .iter()
-        .map(|param| &param.ty)
-        .chain(std::iter::once(&function.return_type))
+    for param in &function.params {
+        if borrowed_slice(param) {
+            continue;
+        }
+        if !signature_type_is_admitted(
+            target.module,
+            &param.ty,
+            caller,
+            authored,
+            programs,
+            &mut BTreeSet::new(),
+        ) {
+            return Err(vec![use_error(
+                caller,
+                module_use,
+                "function signature leaves the admitted scalar/Copy workspace domain",
+            )]);
+        }
+    }
+    let ty = &function.return_type;
     {
         if !signature_type_is_admitted(
             target.module,
@@ -5630,7 +5705,7 @@ fn unselected(value: i64) -> i64 { value + 100 }
     }
 
     #[test]
-    fn useful_data_project_roots_retain_slice_closure_and_exact_provenance() {
+    fn useful_data_cross_module_borrowed_slice_boundary_remains_admitted() {
         let app = canonical_source(
             "app/main.spx",
             r#"
@@ -5685,38 +5760,20 @@ fn unselected(value: i64) -> i64 { value + 1 }
                 crate::project::ProjectProfile::UsefulDataV1,
             )
             .unwrap();
-        let linked = build
+        build
             .linked_scalar_program_with_roots(
                 "app.main",
                 &["lib.byte-count".to_owned(), "lib.byte-length".to_owned()],
                 crate::project::ProjectProfile::UsefulDataV1,
             )
             .unwrap();
-        let ids = linked
-            .functions
-            .iter()
-            .map(|function| function.id.as_str())
-            .collect::<BTreeSet<_>>();
-        assert_eq!(
-            ids,
-            BTreeSet::from(["app.main", "lib.byte-count", "lib.byte-length"])
-        );
-        let function = linked
-            .functions
-            .iter()
-            .find(|function| function.id.as_str() == "lib.byte-length")
+        build
+            .validate_entire_project_workspace(
+                "app.main",
+                "test.main",
+                crate::project::ProjectProfile::LineCommandIoV1,
+            )
             .unwrap();
-        let parameter = &function.params[0].id;
-        let provenance = linked
-            .declarations
-            .byte_slice_provenance(parameter)
-            .unwrap();
-        assert_eq!(provenance.root, *parameter);
-        assert_eq!(
-            provenance.root_kind,
-            hir::ByteSliceRootKind::FunctionParameter
-        );
-        hir::validate(&linked).unwrap();
     }
 
     #[test]

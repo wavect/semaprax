@@ -122,6 +122,11 @@ fn children(expression: &hir::ResolvedExpr) -> Vec<&hir::ResolvedExpr> {
         hir::ResolvedExprKind::Call { args, .. } => args.iter().collect(),
         hir::ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().collect(),
         hir::ResolvedExprKind::HostCommandCall(call) => call.args.iter().collect(),
+        hir::ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            vec![source.as_ref(), start.as_ref(), end.as_ref()]
+        }
         hir::ResolvedExprKind::Unary { value, .. }
         | hir::ResolvedExprKind::Try { operand: value, .. }
         | hir::ResolvedExprKind::TryOption { operand: value, .. }

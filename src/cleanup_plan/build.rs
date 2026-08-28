@@ -21,7 +21,7 @@ use super::{
     CleanupSlotId, CleanupTerminator, CleanupTransition, ContractPhase, EdgeCondition, EdgeId,
     ExitContinuation, ExitTarget, ExitTargetId, FinalizeAction, StagedCopyResultSource, StatusCase,
     StatusLane, StatusProducer, StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V2,
-    CLEANUP_PLAN_SCHEMA_V3,
+    CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4,
 };
 
 const UNRESOLVED_EXIT: ExitTargetId = ExitTargetId(u32::MAX);
@@ -1919,6 +1919,18 @@ impl<'a> PlanBuilder<'a> {
                 args: &'e [ResolvedExpr],
                 index: usize,
             },
+            ByteRangeAfterSource {
+                expression: &'e ResolvedExpr,
+                start: &'e ResolvedExpr,
+                end: &'e ResolvedExpr,
+            },
+            ByteRangeAfterStart {
+                expression: &'e ResolvedExpr,
+                end: &'e ResolvedExpr,
+            },
+            ByteRangeAfterEnd {
+                expression: &'e ResolvedExpr,
+            },
             CallNext {
                 expression: &'e ResolvedExpr,
                 callee: &'e DeclarationId,
@@ -2281,6 +2293,29 @@ impl<'a> PlanBuilder<'a> {
                         state,
                         owned_source: None,
                     }),
+                    ResolvedExprKind::ByteRange {
+                        operation,
+                        source,
+                        start,
+                        end,
+                    } => {
+                        if operation.as_str() != crate::byte_ops::RANGE_ID {
+                            return Err(plan_error(
+                                "byte range carries an unknown operation identity",
+                            ));
+                        }
+                        self.schema = CLEANUP_PLAN_SCHEMA_V4;
+                        frames.push(Frame::ByteRangeAfterSource {
+                            expression,
+                            start,
+                            end,
+                        });
+                        frames.push(Frame::Enter {
+                            expression: source,
+                            block,
+                            state,
+                        });
+                    }
                     ResolvedExprKind::Place(place) => {
                         let owned_source = if expression.ownership == OwnershipMode::Own
                             && self.needs_drop(&expression.ty)?
@@ -3007,6 +3042,64 @@ impl<'a> PlanBuilder<'a> {
                         args,
                         index: index + 1,
                         flow: evaluated,
+                    });
+                }
+                Frame::ByteRangeAfterSource {
+                    expression,
+                    start,
+                    end,
+                } => {
+                    let evaluated = results.pop().expect("byte-range source result retained");
+                    if evaluated.owned_source.is_some() {
+                        return Err(plan_error("byte range received an owned source"));
+                    }
+                    frames.push(Frame::ByteRangeAfterStart { expression, end });
+                    frames.push(Frame::Enter {
+                        expression: start,
+                        block: evaluated.block,
+                        state: evaluated.state,
+                    });
+                }
+                Frame::ByteRangeAfterStart { expression, end } => {
+                    let evaluated = results.pop().expect("byte-range start result retained");
+                    if evaluated.owned_source.is_some() {
+                        return Err(plan_error("byte range received an owned start"));
+                    }
+                    frames.push(Frame::ByteRangeAfterEnd { expression });
+                    frames.push(Frame::Enter {
+                        expression: end,
+                        block: evaluated.block,
+                        state: evaluated.state,
+                    });
+                }
+                Frame::ByteRangeAfterEnd { expression } => {
+                    let evaluated = results.pop().expect("byte-range end result retained");
+                    if evaluated.owned_source.is_some() {
+                        return Err(plan_error("byte range received an owned end"));
+                    }
+                    self.push_transition(
+                        evaluated.block,
+                        CleanupTransition::CallCommit {
+                            call: expression.id.clone(),
+                            arguments: Vec::new(),
+                        },
+                    );
+                    let source = StatusSourceId {
+                        expression: expression.id.clone(),
+                        lane: StatusLane::OperationFailure,
+                    };
+                    self.add_status_source(
+                        source.clone(),
+                        StatusProducer::PropagatedCall {
+                            callee: DeclarationId::new(crate::byte_ops::RANGE_ID),
+                        },
+                    )?;
+                    let (block, state) =
+                        self.split_status(evaluated.block, evaluated.state, active_region, source)?;
+                    results.push(EvalResult {
+                        block,
+                        state,
+                        owned_source: None,
                     });
                 }
                 Frame::CallNext {
@@ -4125,6 +4218,66 @@ impl<'a> PlanBuilder<'a> {
                 state,
                 owned_source: None,
             }),
+            ResolvedExprKind::ByteRange {
+                operation,
+                source,
+                start,
+                end,
+            } => {
+                if operation.as_str() != crate::byte_ops::RANGE_ID {
+                    return Err(plan_error(
+                        "byte range carries an unknown operation identity",
+                    ));
+                }
+                self.schema = CLEANUP_PLAN_SCHEMA_V4;
+                let mut evaluated =
+                    self.lower_expr_recursive_reference(source, block, state, region)?;
+                if evaluated.owned_source.is_some() {
+                    return Err(plan_error("byte range received an owned source"));
+                }
+                evaluated = self.lower_expr_recursive_reference(
+                    start,
+                    evaluated.block,
+                    evaluated.state,
+                    region,
+                )?;
+                if evaluated.owned_source.is_some() {
+                    return Err(plan_error("byte range received an owned start"));
+                }
+                evaluated = self.lower_expr_recursive_reference(
+                    end,
+                    evaluated.block,
+                    evaluated.state,
+                    region,
+                )?;
+                if evaluated.owned_source.is_some() {
+                    return Err(plan_error("byte range received an owned end"));
+                }
+                self.push_transition(
+                    evaluated.block,
+                    CleanupTransition::CallCommit {
+                        call: expression.id.clone(),
+                        arguments: Vec::new(),
+                    },
+                );
+                let status = StatusSourceId {
+                    expression: expression.id.clone(),
+                    lane: StatusLane::OperationFailure,
+                };
+                self.add_status_source(
+                    status.clone(),
+                    StatusProducer::PropagatedCall {
+                        callee: DeclarationId::new(crate::byte_ops::RANGE_ID),
+                    },
+                )?;
+                let (block, state) =
+                    self.split_status(evaluated.block, evaluated.state, region, status)?;
+                Ok(EvalResult {
+                    block,
+                    state,
+                    owned_source: None,
+                })
+            }
             ResolvedExprKind::Call {
                 callee,
                 instance,
@@ -4927,7 +5080,9 @@ impl<'a> PlanBuilder<'a> {
         none_case: &DeclarationId,
         residual_type: &ResolvedType,
     ) -> Result<(), Diagnostic> {
-        self.schema = CLEANUP_PLAN_SCHEMA_V3;
+        if self.schema == CLEANUP_PLAN_SCHEMA_V2 {
+            self.schema = CLEANUP_PLAN_SCHEMA_V3;
+        }
         if option.as_str() != prelude::OPTION_ID
             || some_case.as_str() != prelude::OPTION_SOME_ID
             || some_field.as_str() != prelude::OPTION_SOME_VALUE_ID
@@ -5186,7 +5341,9 @@ impl<'a> PlanBuilder<'a> {
         state: FlowState,
         region: CleanupRegionId,
     ) -> Result<EvalResult, Diagnostic> {
-        self.schema = CLEANUP_PLAN_SCHEMA_V3;
+        if self.schema == CLEANUP_PLAN_SCHEMA_V2 {
+            self.schema = CLEANUP_PLAN_SCHEMA_V3;
+        }
         if option.as_str() != prelude::OPTION_ID
             || some_case.as_str() != prelude::OPTION_SOME_ID
             || some_field.as_str() != prelude::OPTION_SOME_VALUE_ID
@@ -5656,6 +5813,39 @@ mod iterative_lowering_tests {
         assert!(
             std::mem::size_of::<super::EvalResult>() <= super::CLEANUP_EVAL_RESULT_SIZE_CEILING
         );
+    }
+
+    #[test]
+    fn fallible_byte_range_selects_v4_and_keeps_an_exact_status_source() {
+        let source = r#"
+module test.cleanup_byte_range;
+@id("window.len")
+fn window_len(value: borrow Slice<u8>, start: usize, end: usize) -> usize {
+  byte_len(byte_range(value, start, end))
+}
+@id("main") fn main() -> i64 { 0 }
+"#;
+        let program = hir::resolve(
+            &parse(source, Path::new("cleanup-byte-range.spx")).expect("source parses"),
+        )
+        .expect("source resolves");
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "window.len")
+            .expect("range function is retained");
+        assert_expression_lowering_oracle(&program, function, &function.body);
+        assert_eq!(
+            function.cleanup_plan.schema,
+            crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V4
+        );
+        assert!(function.cleanup_plan.status_sources.iter().any(|source| {
+            matches!(
+                &source.producer,
+                crate::cleanup_plan::StatusProducer::PropagatedCall { callee }
+                    if callee.as_str() == crate::byte_ops::RANGE_ID
+            )
+        }));
     }
 
     #[test]

@@ -15,7 +15,7 @@ use super::{package_error, NpmArtifact};
 #[cfg(windows)]
 use super::{
     PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
-    PROJECT_NPM_BUILD_SCHEMA_V5,
+    PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6,
 };
 
 #[cfg(all(test, unix))]
@@ -63,6 +63,7 @@ pub(super) fn publish(
             | PROJECT_NPM_BUILD_SCHEMA_V3
             | PROJECT_NPM_BUILD_SCHEMA_V4
             | PROJECT_NPM_BUILD_SCHEMA_V5
+            | PROJECT_NPM_BUILD_SCHEMA_V6
     ) {
         return Err(package_error(
             "useful-data npm publication requires safe handle-relative Windows authority",

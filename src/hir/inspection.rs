@@ -233,6 +233,17 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
                 reject_nul_identity("resolved byte-view operation", operation.as_str())?;
                 audit_hir_place(place)?;
             }
+            ResolvedExprKind::ByteRange {
+                operation,
+                source,
+                start,
+                end,
+            } => {
+                reject_nul_identity("resolved byte-range operation", operation.as_str())?;
+                pending.push(end);
+                pending.push(start);
+                pending.push(source);
+            }
             ResolvedExprKind::Call { callee, args, .. } => {
                 reject_nul_identity("resolved call target", callee.as_str())?;
                 pending.extend(args);
@@ -779,6 +790,13 @@ pub(super) fn visit_resolved_calls(
     visit: &mut impl FnMut(&DeclarationId, Option<&FunctionInstanceId>, &[ResolvedType]),
 ) {
     match &expression.kind {
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            visit_resolved_calls(source, visit);
+            visit_resolved_calls(start, visit);
+            visit_resolved_calls(end, visit);
+        }
         ResolvedExprKind::Call {
             callee,
             instance,
@@ -902,6 +920,13 @@ pub(crate) fn workspace_call_sites(
         sites: &mut Vec<(DeclarationId, String, DeclarationId)>,
     ) {
         match &expression.kind {
+            ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => {
+                walk(owner, source, sites);
+                walk(owner, start, sites);
+                walk(owner, end, sites);
+            }
             ResolvedExprKind::Call { callee, args, .. } => {
                 sites.push((
                     owner.clone(),

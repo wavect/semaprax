@@ -25,7 +25,7 @@ use super::{
     BlockId, CleanupPlace, CleanupRegionId, CleanupResultSource, CleanupTerminator,
     CleanupTransition, EdgeCondition, EdgeId, ExitContinuation, ExitTarget, StagedCopyResultSource,
     StatusCase, StatusLane, StatusProducer, StatusSource, StatusSourceId, StorageId,
-    CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3,
+    CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4,
 };
 
 const MAX_REPLAY_PATHS: usize = 65_536;
@@ -312,7 +312,12 @@ fn validate_structure_with_budget(
     budget: &mut ReplayBudget,
 ) -> Result<(), Diagnostic> {
     let plan = &function.cleanup_plan;
-    let expected_schema = if function.requires.iter().any(expression_has_option_try)
+    let expected_schema = if function.requires.iter().any(expression_has_byte_range)
+        || function.ensures.iter().any(expression_has_byte_range)
+        || expression_has_byte_range(&function.body)
+    {
+        CLEANUP_PLAN_SCHEMA_V4
+    } else if function.requires.iter().any(expression_has_option_try)
         || function.ensures.iter().any(expression_has_option_try)
         || expression_has_option_try(&function.body)
     {
@@ -649,6 +654,11 @@ fn expression_path_counts_with_while(
             ResolvedExprKind::Call { args, .. } => args.get(index),
             ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
             ResolvedExprKind::HostCommandCall(call) => call.args.get(index),
+            ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => [source.as_ref(), start.as_ref(), end.as_ref()]
+                .get(index)
+                .copied(),
             ResolvedExprKind::If {
                 condition,
                 then_branch,
@@ -820,6 +830,13 @@ fn expression_path_counts_with_while(
                             }
                         } else {
                             accumulator
+                        }
+                    }
+                    ResolvedExprKind::ByteRange { .. } => {
+                        let accumulator = sequence(children);
+                        HirPathCounts {
+                            failed: accumulator.failed.saturating_add(accumulator.normal),
+                            ..accumulator
                         }
                     }
                     ResolvedExprKind::If { .. } => {
@@ -1039,6 +1056,7 @@ fn expression_skeleton_work_upper(
                     call.args.len().saturating_mul(4) + 8
                 }
                 ResolvedExprKind::HostCommandCall(call) => call.args.len().saturating_mul(6) + 14,
+                ResolvedExprKind::ByteRange { .. } => 32,
                 ResolvedExprKind::Block { statements, .. } => {
                     // While statements add two continuation pushes plus their
                     // Boolean split beyond the ordinary statement budget.
@@ -1760,6 +1778,23 @@ fn collect_expression_statuses(
             continue;
         }
         match &expression.kind {
+            ResolvedExprKind::ByteRange { operation, .. } => {
+                if operation.as_str() != crate::byte_ops::RANGE_ID {
+                    return Err(replay_error(
+                        function,
+                        "byte range status source carries an unknown operation identity",
+                    ));
+                }
+                statuses.push(StatusSource {
+                    id: StatusSourceId {
+                        expression: expression.id.clone(),
+                        lane: StatusLane::OperationFailure,
+                    },
+                    producer: StatusProducer::PropagatedCall {
+                        callee: operation.clone(),
+                    },
+                });
+            }
             ResolvedExprKind::Call {
                 callee, instance, ..
             } => {
@@ -2914,6 +2949,11 @@ fn expression_skeleton(
             index: usize,
             states: Vec<CallSkeletonState>,
         },
+        ByteRangeArgument {
+            expression: &'a ResolvedExpr,
+            index: usize,
+            states: Vec<CallSkeletonState>,
+        },
         NativeArgument {
             args: &'a [ResolvedExpr],
             index: usize,
@@ -3150,6 +3190,26 @@ fn expression_skeleton(
                     ResolvedExprKind::BorrowPlace { .. } => {
                         produced =
                             Some(work.singleton_path(empty_expr_path(), "borrow skeleton path")?);
+                    }
+                    ResolvedExprKind::ByteRange {
+                        operation, source, ..
+                    } => {
+                        if operation.as_str() != crate::byte_ops::RANGE_ID {
+                            return Err(replay_error(
+                                function,
+                                "byte range skeleton carries an unknown operation identity",
+                            ));
+                        }
+                        work.charge(1, "byte-range skeleton root state")?;
+                        push_frame!(
+                            frames,
+                            Frame::ByteRangeArgument {
+                                expression,
+                                index: 0,
+                                states: vec![(empty_expr_path(), Vec::new())],
+                            }
+                        );
+                        push_frame!(frames, Frame::Eval(source));
                     }
                     ResolvedExprKind::Unary { op, value } => {
                         push_frame!(
@@ -3539,8 +3599,15 @@ fn expression_skeleton(
                 states,
             } => {
                 let suffixes = produced.take().expect("call argument path retained");
+                let argument = args
+                    .get(index)
+                    .ok_or_else(|| replay_error(function, "skeleton call arity is inconsistent"))?;
+                let parameter = params
+                    .get(index)
+                    .ok_or_else(|| replay_error(function, "skeleton call arity is inconsistent"))?;
                 let states = sequence_call_argument(
-                    program, function, expression, &params, args, index, states, &suffixes, work,
+                    program, function, expression, parameter, argument, index, states, &suffixes,
+                    work,
                 )?;
                 let next = index + 1;
                 if call_states_have_active(&states) && next < args.len() {
@@ -3555,6 +3622,43 @@ fn expression_skeleton(
                         }
                     );
                     push_frame!(frames, Frame::Eval(&args[next]));
+                } else {
+                    produced = Some(finish_call_states(
+                        program, function, expression, states, work,
+                    )?);
+                }
+            }
+            Frame::ByteRangeArgument {
+                expression,
+                index,
+                states,
+            } => {
+                let suffixes = produced.take().expect("byte-range argument path retained");
+                let argument = replay_expression_child(expression, index).ok_or_else(|| {
+                    replay_error(function, "byte range skeleton arity is inconsistent")
+                })?;
+                let params = crate::byte_ops::resolved_params(crate::byte_ops::ByteOp::Range);
+                let parameter = params.get(index).ok_or_else(|| {
+                    replay_error(function, "byte range parameter arity is inconsistent")
+                })?;
+                let states = sequence_call_argument(
+                    program, function, expression, parameter, argument, index, states, &suffixes,
+                    work,
+                )?;
+                let next = index + 1;
+                if call_states_have_active(&states) && next < 3 {
+                    let argument = replay_expression_child(expression, next).ok_or_else(|| {
+                        replay_error(function, "byte range skeleton arity is inconsistent")
+                    })?;
+                    push_frame!(
+                        frames,
+                        Frame::ByteRangeArgument {
+                            expression,
+                            index: next,
+                            states,
+                        }
+                    );
+                    push_frame!(frames, Frame::Eval(argument));
                 } else {
                     produced = Some(finish_call_states(
                         program, function, expression, states, work,
@@ -5001,17 +5105,13 @@ fn sequence_call_argument(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
     expression: &ResolvedExpr,
-    params: &[crate::hir::ResolvedParam],
-    args: &[ResolvedExpr],
+    parameter: &crate::hir::ResolvedParam,
+    argument: &ResolvedExpr,
     index: usize,
     states: Vec<CallSkeletonState>,
     suffixes: &[ExprSkeletonPath],
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<CallSkeletonState>, Diagnostic> {
-    let argument = &args[index];
-    let parameter = params
-        .get(index)
-        .ok_or_else(|| replay_error(function, "skeleton call arity is inconsistent"))?;
     let mut next = Vec::new();
     for (prefix, commits) in states {
         if prefix.failed || prefix.residual {
@@ -6221,6 +6321,11 @@ fn replay_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&R
         ResolvedExprKind::Call { args, .. } => args.get(index),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
         ResolvedExprKind::HostCommandCall(call) => call.args.get(index),
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => [source.as_ref(), start.as_ref(), end.as_ref()]
+            .get(index)
+            .copied(),
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
@@ -6333,6 +6438,12 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
 fn expression_has_option_try(expression: &ResolvedExpr) -> bool {
     expression_has_kind(expression, |kind| {
         matches!(kind, ResolvedExprKind::TryOption { .. })
+    })
+}
+
+fn expression_has_byte_range(expression: &ResolvedExpr) -> bool {
+    expression_has_kind(expression, |kind| {
+        matches!(kind, ResolvedExprKind::ByteRange { .. })
     })
 }
 
@@ -6706,6 +6817,19 @@ fn collect_expression_facts(
                         .map(|argument| argument.id.clone())
                         .collect(),
                 }),
+                ResolvedExprKind::ByteRange {
+                    operation,
+                    source,
+                    start,
+                    end,
+                } => Some(CallFact {
+                    callee: operation.clone(),
+                    instance: None,
+                    arguments: [source.as_ref(), start.as_ref(), end.as_ref()]
+                        .into_iter()
+                        .map(|argument| argument.id.clone())
+                        .collect(),
+                }),
                 _ => None,
             };
             if facts.insert(current.id.clone(), fact).is_some() {
@@ -6938,6 +7062,30 @@ fn main() -> i64 { 0 }
     fn program() -> ResolvedProgram {
         let parsed = parse(SOURCE, Path::new("cleanup-replay-paths.spx")).unwrap();
         hir::resolve(&parsed).unwrap()
+    }
+
+    #[test]
+    fn byte_range_v4_replay_rejects_legacy_schema_substitution() {
+        let source = r#"
+module test.replay_byte_range;
+@id("window.len")
+fn window_len(value: borrow Slice<u8>, start: usize, end: usize) -> usize {
+  byte_len(byte_range(value, start, end))
+}
+@id("main") fn main() -> i64 { 0 }
+"#;
+        let program = hir::resolve(
+            &parse(source, Path::new("cleanup-replay-byte-range.spx")).expect("source parses"),
+        )
+        .expect("source resolves");
+        let mut function = function(&program, "window.len");
+        assert_eq!(function.cleanup_plan.schema, CLEANUP_PLAN_SCHEMA_V4);
+        validate_structure(&program, &function).expect("canonical range plan replays");
+        function.cleanup_plan.schema = CLEANUP_PLAN_SCHEMA_V3;
+        let diagnostic = validate_structure(&program, &function)
+            .expect_err("legacy schema substitution must fail closed");
+        assert_eq!(diagnostic.code, "SPX-H006");
+        assert!(diagnostic.message.contains("schema"));
     }
 
     fn function(program: &ResolvedProgram, id: &str) -> ResolvedFunction {

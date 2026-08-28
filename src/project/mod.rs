@@ -39,20 +39,22 @@ pub use manifest::{
     ProjectManifest, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES,
     MAX_SOURCES, MAX_STABLE_ID_BYTES, MAX_TOTAL_SOURCE_BYTES, MAX_VERSION_BYTES, MAX_WEB_EXPORTS,
     PROJECT_SCHEMA, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5,
-    PROJECT_SCHEMA_V6,
+    PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7,
 };
 pub use native_sdk::{ProjectNativeSdkExport, ProjectNativeSdkSubject};
 pub use npm::{
     ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
     PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
+    PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6,
 };
 pub use profile::{
     ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_ARGS_READ_CAPABILITY,
     PROJECT_COMMAND_INPUT_V1, PROJECT_COMMAND_STDERR_WRITE_CAPABILITY,
     PROJECT_COMMAND_STDIN_READ_CAPABILITY, PROJECT_COMMAND_STDOUT_CAPABILITY,
     PROJECT_LANGUAGE_COMMAND_INPUT_V1, PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1,
-    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2,
-    PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
+    PROJECT_PROFILE_LINE_COMMAND_IO_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
+    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
+    PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
 };
 pub(crate) use rename::{PreparedProjectRename, ProjectRenameDerivation};
 pub use revision::ProjectRevision;
@@ -271,7 +273,7 @@ impl ProjectSnapshot {
     /// Build the authenticated project entry closure as its profile-selected
     /// Web product.
     pub fn build_web(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
-        // Project v2-v6 each have one public JavaScript product: their exact
+        // Project v2-v7 each have one public JavaScript product: their exact
         // schema-selected npm/Web package. Keeping `web` and the default route as
         // aliases avoids a scalar-v1 fallback while `npm` remains the explicit
         // package-manager spelling. Frozen Project v1 bytes and publication
@@ -354,13 +356,19 @@ impl ProjectSnapshot {
                     self.manifest.command().unwrap_or(""),
                 )
             }
+            ProjectProfile::LineCommandIoV1 => crate::codegen::emit_hir_c_with_line_command_io(
+                &self.entry_program,
+                self.manifest.command().unwrap_or(""),
+            ),
             _ => crate::codegen::emit_hir_c(&self.entry_program),
         }
         .map_err(|error| vec![error])?;
         self.recheck()?;
         if matches!(
             profile,
-            ProjectProfile::UsefulDataCommandV2 | ProjectProfile::LanguageCommandIoV1
+            ProjectProfile::UsefulDataCommandV2
+                | ProjectProfile::LanguageCommandIoV1
+                | ProjectProfile::LineCommandIoV1
         ) {
             crate::codegen::compile_native_command_executable(&prepared, output)
         } else {

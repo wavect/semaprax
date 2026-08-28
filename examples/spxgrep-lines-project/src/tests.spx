@@ -1,0 +1,12 @@
+module spxgrep_lines.tests;
+use function @id("spxgrep-lines.contains") from spxgrep_lines.filter as contains;
+
+@id("spxgrep-lines.tests.main")
+fn main() -> i64
+{
+    let line = [97u8, 13u8, 0u8, 98u8];
+    let needle = [13u8, 0u8];
+    let line_view = array_as_slice(line);
+    let needle_view = array_as_slice(needle);
+    if contains(line_view, needle_view) { 0 } else { 1 }
+}

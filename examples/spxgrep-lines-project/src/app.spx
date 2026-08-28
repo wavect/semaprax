@@ -1,0 +1,17 @@
+module spxgrep_lines.app;
+use function @id("spxgrep-lines.contains") from spxgrep_lines.filter as contains;
+
+permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+
+@id("spxgrep-lines.run")
+fn run() -> bool
+    uses { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+{
+    if args_len() == 1usize { let needle_text = arg_utf8(0usize); let needle = str_as_bytes(needle_text); let owned_input = stdin_read(); let input = bytes_as_slice(owned_input); let input_length = byte_len(input); let mut line_start = 0usize; let mut cursor = 0usize; let mut any = false; while cursor < input_length { let mut at_lf = false; while !at_lf && cursor < input_length { at_lf = match byte_get(input, cursor) { Option::Some { value: byte } => byte == 10u8, Option::None {} => false, }; cursor = if at_lf { cursor } else { cursor + 1usize }; !at_lf && cursor < input_length } let content = byte_range(input, line_start, cursor); let line_end = if at_lf { cursor + 1usize } else { cursor }; let physical_line = byte_range(input, line_start, line_end); let matched = contains(content, needle); let emitted = if matched { stdout_append(physical_line) == byte_len(physical_line) } else { false }; any = any || emitted; line_start = line_end; cursor = line_end; cursor < input_length } any } else { let usage = [117u8, 115u8, 97u8, 103u8, 101u8, 58u8, 32u8, 115u8, 112u8, 120u8, 103u8, 114u8, 101u8, 112u8, 45u8, 108u8, 105u8, 110u8, 101u8, 115u8, 32u8, 60u8, 110u8, 101u8, 101u8, 100u8, 108u8, 101u8, 62u8, 10u8]; let usage_bytes = array_as_slice(usage); stderr_append(usage_bytes) == byte_len(usage_bytes) && false }
+}
+
+@id("main")
+fn main() -> i64
+{
+    0
+}

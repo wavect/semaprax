@@ -420,7 +420,8 @@ fn validate_function(
             | ResolvedExprKind::Place(_) => {}
             ResolvedExprKind::ArrayU8(_)
             | ResolvedExprKind::RepeatArrayU8 { .. }
-            | ResolvedExprKind::BorrowPlace { .. } => {
+            | ResolvedExprKind::BorrowPlace { .. }
+            | ResolvedExprKind::ByteRange { .. } => {
                 return Err(admission(format!(
                     "Public Borrowed Text Export Profile v1 function `{}` reaches portable byte data",
                     function.id

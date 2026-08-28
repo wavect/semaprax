@@ -7,6 +7,11 @@ pub(crate) const LEN_NAME: &str = "byte_len";
 pub(crate) const GET_NAME: &str = "byte_get";
 pub(crate) const LEN_ID: &str = "core.bytes.len";
 pub(crate) const GET_ID: &str = "core.bytes.get";
+pub(crate) const RANGE_NAME: &str = "byte_range";
+pub(crate) const RANGE_ID: &str = "core.bytes.range";
+pub(crate) const RANGE_STATUS_DOMAIN: &str = "semaprax.byte-range.v1";
+pub(crate) const RANGE_START_AFTER_END_CODE: u32 = 1;
+pub(crate) const RANGE_END_OUT_OF_BOUNDS_CODE: u32 = 2;
 pub(crate) const COPY_NAME: &str = "bytes_copy";
 pub(crate) const COPY_ID: &str = "core.bytes.copy";
 pub(crate) const BYTES_AS_SLICE_NAME: &str = "bytes_as_slice";
@@ -16,11 +21,13 @@ pub(crate) const ARRAY_AS_SLICE_ID: &str = "core.array-u8.as-slice";
 pub(crate) const STR_AS_BYTES_NAME: &str = "str_as_bytes";
 pub(crate) const STR_AS_BYTES_ID: &str = "core.str.as-bytes";
 pub(crate) const MAX_EXTERNAL_ROOT_BYTES: u64 = 65_536;
+pub(crate) const MAX_RANGE_DEPTH: usize = 64;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum ByteOp {
     Len,
     Get,
+    Range,
     Copy,
     BytesAsSlice,
     ArrayAsSlice,
@@ -32,6 +39,7 @@ impl ByteOp {
         match self {
             Self::Len => LEN_NAME,
             Self::Get => GET_NAME,
+            Self::Range => RANGE_NAME,
             Self::Copy => COPY_NAME,
             Self::BytesAsSlice => BYTES_AS_SLICE_NAME,
             Self::ArrayAsSlice => ARRAY_AS_SLICE_NAME,
@@ -42,6 +50,7 @@ impl ByteOp {
         match self {
             Self::Len => LEN_ID,
             Self::Get => GET_ID,
+            Self::Range => RANGE_ID,
             Self::Copy => COPY_ID,
             Self::BytesAsSlice => BYTES_AS_SLICE_ID,
             Self::ArrayAsSlice => ARRAY_AS_SLICE_ID,
@@ -52,6 +61,7 @@ impl ByteOp {
         match self {
             Self::Len => 1,
             Self::Get => 2,
+            Self::Range => 3,
             Self::Copy | Self::BytesAsSlice | Self::ArrayAsSlice | Self::StrAsBytes => 1,
         }
     }
@@ -59,6 +69,11 @@ impl ByteOp {
         match self {
             Self::Len => &[ResolvedType::SliceU8],
             Self::Get => &[ResolvedType::SliceU8, ResolvedType::Usize],
+            Self::Range => &[
+                ResolvedType::SliceU8,
+                ResolvedType::Usize,
+                ResolvedType::Usize,
+            ],
             Self::Copy => &[ResolvedType::SliceU8],
             Self::BytesAsSlice => &[ResolvedType::Bytes],
             Self::ArrayAsSlice => &[ResolvedType::ArrayU8(0)],
@@ -72,6 +87,7 @@ impl ByteOp {
                 declaration: DeclarationId::new(crate::prelude::OPTION_ID),
                 arguments: vec![ResolvedType::U8],
             },
+            Self::Range => ResolvedType::SliceU8,
             Self::Copy => ResolvedType::Bytes,
             Self::BytesAsSlice | Self::ArrayAsSlice | Self::StrAsBytes => ResolvedType::SliceU8,
         }
@@ -83,6 +99,7 @@ impl ByteOp {
                 name: "Option".to_owned(),
                 arguments: vec![Type::U8],
             },
+            Self::Range => Type::SliceU8,
             Self::Copy => Type::Bytes,
             Self::BytesAsSlice | Self::ArrayAsSlice | Self::StrAsBytes => Type::SliceU8,
         }
@@ -93,6 +110,8 @@ impl ByteOp {
             (Self::Len | Self::Copy, 0) => *ty == ResolvedType::SliceU8,
             (Self::Get, 0) => *ty == ResolvedType::SliceU8,
             (Self::Get, 1) => *ty == ResolvedType::Usize,
+            (Self::Range, 0) => *ty == ResolvedType::SliceU8,
+            (Self::Range, 1 | 2) => *ty == ResolvedType::Usize,
             (Self::BytesAsSlice, 0) => *ty == ResolvedType::Bytes,
             (Self::ArrayAsSlice, 0) => matches!(ty, ResolvedType::ArrayU8(_)),
             (Self::StrAsBytes, 0) => *ty == ResolvedType::Str,
@@ -105,6 +124,8 @@ impl ByteOp {
             (Self::Len | Self::Copy, 0) => *ty == Type::SliceU8,
             (Self::Get, 0) => *ty == Type::SliceU8,
             (Self::Get, 1) => *ty == Type::Usize,
+            (Self::Range, 0) => *ty == Type::SliceU8,
+            (Self::Range, 1 | 2) => *ty == Type::Usize,
             (Self::BytesAsSlice, 0) => *ty == Type::Bytes,
             (Self::ArrayAsSlice, 0) => matches!(ty, Type::ArrayU8(_)),
             (Self::StrAsBytes, 0) => *ty == Type::Str,
@@ -124,6 +145,7 @@ pub(crate) fn by_name(name: &str) -> Option<ByteOp> {
     match name {
         LEN_NAME => Some(ByteOp::Len),
         GET_NAME => Some(ByteOp::Get),
+        RANGE_NAME => Some(ByteOp::Range),
         COPY_NAME => Some(ByteOp::Copy),
         BYTES_AS_SLICE_NAME => Some(ByteOp::BytesAsSlice),
         ARRAY_AS_SLICE_NAME => Some(ByteOp::ArrayAsSlice),
@@ -135,6 +157,7 @@ pub(crate) fn by_id(id: &str) -> Option<ByteOp> {
     match id {
         LEN_ID => Some(ByteOp::Len),
         GET_ID => Some(ByteOp::Get),
+        RANGE_ID => Some(ByteOp::Range),
         COPY_ID => Some(ByteOp::Copy),
         BYTES_AS_SLICE_ID => Some(ByteOp::BytesAsSlice),
         ARRAY_AS_SLICE_ID => Some(ByteOp::ArrayAsSlice),
@@ -204,7 +227,13 @@ pub(crate) fn resolved_params(op: ByteOp) -> Vec<ResolvedParam> {
         .enumerate()
         .map(|(index, ty)| ResolvedParam {
             id: ValueId::intrinsic_parameter(op.id(), index),
-            name: if index == 0 { "value" } else { "index" }.to_owned(),
+            name: match (op, index) {
+                (_, 0) => "value",
+                (ByteOp::Range, 1) => "start",
+                (ByteOp::Range, 2) => "end",
+                _ => "index",
+            }
+            .to_owned(),
             ownership: if index == 0 {
                 OwnershipMode::Borrow
             } else {

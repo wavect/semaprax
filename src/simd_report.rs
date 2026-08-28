@@ -626,6 +626,17 @@ fn render_expr(
             output.push_str(&walker.place_name(&place.root, &place.projections));
             output.push(')');
         }
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            output.push_str("byte_range(");
+            output.push_str(&render_child(walker, source, 0));
+            output.push_str(", ");
+            output.push_str(&render_child(walker, start, 0));
+            output.push_str(", ");
+            output.push_str(&render_child(walker, end, 0));
+            output.push(')');
+        }
         ResolvedExprKind::Call { callee, args, .. } => {
             let name = walker.declaration_name(callee);
             output.push_str(&name);
@@ -902,6 +913,14 @@ impl Walker<'_> {
             | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::BorrowPlace { .. } => {
                 self.push_ineligible(expr, REASON_AGGREGATE_OPERATION);
+            }
+            ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => {
+                self.push_ineligible(expr, REASON_AGGREGATE_OPERATION);
+                self.scan_expr(source);
+                self.scan_expr(start);
+                self.scan_expr(end);
             }
             ResolvedExprKind::Char(_) => {
                 self.push_ineligible(expr, REASON_CHAR_OPERATION);

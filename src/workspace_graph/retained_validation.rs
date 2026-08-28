@@ -333,6 +333,13 @@ fn visit_resolved_calls(
     visit: &mut impl FnMut(&hir::ResolvedExpr, &hir::DeclarationId),
 ) {
     match &expression.kind {
+        hir::ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            visit_resolved_calls(source, visit);
+            visit_resolved_calls(start, visit);
+            visit_resolved_calls(end, visit);
+        }
         hir::ResolvedExprKind::Call { callee, args, .. } => {
             visit(expression, callee);
             for argument in args {
@@ -740,6 +747,31 @@ fn collect_resolved_expression_type_sites(
 ) -> Result<(), Vec<Diagnostic>> {
     let expression_id = crate::bounded_output::budgeted_format(format_args!("{}", expression.id));
     match &expression.kind {
+        hir::ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            collect_resolved_expression_type_sites(
+                owner,
+                source,
+                &format!("{path}.source"),
+                imported,
+                out,
+            )?;
+            collect_resolved_expression_type_sites(
+                owner,
+                start,
+                &format!("{path}.start"),
+                imported,
+                out,
+            )?;
+            collect_resolved_expression_type_sites(
+                owner,
+                end,
+                &format!("{path}.end"),
+                imported,
+                out,
+            )?;
+        }
         hir::ResolvedExprKind::String(_) => {}
         hir::ResolvedExprKind::ArrayU8(_)
         | hir::ResolvedExprKind::RepeatArrayU8 { .. }

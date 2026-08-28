@@ -731,6 +731,20 @@ fn validate_expression(
                 ));
             }
         }
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            validate_expression(program, function, source)?;
+            validate_expression(program, function, start)?;
+            validate_expression(program, function, end)?;
+            return Err(unsupported(
+                function,
+                format!(
+                    "does not support fallible byte range expression `{}` in the single-frame native cleanup slice",
+                    expression.id
+                ),
+            ));
+        }
         ResolvedExprKind::Place(place) => {
             if !place.projections.is_empty() {
                 return Err(unsupported(

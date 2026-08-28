@@ -1697,6 +1697,45 @@ streaming/interactive I/O, WASI, callbacks/async,
 physical cross-descriptor atomicity, durability, registry publication, and
 release promotion remain nonclaims.
 
+## Line Command I/O v1 and Project Manifest v7
+
+Project Manifest v7 additively selects the closed `line-command-io.v1`
+profile. The manifest binds one `() -> bool` command, the existing
+`argv-utf8+stdin-bytes.v1` input envelope, and the exact four command
+capabilities. Its committed product is the multi-module `spxgrep-lines`
+application, not general streaming I/O.
+
+`byte_range(value, start, end)` is an explicit fallible HIR expression, not an
+ordinary call. It evaluates source, start, and end left-to-right, constructs a
+half-open borrowed view, and reports only `semaprax.byte-range.v1` code 1
+(`start > end`) or code 2 (`end > source length`). Nested named views retain a
+bounded acyclic derivation. Their presence selects additive Graph v20; lower
+Graph bytes remain unchanged. CleanupPlan v4 records and independently replays
+the range/output status and settlement edges.
+
+`stdout_append` and `stderr_append` are the only command-output operations
+admitted in bounded loop bodies. They share one exact cumulative 65,536-byte
+invocation budget. Both transcripts publish atomically with the terminal bool
+only after cleanup succeeds; failure discards both semantic transcripts. This
+does not claim atomic or durable physical writes across OS descriptors.
+
+Core-Wasm represents a live range through fixed private invocation-local
+descriptor slots that authenticate the underlying arena token, absolute
+offset, and length without copying bytes or minting ownership. Slots are
+reusable only because views are lexical and cannot escape or remain live across
+iterations; cyclic range reachability is rejected. This is private runtime
+representation, not a public ABI or linear-memory pointer capability.
+
+The v7 npm route emits independently replayed
+`semaprax.project-npm-build.v6`. Cross-module imports widen only to monomorphic
+functions accepting `borrow Slice<u8>` and returning a non-borrowing scalar.
+Borrowed returns, owned byte/string results, aggregates, resources, generics,
+and all other non-Value modes remain rejected. Local interpreter, native, and
+Core-Wasm/Node evidence covers `spxgrep-lines`; hosted promotion, real-browser,
+multi-engine, and general
+streams/files/WASI, registry publication, and broad v0.2 completion remain
+open.
+
 ### Project Agent Transport v2
 
 `src/project_transport/` and `src/bin/semapraxd.rs` add a separate strict

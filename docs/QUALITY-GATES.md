@@ -1074,3 +1074,22 @@ remain blocking boundaries.
 - A completion-matrix row changes to **Implemented** only when its entire stated gate is exercised.
 
 Never delete, loosen, skip, or platform-disable a relevant test without documenting the invalidated evidence and replacing it with an equally strong gate.
+
+Project Manifest v7 / Line Command I/O changes additionally require:
+
+```sh
+cargo test --locked -p semaprax --test line_filter_project_v7
+cargo test --locked -p semaprax --test project_line_command_native_v1 -- --test-threads=1
+cargo test --locked -p semaprax --test line_command_io_native_v1 -- --test-threads=1
+cargo test --locked -p semaprax --test project_manifest_v7
+cargo test --locked -p semaprax --lib graph::tests::dynamic_byte_ranges_select_v20_and_publish_exact_contract -- --exact
+cargo test --locked -p semaprax --lib graph::tests::internal_hir_renderer_rejects_forged_byte_range_operation -- --exact
+```
+
+The gate must cover both range codes, nested provenance, hostile-HIR and
+CleanupPlan-v4 replay, exact 65,536-byte combined append success and plus-one
+rejection, transcript discard on failure, Wasm descriptor authentication and
+reuse, native/browser parity, the multi-module line-filter edge corpus, and
+rejection of every cross-module borrowed signature except exact
+`borrow Slice<u8>` parameters returning a non-borrowing scalar. Earlier Graph,
+CleanupPlan, manifest, package, and carrier golden bytes must remain unchanged.

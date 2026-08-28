@@ -47,6 +47,12 @@ fn stdout_write(site: &str) -> CapacityFlow {
     }
 }
 
+fn stdout_append(site: &str) -> CapacityFlow {
+    CapacityFlow::StdoutAppend {
+        site: site.to_owned(),
+    }
+}
+
 #[test]
 fn command_input_transcript_sources_are_closed_and_share_one_budget() {
     let admitted = analyze(&[function(
@@ -151,6 +157,79 @@ fn stdout_transcript_is_single_path_bounded_and_cycle_free() {
     .unwrap_err();
     assert_eq!(cycle.diagnostic, CapacityDiagnostic::Transcript);
     assert!(cycle.detail.contains("cyclic"));
+}
+
+#[test]
+fn append_transcripts_are_runtime_bounded_and_direct_loop_bodies_are_admitted() {
+    let repeated = analyze(&[function(
+        "root",
+        vec![],
+        CapacityFlow::Sequence(vec![
+            stdout_append("root.first"),
+            CapacityFlow::StderrAppend {
+                site: "root.second".to_owned(),
+            },
+        ]),
+    )])
+    .unwrap();
+    let summary = repeated.function("root").unwrap();
+    assert_eq!(summary.stdout_append_sites, 1);
+    assert_eq!(summary.stderr_append_sites, 1);
+    assert_eq!(summary.transcript_bytes, 65_536);
+
+    let looped = analyze(&[function(
+        "root",
+        vec![],
+        CapacityFlow::Loop {
+            condition: Box::new(CapacityFlow::Empty),
+            body: Box::new(stdout_append("root.loop.append")),
+        },
+    )])
+    .unwrap();
+    assert_eq!(looped.function("root").unwrap().stdout_append_sites, 1);
+    assert_eq!(looped.function("root").unwrap().transcript_bytes, 65_536);
+}
+
+#[test]
+fn append_capacity_rejects_legacy_mixing_conditions_and_indirect_loop_output() {
+    let mixed = analyze(&[function(
+        "root",
+        vec![],
+        CapacityFlow::Sequence(vec![
+            stdout_write("root.write"),
+            stdout_append("root.append"),
+        ]),
+    )])
+    .unwrap_err();
+    assert_eq!(mixed.diagnostic, CapacityDiagnostic::Transcript);
+    assert!(mixed.detail.contains("cannot share"));
+
+    let condition = analyze(&[function(
+        "root",
+        vec![],
+        CapacityFlow::Loop {
+            condition: Box::new(stdout_append("root.condition")),
+            body: Box::new(CapacityFlow::Empty),
+        },
+    )])
+    .unwrap_err();
+    assert_eq!(condition.diagnostic, CapacityDiagnostic::Transcript);
+    assert!(condition.detail.contains("condition"));
+
+    let indirect = analyze(&[
+        function("helper", vec![], stdout_append("helper.append")),
+        function(
+            "root",
+            vec![],
+            CapacityFlow::Loop {
+                condition: Box::new(CapacityFlow::Empty),
+                body: Box::new(call("root.helper", "helper")),
+            },
+        ),
+    ])
+    .unwrap_err();
+    assert_eq!(indirect.diagnostic, CapacityDiagnostic::Transcript);
+    assert!(indirect.detail.contains("direct runtime-bounded append"));
 }
 
 #[test]

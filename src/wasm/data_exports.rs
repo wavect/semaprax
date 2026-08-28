@@ -543,6 +543,9 @@ fn validate_function(
             }
             ResolvedExprKind::Project { base, .. } => pending.push(base),
             ResolvedExprKind::Upcast { source } => pending.push(source),
+            ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => pending.extend([source.as_ref(), start.as_ref(), end.as_ref()]),
             ResolvedExprKind::Int(_)
             | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Usize(_)

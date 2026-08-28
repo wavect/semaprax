@@ -262,6 +262,13 @@ fn validate_function(
             }
             ResolvedExprKind::Project { base, .. } => pending.push(base),
             ResolvedExprKind::Upcast { source } => pending.push(source),
+            ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => {
+                pending.push(end);
+                pending.push(start);
+                pending.push(source);
+            }
             ResolvedExprKind::Int(_)
             | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Usize(_)

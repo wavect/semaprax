@@ -52,6 +52,44 @@ static __attribute__((unused)) uint64_t spx_byte_len(spx_slice_u8_v1 value) {
     return value.len;
 }
 
+static __attribute__((unused)) spx_status_token spx_byte_range_v1(
+    struct spx_context *spx_ctx,
+    spx_slice_u8_v1 value,
+    uint64_t start,
+    uint64_t end,
+    spx_slice_u8_v1 *result_out
+) {
+    spx_slice_u8_require_valid(value);
+    if (result_out == NULL) {
+        spx_runtime_invariant_failure("byte range result carrier is unavailable");
+    }
+    *result_out = (spx_slice_u8_v1){ .ptr = NULL, .len = UINT64_C(0) };
+    uint32_t failure_code = UINT32_C(0);
+    if (start > end) {
+        failure_code = UINT32_C(1);
+    } else if (end > value.len) {
+        failure_code = UINT32_C(2);
+    }
+    if (failure_code != UINT32_C(0)) {
+        spx_status_token token = SPX_STATUS_SUCCESS;
+        if (!spx_status_record_adapter(
+            spx_ctx,
+            "semaprax.byte-range.v1",
+            failure_code,
+            SPX_STATUS_CLASS_ADAPTER,
+            SPX_RETRYABILITY_FALSE,
+            &token
+        )) {
+            spx_runtime_invariant_failure("byte range status could not be recorded");
+        }
+        return token;
+    }
+    uint64_t length = end - start;
+    result_out->ptr = length == UINT64_C(0) ? NULL : value.ptr + (size_t)start;
+    result_out->len = length;
+    return SPX_STATUS_SUCCESS;
+}
+
 static __attribute__((unused)) void spx_bytes_require_valid(spx_bytes_v1 value) {
     if (value.len > SPX_SLICE_U8_MAX_BYTES) {
         spx_runtime_invariant_failure("owned bytes exceed the exact length bound");

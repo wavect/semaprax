@@ -242,6 +242,18 @@ language-level files and general streaming or interactive command I/O, general
 collections, mutable views, dependencies, lockfiles, signing, and provenance
 remain on the roadmap.
 
+Project Manifest v7 is the next completed local product tranche. Its closed
+`line-command-io.v1` profile adds fallible half-open `byte_range`, cumulative
+runtime-bounded stdout/stderr append, Graph v20, CleanupPlan v4, private
+invocation-local Wasm range descriptors, and replayed npm carrier v6. The
+committed multi-module `spxgrep-lines` fixture is exercised through the hosted
+interpreter, native command product, and Core-Wasm/Node carrier. Real-browser
+and multi-engine execution remain open. Cross-module
+borrowing is limited to monomorphic `borrow Slice<u8>` parameters with a
+non-borrowing scalar result. Hosted exact-head promotion, Windows-safe npm
+publication, registry/release publication, general streaming/files/WASI, and
+the aggregate v0.2 exit remain pending.
+
 ## 0.1 — Executable semantic seed
 
 Status: implemented in this repository.

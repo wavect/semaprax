@@ -71,6 +71,11 @@ fn first_call<'a>(expression: &'a ResolvedExpr, template: &str) -> Option<&'a Re
         | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_)
         | ResolvedExprKind::BorrowPlace { .. } => None,
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => first_call(source, template)
+            .or_else(|| first_call(start, template))
+            .or_else(|| first_call(end, template)),
         ResolvedExprKind::Call { args, .. } => args
             .iter()
             .find_map(|argument| first_call(argument, template)),

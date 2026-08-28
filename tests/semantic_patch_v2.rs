@@ -54,6 +54,11 @@ fn first_call<'a>(expression: &'a ResolvedExpr, template: &str) -> Option<&'a Re
         ResolvedExprKind::Binary { left, right, .. } => {
             first_call(left, template).or_else(|| first_call(right, template))
         }
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => first_call(source, template)
+            .or_else(|| first_call(start, template))
+            .or_else(|| first_call(end, template)),
         ResolvedExprKind::Block { statements, tail } => statements
             .iter()
             .find_map(|statement| first_call(statement.value(), template))

@@ -129,6 +129,31 @@ fn native_command_selection_requires_an_explicit_stable_identity() {
 }
 
 #[test]
+fn frozen_v6_emitters_reject_reachable_v7_range_and_append_operations() {
+    let program = resolved(
+        r#"
+module test.language_command_v7_ops;
+permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+@id("command.run")
+fn run() -> bool uses { process.stdin.read, process.stdout.write } {
+    let input = stdin_read();
+    let root = bytes_as_slice(input);
+    let selected = byte_range(root, 0usize, byte_len(root));
+    stdout_append(selected) == byte_len(selected)
+}
+@id("main") fn main() -> i64 { 0 }
+"#,
+    );
+
+    let native = codegen::emit_hir_c_with_language_command_io(&program, "command.run")
+        .expect_err("the v6 native boundary must reject v7 operations");
+    assert!(
+        native.message.contains("cannot reach byte_range"),
+        "{native:?}"
+    );
+}
+
+#[test]
 fn native_o0_o2_process_adapter_round_trips_exact_binary_input() {
     if Command::new("clang").arg("--version").output().is_err() {
         return;

@@ -37,6 +37,13 @@ fn contains_unsafe_boundary(expression: &ResolvedExpr) -> bool {
                 pending.extend(call.args.iter().rev());
             }
             ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter().rev()),
+            ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => {
+                pending.push(end);
+                pending.push(start);
+                pending.push(source);
+            }
             ResolvedExprKind::Unary { value, .. }
             | ResolvedExprKind::Try { operand: value, .. }
             | ResolvedExprKind::TryOption { operand: value, .. }
@@ -1151,6 +1158,11 @@ impl<'a> HirValidator<'a> {
                     ));
                 }
             }
+            ResolvedExprKind::ByteRange { .. } => {
+                return Err(hir_error(
+                    "generic templates cannot construct dynamic byte ranges",
+                ));
+            }
             ResolvedExprKind::Call {
                 callee,
                 type_arguments,
@@ -1395,8 +1407,61 @@ impl<'a> HirValidator<'a> {
                 ResolvedExprKind::BorrowPlace { .. } => {
                     return Err(hir_error("while loops cannot construct byte views"));
                 }
+                ResolvedExprKind::ByteRange {
+                    source, start, end, ..
+                } => {
+                    let ResolvedExprKind::Place(place) = &source.kind else {
+                        return Err(hir_error(
+                            "while loop byte ranges require an existing byte-slice alias",
+                        ));
+                    };
+                    if !place.projections.is_empty()
+                        || (!self.byte_slice_aliases.contains_key(&place.root)
+                            && self
+                                .program
+                                .declarations
+                                .byte_slice_provenance(&place.root)
+                                .is_none())
+                    {
+                        return Err(hir_error(
+                            "while loop byte range lacks authenticated slice provenance",
+                        ));
+                    }
+                    pending.push(Item::Expression(end));
+                    pending.push(Item::Expression(start));
+                }
+                ResolvedExprKind::HostCommandCall(call)
+                    if matches!(
+                        call.operation,
+                        ResolvedHostCommandOperation::StdoutAppend
+                            | ResolvedHostCommandOperation::StderrAppend
+                    ) =>
+                {
+                    let Some(argument) = call.args.first() else {
+                        return Err(hir_error("while loop append is missing its byte slice"));
+                    };
+                    let ResolvedExprKind::Place(place) = &argument.kind else {
+                        return Err(hir_error(
+                            "while loop append requires an existing byte-slice alias",
+                        ));
+                    };
+                    if !place.projections.is_empty()
+                        || (!self.byte_slice_aliases.contains_key(&place.root)
+                            && self
+                                .program
+                                .declarations
+                                .byte_slice_provenance(&place.root)
+                                .is_none())
+                    {
+                        return Err(hir_error(
+                            "while loop append lacks authenticated slice provenance",
+                        ));
+                    }
+                }
                 ResolvedExprKind::HostCommandCall(_) => {
-                    return Err(hir_error("while loops cannot contain command I/O"));
+                    return Err(hir_error(
+                        "while loops cannot contain non-append command I/O",
+                    ));
                 }
                 ResolvedExprKind::Unary { value, .. } => pending.push(Item::Expression(value)),
                 ResolvedExprKind::Binary { left, right, .. } => {
@@ -1456,7 +1521,12 @@ impl<'a> HirValidator<'a> {
                         if slice.ty != ResolvedType::SliceU8
                             || slice.ownership != OwnershipMode::Borrow
                             || !place.projections.is_empty()
-                            || !self.byte_slice_aliases.contains_key(&place.root)
+                            || (!self.byte_slice_aliases.contains_key(&place.root)
+                                && self
+                                    .program
+                                    .declarations
+                                    .byte_slice_provenance(&place.root)
+                                    .is_none())
                         {
                             return Err(hir_error(
                                 "while loop indexed byte read lacks authenticated slice provenance",
@@ -1471,17 +1541,49 @@ impl<'a> HirValidator<'a> {
                             .ok_or_else(|| {
                                 hir_error(format!("while loop call `{callee}` is not indexed"))
                             })?;
-                    let scalar_signature = crate::hir::is_scalar_resolved_type(&target.return_type)
+                    // A loop may call an effect-free bounded-read helper. A
+                    // borrowed slice cannot escape because the result remains
+                    // scalar; transitive allocation/call cycles are still
+                    // rejected by the byte-capacity analysis after HIR replay.
+                    let scalar_signature = target.effects.is_empty()
+                        && crate::hir::is_scalar_resolved_type(&target.return_type)
                         && target.params.iter().all(|param| {
-                            param.ownership == OwnershipMode::Value
-                                && crate::hir::is_scalar_resolved_type(&param.ty)
+                            (param.ownership == OwnershipMode::Value
+                                && crate::hir::is_scalar_resolved_type(&param.ty))
+                                || (param.ownership == OwnershipMode::Borrow
+                                    && param.ty == ResolvedType::SliceU8)
                         });
                     if !scalar_signature {
                         return Err(hir_error(format!(
                             "while loop call `{callee}` is not a scalar-value function"
                         )));
                     }
-                    pending.extend(args.iter().rev().map(Item::Expression));
+                    for (argument, parameter) in args.iter().zip(&target.params).rev() {
+                        if parameter.ty == ResolvedType::SliceU8 {
+                            let ResolvedExprKind::Place(place) = &argument.kind else {
+                                return Err(hir_error(
+                                    "while loop bounded-read call requires named slice aliases",
+                                ));
+                            };
+                            if !place.projections.is_empty()
+                                || (!self.byte_slice_aliases.contains_key(&place.root)
+                                    && self
+                                        .program
+                                        .declarations
+                                        .byte_slice_provenance(&place.root)
+                                        .is_none())
+                            {
+                                return Err(hir_error(
+                                    format!(
+                                        "while loop bounded-read call slice `{}` lacks authenticated provenance",
+                                        place.root
+                                    ),
+                                ));
+                            }
+                        } else {
+                            pending.push(Item::Expression(argument));
+                        }
+                    }
                 }
                 ResolvedExprKind::NativeRustImportCall(_) => {
                     return Err(hir_error(
@@ -2162,6 +2264,20 @@ impl<'a> HirValidator<'a> {
             Unary {
                 expression: &'e ResolvedExpr,
                 op: UnaryOp,
+            },
+            ByteRangeAfterSource {
+                expression: &'e ResolvedExpr,
+                start: &'e ResolvedExpr,
+                end: &'e ResolvedExpr,
+                path: String,
+            },
+            ByteRangeAfterStart {
+                expression: &'e ResolvedExpr,
+                end: &'e ResolvedExpr,
+                path: String,
+            },
+            ByteRangeAfterEnd {
+                expression: &'e ResolvedExpr,
             },
             BinaryLeft {
                 expression: &'e ResolvedExpr,
@@ -2861,6 +2977,41 @@ impl<'a> HirValidator<'a> {
                             )?;
                             scopes.push(scope);
                         }
+                        ResolvedExprKind::ByteRange {
+                            operation,
+                            source,
+                            start,
+                            end,
+                        } => {
+                            if operation.as_str() != crate::byte_ops::RANGE_ID {
+                                return Err(hir_error(
+                                    "byte range has an invalid compiler-owned operation",
+                                ));
+                            }
+                            let ResolvedExprKind::Place(place) = &source.kind else {
+                                return Err(hir_error(
+                                    "byte range source must be an exact named slice",
+                                ));
+                            };
+                            if !place.projections.is_empty()
+                                || !self.byte_slice_aliases.contains_key(&place.root)
+                            {
+                                return Err(hir_error(
+                                    "byte range source lacks authenticated slice provenance",
+                                ));
+                            }
+                            frames.push(Frame::ByteRangeAfterSource {
+                                expression,
+                                start,
+                                end,
+                                path: path.clone(),
+                            });
+                            frames.push(Frame::Enter {
+                                expression: source,
+                                scope,
+                                path: format!("{path}.arg.0"),
+                            });
+                        }
                         ResolvedExprKind::ArrayU8(values) => {
                             let length = u32::try_from(values.len()).map_err(|_| {
                                 hir_error("fixed-array literal length does not fit u32")
@@ -3473,6 +3624,57 @@ impl<'a> HirValidator<'a> {
                     self.finish_expr(expression, &expected, OwnershipMode::Value)?;
                     scopes.push(scope);
                 }
+                Frame::ByteRangeAfterSource {
+                    expression,
+                    start,
+                    end,
+                    path,
+                } => {
+                    let scope = scopes.pop().expect("byte range source scope retained");
+                    frames.push(Frame::ByteRangeAfterStart {
+                        expression,
+                        end,
+                        path: path.clone(),
+                    });
+                    frames.push(Frame::Enter {
+                        expression: start,
+                        scope,
+                        path: format!("{path}.arg.1"),
+                    });
+                }
+                Frame::ByteRangeAfterStart {
+                    expression,
+                    end,
+                    path,
+                } => {
+                    let scope = scopes.pop().expect("byte range start scope retained");
+                    frames.push(Frame::ByteRangeAfterEnd { expression });
+                    frames.push(Frame::Enter {
+                        expression: end,
+                        scope,
+                        path: format!("{path}.arg.2"),
+                    });
+                }
+                Frame::ByteRangeAfterEnd { expression } => {
+                    let scope = scopes.pop().expect("byte range end scope retained");
+                    let ResolvedExprKind::ByteRange {
+                        source, start, end, ..
+                    } = &expression.kind
+                    else {
+                        unreachable!()
+                    };
+                    self.require_type(&source.ty, &ResolvedType::SliceU8, "byte range source")?;
+                    self.require_type(&start.ty, &ResolvedType::Usize, "byte range start")?;
+                    self.require_type(&end.ty, &ResolvedType::Usize, "byte range end")?;
+                    if source.ownership != OwnershipMode::Borrow
+                        || start.ownership != OwnershipMode::Value
+                        || end.ownership != OwnershipMode::Value
+                    {
+                        return Err(hir_error("byte range operands have invalid ownership"));
+                    }
+                    self.finish_expr(expression, &ResolvedType::SliceU8, OwnershipMode::Borrow)?;
+                    scopes.push(scope);
+                }
                 Frame::CallNext {
                     expression,
                     args,
@@ -3525,6 +3727,15 @@ impl<'a> HirValidator<'a> {
                                     && self.byte_slice_aliases.contains_key(&place.root) => {}
                             ResolvedExprKind::BorrowPlace { place, .. }
                                 if place.projections.is_empty() => {}
+                            ResolvedExprKind::ByteRange {
+                                operation, source, ..
+                            } if operation.as_str() == crate::byte_ops::RANGE_ID
+                                && matches!(
+                                    &source.kind,
+                                    ResolvedExprKind::Place(place)
+                                        if place.projections.is_empty()
+                                            && self.byte_slice_aliases.contains_key(&place.root)
+                                ) => {}
                             _ => {
                                 return Err(hir_error(
                                     "byte-slice call argument lacks authenticated root provenance",
@@ -4082,6 +4293,23 @@ impl<'a> HirValidator<'a> {
                             ResolvedExprKind::BorrowPlace { place, .. } => {
                                 (place, place.root.clone())
                             }
+                            ResolvedExprKind::ByteRange { source, .. } => {
+                                let ResolvedExprKind::Place(place) = &source.kind else {
+                                    return Err(hir_error(
+                                        "byte range local source must be an exact named slice",
+                                    ));
+                                };
+                                let root = self
+                                    .byte_slice_aliases
+                                    .get(&place.root)
+                                    .cloned()
+                                    .ok_or_else(|| {
+                                        hir_error(
+                                            "byte range local lacks symbolic root provenance",
+                                        )
+                                    })?;
+                                (place, root)
+                            }
                             _ => return Err(hir_error(
                                 "byte-slice local must be a direct immutable alias or authenticated view",
                             )),
@@ -4092,7 +4320,18 @@ impl<'a> HirValidator<'a> {
                             ));
                         }
                         self.byte_slice_aliases.insert(binding.id.clone(), root);
-                        if let ResolvedExprKind::BorrowPlace { place, .. } = &value.kind {
+                        let borrowed_place = match &value.kind {
+                            ResolvedExprKind::BorrowPlace { place, .. } => Some(place),
+                            ResolvedExprKind::ByteRange { source, .. } => {
+                                if let ResolvedExprKind::Place(place) = &source.kind {
+                                    Some(place)
+                                } else {
+                                    None
+                                }
+                            }
+                            _ => None,
+                        };
+                        if let Some(place) = borrowed_place {
                             let owner = scope.get_mut(&place.root).ok_or_else(|| {
                                 hir_error("byte view owner disappeared before lexical borrow")
                             })?;
@@ -5620,6 +5859,62 @@ impl<'a> HirValidator<'a> {
                 }
                 (ResolvedType::SliceU8, OwnershipMode::Borrow)
             }
+            ResolvedExprKind::ByteRange {
+                operation,
+                source,
+                start,
+                end,
+            } => {
+                if operation.as_str() != crate::byte_ops::RANGE_ID {
+                    return Err(hir_error(
+                        "byte range has an invalid compiler-owned operation",
+                    ));
+                }
+                let ResolvedExprKind::Place(place) = &source.kind else {
+                    return Err(hir_error("byte range source must be an exact named slice"));
+                };
+                if !place.projections.is_empty()
+                    || !self.byte_slice_aliases.contains_key(&place.root)
+                {
+                    return Err(hir_error(
+                        "byte range source lacks authenticated slice provenance",
+                    ));
+                }
+                self.validate_expr_recursive_reference(
+                    function,
+                    source,
+                    scope,
+                    &format!("{path}.arg.0"),
+                    allow_moves,
+                    allowed_effects,
+                )?;
+                self.validate_expr_recursive_reference(
+                    function,
+                    start,
+                    scope,
+                    &format!("{path}.arg.1"),
+                    allow_moves,
+                    allowed_effects,
+                )?;
+                self.validate_expr_recursive_reference(
+                    function,
+                    end,
+                    scope,
+                    &format!("{path}.arg.2"),
+                    allow_moves,
+                    allowed_effects,
+                )?;
+                self.require_type(&source.ty, &ResolvedType::SliceU8, "byte range source")?;
+                self.require_type(&start.ty, &ResolvedType::Usize, "byte range start")?;
+                self.require_type(&end.ty, &ResolvedType::Usize, "byte range end")?;
+                if source.ownership != OwnershipMode::Borrow
+                    || start.ownership != OwnershipMode::Value
+                    || end.ownership != OwnershipMode::Value
+                {
+                    return Err(hir_error("byte range operands have invalid ownership"));
+                }
+                (ResolvedType::SliceU8, OwnershipMode::Borrow)
+            }
             ResolvedExprKind::Call {
                 callee,
                 type_arguments,
@@ -6022,6 +6317,17 @@ impl<'a> HirValidator<'a> {
                                     ResolvedExprKind::BorrowPlace { place, .. } => {
                                         (place, place.root.clone())
                                     }
+                                    ResolvedExprKind::ByteRange { source, .. } => {
+                                        let ResolvedExprKind::Place(place) = &source.kind else {
+                                            return Err(hir_error(
+                                                "byte range local source must be an exact named slice",
+                                            ));
+                                        };
+                                        let root = self.byte_slice_aliases.get(&place.root).cloned().ok_or_else(|| {
+                                            hir_error("byte range local lacks symbolic root provenance")
+                                        })?;
+                                        (place, root)
+                                    }
                                     _ => return Err(hir_error(
                                         "byte-slice local must be a direct immutable alias or authenticated view",
                                     )),
@@ -6032,7 +6338,18 @@ impl<'a> HirValidator<'a> {
                                     ));
                                 }
                                 self.byte_slice_aliases.insert(binding.id.clone(), root);
-                                if let ResolvedExprKind::BorrowPlace { place, .. } = &value.kind {
+                                let borrowed_place = match &value.kind {
+                                    ResolvedExprKind::BorrowPlace { place, .. } => Some(place),
+                                    ResolvedExprKind::ByteRange { source, .. } => {
+                                        if let ResolvedExprKind::Place(place) = &source.kind {
+                                            Some(place)
+                                        } else {
+                                            None
+                                        }
+                                    }
+                                    _ => None,
+                                };
+                                if let Some(place) = borrowed_place {
                                     let owner =
                                         block_scope.get_mut(&place.root).ok_or_else(|| {
                                             hir_error(
@@ -7343,6 +7660,7 @@ impl<'a> HirValidator<'a> {
                     | ResolvedExprKind::ArrayU8(_)
                     | ResolvedExprKind::RepeatArrayU8 { .. }
                     | ResolvedExprKind::BorrowPlace { .. }
+                    | ResolvedExprKind::ByteRange { .. }
                     | ResolvedExprKind::Call { .. }
                     | ResolvedExprKind::NativeRustImportCall(_)
                     | ResolvedExprKind::HostCommandCall(_)

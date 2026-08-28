@@ -500,6 +500,13 @@ fn collect_expr_record_types(
             ResolvedExprKind::HostCommandCall(call) => {
                 pending.extend(call.args.iter().rev().map(Work::Expression));
             }
+            ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => {
+                pending.push(Work::Expression(end));
+                pending.push(Work::Expression(start));
+                pending.push(Work::Expression(source));
+            }
             ResolvedExprKind::Unary { value, .. }
             | ResolvedExprKind::Project { base: value, .. }
             | ResolvedExprKind::Upcast { source: value } => {

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Added the locally evidenced Project Manifest v7 `line-command-io.v1`
+  product tranche: explicit fallible `byte_range` with the exact two-code
+  `semaprax.byte-range.v1` domain, Graph v20, CleanupPlan v4, cumulative
+  stdout/stderr append under one 65,536-byte atomic semantic settlement bound,
+  authenticated invocation-local Wasm descriptors, and independently replayed
+  npm carrier schema v6. The committed multi-module `spxgrep-lines` fixture is
+  exercised through interpreter, native, and Core-Wasm/Node paths; real-browser
+  and multi-engine execution remain open. Cross-module
+  borrowing widens only to monomorphic `borrow Slice<u8>` parameters returning
+  a non-borrowing scalar. Hosted promotion, general I/O/borrowing, Windows-safe
+  npm publication, registry/release publication, and broad v0.2 completion
+  remain open.
+
 - Added a private plain-C dynamic consumer lane for the callable-v3 provider
   ABI, the first non-Rust consumer of the same generated corpus providers.
   The new `private-c-consumer-v1-fixture` bin emits the discard-two,

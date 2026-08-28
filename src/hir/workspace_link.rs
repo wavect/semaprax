@@ -242,11 +242,30 @@ pub(crate) fn link_language_command_io_workspace(
     )
 }
 
+/// Assemble the additive Project-v7 line-command closure. The carrier and
+/// permits match Project v6, but admission additionally proves that the
+/// selected command closure uses the bounded byte-range and append primitives
+/// and cannot fall back to either legacy transcript-write operation.
+pub(crate) fn link_line_command_io_workspace(
+    module: String,
+    entrypoint: DeclarationId,
+    command: DeclarationId,
+    linked_functions: Vec<LinkedScalarFunction>,
+) -> Result<ResolvedProgram, Diagnostic> {
+    link_useful_data_workspace_profile(
+        module,
+        entrypoint,
+        linked_functions,
+        WorkspaceIoProfile::LineCommand { command },
+    )
+}
+
 #[derive(Clone, Eq, PartialEq)]
 enum WorkspaceIoProfile {
     Pure,
     Stdout,
     LanguageCommand { command: DeclarationId },
+    LineCommand { command: DeclarationId },
 }
 
 fn link_useful_data_workspace_profile(
@@ -285,6 +304,15 @@ fn link_useful_data_workspace_profile(
                         | crate::host_io_ops::STDOUT_WRITE_EFFECT
                 )
             }),
+            WorkspaceIoProfile::LineCommand { .. } => function.effects.iter().all(|effect| {
+                matches!(
+                    effect.as_str(),
+                    crate::command_io_ops::ARGS_READ_EFFECT
+                        | crate::command_io_ops::STDIN_READ_EFFECT
+                        | crate::command_io_ops::STDERR_WRITE_EFFECT
+                        | crate::command_io_ops::STDOUT_WRITE_EFFECT
+                )
+            }),
         };
         if !effects_admitted
             || !useful_data_workspace_return_admitted(&function.return_type)
@@ -314,7 +342,9 @@ fn link_useful_data_workspace_profile(
             "workspace useful-data entry point must have an explicit authored identity",
         ));
     }
-    if let WorkspaceIoProfile::LanguageCommand { command } = &profile {
+    if let WorkspaceIoProfile::LanguageCommand { command }
+    | WorkspaceIoProfile::LineCommand { command } = &profile
+    {
         let selected = linked_functions
             .iter()
             .find(|linked| &linked.function.id == command)
@@ -415,6 +445,12 @@ fn link_useful_data_workspace_profile(
                 crate::command_io_ops::STDIN_READ_EFFECT.to_owned(),
                 crate::host_io_ops::STDOUT_WRITE_EFFECT.to_owned(),
             ],
+            WorkspaceIoProfile::LineCommand { .. } => vec![
+                crate::command_io_ops::ARGS_READ_EFFECT.to_owned(),
+                crate::command_io_ops::STDERR_WRITE_EFFECT.to_owned(),
+                crate::command_io_ops::STDIN_READ_EFFECT.to_owned(),
+                crate::command_io_ops::STDOUT_WRITE_EFFECT.to_owned(),
+            ],
         },
         entrypoint,
         declarations,
@@ -424,6 +460,23 @@ fn link_useful_data_workspace_profile(
         functions,
         function_instances: Vec::new(),
     };
+    match &profile {
+        WorkspaceIoProfile::LanguageCommand { command } => {
+            crate::command_io_ops::validate_operation_profile(
+                &linked,
+                command,
+                crate::command_io_ops::CommandOperationProfile::LanguageV1,
+            )?;
+        }
+        WorkspaceIoProfile::LineCommand { command } => {
+            crate::command_io_ops::validate_operation_profile(
+                &linked,
+                command,
+                crate::command_io_ops::CommandOperationProfile::LineV1,
+            )?;
+        }
+        WorkspaceIoProfile::Pure | WorkspaceIoProfile::Stdout => {}
+    }
     analyze_byte_data_capacity(&linked)?;
     rebuild_cleanup_metadata(&mut linked)?;
     validate(&linked)?;

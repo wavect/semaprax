@@ -112,6 +112,13 @@ fn collect_operations(
             collect_operations(left, operations);
             collect_operations(right, operations);
         }
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            collect_operations(source, operations);
+            collect_operations(start, operations);
+            collect_operations(end, operations);
+        }
         ResolvedExprKind::If {
             condition,
             then_branch,

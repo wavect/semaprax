@@ -92,6 +92,10 @@ pub(super) fn build_owned(
                 manifest.command().unwrap_or(""),
             )
         }
+        super::ProjectProfile::LineCommandIoV1 => crate::wasm::emit_resolved_line_command_io_v1(
+            &entry_program,
+            manifest.command().unwrap_or(""),
+        ),
     }
     .map_err(|error| vec![error])?;
     let sources = files

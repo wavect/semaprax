@@ -232,6 +232,13 @@ fn reported_binding_ids_equal_the_resolved_hir_inventory() {
                 collect_expr(left, ids);
                 collect_expr(right, ids);
             }
+            hir::ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => {
+                collect_expr(source, ids);
+                collect_expr(start, ids);
+                collect_expr(end, ids);
+            }
             hir::ResolvedExprKind::ConstructRecord { fields, .. }
             | hir::ResolvedExprKind::ConstructVariant { fields, .. } => {
                 for field in fields {

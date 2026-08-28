@@ -1,0 +1,23 @@
+module spxgrep_lines.filter;
+
+@id("spxgrep-lines.contains")
+fn contains(input: borrow Slice<u8>, needle: borrow Slice<u8>) -> bool
+{
+    let input_length = byte_len(input);
+    let needle_length = byte_len(needle);
+    let mut start = 0usize;
+    let mut found = needle_length == 0usize;
+    while !found && start < input_length {
+        let mut offset = 0usize;
+        let mut equal = true;
+        while equal && offset < needle_length {
+            equal = match byte_get(input, start + offset) { Option::Some { value: input_byte } => match byte_get(needle, offset) { Option::Some { value: needle_byte } => input_byte == needle_byte, Option::None {} => false, }, Option::None {} => false, };
+            offset = offset + 1usize;
+            equal && offset < needle_length
+        }
+        found = equal && offset == needle_length;
+        start = start + 1usize;
+        !found && start < input_length
+    }
+    found
+}

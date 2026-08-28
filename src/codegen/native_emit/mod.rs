@@ -52,13 +52,23 @@ pub(super) fn emit_hir_c_with_labels(
     let mut output = crate::bounded_output::CappedString::new();
     if matches!(
         output_profile,
-        NativeOutputProfile::UsefulDataCommand | NativeOutputProfile::LanguageCommandIo
+        NativeOutputProfile::UsefulDataCommand
+            | NativeOutputProfile::LanguageCommandIo
+            | NativeOutputProfile::LineCommandIo
     ) {
-        emit_native_prelude_without_public_failure(&mut output, &resource_abi, program);
+        emit_native_prelude_without_public_failure(
+            &mut output,
+            &resource_abi,
+            program,
+            output_profile.is_language_command(),
+        );
     } else {
         emit_native_prelude(&mut output, &resource_abi, program);
     }
-    if output_profile == NativeOutputProfile::LanguageCommandIo {
+    if output_profile == NativeOutputProfile::LineCommandIo {
+        native_host_output::emit_line_command_runtime(&mut output);
+        native_command_io::emit_line_runtime(&mut output);
+    } else if output_profile == NativeOutputProfile::LanguageCommandIo {
         native_host_output::emit_language_command_runtime(&mut output);
         native_command_io::emit_runtime(&mut output);
     } else if output_profile.supports_stdout_transcript() {
@@ -102,7 +112,9 @@ pub(super) fn emit_hir_c_with_labels(
 
     if matches!(
         output_profile,
-        NativeOutputProfile::UsefulDataCommand | NativeOutputProfile::LanguageCommandIo
+        NativeOutputProfile::UsefulDataCommand
+            | NativeOutputProfile::LanguageCommandIo
+            | NativeOutputProfile::LineCommandIo
     ) {
         let command = selected_command
             .ok_or_else(|| backend_error("native command selection is unavailable"))?;
@@ -110,7 +122,10 @@ pub(super) fn emit_hir_c_with_labels(
             .get(&FunctionExecutionId::Monomorphic(command.clone()))
             .ok_or_else(|| backend_error("selected native command is not indexed"))?
             .symbol;
-        if output_profile == NativeOutputProfile::LanguageCommandIo {
+        if matches!(
+            output_profile,
+            NativeOutputProfile::LanguageCommandIo | NativeOutputProfile::LineCommandIo
+        ) {
             native_command_io::emit_runner(&mut output, symbol);
             native_command_io::emit_process_adapter(&mut output);
         } else {
@@ -175,18 +190,22 @@ pub(super) enum NativeOutputProfile {
     StdoutTranscript,
     UsefulDataCommand,
     LanguageCommandIo,
+    LineCommandIo,
 }
 
 impl NativeOutputProfile {
     const fn supports_stdout_transcript(self) -> bool {
         matches!(
             self,
-            Self::StdoutTranscript | Self::UsefulDataCommand | Self::LanguageCommandIo
+            Self::StdoutTranscript
+                | Self::UsefulDataCommand
+                | Self::LanguageCommandIo
+                | Self::LineCommandIo
         )
     }
 
     const fn is_language_command(self) -> bool {
-        matches!(self, Self::LanguageCommandIo)
+        matches!(self, Self::LanguageCommandIo | Self::LineCommandIo)
     }
 }
 
@@ -275,15 +294,16 @@ pub(super) fn emit_native_prelude(
     resource_abi: &native_resource::NativeResourceAbi,
     program: &ResolvedProgram,
 ) {
-    emit_native_prelude_inner(output, resource_abi, program, false);
+    emit_native_prelude_inner(output, resource_abi, program, false, false);
 }
 
 fn emit_native_prelude_without_public_failure(
     output: &mut impl COutput,
     resource_abi: &native_resource::NativeResourceAbi,
     program: &ResolvedProgram,
+    command_carriers: bool,
 ) {
-    emit_native_prelude_inner(output, resource_abi, program, true);
+    emit_native_prelude_inner(output, resource_abi, program, true, command_carriers);
 }
 
 fn emit_native_prelude_inner(
@@ -291,8 +311,10 @@ fn emit_native_prelude_inner(
     resource_abi: &native_resource::NativeResourceAbi,
     program: &ResolvedProgram,
     omit_public_failure: bool,
+    command_carriers: bool,
 ) {
-    if program_uses_borrowed_str(program) || program_uses_byte_data(program) {
+    let needs_borrowed_str = command_carriers || program_uses_borrowed_str(program);
+    if needs_borrowed_str || program_uses_byte_data(program) {
         native_runtime::emit_status_runtime_with_borrowed_str(output);
     } else {
         native_runtime::emit_status_runtime(output);
@@ -332,7 +354,7 @@ fn emit_native_prelude_inner(
         // first-wave programs keep their exact committed bytes.
         output.push_str(NATIVE_STRING_OPS_V2_RUNTIME_C);
     }
-    if program_uses_borrowed_str(program) {
+    if needs_borrowed_str {
         // Borrowed text is a distinct length-aware carrier. Keep it behind a
         // reachability gate so every pre-text native projection is byte exact.
         output.push_str(NATIVE_BORROWED_STR_RUNTIME_C);
@@ -542,6 +564,9 @@ fn resolved_expr_children<'a>(
         ResolvedExprKind::Binary { left, right, .. } => {
             Box::new([left.as_ref(), right.as_ref()].into_iter())
         }
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => Box::new([source.as_ref(), start.as_ref(), end.as_ref()].into_iter()),
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }

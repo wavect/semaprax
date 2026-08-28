@@ -8,6 +8,7 @@ mod carrier;
 mod command;
 mod command_v2;
 mod command_v3;
+mod command_v4;
 mod data;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 mod publication;
@@ -23,13 +24,13 @@ use super::{ProjectManifest, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1};
 use carrier::{
     artifact, json_string, payload_digest, payload_digest_artifacts_v2,
     payload_digest_artifacts_v3, payload_digest_artifacts_v4, payload_digest_artifacts_v5,
-    render_carrier, render_carrier_artifacts, require_exact_keys, trusted_binding,
-    validate_carrier_limit, NpmArtifact, NpmBuildIdentity,
+    payload_digest_artifacts_v6, render_carrier, render_carrier_artifacts, require_exact_keys,
+    trusted_binding, validate_carrier_limit, NpmArtifact, NpmBuildIdentity,
 };
 pub use carrier::{
     ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
     PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
-    PROJECT_NPM_BUILD_SCHEMA_V5,
+    PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6,
 };
 
 pub(crate) const USEFUL_TEXT_PACKAGE_PATHS: [&str; 6] = [
@@ -159,6 +160,16 @@ pub(crate) fn prepare(
     project_graph_digest: &str,
     max_bytes: usize,
 ) -> Result<ProjectNpmBuild, Diagnostic> {
+    if manifest.is_v7() {
+        return command_v4::prepare(
+            manifest,
+            program,
+            project_revision,
+            workspace_revision,
+            project_graph_digest,
+            max_bytes,
+        );
+    }
     if manifest.is_v6() {
         return command_v3::prepare(
             manifest,
@@ -477,6 +488,25 @@ fn render_recipe_expr(
             Ok(format!(
                 "{}({args})",
                 crate::command_io_ops::name(call.operation)
+            ))
+        }
+        ResolvedExprKind::ByteRange {
+            operation,
+            source,
+            start,
+            end,
+        } => {
+            if operation.as_str() != crate::byte_ops::RANGE_ID {
+                return Err(package_error(
+                    "npm semantic recipe byte-range operation is unavailable",
+                ));
+            }
+            Ok(format!(
+                "{}({}, {}, {})",
+                crate::byte_ops::RANGE_NAME,
+                render_recipe_expr(source, functions, values, local_index)?,
+                render_recipe_expr(start, functions, values, local_index)?,
+                render_recipe_expr(end, functions, values, local_index)?,
             ))
         }
         ResolvedExprKind::Call {

@@ -240,6 +240,23 @@ static spx_status_token spx_host_stdin_read_v1(
     );
 }
 
+/// Emit the same authenticated input runtime for the additive line profile and
+/// retain its closed operation table even when one valid command does not call
+/// every input operation. The legacy v6 projection remains byte-for-byte
+/// unchanged because only v7 calls this wrapper.
+pub(super) fn emit_line_runtime(output: &mut impl COutput) {
+    emit_runtime(output);
+    output.push_str(
+        r#"static __attribute__((unused)) void spx_line_command_input_table_v1(void) {
+    (void)&spx_host_args_len_v1;
+    (void)&spx_host_arg_utf8_v1;
+    (void)&spx_host_stdin_read_v1;
+}
+
+"#,
+    );
+}
+
 pub(super) fn emit_runner(output: &mut impl COutput, command_symbol: &str) {
     writeln!(
         output,

@@ -421,6 +421,13 @@ fn collect_expr(
         ResolvedExprKind::BorrowPlace { place, .. } => {
             facts.uses.push((place.root.as_str().to_owned(), scope_end));
         }
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            collect_expr(source, scope_end, resolved, facts);
+            collect_expr(start, scope_end, resolved, facts);
+            collect_expr(end, scope_end, resolved, facts);
+        }
         ResolvedExprKind::Call {
             callee,
             instance,

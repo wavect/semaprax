@@ -1,0 +1,11 @@
+schema = "semaprax.project.v7"
+name = "spxgrep-lines"
+version = "1.0.0"
+profile = "line-command-io.v1"
+entry = "spxgrep_lines.app"
+sources = ["src/app.spx", "src/filter.spx", "src/tests.spx"]
+web_exports = ["spxgrep-lines.run"]
+command = "spxgrep-lines.run"
+input = "argv-utf8+stdin-bytes.v1"
+capabilities = ["process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]
+tests = ["spxgrep_lines.tests"]

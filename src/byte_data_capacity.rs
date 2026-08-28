@@ -63,6 +63,15 @@ pub(crate) enum CapacityFlow {
         site: String,
         source: TranscriptSource,
     },
+    /// Runtime-bounded transcript publication. Unlike the legacy write
+    /// operations, an append may execute repeatedly; the command runtime owns
+    /// the exact cumulative `MAX_COMBINED_TRANSCRIPT_BYTES` check.
+    StdoutAppend {
+        site: String,
+    },
+    StderrAppend {
+        site: String,
+    },
     Loop {
         condition: Box<CapacityFlow>,
         body: Box<CapacityFlow>,
@@ -93,6 +102,8 @@ pub(crate) struct FunctionCapacitySummary {
     pub stdin_read_sites: u64,
     pub stdout_write_sites: u64,
     pub stderr_write_sites: u64,
+    pub stdout_append_sites: u64,
+    pub stderr_append_sites: u64,
     pub transcript_bytes: u64,
     transcript_paths: Vec<TranscriptPath>,
 }
@@ -107,6 +118,8 @@ impl Default for FunctionCapacitySummary {
             stdin_read_sites: 0,
             stdout_write_sites: 0,
             stderr_write_sites: 0,
+            stdout_append_sites: 0,
+            stderr_append_sites: 0,
             transcript_bytes: 0,
             transcript_paths: vec![TranscriptPath::default()],
         }
@@ -186,6 +199,9 @@ struct AllocationSummary {
 struct TranscriptPath {
     stdout_sites: u64,
     stderr_sites: u64,
+    stdout_append_sites: u64,
+    stderr_append_sites: u64,
+    indirect_append_sites: u64,
     sources: Vec<TranscriptSource>,
 }
 
@@ -364,6 +380,8 @@ pub(crate) fn analyze(
         )?;
         let mut stdout_sites = 0;
         let mut stderr_sites = 0;
+        let mut stdout_append_sites = 0;
+        let mut stderr_append_sites = 0;
         let mut transcript_bytes = 0;
         for path in &transcript.paths {
             if path.stdout_sites > MAX_STDOUT_WRITES_PER_PATH {
@@ -386,6 +404,8 @@ pub(crate) fn analyze(
             }
             stdout_sites = stdout_sites.max(path.stdout_sites);
             stderr_sites = stderr_sites.max(path.stderr_sites);
+            stdout_append_sites = stdout_append_sites.max(path.stdout_append_sites);
+            stderr_append_sites = stderr_append_sites.max(path.stderr_append_sites);
             transcript_bytes = transcript_bytes.max(transcript_path_bytes(identity, path)?);
         }
         let summary = summaries
@@ -393,6 +413,8 @@ pub(crate) fn analyze(
             .expect("validated function has a summary");
         summary.stdout_write_sites = stdout_sites;
         summary.stderr_write_sites = stderr_sites;
+        summary.stdout_append_sites = stdout_append_sites;
+        summary.stderr_append_sites = stderr_append_sites;
         summary.transcript_bytes = transcript_bytes;
         summary.transcript_paths = transcript.paths;
     }
@@ -559,6 +581,26 @@ fn validate_flow<'a>(
                 }
                 has_local_transcript_write = true;
             }
+            CapacityFlow::StdoutAppend { site } => {
+                require_identity(site, Some(&function.function), "stdout_append site")?;
+                if !sites.insert(site.as_str()) {
+                    return Err(invariant(
+                        Some(&function.function),
+                        format!("duplicate capacity site `{site}`"),
+                    ));
+                }
+                has_local_transcript_write = true;
+            }
+            CapacityFlow::StderrAppend { site } => {
+                require_identity(site, Some(&function.function), "stderr_append site")?;
+                if !sites.insert(site.as_str()) {
+                    return Err(invariant(
+                        Some(&function.function),
+                        format!("duplicate capacity site `{site}`"),
+                    ));
+                }
+                has_local_transcript_write = true;
+            }
             CapacityFlow::Loop { condition, body } => {
                 pending.push(body);
                 pending.push(condition);
@@ -677,6 +719,21 @@ fn fold_flow(
                 )),
                 CapacityFlow::Call { callee, .. } => {
                     let summary = &summaries[callee];
+                    let mut transcript_paths = summary.transcript_paths.clone();
+                    for path in &mut transcript_paths {
+                        let direct = path
+                            .stdout_append_sites
+                            .checked_add(path.stderr_append_sites)
+                            .ok_or_else(|| {
+                                transcript_error(function, "append site count overflowed")
+                            })?;
+                        path.indirect_append_sites = path
+                            .indirect_append_sites
+                            .checked_add(direct)
+                            .ok_or_else(|| {
+                                transcript_error(function, "indirect append site count overflowed")
+                            })?;
+                    }
                     values.push((
                         summary.active_array_call_path_bytes,
                         AllocationSummary {
@@ -685,7 +742,7 @@ fn fold_flow(
                             payload_bytes: summary.owned_byte_payload_bytes,
                         },
                         TranscriptSummary {
-                            paths: summary.transcript_paths.clone(),
+                            paths: transcript_paths,
                         },
                     ));
                 }
@@ -721,6 +778,9 @@ fn fold_flow(
                             paths: vec![TranscriptPath {
                                 stdout_sites: 1,
                                 stderr_sites: 0,
+                                stdout_append_sites: 0,
+                                stderr_append_sites: 0,
+                                indirect_append_sites: 0,
                                 sources: vec![*source],
                             }],
                         },
@@ -734,11 +794,42 @@ fn fold_flow(
                             paths: vec![TranscriptPath {
                                 stdout_sites: 0,
                                 stderr_sites: 1,
+                                stdout_append_sites: 0,
+                                stderr_append_sites: 0,
+                                indirect_append_sites: 0,
                                 sources: vec![*source],
                             }],
                         },
                     ));
                 }
+                CapacityFlow::StdoutAppend { .. } => values.push((
+                    0,
+                    AllocationSummary::default(),
+                    TranscriptSummary {
+                        paths: vec![TranscriptPath {
+                            stdout_sites: 0,
+                            stderr_sites: 0,
+                            stdout_append_sites: 1,
+                            stderr_append_sites: 0,
+                            indirect_append_sites: 0,
+                            sources: Vec::new(),
+                        }],
+                    },
+                )),
+                CapacityFlow::StderrAppend { .. } => values.push((
+                    0,
+                    AllocationSummary::default(),
+                    TranscriptSummary {
+                        paths: vec![TranscriptPath {
+                            stdout_sites: 0,
+                            stderr_sites: 0,
+                            stdout_append_sites: 0,
+                            stderr_append_sites: 1,
+                            indirect_append_sites: 0,
+                            sources: Vec::new(),
+                        }],
+                    },
+                )),
                 CapacityFlow::Sequence(children) | CapacityFlow::Alternative(children) => {
                     frames.push(Frame::Finish(node, children.len()));
                     frames.extend(children.iter().rev().map(Frame::Enter));
@@ -762,16 +853,16 @@ fn fold_flow(
                 } else {
                     sequence_transcripts(function, &children)?
                 };
-                for (child_array, child_allocation, _) in children {
+                for (child_array, child_allocation, _) in &children {
                     if alternative {
-                        array_bytes = array_bytes.max(child_array);
+                        array_bytes = array_bytes.max(*child_array);
                         allocation.sites = allocation.sites.max(child_allocation.sites);
                         allocation.payload_bytes =
                             allocation.payload_bytes.max(child_allocation.payload_bytes);
                         allocation.stdin_sites =
                             allocation.stdin_sites.max(child_allocation.stdin_sites);
                     } else {
-                        array_bytes = array_bytes.checked_add(child_array).ok_or_else(|| {
+                        array_bytes = array_bytes.checked_add(*child_array).ok_or_else(|| {
                             array_error(function, "active array call-path calculation overflowed")
                         })?;
                         allocation.sites = allocation
@@ -803,17 +894,26 @@ fn fold_flow(
                         "bytes_copy is reachable from a while condition or body",
                     ));
                 }
-                if matches!(mode, FoldMode::Transcript)
-                    && matches!(node, CapacityFlow::Loop { .. })
-                    && transcript
-                        .paths
-                        .iter()
-                        .any(|path| path.stdout_sites != 0 || path.stderr_sites != 0)
+                if matches!(mode, FoldMode::Transcript) && matches!(node, CapacityFlow::Loop { .. })
                 {
-                    return Err(transcript_error(
-                        function,
-                        "transcript write is reachable from a while condition or body",
-                    ));
+                    let condition = &children[0].2;
+                    let body = &children[1].2;
+                    if condition.paths.iter().any(TranscriptPath::has_output) {
+                        return Err(transcript_error(
+                            function,
+                            "transcript output is reachable from a while condition",
+                        ));
+                    }
+                    if body.paths.iter().any(|path| {
+                        path.stdout_sites != 0
+                            || path.stderr_sites != 0
+                            || path.indirect_append_sites != 0
+                    }) {
+                        return Err(transcript_error(
+                            function,
+                            "a while body may contain only direct runtime-bounded append output",
+                        ));
+                    }
                 }
                 values.push((array_bytes, allocation, transcript));
             }
@@ -885,6 +985,24 @@ fn sequence_transcripts(
                         .ok_or_else(|| {
                             transcript_error(function, "stderr_write site count overflowed")
                         })?,
+                    stdout_append_sites: prefix
+                        .stdout_append_sites
+                        .checked_add(suffix.stdout_append_sites)
+                        .ok_or_else(|| {
+                            transcript_error(function, "stdout_append site count overflowed")
+                        })?,
+                    stderr_append_sites: prefix
+                        .stderr_append_sites
+                        .checked_add(suffix.stderr_append_sites)
+                        .ok_or_else(|| {
+                            transcript_error(function, "stderr_append site count overflowed")
+                        })?,
+                    indirect_append_sites: prefix
+                        .indirect_append_sites
+                        .checked_add(suffix.indirect_append_sites)
+                        .ok_or_else(|| {
+                            transcript_error(function, "indirect append site count overflowed")
+                        })?,
                     sources,
                 });
             }
@@ -895,6 +1013,19 @@ fn sequence_transcripts(
 }
 
 fn transcript_path_bytes(function: &str, path: &TranscriptPath) -> Result<u64, CapacityError> {
+    let append_sites = path
+        .stdout_append_sites
+        .checked_add(path.stderr_append_sites)
+        .ok_or_else(|| transcript_error(function, "append site count overflowed"))?;
+    if append_sites != 0 {
+        if path.stdout_sites != 0 || path.stderr_sites != 0 {
+            return Err(transcript_error(
+                function,
+                "legacy transcript writes and runtime-bounded appends cannot share an executable path",
+            ));
+        }
+        return Ok(MAX_COMBINED_TRANSCRIPT_BYTES);
+    }
     let mut fixed = 0u64;
     let mut arguments = 0u64;
     let mut stdin = 0u64;
@@ -950,6 +1081,15 @@ fn transcript_path_bytes(function: &str, path: &TranscriptPath) -> Result<u64, C
         ));
     }
     Ok(bytes)
+}
+
+impl TranscriptPath {
+    fn has_output(&self) -> bool {
+        self.stdout_sites != 0
+            || self.stderr_sites != 0
+            || self.stdout_append_sites != 0
+            || self.stderr_append_sites != 0
+    }
 }
 
 fn require_identity(

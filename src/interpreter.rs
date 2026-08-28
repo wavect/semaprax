@@ -1319,6 +1319,9 @@ fn child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
         | ResolvedExprKind::Project { base: value, .. }
         | ResolvedExprKind::Upcast { source: value } => vec![value.as_ref()],
         ResolvedExprKind::Binary { left, right, .. } => vec![left.as_ref(), right.as_ref()],
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => vec![source.as_ref(), start.as_ref(), end.as_ref()],
         ResolvedExprKind::Block { statements, tail } => {
             let mut collected = Vec::new();
             for statement in statements {
@@ -1433,7 +1436,34 @@ struct BorrowedStrValue {
 #[derive(Clone, Debug, PartialEq)]
 struct BorrowedSliceValue {
     invocation_root: ValueId,
-    bytes: Arc<[u8]>,
+    backing: Arc<[u8]>,
+    start: usize,
+    end: usize,
+}
+
+impl BorrowedSliceValue {
+    fn whole(invocation_root: ValueId, backing: Arc<[u8]>) -> Self {
+        let end = backing.len();
+        Self {
+            invocation_root,
+            backing,
+            start: 0,
+            end,
+        }
+    }
+
+    fn bytes(&self) -> &[u8] {
+        &self.backing[self.start..self.end]
+    }
+
+    fn range(&self, start: usize, end: usize) -> Self {
+        Self {
+            invocation_root: self.invocation_root.clone(),
+            backing: Arc::clone(&self.backing),
+            start: self.start + start,
+            end: self.start + end,
+        }
+    }
 }
 
 /// One logical `bytes_copy` allocation. The monotonically assigned identity
@@ -1518,6 +1548,26 @@ fn normalize_command_input(code: u32) -> NormalizedStatus {
         Retryability::Known(false),
     )
     .expect("compiler-owned command input status table is valid")
+}
+
+fn normalize_command_output(code: u32) -> NormalizedStatus {
+    NormalizedStatus::try_new(
+        crate::command_io_ops::OUTPUT_STATUS_DOMAIN,
+        code,
+        StatusClass::Adapter,
+        Retryability::Known(false),
+    )
+    .expect("compiler-owned command output status table is valid")
+}
+
+fn normalize_byte_range(code: u32) -> NormalizedStatus {
+    NormalizedStatus::try_new(
+        crate::byte_ops::RANGE_STATUS_DOMAIN,
+        code,
+        StatusClass::Adapter,
+        Retryability::Known(false),
+    )
+    .expect("compiler-owned byte range status table is valid")
 }
 
 type Environment = Vec<(ValueId, Value)>;
@@ -1647,10 +1697,10 @@ impl Evaluator<'_> {
                     })
                 }
                 (ResolvedType::SliceU8, ArgumentValue::BorrowedSlice(inner)) => {
-                    Value::BorrowedSlice(BorrowedSliceValue {
-                        invocation_root: param.id.clone(),
-                        bytes: Arc::from(inner.as_slice()),
-                    })
+                    Value::BorrowedSlice(BorrowedSliceValue::whole(
+                        param.id.clone(),
+                        Arc::from(inner.as_slice()),
+                    ))
                 }
                 _ => return Err(Flow::Guard("argument/parameter binding mismatch")),
             };
@@ -1749,25 +1799,57 @@ impl Evaluator<'_> {
                                 "owned byte view has an invalid logical allocation",
                             ));
                         }
-                        Ok(Value::BorrowedSlice(BorrowedSliceValue {
-                            invocation_root: place.root.clone(),
-                            bytes: value.bytes,
-                        }))
+                        Ok(Value::BorrowedSlice(BorrowedSliceValue::whole(
+                            place.root.clone(),
+                            value.bytes,
+                        )))
                     }
-                    (crate::byte_ops::ByteOp::ArrayAsSlice, Value::ArrayU8(bytes)) => {
-                        Ok(Value::BorrowedSlice(BorrowedSliceValue {
-                            invocation_root: place.root.clone(),
-                            bytes,
-                        }))
-                    }
+                    (crate::byte_ops::ByteOp::ArrayAsSlice, Value::ArrayU8(bytes)) => Ok(
+                        Value::BorrowedSlice(BorrowedSliceValue::whole(place.root.clone(), bytes)),
+                    ),
                     (crate::byte_ops::ByteOp::StrAsBytes, Value::BorrowedStr(value)) => {
-                        Ok(Value::BorrowedSlice(BorrowedSliceValue {
-                            invocation_root: value.invocation_root,
-                            bytes: value.bytes,
-                        }))
+                        Ok(Value::BorrowedSlice(BorrowedSliceValue::whole(
+                            value.invocation_root,
+                            value.bytes,
+                        )))
                     }
                     _ => Err(Flow::Guard("ill-typed compiler-owned byte view")),
                 }
+            }
+            ResolvedExprKind::ByteRange {
+                operation,
+                source,
+                start,
+                end,
+            } => {
+                if operation.as_str() != crate::byte_ops::RANGE_ID {
+                    return Err(Flow::Guard("unknown compiler-owned byte range"));
+                }
+                let source = self.evaluate(source, environment, depth)?;
+                let start = self.evaluate(start, environment, depth)?;
+                let end = self.evaluate(end, environment, depth)?;
+                let (Value::BorrowedSlice(source), Value::Usize(start), Value::Usize(end)) =
+                    (source, start, end)
+                else {
+                    return Err(Flow::Guard("ill-typed compiler-owned byte range"));
+                };
+                if start > end {
+                    return Err(Flow::Failure(normalize_byte_range(
+                        crate::byte_ops::RANGE_START_AFTER_END_CODE,
+                    )));
+                }
+                let Some((start, end)) = usize::try_from(start).ok().zip(usize::try_from(end).ok())
+                else {
+                    return Err(Flow::Failure(normalize_byte_range(
+                        crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE,
+                    )));
+                };
+                if end > source.bytes().len() {
+                    return Err(Flow::Failure(normalize_byte_range(
+                        crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE,
+                    )));
+                }
+                Ok(Value::BorrowedSlice(source.range(start, end)))
             }
             ResolvedExprKind::Unary { op, value } => {
                 let inner = self.evaluate(value, environment, depth)?;
@@ -1926,29 +2008,49 @@ impl Evaluator<'_> {
                             bytes,
                         }))
                     }
-                    Operation::StderrWrite => {
+                    Operation::StderrWrite | Operation::StdoutAppend | Operation::StderrAppend => {
                         let [argument] = call.args.as_slice() else {
-                            return Err(Flow::Guard("invalid stderr_write arity"));
+                            return Err(Flow::Guard("invalid command output arity"));
                         };
                         let value = self.evaluate(argument, environment, depth)?;
                         let Value::BorrowedSlice(value) = value else {
-                            return Err(Flow::Guard("ill-typed stderr_write operand"));
+                            return Err(Flow::Guard("ill-typed command output operand"));
                         };
+                        let bytes = value.bytes();
                         let stdout_length = self.stdout_transcript.as_ref().map_or(0, Vec::len);
-                        let stderr = self.stderr_transcript.as_mut().ok_or(Flow::Guard(
-                            "stderr_write reached an evaluator without command output",
-                        ))?;
+                        let stderr_length = self.stderr_transcript.as_ref().map_or(0, Vec::len);
                         let combined = stdout_length
-                            .checked_add(stderr.len())
-                            .and_then(|length| length.checked_add(value.bytes.len()))
+                            .checked_add(stderr_length)
+                            .and_then(|length| length.checked_add(bytes.len()))
                             .ok_or(Flow::Guard("command transcript length overflowed"))?;
-                        if combined > crate::host_io_ops::MAX_STDOUT_TRANSCRIPT_BYTES as usize {
-                            return Err(Flow::Guard(
-                                "combined command transcript exceeds verified capacity",
-                            ));
+                        if combined > crate::command_io_ops::MAX_OUTPUT_BYTES as usize {
+                            if matches!(call.operation, Operation::StderrWrite) {
+                                return Err(Flow::Guard(
+                                    "combined command transcript exceeds verified capacity",
+                                ));
+                            }
+                            return Err(Flow::Failure(normalize_command_output(
+                                crate::command_io_ops::OUTPUT_CAPACITY_EXCEEDED,
+                            )));
                         }
-                        stderr.extend_from_slice(value.bytes.as_ref());
-                        Ok(Value::Usize(value.bytes.len() as u64))
+                        match call.operation {
+                            Operation::StdoutAppend => self
+                                .stdout_transcript
+                                .as_mut()
+                                .ok_or(Flow::Guard(
+                                    "stdout_append reached an evaluator without command output",
+                                ))?
+                                .extend_from_slice(bytes),
+                            Operation::StderrWrite | Operation::StderrAppend => self
+                                .stderr_transcript
+                                .as_mut()
+                                .ok_or(Flow::Guard(
+                                    "stderr output reached an evaluator without command output",
+                                ))?
+                                .extend_from_slice(bytes),
+                            _ => unreachable!("command output operation was matched above"),
+                        }
+                        Ok(Value::Usize(bytes.len() as u64))
                     }
                 }
             }
@@ -2072,7 +2174,7 @@ impl Evaluator<'_> {
                     }
                     return match (op, values.as_slice()) {
                         (crate::byte_ops::ByteOp::Len, [Value::BorrowedSlice(value)]) => {
-                            Ok(Value::Usize(value.bytes.len() as u64))
+                            Ok(Value::Usize(value.bytes().len() as u64))
                         }
                         (
                             crate::byte_ops::ByteOp::Get,
@@ -2080,12 +2182,12 @@ impl Evaluator<'_> {
                         ) => {
                             let byte = usize::try_from(*index)
                                 .ok()
-                                .and_then(|index| value.bytes.get(index))
+                                .and_then(|index| value.bytes().get(index))
                                 .copied();
                             Ok(Value::OptionU8(byte))
                         }
                         (crate::byte_ops::ByteOp::Copy, [Value::BorrowedSlice(value)]) => {
-                            let length = u64::try_from(value.bytes.len()).map_err(|_| {
+                            let length = u64::try_from(value.bytes().len()).map_err(|_| {
                                 Flow::Guard("owned byte payload length does not fit u64")
                             })?;
                             if length > crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES {
@@ -2121,9 +2223,12 @@ impl Evaluator<'_> {
                             // allocations as required by the language model.
                             Ok(Value::Bytes(OwnedBytesValue {
                                 allocation: next_count,
-                                bytes: Arc::from(value.bytes.as_ref()),
+                                bytes: Arc::from(value.bytes()),
                             }))
                         }
+                        (crate::byte_ops::ByteOp::Range, _) => Err(Flow::Guard(
+                            "byte_range reached interpreter as an ordinary call",
+                        )),
                         _ => Err(Flow::Guard("ill-typed borrowed byte operation operand")),
                     };
                 }
@@ -2143,15 +2248,15 @@ impl Evaluator<'_> {
                         .ok_or(Flow::Guard("stdout_write reached effect-free interpreter"))?;
                     let next = transcript
                         .len()
-                        .checked_add(value.bytes.len())
+                        .checked_add(value.bytes().len())
                         .ok_or(Flow::Guard("stdout transcript length overflowed"))?;
                     if next.checked_add(stderr_length).is_none_or(|combined| {
                         combined > crate::host_io_ops::MAX_STDOUT_TRANSCRIPT_BYTES as usize
                     }) {
                         return Err(Flow::Guard("stdout transcript exceeds verified capacity"));
                     }
-                    transcript.extend_from_slice(value.bytes.as_ref());
-                    return Ok(Value::Usize(value.bytes.len() as u64));
+                    transcript.extend_from_slice(value.bytes());
+                    return Ok(Value::Usize(value.bytes().len() as u64));
                 }
                 let Some(function) = self.admitted.get(callee.as_str()) else {
                     return Err(Flow::Guard("call outside the admitted closure"));

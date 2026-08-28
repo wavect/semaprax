@@ -325,7 +325,8 @@ fn validate_expression_profile(
             | ResolvedExprKind::String(_) => {}
             ResolvedExprKind::ArrayU8(_)
             | ResolvedExprKind::RepeatArrayU8 { .. }
-            | ResolvedExprKind::BorrowPlace { .. } => {
+            | ResolvedExprKind::BorrowPlace { .. }
+            | ResolvedExprKind::ByteRange { .. } => {
                 return Err(admission(format!(
                     "Public Scalar Export Profile v1 function `{function_id}` contains portable byte data"
                 )));

@@ -359,6 +359,27 @@ graph/manifest/package/carrier bytes remain preserved; Windows npm publication
 remains fail-closed. Hosted, registry, and release promotion remain open, so
 all affected rows stay Partial and totals remain 56 Partial/0 Missing.
 
+Project Manifest v7 locally deepens the same Partial language, Project,
+native, WebAssembly, JavaScript/TypeScript, package, and edge/server rows.
+`line-command-io.v1` adds explicit fallible `byte_range` under the exact
+two-code `semaprax.byte-range.v1` domain, Graph v20, CleanupPlan v4, and direct
+runtime-bounded stdout/stderr append under one cumulative 65,536-byte atomic
+semantic settlement envelope. Private invocation-local Wasm descriptors retain
+exact root/offset/length without copying or minting tokens. The replayed npm
+carrier advances to v6, and the committed multi-module `spxgrep-lines` product
+has local interpreter, native, and Core-Wasm/Node evidence. Cross-file borrowing
+widens only to monomorphic `borrow Slice<u8>` parameters returning a
+non-borrowing scalar. Earlier schema bytes remain frozen. No row becomes
+Implemented: exact-head hosted promotion, safe Windows npm publication,
+registry/release promotion, general I/O/borrowing, and full v0.2 completion
+remain open.
+
+The exact existing rows deepened without a status change are:
+`Meaning in, verified machine code out`, `Persistent Project agent developer
+loop`, `Native code and interop`, `WebAssembly`, `JavaScript and TypeScript`,
+`Interface-first packages and target matrices`, and `Edge and server`. The
+additional v0.2 audit row is `Multi-module line-filter product`.
+
 Status values:
 
 - **Implemented** — the gate is covered by executable evidence.
@@ -422,6 +443,7 @@ provenance, or automatic identity selection. Exact replay inside apply mints
 | `semapraxd` inspect/derive/rename/impact/apply/rebuild loop | Prior-head Ubuntu evidenced | Opt-in Transport v4 retains the authenticated Project, derives the bounded rename, produces candidate-bound Impact/Review, applies through A0, reloads, and returns an independently replayed pathless Web build. |
 | Stable external API survives the display rename | Prior-head Ubuntu evidenced | Post-rename `app.wasm`, runtime and binding files, parsed scalar ABI, and exact Rust export rows preserve all six stable IDs while Project/workspace/source/subject revisions change. Node executes the renamed carrier and optional Rust executes both revisions. Current local exact-three browser evidence also binds known-answer baseline/renamed Project subjects, requires the exact scalar ABI and all six non-manifest generated artifacts to remain byte-identical, and runs the unchanged interactive shell after the rename; hosted promotion of that third fixture remains pending. |
 | Project tests prove native/Wasm equivalence | Prior-head Ubuntu evidenced | Before and after rename, the four-operation entry closure returns 42 and the test closure's six-success aggregate returns 0 through the interpreter, native O0/O2, and Core Wasm. Separate Node and Rust consumers execute the exported SDK surface, while TypeScript supplies static declaration-consumption evidence rather than runtime behavior. |
+| Multi-module line-filter product | Local evidence | Project v7 authenticates committed `spxgrep-lines`, a narrow cross-file `borrow Slice<u8>`-to-scalar helper, exact LF/final-line semantics, Graph v20/CleanupPlan v4, and one bounded append envelope through interpreter, native, and Core-Wasm/Node paths. Real-browser/multi-engine execution and exact-head hosted promotion remain pending. |
 | Full promotion CI for every public claim | Pending | Exact-head [run 32902731595](https://github.com/wavect/semaprax/actions/runs/32902731595) at `d27ba9c` proves blocking Ubuntu/macOS Product, diagnostic Windows Product, Chromium, all three Project Manifest jobs, Ubuntu/macOS Public SDK, Android JNI/Kotlin, and the exact Windows archive, live-descendant denial, and minimal SDK inventory. Its then-masked final Windows SDK consumer exposed Node 22's canonical `\\?\` entrypoint failure, the baseline Rust/MSRV jobs retain a separately owned nine-KAT mismatch, and one sanitizer job failed during GitHub action download. The current branch removes all three public Windows masks and fixes the Node boundary, but the resulting exact-head blocking run has not yet passed and therefore cannot promote the claim. |
 
 The v0.2 aggregate exit therefore remains **Partial**; all seven implementation

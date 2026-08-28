@@ -25,8 +25,19 @@ const BYTE_COPY_IMPORT: u32 = SCALAR_IMPORT_COUNT;
 const BYTE_GET_IMPORT: u32 = SCALAR_IMPORT_COUNT + 1;
 const BYTE_DROP_IMPORT: u32 = SCALAR_IMPORT_COUNT + 2;
 const BYTE_AS_SLICE_IMPORT: u32 = SCALAR_IMPORT_COUNT + 3;
+const RANGE_DESCRIPTOR_SIZE: u32 = 32;
+const RANGE_DESCRIPTOR_TAG: u32 = 0x4000_0000;
+const RANGE_DESCRIPTOR_TAG_MASK: u32 = 0xc000_0000;
+const RANGE_DESCRIPTOR_POINTER_MASK: u32 = 0x0000_ffff;
+const RANGE_DESCRIPTOR_COOKIE_MASK: u32 = 0x1fff;
 
 pub(super) const SHADOW_STACK_TOP: u32 = 65_536;
+const RANGE_DESCRIPTOR_ADDRESS_LIMIT: u32 = (RANGE_DESCRIPTOR_POINTER_MASK + 1) * 8;
+// Range descriptors are eight-byte aligned allocations in the private shadow
+// stack. The carrier stores their address in eight-byte units, so the entire
+// stack must remain representable without truncation. Function entry traps on
+// stack underflow before a descriptor can be constructed.
+const _: () = assert!(SHADOW_STACK_TOP <= RANGE_DESCRIPTOR_ADDRESS_LIMIT);
 pub(super) const STATUS_SUCCESS: i32 = 0;
 pub(super) const STATUS_ADD_OVERFLOW: i32 = 1;
 pub(super) const STATUS_SUB_OVERFLOW: i32 = 2;
@@ -112,10 +123,83 @@ struct FunctionPlan {
     aggregate_expressions: HashMap<ExpressionId, u32>,
     aggregate_bindings: HashMap<ValueId, u32>,
     call_out: HashMap<ExpressionId, u32>,
+    range_descriptors: HashMap<ExpressionId, u32>,
+    range_scratch: Option<RangeScratch>,
     cleanup_flags: std::collections::BTreeMap<crate::cleanup::LivenessFlagId, u32>,
     cleanup_storage_flags: HashMap<crate::cleanup_plan::StorageId, u32>,
     cleanup_call_argument_carriers: HashMap<crate::cleanup_plan::StorageId, u32>,
     frame_size: u32,
+}
+
+#[derive(Clone, Copy)]
+struct RangeScratch {
+    descriptor: u32,
+    high_word: u32,
+    ultimate: u32,
+    offset: u32,
+    length: u32,
+    binding: u32,
+}
+
+#[derive(Clone, Copy)]
+struct RangeBinding {
+    identity: u32,
+    ultimate_global: u32,
+    offset_global: u32,
+    length_global: u32,
+}
+
+type RangeBindings = Vec<(ExpressionId, RangeBinding)>;
+
+fn build_range_bindings(
+    program: &ResolvedProgram,
+    executable_functions: &[(&ResolvedFunction, FunctionExecutionId)],
+    variant_layouts: &VariantLayoutCache,
+    first_global: u32,
+) -> Result<Option<RangeBindings>, Diagnostic> {
+    if !program_uses_byte_range(program) {
+        return Ok(None);
+    }
+    let mut identities = Vec::new();
+    for (function, _) in executable_functions {
+        identities.extend(
+            FunctionPlan::build(program, function, variant_layouts)?
+                .range_descriptors
+                .into_keys(),
+        );
+    }
+    identities.sort_by(|left, right| left.as_str().cmp(right.as_str()));
+    identities.dedup();
+    if identities.len() > RANGE_DESCRIPTOR_COOKIE_MASK as usize {
+        return Err(error("Wasm module has too many byte-range bindings"));
+    }
+    Ok(Some(
+        identities
+            .into_iter()
+            .enumerate()
+            .map(|(ordinal, expression)| {
+                let identity = u32::try_from(ordinal + 1)
+                    .map_err(|_| error("byte-range binding identity overflows u32"))?;
+                let base = first_global
+                    .checked_add(
+                        u32::try_from(ordinal)
+                            .map_err(|_| error("byte-range global ordinal overflows u32"))?
+                            .checked_mul(3)
+                            .ok_or_else(|| error("byte-range global index overflows u32"))?,
+                    )
+                    .ok_or_else(|| error("byte-range global index overflows u32"))?;
+                Ok((
+                    expression,
+                    RangeBinding {
+                        identity,
+                        ultimate_global: base,
+                        offset_global: base + 1,
+                        length_global: base + 2,
+                    },
+                ))
+            })
+            .collect::<Result<RangeBindings, Diagnostic>>()?,
+    ))
 }
 
 impl FunctionPlan {
@@ -151,6 +235,18 @@ impl FunctionPlan {
             .iter()
             .any(|param| matches!(param.ty, ResolvedType::SliceU8 | ResolvedType::Str))
             .then(|| add_local(I64))
+            .transpose()?;
+        let range_scratch = program_uses_byte_range(program)
+            .then(|| {
+                Ok::<_, Diagnostic>(RangeScratch {
+                    descriptor: add_local(I32)?,
+                    high_word: add_local(I32)?,
+                    ultimate: add_local(I64)?,
+                    offset: add_local(I64)?,
+                    length: add_local(I64)?,
+                    binding: add_local(I32)?,
+                })
+            })
             .transpose()?;
         let has_try = expression_has_try(&function.body);
         let result_staged = if has_try { Some(add_local(I32)?) } else { None };
@@ -220,6 +316,8 @@ impl FunctionPlan {
             aggregate_expressions: HashMap::new(),
             aggregate_bindings: HashMap::new(),
             call_out: HashMap::new(),
+            range_descriptors: HashMap::new(),
+            range_scratch,
             cleanup_flags,
             cleanup_storage_flags,
             cleanup_call_argument_carriers,
@@ -307,6 +405,19 @@ impl FunctionPlan {
                     .insert(expr.id.clone(), frame.allocate(size, align)?);
             }
         }
+        if matches!(expr.kind, ResolvedExprKind::ByteRange { .. }) {
+            let offset = frame.allocate(RANGE_DESCRIPTOR_SIZE, 8)?;
+            if self
+                .range_descriptors
+                .insert(expr.id.clone(), offset)
+                .is_some()
+            {
+                return Err(error(format!(
+                    "duplicate byte-range descriptor identity `{}`",
+                    expr.id
+                )));
+            }
+        }
 
         match &expr.kind {
             ResolvedExprKind::Call { args, .. } => {
@@ -323,6 +434,13 @@ impl FunctionPlan {
                 for arg in &call.args {
                     self.collect_expr(program, variant_layouts, arg, parameter_count, frame)?;
                 }
+            }
+            ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => {
+                self.collect_expr(program, variant_layouts, source, parameter_count, frame)?;
+                self.collect_expr(program, variant_layouts, start, parameter_count, frame)?;
+                self.collect_expr(program, variant_layouts, end, parameter_count, frame)?;
             }
             ResolvedExprKind::Unary { value, .. } => {
                 self.collect_expr(program, variant_layouts, value, parameter_count, frame)?;
@@ -595,6 +713,9 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_try),
         ResolvedExprKind::HostCommandCall(call) => call.args.iter().any(expression_has_try),
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => expression_has_try(source) || expression_has_try(start) || expression_has_try(end),
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Project { base: value, .. }
         | ResolvedExprKind::Upcast { source: value } => expression_has_try(value),
@@ -872,6 +993,7 @@ pub(super) fn lower_selected_functions(
             &function_indexes,
             &variant_layouts,
             None,
+            None,
         )?);
     }
     Ok(SelectedAggregateLowering {
@@ -974,6 +1096,7 @@ pub(super) fn lower_selected_function_instances(
                 &function_indexes,
                 &variant_layouts,
                 None,
+                None,
             )
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -1037,6 +1160,7 @@ fn emit_byte_exports_profile(
             "Public Useful Data Export v1 requires selected byte-data exports",
         ));
     }
+    let line_command_io = command_io.is_some_and(super::command_io::CommandPlan::is_line_command);
     if program
         .types
         .iter()
@@ -1060,6 +1184,21 @@ fn emit_byte_exports_profile(
             )
         })
         .collect::<Vec<_>>();
+    let public_global_count = if line_command_io {
+        16_u32
+    } else if command_io.is_some() {
+        15
+    } else if host_output {
+        9
+    } else {
+        4
+    };
+    let range_bindings = build_range_bindings(
+        program,
+        &executable_functions,
+        &variant_layouts,
+        public_global_count,
+    )?;
     let mut types = Vec::<Signature>::new();
     let mut type_indexes = HashMap::<Signature, u32>::new();
     let binary_checked = intern_type(
@@ -1274,15 +1413,17 @@ fn emit_byte_exports_profile(
     // Global 0 is the private shadow-stack top. The public globals follow in
     // exact status/base/capacity order and are the only exported globals.
     let mut globals = Vec::new();
+    let private_range_global_count = range_bindings
+        .as_ref()
+        .map_or(0_usize, |bindings| bindings.len() * 3);
     write_u32(
         &mut globals,
-        if command_io.is_some() {
-            15
-        } else if host_output {
-            9
-        } else {
-            4
-        },
+        public_global_count
+            .checked_add(
+                u32::try_from(private_range_global_count)
+                    .map_err(|_| error("byte-range private global count overflows u32"))?,
+            )
+            .ok_or_else(|| error("byte-range global count overflows u32"))?,
     );
     globals.extend([I32, 0x01, 0x41]);
     write_i64(&mut globals, 131_072);
@@ -1306,13 +1447,21 @@ fn emit_byte_exports_profile(
         // Generic language failures continue to use only the ordinary status
         // global and must never be attributed to this domain.
         globals.extend([I32, 0x01, 0x41, 0x00, 0x0b]);
+        if line_command_io {
+            super::line_command_io::append_global(&mut globals);
+        }
+    }
+    for _ in 0..private_range_global_count {
+        globals.extend([I64, 0x01, 0x42, 0x00, 0x0b]);
     }
     section(&mut module, 6, globals);
 
     let mut exports = Vec::new();
     write_u32(
         &mut exports,
-        (if command_io.is_some() {
+        (if line_command_io {
+            12_u32
+        } else if command_io.is_some() {
             11_u32
         } else if host_output {
             7_u32
@@ -1345,6 +1494,9 @@ fn emit_byte_exports_profile(
         write_name(&mut exports, super::command_io::INPUT_STATUS_EXPORT);
         exports.push(0x03);
         write_u32(&mut exports, super::command_io::INPUT_STATUS_GLOBAL);
+        if line_command_io {
+            super::line_command_io::append_export(&mut exports);
+        }
     }
     let wrapper_base = SCALAR_IMPORT_COUNT
         .checked_add(BYTE_IMPORT_COUNT)
@@ -1386,6 +1538,7 @@ fn emit_byte_exports_profile(
             &function_indexes,
             &variant_layouts,
             host_output.then_some(super::host_output::DATA_GLOBALS),
+            range_bindings.as_ref(),
         )?;
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
@@ -1415,12 +1568,25 @@ fn emit_byte_exports_profile(
             .get(&FunctionExecutionId::Monomorphic(plan.function_id.clone()))
             .copied()
             .ok_or_else(|| error("selected Language Command target is not indexed"))?;
-        let body = super::command_io::emit_wrapper_body(target);
+        let body = super::command_io::emit_wrapper_body(target, line_command_io);
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
     }
     section(&mut module, 10, code);
     Ok(module)
+}
+
+fn program_uses_byte_range(program: &ResolvedProgram) -> bool {
+    program
+        .functions
+        .iter()
+        .chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        )
+        .any(|function| function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V4)
 }
 
 fn emit_profile(
@@ -1527,6 +1693,13 @@ fn emit_profile(
             )
         }))
         .collect::<Vec<_>>();
+    let public_global_count = if host_output { 5_u32 } else { 1_u32 };
+    let range_bindings = build_range_bindings(
+        program,
+        &executable_functions,
+        &variant_layouts,
+        public_global_count,
+    )?;
     let mut function_types = Vec::with_capacity(executable_functions.len());
     for (function, _) in &executable_functions {
         let mut params = Vec::with_capacity(function.params.len() + 1);
@@ -1631,7 +1804,18 @@ fn emit_profile(
     section(&mut module, 5, memory);
 
     let mut globals = Vec::new();
-    write_u32(&mut globals, if host_output { 5 } else { 1 });
+    let private_range_global_count = range_bindings
+        .as_ref()
+        .map_or(0_usize, |bindings| bindings.len() * 3);
+    write_u32(
+        &mut globals,
+        public_global_count
+            .checked_add(
+                u32::try_from(private_range_global_count)
+                    .map_err(|_| error("byte-range private global count overflows u32"))?,
+            )
+            .ok_or_else(|| error("byte-range global count overflows u32"))?,
+    );
     globals.extend([I32, 0x01, 0x41]);
     write_i64(
         &mut globals,
@@ -1644,6 +1828,9 @@ fn emit_profile(
     globals.push(0x0b);
     if host_output {
         super::host_output::append_globals(&mut globals);
+    }
+    for _ in 0..private_range_global_count {
+        globals.extend([I64, 0x01, 0x42, 0x00, 0x0b]);
     }
     section(&mut module, 6, globals);
 
@@ -1714,6 +1901,7 @@ fn emit_profile(
             &function_indexes,
             &variant_layouts,
             host_output.then_some(super::host_output::ROOT_GLOBALS),
+            range_bindings.as_ref(),
         )?;
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
@@ -1757,6 +1945,7 @@ fn emit_function(
     function_indexes: &HashMap<FunctionExecutionId, u32>,
     variant_layouts: &VariantLayoutCache,
     host_output: Option<super::host_output::Globals>,
+    range_bindings: Option<&RangeBindings>,
 ) -> Result<Vec<u8>, Diagnostic> {
     let plan = FunctionPlan::build(program, function, variant_layouts)?;
     let mut body = Vec::new();
@@ -1848,6 +2037,7 @@ fn emit_function(
         try_target_enabled: false,
         failure_expression: None,
         host_output,
+        range_bindings,
     };
     for contract in &function.requires {
         let condition = emitter.emit_expr(contract)?;
@@ -2052,6 +2242,7 @@ struct Emitter<'a> {
     try_target_enabled: bool,
     failure_expression: Option<ExpressionId>,
     host_output: Option<super::host_output::Globals>,
+    range_bindings: Option<&'a RangeBindings>,
 }
 
 impl Emitter<'_> {
@@ -2418,6 +2609,12 @@ impl Emitter<'_> {
             ResolvedExprKind::BorrowPlace { operation, place } => {
                 self.emit_borrow_place(expr, operation, place)
             }
+            ResolvedExprKind::ByteRange {
+                operation,
+                source,
+                start,
+                end,
+            } => self.emit_byte_range(expr, operation, source, start, end),
             ResolvedExprKind::Call {
                 callee,
                 instance,
@@ -3514,6 +3711,117 @@ impl Emitter<'_> {
         Ok(())
     }
 
+    fn emit_command_transcript_append(
+        &mut self,
+        expression: &ExpressionId,
+        carrier_local: u32,
+        channel: super::host_output::Globals,
+        other: super::host_output::Globals,
+    ) -> Result<(), Diagnostic> {
+        // The two staged channels share one exact cumulative budget. Test the
+        // complete call before copying a byte so capacity failure is atomic.
+        self.output.push(0x20);
+        write_u32(self.output, carrier_local);
+        self.output.push(0xa7);
+        self.output.push(0x41);
+        write_i64(
+            self.output,
+            i64::from(crate::command_io_ops::MAX_OUTPUT_BYTES as u32),
+        );
+        self.output.push(0x23);
+        write_u32(self.output, channel.staged_length);
+        self.output.extend([0x6b, 0x23]);
+        write_u32(self.output, other.staged_length);
+        self.output.extend([0x6b, 0x4b, 0x04, 0x40]);
+        self.output.push(0x41);
+        write_i64(
+            self.output,
+            i64::from(crate::command_io_ops::OUTPUT_CAPACITY_EXCEEDED),
+        );
+        self.output.push(0x21);
+        write_u32(self.output, self.plan.status);
+        self.output.push(0x41);
+        write_i64(
+            self.output,
+            i64::from(crate::command_io_ops::OUTPUT_CAPACITY_EXCEEDED),
+        );
+        self.output.push(0x24);
+        write_u32(self.output, super::line_command_io::OUTPUT_STATUS_GLOBAL);
+        self.emit_failure_cleanup(expression)?;
+        self.output.push(0x0c);
+        write_u32(
+            self.output,
+            self.control_depth + self.status_exit_extra_depth,
+        );
+        self.output.push(0x0b);
+
+        // Copy only after admission. `spx_bytes_get` authenticates ordinary
+        // fixed roots and owned-token roots before each byte is committed.
+        self.output.extend([0x41, 0x00, 0x21]);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0x02, 0x40, 0x03, 0x40, 0x20]);
+        write_u32(self.output, self.plan.status);
+        self.output.push(0x20);
+        write_u32(self.output, carrier_local);
+        self.output.extend([0xa7, 0x4f, 0x0d, 0x01, 0x41]);
+        write_i64(self.output, i64::from(channel.range_base));
+        self.output.push(0x23);
+        write_u32(self.output, channel.staged_length);
+        self.output.extend([0x6a, 0x20]);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0x6a, 0x20]);
+        write_u32(self.output, carrier_local);
+        self.output.push(0x20);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0xad, 0x10]);
+        write_u32(self.output, BYTE_GET_IMPORT);
+        self.output.push(0x22);
+        write_u32(
+            self.output,
+            self.plan
+                .command_byte
+                .ok_or_else(|| error("command transcript byte local is absent"))?,
+        );
+        self.output.extend([0x41]);
+        write_i64(self.output, 255);
+        self.output.extend([0x4b, 0x04, 0x40, 0x41]);
+        write_i64(self.output, i64::from(STATUS_INTERNAL_INVALID_TAG));
+        self.output.push(0x21);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0x0c, 0x02, 0x0b, 0x20]);
+        write_u32(
+            self.output,
+            self.plan
+                .command_byte
+                .ok_or_else(|| error("command transcript byte local is absent"))?,
+        );
+        self.output.extend([0x3a, 0x00, 0x00, 0x20]);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0x41, 0x01, 0x6a, 0x21]);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0x0c, 0x00, 0x0b, 0x0b]);
+        self.output.push(0x20);
+        write_u32(self.output, self.plan.status);
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(STATUS_INTERNAL_INVALID_TAG));
+        self.output.push(0x46);
+        self.emit_command_failure_if(expression, channel, other)?;
+
+        self.output.push(0x23);
+        write_u32(self.output, channel.staged_length);
+        self.output.push(0x20);
+        write_u32(self.output, carrier_local);
+        self.output.extend([0xa7, 0x6a, 0x24]);
+        write_u32(self.output, channel.staged_length);
+        self.output.push(0x20);
+        write_u32(self.output, carrier_local);
+        self.output.extend([0xa7, 0xad, 0x21]);
+        write_u32(self.output, carrier_local);
+        self.output.extend([0x41, 0x00, 0x21]);
+        write_u32(self.output, self.plan.status);
+        Ok(())
+    }
+
     /// Consume a command-boundary invariant failure through the ordinary
     /// expression failure exit. This is deliberately not a Wasm trap: an
     /// owned stdin carrier may still be live, and the cleanup plan is the
@@ -3632,6 +3940,37 @@ impl Emitter<'_> {
                     super::host_output::COMMAND_STDERR_GLOBALS,
                     super::host_output::COMMAND_STDOUT_GLOBALS,
                 )?;
+                return Ok(Value::Scalar {
+                    local,
+                    ty: ResolvedType::Usize,
+                });
+            }
+            Op::StdoutAppend | Op::StderrAppend => {
+                self.require_scalar(
+                    &arguments[0],
+                    &ResolvedType::SliceU8,
+                    "command append argument",
+                )?;
+                self.get_scalar(&arguments[0]);
+                self.output.push(0x21);
+                write_u32(self.output, local);
+                let staged = Value::Scalar {
+                    local,
+                    ty: ResolvedType::SliceU8,
+                };
+                self.validate_byte_slice(&staged);
+                let (channel, other) = if call.operation == Op::StdoutAppend {
+                    (
+                        super::host_output::COMMAND_STDOUT_GLOBALS,
+                        super::host_output::COMMAND_STDERR_GLOBALS,
+                    )
+                } else {
+                    (
+                        super::host_output::COMMAND_STDERR_GLOBALS,
+                        super::host_output::COMMAND_STDOUT_GLOBALS,
+                    )
+                };
+                self.emit_command_transcript_append(&expr.id, local, channel, other)?;
                 return Ok(Value::Scalar {
                     local,
                     ty: ResolvedType::Usize,
@@ -4034,6 +4373,9 @@ impl Emitter<'_> {
             crate::byte_ops::ByteOp::ArrayAsSlice | crate::byte_ops::ByteOp::StrAsBytes => Err(
                 error("byte view operation must lower from authenticated BorrowPlace HIR"),
             ),
+            crate::byte_ops::ByteOp::Range => Err(error(
+                "byte range must lower from authenticated ByteRange HIR",
+            )),
         }
     }
 
@@ -4136,7 +4478,313 @@ impl Emitter<'_> {
         })
     }
 
+    fn emit_byte_range(
+        &mut self,
+        expr: &ResolvedExpr,
+        operation: &DeclarationId,
+        source: &ResolvedExpr,
+        start: &ResolvedExpr,
+        end: &ResolvedExpr,
+    ) -> Result<Value, Diagnostic> {
+        if operation.as_str() != crate::byte_ops::RANGE_ID {
+            return Err(error("byte range carries an unknown operation identity"));
+        }
+        let source = self.emit_expr(source)?;
+        let start = self.emit_expr(start)?;
+        let end = self.emit_expr(end)?;
+        self.require_scalar(&source, &ResolvedType::SliceU8, "byte range source")?;
+        self.require_scalar(&start, &ResolvedType::Usize, "byte range start")?;
+        self.require_scalar(&end, &ResolvedType::Usize, "byte range end")?;
+        self.apply_call_commit(&expr.id)?;
+        self.validate_byte_slice(&source);
+
+        self.get_scalar(&start);
+        self.get_scalar(&end);
+        self.output.push(0x56); // i64.gt_u
+        self.emit_byte_range_failure_if(&expr.id, crate::byte_ops::RANGE_START_AFTER_END_CODE)?;
+        self.get_scalar(&end);
+        self.get_scalar(&source);
+        self.output.extend([0xa7, 0xad, 0x56]); // end > source.length
+        self.emit_byte_range_failure_if(&expr.id, crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE)?;
+
+        let scratch = self
+            .plan
+            .range_scratch
+            .ok_or_else(|| error("byte range scratch locals are absent"))?;
+        self.get_scalar(&source);
+        self.output.push(0x21);
+        write_u32(self.output, scratch.ultimate);
+        self.output.extend([0x42, 0x00, 0x21]);
+        write_u32(self.output, scratch.offset);
+
+        // A nested range is flattened to its already authenticated ultimate
+        // root and absolute offset; descriptors never form a runtime chain.
+        self.get_scalar(&source);
+        self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x22]);
+        write_u32(self.output, scratch.high_word);
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_TAG_MASK as i32));
+        self.output.extend([0x71, 0x41]);
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_TAG));
+        self.output.extend([0x46, 0x04, 0x40]);
+        self.emit_decode_validated_range_descriptor(&source)?;
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x29, 0x03, 0x08, 0x21]);
+        write_u32(self.output, scratch.ultimate);
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x29, 0x03, 0x10, 0x21]);
+        write_u32(self.output, scratch.offset);
+        self.output.push(0x0b);
+        self.output.push(0x20);
+        write_u32(self.output, scratch.offset);
+        self.get_scalar(&start);
+        self.output.extend([0x7c, 0x21]);
+        write_u32(self.output, scratch.offset);
+        self.get_scalar(&end);
+        self.get_scalar(&start);
+        self.output.extend([0x7d, 0x21]);
+        write_u32(self.output, scratch.length);
+
+        let descriptor_offset = self
+            .plan
+            .range_descriptors
+            .get(&expr.id)
+            .copied()
+            .ok_or_else(|| error("byte range has no invocation-local descriptor slot"))?;
+        let descriptor = Pointer {
+            local: self.plan.frame_base,
+            offset: descriptor_offset,
+        };
+        let binding = self
+            .range_bindings
+            .and_then(|bindings| {
+                bindings
+                    .iter()
+                    .find(|(expression, _)| expression == &expr.id)
+                    .map(|(_, binding)| *binding)
+            })
+            .ok_or_else(|| error("byte range has no private descriptor binding"))?;
+        self.emit_pointer(descriptor);
+        self.output.push(0x22);
+        write_u32(self.output, scratch.descriptor);
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(binding.identity));
+        self.output.extend([0x36, 0x02, 0x00]);
+        self.emit_pointer(Pointer {
+            local: descriptor.local,
+            offset: descriptor.offset + 4,
+        });
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x36, 0x02, 0x00]);
+        for (offset, local) in [
+            (8_u32, scratch.ultimate),
+            (16_u32, scratch.offset),
+            (24_u32, scratch.length),
+        ] {
+            self.emit_pointer(Pointer {
+                local: descriptor.local,
+                offset: descriptor.offset + offset,
+            });
+            self.output.push(0x20);
+            write_u32(self.output, local);
+            self.output.extend([0x37, 0x03, 0x00]);
+        }
+        for (local, global) in [
+            (scratch.ultimate, binding.ultimate_global),
+            (scratch.offset, binding.offset_global),
+            (scratch.length, binding.length_global),
+        ] {
+            self.output.push(0x20);
+            write_u32(self.output, local);
+            self.output.push(0x24);
+            write_u32(self.output, global);
+        }
+
+        let local = self.plan.expr_scalar(expr)?;
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x41, 0x03, 0x76, 0x41]); // ptr / 8
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_POINTER_MASK));
+        self.output.extend([0x71, 0x41]);
+        write_i64(self.output, i64::from(binding.identity << 16));
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_TAG));
+        self.output.extend([0x72, 0x72, 0xad, 0x42, 0x20, 0x86]);
+        self.output.push(0x20);
+        write_u32(self.output, scratch.length);
+        self.output.extend([0x84, 0x21]);
+        write_u32(self.output, local);
+        Ok(Value::Scalar {
+            local,
+            ty: ResolvedType::SliceU8,
+        })
+    }
+
+    fn emit_byte_range_failure_if(
+        &mut self,
+        expression: &ExpressionId,
+        code: u32,
+    ) -> Result<(), Diagnostic> {
+        self.output.extend([0x04, 0x40, 0x41]);
+        write_i64(self.output, i64::from(code));
+        self.output.push(0x21);
+        write_u32(self.output, self.plan.status);
+        self.emit_failure_cleanup(expression)?;
+        self.output.push(0x0c);
+        write_u32(
+            self.output,
+            self.control_depth + self.status_exit_extra_depth,
+        );
+        self.output.push(0x0b);
+        Ok(())
+    }
+
+    fn emit_decode_validated_range_descriptor(&mut self, value: &Value) -> Result<(), Diagnostic> {
+        let scratch = self
+            .plan
+            .range_scratch
+            .ok_or_else(|| error("byte range scratch locals are absent"))?;
+        self.get_scalar(value);
+        self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x22]);
+        write_u32(self.output, scratch.high_word);
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_POINTER_MASK));
+        self.output.extend([0x71, 0x41, 0x03, 0x74, 0x21]);
+        write_u32(self.output, scratch.descriptor);
+
+        // pointer + descriptor size <= current memory bytes
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_SIZE));
+        self.output
+            .extend([0x6a, 0x3f, 0x00, 0x41, 0x10, 0x74, 0x4d, 0x45]);
+        self.output.extend([0x04, 0x40, 0x00, 0x0b]);
+
+        // The self-pointer is independently authenticated before fields are
+        // loaded into the invocation-local binding scratch.
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x28, 0x02, 0x04, 0x20]);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x47, 0x04, 0x40, 0x00, 0x0b]);
+
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x29, 0x03, 0x08, 0x21]);
+        write_u32(self.output, scratch.ultimate);
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x29, 0x03, 0x10, 0x21]);
+        write_u32(self.output, scratch.offset);
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x29, 0x03, 0x18, 0x21]);
+        write_u32(self.output, scratch.length);
+
+        // The carrier selects one private, non-exported binding. Descriptor
+        // memory must equal that authoritative tuple on every access.
+        self.output.push(0x20);
+        write_u32(self.output, scratch.high_word);
+        self.output.extend([0x41, 0x10, 0x76, 0x41]);
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_COOKIE_MASK));
+        self.output.extend([0x71, 0x21]);
+        write_u32(self.output, scratch.binding);
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x28, 0x02, 0x00, 0x20]);
+        write_u32(self.output, scratch.binding);
+        self.output.extend([0x47, 0x04, 0x40, 0x00, 0x0b]);
+        let range_bindings = self
+            .range_bindings
+            .ok_or_else(|| error("byte range has no private binding inventory"))?;
+        for (_, binding) in range_bindings {
+            self.output.push(0x20);
+            write_u32(self.output, scratch.binding);
+            self.output.push(0x41);
+            write_i64(self.output, i64::from(binding.identity));
+            self.output.extend([0x46, 0x04, 0x40]);
+            for (local, global) in [
+                (scratch.ultimate, binding.ultimate_global),
+                (scratch.offset, binding.offset_global),
+                (scratch.length, binding.length_global),
+            ] {
+                self.output.push(0x20);
+                write_u32(self.output, local);
+                self.output.push(0x23);
+                write_u32(self.output, global);
+                self.output.push(0x52); // i64.ne
+            }
+            self.output.extend([0x72, 0x72, 0x04, 0x40, 0x00, 0x0b]);
+            self.output.extend([0x41, 0x00, 0x21]);
+            write_u32(self.output, scratch.binding);
+            self.output.push(0x0b);
+        }
+        self.output.push(0x20);
+        write_u32(self.output, scratch.binding);
+        self.output.extend([0x45, 0x45, 0x04, 0x40, 0x00, 0x0b]);
+
+        // Descriptor length must equal carrier length and fit within the
+        // ultimate carrier after the absolute offset. Nested descriptors are
+        // forbidden because creation always flattens them.
+        self.output.push(0x20);
+        write_u32(self.output, scratch.length);
+        self.get_scalar(value);
+        self.output.extend([0xa7, 0xad, 0x52, 0x20]);
+        write_u32(self.output, scratch.ultimate);
+        self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x41]);
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_TAG_MASK as i32));
+        self.output.extend([0x71, 0x41]);
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_TAG));
+        self.output.extend([0x46, 0x72, 0x20]);
+        write_u32(self.output, scratch.offset);
+        self.output.push(0x20);
+        write_u32(self.output, scratch.ultimate);
+        self.output.extend([0xa7, 0xad, 0x56, 0x72, 0x20]);
+        write_u32(self.output, scratch.length);
+        self.output.push(0x20);
+        write_u32(self.output, scratch.ultimate);
+        self.output.extend([0xa7, 0xad, 0x20]);
+        write_u32(self.output, scratch.offset);
+        self.output
+            .extend([0x7d, 0x56, 0x72, 0x04, 0x40, 0x00, 0x0b]);
+
+        // Untagged ultimate roots are guest-memory ranges and are rechecked
+        // against the current memory size on every descriptor access. Tagged
+        // owned roots are authenticated by the byte provider on the ensuing
+        // operation, exactly as for legacy carriers.
+        self.output.push(0x20);
+        write_u32(self.output, scratch.ultimate);
+        self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x41]);
+        write_i64(self.output, i64::from(i32::MIN));
+        self.output.extend([0x71, 0x45, 0x04, 0x40, 0x20]);
+        write_u32(self.output, scratch.ultimate);
+        self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x20]);
+        write_u32(self.output, scratch.ultimate);
+        self.output
+            .extend([0xa7, 0x6a, 0x3f, 0x00, 0x41, 0x10, 0x74, 0x4d, 0x45]);
+        self.output.extend([0x04, 0x40, 0x00, 0x0b, 0x0b]);
+        Ok(())
+    }
+
     fn validate_byte_slice(&mut self, value: &Value) {
+        if self.plan.range_scratch.is_some() {
+            let scratch = self.plan.range_scratch.expect("range scratch retained");
+            self.get_scalar(value);
+            self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x22]);
+            write_u32(self.output, scratch.high_word);
+            self.output.push(0x41);
+            write_i64(self.output, i64::from(RANGE_DESCRIPTOR_TAG_MASK as i32));
+            self.output.extend([0x71, 0x41]);
+            write_i64(self.output, i64::from(RANGE_DESCRIPTOR_TAG));
+            self.output.extend([0x46, 0x04, 0x40]);
+            self.emit_decode_validated_range_descriptor(value)
+                .expect("range validation scratch is present");
+            self.output.push(0x05);
+        }
         // Tagged carrier: high 32 bits are the root word, low 32 bits length.
         self.get_scalar(value);
         self.output.extend([0xa7, 0xad, 0x42]);
@@ -4153,6 +4801,9 @@ impl Emitter<'_> {
         self.output.extend([
             0xa7, 0xad, 0x7d, 0x58, 0x72, 0x71, 0x45, 0x04, 0x40, 0x00, 0x0b,
         ]);
+        if self.plan.range_scratch.is_some() {
+            self.output.push(0x0b);
+        }
     }
 
     fn emit_unary(
@@ -5271,7 +5922,8 @@ mod tests {
     use super::{
         emit_profile, function_import, hex_identity, intern_type,
         lower_selected_function_instances, section, write_bytes, write_i64, write_name, write_u32,
-        Signature, I32, SHADOW_STACK_TOP,
+        Signature, I32, RANGE_DESCRIPTOR_ADDRESS_LIMIT, RANGE_DESCRIPTOR_POINTER_MASK,
+        SHADOW_STACK_TOP,
     };
     use crate::codegen::native_aggregate::{
         resource_harness_scenario, wasm_address, HarnessAction, ResourceHarnessScenario,
@@ -5280,6 +5932,16 @@ mod tests {
     use crate::parse;
 
     static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+
+    #[test]
+    fn range_descriptor_carrier_covers_the_entire_private_shadow_stack() {
+        assert_eq!(
+            RANGE_DESCRIPTOR_ADDRESS_LIMIT,
+            (RANGE_DESCRIPTOR_POINTER_MASK + 1) * 8
+        );
+        let stack_top = std::hint::black_box(SHADOW_STACK_TOP);
+        assert!(stack_top <= RANGE_DESCRIPTOR_ADDRESS_LIMIT);
+    }
 
     const BYTE_BOUNDARY_SOURCE: &str = r#"
 module test.byte_boundary;
@@ -5305,6 +5967,14 @@ fn nul(text: borrow str) -> bool {
 @id("bytes.at")
 fn at(value: borrow Slice<u8>, index: usize) -> u8 {
     match byte_get(value, index) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    }
+}
+@id("bytes.range-at")
+fn range_at(value: borrow Slice<u8>, start: usize, end: usize, index: usize) -> u8 {
+    let selected = byte_range(value, start, end);
+    match byte_get(selected, index) {
         Option::Some { value: byte } => byte,
         Option::None {} => 0u8,
     }
@@ -5349,9 +6019,9 @@ const result = await WebAssembly.instantiate(bytes, {{ env: {{
   spx_bytes_copy: fail("spx_bytes_copy"), spx_bytes_drop: fail("spx_bytes_drop"),
   spx_bytes_as_slice: value => value,
   spx_bytes_get: (carrier, index) => {{
-    const word=BigInt.asUintN(64,carrier);const length=Number(word&0xffffffffn);
-    const offset=Number((word>>32n)&0xffffffffn);const at=BigInt.asUintN(64,index);
-    return at>=BigInt(length)?-1:new Uint8Array(wasmInstance.exports.__spx_test_memory.buffer)[offset+Number(at)];
+    const at=BigInt.asUintN(64,index),memory=wasmInstance.exports.__spx_test_memory.buffer;
+    const get=(value,n)=>{{const word=BigInt.asUintN(64,value),length=Number(word&0xffffffffn),root=Number((word>>32n)&0xffffffffn);if(n>=BigInt(length))return -1;if(((root&0xc0000000)>>>0)===0x40000000){{const p=(root&0xffff)*8,view=new DataView(memory),ultimate=view.getBigInt64(p+8,true),offset=view.getBigUint64(p+16,true);return get(ultimate,offset+n)}}return new Uint8Array(memory)[root+Number(n)]}};
+    return get(carrier,at);
   }},
 }} }});
 wasmInstance=result.instance;
@@ -5363,6 +6033,7 @@ const forward = instance.exports["{forward}"];
 const mixed = instance.exports["{mixed}"];
 const nul = instance.exports["{nul}"];
 const at = instance.exports["{at}"];
+const rangeAt = instance.exports["{range_at}"];
 const usizeAdd = instance.exports["{usize_add}"];
 const usizeSub = instance.exports["{usize_sub}"];
 const usizeMul = instance.exports["{usize_mul}"];
@@ -5374,6 +6045,7 @@ view.setUint8(10, 0); view.setUint8(11, 255); view.setUint8(12, 7);
 if (at(pack(10, 3), 1n, output) !== 0 || view.getUint8(output) !== 255) throw new Error("total indexed hit");
 if (at(pack(10, 3), 3n, output) !== 0 || view.getUint8(output) !== 0) throw new Error("total indexed miss");
 if (at(pack(10, 3), 0xffffffffffffffffn, output) !== 0 || view.getUint8(output) !== 0) throw new Error("total indexed max miss");
+if (rangeAt(pack(10, 3), 1n, 3n, 0n, output) !== 0 || view.getUint8(output) !== 255) throw new Error("general aggregate byte range");
 view.setUint8(20, 65); view.setUint8(21, 0); view.setUint8(22, 66);
 if (nul(pack(20, 3), output) !== 0 || view.getUint8(output) !== 1) throw new Error("embedded NUL str view");
 if (mixed(pack(20, 32768), pack(32768, 32768), output) !== 0 || view.getBigUint64(output,true)!==65536n) throw new Error("mixed root budget");
@@ -5396,6 +6068,7 @@ if (!mixedCumulative) throw new Error("mixed external roots were admitted");
             mixed = export("bytes.mixed"),
             nul = export("bytes.nul"),
             at = export("bytes.at"),
+            range_at = export("bytes.range-at"),
             usize_add = export("usize.add.failure"),
             usize_sub = export("usize.sub.failure"),
             usize_mul = export("usize.mul.failure"),

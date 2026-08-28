@@ -14,7 +14,7 @@ use sha2::{Digest as _, Sha256};
 use super::{ProjectExecutionOutcome, ProjectExecutionRole};
 use crate::project::{
     MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_STABLE_ID_BYTES, PROJECT_SCHEMA, PROJECT_SCHEMA_V2,
-    PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5,
+    PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7,
 };
 
 pub const PROJECT_EXECUTION_SCHEMA: &str = "semaprax.project-execution.v1";
@@ -153,9 +153,12 @@ pub fn verify_execution_envelope(envelope: &str) -> Result<(), Diagnostic> {
             | PROJECT_SCHEMA_V3
             | PROJECT_SCHEMA_V4
             | PROJECT_SCHEMA_V5
+            | PROJECT_SCHEMA_V6
+            | PROJECT_SCHEMA_V7
     ) {
         return Err(verification_error(
-            "project_schema must name an admitted Project v1, v2, v3, v4, or v5 schema".to_owned(),
+            "project_schema must name an admitted Project v1, v2, v3, v4, v5, v6, or v7 schema"
+                .to_owned(),
         ));
     }
     let project = require_bounded_text(object, "project", MAX_NAME_BYTES)?;

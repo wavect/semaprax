@@ -349,6 +349,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     arguments[0].code
                 ));
             }
+            crate::byte_ops::ByteOp::Range => {
+                return Err(backend_error(
+                    "byte_range reached native lowering as an ordinary call",
+                ));
+            }
             crate::byte_ops::ByteOp::BytesAsSlice
             | crate::byte_ops::ByteOp::ArrayAsSlice
             | crate::byte_ops::ByteOp::StrAsBytes => {
@@ -568,6 +573,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     }
                     crate::byte_ops::ByteOp::Len
                     | crate::byte_ops::ByteOp::Get
+                    | crate::byte_ops::ByteOp::Range
                     | crate::byte_ops::ByteOp::Copy => unreachable!(),
                 }
                 CValue {
@@ -596,6 +602,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             | ResolvedExprKind::String(_)
             | ResolvedExprKind::Place(_)
             | ResolvedExprKind::BorrowPlace { .. } => self.emit_leaf_expr(expr),
+            ResolvedExprKind::ByteRange {
+                operation,
+                source,
+                start,
+                end,
+            } => self.emit_byte_range_expr(expr, operation, source, start, end),
             ResolvedExprKind::HostCommandCall(_) => self.emit_host_command_expr(expr),
             ResolvedExprKind::Call { .. } => self.emit_call_expr(expr),
             ResolvedExprKind::NativeRustImportCall(call) => Err(backend_error(format!(
@@ -620,6 +632,44 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             ResolvedExprKind::Upcast { .. } => self.emit_upcast_expr(expr),
             ResolvedExprKind::UpdateRecord { .. } => self.emit_update_record_expr(expr),
         }
+    }
+
+    fn emit_byte_range_expr(
+        &mut self,
+        expr: &ResolvedExpr,
+        operation: &DeclarationId,
+        source: &ResolvedExpr,
+        start: &ResolvedExpr,
+        end: &ResolvedExpr,
+    ) -> Result<CValue, Diagnostic> {
+        if operation.as_str() != crate::byte_ops::RANGE_ID {
+            return Err(backend_error(
+                "byte_range HIR has an unknown operation identity",
+            ));
+        }
+        let source = self.emit_expr(source)?;
+        self.require_type(&source.ty, &ResolvedType::SliceU8, "byte_range source")?;
+        let start = self.emit_expr(start)?;
+        self.require_type(&start.ty, &ResolvedType::Usize, "byte_range start")?;
+        let end = self.emit_expr(end)?;
+        self.require_type(&end.ty, &ResolvedType::Usize, "byte_range end")?;
+        self.require_type(&expr.ty, &ResolvedType::SliceU8, "byte_range result")?;
+        let temporary = self.temporary(&ResolvedType::SliceU8)?;
+        self.line(&format!(
+            "spx_status = spx_byte_range_v1(spx_ctx, {}, {}, {}, &{temporary});",
+            source.code, start.code, end.code
+        ));
+        self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+        if let Some(plan) = self.bytes_plan {
+            let transitions = plan.apply_at(&expr.id)?;
+            for line in transitions.lines() {
+                self.line(line);
+            }
+        }
+        Ok(CValue {
+            code: temporary,
+            ty: ResolvedType::SliceU8,
+        })
     }
 
     fn emit_unary_expr(
@@ -772,6 +822,38 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             "{temporary} = spx_host_command_stderr_write_v1(spx_ctx, {});",
                             value.code
                         ));
+                        CValue {
+                            code: temporary,
+                            ty: ResolvedType::Usize,
+                        }
+                    }
+                    Operation::StdoutAppend | Operation::StderrAppend => {
+                        let [argument] = call.args.as_slice() else {
+                            return Err(backend_error("command append arity disagrees with HIR"));
+                        };
+                        let value = self.emit_expr(argument)?;
+                        self.require_type(
+                            &value.ty,
+                            &ResolvedType::SliceU8,
+                            "command append argument",
+                        )?;
+                        let temporary = self.temporary(&ResolvedType::Usize)?;
+                        let helper = match call.operation {
+                            Operation::StdoutAppend => "spx_host_command_stdout_append_v1",
+                            Operation::StderrAppend => "spx_host_command_stderr_append_v1",
+                            _ => unreachable!("append operation was matched above"),
+                        };
+                        self.line(&format!(
+                            "spx_status = {helper}(spx_ctx, {}, &{temporary});",
+                            value.code
+                        ));
+                        self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+                        if let Some(plan) = self.bytes_plan {
+                            let transitions = plan.apply_at(&expr.id)?;
+                            for line in transitions.lines() {
+                                self.line(line);
+                            }
+                        }
                         CValue {
                             code: temporary,
                             ty: ResolvedType::Usize,

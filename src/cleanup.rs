@@ -588,6 +588,13 @@ impl InventoryBuilder<'_> {
                         ResolvedExprKind::HostCommandCall(call) => {
                             enter = call.args.get(index);
                         }
+                        ResolvedExprKind::ByteRange {
+                            source, start, end, ..
+                        } => {
+                            enter = [source.as_ref(), start.as_ref(), end.as_ref()]
+                                .get(index)
+                                .copied();
+                        }
                         ResolvedExprKind::Unary { value, .. }
                         | ResolvedExprKind::Project { base: value, .. }
                         | ResolvedExprKind::Try { operand: value, .. }

@@ -68,6 +68,87 @@ static uint64_t spx_host_command_stderr_write_v1(
     );
 }
 
+/// Emit the additive line-command output runtime. Legacy command generation
+/// continues to call `emit_language_command_runtime`, keeping its C projection
+/// unchanged while this profile gains fallible cumulative append semantics.
+pub(super) fn emit_line_command_runtime(output: &mut impl COutput) {
+    output.push_str(
+        r##"#define SPX_COMMAND_OUTPUT_CAPACITY_V1 UINT64_C(65536)
+#define SPX_COMMAND_OUTPUT_STATUS_DOMAIN_V1 "semaprax.command-output.v1"
+#define SPX_COMMAND_OUTPUT_CAPACITY_FAILURE_V1 UINT32_C(1)
+
+struct spx_command_output_staging_v1 {
+    uint64_t stdout_length;
+    uint64_t stderr_length;
+    uint8_t stdout_bytes[SPX_COMMAND_OUTPUT_CAPACITY_V1];
+    uint8_t stderr_bytes[SPX_COMMAND_OUTPUT_CAPACITY_V1];
+};
+
+static __attribute__((unused)) spx_status_token spx_host_command_output_append_v1(
+    struct spx_context *spx_ctx,
+    spx_slice_u8_v1 value,
+    bool stderr_channel,
+    uint64_t *result_out
+) {
+    spx_slice_u8_require_valid(value);
+    if (spx_ctx == NULL || spx_ctx->target_state == NULL || result_out == NULL) {
+        spx_runtime_invariant_failure("command append state is unavailable");
+    }
+    *result_out = UINT64_C(0);
+    struct spx_command_output_staging_v1 *staging =
+        (struct spx_command_output_staging_v1 *)spx_ctx->target_state;
+    if (staging->stdout_length > SPX_COMMAND_OUTPUT_CAPACITY_V1 ||
+        staging->stderr_length >
+            SPX_COMMAND_OUTPUT_CAPACITY_V1 - staging->stdout_length ||
+        value.len > SPX_COMMAND_OUTPUT_CAPACITY_V1 -
+            staging->stdout_length - staging->stderr_length) {
+        spx_status_token token = SPX_STATUS_SUCCESS;
+        if (!spx_status_record_adapter(
+            spx_ctx,
+            SPX_COMMAND_OUTPUT_STATUS_DOMAIN_V1,
+            SPX_COMMAND_OUTPUT_CAPACITY_FAILURE_V1,
+            SPX_STATUS_CLASS_ADAPTER,
+            SPX_RETRYABILITY_FALSE,
+            &token
+        )) {
+            spx_runtime_invariant_failure("command output status could not be recorded");
+        }
+        return token;
+    }
+    uint64_t offset = stderr_channel ? staging->stderr_length : staging->stdout_length;
+    uint8_t *destination = stderr_channel ? staging->stderr_bytes : staging->stdout_bytes;
+    if (value.len != UINT64_C(0)) {
+        memcpy(destination + (size_t)offset, value.ptr, (size_t)value.len);
+    }
+    if (stderr_channel) {
+        staging->stderr_length += value.len;
+    } else {
+        staging->stdout_length += value.len;
+    }
+    *result_out = value.len;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_host_command_stdout_append_v1(
+    struct spx_context *spx_ctx,
+    spx_slice_u8_v1 value,
+    uint64_t *result_out
+) {
+    return spx_host_command_output_append_v1(spx_ctx, value, false, result_out);
+}
+
+static __attribute__((unused)) spx_status_token spx_host_command_stderr_append_v1(
+    struct spx_context *spx_ctx,
+    spx_slice_u8_v1 value,
+    uint64_t *result_out
+) {
+    return spx_host_command_output_append_v1(spx_ctx, value, true, result_out);
+}
+
+"##,
+    );
+}
+
 pub(super) fn emit_runtime(output: &mut impl COutput) {
     output.push_str(
         r#"#define SPX_STDOUT_TRANSCRIPT_CAPACITY_V1 UINT64_C(65536)

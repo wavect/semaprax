@@ -4153,7 +4153,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         results.push(Err(()));
                         continue;
                     }
-                    if crate::command_io_ops::by_name(name).is_some() {
+                    if crate::command_io_ops::by_name(name).is_some_and(|operation| {
+                        !matches!(
+                            operation,
+                            crate::hir::ResolvedHostCommandOperation::StdoutAppend
+                                | crate::hir::ResolvedHostCommandOperation::StderrAppend
+                        )
+                    }) {
                         self.diagnostics.push(error(
                             self.program,
                             "SPX-T270",
@@ -4168,7 +4174,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     if let Some(operation) = crate::byte_ops::by_name(name) {
                         if !matches!(
                             operation,
-                            crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get
+                            crate::byte_ops::ByteOp::Len
+                                | crate::byte_ops::ByteOp::Get
+                                | crate::byte_ops::ByteOp::Range
                         ) || args.len() != operation.arity()
                         {
                             self.diagnostics.push(error(
@@ -4188,9 +4196,12 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     // loop cleanup-edge-free; unknown names keep flowing so the
                     // established unresolved-value diagnostic fires instead.
                     if let Some(declared) = self.functions.get(name.as_str()) {
-                        let scalar_signature = is_scalar_source_type(&declared.return_type)
+                        let scalar_signature = declared.effects.is_empty()
+                            && is_scalar_source_type(&declared.return_type)
                             && declared.params.iter().all(|param| {
-                                param.mode == ParamMode::Value && is_scalar_source_type(&param.ty)
+                                (param.mode == ParamMode::Value && is_scalar_source_type(&param.ty))
+                                    || (param.mode == ParamMode::Borrow
+                                        && param.ty == Type::SliceU8)
                             });
                         if !scalar_signature {
                             self.diagnostics.push(error(
@@ -4729,7 +4740,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                             ParamMode::Own
                                         }
                                         crate::hir::ResolvedHostCommandOperation::ArgsLen
-                                        | crate::hir::ResolvedHostCommandOperation::StderrWrite => {
+                                        | crate::hir::ResolvedHostCommandOperation::StderrWrite
+                                        | crate::hir::ResolvedHostCommandOperation::StdoutAppend
+                                        | crate::hir::ResolvedHostCommandOperation::StderrAppend => {
                                             ParamMode::Value
                                         }
                                     },
@@ -6070,7 +6083,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         ParamMode::Own
                                     }
                                     crate::hir::ResolvedHostCommandOperation::ArgsLen
-                                    | crate::hir::ResolvedHostCommandOperation::StderrWrite => {
+                                    | crate::hir::ResolvedHostCommandOperation::StderrWrite
+                                    | crate::hir::ResolvedHostCommandOperation::StdoutAppend
+                                    | crate::hir::ResolvedHostCommandOperation::StderrAppend => {
                                         ParamMode::Value
                                     }
                                 },
@@ -9877,7 +9892,13 @@ fn reject_while_disallowed_oracle(
                 ));
                 return Err(());
             }
-            if crate::command_io_ops::by_name(name).is_some() {
+            if crate::command_io_ops::by_name(name).is_some_and(|operation| {
+                !matches!(
+                    operation,
+                    crate::hir::ResolvedHostCommandOperation::StdoutAppend
+                        | crate::hir::ResolvedHostCommandOperation::StderrAppend
+                )
+            }) {
                 diagnostics.push(error(
                     program,
                     "SPX-T270",
@@ -9889,7 +9910,9 @@ fn reject_while_disallowed_oracle(
             if let Some(operation) = crate::byte_ops::by_name(name) {
                 if !matches!(
                     operation,
-                    crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get
+                    crate::byte_ops::ByteOp::Len
+                        | crate::byte_ops::ByteOp::Get
+                        | crate::byte_ops::ByteOp::Range
                 ) || args.len() != operation.arity()
                 {
                     diagnostics.push(error(
@@ -9904,9 +9927,11 @@ fn reject_while_disallowed_oracle(
                 }
             }
             if let Some(declared) = functions.get(name.as_str()) {
-                let scalar_signature = is_scalar_source_type(&declared.return_type)
+                let scalar_signature = declared.effects.is_empty()
+                    && is_scalar_source_type(&declared.return_type)
                     && declared.params.iter().all(|param| {
-                        param.mode == ParamMode::Value && is_scalar_source_type(&param.ty)
+                        (param.mode == ParamMode::Value && is_scalar_source_type(&param.ty))
+                            || (param.mode == ParamMode::Borrow && param.ty == Type::SliceU8)
                     });
                 if !scalar_signature {
                     diagnostics.push(error(

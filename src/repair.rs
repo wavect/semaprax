@@ -705,6 +705,13 @@ fn collect_calls(
     call_sites: &mut usize,
 ) {
     match &expression.kind {
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            collect_calls(source, known, calls, call_sites);
+            collect_calls(start, known, calls, call_sites);
+            collect_calls(end, known, calls, call_sites);
+        }
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)

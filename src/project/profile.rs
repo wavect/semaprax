@@ -6,6 +6,7 @@ pub const PROJECT_PROFILE_USEFUL_DATA_V1: &str = "useful-data.v1";
 pub const PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1: &str = "useful-data-command.v1";
 pub const PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2: &str = "useful-data-command.v2";
 pub const PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1: &str = "language-command-io.v1";
+pub const PROJECT_PROFILE_LINE_COMMAND_IO_V1: &str = "line-command-io.v1";
 
 /// Frozen Project-v4 semantic stdout authority.
 pub const PROJECT_COMMAND_STDOUT_CAPABILITY: &str = "process.stdout.write";
@@ -36,6 +37,7 @@ pub enum ProjectProfile {
     UsefulDataCommandV1,
     UsefulDataCommandV2,
     LanguageCommandIoV1,
+    LineCommandIoV1,
 }
 
 impl ProjectProfile {
@@ -47,6 +49,7 @@ impl ProjectProfile {
             Self::UsefulDataCommandV1 => Some(PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1),
             Self::UsefulDataCommandV2 => Some(PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2),
             Self::LanguageCommandIoV1 => Some(PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1),
+            Self::LineCommandIoV1 => Some(PROJECT_PROFILE_LINE_COMMAND_IO_V1),
         }
     }
 }

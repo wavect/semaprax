@@ -186,3 +186,16 @@ the distinct public managed-workspace fixture pins raw SHA-256
 `sha256:64dddc0c2046766640ec93b7a7249214d099f683a2b6f26f43cdc22073764a6c`.
 Exact-head hosted evidence remains pending; this document makes no status
 promotion.
+
+The additive Project-v7 linker admits one narrow exception to the former
+value-only function boundary: a monomorphic imported function may accept exact
+`borrow Slice<u8>` parameters only when its return is a non-borrowing scalar.
+`Slice<u8>` is not globally added to signature-type admission, so borrowed or
+owned byte returns, strings, arrays, named aggregates, resources, generics,
+and other non-Value modes remain rejected. Linked HIR revalidates lexical
+borrowing, exact symbolic root provenance, call closure, cycles, and capacity
+before backend selection. This grants no persistence, mutation, lifetime
+erasure, or general cross-file ownership composition.
+The frozen Workspace Semantic Graph v1 `nonclaims` bytes above remain
+unchanged: the Project-v7 linked-execution admission does not grant this
+read-only carrier general borrowing or lifetime authority.

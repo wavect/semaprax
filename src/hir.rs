@@ -87,8 +87,8 @@ pub(crate) use validation::validate_core;
 #[cfg(test)]
 use validation::HirValidator;
 pub(crate) use workspace_link::{
-    link_language_command_io_workspace, link_scalar_workspace, link_useful_data_command_workspace,
-    link_useful_data_workspace, link_useful_text_workspace,
+    link_language_command_io_workspace, link_line_command_io_workspace, link_scalar_workspace,
+    link_useful_data_command_workspace, link_useful_data_workspace, link_useful_text_workspace,
     useful_data_workspace_parameter_admitted, useful_data_workspace_return_admitted,
 };
 
@@ -480,6 +480,14 @@ fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
         ResolvedExprKind::Place(place) => bytes += resolved_place_owned_capacity(place),
         ResolvedExprKind::BorrowPlace { operation, place } => {
             bytes += operation.as_str().len() + resolved_place_owned_capacity(place);
+        }
+        ResolvedExprKind::ByteRange {
+            operation,
+            source,
+            start,
+            end,
+        } => {
+            bytes += operation.as_str().len() + child(source) + child(start) + child(end);
         }
         ResolvedExprKind::ArrayU8(values) => bytes += values.capacity(),
         ResolvedExprKind::Unary { value: operand, .. } => bytes += child(operand),
@@ -1057,6 +1065,17 @@ pub enum ByteSliceExtent {
     ValueLength,
 }
 
+/// One authenticated dynamic half-open subrange step. Steps are stored from
+/// the original root toward the current view, so nested named ranges form a
+/// bounded acyclic derivation chain without inventing a new root identity.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ByteSliceRangeStep {
+    pub source: ValueId,
+    pub producer: ExpressionId,
+    pub start: ExpressionId,
+    pub end: ExpressionId,
+}
+
 /// Exact provenance for a byte view. In this first tranche every admitted
 /// source view is the complete symbolic parameter root (`offset = 0`,
 /// `length = root length`); aliases retain this fact rather than minting a new
@@ -1071,6 +1090,9 @@ pub struct ByteSliceProvenance {
     /// The authenticated compiler-owned view expression, absent only for a
     /// symbolic external parameter root.
     pub producer: Option<ExpressionId>,
+    /// Dynamic range steps relative to each immediately preceding view.
+    /// Empty preserves the exact whole-root v17-v19 meaning.
+    pub ranges: Vec<ByteSliceRangeStep>,
 }
 
 mod declaration_index;
@@ -1514,6 +1536,7 @@ fn materialize_template_expr(
         ResolvedExprKind::ArrayU8(_)
         | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::BorrowPlace { .. }
+        | ResolvedExprKind::ByteRange { .. }
         | ResolvedExprKind::HostCommandCall(_) => {
             return Err(hir_error(
                 "generic template uses portable byte data outside the generic slice",
@@ -1799,6 +1822,8 @@ pub enum ResolvedHostCommandOperation {
     ArgUtf8,
     StdinRead,
     StderrWrite,
+    StdoutAppend,
+    StderrAppend,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -2051,7 +2076,7 @@ fn byte_slice_transcript_source(
     results.pop().unwrap_or(TranscriptSource::Unknown)
 }
 
-fn push_resolved_expression_children_in_authored_order<'a>(
+pub(crate) fn push_resolved_expression_children_in_authored_order<'a>(
     expression: &'a ResolvedExpr,
     pending: &mut Vec<&'a ResolvedExpr>,
 ) {
@@ -2069,6 +2094,13 @@ fn push_resolved_expression_children_in_authored_order<'a>(
         ResolvedExprKind::Call { args, .. } => pending.extend(args.iter().rev()),
         ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter().rev()),
         ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter().rev()),
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            pending.push(end);
+            pending.push(start);
+            pending.push(source);
+        }
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
@@ -2240,6 +2272,7 @@ fn byte_capacity_expression(
                             None
                         }
                         ResolvedExprKind::Place(_) | ResolvedExprKind::BorrowPlace { .. } => None,
+                        ResolvedExprKind::ByteRange { .. } => None,
                         ResolvedExprKind::Block { .. }
                         | ResolvedExprKind::If { .. }
                         | ResolvedExprKind::Match { .. } => None,
@@ -2330,6 +2363,14 @@ fn byte_capacity_expression(
                         for argument in call.args.iter().rev() {
                             frames.push(Frame::Visit(argument, false));
                         }
+                    }
+                    ResolvedExprKind::ByteRange {
+                        source, start, end, ..
+                    } => {
+                        frames.push(Frame::Sequence(3));
+                        frames.push(Frame::Visit(end, false));
+                        frames.push(Frame::Visit(start, false));
+                        frames.push(Frame::Visit(source, false));
                     }
                     ResolvedExprKind::Unary { value, .. }
                     | ResolvedExprKind::Try { operand: value, .. }
@@ -2780,6 +2821,15 @@ pub enum ResolvedExprKind {
         operation: DeclarationId,
         place: Place,
     },
+    /// A compiler-owned fallible half-open subview of one exact named slice.
+    /// This is deliberately not an ordinary call: its borrowed result and
+    /// parent provenance must be independently reconstructable from HIR.
+    ByteRange {
+        operation: DeclarationId,
+        source: Box<ResolvedExpr>,
+        start: Box<ResolvedExpr>,
+        end: Box<ResolvedExpr>,
+    },
     Call {
         callee: DeclarationId,
         type_arguments: Vec<ResolvedType>,
@@ -3103,6 +3153,7 @@ fn derive_byte_slice_provenance(
                         offset: ByteSliceExtent::Constant(0),
                         length: ByteSliceExtent::ParameterLength,
                         producer: None,
+                        ranges: Vec::new(),
                     },
                 );
             }
@@ -3116,6 +3167,13 @@ fn derive_byte_slice_provenance(
         while let Some(expression) = pending.pop() {
             match &expression.kind {
                 ResolvedExprKind::Call { args, .. } => pending.extend(args),
+                ResolvedExprKind::ByteRange {
+                    source, start, end, ..
+                } => {
+                    pending.push(source);
+                    pending.push(start);
+                    pending.push(end);
+                }
                 ResolvedExprKind::NativeRustImportCall(call) => pending.extend(&call.args),
                 ResolvedExprKind::HostCommandCall(call) => pending.extend(&call.args),
                 ResolvedExprKind::Unary { value, .. }
@@ -3246,8 +3304,52 @@ fn derive_byte_slice_provenance(
                         offset: ByteSliceExtent::Constant(0),
                         length: root_length,
                         producer: Some(value.id.clone()),
+                        ranges: Vec::new(),
                     },
                 );
+                return false;
+            }
+            if let ResolvedExprKind::ByteRange {
+                operation,
+                source,
+                start,
+                end,
+            } = &value.kind
+            {
+                if *mutable
+                    || operation.as_str() != crate::byte_ops::RANGE_ID
+                    || value.ty != ResolvedType::SliceU8
+                    || value.ownership != OwnershipMode::Borrow
+                    || start.ty != ResolvedType::Usize
+                    || end.ty != ResolvedType::Usize
+                    || start.ownership != OwnershipMode::Value
+                    || end.ownership != OwnershipMode::Value
+                {
+                    return true;
+                }
+                let ResolvedExprKind::Place(place) = &source.kind else {
+                    return true;
+                };
+                if !place.projections.is_empty()
+                    || source.ty != ResolvedType::SliceU8
+                    || source.ownership != OwnershipMode::Borrow
+                {
+                    return true;
+                }
+                let Some(mut provenance) = facts.get(&place.root).cloned() else {
+                    return true;
+                };
+                if provenance.ranges.len() >= crate::byte_ops::MAX_RANGE_DEPTH {
+                    return true;
+                }
+                provenance.producer = Some(value.id.clone());
+                provenance.ranges.push(ByteSliceRangeStep {
+                    source: place.root.clone(),
+                    producer: value.id.clone(),
+                    start: start.id.clone(),
+                    end: end.id.clone(),
+                });
+                facts.insert(binding.id.clone(), provenance);
                 return false;
             }
             let ResolvedExprKind::Place(place) = &value.kind else {
@@ -4630,7 +4732,9 @@ impl Resolver<'_> {
                     if let Some(operation) = crate::byte_ops::by_name(name) {
                         if !matches!(
                             operation,
-                            crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get
+                            crate::byte_ops::ByteOp::Len
+                                | crate::byte_ops::ByteOp::Get
+                                | crate::byte_ops::ByteOp::Range
                         ) || args.len() != operation.arity()
                         {
                             return Err(self.error(
@@ -4653,9 +4757,12 @@ impl Resolver<'_> {
                         .iter()
                         .find(|function| function.name == *name);
                     if let Some(declared) = declared {
-                        let scalar_signature = is_scalar_source_type(&declared.return_type)
+                        let scalar_signature = declared.effects.is_empty()
+                            && is_scalar_source_type(&declared.return_type)
                             && declared.params.iter().all(|param| {
-                                param.mode == ParamMode::Value && is_scalar_source_type(&param.ty)
+                                (param.mode == ParamMode::Value && is_scalar_source_type(&param.ty))
+                                    || (param.mode == ParamMode::Borrow
+                                        && param.ty == Type::SliceU8)
                             });
                         if !scalar_signature {
                             return Err(self.error(
@@ -6341,6 +6448,34 @@ impl Resolver<'_> {
                     }
                     let ty = op.return_type();
                     let ownership = self.expression_ownership(&ty, OwnershipMode::Own, span)?;
+                    if op == crate::byte_ops::ByteOp::Range {
+                        let mut args = args.into_iter();
+                        let source = args.next().expect("range has a source");
+                        if !matches!(source.kind, ResolvedExprKind::Place(ref place) if place.projections.is_empty())
+                        {
+                            return Err(self.error(
+                                "SPX-T266",
+                                "byte_range requires an exact named Slice<u8> source",
+                                source.span,
+                            ));
+                        }
+                        let start = args.next().expect("range has a start");
+                        let end = args.next().expect("range has an end");
+                        debug_assert!(args.next().is_none());
+                        results.push(ResolvedExpr {
+                            id: ExpressionId::new(function, &path),
+                            ty,
+                            ownership: OwnershipMode::Borrow,
+                            kind: ResolvedExprKind::ByteRange {
+                                operation: DeclarationId::new(crate::byte_ops::RANGE_ID),
+                                source: Box::new(source),
+                                start: Box::new(start),
+                                end: Box::new(end),
+                            },
+                            span,
+                        });
+                        continue;
+                    }
                     if op.is_view() {
                         let ResolvedExprKind::Place(place) = &args[0].kind else {
                             return Err(self.error(
@@ -8704,6 +8839,33 @@ impl Resolver<'_> {
                     let ty = op.return_type();
                     let ownership =
                         self.expression_ownership(&ty, OwnershipMode::Own, expr.span)?;
+                    if op == crate::byte_ops::ByteOp::Range {
+                        let mut args = args.into_iter();
+                        let source = args.next().expect("range has a source");
+                        if !matches!(source.kind, ResolvedExprKind::Place(ref place) if place.projections.is_empty())
+                        {
+                            return Err(self.error(
+                                "SPX-T266",
+                                "byte_range requires an exact named Slice<u8> source",
+                                source.span,
+                            ));
+                        }
+                        let start = args.next().expect("range has a start");
+                        let end = args.next().expect("range has an end");
+                        debug_assert!(args.next().is_none());
+                        return Ok(ResolvedExpr {
+                            id,
+                            ty,
+                            ownership: OwnershipMode::Borrow,
+                            kind: ResolvedExprKind::ByteRange {
+                                operation: DeclarationId::new(crate::byte_ops::RANGE_ID),
+                                source: Box::new(source),
+                                start: Box::new(start),
+                                end: Box::new(end),
+                            },
+                            span: expr.span,
+                        });
+                    }
                     if op.is_view() {
                         let ResolvedExprKind::Place(place) = &args[0].kind else {
                             return Err(self.error(

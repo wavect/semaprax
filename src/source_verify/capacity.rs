@@ -1072,6 +1072,10 @@ fn source_capacity_expr(
                                     )
                                 },
                             })
+                        } else if name == crate::command_io_ops::STDOUT_APPEND_NAME {
+                            Some(CapacityFlow::StdoutAppend { site: path.clone() })
+                        } else if name == crate::command_io_ops::STDERR_APPEND_NAME {
+                            Some(CapacityFlow::StderrAppend { site: path.clone() })
                         } else {
                             target.map(|target| CapacityFlow::Call {
                                 site: path.clone(),

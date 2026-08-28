@@ -257,4 +257,22 @@ mod tests {
             .verify()
             .unwrap();
     }
+
+    #[test]
+    fn project_v6_execution_envelope_replays_independently() {
+        let manifest = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("examples/spxgrep-language-command-project/semaprax.toml");
+        let snapshot = super::super::load_snapshot(&manifest).unwrap();
+        let execution = snapshot
+            .execute_entry(&ProjectExecutionOptions::default())
+            .unwrap();
+        super::super::verify_execution_envelope(execution.envelope()).unwrap();
+
+        let tampered = execution.envelope().replace(
+            "\"project_schema\":\"semaprax.project.v6\"",
+            "\"project_schema\":\"semaprax.project.v7\"",
+        );
+        assert_ne!(tampered, execution.envelope());
+        assert!(super::super::verify_execution_envelope(&tampered).is_err());
+    }
 }

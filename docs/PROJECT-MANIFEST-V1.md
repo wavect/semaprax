@@ -218,3 +218,26 @@ byte determinism, test discovery, component output, target execution through
 the in-process runner, repository analysis, provenance, approval, or
 production readiness. The developer-loop evidence is local only until an
 exact-head hosted matrix includes it; no hosted promotion is claimed here.
+
+## Additive Project Manifest v7 line-command profile
+
+V7 preserves v1-v6 canonical bytes and adds exactly
+`profile = "line-command-io.v1"`. It requires the existing
+`argv-utf8+stdin-bytes.v1` input, one explicit `() -> bool` command stable ID,
+and the sorted args-read, stdin-read, stderr-write, and stdout-write capability
+inventory. Compiler-owned fallible `byte_range` and cumulative
+`stdout_append`/`stderr_append` share an exact 65,536-byte output envelope and
+publish both semantic transcripts only with a settled terminal result.
+
+Range meaning selects Graph v20 and CleanupPlan v4. Core-Wasm uses private
+invocation-local descriptors bound to an exact root token, offset, and length;
+they are neither public pointers nor owned tokens. The npm artifact is bound by
+independently replayed `semaprax.project-npm-build.v6`. Cross-module imports may
+add only `borrow Slice<u8>` parameters to an otherwise admitted monomorphic
+signature whose result is a non-borrowing scalar.
+
+Focused local evidence is `examples/spxgrep-lines-project` plus its interpreter,
+native, and Core-Wasm/Node tests. It does not claim real-browser or multi-engine
+execution, general streaming, files,
+WASI, physical cross-descriptor atomicity, persistence, safe Windows npm
+publication, registry publication, or exact-head hosted promotion.

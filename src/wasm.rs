@@ -24,6 +24,7 @@ mod generic_function_component_v9;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod generic_record_component_v7;
 mod host_output;
+mod line_command_io;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod nested_record_component_v6;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
@@ -163,6 +164,9 @@ fn program_uses_strings(program: &ResolvedProgram) -> bool {
             ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter()),
+            ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => pending.extend([source.as_ref(), start.as_ref(), end.as_ref()]),
             ResolvedExprKind::Unary { value, .. }
             | ResolvedExprKind::Try { operand: value, .. }
             | ResolvedExprKind::TryOption { operand: value, .. }
@@ -264,6 +268,9 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
             ResolvedExprKind::Call { args, .. } => pending.extend(args),
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(&call.args),
             ResolvedExprKind::HostCommandCall(call) => pending.extend(&call.args),
+            ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => pending.extend([source.as_ref(), start.as_ref(), end.as_ref()]),
             ResolvedExprKind::Unary { value, .. }
             | ResolvedExprKind::Try { operand: value, .. }
             | ResolvedExprKind::TryOption { operand: value, .. }
@@ -345,6 +352,9 @@ fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
             ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter()),
+            ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => pending.extend([source.as_ref(), start.as_ref(), end.as_ref()]),
             ResolvedExprKind::Unary { value, .. }
             | ResolvedExprKind::Try { operand: value, .. }
             | ResolvedExprKind::TryOption { operand: value, .. }
@@ -428,6 +438,9 @@ fn program_uses_string_ops_v2(program: &ResolvedProgram) -> bool {
             ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter()),
+            ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => pending.extend([source.as_ref(), start.as_ref(), end.as_ref()]),
             ResolvedExprKind::Unary { value, .. }
             | ResolvedExprKind::Try { operand: value, .. }
             | ResolvedExprKind::TryOption { operand: value, .. }
@@ -515,6 +528,13 @@ fn collect_string_data(program: &ResolvedProgram) -> StringData {
                 for arg in call.args.iter().rev() {
                     pending.push(arg);
                 }
+            }
+            ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => {
+                pending.push(end);
+                pending.push(start);
+                pending.push(source);
             }
             ResolvedExprKind::Unary { value, .. }
             | ResolvedExprKind::Try { operand: value, .. }
@@ -797,7 +817,27 @@ pub(crate) fn emit_resolved_language_command_io_v1(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<Vec<u8>, Diagnostic> {
-    let plan = command_io::prepare(program, command_id)?;
+    let plan = command_io::prepare(
+        program,
+        command_id,
+        crate::command_io_ops::CommandOperationProfile::LanguageV1,
+    )?;
+    aggregate::emit_language_command_io(program, &plan)
+}
+
+/// Emit the additive Project-v7 line-command boundary. Admission remains in
+/// the shared command profile; the backend adds range descriptors and the
+/// independent command-output status marker only when those operations are
+/// actually reachable, preserving Project-v6 bytes otherwise.
+pub(crate) fn emit_resolved_line_command_io_v1(
+    program: &ResolvedProgram,
+    command_id: &str,
+) -> Result<Vec<u8>, Diagnostic> {
+    let plan = command_io::prepare(
+        program,
+        command_id,
+        crate::command_io_ops::CommandOperationProfile::LineV1,
+    )?;
     aggregate::emit_language_command_io(program, &plan)
 }
 
@@ -3050,6 +3090,13 @@ fn collect_locals(
                 collect_locals(arg, parameter_count, layout)?;
             }
         }
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            collect_locals(source, parameter_count, layout)?;
+            collect_locals(start, parameter_count, layout)?;
+            collect_locals(end, parameter_count, layout)?;
+        }
         ResolvedExprKind::Unary { value, .. } => {
             collect_locals(value, parameter_count, layout)?;
         }
@@ -3920,6 +3967,7 @@ fn emit_expr(
         | ResolvedExprKind::ArrayU8(_)
         | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::BorrowPlace { .. }
+        | ResolvedExprKind::ByteRange { .. }
         | ResolvedExprKind::ConstructVariant { .. }
         | ResolvedExprKind::Try { .. }
         | ResolvedExprKind::TryOption { .. }
@@ -4303,6 +4351,9 @@ pub(crate) fn needs_i32_wide_scratch(expression: &ResolvedExpr) -> bool {
             ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter()),
+            ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => pending.extend([source.as_ref(), start.as_ref(), end.as_ref()]),
             ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
                     for index in 0..statement.child_count() {
@@ -4411,6 +4462,13 @@ fn contains_checked_arithmetic(expression: &ResolvedExpr, target: &ResolvedType)
             .args
             .iter()
             .any(|argument| contains_checked_arithmetic(argument, target)),
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            contains_checked_arithmetic(source, target)
+                || contains_checked_arithmetic(start, target)
+                || contains_checked_arithmetic(end, target)
+        }
         ResolvedExprKind::Block { statements, tail } => {
             contains_checked_arithmetic(tail, target)
                 || statements.iter().any(|statement| {

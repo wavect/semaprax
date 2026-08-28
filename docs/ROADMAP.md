@@ -90,7 +90,11 @@ Project/workspace/graph, and complete source facts in distinct Project
 subject/descriptor/bundle/outer schemas. The six-operation calculator evidence
 runs Web/Node and Rust consumers before and after an opt-in daemon display
 rename and proves stable-ID behavior across changed revisions without asserting
-whole-package byte equality. Phase C now locally performs a final exact
+whole-package byte equality. A strict unpublished workspace binary now exposes
+that same builder route with exact-one manifest/output options, absolute output
+checked by the CLI, freshness/authentication/publication delegated to the
+builder, and one canonical result object; it
+is not a root or installed/public CLI. Phase C now locally performs a final exact
 inventory replay followed by a one-way settlement that releases all leaf and
 child-directory authorities before its root rename, with an explicit blocking
 Windows nested-inventory regression and fail-stop inert residue after the
@@ -136,16 +140,21 @@ breadth follows.
 
 The committed browser calculator shell now also consumes the multi-module
 Project package, rather than using Project output only from test-only Node and
-Rust binaries. One exact dual-fixture preflight distinguishes and authenticates
-the direct `semaprax.web.v4` and Project `semaprax.web-project.v1` manifests,
-requires the same six stable IDs, and feeds both generated packages through the
-same TypeScript consumer; the serial Chromium interaction exercises the four
-arithmetic UI operations against each package. This closes the local
-interactive-Project-consumer gap. The dual fixture is exact-head hosted green
+Rust binaries. The current local exact-three preflight distinguishes the direct
+`semaprax.web.v4`, baseline Project, and display-renamed Project subjects,
+requires the same six stable IDs and exact stable artifacts, and feeds all three
+generated packages through the same TypeScript consumer and serial Chromium
+interaction. This closes the local renamed-interactive-consumer gap. The
+earlier direct-plus-baseline fixture is exact-head hosted green
 on Ubuntu Chromium at `27dbfafe0f6a3c7e68e0434a0a082020104f2241` in
 [job 97930658621](https://github.com/wavect/semaprax/actions/runs/32887305666/job/97930658621),
 while the full promotion matrix remains required before widening the product
 claim.
+
+As a maintainability-only change, Project/workspace linkage is isolated in
+`src/hir/workspace_link.rs` rather than the HIR root. Validation order,
+diagnostics, authority, HIR/Graph/backend semantics, and completion status are
+unchanged.
 
 ## Useful Text Consumer v1 and Project Manifest v2
 

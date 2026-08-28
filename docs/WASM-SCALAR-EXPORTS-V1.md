@@ -8,6 +8,9 @@ generated-declaration consumers for both the direct and Project packages. The
 locked dual-package Chromium loopback job is exact-head hosted green on Ubuntu
 at `27dbfafe0f6a3c7e68e0434a0a082020104f2241` in
 [job 97930658621](https://github.com/wavect/semaprax/actions/runs/32887305666/job/97930658621).
+Current local evidence additionally authenticates and executes an exact third
+fixture for the display-renamed Project subject; that third fixture has no
+hosted-promotion claim yet.
 
 ## Purpose and command
 
@@ -153,14 +156,18 @@ Promotion requires:
 - generated JavaScript execution under Node;
 - strict compilation of a generated-declaration consumer with a pinned
   TypeScript compiler;
-- the locked Ubuntu Chromium loopback calculator interaction in
-  `platform-tests/wasm-scalar-browser-v1` (one worker, no retries), plus its
-  exact-head hosted-green evidence;
+- the exact-three local Chromium loopback calculator interaction in
+  `platform-tests/wasm-scalar-browser-v1` (one worker, no retries), with
+  canonical manifests, exact inventories and digests, empty capabilities,
+  exact six-function ABI, known-answer baseline/renamed Project subjects, and
+  byte-identical six-artifact output across that display rename;
 - formatting, strict Clippy, Rust 1.85, package/source locks, the full hosted
   Ubuntu/macOS/Windows matrix, and independent security review.
 
-The exact-head hosted Chromium/TypeScript job proves the generated direct and
-Project calculator packages under one pinned browser on Ubuntu loopback. It
+The exact-head hosted Chromium/TypeScript job proves only the generated direct
+and baseline Project calculator packages under one pinned browser on Ubuntu
+loopback. The renamed third fixture is local evidence until a later exact-head
+hosted run includes it. This evidence
 does not establish general browser-SDK compatibility, multi-engine conformance,
 external-network behavior, or production-browser compatibility. It also claims
 no Components, WIT, npm

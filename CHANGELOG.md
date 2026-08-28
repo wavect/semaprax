@@ -20,6 +20,18 @@
   and is pinned as one Linux step of the shared `verify` CI job; no hosted
   device, simulator, public-admission, or `SPX-B104` claim follows.
 
+- Added a strict unpublished Project Rust SDK workspace binary that delegates
+  once to the authenticated builder and emits one canonical
+  `semaprax.project-native-rust-sdk-result.v1` result. Expanded the local
+  calculator browser proof to exact direct, baseline Project, and known-answer
+  display-renamed Project fixtures: the same committed shell executes all
+  three, while the six-function ABI and all six non-manifest generated
+  artifacts remain byte-identical across the rename. Project/workspace HIR
+  linkage now lives in `src/hir/workspace_link.rs` without semantic or
+  authority changes. This is local evidence only and adds no hosted promotion,
+  root/installed/public CLI, registry, general SDK/browser support, or
+  completion-status change.
+
 - Promoted the focused calculator Product Acceptance and Public Native Rust
   SDK matrices to blocking Ubuntu, macOS, and Windows configuration while
   keeping hosted promotion pending until the resulting exact-head run passes.

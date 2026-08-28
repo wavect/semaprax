@@ -78,14 +78,19 @@ fn chromium_scalar_calculator_gate_is_isolated_locked_and_serial() {
     for required in [
         "semaprax.web.v4",
         "semaprax.web-project.v1",
-        "roots.length !== 2",
+        "roots.length !== 3",
+        "\"direct-source\"",
+        "\"project-baseline\"",
+        "\"project-renamed\"",
+        "sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053",
+        "sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7",
         "SEMAPRAX_CALCULATOR_FIXTURES",
         "\"--workers=1\"",
         "\"--retries=0\"",
     ] {
         assert!(
             fixture_runner.contains(required),
-            "dual browser fixture runner lost `{required}`"
+            "three-fixture browser runner lost `{required}`"
         );
     }
 

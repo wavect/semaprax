@@ -5,7 +5,8 @@ Status: private A+B design and implementation are exact-head hosted green at
 32402944574](https://github.com/wavect/semaprax/actions/runs/32402944574).
 The additive Public Native Rust SDK v1 Phase C implementation is locally
 evidenced and awaits its exact-head Ubuntu/macOS/Windows promotion matrix; its
-builder tooling remains unpublished and it grants no registry or CLI claim. The six
+builder tooling remains unpublished and it grants no registry, installed/public
+CLI, or root `semaprax` CLI claim. The six
 output artifacts have frozen
 whole-byte known-answer identities after independent exact replay and exhaustive
 byte-edit rejection. That wire freeze alone is not runtime or platform
@@ -306,6 +307,19 @@ The returned `ProjectNativeRustSdkBundle` exposes the authenticated Project
 revision, workspace revision, and Project-subject digest in addition to the
 ordinary SDK bundle.
 
+The same unpublished builder crate exposes the strict workspace binary
+`semaprax-native-rust-sdk`. Its only grammar is `project --manifest-path
+<path> --output <fresh-absolute-path>` with each option exactly once. It
+rejects missing, repeated, unknown, and trailing arguments and relative output
+before delegating exactly once to `build_project_native_rust_sdk`. Success is
+one compact JSON object plus LF with schema
+`semaprax.project-native-rust-sdk-result.v1` and exact ordered keys
+`crate_name`, `manifest_digest`, `project_revision`, `schema`,
+`subject_digest`, `target_triple`, and `workspace_revision`. Failure output is
+path-, source-, and tool-output-free. The builder remains the sole owner of
+fresh-child admission, held-path authentication, tool execution, and
+publication.
+
 Focused local evidence builds and runs the six-export calculator Project as
 both Web/Node and generated Rust consumers, applies the opt-in daemon display
 rename, shuts the daemon down, then independently rebuilds and reruns both
@@ -313,7 +327,7 @@ consumers. It proves stable-ID behavior while requiring the Project,
 workspace, subject, and changed-source revisions to change; it deliberately
 does not claim whole-package byte equality across a semantic source rename.
 Hosted Ubuntu/macOS/Windows promotion remains pending. This entry point adds no
-root CLI, registry, dependency, general Project SDK, capability, import,
+root or installed/public CLI, registry, dependency, general Project SDK, capability, import,
 aggregate, resource, or publication-path claim beyond the existing bounded
 builder output.
 
@@ -335,6 +349,12 @@ error text/payload evidence, exactly-once effects, other ecosystem bindings,
 dynamic dependency identity or filesystem-race isolation,
 stable Rust ABI, public CLI/registry/network, general interop readiness, and a
 completion-matrix promotion.
+
+The focused CLI contract is exercised with:
+
+```sh
+cargo test --locked -p semaprax-native-rust-interop --test project_sdk_cli
+```
 
 The private A+B promotion gate is satisfied at the exact commit and run cited
 above: Ubuntu, macOS, Windows, Rust 1.85, and the required Linux sanitizer lane

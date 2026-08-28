@@ -167,7 +167,7 @@ does not satisfy a broader product gate.
 | Ownership | Move and partial-place checking, explicit lifecycle/ownership boundaries, and independently replayed target-neutral cleanup plans. General lifetime, aliasing, concurrency, and public resource execution remain open. |
 | Agent interface | Deterministic Graph v10–v14, bounded context, impact preview, repair discovery, semantic review, and exact evidence replay. |
 | Semantic changes | Atomic single-file patches plus bounded managed multi-file workspace transactions and replacements-only semantic workspace operations. These do not provide general Git/editor-tree atomicity. |
-| Project build | A bounded explicit pure-scalar `semaprax.toml` build input reuses one in-memory Workspace Phase-A pass and publishes a Web package or explicit native executable. An unpublished API also locally generates the scalar Rust SDK from the authenticated linked Project. Explicit stable-ID `use function` provider edges are its only cross-file composition. This is not dependency management, a managed workspace, or production packaging. |
+| Project build | A bounded explicit pure-scalar `semaprax.toml` build input reuses one in-memory Workspace Phase-A pass and publishes a Web package or explicit native executable. An unpublished API and strict workspace binary also locally generate the scalar Rust SDK from the authenticated linked Project. Explicit stable-ID `use function` provider edges are its only cross-file composition. This is not dependency management, a managed workspace, or production packaging. |
 | Native target | C11/Clang scalar and bounded Copy-data execution plus locally evidenced direct-source and Project-generated scalar Native Rust SDK packages. Exact-head SDK promotion and public general resource/string/FFI/aggregate ABI admission remain open. |
 | Web target | WebAssembly Core plus a generated package; selected stable-ID scalar functions have bounded JavaScript/TypeScript bindings. General browser-SDK and public Component Model output remain open. |
 | Applications | Private CI evidence exists for bounded desktop and mobile prototypes. Public SDKs, packaging, lifecycle breadth, and production distribution remain open. |
@@ -261,19 +261,22 @@ digest-bound package and never delete it automatically.
 The committed [browser calculator shell](examples/calculator-web/README.md)
 consumes either the direct-source package or this multi-module Project package
 without changing its stable-ID calls. The locked Chromium fixture authenticates
-the two distinct package schemas and exact six-export inventories, type-checks
-both generated declaration consumers, and exercises both calculators serially.
+the direct package plus exact baseline and display-renamed Project subjects,
+their exact six-export inventories, and their generated artifacts. Local
+evidence type-checks and serially exercises the same shell against all three.
+The cited hosted browser evidence remains the earlier direct-plus-baseline pair.
 
-The unpublished calculator setup can also generate the exact local Rust SDK
-for that authenticated Project:
+The unpublished builder workspace binary can generate the exact local Rust SDK
+for that authenticated Project through one closed command:
 
 ```sh
 RUSTC=/absolute/path/to/rustc \
 CLANG=/absolute/path/to/clang \
 SEMAPRAX_ARCHIVER=/absolute/path/to/the-admitted-platform-archiver \
-cargo run --locked --offline --manifest-path examples/calculator-rust/Cargo.toml -- \
-  project "$(pwd)/examples/calculator-project/semaprax.toml" \
-  "$(pwd)/examples/calculator-rust/generated-project-sdk"
+cargo run --locked --offline -p semaprax-native-rust-interop \
+  --bin semaprax-native-rust-sdk -- project \
+  --manifest-path "$(pwd)/examples/calculator-project/semaprax.toml" \
+  --output "$(pwd)/examples/calculator-rust/generated-project-sdk"
 ```
 
 The separate compiler-free `project-consumer` exercises all six manifest

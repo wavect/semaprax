@@ -160,6 +160,7 @@ cargo test --locked -p semaprax --all-features --test project_developer_loop_v1 
 cargo test --locked -p semaprax --all-features --test project_native_publication_v1 -- --test-threads=1
 cargo test --locked -p semaprax --test project_manifest_v1
 cargo test --locked -p semaprax --test project_backend_equivalence_v1 -- --test-threads=1
+cargo test --locked -p semaprax-native-rust-interop --test project_sdk_cli
 ```
 
 The additive local Project Native Rust SDK v1 evidence uses the manifest's
@@ -174,8 +175,27 @@ opt-in daemon rename and explicit shutdown:
 SEMAPRAX_REQUIRE_PROJECT_NATIVE_RUST_SDK=1 cargo test --locked -p semaprax --test project_agent_transport_rename_v1 project_rename_transaction_refreshes_the_exact_project_and_preserves_web_api -- --nocapture
 ```
 
+The unpublished builder workspace binary exposes that same authenticated
+route as:
+
+```sh
+cargo run --locked --offline -p semaprax-native-rust-interop \
+  --bin semaprax-native-rust-sdk -- project \
+  --manifest-path "$(pwd)/examples/calculator-project/semaprax.toml" \
+  --output "/fresh/absolute/output"
+```
+
+Its exact-one options and canonical
+`semaprax.project-native-rust-sdk-result.v1` result do not add a root
+`semaprax build --target rust` route. Separately, the local browser harness
+authenticates exact known-answer baseline and display-renamed Project subjects,
+requires their exact six-function scalar ABI and six non-manifest generated
+artifacts to remain byte-identical, and runs the unchanged calculator shell
+against both plus the direct-source package.
+
 That evidence is local only. It proves revision-bound stable-ID behavior, not
-whole-package byte equality across the rename, a Project CLI Rust target, or
+general whole-package byte equality across arbitrary changes, a root Project
+CLI Rust target, an installed/public CLI, or
 general Project/package/import/capability/aggregate/resource support.
 
 The exact `d883ace579bfd86f723cdc6819224fde51f0677d` Project v1 matrix is

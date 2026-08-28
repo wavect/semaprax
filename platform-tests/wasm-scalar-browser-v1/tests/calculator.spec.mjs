@@ -8,7 +8,7 @@ async function calculate(page, { left, operation, right, expected }) {
   await expect(page.locator("#result")).toHaveText(expected);
 }
 
-test("loopback Chromium calculator preserves stable-ID success, failure, and re-entry", async ({ page }) => {
+test("loopback Chromium calculator preserves the same four-operation stable-ID workflow, failure, and re-entry", async ({ page }) => {
   const wasmResponses = [];
   const requestOrigins = [];
   const requestFailures = [];
@@ -26,24 +26,14 @@ test("loopback Chromium calculator preserves stable-ID success, failure, and re-
   const expectedOrigin = new URL(page.url()).origin;
   await expect(page.getByRole("heading", { name: "SEMAPRAX calculator" })).toBeVisible();
 
-  await calculate(page, {
-    left: "19",
-    operation: "calculator.add",
-    right: "23",
-    expected: "42",
-  });
-  await calculate(page, {
-    left: "6",
-    operation: "calculator.multiply",
-    right: "7",
-    expected: "42",
-  });
-  await calculate(page, {
-    left: "10",
-    operation: "calculator.subtract",
-    right: "3",
-    expected: "7",
-  });
+  for (const operation of [
+    { left: "19", operation: "calculator.add", right: "23", expected: "42" },
+    { left: "84", operation: "calculator.subtract", right: "42", expected: "42" },
+    { left: "6", operation: "calculator.multiply", right: "7", expected: "42" },
+    { left: "84", operation: "calculator.divide", right: "2", expected: "42" },
+  ]) {
+    await calculate(page, operation);
+  }
   await calculate(page, {
     left: "9223372036854775807",
     operation: "calculator.add",
@@ -57,9 +47,9 @@ test("loopback Chromium calculator preserves stable-ID success, failure, and re-
     expected: "semantic failure: semaprax.contract.v1/1",
   });
   await calculate(page, {
-    left: "84",
-    operation: "calculator.divide",
-    right: "2",
+    left: "20",
+    operation: "calculator.add",
+    right: "22",
     expected: "42",
   });
 

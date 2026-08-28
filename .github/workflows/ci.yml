@@ -593,7 +593,7 @@ jobs:
           test -r /dev/kvm
           test -w /dev/kvm
       - name: Run generated callable-v3 through the x86_64 Android Emulator
-        uses: ReactiveCircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 35
           target: default
@@ -638,7 +638,7 @@ jobs:
           test -r /dev/kvm
           test -w /dev/kvm
       - name: Build offline and run the private JNI/Kotlin instrumentation APK
-        uses: ReactiveCircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 35
           target: ${{ matrix.emulator-target }}

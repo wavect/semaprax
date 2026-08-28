@@ -679,7 +679,9 @@ fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>> {
                 }
                 stack.extend(fields.iter().map(|field| &field.value));
             }
-            ExprKind::Match { scrutinee, arms } => {
+            ExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 stack.push(scrutinee);
                 for arm in arms {
                     if let Some(guard) = &arm.guard {

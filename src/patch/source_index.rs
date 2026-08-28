@@ -290,10 +290,13 @@ impl SemanticSourceIndex {
                 }
             }
             (
-                ExprKind::Match { scrutinee, arms },
+                ExprKind::Match {
+                    scrutinee, arms, ..
+                },
                 ResolvedExprKind::Match {
                     scrutinee: resolved_scrutinee,
                     arms: resolved_arms,
+                    ..
                 },
             ) => {
                 self.expr(scrutinee, resolved_scrutinee, tokens)?;

@@ -114,6 +114,29 @@ pub enum ParamMode {
     Shared,
 }
 
+/// The explicitly authored ownership mode of a `match` scrutinee.
+///
+/// Plain `match value` remains the default Copy/value form. `Own` and
+/// `Borrow` are source-level syntax only in the frontend tranche; later
+/// semantic lowering must authenticate their ownership rules before use.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum MatchMode {
+    #[default]
+    Value,
+    Own,
+    Borrow,
+}
+
+impl MatchMode {
+    pub fn source_prefix(self) -> &'static str {
+        match self {
+            Self::Value => "",
+            Self::Own => "own ",
+            Self::Borrow => "borrow ",
+        }
+    }
+}
+
 impl ParamMode {
     pub fn text(self) -> &'static str {
         match self {
@@ -274,7 +297,9 @@ impl Drop for Program {
                     types.extend(type_arguments);
                     expressions.extend(fields.into_iter().map(|field| field.value));
                 }
-                ExprKind::Match { scrutinee, arms } => {
+                ExprKind::Match {
+                    scrutinee, arms, ..
+                } => {
                     expressions.push(*scrutinee);
                     for arm in arms {
                         patterns.push(arm.pattern);
@@ -610,6 +635,7 @@ pub enum ExprKind {
         fields: Vec<FieldInitializer>,
     },
     Match {
+        mode: MatchMode,
         scrutinee: Box<Expr>,
         arms: Vec<MatchArm>,
     },
@@ -1019,7 +1045,9 @@ impl Expr {
             | ExprKind::ConstructVariant { fields, .. } => {
                 fields.get(index).map(|field| &field.value)
             }
-            ExprKind::Match { scrutinee, arms } => (index == 0)
+            ExprKind::Match {
+                scrutinee, arms, ..
+            } => (index == 0)
                 .then_some(scrutinee.as_ref())
                 .or_else(|| arms.get(index - 1).map(|arm| &arm.value)),
             ExprKind::UpdateRecord { base, fields } => (index == 0)
@@ -1143,6 +1171,7 @@ mod call_visitor_tests {
                     Expr {
                         span,
                         kind: ExprKind::Match {
+                            mode: MatchMode::Value,
                             scrutinee: Box::new(call("seventh", 7)),
                             arms: vec![
                                 MatchArm {
@@ -1405,6 +1434,7 @@ mod iterative_program_drop_tests {
         method.return_type = nested_type();
         method.requires.push(Expr {
             kind: ExprKind::Match {
+                mode: MatchMode::Value,
                 scrutinee: Box::new(Expr {
                     kind: ExprKind::Int(0),
                     span,

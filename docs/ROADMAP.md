@@ -13,6 +13,14 @@ The current dashboard is 56 Partial/0 Missing. Every row still has an explicit
 remaining-evidence boundary, so the full product objective remains Partial;
 the historical status transitions below retain their milestone-local counts.
 
+The current local language implementation tranche is
+[Owned Byte Record Algebra v1](OWNED-BYTE-RECORD-ALGEBRA-V1.md): flat
+monomorphic internal records with direct owned Bytes fields, explicit
+ownership-aware matching, Graph v21, CleanupPlan v5, and interpreter/native/
+Core-Wasm execution. It deliberately leaves nested and public aggregate
+boundaries closed. This deepens existing Partial rows without changing the
+56 Partial/0 Missing dashboard; hosted promotion is separate work.
+
 ## Immediate product slice — scalar SDK and calculator
 
 [Public Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md) is the first bounded

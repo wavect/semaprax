@@ -33,6 +33,7 @@ contents.
 | **Foundations** | |
 | [RFC 0001](RFC-0001.md) | Language, compiler, interop, application, target contract. |
 | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md) | Records, variants, generics, matching, `Option`, `Result`. |
+| [Owned Byte Record Algebra v1](OWNED-BYTE-RECORD-ALGEBRA-V1.md) | Flat internal owned-Bytes records and ownership-aware matching. |
 | [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) | Cleanup, ownership, resource ABI phases. |
 | [RFC 0004](RFC-0004-NATIVE-CALL-SETTLEMENT.md) | Proposed native owned-call recovery/settlement (proof scaffolding). |
 | **Status and process** | |

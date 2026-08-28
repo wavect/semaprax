@@ -20,6 +20,7 @@ use crate::hir::{DeclarationId, ExpressionId, ResolvedType, ValueId};
 pub const CLEANUP_PLAN_SCHEMA_V2: &str = "semaprax.cleanup-plan.v2";
 pub const CLEANUP_PLAN_SCHEMA_V3: &str = "semaprax.cleanup-plan.v3";
 pub const CLEANUP_PLAN_SCHEMA_V4: &str = "semaprax.cleanup-plan.v4";
+pub const CLEANUP_PLAN_SCHEMA_V5: &str = "semaprax.cleanup-plan.v5";
 
 macro_rules! numeric_id {
     ($name:ident) => {

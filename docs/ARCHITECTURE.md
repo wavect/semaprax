@@ -397,6 +397,21 @@ Wasm projects from one frame value and copies whole-record bindings into their
 own frame slots. Refutable/literal/guard/or/rest/nested-variant patterns,
 resource/non-Copy modes, and aggregate arm results remain outside admission.
 
+Owned Byte Record Algebra v1 is a separate non-Copy internal execution slice.
+It admits only flat monomorphic records containing direct `Bytes` plus direct
+Copy scalars. Type facts propagate `needs_drop` without misclassifying Bytes as
+an authored resource. Cleanup inventory addresses each byte field as an exact
+stable-ID projection; CleanupPlan v5 independently derives `match own`
+projected transfers and `match borrow` no-transfer child regions. Graph v21
+serializes only explicit modes, leaving legacy Value-match bytes unchanged.
+The interpreter stores fields by declaration identity. Native C11 and Wasm32
+move each owned carrier field-by-field and poison the source; neither aggregate
+copy primitive may duplicate a Bytes-bearing record. Exact-once success and
+failure settlement is locally exercised across interpreter, C11 `-O0`/`-O2`,
+and Node/Core-Wasm. Public ABI, Project, component, callable, and interop
+selectors remain unchanged and fail closed. See
+[Owned Byte Record Algebra v1](OWNED-BYTE-RECORD-ALGEBRA-V1.md).
+
 The bounded generic-function tranche is likewise direct-scalar and Copy-only.
 Source admits one or two owner/index-stable function type parameters and
 requires explicit ordered `i64`/`bool` arguments at every call. Parameter and

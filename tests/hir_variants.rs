@@ -97,7 +97,10 @@ fn variants_resolve_to_stable_case_field_constructor_and_pattern_identities() {
     assert_eq!(case.as_str(), "test.choice.number");
     assert_eq!(fields[0].field.as_str(), "test.choice.number.value");
 
-    let ResolvedExprKind::Match { scrutinee, arms } = &match_expr(&first).kind else {
+    let ResolvedExprKind::Match {
+        scrutinee, arms, ..
+    } = &match_expr(&first).kind
+    else {
         panic!("tail must resolve as match");
     };
     assert_eq!(scrutinee.ownership, OwnershipMode::Value);

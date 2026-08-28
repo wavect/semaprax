@@ -525,7 +525,9 @@ fn validate_function(
             | ResolvedExprKind::ConstructVariant { fields, .. } => {
                 pending.extend(fields.iter().map(|field| &field.value));
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 pending.push(scrutinee);
                 for arm in arms {
                     if let Some(guard) = &arm.guard {

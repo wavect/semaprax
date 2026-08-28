@@ -63,6 +63,7 @@
 - [Callable settlement proof](NATIVE-CALLABLE-SETTLEMENT-PROOF-V1.md)
 - [Native capability tokens](NATIVE-CAPABILITY-TOKENS-V1.md)
 - [Owned resource vertical slice](OWNED-RESOURCE-VERTICAL-V1.md)
+- [Owned Byte Record Algebra v1](OWNED-BYTE-RECORD-ALGEBRA-V1.md)
 - [Native module loader quarantine](NATIVE-MODULE-LOADER.md)
 - [Rust-host sanitizers](RUST-HOST-SANITIZERS.md)
 - [Native Rust interoperability](NATIVE-RUST-INTEROP-V1.md)

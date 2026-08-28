@@ -393,7 +393,9 @@ fn visit_resolved_calls(
                 visit_resolved_calls(&field.value, visit);
             }
         }
-        hir::ResolvedExprKind::Match { scrutinee, arms } => {
+        hir::ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             visit_resolved_calls(scrutinee, visit);
             for arm in arms {
                 if let Some(guard) = &arm.guard {
@@ -926,7 +928,9 @@ fn collect_resolved_expression_type_sites(
                 )?;
             }
         }
-        hir::ResolvedExprKind::Match { scrutinee, arms } => {
+        hir::ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             collect_resolved_expression_type_sites(
                 owner,
                 scrutinee,

@@ -1398,6 +1398,7 @@ impl Parser {
     }
 
     fn match_expression(&mut self, start: Span) -> Result<Expr, Diagnostic> {
+        let mode = self.contextual_match_mode()?;
         let scrutinee = self.expression_with_record_literals(0, false)?;
         self.expect(&TokenKind::LBrace, "`{` before match arms")?;
         let mut arms = Vec::new();
@@ -1433,11 +1434,67 @@ impl Parser {
             .span;
         Ok(Expr {
             kind: ExprKind::Match {
+                mode,
                 scrutinee: Box::new(scrutinee),
                 arms,
             },
             span: start.merge(end),
         })
+    }
+
+    /// Parse `own`/`borrow` as contextual match-mode words only when the next
+    /// token begins a distinct expression and cannot legally continue the
+    /// legacy identifier expression. In particular, `match own { ... }` and
+    /// `match own(value) { ... }` remain matches over identifiers/calls named
+    /// `own`; the same rule applies to `borrow`.
+    fn contextual_match_mode(&mut self) -> Result<crate::ast::MatchMode, Diagnostic> {
+        use crate::ast::MatchMode;
+
+        let candidate = if self.at_keyword("own") {
+            Some(MatchMode::Own)
+        } else if self.at_keyword("borrow") {
+            Some(MatchMode::Borrow)
+        } else {
+            None
+        };
+        let Some(mode) = candidate else {
+            return Ok(MatchMode::Value);
+        };
+        if !self.next_token_starts_unambiguous_match_scrutinee() {
+            return Ok(MatchMode::Value);
+        }
+
+        let mode_span = self.bump().span;
+        if self.at_keyword("own") || self.at_keyword("borrow") {
+            return Err(Diagnostic::error(
+                "SPX-P207",
+                "a match expression accepts exactly one ownership mode: `own` or `borrow`",
+                mode_span.merge(self.current().span),
+            )
+            .at_path(&self.path));
+        }
+        Ok(mode)
+    }
+
+    fn next_token_starts_unambiguous_match_scrutinee(&self) -> bool {
+        match self.tokens.get(self.cursor + 1).map(|token| &token.kind) {
+            // `with` is a legal postfix continuation of the legacy
+            // identifier scrutinee: `match own with { field: value } { ... }`.
+            Some(TokenKind::Ident(value)) => value != "with",
+            Some(
+                TokenKind::Int(_)
+                | TokenKind::Int32(_)
+                | TokenKind::Float(_)
+                | TokenKind::Char(_)
+                | TokenKind::Uint8(_)
+                | TokenKind::Usize(_)
+                | TokenKind::String(_)
+                | TokenKind::LBracket
+                | TokenKind::Minus
+                | TokenKind::Bang,
+            ) => true,
+            _ => false,
+        }
     }
 
     fn match_pattern(&mut self) -> Result<MatchPattern, Diagnostic> {

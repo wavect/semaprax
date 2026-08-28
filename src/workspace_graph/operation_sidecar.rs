@@ -993,10 +993,13 @@ fn collect_operation_expr_occurrences(
             )?;
         }
         (
-            ExprKind::Match { scrutinee, arms },
+            ExprKind::Match {
+                scrutinee, arms, ..
+            },
             R::Match {
                 scrutinee: resolved_scrutinee,
                 arms: resolved_arms,
+                ..
             },
         ) => {
             if arms.len() != resolved_arms.len() {

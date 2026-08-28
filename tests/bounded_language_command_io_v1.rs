@@ -134,7 +134,9 @@ fn collect_operations(
                 collect_operations(&field.value, operations);
             }
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             collect_operations(scrutinee, operations);
             for arm in arms {
                 collect_operations(&arm.value, operations);

@@ -1253,7 +1253,9 @@ fn source_capacity_expr(
                             });
                         }
                     }
-                    ExprKind::Match { scrutinee, arms } => {
+                    ExprKind::Match {
+                        scrutinee, arms, ..
+                    } => {
                         let scrutinee_ty = {
                             let scope = scope.borrow();
                             source_capacity_expr_type(scrutinee, &scope.bindings, context)

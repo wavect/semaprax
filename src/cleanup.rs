@@ -377,11 +377,6 @@ impl InventoryBuilder<'_> {
                         continue;
                     }
                     if matches!(ty, ResolvedType::Bytes) {
-                        if !projections.is_empty() {
-                            return Err(cleanup_error(
-                                "compiler-owned Bytes cleanup leaf is not direct",
-                            ));
-                        }
                         let flag_index = u32::try_from(self.flags.len())
                             .map_err(|_| cleanup_error("too many cleanup liveness flags"))?;
                         let flag = LivenessFlagId(flag_index);
@@ -549,6 +544,7 @@ impl InventoryBuilder<'_> {
             Children(&'a ResolvedExpr, usize),
             Finish(&'a ResolvedExpr),
             AddBinding(&'a ResolvedBinding),
+            AddPatternBindings(&'a crate::hir::ResolvedMatchPattern),
             AddUpdateBase(&'a ResolvedExpr),
         }
 
@@ -657,13 +653,20 @@ impl InventoryBuilder<'_> {
                         | ResolvedExprKind::ConstructVariant { fields, .. } => {
                             enter = fields.get(index).map(|field| &field.value);
                         }
-                        ResolvedExprKind::Match { scrutinee, arms } => {
+                        ResolvedExprKind::Match {
+                            scrutinee, arms, ..
+                        } => {
                             enter = if index == 0 {
                                 Some(scrutinee)
                             } else {
                                 let mut cursor = index - 1;
                                 let mut found = None;
                                 for arm in arms {
+                                    if cursor == 0 {
+                                        action = Some(Frame::AddPatternBindings(&arm.pattern));
+                                        break;
+                                    }
+                                    cursor -= 1;
                                     if let Some(guard) = &arm.guard {
                                         if cursor == 0 {
                                             found = Some(guard.as_ref());
@@ -724,6 +727,9 @@ impl InventoryBuilder<'_> {
                         )?;
                     }
                 }
+                Frame::AddPatternBindings(pattern) => {
+                    self.collect_pattern_bindings(pattern)?;
+                }
                 Frame::AddUpdateBase(base) => {
                     // A place expression normally needs no temporary. Record
                     // update deliberately materializes an owned base epoch.
@@ -739,6 +745,102 @@ impl InventoryBuilder<'_> {
                         )?;
                     }
                 }
+            }
+        }
+        Ok(())
+    }
+
+    fn collect_pattern_bindings(
+        &mut self,
+        pattern: &crate::hir::ResolvedMatchPattern,
+    ) -> Result<(), Diagnostic> {
+        use crate::hir::{ResolvedMatchPattern, ResolvedRecordMatchFieldPattern};
+
+        enum Item<'a> {
+            Pattern(&'a ResolvedMatchPattern),
+            RecordField(&'a ResolvedRecordMatchFieldPattern),
+        }
+        let mut pending = vec![Item::Pattern(pattern)];
+        while let Some(item) = pending.pop() {
+            match item {
+                Item::Pattern(ResolvedMatchPattern::Binding(binding)) => {
+                    if binding.ownership == OwnershipMode::Own && self.needs_drop(&binding.ty)? {
+                        self.add_slot(
+                            CleanupStorageOrigin::Binding {
+                                value: binding.id.clone(),
+                            },
+                            binding.ty.clone(),
+                        )?;
+                    }
+                }
+                Item::Pattern(ResolvedMatchPattern::Record { record, fields, .. }) => {
+                    let declared = self
+                        .program
+                        .declarations
+                        .record_fields(record)
+                        .ok_or_else(|| cleanup_error("record pattern has no field inventory"))?;
+                    for declaration in declared.iter().rev() {
+                        let field = fields
+                            .iter()
+                            .find(|field| field.field == declaration.id)
+                            .ok_or_else(|| {
+                                cleanup_error("record pattern field inventory is incomplete")
+                            })?;
+                        pending.push(Item::RecordField(&field.pattern));
+                    }
+                }
+                Item::Pattern(ResolvedMatchPattern::Variant { fields, .. }) => {
+                    for field in fields {
+                        if field.binding.ownership == OwnershipMode::Own
+                            && self.needs_drop(&field.binding.ty)?
+                        {
+                            self.add_slot(
+                                CleanupStorageOrigin::Binding {
+                                    value: field.binding.id.clone(),
+                                },
+                                field.binding.ty.clone(),
+                            )?;
+                        }
+                    }
+                }
+                Item::Pattern(
+                    ResolvedMatchPattern::Wildcard
+                    | ResolvedMatchPattern::Literal(_)
+                    | ResolvedMatchPattern::Or(_),
+                ) => {}
+                Item::RecordField(ResolvedRecordMatchFieldPattern::Binding(binding)) => {
+                    if binding.ownership == OwnershipMode::Own && self.needs_drop(&binding.ty)? {
+                        self.add_slot(
+                            CleanupStorageOrigin::Binding {
+                                value: binding.id.clone(),
+                            },
+                            binding.ty.clone(),
+                        )?;
+                    }
+                }
+                Item::RecordField(ResolvedRecordMatchFieldPattern::Record {
+                    record,
+                    fields,
+                    ..
+                }) => {
+                    let declared =
+                        self.program
+                            .declarations
+                            .record_fields(record)
+                            .ok_or_else(|| {
+                                cleanup_error("nested record pattern has no field inventory")
+                            })?;
+                    for declaration in declared.iter().rev() {
+                        let field = fields
+                            .iter()
+                            .find(|field| field.field == declaration.id)
+                            .ok_or_else(|| {
+                                cleanup_error("nested record pattern field inventory is incomplete")
+                            })?;
+                        pending.push(Item::RecordField(&field.pattern));
+                    }
+                }
+                Item::RecordField(ResolvedRecordMatchFieldPattern::Wildcard) => {}
             }
         }
         Ok(())

@@ -1927,7 +1927,9 @@ fn resolved_function_callees(function: &hir::ResolvedFunction) -> BTreeSet<hir::
                     visit(&field.value, callees);
                 }
             }
-            hir::ResolvedExprKind::Match { scrutinee, arms } => {
+            hir::ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 visit(scrutinee, callees);
                 for arm in arms {
                     if let Some(guard) = &arm.guard {
@@ -4825,7 +4827,9 @@ fn visit_ast_call_sites(
                 )?;
             }
         }
-        ExprKind::Match { scrutinee, arms } => {
+        ExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             visit_ast_call_sites(
                 scrutinee,
                 &crate::bounded_output::budgeted_format(format_args!("{path}.scrutinee")),

@@ -6,6 +6,96 @@
 
 use super::*;
 
+fn owned_byte_record_copy_field_is_admitted(ty: &ResolvedType) -> bool {
+    matches!(
+        ty,
+        ResolvedType::I64
+            | ResolvedType::I32
+            | ResolvedType::U8
+            | ResolvedType::Usize
+            | ResolvedType::F32
+            | ResolvedType::F64
+            | ResolvedType::Char
+            | ResolvedType::Bool
+    )
+}
+
+fn resolved_type_contains_owned_bytes(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
+    let mut pending = vec![ty.clone()];
+    let mut visited = BTreeSet::new();
+    while let Some(ty) = pending.pop() {
+        match ty {
+            ResolvedType::Bytes => return true,
+            ResolvedType::Nominal {
+                declaration,
+                arguments,
+            } => {
+                pending.extend(arguments);
+                if !visited.insert(declaration.clone()) {
+                    continue;
+                }
+                let Some(item) = program
+                    .types
+                    .iter()
+                    .find(|candidate| candidate.id == declaration)
+                else {
+                    continue;
+                };
+                match &item.kind {
+                    ResolvedTypeDeclarationKind::Record { fields }
+                    | ResolvedTypeDeclarationKind::Class { fields, .. } => {
+                        pending.extend(fields.iter().map(|field| field.ty.clone()));
+                    }
+                    ResolvedTypeDeclarationKind::Variant { cases } => pending.extend(
+                        cases
+                            .iter()
+                            .flat_map(|case| &case.fields)
+                            .map(|field| field.ty.clone()),
+                    ),
+                    ResolvedTypeDeclarationKind::Resource { .. } => {}
+                }
+            }
+            ResolvedType::Unit
+            | ResolvedType::I64
+            | ResolvedType::I32
+            | ResolvedType::Char
+            | ResolvedType::U8
+            | ResolvedType::Usize
+            | ResolvedType::ArrayU8(_)
+            | ResolvedType::F32
+            | ResolvedType::F64
+            | ResolvedType::Bool
+            | ResolvedType::String
+            | ResolvedType::Str
+            | ResolvedType::SliceU8
+            | ResolvedType::TypeParameter { .. } => {}
+        }
+    }
+    false
+}
+
+fn resolved_type_is_flat_owned_byte_record(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return false;
+    };
+    if !arguments.is_empty() {
+        return false;
+    }
+    program.types.iter().any(|item| {
+        item.id == *declaration
+            && item.type_parameters.is_empty()
+            && matches!(
+                &item.kind,
+                ResolvedTypeDeclarationKind::Record { fields }
+                    if fields.iter().any(|field| field.ty == ResolvedType::Bytes)
+            )
+    })
+}
+
 /// Validate resolved meaning without consulting attached cleanup metadata.
 /// Independent cleanup-plan replayers use this boundary to avoid circularly
 /// trusting the canonical cleanup-plan builder as their oracle.
@@ -66,7 +156,9 @@ fn contains_unsafe_boundary(expression: &ResolvedExpr) -> bool {
             | ResolvedExprKind::ConstructVariant { fields, .. } => {
                 pending.extend(fields.iter().rev().map(|field| &field.value));
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 pending.extend(arms.iter().rev().map(|arm| &arm.value));
                 pending.push(scrutinee);
             }
@@ -467,6 +559,53 @@ impl<'a> HirValidator<'a> {
                         declaration.id
                     )));
                 }
+            }
+            match &declaration.kind {
+                ResolvedTypeDeclarationKind::Record { fields } => {
+                    let has_direct_bytes =
+                        fields.iter().any(|field| field.ty == ResolvedType::Bytes);
+                    if has_direct_bytes
+                        && (!declaration.type_parameters.is_empty()
+                            || fields.iter().any(|field| {
+                                field.ty != ResolvedType::Bytes
+                                    && !owned_byte_record_copy_field_is_admitted(&field.ty)
+                            }))
+                    {
+                        return Err(hir_error(
+                            "resolved owned-Bytes record is not flat and monomorphic",
+                        ));
+                    }
+                    if !has_direct_bytes
+                        && fields.iter().any(|field| {
+                            resolved_type_contains_owned_bytes(self.program, &field.ty)
+                        })
+                    {
+                        return Err(hir_error(
+                            "resolved record nests compiler-owned Bytes outside flat v1",
+                        ));
+                    }
+                }
+                ResolvedTypeDeclarationKind::Class { fields, .. } => {
+                    if fields.iter().any(|field| {
+                        field.ty == ResolvedType::Bytes
+                            || resolved_type_contains_owned_bytes(self.program, &field.ty)
+                    }) {
+                        return Err(hir_error(
+                            "resolved class contains compiler-owned Bytes outside flat v1",
+                        ));
+                    }
+                }
+                ResolvedTypeDeclarationKind::Variant { cases } => {
+                    if cases.iter().flat_map(|case| &case.fields).any(|field| {
+                        field.ty == ResolvedType::Bytes
+                            || resolved_type_contains_owned_bytes(self.program, &field.ty)
+                    }) {
+                        return Err(hir_error(
+                            "resolved variant contains compiler-owned Bytes outside flat v1",
+                        ));
+                    }
+                }
+                ResolvedTypeDeclarationKind::Resource { .. } => {}
             }
             let indexed_parameters = self
                 .program
@@ -1605,7 +1744,9 @@ impl<'a> HirValidator<'a> {
                 ResolvedExprKind::UpdateRecord { .. } => {
                     return Err(hir_error("while loops cannot update records"));
                 }
-                ResolvedExprKind::Match { scrutinee, arms } => {
+                ResolvedExprKind::Match {
+                    scrutinee, arms, ..
+                } => {
                     self.validate_indexed_byte_option_match_admission(expression, scrutinee, arms)?;
                     pending.push(Item::IndexedMatchNext {
                         expression,
@@ -2007,6 +2148,7 @@ impl<'a> HirValidator<'a> {
         fields: &[ResolvedRecordMatchPatternField],
         scope: &mut BTreeMap<ValueId, ValidationBinding>,
         path: &str,
+        mode: ResolvedMatchMode,
     ) -> Result<(), Diagnostic> {
         enum Frame<'a> {
             Enter {
@@ -2072,8 +2214,16 @@ impl<'a> HirValidator<'a> {
                             .ok_or_else(|| {
                                 hir_error("resolved record pattern has no exact type facts")
                             })?;
-                    if !facts.copy || facts.contains_resource || facts.needs_drop {
-                        return Err(hir_error("resolved record pattern is not Copy"));
+                    match mode {
+                        ResolvedMatchMode::Value
+                            if facts.copy && !facts.contains_resource && !facts.needs_drop => {}
+                        ResolvedMatchMode::Own | ResolvedMatchMode::Borrow
+                            if !facts.copy && facts.needs_drop => {}
+                        _ => {
+                            return Err(hir_error(
+                                "resolved record pattern disagrees with its match ownership mode",
+                            ));
+                        }
                     }
                     let declared_fields = self
                         .program
@@ -2135,10 +2285,23 @@ impl<'a> HirValidator<'a> {
                     });
                     match &field.pattern {
                         ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                            let field_facts =
+                                self.program.declarations.type_facts(&field_ty).ok_or_else(
+                                    || hir_error("resolved record field has no exact type facts"),
+                                )?;
+                            let ownership = if field_facts.needs_drop {
+                                match mode {
+                                    ResolvedMatchMode::Own => OwnershipMode::Own,
+                                    ResolvedMatchMode::Borrow => OwnershipMode::Borrow,
+                                    ResolvedMatchMode::Value => OwnershipMode::Value,
+                                }
+                            } else {
+                                OwnershipMode::Value
+                            };
                             if binding.id
                                 != ValueId::local(function, &format!("{field_path}.binding"))
                                 || binding.ty != field_ty
-                                || binding.ownership != OwnershipMode::Value
+                                || binding.ownership != ownership
                             {
                                 return Err(hir_error(
                                     "resolved record pattern binding is not canonical",
@@ -2155,7 +2318,7 @@ impl<'a> HirValidator<'a> {
                                 binding.id.clone(),
                                 ValidationBinding {
                                     ty: binding.ty.clone(),
-                                    ownership: OwnershipMode::Value,
+                                    ownership,
                                     availability: Availability::Available,
                                     lexically_borrowed: false,
                                     moved_places: BTreeMap::new(),
@@ -2163,7 +2326,19 @@ impl<'a> HirValidator<'a> {
                                 },
                             );
                         }
-                        ResolvedRecordMatchFieldPattern::Wildcard => {}
+                        ResolvedRecordMatchFieldPattern::Wildcard => {
+                            if mode == ResolvedMatchMode::Own
+                                && self
+                                    .program
+                                    .declarations
+                                    .type_facts(&field_ty)
+                                    .is_some_and(|facts| facts.needs_drop)
+                            {
+                                return Err(hir_error(
+                                    "resolved owned record pattern leaves a droppable field unbound",
+                                ));
+                            }
+                        }
                         ResolvedRecordMatchFieldPattern::Record {
                             record,
                             instance,
@@ -2504,6 +2679,7 @@ impl<'a> HirValidator<'a> {
                 arm: &'e ResolvedMatchArm,
                 outer: BTreeMap<ValueId, ValidationBinding>,
                 outer_ids: Vec<ValueId>,
+                borrowed_root: Option<ValueId>,
             },
             VariantMatchNext {
                 expression: &'e ResolvedExpr,
@@ -3536,7 +3712,9 @@ impl<'a> HirValidator<'a> {
                                 path: format!("{path}.base"),
                             });
                         }
-                        ResolvedExprKind::Match { scrutinee, arms } => {
+                        ResolvedExprKind::Match {
+                            scrutinee, arms, ..
+                        } => {
                             frames.push(Frame::MatchScrutinee {
                                 expression,
                                 arms,
@@ -3719,7 +3897,7 @@ impl<'a> HirValidator<'a> {
                     let argument = &args[index];
                     let param = &params[index];
                     self.require_type(&argument.ty, &param.ty, "call argument")?;
-                    self.validate_argument_ownership(argument.ownership, param)?;
+                    self.validate_argument_ownership(argument, param)?;
                     if param.ty == ResolvedType::SliceU8 {
                         match &argument.kind {
                             ResolvedExprKind::Place(place)
@@ -4826,9 +5004,12 @@ impl<'a> HirValidator<'a> {
                     arms,
                     path,
                 } => {
-                    let outer = scopes.pop().expect("match scrutinee scope retained");
+                    let mut outer = scopes.pop().expect("match scrutinee scope retained");
                     publication.publish(&outer);
-                    let ResolvedExprKind::Match { scrutinee, .. } = &expression.kind else {
+                    let ResolvedExprKind::Match {
+                        mode, scrutinee, ..
+                    } = &expression.kind
+                    else {
                         unreachable!()
                     };
                     // Refutable Match v1: Copy-scalar scrutinees validate
@@ -4842,7 +5023,9 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::Char
                             | ResolvedType::Bool
                     ) {
-                        if scrutinee.ownership != OwnershipMode::Value {
+                        if *mode != ResolvedMatchMode::Value
+                            || scrutinee.ownership != OwnershipMode::Value
+                        {
                             return Err(hir_error(
                                 "resolved refutable match scrutinee is not Copy",
                             ));
@@ -4877,8 +5060,38 @@ impl<'a> HirValidator<'a> {
                         .map(|item| item.kind);
                     let outer_ids = outer.keys().cloned().collect::<Vec<_>>();
                     if kind == Some(DeclarationKind::Record) {
-                        if scrutinee.ownership != OwnershipMode::Value {
-                            return Err(hir_error("resolved record match scrutinee is not Copy"));
+                        let facts = self
+                            .program
+                            .declarations
+                            .type_facts(&scrutinee.ty)
+                            .ok_or_else(|| hir_error("record match has no exact type facts"))?;
+                        match mode {
+                            ResolvedMatchMode::Value
+                                if facts.copy && scrutinee.ownership == OwnershipMode::Value => {}
+                            ResolvedMatchMode::Own
+                                if facts.needs_drop
+                                    && !facts.copy
+                                    && scrutinee.ownership == OwnershipMode::Own =>
+                            {
+                                self.mark_value_sources_moved(scrutinee, &mut outer)?;
+                            }
+                            ResolvedMatchMode::Borrow
+                                if facts.needs_drop
+                                    && !facts.copy
+                                    && matches!(
+                                        scrutinee.ownership,
+                                        OwnershipMode::Own | OwnershipMode::Borrow
+                                    )
+                                    && matches!(
+                                        &scrutinee.kind,
+                                        ResolvedExprKind::Place(place)
+                                            if place.projections.is_empty()
+                                    ) => {}
+                            _ => {
+                                return Err(hir_error(
+                                    "resolved record match mode disagrees with its scrutinee",
+                                ));
+                            }
                         }
                         let [arm] = arms else {
                             return Err(hir_error(
@@ -4886,7 +5099,23 @@ impl<'a> HirValidator<'a> {
                             ));
                         };
                         let mut arm_scope = outer.clone();
+                        let borrowed_root = if *mode == ResolvedMatchMode::Borrow {
+                            let ResolvedExprKind::Place(place) = &scrutinee.kind else {
+                                unreachable!("borrow mode authenticated a place above")
+                            };
+                            if let Some(owner) = arm_scope.get_mut(&place.root) {
+                                owner.lexically_borrowed = true;
+                            }
+                            Some(place.root.clone())
+                        } else {
+                            None
+                        };
                         match &arm.pattern {
+                            ResolvedMatchPattern::Wildcard if *mode != ResolvedMatchMode::Value => {
+                                return Err(hir_error(
+                                    "resolved explicit ownership match lacks an exact record pattern",
+                                ));
+                            }
                             ResolvedMatchPattern::Wildcard => {}
                             ResolvedMatchPattern::Record {
                                 record,
@@ -4900,6 +5129,7 @@ impl<'a> HirValidator<'a> {
                                 fields,
                                 &mut arm_scope,
                                 &format!("{path}.arm.0.record"),
+                                *mode,
                             )?,
                             ResolvedMatchPattern::Variant { .. } => {
                                 return Err(hir_error(
@@ -4920,6 +5150,7 @@ impl<'a> HirValidator<'a> {
                             arm,
                             outer,
                             outer_ids,
+                            borrowed_root,
                         });
                         let enabled = publication.enabled;
                         publication.enabled = false;
@@ -4930,7 +5161,8 @@ impl<'a> HirValidator<'a> {
                             path: format!("{path}.arm.0.value"),
                         });
                     } else {
-                        if scrutinee.ownership != OwnershipMode::Value
+                        if *mode != ResolvedMatchMode::Value
+                            || scrutinee.ownership != OwnershipMode::Value
                             || kind != Some(DeclarationKind::Variant)
                         {
                             return Err(hir_error(
@@ -4968,8 +5200,14 @@ impl<'a> HirValidator<'a> {
                     arm,
                     mut outer,
                     outer_ids,
+                    borrowed_root,
                 } => {
-                    let arm_scope = scopes.pop().expect("record match arm scope retained");
+                    let mut arm_scope = scopes.pop().expect("record match arm scope retained");
+                    if let Some(root) = borrowed_root {
+                        if let Some(owner) = arm_scope.get_mut(&root) {
+                            owner.lexically_borrowed = false;
+                        }
+                    }
                     if !matches!(arm.value.ty, ResolvedType::I64 | ResolvedType::Bool) {
                         return Err(hir_error(
                             "resolved record match arm must produce i64 or bool",
@@ -6067,7 +6305,7 @@ impl<'a> HirValidator<'a> {
                         allowed_effects,
                     )?;
                     self.require_type(&argument.ty, &param.ty, "call argument")?;
-                    self.validate_argument_ownership(argument.ownership, param)?;
+                    self.validate_argument_ownership(argument, param)?;
                     if param.ty == ResolvedType::SliceU8 {
                         match &argument.kind {
                             ResolvedExprKind::Place(place)
@@ -6127,7 +6365,7 @@ impl<'a> HirValidator<'a> {
                         allowed_effects,
                     )?;
                     self.require_type(&argument.ty, &param.ty, "host-command argument")?;
-                    self.validate_argument_ownership(argument.ownership, param)?;
+                    self.validate_argument_ownership(argument, param)?;
                     if param.ty == ResolvedType::SliceU8
                         && !matches!(
                             &argument.kind,
@@ -6725,7 +6963,11 @@ impl<'a> HirValidator<'a> {
                 }
                 (expression.ty.clone(), OwnershipMode::Value)
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                mode,
+                scrutinee,
+                arms,
+            } => {
                 self.validate_expr_recursive_reference(
                     function,
                     scrutinee,
@@ -6745,7 +6987,9 @@ impl<'a> HirValidator<'a> {
                         | ResolvedType::Char
                         | ResolvedType::Bool
                 ) {
-                    if scrutinee.ownership != OwnershipMode::Value {
+                    if *mode != ResolvedMatchMode::Value
+                        || scrutinee.ownership != OwnershipMode::Value
+                    {
                         return Err(hir_error("resolved refutable match scrutinee is not Copy"));
                     }
                     if arms.is_empty() {
@@ -6887,8 +7131,38 @@ impl<'a> HirValidator<'a> {
                     .declaration(matched_type)
                     .map(|item| item.kind);
                 if matched_kind == Some(DeclarationKind::Record) {
-                    if scrutinee.ownership != OwnershipMode::Value {
-                        return Err(hir_error("resolved record match scrutinee is not Copy"));
+                    let facts = self
+                        .program
+                        .declarations
+                        .type_facts(&scrutinee.ty)
+                        .ok_or_else(|| hir_error("record match has no exact type facts"))?;
+                    match mode {
+                        ResolvedMatchMode::Value
+                            if facts.copy && scrutinee.ownership == OwnershipMode::Value => {}
+                        ResolvedMatchMode::Own
+                            if facts.needs_drop
+                                && !facts.copy
+                                && scrutinee.ownership == OwnershipMode::Own =>
+                        {
+                            self.mark_value_sources_moved(scrutinee, scope)?;
+                        }
+                        ResolvedMatchMode::Borrow
+                            if facts.needs_drop
+                                && !facts.copy
+                                && matches!(
+                                    scrutinee.ownership,
+                                    OwnershipMode::Own | OwnershipMode::Borrow
+                                )
+                                && matches!(
+                                    &scrutinee.kind,
+                                    ResolvedExprKind::Place(place)
+                                        if place.projections.is_empty()
+                                ) => {}
+                        _ => {
+                            return Err(hir_error(
+                                "resolved record match mode disagrees with its scrutinee",
+                            ));
+                        }
                     }
                     let [arm] = arms.as_slice() else {
                         return Err(hir_error(
@@ -6897,7 +7171,23 @@ impl<'a> HirValidator<'a> {
                     };
                     let outer_ids = scope.keys().cloned().collect::<Vec<_>>();
                     let mut arm_scope = scope.clone();
+                    let borrowed_root = if *mode == ResolvedMatchMode::Borrow {
+                        let ResolvedExprKind::Place(place) = &scrutinee.kind else {
+                            unreachable!("borrow mode authenticated a place above")
+                        };
+                        if let Some(owner) = arm_scope.get_mut(&place.root) {
+                            owner.lexically_borrowed = true;
+                        }
+                        Some(place.root.clone())
+                    } else {
+                        None
+                    };
                     match &arm.pattern {
+                        ResolvedMatchPattern::Wildcard if *mode != ResolvedMatchMode::Value => {
+                            return Err(hir_error(
+                                "resolved explicit ownership match lacks an exact record pattern",
+                            ));
+                        }
                         ResolvedMatchPattern::Wildcard => {}
                         ResolvedMatchPattern::Record {
                             record,
@@ -6911,6 +7201,7 @@ impl<'a> HirValidator<'a> {
                             fields,
                             &mut arm_scope,
                             &format!("{path}.arm.0.record"),
+                            *mode,
                         )?,
                         ResolvedMatchPattern::Variant { .. } => {
                             return Err(hir_error(
@@ -6933,6 +7224,11 @@ impl<'a> HirValidator<'a> {
                         allow_moves,
                         allowed_effects,
                     )?;
+                    if let Some(root) = borrowed_root {
+                        if let Some(owner) = arm_scope.get_mut(&root) {
+                            owner.lexically_borrowed = false;
+                        }
+                    }
                     if !matches!(arm.value.ty, ResolvedType::I64 | ResolvedType::Bool) {
                         return Err(hir_error(
                             "resolved record match arm must produce i64 or bool",
@@ -6952,7 +7248,8 @@ impl<'a> HirValidator<'a> {
                     return Ok(());
                 }
                 let variant = matched_type;
-                if scrutinee.ownership != OwnershipMode::Value
+                if *mode != ResolvedMatchMode::Value
+                    || scrutinee.ownership != OwnershipMode::Value
                     || self
                         .program
                         .declarations
@@ -8011,9 +8308,10 @@ impl<'a> HirValidator<'a> {
 
     fn validate_argument_ownership(
         &self,
-        actual: OwnershipMode,
+        argument: &ResolvedExpr,
         param: &ResolvedParam,
     ) -> Result<(), Diagnostic> {
+        let actual = argument.ownership;
         let facts = self
             .program
             .declarations
@@ -8029,7 +8327,13 @@ impl<'a> HirValidator<'a> {
         } else {
             match param.ownership {
                 OwnershipMode::Own => actual == OwnershipMode::Own,
-                OwnershipMode::Borrow => true,
+                OwnershipMode::Borrow => {
+                    !resolved_type_is_flat_owned_byte_record(self.program, &param.ty)
+                        || matches!(
+                            &argument.kind,
+                            ResolvedExprKind::Place(place) if place.projections.is_empty()
+                        )
+                }
                 OwnershipMode::Shared => actual == OwnershipMode::Shared,
                 OwnershipMode::Value => false,
             }
@@ -8212,6 +8516,291 @@ impl<'a> HirValidator<'a> {
                 "duplicate resolved value identity `{id}`"
             )))
         }
+    }
+}
+
+#[cfg(test)]
+mod owned_byte_record_hostile_tests {
+    use super::*;
+
+    const DECLARATION_FIXTURE: &str = r#"
+module test.owned_byte_hir_shapes;
+@id("box.type") class Box { @id("box.payload") payload: i64, }
+@id("envelope.type") variant Envelope {
+  @id("envelope.data") Data { @id("envelope.payload") payload: i64, },
+}
+@id("inner.type") record Inner { @id("inner.payload") payload: i64, }
+@id("outer.type") record Outer { @id("outer.inner") inner: Inner, }
+@id("marker.type") record Marker { @id("marker.value") value: i64, }
+@id("packet.type") record Packet {
+  @id("packet.payload") payload: i64,
+  @id("packet.marker") marker: Marker,
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+
+    fn declaration_fixture() -> ResolvedProgram {
+        let parsed = crate::parse(
+            DECLARATION_FIXTURE,
+            std::path::Path::new("owned-byte-hostile-declarations.spx"),
+        )
+        .expect("fixture parses");
+        crate::hir::resolve(&parsed).expect("Copy-only declaration fixture resolves")
+    }
+
+    fn set_record_field_type(
+        program: &mut ResolvedProgram,
+        owner: &str,
+        field: &str,
+        ty: ResolvedType,
+    ) {
+        let owner = DeclarationId::new(owner);
+        let field = DeclarationId::new(field);
+        let declaration = program
+            .types
+            .iter_mut()
+            .find(|candidate| candidate.id == owner)
+            .expect("record/class declaration");
+        let fields = match &mut declaration.kind {
+            ResolvedTypeDeclarationKind::Record { fields }
+            | ResolvedTypeDeclarationKind::Class { fields, .. } => fields,
+            _ => panic!("fixture declaration is record-like"),
+        };
+        fields
+            .iter_mut()
+            .find(|candidate| candidate.id == field)
+            .expect("record/class field")
+            .ty = ty.clone();
+        program
+            .declarations
+            .record_fields
+            .get_mut(&owner)
+            .expect("indexed record/class fields")
+            .iter_mut()
+            .find(|candidate| candidate.id == field)
+            .expect("indexed record/class field")
+            .ty = ty;
+        program.declarations.type_facts_by_id.clear();
+    }
+
+    fn set_variant_field_type(
+        program: &mut ResolvedProgram,
+        owner: &str,
+        case: &str,
+        field: &str,
+        ty: ResolvedType,
+    ) {
+        let owner = DeclarationId::new(owner);
+        let case = DeclarationId::new(case);
+        let field = DeclarationId::new(field);
+        let declaration = program
+            .types
+            .iter_mut()
+            .find(|candidate| candidate.id == owner)
+            .expect("variant declaration");
+        let ResolvedTypeDeclarationKind::Variant { cases } = &mut declaration.kind else {
+            panic!("fixture declaration is a variant")
+        };
+        cases
+            .iter_mut()
+            .find(|candidate| candidate.id == case)
+            .expect("variant case")
+            .fields
+            .iter_mut()
+            .find(|candidate| candidate.id == field)
+            .expect("variant field")
+            .ty = ty.clone();
+        program
+            .declarations
+            .variant_cases
+            .get_mut(&owner)
+            .expect("indexed variant cases")
+            .iter_mut()
+            .find(|candidate| candidate.id == case)
+            .expect("indexed variant case")
+            .fields
+            .iter_mut()
+            .find(|candidate| candidate.id == field)
+            .expect("indexed variant field")
+            .ty = ty.clone();
+        program
+            .declarations
+            .case_fields
+            .get_mut(&case)
+            .expect("indexed case fields")
+            .iter_mut()
+            .find(|candidate| candidate.id == field)
+            .expect("indexed case field")
+            .ty = ty;
+        program.declarations.type_facts_by_id.clear();
+    }
+
+    fn assert_hir_rejects(program: &ResolvedProgram, expected: &str) {
+        let diagnostic = crate::hir::validate(program).expect_err("hostile HIR must fail closed");
+        assert_eq!(diagnostic.code, "SPX-H006");
+        assert!(diagnostic.message.contains(expected), "{diagnostic:?}");
+    }
+
+    #[test]
+    fn validation_rejects_non_record_and_non_flat_owned_bytes_declaration_mutations() {
+        let mut class = declaration_fixture();
+        set_record_field_type(&mut class, "box.type", "box.payload", ResolvedType::Bytes);
+        assert_hir_rejects(
+            &class,
+            "class contains compiler-owned Bytes outside flat v1",
+        );
+
+        let mut variant = declaration_fixture();
+        set_variant_field_type(
+            &mut variant,
+            "envelope.type",
+            "envelope.data",
+            "envelope.payload",
+            ResolvedType::Bytes,
+        );
+        assert_hir_rejects(
+            &variant,
+            "variant contains compiler-owned Bytes outside flat v1",
+        );
+
+        let mut nested = declaration_fixture();
+        set_record_field_type(
+            &mut nested,
+            "inner.type",
+            "inner.payload",
+            ResolvedType::Bytes,
+        );
+        assert_hir_rejects(&nested, "record nests compiler-owned Bytes outside flat v1");
+
+        let mut mixed = declaration_fixture();
+        set_record_field_type(
+            &mut mixed,
+            "packet.type",
+            "packet.payload",
+            ResolvedType::Bytes,
+        );
+        assert_hir_rejects(&mixed, "owned-Bytes record is not flat and monomorphic");
+    }
+
+    #[test]
+    fn validation_rejects_a_projected_borrow_match_scrutinee() {
+        let source = r#"
+module test.projected_owned_byte_borrow;
+@id("packet.type") record Packet {
+  @id("packet.payload") payload: Bytes,
+  @id("packet.marker") marker: i64,
+}
+@id("holder.type") record Holder { @id("holder.packet") packet: i64, }
+@id("packet.inspect") fn inspect(packet: own Packet) -> i64 {
+  match borrow packet { Packet { payload, marker: _ } => 0, }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+        let parsed = crate::parse(
+            source,
+            std::path::Path::new("projected-owned-byte-borrow.spx"),
+        )
+        .expect("fixture parses");
+        let mut program = crate::hir::resolve(&parsed).expect("flat fixture resolves");
+        let packet_ty = ResolvedType::Nominal {
+            declaration: DeclarationId::new("packet.type"),
+            arguments: Vec::new(),
+        };
+        set_record_field_type(
+            &mut program,
+            "holder.type",
+            "holder.packet",
+            packet_ty.clone(),
+        );
+        let inspect = {
+            let inspect = program
+                .functions
+                .iter_mut()
+                .find(|function| function.id.as_str() == "packet.inspect")
+                .expect("inspect function");
+            inspect.params[0].ty = ResolvedType::Nominal {
+                declaration: DeclarationId::new("holder.type"),
+                arguments: Vec::new(),
+            };
+            let ResolvedExprKind::Block { tail, .. } = &mut inspect.body.kind else {
+                panic!("inspect body remains a block")
+            };
+            let ResolvedExprKind::Match { scrutinee, .. } = &mut tail.kind else {
+                panic!("inspect tail remains a match")
+            };
+            scrutinee.ty = packet_ty;
+            let ResolvedExprKind::Place(place) = &mut scrutinee.kind else {
+                panic!("borrow scrutinee remains a place")
+            };
+            place.projections = vec![PlaceProjection::Field(DeclarationId::new("holder.packet"))];
+            inspect.clone()
+        };
+
+        // Exercise expression authentication directly so the deliberately
+        // nested hostile carrier cannot be rejected first by declaration
+        // admission; this test pins the independent unprojected-place check.
+        let execution = FunctionExecutionId::Monomorphic(inspect.id.clone());
+        let diagnostic = HirValidator::new(&program)
+            .expect("hostile identities remain indexed")
+            .validate_function(&inspect, &execution)
+            .expect_err("projected borrow scrutinee must fail closed");
+        assert_eq!(diagnostic.code, "SPX-H006");
+        assert!(
+            diagnostic
+                .message
+                .contains("resolved record match mode disagrees with its scrutinee"),
+            "{diagnostic:?}"
+        );
+    }
+
+    #[test]
+    fn validation_rejects_a_non_place_owned_byte_record_borrow_argument() {
+        let source = r#"
+module test.owned_byte_borrow_argument;
+@id("packet.type") record Packet {
+  @id("packet.payload") payload: Bytes,
+  @id("packet.marker") marker: i64,
+}
+@id("packet.inspect") fn inspect(packet: borrow Packet) -> i64 { 0 }
+@id("packet.caller") fn caller(packet: own Packet) -> i64 { inspect(packet) }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+        let parsed = crate::parse(
+            source,
+            std::path::Path::new("owned-byte-borrow-argument.spx"),
+        )
+        .expect("fixture parses");
+        let program = crate::hir::resolve(&parsed).expect("named-place borrow resolves");
+        let caller = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "packet.caller")
+            .expect("caller function");
+        let ResolvedExprKind::Block { tail, .. } = &caller.body.kind else {
+            panic!("caller body remains a block")
+        };
+        let ResolvedExprKind::Call { args, .. } = &tail.kind else {
+            panic!("caller tail remains a call")
+        };
+        let mut hostile_argument = args[0].clone();
+        hostile_argument.kind = ResolvedExprKind::Int(0);
+        let param = &program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "packet.inspect")
+            .expect("inspect function")
+            .params[0];
+        let diagnostic = HirValidator::new(&program)
+            .expect("fixture identities remain indexed")
+            .validate_argument_ownership(&hostile_argument, param)
+            .expect_err("non-place record borrow must fail closed");
+        assert_eq!(diagnostic.code, "SPX-H006");
+        assert!(
+            diagnostic
+                .message
+                .contains("argument ownership is incompatible"),
+            "{diagnostic:?}"
+        );
     }
 }
 

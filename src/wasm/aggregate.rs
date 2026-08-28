@@ -126,7 +126,8 @@ struct FunctionPlan {
     range_descriptors: HashMap<ExpressionId, u32>,
     range_scratch: Option<RangeScratch>,
     cleanup_flags: std::collections::BTreeMap<crate::cleanup::LivenessFlagId, u32>,
-    cleanup_storage_flags: HashMap<crate::cleanup_plan::StorageId, u32>,
+    cleanup_place_flags: std::collections::BTreeMap<crate::cleanup_plan::CleanupPlace, u32>,
+    cleanup_storage_types: HashMap<crate::cleanup_plan::StorageId, ResolvedType>,
     cleanup_call_argument_carriers: HashMap<crate::cleanup_plan::StorageId, u32>,
     frame_size: u32,
 }
@@ -251,40 +252,44 @@ impl FunctionPlan {
         let has_try = expression_has_try(&function.body);
         let result_staged = if has_try { Some(add_local(I32)?) } else { None };
         let mut cleanup_flags = std::collections::BTreeMap::new();
-        let mut cleanup_storage_flags = HashMap::new();
+        let mut cleanup_place_flags = std::collections::BTreeMap::new();
+        let mut cleanup_storage_types = HashMap::new();
         let mut cleanup_call_argument_carriers = HashMap::new();
         for slot in &function.cleanup_plan.slots {
-            if slot.ty != ResolvedType::Bytes {
-                continue;
-            }
-            let crate::cleanup::FieldLivenessShape::Leaf { flag, lifecycle } =
-                &slot.field_liveness_shape
-            else {
-                return Err(error("Bytes CleanupPlan slot is not one direct leaf"));
-            };
-            if lifecycle.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID {
-                return Err(error("Bytes CleanupPlan slot has the wrong lifecycle"));
-            }
-            let local = add_local(I32)?;
-            if cleanup_flags.insert(*flag, local).is_some()
-                || cleanup_storage_flags
-                    .insert(slot.storage.clone(), local)
-                    .is_some()
-            {
-                return Err(error("Bytes CleanupPlan repeats a liveness identity"));
-            }
-            if matches!(
-                slot.storage,
-                crate::cleanup_plan::StorageId::CallArgument { .. }
-            ) {
-                let carrier = add_local(I64)?;
-                if cleanup_call_argument_carriers
-                    .insert(slot.storage.clone(), carrier)
-                    .is_some()
-                {
-                    return Err(error("Bytes CleanupPlan repeats a call-argument epoch"));
-                }
-            }
+            cleanup_storage_types.insert(slot.storage.clone(), slot.ty.clone());
+            flatten_byte_leaves(
+                &slot.storage,
+                &slot.field_liveness_shape,
+                &mut Vec::new(),
+                &mut |place, flag, lifecycle| {
+                    if lifecycle.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID {
+                        return Err(error("Bytes CleanupPlan leaf has the wrong lifecycle"));
+                    }
+                    let local = add_local(I32)?;
+                    if cleanup_flags.insert(flag, local).is_some()
+                        || cleanup_place_flags.insert(place.clone(), local).is_some()
+                    {
+                        return Err(error(
+                            "Bytes CleanupPlan repeats a place or liveness identity",
+                        ));
+                    }
+                    if place.projections.is_empty()
+                        && matches!(
+                            place.storage,
+                            crate::cleanup_plan::StorageId::CallArgument { .. }
+                        )
+                    {
+                        let carrier = add_local(I64)?;
+                        if cleanup_call_argument_carriers
+                            .insert(place.storage.clone(), carrier)
+                            .is_some()
+                        {
+                            return Err(error("Bytes CleanupPlan repeats a call-argument epoch"));
+                        }
+                    }
+                    Ok(())
+                },
+            )?;
         }
 
         let mut frame = FrameAllocator::default();
@@ -319,7 +324,8 @@ impl FunctionPlan {
             range_descriptors: HashMap::new(),
             range_scratch,
             cleanup_flags,
-            cleanup_storage_flags,
+            cleanup_place_flags,
+            cleanup_storage_types,
             cleanup_call_argument_carriers,
             frame_size: 0,
         };
@@ -546,7 +552,9 @@ impl FunctionPlan {
                     )?;
                 }
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 self.collect_expr(program, variant_layouts, scrutinee, parameter_count, frame)?;
                 for arm in arms {
                     match &arm.pattern {
@@ -746,9 +754,9 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::ConstructVariant { fields, .. } => {
             fields.iter().any(|field| expression_has_try(&field.value))
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
-            expression_has_try(scrutinee) || arms.iter().any(|arm| expression_has_try(&arm.value))
-        }
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => expression_has_try(scrutinee) || arms.iter().any(|arm| expression_has_try(&arm.value)),
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
         }
@@ -770,6 +778,44 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
 
 fn error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-W110", message)
+}
+
+fn flatten_byte_leaves(
+    storage: &crate::cleanup_plan::StorageId,
+    shape: &crate::cleanup::FieldLivenessShape,
+    projections: &mut Vec<DeclarationId>,
+    visit: &mut impl FnMut(
+        crate::cleanup_plan::CleanupPlace,
+        crate::cleanup::LivenessFlagId,
+        &DeclarationId,
+    ) -> Result<(), Diagnostic>,
+) -> Result<(), Diagnostic> {
+    match shape {
+        crate::cleanup::FieldLivenessShape::NoDrop => Ok(()),
+        crate::cleanup::FieldLivenessShape::Leaf { flag, lifecycle } => {
+            if projections.len() > 1 {
+                return Err(error(
+                    "nested owned Bytes record leaf is outside Wasm flat v1",
+                ));
+            }
+            visit(
+                crate::cleanup_plan::CleanupPlace {
+                    storage: storage.clone(),
+                    projections: projections.clone(),
+                },
+                *flag,
+                lifecycle,
+            )
+        }
+        crate::cleanup::FieldLivenessShape::Record { fields, .. } => {
+            for field in fields {
+                projections.push(field.field.clone());
+                flatten_byte_leaves(storage, &field.shape, projections, visit)?;
+                projections.pop();
+            }
+            Ok(())
+        }
+    }
 }
 
 fn resource_gate() -> Diagnostic {
@@ -1994,16 +2040,21 @@ fn emit_function(
         write_u32(&mut body, result_staged);
     }
     for place in &function.cleanup_plan.entry_state.live_owned_parameters {
-        if !place.projections.is_empty() {
-            return Err(error("Bytes entry liveness is not a direct storage root"));
+        let flags = plan
+            .cleanup_place_flags
+            .iter()
+            .filter(|(leaf, _)| {
+                leaf.storage == place.storage && leaf.projections.starts_with(&place.projections)
+            })
+            .map(|(_, flag)| *flag)
+            .collect::<Vec<_>>();
+        if flags.is_empty() {
+            return Err(error("Bytes entry liveness has no projected flag local"));
         }
-        let flag = plan
-            .cleanup_storage_flags
-            .get(&place.storage)
-            .copied()
-            .ok_or_else(|| error("Bytes entry liveness has no exact flag local"))?;
-        body.extend([0x41, 0x01, 0x21]);
-        write_u32(&mut body, flag);
+        for flag in flags {
+            body.extend([0x41, 0x01, 0x21]);
+            write_u32(&mut body, flag);
+        }
     }
 
     let mut bindings = HashMap::new();
@@ -2032,6 +2083,7 @@ fn emit_function(
         return_type: &function.return_type,
         cleanup_plan: &function.cleanup_plan,
         bindings,
+        call_argument_values: HashMap::new(),
         control_depth: 0,
         status_exit_extra_depth: 1,
         try_target_enabled: false,
@@ -2237,6 +2289,11 @@ struct Emitter<'a> {
     return_type: &'a ResolvedType,
     cleanup_plan: &'a crate::cleanup_plan::CleanupPlan,
     bindings: HashMap<ValueId, Value>,
+    /// Exact physical carriers for projected call-argument epochs. Scalar
+    /// `Bytes` epochs own a dedicated local in `FunctionPlan`; a flat owned
+    /// record keeps its materialized aggregate pointer and changes only
+    /// CleanupPlan liveness until `CallCommit`.
+    call_argument_values: HashMap<crate::cleanup_plan::StorageId, Value>,
     control_depth: u32,
     status_exit_extra_depth: u32,
     try_target_enabled: bool,
@@ -2248,7 +2305,15 @@ struct Emitter<'a> {
 impl Emitter<'_> {
     fn emit_expr(&mut self, expr: &ResolvedExpr) -> Result<Value, Diagnostic> {
         let value = self.emit_expr_inner(expr)?;
-        self.apply_post_transitions(&expr.id, &value)?;
+        if !matches!(
+            expr.kind,
+            ResolvedExprKind::Match {
+                mode: crate::hir::ResolvedMatchMode::Own,
+                ..
+            }
+        ) {
+            self.apply_post_transitions(&expr.id, &value)?;
+        }
         Ok(value)
     }
 
@@ -2298,35 +2363,17 @@ impl Emitter<'_> {
         actions: &[crate::cleanup_plan::FinalizeAction],
     ) -> Result<(), Diagnostic> {
         for action in actions {
-            if action.lifecycle_id.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID
-                || !action.source.projections.is_empty()
-            {
+            if action.lifecycle_id.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID {
                 return Err(error(
-                    "byte-data WebAssembly cleanup requires direct compiler-owned Bytes leaves",
+                    "byte-data WebAssembly cleanup requires compiler-owned Bytes leaves",
                 ));
             }
-            let local = match &action.source.storage {
-                crate::cleanup_plan::StorageId::Value(value) => {
-                    self.plan.scalar_bindings.get(value).copied().or_else(|| {
-                        self.bindings.get(value).and_then(|value| match value {
-                            Value::Scalar { local, ty } if *ty == ResolvedType::Bytes => {
-                                Some(*local)
-                            }
-                            _ => None,
-                        })
-                    })
-                }
-                crate::cleanup_plan::StorageId::Temporary(expression) => {
-                    self.plan.scalar_expressions.get(expression).copied()
-                }
-                crate::cleanup_plan::StorageId::ProvisionalResult => self.plan.result_stage_scalar,
-                crate::cleanup_plan::StorageId::CallArgument { .. } => self
-                    .plan
-                    .cleanup_call_argument_carriers
-                    .get(&action.source.storage)
-                    .copied(),
-            }
-            .ok_or_else(|| error("CleanupPlan Bytes finalizer has no exact Wasm carrier slot"))?;
+            let value = self.cleanup_value_at(&action.source)?;
+            require_type(
+                value_type(&value),
+                &ResolvedType::Bytes,
+                "CleanupPlan finalizer",
+            )?;
             let flag = self
                 .plan
                 .cleanup_flags
@@ -2336,14 +2383,12 @@ impl Emitter<'_> {
             self.output.push(0x20);
             write_u32(self.output, flag);
             self.output.extend([0x04, 0x40]);
-            self.output.push(0x20);
-            write_u32(self.output, local);
+            self.get_scalar(&value);
             self.output.push(0x10);
             write_u32(self.output, BYTE_DROP_IMPORT);
             // Poison the moved/dropped carrier locally. Any backend mistake
             // that reads it later reaches the host's malformed-token trap.
-            self.output.extend([0x42, 0x00, 0x21]);
-            write_u32(self.output, local);
+            self.clear_scalar(&value)?;
             self.output.extend([0x41, 0x00, 0x21]);
             write_u32(self.output, flag);
             self.output.push(0x0b);
@@ -2414,24 +2459,244 @@ impl Emitter<'_> {
         self.emit_cleanup_actions(&exit.finalize_in_order)
     }
 
+    fn emit_owned_record_match_cleanup(
+        &mut self,
+        pattern: &crate::hir::ResolvedMatchPattern,
+    ) -> Result<(), Diagnostic> {
+        let crate::hir::ResolvedMatchPattern::Record { fields, .. } = pattern else {
+            return Err(error("owned record match cleanup has a non-record pattern"));
+        };
+        let storage = fields
+            .iter()
+            .filter_map(|field| match &field.pattern {
+                crate::hir::ResolvedRecordMatchFieldPattern::Binding(binding)
+                    if binding.ty == ResolvedType::Bytes =>
+                {
+                    Some(crate::cleanup_plan::StorageId::Value(binding.id.clone()))
+                }
+                crate::hir::ResolvedRecordMatchFieldPattern::Binding(_)
+                | crate::hir::ResolvedRecordMatchFieldPattern::Wildcard => None,
+                crate::hir::ResolvedRecordMatchFieldPattern::Record { .. } => None,
+            })
+            .collect::<std::collections::BTreeSet<_>>();
+        if storage.is_empty() {
+            return Err(error("owned record match has no direct Bytes bindings"));
+        }
+        let mut regions = self.cleanup_plan.regions.iter().filter(|region| {
+            storage
+                .iter()
+                .all(|candidate| region.slots.contains(candidate))
+        });
+        let region = regions
+            .next()
+            .ok_or_else(|| error("owned record bindings have no CleanupPlan region"))?;
+        if regions.next().is_some() {
+            return Err(error(
+                "owned record bindings map to ambiguous cleanup regions",
+            ));
+        }
+        let exit = self
+            .cleanup_plan
+            .exits
+            .get(region.normal_scope_end.0 as usize)
+            .filter(|exit| exit.id == region.normal_scope_end)
+            .ok_or_else(|| error("owned record match region has no normal exit"))?;
+        if !matches!(
+            exit.continuation,
+            crate::cleanup_plan::ExitContinuation::Continue(_)
+        ) || exit.leaves_regions.as_slice() != [region.id]
+        {
+            return Err(error("owned record match cleanup exit is not canonical"));
+        }
+        self.emit_cleanup_actions(&exit.finalize_in_order)
+    }
+
+    fn cleanup_value_at(
+        &self,
+        place: &crate::cleanup_plan::CleanupPlace,
+    ) -> Result<Value, Diagnostic> {
+        let ty = self
+            .plan
+            .cleanup_storage_types
+            .get(&place.storage)
+            .cloned()
+            .ok_or_else(|| error("CleanupPlan storage has no resolved Wasm type"))?;
+        let mut value =
+            match &place.storage {
+                crate::cleanup_plan::StorageId::Value(id) => {
+                    if let Some(value) = self.bindings.get(id).cloned() {
+                        value
+                    } else if is_aggregate(self.program, &ty)? {
+                        Value::Aggregate {
+                            pointer: Pointer {
+                                local: self.plan.frame_base,
+                                offset: self.plan.aggregate_bindings.get(id).copied().ok_or_else(
+                                    || error("CleanupPlan aggregate value is absent"),
+                                )?,
+                            },
+                            ty,
+                        }
+                    } else {
+                        Value::Scalar {
+                            local: self
+                                .plan
+                                .scalar_bindings
+                                .get(id)
+                                .copied()
+                                .ok_or_else(|| error("CleanupPlan scalar value is absent"))?,
+                            ty,
+                        }
+                    }
+                }
+                crate::cleanup_plan::StorageId::Temporary(expression) => {
+                    if is_aggregate(self.program, &ty)? {
+                        Value::Aggregate {
+                            pointer: Pointer {
+                                local: self.plan.frame_base,
+                                offset: self
+                                    .plan
+                                    .aggregate_expressions
+                                    .get(expression)
+                                    .copied()
+                                    .ok_or_else(|| {
+                                        error("CleanupPlan aggregate temporary is absent")
+                                    })?,
+                            },
+                            ty,
+                        }
+                    } else {
+                        Value::Scalar {
+                            local: self
+                                .plan
+                                .scalar_expressions
+                                .get(expression)
+                                .copied()
+                                .ok_or_else(|| error("CleanupPlan scalar temporary is absent"))?,
+                            ty,
+                        }
+                    }
+                }
+                crate::cleanup_plan::StorageId::ProvisionalResult => {
+                    if is_aggregate(self.program, &ty)? {
+                        Value::Aggregate {
+                            pointer: Pointer {
+                                local: self.plan.frame_base,
+                                offset: self.plan.result_stage_aggregate.ok_or_else(|| {
+                                    error("CleanupPlan aggregate result stage is absent")
+                                })?,
+                            },
+                            ty,
+                        }
+                    } else {
+                        Value::Scalar {
+                            local: self.plan.result_stage_scalar.ok_or_else(|| {
+                                error("CleanupPlan scalar result stage is absent")
+                            })?,
+                            ty,
+                        }
+                    }
+                }
+                crate::cleanup_plan::StorageId::CallArgument { .. } => {
+                    if place.projections.is_empty() {
+                        Value::Scalar {
+                            local: self
+                                .plan
+                                .cleanup_call_argument_carriers
+                                .get(&place.storage)
+                                .copied()
+                                .ok_or_else(|| error("CleanupPlan call epoch carrier is absent"))?,
+                            ty,
+                        }
+                    } else {
+                        let carrier = self
+                            .call_argument_values
+                            .get(&place.storage)
+                            .cloned()
+                            .ok_or_else(|| {
+                                error("projected call epoch has no authenticated aggregate carrier")
+                            })?;
+                        require_type(value_type(&carrier), &ty, "projected call epoch carrier")?;
+                        if !matches!(carrier, Value::Aggregate { .. }) {
+                            return Err(error(
+                                "projected call epoch carrier is not aggregate storage",
+                            ));
+                        }
+                        carrier
+                    }
+                }
+            };
+        for projection in &place.projections {
+            value = self.project_value(&value, projection)?;
+        }
+        Ok(value)
+    }
+
+    fn clear_scalar(&mut self, value: &Value) -> Result<(), Diagnostic> {
+        require_type(
+            value_type(value),
+            &ResolvedType::Bytes,
+            "owned Bytes poison",
+        )?;
+        match value {
+            Value::Scalar { local, .. } => {
+                self.output.extend([0x42, 0x00, 0x21]);
+                write_u32(self.output, *local);
+            }
+            Value::ScalarMemory { pointer, ty } => {
+                self.emit_pointer(*pointer);
+                self.output.push(0x42);
+                write_i64(self.output, 0);
+                self.store_scalar(ty);
+            }
+            Value::Aggregate { .. } => return Err(error("owned Bytes poison is not scalar")),
+        }
+        Ok(())
+    }
+
+    fn poison_owned_record(&mut self, value: &Value) -> Result<(), Diagnostic> {
+        let Value::Aggregate { pointer, ty } = value else {
+            return Err(error("owned record poison received a scalar carrier"));
+        };
+        let record_layout = layout(self.program, ty)?;
+        if !record_layout
+            .fields
+            .iter()
+            .any(|field| field.ty == ResolvedType::Bytes)
+        {
+            return Err(error("owned record poison received a Copy-only record"));
+        }
+        self.emit_pointer(*pointer);
+        self.output.push(0x41);
+        write_i64(self.output, 0);
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(record_layout.size));
+        self.output.extend([0xfc, 0x0b, 0x00]);
+        Ok(())
+    }
+
     fn set_storage_flag(
         &mut self,
         place: &crate::cleanup_plan::CleanupPlace,
         live: bool,
     ) -> Result<(), Diagnostic> {
-        if !place.projections.is_empty() {
+        let locals = self
+            .plan
+            .cleanup_place_flags
+            .iter()
+            .filter(|(leaf, _)| {
+                leaf.storage == place.storage && leaf.projections.starts_with(&place.projections)
+            })
+            .map(|(_, local)| *local)
+            .collect::<Vec<_>>();
+        if locals.is_empty() {
             return Err(error(
-                "Bytes transition addresses a projected cleanup place",
+                "Bytes transition has no exact projected liveness local",
             ));
         }
-        let local = self
-            .plan
-            .cleanup_storage_flags
-            .get(&place.storage)
-            .copied()
-            .ok_or_else(|| error("Bytes transition storage has no exact liveness local"))?;
-        self.output.extend([0x41, u8::from(live), 0x21]);
-        write_u32(self.output, local);
+        for local in locals {
+            self.output.extend([0x41, u8::from(live), 0x21]);
+            write_u32(self.output, local);
+        }
         Ok(())
     }
 
@@ -2834,11 +3099,27 @@ impl Emitter<'_> {
                 self.output.extend([0x36, 0x02, 0x00]);
                 Ok(destination)
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                mode,
+                scrutinee,
+                arms,
+            } => {
                 if is_aggregate(self.program, &expr.ty)? {
                     return Err(error("copy match result must be i64 or bool"));
                 }
-                let scrutinee = self.emit_expr(scrutinee)?;
+                let scrutinee = if *mode == crate::hir::ResolvedMatchMode::Borrow {
+                    let ResolvedExprKind::Place(place) = &scrutinee.kind else {
+                        return Err(error("borrowed record match requires an exact place"));
+                    };
+                    if !place.projections.is_empty() {
+                        return Err(error(
+                            "borrowed record match projections are outside flat v1",
+                        ));
+                    }
+                    self.place_value(place)?
+                } else {
+                    self.emit_expr(scrutinee)?
+                };
                 // Refutable Match v1: Copy-scalar scrutinees lower to the
                 // literal/guard decision chain even on the aggregate lane;
                 // aggregate storage keeps the pre-feature lowering below.
@@ -2885,8 +3166,15 @@ impl Emitter<'_> {
                             ));
                         }
                     }
+                    if *mode == crate::hir::ResolvedMatchMode::Own {
+                        self.apply_post_transitions(&expr.id, &scrutinee)?;
+                        self.poison_owned_record(&scrutinee)?;
+                    }
                     let value = self.emit_expr(&arm.value)?;
                     self.copy_value(&destination, &value, "record match arm result")?;
+                    if *mode == crate::hir::ResolvedMatchMode::Own {
+                        self.emit_owned_record_match_cleanup(&arm.pattern)?;
+                    }
                     self.bindings = saved;
                     return Ok(destination);
                 }
@@ -3606,7 +3894,13 @@ impl Emitter<'_> {
                             ty: binding.ty.clone(),
                         }
                     };
-                    self.copy_value(&destination, &projected, "record pattern binding")?;
+                    if binding.ty == ResolvedType::Bytes
+                        && binding.ownership == crate::hir::OwnershipMode::Borrow
+                    {
+                        self.copy_borrowed_scalar_alias(&destination, &projected)?;
+                    } else {
+                        self.copy_value(&destination, &projected, "record pattern binding")?;
+                    }
                     if self
                         .bindings
                         .insert(binding.id.clone(), destination)
@@ -4172,7 +4466,27 @@ impl Emitter<'_> {
         }
         let mut values = Vec::with_capacity(args.len());
         for (index, (argument, parameter)) in args.iter().zip(&target.params).enumerate() {
-            let value = self.emit_expr(argument)?;
+            let value = if parameter.ownership == crate::hir::OwnershipMode::Borrow
+                && is_aggregate(self.program, &parameter.ty)?
+            {
+                let ResolvedExprKind::Place(place) = &argument.kind else {
+                    return Err(error(
+                        "borrowed aggregate call argument is not an exact place",
+                    ));
+                };
+                if !place.projections.is_empty() {
+                    return Err(error(
+                        "borrowed aggregate call projections are outside flat v1",
+                    ));
+                }
+                // Borrowed record parameters alias the authenticated caller
+                // carrier. Going through ordinary expression materialization
+                // would perform an owned field move while CleanupPlan quite
+                // correctly emits no ownership transition for the borrow.
+                self.place_value(place)?
+            } else {
+                self.emit_expr(argument)?
+            };
             require_type(value_type(&value), &parameter.ty, "call argument")?;
             let parameter_index = u32::try_from(index)
                 .map_err(|_| error("aggregate call argument index overflows u32"))?;
@@ -4181,6 +4495,15 @@ impl Emitter<'_> {
                 parameter_index,
                 value_expression: argument.id.clone(),
             };
+            if is_aggregate(self.program, &parameter.ty)?
+                && self.plan.cleanup_storage_types.contains_key(&epoch)
+                && self
+                    .call_argument_values
+                    .insert(epoch.clone(), value.clone())
+                    .is_some()
+            {
+                return Err(error("projected call epoch carrier is not unique"));
+            }
             values.push(
                 self.plan
                     .cleanup_call_argument_carriers
@@ -5618,11 +5941,17 @@ impl Emitter<'_> {
                 self.output.push(0x21);
                 write_u32(self.output, *local);
                 scalar_wasm_type(ty)?;
+                if *ty == ResolvedType::Bytes {
+                    self.clear_scalar(source)?;
+                }
             }
             Value::ScalarMemory { pointer, ty } => {
                 self.emit_pointer(*pointer);
                 self.get_scalar(source);
                 self.store_scalar(ty);
+                if *ty == ResolvedType::Bytes {
+                    self.clear_scalar(source)?;
+                }
             }
             Value::Aggregate {
                 pointer: destination,
@@ -5636,12 +5965,91 @@ impl Emitter<'_> {
                         "{context} mixes scalar and aggregate values"
                     )));
                 };
+                if is_record(self.program, ty)? {
+                    let record_layout = layout(self.program, ty)?;
+                    if record_layout
+                        .fields
+                        .iter()
+                        .any(|field| field.ty == ResolvedType::Bytes)
+                    {
+                        for field in &record_layout.fields {
+                            if is_aggregate(self.program, &field.ty)? {
+                                return Err(error(
+                                    "nested aggregate reached owned-byte record Wasm copy",
+                                ));
+                            }
+                            let destination_field = value_at(
+                                Pointer {
+                                    local: destination.local,
+                                    offset: destination
+                                        .offset
+                                        .checked_add(field.offset)
+                                        .ok_or_else(|| {
+                                            error("record move destination overflows")
+                                        })?,
+                                },
+                                field.ty.clone(),
+                                self.program,
+                            )?;
+                            let source_field = value_at(
+                                Pointer {
+                                    local: source.local,
+                                    offset: source
+                                        .offset
+                                        .checked_add(field.offset)
+                                        .ok_or_else(|| error("record move source overflows"))?,
+                                },
+                                field.ty.clone(),
+                                self.program,
+                            )?;
+                            self.copy_value(
+                                &destination_field,
+                                &source_field,
+                                "owned-byte record field move",
+                            )?;
+                        }
+                        return Ok(());
+                    }
+                }
                 let (size, _) = aggregate_size_align(self.program, self.variant_layouts, ty)?;
                 self.emit_pointer(*destination);
                 self.emit_pointer(*source);
                 self.output.push(0x41);
                 write_i64(self.output, i64::from(size));
                 self.output.extend([0xfc, 0x0a, 0x00, 0x00]);
+            }
+        }
+        Ok(())
+    }
+
+    fn copy_borrowed_scalar_alias(
+        &mut self,
+        destination: &Value,
+        source: &Value,
+    ) -> Result<(), Diagnostic> {
+        require_type(
+            value_type(source),
+            value_type(destination),
+            "borrowed record field alias",
+        )?;
+        require_type(
+            value_type(source),
+            &ResolvedType::Bytes,
+            "borrowed record field alias",
+        )?;
+        match destination {
+            Value::Scalar { local, .. } => {
+                self.get_scalar(source);
+                self.output.push(0x21);
+                write_u32(self.output, *local);
+            }
+            Value::ScalarMemory { pointer, ty } => {
+                self.emit_pointer(*pointer);
+                self.get_scalar(source);
+                self.store_scalar(ty);
+            }
+            Value::Aggregate { .. } => {
+                return Err(error("borrowed record field alias is aggregate"));
             }
         }
         Ok(())

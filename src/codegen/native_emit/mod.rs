@@ -599,7 +599,9 @@ fn resolved_expr_children<'a>(
         | ResolvedExprKind::ConstructVariant { fields, .. } => {
             Box::new(fields.iter().map(|field| &field.value))
         }
-        ResolvedExprKind::Match { scrutinee, arms } => Box::new(
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => Box::new(
             std::iter::once(scrutinee.as_ref()).chain(
                 arms.iter()
                     .filter_map(|arm| arm.guard.as_deref())
@@ -860,6 +862,24 @@ fn is_aggregate_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<boo
         || variant_declaration_id(program, ty)?.is_some())
 }
 
+fn borrowed_record_byte_fields(
+    program: &ResolvedProgram,
+    record_layouts: &AggregateLayoutCache,
+    ty: &ResolvedType,
+) -> Result<Vec<DeclarationId>, Diagnostic> {
+    if record_declaration_id(program, ty)?.is_none() {
+        return Ok(Vec::new());
+    }
+    let layout = record_layouts.layout(ty)?;
+    layout.validate(program)?;
+    Ok(layout
+        .fields
+        .iter()
+        .filter(|field| matches!(field.ty, ResolvedType::Bytes))
+        .map(|field| field.field.clone())
+        .collect())
+}
+
 fn record_declaration_id<'a>(
     program: &ResolvedProgram,
     ty: &'a ResolvedType,
@@ -975,7 +995,7 @@ fn c_case_symbol(id: &DeclarationId) -> String {
     stable_c_symbol("spx_case_", id)
 }
 
-fn c_field_symbol(id: &DeclarationId) -> String {
+pub(super) fn c_field_symbol(id: &DeclarationId) -> String {
     stable_c_symbol("spx_field_", id)
 }
 
@@ -994,6 +1014,7 @@ pub(super) fn emit_function_prototypes(
     functions: &HashMap<FunctionExecutionId, CFunction>,
     resource_abi: &native_resource::NativeResourceAbi,
 ) -> Result<(), Diagnostic> {
+    let record_layouts = AggregateLayoutCache::build(program, AggregateTarget::Native64)?;
     for (function, execution) in program
         .functions
         .iter()
@@ -1010,6 +1031,7 @@ pub(super) fn emit_function_prototypes(
             )
         }))
     {
+        let bytes_plan = native_bytes::NativeBytesPlan::build(function)?;
         let metadata = functions
             .get(&execution)
             .ok_or_else(|| backend_error(format!("function `{}` is not indexed", function.id)))?;
@@ -1022,9 +1044,24 @@ pub(super) fn emit_function_prototypes(
         for param in &function.params {
             let ty = c_value_type(program, resource_abi, &param.ty)?;
             if is_aggregate_type(program, &param.ty)? {
-                write!(output, ", const {ty} *").expect("writing to a string cannot fail");
+                let storage = crate::cleanup_plan::StorageId::Value(param.id.clone());
+                let qualifier = if bytes_plan
+                    .as_ref()
+                    .is_some_and(|plan| plan.has_projected_leaves(&storage))
+                {
+                    ""
+                } else {
+                    "const "
+                };
+                write!(output, ", {qualifier}{ty} *").expect("writing to a string cannot fail");
             } else {
                 write!(output, ", {ty}").expect("writing to a string cannot fail");
+            }
+            if param.ownership == crate::hir::OwnershipMode::Borrow {
+                for _ in borrowed_record_byte_fields(program, &record_layouts, &param.ty)? {
+                    write!(output, ", const spx_bytes_v1 *")
+                        .expect("writing to a string cannot fail");
+                }
             }
         }
         writeln!(
@@ -1495,10 +1532,29 @@ fn emit_function(
     for (index, param) in function.params.iter().enumerate() {
         let ty = c_value_type(program, resource_abi, &param.ty)?;
         if is_aggregate_type(program, &param.ty)? {
-            write!(output, ", const {ty} *spx_param_{index}")
+            let storage = crate::cleanup_plan::StorageId::Value(param.id.clone());
+            let qualifier = if bytes_plan
+                .as_ref()
+                .is_some_and(|plan| plan.has_projected_leaves(&storage))
+            {
+                ""
+            } else {
+                "const "
+            };
+            write!(output, ", {qualifier}{ty} *spx_param_{index}")
                 .expect("writing to a string cannot fail");
         } else {
             write!(output, ", {ty} spx_param_{index}").expect("writing to a string cannot fail");
+        }
+        if param.ownership == crate::hir::OwnershipMode::Borrow {
+            for field in borrowed_record_byte_fields(program, emission.record_layouts, &param.ty)? {
+                write!(
+                    output,
+                    ", const spx_bytes_v1 *spx_param_{index}_borrow_{}",
+                    c_field_symbol(&field)
+                )
+                .expect("writing to a string cannot fail");
+            }
         }
     }
     writeln!(
@@ -1516,10 +1572,19 @@ fn emit_function(
                     &crate::cleanup_plan::StorageId::Value(parameter.id.clone()),
                     &format!("spx_param_{index}"),
                 )?);
+            } else if is_aggregate_type(program, &parameter.ty)? {
+                let storage = crate::cleanup_plan::StorageId::Value(parameter.id.clone());
+                if plan.has_projected_leaves(&storage) {
+                    output.push_str(
+                        &plan
+                            .initialize_record_parameter(&storage, &format!("spx_param_{index}"))?,
+                    );
+                }
             }
         }
     }
     let mut variables = HashMap::new();
+    let mut borrowed_record_bytes = HashMap::new();
     for (index, param) in function.params.iter().enumerate() {
         let name = if matches!(param.ty, ResolvedType::Bytes) {
             bytes_plan
@@ -1539,6 +1604,14 @@ fn emit_function(
                 ty: param.ty.clone(),
             },
         );
+        if param.ownership == crate::hir::OwnershipMode::Borrow {
+            for field in borrowed_record_byte_fields(program, emission.record_layouts, &param.ty)? {
+                borrowed_record_bytes.insert(
+                    (param.id.clone(), field.clone()),
+                    format!("(*spx_param_{index}_borrow_{})", c_field_symbol(&field)),
+                );
+            }
+        }
     }
     let mut emitter = CEmitter::new(
         output,
@@ -1546,6 +1619,7 @@ fn emit_function(
         &function.return_type,
         emission,
         bytes_plan.as_ref(),
+        borrowed_record_bytes,
     );
     emitter.line("spx_status_token spx_status = SPX_STATUS_SUCCESS;");
     if has_try {
@@ -1689,6 +1763,21 @@ fn emit_function(
         output.push_str(&format!(
             "    if (!{flag}) spx_runtime_invariant_failure(\"dead Bytes provisional result\");\n    *spx_result_out = spx_bytes_move(&{value});\n    {flag} = false;\n"
         ));
+    } else if is_aggregate_type(program, &function.return_type)?
+        && bytes_plan.as_ref().is_some_and(|plan| {
+            plan.has_projected_leaves(&crate::cleanup_plan::StorageId::ProvisionalResult)
+        })
+    {
+        output.push_str("    *spx_result_out = spx_result;\n");
+        output.push_str(
+            &bytes_plan
+                .as_ref()
+                .expect("projected result check requires a plan")
+                .publish_record_result("(*spx_result_out)")?
+                .lines()
+                .map(|line| format!("    {line}\n"))
+                .collect::<String>(),
+        );
     } else {
         output.push_str("    *spx_result_out = spx_result;\n");
     }
@@ -1776,6 +1865,7 @@ pub(super) fn write_and_compile_c_with_mode(
 pub(super) struct CFunction {
     symbol: String,
     params: Vec<ResolvedType>,
+    param_ownerships: Vec<crate::hir::OwnershipMode>,
     return_type: ResolvedType,
 }
 
@@ -1806,6 +1896,11 @@ pub(super) fn function_index(
                 .iter()
                 .map(|param| param.ty.clone())
                 .collect(),
+            param_ownerships: function
+                .params
+                .iter()
+                .map(|param| param.ownership)
+                .collect(),
             return_type: function.return_type.clone(),
         };
         if functions
@@ -1830,6 +1925,11 @@ pub(super) fn function_index(
                 .params
                 .iter()
                 .map(|param| param.ty.clone())
+                .collect(),
+            param_ownerships: function
+                .params
+                .iter()
+                .map(|param| param.ownership)
                 .collect(),
             return_type: function.return_type.clone(),
         };
@@ -1907,6 +2007,7 @@ struct CEmitter<'a, O: COutput> {
     variant_layouts: &'a VariantLayoutCache,
     return_type: &'a ResolvedType,
     bytes_plan: Option<&'a native_bytes::NativeBytesPlan>,
+    borrowed_record_bytes: HashMap<(ValueId, DeclarationId), String>,
     output_profile: NativeOutputProfile,
     try_target_enabled: bool,
     next_local: usize,
@@ -1920,6 +2021,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         return_type: &'a ResolvedType,
         emission: &'a NativeEmissionContext<'a>,
         bytes_plan: Option<&'a native_bytes::NativeBytesPlan>,
+        borrowed_record_bytes: HashMap<(ValueId, DeclarationId), String>,
     ) -> Self {
         Self {
             output,
@@ -1931,6 +2033,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             variant_layouts: emission.variant_layouts,
             return_type,
             bytes_plan,
+            borrowed_record_bytes,
             output_profile: emission.output_profile,
             try_target_enabled: false,
             next_local: 0,

@@ -171,7 +171,10 @@ pub(crate) fn by_id(id: &str) -> Option<ByteOp> {
 /// case inventory. Resolution and hostile-HIR validation then authenticate the
 /// corresponding compiler-owned identities and concrete types.
 pub(crate) fn is_indexed_byte_option_match_source(expression: &Expr) -> bool {
-    let ExprKind::Match { scrutinee, arms } = &expression.kind else {
+    let ExprKind::Match {
+        scrutinee, arms, ..
+    } = &expression.kind
+    else {
         return false;
     };
     let ExprKind::Call {

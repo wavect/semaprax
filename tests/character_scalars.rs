@@ -179,7 +179,9 @@ fn children(expression: &hir::ResolvedExpr) -> Vec<&hir::ResolvedExpr> {
         | hir::ResolvedExprKind::ConstructVariant { fields, .. } => {
             fields.iter().map(|field| &field.value).collect()
         }
-        hir::ResolvedExprKind::Match { scrutinee, arms } => {
+        hir::ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             let mut collected = vec![scrutinee.as_ref()];
             collected.extend(arms.iter().map(|arm| &arm.value));
             collected

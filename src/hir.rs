@@ -10,7 +10,7 @@ use std::fmt::Write as _;
 use std::rc::Rc;
 
 use crate::ast::{
-    BinaryOp, Expr, ExprKind, ImportFailure, MatchPattern, ParamMode, Program,
+    BinaryOp, Expr, ExprKind, ImportFailure, MatchMode, MatchPattern, ParamMode, Program,
     ResourceLifecycleKind, Span, Statement, Type, TypeDeclarationKind, UnaryOp,
 };
 use crate::cleanup::CleanupInventory;
@@ -609,7 +609,9 @@ fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
                 })
                 .sum::<usize>();
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             bytes += child(scrutinee);
             bytes += arms.capacity() * std::mem::size_of::<ResolvedMatchArm>();
             bytes += arms
@@ -1777,6 +1779,27 @@ pub enum OwnershipMode {
     Shared,
 }
 
+/// The authenticated ownership spelling attached to a resolved match.
+///
+/// This tranche preserves source meaning only. Ownership-changing behavior is
+/// admitted separately after source and HIR verification can prove it.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ResolvedMatchMode {
+    Value,
+    Own,
+    Borrow,
+}
+
+impl From<MatchMode> for ResolvedMatchMode {
+    fn from(mode: MatchMode) -> Self {
+        match mode {
+            MatchMode::Value => Self::Value,
+            MatchMode::Own => Self::Own,
+            MatchMode::Borrow => Self::Borrow,
+        }
+    }
+}
+
 impl From<ParamMode> for OwnershipMode {
     fn from(mode: ParamMode) -> Self {
         match mode {
@@ -2123,7 +2146,9 @@ pub(crate) fn push_resolved_expression_children_in_authored_order<'a>(
         | ResolvedExprKind::ConstructVariant { fields, .. } => {
             pending.extend(fields.iter().rev().map(|field| &field.value));
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             for arm in arms.iter().rev() {
                 pending.push(&arm.value);
                 if let Some(guard) = &arm.guard {
@@ -2434,7 +2459,9 @@ fn byte_capacity_expression(
                             frames.push(Frame::Visit(&field.value, false));
                         }
                     }
-                    ResolvedExprKind::Match { scrutinee, arms } => {
+                    ResolvedExprKind::Match {
+                        scrutinee, arms, ..
+                    } => {
                         for arm in arms {
                             push_array_pattern_slots(program, &arm.pattern, slots)?;
                         }
@@ -2866,6 +2893,7 @@ pub enum ResolvedExprKind {
         fields: Vec<ResolvedFieldInitializer>,
     },
     Match {
+        mode: ResolvedMatchMode,
         scrutinee: Box<ResolvedExpr>,
         arms: Vec<ResolvedMatchArm>,
     },
@@ -3231,7 +3259,9 @@ fn derive_byte_slice_provenance(
                 | ResolvedExprKind::ConstructVariant { fields, .. } => {
                     pending.extend(fields.iter().map(|field| &field.value));
                 }
-                ResolvedExprKind::Match { scrutinee, arms } => {
+                ResolvedExprKind::Match {
+                    scrutinee, arms, ..
+                } => {
                     pending.push(scrutinee);
                     for arm in arms {
                         if let Some(guard) = &arm.guard {
@@ -4271,6 +4301,7 @@ impl Resolver<'_> {
         bindings: &mut BTreeMap<String, Binding>,
         path: &str,
         span: Span,
+        mode: ResolvedMatchMode,
     ) -> Result<ResolvedMatchPattern, Diagnostic> {
         enum Frame<'a> {
             Enter {
@@ -4404,10 +4435,27 @@ impl Resolver<'_> {
                     let field_path = format!("{path}.field.{index}");
                     match &field.pattern {
                         crate::ast::RecordMatchFieldPattern::Binding { name, span } => {
+                            let field_facts =
+                                self.declarations.type_facts(&field_ty).ok_or_else(|| {
+                                    self.error(
+                                        "SPX-H006",
+                                        "record pattern field has no authenticated type facts",
+                                        *span,
+                                    )
+                                })?;
+                            let ownership = if field_facts.needs_drop {
+                                match mode {
+                                    ResolvedMatchMode::Own => OwnershipMode::Own,
+                                    ResolvedMatchMode::Borrow => OwnershipMode::Borrow,
+                                    ResolvedMatchMode::Value => OwnershipMode::Value,
+                                }
+                            } else {
+                                OwnershipMode::Value
+                            };
                             let binding = ResolvedBinding {
                                 id: ValueId::local(function, &format!("{field_path}.binding")),
                                 name: name.clone(),
-                                ownership: OwnershipMode::Value,
+                                ownership,
                                 ty: field_ty.clone(),
                                 span: *span,
                             };
@@ -4416,7 +4464,7 @@ impl Resolver<'_> {
                                 Binding {
                                     id: binding.id.clone(),
                                     ty: field_ty,
-                                    ownership: OwnershipMode::Value,
+                                    ownership,
                                     mutable: false,
                                 },
                             );
@@ -4818,9 +4866,9 @@ impl Resolver<'_> {
                         expression.span,
                     ));
                 }
-                ExprKind::Match { scrutinee, arms }
-                    if crate::byte_ops::is_indexed_byte_option_match_source(expression) =>
-                {
+                ExprKind::Match {
+                    scrutinee, arms, ..
+                } if crate::byte_ops::is_indexed_byte_option_match_source(expression) => {
                     pending.extend(arms.iter().rev().map(|arm| Item::Expression(&arm.value)));
                     pending.push(Item::Expression(scrutinee));
                 }
@@ -5170,12 +5218,14 @@ impl Resolver<'_> {
             AfterMatchScrutinee {
                 span: Span,
                 path: String,
+                mode: ResolvedMatchMode,
                 arms: &'expr [crate::ast::MatchArm],
                 bindings: Rc<BTreeMap<String, Binding>>,
             },
             MatchNext {
                 span: Span,
                 path: String,
+                mode: ResolvedMatchMode,
                 arms: &'expr [crate::ast::MatchArm],
                 index: usize,
                 bindings: Rc<BTreeMap<String, Binding>>,
@@ -5188,6 +5238,7 @@ impl Resolver<'_> {
             MatchAfterArm {
                 span: Span,
                 path: String,
+                mode: ResolvedMatchMode,
                 arms: &'expr [crate::ast::MatchArm],
                 index: usize,
                 bindings: Rc<BTreeMap<String, Binding>>,
@@ -5204,6 +5255,7 @@ impl Resolver<'_> {
             ScalarMatchNext {
                 span: Span,
                 path: String,
+                mode: ResolvedMatchMode,
                 arms: &'expr [crate::ast::MatchArm],
                 index: usize,
                 bindings: Rc<BTreeMap<String, Binding>>,
@@ -5213,6 +5265,7 @@ impl Resolver<'_> {
             ScalarMatchAfterArm {
                 span: Span,
                 path: String,
+                mode: ResolvedMatchMode,
                 arms: &'expr [crate::ast::MatchArm],
                 index: usize,
                 bindings: Rc<BTreeMap<String, Binding>>,
@@ -6094,10 +6147,15 @@ impl Resolver<'_> {
                             resolved: Vec::with_capacity(fields.len()),
                         });
                     }
-                    ExprKind::Match { scrutinee, arms } => {
+                    ExprKind::Match {
+                        mode,
+                        scrutinee,
+                        arms,
+                    } => {
                         frames.push(Frame::AfterMatchScrutinee {
                             span: expr.span,
                             path: path.clone(),
+                            mode: (*mode).into(),
                             arms,
                             bindings: bindings.clone(),
                         });
@@ -7424,6 +7482,7 @@ impl Resolver<'_> {
                 Frame::AfterMatchScrutinee {
                     span,
                     path,
+                    mode,
                     arms,
                     bindings,
                 } => {
@@ -7440,6 +7499,13 @@ impl Resolver<'_> {
                             | ResolvedType::Char
                             | ResolvedType::Bool
                     ) {
+                        if mode != ResolvedMatchMode::Value {
+                            return Err(self.error(
+                                "SPX-O117",
+                                "explicit match ownership modes require a non-Copy record scrutinee",
+                                span,
+                            ));
+                        }
                         if arms.is_empty() {
                             return Err(self.error("SPX-H006", "resolved match has no arms", span));
                         }
@@ -7447,6 +7513,7 @@ impl Resolver<'_> {
                         frames.push(Frame::ScalarMatchNext {
                             span,
                             path,
+                            mode,
                             arms,
                             index: 0,
                             bindings,
@@ -7500,11 +7567,47 @@ impl Resolver<'_> {
                                 span,
                             )
                         })?;
+                    let facts = self.declarations.type_facts(&scrutinee.ty).ok_or_else(|| {
+                        self.error("SPX-H006", "match scrutinee has no type facts", span)
+                    })?;
+                    match (matched_kind, mode) {
+                        (DeclarationKind::Variant, ResolvedMatchMode::Value) => {}
+                        (DeclarationKind::Variant, _) => {
+                            return Err(self.error(
+                                "SPX-O117",
+                                "owned and borrowed variant matches are not admitted in this tranche",
+                                span,
+                            ));
+                        }
+                        (DeclarationKind::Record, ResolvedMatchMode::Value)
+                            if facts.copy && scrutinee.ownership == OwnershipMode::Value => {}
+                        (DeclarationKind::Record, ResolvedMatchMode::Own)
+                            if facts.needs_drop
+                                && !facts.copy
+                                && scrutinee.ownership == OwnershipMode::Own => {}
+                        (DeclarationKind::Record, ResolvedMatchMode::Borrow)
+                            if facts.needs_drop
+                                && !facts.copy
+                                && matches!(
+                                    scrutinee.ownership,
+                                    OwnershipMode::Own | OwnershipMode::Borrow
+                                )
+                                && matches!(scrutinee.kind, ResolvedExprKind::Place(_)) => {}
+                        (DeclarationKind::Record, _) => {
+                            return Err(self.error(
+                                "SPX-O117",
+                                "match ownership mode disagrees with the record scrutinee",
+                                span,
+                            ));
+                        }
+                        _ => unreachable!("matched kind was restricted above"),
+                    }
                     let matched_type = matched_type.clone();
                     let instance_arguments = arguments.clone();
                     frames.push(Frame::MatchNext {
                         span,
                         path,
+                        mode,
                         arms,
                         index: 0,
                         bindings,
@@ -7518,6 +7621,7 @@ impl Resolver<'_> {
                 Frame::MatchNext {
                     span,
                     path,
+                    mode,
                     arms,
                     index,
                     bindings,
@@ -7538,6 +7642,7 @@ impl Resolver<'_> {
                             ty,
                             ownership,
                             kind: ResolvedExprKind::Match {
+                                mode,
                                 scrutinee: Box::new(scrutinee),
                                 arms: resolved,
                             },
@@ -7657,6 +7762,7 @@ impl Resolver<'_> {
                                     Rc::make_mut(&mut arm_bindings),
                                     &format!("{path}.arm.{index}.record"),
                                     *pattern_span,
+                                    mode,
                                 )?
                             }
                             // Refutable Match v1 patterns on aggregate
@@ -7676,6 +7782,7 @@ impl Resolver<'_> {
                         frames.push(Frame::MatchAfterArm {
                             span,
                             path: path.clone(),
+                            mode,
                             arms,
                             index,
                             bindings,
@@ -7696,6 +7803,7 @@ impl Resolver<'_> {
                 Frame::MatchAfterArm {
                     span,
                     path,
+                    mode,
                     arms,
                     index,
                     bindings,
@@ -7718,6 +7826,7 @@ impl Resolver<'_> {
                     frames.push(Frame::MatchNext {
                         span,
                         path,
+                        mode,
                         arms,
                         index: index + 1,
                         bindings,
@@ -7731,6 +7840,7 @@ impl Resolver<'_> {
                 Frame::ScalarMatchNext {
                     span,
                     path,
+                    mode,
                     arms,
                     index,
                     bindings,
@@ -7747,6 +7857,7 @@ impl Resolver<'_> {
                             ty,
                             ownership: OwnershipMode::Value,
                             kind: ResolvedExprKind::Match {
+                                mode,
                                 scrutinee: Box::new(scrutinee),
                                 arms: resolved,
                             },
@@ -7817,6 +7928,7 @@ impl Resolver<'_> {
                         frames.push(Frame::ScalarMatchAfterArm {
                             span,
                             path: path.clone(),
+                            mode,
                             arms,
                             index,
                             bindings,
@@ -7841,6 +7953,7 @@ impl Resolver<'_> {
                 Frame::ScalarMatchAfterArm {
                     span,
                     path,
+                    mode,
                     arms,
                     index,
                     bindings,
@@ -7888,6 +8001,7 @@ impl Resolver<'_> {
                     frames.push(Frame::ScalarMatchNext {
                         span,
                         path,
+                        mode,
                         arms,
                         index: index + 1,
                         bindings,
@@ -9697,7 +9811,12 @@ impl Resolver<'_> {
                     OwnershipMode::Value,
                 )
             }
-            ExprKind::Match { scrutinee, arms } => {
+            ExprKind::Match {
+                mode,
+                scrutinee,
+                arms,
+            } => {
+                let mode = ResolvedMatchMode::from(*mode);
                 let scrutinee = self.resolve_expr_recursive_reference(
                     function,
                     scrutinee,
@@ -9715,6 +9834,13 @@ impl Resolver<'_> {
                         | ResolvedType::Char
                         | ResolvedType::Bool
                 ) {
+                    if mode != ResolvedMatchMode::Value {
+                        return Err(self.error(
+                            "SPX-O117",
+                            "explicit match ownership modes require a non-Copy record scrutinee",
+                            expr.span,
+                        ));
+                    }
                     if arms.is_empty() {
                         return Err(self.error(
                             "SPX-H006",
@@ -9828,6 +9954,7 @@ impl Resolver<'_> {
                         ty: resolved_arms[0].value.ty.clone(),
                         ownership: OwnershipMode::Value,
                         kind: ResolvedExprKind::Match {
+                            mode,
                             scrutinee: Box::new(scrutinee),
                             arms: resolved_arms,
                         },
@@ -9879,6 +10006,42 @@ impl Resolver<'_> {
                         expr.span,
                     ));
                 }
+                let matched_kind = matched_kind.expect("matched kind checked above");
+                let facts = self.declarations.type_facts(&scrutinee.ty).ok_or_else(|| {
+                    self.error("SPX-H006", "match scrutinee has no type facts", expr.span)
+                })?;
+                match (matched_kind, mode) {
+                    (DeclarationKind::Variant, ResolvedMatchMode::Value) => {}
+                    (DeclarationKind::Variant, _) => {
+                        return Err(self.error(
+                            "SPX-O117",
+                            "owned and borrowed variant matches are not admitted in this tranche",
+                            expr.span,
+                        ));
+                    }
+                    (DeclarationKind::Record, ResolvedMatchMode::Value)
+                        if facts.copy && scrutinee.ownership == OwnershipMode::Value => {}
+                    (DeclarationKind::Record, ResolvedMatchMode::Own)
+                        if facts.needs_drop
+                            && !facts.copy
+                            && scrutinee.ownership == OwnershipMode::Own => {}
+                    (DeclarationKind::Record, ResolvedMatchMode::Borrow)
+                        if facts.needs_drop
+                            && !facts.copy
+                            && matches!(
+                                scrutinee.ownership,
+                                OwnershipMode::Own | OwnershipMode::Borrow
+                            )
+                            && matches!(scrutinee.kind, ResolvedExprKind::Place(_)) => {}
+                    (DeclarationKind::Record, _) => {
+                        return Err(self.error(
+                            "SPX-O117",
+                            "match ownership mode disagrees with the record scrutinee",
+                            expr.span,
+                        ));
+                    }
+                    _ => unreachable!("matched kind was restricted above"),
+                }
                 let instance_arguments = arguments.clone();
                 let matched_type = matched_type.clone();
                 let mut resolved_arms = Vec::with_capacity(arms.len());
@@ -9889,7 +10052,7 @@ impl Resolver<'_> {
                         MatchPattern::Variant {
                             case_name, fields, ..
                         } => {
-                            if matched_kind != Some(DeclarationKind::Variant) {
+                            if matched_kind != DeclarationKind::Variant {
                                 return Err(self.error(
                                     "SPX-H001",
                                     "variant pattern has a record scrutinee",
@@ -9976,7 +10139,7 @@ impl Resolver<'_> {
                             span,
                             ..
                         } => {
-                            if matched_kind != Some(DeclarationKind::Record) {
+                            if matched_kind != DeclarationKind::Record {
                                 return Err(self.error(
                                     "SPX-H001",
                                     "record pattern has a variant scrutinee",
@@ -9991,6 +10154,7 @@ impl Resolver<'_> {
                                 &mut arm_bindings,
                                 &format!("{path}.arm.{arm_index}.record"),
                                 *span,
+                                mode,
                             )?
                         }
                         // Refutable Match v1 patterns on aggregate
@@ -10029,6 +10193,7 @@ impl Resolver<'_> {
                 let ownership = first.value.ownership;
                 (
                     ResolvedExprKind::Match {
+                        mode,
                         scrutinee: Box::new(scrutinee),
                         arms: resolved_arms,
                     },
@@ -10479,6 +10644,15 @@ interface HostEcho permits { host.echo } {
   let checked = value?;
   Result<bool, bool>::Ok { value: checked > 0 }
 }
+@id("match_value") fn match_value(value: i64) -> i64 {
+  match value { _ => value, }
+}
+@id("match_own") fn match_own(value: Choice) -> i64 {
+  match value { Choice::A { v } => v, Choice::B {} => 0, }
+}
+@id("match_borrow") fn match_borrow(value: Choice) -> i64 {
+  match value { Choice::A { v } => v, Choice::B {} => 0, }
+}
 @id("exercise") fn exercise(flag: bool, choice: Choice, pair: Pair) -> i64
   uses { host.echo }
 {
@@ -10549,6 +10723,25 @@ interface HostEcho permits { host.echo } {
                     "resolver oracle outcome differs: iterative={iterative:?}, recursive={recursive:?}"
                 ),
             }
+        }
+
+        for (function_id, expected_mode) in [
+            ("match_value", ResolvedMatchMode::Value),
+            ("match_own", ResolvedMatchMode::Value),
+            ("match_borrow", ResolvedMatchMode::Value),
+        ] {
+            let function = resolved
+                .functions
+                .iter()
+                .find(|function| function.id.as_str() == function_id)
+                .expect("match-mode fixture is resolved");
+            let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+                panic!("match-mode fixture body is a block with a tail")
+            };
+            let ResolvedExprKind::Match { mode, .. } = &tail.kind else {
+                panic!("match-mode fixture tail is a match")
+            };
+            assert_eq!(*mode, expected_mode);
         }
 
         let invalid = parse(

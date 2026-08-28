@@ -531,7 +531,9 @@ fn collect_expr(
                 collect_expr(&field.value, scope_end, resolved, facts);
             }
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             collect_expr(scrutinee, scope_end, resolved, facts);
             for arm in arms {
                 collect_pattern_bindings(&arm.pattern, facts);

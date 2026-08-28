@@ -91,7 +91,9 @@ fn expressions(root: &hir::ResolvedExpr) -> Vec<&hir::ResolvedExpr> {
                     else_branch.as_ref(),
                 ]);
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 pending.push(scrutinee);
                 pending.extend(arms.iter().filter_map(|arm| arm.guard.as_deref()));
                 pending.extend(arms.iter().map(|arm| &arm.value));

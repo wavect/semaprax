@@ -794,7 +794,7 @@ fn effectful(value: i64) -> i64 uses { io.release } { value }
 fn borrowed(target: borrow Buffer, amount: i64) -> i64 { amount }
 
 @id("probe.wide")
-fn wide(label: string) -> string { label }
+fn wide(label: [u8; 1]) -> i64 { 0 }
 
 @id("app.main")
 fn main() -> i64

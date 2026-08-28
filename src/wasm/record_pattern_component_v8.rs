@@ -320,7 +320,10 @@ fn validate_exact_pattern_body(
     if !statements.is_empty() {
         return Err(profile_error("record-pattern v8 body gained statements"));
     }
-    let ResolvedExprKind::Match { scrutinee, arms } = &tail.kind else {
+    let ResolvedExprKind::Match {
+        scrutinee, arms, ..
+    } = &tail.kind
+    else {
         return Err(profile_error(
             "record-pattern v8 body lost its explicit match",
         ));

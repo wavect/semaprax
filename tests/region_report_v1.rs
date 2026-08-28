@@ -205,7 +205,9 @@ fn reported_binding_ids_equal_the_resolved_hir_inventory() {
                 collect_expr(then_branch, ids);
                 collect_expr(else_branch, ids);
             }
-            hir::ResolvedExprKind::Match { scrutinee, arms } => {
+            hir::ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 collect_expr(scrutinee, ids);
                 for arm in arms {
                     collect_pattern(&arm.pattern, ids);

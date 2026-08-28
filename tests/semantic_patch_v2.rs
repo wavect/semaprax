@@ -74,7 +74,9 @@ fn first_call<'a>(expression: &'a ResolvedExpr, template: &str) -> Option<&'a Re
         | ResolvedExprKind::ConstructVariant { fields, .. } => fields
             .iter()
             .find_map(|field| first_call(&field.value, template)),
-        ResolvedExprKind::Match { scrutinee, arms } => first_call(scrutinee, template)
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => first_call(scrutinee, template)
             .or_else(|| arms.iter().find_map(|arm| first_call(&arm.value, template))),
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             first_call(base, template).or_else(|| {

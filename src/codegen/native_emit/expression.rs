@@ -16,6 +16,12 @@ use super::{
     CValue,
 };
 
+#[derive(Clone, Copy)]
+struct RecordMatchBindingMode<'a> {
+    mode: hir::ResolvedMatchMode,
+    source_storage: Option<&'a crate::cleanup_plan::StorageId>,
+}
+
 // `format!` resolves to the bounded codegen macro declared before
 // `mod native_emit`; it must never fall back to `std::format!` here.
 impl<'a, O: COutput> CEmitter<'a, O> {
@@ -512,6 +518,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         code: temporary,
                         ty: value.ty,
                     });
+                }
+                if is_aggregate_type(self.program, &value.ty)? {
+                    if let Some(plan) = self.bytes_plan {
+                        let transitions = plan.apply_at(&expr.id)?;
+                        for line in transitions.lines() {
+                            self.line(line);
+                        }
+                    }
                 }
                 value
             }
@@ -1027,10 +1041,61 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 let (value, _) = plan.call_argument(&expr.id, parameter_index)?;
                 format!("spx_bytes_move(&{value})")
             } else if is_aggregate_type(self.program, expected)? {
+                if target.param_ownerships[index] == hir::OwnershipMode::Own {
+                    if let Some(plan) = self.bytes_plan {
+                        let parameter_index = u32::try_from(index)
+                            .map_err(|_| backend_error("native call has too many parameters"))?;
+                        let storage = plan.call_argument_storage(&expr.id, parameter_index)?;
+                        let materialize =
+                            plan.materialize_record_carrier(&storage, &argument.code)?;
+                        for line in materialize.lines() {
+                            self.line(line);
+                        }
+                    }
+                }
                 format!("&({})", argument.code)
             } else {
                 argument.code
             });
+            if is_aggregate_type(self.program, expected)?
+                && target.param_ownerships[index] == hir::OwnershipMode::Borrow
+            {
+                let ResolvedExprKind::Place(place) = &arg.kind else {
+                    return Err(backend_error(
+                        "borrowed owned-record argument is not one authenticated place",
+                    ));
+                };
+                if !place.projections.is_empty() {
+                    return Err(backend_error(
+                        "borrowed owned-record argument is not one root place",
+                    ));
+                }
+                let storage = crate::cleanup_plan::StorageId::Value(place.root.clone());
+                for field in self
+                    .record_layout(expected)?
+                    .fields
+                    .iter()
+                    .filter(|field| matches!(field.ty, ResolvedType::Bytes))
+                {
+                    let alias = self
+                        .bytes_plan
+                        .and_then(|plan| {
+                            plan.projected_value_if_present(&storage, &field.field)
+                                .map(str::to_owned)
+                        })
+                        .or_else(|| {
+                            self.borrowed_record_bytes
+                                .get(&(place.root.clone(), field.field.clone()))
+                                .cloned()
+                        })
+                        .ok_or_else(|| {
+                            backend_error(
+                                "borrowed owned-record call has no authenticated field alias",
+                            )
+                        })?;
+                    arguments.push(format!("&({alias})"));
+                }
+            }
         }
         self.require_type(&expr.ty, &target.return_type, "call result")?;
         let temporary = if matches!(target.return_type, ResolvedType::Bytes) {
@@ -1060,6 +1125,17 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             }
         }
         self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+        if is_aggregate_type(self.program, &target.return_type)? {
+            if let Some(plan) = self.bytes_plan {
+                let storage = crate::cleanup_plan::StorageId::Temporary(expr.id.clone());
+                if plan.has_projected_leaves(&storage) {
+                    let initialize = plan.initialize_record_result_at(&expr.id, &temporary)?;
+                    for line in initialize.lines() {
+                        self.line(line);
+                    }
+                }
+            }
+        }
         if let Some(plan) = self.bytes_plan {
             let transitions = plan.apply_at(&expr.id)?;
             for line in transitions.lines() {
@@ -1284,6 +1360,16 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             backend_error("owned Bytes block has no canonical result transfer")
                         })?
                         .to_owned();
+                } else if is_aggregate_type(self.program, &tail.ty)? {
+                    if let Some(plan) = self.bytes_plan {
+                        let storage = crate::cleanup_plan::StorageId::Temporary(expr.id.clone());
+                        if plan.has_projected_leaves(&storage) {
+                            let transitions = plan.apply_at(&expr.id)?;
+                            for line in transitions.lines() {
+                                self.line(line);
+                            }
+                        }
+                    }
                 }
                 if let Some(plan) = self.bytes_plan {
                     let anchors = statements
@@ -1291,10 +1377,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         .flat_map(|statement| {
                             let mut anchors = Vec::with_capacity(2);
                             if let ResolvedStatement::Let { binding, .. } = statement {
-                                if binding.ty == ResolvedType::Bytes {
-                                    anchors.push(crate::cleanup_plan::StorageId::Value(
-                                        binding.id.clone(),
-                                    ));
+                                let storage =
+                                    crate::cleanup_plan::StorageId::Value(binding.id.clone());
+                                if binding.ty == ResolvedType::Bytes
+                                    || plan.has_projected_leaves(&storage)
+                                {
+                                    anchors.push(storage);
                                 }
                             }
                             let value = match statement {
@@ -1303,12 +1391,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                 ResolvedStatement::Unsafe { body, .. } => Some(body.as_ref()),
                                 ResolvedStatement::While { .. } => None,
                             };
-                            if let Some(value) =
-                                value.filter(|value| value.ty == ResolvedType::Bytes)
-                            {
-                                anchors.push(crate::cleanup_plan::StorageId::Temporary(
-                                    value.id.clone(),
-                                ));
+                            if let Some(value) = value {
+                                let storage =
+                                    crate::cleanup_plan::StorageId::Temporary(value.id.clone());
+                                if value.ty == ResolvedType::Bytes
+                                    || plan.has_projected_leaves(&storage)
+                                {
+                                    anchors.push(storage);
+                                }
                             }
                             anchors
                         })
@@ -1364,6 +1454,16 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         backend_error("owned Bytes block has no canonical result transfer")
                     })?
                     .to_owned();
+            } else if is_aggregate_type(self.program, &value.ty)? {
+                if let Some(plan) = self.bytes_plan {
+                    let storage = crate::cleanup_plan::StorageId::Temporary(block.id.clone());
+                    if plan.has_projected_leaves(&storage) {
+                        let transitions = plan.apply_at(&block.id)?;
+                        for line in transitions.lines() {
+                            self.line(line);
+                        }
+                    }
+                }
             }
             if let Some(plan) = self.bytes_plan {
                 let cleanup = plan.scope_exit(&BTreeSet::new())?;
@@ -1473,6 +1573,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 }
                 let temporary = self.temporary(&expr.ty)?;
                 self.initialize_record_carrier(&temporary, &layout);
+                for field in &layout.fields {
+                    if matches!(field.ty, ResolvedType::Bytes) {
+                        self.line(&format!(
+                            "{temporary}.{} = (spx_bytes_v1) {{0}};",
+                            c_field_symbol(&field.field)
+                        ));
+                    }
+                }
                 for initializer in fields {
                     let field = layout.field(&initializer.field).cloned().ok_or_else(|| {
                         backend_error(format!(
@@ -1482,12 +1590,18 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     })?;
                     let value = self.emit_expr(&initializer.value)?;
                     self.require_type(&value.ty, &field.ty, "record field initializer")?;
-                    if field.size != 0 {
+                    if field.size != 0 && !matches!(field.ty, ResolvedType::Bytes) {
                         self.line(&format!(
                             "{temporary}.{} = {};",
                             c_field_symbol(&field.field),
                             value.code
                         ));
+                    }
+                }
+                if let Some(plan) = self.bytes_plan {
+                    let transitions = plan.apply_at(&expr.id)?;
+                    for line in transitions.lines() {
+                        self.line(line);
                     }
                 }
                 CValue {
@@ -1565,10 +1679,20 @@ impl<'a, O: COutput> CEmitter<'a, O> {
 
     fn emit_match_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
         let value = match &expr.kind {
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                mode,
+                scrutinee,
+                arms,
+            } => {
                 if is_aggregate_type(self.program, &expr.ty)? {
                     return Err(backend_error("copy match arms must produce i64 or bool"));
                 }
+                let source_storage = match &scrutinee.kind {
+                    ResolvedExprKind::Place(place) if place.projections.is_empty() => {
+                        Some(crate::cleanup_plan::StorageId::Value(place.root.clone()))
+                    }
+                    _ => None,
+                };
                 let scrutinee = self.emit_expr(scrutinee)?;
                 // Refutable Match v1: Copy-scalar scrutinees lower to the
                 // literal/guard decision chain; aggregates keep the exact
@@ -1591,6 +1715,18 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     };
                     let staged = self.temporary(&scrutinee.ty)?;
                     self.line(&format!("{staged} = {};", scrutinee.code));
+                    if *mode != hir::ResolvedMatchMode::Value {
+                        self.line(&format!("(void){staged};"));
+                    }
+                    if *mode == hir::ResolvedMatchMode::Own {
+                        let transitions = self
+                            .bytes_plan
+                            .ok_or_else(|| backend_error("owned record match has no cleanup plan"))?
+                            .apply_at(&expr.id)?;
+                        for line in transitions.lines() {
+                            self.line(line);
+                        }
+                    }
                     let saved = self.variables.clone();
                     match &arm.pattern {
                         hir::ResolvedMatchPattern::Wildcard => {}
@@ -1604,6 +1740,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             pattern_record,
                             instance,
                             fields,
+                            RecordMatchBindingMode {
+                                mode: *mode,
+                                source_storage: source_storage.as_ref(),
+                            },
                         )?,
                         hir::ResolvedMatchPattern::Variant { .. } => {
                             return Err(backend_error(
@@ -1625,6 +1765,31 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     }
                     let value = self.emit_expr(&arm.value)?;
                     self.require_type(&value.ty, &expr.ty, "record match arm result")?;
+                    if *mode == hir::ResolvedMatchMode::Own {
+                        let hir::ResolvedMatchPattern::Record { fields, .. } = &arm.pattern else {
+                            return Err(backend_error(
+                                "owned record match requires one exact record pattern",
+                            ));
+                        };
+                        let anchors = fields
+                            .iter()
+                            .filter_map(|field| match &field.pattern {
+                                hir::ResolvedRecordMatchFieldPattern::Binding(binding)
+                                    if matches!(binding.ty, ResolvedType::Bytes) =>
+                                {
+                                    Some(crate::cleanup_plan::StorageId::Value(binding.id.clone()))
+                                }
+                                _ => None,
+                            })
+                            .collect::<BTreeSet<_>>();
+                        let cleanup = self
+                            .bytes_plan
+                            .expect("owned match plan checked above")
+                            .scope_exit(&anchors)?;
+                        for line in cleanup.lines() {
+                            self.line(line);
+                        }
+                    }
                     self.variables = saved;
                     return Ok(CValue {
                         code: value.code,
@@ -2074,6 +2239,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         })?;
         let mut code = binding.name;
         let mut ty = binding.ty;
+        let storage = crate::cleanup_plan::StorageId::Value(place.root.clone());
         for projection in &place.projections {
             let PlaceProjection::Field(field) = projection else {
                 return Err(backend_error(
@@ -2087,7 +2253,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     layout.record
                 ))
             })?;
-            code = if field.size == 0 {
+            code = if matches!(field.ty, ResolvedType::Bytes) {
+                self.bytes_plan
+                    .ok_or_else(|| backend_error("projected Bytes place has no cleanup plan"))?
+                    .projected_value(&storage, &field.field)?
+                    .to_owned()
+            } else if field.size == 0 {
                 self.emit_erased_record_field_value(&field.ty)?.code
             } else {
                 format!("({code}).{}", c_field_symbol(&field.field))
@@ -2165,6 +2336,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         record: &DeclarationId,
         instance: &ResolvedType,
         fields: &[hir::ResolvedRecordMatchPatternField],
+        binding_mode: RecordMatchBindingMode<'_>,
     ) -> Result<(), Diagnostic> {
         self.require_type(instance, expected, "record pattern instance")?;
         let layout = self.record_layout(expected)?;
@@ -2195,21 +2367,77 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             match &field.pattern {
                 hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
                     self.require_type(&binding.ty, &layout_field.ty, "record pattern binding")?;
-                    if binding.ownership != hir::OwnershipMode::Value
-                        || self
-                            .variables
-                            .insert(
-                                binding.id.clone(),
-                                CBinding {
-                                    name: field_code,
-                                    ty: layout_field.ty,
-                                },
-                            )
-                            .is_some()
-                    {
+                    let name = if matches!(layout_field.ty, ResolvedType::Bytes) {
+                        match binding_mode.mode {
+                            hir::ResolvedMatchMode::Own
+                                if binding.ownership == hir::OwnershipMode::Own =>
+                            {
+                                self.bytes_plan
+                                    .ok_or_else(|| {
+                                        backend_error(
+                                            "owned record pattern has no Bytes cleanup plan",
+                                        )
+                                    })?
+                                    .value(&crate::cleanup_plan::StorageId::Value(
+                                        binding.id.clone(),
+                                    ))?
+                                    .to_owned()
+                            }
+                            hir::ResolvedMatchMode::Borrow
+                                if binding.ownership == hir::OwnershipMode::Borrow =>
+                            {
+                                let source = binding_mode.source_storage.ok_or_else(|| {
+                                    backend_error(
+                                        "borrowed record match source is not one owned place",
+                                    )
+                                })?;
+                                let planned = self.bytes_plan.and_then(|plan| {
+                                    plan.projected_value_if_present(source, &layout_field.field)
+                                        .map(str::to_owned)
+                                });
+                                if let Some(planned) = planned {
+                                    planned
+                                } else {
+                                    let crate::cleanup_plan::StorageId::Value(root) = source else {
+                                        return Err(backend_error(
+                                            "borrowed record parameter alias is not value-rooted",
+                                        ));
+                                    };
+                                    self.borrowed_record_bytes
+                                        .get(&(root.clone(), layout_field.field.clone()))
+                                        .cloned()
+                                        .ok_or_else(|| {
+                                            backend_error(
+                                                "borrowed record Bytes field has no authenticated alias",
+                                            )
+                                        })?
+                                }
+                            }
+                            _ => {
+                                return Err(backend_error(
+                                    "record Bytes binding ownership disagrees with match mode",
+                                ));
+                            }
+                        }
+                    } else if binding.ownership == hir::OwnershipMode::Value {
+                        field_code
+                    } else {
                         return Err(backend_error(
-                            "record pattern binding is not a fresh Copy value",
+                            "scalar record binding has non-Value ownership",
                         ));
+                    };
+                    if self
+                        .variables
+                        .insert(
+                            binding.id.clone(),
+                            CBinding {
+                                name,
+                                ty: layout_field.ty,
+                            },
+                        )
+                        .is_some()
+                    {
+                        return Err(backend_error("record pattern binding is not fresh"));
                     }
                 }
                 hir::ResolvedRecordMatchFieldPattern::Wildcard => {}
@@ -2223,6 +2451,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     record,
                     instance,
                     fields,
+                    binding_mode,
                 )?,
             }
         }

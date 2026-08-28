@@ -16,7 +16,7 @@ use crate::format;
 use crate::hir::{
     self, ByteSliceExtent, ByteSliceRootKind, DeclarationId, FunctionExecutionId,
     FunctionInstanceId, IdentityOrigin, OwnershipMode, Place, PlaceProjection, ResolvedExpr,
-    ResolvedExprKind, ResolvedFunction, ResolvedImportFailure, ResolvedProgram,
+    ResolvedExprKind, ResolvedFunction, ResolvedImportFailure, ResolvedMatchMode, ResolvedProgram,
     ResolvedResourceDropKind, ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
     TypeFacts, ValueId,
 };
@@ -925,7 +925,10 @@ fn agent_function_json(
         ),
         agent_reference_index_json(program, function)?
     );
-    if graph_schema(program) == "semaprax.graph.v14" {
+    if matches!(
+        graph_schema(program),
+        "semaprax.graph.v14" | "semaprax.graph.v21"
+    ) {
         write!(
             output,
             ",\"call_instances\":[{}],\"body\":{}",
@@ -1189,7 +1192,9 @@ fn collect_result_propagations<'a>(
                 collect_result_propagations(&initializer.value, propagations);
             }
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             collect_result_propagations(scrutinee, propagations);
             for arm in arms {
                 if let Some(guard) = &arm.guard {
@@ -1292,7 +1297,12 @@ pub fn reject_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
 }
 
 pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
-    if schema == "semaprax.graph.v20" {
+    if schema == "semaprax.graph.v21" {
+        Err(Diagnostic::io(
+            "SPX-G410",
+            "ownership-aware match programs select `semaprax.graph.v21`, which is outside this evidence flow's admission",
+        ))
+    } else if schema == "semaprax.graph.v20" {
         Err(Diagnostic::io(
             "SPX-G410",
             "dynamic byte-range programs select `semaprax.graph.v20`, which is outside this evidence flow's admission",
@@ -1367,7 +1377,9 @@ fn expression_has_byte_range(expression: &ResolvedExpr) -> bool {
             | ResolvedExprKind::ConstructVariant { fields, .. } => {
                 pending.extend(fields.iter().map(|field| &field.value));
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 pending.push(scrutinee);
                 for arm in arms {
                     if let Some(guard) = &arm.guard {
@@ -1398,11 +1410,113 @@ fn expression_has_byte_range(expression: &ResolvedExpr) -> bool {
     false
 }
 
+/// True only when source-authenticated HIR carries ownership-changing match
+/// meaning. Plain `match` remains the implicit Value mode in every legacy
+/// graph schema so its canonical bytes do not change.
+fn expression_has_explicit_match_mode(expression: &ResolvedExpr) -> bool {
+    match &expression.kind {
+        ResolvedExprKind::Match {
+            mode,
+            scrutinee,
+            arms,
+        } => {
+            *mode != ResolvedMatchMode::Value
+                || expression_has_explicit_match_mode(scrutinee)
+                || arms.iter().any(|arm| {
+                    arm.guard
+                        .as_deref()
+                        .is_some_and(expression_has_explicit_match_mode)
+                        || expression_has_explicit_match_mode(&arm.value)
+                })
+        }
+        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_explicit_match_mode),
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            call.args.iter().any(expression_has_explicit_match_mode)
+        }
+        ResolvedExprKind::HostCommandCall(call) => {
+            call.args.iter().any(expression_has_explicit_match_mode)
+        }
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            expression_has_explicit_match_mode(source)
+                || expression_has_explicit_match_mode(start)
+                || expression_has_explicit_match_mode(end)
+        }
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::TryOption { operand: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => expression_has_explicit_match_mode(value),
+        ResolvedExprKind::Binary { left, right, .. } => {
+            expression_has_explicit_match_mode(left) || expression_has_explicit_match_mode(right)
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            statements.iter().any(|statement| {
+                (0..statement.child_count()).any(|index| {
+                    statement
+                        .child(index)
+                        .is_some_and(expression_has_explicit_match_mode)
+                })
+            }) || expression_has_explicit_match_mode(tail)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            expression_has_explicit_match_mode(condition)
+                || expression_has_explicit_match_mode(then_branch)
+                || expression_has_explicit_match_mode(else_branch)
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => fields
+            .iter()
+            .any(|field| expression_has_explicit_match_mode(&field.value)),
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            expression_has_explicit_match_mode(base)
+                || fields
+                    .iter()
+                    .any(|field| expression_has_explicit_match_mode(&field.value))
+        }
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
+        | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => false,
+    }
+}
+
 pub(crate) fn graph_schema_from_parts(
     types: &[hir::ResolvedTypeDeclaration],
     functions: &[ResolvedFunction],
     function_templates: &[hir::ResolvedFunctionTemplate],
 ) -> &'static str {
+    if functions.iter().any(|function| {
+        function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .any(expression_has_explicit_match_mode)
+    }) || function_templates.iter().any(|template| {
+        template
+            .requires
+            .iter()
+            .chain(std::iter::once(&template.body))
+            .chain(&template.ensures)
+            .any(expression_has_explicit_match_mode)
+    }) {
+        return "semaprax.graph.v21";
+    }
     if functions.iter().any(|function| {
         function
             .requires
@@ -1620,7 +1734,9 @@ fn expression_has_usize(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::ConstructVariant { fields, .. } => fields
             .iter()
             .any(|field| expression_has_usize(&field.value)),
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             expression_has_usize(scrutinee)
                 || arms.iter().any(|arm| {
                     arm.guard.as_deref().is_some_and(expression_has_usize)
@@ -1688,7 +1804,9 @@ fn expression_has_while(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::ConstructVariant { fields, .. } => fields
             .iter()
             .any(|field| expression_has_while(&field.value)),
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             expression_has_while(scrutinee)
                 || arms.iter().any(|arm| expression_has_while(&arm.value))
         }
@@ -1756,7 +1874,9 @@ fn expression_has_stdout_write(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::ConstructVariant { fields, .. } => fields
             .iter()
             .any(|field| expression_has_stdout_write(&field.value)),
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             expression_has_stdout_write(scrutinee)
                 || arms.iter().any(|arm| {
                     arm.guard
@@ -1819,7 +1939,9 @@ fn expression_has_command_io(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::ConstructVariant { fields, .. } => fields
             .iter()
             .any(|field| expression_has_command_io(&field.value)),
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             expression_has_command_io(scrutinee)
                 || arms.iter().any(|arm| {
                     arm.guard.as_deref().is_some_and(expression_has_command_io)
@@ -1913,7 +2035,9 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::ConstructVariant { fields, .. } => fields
             .iter()
             .any(|field| expression_has_record_pattern(&field.value)),
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             arms.iter().any(|arm| {
                 matches!(
                     &arm.pattern,
@@ -1995,7 +2119,9 @@ fn expression_has_refutable_match(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::ConstructVariant { fields, .. } => fields
             .iter()
             .any(|field| expression_has_refutable_match(&field.value)),
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             expression_has_refutable_match(scrutinee)
                 || arms.iter().any(|arm| {
                     is_refutable_arm(arm)
@@ -2162,7 +2288,9 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
                 collect_agent_contract_values(&initializer.value, values);
             }
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             collect_agent_contract_values(scrutinee, values);
             for arm in arms {
                 match &arm.pattern {
@@ -2407,8 +2535,13 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
                 .collect::<Result<Vec<_>, Diagnostic>>()?
                 .budgeted_join(",")
         ),
-        ResolvedExprKind::Match { scrutinee, arms } => format!(
-            "{{\"kind\":\"match\",\"scrutinee\":{},\"arms\":[{}]}}",
+        ResolvedExprKind::Match {
+            mode,
+            scrutinee,
+            arms,
+        } => format!(
+            "{{\"kind\":\"match\"{},\"scrutinee\":{},\"arms\":[{}]}}",
+            explicit_match_mode_json(*mode),
             agent_contract_expr_json(scrutinee)?,
             arms.iter()
                 .map(|arm| Ok(format!(
@@ -3421,7 +3554,9 @@ fn byte_slice_fact_json(
         byte_slice_extent_json(provenance.length),
         provenance.producer.as_ref().map_or_else(|| "null".to_owned(), |id| quote_json(id.as_str()))
     );
-    if schema != "semaprax.graph.v20" {
+    if schema != "semaprax.graph.v20"
+        && !(schema == "semaprax.graph.v21" && !provenance.ranges.is_empty())
+    {
         return base;
     }
     let ranges = provenance
@@ -3449,10 +3584,59 @@ fn portable_indexed_byte_data_json(
     schema: &str,
     program: &ResolvedProgram,
 ) -> Result<String, Diagnostic> {
+    let v21 = schema == "semaprax.graph.v21";
+    let has_portable_indexed_data = program.types.iter().any(type_declaration_has_usize)
+        || program.functions.iter().any(function_has_usize)
+        || program.function_templates.iter().any(|template| {
+            template
+                .params
+                .iter()
+                .any(|param| type_has_usize(&param.ty))
+                || type_has_usize(&template.return_type)
+                || template
+                    .requires
+                    .iter()
+                    .chain(std::iter::once(&template.body))
+                    .chain(&template.ensures)
+                    .any(expression_has_usize)
+        });
+    let has_stdout = program.functions.iter().any(|function| {
+        function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .any(expression_has_stdout_write)
+    });
+    let has_command_io = program.functions.iter().any(|function| {
+        function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .any(expression_has_command_io)
+    });
+    let has_byte_range = program.functions.iter().any(|function| {
+        function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .any(expression_has_byte_range)
+    });
+    let has_line_command = program.functions.iter().any(|function| {
+        function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .any(expression_has_command_append)
+    });
     if matches!(
         schema,
         "semaprax.graph.v17" | "semaprax.graph.v18" | "semaprax.graph.v19" | "semaprax.graph.v20"
-    ) {
+    ) || (v21 && has_portable_indexed_data)
+    {
         let capacity = hir::analyze_byte_data_capacity(program)?;
         let portable = format!(
             ",\"portable_indexed_byte_data\":{{\"profile\":\"useful-data-v1\",\"semantic_usize_bits\":64,\"max_external_root_bytes\":{},\"max_slice_bytes\":{},\"max_array_bytes\":{},\"max_inline_array_frame_bytes\":{},\"max_active_array_call_path_bytes\":{},\"max_bytes_copy_sites\":{},\"max_owned_byte_payload_bytes\":{},\"wasm_arena_token_min_inclusive\":1,\"wasm_arena_token_max_exclusive\":2147483648,\"wasm_arena_tokens_monotonic\":true,\"wasm_arena_tokens_reused\":false,\"wasm_import_binding\":\"exact-token-length\",\"wasm_carrier\":\"root-word-high32-length-u32-low32\",\"empty_bytes_owns_token\":true,\"zero_array_view\":\"root0-length0\",\"indexed_read\":\"total-option-u8\",\"capacity_summaries\":[{}],\"byte_slice_provenance\":[{}]}}",
@@ -3465,7 +3649,9 @@ fn portable_indexed_byte_data_json(
             crate::byte_data_capacity::MAX_OWNED_BYTE_PAYLOAD_BYTES,
             capacity.functions().map(|(function, _)| {
                 let summary = capacity.function(function).expect("enumerated capacity summary remains addressable");
-                if matches!(schema, "semaprax.graph.v19" | "semaprax.graph.v20") {
+                if matches!(schema, "semaprax.graph.v19" | "semaprax.graph.v20")
+                    || (v21 && has_command_io)
+                {
                     format!(
                         "{{\"function\":{},\"inline_array_frame_bytes\":{},\"active_array_call_path_bytes\":{},\"bytes_copy_sites\":{},\"stdin_read_sites\":{},\"owned_byte_payload_bytes\":{},\"stdout_write_sites\":{},\"stderr_write_sites\":{},\"combined_transcript_bytes\":{}}}",
                         quote_json(function),
@@ -3478,7 +3664,7 @@ fn portable_indexed_byte_data_json(
                         summary.stderr_write_sites,
                         summary.transcript_bytes,
                     )
-                } else if schema == "semaprax.graph.v18" {
+                } else if schema == "semaprax.graph.v18" || (v21 && has_stdout) {
                     format!(
                         "{{\"function\":{},\"inline_array_frame_bytes\":{},\"active_array_call_path_bytes\":{},\"bytes_copy_sites\":{},\"owned_byte_payload_bytes\":{},\"stdout_write_sites\":{}}}",
                         quote_json(function),
@@ -3506,17 +3692,12 @@ fn portable_indexed_byte_data_json(
                 .collect::<Vec<_>>()
                 .budgeted_join(",")
         );
-        let transcript = if matches!(
+        let transcript = if (matches!(
             schema,
             "semaprax.graph.v18" | "semaprax.graph.v19" | "semaprax.graph.v20"
-        ) && program.functions.iter().any(|function| {
-            function
-                .requires
-                .iter()
-                .chain(std::iter::once(&function.body))
-                .chain(&function.ensures)
-                .any(expression_has_stdout_write)
-        }) {
+        ) || v21)
+            && has_stdout
+        {
             format!(
                 ",\"bounded_stdout_transcript\":{{\"profile\":\"bounded-stdout-transcript-v1\",\"operation\":{},\"effect\":{},\"max_transcript_bytes\":{},\"max_writes_per_executable_path\":{},\"publication\":\"terminal-success-only\",\"failure\":\"discard-staged-transcript\"}}",
                 quote_json(crate::host_io_ops::STDOUT_WRITE_ID),
@@ -3527,7 +3708,9 @@ fn portable_indexed_byte_data_json(
         } else {
             String::new()
         };
-        let command_io = if matches!(schema, "semaprax.graph.v19" | "semaprax.graph.v20") {
+        let command_io = if matches!(schema, "semaprax.graph.v19" | "semaprax.graph.v20")
+            || (v21 && has_command_io)
+        {
             format!(
                 ",\"bounded_language_command_io\":{{\"profile\":\"language-command-io.v1\",\"operations\":[{{\"name\":{},\"id\":{},\"effect\":{},\"failure\":\"infallible\"}},{{\"name\":{},\"id\":{},\"effect\":{},\"failure\":\"status\"}},{{\"name\":{},\"id\":{},\"effect\":{},\"failure\":\"status\"}},{{\"name\":{},\"id\":{},\"effect\":{},\"failure\":\"infallible\"}}],\"status_domain\":{},\"status_codes\":{{\"arg_index_out_of_bounds\":1,\"arg_invalid_utf8\":2,\"stdin_read_failed\":3,\"input_capacity_exceeded\":4}},\"max_arguments\":{},\"max_input_bytes\":{},\"argument_root\":\"immutable-invocation-owned-arena\",\"max_stdin_reads_per_path\":1,\"max_writes_per_channel_per_path\":1,\"max_combined_output_bytes\":{},\"publication\":\"terminal-success-only\",\"failure\":\"discard-staged-transcripts\"}}",
                 quote_json(crate::command_io_ops::ARGS_LEN_NAME), quote_json(crate::command_io_ops::ARGS_LEN_ID), quote_json(crate::command_io_ops::ARGS_READ_EFFECT),
@@ -3542,7 +3725,7 @@ fn portable_indexed_byte_data_json(
         } else {
             String::new()
         };
-        let byte_range = if schema == "semaprax.graph.v20" {
+        let byte_range = if schema == "semaprax.graph.v20" || (v21 && has_byte_range) {
             format!(
                 ",\"bounded_byte_range\":{{\"profile\":\"byte-range-v1\",\"operation\":{},\"interval\":\"half-open\",\"evaluation_order\":[\"source\",\"start\",\"end\"],\"status_domain\":{},\"status_codes\":{{\"start_after_end\":{},\"end_out_of_bounds\":{}}},\"failure_order\":[\"start_after_end\",\"end_out_of_bounds\"],\"max_derivation_depth\":{},\"provenance\":\"bounded-acyclic-root-preserving-chain\"}}",
                 quote_json(crate::byte_ops::RANGE_ID),
@@ -3554,15 +3737,7 @@ fn portable_indexed_byte_data_json(
         } else {
             String::new()
         };
-        let line_command_io = if schema == "semaprax.graph.v20"
-            && program.functions.iter().any(|function| {
-                function
-                    .requires
-                    .iter()
-                    .chain(std::iter::once(&function.body))
-                    .chain(&function.ensures)
-                    .any(expression_has_command_append)
-            }) {
+        let line_command_io = if (schema == "semaprax.graph.v20" || v21) && has_line_command {
             format!(
                 ",\"bounded_line_command_io\":{{\"profile\":\"line-command-io.v1\",\"operations\":[{{\"name\":{},\"id\":{},\"effect\":{},\"return\":\"usize\",\"failure\":\"status\"}},{{\"name\":{},\"id\":{},\"effect\":{},\"return\":\"usize\",\"failure\":\"status\"}}],\"status_domain\":{},\"status_codes\":{{\"output_capacity_exceeded\":{}}},\"status_marker\":\"__spx_command_output_status_v1\",\"write_mode\":\"cumulative-append.v1\",\"max_combined_output_bytes\":{},\"publication\":\"terminal-success-only\",\"failure\":\"discard-staged-transcripts\"}}",
                 quote_json(crate::command_io_ops::STDOUT_APPEND_NAME),
@@ -4442,7 +4617,9 @@ fn visit_expr_call_instances(
                 visit_expr_call_instances(&initializer.value, visit);
             }
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             visit_expr_call_instances(scrutinee, visit);
             for arm in arms {
                 visit_expr_call_instances(&arm.value, visit);
@@ -4533,7 +4710,9 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
                 visit_expr_calls(&initializer.value, visit);
             }
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             visit_expr_calls(scrutinee, visit);
             for arm in arms {
                 visit_expr_calls(&arm.value, visit);
@@ -4656,7 +4835,9 @@ fn collect_expr_type_declarations(
                 collect_expr_type_declarations(&initializer.value, declarations);
             }
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             collect_expr_type_declarations(scrutinee, declarations);
             for arm in arms {
                 match &arm.pattern {
@@ -4993,7 +5174,11 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
                 .collect::<Result<Vec<_>, Diagnostic>>()?
                 .budgeted_join(",")
         ),
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            mode,
+            scrutinee,
+            arms,
+        } => {
             // Refutable Match v1: matches carrying guards or literal/or
             // patterns project `"exhaustive":false` plus additive per-arm
             // guard nodes; every pre-feature match keeps the exact
@@ -5008,7 +5193,8 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
                     )
             });
             format!(
-                "{{{header},\"kind\":\"match\",\"exhaustive\":{exhaustive},\"scrutinee\":{},\"arms\":[{}]}}",
+                "{{{header},\"kind\":\"match\"{},\"exhaustive\":{exhaustive},\"scrutinee\":{},\"arms\":[{}]}}",
+                explicit_match_mode_json(*mode),
                 expr_json(program, scrutinee)?,
                 arms.iter()
                     .enumerate()
@@ -5342,7 +5528,9 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
                 collect_expr_types(&initializer.value, types);
             }
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             collect_expr_types(scrutinee, types);
             for arm in arms {
                 match &arm.pattern {
@@ -5519,6 +5707,17 @@ fn ownership_text(ownership: OwnershipMode) -> &'static str {
     }
 }
 
+/// Additive match-mode projection. Value is intentionally absent because it
+/// was implicit in every graph through v20; emitting it would change legacy
+/// module, context, and agent-context bytes.
+fn explicit_match_mode_json(mode: ResolvedMatchMode) -> &'static str {
+    match mode {
+        ResolvedMatchMode::Value => "",
+        ResolvedMatchMode::Own => ",\"ownership_mode\":\"own\"",
+        ResolvedMatchMode::Borrow => ",\"ownership_mode\":\"borrow\"",
+    }
+}
+
 fn unary_text(op: UnaryOp) -> &'static str {
     match op {
         UnaryOp::Neg => "-",
@@ -5545,7 +5744,11 @@ fn string_array(values: &[String]) -> String {
 mod tests {
     use std::path::Path;
 
-    use super::{graph_schema, to_hir_json, DeclarationId, ResolvedExprKind, ResolvedProgram};
+    use super::{
+        agent_contract_expr_json, agent_function_json, expr_json, graph_json, graph_schema,
+        to_hir_json, AgentContextFilter, DeclarationId, GraphView, ResolvedExprKind,
+        ResolvedMatchMode, ResolvedProgram,
+    };
     use crate::{hir, parse};
 
     fn resolved_program() -> ResolvedProgram {
@@ -5579,6 +5782,133 @@ fn discard(token: own Token) -> i64 { 0 }
 fn main() -> i64 { 0 }
 "#;
         hir::resolve(&parse(source, Path::new("graph-resource-hir.spx")).unwrap()).unwrap()
+    }
+
+    fn resolved_value_match_program() -> ResolvedProgram {
+        let source = r#"
+module test.graph_match_mode;
+@id("mode.pair")
+record Pair {
+    @id("mode.pair.left") left: i64,
+    @id("mode.pair.right") right: bool,
+}
+@id("mode.read")
+fn read(value: Pair) -> i64 {
+    match value { Pair { left, right: _ } => left, }
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+        hir::resolve(&parse(source, Path::new("graph-match-mode.spx")).unwrap()).unwrap()
+    }
+
+    fn match_tail_mut(program: &mut ResolvedProgram) -> &mut crate::hir::ResolvedExpr {
+        let function = program
+            .functions
+            .iter_mut()
+            .find(|function| function.id.as_str() == "mode.read")
+            .expect("mode fixture function");
+        let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind else {
+            panic!("mode fixture body is a block")
+        };
+        tail
+    }
+
+    #[test]
+    fn explicit_match_modes_select_v21_and_are_distinct_in_graph_and_agent_views() {
+        let value = resolved_value_match_program();
+        assert_eq!(graph_schema(&value), "semaprax.graph.v13");
+        let value_match = value
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "mode.read")
+            .and_then(|function| match &function.body.kind {
+                ResolvedExprKind::Block { tail, .. } => Some(tail.as_ref()),
+                _ => None,
+            })
+            .expect("mode fixture match");
+        let value_graph = expr_json(&value, value_match).unwrap();
+        let value_agent = agent_contract_expr_json(value_match).unwrap();
+        assert!(!value_graph.contains("\"kind\":\"match\",\"ownership_mode\""));
+        assert!(!value_agent.contains("\"kind\":\"match\",\"ownership_mode\""));
+
+        let mut own = value.clone();
+        let ResolvedExprKind::Match { mode, .. } = &mut match_tail_mut(&mut own).kind else {
+            panic!("mode fixture tail is a match")
+        };
+        *mode = ResolvedMatchMode::Own;
+        assert_eq!(graph_schema(&own), "semaprax.graph.v21");
+        let own_match = own
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "mode.read")
+            .and_then(|function| match &function.body.kind {
+                ResolvedExprKind::Block { tail, .. } => Some(tail.as_ref()),
+                _ => None,
+            })
+            .unwrap();
+        let own_graph = expr_json(&own, own_match).unwrap();
+        assert!(own_graph.contains("\"kind\":\"match\",\"ownership_mode\":\"own\""));
+        let selected_functions = own
+            .functions
+            .iter()
+            .map(|function| function.id.clone())
+            .collect::<std::collections::BTreeSet<_>>();
+        let selected_types = own
+            .types
+            .iter()
+            .map(|declaration| declaration.id.clone())
+            .collect::<std::collections::BTreeSet<_>>();
+        let module = graph_json(
+            &own,
+            "test-source-revision",
+            &selected_functions,
+            &selected_types,
+            &GraphView::Module,
+        )
+        .unwrap();
+        assert!(module.starts_with("{\"schema\":\"semaprax.graph.v21\","));
+        assert!(module.contains("\"kind\":\"match\",\"ownership_mode\":\"own\""));
+        let root = DeclarationId::new("mode.read");
+        let context = graph_json(
+            &own,
+            "test-source-revision",
+            &selected_functions,
+            &selected_types,
+            &GraphView::Context {
+                root: &root,
+                depth: 1,
+                frontier: &selected_functions,
+            },
+        )
+        .unwrap();
+        assert!(context.contains("\"kind\":\"match\",\"ownership_mode\":\"own\""));
+
+        let mut borrow = value;
+        let ResolvedExprKind::Match { mode, .. } = &mut match_tail_mut(&mut borrow).kind else {
+            panic!("mode fixture tail is a match")
+        };
+        *mode = ResolvedMatchMode::Borrow;
+        assert_eq!(graph_schema(&borrow), "semaprax.graph.v21");
+        let borrow_function = borrow
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "mode.read")
+            .unwrap();
+        let ResolvedExprKind::Block {
+            tail: borrow_match, ..
+        } = &borrow_function.body.kind
+        else {
+            panic!("mode fixture body is a block")
+        };
+        let borrow_graph = expr_json(&borrow, borrow_match).unwrap();
+        assert!(borrow_graph.contains("\"kind\":\"match\",\"ownership_mode\":\"borrow\""));
+        assert_ne!(own_graph, borrow_graph);
+
+        let filters = std::collections::BTreeSet::from([AgentContextFilter::Ownership]);
+        let agent = agent_function_json(&borrow, borrow_function, &filters).unwrap();
+        assert!(agent.contains("\"ownership_mode\":\"borrow\""));
+        assert!(!agent.contains("\"ownership_mode\":\"own\""));
     }
 
     #[test]

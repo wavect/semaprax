@@ -558,6 +558,10 @@ impl DeclarationIndex {
                         DeclarationKind::Variant => {
                             let cases = self.variant_cases.get(&declaration)?;
                             let mut facts_iter = child_facts.iter();
+                            let mut copy = true;
+                            let mut contains_resource = false;
+                            let mut sized = true;
+                            let mut needs_drop = false;
                             for case in cases {
                                 write!(
                                     encoded,
@@ -569,9 +573,10 @@ impl DeclarationIndex {
                                 .ok()?;
                                 for field in &case.fields {
                                     let facts = facts_iter.next()?;
-                                    if !facts.copy || facts.contains_resource || facts.needs_drop {
-                                        return None;
-                                    }
+                                    copy &= facts.copy;
+                                    contains_resource |= facts.contains_resource;
+                                    sized &= facts.sized;
+                                    needs_drop |= facts.needs_drop;
                                     write!(
                                         encoded,
                                         "{}:{}:{}:{}",
@@ -586,10 +591,10 @@ impl DeclarationIndex {
                             #[cfg(test)]
                             let encoded_capacity = encoded.allocated_capacity();
                             let facts = TypeFacts {
-                                copy: true,
-                                contains_resource: false,
-                                sized: true,
-                                needs_drop: false,
+                                copy,
+                                contains_resource,
+                                sized,
+                                needs_drop,
                                 layout_key: format!(
                                     "variant:{}:{}:{}:{}",
                                     declaration.as_str().len(),

@@ -936,6 +936,7 @@ fn is_source_graph_schema(value: &str) -> bool {
             | "semaprax.graph.v18"
             | "semaprax.graph.v19"
             | "semaprax.graph.v20"
+            | "semaprax.graph.v21"
     )
 }
 
@@ -977,9 +978,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn source_graph_v20_is_admitted_without_widening_unknown_schemas() {
+    fn source_graph_v21_is_admitted_without_widening_unknown_schemas() {
         assert!(is_source_graph_schema("semaprax.graph.v20"));
-        assert!(!is_source_graph_schema("semaprax.graph.v21"));
+        assert!(is_source_graph_schema("semaprax.graph.v21"));
+        assert!(!is_source_graph_schema("semaprax.graph.v22"));
     }
     use std::path::{Path, PathBuf};
     use std::sync::atomic::{AtomicU64, Ordering};

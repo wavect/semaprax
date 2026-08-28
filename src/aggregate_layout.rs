@@ -37,10 +37,22 @@ impl AggregateTarget {
 pub(crate) struct AggregateFieldLayout {
     pub(crate) field: DeclarationId,
     pub(crate) ty: ResolvedType,
+    /// Physical layout never implies semantic Copy. In particular, `Bytes`
+    /// is one owned carrier whose bits may only move under cleanup-plan
+    /// authority even though its target representation has a fixed size.
+    pub(crate) value_kind: AggregateFieldValueKind,
     pub(crate) offset: u32,
     pub(crate) size: u32,
     pub(crate) align: u32,
     nested_digest: [u8; 32],
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum AggregateFieldValueKind {
+    Copy,
+    OwnedBytes,
+    Resource,
+    Aggregate,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -203,8 +215,20 @@ struct ValueLayout {
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum ValueLayoutKind {
     Scalar,
+    OwnedBytes,
     Resource,
     Record { fields: Vec<AggregateFieldLayout> },
+}
+
+impl ValueLayoutKind {
+    const fn field_kind(&self) -> AggregateFieldValueKind {
+        match self {
+            Self::Scalar => AggregateFieldValueKind::Copy,
+            Self::OwnedBytes => AggregateFieldValueKind::OwnedBytes,
+            Self::Resource => AggregateFieldValueKind::Resource,
+            Self::Record { .. } => AggregateFieldValueKind::Aggregate,
+        }
+    }
 }
 
 fn layout_type(
@@ -235,9 +259,15 @@ fn layout_type(
         ResolvedType::String => Err(layout_error(
             "owned string values have no aggregate value layout in v1",
         )),
-        ResolvedType::Bytes => Err(layout_error(
-            "owned byte buffers have no aggregate value layout in v1",
-        )),
+        ResolvedType::Bytes => {
+            let (size, align) = owned_bytes_size_align(target);
+            Ok(ValueLayout {
+                size,
+                align,
+                digest: digest_value(target, ty, size, align, &[]),
+                kind: ValueLayoutKind::OwnedBytes,
+            })
+        }
         ResolvedType::Str => Err(layout_error(
             "borrowed string views have no aggregate value layout",
         )),
@@ -251,6 +281,18 @@ fn layout_type(
             declaration,
             arguments,
         } => layout_nominal(program, target, declaration, arguments, visiting),
+    }
+}
+
+/// Exact physical carrier used by the existing owned-byte runtimes. This is
+/// deliberately separate from `scalar_size_align`: fixed representation does
+/// not make an owned value Copy.
+pub(crate) const fn owned_bytes_size_align(target: AggregateTarget) -> (u32, u32) {
+    match target {
+        // `spx_bytes_v1` is `{ uint8_t *ptr; uint64_t len; }` on Native64.
+        AggregateTarget::Native64 => (16, 8),
+        // Wasm represents one authenticated owned-byte token in an `i64`.
+        AggregateTarget::Wasm32 => (8, 8),
     }
 }
 
@@ -394,6 +436,7 @@ fn layout_record(
 
         let field_ty = crate::hir::substitute_type(&declaration.ty, record, arguments)?;
         let value = layout_type(program, target, &field_ty, visiting)?;
+        let value_kind = value.kind.field_kind();
         offset = align_up(offset, value.align)?;
         let end = offset
             .checked_add(value.size)
@@ -401,6 +444,7 @@ fn layout_record(
         fields.push(AggregateFieldLayout {
             field: declaration.id.clone(),
             ty: field_ty,
+            value_kind,
             offset,
             size: value.size,
             align: value.align,
@@ -560,7 +604,9 @@ fn collect_expr_record_types(
                         .map(|field| Work::Expression(&field.value)),
                 );
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 for arm in arms.iter().rev() {
                     pending.push(Work::Expression(&arm.value));
                     if let Some(guard) = &arm.guard {
@@ -660,7 +706,10 @@ fn layout_error(message: impl Into<String>) -> Diagnostic {
 mod tests {
     use std::path::Path;
 
-    use super::{align_up, AggregateLayout, AggregateLayoutCache, AggregateTarget};
+    use super::{
+        align_up, owned_bytes_size_align, AggregateFieldValueKind, AggregateLayout,
+        AggregateLayoutCache, AggregateTarget,
+    };
     use crate::hir::{
         self, DeclarationId, ResolvedResourceDropKind, ResolvedType, ResolvedTypeDeclarationKind,
     };
@@ -800,6 +849,92 @@ fn main() -> i64 { 0 }
             );
             layout.validate(&program).unwrap();
         }
+    }
+
+    #[test]
+    fn direct_owned_bytes_layout_matches_existing_carriers_without_becoming_copy() {
+        assert_eq!(owned_bytes_size_align(AggregateTarget::Native64), (16, 8));
+        assert_eq!(owned_bytes_size_align(AggregateTarget::Wasm32), (8, 8));
+
+        // Source admission intentionally remains closed. Mutating resolved
+        // type facts isolates this internal layout substrate from the parser,
+        // verifier, public ABI, Project, and backend profiles.
+        let mut program = program();
+        let holder = program
+            .types
+            .iter_mut()
+            .find(|item| item.id.as_str() == "array-holder.type")
+            .unwrap();
+        let ResolvedTypeDeclarationKind::Record { fields } = &mut holder.kind else {
+            panic!("array holder is a record")
+        };
+        fields[0].ty = ResolvedType::Bytes;
+        fields[1].ty = ResolvedType::U8;
+        let instance = ResolvedType::Nominal {
+            declaration: DeclarationId::new("array-holder.type"),
+            arguments: Vec::new(),
+        };
+        program
+            .functions
+            .iter_mut()
+            .find(|function| function.id.as_str() == "app.main")
+            .unwrap()
+            .return_type = instance.clone();
+
+        let native = AggregateLayout::for_type(&program, AggregateTarget::Native64, &instance)
+            .expect("Native64 owned-byte record layout");
+        assert_eq!((native.size, native.align), (24, 8));
+        assert_eq!(
+            native
+                .fields
+                .iter()
+                .map(|field| (
+                    field.field.as_str(),
+                    field.value_kind,
+                    field.offset,
+                    field.size,
+                    field.align,
+                ))
+                .collect::<Vec<_>>(),
+            vec![
+                (
+                    "array-holder.bytes",
+                    AggregateFieldValueKind::OwnedBytes,
+                    0,
+                    16,
+                    8,
+                ),
+                ("array-holder.zero", AggregateFieldValueKind::Copy, 16, 1, 1,),
+            ]
+        );
+        native.validate(&program).unwrap();
+
+        let wasm = AggregateLayout::for_type(&program, AggregateTarget::Wasm32, &instance)
+            .expect("Wasm32 owned-byte record layout");
+        assert_eq!((wasm.size, wasm.align), (16, 8));
+        assert_eq!(
+            wasm.fields
+                .iter()
+                .map(|field| (field.value_kind, field.offset, field.size, field.align))
+                .collect::<Vec<_>>(),
+            vec![
+                (AggregateFieldValueKind::OwnedBytes, 0, 8, 8),
+                (AggregateFieldValueKind::Copy, 8, 4, 4),
+            ]
+        );
+        wasm.validate(&program).unwrap();
+
+        for target in [AggregateTarget::Native64, AggregateTarget::Wasm32] {
+            let cache = AggregateLayoutCache::build(&program, target).unwrap();
+            assert_eq!(
+                cache.layout(&instance).unwrap().fields[0].value_kind,
+                AggregateFieldValueKind::OwnedBytes
+            );
+        }
+
+        let mut copy_confused = native;
+        copy_confused.fields[0].value_kind = AggregateFieldValueKind::Copy;
+        assert!(copy_confused.validate(&program).is_err());
     }
 
     #[test]

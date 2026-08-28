@@ -616,7 +616,9 @@ fn render_recipe_expr(
             rendered.push_str(" }");
             Ok(rendered)
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             let scrutinee = render_recipe_expr(scrutinee, functions, values, local_index)?;
             let mut rendered = format!("match {scrutinee} {{ ");
             for arm in arms {

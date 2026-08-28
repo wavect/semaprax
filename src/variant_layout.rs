@@ -1,9 +1,10 @@
-//! Deterministic target layouts for executable copy variants.
+//! Deterministic target layouts for executable variants.
 //!
 //! Tags are declaration-order `u32` ordinals. Every variant reserves an
 //! aligned maximum-payload region, including one inert byte for unit-only
 //! payloads. Backends validate an independently reconstructed layout before
-//! consuming it.
+//! consuming it. Layout support for an owned leaf records ownership explicitly;
+//! it does not widen any executable Copy-variant profile.
 
 use std::collections::{BTreeMap, BTreeSet};
 #[cfg(test)]
@@ -11,7 +12,7 @@ use std::fmt::Write as _;
 
 use sha2::{Digest, Sha256};
 
-use crate::aggregate_layout::{scalar_size_align, AggregateTarget};
+use crate::aggregate_layout::{owned_bytes_size_align, scalar_size_align, AggregateTarget};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     substitute_type, DeclarationId, ResolvedExpr, ResolvedExprKind, ResolvedProgram, ResolvedType,
@@ -27,9 +28,17 @@ pub(crate) struct VariantFieldLayout {
     pub(crate) field: DeclarationId,
     pub(crate) template_ty: ResolvedType,
     pub(crate) ty: ResolvedType,
+    /// Fixed carrier layout is independent of semantic Copy admission.
+    pub(crate) value_kind: VariantFieldValueKind,
     pub(crate) offset: u32,
     pub(crate) size: u32,
     pub(crate) align: u32,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum VariantFieldValueKind {
+    Copy,
+    OwnedBytes,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -97,12 +106,26 @@ impl VariantLayout {
         let ResolvedTypeDeclarationKind::Variant { cases } = &declaration.kind else {
             return Err(layout_error(format!("`{variant}` is not a variant")));
         };
+        let compiler_byte_option = variant.as_str() == crate::prelude::OPTION_ID
+            && arguments.as_slice() == [ResolvedType::U8];
+        let compiler_owned_byte_algebra = matches!(
+            (variant.as_str(), arguments.as_slice()),
+            (crate::prelude::OPTION_ID, [ResolvedType::Bytes])
+                | (
+                    crate::prelude::RESULT_ID,
+                    [ResolvedType::Bytes, ResolvedType::I64 | ResolvedType::Bool],
+                )
+                | (
+                    crate::prelude::RESULT_ID,
+                    [ResolvedType::I64 | ResolvedType::Bool, ResolvedType::Bytes],
+                )
+        );
         if arguments.len() != declaration.type_parameters.len()
-            || arguments.iter().any(|argument| {
-                !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
-                    && !(variant.as_str() == crate::prelude::OPTION_ID
-                        && *argument == ResolvedType::U8)
-            })
+            || (!compiler_byte_option
+                && !compiler_owned_byte_algebra
+                && arguments
+                    .iter()
+                    .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)))
         {
             return Err(layout_error(format!(
                 "variant `{variant}` has invalid concrete arguments"
@@ -282,17 +305,24 @@ fn layout_case(
             )));
         }
         let concrete_ty = substitute_type(&field.ty, variant, arguments)?;
-        let (size, field_align) = scalar_size_align(target, &concrete_ty).map_err(|_| {
-            layout_error(format!(
-                "variant `{variant}` case `{}` field `{}` is not direct i64/bool",
-                case.id, field.id
-            ))
-        })?;
+        let (size, field_align, value_kind) = if concrete_ty == ResolvedType::Bytes {
+            let (size, align) = owned_bytes_size_align(target);
+            (size, align, VariantFieldValueKind::OwnedBytes)
+        } else {
+            let (size, align) = scalar_size_align(target, &concrete_ty).map_err(|_| {
+                layout_error(format!(
+                    "variant `{variant}` case `{}` field `{}` is not a direct Copy scalar or owned Bytes leaf",
+                    case.id, field.id
+                ))
+            })?;
+            (size, align, VariantFieldValueKind::Copy)
+        };
         offset = align_up(offset, field_align)?;
         fields.push(VariantFieldLayout {
             field: field.id.clone(),
             template_ty: field.ty.clone(),
             ty: concrete_ty,
+            value_kind,
             offset,
             size,
             align: field_align,
@@ -499,7 +529,9 @@ fn collect_expr_variant_types(
                         .map(|field| Work::Expression(&field.value)),
                 );
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 for arm in arms.iter().rev() {
                     pending.push(Work::Expression(&arm.value));
                     if let Some(guard) = &arm.guard {
@@ -556,7 +588,7 @@ fn layout_error(message: impl Into<String>) -> Diagnostic {
 mod tests {
     use std::path::Path;
 
-    use super::{VariantLayout, VariantLayoutCache, VariantTarget};
+    use super::{VariantFieldValueKind, VariantLayout, VariantLayoutCache, VariantTarget};
     use crate::hir::{self, DeclarationId, ResolvedType, ResolvedTypeDeclarationKind};
     use crate::parse;
 
@@ -778,6 +810,153 @@ fn main() -> i64 { 0 }
             wasm.digest_hex(),
             "4a1c07d4b2011b11c43acb27aa9951b0cb6a55af24e079c73833f7047c3700e6"
         );
+    }
+
+    #[test]
+    fn direct_owned_bytes_payload_uses_target_carrier_and_remains_non_copy() {
+        // Keep source/verifier admission unchanged and exercise only the
+        // internal resolved-type layout substrate.
+        let mut program = resolved();
+        let variant = DeclarationId::new("choice.type");
+        let declaration = program
+            .types
+            .iter_mut()
+            .find(|item| item.id == variant)
+            .unwrap();
+        let ResolvedTypeDeclarationKind::Variant { cases } = &mut declaration.kind else {
+            panic!("choice is a variant")
+        };
+        cases[2].fields[0].ty = ResolvedType::Bytes;
+        let instance = nominal("choice.type", Vec::new());
+        program
+            .functions
+            .iter_mut()
+            .find(|function| function.id.as_str() == "app.main")
+            .unwrap()
+            .return_type = instance.clone();
+
+        let native = VariantLayout::for_type(&program, VariantTarget::Native64, &instance)
+            .expect("Native64 owned-byte variant layout");
+        assert_eq!(
+            (
+                native.payload_offset,
+                native.payload_size,
+                native.size,
+                native.align,
+            ),
+            (8, 24, 32, 8)
+        );
+        let native_pair = native.case(&DeclarationId::new("choice.pair")).unwrap();
+        assert_eq!((native_pair.size, native_pair.align), (24, 8));
+        assert_eq!(
+            native_pair
+                .fields
+                .iter()
+                .map(|field| (field.value_kind, field.offset, field.size, field.align))
+                .collect::<Vec<_>>(),
+            vec![
+                (VariantFieldValueKind::OwnedBytes, 0, 16, 8),
+                (VariantFieldValueKind::Copy, 16, 1, 1),
+            ]
+        );
+        native.validate(&program).unwrap();
+
+        let wasm = VariantLayout::for_type(&program, VariantTarget::Wasm32, &instance)
+            .expect("Wasm32 owned-byte variant layout");
+        assert_eq!(
+            (
+                wasm.payload_offset,
+                wasm.payload_size,
+                wasm.size,
+                wasm.align,
+            ),
+            (8, 16, 24, 8)
+        );
+        let wasm_pair = wasm.case(&DeclarationId::new("choice.pair")).unwrap();
+        assert_eq!((wasm_pair.size, wasm_pair.align), (16, 8));
+        assert_eq!(
+            wasm_pair
+                .fields
+                .iter()
+                .map(|field| (field.value_kind, field.offset, field.size, field.align))
+                .collect::<Vec<_>>(),
+            vec![
+                (VariantFieldValueKind::OwnedBytes, 0, 8, 8),
+                (VariantFieldValueKind::Copy, 8, 4, 4),
+            ]
+        );
+        wasm.validate(&program).unwrap();
+
+        for target in [VariantTarget::Native64, VariantTarget::Wasm32] {
+            let cache = VariantLayoutCache::build(&program, target).unwrap();
+            assert_eq!(
+                cache
+                    .layout(&instance)
+                    .unwrap()
+                    .case(&DeclarationId::new("choice.pair"))
+                    .unwrap()
+                    .fields[0]
+                    .value_kind,
+                VariantFieldValueKind::OwnedBytes
+            );
+        }
+
+        let mut copy_confused = native;
+        copy_confused.cases[2].fields[0].value_kind = VariantFieldValueKind::Copy;
+        assert!(copy_confused.validate(&program).is_err());
+
+        for algebra in [
+            nominal(crate::prelude::OPTION_ID, vec![ResolvedType::Bytes]),
+            nominal(
+                crate::prelude::RESULT_ID,
+                vec![ResolvedType::Bytes, ResolvedType::Bool],
+            ),
+            nominal(
+                crate::prelude::RESULT_ID,
+                vec![ResolvedType::I64, ResolvedType::Bytes],
+            ),
+        ] {
+            for (target, expected) in [
+                (VariantTarget::Native64, (8, 16, 24, 8)),
+                (VariantTarget::Wasm32, (8, 8, 16, 8)),
+            ] {
+                let layout = VariantLayout::for_type(&program, target, &algebra)
+                    .expect("compiler-owned owned-byte algebra layout");
+                assert_eq!(
+                    (
+                        layout.payload_offset,
+                        layout.payload_size,
+                        layout.size,
+                        layout.align,
+                    ),
+                    expected
+                );
+                let owned = layout
+                    .cases
+                    .iter()
+                    .flat_map(|case| &case.fields)
+                    .find(|field| field.ty == ResolvedType::Bytes)
+                    .expect("one direct owned-byte payload");
+                assert_eq!(owned.value_kind, VariantFieldValueKind::OwnedBytes);
+                layout.validate(&program).unwrap();
+            }
+        }
+
+        let generic_program = hir::resolve(
+            &parse(
+                GENERIC_SOURCE,
+                Path::new("generic-owned-byte-layout-rejection.spx"),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let source_generic_bytes = nominal("choice.generic", vec![ResolvedType::Bytes]);
+        assert!(VariantLayout::for_type(
+            &generic_program,
+            VariantTarget::Native64,
+            &source_generic_bytes,
+        )
+        .is_err());
     }
 
     #[test]

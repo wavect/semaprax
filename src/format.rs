@@ -909,7 +909,12 @@ fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize {
                 }
                 total = total.saturating_add(rendered);
             }
-            ExprKind::Match { scrutinee, arms } => {
+            ExprKind::Match {
+                mode,
+                scrutinee,
+                arms,
+            } => {
+                total = total.saturating_add(mode.source_prefix().len());
                 if contains_record_construction(scrutinee) {
                     total = total.saturating_add(rendered_expr_len(scrutinee, 0).saturating_add(2));
                 }
@@ -1265,8 +1270,13 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                         frames.push(Frame::Fields(fields, 0, " }"));
                     }
                 }
-                ExprKind::Match { scrutinee, arms } => {
+                ExprKind::Match {
+                    mode,
+                    scrutinee,
+                    arms,
+                } => {
                     output.write_str("match ").unwrap();
+                    output.write_str(mode.source_prefix()).unwrap();
                     let delimited = contains_record_construction(scrutinee);
                     if delimited {
                         output.write_char('(').unwrap();
@@ -1780,7 +1790,9 @@ fn contains_record_construction(value: &Expr) -> bool {
             ]
             .get(index)
             .copied(),
-            ExprKind::Match { scrutinee, arms } => {
+            ExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 if index == 0 {
                     Some(scrutinee)
                 } else {

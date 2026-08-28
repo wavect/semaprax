@@ -199,7 +199,9 @@ fn program_uses_strings(program: &ResolvedProgram) -> bool {
             | ResolvedExprKind::ConstructVariant { fields, .. } => {
                 pending.extend(fields.iter().map(|field| &field.value));
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 pending.push(scrutinee);
                 for arm in arms {
                     if let Some(guard) = &arm.guard {
@@ -303,7 +305,9 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
             | ResolvedExprKind::ConstructVariant { fields, .. } => {
                 pending.extend(fields.iter().map(|field| &field.value))
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 pending.push(scrutinee);
                 for arm in arms {
                     if let Some(guard) = &arm.guard {
@@ -387,7 +391,9 @@ fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
             | ResolvedExprKind::ConstructVariant { fields, .. } => {
                 pending.extend(fields.iter().map(|field| &field.value));
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 pending.push(scrutinee);
                 for arm in arms {
                     if let Some(guard) = &arm.guard {
@@ -473,7 +479,9 @@ fn program_uses_string_ops_v2(program: &ResolvedProgram) -> bool {
             | ResolvedExprKind::ConstructVariant { fields, .. } => {
                 pending.extend(fields.iter().map(|field| &field.value));
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 pending.push(scrutinee);
                 pending.extend(arms.iter().map(|arm| &arm.value));
             }
@@ -570,7 +578,9 @@ fn collect_string_data(program: &ResolvedProgram) -> StringData {
                     pending.push(&field.value);
                 }
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 for arm in arms.iter().rev() {
                     if let Some(guard) = &arm.guard {
                         pending.push(guard.as_ref());
@@ -3159,7 +3169,9 @@ fn collect_locals(
                 collect_locals(&field.value, parameter_count, layout)?;
             }
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             collect_locals(scrutinee, parameter_count, layout)?;
             if matches!(
                 scrutinee.ty,
@@ -3935,7 +3947,9 @@ fn emit_expr(
             )?;
             output.push(0x0b);
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             // Refutable Match v1: Copy-scalar scrutinees lower to the
             // literal/guard decision chain on the core lane; aggregates keep
             // the aggregate-lane rejection below.
@@ -4380,7 +4394,9 @@ pub(crate) fn needs_i32_wide_scratch(expression: &ResolvedExpr) -> bool {
                     pending.push(&field.value);
                 }
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 pending.push(scrutinee);
                 for arm in arms {
                     if let Some(guard) = &arm.guard {
@@ -4492,7 +4508,9 @@ fn contains_checked_arithmetic(expression: &ResolvedExpr, target: &ResolvedType)
         | ResolvedExprKind::ConstructVariant { fields, .. } => fields
             .iter()
             .any(|field| contains_checked_arithmetic(&field.value, target)),
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             contains_checked_arithmetic(scrutinee, target)
                 || arms.iter().any(|arm| {
                     arm.guard

@@ -754,7 +754,9 @@ fn render_expr(
             render_fields(walker, fields, output);
             output.push(')');
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             output.push_str("match(");
             output.push_str(&render_child(walker, scrutinee, 0));
             output.push_str("){");
@@ -1013,7 +1015,9 @@ impl Walker<'_> {
                     self.scan_expr(&field.value);
                 }
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 self.push_ineligible(expr, REASON_CONTROL_FLOW);
                 self.scan_expr(scrutinee);
                 for arm in arms {

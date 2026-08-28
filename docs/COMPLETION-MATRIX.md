@@ -374,6 +374,16 @@ Implemented: exact-head hosted promotion, safe Windows npm publication,
 registry/release promotion, general I/O/borrowing, and full v0.2 completion
 remain open.
 
+[Owned Byte Record Algebra v1](OWNED-BYTE-RECORD-ALGEBRA-V1.md) locally
+deepens the same Partial core-language, ownership, native, and WebAssembly
+rows. It admits only flat monomorphic internal records with direct `Bytes` and
+direct Copy scalars; explicit `match own`/`match borrow`, Graph v21,
+CleanupPlan v5 independent replay, interpreter execution, native C11
+`-O0`/`-O2`, and Node/Core-Wasm settlement evidence are locally green. Nested,
+generic, class, variant, resource-bearing, Project, component, callable, and
+public ABI shapes remain closed. Hosted promotion is not claimed, no row
+changes status, and totals remain **56 Partial / 0 Missing**.
+
 The exact existing rows deepened without a status change are:
 `Meaning in, verified machine code out`, `Persistent Project agent developer
 loop`, `Native code and interop`, `WebAssembly`, `JavaScript and TypeScript`,

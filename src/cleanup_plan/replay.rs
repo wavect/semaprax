@@ -16,8 +16,8 @@ use crate::diagnostic::Diagnostic;
 use crate::hir::{
     DeclarationId, DeclarationKind, ExpressionId, FunctionInstanceId, IdentityOrigin,
     OwnershipMode, PlaceProjection, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
-    ResolvedMatchArm, ResolvedMatchPattern, ResolvedProgram, ResolvedStatement, ResolvedType,
-    ResolvedTypeDeclarationKind,
+    ResolvedMatchArm, ResolvedMatchPattern, ResolvedProgram, ResolvedRecordMatchFieldPattern,
+    ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
 };
 use crate::prelude;
 
@@ -25,7 +25,7 @@ use super::{
     BlockId, CleanupPlace, CleanupRegionId, CleanupResultSource, CleanupTerminator,
     CleanupTransition, EdgeCondition, EdgeId, ExitContinuation, ExitTarget, StagedCopyResultSource,
     StatusCase, StatusLane, StatusProducer, StatusSource, StatusSourceId, StorageId,
-    CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4,
+    CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5,
 };
 
 const MAX_REPLAY_PATHS: usize = 65_536;
@@ -312,7 +312,18 @@ fn validate_structure_with_budget(
     budget: &mut ReplayBudget,
 ) -> Result<(), Diagnostic> {
     let plan = &function.cleanup_plan;
-    let expected_schema = if function.requires.iter().any(expression_has_byte_range)
+    let expected_schema = if function
+        .requires
+        .iter()
+        .any(expression_has_explicit_record_match)
+        || function
+            .ensures
+            .iter()
+            .any(expression_has_explicit_record_match)
+        || expression_has_explicit_record_match(&function.body)
+    {
+        CLEANUP_PLAN_SCHEMA_V5
+    } else if function.requires.iter().any(expression_has_byte_range)
         || function.ensures.iter().any(expression_has_byte_range)
         || expression_has_byte_range(&function.body)
     {
@@ -670,7 +681,9 @@ fn expression_path_counts_with_while(
             ]
             .get(index)
             .copied(),
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 if index == 0 {
                     Some(scrutinee)
                 } else {
@@ -1557,7 +1570,7 @@ fn collect_supplemental_slots(
                         value_expression: argument.id.clone(),
                     };
                     let shape =
-                        expected_shape_for_type(program, function, &argument.ty, next_flag, true)?;
+                        expected_shape_for_type(program, function, &argument.ty, next_flag, 0)?;
                     slots.push(ExpectedSupplementalSlot {
                         storage,
                         ty: argument.ty.clone(),
@@ -1575,16 +1588,16 @@ fn expected_shape_for_type(
     function: &ResolvedFunction,
     ty: &ResolvedType,
     next_flag: &mut u32,
-    direct: bool,
+    projection_depth: u8,
 ) -> Result<FieldLivenessShape, Diagnostic> {
     if !type_needs_drop(program, function, ty)? {
         return Ok(FieldLivenessShape::NoDrop);
     }
     if matches!(ty, ResolvedType::Bytes) {
-        if !direct {
+        if projection_depth > 1 {
             return Err(replay_error(
                 function,
-                "compiler-owned Bytes cleanup leaf is not direct",
+                "nested compiler-owned Bytes cleanup leaf is outside flat record v1",
             ));
         }
         let flag = LivenessFlagId(*next_flag);
@@ -1635,7 +1648,15 @@ fn expected_shape_for_type(
                 expected_fields.push(FieldLiveness {
                     field: field.id.clone(),
                     field_index: field.index,
-                    shape: expected_shape_for_type(program, function, &field.ty, next_flag, false)?,
+                    shape: expected_shape_for_type(
+                        program,
+                        function,
+                        &field.ty,
+                        next_flag,
+                        projection_depth.checked_add(1).ok_or_else(|| {
+                            replay_error(function, "cleanup projection depth overflows u8")
+                        })?,
+                    )?,
                 });
             }
             Ok(FieldLivenessShape::Record {
@@ -3461,7 +3482,9 @@ fn expression_skeleton(
                         );
                         push_frame!(frames, Frame::Eval(condition));
                     }
-                    ResolvedExprKind::Match { scrutinee, arms } => {
+                    ResolvedExprKind::Match {
+                        scrutinee, arms, ..
+                    } => {
                         push_frame!(
                             frames,
                             Frame::MatchScrutinee {
@@ -4155,7 +4178,7 @@ fn expression_skeleton(
                 scrutinee,
                 arms,
             } => {
-                let scrutinee_paths = produced.take().expect("match scrutinee path retained");
+                let mut scrutinee_paths = produced.take().expect("match scrutinee path retained");
                 if !has_active_paths(&scrutinee_paths) {
                     produced = Some(scrutinee_paths);
                     continue;
@@ -4184,6 +4207,59 @@ fn expression_skeleton(
                 }
                 let is_record =
                     validate_match_skeleton_shape(program, function, expression, scrutinee, arms)?;
+                if is_record {
+                    let ResolvedExprKind::Match { mode, .. } = &expression.kind else {
+                        unreachable!("match skeleton frame retained its expression")
+                    };
+                    if *mode != crate::hir::ResolvedMatchMode::Value {
+                        let [arm] = arms else {
+                            unreachable!("record shape validation checked one arm")
+                        };
+                        for path in &mut scrutinee_paths {
+                            if path.failed || path.residual {
+                                continue;
+                            }
+                            if *mode == crate::hir::ResolvedMatchMode::Own {
+                                let source = path.owned_source.take().ok_or_else(|| {
+                                    replay_error(
+                                        function,
+                                        "owned record match path has no owned source",
+                                    )
+                                })?;
+                                let ResolvedMatchPattern::Record { fields, .. } = &arm.pattern
+                                else {
+                                    return Err(replay_error(
+                                        function,
+                                        "owned record match lacks an exact record pattern",
+                                    ));
+                                };
+                                for field in fields {
+                                    let ResolvedRecordMatchFieldPattern::Binding(binding) =
+                                        &field.pattern
+                                    else {
+                                        continue;
+                                    };
+                                    if binding.ownership != crate::hir::OwnershipMode::Own {
+                                        continue;
+                                    }
+                                    path.observations.push(SkeletonObservation::Transfer {
+                                        at: expression.id.clone(),
+                                        source: source.projected(field.field.clone()),
+                                        destination: CleanupPlace::whole(StorageId::Value(
+                                            binding.id.clone(),
+                                        )),
+                                    });
+                                }
+                            } else {
+                                // A borrowed match observes a named owned or borrowed
+                                // place without moving any cleanup epoch. The match
+                                // expression itself cannot forward that place as an
+                                // owned result.
+                                path.owned_source = None;
+                            }
+                        }
+                    }
+                }
                 push_frame!(
                     frames,
                     Frame::MatchArm {
@@ -4457,12 +4533,12 @@ fn validate_match_skeleton_shape(
             "droppable match result reached the copy-only cleanup skeleton",
         ));
     }
-    if type_needs_drop(program, function, &scrutinee.ty)? {
+    let ResolvedExprKind::Match { mode, .. } = &expression.kind else {
         return Err(replay_error(
             function,
-            "droppable match scrutinee reached the copy-only cleanup skeleton",
+            "match skeleton received a non-match",
         ));
-    }
+    };
     if arms.is_empty() {
         return Err(replay_error(function, "copy-variant match has no arms"));
     }
@@ -4489,6 +4565,22 @@ fn validate_match_skeleton_shape(
         | ResolvedType::TypeParameter { .. } => false,
     };
     if is_record {
+        if type_needs_drop(program, function, &scrutinee.ty)? {
+            if !matches!(
+                mode,
+                crate::hir::ResolvedMatchMode::Own | crate::hir::ResolvedMatchMode::Borrow
+            ) {
+                return Err(replay_error(
+                    function,
+                    "droppable record match lacks an explicit ownership mode",
+                ));
+            }
+        } else if *mode != crate::hir::ResolvedMatchMode::Value {
+            return Err(replay_error(
+                function,
+                "Copy record match carries an explicit ownership mode",
+            ));
+        }
         let [arm] = arms else {
             return Err(replay_error(
                 function,
@@ -4501,6 +4593,93 @@ fn validate_match_skeleton_shape(
                 "variant pattern has a record match scrutinee",
             ));
         }
+        let ResolvedMatchPattern::Record { record, fields, .. } = &arm.pattern else {
+            if *mode != crate::hir::ResolvedMatchMode::Value {
+                return Err(replay_error(
+                    function,
+                    "explicit record match requires one exact record pattern",
+                ));
+            }
+            return Ok(is_record);
+        };
+        if *mode != crate::hir::ResolvedMatchMode::Value {
+            if *mode == crate::hir::ResolvedMatchMode::Borrow
+                && !matches!(
+                    &scrutinee.kind,
+                    ResolvedExprKind::Place(place) if place.projections.is_empty()
+                )
+            {
+                return Err(replay_error(
+                    function,
+                    "borrowed record match scrutinee is not an unprojected named place",
+                ));
+            }
+            let expected_scrutinee_ownership = match mode {
+                crate::hir::ResolvedMatchMode::Own => {
+                    if scrutinee.ownership != OwnershipMode::Own {
+                        return Err(replay_error(
+                            function,
+                            "owned record match scrutinee is not owned",
+                        ));
+                    }
+                    OwnershipMode::Own
+                }
+                crate::hir::ResolvedMatchMode::Borrow => {
+                    if !matches!(
+                        scrutinee.ownership,
+                        OwnershipMode::Own | OwnershipMode::Borrow
+                    ) {
+                        return Err(replay_error(
+                            function,
+                            "borrowed record match scrutinee is neither owned nor borrowed",
+                        ));
+                    }
+                    OwnershipMode::Borrow
+                }
+                crate::hir::ResolvedMatchMode::Value => unreachable!(),
+            };
+            let declarations = program.declarations.record_fields(record).ok_or_else(|| {
+                replay_error(function, "explicit record match has no field inventory")
+            })?;
+            for declaration in declarations {
+                let field = fields
+                    .iter()
+                    .find(|field| field.field == declaration.id)
+                    .ok_or_else(|| {
+                        replay_error(function, "explicit record pattern is incomplete")
+                    })?;
+                let expected = if type_needs_drop(program, function, &declaration.ty)? {
+                    expected_scrutinee_ownership
+                } else {
+                    OwnershipMode::Value
+                };
+                match &field.pattern {
+                    ResolvedRecordMatchFieldPattern::Binding(binding)
+                        if binding.ty == declaration.ty && binding.ownership == expected => {}
+                    ResolvedRecordMatchFieldPattern::Wildcard
+                        if *mode == crate::hir::ResolvedMatchMode::Borrow
+                            || !type_needs_drop(program, function, &declaration.ty)? => {}
+                    ResolvedRecordMatchFieldPattern::Binding(_) => {
+                        return Err(replay_error(
+                            function,
+                            "explicit record binding ownership or type disagrees with its field",
+                        ));
+                    }
+                    ResolvedRecordMatchFieldPattern::Wildcard
+                    | ResolvedRecordMatchFieldPattern::Record { .. } => {
+                        return Err(replay_error(
+                            function,
+                            "explicit record pattern does not bind a droppable direct field",
+                        ));
+                    }
+                }
+            }
+        }
+    } else if type_needs_drop(program, function, &scrutinee.ty)? {
+        return Err(replay_error(
+            function,
+            "droppable non-record match reached the copy-only cleanup skeleton",
+        ));
     }
     Ok(is_record)
 }
@@ -6360,7 +6539,9 @@ fn replay_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&R
         | ResolvedExprKind::ConstructVariant { fields, .. } => {
             fields.get(index).map(|field| &field.value)
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             if index == 0 {
                 Some(scrutinee.as_ref())
             } else {
@@ -6444,6 +6625,18 @@ fn expression_has_option_try(expression: &ResolvedExpr) -> bool {
 fn expression_has_byte_range(expression: &ResolvedExpr) -> bool {
     expression_has_kind(expression, |kind| {
         matches!(kind, ResolvedExprKind::ByteRange { .. })
+    })
+}
+
+fn expression_has_explicit_record_match(expression: &ResolvedExpr) -> bool {
+    expression_has_kind(expression, |kind| {
+        matches!(
+            kind,
+            ResolvedExprKind::Match {
+                mode: crate::hir::ResolvedMatchMode::Own | crate::hir::ResolvedMatchMode::Borrow,
+                ..
+            }
+        )
     })
 }
 
@@ -7129,7 +7322,10 @@ fn window_len(value: borrow Slice<u8>, start: usize, end: usize) -> usize {
         let program = program();
         let function = function(&program, "choice.select");
         let expression = match_expression(&function);
-        let ResolvedExprKind::Match { scrutinee, arms } = &expression.kind else {
+        let ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } = &expression.kind
+        else {
             unreachable!()
         };
         assert_eq!(arms.len(), 3);
@@ -8474,5 +8670,305 @@ fn window_len(value: borrow Slice<u8>, start: usize, end: usize) -> usize {
             .transitions
             .push(CleanupTransition::StageCopyResult { source: residual });
         assert!(validate_structure(&program, &duplicate).is_err());
+    }
+
+    #[test]
+    fn owned_record_match_v5_replay_authenticates_transfer_region_and_borrow_absence() {
+        let source = r#"
+module test.owned_record_match_replay;
+@id("packet.type")
+record Packet {
+  @id("packet.payload") payload: Bytes,
+  @id("packet.tag") tag: i64,
+}
+@id("packet.take")
+fn take(value: own Packet) -> i64 {
+  match own value { Packet { payload, tag: _ } => 0, }
+}
+@id("packet.inspect-owned")
+fn inspect_owned(value: own Packet) -> i64 {
+  match borrow value { Packet { payload, tag: _ } => 0, }
+}
+@id("packet.inspect-borrowed")
+fn inspect_borrowed(value: borrow Packet) -> i64 {
+  match borrow value { Packet { payload, tag: _ } => 0, }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+        let program = hir::resolve(
+            &parse(source, Path::new("cleanup-replay-owned-record-match.spx"))
+                .expect("source parses"),
+        )
+        .expect("source resolves");
+        let own = function(&program, "packet.take");
+        let borrowed_owned = function(&program, "packet.inspect-owned");
+        let borrowed_input = function(&program, "packet.inspect-borrowed");
+        for candidate in [&own, &borrowed_owned, &borrowed_input] {
+            assert_eq!(candidate.cleanup_plan.schema, CLEANUP_PLAN_SCHEMA_V5);
+            validate_structure(&program, candidate).expect("canonical v5 plan replays");
+            crate::cleanup_plan::build::assert_expression_lowering_oracle(
+                &program,
+                candidate,
+                &candidate.body,
+            );
+        }
+        assert_eq!(
+            function(&program, "app.main").cleanup_plan.schema,
+            CLEANUP_PLAN_SCHEMA_V2,
+            "v5 selection must not widen a legacy function in the same program"
+        );
+
+        let expression = match_expression(&own);
+        let match_id = expression.id.clone();
+        let ResolvedExprKind::Match { arms, .. } = &expression.kind else {
+            unreachable!()
+        };
+        let ResolvedMatchPattern::Record { fields, .. } = &arms[0].pattern else {
+            panic!("owned fixture must resolve one record pattern")
+        };
+        let payload_binding = fields
+            .iter()
+            .find_map(|field| match &field.pattern {
+                ResolvedRecordMatchFieldPattern::Binding(binding)
+                    if field.field.as_str() == "packet.payload" =>
+                {
+                    Some(binding)
+                }
+                _ => None,
+            })
+            .expect("owned payload binding");
+        assert_eq!(payload_binding.ownership, OwnershipMode::Own);
+
+        let (transfer_block, source_place, destination_place) = own
+            .cleanup_plan
+            .blocks
+            .iter()
+            .find_map(|block| {
+                block
+                    .transitions
+                    .iter()
+                    .find_map(|transition| match transition {
+                        CleanupTransition::Transfer {
+                            at,
+                            source,
+                            destination,
+                        } if at == &match_id => Some((block, source, destination)),
+                        _ => None,
+                    })
+            })
+            .expect("owned match transfer");
+        assert_eq!(
+            source_place.projections,
+            [DeclarationId::new("packet.payload")]
+        );
+        assert_eq!(
+            destination_place,
+            &CleanupPlace {
+                storage: StorageId::Value(payload_binding.id.clone()),
+                projections: Vec::new(),
+            }
+        );
+        let arm_region = own
+            .cleanup_plan
+            .regions
+            .iter()
+            .find(|region| region.slots.contains(&destination_place.storage))
+            .expect("binding-owning arm region");
+        assert_eq!(transfer_block.region, arm_region.id);
+        assert!(arm_region.parent.is_some());
+        assert!(own.cleanup_plan.exits.iter().any(|exit| {
+            exit.leaves_regions.contains(&arm_region.id)
+                && exit.finalize_in_order.iter().any(|action| {
+                    action.source == *destination_place
+                        && action.lifecycle_id.as_str() == crate::cleanup::BYTES_DROP_LIFECYCLE_ID
+                })
+        }));
+
+        for borrowed in [&borrowed_owned, &borrowed_input] {
+            let borrowed_id = match_expression(borrowed).id.clone();
+            assert!(borrowed.cleanup_plan.blocks.iter().all(|block| {
+                block.transitions.iter().all(|transition| {
+                    !matches!(transition, CleanupTransition::Transfer { at, .. } if at == &borrowed_id)
+                })
+            }));
+        }
+
+        let mut wrong_schema = own.clone();
+        wrong_schema.cleanup_plan.schema = CLEANUP_PLAN_SCHEMA_V4;
+        assert!(validate_structure(&program, &wrong_schema).is_err());
+
+        let mut wrong_mode = own.clone();
+        let ResolvedExprKind::Block { tail, .. } = &mut wrong_mode.body.kind else {
+            unreachable!()
+        };
+        let ResolvedExprKind::Match { mode, .. } = &mut tail.kind else {
+            unreachable!()
+        };
+        *mode = crate::hir::ResolvedMatchMode::Borrow;
+        assert!(validate_structure(&program, &wrong_mode).is_err());
+
+        let mut wrong_binding = own.clone();
+        let ResolvedExprKind::Block { tail, .. } = &mut wrong_binding.body.kind else {
+            unreachable!()
+        };
+        let ResolvedExprKind::Match { arms, .. } = &mut tail.kind else {
+            unreachable!()
+        };
+        let ResolvedMatchPattern::Record { fields, .. } = &mut arms[0].pattern else {
+            unreachable!()
+        };
+        let ResolvedRecordMatchFieldPattern::Binding(binding) = &mut fields[0].pattern else {
+            unreachable!()
+        };
+        binding.ownership = OwnershipMode::Borrow;
+        assert!(validate_structure(&program, &wrong_binding).is_err());
+
+        let mut wildcard_pattern = own.clone();
+        let ResolvedExprKind::Block { tail, .. } = &mut wildcard_pattern.body.kind else {
+            unreachable!()
+        };
+        let ResolvedExprKind::Match { arms, .. } = &mut tail.kind else {
+            unreachable!()
+        };
+        arms[0].pattern = ResolvedMatchPattern::Wildcard;
+        assert!(validate_structure(&program, &wildcard_pattern).is_err());
+
+        fn transfer_position(
+            candidate: &ResolvedFunction,
+            match_id: &ExpressionId,
+        ) -> (usize, usize) {
+            candidate
+                .cleanup_plan
+                .blocks
+                .iter()
+                .enumerate()
+                .find_map(|(block_index, block)| {
+                    block.transitions.iter().enumerate().find_map(
+                        |(transition_index, transition)| {
+                            matches!(transition, CleanupTransition::Transfer { at, .. } if at == match_id)
+                                .then_some((block_index, transition_index))
+                        },
+                    )
+                })
+                .expect("owned transfer position")
+        }
+
+        let mut wrong_source = own.clone();
+        let (block, transition) = transfer_position(&wrong_source, &match_id);
+        let CleanupTransition::Transfer { source, .. } =
+            &mut wrong_source.cleanup_plan.blocks[block].transitions[transition]
+        else {
+            unreachable!()
+        };
+        source.projections.clear();
+        assert!(validate_structure(&program, &wrong_source).is_err());
+
+        let mut wrong_destination = own.clone();
+        let (block, transition) = transfer_position(&wrong_destination, &match_id);
+        let CleanupTransition::Transfer { destination, .. } =
+            &mut wrong_destination.cleanup_plan.blocks[block].transitions[transition]
+        else {
+            unreachable!()
+        };
+        *destination = source_place.clone();
+        assert!(validate_structure(&program, &wrong_destination).is_err());
+
+        let mut wrong_region = own.clone();
+        let arm_region_index = wrong_region
+            .cleanup_plan
+            .regions
+            .iter()
+            .position(|region| region.id == arm_region.id)
+            .expect("arm region index");
+        let parent = wrong_region.cleanup_plan.regions[arm_region_index]
+            .parent
+            .expect("arm region parent");
+        wrong_region.cleanup_plan.regions[arm_region_index]
+            .slots
+            .retain(|storage| storage != &destination_place.storage);
+        wrong_region.cleanup_plan.regions[parent.0 as usize]
+            .slots
+            .push(destination_place.storage.clone());
+        assert!(validate_structure(&program, &wrong_region).is_err());
+
+        let mut omitted_finalizer = own.clone();
+        let exit = omitted_finalizer
+            .cleanup_plan
+            .exits
+            .iter_mut()
+            .find(|exit| {
+                exit.leaves_regions.contains(&arm_region.id)
+                    && exit
+                        .finalize_in_order
+                        .iter()
+                        .any(|action| action.source == *destination_place)
+            })
+            .expect("arm-region finalizer exit");
+        exit.finalize_in_order
+            .retain(|action| action.source != *destination_place);
+        assert!(validate_structure(&program, &omitted_finalizer).is_err());
+
+        let mut omitted = own.clone();
+        let (block, transition) = transfer_position(&omitted, &match_id);
+        omitted.cleanup_plan.blocks[block]
+            .transitions
+            .remove(transition);
+        assert!(validate_structure(&program, &omitted).is_err());
+    }
+
+    #[test]
+    fn supplemental_call_argument_replay_rejects_depth_two_bytes_and_oracles_agree() {
+        let source = r#"
+module test.nested_supplemental_replay;
+@id("token.type") resource Token { @id("token.drop") drop trivial; }
+@id("inner.type") record Inner {
+  @id("inner.payload") payload: Token,
+}
+@id("outer.type") record Outer {
+  @id("outer.inner") inner: Inner,
+}
+@id("outer.sink") fn sink(value: own Outer) -> i64 { 0 }
+@id("outer.forward") fn forward(value: own Outer) -> i64 { sink(value) }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+        let mut program = hir::resolve(
+            &parse(source, Path::new("cleanup-replay-nested-supplemental.spx"))
+                .expect("source parses"),
+        )
+        .expect("resource-backed nested fixture resolves");
+        let forward = function(&program, "outer.forward");
+        validate_structure(&program, &forward).expect("canonical resource plan replays");
+        crate::cleanup_plan::build::assert_expression_lowering_oracle(
+            &program,
+            &forward,
+            &forward.body,
+        );
+
+        let inner = program
+            .types
+            .iter_mut()
+            .find(|declaration| declaration.id.as_str() == "inner.type")
+            .expect("inner declaration");
+        let ResolvedTypeDeclarationKind::Record { fields } = &mut inner.kind else {
+            panic!("inner fixture remains a record")
+        };
+        fields[0].ty = ResolvedType::Bytes;
+
+        // Both lowering implementations must fail in the same way for the
+        // hostile typed shape; replay must independently reject it as well.
+        crate::cleanup_plan::build::assert_expression_lowering_oracle(
+            &program,
+            &forward,
+            &forward.body,
+        );
+        let diagnostic = validate_structure(&program, &forward)
+            .expect_err("depth-two supplemental Bytes must fail closed");
+        assert_eq!(diagnostic.code, "SPX-H006");
+        assert!(
+            diagnostic
+                .message
+                .contains("nested compiler-owned Bytes cleanup leaf is outside flat record v1"),
+            "{diagnostic:?}"
+        );
     }
 }

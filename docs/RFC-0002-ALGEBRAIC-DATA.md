@@ -57,6 +57,16 @@ Native C11 O0/O2 and Node/Wasm evidence covers recursive and whole-record
 bindings, failure order, poison, and repeated entry; the Ubuntu gate is hosted
 green in [run 31373317800, job
 93406925130](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406925130).
+The additive [Owned Byte Record Algebra v1](OWNED-BYTE-RECORD-ALGEBRA-V1.md)
+slice admits only flat monomorphic records with one or more direct `Bytes`
+fields plus direct Copy scalars. `match own` transfers every projected owned
+leaf into an exact binding; `match borrow` creates arm-scoped aliases without
+changing source liveness. CleanupPlan v5 and Graph v21 authenticate the mode,
+stable field identities, projected transfers, child-region settlement, and
+finalizers. Local interpreter, native C11 `-O0`/`-O2`, and Node/Core-Wasm
+evidence is green. Nested/generic/class/variant/resource-bearing shapes,
+aggregate arm results, and every public aggregate ABI remain closed; hosted
+promotion is not claimed.
 The separate bounded generic-function slice admits one or two owner/index-
 stable parameters with direct `i64`/`bool` or own-parameter by-value signature
 slots and explicit direct-scalar call arguments. Unused templates are checked
@@ -70,7 +80,8 @@ the hosted matrix is green in [run 31385406865, Ubuntu job
 Generic-function inference/constraints or aggregate/resource/non-Copy
 signatures, nested/resource/non-Copy record arguments or fields,
 refutable/literal/guard/or/rest patterns, nested variant patterns,
-ownership-aware or non-copy propagation/matching, residual conversion, `?` in
+ownership-aware or non-copy propagation/matching beyond the exact flat Owned
+Byte Record v1 slice, residual conversion, `?` in
 contracts, resource- or
 record-bearing variant payloads, a stable public aggregate ABI, public
 resource-bearing execution, and general aggregate execution remain outside
@@ -436,6 +447,8 @@ Shape edits later carry match obligations and typed repairs; they are not textua
 - `SPX-O109` use of partially moved place.
 - `SPX-O110` place conditionally moved by another arm.
 - `SPX-O111` non-copy match without an explicit ownership mode.
+- `SPX-O117` invalid explicit ownership match mode, scrutinee, or owned-field
+  binding shape.
 - `SPX-G106` duplicate, conflicting, no-op, or overlapping Patch v2 edit.
 - `SPX-G107` Patch v2 wrong owner/kind/persistence domain or compiler-owned
   identity.

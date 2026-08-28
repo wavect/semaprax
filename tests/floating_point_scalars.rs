@@ -164,7 +164,9 @@ fn children(expression: &hir::ResolvedExpr) -> Vec<&hir::ResolvedExpr> {
         | hir::ResolvedExprKind::ConstructVariant { fields, .. } => {
             fields.iter().map(|field| &field.value).collect()
         }
-        hir::ResolvedExprKind::Match { scrutinee, arms } => {
+        hir::ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             let mut collected = vec![scrutinee.as_ref()];
             collected.extend(arms.iter().map(|arm| &arm.value));
             collected
@@ -484,7 +486,9 @@ fn replace_f64_in_expression(expression: &mut hir::ResolvedExpr, bits: u64) -> b
         | hir::ResolvedExprKind::UpdateRecord { fields, .. } => fields
             .iter_mut()
             .any(|field| replace_f64_in_expression(&mut field.value, bits)),
-        hir::ResolvedExprKind::Match { scrutinee, arms } => {
+        hir::ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             replace_f64_in_expression(scrutinee, bits)
                 || arms
                     .iter_mut()
@@ -543,7 +547,9 @@ fn replace_f32_in_expression(expression: &mut hir::ResolvedExpr, bits: u32) -> b
         | hir::ResolvedExprKind::UpdateRecord { fields, .. } => fields
             .iter_mut()
             .any(|field| replace_f32_in_expression(&mut field.value, bits)),
-        hir::ResolvedExprKind::Match { scrutinee, arms } => {
+        hir::ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             replace_f32_in_expression(scrutinee, bits)
                 || arms
                     .iter_mut()

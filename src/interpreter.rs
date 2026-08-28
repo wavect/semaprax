@@ -25,10 +25,13 @@
 //! requires/ensures contracts, and calls to other admitted functions — and
 //! plus verified internal Portable Indexed Byte Data v1 fixed arrays, owned
 //! immutable `Bytes`, non-escaping byte views, and compiler-owned byte
-//! operations. These data values do not widen the public interpreter
-//! boundary. Other aggregate construction/projection/update, variant
-//! construction, matching, postfix `?`, import calls, generic calls, place
-//! projections, strings at the boundary, and backend-unlowerable scalar
+//! operations. Exact flat monomorphic records containing direct `Bytes` and
+//! Copy-scalar fields, plus one-arm `match own`/`match borrow`, are admitted
+//! only inside that resolved closure. These data values do not widen the
+//! public interpreter boundary. Other aggregate construction/projection/
+//! update, variant construction or matching, postfix `?`, import calls,
+//! generic calls, place projections, strings at the boundary, and
+//! backend-unlowerable scalar
 //! operations (`f32`/`f64`/`u8`
 //! remainder, `char` arithmetic) are rejected with one closed reason before
 //! any evaluation.
@@ -576,7 +579,7 @@ pub(crate) fn evaluate_resolved_zero_arg_i64(
             format!("resolved entry `{entry_id}` must have type `fn main() -> i64`"),
         )]);
     }
-    if !resolved_signature_is_admitted(entry) {
+    if !resolved_signature_is_admitted(entry, &program.declarations) {
         return Err(vec![selection_error(
             REASON_UNSUPPORTED_CALLEE,
             format!("resolved entry `{entry_id}` is outside the interpreter profile"),
@@ -584,7 +587,7 @@ pub(crate) fn evaluate_resolved_zero_arg_i64(
     }
 
     let admitted = admitted_resolved_functions(program);
-    scan_closure(entry_id, &admitted)?;
+    scan_closure(entry_id, &admitted, &program.declarations)?;
 
     std::thread::scope(|scope| {
         let worker = std::thread::Builder::new()
@@ -709,7 +712,7 @@ fn interpret_on_current_thread(
     // them internally.
     let admitted = admitted_resolved_functions(&resolved);
 
-    scan_closure(entry.id.as_str(), &admitted)?;
+    scan_closure(entry.id.as_str(), &admitted, &resolved.declarations)?;
 
     let (evaluated, steps_used, _) = evaluate_resolved_entry(
         entry,
@@ -830,6 +833,85 @@ fn is_admitted_scalar(ty: &Type) -> bool {
     )
 }
 
+/// Exact internal aggregate profile admitted by Owned Byte Record Algebra v1.
+///
+/// The nominal must be a monomorphic record with at least one direct `Bytes`
+/// field, and every other field must be a direct interpreter scalar. This
+/// deliberately excludes nested aggregates, variants, resources, arrays, and
+/// every public interpreter boundary.
+fn is_admitted_owned_byte_record(declarations: &hir::DeclarationIndex, ty: &ResolvedType) -> bool {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return false;
+    };
+    if !arguments.is_empty()
+        || declarations
+            .declaration(declaration)
+            .is_none_or(|item| item.kind != hir::DeclarationKind::Record)
+    {
+        return false;
+    }
+    let Some(fields) = declarations.record_fields(declaration) else {
+        return false;
+    };
+    fields.iter().any(|field| field.ty == ResolvedType::Bytes)
+        && fields
+            .iter()
+            .all(|field| field.ty == ResolvedType::Bytes || is_admitted_resolved_scalar(&field.ty))
+}
+
+fn record_pattern_is_admitted(
+    declarations: &hir::DeclarationIndex,
+    mode: hir::ResolvedMatchMode,
+    ty: &ResolvedType,
+    pattern: &hir::ResolvedMatchPattern,
+) -> bool {
+    let ResolvedType::Nominal { declaration, .. } = ty else {
+        return false;
+    };
+    let hir::ResolvedMatchPattern::Record {
+        record,
+        instance,
+        fields,
+    } = pattern
+    else {
+        return false;
+    };
+    let Some(declared_fields) = declarations.record_fields(declaration) else {
+        return false;
+    };
+    record == declaration
+        && instance == ty
+        && fields.len() == declared_fields.len()
+        && fields.iter().all(|field| {
+            let Some(declared) = declared_fields
+                .iter()
+                .find(|candidate| candidate.id == field.field)
+            else {
+                return false;
+            };
+            match &field.pattern {
+                hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                    binding.ty == declared.ty
+                        && (declared.ty != ResolvedType::Bytes
+                            || binding.ownership
+                                == match mode {
+                                    hir::ResolvedMatchMode::Own => hir::OwnershipMode::Own,
+                                    hir::ResolvedMatchMode::Borrow => hir::OwnershipMode::Borrow,
+                                    hir::ResolvedMatchMode::Value => return false,
+                                })
+                }
+                hir::ResolvedRecordMatchFieldPattern::Wildcard => {
+                    mode == hir::ResolvedMatchMode::Borrow || declared.ty != ResolvedType::Bytes
+                }
+                hir::ResolvedRecordMatchFieldPattern::Record { .. } => false,
+            }
+        })
+}
+
 fn bind_arguments(
     function: &Function,
     arguments: &[String],
@@ -878,14 +960,21 @@ fn bind_arguments(
 fn scan_closure(
     entry_id: &str,
     admitted: &BTreeMap<&str, &ResolvedFunction>,
+    declarations: &hir::DeclarationIndex,
 ) -> Result<(), Vec<Diagnostic>> {
     fn scan<'a>(
         expression: &'a ResolvedExpr,
         admitted: &BTreeMap<&'a str, &'a ResolvedFunction>,
+        declarations: &hir::DeclarationIndex,
         visited: &mut BTreeSet<&'a str>,
         queue: &mut Vec<&'a str>,
     ) -> Result<(), Vec<Diagnostic>> {
         match &expression.kind {
+            ResolvedExprKind::ConstructRecord { .. }
+                if is_admitted_owned_byte_record(declarations, &expression.ty) =>
+            {
+                Ok(())
+            }
             ResolvedExprKind::ConstructRecord { .. } => {
                 Err(reject_scan(expression, REASON_RECORD_CONSTRUCTION))
             }
@@ -901,7 +990,11 @@ fn scan_closure(
             ResolvedExprKind::Upcast { .. } => {
                 Err(reject_scan(expression, REASON_RECORD_PROJECTION))
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                mode,
+                scrutinee,
+                arms,
+            } => {
                 // Refutable Match v1: scalar decision chains over admitted
                 // Copy scalars with literal/or/binding patterns join the
                 // profile; every aggregate match shape stays rejected.
@@ -921,7 +1014,24 @@ fn scan_closure(
                     && arms
                         .iter()
                         .all(|arm| option_u8_pattern_is_admitted(&arm.pattern));
-                if (!scalar && !option_u8) || (scalar && !patterns_admitted) || arms.is_empty() {
+                let owned_byte_record = is_admitted_owned_byte_record(declarations, &scrutinee.ty)
+                    && matches!(
+                        mode,
+                        hir::ResolvedMatchMode::Own | hir::ResolvedMatchMode::Borrow
+                    )
+                    && arms.len() == 1
+                    && arms[0].guard.is_none()
+                    && is_admitted_resolved_scalar(&expression.ty)
+                    && record_pattern_is_admitted(
+                        declarations,
+                        *mode,
+                        &scrutinee.ty,
+                        &arms[0].pattern,
+                    );
+                if (!scalar && !option_u8 && !owned_byte_record)
+                    || (scalar && !patterns_admitted)
+                    || arms.is_empty()
+                {
                     Err(reject_scan(expression, REASON_MATCH_EXPRESSION))
                 } else {
                     Ok(())
@@ -979,7 +1089,7 @@ fn scan_closure(
             _ => Ok(()),
         }?;
         for child in child_expressions(expression) {
-            scan(child, admitted, visited, queue)?;
+            scan(child, admitted, declarations, visited, queue)?;
         }
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
             // Callee bodies are enqueued once; the monotone `visited` set
@@ -1000,9 +1110,15 @@ fn scan_closure(
         };
         let mut queue: Vec<&str> = Vec::new();
         for clause in function.requires.iter().chain(&function.ensures) {
-            scan(clause, admitted, &mut visited, &mut queue)?;
+            scan(clause, admitted, declarations, &mut visited, &mut queue)?;
         }
-        scan(&function.body, admitted, &mut visited, &mut queue)?;
+        scan(
+            &function.body,
+            admitted,
+            declarations,
+            &mut visited,
+            &mut queue,
+        )?;
         frontier.extend(queue);
     }
     Ok(())
@@ -1022,16 +1138,22 @@ fn admitted_resolved_functions(
                     declaration.identity_origin == hir::IdentityOrigin::Explicit
                 })
         })
-        .filter(|function| resolved_signature_is_admitted(function))
+        .filter(|function| resolved_signature_is_admitted(function, &program.declarations))
         .map(|function| (function.id.as_str(), function))
         .collect()
 }
 
-fn resolved_signature_is_admitted(function: &ResolvedFunction) -> bool {
-    function.effects.is_empty() && resolved_data_signature_is_admitted(function)
+fn resolved_signature_is_admitted(
+    function: &ResolvedFunction,
+    declarations: &hir::DeclarationIndex,
+) -> bool {
+    function.effects.is_empty() && resolved_data_signature_is_admitted(function, declarations)
 }
 
-fn resolved_data_signature_is_admitted(function: &ResolvedFunction) -> bool {
+fn resolved_data_signature_is_admitted(
+    function: &ResolvedFunction,
+    declarations: &hir::DeclarationIndex,
+) -> bool {
     function
         .params
         .iter()
@@ -1046,13 +1168,19 @@ fn resolved_data_signature_is_admitted(function: &ResolvedFunction) -> bool {
             | (ResolvedType::Str, hir::OwnershipMode::Borrow)
             | (ResolvedType::SliceU8, hir::OwnershipMode::Borrow)
             | (ResolvedType::ArrayU8(_), hir::OwnershipMode::Borrow) => true,
+            (ty, hir::OwnershipMode::Own | hir::OwnershipMode::Borrow)
+                if is_admitted_owned_byte_record(declarations, ty) =>
+            {
+                true
+            }
             _ => false,
         })
         && (is_admitted_resolved_scalar(&function.return_type)
             || matches!(
                 function.return_type,
                 ResolvedType::ArrayU8(_) | ResolvedType::Bytes
-            ))
+            )
+            || is_admitted_owned_byte_record(declarations, &function.return_type))
 }
 
 pub(crate) fn evaluate_resolved_stdout_transcript(
@@ -1089,7 +1217,7 @@ pub(crate) fn evaluate_resolved_stdout_transcript(
                 })
         })
         .filter(|function| {
-            resolved_data_signature_is_admitted(function)
+            resolved_data_signature_is_admitted(function, &program.declarations)
                 && function
                     .effects
                     .iter()
@@ -1110,7 +1238,7 @@ pub(crate) fn evaluate_resolved_stdout_transcript(
         )]);
     }
     hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
-    scan_closure(entry_id, &admitted)?;
+    scan_closure(entry_id, &admitted, &program.declarations)?;
     let (evaluated, steps_used, mut transcript) =
         evaluate_resolved_entry(entry, &[], &admitted, max_steps, true);
     let outcome = match evaluated {
@@ -1203,7 +1331,7 @@ pub(crate) fn evaluate_resolved_language_command(
                 })
         })
         .filter(|function| {
-            resolved_data_signature_is_admitted(function)
+            resolved_data_signature_is_admitted(function, &program.declarations)
                 && function
                     .effects
                     .iter()
@@ -1224,7 +1352,7 @@ pub(crate) fn evaluate_resolved_language_command(
         )]);
     }
     hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
-    scan_closure(entry_id, &admitted)?;
+    scan_closure(entry_id, &admitted, &program.declarations)?;
 
     let command_input = CommandInputState {
         arguments: arguments
@@ -1347,7 +1475,9 @@ fn child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
         | ResolvedExprKind::ConstructVariant { fields, .. } => {
             fields.iter().map(|field| &field.value).collect()
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             let mut collected = vec![scrutinee.as_ref()];
             for arm in arms {
                 if let Some(guard) = &arm.guard {
@@ -1394,6 +1524,10 @@ enum Value {
     BorrowedStr(BorrowedStrValue),
     BorrowedSlice(BorrowedSliceValue),
     OptionU8(Option<u8>),
+    /// Private, monomorphic flat-record carrier. Field lookup is exclusively
+    /// by authenticated declaration identity; source display names never
+    /// participate in runtime selection.
+    Record(Arc<OwnedRecordValue>),
     /// Runtime tombstone for a verifier-authenticated move from an owned
     /// storage slot. Reaching it again is an impossible post-verify state.
     Moved,
@@ -1473,6 +1607,12 @@ impl BorrowedSliceValue {
 struct OwnedBytesValue {
     allocation: u32,
     bytes: Arc<[u8]>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct OwnedRecordValue {
+    record: hir::DeclarationId,
+    fields: BTreeMap<hir::DeclarationId, Value>,
 }
 
 fn borrowed_text(value: &Value) -> Option<&str> {
@@ -1774,11 +1914,9 @@ impl Evaluator<'_> {
                 if !place.projections.is_empty() {
                     return Err(Flow::Guard("scalar profile has no place projections"));
                 }
-                if expression.ty == ResolvedType::Bytes
-                    && expression.ownership == hir::OwnershipMode::Own
-                {
+                if expression.ownership == hir::OwnershipMode::Own {
                     Self::take_owned(environment, &place.root)
-                        .ok_or(Flow::Guard("use of moved owned byte storage"))
+                        .ok_or(Flow::Guard("use of moved owned storage"))
                 } else {
                     Self::lookup(environment, &place.root)
                         .ok_or(Flow::Guard("unresolved scalar place"))
@@ -2066,6 +2204,21 @@ impl Evaluator<'_> {
                 };
                 self.evaluate(branch, environment, depth)
             }
+            ResolvedExprKind::ConstructRecord { record, fields } => {
+                let mut values = BTreeMap::new();
+                for field in fields {
+                    let value = self.evaluate(&field.value, environment, depth)?;
+                    if values.insert(field.field.clone(), value).is_some() {
+                        return Err(Flow::Guard(
+                            "record construction repeated an authenticated field identity",
+                        ));
+                    }
+                }
+                Ok(Value::Record(Arc::new(OwnedRecordValue {
+                    record: record.clone(),
+                    fields: values,
+                })))
+            }
             ResolvedExprKind::Call {
                 callee,
                 instance,
@@ -2263,7 +2416,27 @@ impl Evaluator<'_> {
                 };
                 let mut values: Vec<(ValueId, Value)> = Vec::with_capacity(args.len());
                 for (param, argument) in function.params.iter().zip(args.iter()) {
-                    let value = self.evaluate(argument, environment, depth)?;
+                    let value = if param.ownership == hir::OwnershipMode::Borrow
+                        && matches!(param.ty, ResolvedType::Nominal { .. })
+                    {
+                        // The resolved argument expression retains the owned
+                        // place's type/mode. Parameter ownership is the call
+                        // boundary authority: charge the argument node, then
+                        // stage an alias without tombstoning its caller slot.
+                        self.charge().ok_or(Flow::Exhausted)?;
+                        let ResolvedExprKind::Place(place) = &argument.kind else {
+                            return Err(Flow::Guard(
+                                "borrowed record call argument is not a named place",
+                            ));
+                        };
+                        if !place.projections.is_empty() {
+                            return Err(Flow::Guard("borrowed record call argument is projected"));
+                        }
+                        Self::lookup(environment, &place.root)
+                            .ok_or(Flow::Guard("borrowed record call owner is unavailable"))?
+                    } else {
+                        self.evaluate(argument, environment, depth)?
+                    };
                     values.push((param.id.clone(), value));
                 }
                 if values.len() != function.params.len() {
@@ -2359,8 +2532,122 @@ impl Evaluator<'_> {
             // order, guards evaluated once after their pattern matched, and
             // failing guards fall through. Every evaluated node charges fuel
             // through the ordinary recursive `evaluate` calls.
-            ResolvedExprKind::Match { scrutinee, arms } => {
-                let staged = self.evaluate(scrutinee, environment, depth)?;
+            ResolvedExprKind::Match {
+                mode,
+                scrutinee,
+                arms,
+            } => {
+                let staged = if *mode == hir::ResolvedMatchMode::Borrow {
+                    // Borrow-mode resolution authenticates an unprojected
+                    // named place. Charge that expression node, but retain
+                    // the environment's owner and stage only an Arc alias.
+                    self.charge().ok_or(Flow::Exhausted)?;
+                    let ResolvedExprKind::Place(place) = &scrutinee.kind else {
+                        return Err(Flow::Guard(
+                            "borrowed record match has a non-place scrutinee",
+                        ));
+                    };
+                    if !place.projections.is_empty() {
+                        return Err(Flow::Guard(
+                            "borrowed record match has a projected scrutinee",
+                        ));
+                    }
+                    Self::lookup(environment, &place.root)
+                        .ok_or(Flow::Guard("borrowed record owner is unavailable"))?
+                } else {
+                    self.evaluate(scrutinee, environment, depth)?
+                };
+                if let Value::Record(record) = staged {
+                    let [arm] = arms.as_slice() else {
+                        return Err(Flow::Guard(
+                            "owned-byte record match does not have exactly one arm",
+                        ));
+                    };
+                    if arm.guard.is_some() {
+                        return Err(Flow::Guard(
+                            "owned-byte record match unexpectedly has a guard",
+                        ));
+                    }
+                    let crate::hir::ResolvedMatchPattern::Record {
+                        record: pattern_record,
+                        fields,
+                        ..
+                    } = &arm.pattern
+                    else {
+                        return Err(Flow::Guard(
+                            "owned-byte record match has a non-record pattern",
+                        ));
+                    };
+                    if pattern_record != &record.record || fields.len() != record.fields.len() {
+                        return Err(Flow::Guard(
+                            "owned-byte record pattern disagrees with its runtime carrier",
+                        ));
+                    }
+                    let mut bindings = Vec::new();
+                    match mode {
+                        hir::ResolvedMatchMode::Own => {
+                            let mut record = Arc::try_unwrap(record).map_err(|_| {
+                                Flow::Guard("owned-byte record still has a live alias at transfer")
+                            })?;
+                            for field in fields {
+                                let value =
+                                    record.fields.remove(&field.field).ok_or(Flow::Guard(
+                                        "owned-byte record pattern references an absent field",
+                                    ))?;
+                                match &field.pattern {
+                                    hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                                        bindings.push((binding.id.clone(), value));
+                                    }
+                                    hir::ResolvedRecordMatchFieldPattern::Wildcard
+                                        if !matches!(value, Value::Bytes(_)) => {}
+                                    hir::ResolvedRecordMatchFieldPattern::Wildcard => {
+                                        return Err(Flow::Guard(
+                                            "owned byte field reached a wildcard discard",
+                                        ));
+                                    }
+                                    hir::ResolvedRecordMatchFieldPattern::Record { .. } => {
+                                        return Err(Flow::Guard(
+                                            "nested owned-byte record pattern reached evaluation",
+                                        ));
+                                    }
+                                }
+                            }
+                            if !record.fields.is_empty() {
+                                return Err(Flow::Guard(
+                                    "owned-byte record transfer left unauthenticated fields",
+                                ));
+                            }
+                        }
+                        hir::ResolvedMatchMode::Borrow => {
+                            for field in fields {
+                                let value = record.fields.get(&field.field).ok_or(Flow::Guard(
+                                    "borrowed record pattern references an absent field",
+                                ))?;
+                                match &field.pattern {
+                                    hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                                        bindings.push((binding.id.clone(), value.clone()));
+                                    }
+                                    hir::ResolvedRecordMatchFieldPattern::Wildcard => {}
+                                    hir::ResolvedRecordMatchFieldPattern::Record { .. } => {
+                                        return Err(Flow::Guard(
+                                            "nested borrowed record pattern reached evaluation",
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                        hir::ResolvedMatchMode::Value => {
+                            return Err(Flow::Guard(
+                                "owned-byte record reached a plain value match",
+                            ));
+                        }
+                    }
+                    let base = environment.len();
+                    environment.extend(bindings);
+                    let outcome = self.evaluate(&arm.value, environment, depth);
+                    environment.truncate(base);
+                    return outcome;
+                }
                 for arm in arms {
                     let mut aggregate_bindings = Vec::new();
                     let selected = match &arm.pattern {
@@ -2461,8 +2748,7 @@ impl Evaluator<'_> {
                 }
                 Err(Flow::Guard("refutable match selected no arm"))
             }
-            ResolvedExprKind::ConstructRecord { .. }
-            | ResolvedExprKind::ConstructVariant { .. }
+            ResolvedExprKind::ConstructVariant { .. }
             | ResolvedExprKind::UpdateRecord { .. }
             | ResolvedExprKind::Project { .. }
             | ResolvedExprKind::Upcast { .. }

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Added the locally evidenced Owned Byte Record Algebra v1 tranche: flat
+  monomorphic records with direct `Bytes` plus direct Copy scalars, explicit
+  `match own`/`match borrow`, propagated drop-aware type facts, exact projected
+  cleanup inventory, independently replayed CleanupPlan v5, and Graph v21.
+  The interpreter, native C11 `-O0`/`-O2`, and Node/Core-Wasm lanes move rather
+  than shallow-copy each owned field and cover multiple leaves, borrowing,
+  repeated entry, hostile plan drift, and success/failure settlement. Legacy
+  Value-match Graph bytes remain pinned. Nested/generic/class/variant/resource
+  shapes and every public aggregate ABI remain closed; hosted promotion and
+  completion-status changes are not claimed.
+
 - Added the locally evidenced Project Manifest v7 `line-command-io.v1`
   product tranche: explicit fallible `byte_range` with the exact two-code
   `semaprax.byte-range.v1` domain, Graph v20, CleanupPlan v4, cumulative

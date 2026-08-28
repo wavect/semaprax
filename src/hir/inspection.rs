@@ -315,7 +315,9 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
                     pending.push(&field.value);
                 }
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 for arm in arms.iter().rev() {
                     match &arm.pattern {
                         ResolvedMatchPattern::Wildcard => {}
@@ -856,7 +858,9 @@ pub(super) fn visit_resolved_calls(
                 visit_resolved_calls(&field.value, visit);
             }
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             visit_resolved_calls(scrutinee, visit);
             for arm in arms {
                 visit_resolved_calls(&arm.value, visit);
@@ -981,7 +985,9 @@ pub(crate) fn workspace_call_sites(
                     walk(owner, &field.value, sites);
                 }
             }
-            ResolvedExprKind::Match { scrutinee, arms } => {
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 walk(owner, scrutinee, sites);
                 for arm in arms {
                     walk(owner, &arm.value, sites);

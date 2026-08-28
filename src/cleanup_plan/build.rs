@@ -10,8 +10,8 @@ use crate::diagnostic::Diagnostic;
 use crate::hir::{
     DeclarationId, DeclarationKind, ExpressionId, IdentityOrigin, OwnershipMode, Place,
     PlaceProjection, ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedMatchArm,
-    ResolvedMatchPattern, ResolvedProgram, ResolvedStatement, ResolvedType,
-    ResolvedTypeDeclarationKind,
+    ResolvedMatchMode, ResolvedMatchPattern, ResolvedProgram, ResolvedRecordMatchFieldPattern,
+    ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
 };
 use crate::prelude;
 
@@ -21,7 +21,7 @@ use super::{
     CleanupSlotId, CleanupTerminator, CleanupTransition, ContractPhase, EdgeCondition, EdgeId,
     ExitContinuation, ExitTarget, ExitTargetId, FinalizeAction, StagedCopyResultSource, StatusCase,
     StatusLane, StatusProducer, StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V2,
-    CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4,
+    CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5,
 };
 
 const UNRESOLVED_EXIT: ExitTargetId = ExitTargetId(u32::MAX);
@@ -814,11 +814,6 @@ impl<'a> PlanBuilder<'a> {
             return Ok(FieldLivenessShape::NoDrop);
         }
         if matches!(ty, ResolvedType::Bytes) {
-            if !projections.is_empty() {
-                return Err(plan_error(
-                    "compiler-owned Bytes cleanup leaf is not direct",
-                ));
-            }
             let flag = LivenessFlagId(self.next_flag);
             self.next_flag = self
                 .next_flag
@@ -2013,10 +2008,13 @@ impl<'a> PlanBuilder<'a> {
             },
             MatchAfterScrutinee {
                 expression: &'e ResolvedExpr,
+                mode: ResolvedMatchMode,
                 scrutinee: &'e ResolvedExpr,
                 arms: &'e [ResolvedMatchArm],
             },
-            MatchRecordAfterArm,
+            MatchRecordAfterArm {
+                arm_region: Option<CleanupRegionId>,
+            },
             MatchNext {
                 scrutinee: &'e ResolvedExpr,
                 arms: &'e [ResolvedMatchArm],
@@ -2304,7 +2302,9 @@ impl<'a> PlanBuilder<'a> {
                                 "byte range carries an unknown operation identity",
                             ));
                         }
-                        self.schema = CLEANUP_PLAN_SCHEMA_V4;
+                        if self.schema != CLEANUP_PLAN_SCHEMA_V5 {
+                            self.schema = CLEANUP_PLAN_SCHEMA_V4;
+                        }
                         frames.push(Frame::ByteRangeAfterSource {
                             expression,
                             start,
@@ -2635,7 +2635,11 @@ impl<'a> PlanBuilder<'a> {
                             state,
                         });
                     }
-                    ResolvedExprKind::Match { scrutinee, arms } => {
+                    ResolvedExprKind::Match {
+                        mode,
+                        scrutinee,
+                        arms,
+                    } => {
                         if arms.is_empty() {
                             return Err(plan_error("copy-variant match has no arms"));
                         }
@@ -2646,6 +2650,7 @@ impl<'a> PlanBuilder<'a> {
                         }
                         frames.push(Frame::MatchAfterScrutinee {
                             expression,
+                            mode: *mode,
                             scrutinee,
                             arms,
                         });
@@ -3557,11 +3562,15 @@ impl<'a> PlanBuilder<'a> {
                 }
                 Frame::MatchAfterScrutinee {
                     expression,
+                    mode,
                     scrutinee,
                     arms,
                 } => {
+                    if mode != ResolvedMatchMode::Value {
+                        self.schema = CLEANUP_PLAN_SCHEMA_V5;
+                    }
                     let scrutinee_result = results.pop().expect("match scrutinee result retained");
-                    if scrutinee_result.owned_source.is_some() {
+                    if scrutinee_result.owned_source.is_some() && mode == ResolvedMatchMode::Value {
                         return Err(plan_error(
                             "droppable match scrutinee reached the copy-only cleanup slice",
                         ));
@@ -3621,11 +3630,25 @@ impl<'a> PlanBuilder<'a> {
                         if matches!(&arm.pattern, ResolvedMatchPattern::Variant { .. }) {
                             return Err(plan_error("variant pattern has a record match scrutinee"));
                         }
-                        frames.push(Frame::MatchRecordAfterArm);
+                        let (entry, state, arm_region) = if mode == ResolvedMatchMode::Value {
+                            (scrutinee_result.block, scrutinee_result.state, None)
+                        } else {
+                            let (entry, state, arm_region) = self.prepare_record_match(
+                                expression,
+                                mode,
+                                arm,
+                                scrutinee_result,
+                                active_region,
+                            )?;
+                            frames.push(Frame::RestoreRegion(active_region));
+                            active_region = arm_region;
+                            (entry, state, Some(arm_region))
+                        };
+                        frames.push(Frame::MatchRecordAfterArm { arm_region });
                         frames.push(Frame::Enter {
                             expression: &arm.value,
-                            block: scrutinee_result.block,
-                            state: scrutinee_result.state,
+                            block: entry,
+                            state,
                         });
                     } else {
                         frames.push(Frame::MatchNext {
@@ -3638,12 +3661,16 @@ impl<'a> PlanBuilder<'a> {
                         });
                     }
                 }
-                Frame::MatchRecordAfterArm => {
-                    let result = results.pop().expect("record match arm result retained");
+                Frame::MatchRecordAfterArm { arm_region } => {
+                    let mut result = results.pop().expect("record match arm result retained");
                     if result.owned_source.is_some() {
                         return Err(plan_error(
                             "droppable record match arm reached the copy-only cleanup slice",
                         ));
+                    }
+                    if let Some(arm_region) = arm_region {
+                        (result.block, result.state) =
+                            self.exit_scope(result.block, result.state, arm_region)?;
                     }
                     results.push(result);
                 }
@@ -4229,7 +4256,9 @@ impl<'a> PlanBuilder<'a> {
                         "byte range carries an unknown operation identity",
                     ));
                 }
-                self.schema = CLEANUP_PLAN_SCHEMA_V4;
+                if self.schema != CLEANUP_PLAN_SCHEMA_V5 {
+                    self.schema = CLEANUP_PLAN_SCHEMA_V4;
+                }
                 let mut evaluated =
                     self.lower_expr_recursive_reference(source, block, state, region)?;
                 if evaluated.owned_source.is_some() {
@@ -4429,9 +4458,9 @@ impl<'a> PlanBuilder<'a> {
                 state,
                 region,
             ),
-            ResolvedExprKind::Match { scrutinee, arms } => {
-                self.lower_match(expression, scrutinee, arms, block, state, region)
-            }
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => self.lower_match(expression, scrutinee, arms, block, state, region),
             ResolvedExprKind::UpdateRecord { .. } => {
                 self.lower_update_record(expression, block, state, region)
             }
@@ -5448,6 +5477,102 @@ impl<'a> PlanBuilder<'a> {
         })
     }
 
+    fn prepare_record_match(
+        &mut self,
+        expression: &ResolvedExpr,
+        mode: ResolvedMatchMode,
+        arm: &ResolvedMatchArm,
+        mut evaluated: EvalResult,
+        parent_region: CleanupRegionId,
+    ) -> Result<(BlockId, FlowState, CleanupRegionId), Diagnostic> {
+        if mode != ResolvedMatchMode::Value
+            && !matches!(&arm.pattern, ResolvedMatchPattern::Record { .. })
+        {
+            return Err(plan_error(
+                "explicit record match requires one exact record pattern",
+            ));
+        }
+        let arm_region = self.new_region(parent_region)?;
+        let entry = self.new_block(arm_region)?;
+        let edge = self.new_edge(evaluated.block, entry, EdgeCondition::Always)?;
+        self.terminate(evaluated.block, CleanupTerminator::Goto(edge))?;
+
+        match mode {
+            ResolvedMatchMode::Value => {
+                if evaluated.owned_source.is_some() {
+                    return Err(plan_error("plain record match received an owned source"));
+                }
+            }
+            ResolvedMatchMode::Borrow => {
+                let ResolvedExprKind::Match { scrutinee, .. } = &expression.kind else {
+                    return Err(plan_error("borrowed record match is not a match"));
+                };
+                if !matches!(
+                    &scrutinee.kind,
+                    ResolvedExprKind::Place(place) if place.projections.is_empty()
+                ) || !matches!(
+                    scrutinee.ownership,
+                    OwnershipMode::Own | OwnershipMode::Borrow
+                ) {
+                    return Err(plan_error(
+                        "borrowed record match has no authenticated named owner",
+                    ));
+                }
+                evaluated.owned_source = None;
+            }
+            ResolvedMatchMode::Own => {
+                let source = evaluated
+                    .owned_source
+                    .take()
+                    .ok_or_else(|| plan_error("owned record match has no transfer source"))?;
+                let ResolvedMatchPattern::Record { record, fields, .. } = &arm.pattern else {
+                    unreachable!("explicit record pattern checked above")
+                };
+                let declared = self
+                    .program
+                    .declarations
+                    .record_fields(record)
+                    .ok_or_else(|| plan_error("owned record match has no field inventory"))?
+                    .to_vec();
+                for declaration in declared {
+                    if !self.needs_drop(&declaration.ty)? {
+                        continue;
+                    }
+                    let field = fields
+                        .iter()
+                        .find(|field| field.field == declaration.id)
+                        .ok_or_else(|| plan_error("owned record pattern is incomplete"))?;
+                    let ResolvedRecordMatchFieldPattern::Binding(binding) = &field.pattern else {
+                        return Err(plan_error(
+                            "owned record pattern must bind every droppable field",
+                        ));
+                    };
+                    let destination = self
+                        .binding_slot(binding, arm_region)?
+                        .ok_or_else(|| plan_error("owned record binding has no cleanup slot"))?;
+                    self.transfer(
+                        entry,
+                        expression.id.clone(),
+                        source.projected(declaration.id),
+                        destination,
+                        &mut evaluated.state,
+                        false,
+                    )?;
+                }
+                if self
+                    .flags_under(&source)
+                    .iter()
+                    .any(|flag| evaluated.state.is_live(*flag))
+                {
+                    return Err(plan_error(
+                        "owned record match left an undisposed source leaf",
+                    ));
+                }
+            }
+        }
+        Ok((entry, evaluated.state, arm_region))
+    }
+
     #[cfg(test)]
     fn lower_match(
         &mut self,
@@ -5458,6 +5583,12 @@ impl<'a> PlanBuilder<'a> {
         state: FlowState,
         region: CleanupRegionId,
     ) -> Result<EvalResult, Diagnostic> {
+        let ResolvedExprKind::Match { mode, .. } = &expression.kind else {
+            return Err(plan_error("match oracle received a non-match expression"));
+        };
+        if *mode != ResolvedMatchMode::Value {
+            self.schema = CLEANUP_PLAN_SCHEMA_V5;
+        }
         if arms.is_empty() {
             return Err(plan_error("copy-variant match has no arms"));
         }
@@ -5469,7 +5600,7 @@ impl<'a> PlanBuilder<'a> {
 
         let scrutinee_result =
             self.lower_expr_recursive_reference(scrutinee, block, state, region)?;
-        if scrutinee_result.owned_source.is_some() {
+        if scrutinee_result.owned_source.is_some() && *mode == ResolvedMatchMode::Value {
             return Err(plan_error(
                 "droppable match scrutinee reached the copy-only cleanup slice",
             ));
@@ -5528,16 +5659,27 @@ impl<'a> PlanBuilder<'a> {
             if matches!(&arm.pattern, ResolvedMatchPattern::Variant { .. }) {
                 return Err(plan_error("variant pattern has a record match scrutinee"));
             }
-            let result = self.lower_expr_recursive_reference(
+            let (entry, state, arm_region) = if *mode == ResolvedMatchMode::Value {
+                (scrutinee_result.block, scrutinee_result.state, None)
+            } else {
+                let (entry, state, arm_region) =
+                    self.prepare_record_match(expression, *mode, arm, scrutinee_result, region)?;
+                (entry, state, Some(arm_region))
+            };
+            let mut result = self.lower_expr_recursive_reference(
                 &arm.value,
-                scrutinee_result.block,
-                scrutinee_result.state,
-                region,
+                entry,
+                state,
+                arm_region.unwrap_or(region),
             )?;
             if result.owned_source.is_some() {
                 return Err(plan_error(
                     "droppable record match arm reached the copy-only cleanup slice",
                 ));
+            }
+            if let Some(arm_region) = arm_region {
+                (result.block, result.state) =
+                    self.exit_scope(result.block, result.state, arm_region)?;
             }
             return Ok(result);
         }

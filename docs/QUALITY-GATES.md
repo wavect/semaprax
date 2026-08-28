@@ -21,6 +21,24 @@ cargo test --locked -p semaprax --test useful_data_wasm_v1
 cargo test --locked -p semaprax --test indexed_byte_loops_v2
 ```
 
+Owned Byte Record Algebra v1 additionally requires exact contextual match-mode
+round trips and diagnostics, flat-record source and hostile-HIR admission,
+Graph v21 with legacy Graph-v13 byte preservation, CleanupPlan v5 independent
+replay and hostile mutations, multiple projected Bytes leaves, borrow followed
+by own, repeated entry, and exact-once success/failure settlement. Run:
+
+```sh
+cargo test --locked -p semaprax --test match_modes_syntax_v1
+cargo test --locked -p semaprax --test owned_byte_record_algebra_v1
+cargo test --locked -p semaprax --test match_mode_graph_v21
+cargo test --locked -p semaprax --test owned_byte_record_interpreter_v1
+cargo test --locked -p semaprax --test owned_byte_record_native_v1
+cargo test --locked -p semaprax --test owned_byte_record_wasm_v1
+```
+
+These are local implementation gates. They do not widen a public aggregate
+ABI or establish hosted promotion.
+
 Indexed Byte Loop v2 additionally requires exact source and hostile-HIR
 rejection outside its compiler-owned `byte_get -> Option<u8>` match profile,
 dynamic in-range and out-of-range traversal, unchanged cleanup inventory/plan

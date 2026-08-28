@@ -378,7 +378,9 @@ fn collect_variant_domains(
                     )));
                 }
             }
-            hir::ResolvedExprKind::Match { scrutinee, arms } => {
+            hir::ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 visit(program, scrutinee, domains)?;
                 let ResolvedType::Nominal { declaration, .. } = &scrutinee.ty else {
                     return Err(invariant(format!(
@@ -689,12 +691,12 @@ fn find_expression_by<'a>(
         | hir::ResolvedExprKind::ConstructVariant { fields, .. } => fields
             .iter()
             .find_map(|field| find_expression_by(&field.value, predicate)),
-        hir::ResolvedExprKind::Match { scrutinee, arms } => {
-            find_expression_by(scrutinee, predicate).or_else(|| {
-                arms.iter()
-                    .find_map(|arm| find_expression_by(&arm.value, predicate))
-            })
-        }
+        hir::ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => find_expression_by(scrutinee, predicate).or_else(|| {
+            arms.iter()
+                .find_map(|arm| find_expression_by(&arm.value, predicate))
+        }),
         hir::ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             find_expression_by(base, predicate).or_else(|| {
                 fields

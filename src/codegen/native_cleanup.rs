@@ -885,7 +885,9 @@ fn validate_expression(
                 format!("uses constructed variant expression `{}`", expression.id),
             ));
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             validate_expression(program, function, scrutinee)?;
             for arm in arms {
                 validate_expression(program, function, &arm.value)?;

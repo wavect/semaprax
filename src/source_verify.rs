@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use crate::ast::{
     BinaryOp, Expr, ExprKind, FieldDeclaration, Function, ImportDeclaration, ImportFailure,
-    ImportResult, InterfaceDeclaration, MatchPattern, Param, ParamMode, Program,
+    ImportResult, InterfaceDeclaration, MatchMode, MatchPattern, Param, ParamMode, Program,
     RecordMatchFieldPattern, RecordMatchPatternField, ResourceLifecycleKind, Span, Statement, Type,
     TypeDeclaration, TypeDeclarationKind, UnaryOp, VariantCaseDeclaration,
 };
@@ -483,8 +483,147 @@ impl<'a> TypeTable<'a> {
         }
     }
 
-    fn contains_resource(&self, ty: &Type) -> bool {
-        self.contains_resource_inner(ty, &mut HashSet::new())
+    /// Whether a value carries unique destruction authority, either directly
+    /// or through an aggregate field. This is deliberately broader than
+    /// `contains_resource`: compiler-owned `Bytes` is not an opaque resource,
+    /// but records and variants containing it are still non-Copy owners.
+    fn needs_drop(&self, ty: &Type) -> bool {
+        enum Frame {
+            Enter(Type),
+            Exit(String),
+        }
+
+        let mut visiting = HashSet::new();
+        let mut frames = vec![Frame::Enter(ty.clone())];
+        while let Some(frame) = frames.pop() {
+            match frame {
+                Frame::Exit(instance) => {
+                    visiting.remove(&instance);
+                }
+                Frame::Enter(ty) => match ty {
+                    Type::String | Type::Bytes => return true,
+                    Type::Named { name, arguments } => {
+                        let Some(declaration) = self.declaration(&name) else {
+                            continue;
+                        };
+                        if matches!(declaration.kind, TypeDeclarationKind::Resource { .. }) {
+                            return true;
+                        }
+                        let instance = Type::Named {
+                            name: name.clone(),
+                            arguments: arguments.clone(),
+                        }
+                        .to_string();
+                        if !visiting.insert(instance.clone()) {
+                            return true;
+                        }
+                        frames.push(Frame::Exit(instance));
+                        let fields: Box<dyn DoubleEndedIterator<Item = &FieldDeclaration>> =
+                            match &declaration.kind {
+                                TypeDeclarationKind::Record { fields }
+                                | TypeDeclarationKind::Class { fields, .. } => {
+                                    Box::new(fields.iter())
+                                }
+                                TypeDeclarationKind::Variant { cases } => {
+                                    Box::new(cases.iter().flat_map(|case| &case.fields))
+                                }
+                                TypeDeclarationKind::Resource { .. } => unreachable!(),
+                            };
+                        for field in fields.rev() {
+                            let Some(field_ty) =
+                                Self::substitute_variant_type(declaration, &arguments, &field.ty)
+                            else {
+                                return true;
+                            };
+                            frames.push(Frame::Enter(field_ty));
+                        }
+                    }
+                    Type::I64
+                    | Type::I32
+                    | Type::Char
+                    | Type::U8
+                    | Type::Usize
+                    | Type::ArrayU8(_)
+                    | Type::F32
+                    | Type::F64
+                    | Type::Bool
+                    | Type::Str
+                    | Type::SliceU8 => {}
+                },
+            }
+        }
+        false
+    }
+
+    /// Detect compiler-owned byte authority below a type boundary. The first
+    /// owned-byte record tranche admits `Bytes` only as a direct record field;
+    /// nested records and every variant carrier remain fail-closed until their
+    /// projected transfer plans and backends are independently executable.
+    fn contains_owned_bytes(&self, ty: &Type) -> bool {
+        let mut pending = vec![ty.clone()];
+        let mut visited = HashSet::new();
+        while let Some(current) = pending.pop() {
+            match current {
+                Type::Bytes => return true,
+                Type::Named { name, arguments } => {
+                    let identity = Type::Named {
+                        name: name.clone(),
+                        arguments: arguments.clone(),
+                    }
+                    .to_string();
+                    if !visited.insert(identity) {
+                        continue;
+                    }
+                    let Some(declaration) = self.declaration(&name) else {
+                        continue;
+                    };
+                    let fields: Box<dyn Iterator<Item = &FieldDeclaration>> =
+                        match &declaration.kind {
+                            TypeDeclarationKind::Record { fields }
+                            | TypeDeclarationKind::Class { fields, .. } => Box::new(fields.iter()),
+                            TypeDeclarationKind::Variant { cases } => {
+                                Box::new(cases.iter().flat_map(|case| &case.fields))
+                            }
+                            TypeDeclarationKind::Resource { .. } => continue,
+                        };
+                    for field in fields {
+                        let Some(field_ty) =
+                            Self::substitute_variant_type(declaration, &arguments, &field.ty)
+                        else {
+                            return true;
+                        };
+                        pending.push(field_ty);
+                    }
+                }
+                Type::I64
+                | Type::I32
+                | Type::Char
+                | Type::U8
+                | Type::Usize
+                | Type::ArrayU8(_)
+                | Type::F32
+                | Type::F64
+                | Type::Bool
+                | Type::String
+                | Type::Str
+                | Type::SliceU8 => {}
+            }
+        }
+        false
+    }
+
+    fn is_flat_owned_byte_record(&self, ty: &Type) -> bool {
+        let Type::Named { name, arguments } = ty else {
+            return false;
+        };
+        if !arguments.is_empty() {
+            return false;
+        }
+        matches!(
+            self.declaration(name).map(|declaration| &declaration.kind),
+            Some(TypeDeclarationKind::Record { fields })
+                if fields.iter().any(|field| field.ty == Type::Bytes)
+        )
     }
 
     fn is_opaque_resource(&self, ty: &Type) -> bool {
@@ -494,55 +633,6 @@ impl<'a> TypeTable<'a> {
         self.declaration(name).is_some_and(|declaration| {
             matches!(declaration.kind, TypeDeclarationKind::Resource { .. })
         })
-    }
-
-    fn contains_resource_inner(&self, ty: &Type, visiting: &mut HashSet<String>) -> bool {
-        enum Frame {
-            Enter(Type),
-            Exit(String),
-        }
-        let mut frames = vec![Frame::Enter(ty.clone())];
-        while let Some(frame) = frames.pop() {
-            match frame {
-                Frame::Exit(instance) => {
-                    visiting.remove(&instance);
-                }
-                Frame::Enter(ty) => {
-                    let Type::Named { name, arguments } = &ty else {
-                        continue;
-                    };
-                    let Some(declaration) = self.declaration(name) else {
-                        continue;
-                    };
-                    if matches!(declaration.kind, TypeDeclarationKind::Resource { .. }) {
-                        return true;
-                    }
-                    let instance = ty.to_string();
-                    if !visiting.insert(instance.clone()) {
-                        return true;
-                    }
-                    frames.push(Frame::Exit(instance));
-                    let fields: Box<dyn DoubleEndedIterator<Item = &FieldDeclaration>> =
-                        match &declaration.kind {
-                            TypeDeclarationKind::Record { fields }
-                            | TypeDeclarationKind::Class { fields, .. } => Box::new(fields.iter()),
-                            TypeDeclarationKind::Variant { cases } => {
-                                Box::new(cases.iter().flat_map(|case| &case.fields))
-                            }
-                            TypeDeclarationKind::Resource { .. } => unreachable!(),
-                        };
-                    for field in fields.rev() {
-                        let Some(field_ty) =
-                            Self::substitute_variant_type(declaration, arguments, &field.ty)
-                        else {
-                            return true;
-                        };
-                        frames.push(Frame::Enter(field_ty));
-                    }
-                }
-            }
-        }
-        false
     }
 
     fn lifecycle_effects(
@@ -620,6 +710,20 @@ impl<'a> TypeTable<'a> {
             }
         }
     }
+}
+
+fn owned_byte_record_copy_field_is_admitted(ty: &Type) -> bool {
+    matches!(
+        ty,
+        Type::I64
+            | Type::I32
+            | Type::U8
+            | Type::Usize
+            | Type::F32
+            | Type::F64
+            | Type::Char
+            | Type::Bool
+    )
 }
 
 pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
@@ -857,17 +961,6 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                         "SPX-T264",
                         format!(
                             "aggregate field `{}.{}` cannot store borrowed `Slice<u8>`",
-                            declaration.name, field.name
-                        ),
-                        field.span,
-                    ));
-                }
-                if field.ty == Type::Bytes {
-                    diagnostics.push(error(
-                        program,
-                        "SPX-T268",
-                        format!(
-                            "aggregate field `{}.{}` cannot store owned `Bytes`",
                             declaration.name, field.name
                         ),
                         field.span,
@@ -1268,6 +1361,84 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
     }
 
     let types = TypeTable::new(program);
+    for declaration in &program.types {
+        match &declaration.kind {
+            TypeDeclarationKind::Record { fields } => {
+                let has_direct_bytes = fields.iter().any(|field| field.ty == Type::Bytes);
+                if has_direct_bytes && !declaration.type_parameters.is_empty() {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T268",
+                        format!(
+                            "owned-Bytes record `{}` must be monomorphic in this tranche",
+                            declaration.name
+                        ),
+                        declaration.span,
+                    ));
+                }
+                for field in fields {
+                    if has_direct_bytes
+                        && field.ty != Type::Bytes
+                        && !owned_byte_record_copy_field_is_admitted(&field.ty)
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T268",
+                            format!(
+                                "owned-Bytes record field `{}.{}` must be direct `Bytes` or a direct Copy scalar",
+                                declaration.name, field.name
+                            ),
+                            field.span,
+                        ));
+                    } else if !has_direct_bytes
+                        && field.ty != Type::Bytes
+                        && types.contains_owned_bytes(&field.ty)
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T268",
+                            format!(
+                                "aggregate field `{}.{}` nests owned `Bytes`; this tranche admits only direct `Bytes` fields",
+                                declaration.name, field.name
+                            ),
+                            field.span,
+                        ));
+                    }
+                }
+            }
+            TypeDeclarationKind::Class { fields, .. } => {
+                for field in fields {
+                    if field.ty == Type::Bytes || types.contains_owned_bytes(&field.ty) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T268",
+                            format!(
+                                "class field `{}.{}` cannot contain owned `Bytes` directly or transitively",
+                                declaration.name, field.name
+                            ),
+                            field.span,
+                        ));
+                    }
+                }
+            }
+            TypeDeclarationKind::Variant { cases } => {
+                for field in cases.iter().flat_map(|case| &case.fields) {
+                    if field.ty == Type::Bytes || types.contains_owned_bytes(&field.ty) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T268",
+                            format!(
+                                "variant `{}` cannot contain owned `Bytes` directly or transitively",
+                                declaration.name
+                            ),
+                            field.span,
+                        ));
+                    }
+                }
+            }
+            TypeDeclarationKind::Resource { .. } => {}
+        }
+    }
     let mut native_rust_names = HashSet::new();
     for interface in &program.interfaces {
         let permits = interface
@@ -2368,7 +2539,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                         function.body.span,
                     ));
                 }
-                if types.contains_resource(&function.return_type) && actual.mode != ParamMode::Own {
+                if types.needs_drop(&function.return_type) && actual.mode != ParamMode::Own {
                     diagnostics.push(
                         error(
                             program,
@@ -3062,7 +3233,7 @@ fn check_ownership_mode(
         }
         return;
     }
-    match (types.contains_resource(&param.ty), param.mode) {
+    match (types.needs_drop(&param.ty), param.mode) {
         (true, ParamMode::Value) => diagnostics.push(
             error(
                 program,
@@ -3122,6 +3293,7 @@ fn check_record_pattern(
     types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
     span: Span,
+    mode: MatchMode,
 ) {
     enum Frame<'a, 't> {
         Enter {
@@ -3160,7 +3332,10 @@ fn check_record_pattern(
                     Type::Named { name, .. } if name == pattern_type
                 );
                 let declared_fields = effective_record_fields(types, &expected);
-                if !compatible || declared_fields.is_none() || types.contains_resource(&expected) {
+                if !compatible
+                    || declared_fields.is_none()
+                    || (mode == MatchMode::Value && types.needs_drop(&expected))
+                {
                     diagnostics.push(error(
                         program,
                         "SPX-M103",
@@ -3256,8 +3431,16 @@ fn check_record_pattern(
                             variables.insert(
                                 name.clone(),
                                 Binding {
+                                    mode: if types.needs_drop(&field_ty) {
+                                        match mode {
+                                            MatchMode::Own => ParamMode::Own,
+                                            MatchMode::Borrow => ParamMode::Borrow,
+                                            MatchMode::Value => ParamMode::Value,
+                                        }
+                                    } else {
+                                        ParamMode::Value
+                                    },
                                     ty: field_ty,
-                                    mode: ParamMode::Value,
                                     availability: Availability::Available,
                                     moved_places: HashMap::new(),
                                     definitely_partial: HashSet::new(),
@@ -3268,7 +3451,16 @@ fn check_record_pattern(
                             );
                         }
                     }
-                    RecordMatchFieldPattern::Wildcard { .. } => {}
+                    RecordMatchFieldPattern::Wildcard { span } => {
+                        if mode == MatchMode::Own && types.needs_drop(&field_ty) {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-O117",
+                                "`match own` must bind every owned record field in this tranche",
+                                *span,
+                            ));
+                        }
+                    }
                     RecordMatchFieldPattern::Record {
                         type_name,
                         fields,
@@ -3832,9 +4024,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         if child_fields.len() < parent_len {
             return true;
         }
-        child_fields[parent_len..].iter().any(|field| {
-            self.types.contains_string(&field.ty) || self.types.contains_resource(&field.ty)
-        })
+        child_fields[parent_len..]
+            .iter()
+            .any(|field| self.types.needs_drop(&field.ty))
     }
 
     /// Queue the next block statement (any kind) or fall through to the
@@ -4272,9 +4464,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     ));
                     results.push(Err(()));
                 }
-                ExprKind::Match { scrutinee, arms }
-                    if crate::byte_ops::is_indexed_byte_option_match_source(expression) =>
-                {
+                ExprKind::Match {
+                    scrutinee, arms, ..
+                } if crate::byte_ops::is_indexed_byte_option_match_source(expression) => {
                     frames.push(Frame::MatchNext { arms, next: 0 });
                     frames.push(Frame::Expression(scrutinee));
                 }
@@ -4378,7 +4570,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     }
                     ExprKind::Var(name) if name == "result" => {
                         let value = self.result_type.map(|ty| {
-                            CheckedValue::returned(ty.clone(), self.types.contains_resource(ty))
+                            CheckedValue::returned(ty.clone(), self.types.needs_drop(ty))
                         });
                         if value.is_none() {
                             self.diagnostics.push(error(
@@ -4751,7 +4943,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 VerifierCallTarget::Ordinary(Some(target)) => {
                                     CheckedValue::returned(
                                         target.return_type().clone(),
-                                        self.types.contains_resource(target.return_type()),
+                                        self.types.needs_drop(target.return_type()),
                                     )
                                 }
                                 VerifierCallTarget::Ordinary(None) => {
@@ -4968,7 +5160,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 }
                                 self.values.push(Some(CheckedValue::returned(
                                     instance.clone(),
-                                    self.types.contains_resource(&instance),
+                                    self.types.needs_drop(&instance),
                                 )));
                             } else {
                                 self.values.push(None);
@@ -5042,7 +5234,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             scope,
                         });
                     }
-                    ExprKind::Match { scrutinee, arms } => {
+                    ExprKind::Match {
+                        scrutinee, arms, ..
+                    } => {
                         self.frames.push(VerifierFrame::ResumeMatchScrutinee {
                             expression,
                             scrutinee,
@@ -5437,7 +5631,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     expression.span,
                                 ));
                             }
-                            if self.types.contains_resource(&then_value.ty)
+                            if self.types.needs_drop(&then_value.ty)
                                 && then_value.mode != else_value.mode
                             {
                                 self.diagnostics.push(error(
@@ -5525,7 +5719,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         binding_ty = declared_ty.clone();
                                         binding_mode = if *declared_ty == Type::SliceU8 {
                                             ParamMode::Borrow
-                                        } else if self.types.contains_resource(declared_ty)
+                                        } else if self.types.needs_drop(declared_ty)
                                             || declared_ty.is_uniquely_owned()
                                         {
                                             ParamMode::Own
@@ -5552,8 +5746,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         ));
                                     }
                                 }
-                                if (self.types.contains_resource(&actual.ty)
-                                    || actual.ty.is_uniquely_owned())
+                                if self.types.needs_drop(&actual.ty)
                                     && actual.mode == ParamMode::Own
                                 {
                                     if self.allow_moves {
@@ -6094,7 +6287,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             VerifierCallTarget::Ordinary(Some(target)) => {
                                 Some(CheckedValue::returned(
                                     target.return_type().clone(),
-                                    self.types.contains_resource(target.return_type()),
+                                    self.types.needs_drop(target.return_type()),
                                 ))
                             }
                             VerifierCallTarget::Ordinary(None) => None,
@@ -6219,7 +6412,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     if args.is_empty() {
                         self.values.push(Some(CheckedValue::returned(
                             method_fn.return_type.clone(),
-                            self.types.contains_resource(&method_fn.return_type),
+                            self.types.needs_drop(&method_fn.return_type),
                         )));
                         continue;
                     }
@@ -6300,7 +6493,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     } else {
                         self.values.push(Some(CheckedValue::returned(
                             method.return_type.clone(),
-                            self.types.contains_resource(&method.return_type),
+                            self.types.needs_drop(&method.return_type),
                         )));
                     }
                 }
@@ -6330,7 +6523,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     if self.scopes[scope]
                         .bindings
                         .values()
-                        .any(|binding| self.types.contains_resource(&binding.ty))
+                        .any(|binding| self.types.needs_drop(&binding.ty))
                     {
                         self.diagnostics.push(error(
                             self.program,
@@ -6431,7 +6624,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         .types
                         .record_field_type(&base_value.ty, declared)
                         .unwrap_or_else(|| declared.ty.clone());
-                    let mode = if self.types.contains_resource(&projected) {
+                    let mode = if self.types.needs_drop(&projected) {
                         base_value.mode
                     } else {
                         ParamMode::Value
@@ -6530,9 +6723,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 field.value.span,
                             ));
                         }
-                        if self.types.contains_resource(&declared.ty)
-                            && actual.mode == ParamMode::Own
-                        {
+                        if self.types.needs_drop(&declared.ty) && actual.mode == ParamMode::Own {
                             if self.allow_moves {
                                 mark_value_sources_moved(
                                     &field.value,
@@ -6547,7 +6738,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     field.value.span,
                                 ));
                             }
-                        } else if self.types.contains_resource(&declared.ty)
+                        } else if self.types.needs_drop(&declared.ty)
                             && matches!(actual.mode, ParamMode::Borrow | ParamMode::Shared)
                         {
                             self.diagnostics.push(error(
@@ -6583,7 +6774,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             };
                             self.values.push(Some(CheckedValue::returned(
                                 instance.clone(),
-                                self.types.contains_resource(&instance),
+                                self.types.needs_drop(&instance),
                             )));
                         } else {
                             self.values.push(None);
@@ -6729,7 +6920,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         self.values.push(None);
                         continue;
                     };
-                    if self.types.contains_resource(&base_value.ty) {
+                    if self.types.needs_drop(&base_value.ty) {
                         match base_value.mode {
                             ParamMode::Own if self.allow_moves => mark_value_sources_moved(
                                 base,
@@ -6764,7 +6955,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     } else {
                         self.values.push(Some(CheckedValue::returned(
                             base_value.ty.clone(),
-                            self.types.contains_resource(&base_value.ty),
+                            self.types.needs_drop(&base_value.ty),
                         )));
                     }
                 }
@@ -6842,8 +7033,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 field.value.span,
                             ));
                         }
-                        if self.types.contains_resource(&expected) && actual.mode == ParamMode::Own
-                        {
+                        if self.types.needs_drop(&expected) && actual.mode == ParamMode::Own {
                             if self.allow_moves {
                                 mark_value_sources_moved(
                                     &field.value,
@@ -6858,7 +7048,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     field.value.span,
                                 ));
                             }
-                        } else if self.types.contains_resource(&expected)
+                        } else if self.types.needs_drop(&expected)
                             && matches!(actual.mode, ParamMode::Borrow | ParamMode::Shared)
                         {
                             self.diagnostics.push(error(
@@ -6883,7 +7073,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     } else {
                         self.values.push(Some(CheckedValue::returned(
                             base_type.clone(),
-                            self.types.contains_resource(&base_type),
+                            self.types.needs_drop(&base_type),
                         )));
                     }
                 }
@@ -6893,6 +7083,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     arms,
                     scope,
                 } => {
+                    let match_mode = match &expression.kind {
+                        ExprKind::Match { mode, .. } => *mode,
+                        _ => unreachable!("match continuation has a non-match expression"),
+                    };
                     let scrutinee_value = self.values.pop().unwrap_or(None);
                     if let Some(value) = &scrutinee_value {
                         reject_native_unit_value(self.program, scrutinee, value, self.diagnostics);
@@ -6900,17 +7094,18 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     // Refutable Match v1: Copy-scalar scrutinees take the
                     // literal/guard decision chain; every other type keeps
                     // the pre-feature record/variant surfaces below.
-                    let scalar_scrutinee = scrutinee_value.as_ref().is_some_and(|value| {
-                        matches!(
-                            value.ty,
-                            Type::I64
-                                | Type::I32
-                                | Type::Char
-                                | Type::U8
-                                | Type::Usize
-                                | Type::Bool
-                        ) && value.mode == ParamMode::Value
-                    });
+                    let scalar_scrutinee = match_mode == MatchMode::Value
+                        && scrutinee_value.as_ref().is_some_and(|value| {
+                            matches!(
+                                value.ty,
+                                Type::I64
+                                    | Type::I32
+                                    | Type::Char
+                                    | Type::U8
+                                    | Type::Usize
+                                    | Type::Bool
+                            ) && value.mode == ParamMode::Value
+                        });
                     if scalar_scrutinee {
                         let scrutinee_ty = scrutinee_value
                             .as_ref()
@@ -7067,15 +7262,62 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         .is_some_and(|value| self.types.record_fields(&value.ty).is_some())
                     {
                         let scrutinee_value = scrutinee_value.expect("record checked above");
-                        if self.types.contains_resource(&scrutinee_value.ty)
-                            || scrutinee_value.mode != ParamMode::Value
-                        {
-                            self.diagnostics.push(error(
-                                self.program,
-                                "SPX-O111",
-                                "plain record match requires a Copy scrutinee",
-                                scrutinee.span,
-                            ));
+                        let needs_drop = self.types.needs_drop(&scrutinee_value.ty);
+                        match match_mode {
+                            MatchMode::Value => {
+                                if needs_drop || scrutinee_value.mode != ParamMode::Value {
+                                    self.diagnostics.push(error(
+                                        self.program,
+                                        "SPX-O111",
+                                        "plain record match requires a Copy scrutinee",
+                                        scrutinee.span,
+                                    ));
+                                }
+                            }
+                            MatchMode::Own => {
+                                if !needs_drop || scrutinee_value.mode != ParamMode::Own {
+                                    self.diagnostics.push(error(
+                                        self.program,
+                                        "SPX-O117",
+                                        "`match own` requires an owned non-Copy record scrutinee",
+                                        scrutinee.span,
+                                    ));
+                                } else if self.allow_moves {
+                                    mark_value_sources_moved(
+                                        scrutinee,
+                                        &mut self.scopes[scope].bindings,
+                                        self.types,
+                                    );
+                                } else {
+                                    self.diagnostics.push(error(
+                                        self.program,
+                                        "SPX-O105",
+                                        "contract expression cannot consume a match scrutinee",
+                                        scrutinee.span,
+                                    ));
+                                }
+                            }
+                            MatchMode::Borrow => {
+                                if !needs_drop
+                                    || !matches!(
+                                        scrutinee_value.mode,
+                                        ParamMode::Own | ParamMode::Borrow
+                                    )
+                                    || source_place(
+                                        scrutinee,
+                                        &self.scopes[scope].bindings,
+                                        self.types,
+                                    )
+                                    .is_none_or(|place| !place.projections.is_empty())
+                                {
+                                    self.diagnostics.push(error(
+                                        self.program,
+                                        "SPX-O117",
+                                        "`match borrow` requires a named owned or borrowed non-Copy record place",
+                                        scrutinee.span,
+                                    ));
+                                }
+                            }
                         }
                         let Some((first, rest)) = arms.split_first() else {
                             self.diagnostics.push(error(
@@ -7107,7 +7349,26 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         self.scopes.push(VerifierScope {
                             bindings: self.scopes[scope].bindings.clone(),
                         });
+                        if match_mode == MatchMode::Borrow {
+                            if let Some(place) =
+                                source_place(scrutinee, &self.scopes[scope].bindings, self.types)
+                            {
+                                if let Some(owner) =
+                                    self.scopes[arm_scope].bindings.get_mut(&place.root)
+                                {
+                                    owner.lexically_borrowed = true;
+                                }
+                            }
+                        }
                         match &first.pattern {
+                            MatchPattern::Wildcard { span } if match_mode != MatchMode::Value => {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-O117",
+                                    "explicit ownership match requires an exact record pattern",
+                                    *span,
+                                ));
+                            }
                             MatchPattern::Wildcard { .. } => {}
                             MatchPattern::Record {
                                 type_name,
@@ -7123,6 +7384,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 self.types,
                                 self.diagnostics,
                                 *span,
+                                match_mode,
                             ),
                             MatchPattern::Variant { .. } => self.diagnostics.push(error(
                                 self.program,
@@ -7743,7 +8005,7 @@ fn check_expr(
             None
         }
         ExprKind::Var(name) if name == "result" => result_type
-            .map(|ty| CheckedValue::returned(ty.clone(), types.contains_resource(ty)))
+            .map(|ty| CheckedValue::returned(ty.clone(), types.needs_drop(ty)))
             .or_else(|| {
                 diagnostics.push(error(
                     program,
@@ -8019,7 +8281,7 @@ fn check_expr(
             specialized_target.map(|target| {
                 CheckedValue::returned(
                     target.return_type.clone(),
-                    types.contains_resource(&target.return_type),
+                    types.needs_drop(&target.return_type),
                 )
             })
         }
@@ -8195,7 +8457,7 @@ fn check_expr(
             }
             Some(CheckedValue::returned(
                 method_fn.return_type.clone(),
-                types.contains_resource(&method_fn.return_type),
+                types.needs_drop(&method_fn.return_type),
             ))
         }
         ExprKind::Unary { op, value } => {
@@ -8470,7 +8732,7 @@ fn check_expr(
                             field.value.span,
                         ));
                     }
-                    if types.contains_resource(&declared.ty) && actual.mode == ParamMode::Own {
+                    if types.needs_drop(&declared.ty) && actual.mode == ParamMode::Own {
                         if allow_moves {
                             mark_value_sources_moved(&field.value, variables, types);
                         } else {
@@ -8481,7 +8743,7 @@ fn check_expr(
                                 field.value.span,
                             ));
                         }
-                    } else if types.contains_resource(&declared.ty)
+                    } else if types.needs_drop(&declared.ty)
                         && matches!(actual.mode, ParamMode::Borrow | ParamMode::Shared)
                     {
                         diagnostics.push(error(
@@ -8510,7 +8772,7 @@ fn check_expr(
             }
 
             declared_fields.map(|_| {
-                CheckedValue::returned(instance.clone(), types.contains_resource(&instance))
+                CheckedValue::returned(instance.clone(), types.needs_drop(&instance))
             })
         }
         ExprKind::ConstructVariant {
@@ -8615,7 +8877,11 @@ fn check_expr(
             }
             case.map(|_| CheckedValue::value(instance))
         }
-        ExprKind::Match { scrutinee, arms } => {
+        ExprKind::Match {
+            mode,
+            scrutinee,
+            arms,
+        } => {
             let scrutinee_value = check_expr(
                 program,
                 current,
@@ -8632,7 +8898,8 @@ fn check_expr(
             }
             // Refutable Match v1: Copy-scalar decision chain in the
             // recursive oracle twin.
-            let scalar_scrutinee = scrutinee_value.as_ref().is_some_and(|value| {
+            let scalar_scrutinee = *mode == MatchMode::Value
+                && scrutinee_value.as_ref().is_some_and(|value| {
                 matches!(
                     value.ty,
                     Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::Usize | Type::Bool
@@ -8827,15 +9094,51 @@ fn check_expr(
                 let Some(scrutinee_value) = scrutinee_value else {
                     unreachable!("record instance was checked above");
                 };
-                if types.contains_resource(&scrutinee_value.ty)
-                    || scrutinee_value.mode != ParamMode::Value
-                {
-                    diagnostics.push(error(
-                        program,
-                        "SPX-O111",
-                        "plain record match requires a Copy scrutinee",
-                        scrutinee.span,
-                    ));
+                let needs_drop = types.needs_drop(&scrutinee_value.ty);
+                match mode {
+                    MatchMode::Value => {
+                        if needs_drop || scrutinee_value.mode != ParamMode::Value {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-O111",
+                                "plain record match requires a Copy scrutinee",
+                                scrutinee.span,
+                            ));
+                        }
+                    }
+                    MatchMode::Own => {
+                        if !needs_drop || scrutinee_value.mode != ParamMode::Own {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-O117",
+                                "`match own` requires an owned non-Copy record scrutinee",
+                                scrutinee.span,
+                            ));
+                        } else if allow_moves {
+                            mark_value_sources_moved(scrutinee, variables, types);
+                        } else {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-O105",
+                                "contract expression cannot consume a match scrutinee",
+                                scrutinee.span,
+                            ));
+                        }
+                    }
+                    MatchMode::Borrow => {
+                        if !needs_drop
+                            || !matches!(scrutinee_value.mode, ParamMode::Own | ParamMode::Borrow)
+                            || source_place(scrutinee, variables, types)
+                                .is_none_or(|place| !place.projections.is_empty())
+                        {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-O117",
+                                "`match borrow` requires a named owned or borrowed non-Copy record place",
+                                scrutinee.span,
+                            ));
+                        }
+                    }
                 }
                 let Some((first, rest)) = arms.split_first() else {
                     diagnostics.push(error(
@@ -8859,7 +9162,22 @@ fn check_expr(
                 }
                 let outer_names = variables.keys().cloned().collect::<Vec<_>>();
                 let mut arm_variables = variables.clone();
+                if *mode == MatchMode::Borrow {
+                    if let Some(place) = source_place(scrutinee, variables, types) {
+                        if let Some(owner) = arm_variables.get_mut(&place.root) {
+                            owner.lexically_borrowed = true;
+                        }
+                    }
+                }
                 match &first.pattern {
+                    MatchPattern::Wildcard { span } if *mode != MatchMode::Value => {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-O117",
+                            "explicit ownership match requires an exact record pattern",
+                            *span,
+                        ));
+                    }
                     MatchPattern::Wildcard { .. } => {}
                     MatchPattern::Record {
                         type_name,
@@ -8875,6 +9193,7 @@ fn check_expr(
                         types,
                         diagnostics,
                         *span,
+                        *mode,
                     ),
                     MatchPattern::Variant { .. } => diagnostics.push(error(
                         program,
@@ -9200,7 +9519,7 @@ fn check_expr(
             }
             if variables
                 .values()
-                .any(|binding| types.contains_resource(&binding.ty))
+                .any(|binding| types.needs_drop(&binding.ty))
             {
                 diagnostics.push(error(
                     program,
@@ -9298,7 +9617,7 @@ fn check_expr(
                 return None;
             }
 
-            if types.contains_resource(&base_value.ty) {
+            if types.needs_drop(&base_value.ty) {
                 match base_value.mode {
                     ParamMode::Own if allow_moves => {
                         mark_value_sources_moved(base, variables, types);
@@ -9364,7 +9683,7 @@ fn check_expr(
                             field.value.span,
                         ));
                     }
-                    if types.contains_resource(&expected) && actual.mode == ParamMode::Own {
+                    if types.needs_drop(&expected) && actual.mode == ParamMode::Own {
                         if allow_moves {
                             mark_value_sources_moved(&field.value, variables, types);
                         } else {
@@ -9375,7 +9694,7 @@ fn check_expr(
                                 field.value.span,
                             ));
                         }
-                    } else if types.contains_resource(&expected)
+                    } else if types.needs_drop(&expected)
                         && matches!(actual.mode, ParamMode::Borrow | ParamMode::Shared)
                     {
                         diagnostics.push(error(
@@ -9390,7 +9709,7 @@ fn check_expr(
 
             Some(CheckedValue::returned(
                 base_value.ty.clone(),
-                types.contains_resource(&base_value.ty),
+                types.needs_drop(&base_value.ty),
             ))
         }
         ExprKind::Project { base, field, .. } => {
@@ -9441,7 +9760,7 @@ fn check_expr(
             let projected = types
                 .record_field_type(&base_value.ty, declared)
                 .unwrap_or_else(|| declared.ty.clone());
-            let mode = if types.contains_resource(&projected) {
+            let mode = if types.needs_drop(&projected) {
                 base_value.mode
             } else {
                 ParamMode::Value
@@ -9491,8 +9810,7 @@ fn check_expr(
                             continue;
                         }
                         if let Some(actual) = actual {
-                            if (types.contains_resource(&actual.ty)
-                                || actual.ty.is_uniquely_owned())
+                            if types.needs_drop(&actual.ty)
                                 && actual.mode == ParamMode::Own
                             {
                                 if allow_moves {
@@ -9691,7 +10009,7 @@ fn check_expr(
                             expr.span,
                         ));
                     }
-                    if types.contains_resource(&then_value.ty) && then_value.mode != else_value.mode
+                    if types.needs_drop(&then_value.ty) && then_value.mode != else_value.mode
                     {
                         diagnostics.push(error(
                             program,
@@ -9997,9 +10315,9 @@ fn reject_while_disallowed_oracle(
             ));
             Err(())
         }
-        ExprKind::Match { scrutinee, arms }
-            if crate::byte_ops::is_indexed_byte_option_match_source(expression) =>
-        {
+        ExprKind::Match {
+            scrutinee, arms, ..
+        } if crate::byte_ops::is_indexed_byte_option_match_source(expression) => {
             reject_while_disallowed_oracle(program, scrutinee, functions, diagnostics)?;
             let mut result = Ok(());
             for arm in arms {
@@ -10078,7 +10396,7 @@ fn check_argument_ownership(
     let Some(actual) = actual else {
         return;
     };
-    if !types.contains_resource(&actual.ty) && !actual.ty.is_uniquely_owned() {
+    if !types.needs_drop(&actual.ty) {
         return;
     }
     // HIR normalizes every uniquely-owned by-value parameter to an ownership
@@ -10159,6 +10477,21 @@ fn check_argument_ownership(
             )
             .with_help("create or receive an explicitly shared resource before this call"),
         ),
+        ParamMode::Borrow if types.is_flat_owned_byte_record(&actual.ty) => {
+            if !source_place(arg, variables, types)
+                .is_some_and(|place| place.projections.is_empty())
+            {
+                diagnostics.push(
+                    error(
+                        program,
+                        "SPX-O118",
+                        "borrowed owned-Bytes record argument must be an unprojected named place",
+                        arg.span,
+                    )
+                    .with_help("bind the record to a local before borrowing it"),
+                );
+            }
+        }
         ParamMode::Borrow | ParamMode::Shared | ParamMode::Value => {}
     }
 }
@@ -10208,7 +10541,7 @@ fn mark_value_sources_moved(
             Frame::Enter(expr, scope) => match &expr.kind {
                 ExprKind::Var(name) => {
                     if let Some(binding) = scopes[scope].get_mut(name) {
-                        if (types.contains_resource(&binding.ty) || binding.ty.is_uniquely_owned())
+                        if types.needs_drop(&binding.ty)
                             && binding.mode == ParamMode::Own
                             && binding.availability == Availability::Available
                         {
@@ -10370,7 +10703,7 @@ fn source_place(
             .iter()
             .find(|candidate| candidate.name == field)?;
         place.ty = types.record_field_type(&place.ty, declared)?;
-        if !types.contains_resource(&place.ty) {
+        if !types.needs_drop(&place.ty) {
             place.mode = ParamMode::Value;
         }
         place.projections.push(field.to_owned());
@@ -10906,6 +11239,7 @@ mod iterative_verifier_tests {
             .collect::<BTreeMap<_, _>>();
         let expression = Expr {
             kind: ExprKind::Match {
+                mode: crate::ast::MatchMode::Value,
                 scrutinee: Box::new(Expr {
                     kind: ExprKind::Int(0),
                     span,
@@ -10940,6 +11274,7 @@ mod iterative_verifier_tests {
         // two sources disagree.
         let mismatch = Expr {
             kind: ExprKind::Match {
+                mode: crate::ast::MatchMode::Value,
                 scrutinee: Box::new(Expr {
                     kind: ExprKind::Int(0),
                     span,
@@ -11014,6 +11349,7 @@ mod iterative_verifier_tests {
         });
         wide.body = Expr {
             kind: ExprKind::Match {
+                mode: crate::ast::MatchMode::Value,
                 scrutinee: Box::new(Expr {
                     kind: ExprKind::Var("deep".to_owned()),
                     span,

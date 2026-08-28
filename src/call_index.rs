@@ -256,7 +256,9 @@ impl PersistentCallIndex {
                 | ResolvedExprKind::ConstructVariant { fields, .. } => {
                     fields.get(index).map(|field| &field.value)
                 }
-                ResolvedExprKind::Match { scrutinee, arms } => {
+                ResolvedExprKind::Match {
+                    scrutinee, arms, ..
+                } => {
                     if index == 0 {
                         Some(scrutinee)
                     } else {

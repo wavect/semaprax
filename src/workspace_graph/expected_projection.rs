@@ -522,7 +522,9 @@ fn ast_expr_identity_slots(expression: &Expr) -> Result<usize, Vec<Diagnostic>> 
                 slots = checked_builder_sum(slots, ast_expr_identity_slots(&field.value)?)?;
             }
         }
-        ExprKind::Match { scrutinee, arms } => {
+        ExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             slots = checked_builder_sum(slots, ast_expr_identity_slots(scrutinee)?)?;
             for arm in arms {
                 slots = checked_builder_sum(slots, ast_pattern_identity_slots(&arm.pattern)?)?;
@@ -795,7 +797,9 @@ fn ast_expr_cost(expression: &Expr, cost: &mut StructuralCost) -> Result<(), Vec
                 ast_expr_cost(&field.value, cost)?;
             }
         }
-        ExprKind::Match { scrutinee, arms } => {
+        ExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             ast_expr_cost(scrutinee, cost)?;
             for arm in arms {
                 cost.value(arm)?;
@@ -2089,7 +2093,9 @@ fn collect_expression_type_edges(
                 )?;
             }
         }
-        ExprKind::Match { scrutinee, arms } => {
+        ExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             collect_expression_type_edges(
                 program,
                 owner,

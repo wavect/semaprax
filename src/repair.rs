@@ -504,7 +504,9 @@ pub(crate) fn precheck_program(program: &Program) -> Result<(), Vec<Diagnostic>>
             | ExprKind::ConstructVariant { fields, .. } => {
                 expressions.extend(fields.iter().map(|field| &field.value));
             }
-            ExprKind::Match { scrutinee, arms } => {
+            ExprKind::Match {
+                scrutinee, arms, ..
+            } => {
                 expressions.push(scrutinee);
                 expressions.extend(arms.iter().map(|arm| &arm.value));
             }
@@ -779,7 +781,9 @@ fn collect_calls(
                 collect_calls(&field.value, known, calls, call_sites);
             }
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
             collect_calls(scrutinee, known, calls, call_sites);
             for arm in arms {
                 collect_calls(&arm.value, known, calls, call_sites);

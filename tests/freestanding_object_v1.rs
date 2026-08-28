@@ -472,7 +472,13 @@ fn relocatable_object_compiles_freestanding_with_clean_symbol_surface() {
     std::fs::write(&source_path, &unit).expect("write unit");
 
     let compile = |object: &Path| {
-        Command::new(&compiler)
+        let mut command = Command::new(&compiler);
+        if cfg!(windows) {
+            // Clang otherwise writes the current time into the COFF header,
+            // making identical compilations differ when they cross a second.
+            command.arg("-mno-incremental-linker-compatible");
+        }
+        command
             .args([
                 "-std=c11",
                 "-O0",

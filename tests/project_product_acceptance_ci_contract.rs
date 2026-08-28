@@ -185,6 +185,7 @@ fn dedicated_chromium_acceptance_remains_a_separate_blocking_job() {
         "examples/calculator-project/semaprax.toml --target web",
         "SEMAPRAX_DIRECT_CALCULATOR_ROOT=",
         "SEMAPRAX_PROJECT_CALCULATOR_ROOT=",
+        "SEMAPRAX_RENAMED_PROJECT_CALCULATOR_ROOT=",
         "npm run test:fixtures --",
     ] {
         assert!(
@@ -195,7 +196,7 @@ fn dedicated_chromium_acceptance_remains_a_separate_blocking_job() {
     assert!(!browser.contains("continue-on-error"));
     assert_eq!(
         browser.matches("--moduleResolution NodeNext").count(),
-        2,
-        "both direct-source and Project declaration consumers must type-check"
+        3,
+        "direct-source, baseline Project, and renamed Project declaration consumers must type-check"
     );
 }

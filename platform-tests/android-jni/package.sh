@@ -112,8 +112,8 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 mapfile -t kotlin_sources < <(find "$project_root/src" -type f -name '*.kt' -print | LC_ALL=C sort)
-if [[ "${#kotlin_sources[@]}" -lt 9 ]]; then
-  echo "private Android JNI Kotlin source set is incomplete" >&2
+if [[ "${#kotlin_sources[@]}" -ne 8 ]]; then
+  echo "private Android JNI Kotlin source set must contain exactly eight files" >&2
   exit 1
 fi
 

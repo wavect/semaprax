@@ -57,16 +57,22 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-      - name: Build direct-source and multi-module Project calculators into isolated fixtures
+      - name: Build direct-source, baseline Project, and renamed Project calculators into isolated fixtures
         shell: bash
         run: |
           set -euo pipefail
           fixture="$RUNNER_TEMP/semaprax-wasm-scalar-browser-v1"
           direct="$fixture/direct-source"
-          project="$fixture/project"
-          mkdir -p "$direct" "$project"
+          project="$fixture/project-baseline"
+          renamed="$fixture/project-renamed"
+          renamed_project="$fixture/calculator-project-renamed"
+          mkdir -p "$direct" "$project" "$renamed"
           cp -a examples/calculator-web/. "$direct/"
           cp -a examples/calculator-web/. "$project/"
+          cp -a examples/calculator-web/. "$renamed/"
+          cp -a examples/calculator-project "$renamed_project"
+          sed -i 's/^fn add(/fn sum(/' "$renamed_project/src/core.spx"
+          grep -Fqx 'fn sum(left: i64, right: i64) -> i64' "$renamed_project/src/core.spx"
           cargo run --locked -p semaprax -- build examples/calculator.spx --target web \
             --export calculator.add \
             --export calculator.subtract \
@@ -78,14 +84,18 @@ jobs:
           cargo run --locked -p semaprax -- build \
             examples/calculator-project/semaprax.toml --target web \
             -o "$project/generated"
+          cargo run --locked -p semaprax -- build \
+            "$renamed_project/semaprax.toml" --target web \
+            -o "$renamed/generated"
           echo "SEMAPRAX_DIRECT_CALCULATOR_ROOT=$direct" >> "$GITHUB_ENV"
           echo "SEMAPRAX_PROJECT_CALCULATOR_ROOT=$project" >> "$GITHUB_ENV"
+          echo "SEMAPRAX_RENAMED_PROJECT_CALCULATOR_ROOT=$renamed" >> "$GITHUB_ENV"
       - name: Install the locked Playwright fixture and Chromium
         working-directory: platform-tests/wasm-scalar-browser-v1
         run: |
           npm ci --ignore-scripts
           npx --no-install playwright install --with-deps chromium
-      - name: Type-check both real generated declaration consumers
+      - name: Type-check all three real generated declaration consumers
         working-directory: platform-tests/wasm-scalar-browser-v1
         run: |
           npx --no-install tsc --strict --noEmit --target ES2022 \
@@ -94,12 +104,16 @@ jobs:
           npx --no-install tsc --strict --noEmit --target ES2022 \
             --module NodeNext --moduleResolution NodeNext \
             "$SEMAPRAX_PROJECT_CALCULATOR_ROOT/consumer.ts"
-      - name: Exercise both generated calculators in serial real Chromium workers
+          npx --no-install tsc --strict --noEmit --target ES2022 \
+            --module NodeNext --moduleResolution NodeNext \
+            "$SEMAPRAX_RENAMED_PROJECT_CALCULATOR_ROOT/consumer.ts"
+      - name: Exercise all three generated calculators in serial real Chromium workers
         working-directory: platform-tests/wasm-scalar-browser-v1
         run: >-
           npm run test:fixtures --
           "$SEMAPRAX_DIRECT_CALCULATOR_ROOT"
           "$SEMAPRAX_PROJECT_CALCULATOR_ROOT"
+          "$SEMAPRAX_RENAMED_PROJECT_CALCULATOR_ROOT"
 
   project-product-acceptance-v1:
     name: Project Product Acceptance v1 (${{ matrix.os }})
@@ -574,9 +588,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
+          test -c /dev/kvm
+          sudo chmod 0666 /dev/kvm
+          test -r /dev/kvm
+          test -w /dev/kvm
       - name: Run generated callable-v3 through the x86_64 Android Emulator
         uses: ReactiveCircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
         with:
@@ -616,9 +631,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
+          test -c /dev/kvm
+          sudo chmod 0666 /dev/kvm
+          test -r /dev/kvm
+          test -w /dev/kvm
       - name: Build offline and run the private JNI/Kotlin instrumentation APK
         uses: ReactiveCircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
         with:

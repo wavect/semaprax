@@ -19,11 +19,14 @@ fn chromium_scalar_calculator_gate_is_isolated_locked_and_serial() {
         "node-version: 22",
         "SEMAPRAX_DIRECT_CALCULATOR_ROOT=$direct",
         "SEMAPRAX_PROJECT_CALCULATOR_ROOT=$project",
+        "SEMAPRAX_RENAMED_PROJECT_CALCULATOR_ROOT=$renamed",
+        "sed -i 's/^fn add(/fn sum(/'",
         "npm ci --ignore-scripts",
         "npx --no-install playwright install --with-deps chromium",
         "npx --no-install tsc --strict --noEmit --target ES2022",
         "\"$SEMAPRAX_DIRECT_CALCULATOR_ROOT/consumer.ts\"",
         "\"$SEMAPRAX_PROJECT_CALCULATOR_ROOT/consumer.ts\"",
+        "\"$SEMAPRAX_RENAMED_PROJECT_CALCULATOR_ROOT/consumer.ts\"",
         "npm run test:fixtures --",
     ] {
         assert!(

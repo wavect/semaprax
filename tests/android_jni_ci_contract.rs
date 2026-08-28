@@ -363,7 +363,7 @@ fn private_android_jni_hosted_gate_is_mandatory_and_fail_closed() {
         "abi: x86_64",
         "emulator-arch: x86_64",
         "arch: arm64-v8a",
-        "runs-on: ubuntu-24.04-arm",
+        "runs-on: ubuntu-latest",
         "abi: arm64-v8a",
         "emulator-arch: arm64-v8a",
         "ANDROID_ARCH: ${{ matrix.abi }}",

@@ -571,6 +571,11 @@ fn emit_transition(
                 "initialize transition `{at}` has no physical payload source in the cleanup scaffold"
             )));
         }
+        CleanupTransition::InitializeVariant { at, .. } => {
+            return Err(cleanup_error(format!(
+                "conditional variant initialization `{at}` reached the resource cleanup scaffold"
+            )));
+        }
         CleanupTransition::Transfer {
             at,
             source,
@@ -609,6 +614,16 @@ fn emit_transition(
             writeln!(output, "{destination_flag} = true;")
                 .expect("writing to a string cannot fail");
             emit_transfer_trace(output, index, bindings, at, source, destination)?;
+        }
+        CleanupTransition::AuthenticateVariantCase { at, .. } => {
+            return Err(cleanup_error(format!(
+                "variant authentication transition `{at}` reached the resource cleanup scaffold"
+            )));
+        }
+        CleanupTransition::TransferVariant { at, .. } => {
+            return Err(cleanup_error(format!(
+                "conditional variant transfer `{at}` reached the resource cleanup scaffold"
+            )));
         }
         CleanupTransition::CallCommit { call, .. } => {
             return Err(cleanup_error(format!(
@@ -1001,7 +1016,10 @@ fn validate_bindings(
                 }
                 CleanupTransition::CallCommit { .. }
                 | CleanupTransition::Initialize { .. }
-                | CleanupTransition::Transfer { .. } => {}
+                | CleanupTransition::InitializeVariant { .. }
+                | CleanupTransition::Transfer { .. }
+                | CleanupTransition::TransferVariant { .. }
+                | CleanupTransition::AuthenticateVariantCase { .. } => {}
                 CleanupTransition::StageCopyResult { .. } => {
                     return Err(cleanup_error(
                         "staged Copy result reached owned-resource binding preflight",

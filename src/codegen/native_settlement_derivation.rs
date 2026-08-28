@@ -596,6 +596,9 @@ fn apply_transition(
                 .push(select_failure_ordinal(dictionary, source)?);
         }
         CleanupTransition::Initialize { .. }
+        | CleanupTransition::InitializeVariant { .. }
+        | CleanupTransition::TransferVariant { .. }
+        | CleanupTransition::AuthenticateVariantCase { .. }
         | CleanupTransition::CallCommit { .. }
         | CleanupTransition::StageCopyResult { .. } => {
             return Err(derivation_error(
@@ -693,6 +696,17 @@ fn collect_flags(
             for field in fields {
                 projections.push(field.field.clone());
                 collect_flags(storage, projections, &field.shape, place, flags);
+                projections.pop();
+            }
+        }
+        FieldLivenessShape::Variant { cases, .. } => {
+            for case in cases {
+                projections.push(case.case.clone());
+                for field in &case.fields {
+                    projections.push(field.field.clone());
+                    collect_flags(storage, projections, &field.shape, place, flags);
+                    projections.pop();
+                }
                 projections.pop();
             }
         }

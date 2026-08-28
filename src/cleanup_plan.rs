@@ -21,6 +21,7 @@ pub const CLEANUP_PLAN_SCHEMA_V2: &str = "semaprax.cleanup-plan.v2";
 pub const CLEANUP_PLAN_SCHEMA_V3: &str = "semaprax.cleanup-plan.v3";
 pub const CLEANUP_PLAN_SCHEMA_V4: &str = "semaprax.cleanup-plan.v4";
 pub const CLEANUP_PLAN_SCHEMA_V5: &str = "semaprax.cleanup-plan.v5";
+pub const CLEANUP_PLAN_SCHEMA_V6: &str = "semaprax.cleanup-plan.v6";
 
 macro_rules! numeric_id {
     ($name:ident) => {
@@ -98,6 +99,22 @@ pub struct CleanupSlot {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CleanupEntryState {
     pub live_owned_parameters: Vec<CleanupPlace>,
+    /// Owned variant parameters are authenticated by tag before payload
+    /// authority. Exactly the selected case's qualified leaves become live.
+    pub conditional_owned_parameters: Vec<ConditionalVariantEntry>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConditionalVariantEntry {
+    pub storage: StorageId,
+    pub variant: DeclarationId,
+    pub cases: Vec<ConditionalVariantCase>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConditionalVariantCase {
+    pub case: DeclarationId,
+    pub live_places: Vec<CleanupPlace>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -112,10 +129,34 @@ pub enum CleanupTransition {
         at: ExpressionId,
         destination: CleanupPlace,
     },
+    /// Initialize a complete variant returned by a dynamic callee. The tag is
+    /// authenticated before exactly one case inventory becomes live.
+    InitializeVariant {
+        at: ExpressionId,
+        destination: CleanupPlace,
+        variant: DeclarationId,
+    },
     Transfer {
         at: ExpressionId,
         source: CleanupPlace,
         destination: CleanupPlace,
+    },
+    /// Move one dynamically selected variant case between equal authenticated
+    /// conditional inventories. The runtime validates the tag before mapping
+    /// only the active case leaves.
+    TransferVariant {
+        at: ExpressionId,
+        source: CleanupPlace,
+        destination: CleanupPlace,
+        variant: DeclarationId,
+    },
+    /// Authenticate the closed variant tag before any payload authority and
+    /// deactivate every inactive case in the conditional source inventory.
+    AuthenticateVariantCase {
+        at: ExpressionId,
+        source: CleanupPlace,
+        variant: DeclarationId,
+        case: DeclarationId,
     },
     CallCommit {
         call: ExpressionId,
@@ -295,6 +336,14 @@ pub struct FinalizeAction {
     pub source: CleanupPlace,
     pub lifecycle_id: DeclarationId,
     pub guard_flag: LivenessFlagId,
+    pub active_case: Option<VariantCaseGuard>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VariantCaseGuard {
+    pub storage: StorageId,
+    pub variant: DeclarationId,
+    pub case: DeclarationId,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -347,6 +396,7 @@ impl CleanupPlan {
             entry: BlockId(0),
             entry_state: CleanupEntryState {
                 live_owned_parameters: Vec::new(),
+                conditional_owned_parameters: Vec::new(),
             },
             slots: Vec::new(),
             status_sources: Vec::new(),
@@ -392,6 +442,10 @@ impl CleanupPlan {
             .live_owned_parameters
             .capacity()
             .checked_mul(std::mem::size_of::<CleanupPlace>())?
+            .checked_add(
+                self.entry_state.conditional_owned_parameters.capacity()
+                    * std::mem::size_of::<ConditionalVariantEntry>(),
+            )?
             .checked_add(self.slots.capacity() * std::mem::size_of::<CleanupSlot>())?
             .checked_add(self.status_sources.capacity() * std::mem::size_of::<StatusSource>())?
             .checked_add(self.blocks.capacity() * std::mem::size_of::<CleanupBlock>())?
@@ -400,6 +454,22 @@ impl CleanupPlan {
             .checked_add(self.exits.capacity() * std::mem::size_of::<ExitTarget>())?;
         for place in &self.entry_state.live_owned_parameters {
             total = total.checked_add(place_bytes(place)?)?;
+        }
+        for entry in &self.entry_state.conditional_owned_parameters {
+            total = total
+                .checked_add(storage_bytes(&entry.storage))?
+                .checked_add(entry.variant.as_str().len())?
+                .checked_add(
+                    entry.cases.capacity() * std::mem::size_of::<ConditionalVariantCase>(),
+                )?;
+            for case in &entry.cases {
+                total = total.checked_add(case.case.as_str().len())?.checked_add(
+                    case.live_places.capacity() * std::mem::size_of::<CleanupPlace>(),
+                )?;
+                for place in &case.live_places {
+                    total = total.checked_add(place_bytes(place)?)?;
+                }
+            }
         }
         for slot in &self.slots {
             total = total
@@ -434,6 +504,16 @@ impl CleanupPlan {
                             .checked_add(at.as_str().len())?
                             .checked_add(place_bytes(destination)?)?;
                     }
+                    CleanupTransition::InitializeVariant {
+                        at,
+                        destination,
+                        variant,
+                    } => {
+                        total = total
+                            .checked_add(at.as_str().len())?
+                            .checked_add(place_bytes(destination)?)?
+                            .checked_add(variant.as_str().len())?;
+                    }
                     CleanupTransition::Transfer {
                         at,
                         source,
@@ -443,6 +523,30 @@ impl CleanupPlan {
                             .checked_add(at.as_str().len())?
                             .checked_add(place_bytes(source)?)?
                             .checked_add(place_bytes(destination)?)?;
+                    }
+                    CleanupTransition::AuthenticateVariantCase {
+                        at,
+                        source,
+                        variant,
+                        case,
+                    } => {
+                        total = total
+                            .checked_add(at.as_str().len())?
+                            .checked_add(place_bytes(source)?)?
+                            .checked_add(variant.as_str().len())?
+                            .checked_add(case.as_str().len())?;
+                    }
+                    CleanupTransition::TransferVariant {
+                        at,
+                        source,
+                        destination,
+                        variant,
+                    } => {
+                        total = total
+                            .checked_add(at.as_str().len())?
+                            .checked_add(place_bytes(source)?)?
+                            .checked_add(place_bytes(destination)?)?
+                            .checked_add(variant.as_str().len())?;
                     }
                     CleanupTransition::CallCommit { call, arguments } => {
                         total = total.checked_add(call.as_str().len())?.checked_add(
@@ -496,6 +600,12 @@ impl CleanupPlan {
                 total = total
                     .checked_add(place_bytes(&action.source)?)?
                     .checked_add(action.lifecycle_id.as_str().len())?;
+                if let Some(condition) = &action.active_case {
+                    total = total
+                        .checked_add(storage_bytes(&condition.storage))?
+                        .checked_add(condition.variant.as_str().len())?
+                        .checked_add(condition.case.as_str().len())?;
+                }
             }
             total = total.checked_add(match &exit.continuation {
                 ExitContinuation::Continue(_) | ExitContinuation::ReturnUnit => 0,
@@ -555,6 +665,27 @@ fn field_shape_bytes(shape: &FieldLivenessShape) -> Option<usize> {
                     .checked_add(field_shape_bytes(&field.shape)?)
             })?
             .checked_add(fields.capacity() * std::mem::size_of::<crate::cleanup::FieldLiveness>()),
+        FieldLivenessShape::Variant { declaration, cases } => cases
+            .iter()
+            .try_fold(declaration.as_str().len(), |bytes, case| {
+                case.fields
+                    .iter()
+                    .try_fold(
+                        bytes.checked_add(case.case.as_str().len())?,
+                        |bytes, field| {
+                            bytes
+                                .checked_add(field.field.as_str().len())?
+                                .checked_add(field_shape_bytes(&field.shape)?)
+                        },
+                    )?
+                    .checked_add(
+                        case.fields.capacity()
+                            * std::mem::size_of::<crate::cleanup::FieldLiveness>(),
+                    )
+            })?
+            .checked_add(
+                cases.capacity() * std::mem::size_of::<crate::cleanup::VariantCaseLiveness>(),
+            ),
     }
 }
 

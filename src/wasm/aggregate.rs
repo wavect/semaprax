@@ -72,6 +72,15 @@ enum Value {
     Aggregate { pointer: Pointer, ty: ResolvedType },
 }
 
+struct VariantMatchEmission<'a> {
+    destination: &'a Value,
+    scrutinee: Pointer,
+    layout: &'a VariantLayout,
+    arms: &'a [crate::hir::ResolvedMatchArm],
+    mode: crate::hir::ResolvedMatchMode,
+    expression: &'a ExpressionId,
+}
+
 #[derive(Default)]
 struct FrameAllocator {
     size: u32,
@@ -793,9 +802,9 @@ fn flatten_byte_leaves(
     match shape {
         crate::cleanup::FieldLivenessShape::NoDrop => Ok(()),
         crate::cleanup::FieldLivenessShape::Leaf { flag, lifecycle } => {
-            if projections.len() > 1 {
+            if projections.len() > 2 {
                 return Err(error(
-                    "nested owned Bytes record leaf is outside Wasm flat v1",
+                    "nested owned Bytes aggregate leaf is outside Wasm flat variant v1",
                 ));
             }
             visit(
@@ -811,6 +820,18 @@ fn flatten_byte_leaves(
             for field in fields {
                 projections.push(field.field.clone());
                 flatten_byte_leaves(storage, &field.shape, projections, visit)?;
+                projections.pop();
+            }
+            Ok(())
+        }
+        crate::cleanup::FieldLivenessShape::Variant { cases, .. } => {
+            for case in cases {
+                projections.push(case.case.clone());
+                for field in &case.fields {
+                    projections.push(field.field.clone());
+                    flatten_byte_leaves(storage, &field.shape, projections, visit)?;
+                    projections.pop();
+                }
                 projections.pop();
             }
             Ok(())
@@ -874,11 +895,12 @@ fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diag
         return Ok(false);
     }
     if arguments.len() != item.type_parameters.len()
-        || arguments.iter().any(|argument| {
-            !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
-                && !(declaration.as_str() == crate::prelude::OPTION_ID
-                    && *argument == ResolvedType::U8)
-        })
+        || (!crate::hir::admitted_owned_byte_prelude_instance(declaration, arguments)
+            && arguments.iter().any(|argument| {
+                !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
+                    && !(declaration.as_str() == crate::prelude::OPTION_ID
+                        && *argument == ResolvedType::U8)
+            }))
     {
         return Err(error(format!(
             "Wasm variant representation requires admitted exact concrete arguments for `{}`",
@@ -2056,6 +2078,64 @@ fn emit_function(
             write_u32(&mut body, flag);
         }
     }
+    for conditional in &function
+        .cleanup_plan
+        .entry_state
+        .conditional_owned_parameters
+    {
+        let crate::cleanup_plan::StorageId::Value(parameter) = &conditional.storage else {
+            return Err(error("conditional variant entry is not parameter-rooted"));
+        };
+        let (parameter_index, parameter_ty) = function
+            .params
+            .iter()
+            .enumerate()
+            .find(|(_, candidate)| candidate.id == *parameter)
+            .map(|(index, candidate)| (index as u32, &candidate.ty))
+            .ok_or_else(|| error("conditional variant entry parameter is absent"))?;
+        let layout = variant_layout(variant_layouts, parameter_ty)?;
+        if layout.variant != conditional.variant || layout.cases.len() != conditional.cases.len() {
+            return Err(error(
+                "conditional variant entry disagrees with its concrete layout",
+            ));
+        }
+        body.extend([0x20]);
+        write_u32(&mut body, parameter_index);
+        body.extend([0x28, 0x02, 0x00, 0x41]);
+        write_i64(
+            &mut body,
+            i64::try_from(layout.cases.len())
+                .map_err(|_| error("conditional variant case count overflows i64"))?,
+        );
+        body.extend([0x4f, 0x04, 0x40, 0x00, 0x0b]);
+        for case in &conditional.cases {
+            let case_layout = layout
+                .case(&case.case)
+                .ok_or_else(|| error("conditional variant entry case is absent"))?;
+            body.push(0x20);
+            write_u32(&mut body, parameter_index);
+            body.extend([0x28, 0x02, 0x00, 0x41]);
+            write_i64(&mut body, i64::from(case_layout.tag));
+            body.extend([0x46, 0x04, 0x40]);
+            for place in &case.live_places {
+                if place.storage != conditional.storage
+                    || place.projections.first() != Some(&case.case)
+                {
+                    return Err(error(
+                        "conditional variant entry leaf is not case-qualified",
+                    ));
+                }
+                let flag = plan
+                    .cleanup_place_flags
+                    .get(place)
+                    .copied()
+                    .ok_or_else(|| error("conditional variant entry flag is absent"))?;
+                body.extend([0x41, 0x01, 0x21]);
+                write_u32(&mut body, flag);
+            }
+            body.push(0x0b);
+        }
+    }
 
     let mut bindings = HashMap::new();
     for (index, param) in function.params.iter().enumerate() {
@@ -2511,6 +2591,47 @@ impl Emitter<'_> {
         self.emit_cleanup_actions(&exit.finalize_in_order)
     }
 
+    fn emit_owned_variant_match_cleanup(
+        &mut self,
+        fields: &[crate::hir::ResolvedMatchPatternField],
+    ) -> Result<(), Diagnostic> {
+        let storage = fields
+            .iter()
+            .filter(|field| field.binding.ty == ResolvedType::Bytes)
+            .map(|field| crate::cleanup_plan::StorageId::Value(field.binding.id.clone()))
+            .collect::<std::collections::BTreeSet<_>>();
+        if storage.is_empty() {
+            return Ok(());
+        }
+        let mut regions = self.cleanup_plan.regions.iter().filter(|region| {
+            storage
+                .iter()
+                .all(|candidate| region.slots.contains(candidate))
+        });
+        let region = regions
+            .next()
+            .ok_or_else(|| error("owned variant bindings have no CleanupPlan region"))?;
+        if regions.next().is_some() {
+            return Err(error(
+                "owned variant bindings map to ambiguous cleanup regions",
+            ));
+        }
+        let exit = self
+            .cleanup_plan
+            .exits
+            .get(region.normal_scope_end.0 as usize)
+            .filter(|exit| exit.id == region.normal_scope_end)
+            .ok_or_else(|| error("owned variant match region has no normal exit"))?;
+        if !matches!(
+            exit.continuation,
+            crate::cleanup_plan::ExitContinuation::Continue(_)
+        ) || exit.leaves_regions.as_slice() != [region.id]
+        {
+            return Err(error("owned variant match cleanup exit is not canonical"));
+        }
+        self.emit_cleanup_actions(&exit.finalize_in_order)
+    }
+
     fn cleanup_value_at(
         &self,
         place: &crate::cleanup_plan::CleanupPlace,
@@ -2597,7 +2718,20 @@ impl Emitter<'_> {
                     }
                 }
                 crate::cleanup_plan::StorageId::CallArgument { .. } => {
-                    if place.projections.is_empty() {
+                    if is_aggregate(self.program, &ty)? {
+                        let carrier = self
+                            .call_argument_values
+                            .get(&place.storage)
+                            .cloned()
+                            .ok_or_else(|| {
+                                error("aggregate call epoch has no authenticated carrier")
+                            })?;
+                        require_type(value_type(&carrier), &ty, "aggregate call epoch carrier")?;
+                        if !matches!(carrier, Value::Aggregate { .. }) {
+                            return Err(error("aggregate call epoch carrier is not aggregate"));
+                        }
+                        carrier
+                    } else if place.projections.is_empty() {
                         Value::Scalar {
                             local: self
                                 .plan
@@ -2608,23 +2742,34 @@ impl Emitter<'_> {
                             ty,
                         }
                     } else {
-                        let carrier = self
-                            .call_argument_values
-                            .get(&place.storage)
-                            .cloned()
-                            .ok_or_else(|| {
-                                error("projected call epoch has no authenticated aggregate carrier")
-                            })?;
-                        require_type(value_type(&carrier), &ty, "projected call epoch carrier")?;
-                        if !matches!(carrier, Value::Aggregate { .. }) {
-                            return Err(error(
-                                "projected call epoch carrier is not aggregate storage",
-                            ));
-                        }
-                        carrier
+                        return Err(error("scalar call epoch cannot be projected"));
                     }
                 }
             };
+        if place.projections.len() == 2 && is_variant(self.program, value_type(&value))? {
+            let Value::Aggregate { pointer, ty } = value else {
+                return Err(error("variant cleanup leaf base is not aggregate storage"));
+            };
+            let layout = variant_layout(self.variant_layouts, &ty)?;
+            let case = layout
+                .case(&place.projections[0])
+                .ok_or_else(|| error("variant cleanup leaf case is absent"))?;
+            let field = case
+                .field(&place.projections[1])
+                .ok_or_else(|| error("variant cleanup leaf field is absent"))?;
+            return value_at(
+                Pointer {
+                    local: pointer.local,
+                    offset: pointer
+                        .offset
+                        .checked_add(layout.payload_offset)
+                        .and_then(|offset| offset.checked_add(field.offset))
+                        .ok_or_else(|| error("variant cleanup leaf pointer overflows"))?,
+                },
+                field.ty.clone(),
+                self.program,
+            );
+        }
         for projection in &place.projections {
             value = self.project_value(&value, projection)?;
         }
@@ -2700,6 +2845,188 @@ impl Emitter<'_> {
         Ok(())
     }
 
+    fn set_variant_storage_flags_from_value(
+        &mut self,
+        place: &crate::cleanup_plan::CleanupPlace,
+        value: &Value,
+    ) -> Result<bool, Diagnostic> {
+        if !place.projections.is_empty() {
+            return Ok(false);
+        }
+        let leaves = self
+            .plan
+            .cleanup_place_flags
+            .iter()
+            .filter(|(leaf, _)| leaf.storage == place.storage && leaf.projections.len() == 2)
+            .map(|(leaf, flag)| (leaf.clone(), *flag))
+            .collect::<Vec<_>>();
+        if leaves.is_empty() {
+            return Ok(false);
+        }
+        let Value::Aggregate { pointer, ty } = value else {
+            return Err(error(
+                "conditional variant flags require an aggregate carrier",
+            ));
+        };
+        let layout = variant_layout(self.variant_layouts, ty)?;
+        self.emit_pointer(*pointer);
+        self.output.extend([0x28, 0x02, 0x00, 0x41]);
+        write_i64(
+            self.output,
+            i64::try_from(layout.cases.len())
+                .map_err(|_| error("conditional variant case count overflows i64"))?,
+        );
+        self.output.push(0x4f);
+        self.trap_if();
+        for (leaf, flag) in leaves {
+            let case = layout
+                .case(&leaf.projections[0])
+                .ok_or_else(|| error("conditional variant flag case is absent"))?;
+            self.emit_pointer(*pointer);
+            self.output.extend([0x28, 0x02, 0x00, 0x41]);
+            write_i64(self.output, i64::from(case.tag));
+            self.output.extend([0x46, 0x21]);
+            write_u32(self.output, flag);
+        }
+        Ok(true)
+    }
+
+    fn assert_conditional_variant_liveness(
+        &mut self,
+        place: &crate::cleanup_plan::CleanupPlace,
+        value: &Value,
+    ) -> Result<(), Diagnostic> {
+        let Value::Aggregate { pointer, ty } = value else {
+            return Err(error(
+                "conditional variant liveness requires an aggregate carrier",
+            ));
+        };
+        let layout = variant_layout(self.variant_layouts, ty)?;
+        self.emit_pointer(*pointer);
+        self.output.extend([0x28, 0x02, 0x00, 0x41]);
+        write_i64(
+            self.output,
+            i64::try_from(layout.cases.len())
+                .map_err(|_| error("conditional variant case count overflows i64"))?,
+        );
+        self.output.push(0x4f);
+        self.trap_if();
+        let leaves = self
+            .plan
+            .cleanup_place_flags
+            .iter()
+            .filter(|(leaf, _)| {
+                leaf.storage == place.storage
+                    && leaf.projections.starts_with(&place.projections)
+                    && leaf.projections.len() == place.projections.len() + 2
+            })
+            .map(|(leaf, flag)| (leaf.clone(), *flag))
+            .collect::<Vec<_>>();
+        if leaves.is_empty() {
+            return Err(error(
+                "conditional variant liveness has no case-qualified leaves",
+            ));
+        }
+        for (leaf, flag) in leaves {
+            let case_id = &leaf.projections[place.projections.len()];
+            let case = layout
+                .case(case_id)
+                .ok_or_else(|| error("conditional liveness case is absent"))?;
+            self.output.push(0x20);
+            write_u32(self.output, flag);
+            self.emit_pointer(*pointer);
+            self.output.extend([0x28, 0x02, 0x00, 0x41]);
+            write_i64(self.output, i64::from(case.tag));
+            self.output.extend([0x46, 0x47]);
+            self.trap_if();
+        }
+        Ok(())
+    }
+
+    fn assert_variant_destination_dead(
+        &mut self,
+        place: &crate::cleanup_plan::CleanupPlace,
+    ) -> Result<(), Diagnostic> {
+        let flags = self
+            .plan
+            .cleanup_place_flags
+            .iter()
+            .filter(|(leaf, _)| {
+                leaf.storage == place.storage && leaf.projections.starts_with(&place.projections)
+            })
+            .map(|(_, flag)| *flag)
+            .collect::<Vec<_>>();
+        if flags.is_empty() {
+            return Err(error("conditional variant destination has no flags"));
+        }
+        for flag in flags {
+            self.output.push(0x20);
+            write_u32(self.output, flag);
+            self.trap_if();
+        }
+        Ok(())
+    }
+
+    fn assert_storage_flag_state(
+        &mut self,
+        place: &crate::cleanup_plan::CleanupPlace,
+        live: bool,
+    ) -> Result<(), Diagnostic> {
+        let flags = self
+            .plan
+            .cleanup_place_flags
+            .iter()
+            .filter(|(leaf, _)| {
+                leaf.storage == place.storage && leaf.projections.starts_with(&place.projections)
+            })
+            .map(|(_, flag)| *flag)
+            .collect::<Vec<_>>();
+        if flags.is_empty() {
+            return Err(error("cleanup place has no liveness flag"));
+        }
+        for flag in flags {
+            self.output.push(0x20);
+            write_u32(self.output, flag);
+            if live {
+                self.output.push(0x45);
+            }
+            self.trap_if();
+        }
+        Ok(())
+    }
+
+    fn assert_selected_variant_liveness(
+        &mut self,
+        place: &crate::cleanup_plan::CleanupPlace,
+        selected: &DeclarationId,
+    ) -> Result<(), Diagnostic> {
+        let leaves = self
+            .plan
+            .cleanup_place_flags
+            .iter()
+            .filter(|(leaf, _)| {
+                leaf.storage == place.storage
+                    && leaf.projections.starts_with(&place.projections)
+                    && leaf.projections.len() == place.projections.len() + 2
+            })
+            .map(|(leaf, flag)| (leaf.clone(), *flag))
+            .collect::<Vec<_>>();
+        if leaves.is_empty() {
+            return Err(error(
+                "selected variant liveness has no case-qualified leaves",
+            ));
+        }
+        for (leaf, flag) in leaves {
+            self.output.push(0x20);
+            write_u32(self.output, flag);
+            if leaf.projections.get(place.projections.len()) == Some(selected) {
+                self.output.push(0x45);
+            }
+            self.trap_if();
+        }
+        Ok(())
+    }
+
     fn apply_call_commit(&mut self, expression: &ExpressionId) -> Result<(), Diagnostic> {
         let transitions = self
             .cleanup_plan
@@ -2735,7 +3062,11 @@ impl Emitter<'_> {
             .flat_map(|block| &block.transitions)
             .filter(|transition| match transition {
                 crate::cleanup_plan::CleanupTransition::Initialize { at, .. }
-                | crate::cleanup_plan::CleanupTransition::Transfer { at, .. } => at == expression,
+                | crate::cleanup_plan::CleanupTransition::InitializeVariant { at, .. }
+                | crate::cleanup_plan::CleanupTransition::Transfer { at, .. }
+                | crate::cleanup_plan::CleanupTransition::TransferVariant { at, .. } => {
+                    at == expression
+                }
                 _ => false,
             })
             .cloned()
@@ -2743,7 +3074,23 @@ impl Emitter<'_> {
         for transition in transitions {
             match transition {
                 crate::cleanup_plan::CleanupTransition::Initialize { destination, .. } => {
-                    self.set_storage_flag(&destination, true)?;
+                    if !self.set_variant_storage_flags_from_value(&destination, value)? {
+                        self.set_storage_flag(&destination, true)?;
+                    }
+                }
+                crate::cleanup_plan::CleanupTransition::InitializeVariant {
+                    destination,
+                    variant,
+                    ..
+                } => {
+                    let layout = variant_layout(self.variant_layouts, value_type(value))?;
+                    if layout.variant != variant
+                        || !self.set_variant_storage_flags_from_value(&destination, value)?
+                    {
+                        return Err(error(
+                            "conditional variant initialization disagrees with carrier",
+                        ));
+                    }
                 }
                 crate::cleanup_plan::CleanupTransition::Transfer {
                     source,
@@ -2762,9 +3109,115 @@ impl Emitter<'_> {
                         write_u32(self.output, local);
                     }
                     self.set_storage_flag(&source, false)?;
+                    if !self.set_variant_storage_flags_from_value(&destination, value)? {
+                        self.set_storage_flag(&destination, true)?;
+                    }
+                }
+                crate::cleanup_plan::CleanupTransition::TransferVariant {
+                    source,
+                    destination,
+                    variant,
+                    ..
+                } => {
+                    let source_ty = self
+                        .plan
+                        .cleanup_storage_types
+                        .get(&source.storage)
+                        .ok_or_else(|| error("dynamic variant transfer source type is absent"))?;
+                    let destination_ty = self
+                        .plan
+                        .cleanup_storage_types
+                        .get(&destination.storage)
+                        .ok_or_else(|| {
+                            error("dynamic variant transfer destination type is absent")
+                        })?;
+                    let layout = variant_layout(self.variant_layouts, value_type(value))?;
+                    if layout.variant != variant
+                        || source_ty != destination_ty
+                        || source_ty != value_type(value)
+                    {
+                        return Err(error("dynamic variant transfer disagrees with storage"));
+                    }
+                    // `emit_expr_inner` may already have performed the single
+                    // physical fieldwise materialization and poisoned its
+                    // former source carrier. The returned expression value is
+                    // therefore the authoritative carrier whose tag must
+                    // agree with the still-source-owned logical flags.
+                    self.assert_conditional_variant_liveness(&source, value)?;
+                    self.assert_variant_destination_dead(&destination)?;
+                    // Cleanup transitions move authority, not the physical
+                    // carrier. The ordinary expression materialization below
+                    // performs the single fieldwise move. Copying here would
+                    // poison `source_value` and make that later move observe a
+                    // synthetic tag-zero carrier, orphaning the selected
+                    // payload.
+                    self.set_storage_flag(&source, false)?;
+                    if !self.set_variant_storage_flags_from_value(&destination, value)? {
+                        return Err(error(
+                            "dynamic variant transfer destination is not conditional",
+                        ));
+                    }
+                }
+                crate::cleanup_plan::CleanupTransition::AuthenticateVariantCase { .. } => {}
+                _ => unreachable!("filtered byte cleanup transition"),
+            }
+        }
+        Ok(())
+    }
+
+    fn apply_variant_case_transitions(
+        &mut self,
+        expression: &ExpressionId,
+        case: &DeclarationId,
+    ) -> Result<(), Diagnostic> {
+        let transitions = self
+            .cleanup_plan
+            .blocks
+            .iter()
+            .flat_map(|block| &block.transitions)
+            .filter(|transition| match transition {
+                crate::cleanup_plan::CleanupTransition::Initialize { at, destination } => {
+                    at == expression && destination.projections.first() == Some(case)
+                }
+                crate::cleanup_plan::CleanupTransition::Transfer {
+                    at,
+                    source,
+                    destination,
+                } => {
+                    at == expression
+                        && (source.projections.first() == Some(case)
+                            || destination.projections.first() == Some(case))
+                }
+                crate::cleanup_plan::CleanupTransition::AuthenticateVariantCase {
+                    at,
+                    case: selected,
+                    ..
+                } => at == expression && selected == case,
+                _ => false,
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        for transition in transitions {
+            match transition {
+                crate::cleanup_plan::CleanupTransition::Initialize { destination, .. } => {
                     self.set_storage_flag(&destination, true)?;
                 }
-                _ => unreachable!("filtered byte cleanup transition"),
+                crate::cleanup_plan::CleanupTransition::Transfer {
+                    source,
+                    destination,
+                    ..
+                } => {
+                    self.assert_storage_flag_state(&source, true)?;
+                    self.assert_storage_flag_state(&destination, false)?;
+                    self.set_storage_flag(&source, false)?;
+                    self.set_storage_flag(&destination, true)?;
+                }
+                crate::cleanup_plan::CleanupTransition::AuthenticateVariantCase {
+                    source,
+                    case: selected,
+                    ..
+                } => self.assert_selected_variant_liveness(&source, &selected)?,
+                _ => unreachable!("filtered selected variant transition"),
             }
         }
         Ok(())
@@ -3187,12 +3640,29 @@ impl Emitter<'_> {
                         .map_err(|_| error("variant case count overflows i64"))?,
                 );
                 self.output.push(0x4f);
-                self.fail_if(STATUS_INTERNAL_INVALID_TAG)?;
+                if layout
+                    .cases
+                    .iter()
+                    .flat_map(|case| &case.fields)
+                    .any(|field| field.ty == ResolvedType::Bytes)
+                {
+                    self.trap_if();
+                } else {
+                    self.fail_if(STATUS_INTERNAL_INVALID_TAG)?;
+                }
                 let destination = Value::Scalar {
                     local: self.plan.expr_scalar(expr)?,
                     ty: expr.ty.clone(),
                 };
-                self.emit_match_arms(&destination, *pointer, &layout, arms, 0)?;
+                let emission = VariantMatchEmission {
+                    destination: &destination,
+                    scrutinee: *pointer,
+                    layout: &layout,
+                    arms,
+                    mode: *mode,
+                    expression: &expr.id,
+                };
+                self.emit_match_arms(&emission, 0)?;
                 Ok(destination)
             }
             ResolvedExprKind::Try {
@@ -3560,12 +4030,19 @@ impl Emitter<'_> {
 
     fn emit_match_arms(
         &mut self,
-        destination: &Value,
-        scrutinee: Pointer,
-        layout: &VariantLayout,
-        arms: &[crate::hir::ResolvedMatchArm],
+        emission: &VariantMatchEmission<'_>,
         index: usize,
     ) -> Result<(), Diagnostic> {
+        let VariantMatchEmission {
+            destination,
+            scrutinee,
+            layout,
+            arms,
+            mode,
+            expression,
+        } = emission;
+        let scrutinee = *scrutinee;
+        let mode = *mode;
         let Some(arm) = arms.get(index) else {
             self.output.push(0x00);
             return Ok(());
@@ -3595,6 +4072,9 @@ impl Emitter<'_> {
                 write_i64(self.output, i64::from(case_layout.tag));
                 self.output.extend([0x46, 0x04, 0x40]);
                 self.control_depth += 1;
+                if mode == crate::hir::ResolvedMatchMode::Own {
+                    self.apply_variant_case_transitions(expression, case)?;
+                }
                 for pattern_field in fields {
                     let field = case_layout
                         .field(&pattern_field.field)
@@ -3629,27 +4109,49 @@ impl Emitter<'_> {
                                 pattern_field.binding.id
                             ))
                         })?;
-                    self.emit_pointer(pointer);
-                    self.load_scalar(&field.ty);
-                    self.output.push(0x21);
-                    write_u32(self.output, local);
-                    self.bindings.insert(
-                        pattern_field.binding.id.clone(),
-                        Value::Scalar {
-                            local,
-                            ty: field.ty,
-                        },
-                    );
+                    let source = Value::ScalarMemory {
+                        pointer,
+                        ty: field.ty.clone(),
+                    };
+                    let destination_binding = Value::Scalar {
+                        local,
+                        ty: field.ty.clone(),
+                    };
+                    if field.ty == ResolvedType::Bytes
+                        && mode == crate::hir::ResolvedMatchMode::Borrow
+                    {
+                        self.copy_borrowed_scalar_alias(&destination_binding, &source)?;
+                    } else {
+                        self.copy_value(
+                            &destination_binding,
+                            &source,
+                            "variant match field binding",
+                        )?;
+                    }
+                    self.bindings
+                        .insert(pattern_field.binding.id.clone(), destination_binding);
+                }
+                if mode == crate::hir::ResolvedMatchMode::Own {
+                    self.emit_pointer(scrutinee);
+                    self.output.extend([0x41, 0x00, 0x41]);
+                    write_i64(self.output, i64::from(layout.size));
+                    self.output.extend([0xfc, 0x0b, 0x00]);
                 }
                 let value = self.emit_expr(&arm.value)?;
                 self.copy_value(destination, &value, "match arm result")?;
+                if mode == crate::hir::ResolvedMatchMode::Own {
+                    self.emit_owned_variant_match_cleanup(fields)?;
+                }
                 self.bindings = saved.clone();
                 self.output.push(0x05);
-                self.emit_match_arms(destination, scrutinee, layout, arms, index + 1)?;
+                self.emit_match_arms(emission, index + 1)?;
                 self.control_depth -= 1;
                 self.output.push(0x0b);
             }
             crate::hir::ResolvedMatchPattern::Wildcard => {
+                if mode == crate::hir::ResolvedMatchMode::Own {
+                    return Err(error("owned variant wildcard cannot hide a live payload"));
+                }
                 let value = self.emit_expr(&arm.value)?;
                 self.copy_value(destination, &value, "wildcard match arm result")?;
             }
@@ -6011,6 +6513,82 @@ impl Emitter<'_> {
                         return Ok(());
                     }
                 }
+                if is_variant(self.program, ty)? {
+                    let variant = variant_layout(self.variant_layouts, ty)?;
+                    if variant
+                        .cases
+                        .iter()
+                        .flat_map(|case| &case.fields)
+                        .any(|field| field.ty == ResolvedType::Bytes)
+                    {
+                        // Authenticate the tag before reading any union payload.
+                        self.emit_pointer(*source);
+                        self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                        write_i64(
+                            self.output,
+                            i64::try_from(variant.cases.len())
+                                .map_err(|_| error("owned variant case count overflows i64"))?,
+                        );
+                        self.output.push(0x4f);
+                        self.trap_if();
+                        self.emit_pointer(*destination);
+                        self.output.extend([0x41, 0x00, 0x41]);
+                        write_i64(self.output, i64::from(variant.size));
+                        self.output.extend([0xfc, 0x0b, 0x00]);
+                        for case in &variant.cases {
+                            self.emit_pointer(*source);
+                            self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                            write_i64(self.output, i64::from(case.tag));
+                            self.output.extend([0x46, 0x04, 0x40]);
+                            for field in &case.fields {
+                                let source_field = value_at(
+                                    Pointer {
+                                        local: source.local,
+                                        offset: source
+                                            .offset
+                                            .checked_add(variant.payload_offset)
+                                            .and_then(|offset| offset.checked_add(field.offset))
+                                            .ok_or_else(|| {
+                                                error("owned variant source field overflows")
+                                            })?,
+                                    },
+                                    field.ty.clone(),
+                                    self.program,
+                                )?;
+                                let destination_field = value_at(
+                                    Pointer {
+                                        local: destination.local,
+                                        offset: destination
+                                            .offset
+                                            .checked_add(variant.payload_offset)
+                                            .and_then(|offset| offset.checked_add(field.offset))
+                                            .ok_or_else(|| {
+                                                error("owned variant destination field overflows")
+                                            })?,
+                                    },
+                                    field.ty.clone(),
+                                    self.program,
+                                )?;
+                                self.copy_value(
+                                    &destination_field,
+                                    &source_field,
+                                    "owned variant selected field move",
+                                )?;
+                            }
+                            // Publish the tag only after the selected payload is complete.
+                            self.emit_pointer(*destination);
+                            self.output.push(0x41);
+                            write_i64(self.output, i64::from(case.tag));
+                            self.output.extend([0x36, 0x02, 0x00, 0x0b]);
+                        }
+                        // The source is now an inert, non-live stage.
+                        self.emit_pointer(*source);
+                        self.output.extend([0x41, 0x00, 0x41]);
+                        write_i64(self.output, i64::from(variant.size));
+                        self.output.extend([0xfc, 0x0b, 0x00]);
+                        return Ok(());
+                    }
+                }
                 let (size, _) = aggregate_size_align(self.program, self.variant_layouts, ty)?;
                 self.emit_pointer(*destination);
                 self.emit_pointer(*source);
@@ -6138,6 +6716,14 @@ impl Emitter<'_> {
         );
         self.output.push(0x0b);
         Ok(())
+    }
+
+    /// A violated cleanup-liveness assertion means the compiler-owned
+    /// ownership ledger and the physical carrier disagree. No recoverable
+    /// status can safely settle an unknown owner, so fail-stop by trapping the
+    /// instance before any later action.
+    fn trap_if(&mut self) {
+        self.output.extend([0x04, 0x40, 0x00, 0x0b]);
     }
 
     /// Bounded While-Loops v1 lowers to a core `block`/`loop` pair: the
@@ -7011,6 +7597,94 @@ console.log("variant-wasm-v1-ok");
         assert_eq!(
             String::from_utf8_lossy(&output.stdout).trim(),
             "variant-wasm-v1-ok"
+        );
+    }
+
+    const OWNED_VARIANT_INVALID_CARRIER_SOURCE: &str = r#"
+module test.owned_variant_invalid_carrier;
+@id("invalid.choice")
+variant Choice {
+  @id("invalid.choice.none") None,
+  @id("invalid.choice.data") Data {
+    @id("invalid.choice.data.payload") payload: Bytes,
+  },
+}
+@id("invalid.consume")
+fn consume(value: own Choice) -> i64 {
+  match own value {
+    Choice::None {} => 0,
+    Choice::Data { payload } =>
+      if byte_len(bytes_as_slice(payload)) == 0usize { 1 } else { 2 },
+  }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+
+    #[test]
+    fn owned_variant_invalid_carrier_traps_before_cleanup_or_publication() {
+        if Command::new("node").arg("--version").output().is_err() {
+            return;
+        }
+        let program = parse(
+            OWNED_VARIANT_INVALID_CARRIER_SOURCE,
+            Path::new("owned-variant-invalid-carrier-wasm.spx"),
+        )
+        .unwrap();
+        let resolved = hir::resolve(&program).unwrap();
+        let bytes = emit_profile(&resolved, true, false).unwrap();
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        let stem = format!(
+            "semaprax-owned-variant-invalid-carrier-wasm-{}-{id}",
+            std::process::id()
+        );
+        let wasm_path = std::env::temp_dir().join(format!("{stem}.wasm"));
+        let script_path = std::env::temp_dir().join(format!("{stem}.mjs"));
+        std::fs::write(&wasm_path, bytes).unwrap();
+        let consume = format!(
+            "__spx_test_{}",
+            hex_identity(&DeclarationId::new("invalid.consume"))
+        );
+        let script = format!(
+            r#"import {{ readFile }} from "node:fs/promises";
+const bytes = await readFile(process.argv[2]);
+let drops = 0;
+const fail = name => () => {{ throw new Error(`unexpected host import ${{name}}`); }};
+const {{instance}} = await WebAssembly.instantiate(bytes, {{env: {{
+  spx_add: fail("spx_add"), spx_sub: fail("spx_sub"), spx_mul: fail("spx_mul"),
+  spx_div: fail("spx_div"), spx_rem: fail("spx_rem"), spx_neg: fail("spx_neg"),
+  spx_contract_fail: fail("spx_contract_fail"),
+  spx_bytes_copy: fail("spx_bytes_copy"),
+  spx_bytes_drop: () => {{ drops += 1; }},
+  spx_bytes_as_slice: fail("spx_bytes_as_slice"),
+  spx_bytes_get: fail("spx_bytes_get"),
+}}}});
+const memory = instance.exports.__spx_test_memory;
+const view = new DataView(memory.buffer);
+const input = 1024, output = 2048, poison = 0xa5;
+view.setUint32(input, 0xffffffff, true);
+new Uint8Array(memory.buffer, output, 8).fill(poison);
+let trapped = false;
+try {{ instance.exports["{consume}"](input, output); }}
+catch (error) {{ if (!(error instanceof WebAssembly.RuntimeError)) throw error; trapped = true; }}
+if (!trapped) throw new Error("invalid owned variant carrier returned a status");
+if (drops !== 0) throw new Error("invalid owned variant carrier ran cleanup");
+for (const byte of new Uint8Array(memory.buffer, output, 8)) if (byte !== poison) throw new Error("invalid owned variant carrier published output");
+console.log("owned-variant-invalid-carrier-trap-ok");
+"#
+        );
+        std::fs::write(&script_path, script).unwrap();
+        let output = Command::new("node")
+            .arg(&script_path)
+            .arg(&wasm_path)
+            .output()
+            .unwrap();
+        let _ = std::fs::remove_file(script_path);
+        let _ = std::fs::remove_file(wasm_path);
+        assert!(
+            output.status.success(),
+            "stdout={} stderr={}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
         );
     }
 

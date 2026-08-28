@@ -23,9 +23,10 @@ use crate::prelude;
 
 use super::{
     BlockId, CleanupPlace, CleanupRegionId, CleanupResultSource, CleanupTerminator,
-    CleanupTransition, EdgeCondition, EdgeId, ExitContinuation, ExitTarget, StagedCopyResultSource,
-    StatusCase, StatusLane, StatusProducer, StatusSource, StatusSourceId, StorageId,
-    CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5,
+    CleanupTransition, ConditionalVariantCase, ConditionalVariantEntry, EdgeCondition, EdgeId,
+    ExitContinuation, ExitTarget, StagedCopyResultSource, StatusCase, StatusLane, StatusProducer,
+    StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3,
+    CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6,
 };
 
 const MAX_REPLAY_PATHS: usize = 65_536;
@@ -174,10 +175,18 @@ struct CallFact {
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct PathState {
     live_order: Vec<LivenessFlagId>,
+    conditional_variants: Vec<ReplayConditionalVariant>,
     pending_failure: Option<StatusSourceId>,
     selected_failure: Option<StatusSourceId>,
     staged_copy_result: Option<StagedCopyResultSource>,
     published: bool,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct ReplayConditionalVariant {
+    root: CleanupPlace,
+    variant: DeclarationId,
+    cases: Vec<(DeclarationId, Vec<LivenessFlagId>)>,
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -312,7 +321,19 @@ fn validate_structure_with_budget(
     budget: &mut ReplayBudget,
 ) -> Result<(), Diagnostic> {
     let plan = &function.cleanup_plan;
-    let expected_schema = if function
+    let expected_schema = if function.cleanup.schema == crate::cleanup::CLEANUP_INVENTORY_SCHEMA_V2
+        || function
+            .requires
+            .iter()
+            .any(expression_has_explicit_variant_match)
+        || function
+            .ensures
+            .iter()
+            .any(expression_has_explicit_variant_match)
+        || expression_has_explicit_variant_match(&function.body)
+    {
+        CLEANUP_PLAN_SCHEMA_V6
+    } else if function
         .requires
         .iter()
         .any(expression_has_explicit_record_match)
@@ -365,7 +386,7 @@ fn validate_structure_with_budget(
     validate_exits(program, function, &storage, &leaves)?;
     validate_reference_coverage(function)?;
     validate_reachable_acyclic_cfg(function)?;
-    validate_path_states(function, &storage, &leaves, budget)?;
+    validate_path_states(program, function, &storage, &leaves, budget)?;
     validate_typed_control_skeleton(program, function, budget)?;
     Ok(())
 }
@@ -1010,7 +1031,10 @@ fn skeleton_work_upper(
         for transition in &block.transitions {
             let weight = match transition {
                 CleanupTransition::Initialize { .. } => 4,
+                CleanupTransition::InitializeVariant { .. } => 6,
                 CleanupTransition::Transfer { .. } => 5,
+                CleanupTransition::TransferVariant { .. } => 6,
+                CleanupTransition::AuthenticateVariantCase { .. } => 6,
                 CleanupTransition::CallCommit { arguments, .. } => arguments
                     .len()
                     .checked_mul(2)
@@ -1427,6 +1451,73 @@ fn validate_inventory_coverage(
             "cleanup plan entry ownership disagrees with the independent inventory",
         ));
     }
+    let expected_conditional = function
+        .cleanup
+        .entry_state
+        .conditional_owned_parameters
+        .iter()
+        .map(|entry| {
+            let storage = inventory_storage
+                .get(&entry.storage)
+                .cloned()
+                .ok_or_else(|| {
+                    replay_error(
+                        function,
+                        "conditional cleanup inventory entry references unknown storage",
+                    )
+                })?;
+            let cases = entry
+                .cases
+                .iter()
+                .map(|case| {
+                    let live_places = case
+                        .live_flags
+                        .iter()
+                        .map(|flag| {
+                            let inventory = function
+                                .cleanup
+                                .flags
+                                .iter()
+                                .find(|candidate| candidate.id == *flag)
+                                .ok_or_else(|| {
+                                    replay_error(
+                                        function,
+                                        "conditional cleanup entry references unknown flag",
+                                    )
+                                })?;
+                            if inventory.place.storage != entry.storage
+                                || inventory.place.projections.first() != Some(&case.case)
+                            {
+                                return Err(replay_error(
+                                    function,
+                                    "conditional cleanup entry flag has a foreign case path",
+                                ));
+                            }
+                            Ok(CleanupPlace {
+                                storage: storage.clone(),
+                                projections: inventory.place.projections.clone(),
+                            })
+                        })
+                        .collect::<Result<Vec<_>, Diagnostic>>()?;
+                    Ok(ConditionalVariantCase {
+                        case: case.case.clone(),
+                        live_places,
+                    })
+                })
+                .collect::<Result<Vec<_>, Diagnostic>>()?;
+            Ok(ConditionalVariantEntry {
+                storage,
+                variant: entry.variant.clone(),
+                cases,
+            })
+        })
+        .collect::<Result<Vec<_>, Diagnostic>>()?;
+    if plan.entry_state.conditional_owned_parameters != expected_conditional {
+        return Err(replay_error(
+            function,
+            "conditional cleanup-plan entry disagrees with the independent inventory",
+        ));
+    }
 
     let mut next_flag = u32::try_from(function.cleanup.flags.len())
         .map_err(|_| replay_error(function, "too many inventory liveness flags"))?;
@@ -1619,12 +1710,6 @@ fn expected_shape_for_type(
             "droppable supplemental slot is not nominal",
         ));
     };
-    if !arguments.is_empty() {
-        return Err(replay_error(
-            function,
-            "droppable supplemental slot has generic arguments",
-        ));
-    }
     let declaration_item = program
         .types
         .iter()
@@ -1632,6 +1717,12 @@ fn expected_shape_for_type(
         .ok_or_else(|| replay_error(function, format!("unknown cleanup type `{declaration}`")))?;
     match &declaration_item.kind {
         ResolvedTypeDeclarationKind::Resource { drop } => {
+            if !arguments.is_empty() {
+                return Err(replay_error(
+                    function,
+                    "resource cleanup slot has generic arguments",
+                ));
+            }
             let flag = LivenessFlagId(*next_flag);
             *next_flag = next_flag
                 .checked_add(1)
@@ -1643,6 +1734,12 @@ fn expected_shape_for_type(
         }
         ResolvedTypeDeclarationKind::Record { fields }
         | ResolvedTypeDeclarationKind::Class { fields, .. } => {
+            if !arguments.is_empty() {
+                return Err(replay_error(
+                    function,
+                    "record cleanup slot has generic arguments",
+                ));
+            }
             let mut expected_fields = Vec::with_capacity(fields.len());
             for field in fields {
                 expected_fields.push(FieldLiveness {
@@ -1664,10 +1761,37 @@ fn expected_shape_for_type(
                 fields: expected_fields,
             })
         }
-        ResolvedTypeDeclarationKind::Variant { .. } => Err(replay_error(
-            function,
-            "droppable variant cleanup is outside the copy-only v1 slice",
-        )),
+        ResolvedTypeDeclarationKind::Variant { cases } => {
+            let mut expected_cases = Vec::with_capacity(cases.len());
+            for case in cases {
+                let mut expected_fields = Vec::with_capacity(case.fields.len());
+                for field in &case.fields {
+                    let field_ty = crate::hir::substitute_type(&field.ty, declaration, arguments)?;
+                    expected_fields.push(FieldLiveness {
+                        field: field.id.clone(),
+                        field_index: field.index,
+                        shape: expected_shape_for_type(
+                            program,
+                            function,
+                            &field_ty,
+                            next_flag,
+                            projection_depth.checked_add(1).ok_or_else(|| {
+                                replay_error(function, "cleanup projection depth overflows u8")
+                            })?,
+                        )?,
+                    });
+                }
+                expected_cases.push(crate::cleanup::VariantCaseLiveness {
+                    case: case.id.clone(),
+                    case_index: case.index,
+                    fields: expected_fields,
+                });
+            }
+            Ok(FieldLivenessShape::Variant {
+                declaration: declaration.clone(),
+                cases: expected_cases,
+            })
+        }
     }
 }
 
@@ -2009,44 +2133,166 @@ fn collect_shape(
     leaves: &mut BTreeMap<LivenessFlagId, Leaf>,
     places: &mut BTreeSet<CleanupPlace>,
 ) -> Result<(), Diagnostic> {
-    match shape {
-        FieldLivenessShape::NoDrop => Ok(()),
-        FieldLivenessShape::Leaf { flag, lifecycle } => {
-            let leaf = Leaf {
-                place: CleanupPlace {
-                    storage: storage.clone(),
-                    projections: projections.clone(),
-                },
-                lifecycle: lifecycle.clone(),
-            };
-            if leaves.insert(*flag, leaf.clone()).is_some() {
-                return Err(replay_error(
-                    function,
-                    format!("liveness flag {} is repeated", flag.0),
-                ));
-            }
-            if !places.insert(leaf.place) {
-                return Err(replay_error(function, "cleanup leaf place is repeated"));
-            }
-            Ok(())
+    enum Item<'a> {
+        Shape(&'a FieldLivenessShape),
+        Push(&'a DeclarationId),
+        Pop,
+    }
+
+    let initial_projection_depth = projections.len();
+    let mut pending = vec![Item::Shape(shape)];
+    let mut work = 0usize;
+    while let Some(item) = pending.pop() {
+        work = work
+            .checked_add(1)
+            .ok_or_else(|| replay_error(function, "cleanup shape replay work overflowed"))?;
+        if work > MAX_REPLAY_WORK_UNITS {
+            return Err(replay_error(
+                function,
+                "cleanup shape replay exceeds the global work budget",
+            ));
         }
-        FieldLivenessShape::Record { fields, .. } => {
-            let mut field_ids = BTreeSet::new();
-            for (index, field) in fields.iter().enumerate() {
-                let expected = u32_index(function, index, "cleanup field")?;
-                if field.field_index != expected || !field_ids.insert(field.field.clone()) {
+        match item {
+            Item::Push(projection) => {
+                projections.try_reserve(1).map_err(|_| {
+                    replay_error(
+                        function,
+                        "cleanup projection capacity exceeds address space",
+                    )
+                })?;
+                projections.push(projection.clone());
+            }
+            Item::Pop => {
+                if projections.len() == initial_projection_depth {
                     return Err(replay_error(
                         function,
-                        "record cleanup shape has non-contiguous or repeated fields",
+                        "cleanup projection stack is unbalanced",
                     ));
                 }
-                projections.push(field.field.clone());
-                collect_shape(function, storage, projections, &field.shape, leaves, places)?;
                 projections.pop();
             }
-            Ok(())
+            Item::Shape(FieldLivenessShape::NoDrop) => {}
+            Item::Shape(FieldLivenessShape::Leaf { flag, lifecycle }) => {
+                let leaf = Leaf {
+                    place: CleanupPlace {
+                        storage: storage.clone(),
+                        projections: projections.clone(),
+                    },
+                    lifecycle: lifecycle.clone(),
+                };
+                if leaves.insert(*flag, leaf.clone()).is_some() {
+                    return Err(replay_error(
+                        function,
+                        format!("liveness flag {} is repeated", flag.0),
+                    ));
+                }
+                if !places.insert(leaf.place) {
+                    return Err(replay_error(function, "cleanup leaf place is repeated"));
+                }
+            }
+            Item::Shape(FieldLivenessShape::Record { fields, .. }) => {
+                let mut field_ids = BTreeSet::new();
+                for (index, field) in fields.iter().enumerate() {
+                    let expected = u32_index(function, index, "cleanup field")?;
+                    if field.field_index != expected || !field_ids.insert(field.field.clone()) {
+                        return Err(replay_error(
+                            function,
+                            "record cleanup shape has non-contiguous or repeated fields",
+                        ));
+                    }
+                }
+                pending
+                    .try_reserve(fields.len().saturating_mul(3))
+                    .map_err(|_| {
+                        replay_error(
+                            function,
+                            "cleanup shape replay capacity exceeds address space",
+                        )
+                    })?;
+                for field in fields.iter().rev() {
+                    pending.push(Item::Pop);
+                    pending.push(Item::Shape(&field.shape));
+                    pending.push(Item::Push(&field.field));
+                }
+            }
+            Item::Shape(FieldLivenessShape::Variant { declaration, cases }) => {
+                if !cases.is_empty()
+                    && function
+                        .cleanup_plan
+                        .slots
+                        .iter()
+                        .find(|slot| slot.storage == *storage)
+                        .and_then(|slot| match &slot.ty {
+                            ResolvedType::Nominal { declaration, .. } => Some(declaration),
+                            _ => None,
+                        })
+                        != Some(declaration)
+                {
+                    return Err(replay_error(
+                        function,
+                        "variant cleanup shape declaration disagrees with storage type",
+                    ));
+                }
+                let mut case_ids = BTreeSet::new();
+                let mut item_count = 0usize;
+                for (case_index, case) in cases.iter().enumerate() {
+                    if case.case_index != u32_index(function, case_index, "cleanup variant case")?
+                        || !case_ids.insert(case.case.clone())
+                    {
+                        return Err(replay_error(
+                            function,
+                            "variant cleanup shape has non-contiguous or repeated cases",
+                        ));
+                    }
+                    let mut field_ids = BTreeSet::new();
+                    for (field_index, field) in case.fields.iter().enumerate() {
+                        if field.field_index
+                            != u32_index(function, field_index, "cleanup variant field")?
+                            || !field_ids.insert(field.field.clone())
+                        {
+                            return Err(replay_error(
+                                function,
+                                "variant cleanup case has non-contiguous or repeated fields",
+                            ));
+                        }
+                    }
+                    item_count = item_count
+                        .checked_add(2)
+                        .and_then(|count| {
+                            case.fields
+                                .len()
+                                .checked_mul(3)
+                                .and_then(|fields| count.checked_add(fields))
+                        })
+                        .ok_or_else(|| {
+                            replay_error(function, "cleanup shape replay work overflowed")
+                        })?;
+                }
+                pending.try_reserve(item_count).map_err(|_| {
+                    replay_error(
+                        function,
+                        "cleanup shape replay capacity exceeds address space",
+                    )
+                })?;
+                for case in cases.iter().rev() {
+                    pending.push(Item::Pop);
+                    for field in case.fields.iter().rev() {
+                        pending.push(Item::Pop);
+                        pending.push(Item::Shape(&field.shape));
+                        pending.push(Item::Push(&field.field));
+                    }
+                    pending.push(Item::Push(&case.case));
+                }
+            }
         }
     }
+    if projections.len() != initial_projection_depth {
+        return Err(replay_error(
+            function,
+            "cleanup projection stack remains unbalanced",
+        ));
+    }
+    Ok(())
 }
 
 fn validate_status_sources(
@@ -2268,6 +2514,109 @@ fn validate_blocks_and_edges(
                         ));
                     }
                 }
+                CleanupTransition::AuthenticateVariantCase {
+                    at,
+                    source,
+                    variant,
+                    case,
+                } => {
+                    require_expression(function, expressions, at)?;
+                    validate_place(function, source, storage, leaves)?;
+                    let Some(cases) = program.declarations.variant_cases(variant) else {
+                        return Err(replay_error(
+                            function,
+                            "variant authentication references a non-variant declaration",
+                        ));
+                    };
+                    if !cases.iter().any(|candidate| candidate.id == *case) {
+                        return Err(replay_error(
+                            function,
+                            "variant authentication references a foreign case",
+                        ));
+                    }
+                    let slot = function
+                        .cleanup_plan
+                        .slots
+                        .iter()
+                        .find(|slot| slot.storage == source.storage)
+                        .ok_or_else(|| {
+                            replay_error(function, "variant authentication source has no slot")
+                        })?;
+                    if !matches!(
+                        &slot.ty,
+                        ResolvedType::Nominal { declaration, .. } if declaration == variant
+                    ) {
+                        return Err(replay_error(
+                            function,
+                            "variant authentication source type disagrees with its variant",
+                        ));
+                    }
+                }
+                CleanupTransition::TransferVariant {
+                    at,
+                    source,
+                    destination,
+                    variant,
+                } => {
+                    require_expression(function, expressions, at)?;
+                    let source_flags = validate_place(function, source, storage, leaves)?;
+                    let destination_flags = validate_place(function, destination, storage, leaves)?;
+                    if source_flags.len() != destination_flags.len()
+                        || function
+                            .cleanup_plan
+                            .slots
+                            .iter()
+                            .filter(|slot| {
+                                slot.storage == source.storage
+                                    || slot.storage == destination.storage
+                            })
+                            .any(|slot| {
+                                !matches!(
+                                    &slot.ty,
+                                    ResolvedType::Nominal { declaration, .. }
+                                        if declaration == variant
+                                )
+                            })
+                    {
+                        return Err(replay_error(
+                            function,
+                            "variant transfer has incompatible conditional inventories",
+                        ));
+                    }
+                }
+                CleanupTransition::InitializeVariant {
+                    at,
+                    destination,
+                    variant,
+                } => {
+                    require_expression(function, expressions, at)?;
+                    validate_place(function, destination, storage, leaves)?;
+                    let slot = function
+                        .cleanup_plan
+                        .slots
+                        .iter()
+                        .find(|slot| slot.storage == destination.storage)
+                        .ok_or_else(|| {
+                            replay_error(function, "variant initialization has no destination slot")
+                        })?;
+                    if !destination.projections.is_empty()
+                        || !matches!(
+                            &slot.ty,
+                            ResolvedType::Nominal { declaration, .. }
+                                if declaration == variant
+                        )
+                        || !matches!(
+                            &slot.field_liveness_shape,
+                            FieldLivenessShape::Variant { declaration, .. }
+                                if declaration == variant
+                        )
+                    {
+                        return Err(replay_error(
+                            function,
+                            "variant initialization destination disagrees with its variant",
+                        ));
+                    }
+                }
                 CleanupTransition::CallCommit { call, arguments } => {
                     let Some(Some(fact)) = expressions.get(call) else {
                         return Err(replay_error(
@@ -2406,7 +2755,13 @@ fn validate_blocks_and_edges(
         match &block.terminator {
             CleanupTerminator::Goto(edge) => {
                 validate_owned_edge(function, block.id, *edge, &mut referenced_edges)?;
-                if !matches!(plan.edges[edge.0 as usize].condition, EdgeCondition::Always) {
+                if !matches!(plan.edges[edge.0 as usize].condition, EdgeCondition::Always)
+                    && !(function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V6
+                        && matches!(
+                            plan.edges[edge.0 as usize].condition,
+                            EdgeCondition::VariantCase { matches: true, .. }
+                        ))
+                {
                     return Err(replay_error(function, "goto edge is conditional"));
                 }
             }
@@ -2526,6 +2881,28 @@ fn validate_exits(
                     function,
                     "finalizer lifecycle or guard is invalid or repeated",
                 ));
+            }
+            if let Some(condition) = &action.active_case {
+                if condition.storage != action.source.storage
+                    || action.source.projections.first() != Some(&condition.case)
+                    || function
+                        .cleanup_plan
+                        .slots
+                        .iter()
+                        .find(|slot| slot.storage == condition.storage)
+                        .is_none_or(|slot| {
+                            !matches!(
+                                &slot.ty,
+                                ResolvedType::Nominal { declaration, .. }
+                                    if declaration == &condition.variant
+                            )
+                        })
+                {
+                    return Err(replay_error(
+                        function,
+                        "conditional finalizer does not bind its exact variant case path",
+                    ));
+                }
             }
         }
         match &exit.continuation {
@@ -3010,6 +3387,8 @@ fn expression_skeleton(
             false_prefixes: Vec<ExprSkeletonPath>,
         },
         VariantField {
+            expression: &'a ResolvedExpr,
+            case: &'a DeclarationId,
             fields: &'a [crate::hir::ResolvedFieldInitializer],
             index: usize,
             paths: Vec<ExprSkeletonPath>,
@@ -3415,13 +3794,15 @@ fn expression_skeleton(
                             push_frame!(frames, Frame::Eval(tail));
                         }
                     }
-                    ResolvedExprKind::ConstructVariant { fields, .. } => {
+                    ResolvedExprKind::ConstructVariant { case, fields, .. } => {
                         let paths = work
                             .singleton_path(empty_expr_path(), "variant-construction root path")?;
                         if let Some(field) = fields.first() {
                             push_frame!(
                                 frames,
                                 Frame::VariantField {
+                                    expression,
+                                    case,
                                     fields,
                                     index: 0,
                                     paths,
@@ -3429,7 +3810,7 @@ fn expression_skeleton(
                             );
                             push_frame!(frames, Frame::Eval(&field.value));
                         } else {
-                            produced = Some(paths);
+                            produced = Some(finish_record_paths(expression, paths, work)?);
                         }
                     }
                     ResolvedExprKind::ConstructRecord { fields, .. } => {
@@ -3827,27 +4208,44 @@ fn expression_skeleton(
                 produced = Some(paths);
             }
             Frame::VariantField {
+                expression,
+                case,
                 fields,
                 index,
                 paths,
             } => {
                 let suffixes = produced.take().expect("variant field path retained");
-                let paths = sequence_skeleton_paths(paths, &suffixes, work)?;
+                let mut paths = sequence_skeleton_paths(paths, &suffixes, work)?;
                 let field = &fields[index];
                 if has_active_paths(&paths)
                     && field.value.ownership == OwnershipMode::Own
                     && type_needs_drop(program, function, &field.value.ty)?
                 {
-                    return Err(replay_error(
+                    let mut destination = temporary_place(expression, work)?;
+                    destination
+                        .projections
+                        .push(work.clone_owned(case, "variant case projection clone")?);
+                    destination
+                        .projections
+                        .push(work.clone_owned(&field.field, "variant field projection clone")?);
+                    let value_id =
+                        work.clone_owned(&field.value.id, "variant field value clone")?;
+                    paths = transfer_completed_paths(
                         function,
-                        "droppable variant payload reached the copy-only cleanup skeleton",
-                    ));
+                        paths,
+                        value_id,
+                        destination,
+                        "owned variant field",
+                        work,
+                    )?;
                 }
                 let next = index + 1;
                 if has_active_paths(&paths) && next < fields.len() {
                     push_frame!(
                         frames,
                         Frame::VariantField {
+                            expression,
+                            case,
                             fields,
                             index: next,
                             paths,
@@ -3855,7 +4253,7 @@ fn expression_skeleton(
                     );
                     push_frame!(frames, Frame::Eval(&fields[next].value));
                 } else {
-                    produced = Some(paths);
+                    produced = Some(finish_record_paths(expression, paths, work)?);
                 }
             }
             Frame::RecordField {
@@ -4564,6 +4962,13 @@ fn validate_match_skeleton_shape(
         | ResolvedType::SliceU8
         | ResolvedType::TypeParameter { .. } => false,
     };
+    let is_variant = match &scrutinee.ty {
+        ResolvedType::Nominal { declaration, .. } => program
+            .declarations
+            .declaration(declaration)
+            .is_some_and(|item| item.kind == DeclarationKind::Variant),
+        _ => false,
+    };
     if is_record {
         if type_needs_drop(program, function, &scrutinee.ty)? {
             if !matches!(
@@ -4675,6 +5080,59 @@ fn validate_match_skeleton_shape(
                 }
             }
         }
+    } else if is_variant && type_needs_drop(program, function, &scrutinee.ty)? {
+        if !matches!(
+            mode,
+            crate::hir::ResolvedMatchMode::Own | crate::hir::ResolvedMatchMode::Borrow
+        ) {
+            return Err(replay_error(
+                function,
+                "droppable variant match lacks an explicit ownership mode",
+            ));
+        }
+        if *mode == crate::hir::ResolvedMatchMode::Borrow
+            && !matches!(
+                &scrutinee.kind,
+                ResolvedExprKind::Place(place) if place.projections.is_empty()
+            )
+        {
+            return Err(replay_error(
+                function,
+                "borrowed variant match scrutinee is not an unprojected named place",
+            ));
+        }
+        if *mode == crate::hir::ResolvedMatchMode::Own && scrutinee.ownership != OwnershipMode::Own
+        {
+            return Err(replay_error(
+                function,
+                "owned variant match scrutinee is not owned",
+            ));
+        }
+        for arm in arms {
+            let ResolvedMatchPattern::Variant { fields, .. } = &arm.pattern else {
+                return Err(replay_error(
+                    function,
+                    "explicit variant match requires exact case patterns",
+                ));
+            };
+            for field in fields {
+                let expected = if type_needs_drop(program, function, &field.binding.ty)? {
+                    match mode {
+                        crate::hir::ResolvedMatchMode::Own => OwnershipMode::Own,
+                        crate::hir::ResolvedMatchMode::Borrow => OwnershipMode::Borrow,
+                        crate::hir::ResolvedMatchMode::Value => unreachable!(),
+                    }
+                } else {
+                    OwnershipMode::Value
+                };
+                if field.binding.ownership != expected {
+                    return Err(replay_error(
+                        function,
+                        "explicit variant binding ownership disagrees with its payload",
+                    ));
+                }
+            }
+        }
     } else if type_needs_drop(program, function, &scrutinee.ty)? {
         return Err(replay_error(
             function,
@@ -4698,13 +5156,44 @@ fn finish_match_arm(
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     let mut next_remaining = Vec::new();
+    let mode = match &expression.kind {
+        ResolvedExprKind::Match { mode, .. } => *mode,
+        _ => return Err(replay_error(function, "match arm has no match expression")),
+    };
     for mut path in remaining {
         if path.failed || path.residual {
             work.push_expr_path(results, path, "match terminal scrutinee path")?;
             continue;
         }
-        path.owned_source = None;
         if is_record || index + 1 == arms.len() {
+            if !is_record && mode != crate::hir::ResolvedMatchMode::Value {
+                let ResolvedMatchPattern::Variant { case, .. } = &arms[index].pattern else {
+                    return Err(replay_error(
+                        function,
+                        "explicit final variant arm has no exact case",
+                    ));
+                };
+                let scrutinee =
+                    work.clone_owned(&scrutinee.id, "final variant match scrutinee clone")?;
+                let case = work.clone_owned(case, "final variant match case clone")?;
+                work.push_observation(
+                    &mut path,
+                    SkeletonObservation::VariantCase {
+                        scrutinee,
+                        case,
+                        matches: true,
+                    },
+                    "final variant match observation",
+                )?;
+            }
+            prepare_selected_match_path(
+                program,
+                function,
+                expression,
+                &arms[index],
+                &mut path,
+                work,
+            )?;
             let selected = sequence_skeleton_paths(
                 work.singleton_path(path, "match selected prefix")?,
                 arm_paths,
@@ -4734,6 +5223,14 @@ fn finish_match_arm(
             },
             "match selected observation",
         )?;
+        prepare_selected_match_path(
+            program,
+            function,
+            expression,
+            &arms[index],
+            &mut selected,
+            work,
+        )?;
         let selected = sequence_skeleton_paths(
             work.singleton_path(selected, "match selected prefix")?,
             arm_paths,
@@ -4756,6 +5253,55 @@ fn finish_match_arm(
         work.push_expr_path(&mut next_remaining, path, "match remaining scrutinee path")?;
     }
     Ok(next_remaining)
+}
+
+fn prepare_selected_match_path(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    arm: &ResolvedMatchArm,
+    path: &mut ExprSkeletonPath,
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<(), Diagnostic> {
+    let mode = match &expression.kind {
+        ResolvedExprKind::Match { mode, .. } => *mode,
+        _ => return Err(replay_error(function, "match arm has no match expression")),
+    };
+    if mode == crate::hir::ResolvedMatchMode::Own {
+        if let ResolvedMatchPattern::Variant { case, fields, .. } = &arm.pattern {
+            let source = path.owned_source.clone().ok_or_else(|| {
+                replay_error(function, "owned variant match has no HIR cleanup source")
+            })?;
+            for field in fields {
+                if !type_needs_drop(program, function, &field.binding.ty)? {
+                    continue;
+                }
+                let mut field_source =
+                    work.clone_owned(&source, "owned variant match source clone")?;
+                field_source
+                    .projections
+                    .push(work.clone_owned(case, "owned variant match case clone")?);
+                field_source
+                    .projections
+                    .push(work.clone_owned(&field.field, "owned variant match field clone")?);
+                let destination = CleanupPlace::whole(StorageId::Value(
+                    work.clone_owned(&field.binding.id, "owned variant binding clone")?,
+                ));
+                let at = work.clone_owned(&expression.id, "owned variant match identity clone")?;
+                work.push_observation(
+                    path,
+                    SkeletonObservation::Transfer {
+                        at,
+                        source: field_source,
+                        destination,
+                    },
+                    "owned variant binding transfer observation",
+                )?;
+            }
+        }
+    }
+    path.owned_source = None;
+    Ok(())
 }
 
 /// Refutable Match v1 skeleton expectations for a Copy-scalar match. Each
@@ -5699,6 +6245,54 @@ fn plan_skeleton_paths(
                         "plan transfer observation push",
                     )?;
                 }
+                CleanupTransition::AuthenticateVariantCase { .. } => {}
+                CleanupTransition::InitializeVariant {
+                    at, destination, ..
+                } => {
+                    let at =
+                        skeleton_clone(budget, function, at, "plan variant initialize identity")?;
+                    let destination = skeleton_clone(
+                        budget,
+                        function,
+                        destination,
+                        "plan variant initialize destination",
+                    )?;
+                    skeleton_push(
+                        budget,
+                        function,
+                        &mut observations,
+                        SkeletonObservation::Initialize { at, destination },
+                        "plan variant initialize observation push",
+                    )?;
+                }
+                CleanupTransition::TransferVariant {
+                    at,
+                    source,
+                    destination,
+                    ..
+                } => {
+                    let at =
+                        skeleton_clone(budget, function, at, "plan variant transfer identity")?;
+                    let source =
+                        skeleton_clone(budget, function, source, "plan variant transfer source")?;
+                    let destination = skeleton_clone(
+                        budget,
+                        function,
+                        destination,
+                        "plan variant transfer destination",
+                    )?;
+                    skeleton_push(
+                        budget,
+                        function,
+                        &mut observations,
+                        SkeletonObservation::Transfer {
+                            at,
+                            source,
+                            destination,
+                        },
+                        "plan variant transfer observation push",
+                    )?;
+                }
                 CleanupTransition::CallCommit { call, arguments } => {
                     let call = skeleton_clone(budget, function, call, "plan call identity clone")?;
                     let mut cloned_arguments = Vec::new();
@@ -5748,11 +6342,38 @@ fn plan_skeleton_paths(
         }
         match &block.terminator {
             CleanupTerminator::Goto(edge) => {
+                let edge = &plan.edges[edge.0 as usize];
+                if let EdgeCondition::VariantCase {
+                    scrutinee,
+                    case,
+                    matches,
+                } = &edge.condition
+                {
+                    let scrutinee = skeleton_clone(
+                        budget,
+                        function,
+                        scrutinee,
+                        "plan final variant scrutinee clone",
+                    )?;
+                    let case =
+                        skeleton_clone(budget, function, case, "plan final variant case clone")?;
+                    skeleton_push(
+                        budget,
+                        function,
+                        &mut observations,
+                        SkeletonObservation::VariantCase {
+                            scrutinee,
+                            case,
+                            matches: *matches,
+                        },
+                        "plan final variant observation push",
+                    )?;
+                }
                 skeleton_queue_push(
                     budget,
                     function,
                     &mut queue,
-                    (plan.edges[edge.0 as usize].to, observations),
+                    (edge.to, observations),
                     "plan goto state push",
                 )?;
             }
@@ -5893,6 +6514,7 @@ fn plan_skeleton_paths(
 }
 
 fn validate_path_states(
+    program: &ResolvedProgram,
     function: &ResolvedFunction,
     storage: &BTreeSet<StorageId>,
     leaves: &BTreeMap<LivenessFlagId, Leaf>,
@@ -5909,6 +6531,7 @@ fn validate_path_states(
 
     let mut initial = PathState {
         live_order: Vec::new(),
+        conditional_variants: Vec::new(),
         pending_failure: None,
         selected_failure: None,
         staged_copy_result: None,
@@ -5917,6 +6540,31 @@ fn validate_path_states(
     for place in &plan.entry_state.live_owned_parameters {
         let flags = validate_place(function, place, storage, leaves)?;
         append_dead_flags(function, &mut initial, flags, "entry state")?;
+    }
+    for entry in &plan.entry_state.conditional_owned_parameters {
+        let mut cases = Vec::with_capacity(entry.cases.len());
+        for case in &entry.cases {
+            let mut flags = Vec::with_capacity(case.live_places.len());
+            for place in &case.live_places {
+                let under = validate_place(function, place, storage, leaves)?;
+                if under.len() != 1 || place.projections.first() != Some(&case.case) {
+                    return Err(replay_error(
+                        function,
+                        "conditional entry case does not name exact case-qualified leaves",
+                    ));
+                }
+                flags.push(under[0]);
+            }
+            cases.push((case.case.clone(), flags));
+        }
+        initial.conditional_variants.push(ReplayConditionalVariant {
+            root: CleanupPlace {
+                storage: entry.storage.clone(),
+                projections: Vec::new(),
+            },
+            variant: entry.variant.clone(),
+            cases,
+        });
     }
 
     let mut incoming = vec![BTreeSet::<PathState>::new(); plan.blocks.len()];
@@ -5939,12 +6587,14 @@ fn validate_path_states(
         let block = &plan.blocks[block_id.0 as usize];
         let mut state = state;
         for transition in &block.transitions {
-            execute_replay_transition(function, transition, &mut state, storage, leaves)?;
+            execute_replay_transition(program, function, transition, &mut state, storage, leaves)?;
         }
         match &block.terminator {
             CleanupTerminator::Goto(edge) => {
                 require_normal_flow_state(function, &state, block_id)?;
-                queue.push_back((plan.edges[edge.0 as usize].to, state));
+                let edge = &plan.edges[edge.0 as usize];
+                let state = state_for_edge(function, state, &edge.condition, &contract_sources)?;
+                queue.push_back((edge.to, state));
             }
             CleanupTerminator::Branch(edges) => {
                 require_normal_flow_state(function, &state, block_id)?;
@@ -6011,6 +6661,7 @@ fn storage_regions(
 }
 
 fn execute_replay_transition(
+    program: &ResolvedProgram,
     function: &ResolvedFunction,
     transition: &CleanupTransition,
     state: &mut PathState,
@@ -6050,9 +6701,152 @@ fn execute_replay_transition(
             destination,
             ..
         } => replay_transfer(function, state, source, destination, storage, leaves)?,
+        CleanupTransition::TransferVariant {
+            source,
+            destination,
+            variant,
+            ..
+        } => {
+            if !state
+                .conditional_variants
+                .iter()
+                .any(|conditional| conditional.root == *source)
+            {
+                materialize_constructed_variant(
+                    program, function, state, source, variant, storage, leaves,
+                )?;
+            }
+            replay_transfer(function, state, source, destination, storage, leaves)?;
+        }
+        CleanupTransition::InitializeVariant {
+            destination,
+            variant,
+            ..
+        } => {
+            let flags = validate_place(function, destination, storage, leaves)?;
+            if flags.iter().any(|flag| {
+                state.live_order.contains(flag)
+                    || state.conditional_variants.iter().any(|conditional| {
+                        conditional
+                            .cases
+                            .iter()
+                            .any(|(_, case_flags)| case_flags.contains(flag))
+                    })
+            }) {
+                return Err(replay_error(
+                    function,
+                    "variant initialization targets a live cleanup place",
+                ));
+            }
+            let slot = function
+                .cleanup_plan
+                .slots
+                .iter()
+                .find(|slot| slot.storage == destination.storage)
+                .ok_or_else(|| replay_error(function, "variant initialization has no slot"))?;
+            let FieldLivenessShape::Variant { cases, .. } = &slot.field_liveness_shape else {
+                return Err(replay_error(
+                    function,
+                    "variant initialization destination is not conditional storage",
+                ));
+            };
+            let conditional_cases = cases
+                .iter()
+                .map(|case| {
+                    let prefix = destination
+                        .projections
+                        .iter()
+                        .chain(std::iter::once(&case.case))
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    let case_flags = flags
+                        .iter()
+                        .filter(|flag| leaves[flag].place.projections.starts_with(&prefix))
+                        .copied()
+                        .collect::<Vec<_>>();
+                    (case.case.clone(), case_flags)
+                })
+                .collect();
+            state.conditional_variants.push(ReplayConditionalVariant {
+                root: destination.clone(),
+                variant: variant.clone(),
+                cases: conditional_cases,
+            });
+        }
+        CleanupTransition::AuthenticateVariantCase {
+            source,
+            variant,
+            case,
+            ..
+        } => {
+            if let Some(index) = state
+                .conditional_variants
+                .iter()
+                .position(|candidate| candidate.root == *source && candidate.variant == *variant)
+            {
+                let conditional = state.conditional_variants.remove(index);
+                let flags = conditional
+                    .cases
+                    .into_iter()
+                    .find_map(|(candidate, flags)| (candidate == *case).then_some(flags))
+                    .ok_or_else(|| {
+                        replay_error(function, "conditional state omits authenticated case")
+                    })?;
+                // A valid selected case may carry only Copy fields. Its
+                // authenticated case state is consumed even though there are
+                // no cleanup flags to materialize.
+                if !flags.is_empty() {
+                    append_dead_flags(function, state, flags, "variant authentication")?;
+                }
+            }
+            let prefix = source
+                .projections
+                .iter()
+                .chain(std::iter::once(case))
+                .cloned()
+                .collect::<Vec<_>>();
+            if validate_place(function, source, storage, leaves)?
+                .iter()
+                .any(|flag| {
+                    state.live_order.contains(flag)
+                        && !leaves[flag].place.projections.starts_with(&prefix)
+                })
+            {
+                return Err(replay_error(
+                    function,
+                    "variant authentication retains a live inactive-case payload",
+                ));
+            }
+        }
         CleanupTransition::CallCommit { call, arguments } => {
             let mut consumed = BTreeSet::new();
+            let mut consumed_conditional_roots = BTreeSet::new();
             for argument in arguments {
+                if let Some(index) = state
+                    .conditional_variants
+                    .iter()
+                    .position(|variant| variant.root == argument.source)
+                {
+                    if !consumed_conditional_roots.insert(argument.source.clone()) {
+                        return Err(replay_error(
+                            function,
+                            format!("call `{call}` atomically consumes a variant epoch twice"),
+                        ));
+                    }
+                    let conditional = state.conditional_variants.remove(index);
+                    for flag in conditional.cases.into_iter().flat_map(|(_, flags)| flags) {
+                        if !consumed.insert(flag) {
+                            return Err(replay_error(
+                                function,
+                                format!(
+                                    "call `{call}` atomically consumes argument flag {} twice",
+                                    flag.0
+                                ),
+                            ));
+                        }
+                    }
+                    continue;
+                }
                 for flag in validate_place(function, &argument.source, storage, leaves)? {
                     if !state.live_order.contains(&flag) {
                         return Err(replay_error(
@@ -6102,7 +6896,7 @@ fn execute_replay_transition(
                     "Copy aggregate result is staged more than once on one path",
                 ));
             }
-            if !state.live_order.is_empty() {
+            if !state.live_order.is_empty() || !state.conditional_variants.is_empty() {
                 return Err(replay_error(
                     function,
                     "Copy aggregate result staging carries resource liveness",
@@ -6131,6 +6925,35 @@ fn replay_transfer(
             function,
             "cleanup transfer does not have disjoint equal-size ownership epochs",
         ));
+    }
+    if let Some(index) = state
+        .conditional_variants
+        .iter()
+        .position(|variant| variant.root == *source)
+    {
+        let mapping = transfer_mapping(function, source, destination, leaves)?;
+        let variant = state.conditional_variants.remove(index);
+        let cases = variant
+            .cases
+            .into_iter()
+            .map(|(case, flags)| {
+                flags
+                    .into_iter()
+                    .map(|flag| {
+                        mapping.get(&flag).copied().ok_or_else(|| {
+                            replay_error(function, "conditional cleanup transfer omits a case leaf")
+                        })
+                    })
+                    .collect::<Result<Vec<_>, Diagnostic>>()
+                    .map(|flags| (case, flags))
+            })
+            .collect::<Result<Vec<_>, Diagnostic>>()?;
+        state.conditional_variants.push(ReplayConditionalVariant {
+            root: destination.clone(),
+            variant: variant.variant,
+            cases,
+        });
+        return Ok(());
     }
     if source_set
         .iter()
@@ -6168,6 +6991,104 @@ fn replay_transfer(
         normalize_completed_storage(function, state, &destination.storage, leaves)?;
     }
     Ok(())
+}
+
+fn materialize_constructed_variant(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    state: &mut PathState,
+    source: &CleanupPlace,
+    variant: &DeclarationId,
+    storage: &BTreeSet<StorageId>,
+    leaves: &BTreeMap<LivenessFlagId, Leaf>,
+) -> Result<(), Diagnostic> {
+    let StorageId::Temporary(expression) = &source.storage else {
+        return Err(replay_error(
+            function,
+            "variant transfer has no authenticated conditional source state",
+        ));
+    };
+    let expression = find_resolved_expression(function, expression).ok_or_else(|| {
+        replay_error(
+            function,
+            "variant transfer source temporary has no typed-HIR expression",
+        )
+    })?;
+    let ResolvedExprKind::ConstructVariant {
+        variant: constructed_variant,
+        case,
+        ..
+    } = &expression.kind
+    else {
+        return Err(replay_error(
+            function,
+            "variant transfer lacks a conditional or constructed source",
+        ));
+    };
+    if constructed_variant != variant
+        || program
+            .declarations
+            .variant_cases(variant)
+            .is_none_or(|cases| !cases.iter().any(|candidate| candidate.id == *case))
+    {
+        return Err(replay_error(
+            function,
+            "constructed variant transfer has unauthenticated case metadata",
+        ));
+    }
+    let all_flags = validate_place(function, source, storage, leaves)?;
+    let prefix = source
+        .projections
+        .iter()
+        .chain(std::iter::once(case))
+        .cloned()
+        .collect::<Vec<_>>();
+    let selected = all_flags
+        .iter()
+        .filter(|flag| leaves[flag].place.projections.starts_with(&prefix))
+        .copied()
+        .collect::<Vec<_>>();
+    if selected.iter().any(|flag| !state.live_order.contains(flag))
+        || all_flags.iter().any(|flag| {
+            state.live_order.contains(flag) && !leaves[flag].place.projections.starts_with(&prefix)
+        })
+    {
+        return Err(replay_error(
+            function,
+            "constructed variant transfer has incomplete or inactive payload liveness",
+        ));
+    }
+    let selected_set = selected.iter().copied().collect::<BTreeSet<_>>();
+    state.live_order.retain(|flag| !selected_set.contains(flag));
+    state.conditional_variants.push(ReplayConditionalVariant {
+        root: source.clone(),
+        variant: variant.clone(),
+        cases: vec![(case.clone(), selected)],
+    });
+    Ok(())
+}
+
+fn find_resolved_expression<'a>(
+    function: &'a ResolvedFunction,
+    identity: &ExpressionId,
+) -> Option<&'a ResolvedExpr> {
+    let mut stack = function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+        .collect::<Vec<_>>();
+    while let Some(expression) = stack.pop() {
+        if expression.id == *identity {
+            return Some(expression);
+        }
+        let mut index = 0;
+        while let Some(child) = replay_expression_child(expression, index) {
+            stack.push(child);
+            index += 1;
+        }
+    }
+    None
 }
 
 fn transfer_mapping(
@@ -6250,7 +7171,17 @@ fn append_dead_flags(
     flags: Vec<LivenessFlagId>,
     operation: &str,
 ) -> Result<(), Diagnostic> {
-    if flags.is_empty() || flags.iter().any(|flag| state.live_order.contains(flag)) {
+    if flags.is_empty()
+        || flags.iter().any(|flag| {
+            state.live_order.contains(flag)
+                || state.conditional_variants.iter().any(|variant| {
+                    variant
+                        .cases
+                        .iter()
+                        .any(|(_, case_flags)| case_flags.contains(flag))
+                })
+        })
+    {
         return Err(replay_error(
             function,
             format!("{operation} initializes an empty or live cleanup place"),
@@ -6320,6 +7251,25 @@ fn replay_exit(
             (leaving.contains(&region) && !protected_result.contains(flag)).then_some(*flag)
         })
         .collect::<Vec<_>>();
+    let mut expected_conditional = Vec::new();
+    for variant in state.conditional_variants.iter().rev() {
+        let region = storage_regions[&variant.root.storage];
+        if !leaving.contains(&region) || variant.root.storage == StorageId::ProvisionalResult {
+            continue;
+        }
+        for (case, flags) in variant.cases.iter().rev() {
+            for flag in flags.iter().rev() {
+                expected_conditional.push((
+                    *flag,
+                    super::VariantCaseGuard {
+                        storage: variant.root.storage.clone(),
+                        variant: variant.variant.clone(),
+                        case: case.clone(),
+                    },
+                ));
+            }
+        }
+    }
     let actual = exit
         .finalize_in_order
         .iter()
@@ -6339,8 +7289,28 @@ fn replay_exit(
             ),
         ));
     }
+    let actual_conditional = exit
+        .finalize_in_order
+        .iter()
+        .filter_map(|action| {
+            action
+                .active_case
+                .as_ref()
+                .map(|condition| (action.guard_flag, condition.clone()))
+        })
+        .collect::<Vec<_>>();
+    if actual_conditional != expected_conditional {
+        return Err(replay_error(
+            function,
+            "exit does not preserve exact conditional variant finalizers",
+        ));
+    }
     let finalized = expected.into_iter().collect::<BTreeSet<_>>();
     state.live_order.retain(|flag| !finalized.contains(flag));
+    state.conditional_variants.retain(|variant| {
+        !leaving.contains(&storage_regions[&variant.root.storage])
+            || variant.root.storage == StorageId::ProvisionalResult
+    });
     if state.live_order.iter().any(|flag| {
         let leaf = &leaves[flag];
         leaving.contains(&storage_regions[&leaf.place.storage]) && !protected_result.contains(flag)
@@ -6365,6 +7335,7 @@ fn replay_exit(
             if state.pending_failure.is_some()
                 || state.selected_failure.as_ref() != Some(source)
                 || !state.live_order.is_empty()
+                || !state.conditional_variants.is_empty()
             {
                 return Err(replay_error(
                     function,
@@ -6382,7 +7353,7 @@ fn replay_exit(
             }
             match source {
                 CleanupResultSource::Scalar { .. } => {
-                    if !state.live_order.is_empty() {
+                    if !state.live_order.is_empty() || !state.conditional_variants.is_empty() {
                         return Err(replay_error(
                             function,
                             "scalar result commits before non-result cleanup completes",
@@ -6404,23 +7375,37 @@ fn replay_exit(
                     }
                 }
                 CleanupResultSource::Owned { storage: result } => {
-                    let result_flags = validate_place(function, result, storage, leaves)?;
-                    if result_flags
+                    if let Some(index) = state
+                        .conditional_variants
                         .iter()
-                        .any(|flag| !state.live_order.contains(flag))
-                        || state.live_order.len() != result_flags.len()
+                        .position(|variant| variant.root == *result)
                     {
-                        return Err(replay_error(
+                        if !state.live_order.is_empty() || state.conditional_variants.len() != 1 {
+                            return Err(replay_error(
+                                function,
+                                "conditional owned result retains non-result ownership",
+                            ));
+                        }
+                        state.conditional_variants.remove(index);
+                    } else {
+                        let result_flags = validate_place(function, result, storage, leaves)?;
+                        if result_flags
+                            .iter()
+                            .any(|flag| !state.live_order.contains(flag))
+                            || state.live_order.len() != result_flags.len()
+                        {
+                            return Err(replay_error(
                             function,
                             "owned result commit has incomplete result or remaining non-result ownership",
                         ));
+                        }
+                        let result_flags = result_flags.into_iter().collect::<BTreeSet<_>>();
+                        state.live_order.retain(|flag| !result_flags.contains(flag));
                     }
-                    let result_flags = result_flags.into_iter().collect::<BTreeSet<_>>();
-                    state.live_order.retain(|flag| !result_flags.contains(flag));
                 }
             }
             state.published = true;
-            if !state.live_order.is_empty() {
+            if !state.live_order.is_empty() || !state.conditional_variants.is_empty() {
                 return Err(replay_error(
                     function,
                     "result publication leaves cleanup ownership live",
@@ -6432,6 +7417,7 @@ fn replay_exit(
             if state.pending_failure.is_some()
                 || state.selected_failure.is_some()
                 || !state.live_order.is_empty()
+                || !state.conditional_variants.is_empty()
             {
                 return Err(replay_error(
                     function,
@@ -6634,8 +7620,24 @@ fn expression_has_explicit_record_match(expression: &ResolvedExpr) -> bool {
             kind,
             ResolvedExprKind::Match {
                 mode: crate::hir::ResolvedMatchMode::Own | crate::hir::ResolvedMatchMode::Borrow,
+                arms,
                 ..
             }
+                if arms.iter().any(|arm| matches!(arm.pattern, ResolvedMatchPattern::Record { .. }))
+        )
+    })
+}
+
+fn expression_has_explicit_variant_match(expression: &ResolvedExpr) -> bool {
+    expression_has_kind(expression, |kind| {
+        matches!(
+            kind,
+            ResolvedExprKind::Match {
+                mode: crate::hir::ResolvedMatchMode::Own | crate::hir::ResolvedMatchMode::Borrow,
+                arms,
+                ..
+            }
+                if arms.iter().any(|arm| matches!(arm.pattern, ResolvedMatchPattern::Variant { .. }))
         )
     })
 }
@@ -7811,7 +8813,9 @@ fn window_len(value: borrow Slice<u8>, start: usize, end: usize) -> usize {
         let removed = function.cleanup_plan.slots.pop().unwrap();
         let removed_flag = match removed.field_liveness_shape {
             FieldLivenessShape::Leaf { flag, .. } => flag,
-            FieldLivenessShape::NoDrop | FieldLivenessShape::Record { .. } => {
+            FieldLivenessShape::NoDrop
+            | FieldLivenessShape::Record { .. }
+            | FieldLivenessShape::Variant { .. } => {
                 panic!("fixture token slot must be one leaf")
             }
         };
@@ -8457,9 +9461,11 @@ fn window_len(value: borrow Slice<u8>, start: usize, end: usize) -> usize {
             })
             .expect("fixture must contain a transition at a non-body expression");
         match transition {
-            CleanupTransition::Initialize { at, .. } | CleanupTransition::Transfer { at, .. } => {
-                *at = substitute
-            }
+            CleanupTransition::Initialize { at, .. }
+            | CleanupTransition::InitializeVariant { at, .. }
+            | CleanupTransition::Transfer { at, .. }
+            | CleanupTransition::TransferVariant { at, .. }
+            | CleanupTransition::AuthenticateVariantCase { at, .. } => *at = substitute,
             CleanupTransition::CallCommit { .. }
             | CleanupTransition::SelectFailure { .. }
             | CleanupTransition::StageCopyResult { .. } => {
@@ -8493,7 +9499,10 @@ fn window_len(value: borrow Slice<u8>, start: usize, end: usize) -> usize {
             .filter_map(|transition| match transition {
                 CleanupTransition::StageCopyResult { source } => Some(source),
                 CleanupTransition::Initialize { .. }
+                | CleanupTransition::InitializeVariant { .. }
                 | CleanupTransition::Transfer { .. }
+                | CleanupTransition::TransferVariant { .. }
+                | CleanupTransition::AuthenticateVariantCase { .. }
                 | CleanupTransition::CallCommit { .. }
                 | CleanupTransition::SelectFailure { .. } => None,
             })

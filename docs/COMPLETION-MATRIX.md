@@ -46,7 +46,8 @@ The strongest current vertical slices are:
 - canonical source, stable-ID HIR, and deterministic semantic graph queries;
 - bounded replay-checked single-file and managed-workspace changes;
 - scalar and selected Copy/owned-data execution through interpreter, native
-  C11/Clang, and Core WebAssembly/Node lanes;
+  C11/Clang, and Core WebAssembly/Node lanes, including the closed flat
+  [Owned Byte Variant Algebra v1](OWNED-BYTE-VARIANT-ALGEBRA-V1.md) slice;
 - bounded multi-file Project manifests with selected Web, npm, native-command,
   and unpublished Rust SDK consumers;
 - private desktop/mobile and host-integration evidence.
@@ -105,11 +106,11 @@ row.
 
 | Requirement | Status | Evidence owner | Complete when |
 | --- | --- | --- | --- |
-| Records and algebraic variants | Partial | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md), [Owned Byte Record Algebra](OWNED-BYTE-RECORD-ALGEBRA-V1.md) | General nested/generic/resource aggregates, matching, layout, cleanup, and public ABIs are verified. |
+| Records and algebraic variants | Partial | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md), [Owned Byte Record Algebra](OWNED-BYTE-RECORD-ALGEBRA-V1.md), [Owned Byte Variant Algebra](OWNED-BYTE-VARIANT-ALGEBRA-V1.md) | General nested/generic/resource aggregates, matching, layout, cleanup, and public ABIs are verified. |
 | Functions, closures, interfaces, implementations, generics | Partial | [RFC 0001](RFC-0001.md) | Closures, interfaces/implementations, inference, constraints, specialization, and cross-target execution are complete. |
-| `Option` and `Result`; no null or unchecked exceptions | Partial | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md) | General Copy and owned propagation/matching, residual conversion, ABI, and target behavior are verified. |
+| `Option` and `Result`; no null or unchecked exceptions | Partial | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md), [Owned Byte Variant Algebra](OWNED-BYTE-VARIANT-ALGEBRA-V1.md) | General Copy and owned propagation/matching, residual conversion, ABI, and target behavior are verified. |
 | Immutable-by-default values and explicit mutation | Partial | [Explicit Mutation v1](EXPLICIT-MUTATION-V1.md), [Field Mutation v1](FIELD-MUTATION-V1.md) | Aggregate, collection, borrowed, and concurrency-aware mutation rules are verified. |
-| Unique ownership and move safety | Partial | [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) | General owned values, aliases, control flow, FFI, cleanup, and target execution are verified. |
+| Unique ownership and move safety | Partial | [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md), [Owned Byte Variant Algebra](OWNED-BYTE-VARIANT-ALGEBRA-V1.md) | General owned values, aliases, control flow, FFI, cleanup, and target execution are verified. |
 | Borrowed views and lifetime safety | Partial | [Useful Text Consumer v1](USEFUL-TEXT-CONSUMER-V1.md) | General lifetime inference, reborrowing, escape analysis, cross-file use, and host ABI behavior are verified. |
 | Regions and arenas | Partial | [Region Report v1](REGION-REPORT-V1.md) | Region inference and runtime placement are implemented and verified; the report alone is insufficient. |
 | Shared immutable ARC and managed zones | Partial | [ARC Zone Model v1](ARC-ZONES-V1.md) | Language, runtime, cycle, escape, and concurrency semantics execute on supported targets. |

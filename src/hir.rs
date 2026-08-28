@@ -1800,6 +1800,54 @@ impl From<MatchMode> for ResolvedMatchMode {
     }
 }
 
+pub(crate) fn admitted_owned_byte_prelude_instance(
+    declaration: &DeclarationId,
+    arguments: &[ResolvedType],
+) -> bool {
+    matches!(
+        (declaration.as_str(), arguments),
+        (crate::prelude::OPTION_ID, [ResolvedType::Bytes])
+            | (
+                crate::prelude::RESULT_ID,
+                [ResolvedType::Bytes, ResolvedType::I64 | ResolvedType::Bool]
+            )
+            | (
+                crate::prelude::RESULT_ID,
+                [ResolvedType::I64 | ResolvedType::Bool, ResolvedType::Bytes]
+            )
+    )
+}
+
+fn resolver_admits_flat_owned_byte_variant(
+    declarations: &DeclarationIndex,
+    ty: &ResolvedType,
+) -> bool {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return false;
+    };
+    if admitted_owned_byte_prelude_instance(declaration, arguments) {
+        return true;
+    }
+    if !arguments.is_empty() {
+        return false;
+    }
+    declarations
+        .variant_cases(declaration)
+        .is_some_and(|cases| {
+            cases
+                .iter()
+                .flat_map(|case| &case.fields)
+                .any(|field| field.ty == ResolvedType::Bytes)
+                && cases.iter().flat_map(|case| &case.fields).all(|field| {
+                    field.ty == ResolvedType::Bytes || is_scalar_resolved_type(&field.ty)
+                })
+        })
+}
+
 impl From<ParamMode> for OwnershipMode {
     fn from(mode: ParamMode) -> Self {
         match mode {
@@ -4237,7 +4285,8 @@ impl Resolver<'_> {
                                 )
                             })?;
                         if resolved.len() != parameters.len()
-                            || (!resolved.is_empty()
+                            || (!admitted_owned_byte_prelude_instance(&declaration, &resolved)
+                                && !resolved.is_empty()
                                 && resolved.iter().any(|argument| {
                                     !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
                                 }))
@@ -7398,13 +7447,15 @@ impl Resolver<'_> {
                             .iter()
                             .map(|argument| self.resolve_type(argument, span))
                             .collect::<Result<Vec<_>, _>>()?;
+                        let ty = ResolvedType::Nominal {
+                            declaration: variant.clone(),
+                            arguments,
+                        };
+                        let ownership = self.expression_ownership(&ty, OwnershipMode::Own, span)?;
                         results.push(ResolvedExpr {
                             id: ExpressionId::new(function, &path),
-                            ty: ResolvedType::Nominal {
-                                declaration: variant.clone(),
-                                arguments,
-                            },
-                            ownership: OwnershipMode::Value,
+                            ty,
+                            ownership,
                             kind: ResolvedExprKind::ConstructVariant {
                                 variant,
                                 case,
@@ -7571,11 +7622,33 @@ impl Resolver<'_> {
                         self.error("SPX-H006", "match scrutinee has no type facts", span)
                     })?;
                     match (matched_kind, mode) {
-                        (DeclarationKind::Variant, ResolvedMatchMode::Value) => {}
+                        (DeclarationKind::Variant, ResolvedMatchMode::Value)
+                            if facts.copy && scrutinee.ownership == OwnershipMode::Value => {}
+                        (DeclarationKind::Variant, ResolvedMatchMode::Own)
+                            if resolver_admits_flat_owned_byte_variant(
+                                &self.declarations,
+                                &scrutinee.ty,
+                            ) && facts.needs_drop
+                                && !facts.copy
+                                && scrutinee.ownership == OwnershipMode::Own => {}
+                        (DeclarationKind::Variant, ResolvedMatchMode::Borrow)
+                            if resolver_admits_flat_owned_byte_variant(
+                                &self.declarations,
+                                &scrutinee.ty,
+                            ) && facts.needs_drop
+                                && !facts.copy
+                                && matches!(
+                                    scrutinee.ownership,
+                                    OwnershipMode::Own | OwnershipMode::Borrow
+                                )
+                                && matches!(
+                                    &scrutinee.kind,
+                                    ResolvedExprKind::Place(place) if place.projections.is_empty()
+                                ) => {}
                         (DeclarationKind::Variant, _) => {
                             return Err(self.error(
                                 "SPX-O117",
-                                "owned and borrowed variant matches are not admitted in this tranche",
+                                "match ownership mode disagrees with the admitted variant scrutinee",
                                 span,
                             ));
                         }
@@ -7652,6 +7725,16 @@ impl Resolver<'_> {
                         let arm = &arms[index];
                         let mut arm_bindings = bindings.clone();
                         let pattern = match &arm.pattern {
+                            MatchPattern::Wildcard { span }
+                                if matched_kind == DeclarationKind::Variant
+                                    && mode != ResolvedMatchMode::Value =>
+                            {
+                                return Err(self.error(
+                                    "SPX-O117",
+                                    "explicit ownership variant match requires every case pattern",
+                                    *span,
+                                ));
+                            }
                             MatchPattern::Wildcard { .. } => ResolvedMatchPattern::Wildcard,
                             MatchPattern::Variant {
                                 case_name, fields, ..
@@ -7711,13 +7794,32 @@ impl Resolver<'_> {
                                         &matched_type,
                                         &instance_arguments,
                                     )?;
+                                    let field_facts = self
+                                        .declarations
+                                        .type_facts(&field_ty)
+                                        .ok_or_else(|| {
+                                            self.error(
+                                                "SPX-H006",
+                                                "variant pattern field has no authenticated type facts",
+                                                field.span,
+                                            )
+                                        })?;
+                                    let ownership = if field_facts.needs_drop {
+                                        match mode {
+                                            ResolvedMatchMode::Own => OwnershipMode::Own,
+                                            ResolvedMatchMode::Borrow => OwnershipMode::Borrow,
+                                            ResolvedMatchMode::Value => OwnershipMode::Value,
+                                        }
+                                    } else {
+                                        OwnershipMode::Value
+                                    };
                                     let binding = ResolvedBinding {
                                         id: ValueId::local(
                                             function,
                                             &format!("{path}.arm.{index}.binding.{field_index}"),
                                         ),
                                         name: field.binding.clone(),
-                                        ownership: OwnershipMode::Value,
+                                        ownership,
                                         ty: field_ty.clone(),
                                         span: field.binding_span,
                                     };
@@ -7726,7 +7828,7 @@ impl Resolver<'_> {
                                         Binding {
                                             id: binding.id.clone(),
                                             ty: field_ty,
-                                            ownership: OwnershipMode::Value,
+                                            ownership,
                                             mutable: false,
                                         },
                                     );
@@ -9801,6 +9903,7 @@ impl Resolver<'_> {
                         .map(|argument| self.resolve_type(argument, expr.span))
                         .collect::<Result<Vec<_>, _>>()?,
                 };
+                let ownership = self.expression_ownership(&ty, OwnershipMode::Own, expr.span)?;
                 (
                     ResolvedExprKind::ConstructVariant {
                         variant,
@@ -9808,7 +9911,7 @@ impl Resolver<'_> {
                         fields: resolved_fields,
                     },
                     ty,
-                    OwnershipMode::Value,
+                    ownership,
                 )
             }
             ExprKind::Match {
@@ -10011,11 +10114,33 @@ impl Resolver<'_> {
                     self.error("SPX-H006", "match scrutinee has no type facts", expr.span)
                 })?;
                 match (matched_kind, mode) {
-                    (DeclarationKind::Variant, ResolvedMatchMode::Value) => {}
+                    (DeclarationKind::Variant, ResolvedMatchMode::Value)
+                        if facts.copy && scrutinee.ownership == OwnershipMode::Value => {}
+                    (DeclarationKind::Variant, ResolvedMatchMode::Own)
+                        if resolver_admits_flat_owned_byte_variant(
+                            &self.declarations,
+                            &scrutinee.ty,
+                        ) && facts.needs_drop
+                            && !facts.copy
+                            && scrutinee.ownership == OwnershipMode::Own => {}
+                    (DeclarationKind::Variant, ResolvedMatchMode::Borrow)
+                        if resolver_admits_flat_owned_byte_variant(
+                            &self.declarations,
+                            &scrutinee.ty,
+                        ) && facts.needs_drop
+                            && !facts.copy
+                            && matches!(
+                                scrutinee.ownership,
+                                OwnershipMode::Own | OwnershipMode::Borrow
+                            )
+                            && matches!(
+                                &scrutinee.kind,
+                                ResolvedExprKind::Place(place) if place.projections.is_empty()
+                            ) => {}
                     (DeclarationKind::Variant, _) => {
                         return Err(self.error(
                             "SPX-O117",
-                            "owned and borrowed variant matches are not admitted in this tranche",
+                            "match ownership mode disagrees with the admitted variant scrutinee",
                             expr.span,
                         ));
                     }
@@ -10048,6 +10173,16 @@ impl Resolver<'_> {
                 for (arm_index, arm) in arms.iter().enumerate() {
                     let mut arm_bindings = bindings.clone();
                     let pattern = match &arm.pattern {
+                        MatchPattern::Wildcard { span }
+                            if matched_kind == DeclarationKind::Variant
+                                && mode != ResolvedMatchMode::Value =>
+                        {
+                            return Err(self.error(
+                                "SPX-O117",
+                                "explicit ownership variant match requires every case pattern",
+                                *span,
+                            ));
+                        }
                         MatchPattern::Wildcard { .. } => ResolvedMatchPattern::Wildcard,
                         MatchPattern::Variant {
                             case_name, fields, ..
@@ -10103,13 +10238,30 @@ impl Resolver<'_> {
                                     &matched_type,
                                     &instance_arguments,
                                 )?;
+                                let field_facts =
+                                    self.declarations.type_facts(&field_ty).ok_or_else(|| {
+                                        self.error(
+                                            "SPX-H006",
+                                            "variant pattern field has no authenticated type facts",
+                                            field.span,
+                                        )
+                                    })?;
+                                let ownership = if field_facts.needs_drop {
+                                    match mode {
+                                        ResolvedMatchMode::Own => OwnershipMode::Own,
+                                        ResolvedMatchMode::Borrow => OwnershipMode::Borrow,
+                                        ResolvedMatchMode::Value => OwnershipMode::Value,
+                                    }
+                                } else {
+                                    OwnershipMode::Value
+                                };
                                 let binding = ResolvedBinding {
                                     id: ValueId::local(
                                         function,
                                         &format!("{path}.arm.{arm_index}.binding.{field_index}"),
                                     ),
                                     name: field.binding.clone(),
-                                    ownership: OwnershipMode::Value,
+                                    ownership,
                                     ty: field_ty.clone(),
                                     span: field.binding_span,
                                 };
@@ -10118,7 +10270,7 @@ impl Resolver<'_> {
                                     Binding {
                                         id: binding.id.clone(),
                                         ty: field_ty,
-                                        ownership: OwnershipMode::Value,
+                                        ownership,
                                         mutable: false,
                                     },
                                 );

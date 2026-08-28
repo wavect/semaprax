@@ -4668,10 +4668,10 @@ fn main() -> i64 uses { collision.same } {
                 .each_ref()
                 .map(|artifact| document_sha(&artifact.json)),
             [
-                "sha256:6c6a0e1faf18755e3576c0f9cb715572ea92d995bcf059f3f110ac071ce70ef6",
-                "sha256:9ced5b836803573452dfb0ace61f7c2c4f9b43667be65b506f10355a2e090b7d",
-                "sha256:48bc4d508f6dc7cf3bab66cd27c1f0a2eded8558db2123fd5f8847e344a4e459",
-                "sha256:a6c43a8d79f3d05589da830498e8561afeaf169c9401518b7eaa7c187077b25c"
+                "sha256:c1d56fe7950d0b8d6fec463925f8e20f891483493942be8c195c7df2c81d7eab",
+                "sha256:b3b8452d8ba1e3a2598b580b7d7fc2895b230b642c1575283b83cd71546fe5d2",
+                "sha256:0eff4c10b99f8014d13897427f112d4a6cbf4c9796e54daa7639b1d0b1204a2b",
+                "sha256:cc540aafbfc950862c0b96221394cbbd81f5e345c39d8ab7f0692d8461777799"
             ]
         );
         for artifact in &contexts {
@@ -4728,8 +4728,8 @@ fn main() -> i64 uses { collision.same } {
                 .each_ref()
                 .map(|artifact| document_sha(&artifact.json)),
             [
-                "sha256:8f851ae2f68f153b8587b7d5035755c9fd79b2945e7577d4ae673b832711b8e0",
-                "sha256:aa1eedc4dc2c542b00dc9ed349bde45ae37db6e60f71eb5b5764b51e8cd2ab89",
+                "sha256:5920c37f1a4c4e6148dd2e6e5681e369e6d4ef85f4c311399821975d35cf569b",
+                "sha256:0c70dd3250dc9c8e72bcaa2b9df4a4d10f760863903dcd8bb7d223859b5f674a",
             ]
         );
         let declaration_impact: serde_json::Value = serde_json::from_str(&impacts[0].json).unwrap();
@@ -4864,7 +4864,7 @@ fn main() -> i64 uses { collision.same } {
         let review = analysis.render_review(declaration_target.clone()).unwrap();
         assert_eq!(
             document_sha(&review.json),
-            "sha256:cfc2905718ba8325bb4d798b03f5a09de5817fe15d59e78796604b5faceaea87"
+            "sha256:0523d027d55b19a6f60a14b9fb57ae342fe5959e9268346f7bd54da81e1377d6"
         );
         let direct_context = analysis
             .render_context(

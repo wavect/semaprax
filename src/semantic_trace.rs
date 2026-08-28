@@ -424,6 +424,21 @@ pub fn build_semantic_event_dictionary(
                         "initialize transition `{at}` is outside the direct-resource slice"
                     )))
                 }
+                CleanupTransition::InitializeVariant { at, .. } => {
+                    return Err(dictionary_error(format!(
+                        "conditional variant initialization `{at}` is outside the direct-resource slice"
+                    )))
+                }
+                CleanupTransition::AuthenticateVariantCase { at, .. } => {
+                    return Err(dictionary_error(format!(
+                        "variant authentication `{at}` is outside the direct-resource slice"
+                    )))
+                }
+                CleanupTransition::TransferVariant { at, .. } => {
+                    return Err(dictionary_error(format!(
+                        "conditional variant transfer `{at}` is outside the direct-resource slice"
+                    )))
+                }
                 CleanupTransition::CallCommit { call, .. } => {
                     return Err(dictionary_error(format!(
                         "call commit `{call}` is outside the single-frame slice"

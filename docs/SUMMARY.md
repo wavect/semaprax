@@ -24,6 +24,7 @@ Audience: all documentation readers.
 - [Class inheritance](CLASS-INHERITANCE-V1.md)
 - [Portable indexed byte data](PORTABLE-INDEXED-BYTE-DATA-V1.md)
 - [Owned Byte Record Algebra](OWNED-BYTE-RECORD-ALGEBRA-V1.md)
+- [Owned Byte Variant Algebra](OWNED-BYTE-VARIANT-ALGEBRA-V1.md)
 - [Unsafe boundary mechanics](UNSAFE-BOUNDARIES-V1.md)
 - [Reference interpreter](INTERPRETER-V1.md)
 

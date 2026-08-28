@@ -96,6 +96,31 @@ fn resolved_type_is_flat_owned_byte_record(program: &ResolvedProgram, ty: &Resol
     })
 }
 
+fn resolved_type_is_flat_owned_byte_variant(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return false;
+    };
+    if admitted_owned_byte_prelude_instance(declaration, arguments) {
+        return true;
+    }
+    if !arguments.is_empty() {
+        return false;
+    }
+    program.types.iter().any(|item| {
+        item.id == *declaration
+            && item.type_parameters.is_empty()
+            && matches!(&item.kind, ResolvedTypeDeclarationKind::Variant { cases }
+                if cases.iter().flat_map(|case| &case.fields).any(|field| field.ty == ResolvedType::Bytes)
+                    && cases.iter().flat_map(|case| &case.fields).all(|field|
+                        field.ty == ResolvedType::Bytes
+                            || owned_byte_record_copy_field_is_admitted(&field.ty)))
+    })
+}
+
 /// Validate resolved meaning without consulting attached cleanup metadata.
 /// Independent cleanup-plan replayers use this boundary to avoid circularly
 /// trusting the canonical cleanup-plan builder as their oracle.
@@ -596,10 +621,28 @@ impl<'a> HirValidator<'a> {
                     }
                 }
                 ResolvedTypeDeclarationKind::Variant { cases } => {
-                    if cases.iter().flat_map(|case| &case.fields).any(|field| {
-                        field.ty == ResolvedType::Bytes
-                            || resolved_type_contains_owned_bytes(self.program, &field.ty)
-                    }) {
+                    let fields = cases
+                        .iter()
+                        .flat_map(|case| &case.fields)
+                        .collect::<Vec<_>>();
+                    let has_direct_bytes =
+                        fields.iter().any(|field| field.ty == ResolvedType::Bytes);
+                    if has_direct_bytes
+                        && (!declaration.type_parameters.is_empty()
+                            || fields.iter().any(|field| {
+                                field.ty != ResolvedType::Bytes
+                                    && !owned_byte_record_copy_field_is_admitted(&field.ty)
+                            }))
+                    {
+                        return Err(hir_error(
+                            "resolved owned-Bytes variant is not flat and monomorphic",
+                        ));
+                    }
+                    if !has_direct_bytes
+                        && fields.iter().any(|field| {
+                            resolved_type_contains_owned_bytes(self.program, &field.ty)
+                        })
+                    {
                         return Err(hir_error(
                             "resolved variant contains compiler-owned Bytes outside flat v1",
                         ));
@@ -857,6 +900,11 @@ impl<'a> HirValidator<'a> {
                 }
             }
             if let ResolvedTypeDeclarationKind::Variant { cases } = &declaration.kind {
+                let owned_byte_variant = declaration.type_parameters.is_empty()
+                    && cases
+                        .iter()
+                        .flat_map(|case| &case.fields)
+                        .any(|field| field.ty == ResolvedType::Bytes);
                 if cases.is_empty() {
                     return Err(hir_error(format!(
                         "variant `{}` has no cases",
@@ -930,13 +978,15 @@ impl<'a> HirValidator<'a> {
                             || usize::try_from(field.index) != Ok(field_position)
                             || field.index != indexed_field.index
                             || field.ty != indexed_field.ty
-                            || !matches!(
+                            || !(matches!(
                                 field.ty,
                                 ResolvedType::I64
                                     | ResolvedType::I32
                                     | ResolvedType::Bool
                                     | ResolvedType::TypeParameter { .. }
-                            )
+                            ) || (owned_byte_variant
+                                && (field.ty == ResolvedType::Bytes
+                                    || owned_byte_record_copy_field_is_admitted(&field.ty))))
                         {
                             return Err(hir_error(format!(
                                 "field {field_position} of case `{}` is invalid or disagrees with its declaration index",
@@ -959,6 +1009,9 @@ impl<'a> HirValidator<'a> {
                                     field.id, case.id
                                 )));
                             }
+                        }
+                        if owned_byte_variant {
+                            continue;
                         }
                         match &field.ty {
                             ResolvedType::I64 | ResolvedType::Bool => {}
@@ -1004,15 +1057,20 @@ impl<'a> HirValidator<'a> {
                     };
                     let cached = self.program.declarations.type_facts(&variant_ty);
                     let recomputed = self.program.declarations.recompute_type_facts(&variant_ty);
-                    if cached.is_none()
-                        || cached != recomputed
-                        || cached.as_ref().is_none_or(|facts| {
+                    let valid_facts = cached.as_ref().is_some_and(|facts| {
+                        if owned_byte_variant {
                             !facts.copy
-                                || facts.contains_resource
-                                || facts.needs_drop
-                                || !facts.sized
-                        })
-                    {
+                                && !facts.contains_resource
+                                && facts.needs_drop
+                                && facts.sized
+                        } else {
+                            facts.copy
+                                && !facts.contains_resource
+                                && !facts.needs_drop
+                                && facts.sized
+                        }
+                    });
+                    if cached.is_none() || cached != recomputed || !valid_facts {
                         return Err(hir_error(format!(
                             "variant `{}` has invalid or stale type facts",
                             declaration.id
@@ -4747,7 +4805,9 @@ impl<'a> HirValidator<'a> {
                                 "constructor for `{case}` is missing required payload fields"
                             )));
                         }
-                        self.finish_expr(expression, &expression.ty, OwnershipMode::Value)?;
+                        let ownership =
+                            self.expected_ownership(&expression.ty, OwnershipMode::Own)?;
+                        self.finish_expr(expression, &expression.ty, ownership)?;
                         scopes.push(scope);
                     } else {
                         let initializer = &fields[index];
@@ -4793,7 +4853,7 @@ impl<'a> HirValidator<'a> {
                     index,
                     path,
                 } => {
-                    let scope = scopes.pop().expect("variant field scope retained");
+                    let mut scope = scopes.pop().expect("variant field scope retained");
                     publication.publish(&scope);
                     let initializer = &fields[index];
                     let declared = expected
@@ -4802,11 +4862,21 @@ impl<'a> HirValidator<'a> {
                         .expect("variant field authenticated before child");
                     let field_ty = substitute_type(&declared.ty, &variant, &arguments)?;
                     self.require_type(&initializer.value.ty, &field_ty, "variant payload field")?;
-                    if initializer.value.ownership != OwnershipMode::Value {
+                    let ownership = self.expected_ownership(&field_ty, OwnershipMode::Own)?;
+                    if initializer.value.ownership != ownership {
                         return Err(hir_error(format!(
-                            "variant payload field `{}` is not a Copy value",
+                            "variant payload field `{}` has incompatible ownership",
                             initializer.field
                         )));
+                    }
+                    if ownership == OwnershipMode::Own {
+                        if !allow_moves {
+                            return Err(hir_error(
+                                "contract cannot transfer ownership into a variant",
+                            ));
+                        }
+                        self.mark_value_sources_moved(&initializer.value, &mut scope)?;
+                        publication.publish(&scope);
                     }
                     frames.push(Frame::VariantNext {
                         expression,
@@ -5161,13 +5231,46 @@ impl<'a> HirValidator<'a> {
                             path: format!("{path}.arm.0.value"),
                         });
                     } else {
-                        if *mode != ResolvedMatchMode::Value
-                            || scrutinee.ownership != OwnershipMode::Value
-                            || kind != Some(DeclarationKind::Variant)
-                        {
+                        if kind != Some(DeclarationKind::Variant) {
                             return Err(hir_error(
-                                "resolved match scrutinee is not a concrete Copy variant",
+                                "resolved match scrutinee is not a concrete variant",
                             ));
+                        }
+                        let facts = self
+                            .program
+                            .declarations
+                            .type_facts(&scrutinee.ty)
+                            .ok_or_else(|| hir_error("variant match has no exact type facts"))?;
+                        match mode {
+                            ResolvedMatchMode::Value
+                                if facts.copy && scrutinee.ownership == OwnershipMode::Value => {}
+                            ResolvedMatchMode::Own
+                                if resolved_type_is_flat_owned_byte_variant(
+                                    self.program,
+                                    &scrutinee.ty,
+                                ) && facts.needs_drop
+                                    && !facts.copy
+                                    && scrutinee.ownership == OwnershipMode::Own =>
+                            {
+                                self.mark_value_sources_moved(scrutinee, &mut outer)?;
+                            }
+                            ResolvedMatchMode::Borrow
+                                if resolved_type_is_flat_owned_byte_variant(
+                                    self.program,
+                                    &scrutinee.ty,
+                                ) && facts.needs_drop
+                                    && !facts.copy
+                                    && matches!(
+                                        scrutinee.ownership,
+                                        OwnershipMode::Own | OwnershipMode::Borrow
+                                    )
+                                    && matches!(&scrutinee.kind, ResolvedExprKind::Place(place) if place.projections.is_empty()) =>
+                                {}
+                            _ => {
+                                return Err(hir_error(
+                                    "resolved variant match mode disagrees with its scrutinee",
+                                ))
+                            }
                         }
                         let cases = self
                             .program
@@ -5237,6 +5340,12 @@ impl<'a> HirValidator<'a> {
                     result,
                     path,
                 } => {
+                    let ResolvedExprKind::Match {
+                        scrutinee, mode, ..
+                    } = &expression.kind
+                    else {
+                        unreachable!()
+                    };
                     if index == arms.len() {
                         if !wildcard_seen && covered.len() != cases.len() {
                             return Err(hir_error("resolved match is not exhaustive"));
@@ -5258,8 +5367,21 @@ impl<'a> HirValidator<'a> {
                     } else {
                         let arm = &arms[index];
                         let mut arm_scope = outer.clone();
+                        if *mode == ResolvedMatchMode::Borrow {
+                            let ResolvedExprKind::Place(place) = &scrutinee.kind else {
+                                unreachable!()
+                            };
+                            if let Some(owner) = arm_scope.get_mut(&place.root) {
+                                owner.lexically_borrowed = true;
+                            }
+                        }
                         match &arm.pattern {
                             ResolvedMatchPattern::Wildcard => {
+                                if *mode != ResolvedMatchMode::Value {
+                                    return Err(hir_error(
+                                        "resolved explicit ownership match cannot discard an owned variant",
+                                    ));
+                                }
                                 if wildcard_seen || covered.len() == cases.len() {
                                     return Err(hir_error(
                                         "resolved match has an unreachable wildcard",
@@ -5302,6 +5424,24 @@ impl<'a> HirValidator<'a> {
                                         })?;
                                     let binding_ty =
                                         substitute_type(&declared.ty, &variant, &arguments)?;
+                                    let facts = self
+                                        .program
+                                        .declarations
+                                        .type_facts(&binding_ty)
+                                        .ok_or_else(|| {
+                                        hir_error("variant binding has no exact type facts")
+                                    })?;
+                                    let binding_ownership = if facts.copy {
+                                        OwnershipMode::Value
+                                    } else if *mode == ResolvedMatchMode::Own {
+                                        OwnershipMode::Own
+                                    } else if *mode == ResolvedMatchMode::Borrow {
+                                        OwnershipMode::Borrow
+                                    } else {
+                                        return Err(hir_error(
+                                            "Copy variant pattern contains an owned payload",
+                                        ));
+                                    };
                                     if !seen.insert(field.field.clone())
                                         || field.binding.id
                                             != ValueId::local(
@@ -5311,7 +5451,7 @@ impl<'a> HirValidator<'a> {
                                                 ),
                                             )
                                         || field.binding.ty != binding_ty
-                                        || field.binding.ownership != OwnershipMode::Value
+                                        || field.binding.ownership != binding_ownership
                                     {
                                         return Err(hir_error(
                                             "resolved match pattern field or binding is invalid",
@@ -5326,7 +5466,7 @@ impl<'a> HirValidator<'a> {
                                         field.binding.id.clone(),
                                         ValidationBinding {
                                             ty: field.binding.ty.clone(),
-                                            ownership: OwnershipMode::Value,
+                                            ownership: binding_ownership,
                                             availability: Availability::Available,
                                             lexically_borrowed: false,
                                             moved_places: BTreeMap::new(),
@@ -5394,8 +5534,32 @@ impl<'a> HirValidator<'a> {
                     mut result,
                     path,
                 } => {
-                    let arm_scope = scopes.pop().expect("variant match arm scope retained");
+                    let mut arm_scope = scopes.pop().expect("variant match arm scope retained");
+                    if let ResolvedExprKind::Match {
+                        scrutinee,
+                        mode: ResolvedMatchMode::Borrow,
+                        ..
+                    } = &expression.kind
+                    {
+                        let ResolvedExprKind::Place(place) = &scrutinee.kind else {
+                            unreachable!()
+                        };
+                        if let Some(owner) = arm_scope.get_mut(&place.root) {
+                            owner.lexically_borrowed = false;
+                        }
+                    }
                     let arm = &arms[index];
+                    let ResolvedExprKind::Match { mode, .. } = &expression.kind else {
+                        unreachable!()
+                    };
+                    if *mode != ResolvedMatchMode::Value
+                        && (!matches!(arm.value.ty, ResolvedType::I64 | ResolvedType::Bool)
+                            || arm.value.ownership != OwnershipMode::Value)
+                    {
+                        return Err(hir_error(
+                            "resolved owned variant match arm must produce a Copy scalar",
+                        ));
+                    }
                     if let Some((ty, ownership)) = &result {
                         self.require_type(&arm.value.ty, ty, "match arm")?;
                         if arm.value.ownership != *ownership {
@@ -6949,11 +7113,20 @@ impl<'a> HirValidator<'a> {
                     )?;
                     let field_ty = substitute_type(&field.ty, variant, arguments)?;
                     self.require_type(&initializer.value.ty, &field_ty, "variant payload field")?;
-                    if initializer.value.ownership != OwnershipMode::Value {
+                    let ownership = self.expected_ownership(&field_ty, OwnershipMode::Own)?;
+                    if initializer.value.ownership != ownership {
                         return Err(hir_error(format!(
-                            "variant payload field `{}` is not a Copy value",
+                            "variant payload field `{}` has incompatible ownership",
                             initializer.field
                         )));
+                    }
+                    if ownership == OwnershipMode::Own {
+                        if !allow_moves {
+                            return Err(hir_error(
+                                "contract cannot transfer ownership into a variant",
+                            ));
+                        }
+                        self.mark_value_sources_moved(&initializer.value, scope)?;
                     }
                 }
                 if seen.len() != expected_fields.len() {
@@ -6961,7 +7134,8 @@ impl<'a> HirValidator<'a> {
                         "constructor for `{case}` is missing required payload fields"
                     )));
                 }
-                (expression.ty.clone(), OwnershipMode::Value)
+                let ownership = self.expected_ownership(&expression.ty, OwnershipMode::Own)?;
+                (expression.ty.clone(), ownership)
             }
             ResolvedExprKind::Match {
                 mode,
@@ -7248,17 +7422,51 @@ impl<'a> HirValidator<'a> {
                     return Ok(());
                 }
                 let variant = matched_type;
-                if *mode != ResolvedMatchMode::Value
-                    || scrutinee.ownership != OwnershipMode::Value
-                    || self
-                        .program
-                        .declarations
-                        .declaration(variant)
-                        .is_none_or(|item| item.kind != DeclarationKind::Variant)
+                if self
+                    .program
+                    .declarations
+                    .declaration(variant)
+                    .is_none_or(|item| item.kind != DeclarationKind::Variant)
                 {
                     return Err(hir_error(
-                        "resolved match scrutinee is not a concrete Copy variant",
+                        "resolved match scrutinee is not a concrete variant",
                     ));
+                }
+                let facts = self
+                    .program
+                    .declarations
+                    .type_facts(&scrutinee.ty)
+                    .ok_or_else(|| hir_error("variant match has no exact type facts"))?;
+                match mode {
+                    ResolvedMatchMode::Value
+                        if facts.copy && scrutinee.ownership == OwnershipMode::Value => {}
+                    ResolvedMatchMode::Own
+                        if resolved_type_is_flat_owned_byte_variant(
+                            self.program,
+                            &scrutinee.ty,
+                        ) && facts.needs_drop
+                            && !facts.copy
+                            && scrutinee.ownership == OwnershipMode::Own =>
+                    {
+                        self.mark_value_sources_moved(scrutinee, scope)?;
+                    }
+                    ResolvedMatchMode::Borrow
+                        if resolved_type_is_flat_owned_byte_variant(
+                            self.program,
+                            &scrutinee.ty,
+                        ) && facts.needs_drop
+                            && !facts.copy
+                            && matches!(
+                                scrutinee.ownership,
+                                OwnershipMode::Own | OwnershipMode::Borrow
+                            )
+                            && matches!(&scrutinee.kind, ResolvedExprKind::Place(place) if place.projections.is_empty()) =>
+                        {}
+                    _ => {
+                        return Err(hir_error(
+                            "resolved variant match mode disagrees with its scrutinee",
+                        ))
+                    }
                 }
                 let cases = self
                     .program
@@ -7276,8 +7484,21 @@ impl<'a> HirValidator<'a> {
                 let mut result = None::<(ResolvedType, OwnershipMode)>;
                 for (arm_index, arm) in arms.iter().enumerate() {
                     let mut arm_scope = scope.clone();
+                    if *mode == ResolvedMatchMode::Borrow {
+                        let ResolvedExprKind::Place(place) = &scrutinee.kind else {
+                            unreachable!()
+                        };
+                        if let Some(owner) = arm_scope.get_mut(&place.root) {
+                            owner.lexically_borrowed = true;
+                        }
+                    }
                     match &arm.pattern {
                         ResolvedMatchPattern::Wildcard => {
+                            if *mode != ResolvedMatchMode::Value {
+                                return Err(hir_error(
+                                    "resolved explicit ownership match cannot discard an owned variant",
+                                ));
+                            }
                             if wildcard_seen || covered.len() == cases.len() {
                                 return Err(hir_error(
                                     "resolved match has an unreachable wildcard",
@@ -7318,6 +7539,24 @@ impl<'a> HirValidator<'a> {
                                     })?;
                                 let binding_ty =
                                     substitute_type(&declared_field.ty, variant, arguments)?;
+                                let facts = self
+                                    .program
+                                    .declarations
+                                    .type_facts(&binding_ty)
+                                    .ok_or_else(|| {
+                                        hir_error("variant binding has no exact type facts")
+                                    })?;
+                                let binding_ownership = if facts.copy {
+                                    OwnershipMode::Value
+                                } else if *mode == ResolvedMatchMode::Own {
+                                    OwnershipMode::Own
+                                } else if *mode == ResolvedMatchMode::Borrow {
+                                    OwnershipMode::Borrow
+                                } else {
+                                    return Err(hir_error(
+                                        "Copy variant pattern contains an owned payload",
+                                    ));
+                                };
                                 if !seen_fields.insert(pattern_field.field.clone())
                                     || pattern_field.binding.id
                                         != ValueId::local(
@@ -7327,7 +7566,7 @@ impl<'a> HirValidator<'a> {
                                             ),
                                         )
                                     || pattern_field.binding.ty != binding_ty
-                                    || pattern_field.binding.ownership != OwnershipMode::Value
+                                    || pattern_field.binding.ownership != binding_ownership
                                 {
                                     return Err(hir_error(
                                         "resolved match pattern field or binding is invalid",
@@ -7344,7 +7583,7 @@ impl<'a> HirValidator<'a> {
                                     pattern_field.binding.id.clone(),
                                     ValidationBinding {
                                         ty: pattern_field.binding.ty.clone(),
-                                        ownership: OwnershipMode::Value,
+                                        ownership: binding_ownership,
                                         availability: Availability::Available,
                                         lexically_borrowed: false,
                                         moved_places: BTreeMap::new(),
@@ -7379,6 +7618,22 @@ impl<'a> HirValidator<'a> {
                         allow_moves,
                         allowed_effects,
                     )?;
+                    if *mode == ResolvedMatchMode::Borrow {
+                        let ResolvedExprKind::Place(place) = &scrutinee.kind else {
+                            unreachable!()
+                        };
+                        if let Some(owner) = arm_scope.get_mut(&place.root) {
+                            owner.lexically_borrowed = false;
+                        }
+                    }
+                    if *mode != ResolvedMatchMode::Value
+                        && (!matches!(arm.value.ty, ResolvedType::I64 | ResolvedType::Bool)
+                            || arm.value.ownership != OwnershipMode::Value)
+                    {
+                        return Err(hir_error(
+                            "resolved owned variant match arm must produce a Copy scalar",
+                        ));
+                    }
                     if let Some((expected_ty, expected_ownership)) = &result {
                         self.require_type(&arm.value.ty, expected_ty, "match arm")?;
                         if arm.value.ownership != *expected_ownership {
@@ -8249,11 +8504,12 @@ impl<'a> HirValidator<'a> {
                     }
                     if !arguments.is_empty()
                         && (!matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
-                            || (arguments.as_slice() != [ResolvedType::U8]
-                                || declaration.as_str() != crate::prelude::OPTION_ID)
+                            || (!admitted_owned_byte_prelude_instance(declaration, arguments)
+                                && (arguments.as_slice() != [ResolvedType::U8]
+                                    || declaration.as_str() != crate::prelude::OPTION_ID)
                                 && arguments.iter().any(|argument| {
                                     !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
-                                }))
+                                })))
                     {
                         return Err(hir_error(format!(
                             "nominal type `{declaration}` has unsupported generic arguments"
@@ -8328,11 +8584,13 @@ impl<'a> HirValidator<'a> {
             match param.ownership {
                 OwnershipMode::Own => actual == OwnershipMode::Own,
                 OwnershipMode::Borrow => {
-                    !resolved_type_is_flat_owned_byte_record(self.program, &param.ty)
-                        || matches!(
-                            &argument.kind,
-                            ResolvedExprKind::Place(place) if place.projections.is_empty()
-                        )
+                    (!resolved_type_is_flat_owned_byte_record(self.program, &param.ty)
+                        && !resolved_type_is_flat_owned_byte_variant(self.program, &param.ty))
+                        || (matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
+                            && matches!(
+                                &argument.kind,
+                                ResolvedExprKind::Place(place) if place.projections.is_empty()
+                            ))
                 }
                 OwnershipMode::Shared => actual == OwnershipMode::Shared,
                 OwnershipMode::Value => false,
@@ -8651,12 +8909,21 @@ module test.owned_byte_hir_shapes;
         );
 
         let mut variant = declaration_fixture();
+        set_record_field_type(
+            &mut variant,
+            "inner.type",
+            "inner.payload",
+            ResolvedType::Bytes,
+        );
         set_variant_field_type(
             &mut variant,
             "envelope.type",
             "envelope.data",
             "envelope.payload",
-            ResolvedType::Bytes,
+            ResolvedType::Nominal {
+                declaration: DeclarationId::new("inner.type"),
+                arguments: Vec::new(),
+            },
         );
         assert_hir_rejects(
             &variant,

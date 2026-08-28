@@ -428,8 +428,11 @@ impl DeclarationIndex {
                     let parameters = self.type_parameters.get(&declaration)?;
                     let compiler_byte_option = declaration.as_str() == crate::prelude::OPTION_ID
                         && arguments.as_slice() == [ResolvedType::U8];
+                    let owned_byte_variant =
+                        admitted_owned_byte_prelude_instance(&declaration, &arguments);
                     if arguments.len() != parameters.len()
                         || (!compiler_byte_option
+                            && !owned_byte_variant
                             && arguments.iter().any(|argument| {
                                 !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
                             }))

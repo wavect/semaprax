@@ -10,9 +10,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::cleanup::FieldLivenessShape;
 use crate::cleanup_plan::{CleanupPlace, CleanupTransition, StorageId};
 use crate::diagnostic::Diagnostic;
-use crate::hir::{ExpressionId, ResolvedFunction};
+use crate::hir::{DeclarationId, ExpressionId, ResolvedFunction};
+use crate::variant_layout::VariantLayout;
 
-use super::native_emit::c_field_symbol;
+use super::native_emit::{c_case_symbol, c_field_symbol};
 
 #[derive(Clone, Debug)]
 pub(super) struct NativeBytesPlan {
@@ -21,6 +22,8 @@ pub(super) struct NativeBytesPlan {
     transitions: BTreeMap<ExpressionId, Vec<CleanupTransition>>,
     finalizers: Vec<ByteSlot>,
     scope_exits: Vec<(BTreeSet<StorageId>, Vec<ByteSlot>)>,
+    referenced_places: BTreeSet<CleanupPlace>,
+    inactive_places: BTreeSet<CleanupPlace>,
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -34,8 +37,15 @@ impl NativeBytesPlan {
     pub(super) fn build(function: &ResolvedFunction) -> Result<Option<Self>, Diagnostic> {
         let mut slots = BTreeMap::new();
         let mut storage_leaves = BTreeMap::<StorageId, Vec<CleanupPlace>>::new();
+        let mut variant_domains = BTreeMap::<StorageId, BTreeSet<DeclarationId>>::new();
         let mut by_flag = BTreeMap::new();
         for slot in &function.cleanup_plan.slots {
+            if let FieldLivenessShape::Variant { cases, .. } = &slot.field_liveness_shape {
+                variant_domains.insert(
+                    slot.storage.clone(),
+                    cases.iter().map(|case| case.case.clone()).collect(),
+                );
+            }
             flatten_byte_leaves(
                 &slot.storage,
                 &slot.field_liveness_shape,
@@ -79,7 +89,10 @@ impl NativeBytesPlan {
             for transition in &block.transitions {
                 let at = match transition {
                     CleanupTransition::Initialize { at, .. }
-                    | CleanupTransition::Transfer { at, .. } => Some(at),
+                    | CleanupTransition::InitializeVariant { at, .. }
+                    | CleanupTransition::Transfer { at, .. }
+                    | CleanupTransition::TransferVariant { at, .. }
+                    | CleanupTransition::AuthenticateVariantCase { at, .. } => Some(at),
                     CleanupTransition::CallCommit { call, .. } => Some(call),
                     CleanupTransition::SelectFailure { .. }
                     | CleanupTransition::StageCopyResult { .. } => None,
@@ -150,12 +163,117 @@ impl NativeBytesPlan {
                 .collect::<Vec<_>>();
             scope_exits.push((storage, actions));
         }
+        let reachable_cases = reachable_variant_cases(function, &variant_domains, &transitions);
+        let inactive_places = storage_leaves
+            .iter()
+            .flat_map(|(storage, leaves)| {
+                let reachable = reachable_cases.get(storage);
+                leaves.iter().filter_map(move |place| {
+                    let [case, _field] = place.projections.as_slice() else {
+                        return None;
+                    };
+                    reachable
+                        .is_some_and(|cases| !cases.contains(case))
+                        .then_some(place.clone())
+                })
+            })
+            .collect::<BTreeSet<_>>();
+
+        let mut referenced_places = BTreeSet::new();
+        for place in &function.cleanup_plan.entry_state.live_owned_parameters {
+            mark_referenced_under(&mut referenced_places, &storage_leaves, place);
+        }
+        for entry in &function
+            .cleanup_plan
+            .entry_state
+            .conditional_owned_parameters
+        {
+            mark_referenced_under(
+                &mut referenced_places,
+                &storage_leaves,
+                &CleanupPlace {
+                    storage: entry.storage.clone(),
+                    projections: Vec::new(),
+                },
+            );
+        }
+        for transition in transitions.values().flatten() {
+            match transition {
+                CleanupTransition::Initialize { destination, .. }
+                | CleanupTransition::InitializeVariant { destination, .. } => {
+                    mark_referenced_under(&mut referenced_places, &storage_leaves, destination);
+                }
+                CleanupTransition::Transfer {
+                    source,
+                    destination,
+                    ..
+                } => {
+                    mark_referenced_under(&mut referenced_places, &storage_leaves, source);
+                    mark_referenced_under(&mut referenced_places, &storage_leaves, destination);
+                }
+                CleanupTransition::TransferVariant {
+                    source,
+                    destination,
+                    ..
+                } => {
+                    let reachable = reachable_cases.get(&source.storage);
+                    for place in leaves_under_map(&storage_leaves, source)
+                        .into_iter()
+                        .chain(leaves_under_map(&storage_leaves, destination))
+                    {
+                        if place
+                            .projections
+                            .first()
+                            .is_none_or(|case| reachable.is_none_or(|cases| cases.contains(case)))
+                        {
+                            referenced_places.insert(place);
+                        }
+                    }
+                }
+                CleanupTransition::CallCommit { arguments, .. } => {
+                    for argument in arguments {
+                        // Aggregate owned arguments are physically
+                        // materialized as a closed carrier, whose inactive
+                        // flags are checked too.
+                        mark_referenced_under(
+                            &mut referenced_places,
+                            &storage_leaves,
+                            &argument.source,
+                        );
+                    }
+                }
+                CleanupTransition::AuthenticateVariantCase { .. }
+                | CleanupTransition::SelectFailure { .. }
+                | CleanupTransition::StageCopyResult { .. } => {}
+            }
+        }
+        referenced_places.extend(finalizers.iter().map(|slot| slot.place.clone()));
+        referenced_places.extend(
+            scope_exits
+                .iter()
+                .flat_map(|(_, actions)| actions)
+                .map(|slot| slot.place.clone()),
+        );
+        // Result publication materializes the complete variant carrier and
+        // checks every inactive flag before crossing the ABI boundary.
+        if variant_domains.contains_key(&StorageId::ProvisionalResult) {
+            mark_referenced_under(
+                &mut referenced_places,
+                &storage_leaves,
+                &CleanupPlace {
+                    storage: StorageId::ProvisionalResult,
+                    projections: Vec::new(),
+                },
+            );
+        }
         Ok(Some(Self {
             slots,
             storage_leaves,
             transitions,
             finalizers,
             scope_exits,
+            referenced_places,
+            inactive_places,
         }))
     }
 
@@ -168,10 +286,26 @@ impl NativeBytesPlan {
             .collect::<BTreeSet<_>>();
         let mut output = String::new();
         for slot in self.slots.values() {
-            output.push_str(&format!("    spx_bytes_v1 {} = {{0}};\n", slot.value));
+            // A case-qualified leaf remains part of the exact static
+            // inventory even when a proven payload-free case makes that leaf
+            // unreachable in this function. Keep it visible to the cleanup
+            // bridge without letting strict Clang warning gates reject the
+            // intentionally inert declaration.
+            let maybe_unused = if self.inactive_places.contains(&slot.place)
+                && !self.referenced_places.contains(&slot.place)
+            {
+                " __attribute__((unused))"
+            } else {
+                ""
+            };
             output.push_str(&format!(
-                "    bool {} = {};\n",
+                "    spx_bytes_v1 {}{} = {{0}};\n",
+                slot.value, maybe_unused
+            ));
+            output.push_str(&format!(
+                "    bool {}{} = {};\n",
                 slot.flag,
+                maybe_unused,
                 live_parameters
                     .iter()
                     .any(|place| place_contains(place, &slot.place))
@@ -234,10 +368,66 @@ impl NativeBytesPlan {
         Ok(output)
     }
 
+    pub(super) fn initialize_variant_parameter(
+        &self,
+        storage: &StorageId,
+        parameter: &str,
+        layout: &VariantLayout,
+    ) -> Result<String, Diagnostic> {
+        let leaves = self
+            .storage_leaves
+            .get(storage)
+            .ok_or_else(|| error("owned variant parameter has no projected Bytes leaves"))?;
+        let mut output = format!(
+            "    if ({parameter}->spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid owned variant parameter tag\");\n",
+            layout.cases.len()
+        );
+        for case in &layout.cases {
+            let case_leaves = leaves
+                .iter()
+                .filter(|place| place.projections.first() == Some(&case.case))
+                .collect::<Vec<_>>();
+            if case_leaves.is_empty() {
+                continue;
+            }
+            output.push_str(&format!(
+                "    if ({parameter}->spx_tag == UINT32_C({})) {{\n",
+                case.tag
+            ));
+            for place in case_leaves {
+                let [case_id, field_id] = place.projections.as_slice() else {
+                    return Err(error(
+                        "owned variant parameter Bytes leaf is not case-qualified",
+                    ));
+                };
+                if case_id != &case.case || case.field(field_id).is_none() {
+                    return Err(error("owned variant parameter leaf disagrees with layout"));
+                }
+                let slot = &self.slots[place];
+                output.push_str(&format!(
+                    "        if ({}) spx_runtime_invariant_failure(\"owned variant parameter leaf already live\");\n        {} = spx_bytes_move(&({parameter}->spx_payload.{}.{}));\n        {} = true;\n",
+                    slot.flag,
+                    slot.value,
+                    c_case_symbol(case_id),
+                    c_field_symbol(field_id),
+                    slot.flag,
+                ));
+            }
+            output.push_str("    }\n");
+        }
+        Ok(output)
+    }
+
     pub(super) fn has_projected_leaves(&self, storage: &StorageId) -> bool {
         self.storage_leaves
             .get(storage)
             .is_some_and(|leaves| leaves.iter().any(|place| !place.projections.is_empty()))
+    }
+
+    pub(super) fn has_variant_leaves(&self, storage: &StorageId) -> bool {
+        self.storage_leaves
+            .get(storage)
+            .is_some_and(|leaves| leaves.iter().any(|place| place.projections.len() == 2))
     }
 
     pub(super) fn apply_at(&self, at: &ExpressionId) -> Result<String, Diagnostic> {
@@ -254,6 +444,13 @@ impl NativeBytesPlan {
                     }
                 }
                 CleanupTransition::Initialize { destination, .. } => {
+                    if destination.projections.is_empty()
+                        && self.has_variant_leaves(&destination.storage)
+                    {
+                        // A variant root is conditionally initialized from its
+                        // authenticated runtime tag by the carrier bridge.
+                        continue;
+                    }
                     for place in self.leaves_under(destination)? {
                         let destination = &self.slots[place];
                         output.push_str(&format!(
@@ -263,8 +460,101 @@ impl NativeBytesPlan {
                     }
                 }
                 CleanupTransition::CallCommit { .. }
+                | CleanupTransition::InitializeVariant { .. }
+                | CleanupTransition::TransferVariant { .. }
+                | CleanupTransition::AuthenticateVariantCase { .. }
                 | CleanupTransition::SelectFailure { .. }
                 | CleanupTransition::StageCopyResult { .. } => {}
+            }
+        }
+        Ok(output)
+    }
+
+    pub(super) fn apply_variant_case_at(
+        &self,
+        at: &ExpressionId,
+        case: &DeclarationId,
+    ) -> Result<String, Diagnostic> {
+        let mut output = String::new();
+        for transition in self.transitions.get(at).into_iter().flatten() {
+            match transition {
+                CleanupTransition::Transfer {
+                    source,
+                    destination,
+                    ..
+                } if source.projections.first() == Some(case)
+                    || destination.projections.first() == Some(case) =>
+                {
+                    for (source, destination) in self.transfer_pairs(source, destination)? {
+                        output.push_str(&emit_transfer(
+                            source,
+                            destination,
+                            "selected variant transfer",
+                        ));
+                    }
+                }
+                CleanupTransition::TransferVariant {
+                    source,
+                    destination,
+                    ..
+                } => {
+                    for (source, destination) in
+                        self.transfer_case_pairs(source, destination, case)?
+                    {
+                        output.push_str(&emit_transfer(
+                            source,
+                            destination,
+                            "known variant-case transfer",
+                        ));
+                    }
+                }
+                CleanupTransition::Initialize { destination, .. }
+                    if destination.projections.first() == Some(case) =>
+                {
+                    for place in self.leaves_under(destination)? {
+                        let destination = &self.slots[place];
+                        output.push_str(&format!(
+                            "if ({}) spx_runtime_invariant_failure(\"selected variant initialize liveness\");\n{} = true;\n",
+                            destination.flag, destination.flag
+                        ));
+                    }
+                }
+                CleanupTransition::Initialize { .. }
+                | CleanupTransition::InitializeVariant { .. }
+                | CleanupTransition::Transfer { .. }
+                | CleanupTransition::AuthenticateVariantCase { .. }
+                | CleanupTransition::CallCommit { .. }
+                | CleanupTransition::SelectFailure { .. }
+                | CleanupTransition::StageCopyResult { .. } => {}
+            }
+        }
+        Ok(output)
+    }
+
+    pub(super) fn apply_variant_at(
+        &self,
+        at: &ExpressionId,
+        carrier: &str,
+        layout: &VariantLayout,
+    ) -> Result<String, Diagnostic> {
+        let mut output = self.apply_at(at)?;
+        for transition in self.transitions.get(at).into_iter().flatten() {
+            if let CleanupTransition::TransferVariant {
+                source,
+                destination,
+                variant,
+                ..
+            } = transition
+            {
+                if variant != &layout.variant {
+                    return Err(error("variant transfer identity disagrees with layout"));
+                }
+                output.push_str(&self.emit_variant_transfer(
+                    source,
+                    destination,
+                    carrier,
+                    layout,
+                )?);
             }
         }
         Ok(output)
@@ -281,6 +571,9 @@ impl NativeBytesPlan {
                         self.slots.get(destination).map(|slot| slot.value.as_str())
                     }
                     CleanupTransition::CallCommit { .. }
+                    | CleanupTransition::InitializeVariant { .. }
+                    | CleanupTransition::TransferVariant { .. }
+                    | CleanupTransition::AuthenticateVariantCase { .. }
                     | CleanupTransition::SelectFailure { .. }
                     | CleanupTransition::StageCopyResult { .. } => None,
                 })
@@ -449,6 +742,49 @@ impl NativeBytesPlan {
         Ok(output)
     }
 
+    pub(super) fn materialize_variant_carrier(
+        &self,
+        storage: &StorageId,
+        carrier: &str,
+        layout: &VariantLayout,
+    ) -> Result<String, Diagnostic> {
+        let leaves = self
+            .storage_leaves
+            .get(storage)
+            .ok_or_else(|| error("owned variant carrier storage has no Bytes leaves"))?;
+        let mut output = format!(
+            "if (({carrier}).spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid owned variant carrier tag\");\n",
+            layout.cases.len()
+        );
+        for case in &layout.cases {
+            for place in leaves
+                .iter()
+                .filter(|place| place.projections.first() == Some(&case.case))
+            {
+                let [case_id, field_id] = place.projections.as_slice() else {
+                    return Err(error(
+                        "owned variant carrier Bytes leaf is not case-qualified",
+                    ));
+                };
+                if case_id != &case.case || case.field(field_id).is_none() {
+                    return Err(error("owned variant carrier leaf disagrees with layout"));
+                }
+                let slot = &self.slots[place];
+                output.push_str(&format!(
+                    "if (({carrier}).spx_tag == UINT32_C({})) {{\n    if (!{}) spx_runtime_invariant_failure(\"dead active owned variant field\");\n    ({carrier}).spx_payload.{}.{} = spx_bytes_move(&{});\n    {} = false;\n}} else if ({}) spx_runtime_invariant_failure(\"inactive owned variant field is live\");\n",
+                    case.tag,
+                    slot.flag,
+                    c_case_symbol(case_id),
+                    c_field_symbol(field_id),
+                    slot.value,
+                    slot.flag,
+                    slot.flag,
+                ));
+            }
+        }
+        Ok(output)
+    }
+
     pub(super) fn initialize_record_result_at(
         &self,
         at: &ExpressionId,
@@ -489,6 +825,64 @@ impl NativeBytesPlan {
         Ok(output)
     }
 
+    pub(super) fn initialize_variant_result_at(
+        &self,
+        at: &ExpressionId,
+        carrier: &str,
+        layout: &VariantLayout,
+    ) -> Result<String, Diagnostic> {
+        let mut destinations = self.transitions.get(at).into_iter().flatten().filter_map(
+            |transition| match transition {
+                CleanupTransition::InitializeVariant {
+                    destination,
+                    variant,
+                    ..
+                } if destination.projections.is_empty()
+                    && self.has_variant_leaves(&destination.storage)
+                    && variant == &layout.variant =>
+                {
+                    Some(destination)
+                }
+                _ => None,
+            },
+        );
+        let destination = destinations
+            .next()
+            .ok_or_else(|| error("owned variant result has no canonical initialization"))?;
+        if destinations.next().is_some() {
+            return Err(error("owned variant result initialization is ambiguous"));
+        }
+        let mut output = format!(
+            "if (({carrier}).spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid owned variant result tag\");\n",
+            layout.cases.len()
+        );
+        for place in self.leaves_under(destination)? {
+            let [case_id, field_id] = place.projections.as_slice() else {
+                return Err(error(
+                    "owned variant result Bytes leaf is not case-qualified",
+                ));
+            };
+            let case = layout
+                .case(case_id)
+                .ok_or_else(|| error("owned variant result case disagrees with layout"))?;
+            if case.field(field_id).is_none() {
+                return Err(error("owned variant result field disagrees with layout"));
+            }
+            let slot = &self.slots[place];
+            output.push_str(&format!(
+                "if (({carrier}).spx_tag == UINT32_C({})) {{\n    if ({}) spx_runtime_invariant_failure(\"owned variant result leaf already live\");\n    {} = spx_bytes_move(&(({carrier}).spx_payload.{}.{}));\n    {} = true;\n}} else if ({}) spx_runtime_invariant_failure(\"inactive owned variant result leaf is live\");\n",
+                case.tag,
+                slot.flag,
+                slot.value,
+                c_case_symbol(case_id),
+                c_field_symbol(field_id),
+                slot.flag,
+                slot.flag,
+            ));
+        }
+        Ok(output)
+    }
+
     pub(super) fn publish_record_result(&self, carrier: &str) -> Result<String, Diagnostic> {
         self.materialize_record_carrier(&StorageId::ProvisionalResult, carrier)
     }
@@ -513,6 +907,20 @@ impl NativeBytesPlan {
             .get(&CleanupPlace {
                 storage: storage.clone(),
                 projections: vec![field.clone()],
+            })
+            .map(|slot| slot.value.as_str())
+    }
+
+    pub(super) fn variant_value_if_present(
+        &self,
+        storage: &StorageId,
+        case: &DeclarationId,
+        field: &DeclarationId,
+    ) -> Option<&str> {
+        self.slots
+            .get(&CleanupPlace {
+                storage: storage.clone(),
+                projections: vec![case.clone(), field.clone()],
             })
             .map(|slot| slot.value.as_str())
     }
@@ -608,6 +1016,171 @@ impl NativeBytesPlan {
             })
             .collect()
     }
+
+    fn transfer_case_pairs(
+        &self,
+        source: &CleanupPlace,
+        destination: &CleanupPlace,
+        case: &DeclarationId,
+    ) -> Result<Vec<(&ByteSlot, &ByteSlot)>, Diagnostic> {
+        Ok(self
+            .transfer_pairs(source, destination)?
+            .into_iter()
+            .filter(|(source, destination)| {
+                source
+                    .place
+                    .projections
+                    .get(source.place.projections.len().saturating_sub(2))
+                    == Some(case)
+                    && destination
+                        .place
+                        .projections
+                        .get(destination.place.projections.len().saturating_sub(2))
+                        == Some(case)
+            })
+            .collect())
+    }
+
+    fn emit_variant_transfer(
+        &self,
+        source: &CleanupPlace,
+        destination: &CleanupPlace,
+        carrier: &str,
+        layout: &VariantLayout,
+    ) -> Result<String, Diagnostic> {
+        let mut output = format!(
+            "if (({carrier}).spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid dynamic variant transfer tag\");\n",
+            layout.cases.len()
+        );
+        for case in &layout.cases {
+            let selected = self.transfer_case_pairs(source, destination, &case.case)?;
+            for (source, destination) in selected {
+                output.push_str(&format!(
+                    "if (({carrier}).spx_tag == UINT32_C({})) {{\n{}\n}} else if ({} || {}) spx_runtime_invariant_failure(\"inactive dynamic variant leaf is live\");\n",
+                    case.tag,
+                    emit_transfer(source, destination, "dynamic variant transfer").trim_end(),
+                    source.flag,
+                    destination.flag,
+                ));
+            }
+        }
+        Ok(output)
+    }
+}
+
+fn leaves_under_map(
+    storage_leaves: &BTreeMap<StorageId, Vec<CleanupPlace>>,
+    place: &CleanupPlace,
+) -> Vec<CleanupPlace> {
+    storage_leaves
+        .get(&place.storage)
+        .into_iter()
+        .flatten()
+        .filter(|leaf| leaf.projections.starts_with(&place.projections))
+        .cloned()
+        .collect()
+}
+
+fn mark_referenced_under(
+    referenced_places: &mut BTreeSet<CleanupPlace>,
+    storage_leaves: &BTreeMap<StorageId, Vec<CleanupPlace>>,
+    place: &CleanupPlace,
+) {
+    referenced_places.extend(leaves_under_map(storage_leaves, place));
+}
+
+fn reachable_variant_cases(
+    function: &ResolvedFunction,
+    domains: &BTreeMap<StorageId, BTreeSet<DeclarationId>>,
+    transitions: &BTreeMap<ExpressionId, Vec<CleanupTransition>>,
+) -> BTreeMap<StorageId, BTreeSet<DeclarationId>> {
+    let mut reachable = BTreeMap::<StorageId, BTreeSet<DeclarationId>>::new();
+    let mut pending = function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+        .collect::<Vec<_>>();
+    while let Some(expression) = pending.pop() {
+        if let crate::hir::ResolvedExprKind::ConstructVariant { case, .. } = &expression.kind {
+            reachable
+                .entry(StorageId::Temporary(expression.id.clone()))
+                .or_default()
+                .insert(case.clone());
+        }
+        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    for entry in &function
+        .cleanup_plan
+        .entry_state
+        .conditional_owned_parameters
+    {
+        reachable
+            .entry(entry.storage.clone())
+            .or_default()
+            .extend(entry.cases.iter().map(|case| case.case.clone()));
+    }
+
+    let mut transfer_edges = Vec::new();
+    let mut transfer_destinations = BTreeSet::new();
+    for transition in transitions.values().flatten() {
+        match transition {
+            CleanupTransition::InitializeVariant { destination, .. } => {
+                if let Some(domain) = domains.get(&destination.storage) {
+                    reachable
+                        .entry(destination.storage.clone())
+                        .or_default()
+                        .extend(domain.iter().cloned());
+                }
+            }
+            CleanupTransition::TransferVariant {
+                source,
+                destination,
+                ..
+            } => {
+                transfer_destinations.insert(destination.storage.clone());
+                transfer_edges.push((source.storage.clone(), destination.storage.clone()));
+            }
+            CleanupTransition::Initialize { .. }
+            | CleanupTransition::Transfer { .. }
+            | CleanupTransition::AuthenticateVariantCase { .. }
+            | CleanupTransition::CallCommit { .. }
+            | CleanupTransition::SelectFailure { .. }
+            | CleanupTransition::StageCopyResult { .. } => {}
+        }
+    }
+    for (storage, domain) in domains {
+        if !reachable.contains_key(storage) && !transfer_destinations.contains(storage) {
+            reachable.insert(storage.clone(), domain.clone());
+        }
+    }
+    propagate_variant_cases(&transfer_edges, &mut reachable);
+    for (storage, domain) in domains {
+        reachable
+            .entry(storage.clone())
+            .or_insert_with(|| domain.clone());
+    }
+    propagate_variant_cases(&transfer_edges, &mut reachable);
+    reachable
+}
+
+fn propagate_variant_cases(
+    edges: &[(StorageId, StorageId)],
+    reachable: &mut BTreeMap<StorageId, BTreeSet<DeclarationId>>,
+) {
+    loop {
+        let mut changed = false;
+        for (source, destination) in edges {
+            let source_cases = reachable.get(source).cloned().unwrap_or_default();
+            let destination_cases = reachable.entry(destination.clone()).or_default();
+            let before = destination_cases.len();
+            destination_cases.extend(source_cases);
+            changed |= destination_cases.len() != before;
+        }
+        if !changed {
+            break;
+        }
+    }
 }
 
 fn emit_transfer(source: &ByteSlot, destination: &ByteSlot, context: &str) -> String {
@@ -641,8 +1214,10 @@ fn flatten_byte_leaves(
     match shape {
         FieldLivenessShape::NoDrop => Ok(()),
         FieldLivenessShape::Leaf { flag, lifecycle } => {
-            if projections.len() > 1 {
-                return Err(error("nested owned Bytes record leaf is outside flat v1"));
+            if projections.len() > 2 {
+                return Err(error(
+                    "nested owned Bytes aggregate leaf is outside flat variant v1",
+                ));
             }
             visit(
                 CleanupPlace {
@@ -657,6 +1232,18 @@ fn flatten_byte_leaves(
             for field in fields {
                 projections.push(field.field.clone());
                 flatten_byte_leaves(storage, &field.shape, projections, visit)?;
+                projections.pop();
+            }
+            Ok(())
+        }
+        FieldLivenessShape::Variant { cases, .. } => {
+            for case in cases {
+                projections.push(case.case.clone());
+                for field in &case.fields {
+                    projections.push(field.field.clone());
+                    flatten_byte_leaves(storage, &field.shape, projections, visit)?;
+                    projections.pop();
+                }
                 projections.pop();
             }
             Ok(())
@@ -794,6 +1381,8 @@ mod tests {
                 transitions: BTreeMap::new(),
                 finalizers: Vec::new(),
                 scope_exits: Vec::new(),
+                referenced_places: BTreeSet::new(),
+                inactive_places: BTreeSet::new(),
             },
             source_storage,
             destination_storage,

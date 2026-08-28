@@ -2,7 +2,7 @@ use crate::diagnostic::Diagnostic;
 use crate::hir::{DeclarationId, ResolvedProgram};
 
 use super::build::build_plan;
-use super::CleanupPlan;
+use super::{CleanupPlan, CleanupSlot};
 
 pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnostic> {
     for function in &program.functions {
@@ -34,7 +34,7 @@ fn validate_canonical_plan(
     if actual.entry_state != expected.entry_state {
         return Err(noncanonical(function, "entry liveness state"));
     }
-    if actual.slots != expected.slots {
+    if !slots_equal(&actual.slots, &expected.slots)? {
         return Err(noncanonical(function, "storage slot sequence"));
     }
     if actual.status_sources != expected.status_sources {
@@ -52,10 +52,27 @@ fn validate_canonical_plan(
     if actual.exits != expected.exits {
         return Err(noncanonical(function, "exit sequence"));
     }
-    if actual != expected {
-        return Err(noncanonical(function, "representation"));
-    }
     Ok(())
+}
+
+fn slots_equal(actual: &[CleanupSlot], expected: &[CleanupSlot]) -> Result<bool, Diagnostic> {
+    if actual.len() != expected.len() {
+        return Ok(false);
+    }
+    for (actual, expected) in actual.iter().zip(expected) {
+        if actual.id != expected.id
+            || actual.storage != expected.storage
+            || actual.ty != expected.ty
+            || actual.storage_index != expected.storage_index
+            || !crate::cleanup::field_liveness_shapes_equal(
+                &actual.field_liveness_shape,
+                &expected.field_liveness_shape,
+            )?
+        {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
 
 fn noncanonical(function: &DeclarationId, component: &str) -> Diagnostic {

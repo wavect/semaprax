@@ -77,9 +77,18 @@ replay.
 
 Current graph versions select the minimum schema needed by the admitted
 feature, from legacy scalar/Result meaning through Option, aggregates,
-generics, loops, byte data, command I/O, and owned-byte record matching. The
+generics, loops, byte data, command I/O, and owned-byte record/variant matching. The
 owning feature specifications define exact schema numbers and preservation
 requirements; architecture depends only on monotonic, deterministic selection.
+
+[Owned Byte Variant Algebra v1](OWNED-BYTE-VARIANT-ALGEBRA-V1.md) is the
+closed non-Copy sum slice. Cleanup Inventory v2 identifies owned leaves by
+stable case and field identity; CleanupPlan v6 authenticates conditional entry,
+selected-case transfer, and exact case liveness; Graph v22 projects those
+facts. Interpreter, native, and Wasm lower only the active case field-by-field.
+Invalid owned tags or tag/liveness disagreement fail-stop before payload
+authority, cleanup, or result publication. Nested/generic owned variants,
+non-Copy propagation, and public aggregate ABIs remain outside this boundary.
 
 ### Semantic graph
 
@@ -115,7 +124,9 @@ they do not establish a stable general native ABI.
 
 `src/wasm.rs` and `src/wasm/` emit Core WebAssembly and generated host
 carriers for admitted profiles. Scalar, selected aggregate, text, byte-data,
-owned, and command-I/O paths remain separately admitted. The default product
+owned, and command-I/O paths remain separately admitted. The owned-byte variant
+path uses active-case field moves and hard traps for malformed carriers; legacy
+Copy-variant status behavior remains unchanged. The default product
 is not a general WebAssembly Component Model runtime.
 
 `src/wit_component.rs` and `src/wit_component/` provide default-off private

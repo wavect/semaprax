@@ -231,6 +231,9 @@ pub(crate) fn classify<'a>(
             let detail = match &slot.field_liveness_shape {
                 FieldLivenessShape::NoDrop => "has a no-drop cleanup shape",
                 FieldLivenessShape::Record { .. } => "has a projected record cleanup shape",
+                FieldLivenessShape::Variant { .. } => {
+                    "has a conditional variant cleanup shape outside the private resource lane"
+                }
                 FieldLivenessShape::Leaf { .. } => unreachable!(),
             };
             return Err(unsupported(
@@ -957,6 +960,12 @@ fn validate_transition(
                 ),
             ))
         }
+        CleanupTransition::InitializeVariant { at, .. } => Err(unsupported(
+            function,
+            format!(
+                "conditional variant initialization `{at}` is outside the private resource lane"
+            ),
+        )),
         CleanupTransition::Transfer {
             at,
             source,
@@ -982,6 +991,16 @@ fn validate_transition(
             }
             Ok(())
         }
+        CleanupTransition::AuthenticateVariantCase { at, .. } => Err(unsupported(
+            function,
+            format!(
+                "variant authentication transition `{at}` is outside the private resource lane"
+            ),
+        )),
+        CleanupTransition::TransferVariant { at, .. } => Err(unsupported(
+            function,
+            format!("conditional variant transfer `{at}` is outside the private resource lane"),
+        )),
         CleanupTransition::CallCommit { call, arguments } => {
             for argument in arguments {
                 validate_place(function, &argument.source, slots, "call-commit source")?;

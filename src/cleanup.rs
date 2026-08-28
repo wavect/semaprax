@@ -64,21 +64,55 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
 
 #[cfg(test)]
 fn shape_owned_capacity(shape: &FieldLivenessShape) -> usize {
-    match shape {
-        FieldLivenessShape::NoDrop => 0,
-        FieldLivenessShape::Leaf { lifecycle, .. } => lifecycle.as_str().len(),
-        FieldLivenessShape::Record {
-            declaration,
-            fields,
-        } => {
-            declaration.as_str().len()
-                + fields.capacity() * std::mem::size_of::<FieldLiveness>()
-                + fields
-                    .iter()
-                    .map(|field| field.field.as_str().len() + shape_owned_capacity(&field.shape))
-                    .sum::<usize>()
+    let mut total = 0usize;
+    let mut pending = vec![shape];
+    while let Some(shape) = pending.pop() {
+        match shape {
+            FieldLivenessShape::NoDrop => {}
+            FieldLivenessShape::Leaf { lifecycle, .. } => {
+                total = total.saturating_add(lifecycle.as_str().len());
+            }
+            FieldLivenessShape::Record {
+                declaration,
+                fields,
+            } => {
+                total = total
+                    .saturating_add(declaration.as_str().len())
+                    .saturating_add(
+                        fields
+                            .capacity()
+                            .saturating_mul(std::mem::size_of::<FieldLiveness>()),
+                    );
+                for field in fields {
+                    total = total.saturating_add(field.field.as_str().len());
+                    pending.push(&field.shape);
+                }
+            }
+            FieldLivenessShape::Variant { declaration, cases } => {
+                total = total
+                    .saturating_add(declaration.as_str().len())
+                    .saturating_add(
+                        cases
+                            .capacity()
+                            .saturating_mul(std::mem::size_of::<VariantCaseLiveness>()),
+                    );
+                for case in cases {
+                    total = total
+                        .saturating_add(case.case.as_str().len())
+                        .saturating_add(
+                            case.fields
+                                .capacity()
+                                .saturating_mul(std::mem::size_of::<FieldLiveness>()),
+                        );
+                    for field in &case.fields {
+                        total = total.saturating_add(field.field.as_str().len());
+                        pending.push(&field.shape);
+                    }
+                }
+            }
         }
     }
+    total
 }
 
 #[cfg(test)]
@@ -111,9 +145,12 @@ fn inventory_builder_live_capacity(builder: &InventoryBuilder<'_>) -> usize {
         + builder.flags.capacity() * std::mem::size_of::<CleanupFlag>()
         + builder.flags.iter().map(flag_owned_capacity).sum::<usize>()
         + builder.live_owned_parameters.capacity() * std::mem::size_of::<CleanupStorageId>()
+        + builder.conditional_owned_parameters.capacity()
+            * std::mem::size_of::<ConditionalVariantEntry>()
 }
 
 pub const CLEANUP_INVENTORY_SCHEMA_V1: &str = "semaprax.cleanup-inventory.v1";
+pub const CLEANUP_INVENTORY_SCHEMA_V2: &str = "semaprax.cleanup-inventory.v2";
 /// Canonical compiler-owned lifecycle for one uniquely owned `Bytes` payload.
 ///
 /// This identity is derived from the primitive type by both the inventory and
@@ -140,6 +177,7 @@ impl CleanupInventory {
             schema: CLEANUP_INVENTORY_SCHEMA_V1,
             entry_state: CleanupEntryState {
                 live_owned_parameters: Vec::new(),
+                conditional_owned_parameters: Vec::new(),
             },
             slots: Vec::new(),
             flags: Vec::new(),
@@ -150,6 +188,20 @@ impl CleanupInventory {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CleanupEntryState {
     pub live_owned_parameters: Vec<CleanupStorageId>,
+    pub conditional_owned_parameters: Vec<ConditionalVariantEntry>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConditionalVariantEntry {
+    pub storage: CleanupStorageId,
+    pub variant: DeclarationId,
+    pub cases: Vec<ConditionalVariantCase>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConditionalVariantCase {
+    pub case: DeclarationId,
+    pub live_flags: Vec<LivenessFlagId>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -192,6 +244,20 @@ pub enum FieldLivenessShape {
         declaration: DeclarationId,
         fields: Vec<FieldLiveness>,
     },
+    /// A conditional sum inventory. Every leaf path is qualified by its stable
+    /// case identity before its stable field identity. At runtime exactly the
+    /// authenticated active case may contribute live flags.
+    Variant {
+        declaration: DeclarationId,
+        cases: Vec<VariantCaseLiveness>,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VariantCaseLiveness {
+    pub case: DeclarationId,
+    pub case_index: u32,
+    pub fields: Vec<FieldLiveness>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -223,6 +289,7 @@ pub(crate) fn build_inventory(
         slots: Vec::new(),
         flags: Vec::new(),
         live_owned_parameters: Vec::new(),
+        conditional_owned_parameters: Vec::new(),
     };
 
     for (parameter_index, parameter) in function.params.iter().enumerate() {
@@ -235,7 +302,11 @@ pub(crate) fn build_inventory(
                 },
                 parameter.ty.clone(),
             )?;
-            builder.live_owned_parameters.push(storage);
+            if let Some(entry) = builder.conditional_entry(storage)? {
+                builder.conditional_owned_parameters.push(entry);
+            } else {
+                builder.live_owned_parameters.push(storage);
+            }
         }
     }
 
@@ -258,20 +329,44 @@ pub(crate) fn build_inventory(
     #[cfg(test)]
     note_capacity_high_water(inventory_builder_live_capacity(&builder));
 
+    let schema = if builder
+        .slots
+        .iter()
+        .any(|slot| shape_contains_variant(&slot.shape))
+    {
+        CLEANUP_INVENTORY_SCHEMA_V2
+    } else {
+        CLEANUP_INVENTORY_SCHEMA_V1
+    };
     Ok(CleanupInventory {
-        schema: CLEANUP_INVENTORY_SCHEMA_V1,
+        schema,
         entry_state: CleanupEntryState {
             live_owned_parameters: builder.live_owned_parameters,
+            conditional_owned_parameters: builder.conditional_owned_parameters,
         },
         slots: builder.slots,
         flags: builder.flags,
     })
 }
 
+fn shape_contains_variant(shape: &FieldLivenessShape) -> bool {
+    let mut pending = vec![shape];
+    while let Some(shape) = pending.pop() {
+        match shape {
+            FieldLivenessShape::Variant { .. } => return true,
+            FieldLivenessShape::Record { fields, .. } => {
+                pending.extend(fields.iter().map(|field| &field.shape));
+            }
+            FieldLivenessShape::NoDrop | FieldLivenessShape::Leaf { .. } => {}
+        }
+    }
+    false
+}
+
 pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnostic> {
     for function in &program.functions {
         let expected = build_inventory(program, function)?;
-        if function.cleanup != expected {
+        if !inventories_equal(&function.cleanup, &expected)? {
             return Err(cleanup_error(format!(
                 "function `{}` has a non-canonical cleanup inventory",
                 function.id
@@ -280,7 +375,7 @@ pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
     }
     for instance in &program.function_instances {
         let expected = build_inventory(program, &instance.function)?;
-        if instance.function.cleanup != expected {
+        if !inventories_equal(&instance.function.cleanup, &expected)? {
             return Err(cleanup_error(format!(
                 "function instance `{}` has a non-canonical cleanup inventory",
                 instance.id
@@ -290,11 +385,127 @@ pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
     Ok(())
 }
 
+fn inventories_equal(
+    actual: &CleanupInventory,
+    expected: &CleanupInventory,
+) -> Result<bool, Diagnostic> {
+    if actual.schema != expected.schema
+        || actual.entry_state != expected.entry_state
+        || actual.flags != expected.flags
+        || actual.slots.len() != expected.slots.len()
+    {
+        return Ok(false);
+    }
+    for (actual, expected) in actual.slots.iter().zip(&expected.slots) {
+        if actual.id != expected.id
+            || actual.discovery_index != expected.discovery_index
+            || actual.origin != expected.origin
+            || actual.ty != expected.ty
+            || !field_liveness_shapes_equal(&actual.shape, &expected.shape)?
+        {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+pub(crate) fn field_liveness_shapes_equal(
+    actual: &FieldLivenessShape,
+    expected: &FieldLivenessShape,
+) -> Result<bool, Diagnostic> {
+    let mut pending = vec![(actual, expected)];
+    while let Some((actual, expected)) = pending.pop() {
+        match (actual, expected) {
+            (FieldLivenessShape::NoDrop, FieldLivenessShape::NoDrop) => {}
+            (
+                FieldLivenessShape::Leaf {
+                    flag: actual_flag,
+                    lifecycle: actual_lifecycle,
+                },
+                FieldLivenessShape::Leaf {
+                    flag: expected_flag,
+                    lifecycle: expected_lifecycle,
+                },
+            ) if actual_flag == expected_flag && actual_lifecycle == expected_lifecycle => {}
+            (
+                FieldLivenessShape::Record {
+                    declaration: actual_declaration,
+                    fields: actual_fields,
+                },
+                FieldLivenessShape::Record {
+                    declaration: expected_declaration,
+                    fields: expected_fields,
+                },
+            ) => {
+                if actual_declaration != expected_declaration
+                    || actual_fields.len() != expected_fields.len()
+                {
+                    return Ok(false);
+                }
+                pending.try_reserve(actual_fields.len()).map_err(|_| {
+                    cleanup_error("cleanup shape comparison capacity exceeds address space")
+                })?;
+                for (actual, expected) in actual_fields.iter().zip(expected_fields).rev() {
+                    if actual.field != expected.field || actual.field_index != expected.field_index
+                    {
+                        return Ok(false);
+                    }
+                    pending.push((&actual.shape, &expected.shape));
+                }
+            }
+            (
+                FieldLivenessShape::Variant {
+                    declaration: actual_declaration,
+                    cases: actual_cases,
+                },
+                FieldLivenessShape::Variant {
+                    declaration: expected_declaration,
+                    cases: expected_cases,
+                },
+            ) => {
+                if actual_declaration != expected_declaration
+                    || actual_cases.len() != expected_cases.len()
+                {
+                    return Ok(false);
+                }
+                let fields = actual_cases
+                    .iter()
+                    .try_fold(0usize, |total, case| total.checked_add(case.fields.len()))
+                    .ok_or_else(|| cleanup_error("cleanup shape comparison work overflowed"))?;
+                pending.try_reserve(fields).map_err(|_| {
+                    cleanup_error("cleanup shape comparison capacity exceeds address space")
+                })?;
+                for (actual_case, expected_case) in actual_cases.iter().zip(expected_cases).rev() {
+                    if actual_case.case != expected_case.case
+                        || actual_case.case_index != expected_case.case_index
+                        || actual_case.fields.len() != expected_case.fields.len()
+                    {
+                        return Ok(false);
+                    }
+                    for (actual, expected) in
+                        actual_case.fields.iter().zip(&expected_case.fields).rev()
+                    {
+                        if actual.field != expected.field
+                            || actual.field_index != expected.field_index
+                        {
+                            return Ok(false);
+                        }
+                        pending.push((&actual.shape, &expected.shape));
+                    }
+                }
+            }
+            _ => return Ok(false),
+        }
+    }
+    Ok(true)
+}
+
 struct InventoryBuilder<'a> {
     program: &'a ResolvedProgram,
     slots: Vec<CleanupStorageSlot>,
     flags: Vec<CleanupFlag>,
     live_owned_parameters: Vec<CleanupStorageId>,
+    conditional_owned_parameters: Vec<ConditionalVariantEntry>,
 }
 
 impl InventoryBuilder<'_> {
@@ -329,6 +540,36 @@ impl InventoryBuilder<'_> {
             shape,
         });
         Ok(storage)
+    }
+
+    fn conditional_entry(
+        &self,
+        storage: CleanupStorageId,
+    ) -> Result<Option<ConditionalVariantEntry>, Diagnostic> {
+        let slot = self
+            .slots
+            .iter()
+            .find(|slot| slot.id == storage)
+            .ok_or_else(|| cleanup_error("conditional entry references unknown storage"))?;
+        let FieldLivenessShape::Variant { declaration, cases } = &slot.shape else {
+            return Ok(None);
+        };
+        let mut conditional_cases = Vec::with_capacity(cases.len());
+        for case in cases {
+            let mut live_flags = Vec::new();
+            for field in &case.fields {
+                collect_shape_flags(&field.shape, &mut live_flags);
+            }
+            conditional_cases.push(ConditionalVariantCase {
+                case: case.case.clone(),
+                live_flags,
+            });
+        }
+        Ok(Some(ConditionalVariantEntry {
+            storage,
+            variant: declaration.clone(),
+            cases: conditional_cases,
+        }))
     }
 
     fn shape_for_type(
@@ -402,12 +643,6 @@ impl InventoryBuilder<'_> {
                             ty.identity_key()
                         )));
                     };
-                    if !arguments.is_empty() {
-                        return Err(cleanup_error(format!(
-                            "droppable type `{}` has unsupported generic arguments",
-                            ty.identity_key()
-                        )));
-                    }
                     let declaration_item = self
                         .program
                         .types
@@ -418,6 +653,12 @@ impl InventoryBuilder<'_> {
                         })?;
                     match &declaration_item.kind {
                         ResolvedTypeDeclarationKind::Resource { drop } => {
+                            if !arguments.is_empty() {
+                                return Err(cleanup_error(format!(
+                                    "droppable type `{}` has unsupported generic arguments",
+                                    ty.identity_key()
+                                )));
+                            }
                             let flag_index = u32::try_from(self.flags.len())
                                 .map_err(|_| cleanup_error("too many cleanup liveness flags"))?;
                             let flag = LivenessFlagId(flag_index);
@@ -436,16 +677,71 @@ impl InventoryBuilder<'_> {
                         }
                         ResolvedTypeDeclarationKind::Record { fields }
                         | ResolvedTypeDeclarationKind::Class { fields, .. } => {
+                            if !arguments.is_empty() {
+                                return Err(cleanup_error(format!(
+                                    "droppable type `{}` has unsupported generic arguments",
+                                    ty.identity_key()
+                                )));
+                            }
                             frames.try_reserve(2).map_err(|_| {
                                 cleanup_error("cleanup shape capacity exceeds address space")
                             })?;
                             frames.push(Frame::FinishRecord(declaration, fields.len()));
                             frames.push(Frame::Children(declaration, fields, 0));
                         }
-                        ResolvedTypeDeclarationKind::Variant { .. } => {
-                            return Err(cleanup_error(
-                                "droppable variant cleanup is outside the copy-only v1 slice",
-                            ));
+                        ResolvedTypeDeclarationKind::Variant { cases } => {
+                            let mut case_shapes = Vec::with_capacity(cases.len());
+                            for case in cases {
+                                let mut fields = Vec::with_capacity(case.fields.len());
+                                for field in &case.fields {
+                                    let field_ty = crate::hir::substitute_type(
+                                        &field.ty,
+                                        declaration,
+                                        arguments,
+                                    )?;
+                                    let shape = if self.needs_drop(&field_ty)? {
+                                        if field_ty != ResolvedType::Bytes {
+                                            return Err(cleanup_error(
+                                                "droppable variant field is outside the direct-Bytes v1 slice",
+                                            ));
+                                        }
+                                        let flag_index =
+                                            u32::try_from(self.flags.len()).map_err(|_| {
+                                                cleanup_error("too many cleanup liveness flags")
+                                            })?;
+                                        let flag = LivenessFlagId(flag_index);
+                                        let lifecycle = DeclarationId::new(BYTES_DROP_LIFECYCLE_ID);
+                                        let mut leaf_projections = projections.clone();
+                                        leaf_projections.push(case.id.clone());
+                                        leaf_projections.push(field.id.clone());
+                                        self.flags.push(CleanupFlag {
+                                            id: flag,
+                                            place: CleanupPlace {
+                                                storage,
+                                                projections: leaf_projections,
+                                            },
+                                            lifecycle: lifecycle.clone(),
+                                        });
+                                        FieldLivenessShape::Leaf { flag, lifecycle }
+                                    } else {
+                                        FieldLivenessShape::NoDrop
+                                    };
+                                    fields.push(FieldLiveness {
+                                        field: field.id.clone(),
+                                        field_index: field.index,
+                                        shape,
+                                    });
+                                }
+                                case_shapes.push(VariantCaseLiveness {
+                                    case: case.id.clone(),
+                                    case_index: case.index,
+                                    fields,
+                                });
+                            }
+                            shapes.push(FieldLivenessShape::Variant {
+                                declaration: declaration.clone(),
+                                cases: case_shapes,
+                            });
                         }
                     }
                 }
@@ -859,6 +1155,28 @@ impl InventoryBuilder<'_> {
             )?;
         }
         Ok(())
+    }
+}
+
+fn collect_shape_flags(shape: &FieldLivenessShape, flags: &mut Vec<LivenessFlagId>) {
+    let mut pending = vec![shape];
+    while let Some(shape) = pending.pop() {
+        match shape {
+            FieldLivenessShape::Leaf { flag, .. } => flags.push(*flag),
+            FieldLivenessShape::Record { fields, .. } => {
+                pending.extend(fields.iter().rev().map(|field| &field.shape));
+            }
+            FieldLivenessShape::Variant { cases, .. } => {
+                pending.extend(
+                    cases
+                        .iter()
+                        .rev()
+                        .flat_map(|case| case.fields.iter().rev())
+                        .map(|field| &field.shape),
+                );
+            }
+            FieldLivenessShape::NoDrop => {}
+        }
     }
 }
 

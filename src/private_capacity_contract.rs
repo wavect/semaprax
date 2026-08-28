@@ -342,6 +342,15 @@ pub(crate) fn cleanup_plan_owned_capacity(
                     .as_str()
                     .len()
                     .checked_add(cleanup_place_owned_capacity(destination)?)?,
+                CleanupTransition::InitializeVariant {
+                    at,
+                    destination,
+                    variant,
+                } => at
+                    .as_str()
+                    .len()
+                    .checked_add(cleanup_place_owned_capacity(destination)?)?
+                    .checked_add(variant.as_str().len())?,
                 CleanupTransition::Transfer {
                     at,
                     source,
@@ -351,6 +360,28 @@ pub(crate) fn cleanup_plan_owned_capacity(
                     .len()
                     .checked_add(cleanup_place_owned_capacity(source)?)?
                     .checked_add(cleanup_place_owned_capacity(destination)?)?,
+                CleanupTransition::AuthenticateVariantCase {
+                    at,
+                    source,
+                    variant,
+                    case,
+                } => at
+                    .as_str()
+                    .len()
+                    .checked_add(cleanup_place_owned_capacity(source)?)?
+                    .checked_add(variant.as_str().len())?
+                    .checked_add(case.as_str().len())?,
+                CleanupTransition::TransferVariant {
+                    at,
+                    source,
+                    destination,
+                    variant,
+                } => at
+                    .as_str()
+                    .len()
+                    .checked_add(cleanup_place_owned_capacity(source)?)?
+                    .checked_add(cleanup_place_owned_capacity(destination)?)?
+                    .checked_add(variant.as_str().len())?,
                 CleanupTransition::CallCommit { call, arguments } => call
                     .as_str()
                     .len()

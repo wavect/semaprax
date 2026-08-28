@@ -180,10 +180,26 @@ fn transition_event(
             at: at.clone(),
             destination: destination.clone(),
         },
+        CleanupTransition::InitializeVariant {
+            at, destination, ..
+        } => TraceEventKind::Initialize {
+            at: at.clone(),
+            destination: destination.clone(),
+        },
         CleanupTransition::Transfer {
             at,
             source,
             destination,
+        } => TraceEventKind::Transfer {
+            at: at.clone(),
+            source: source.clone(),
+            destination: destination.clone(),
+        },
+        CleanupTransition::TransferVariant {
+            at,
+            source,
+            destination,
+            ..
         } => TraceEventKind::Transfer {
             at: at.clone(),
             source: source.clone(),
@@ -194,9 +210,9 @@ fn transition_event(
             callee: callee_for_call(function, call),
             arguments: arguments.clone(),
         },
-        CleanupTransition::SelectFailure { .. } | CleanupTransition::StageCopyResult { .. } => {
-            return None
-        }
+        CleanupTransition::AuthenticateVariantCase { .. }
+        | CleanupTransition::SelectFailure { .. }
+        | CleanupTransition::StageCopyResult { .. } => return None,
     };
     Some(trace_event(function, event))
 }

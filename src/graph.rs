@@ -927,7 +927,7 @@ fn agent_function_json(
     );
     if matches!(
         graph_schema(program),
-        "semaprax.graph.v14" | "semaprax.graph.v21"
+        "semaprax.graph.v14" | "semaprax.graph.v21" | "semaprax.graph.v22"
     ) {
         write!(
             output,
@@ -1297,7 +1297,12 @@ pub fn reject_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
 }
 
 pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
-    if schema == "semaprax.graph.v21" {
+    if schema == "semaprax.graph.v22" {
+        Err(Diagnostic::io(
+            "SPX-G410",
+            "owned variant programs select `semaprax.graph.v22`, which is outside this evidence flow's admission",
+        ))
+    } else if schema == "semaprax.graph.v21" {
         Err(Diagnostic::io(
             "SPX-G410",
             "ownership-aware match programs select `semaprax.graph.v21`, which is outside this evidence flow's admission",
@@ -1500,6 +1505,12 @@ pub(crate) fn graph_schema_from_parts(
     functions: &[ResolvedFunction],
     function_templates: &[hir::ResolvedFunctionTemplate],
 ) -> &'static str {
+    if functions.iter().any(|function| {
+        function.cleanup.schema == crate::cleanup::CLEANUP_INVENTORY_SCHEMA_V2
+            || function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V6
+    }) {
+        return "semaprax.graph.v22";
+    }
     if functions.iter().any(|function| {
         function
             .requires
@@ -3555,7 +3566,8 @@ fn byte_slice_fact_json(
         provenance.producer.as_ref().map_or_else(|| "null".to_owned(), |id| quote_json(id.as_str()))
     );
     if schema != "semaprax.graph.v20"
-        && !(schema == "semaprax.graph.v21" && !provenance.ranges.is_empty())
+        && !(matches!(schema, "semaprax.graph.v21" | "semaprax.graph.v22")
+            && !provenance.ranges.is_empty())
     {
         return base;
     }
@@ -3584,7 +3596,7 @@ fn portable_indexed_byte_data_json(
     schema: &str,
     program: &ResolvedProgram,
 ) -> Result<String, Diagnostic> {
-    let v21 = schema == "semaprax.graph.v21";
+    let v21 = matches!(schema, "semaprax.graph.v21" | "semaprax.graph.v22");
     let has_portable_indexed_data = program.types.iter().any(type_declaration_has_usize)
         || program.functions.iter().any(function_has_usize)
         || program.function_templates.iter().any(|template| {

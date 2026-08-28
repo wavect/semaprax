@@ -862,22 +862,47 @@ fn is_aggregate_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<boo
         || variant_declaration_id(program, ty)?.is_some())
 }
 
-fn borrowed_record_byte_fields(
+fn borrowed_aggregate_byte_paths(
     program: &ResolvedProgram,
     record_layouts: &AggregateLayoutCache,
+    variant_layouts: &VariantLayoutCache,
     ty: &ResolvedType,
-) -> Result<Vec<DeclarationId>, Diagnostic> {
-    if record_declaration_id(program, ty)?.is_none() {
-        return Ok(Vec::new());
+) -> Result<Vec<Vec<DeclarationId>>, Diagnostic> {
+    if record_declaration_id(program, ty)?.is_some() {
+        let layout = record_layouts.layout(ty)?;
+        layout.validate(program)?;
+        return Ok(layout
+            .fields
+            .iter()
+            .filter(|field| matches!(field.ty, ResolvedType::Bytes))
+            .map(|field| vec![field.field.clone()])
+            .collect());
     }
-    let layout = record_layouts.layout(ty)?;
-    layout.validate(program)?;
-    Ok(layout
-        .fields
-        .iter()
-        .filter(|field| matches!(field.ty, ResolvedType::Bytes))
-        .map(|field| field.field.clone())
-        .collect())
+    if variant_declaration_id(program, ty)?.is_some() {
+        let layout = variant_layouts.layout(ty)?;
+        layout.validate(program)?;
+        return Ok(layout
+            .cases
+            .iter()
+            .flat_map(|case| {
+                case.fields
+                    .iter()
+                    .filter(|field| matches!(field.ty, ResolvedType::Bytes))
+                    .map(|field| vec![case.case.clone(), field.field.clone()])
+            })
+            .collect());
+    }
+    Ok(Vec::new())
+}
+
+fn borrowed_aggregate_path_suffix(path: &[DeclarationId]) -> Result<String, Diagnostic> {
+    match path {
+        [field] => Ok(c_field_symbol(field)),
+        [case, field] => Ok(format!("{}_{}", c_case_symbol(case), c_field_symbol(field))),
+        _ => Err(backend_error(
+            "borrowed aggregate byte path is not flat record-or-variant v1",
+        )),
+    }
 }
 
 fn record_declaration_id<'a>(
@@ -935,11 +960,12 @@ fn variant_declaration_id<'a>(
         return Ok(None);
     }
     if arguments.len() != item.type_parameters.len()
-        || arguments.iter().any(|argument| {
-            !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
-                && !(declaration.as_str() == crate::prelude::OPTION_ID
-                    && *argument == ResolvedType::U8)
-        })
+        || (!crate::hir::admitted_owned_byte_prelude_instance(declaration, arguments)
+            && arguments.iter().any(|argument| {
+                !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
+                    && !(declaration.as_str() == crate::prelude::OPTION_ID
+                        && *argument == ResolvedType::U8)
+            }))
     {
         return Err(backend_error(format!(
             "native variant representation requires admitted exact concrete arguments for `{}`",
@@ -991,7 +1017,7 @@ fn c_variant_symbol(ty: &ResolvedType) -> String {
     symbol
 }
 
-fn c_case_symbol(id: &DeclarationId) -> String {
+pub(super) fn c_case_symbol(id: &DeclarationId) -> String {
     stable_c_symbol("spx_case_", id)
 }
 
@@ -1015,6 +1041,7 @@ pub(super) fn emit_function_prototypes(
     resource_abi: &native_resource::NativeResourceAbi,
 ) -> Result<(), Diagnostic> {
     let record_layouts = AggregateLayoutCache::build(program, AggregateTarget::Native64)?;
+    let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Native64)?;
     for (function, execution) in program
         .functions
         .iter()
@@ -1058,7 +1085,12 @@ pub(super) fn emit_function_prototypes(
                 write!(output, ", {ty}").expect("writing to a string cannot fail");
             }
             if param.ownership == crate::hir::OwnershipMode::Borrow {
-                for _ in borrowed_record_byte_fields(program, &record_layouts, &param.ty)? {
+                for _ in borrowed_aggregate_byte_paths(
+                    program,
+                    &record_layouts,
+                    &variant_layouts,
+                    &param.ty,
+                )? {
                     write!(output, ", const spx_bytes_v1 *")
                         .expect("writing to a string cannot fail");
                 }
@@ -1547,11 +1579,16 @@ fn emit_function(
             write!(output, ", {ty} spx_param_{index}").expect("writing to a string cannot fail");
         }
         if param.ownership == crate::hir::OwnershipMode::Borrow {
-            for field in borrowed_record_byte_fields(program, emission.record_layouts, &param.ty)? {
+            for path in borrowed_aggregate_byte_paths(
+                program,
+                emission.record_layouts,
+                emission.variant_layouts,
+                &param.ty,
+            )? {
+                let suffix = borrowed_aggregate_path_suffix(&path)?;
                 write!(
                     output,
-                    ", const spx_bytes_v1 *spx_param_{index}_borrow_{}",
-                    c_field_symbol(&field)
+                    ", const spx_bytes_v1 *spx_param_{index}_borrow_{suffix}"
                 )
                 .expect("writing to a string cannot fail");
             }
@@ -1575,16 +1612,25 @@ fn emit_function(
             } else if is_aggregate_type(program, &parameter.ty)? {
                 let storage = crate::cleanup_plan::StorageId::Value(parameter.id.clone());
                 if plan.has_projected_leaves(&storage) {
-                    output.push_str(
-                        &plan
-                            .initialize_record_parameter(&storage, &format!("spx_param_{index}"))?,
-                    );
+                    if plan.has_variant_leaves(&storage) {
+                        let layout = emission.variant_layouts.layout(&parameter.ty)?;
+                        output.push_str(&plan.initialize_variant_parameter(
+                            &storage,
+                            &format!("spx_param_{index}"),
+                            layout,
+                        )?);
+                    } else {
+                        output.push_str(&plan.initialize_record_parameter(
+                            &storage,
+                            &format!("spx_param_{index}"),
+                        )?);
+                    }
                 }
             }
         }
     }
     let mut variables = HashMap::new();
-    let mut borrowed_record_bytes = HashMap::new();
+    let mut borrowed_aggregate_bytes = HashMap::new();
     for (index, param) in function.params.iter().enumerate() {
         let name = if matches!(param.ty, ResolvedType::Bytes) {
             bytes_plan
@@ -1605,10 +1651,16 @@ fn emit_function(
             },
         );
         if param.ownership == crate::hir::OwnershipMode::Borrow {
-            for field in borrowed_record_byte_fields(program, emission.record_layouts, &param.ty)? {
-                borrowed_record_bytes.insert(
-                    (param.id.clone(), field.clone()),
-                    format!("(*spx_param_{index}_borrow_{})", c_field_symbol(&field)),
+            for path in borrowed_aggregate_byte_paths(
+                program,
+                emission.record_layouts,
+                emission.variant_layouts,
+                &param.ty,
+            )? {
+                let suffix = borrowed_aggregate_path_suffix(&path)?;
+                borrowed_aggregate_bytes.insert(
+                    (param.id.clone(), path),
+                    format!("(*spx_param_{index}_borrow_{suffix})"),
                 );
             }
         }
@@ -1619,7 +1671,7 @@ fn emit_function(
         &function.return_type,
         emission,
         bytes_plan.as_ref(),
-        borrowed_record_bytes,
+        borrowed_aggregate_bytes,
     );
     emitter.line("spx_status_token spx_status = SPX_STATUS_SUCCESS;");
     if has_try {
@@ -1769,11 +1821,21 @@ fn emit_function(
         })
     {
         output.push_str("    *spx_result_out = spx_result;\n");
+        let plan = bytes_plan
+            .as_ref()
+            .expect("projected result check requires a plan");
+        let publish = if plan.has_variant_leaves(&crate::cleanup_plan::StorageId::ProvisionalResult)
+        {
+            plan.materialize_variant_carrier(
+                &crate::cleanup_plan::StorageId::ProvisionalResult,
+                "(*spx_result_out)",
+                emission.variant_layouts.layout(&function.return_type)?,
+            )?
+        } else {
+            plan.publish_record_result("(*spx_result_out)")?
+        };
         output.push_str(
-            &bytes_plan
-                .as_ref()
-                .expect("projected result check requires a plan")
-                .publish_record_result("(*spx_result_out)")?
+            &publish
                 .lines()
                 .map(|line| format!("    {line}\n"))
                 .collect::<String>(),
@@ -2007,7 +2069,7 @@ struct CEmitter<'a, O: COutput> {
     variant_layouts: &'a VariantLayoutCache,
     return_type: &'a ResolvedType,
     bytes_plan: Option<&'a native_bytes::NativeBytesPlan>,
-    borrowed_record_bytes: HashMap<(ValueId, DeclarationId), String>,
+    borrowed_aggregate_bytes: HashMap<(ValueId, Vec<DeclarationId>), String>,
     output_profile: NativeOutputProfile,
     try_target_enabled: bool,
     next_local: usize,
@@ -2021,7 +2083,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         return_type: &'a ResolvedType,
         emission: &'a NativeEmissionContext<'a>,
         bytes_plan: Option<&'a native_bytes::NativeBytesPlan>,
-        borrowed_record_bytes: HashMap<(ValueId, DeclarationId), String>,
+        borrowed_aggregate_bytes: HashMap<(ValueId, Vec<DeclarationId>), String>,
     ) -> Self {
         Self {
             output,
@@ -2033,7 +2095,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             variant_layouts: emission.variant_layouts,
             return_type,
             bytes_plan,
-            borrowed_record_bytes,
+            borrowed_aggregate_bytes,
             output_profile: emission.output_profile,
             try_target_enabled: false,
             next_local: 0,

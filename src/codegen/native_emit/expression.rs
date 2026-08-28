@@ -25,6 +25,26 @@ struct RecordMatchBindingMode<'a> {
 // `format!` resolves to the bounded codegen macro declared before
 // `mod native_emit`; it must never fall back to `std::format!` here.
 impl<'a, O: COutput> CEmitter<'a, O> {
+    fn apply_owned_plan_at_value(
+        &mut self,
+        at: &ExpressionId,
+        value: &CValue,
+    ) -> Result<(), Diagnostic> {
+        let Some(plan) = self.bytes_plan else {
+            return Ok(());
+        };
+        let transitions = if variant_declaration_id(self.program, &value.ty)?.is_some() {
+            let layout = self.variant_layout(&value.ty)?;
+            plan.apply_variant_at(at, &value.code, &layout)?
+        } else {
+            plan.apply_at(at)?
+        };
+        for line in transitions.lines() {
+            self.line(line);
+        }
+        Ok(())
+    }
+
     /// Refutable Match v1 native lowering: the scrutinee stages once, then
     /// every arm tests `!matched && (<literal equality>)` with an optional
     /// inner guard branch. `&&` short-circuits so a guard evaluates exactly
@@ -520,12 +540,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     });
                 }
                 if is_aggregate_type(self.program, &value.ty)? {
-                    if let Some(plan) = self.bytes_plan {
-                        let transitions = plan.apply_at(&expr.id)?;
-                        for line in transitions.lines() {
-                            self.line(line);
-                        }
-                    }
+                    self.apply_owned_plan_at_value(&expr.id, &value)?;
                 }
                 value
             }
@@ -1046,8 +1061,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         let parameter_index = u32::try_from(index)
                             .map_err(|_| backend_error("native call has too many parameters"))?;
                         let storage = plan.call_argument_storage(&expr.id, parameter_index)?;
-                        let materialize =
-                            plan.materialize_record_carrier(&storage, &argument.code)?;
+                        let materialize = if plan.has_variant_leaves(&storage) {
+                            let layout = self.variant_layout(expected)?;
+                            plan.materialize_variant_carrier(&storage, &argument.code, &layout)?
+                        } else {
+                            plan.materialize_record_carrier(&storage, &argument.code)?
+                        };
                         for line in materialize.lines() {
                             self.line(line);
                         }
@@ -1071,21 +1090,25 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ));
                 }
                 let storage = crate::cleanup_plan::StorageId::Value(place.root.clone());
-                for field in self
-                    .record_layout(expected)?
-                    .fields
-                    .iter()
-                    .filter(|field| matches!(field.ty, ResolvedType::Bytes))
-                {
+                for path in super::borrowed_aggregate_byte_paths(
+                    self.program,
+                    self.record_layouts,
+                    self.variant_layouts,
+                    expected,
+                )? {
                     let alias = self
                         .bytes_plan
                         .and_then(|plan| {
-                            plan.projected_value_if_present(&storage, &field.field)
-                                .map(str::to_owned)
+                            plan.value_at(&crate::cleanup_plan::CleanupPlace {
+                                storage: storage.clone(),
+                                projections: path.clone(),
+                            })
+                            .ok()
+                            .map(str::to_owned)
                         })
                         .or_else(|| {
-                            self.borrowed_record_bytes
-                                .get(&(place.root.clone(), field.field.clone()))
+                            self.borrowed_aggregate_bytes
+                                .get(&(place.root.clone(), path.clone()))
                                 .cloned()
                         })
                         .ok_or_else(|| {
@@ -1129,20 +1152,22 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             if let Some(plan) = self.bytes_plan {
                 let storage = crate::cleanup_plan::StorageId::Temporary(expr.id.clone());
                 if plan.has_projected_leaves(&storage) {
-                    let initialize = plan.initialize_record_result_at(&expr.id, &temporary)?;
+                    let initialize = if plan.has_variant_leaves(&storage) {
+                        plan.initialize_variant_result_at(
+                            &expr.id,
+                            &temporary,
+                            &self.variant_layout(&target.return_type)?,
+                        )?
+                    } else {
+                        plan.initialize_record_result_at(&expr.id, &temporary)?
+                    };
                     for line in initialize.lines() {
                         self.line(line);
                     }
                 }
             }
         }
-        if let Some(plan) = self.bytes_plan {
-            let transitions = plan.apply_at(&expr.id)?;
-            for line in transitions.lines() {
-                self.line(line);
-            }
-        }
-        Ok(CValue {
+        let result = CValue {
             code: if matches!(target.return_type, ResolvedType::Bytes) {
                 self.bytes_plan
                     .and_then(|plan| plan.result_at(&expr.id))
@@ -1152,7 +1177,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 temporary
             },
             ty: target.return_type.clone(),
-        })
+        };
+        self.apply_owned_plan_at_value(&expr.id, &result)?;
+        Ok(result)
     }
 
     fn emit_block_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
@@ -1361,15 +1388,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         })?
                         .to_owned();
                 } else if is_aggregate_type(self.program, &tail.ty)? {
-                    if let Some(plan) = self.bytes_plan {
-                        let storage = crate::cleanup_plan::StorageId::Temporary(expr.id.clone());
-                        if plan.has_projected_leaves(&storage) {
-                            let transitions = plan.apply_at(&expr.id)?;
-                            for line in transitions.lines() {
-                                self.line(line);
-                            }
-                        }
-                    }
+                    self.apply_owned_plan_at_value(&expr.id, &tail)?;
                 }
                 if let Some(plan) = self.bytes_plan {
                     let anchors = statements
@@ -1455,15 +1474,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     })?
                     .to_owned();
             } else if is_aggregate_type(self.program, &value.ty)? {
-                if let Some(plan) = self.bytes_plan {
-                    let storage = crate::cleanup_plan::StorageId::Temporary(block.id.clone());
-                    if plan.has_projected_leaves(&storage) {
-                        let transitions = plan.apply_at(&block.id)?;
-                        for line in transitions.lines() {
-                            self.line(line);
-                        }
-                    }
-                }
+                self.apply_owned_plan_at_value(&block.id, &value)?;
             }
             if let Some(plan) = self.bytes_plan {
                 let cleanup = plan.scope_exit(&BTreeSet::new())?;
@@ -1652,7 +1663,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 self.line(&format!("memset(&{temporary}, 0, sizeof({temporary}));"));
                 let case_symbol = c_case_symbol(case);
                 for (field, value) in values {
-                    if field.size != 0 {
+                    if field.size != 0 && !matches!(field.ty, ResolvedType::Bytes) {
                         self.line(&format!(
                             "{temporary}.spx_payload.{case_symbol}.{} = {};",
                             c_field_symbol(&field.field),
@@ -1664,6 +1675,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     "{temporary}.spx_tag = UINT32_C({});",
                     case_layout.tag
                 ));
+                if let Some(plan) = self.bytes_plan {
+                    let transitions = plan.apply_variant_case_at(&expr.id, case)?;
+                    for line in transitions.lines() {
+                        self.line(line);
+                    }
+                }
                 CValue {
                     code: temporary,
                     ty: expr.ty.clone(),
@@ -1797,8 +1814,16 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     });
                 }
                 let layout = self.variant_layout(&scrutinee.ty)?;
-                let staged = self.temporary(&scrutinee.ty)?;
-                self.line(&format!("{staged} = {};", scrutinee.code));
+                let staged = if *mode == hir::ResolvedMatchMode::Value {
+                    // Preserve the frozen Copy-variant projection exactly.
+                    let staged = self.temporary(&scrutinee.ty)?;
+                    self.line(&format!("{staged} = {};", scrutinee.code));
+                    staged
+                } else {
+                    // Owned/borrowed variants retain one authoritative carrier;
+                    // a shallow union assignment would forge a second Bytes owner.
+                    scrutinee.code.clone()
+                };
                 self.line(&format!(
                     "if ({staged}.spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid variant tag\");",
                     layout.cases.len()
@@ -1836,6 +1861,17 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             ));
                             self.indent += 1;
                             self.line(&format!("{matched} = true;"));
+                            if *mode == hir::ResolvedMatchMode::Own {
+                                let transitions = self
+                                    .bytes_plan
+                                    .ok_or_else(|| {
+                                        backend_error("owned variant match has no cleanup plan")
+                                    })?
+                                    .apply_variant_case_at(&expr.id, case)?;
+                                for line in transitions.lines() {
+                                    self.line(line);
+                                }
+                            }
                             let case_symbol = c_case_symbol(case);
                             for pattern_field in fields {
                                 let field = case_layout
@@ -1852,19 +1888,83 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                     &field.ty,
                                     "match payload binding",
                                 )?;
+                                let name = if matches!(field.ty, ResolvedType::Bytes) {
+                                    match (*mode, pattern_field.binding.ownership) {
+                                        (hir::ResolvedMatchMode::Own, hir::OwnershipMode::Own) => {
+                                            self.bytes_plan
+                                                .ok_or_else(|| {
+                                                    backend_error(
+                                                        "owned variant binding has no cleanup plan",
+                                                    )
+                                                })?
+                                                .value(&crate::cleanup_plan::StorageId::Value(
+                                                    pattern_field.binding.id.clone(),
+                                                ))?
+                                                .to_owned()
+                                        }
+                                        (
+                                            hir::ResolvedMatchMode::Borrow,
+                                            hir::OwnershipMode::Borrow,
+                                        ) => source_storage
+                                            .as_ref()
+                                            .and_then(|storage| {
+                                                self.bytes_plan.and_then(|plan| {
+                                                    plan.variant_value_if_present(
+                                                        storage,
+                                                        case,
+                                                        &field.field,
+                                                    )
+                                                })
+                                            })
+                                            .map(str::to_owned)
+                                            .or_else(|| {
+                                                let crate::cleanup_plan::StorageId::Value(root) =
+                                                    source_storage.as_ref()?
+                                                else {
+                                                    return None;
+                                                };
+                                                self.borrowed_aggregate_bytes
+                                                    .get(&(
+                                                        root.clone(),
+                                                        vec![case.clone(), field.field.clone()],
+                                                    ))
+                                                    .cloned()
+                                            })
+                                            .ok_or_else(|| {
+                                                backend_error(
+                                                    "borrowed variant Bytes field has no authenticated alias",
+                                                )
+                                            })?,
+                                        _ => {
+                                            return Err(backend_error(
+                                                "variant Bytes binding ownership disagrees with match mode",
+                                            ));
+                                        }
+                                    }
+                                } else if pattern_field.binding.ownership
+                                    == hir::OwnershipMode::Value
+                                {
+                                    format!(
+                                        "({staged}).spx_payload.{case_symbol}.{}",
+                                        c_field_symbol(&field.field)
+                                    )
+                                } else {
+                                    return Err(backend_error(
+                                        "variant Copy binding has non-Value ownership",
+                                    ));
+                                };
                                 self.variables.insert(
                                     pattern_field.binding.id.clone(),
-                                    CBinding {
-                                        name: format!(
-                                            "({staged}).spx_payload.{case_symbol}.{}",
-                                            c_field_symbol(&field.field)
-                                        ),
-                                        ty: field.ty,
-                                    },
+                                    CBinding { name, ty: field.ty },
                                 );
                             }
                         }
                         hir::ResolvedMatchPattern::Wildcard => {
+                            if *mode == hir::ResolvedMatchMode::Own {
+                                return Err(backend_error(
+                                    "owned variant wildcard cannot hide a live payload",
+                                ));
+                            }
                             self.line(&format!("if (!{matched}) {{"));
                             self.indent += 1;
                             self.line(&format!("{matched} = true;"));
@@ -1894,6 +1994,27 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         }
                     } else {
                         self.line(&format!("{result} = {};", value.code));
+                    }
+                    if *mode == hir::ResolvedMatchMode::Own {
+                        let anchors = match &arm.pattern {
+                            hir::ResolvedMatchPattern::Variant { fields, .. } => fields
+                                .iter()
+                                .filter(|field| matches!(field.binding.ty, ResolvedType::Bytes))
+                                .map(|field| {
+                                    crate::cleanup_plan::StorageId::Value(field.binding.id.clone())
+                                })
+                                .collect::<BTreeSet<_>>(),
+                            _ => BTreeSet::new(),
+                        };
+                        let cleanup = self
+                            .bytes_plan
+                            .ok_or_else(|| {
+                                backend_error("owned variant match has no cleanup plan")
+                            })?
+                            .scope_exit(&anchors)?;
+                        for line in cleanup.lines() {
+                            self.line(line);
+                        }
                     }
                     self.variables = saved;
                     self.indent -= 1;
@@ -2403,8 +2524,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                             "borrowed record parameter alias is not value-rooted",
                                         ));
                                     };
-                                    self.borrowed_record_bytes
-                                        .get(&(root.clone(), layout_field.field.clone()))
+                                    self.borrowed_aggregate_bytes
+                                        .get(&(
+                                            root.clone(),
+                                            vec![layout_field.field.clone()],
+                                        ))
                                         .cloned()
                                         .ok_or_else(|| {
                                             backend_error(

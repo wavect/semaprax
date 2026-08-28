@@ -1,0 +1,231 @@
+module test.owned_byte_variant_wasm;
+
+@id("sum.choice")
+variant Choice {
+    @id("sum.choice.none") None,
+    @id("sum.choice.data") Data {
+        @id("sum.choice.data.payload") payload: Bytes,
+        @id("sum.choice.data.marker") marker: i64,
+    },
+    @id("sum.choice.error") Error {
+        @id("sum.choice.error.code") code: i64,
+    },
+}
+
+@id("sum.packet")
+variant Packet {
+    @id("sum.packet.empty") Empty,
+    @id("sum.packet.pair") Pair {
+        @id("sum.packet.pair.left") left: Bytes,
+        @id("sum.packet.pair.right") right: Bytes,
+        @id("sum.packet.pair.marker") marker: i64,
+    },
+    @id("sum.packet.alternate") Alternate {
+        @id("sum.packet.alternate.payload") payload: Bytes,
+    },
+}
+
+@id("sum.make")
+fn make(data: borrow Slice<u8>) -> Choice {
+    Choice::Data { payload: bytes_copy(data), marker: 20 }
+}
+
+@id("sum.make-none")
+fn make_none() -> Choice { Choice::None {} }
+
+@id("sum.make-error")
+fn make_error() -> Choice { Choice::Error { code: 17 } }
+
+@id("sum.inspect")
+fn inspect(value: borrow Choice) -> i64 {
+    match borrow value {
+        Choice::None {} => 0,
+        Choice::Data { payload, marker } =>
+            if byte_len(bytes_as_slice(payload)) == 2usize { marker } else { 0 },
+        Choice::Error { code } => code,
+    }
+}
+
+@id("sum.inspect-forward")
+fn inspect_forward(value: borrow Choice) -> i64 { inspect(value) }
+
+@id("sum.identity")
+fn identity(value: own Choice) -> Choice { value }
+
+@id("sum.consume")
+fn consume(value: own Choice) -> i64 {
+    match own value {
+        Choice::None {} => 0,
+        Choice::Data { payload, marker } =>
+            if byte_len(bytes_as_slice(payload)) == 2usize { marker } else { 0 },
+        Choice::Error { code } => code,
+    }
+}
+
+@id("sum.option")
+fn make_option(data: borrow Slice<u8>) -> Option<Bytes> {
+    Option<Bytes>::Some { value: bytes_copy(data) }
+}
+
+@id("sum.option-none")
+fn make_option_none() -> Option<Bytes> { Option<Bytes>::None {} }
+
+@id("sum.consume-option")
+fn consume_option(value: own Option<Bytes>) -> i64 {
+    match own value {
+        Option::None {} => 0,
+        Option::Some { value: bytes } =>
+            if byte_len(bytes_as_slice(bytes)) == 2usize { 1 } else { 0 },
+    }
+}
+
+@id("sum.result")
+fn make_result(data: borrow Slice<u8>) -> Result<Bytes, i64> {
+    Result<Bytes, i64>::Ok { value: bytes_copy(data) }
+}
+
+@id("sum.result-error")
+fn make_result_error() -> Result<Bytes, i64> { Result<Bytes, i64>::Err { error: 3 } }
+
+@id("sum.consume-result")
+fn consume_result(value: own Result<Bytes, i64>) -> i64 {
+    match own value {
+        Result::Ok { value: bytes } =>
+            if byte_len(bytes_as_slice(bytes)) == 2usize { 1 } else { 0 },
+        Result::Err { error } => error,
+    }
+}
+
+@id("sum.result-bytes-bool")
+fn make_result_bytes_bool(data: borrow Slice<u8>) -> Result<Bytes, bool> {
+    Result<Bytes, bool>::Ok { value: bytes_copy(data) }
+}
+
+@id("sum.consume-result-bytes-bool")
+fn consume_result_bytes_bool(value: own Result<Bytes, bool>) -> i64 {
+    match own value {
+        Result::Ok { value: bytes } =>
+            if byte_len(bytes_as_slice(bytes)) == 2usize { 1 } else { 0 },
+        Result::Err { error } => if error { 2 } else { 0 },
+    }
+}
+
+@id("sum.result-i64-bytes")
+fn make_result_i64_bytes(data: borrow Slice<u8>) -> Result<i64, Bytes> {
+    Result<i64, Bytes>::Err { error: bytes_copy(data) }
+}
+
+@id("sum.consume-result-i64-bytes")
+fn consume_result_i64_bytes(value: own Result<i64, Bytes>) -> i64 {
+    match own value {
+        Result::Ok { value: scalar } => scalar,
+        Result::Err { error: bytes } =>
+            if byte_len(bytes_as_slice(bytes)) == 2usize { 8 } else { 0 },
+    }
+}
+
+@id("sum.result-bool-bytes")
+fn make_result_bool_bytes(data: borrow Slice<u8>) -> Result<bool, Bytes> {
+    Result<bool, Bytes>::Err { error: bytes_copy(data) }
+}
+
+@id("sum.consume-result-bool-bytes")
+fn consume_result_bool_bytes(value: own Result<bool, Bytes>) -> i64 {
+    match own value {
+        Result::Ok { value: flag } => if flag { 16 } else { 0 },
+        Result::Err { error: bytes } =>
+            if byte_len(bytes_as_slice(bytes)) == 2usize { 32 } else { 0 },
+    }
+}
+
+@id("sum.make-pair")
+fn make_pair(data: borrow Slice<u8>) -> Packet {
+    Packet::Pair {
+        left: bytes_copy(data),
+        right: bytes_copy(data),
+        marker: 5,
+    }
+}
+
+@id("sum.make-alternate")
+fn make_alternate(data: borrow Slice<u8>) -> Packet {
+    Packet::Alternate { payload: bytes_copy(data) }
+}
+
+@id("sum.consume-packet")
+fn consume_packet(value: own Packet) -> i64 {
+    match own value {
+        Packet::Empty {} => 0,
+        Packet::Pair { left, right, marker } =>
+            if byte_len(bytes_as_slice(left)) == 2usize &&
+               byte_len(bytes_as_slice(right)) == 2usize { marker } else { 0 },
+        Packet::Alternate { payload } =>
+            if byte_len(bytes_as_slice(payload)) == 2usize { 2 } else { 0 },
+    }
+}
+
+@id("sum.fail-after-owned")
+fn fail_after_owned(data: borrow Slice<u8>) -> i64 {
+    let value = make(data);
+    9223372036854775807 + 1
+}
+
+@id("sum.fail-owned-parameter")
+fn fail_owned_parameter(value: own Choice) -> i64 {
+    9223372036854775807 + 1
+}
+
+@id("sum.fail-after-call-commit")
+fn fail_after_call_commit(data: borrow Slice<u8>) -> i64 {
+    fail_owned_parameter(make(data))
+}
+
+@id("sum.fail-in-owned-match")
+fn fail_in_owned_match(data: borrow Slice<u8>) -> i64 {
+    let value = make(data);
+    match own value {
+        Choice::None {} => 0,
+        Choice::Data { payload, marker } =>
+            if byte_len(bytes_as_slice(payload)) == 2usize {
+                marker + 9223372036854775807
+            } else {
+                marker
+            },
+        Choice::Error { code } => code,
+    }
+}
+
+@id("sum.trigger-call-failure")
+fn trigger_call_failure() -> i64 {
+    let source = [7u8, 9u8];
+    fail_after_call_commit(array_as_slice(source))
+}
+
+@id("sum.trigger-match-failure")
+fn trigger_match_failure() -> i64 {
+    let source = [7u8, 9u8];
+    fail_in_owned_match(array_as_slice(source))
+}
+
+@id("app.main")
+fn main() -> i64 {
+    let source = [7u8, 9u8];
+    let data = array_as_slice(source);
+    let choice = make(data);
+    let borrowed = inspect_forward(choice);
+    let choice_total = consume(identity(choice)) + borrowed +
+        consume(identity(make_none())) + consume(make_error());
+    let option_total = consume_option(make_option(data)) +
+        consume_option(make_option_none());
+    let result_total = consume_result(make_result(data)) +
+        consume_result(make_result_error());
+    let packet_total = consume_packet(make_pair(data)) +
+        consume_packet(make_alternate(data)) + consume_packet(Packet::Empty {});
+    let exact_total = consume_result_bytes_bool(make_result_bytes_bool(data)) +
+        consume_result_bytes_bool(Result<Bytes, bool>::Err { error: true }) +
+        consume_result_i64_bytes(make_result_i64_bytes(data)) +
+        consume_result_i64_bytes(Result<i64, Bytes>::Ok { value: 4 }) +
+        consume_result_bool_bytes(make_result_bool_bytes(data)) +
+        consume_result_bool_bytes(Result<bool, Bytes>::Ok { value: true });
+    choice_total + option_total + result_total + packet_total + exact_total
+}

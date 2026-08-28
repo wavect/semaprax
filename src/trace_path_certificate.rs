@@ -188,6 +188,11 @@ pub fn build_trace_path_certificate(
     dictionary: &SemanticEventDictionary,
 ) -> Result<TracePathCertificate, Diagnostic> {
     crate::hir::validate(program)?;
+    if function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V6 {
+        return Err(certificate_error(
+            "conditional owned-variant cleanup is outside trace-path certificate v1",
+        ));
+    }
     if !program.function_templates.is_empty() || !program.function_instances.is_empty() {
         return Err(certificate_error(
             "trace-path certificates do not admit generic function templates or instances",
@@ -391,6 +396,9 @@ fn apply_transition(
                 .push(select_failure_ordinal(dictionary, source)?);
         }
         CleanupTransition::Initialize { .. }
+        | CleanupTransition::InitializeVariant { .. }
+        | CleanupTransition::AuthenticateVariantCase { .. }
+        | CleanupTransition::TransferVariant { .. }
         | CleanupTransition::CallCommit { .. }
         | CleanupTransition::StageCopyResult { .. } => {
             return Err(certificate_error(
@@ -560,6 +568,17 @@ fn collect_leaves(
             for field in fields {
                 projections.push(field.field.clone());
                 collect_leaves(storage, projections, &field.shape, leaves)?;
+                projections.pop();
+            }
+        }
+        FieldLivenessShape::Variant { cases, .. } => {
+            for case in cases {
+                projections.push(case.case.clone());
+                for field in &case.fields {
+                    projections.push(field.field.clone());
+                    collect_leaves(storage, projections, &field.shape, leaves)?;
+                    projections.pop();
+                }
                 projections.pop();
             }
         }

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Added the locally evidenced Owned Byte Variant Algebra v1 tranche: flat
+  monomorphic authored variants with direct `Bytes` plus Copy scalars, and the
+  exact `Option<Bytes>`, `Result<Bytes, i64|bool>`, and
+  `Result<i64|bool, Bytes>` instances. Cleanup Inventory v2, independently
+  replayed CleanupPlan v6, and Graph v22 encode case-qualified conditional
+  ownership. Focused interpreter, native C11 `-O0`/`-O2`, and Core-Wasm/Node
+  gates cover borrow/own matching, dynamic calls/results, payload-free cases,
+  exact settlement, and hostile carriers that terminate or trap before cleanup
+  or publication. Nested/generic non-Copy variants, non-Copy postfix `?`, and
+  public aggregate ABIs remain closed; hosted promotion is not claimed.
+
 - Reorganized documentation by audience without moving established
   specification paths. The README and `docs/index.md` now form the public
   entry path; `docs/DEVELOPMENT.md` owns contributor navigation; the mdBook
@@ -550,7 +561,6 @@
   JSON-validity plus domain-separation projections; seven focused module units
   cover the remaining state machine and error surface.
 
->>>>>>> feat/arc-zones-v1
 - Added the locally evidenced Portable SIMD Eligibility Report v1 tranche,
   the first executable slice of the completion-matrix row "SIMD and GPU".
   The new read-only `semaprax simd-report <file.spx> [--max-bytes N]` command

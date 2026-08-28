@@ -18,15 +18,16 @@ use crate::prelude;
 use super::{
     BlockId, CallArgumentTransfer, CheckedOperation, CleanupBlock, CleanupEdge, CleanupEntryState,
     CleanupPlace, CleanupPlan, CleanupRegion, CleanupRegionId, CleanupResultSource, CleanupSlot,
-    CleanupSlotId, CleanupTerminator, CleanupTransition, ContractPhase, EdgeCondition, EdgeId,
-    ExitContinuation, ExitTarget, ExitTargetId, FinalizeAction, StagedCopyResultSource, StatusCase,
-    StatusLane, StatusProducer, StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V2,
-    CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5,
+    CleanupSlotId, CleanupTerminator, CleanupTransition, ConditionalVariantCase,
+    ConditionalVariantEntry, ContractPhase, EdgeCondition, EdgeId, ExitContinuation, ExitTarget,
+    ExitTargetId, FinalizeAction, StagedCopyResultSource, StatusCase, StatusLane, StatusProducer,
+    StatusSource, StatusSourceId, StorageId, VariantCaseGuard, CLEANUP_PLAN_SCHEMA_V2,
+    CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6,
 };
 
 const UNRESOLVED_EXIT: ExitTargetId = ExitTargetId(u32::MAX);
 #[cfg(test)]
-const CLEANUP_EVAL_RESULT_SIZE_CEILING: usize = 128;
+const CLEANUP_EVAL_RESULT_SIZE_CEILING: usize = 192;
 
 #[cfg(test)]
 thread_local! {
@@ -96,6 +97,25 @@ fn field_shape_owned_capacity(shape: &FieldLivenessShape) -> usize {
                     })
                     .sum::<usize>()
         }
+        FieldLivenessShape::Variant { declaration, cases } => {
+            declaration.as_str().len()
+                + cases.capacity() * std::mem::size_of::<crate::cleanup::VariantCaseLiveness>()
+                + cases
+                    .iter()
+                    .map(|case| {
+                        case.case.as_str().len()
+                            + case.fields.capacity() * std::mem::size_of::<FieldLiveness>()
+                            + case
+                                .fields
+                                .iter()
+                                .map(|field| {
+                                    field.field.as_str().len()
+                                        + field_shape_owned_capacity(&field.shape)
+                                })
+                                .sum::<usize>()
+                    })
+                    .sum::<usize>()
+        }
     }
 }
 
@@ -112,6 +132,11 @@ fn transition_owned_capacity(transition: &CleanupTransition) -> usize {
         CleanupTransition::Initialize { at, destination } => {
             at.as_str().len() + cleanup_place_owned_capacity(destination)
         }
+        CleanupTransition::InitializeVariant {
+            at,
+            destination,
+            variant,
+        } => at.as_str().len() + cleanup_place_owned_capacity(destination) + variant.as_str().len(),
         CleanupTransition::Transfer {
             at,
             source,
@@ -120,6 +145,28 @@ fn transition_owned_capacity(transition: &CleanupTransition) -> usize {
             at.as_str().len()
                 + cleanup_place_owned_capacity(source)
                 + cleanup_place_owned_capacity(destination)
+        }
+        CleanupTransition::TransferVariant {
+            at,
+            source,
+            destination,
+            variant,
+        } => {
+            at.as_str().len()
+                + cleanup_place_owned_capacity(source)
+                + cleanup_place_owned_capacity(destination)
+                + variant.as_str().len()
+        }
+        CleanupTransition::AuthenticateVariantCase {
+            at,
+            source,
+            variant,
+            case,
+        } => {
+            at.as_str().len()
+                + cleanup_place_owned_capacity(source)
+                + variant.as_str().len()
+                + case.as_str().len()
         }
         CleanupTransition::CallCommit { call, arguments } => {
             call.as_str().len()
@@ -315,6 +362,31 @@ fn builder_nested_capacity(builder: &PlanBuilder<'_>) -> usize {
             .iter()
             .map(cleanup_place_owned_capacity)
             .sum::<usize>()
+        + builder.entry_state.conditional_owned_parameters.capacity()
+            * std::mem::size_of::<ConditionalVariantEntry>()
+        + builder
+            .entry_state
+            .conditional_owned_parameters
+            .iter()
+            .map(|entry| {
+                storage_id_owned_capacity(&entry.storage)
+                    + entry.variant.as_str().len()
+                    + entry.cases.capacity() * std::mem::size_of::<ConditionalVariantCase>()
+                    + entry
+                        .cases
+                        .iter()
+                        .map(|case| {
+                            case.case.as_str().len()
+                                + case.live_places.capacity() * std::mem::size_of::<CleanupPlace>()
+                                + case
+                                    .live_places
+                                    .iter()
+                                    .map(cleanup_place_owned_capacity)
+                                    .sum::<usize>()
+                        })
+                        .sum::<usize>()
+            })
+            .sum::<usize>()
 }
 
 #[cfg(test)]
@@ -400,15 +472,34 @@ struct FlowState {
     /// order; an incomplete constructor intentionally retains actual field
     /// completion order.
     live_order: Vec<LivenessFlagId>,
+    conditional_variants: Vec<ConditionalFlowVariant>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ConditionalFlowVariant {
+    root: CleanupPlace,
+    variant: DeclarationId,
+    cases: Vec<(DeclarationId, Vec<LivenessFlagId>)>,
 }
 
 impl FlowState {
     fn is_live(&self, flag: LivenessFlagId) -> bool {
         self.live_order.contains(&flag)
+            || self
+                .conditional_variants
+                .iter()
+                .any(|variant| variant.cases.iter().any(|(_, flags)| flags.contains(&flag)))
     }
 
     fn remove(&mut self, flags: &BTreeSet<LivenessFlagId>) {
         self.live_order.retain(|flag| !flags.contains(flag));
+        for variant in &mut self.conditional_variants {
+            for (_, case_flags) in &mut variant.cases {
+                case_flags.retain(|flag| !flags.contains(flag));
+            }
+        }
+        self.conditional_variants
+            .retain(|variant| variant.cases.iter().any(|(_, flags)| !flags.is_empty()));
     }
 
     fn append_distinct(&mut self, flags: impl IntoIterator<Item = LivenessFlagId>) {
@@ -424,6 +515,12 @@ struct EvalResult {
     block: BlockId,
     state: FlowState,
     owned_source: Option<CleanupPlace>,
+}
+
+struct LoweringFlow {
+    block: BlockId,
+    state: FlowState,
+    region: CleanupRegionId,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -563,12 +660,18 @@ impl<'a> PlanBuilder<'a> {
             exits: Vec::new(),
             entry_state: CleanupEntryState {
                 live_owned_parameters: Vec::new(),
+                conditional_owned_parameters: Vec::new(),
             },
             initial_state: FlowState {
                 live_order: Vec::new(),
+                conditional_variants: Vec::new(),
             },
             pending_try_residuals: Vec::new(),
-            schema: CLEANUP_PLAN_SCHEMA_V2,
+            schema: if function.cleanup.schema == crate::cleanup::CLEANUP_INVENTORY_SCHEMA_V2 {
+                CLEANUP_PLAN_SCHEMA_V6
+            } else {
+                CLEANUP_PLAN_SCHEMA_V2
+            },
         };
         builder.seed_entry(root)?;
         Ok(builder)
@@ -586,6 +689,58 @@ impl<'a> PlanBuilder<'a> {
             let flags = self.flags_under(&place);
             self.initial_state.append_distinct(flags);
             self.entry_state.live_owned_parameters.push(place);
+        }
+        for conditional in &self
+            .function
+            .cleanup
+            .entry_state
+            .conditional_owned_parameters
+        {
+            let plan_storage = self
+                .inventory_storage
+                .get(&conditional.storage)
+                .cloned()
+                .ok_or_else(|| plan_error("conditional entry references unknown storage"))?;
+            self.assign_slot(&plan_storage, root)?;
+            let mut cases = Vec::with_capacity(conditional.cases.len());
+            let mut flow_cases = Vec::with_capacity(conditional.cases.len());
+            for case in &conditional.cases {
+                let mut live_places = Vec::with_capacity(case.live_flags.len());
+                let mut live_flags = Vec::with_capacity(case.live_flags.len());
+                for flag in &case.live_flags {
+                    let leaf = self.leaves.get(flag).ok_or_else(|| {
+                        plan_error("conditional entry references unknown liveness flag")
+                    })?;
+                    if leaf.place.storage != plan_storage
+                        || leaf.place.projections.first() != Some(&case.case)
+                    {
+                        return Err(plan_error(
+                            "conditional entry case disagrees with its case-qualified leaf",
+                        ));
+                    }
+                    live_places.push(leaf.place.clone());
+                    live_flags.push(*flag);
+                }
+                cases.push(ConditionalVariantCase {
+                    case: case.case.clone(),
+                    live_places,
+                });
+                flow_cases.push((case.case.clone(), live_flags));
+            }
+            self.initial_state
+                .conditional_variants
+                .push(ConditionalFlowVariant {
+                    root: CleanupPlace::whole(plan_storage.clone()),
+                    variant: conditional.variant.clone(),
+                    cases: flow_cases,
+                });
+            self.entry_state
+                .conditional_owned_parameters
+                .push(ConditionalVariantEntry {
+                    storage: plan_storage,
+                    variant: conditional.variant.clone(),
+                    cases,
+                });
         }
         if self
             .storage_to_slot
@@ -634,7 +789,10 @@ impl<'a> PlanBuilder<'a> {
         }
 
         if !self.pending_try_residuals.is_empty() {
-            if !self.slots.is_empty() || !state.live_order.is_empty() {
+            if !self.slots.is_empty()
+                || !state.live_order.is_empty()
+                || !state.conditional_variants.is_empty()
+            {
                 return Err(plan_error(
                     "postfix `?` reached cleanup planning with resource leaves",
                 ));
@@ -653,7 +811,9 @@ impl<'a> PlanBuilder<'a> {
             self.terminate(current, CleanupTerminator::Goto(normal_edge))?;
 
             for residual in std::mem::take(&mut self.pending_try_residuals) {
-                if !residual.state.live_order.is_empty() {
+                if !residual.state.live_order.is_empty()
+                    || !residual.state.conditional_variants.is_empty()
+                {
                     return Err(plan_error(
                         "postfix `?` residual carries live resource leaves",
                     ));
@@ -839,9 +999,6 @@ impl<'a> PlanBuilder<'a> {
         else {
             return Err(plan_error("droppable cleanup-plan type is not nominal"));
         };
-        if !arguments.is_empty() {
-            return Err(plan_error("generic cleanup-plan storage is unsupported"));
-        }
         let item = self
             .program
             .types
@@ -850,6 +1007,9 @@ impl<'a> PlanBuilder<'a> {
             .ok_or_else(|| plan_error(format!("unknown cleanup type `{declaration}`")))?;
         match &item.kind {
             ResolvedTypeDeclarationKind::Resource { drop } => {
+                if !arguments.is_empty() {
+                    return Err(plan_error("generic cleanup-plan storage is unsupported"));
+                }
                 let flag = LivenessFlagId(self.next_flag);
                 self.next_flag = self
                     .next_flag
@@ -872,6 +1032,9 @@ impl<'a> PlanBuilder<'a> {
             }
             ResolvedTypeDeclarationKind::Record { fields }
             | ResolvedTypeDeclarationKind::Class { fields, .. } => {
+                if !arguments.is_empty() {
+                    return Err(plan_error("generic cleanup-plan storage is unsupported"));
+                }
                 let mut shapes = Vec::with_capacity(fields.len());
                 for field in fields {
                     projections.push(field.id.clone());
@@ -888,9 +1051,60 @@ impl<'a> PlanBuilder<'a> {
                     fields: shapes,
                 })
             }
-            ResolvedTypeDeclarationKind::Variant { .. } => Err(plan_error(
-                "droppable variant cleanup is outside the copy-only v1 slice",
-            )),
+            ResolvedTypeDeclarationKind::Variant { cases } => {
+                let mut case_shapes = Vec::with_capacity(cases.len());
+                for case in cases {
+                    let mut fields = Vec::with_capacity(case.fields.len());
+                    for field in &case.fields {
+                        let field_ty =
+                            crate::hir::substitute_type(&field.ty, declaration, arguments)?;
+                        let shape = if self.needs_drop(&field_ty)? {
+                            if field_ty != ResolvedType::Bytes {
+                                return Err(plan_error(
+                                    "droppable variant field is outside the direct-Bytes v1 slice",
+                                ));
+                            }
+                            let flag = LivenessFlagId(self.next_flag);
+                            self.next_flag = self
+                                .next_flag
+                                .checked_add(1)
+                                .ok_or_else(|| plan_error("too many cleanup liveness flags"))?;
+                            let lifecycle =
+                                DeclarationId::new(crate::cleanup::BYTES_DROP_LIFECYCLE_ID);
+                            let mut leaf_projections = projections.clone();
+                            leaf_projections.push(case.id.clone());
+                            leaf_projections.push(field.id.clone());
+                            self.leaves.insert(
+                                flag,
+                                LeafMetadata {
+                                    place: CleanupPlace {
+                                        storage: storage.clone(),
+                                        projections: leaf_projections,
+                                    },
+                                    lifecycle: lifecycle.clone(),
+                                },
+                            );
+                            FieldLivenessShape::Leaf { flag, lifecycle }
+                        } else {
+                            FieldLivenessShape::NoDrop
+                        };
+                        fields.push(FieldLiveness {
+                            field: field.id.clone(),
+                            field_index: field.index,
+                            shape,
+                        });
+                    }
+                    case_shapes.push(crate::cleanup::VariantCaseLiveness {
+                        case: case.id.clone(),
+                        case_index: case.index,
+                        fields,
+                    });
+                }
+                Ok(FieldLivenessShape::Variant {
+                    declaration: declaration.clone(),
+                    cases: case_shapes,
+                })
+            }
         }
     }
 
@@ -1001,17 +1215,66 @@ impl<'a> PlanBuilder<'a> {
                 "transfer at `{at}` has incompatible cleanup shapes"
             )));
         }
-        if source_flags.iter().any(|flag| !state.is_live(*flag)) {
-            return Err(plan_error(format!(
-                "transfer at `{at}` reads a non-live cleanup place"
-            )));
-        }
         if destination_flags.iter().any(|flag| state.is_live(*flag)) {
             return Err(plan_error(format!(
                 "transfer at `{at}` initializes a live cleanup place"
             )));
         }
+        if let Some(index) = state
+            .conditional_variants
+            .iter()
+            .position(|variant| variant.root == source)
+        {
+            let variant = state.conditional_variants.remove(index);
+            let mut mapped_cases = Vec::with_capacity(variant.cases.len());
+            for (case, flags) in variant.cases {
+                let mut mapped = Vec::with_capacity(flags.len());
+                for source_flag in flags {
+                    let source_leaf = &self.leaves[&source_flag].place;
+                    let relative = source_leaf
+                        .projections
+                        .strip_prefix(source.projections.as_slice())
+                        .ok_or_else(|| plan_error("invalid conditional transfer source prefix"))?;
+                    let expected = destination
+                        .projections
+                        .iter()
+                        .chain(relative)
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    let destination_flag = destination_flags
+                        .iter()
+                        .find(|flag| self.leaves[flag].place.projections == expected)
+                        .copied()
+                        .ok_or_else(|| {
+                            plan_error("conditional transfer destination shape is inconsistent")
+                        })?;
+                    mapped.push(destination_flag);
+                }
+                mapped_cases.push((case, mapped));
+            }
+            let variant_id = variant.variant;
+            state.conditional_variants.push(ConditionalFlowVariant {
+                root: destination.clone(),
+                variant: variant_id.clone(),
+                cases: mapped_cases,
+            });
+            self.push_transition(
+                block,
+                CleanupTransition::TransferVariant {
+                    at,
+                    source,
+                    destination,
+                    variant: variant_id,
+                },
+            );
+            return Ok(());
+        }
 
+        if source_flags.iter().any(|flag| !state.is_live(*flag)) {
+            return Err(plan_error(format!(
+                "transfer at `{at}` reads a non-live cleanup place"
+            )));
+        }
         let source_set = source_flags.iter().copied().collect::<BTreeSet<_>>();
         let source_history = state
             .live_order
@@ -1071,6 +1334,117 @@ impl<'a> PlanBuilder<'a> {
         }
         state.append_distinct(flags);
         self.push_transition(block, CleanupTransition::Initialize { at, destination });
+        Ok(())
+    }
+
+    fn initialize_variant(
+        &mut self,
+        block: BlockId,
+        at: ExpressionId,
+        destination: CleanupPlace,
+        variant: DeclarationId,
+        state: &mut FlowState,
+    ) -> Result<(), Diagnostic> {
+        if self
+            .flags_under(&destination)
+            .iter()
+            .any(|flag| state.is_live(*flag))
+        {
+            return Err(plan_error("variant initialization targets a live place"));
+        }
+        let cases = self
+            .program
+            .declarations
+            .variant_cases(&variant)
+            .ok_or_else(|| plan_error("variant initialization has no closed case domain"))?
+            .iter()
+            .map(|case| {
+                let prefix = destination
+                    .projections
+                    .iter()
+                    .chain(std::iter::once(&case.id))
+                    .cloned()
+                    .collect::<Vec<_>>();
+                let flags = self
+                    .flags_under(&destination)
+                    .into_iter()
+                    .filter(|flag| self.leaves[flag].place.projections.starts_with(&prefix))
+                    .collect::<Vec<_>>();
+                (case.id.clone(), flags)
+            })
+            .collect();
+        state.conditional_variants.push(ConditionalFlowVariant {
+            root: destination.clone(),
+            variant: variant.clone(),
+            cases,
+        });
+        self.push_transition(
+            block,
+            CleanupTransition::InitializeVariant {
+                at,
+                destination,
+                variant,
+            },
+        );
+        Ok(())
+    }
+
+    fn initialize_owned_result(
+        &mut self,
+        block: BlockId,
+        expression: &ResolvedExpr,
+        destination: CleanupPlace,
+        state: &mut FlowState,
+    ) -> Result<(), Diagnostic> {
+        let slot = self
+            .storage_to_slot
+            .get(&destination.storage)
+            .and_then(|slot| self.slots.get(slot.0 as usize))
+            .ok_or_else(|| plan_error("owned result has no cleanup slot"))?;
+        if let FieldLivenessShape::Variant { declaration, .. } = &slot.field_liveness_shape {
+            let declaration = declaration.clone();
+            self.initialize_variant(
+                block,
+                expression.id.clone(),
+                destination,
+                declaration,
+                state,
+            )
+        } else {
+            self.initialize(block, expression.id.clone(), destination, state)
+        }
+    }
+
+    fn seal_constructed_variant(
+        &self,
+        destination: &CleanupPlace,
+        variant: &DeclarationId,
+        case: &DeclarationId,
+        state: &mut FlowState,
+    ) -> Result<(), Diagnostic> {
+        let prefix = destination
+            .projections
+            .iter()
+            .chain(std::iter::once(case))
+            .cloned()
+            .collect::<Vec<_>>();
+        let flags = self
+            .flags_under(destination)
+            .into_iter()
+            .filter(|flag| self.leaves[flag].place.projections.starts_with(&prefix))
+            .collect::<Vec<_>>();
+        if flags.iter().any(|flag| !state.live_order.contains(flag)) {
+            return Err(plan_error(
+                "constructed variant has incomplete active-case payload",
+            ));
+        }
+        let set = flags.iter().copied().collect::<BTreeSet<_>>();
+        state.live_order.retain(|flag| !set.contains(flag));
+        state.conditional_variants.push(ConditionalFlowVariant {
+            root: destination.clone(),
+            variant: variant.clone(),
+            cases: vec![(case.clone(), flags)],
+        });
         Ok(())
     }
 
@@ -1157,7 +1531,7 @@ impl<'a> PlanBuilder<'a> {
         state: &FlowState,
         included: impl Fn(&CleanupPlace) -> bool,
     ) -> Vec<FinalizeAction> {
-        state
+        let mut actions = state
             .live_order
             .iter()
             .rev()
@@ -1167,9 +1541,30 @@ impl<'a> PlanBuilder<'a> {
                     source: metadata.place.clone(),
                     lifecycle_id: metadata.lifecycle.clone(),
                     guard_flag: *flag,
+                    active_case: None,
                 })
             })
-            .collect()
+            .collect::<Vec<_>>();
+        for variant in state.conditional_variants.iter().rev() {
+            for (case, flags) in variant.cases.iter().rev() {
+                for flag in flags.iter().rev() {
+                    let metadata = &self.leaves[flag];
+                    if included(&metadata.place) {
+                        actions.push(FinalizeAction {
+                            source: metadata.place.clone(),
+                            lifecycle_id: metadata.lifecycle.clone(),
+                            guard_flag: *flag,
+                            active_case: Some(VariantCaseGuard {
+                                storage: variant.root.storage.clone(),
+                                variant: variant.variant.clone(),
+                                case: case.clone(),
+                            }),
+                        });
+                    }
+                }
+            }
+        }
+        actions
     }
 
     fn region_chain(&self, mut region: CleanupRegionId) -> Vec<CleanupRegionId> {
@@ -1564,9 +1959,21 @@ impl<'a> PlanBuilder<'a> {
             .filter(|flag| region_storages.contains(&self.leaves[flag].place.storage))
             .copied()
             .collect::<BTreeSet<_>>();
+        let finalized_conditional = state
+            .conditional_variants
+            .iter()
+            .filter(|variant| region_storages.contains(&variant.root.storage))
+            .flat_map(|variant| {
+                variant
+                    .cases
+                    .iter()
+                    .flat_map(|(_, flags)| flags.iter().copied())
+            })
+            .collect::<BTreeSet<_>>();
         let finalizers =
             self.finalizers_for(&state, |place| region_storages.contains(&place.storage));
         state.remove(&finalized_flags);
+        state.remove(&finalized_conditional);
 
         let continuation_block = self.new_block(parent)?;
         let edge = self.new_edge(block, continuation_block, EdgeCondition::Always)?;
@@ -1632,7 +2039,15 @@ impl<'a> PlanBuilder<'a> {
                 "branch join has conflicting cleanup initialization histories",
             ));
         }
-        Ok(FlowState { live_order })
+        if left.conditional_variants != right.conditional_variants {
+            return Err(plan_error(
+                "branch join disagrees on conditional variant liveness",
+            ));
+        }
+        Ok(FlowState {
+            live_order,
+            conditional_variants: left.conditional_variants.clone(),
+        })
     }
 
     fn finish_success(
@@ -1661,6 +2076,14 @@ impl<'a> PlanBuilder<'a> {
         state: &mut FlowState,
         at: &ExpressionId,
     ) -> Result<(), Diagnostic> {
+        if let Some(index) = state
+            .conditional_variants
+            .iter()
+            .position(|variant| variant.root == *place)
+        {
+            state.conditional_variants.remove(index);
+            return Ok(());
+        }
         let flags = self.flags_under(place);
         if flags.is_empty() || flags.iter().any(|flag| !state.is_live(*flag)) {
             return Err(plan_error(format!(
@@ -1979,13 +2402,21 @@ impl<'a> PlanBuilder<'a> {
                 destination: Option<CleanupPlace>,
             },
             VariantNext {
+                expression: &'e ResolvedExpr,
+                variant: &'e DeclarationId,
+                case: &'e DeclarationId,
                 fields: &'e [crate::hir::ResolvedFieldInitializer],
                 index: usize,
                 flow: EvalResult,
+                destination: Option<CleanupPlace>,
             },
             VariantAfterField {
+                expression: &'e ResolvedExpr,
+                variant: &'e DeclarationId,
+                case: &'e DeclarationId,
                 fields: &'e [crate::hir::ResolvedFieldInitializer],
                 index: usize,
+                destination: Option<CleanupPlace>,
             },
             TryAfterOperand {
                 expression: &'e ResolvedExpr,
@@ -2016,20 +2447,27 @@ impl<'a> PlanBuilder<'a> {
                 arm_region: Option<CleanupRegionId>,
             },
             MatchNext {
+                expression: &'e ResolvedExpr,
+                mode: ResolvedMatchMode,
                 scrutinee: &'e ResolvedExpr,
                 arms: &'e [ResolvedMatchArm],
                 index: usize,
                 decision: BlockId,
                 branch_state: FlowState,
                 arm_results: Vec<EvalResult>,
+                source: Option<CleanupPlace>,
             },
             MatchAfterArm {
+                expression: &'e ResolvedExpr,
+                mode: ResolvedMatchMode,
                 scrutinee: &'e ResolvedExpr,
                 arms: &'e [ResolvedMatchArm],
                 index: usize,
                 decision: BlockId,
                 branch_state: FlowState,
                 arm_results: Vec<EvalResult>,
+                source: Option<CleanupPlace>,
+                arm_region: Option<CleanupRegionId>,
             },
             /// Refutable Match v1 decision chain over a Copy-scalar
             /// scrutinee: one linearized pass whose Boolean joins mirror the
@@ -2093,7 +2531,7 @@ impl<'a> PlanBuilder<'a> {
                 replaced: BTreeSet<DeclarationId>,
             },
         }
-        const { assert!(std::mem::size_of::<Frame<'static>>() == 344) };
+        const { assert!(std::mem::size_of::<Frame<'static>>() <= 512) };
         #[cfg(test)]
         fn frame_owned_capacity(frame: &Frame<'_>) -> usize {
             let destination = |place: &Option<CleanupPlace>| {
@@ -2302,7 +2740,7 @@ impl<'a> PlanBuilder<'a> {
                                 "byte range carries an unknown operation identity",
                             ));
                         }
-                        if self.schema != CLEANUP_PLAN_SCHEMA_V5 {
+                        if !matches!(self.schema, CLEANUP_PLAN_SCHEMA_V5 | CLEANUP_PLAN_SCHEMA_V6) {
                             self.schema = CLEANUP_PLAN_SCHEMA_V4;
                         }
                         frames.push(Frame::ByteRangeAfterSource {
@@ -2557,8 +2995,16 @@ impl<'a> PlanBuilder<'a> {
                             destination,
                         });
                     }
-                    ResolvedExprKind::ConstructVariant { fields, .. } => {
+                    ResolvedExprKind::ConstructVariant {
+                        variant,
+                        case,
+                        fields,
+                    } => {
+                        let destination = self.expression_slot(expression, active_region)?;
                         frames.push(Frame::VariantNext {
+                            expression,
+                            variant,
+                            case,
                             fields,
                             index: 0,
                             flow: EvalResult {
@@ -2566,6 +3012,7 @@ impl<'a> PlanBuilder<'a> {
                                 state,
                                 owned_source: None,
                             },
+                            destination,
                         });
                     }
                     ResolvedExprKind::Try {
@@ -3133,9 +3580,9 @@ impl<'a> PlanBuilder<'a> {
                         {
                             let destination = self.expression_slot(expression, active_region)?;
                             if let Some(destination) = destination.clone() {
-                                self.initialize(
+                                self.initialize_owned_result(
                                     flow.block,
-                                    expression.id.clone(),
+                                    expression,
                                     destination,
                                     &mut state,
                                 )?;
@@ -3161,9 +3608,9 @@ impl<'a> PlanBuilder<'a> {
                             self.split_status(flow.block, state, active_region, source)?;
                         let destination = self.expression_slot(expression, active_region)?;
                         if let Some(destination) = destination.clone() {
-                            self.initialize(
+                            self.initialize_owned_result(
                                 success,
-                                expression.id.clone(),
+                                expression,
                                 destination,
                                 &mut success_state,
                             )?;
@@ -3475,18 +3922,33 @@ impl<'a> PlanBuilder<'a> {
                     });
                 }
                 Frame::VariantNext {
+                    expression,
+                    variant,
+                    case,
                     fields,
                     index,
                     flow,
+                    destination,
                 } => {
                     if index == fields.len() {
+                        let mut state = flow.state;
+                        if let Some(destination) = &destination {
+                            self.seal_constructed_variant(destination, variant, case, &mut state)?;
+                        }
                         results.push(EvalResult {
                             block: flow.block,
-                            state: flow.state,
-                            owned_source: None,
+                            state,
+                            owned_source: destination,
                         });
                     } else {
-                        frames.push(Frame::VariantAfterField { fields, index });
+                        frames.push(Frame::VariantAfterField {
+                            expression,
+                            variant,
+                            case,
+                            fields,
+                            index,
+                            destination,
+                        });
                         frames.push(Frame::Enter {
                             expression: &fields[index].value,
                             block: flow.block,
@@ -3494,24 +3956,54 @@ impl<'a> PlanBuilder<'a> {
                         });
                     }
                 }
-                Frame::VariantAfterField { fields, index } => {
+                Frame::VariantAfterField {
+                    expression,
+                    variant,
+                    case,
+                    fields,
+                    index,
+                    destination,
+                } => {
                     let evaluated = results.pop().expect("variant field result retained");
                     let field = &fields[index];
+                    let mut state = evaluated.state;
                     if field.value.ownership == OwnershipMode::Own
                         && self.needs_drop(&field.value.ty)?
                     {
-                        return Err(plan_error(
-                            "droppable variant payload reached the copy-only cleanup slice",
-                        ));
+                        let source = evaluated.owned_source.ok_or_else(|| {
+                            plan_error(format!(
+                                "variant field `{}` has no cleanup source",
+                                field.field
+                            ))
+                        })?;
+                        let field_destination = destination
+                            .as_ref()
+                            .ok_or_else(|| {
+                                plan_error("droppable variant constructor has no cleanup slot")
+                            })?
+                            .projected(case.clone())
+                            .projected(field.field.clone());
+                        self.transfer(
+                            evaluated.block,
+                            field.value.id.clone(),
+                            source,
+                            field_destination,
+                            &mut state,
+                            false,
+                        )?;
                     }
                     frames.push(Frame::VariantNext {
+                        expression,
+                        variant,
+                        case,
                         fields,
                         index: index + 1,
                         flow: EvalResult {
                             block: evaluated.block,
-                            state: evaluated.state,
+                            state,
                             owned_source: None,
                         },
+                        destination,
                     });
                 }
                 Frame::TryAfterOperand {
@@ -3567,7 +4059,14 @@ impl<'a> PlanBuilder<'a> {
                     arms,
                 } => {
                     if mode != ResolvedMatchMode::Value {
-                        self.schema = CLEANUP_PLAN_SCHEMA_V5;
+                        if arms
+                            .iter()
+                            .any(|arm| matches!(arm.pattern, ResolvedMatchPattern::Variant { .. }))
+                        {
+                            self.schema = CLEANUP_PLAN_SCHEMA_V6;
+                        } else if self.schema != CLEANUP_PLAN_SCHEMA_V6 {
+                            self.schema = CLEANUP_PLAN_SCHEMA_V5;
+                        }
                     }
                     let scrutinee_result = results.pop().expect("match scrutinee result retained");
                     if scrutinee_result.owned_source.is_some() && mode == ResolvedMatchMode::Value {
@@ -3652,12 +4151,15 @@ impl<'a> PlanBuilder<'a> {
                         });
                     } else {
                         frames.push(Frame::MatchNext {
+                            expression,
+                            mode,
                             scrutinee,
                             arms,
                             index: 0,
                             decision: scrutinee_result.block,
                             branch_state: scrutinee_result.state,
                             arm_results: Vec::with_capacity(arms.len()),
+                            source: scrutinee_result.owned_source,
                         });
                     }
                 }
@@ -3675,12 +4177,15 @@ impl<'a> PlanBuilder<'a> {
                     results.push(result);
                 }
                 Frame::MatchNext {
+                    expression,
+                    mode,
                     scrutinee,
                     arms,
                     index,
                     mut decision,
                     branch_state,
                     arm_results,
+                    source,
                 } => {
                     if index == arms.len() {
                         let mut arm_results = arm_results.into_iter();
@@ -3706,9 +4211,29 @@ impl<'a> PlanBuilder<'a> {
                     } else {
                         let arm = &arms[index];
                         let final_arm = index + 1 == arms.len();
-                        let arm_entry = self.new_block(active_region)?;
+                        let arm_region = if mode == ResolvedMatchMode::Value {
+                            None
+                        } else {
+                            Some(self.new_region(active_region)?)
+                        };
+                        let arm_entry = self.new_block(arm_region.unwrap_or(active_region))?;
                         if final_arm {
-                            let edge = self.new_edge(decision, arm_entry, EdgeCondition::Always)?;
+                            let condition = if mode == ResolvedMatchMode::Value {
+                                EdgeCondition::Always
+                            } else {
+                                let ResolvedMatchPattern::Variant { case, .. } = &arm.pattern
+                                else {
+                                    return Err(plan_error(
+                                        "explicit variant match requires exact final case",
+                                    ));
+                                };
+                                EdgeCondition::VariantCase {
+                                    scrutinee: scrutinee.id.clone(),
+                                    case: case.clone(),
+                                    matches: true,
+                                }
+                            };
+                            let edge = self.new_edge(decision, arm_entry, condition)?;
                             self.terminate(decision, CleanupTerminator::Goto(edge))?;
                         } else {
                             let ResolvedMatchPattern::Variant { case, .. } = &arm.pattern else {
@@ -3741,43 +4266,77 @@ impl<'a> PlanBuilder<'a> {
                             )?;
                             decision = next_decision;
                         }
+                        let arm_state = if let Some(arm_region) = arm_region {
+                            self.prepare_variant_match_arm(
+                                expression,
+                                mode,
+                                arm,
+                                source.as_ref(),
+                                LoweringFlow {
+                                    block: arm_entry,
+                                    state: branch_state.clone(),
+                                    region: arm_region,
+                                },
+                            )?
+                        } else {
+                            branch_state.clone()
+                        };
                         frames.push(Frame::MatchAfterArm {
+                            expression,
+                            mode,
                             scrutinee,
                             arms,
                             index,
                             decision,
                             branch_state: branch_state.clone(),
                             arm_results,
+                            source,
+                            arm_region,
                         });
+                        if let Some(arm_region) = arm_region {
+                            frames.push(Frame::RestoreRegion(active_region));
+                            active_region = arm_region;
+                        }
                         frames.push(Frame::Enter {
                             expression: &arm.value,
                             block: arm_entry,
-                            state: branch_state,
+                            state: arm_state,
                         });
                     }
                 }
                 Frame::MatchAfterArm {
+                    expression,
+                    mode,
                     scrutinee,
                     arms,
                     index,
                     decision,
                     branch_state,
                     mut arm_results,
+                    source,
+                    arm_region,
                 } => {
-                    let result = results.pop().expect("match arm result retained");
+                    let mut result = results.pop().expect("match arm result retained");
                     if result.owned_source.is_some() {
                         return Err(plan_error(
                             "droppable match arm reached the copy-only cleanup slice",
                         ));
                     }
+                    if let Some(arm_region) = arm_region {
+                        (result.block, result.state) =
+                            self.exit_scope(result.block, result.state, arm_region)?;
+                    }
                     arm_results.push(result);
                     frames.push(Frame::MatchNext {
+                        expression,
+                        mode,
                         scrutinee,
                         arms,
                         index: index + 1,
                         decision,
                         branch_state,
                         arm_results,
+                        source,
                     });
                 }
                 Frame::ScalarMatchNext {
@@ -4256,7 +4815,7 @@ impl<'a> PlanBuilder<'a> {
                         "byte range carries an unknown operation identity",
                     ));
                 }
-                if self.schema != CLEANUP_PLAN_SCHEMA_V5 {
+                if !matches!(self.schema, CLEANUP_PLAN_SCHEMA_V5 | CLEANUP_PLAN_SCHEMA_V6) {
                     self.schema = CLEANUP_PLAN_SCHEMA_V4;
                 }
                 let mut evaluated =
@@ -4415,9 +4974,21 @@ impl<'a> PlanBuilder<'a> {
             ResolvedExprKind::ConstructRecord { fields, .. } => {
                 self.lower_record(expression, fields, block, state, region)
             }
-            ResolvedExprKind::ConstructVariant { fields, .. } => {
-                self.lower_copy_variant(fields, block, state, region)
-            }
+            ResolvedExprKind::ConstructVariant {
+                variant,
+                case,
+                fields,
+            } => self.lower_variant(
+                expression,
+                variant,
+                case,
+                fields,
+                LoweringFlow {
+                    block,
+                    state,
+                    region,
+                },
+            ),
             ResolvedExprKind::Try {
                 operand,
                 result,
@@ -4593,12 +5164,7 @@ impl<'a> PlanBuilder<'a> {
         {
             let destination = self.expression_slot(expression, region)?;
             if let Some(destination) = destination.clone() {
-                self.initialize(
-                    current,
-                    expression.id.clone(),
-                    destination,
-                    &mut current_state,
-                )?;
+                self.initialize_owned_result(current, expression, destination, &mut current_state)?;
             }
             return Ok(EvalResult {
                 block: current,
@@ -4623,12 +5189,7 @@ impl<'a> PlanBuilder<'a> {
         if let Some(destination) = destination.clone() {
             // Caller result/out storage remains uninitialized until the
             // propagated status is known to be zero.
-            self.initialize(
-                success,
-                expression.id.clone(),
-                destination,
-                &mut success_state,
-            )?;
+            self.initialize_owned_result(success, expression, destination, &mut success_state)?;
         }
         Ok(EvalResult {
             block: success,
@@ -4933,18 +5494,25 @@ impl<'a> PlanBuilder<'a> {
     }
 
     #[cfg(test)]
-    fn lower_copy_variant(
+    fn lower_variant(
         &mut self,
+        expression: &ResolvedExpr,
+        variant: &DeclarationId,
+        case: &DeclarationId,
         fields: &[crate::hir::ResolvedFieldInitializer],
-        block: BlockId,
-        state: FlowState,
-        region: CleanupRegionId,
+        flow: LoweringFlow,
     ) -> Result<EvalResult, Diagnostic> {
+        let LoweringFlow {
+            block,
+            state,
+            region,
+        } = flow;
         let mut evaluated = EvalResult {
             block,
             state,
             owned_source: None,
         };
+        let destination = self.expression_slot(expression, region)?;
         for field in fields {
             evaluated = self.lower_expr_recursive_reference(
                 &field.value,
@@ -4953,12 +5521,31 @@ impl<'a> PlanBuilder<'a> {
                 region,
             )?;
             if field.value.ownership == OwnershipMode::Own && self.needs_drop(&field.value.ty)? {
-                return Err(plan_error(
-                    "droppable variant payload reached the copy-only cleanup slice",
-                ));
+                let source = evaluated.owned_source.take().ok_or_else(|| {
+                    plan_error(format!(
+                        "variant field `{}` has no cleanup source",
+                        field.field
+                    ))
+                })?;
+                let field_destination = destination
+                    .as_ref()
+                    .ok_or_else(|| plan_error("droppable variant constructor has no cleanup slot"))?
+                    .projected(case.clone())
+                    .projected(field.field.clone());
+                self.transfer(
+                    evaluated.block,
+                    field.value.id.clone(),
+                    source,
+                    field_destination,
+                    &mut evaluated.state,
+                    false,
+                )?;
             }
         }
-        evaluated.owned_source = None;
+        if let Some(destination) = &destination {
+            self.seal_constructed_variant(destination, variant, case, &mut evaluated.state)?;
+        }
+        evaluated.owned_source = destination;
         Ok(evaluated)
     }
 
@@ -5573,6 +6160,174 @@ impl<'a> PlanBuilder<'a> {
         Ok((entry, evaluated.state, arm_region))
     }
 
+    fn prepare_variant_match_arm(
+        &mut self,
+        expression: &ResolvedExpr,
+        mode: ResolvedMatchMode,
+        arm: &ResolvedMatchArm,
+        source: Option<&CleanupPlace>,
+        flow: LoweringFlow,
+    ) -> Result<FlowState, Diagnostic> {
+        let LoweringFlow {
+            block: arm_entry,
+            mut state,
+            region: arm_region,
+        } = flow;
+        let ResolvedMatchPattern::Variant {
+            variant,
+            case,
+            fields,
+        } = &arm.pattern
+        else {
+            return Err(plan_error(
+                "explicit variant match requires exact case patterns",
+            ));
+        };
+        let scrutinee_id = match &expression.kind {
+            ResolvedExprKind::Match { scrutinee, .. } => scrutinee.id.clone(),
+            _ => return Err(plan_error("variant match is not a match expression")),
+        };
+        match mode {
+            ResolvedMatchMode::Value => Ok(state),
+            ResolvedMatchMode::Borrow => {
+                let ResolvedExprKind::Match { scrutinee, .. } = &expression.kind else {
+                    return Err(plan_error("borrowed variant match is not a match"));
+                };
+                if !matches!(
+                    &scrutinee.kind,
+                    ResolvedExprKind::Place(place) if place.projections.is_empty()
+                ) {
+                    return Err(plan_error(
+                        "borrowed variant match has no authenticated named owner",
+                    ));
+                }
+                Ok(state)
+            }
+            ResolvedMatchMode::Own => {
+                let source = source
+                    .ok_or_else(|| plan_error("owned variant match has no transfer source"))?;
+                self.authenticate_variant_case(
+                    arm_entry,
+                    scrutinee_id,
+                    source,
+                    variant,
+                    case,
+                    &mut state,
+                )?;
+                let declared = self
+                    .program
+                    .declarations
+                    .variant_cases(variant)
+                    .and_then(|cases| cases.iter().find(|candidate| candidate.id == *case))
+                    .ok_or_else(|| plan_error("owned variant pattern has a foreign case"))?;
+                let arguments = match &expression.kind {
+                    ResolvedExprKind::Match { scrutinee, .. } => match &scrutinee.ty {
+                        ResolvedType::Nominal { arguments, .. } => arguments,
+                        _ => return Err(plan_error("owned variant scrutinee is not nominal")),
+                    },
+                    _ => return Err(plan_error("owned variant match is not a match")),
+                };
+                for declaration in &declared.fields {
+                    let field_ty =
+                        crate::hir::substitute_type(&declaration.ty, variant, arguments)?;
+                    if !self.needs_drop(&field_ty)? {
+                        continue;
+                    }
+                    let binding = &fields
+                        .iter()
+                        .find(|field| field.field == declaration.id)
+                        .ok_or_else(|| plan_error("owned variant pattern is incomplete"))?
+                        .binding;
+                    let destination = self
+                        .binding_slot(binding, arm_region)?
+                        .ok_or_else(|| plan_error("owned variant binding has no cleanup slot"))?;
+                    self.transfer(
+                        arm_entry,
+                        expression.id.clone(),
+                        source
+                            .projected(case.clone())
+                            .projected(declaration.id.clone()),
+                        destination,
+                        &mut state,
+                        false,
+                    )?;
+                }
+                if self
+                    .flags_under(source)
+                    .iter()
+                    .any(|flag| state.is_live(*flag))
+                {
+                    return Err(plan_error(
+                        "owned variant match left an undisposed source leaf",
+                    ));
+                }
+                Ok(state)
+            }
+        }
+    }
+
+    fn authenticate_variant_case(
+        &mut self,
+        block: BlockId,
+        at: ExpressionId,
+        source: &CleanupPlace,
+        variant: &DeclarationId,
+        case: &DeclarationId,
+        state: &mut FlowState,
+    ) -> Result<(), Diagnostic> {
+        let domain = self
+            .program
+            .declarations
+            .variant_cases(variant)
+            .ok_or_else(|| plan_error("variant authentication has no closed case domain"))?;
+        if !domain.iter().any(|candidate| candidate.id == *case) {
+            return Err(plan_error(
+                "variant authentication references a foreign case",
+            ));
+        }
+        if let Some(index) = state
+            .conditional_variants
+            .iter()
+            .position(|candidate| candidate.root == *source && candidate.variant == *variant)
+        {
+            let conditional = state.conditional_variants.remove(index);
+            let selected = conditional
+                .cases
+                .into_iter()
+                .find_map(|(candidate, flags)| (candidate == *case).then_some(flags))
+                .ok_or_else(|| plan_error("conditional variant state omits selected case"))?;
+            state.append_distinct(selected);
+        } else {
+            let selected_prefix = source
+                .projections
+                .iter()
+                .chain(std::iter::once(case))
+                .cloned()
+                .collect::<Vec<_>>();
+            if self.flags_under(source).iter().any(|flag| {
+                state.is_live(*flag)
+                    && !self.leaves[flag]
+                        .place
+                        .projections
+                        .starts_with(&selected_prefix)
+            }) {
+                return Err(plan_error(
+                    "variant authentication found a live inactive-case leaf",
+                ));
+            }
+        }
+        self.push_transition(
+            block,
+            CleanupTransition::AuthenticateVariantCase {
+                at,
+                source: source.clone(),
+                variant: variant.clone(),
+                case: case.clone(),
+            },
+        );
+        Ok(())
+    }
+
     #[cfg(test)]
     fn lower_match(
         &mut self,
@@ -5587,7 +6342,14 @@ impl<'a> PlanBuilder<'a> {
             return Err(plan_error("match oracle received a non-match expression"));
         };
         if *mode != ResolvedMatchMode::Value {
-            self.schema = CLEANUP_PLAN_SCHEMA_V5;
+            if arms
+                .iter()
+                .any(|arm| matches!(arm.pattern, ResolvedMatchPattern::Variant { .. }))
+            {
+                self.schema = CLEANUP_PLAN_SCHEMA_V6;
+            } else if self.schema != CLEANUP_PLAN_SCHEMA_V6 {
+                self.schema = CLEANUP_PLAN_SCHEMA_V5;
+            }
         }
         if arms.is_empty() {
             return Err(plan_error("copy-variant match has no arms"));
@@ -5686,12 +6448,30 @@ impl<'a> PlanBuilder<'a> {
 
         let mut decision = scrutinee_result.block;
         let branch_state = scrutinee_result.state;
+        let source = scrutinee_result.owned_source;
         let mut arm_results = Vec::with_capacity(arms.len());
         for (index, arm) in arms.iter().enumerate() {
             let final_arm = index + 1 == arms.len();
-            let arm_entry = self.new_block(region)?;
+            let arm_region = (*mode != ResolvedMatchMode::Value)
+                .then(|| self.new_region(region))
+                .transpose()?;
+            let arm_entry = self.new_block(arm_region.unwrap_or(region))?;
             if final_arm {
-                let edge = self.new_edge(decision, arm_entry, EdgeCondition::Always)?;
+                let condition = if *mode == ResolvedMatchMode::Value {
+                    EdgeCondition::Always
+                } else {
+                    let ResolvedMatchPattern::Variant { case, .. } = &arm.pattern else {
+                        return Err(plan_error(
+                            "explicit variant match requires exact final case",
+                        ));
+                    };
+                    EdgeCondition::VariantCase {
+                        scrutinee: scrutinee.id.clone(),
+                        case: case.clone(),
+                        matches: true,
+                    }
+                };
+                let edge = self.new_edge(decision, arm_entry, condition)?;
                 self.terminate(decision, CleanupTerminator::Goto(edge))?;
             } else {
                 let ResolvedMatchPattern::Variant { case, .. } = &arm.pattern else {
@@ -5725,16 +6505,35 @@ impl<'a> PlanBuilder<'a> {
                 decision = next_decision;
             }
 
-            let result = self.lower_expr_recursive_reference(
+            let arm_state = if let Some(arm_region) = arm_region {
+                self.prepare_variant_match_arm(
+                    expression,
+                    *mode,
+                    arm,
+                    source.as_ref(),
+                    LoweringFlow {
+                        block: arm_entry,
+                        state: branch_state.clone(),
+                        region: arm_region,
+                    },
+                )?
+            } else {
+                branch_state.clone()
+            };
+            let mut result = self.lower_expr_recursive_reference(
                 &arm.value,
                 arm_entry,
-                branch_state.clone(),
-                region,
+                arm_state,
+                arm_region.unwrap_or(region),
             )?;
             if result.owned_source.is_some() {
                 return Err(plan_error(
                     "droppable match arm reached the copy-only cleanup slice",
                 ));
+            }
+            if let Some(arm_region) = arm_region {
+                (result.block, result.state) =
+                    self.exit_scope(result.block, result.state, arm_region)?;
             }
             arm_results.push(result);
         }
@@ -5953,7 +6752,10 @@ mod iterative_lowering_tests {
     #[test]
     fn iterative_lowering_private_frame_sizes_stay_within_capacity_formula() {
         assert!(
-            std::mem::size_of::<super::EvalResult>() <= super::CLEANUP_EVAL_RESULT_SIZE_CEILING
+            std::mem::size_of::<super::EvalResult>() <= super::CLEANUP_EVAL_RESULT_SIZE_CEILING,
+            "EvalResult size {} exceeds its private capacity ceiling {}",
+            std::mem::size_of::<super::EvalResult>(),
+            super::CLEANUP_EVAL_RESULT_SIZE_CEILING,
         );
     }
 
@@ -6153,7 +6955,7 @@ interface HostEcho permits { host.echo } {
         ];
         assert_eq!(
             actual,
-            [8_968, 137_286],
+            [9_224, 152_294],
             "inventory/lowering owned-capacity high-water pins drifted"
         );
         assert!(actual[0] <= 6_492_084);

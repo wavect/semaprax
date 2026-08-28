@@ -6,7 +6,7 @@
 //! compiler input appear canonical before the cleanup replay boundary rejects
 //! it.
 
-use crate::cleanup::{FieldLiveness, FieldLivenessShape};
+use crate::cleanup::{FieldLiveness, FieldLivenessShape, VariantCaseLiveness};
 use crate::cleanup_plan::{
     CallArgumentTransfer, CheckedOperation, CleanupBlock, CleanupEdge, CleanupEntryState,
     CleanupPlace, CleanupPlan, CleanupRegion, CleanupResultSource, CleanupSlot, CleanupTerminator,
@@ -45,6 +45,22 @@ pub(crate) fn cleanup_plan_json(plan: &CleanupPlan) -> String {
 }
 
 fn entry_state_json(state: &CleanupEntryState) -> String {
+    if !state.conditional_owned_parameters.is_empty() {
+        return format!(
+            "{{\"kind\":\"entry_state\",\"live_owned_parameters\":{},\"conditional_owned_parameters\":{}}}",
+            array_json(&state.live_owned_parameters, place_json),
+            array_json(&state.conditional_owned_parameters, |entry| format!(
+                "{{\"kind\":\"conditional_variant_entry\",\"storage\":{},\"variant\":{},\"cases\":{}}}",
+                storage_json(&entry.storage),
+                quote_json(entry.variant.as_str()),
+                array_json(&entry.cases, |case| format!(
+                    "{{\"kind\":\"conditional_variant_case\",\"case\":{},\"live_places\":{}}}",
+                    quote_json(case.case.as_str()),
+                    array_json(&case.live_places, place_json),
+                )),
+            )),
+        );
+    }
     format!(
         "{{\"kind\":\"entry_state\",\"live_owned_parameters\":{}}}",
         array_json(&state.live_owned_parameters, place_json)
@@ -114,7 +130,21 @@ fn liveness_shape_json(shape: &FieldLivenessShape) -> String {
             quote_json(declaration.as_str()),
             array_json(fields, field_liveness_json)
         ),
+        FieldLivenessShape::Variant { declaration, cases } => format!(
+            "{{\"kind\":\"variant\",\"declaration\":{},\"cases\":{}}}",
+            quote_json(declaration.as_str()),
+            array_json(cases, variant_case_liveness_json)
+        ),
     }
+}
+
+fn variant_case_liveness_json(case: &VariantCaseLiveness) -> String {
+    format!(
+        "{{\"kind\":\"variant_case_liveness\",\"case\":{},\"case_index\":{},\"fields\":{}}}",
+        quote_json(case.case.as_str()),
+        case.case_index,
+        array_json(&case.fields, field_liveness_json),
+    )
 }
 
 fn field_liveness_json(field: &FieldLiveness) -> String {
@@ -189,6 +219,16 @@ fn transition_json(transition: &CleanupTransition) -> String {
             quote_json(at.as_str()),
             place_json(destination)
         ),
+        CleanupTransition::InitializeVariant {
+            at,
+            destination,
+            variant,
+        } => format!(
+            "{{\"kind\":\"initialize_variant\",\"at\":{},\"destination\":{},\"variant\":{}}}",
+            quote_json(at.as_str()),
+            place_json(destination),
+            quote_json(variant.as_str()),
+        ),
         CleanupTransition::Transfer {
             at,
             source,
@@ -198,6 +238,30 @@ fn transition_json(transition: &CleanupTransition) -> String {
             quote_json(at.as_str()),
             place_json(source),
             place_json(destination)
+        ),
+        CleanupTransition::AuthenticateVariantCase {
+            at,
+            source,
+            variant,
+            case,
+        } => format!(
+            "{{\"kind\":\"authenticate_variant_case\",\"at\":{},\"source\":{},\"variant\":{},\"case\":{}}}",
+            quote_json(at.as_str()),
+            place_json(source),
+            quote_json(variant.as_str()),
+            quote_json(case.as_str()),
+        ),
+        CleanupTransition::TransferVariant {
+            at,
+            source,
+            destination,
+            variant,
+        } => format!(
+            "{{\"kind\":\"transfer_variant\",\"at\":{},\"source\":{},\"destination\":{},\"variant\":{}}}",
+            quote_json(at.as_str()),
+            place_json(source),
+            place_json(destination),
+            quote_json(variant.as_str()),
         ),
         CleanupTransition::CallCommit { call, arguments } => format!(
             "{{\"kind\":\"call_commit\",\"call\":{},\"arguments\":{}}}",
@@ -365,6 +429,17 @@ fn exit_json(exit: &ExitTarget) -> String {
 }
 
 fn finalize_action_json(action: &FinalizeAction) -> String {
+    if let Some(condition) = &action.active_case {
+        return format!(
+            "{{\"kind\":\"finalize\",\"source\":{},\"lifecycle_id\":{},\"guard_flag\":{},\"active_case\":{{\"storage\":{},\"variant\":{},\"case\":{}}}}}",
+            place_json(&action.source),
+            quote_json(action.lifecycle_id.as_str()),
+            action.guard_flag.0,
+            storage_json(&condition.storage),
+            quote_json(condition.variant.as_str()),
+            quote_json(condition.case.as_str()),
+        );
+    }
     format!(
         "{{\"kind\":\"finalize\",\"source\":{},\"lifecycle_id\":{},\"guard_flag\":{}}}",
         place_json(&action.source),

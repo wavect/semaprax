@@ -821,6 +821,51 @@ impl<'a> Executor<'a> {
         {
             executor.initialize_flags(&place, "owned entry parameter")?;
         }
+        for entry in executor
+            .function
+            .cleanup_plan
+            .entry_state
+            .conditional_owned_parameters
+            .clone()
+        {
+            let decision = match &entry.storage {
+                StorageId::Value(value) => executor
+                    .scenario
+                    .variant_cases
+                    .keys()
+                    .find(|expression| expression.as_str() == value.as_str())
+                    .cloned()
+                    .ok_or_else(|| {
+                        invariant("conditional entry has no value-identity case decision")
+                    })?,
+                StorageId::Temporary(expression) => expression.clone(),
+                StorageId::CallArgument {
+                    value_expression, ..
+                } => value_expression.clone(),
+                StorageId::ProvisionalResult => {
+                    return Err(invariant(
+                        "provisional result cannot be a conditional entry parameter",
+                    ));
+                }
+            };
+            executor.used_variant_cases.insert(decision.clone());
+            let active = executor
+                .scenario
+                .variant_cases
+                .get(&decision)
+                .ok_or_else(|| CleanupExecutionError::MissingVariantDecision(decision.clone()))?;
+            let selected = entry
+                .cases
+                .iter()
+                .find(|case| case.case == *active)
+                .ok_or_else(|| CleanupExecutionError::InvalidVariantDecision {
+                    scrutinee: decision,
+                    case: active.clone(),
+                })?;
+            for place in &selected.live_places {
+                executor.initialize_flags(place, "conditional owned entry parameter")?;
+            }
+        }
         Ok(executor)
     }
 
@@ -930,11 +975,119 @@ impl<'a> Executor<'a> {
                     destination,
                 });
             }
+            CleanupTransition::AuthenticateVariantCase {
+                at,
+                source,
+                variant: _,
+                case,
+            } => {
+                let selected_prefix = source
+                    .projections
+                    .iter()
+                    .chain(std::iter::once(&case))
+                    .cloned()
+                    .collect::<Vec<_>>();
+                for flag in self.flags_under(&source)? {
+                    if self.live.contains(&flag)
+                        && !self.leaves[&flag]
+                            .place
+                            .projections
+                            .starts_with(&selected_prefix)
+                    {
+                        return Err(invariant(
+                            "variant authentication observed live inactive-case payload",
+                        ));
+                    }
+                }
+                let actual = self
+                    .scenario
+                    .variant_cases
+                    .get(&at)
+                    .ok_or_else(|| CleanupExecutionError::MissingVariantDecision(at.clone()))?;
+                self.used_variant_cases.insert(at.clone());
+                if actual != &case {
+                    return Err(CleanupExecutionError::InvalidVariantDecision {
+                        scrutinee: at,
+                        case: actual.clone(),
+                    });
+                }
+            }
+            CleanupTransition::TransferVariant {
+                at,
+                source,
+                destination,
+                variant: _,
+            } => {
+                self.transfer_variant_flags(&source, &destination)?;
+                self.emit(TraceEventKind::Transfer {
+                    at,
+                    source,
+                    destination,
+                });
+            }
+            CleanupTransition::InitializeVariant {
+                at,
+                destination,
+                variant,
+            } => {
+                let actual = self
+                    .scenario
+                    .variant_cases
+                    .get(&at)
+                    .ok_or_else(|| CleanupExecutionError::MissingVariantDecision(at.clone()))?;
+                let cases = self
+                    .program
+                    .declarations
+                    .variant_cases(&variant)
+                    .ok_or_else(|| invariant("variant initialization names a non-variant"))?;
+                if !cases.iter().any(|case| case.id == *actual) {
+                    return Err(CleanupExecutionError::InvalidVariantDecision {
+                        scrutinee: at,
+                        case: actual.clone(),
+                    });
+                }
+                self.used_variant_cases.insert(at.clone());
+                let selected_prefix = destination
+                    .projections
+                    .iter()
+                    .chain(std::iter::once(actual))
+                    .cloned()
+                    .collect::<Vec<_>>();
+                let all_flags = self.flags_under(&destination)?;
+                if all_flags.iter().any(|flag| self.live.contains(flag)) {
+                    return Err(invariant(
+                        "variant initialization targets a live cleanup place",
+                    ));
+                }
+                self.live.extend(all_flags.into_iter().filter(|flag| {
+                    self.leaves[flag]
+                        .place
+                        .projections
+                        .starts_with(&selected_prefix)
+                }));
+                self.emit(TraceEventKind::Initialize { at, destination });
+            }
             CleanupTransition::CallCommit { call, arguments } => {
                 let callee = self.callee_for_call(&call)?;
                 let mut consumed = BTreeSet::new();
                 for argument in &arguments {
-                    for flag in self.flags_under(&argument.source)? {
+                    let all_flags = self.flags_under(&argument.source)?;
+                    let conditional = self
+                        .function
+                        .cleanup_plan
+                        .slots
+                        .iter()
+                        .find(|slot| slot.storage == argument.source.storage)
+                        .is_some_and(|slot| {
+                            matches!(
+                                slot.field_liveness_shape,
+                                FieldLivenessShape::Variant { .. }
+                            )
+                        });
+                    for flag in all_flags {
+                        if conditional && !self.live.contains(&flag) {
+                            continue;
+                        }
                         if !self.live.contains(&flag) {
                             return Err(invariant(format!(
                                 "call `{call}` consumes dead argument flag {}",
@@ -1464,6 +1617,49 @@ impl<'a> Executor<'a> {
         Ok(())
     }
 
+    fn transfer_variant_flags(
+        &mut self,
+        source: &CleanupPlace,
+        destination: &CleanupPlace,
+    ) -> Result<(), CleanupExecutionError> {
+        let source_flags = self.flags_under(source)?;
+        let destination_flags = self.flags_under(destination)?;
+        let active = source_flags
+            .iter()
+            .filter(|flag| self.live.contains(flag))
+            .copied()
+            .collect::<Vec<_>>();
+        // A selected case may contain only Copy fields (for example
+        // `Option<Bytes>::None`); its authenticated tag carries no cleanup
+        // flag to move.
+        let mut mapped = Vec::with_capacity(active.len());
+        for flag in &active {
+            let source_leaf = &self.leaves[flag].place;
+            let relative = source_leaf
+                .projections
+                .strip_prefix(source.projections.as_slice())
+                .ok_or_else(|| invariant("variant transfer source prefix is invalid"))?;
+            let expected = destination
+                .projections
+                .iter()
+                .chain(relative)
+                .cloned()
+                .collect::<Vec<_>>();
+            let destination_flag = destination_flags
+                .iter()
+                .find(|candidate| self.leaves[candidate].place.projections == expected)
+                .copied()
+                .ok_or_else(|| invariant("variant transfer destination shape differs"))?;
+            if self.live.contains(&destination_flag) {
+                return Err(invariant("variant transfer initializes a live destination"));
+            }
+            mapped.push(destination_flag);
+        }
+        self.live.retain(|flag| !active.contains(flag));
+        self.live.extend(mapped);
+        Ok(())
+    }
+
     fn flags_under(
         &self,
         place: &CleanupPlace,
@@ -1716,6 +1912,17 @@ fn collect_leaves(
             for field in fields {
                 projections.push(field.field.clone());
                 collect_leaves(storage, projections, &field.shape, leaves)?;
+                projections.pop();
+            }
+        }
+        FieldLivenessShape::Variant { cases, .. } => {
+            for case in cases {
+                projections.push(case.case.clone());
+                for field in &case.fields {
+                    projections.push(field.field.clone());
+                    collect_leaves(storage, projections, &field.shape, leaves)?;
+                    projections.pop();
+                }
                 projections.pop();
             }
         }

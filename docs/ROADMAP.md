@@ -43,15 +43,18 @@ ABIs prematurely.
 ### Language and ownership outcomes
 
 - generalize unique ownership beyond the current bounded Copy, string, byte,
-  and resource slices;
+  resource, flat owned-byte record, and flat owned-byte variant slices;
 - implement borrow/lifetime inference, reborrowing, and escape analysis;
 - make cleanup plans cover general control flow, nested aggregates, calls, and
   FFI with independently replayed exactly-once behavior;
 - integrate regions/arenas and opt-in shared immutable ARC only after their
   proof models have executable language and runtime counterparts;
 - define restricted raw-memory operations and an auditable `unsafe` policy;
-- complete aggregate, `Option`, `Result`, matching, mutation, and generic
-  interactions across interpreter, native, and Wasm lanes.
+- extend aggregate, `Option`, `Result`, and matching beyond the exact
+  [Owned Byte Variant Algebra v1](OWNED-BYTE-VARIANT-ALGEBRA-V1.md) profiles,
+  including nesting, authored generics, non-Copy propagation, and public ABIs;
+- complete mutation and generic interactions across interpreter, native, and
+  Wasm lanes.
 
 ### Development-loop outcomes
 

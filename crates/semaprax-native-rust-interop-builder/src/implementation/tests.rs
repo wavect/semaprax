@@ -333,6 +333,9 @@ fn observe_cleanup_function(
                 CleanupTransition::Initialize { destination, .. } => {
                     observe_place(destination, false, observed);
                 }
+                CleanupTransition::InitializeVariant { destination, .. } => {
+                    observe_place(destination, false, observed);
+                }
                 CleanupTransition::Transfer {
                     source,
                     destination,
@@ -340,6 +343,17 @@ fn observe_cleanup_function(
                 } => {
                     observe_place(source, false, observed);
                     observe_place(destination, false, observed);
+                }
+                CleanupTransition::TransferVariant {
+                    source,
+                    destination,
+                    ..
+                } => {
+                    observe_place(source, false, observed);
+                    observe_place(destination, false, observed);
+                }
+                CleanupTransition::AuthenticateVariantCase { source, .. } => {
+                    observe_place(source, false, observed);
                 }
                 CleanupTransition::CallCommit { arguments, .. } => {
                     for argument in arguments {
@@ -6065,7 +6079,12 @@ fn main() -> i64 {{
         for transition in &block.transitions {
             match transition {
                 semaprax::cleanup_plan::CleanupTransition::Initialize { at, .. }
-                | semaprax::cleanup_plan::CleanupTransition::Transfer { at, .. } => note(at),
+                | semaprax::cleanup_plan::CleanupTransition::InitializeVariant { at, .. }
+                | semaprax::cleanup_plan::CleanupTransition::Transfer { at, .. }
+                | semaprax::cleanup_plan::CleanupTransition::TransferVariant { at, .. }
+                | semaprax::cleanup_plan::CleanupTransition::AuthenticateVariantCase {
+                    at, ..
+                } => note(at),
                 semaprax::cleanup_plan::CleanupTransition::CallCommit { call, .. } => note(call),
                 semaprax::cleanup_plan::CleanupTransition::SelectFailure { source } => {
                     note(&source.expression)

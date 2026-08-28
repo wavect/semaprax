@@ -444,6 +444,21 @@ fn audit_field_liveness_shape(root: &crate::cleanup::FieldLivenessShape) -> Resu
                     pending.push(&field.shape);
                 }
             }
+            crate::cleanup::FieldLivenessShape::Variant { declaration, cases } => {
+                reject_nul_identity("cleanup variant", declaration.as_str())?;
+                for (case_index, case) in cases.iter().enumerate().rev() {
+                    reject_nul_identity("cleanup variant case", case.case.as_str())?;
+                    if usize::try_from(case.case_index) != Ok(case_index) {
+                        return Err(hir_error(
+                            "cleanup variant case inventory has a non-canonical index",
+                        ));
+                    }
+                    for field in case.fields.iter().rev() {
+                        reject_nul_identity("cleanup variant field", field.field.as_str())?;
+                        pending.push(&field.shape);
+                    }
+                }
+            }
         }
     }
     Ok(())
@@ -550,6 +565,15 @@ fn audit_cleanup_plan(plan: &CleanupPlan) -> Result<(), Diagnostic> {
                     reject_nul_identity("cleanup-plan initialize expression", at.as_str())?;
                     audit_plan_place(destination)?;
                 }
+                crate::cleanup_plan::CleanupTransition::InitializeVariant {
+                    at,
+                    destination,
+                    variant,
+                } => {
+                    reject_nul_identity("cleanup-plan variant initialize expression", at.as_str())?;
+                    audit_plan_place(destination)?;
+                    reject_nul_identity("cleanup-plan initialized variant", variant.as_str())?;
+                }
                 crate::cleanup_plan::CleanupTransition::Transfer {
                     at,
                     source,
@@ -558,6 +582,31 @@ fn audit_cleanup_plan(plan: &CleanupPlan) -> Result<(), Diagnostic> {
                     reject_nul_identity("cleanup-plan transfer expression", at.as_str())?;
                     audit_plan_place(source)?;
                     audit_plan_place(destination)?;
+                }
+                crate::cleanup_plan::CleanupTransition::TransferVariant {
+                    at,
+                    source,
+                    destination,
+                    variant,
+                } => {
+                    reject_nul_identity("cleanup-plan variant transfer expression", at.as_str())?;
+                    audit_plan_place(source)?;
+                    audit_plan_place(destination)?;
+                    reject_nul_identity("cleanup-plan transferred variant", variant.as_str())?;
+                }
+                crate::cleanup_plan::CleanupTransition::AuthenticateVariantCase {
+                    at,
+                    source,
+                    variant,
+                    case,
+                } => {
+                    reject_nul_identity(
+                        "cleanup-plan variant authentication expression",
+                        at.as_str(),
+                    )?;
+                    audit_plan_place(source)?;
+                    reject_nul_identity("cleanup-plan authenticated variant", variant.as_str())?;
+                    reject_nul_identity("cleanup-plan authenticated case", case.as_str())?;
                 }
                 crate::cleanup_plan::CleanupTransition::CallCommit { call, arguments } => {
                     reject_nul_identity("cleanup-plan committed call", call.as_str())?;

@@ -612,9 +612,8 @@ impl<'a> TypeTable<'a> {
     }
 
     /// Detect compiler-owned byte authority below a type boundary. The first
-    /// owned-byte record tranche admits `Bytes` only as a direct record field;
-    /// nested records and every variant carrier remain fail-closed until their
-    /// projected transfer plans and backends are independently executable.
+    /// owned-byte aggregate profile admits `Bytes` only as a direct field;
+    /// nested, generic-authored, and resource-bearing carriers remain closed.
     fn contains_owned_bytes(&self, ty: &Type) -> bool {
         let mut pending = vec![ty.clone()];
         let mut visited = HashSet::new();
@@ -679,6 +678,30 @@ impl<'a> TypeTable<'a> {
             self.declaration(name).map(|declaration| &declaration.kind),
             Some(TypeDeclarationKind::Record { fields })
                 if fields.iter().any(|field| field.ty == Type::Bytes)
+        )
+    }
+
+    /// Exact non-Copy variant profile admitted by Owned Byte Variant Algebra
+    /// v1. Authored variants are monomorphic and flat. The only generic
+    /// carriers are the compiler-owned prelude identities, whose source names
+    /// are reserved and authenticated again in resolved HIR.
+    fn is_flat_owned_byte_variant(&self, ty: &Type) -> bool {
+        let Type::Named { name, arguments } = ty else {
+            return false;
+        };
+        if owned_byte_prelude_instance_is_admitted(name, arguments) {
+            return true;
+        }
+        if !arguments.is_empty() {
+            return false;
+        }
+        matches!(
+            self.declaration(name).map(|declaration| &declaration.kind),
+            Some(TypeDeclarationKind::Variant { cases })
+                if cases.iter().flat_map(|case| &case.fields).any(|field| field.ty == Type::Bytes)
+                    && cases.iter().flat_map(|case| &case.fields).all(|field|
+                        field.ty == Type::Bytes
+                            || owned_byte_record_copy_field_is_admitted(&field.ty))
         )
     }
 
@@ -779,6 +802,15 @@ fn owned_byte_record_copy_field_is_admitted(ty: &Type) -> bool {
             | Type::F64
             | Type::Char
             | Type::Bool
+    )
+}
+
+fn owned_byte_prelude_instance_is_admitted(name: &str, arguments: &[Type]) -> bool {
+    matches!(
+        (name, arguments),
+        ("Option", [Type::Bytes])
+            | ("Result", [Type::Bytes, Type::I64 | Type::Bool])
+            | ("Result", [Type::I64 | Type::Bool, Type::Bytes])
     )
 }
 
@@ -1178,12 +1210,12 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                             field.span,
                         ));
                     }
-                    if matches!(field.ty, Type::ArrayU8(_) | Type::Bytes) {
+                    if matches!(field.ty, Type::ArrayU8(_)) {
                         diagnostics.push(error(
                             program,
                             "SPX-T268",
                             format!(
-                                "variant field `{}::{}.{}` cannot store fixed arrays or `Bytes`",
+                                "variant field `{}::{}.{}` cannot store fixed arrays",
                                 declaration.name, case.name, field.name
                             ),
                             field.span,
@@ -1478,13 +1510,42 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 }
             }
             TypeDeclarationKind::Variant { cases } => {
-                for field in cases.iter().flat_map(|case| &case.fields) {
-                    if field.ty == Type::Bytes || types.contains_owned_bytes(&field.ty) {
+                let fields = cases
+                    .iter()
+                    .flat_map(|case| &case.fields)
+                    .collect::<Vec<_>>();
+                let has_direct_bytes = fields.iter().any(|field| field.ty == Type::Bytes);
+                if has_direct_bytes && !declaration.type_parameters.is_empty() {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T268",
+                        format!(
+                            "owned-Bytes variant `{}` must be monomorphic in this tranche",
+                            declaration.name
+                        ),
+                        declaration.span,
+                    ));
+                }
+                for field in fields {
+                    if has_direct_bytes
+                        && field.ty != Type::Bytes
+                        && !owned_byte_record_copy_field_is_admitted(&field.ty)
+                    {
                         diagnostics.push(error(
                             program,
                             "SPX-T268",
                             format!(
-                                "variant `{}` cannot contain owned `Bytes` directly or transitively",
+                                "owned-Bytes variant field `{}.{}` must be direct `Bytes` or a direct Copy scalar",
+                                declaration.name, field.name
+                            ),
+                            field.span,
+                        ));
+                    } else if !has_direct_bytes && types.contains_owned_bytes(&field.ty) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T268",
+                            format!(
+                                "variant `{}` nests owned `Bytes`; this tranche admits only direct `Bytes` payloads",
                                 declaration.name
                             ),
                             field.span,
@@ -1786,6 +1847,11 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 .iter()
                 .map(|parameter| parameter.name.as_str())
                 .collect::<HashSet<_>>();
+            let owned_byte_variant = parameters.is_empty()
+                && cases
+                    .iter()
+                    .flat_map(|case| &case.fields)
+                    .any(|field| field.ty == Type::Bytes);
             for case in cases {
                 for field in &case.fields {
                     check_declared_type(
@@ -1808,7 +1874,8 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                                 && !parameters.is_empty()
                                 && types.declaration(name).is_none()
                     );
-                    if !matches!(field.ty, Type::I64 | Type::Bool)
+                    if !owned_byte_variant
+                        && !matches!(field.ty, Type::I64 | Type::Bool)
                         && !is_parameter
                         && !is_unknown_parameter
                     {
@@ -2986,18 +3053,21 @@ fn check_declared_type(
         }
         if arguments
             .iter()
-            .any(|argument| matches!(argument, Type::ArrayU8(_) | Type::Bytes))
+            .any(|argument| matches!(argument, Type::ArrayU8(_)))
+            || (arguments.contains(&Type::Bytes)
+                && !owned_byte_prelude_instance_is_admitted(name, arguments))
         {
             diagnostics.push(error(
                 program,
                 "SPX-T268",
-                "fixed arrays and `Bytes` are not admitted as generic arguments",
+                "fixed arrays and non-admitted `Bytes` carriers are not admitted as generic arguments",
                 span,
             ));
             pending.extend(arguments.iter().rev());
             continue;
         }
         if !arguments.is_empty()
+            && !owned_byte_prelude_instance_is_admitted(name, arguments)
             && (!matches!(
                 declaration.kind,
                 TypeDeclarationKind::Record { .. }
@@ -3787,6 +3857,8 @@ struct VariantMatchState<'a> {
     variant_name: Option<String>,
     variant_arguments: Vec<Type>,
     declared_cases: Option<&'a [VariantCaseDeclaration]>,
+    mode: MatchMode,
+    needs_drop: bool,
 }
 
 enum VerifierCallTarget<'a> {
@@ -5274,7 +5346,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 for field in &case.fields {
                                     self.diagnostics.push(error(self.program, "SPX-T213", format!("variant construction `{type_name}::{case_name}` is missing payload field `{}`", field.name), expression.span));
                                 }
-                                self.values.push(Some(CheckedValue::value(instance)));
+                                // Ownership belongs to the complete variant carrier, not
+                                // only to the selected case. A zero-payload case of a
+                                // variant whose other cases contain owned fields is still
+                                // a fresh owned carrier and must cross return/call
+                                // boundaries exactly once.
+                                self.values.push(Some(CheckedValue::returned(
+                                    instance.clone(),
+                                    self.types.needs_drop(&instance),
+                                )));
                             } else {
                                 self.values.push(None);
                             }
@@ -6614,6 +6694,17 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 expression.span,
                             ));
                         }
+                        if !matches!(ok, Type::I64 | Type::Bool)
+                            || !matches!(error_ty, Type::I64 | Type::Bool)
+                            || !matches!(residual_error_ty, Type::I64 | Type::Bool)
+                        {
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-T218",
+                                "Result `?` accepts only direct `i64` or `bool` success and error payloads",
+                                expression.span,
+                            ));
+                        }
                         self.values.push(Some(CheckedValue::value(ok.clone())));
                         continue;
                     }
@@ -6922,6 +7013,31 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 field.value.span,
                             ));
                         }
+                        if self.types.needs_drop(&expected) && actual.mode == ParamMode::Own {
+                            if self.allow_moves {
+                                mark_value_sources_moved(
+                                    &field.value,
+                                    &mut self.scopes[scope].bindings,
+                                    self.types,
+                                );
+                            } else {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-O105",
+                                    "contract expression cannot transfer an owned variant payload",
+                                    field.value.span,
+                                ));
+                            }
+                        } else if self.types.needs_drop(&expected)
+                            && matches!(actual.mode, ParamMode::Borrow | ParamMode::Shared)
+                        {
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-O108",
+                                "cannot move an owned variant payload through a borrowed or shared value",
+                                field.value.span,
+                            ));
+                        }
                     }
                     let next = index + 1;
                     if fields.get(next).is_some() {
@@ -6944,10 +7060,14 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     self.diagnostics.push(error(self.program, "SPX-T213", format!("variant construction `{type_name}::{case_name}` is missing payload field `{}`", field.name), expression.span));
                                 }
                             }
-                            self.values.push(Some(CheckedValue::value(Type::Named {
+                            let instance = Type::Named {
                                 name: type_name.to_owned(),
                                 arguments: type_arguments.to_vec(),
-                            })));
+                            };
+                            self.values.push(Some(CheckedValue::returned(
+                                instance.clone(),
+                                self.types.needs_drop(&instance),
+                            )));
                         } else {
                             self.values.push(None);
                         }
@@ -7514,18 +7634,92 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             scrutinee.span,
                         ));
                     }
+                    let variant_needs_drop = scrutinee_value
+                        .as_ref()
+                        .is_some_and(|value| self.types.needs_drop(&value.ty));
+                    if let Some(scrutinee_value) = &scrutinee_value {
+                        match match_mode {
+                            MatchMode::Value if variant_needs_drop => self.diagnostics.push(error(
+                                self.program,
+                                "SPX-O111",
+                                "plain variant match requires a Copy scrutinee",
+                                scrutinee.span,
+                            )),
+                            MatchMode::Own
+                                if !variant_needs_drop
+                                    || !self
+                                        .types
+                                        .is_flat_owned_byte_variant(&scrutinee_value.ty)
+                                    || scrutinee_value.mode != ParamMode::Own =>
+                            {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-O117",
+                                    "`match own` requires an owned admitted non-Copy variant scrutinee",
+                                    scrutinee.span,
+                                ));
+                            }
+                            MatchMode::Own if self.allow_moves => mark_value_sources_moved(
+                                scrutinee,
+                                &mut self.scopes[scope].bindings,
+                                self.types,
+                            ),
+                            MatchMode::Own => self.diagnostics.push(error(
+                                self.program,
+                                "SPX-O105",
+                                "contract expression cannot consume a match scrutinee",
+                                scrutinee.span,
+                            )),
+                            MatchMode::Borrow
+                                if !variant_needs_drop
+                                    || !self
+                                        .types
+                                        .is_flat_owned_byte_variant(&scrutinee_value.ty)
+                                    || !matches!(
+                                        scrutinee_value.mode,
+                                        ParamMode::Own | ParamMode::Borrow
+                                    )
+                                    || source_place(
+                                        scrutinee,
+                                        &self.scopes[scope].bindings,
+                                        self.types,
+                                    )
+                                    .is_none_or(|place| !place.projections.is_empty()) =>
+                            {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-O117",
+                                    "`match borrow` requires an unprojected named owned or borrowed admitted non-Copy variant place",
+                                    scrutinee.span,
+                                ));
+                            }
+                            MatchMode::Borrow | MatchMode::Value => {}
+                        }
+                    }
                     let outer_names = self.scopes[scope]
                         .bindings
                         .keys()
                         .cloned()
                         .collect::<Vec<_>>();
+                    let mut baseline = self.scopes[scope].bindings.clone();
+                    if match_mode == MatchMode::Borrow {
+                        if let Some(place) =
+                            source_place(scrutinee, &self.scopes[scope].bindings, self.types)
+                        {
+                            if place.projections.is_empty() {
+                                if let Some(owner) = baseline.get_mut(&place.root) {
+                                    owner.lexically_borrowed = true;
+                                }
+                            }
+                        }
+                    }
                     let state = VariantMatchState {
                         expression,
                         arms,
                         parent_scope: scope,
                         index: 0,
                         outer_names,
-                        baseline: self.scopes[scope].bindings.clone(),
+                        baseline,
                         arm_states: Vec::new(),
                         covered: HashSet::new(),
                         wildcard_seen: false,
@@ -7535,6 +7729,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             .map(|(_, arguments)| arguments)
                             .unwrap_or_default(),
                         declared_cases,
+                        mode: match_mode,
+                        needs_drop: variant_needs_drop,
                     };
                     self.frames
                         .push(VerifierFrame::PrepareVariantMatchArm(state));
@@ -7637,6 +7833,14 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     });
                     match &arm.pattern {
                         MatchPattern::Wildcard { span } => {
+                            if state.mode != MatchMode::Value {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-O117",
+                                    "explicit ownership variant match requires every case pattern",
+                                    *span,
+                                ));
+                            }
                             if state.wildcard_seen
                                 || state
                                     .declared_cases
@@ -7725,11 +7929,20 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                             })
                                         })
                                         .unwrap_or_else(|| declared_field.ty.clone());
+                                    let binding_mode = if self.types.needs_drop(&binding_ty) {
+                                        match state.mode {
+                                            MatchMode::Own => ParamMode::Own,
+                                            MatchMode::Borrow => ParamMode::Borrow,
+                                            MatchMode::Value => ParamMode::Value,
+                                        }
+                                    } else {
+                                        ParamMode::Value
+                                    };
                                     self.scopes[arm_scope].bindings.insert(
                                         field.binding.clone(),
                                         Binding {
                                             ty: binding_ty,
-                                            mode: ParamMode::Value,
+                                            mode: binding_mode,
                                             availability: Availability::Available,
                                             moved_places: HashMap::new(),
                                             definitely_partial: HashSet::new(),
@@ -7789,6 +8002,18 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         reject_native_unit_value(self.program, &arm.value, value, self.diagnostics);
                     }
                     if let Some(arm_value) = arm_value {
+                        if state.needs_drop
+                            && (state.mode == MatchMode::Value
+                                || !matches!(arm_value.ty, Type::I64 | Type::Bool)
+                                || arm_value.mode != ParamMode::Value)
+                        {
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-T216",
+                                "owned variant match arms must return a Copy i64 or bool value",
+                                arm.value.span,
+                            ));
+                        }
                         if let Some(expected) = &state.result {
                             if expected.ty != arm_value.ty || expected.mode != arm_value.mode {
                                 self.diagnostics.push(error(
@@ -8916,6 +9141,27 @@ fn check_expr(
                             field.value.span,
                         ));
                     }
+                    if types.needs_drop(&expected) && actual.mode == ParamMode::Own {
+                        if allow_moves {
+                            mark_value_sources_moved(&field.value, variables, types);
+                        } else {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-O105",
+                                "contract expression cannot transfer an owned variant payload",
+                                field.value.span,
+                            ));
+                        }
+                    } else if types.needs_drop(&expected)
+                        && matches!(actual.mode, ParamMode::Borrow | ParamMode::Shared)
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-O108",
+                            "cannot move an owned variant payload through a borrowed or shared value",
+                            field.value.span,
+                        ));
+                    }
                 }
             }
             if let Some(case) = case {
@@ -8933,7 +9179,7 @@ fn check_expr(
                     }
                 }
             }
-            case.map(|_| CheckedValue::value(instance))
+            case.map(|_| CheckedValue::returned(instance.clone(), types.needs_drop(&instance)))
         }
         ExprKind::Match {
             mode,
@@ -9337,6 +9583,56 @@ fn check_expr(
                 ));
             }
 
+            let variant_needs_drop = scrutinee_value
+                .as_ref()
+                .is_some_and(|value| types.needs_drop(&value.ty));
+            if let Some(scrutinee_value) = &scrutinee_value {
+                match mode {
+                    MatchMode::Value if variant_needs_drop => diagnostics.push(error(
+                        program,
+                        "SPX-O111",
+                        "plain variant match requires a Copy scrutinee",
+                        scrutinee.span,
+                    )),
+                    MatchMode::Own
+                        if !variant_needs_drop
+                            || !types.is_flat_owned_byte_variant(&scrutinee_value.ty)
+                            || scrutinee_value.mode != ParamMode::Own =>
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-O117",
+                            "`match own` requires an owned admitted non-Copy variant scrutinee",
+                            scrutinee.span,
+                        ));
+                    }
+                    MatchMode::Own if allow_moves => {
+                        mark_value_sources_moved(scrutinee, variables, types);
+                    }
+                    MatchMode::Own => diagnostics.push(error(
+                        program,
+                        "SPX-O105",
+                        "contract expression cannot consume a match scrutinee",
+                        scrutinee.span,
+                    )),
+                    MatchMode::Borrow
+                        if !variant_needs_drop
+                            || !types.is_flat_owned_byte_variant(&scrutinee_value.ty)
+                            || !matches!(scrutinee_value.mode, ParamMode::Own | ParamMode::Borrow)
+                            || source_place(scrutinee, variables, types)
+                                .is_none_or(|place| !place.projections.is_empty()) =>
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-O117",
+                            "`match borrow` requires an unprojected named owned or borrowed admitted non-Copy variant place",
+                            scrutinee.span,
+                        ));
+                    }
+                    MatchMode::Borrow | MatchMode::Value => {}
+                }
+            }
+
             let outer_names = variables.keys().cloned().collect::<Vec<_>>();
             let mut arm_states = Vec::new();
             let mut covered = HashSet::new();
@@ -9344,8 +9640,25 @@ fn check_expr(
             let mut result = None::<CheckedValue>;
             for arm in arms {
                 let mut arm_variables = variables.clone();
+                if *mode == MatchMode::Borrow {
+                    if let Some(place) = source_place(scrutinee, variables, types) {
+                        if place.projections.is_empty() {
+                            if let Some(owner) = arm_variables.get_mut(&place.root) {
+                                owner.lexically_borrowed = true;
+                            }
+                        }
+                    }
+                }
                 match &arm.pattern {
                     MatchPattern::Wildcard { span } => {
+                        if *mode != MatchMode::Value {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-O117",
+                                "explicit ownership variant match requires every case pattern",
+                                *span,
+                            ));
+                        }
                         if wildcard_seen
                             || declared_cases
                                 .is_some_and(|cases| covered.len() == cases.len())
@@ -9431,11 +9744,20 @@ fn check_expr(
                                         })
                                     })
                                     .unwrap_or_else(|| declared_field.ty.clone());
+                                let binding_mode = if types.needs_drop(&binding_ty) {
+                                    match mode {
+                                        MatchMode::Own => ParamMode::Own,
+                                        MatchMode::Borrow => ParamMode::Borrow,
+                                        MatchMode::Value => ParamMode::Value,
+                                    }
+                                } else {
+                                    ParamMode::Value
+                                };
                                 arm_variables.insert(
                                     field.binding.clone(),
                                     Binding {
                                         ty: binding_ty,
-                                        mode: ParamMode::Value,
+                                        mode: binding_mode,
                                         availability: Availability::Available,
                                         moved_places: HashMap::new(),
                                         definitely_partial: HashSet::new(),
@@ -9495,6 +9817,18 @@ fn check_expr(
                     reject_native_unit_value(program, &arm.value, value, diagnostics);
                 }
                 if let Some(arm_value) = arm_value {
+                    if variant_needs_drop
+                        && (*mode == MatchMode::Value
+                            || !matches!(arm_value.ty, Type::I64 | Type::Bool)
+                            || arm_value.mode != ParamMode::Value)
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T216",
+                            "owned variant match arms must return a Copy i64 or bool value",
+                            arm.value.span,
+                        ));
+                    }
                     if let Some(expected) = &result {
                         if expected.ty != arm_value.ty || expected.mode != arm_value.mode {
                             diagnostics.push(error(
@@ -9608,6 +9942,17 @@ fn check_expr(
                         format!(
                             "`?` cannot propagate error type {error_ty} into Result error type {residual_error_ty}"
                         ),
+                        expr.span,
+                    ));
+                }
+                if !matches!(ok, Type::I64 | Type::Bool)
+                    || !matches!(error_ty, Type::I64 | Type::Bool)
+                    || !matches!(residual_error_ty, Type::I64 | Type::Bool)
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T218",
+                        "Result `?` accepts only direct `i64` or `bool` success and error payloads",
                         expr.span,
                     ));
                 }
@@ -10535,18 +10880,22 @@ fn check_argument_ownership(
             )
             .with_help("create or receive an explicitly shared resource before this call"),
         ),
-        ParamMode::Borrow if types.is_flat_owned_byte_record(&actual.ty) => {
-            if !source_place(arg, variables, types)
-                .is_some_and(|place| place.projections.is_empty())
+        ParamMode::Borrow
+            if types.is_flat_owned_byte_record(&actual.ty)
+                || types.is_flat_owned_byte_variant(&actual.ty) =>
+        {
+            if !matches!(actual.mode, ParamMode::Own | ParamMode::Borrow)
+                || !source_place(arg, variables, types)
+                    .is_some_and(|place| place.projections.is_empty())
             {
                 diagnostics.push(
                     error(
                         program,
                         "SPX-O118",
-                        "borrowed owned-Bytes record argument must be an unprojected named place",
+                        "borrowed owned-Bytes aggregate argument must be an unprojected named place",
                         arg.span,
                     )
-                    .with_help("bind the record to a local before borrowing it"),
+                    .with_help("bind the owned aggregate to a local before borrowing it"),
                 );
             }
         }

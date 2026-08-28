@@ -26,9 +26,12 @@
 //! plus verified internal Portable Indexed Byte Data v1 fixed arrays, owned
 //! immutable `Bytes`, non-escaping byte views, and compiler-owned byte
 //! operations. Exact flat monomorphic records containing direct `Bytes` and
-//! Copy-scalar fields, plus one-arm `match own`/`match borrow`, are admitted
-//! only inside that resolved closure. These data values do not widen the
-//! public interpreter boundary. Other aggregate construction/projection/
+//! Copy-scalar fields, flat monomorphic owned-byte variants, plus
+//! compiler-owned `Option<Bytes>` and the exact
+//! `Result<Bytes, i64|bool>`/`Result<i64|bool, Bytes>` instances, are admitted
+//! only inside that resolved closure. Their explicit `match own`/`match borrow`
+//! forms preserve unique ownership without widening the public interpreter
+//! boundary. Other aggregate construction/projection/
 //! update, variant construction or matching, postfix `?`, import calls,
 //! generic calls, place projections, strings at the boundary, and
 //! backend-unlowerable scalar
@@ -594,8 +597,14 @@ pub(crate) fn evaluate_resolved_zero_arg_i64(
             .name("semaprax-resolved-evaluate".to_owned())
             .stack_size(EVALUATION_STACK_BYTES)
             .spawn_scoped(scope, || {
-                let (outcome, steps_used, _) =
-                    evaluate_resolved_entry(entry, &[], &admitted, max_steps, false);
+                let (outcome, steps_used, _) = evaluate_resolved_entry(
+                    entry,
+                    &[],
+                    &admitted,
+                    &program.declarations,
+                    max_steps,
+                    false,
+                );
                 let outcome = match outcome {
                     Ok(Value::Int(value)) => ResolvedEvaluationOutcome::ReturnedI64(value),
                     Ok(_) => ResolvedEvaluationOutcome::GuardError(
@@ -718,6 +727,7 @@ fn interpret_on_current_thread(
         entry,
         &parsed_arguments,
         &admitted,
+        &resolved.declarations,
         options.max_steps,
         false,
     );
@@ -863,6 +873,206 @@ fn is_admitted_owned_byte_record(declarations: &hir::DeclarationIndex, ty: &Reso
             .all(|field| field.ty == ResolvedType::Bytes || is_admitted_resolved_scalar(&field.ty))
 }
 
+/// Exact non-Copy sum profile admitted by Owned Byte Variant Algebra v1.
+/// Authored variants must be flat and monomorphic; generic admission is
+/// restricted to the exact compiler-owned prelude instances.
+fn is_admitted_owned_byte_variant(declarations: &hir::DeclarationIndex, ty: &ResolvedType) -> bool {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return false;
+    };
+    let Some(item) = declarations.declaration(declaration) else {
+        return false;
+    };
+    if item.kind != hir::DeclarationKind::Variant {
+        return false;
+    }
+    let compiler_owned = item.identity_origin == hir::IdentityOrigin::CompilerOwned
+        && hir::admitted_owned_byte_prelude_instance(declaration, arguments);
+    if compiler_owned {
+        return true;
+    }
+    if !arguments.is_empty() {
+        return false;
+    }
+    let Some(cases) = declarations.variant_cases(declaration) else {
+        return false;
+    };
+    cases
+        .iter()
+        .flat_map(|case| &case.fields)
+        .any(|field| field.ty == ResolvedType::Bytes)
+        && cases
+            .iter()
+            .flat_map(|case| &case.fields)
+            .all(|field| field.ty == ResolvedType::Bytes || is_admitted_resolved_scalar(&field.ty))
+}
+
+fn concrete_variant_case_fields(
+    declarations: &hir::DeclarationIndex,
+    ty: &ResolvedType,
+    case: &hir::DeclarationId,
+) -> Option<Vec<(hir::DeclarationId, ResolvedType)>> {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return None;
+    };
+    let declared_case = declarations
+        .variant_cases(declaration)?
+        .iter()
+        .find(|candidate| candidate.id == *case)?;
+    declared_case
+        .fields
+        .iter()
+        .map(|field| {
+            hir::substitute_type(&field.ty, declaration, arguments)
+                .ok()
+                .map(|ty| (field.id.clone(), ty))
+        })
+        .collect()
+}
+
+fn variant_constructor_is_admitted(
+    declarations: &hir::DeclarationIndex,
+    expression: &ResolvedExpr,
+) -> bool {
+    if !is_admitted_owned_byte_variant(declarations, &expression.ty)
+        || expression.ownership != hir::OwnershipMode::Own
+    {
+        return false;
+    }
+    let ResolvedType::Nominal {
+        declaration: concrete_variant,
+        ..
+    } = &expression.ty
+    else {
+        return false;
+    };
+    let ResolvedExprKind::ConstructVariant {
+        variant,
+        case,
+        fields,
+    } = &expression.kind
+    else {
+        return false;
+    };
+    if variant != concrete_variant {
+        return false;
+    }
+    let Some(declared_fields) = concrete_variant_case_fields(declarations, &expression.ty, case)
+    else {
+        return false;
+    };
+    if fields.len() != declared_fields.len() {
+        return false;
+    }
+    let mut seen = BTreeSet::new();
+    fields.iter().all(|field| {
+        let Some((_, declared_ty)) = declared_fields
+            .iter()
+            .find(|(field_id, _)| *field_id == field.field)
+        else {
+            return false;
+        };
+        seen.insert(field.field.clone())
+            && field.value.ty == *declared_ty
+            && field.value.ownership
+                == if *declared_ty == ResolvedType::Bytes {
+                    hir::OwnershipMode::Own
+                } else {
+                    hir::OwnershipMode::Value
+                }
+    })
+}
+
+fn variant_pattern_is_admitted(
+    declarations: &hir::DeclarationIndex,
+    mode: hir::ResolvedMatchMode,
+    ty: &ResolvedType,
+    arms: &[hir::ResolvedMatchArm],
+) -> bool {
+    if !is_admitted_owned_byte_variant(declarations, ty)
+        || !matches!(
+            mode,
+            hir::ResolvedMatchMode::Own | hir::ResolvedMatchMode::Borrow
+        )
+        || arms.is_empty()
+    {
+        return false;
+    }
+    let ResolvedType::Nominal {
+        declaration: expected_variant,
+        ..
+    } = ty
+    else {
+        return false;
+    };
+    let Some(declared_cases) = declarations.variant_cases(expected_variant) else {
+        return false;
+    };
+    let mut seen_cases = BTreeSet::new();
+    let mut seen_bindings = BTreeSet::new();
+    for arm in arms {
+        if arm.guard.is_some() {
+            return false;
+        }
+        let hir::ResolvedMatchPattern::Variant {
+            variant,
+            case,
+            fields,
+        } = &arm.pattern
+        else {
+            return false;
+        };
+        if variant != expected_variant || !seen_cases.insert(case.clone()) {
+            return false;
+        }
+        let Some(declared_fields) = concrete_variant_case_fields(declarations, ty, case) else {
+            return false;
+        };
+        if fields.len() != declared_fields.len() {
+            return false;
+        }
+        let mut seen_fields = BTreeSet::new();
+        for field in fields {
+            let Some((_, declared_ty)) = declared_fields
+                .iter()
+                .find(|(field_id, _)| *field_id == field.field)
+            else {
+                return false;
+            };
+            if !seen_fields.insert(field.field.clone())
+                || !seen_bindings.insert(field.binding.id.clone())
+                || field.binding.ty != *declared_ty
+            {
+                return false;
+            }
+            let expected_ownership = if *declared_ty == ResolvedType::Bytes {
+                match mode {
+                    hir::ResolvedMatchMode::Own => hir::OwnershipMode::Own,
+                    hir::ResolvedMatchMode::Borrow => hir::OwnershipMode::Borrow,
+                    hir::ResolvedMatchMode::Value => return false,
+                }
+            } else {
+                hir::OwnershipMode::Value
+            };
+            if field.binding.ownership != expected_ownership {
+                return false;
+            }
+        }
+    }
+    seen_cases.len() == declared_cases.len()
+        && declared_cases
+            .iter()
+            .all(|case| seen_cases.contains(&case.id))
+}
+
 fn record_pattern_is_admitted(
     declarations: &hir::DeclarationIndex,
     mode: hir::ResolvedMatchMode,
@@ -978,6 +1188,11 @@ fn scan_closure(
             ResolvedExprKind::ConstructRecord { .. } => {
                 Err(reject_scan(expression, REASON_RECORD_CONSTRUCTION))
             }
+            ResolvedExprKind::ConstructVariant { .. }
+                if variant_constructor_is_admitted(declarations, expression) =>
+            {
+                Ok(())
+            }
             ResolvedExprKind::ConstructVariant { .. } => {
                 Err(reject_scan(expression, REASON_VARIANT_CONSTRUCTION))
             }
@@ -1028,7 +1243,9 @@ fn scan_closure(
                         &scrutinee.ty,
                         &arms[0].pattern,
                     );
-                if (!scalar && !option_u8 && !owned_byte_record)
+                let owned_byte_variant = is_admitted_resolved_scalar(&expression.ty)
+                    && variant_pattern_is_admitted(declarations, *mode, &scrutinee.ty, arms);
+                if (!scalar && !option_u8 && !owned_byte_record && !owned_byte_variant)
                     || (scalar && !patterns_admitted)
                     || arms.is_empty()
                 {
@@ -1169,7 +1386,8 @@ fn resolved_data_signature_is_admitted(
             | (ResolvedType::SliceU8, hir::OwnershipMode::Borrow)
             | (ResolvedType::ArrayU8(_), hir::OwnershipMode::Borrow) => true,
             (ty, hir::OwnershipMode::Own | hir::OwnershipMode::Borrow)
-                if is_admitted_owned_byte_record(declarations, ty) =>
+                if is_admitted_owned_byte_record(declarations, ty)
+                    || is_admitted_owned_byte_variant(declarations, ty) =>
             {
                 true
             }
@@ -1180,7 +1398,8 @@ fn resolved_data_signature_is_admitted(
                 function.return_type,
                 ResolvedType::ArrayU8(_) | ResolvedType::Bytes
             )
-            || is_admitted_owned_byte_record(declarations, &function.return_type))
+            || is_admitted_owned_byte_record(declarations, &function.return_type)
+            || is_admitted_owned_byte_variant(declarations, &function.return_type))
 }
 
 pub(crate) fn evaluate_resolved_stdout_transcript(
@@ -1239,8 +1458,14 @@ pub(crate) fn evaluate_resolved_stdout_transcript(
     }
     hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
     scan_closure(entry_id, &admitted, &program.declarations)?;
-    let (evaluated, steps_used, mut transcript) =
-        evaluate_resolved_entry(entry, &[], &admitted, max_steps, true);
+    let (evaluated, steps_used, mut transcript) = evaluate_resolved_entry(
+        entry,
+        &[],
+        &admitted,
+        &program.declarations,
+        max_steps,
+        true,
+    );
     let outcome = match evaluated {
         Ok(Value::Int(value)) => ResolvedEvaluationOutcome::ReturnedI64(value),
         Ok(_) => ResolvedEvaluationOutcome::GuardError(
@@ -1364,6 +1589,7 @@ pub(crate) fn evaluate_resolved_language_command(
     };
     let mut evaluator = Evaluator {
         admitted: &admitted,
+        declarations: &program.declarations,
         steps: 0,
         budget: max_steps,
         next_byte_allocation: 0,
@@ -1528,6 +1754,11 @@ enum Value {
     /// by authenticated declaration identity; source display names never
     /// participate in runtime selection.
     Record(Arc<OwnedRecordValue>),
+    /// Exact authenticated non-Copy variant carrier. The concrete nominal
+    /// instance, active case, and payload fields are all stable-ID keyed so a
+    /// display-name collision or wrong generic substitution cannot select or
+    /// transfer an owned payload.
+    Variant(Arc<OwnedVariantValue>),
     /// Runtime tombstone for a verifier-authenticated move from an owned
     /// storage slot. Reaching it again is an impossible post-verify state.
     Moved,
@@ -1612,6 +1843,14 @@ struct OwnedBytesValue {
 #[derive(Clone, Debug, PartialEq)]
 struct OwnedRecordValue {
     record: hir::DeclarationId,
+    fields: BTreeMap<hir::DeclarationId, Value>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct OwnedVariantValue {
+    ty: ResolvedType,
+    variant: hir::DeclarationId,
+    case: hir::DeclarationId,
     fields: BTreeMap<hir::DeclarationId, Value>,
 }
 
@@ -1714,6 +1953,7 @@ type Environment = Vec<(ValueId, Value)>;
 
 struct Evaluator<'a> {
     admitted: &'a BTreeMap<&'a str, &'a ResolvedFunction>,
+    declarations: &'a hir::DeclarationIndex,
     steps: usize,
     budget: usize,
     next_byte_allocation: u32,
@@ -1733,11 +1973,13 @@ fn evaluate_resolved_entry<'a>(
     entry: &'a ResolvedFunction,
     arguments: &[(String, ArgumentValue)],
     admitted: &'a BTreeMap<&'a str, &'a ResolvedFunction>,
+    declarations: &'a hir::DeclarationIndex,
     budget: usize,
     host_stdout: bool,
 ) -> (Result<Value, Flow>, usize, Vec<u8>) {
     let mut evaluator = Evaluator {
         admitted,
+        declarations,
         steps: 0,
         budget,
         next_byte_allocation: 0,
@@ -1783,6 +2025,26 @@ impl Evaluator<'_> {
             return None;
         }
         Some(std::mem::replace(value, Value::Moved))
+    }
+
+    fn value_has_type(&self, value: &Value, ty: &ResolvedType) -> bool {
+        match (value, ty) {
+            (Value::Int(_), ResolvedType::I64)
+            | (Value::Int32(_), ResolvedType::I32)
+            | (Value::Uint8(_), ResolvedType::U8)
+            | (Value::Usize(_), ResolvedType::Usize)
+            | (Value::Char(_), ResolvedType::Char)
+            | (Value::Float32(_), ResolvedType::F32)
+            | (Value::Float64(_), ResolvedType::F64)
+            | (Value::Bool(_), ResolvedType::Bool)
+            | (Value::Bytes(_), ResolvedType::Bytes) => true,
+            (Value::Variant(carrier), expected) => &carrier.ty == expected,
+            (Value::Record(carrier), ResolvedType::Nominal { declaration, .. }) => {
+                &carrier.record == declaration
+                    && is_admitted_owned_byte_record(self.declarations, ty)
+            }
+            _ => false,
+        }
     }
 
     fn evaluate_entry(
@@ -2224,6 +2486,64 @@ impl Evaluator<'_> {
                     fields: values,
                 })))
             }
+            ResolvedExprKind::ConstructVariant {
+                variant,
+                case,
+                fields,
+            } => {
+                if !is_admitted_owned_byte_variant(self.declarations, &expression.ty) {
+                    return Err(Flow::Guard(
+                        "variant construction is outside owned byte variant v1",
+                    ));
+                }
+                let ResolvedType::Nominal {
+                    declaration: concrete_variant,
+                    ..
+                } = &expression.ty
+                else {
+                    return Err(Flow::Guard("owned byte variant type is not nominal"));
+                };
+                if concrete_variant != variant {
+                    return Err(Flow::Guard(
+                        "variant constructor identity disagrees with its concrete type",
+                    ));
+                }
+                let declared_fields =
+                    concrete_variant_case_fields(self.declarations, &expression.ty, case).ok_or(
+                        Flow::Guard("variant constructor references an unauthenticated case"),
+                    )?;
+                if fields.len() != declared_fields.len() {
+                    return Err(Flow::Guard(
+                        "variant constructor field inventory is incomplete",
+                    ));
+                }
+                let mut values = BTreeMap::new();
+                for field in fields {
+                    let declared_ty = declared_fields
+                        .iter()
+                        .find_map(|(field_id, ty)| (field_id == &field.field).then_some(ty))
+                        .ok_or(Flow::Guard(
+                            "variant constructor references an unauthenticated field",
+                        ))?;
+                    let value = self.evaluate(&field.value, environment, depth)?;
+                    if !self.value_has_type(&value, declared_ty) {
+                        return Err(Flow::Guard(
+                            "variant constructor payload disagrees with its concrete field type",
+                        ));
+                    }
+                    if values.insert(field.field.clone(), value).is_some() {
+                        return Err(Flow::Guard(
+                            "variant construction repeated an authenticated field identity",
+                        ));
+                    }
+                }
+                Ok(Value::Variant(Arc::new(OwnedVariantValue {
+                    ty: expression.ty.clone(),
+                    variant: variant.clone(),
+                    case: case.clone(),
+                    fields: values,
+                })))
+            }
             ResolvedExprKind::Call {
                 callee,
                 instance,
@@ -2653,6 +2973,126 @@ impl Evaluator<'_> {
                     environment.truncate(base);
                     return outcome;
                 }
+                if let Value::Variant(variant) = staged {
+                    if !variant_pattern_is_admitted(self.declarations, *mode, &scrutinee.ty, arms) {
+                        return Err(Flow::Guard(
+                            "owned byte variant match is outside the authenticated profile",
+                        ));
+                    }
+                    let ResolvedType::Nominal {
+                        declaration: expected_variant,
+                        ..
+                    } = &scrutinee.ty
+                    else {
+                        return Err(Flow::Guard("owned byte variant scrutinee is not nominal"));
+                    };
+                    if variant.ty != scrutinee.ty || &variant.variant != expected_variant {
+                        return Err(Flow::Guard(
+                            "owned byte variant runtime carrier disagrees with its scrutinee",
+                        ));
+                    }
+                    let arm = arms
+                        .iter()
+                        .find(|arm| {
+                            matches!(
+                                &arm.pattern,
+                                hir::ResolvedMatchPattern::Variant { case, .. }
+                                    if case == &variant.case
+                            )
+                        })
+                        .ok_or(Flow::Guard(
+                            "owned byte variant active case selected no exhaustive arm",
+                        ))?;
+                    let hir::ResolvedMatchPattern::Variant {
+                        variant: pattern_variant,
+                        case: pattern_case,
+                        fields,
+                    } = &arm.pattern
+                    else {
+                        unreachable!("admitted owned byte variant arm is a variant pattern")
+                    };
+                    if pattern_variant != &variant.variant || pattern_case != &variant.case {
+                        return Err(Flow::Guard(
+                            "owned byte variant pattern identity disagrees with its carrier",
+                        ));
+                    }
+                    let declared_fields =
+                        concrete_variant_case_fields(self.declarations, &variant.ty, &variant.case)
+                            .ok_or(Flow::Guard(
+                                "owned byte variant carrier has an unauthenticated active case",
+                            ))?;
+                    if fields.len() != declared_fields.len()
+                        || variant.fields.len() != declared_fields.len()
+                    {
+                        return Err(Flow::Guard(
+                            "owned byte variant active payload inventory is inconsistent",
+                        ));
+                    }
+                    let mut bindings = Vec::with_capacity(fields.len());
+                    match mode {
+                        hir::ResolvedMatchMode::Own => {
+                            let mut variant = Arc::try_unwrap(variant).map_err(|_| {
+                                Flow::Guard("owned byte variant still has a live alias at transfer")
+                            })?;
+                            for field in fields {
+                                let declared_ty = declared_fields
+                                    .iter()
+                                    .find_map(|(field_id, ty)| {
+                                        (field_id == &field.field).then_some(ty)
+                                    })
+                                    .ok_or(Flow::Guard(
+                                        "owned byte variant pattern references an unauthenticated field",
+                                    ))?;
+                                let value =
+                                    variant.fields.remove(&field.field).ok_or(Flow::Guard(
+                                        "owned byte variant pattern references an absent payload",
+                                    ))?;
+                                if !self.value_has_type(&value, declared_ty) {
+                                    return Err(Flow::Guard(
+                                        "owned byte variant payload type changed before transfer",
+                                    ));
+                                }
+                                bindings.push((field.binding.id.clone(), value));
+                            }
+                            if !variant.fields.is_empty() {
+                                return Err(Flow::Guard(
+                                    "owned byte variant transfer left unauthenticated payloads",
+                                ));
+                            }
+                        }
+                        hir::ResolvedMatchMode::Borrow => {
+                            for field in fields {
+                                let declared_ty = declared_fields
+                                    .iter()
+                                    .find_map(|(field_id, ty)| {
+                                        (field_id == &field.field).then_some(ty)
+                                    })
+                                    .ok_or(Flow::Guard(
+                                        "borrowed byte variant pattern references an unauthenticated field",
+                                    ))?;
+                                let value = variant.fields.get(&field.field).ok_or(Flow::Guard(
+                                    "borrowed byte variant pattern references an absent payload",
+                                ))?;
+                                if !self.value_has_type(value, declared_ty) {
+                                    return Err(Flow::Guard(
+                                        "borrowed byte variant payload type changed before aliasing",
+                                    ));
+                                }
+                                bindings.push((field.binding.id.clone(), value.clone()));
+                            }
+                        }
+                        hir::ResolvedMatchMode::Value => {
+                            return Err(Flow::Guard(
+                                "owned byte variant reached a plain value match",
+                            ));
+                        }
+                    }
+                    let base = environment.len();
+                    environment.extend(bindings);
+                    let outcome = self.evaluate(&arm.value, environment, depth);
+                    environment.truncate(base);
+                    return outcome;
+                }
                 for arm in arms {
                     let mut aggregate_bindings = Vec::new();
                     let selected = match &arm.pattern {
@@ -2753,8 +3193,7 @@ impl Evaluator<'_> {
                 }
                 Err(Flow::Guard("refutable match selected no arm"))
             }
-            ResolvedExprKind::ConstructVariant { .. }
-            | ResolvedExprKind::UpdateRecord { .. }
+            ResolvedExprKind::UpdateRecord { .. }
             | ResolvedExprKind::Project { .. }
             | ResolvedExprKind::Upcast { .. }
             | ResolvedExprKind::Try { .. }
@@ -3600,6 +4039,83 @@ mod tests {
                 "zero-argument i64 entry returned a non-i64 value".to_owned()
             )
         );
+    }
+
+    #[test]
+    fn owned_byte_variant_runtime_rejects_hostile_case_and_field_identities() {
+        let program = resolved(include_str!("../tests/owned_byte_variant_v1_fixture.spx"));
+        for mutate_field in [false, true] {
+            let mut hostile = program.clone();
+            let body = &mut hostile
+                .functions
+                .iter_mut()
+                .find(|function| function.id.as_str() == "sum.make")
+                .expect("fixture make function")
+                .body;
+            let ResolvedExprKind::Block {
+                tail: constructor, ..
+            } = &mut body.kind
+            else {
+                panic!("fixture make body must remain a block")
+            };
+            let ResolvedExprKind::ConstructVariant { case, fields, .. } = &mut constructor.kind
+            else {
+                panic!("fixture make body must construct the owned variant")
+            };
+            if mutate_field {
+                fields[0].field = hir::DeclarationId::new("hostile.variant.field");
+            } else {
+                *case = hir::DeclarationId::new("hostile.variant.case");
+            }
+            let diagnostics =
+                evaluate_resolved_zero_arg_i64(&hostile, "app.main", 10_000).unwrap_err();
+            assert_eq!(diagnostics[0].code, "SPX-F102");
+            assert!(diagnostics[0].message.contains(REASON_VARIANT_CONSTRUCTION));
+        }
+
+        let inspect = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "sum.inspect")
+            .expect("fixture inspect function");
+        let parameter = &inspect.params[0];
+        let ResolvedType::Nominal { declaration, .. } = &parameter.ty else {
+            panic!("fixture inspect parameter must be the owned variant")
+        };
+        let admitted = admitted_resolved_functions(&program);
+        for (case, fields) in [
+            (
+                hir::DeclarationId::new("hostile.variant.case"),
+                BTreeMap::new(),
+            ),
+            (hir::DeclarationId::new("sum.choice.data"), BTreeMap::new()),
+        ] {
+            let mut evaluator = Evaluator {
+                admitted: &admitted,
+                declarations: &program.declarations,
+                steps: 0,
+                budget: 10_000,
+                next_byte_allocation: 0,
+                allocated_byte_payload: 0,
+                stdout_transcript: None,
+                stderr_transcript: None,
+                command_input: None,
+            };
+            let outcome = evaluator.call_frame(
+                inspect,
+                vec![(
+                    parameter.id.clone(),
+                    Value::Variant(Arc::new(OwnedVariantValue {
+                        ty: parameter.ty.clone(),
+                        variant: declaration.clone(),
+                        case,
+                        fields,
+                    })),
+                )],
+                0,
+            );
+            assert!(matches!(outcome, Err(Flow::Guard(_))));
+        }
     }
 
     #[test]

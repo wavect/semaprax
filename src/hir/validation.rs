@@ -216,24 +216,34 @@ pub(super) struct HirValidator<'a> {
     functions: BTreeMap<DeclarationId, &'a ResolvedFunction>,
     expression_ids: BTreeSet<ExpressionId>,
     value_ids: BTreeSet<ValueId>,
-    byte_slice_aliases: BTreeMap<ValueId, ValueId>,
+    byte_slice_aliases: BTreeMap<ValueId, Place>,
     canonical_loan_ids: BTreeMap<(ExpressionId, LoanCause), LoanId>,
-    canonical_loan_liveness: BTreeSet<(ExpressionId, LoanPointPhase, LoanId)>,
+    canonical_loan_liveness: BTreeMap<(ExpressionId, LoanPointPhase, LoanId), Place>,
 }
 
 impl<'a> HirValidator<'a> {
-    fn binding_has_live_loans(
+    fn binding_has_live_overlapping_loans(
         &self,
         binding: &ValidationBinding,
+        requested: &Place,
         expression: &ExpressionId,
         phase: LoanPointPhase,
     ) -> Result<bool, Diagnostic> {
         for loan in &binding.active_loans {
-            if self
-                .canonical_loan_liveness
-                .contains(&(expression.clone(), phase, *loan))
+            if let Some(origin) =
+                self.canonical_loan_liveness
+                    .get(&(expression.clone(), phase, *loan))
             {
-                return Ok(true);
+                if origin.root != requested.root {
+                    return Err(hir_error(
+                        "active shared-loan provenance disagrees with its owner binding",
+                    ));
+                }
+                if path_is_prefix(&origin.projections, &requested.projections)
+                    || path_is_prefix(&requested.projections, &origin.projections)
+                {
+                    return Ok(true);
+                }
             }
         }
         Ok(false)
@@ -323,7 +333,7 @@ impl<'a> HirValidator<'a> {
             }
         }
         let mut canonical_loan_ids = BTreeMap::new();
-        let mut canonical_loan_liveness = BTreeSet::new();
+        let mut canonical_loan_liveness = BTreeMap::new();
         for function in program.functions.iter().chain(
             program
                 .function_instances
@@ -331,18 +341,34 @@ impl<'a> HirValidator<'a> {
                 .map(|instance| &instance.function),
         ) {
             let plan = crate::loan_plan::build_plan(program, function)?;
+            let origins = plan
+                .loans
+                .iter()
+                .map(|loan| (loan.id, loan.origin.clone()))
+                .collect::<BTreeMap<_, _>>();
             for endpoint in &plan.endpoints {
                 let live = match endpoint.point.phase {
                     LoanPointPhase::Before => &endpoint.live_before,
                     LoanPointPhase::After => &endpoint.live_after,
                 };
-                canonical_loan_liveness.extend(live.iter().map(|loan| {
-                    (
-                        endpoint.point.expression.clone(),
-                        endpoint.point.phase,
-                        *loan,
-                    )
-                }));
+                for loan in live {
+                    let origin = origins.get(loan).cloned().ok_or_else(|| {
+                        hir_error("canonical shared-loan endpoint names an unknown loan")
+                    })?;
+                    if canonical_loan_liveness
+                        .insert(
+                            (
+                                endpoint.point.expression.clone(),
+                                endpoint.point.phase,
+                                *loan,
+                            ),
+                            origin,
+                        )
+                        .is_some()
+                    {
+                        return Err(hir_error("canonical shared-loan liveness is duplicated"));
+                    }
+                }
             }
             for loan in plan.loans {
                 if loan.start.phase != LoanPointPhase::Before
@@ -2173,8 +2199,13 @@ impl<'a> HirValidator<'a> {
                 )));
             }
             if param.ty == ResolvedType::SliceU8 {
-                self.byte_slice_aliases
-                    .insert(param.id.clone(), param.id.clone());
+                self.byte_slice_aliases.insert(
+                    param.id.clone(),
+                    Place {
+                        root: param.id.clone(),
+                        projections: Vec::new(),
+                    },
+                );
             }
             scope.insert(
                 param.id.clone(),
@@ -3262,17 +3293,7 @@ impl<'a> HirValidator<'a> {
                                 .ok_or_else(|| {
                                     hir_error("byte view has an invalid compiler-owned operation")
                                 })?;
-                            if !place.projections.is_empty() {
-                                return Err(hir_error(
-                                    "byte view must borrow an exact named storage root",
-                                ));
-                            }
-                            let binding = scope
-                                .get(&place.root)
-                                .ok_or_else(|| hir_error("byte view root is out of scope"))?;
-                            if !op.accepts_resolved(0, &binding.ty) {
-                                return Err(hir_error("byte view root has the wrong storage type"));
-                            }
+                            self.validate_byte_view_place(op, place, &scope)?;
                             self.finish_expr(
                                 expression,
                                 &ResolvedType::SliceU8,
@@ -4588,15 +4609,15 @@ impl<'a> HirValidator<'a> {
                     }
                     self.validate_declared_ownership(&binding.ty, binding.ownership)?;
                     if binding.ty == ResolvedType::SliceU8 {
-                        let (place, root) = match &value.kind {
+                        let (place, origin) = match &value.kind {
                             ResolvedExprKind::Place(place) => {
-                                let root = self.byte_slice_aliases.get(&place.root).cloned().ok_or_else(|| {
+                                let origin = self.byte_slice_aliases.get(&place.root).cloned().ok_or_else(|| {
                                     hir_error("byte-slice local alias lacks symbolic parameter-root provenance")
                                 })?;
-                                (place, root)
+                                (place, origin)
                             }
                             ResolvedExprKind::BorrowPlace { place, .. } => {
-                                (place, place.root.clone())
+                                (place, place.clone())
                             }
                             ResolvedExprKind::ByteRange { source, .. } => {
                                 let ResolvedExprKind::Place(place) = &source.kind else {
@@ -4604,7 +4625,7 @@ impl<'a> HirValidator<'a> {
                                         "byte range local source must be an exact named slice",
                                     ));
                                 };
-                                let root = self
+                                let origin = self
                                     .byte_slice_aliases
                                     .get(&place.root)
                                     .cloned()
@@ -4613,7 +4634,7 @@ impl<'a> HirValidator<'a> {
                                             "byte range local lacks symbolic root provenance",
                                         )
                                     })?;
-                                (place, root)
+                                (place, origin)
                             }
                             _ => return Err(hir_error(
                                 "byte-slice local must be a direct immutable alias or authenticated view",
@@ -4624,20 +4645,15 @@ impl<'a> HirValidator<'a> {
                                 "byte-slice local alias must be immutable and unprojected",
                             ));
                         }
-                        self.byte_slice_aliases.insert(binding.id.clone(), root);
-                        let borrowed_place = match &value.kind {
-                            ResolvedExprKind::BorrowPlace { place, .. } => Some(place),
-                            ResolvedExprKind::ByteRange { source, .. } => {
-                                if let ResolvedExprKind::Place(place) = &source.kind {
-                                    Some(place)
-                                } else {
-                                    None
-                                }
-                            }
+                        self.byte_slice_aliases
+                            .insert(binding.id.clone(), origin.clone());
+                        let borrowed_origin = match &value.kind {
+                            ResolvedExprKind::BorrowPlace { .. }
+                            | ResolvedExprKind::ByteRange { .. } => Some(origin),
                             _ => None,
                         };
-                        if let Some(place) = borrowed_place {
-                            let owner = scope.get_mut(&place.root).ok_or_else(|| {
+                        if let Some(origin) = borrowed_origin {
+                            let owner = scope.get_mut(&origin.root).ok_or_else(|| {
                                 hir_error("byte view owner disappeared before lexical borrow")
                             })?;
                             owner.active_loans.extend(self.exact_loan_id(
@@ -4704,7 +4720,16 @@ impl<'a> HirValidator<'a> {
                             binding.id
                         )));
                     };
-                    if self.binding_has_live_loans(&target, &assigned.id, LoanPointPhase::After)? {
+                    let assigned_place = Place {
+                        root: binding.id.clone(),
+                        projections: field.iter().cloned().map(PlaceProjection::Field).collect(),
+                    };
+                    if self.binding_has_live_overlapping_loans(
+                        &target,
+                        &assigned_place,
+                        &assigned.id,
+                        LoanPointPhase::After,
+                    )? {
                         return Err(hir_error(
                             "SPX-T265: assignment would replace lexically borrowed byte storage",
                         ));
@@ -6348,17 +6373,7 @@ impl<'a> HirValidator<'a> {
                     .ok_or_else(|| {
                         hir_error("byte view has an invalid compiler-owned operation")
                     })?;
-                if !place.projections.is_empty() {
-                    return Err(hir_error(
-                        "byte view must borrow an exact named storage root",
-                    ));
-                }
-                let binding = scope
-                    .get(&place.root)
-                    .ok_or_else(|| hir_error("byte view root is out of scope"))?;
-                if !op.accepts_resolved(0, &binding.ty) {
-                    return Err(hir_error("byte view root has the wrong storage type"));
-                }
+                self.validate_byte_view_place(op, place, scope)?;
                 (ResolvedType::SliceU8, OwnershipMode::Borrow)
             }
             ResolvedExprKind::ByteRange {
@@ -6809,15 +6824,15 @@ impl<'a> HirValidator<'a> {
                             }
                             self.validate_declared_ownership(&binding.ty, binding.ownership)?;
                             if binding.ty == ResolvedType::SliceU8 {
-                                let (place, root) = match &value.kind {
+                                let (place, origin) = match &value.kind {
                                     ResolvedExprKind::Place(place) => {
-                                        let root = self.byte_slice_aliases.get(&place.root).cloned().ok_or_else(|| {
+                                        let origin = self.byte_slice_aliases.get(&place.root).cloned().ok_or_else(|| {
                                             hir_error("byte-slice local alias lacks symbolic parameter-root provenance")
                                         })?;
-                                        (place, root)
+                                        (place, origin)
                                     }
                                     ResolvedExprKind::BorrowPlace { place, .. } => {
-                                        (place, place.root.clone())
+                                        (place, place.clone())
                                     }
                                     ResolvedExprKind::ByteRange { source, .. } => {
                                         let ResolvedExprKind::Place(place) = &source.kind else {
@@ -6825,10 +6840,10 @@ impl<'a> HirValidator<'a> {
                                                 "byte range local source must be an exact named slice",
                                             ));
                                         };
-                                        let root = self.byte_slice_aliases.get(&place.root).cloned().ok_or_else(|| {
+                                        let origin = self.byte_slice_aliases.get(&place.root).cloned().ok_or_else(|| {
                                             hir_error("byte range local lacks symbolic root provenance")
                                         })?;
-                                        (place, root)
+                                        (place, origin)
                                     }
                                     _ => return Err(hir_error(
                                         "byte-slice local must be a direct immutable alias or authenticated view",
@@ -6839,21 +6854,16 @@ impl<'a> HirValidator<'a> {
                                         "byte-slice local alias must be immutable and unprojected",
                                     ));
                                 }
-                                self.byte_slice_aliases.insert(binding.id.clone(), root);
-                                let borrowed_place = match &value.kind {
-                                    ResolvedExprKind::BorrowPlace { place, .. } => Some(place),
-                                    ResolvedExprKind::ByteRange { source, .. } => {
-                                        if let ResolvedExprKind::Place(place) = &source.kind {
-                                            Some(place)
-                                        } else {
-                                            None
-                                        }
-                                    }
+                                self.byte_slice_aliases
+                                    .insert(binding.id.clone(), origin.clone());
+                                let borrowed_origin = match &value.kind {
+                                    ResolvedExprKind::BorrowPlace { .. }
+                                    | ResolvedExprKind::ByteRange { .. } => Some(origin),
                                     _ => None,
                                 };
-                                if let Some(place) = borrowed_place {
+                                if let Some(origin) = borrowed_origin {
                                     let owner =
-                                        block_scope.get_mut(&place.root).ok_or_else(|| {
+                                        block_scope.get_mut(&origin.root).ok_or_else(|| {
                                             hir_error(
                                                 "byte view owner disappeared before lexical borrow",
                                             )
@@ -6907,8 +6917,17 @@ impl<'a> HirValidator<'a> {
                                     binding.id
                                 )));
                             };
-                            if self.binding_has_live_loans(
+                            let assigned_place = Place {
+                                root: binding.id.clone(),
+                                projections: field
+                                    .iter()
+                                    .cloned()
+                                    .map(PlaceProjection::Field)
+                                    .collect(),
+                            };
+                            if self.binding_has_live_overlapping_loans(
                                 &target,
+                                &assigned_place,
                                 &assigned.id,
                                 LoanPointPhase::After,
                             )? {
@@ -8159,6 +8178,40 @@ impl<'a> HirValidator<'a> {
         Ok((ty, ownership))
     }
 
+    fn validate_byte_view_place(
+        &self,
+        operation: crate::byte_ops::ByteOp,
+        place: &Place,
+        scope: &BTreeMap<ValueId, ValidationBinding>,
+    ) -> Result<(), Diagnostic> {
+        let binding = scope
+            .get(&place.root)
+            .ok_or_else(|| hir_error("byte view root is out of scope"))?;
+        if Self::place_availability(binding, &place.projections) != Availability::Available {
+            return Err(hir_error("byte view place is moved or conditionally moved"));
+        }
+        let (place_ty, place_ownership) = self.resolve_place(place, binding)?;
+        if place.projections.is_empty() {
+            if !operation.accepts_resolved(0, &place_ty) {
+                return Err(hir_error("byte view root has the wrong storage type"));
+            }
+            return Ok(());
+        }
+        if operation != crate::byte_ops::ByteOp::BytesAsSlice
+            || place.projections.len() != 1
+            || !matches!(place.projections[0], PlaceProjection::Field(_))
+            || binding.ownership != OwnershipMode::Own
+            || !resolved_type_is_flat_owned_byte_record(self.program, &binding.ty)
+            || place_ty != ResolvedType::Bytes
+            || place_ownership != OwnershipMode::Own
+        {
+            return Err(hir_error(
+                "projected byte view is outside the exact direct owned-Bytes field profile",
+            ));
+        }
+        Ok(())
+    }
+
     fn field_type_for_type(
         &self,
         ty: &ResolvedType,
@@ -8276,8 +8329,9 @@ impl<'a> HirValidator<'a> {
                             && Self::place_availability(binding, &place.projections)
                                 == Availability::Available;
                         if should_move {
-                            if self.binding_has_live_loans(
+                            if self.binding_has_live_overlapping_loans(
                                 binding,
+                                place,
                                 &expression.id,
                                 LoanPointPhase::Before,
                             )? {
@@ -8731,13 +8785,20 @@ impl<'a> HirValidator<'a> {
             match param.ownership {
                 OwnershipMode::Own => actual == OwnershipMode::Own,
                 OwnershipMode::Borrow => {
-                    (!resolved_type_is_flat_owned_byte_record(self.program, &param.ty)
-                        && !resolved_type_is_flat_owned_byte_variant(self.program, &param.ty))
-                        || (matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
-                            && matches!(
-                                &argument.kind,
-                                ResolvedExprKind::Place(place) if place.projections.is_empty()
-                            ))
+                    let exact_place = matches!(
+                        &argument.kind,
+                        ResolvedExprKind::Place(place) if place.projections.is_empty()
+                    );
+                    if param.ty != ResolvedType::Bytes
+                        && resolved_type_contains_owned_bytes(self.program, &param.ty)
+                    {
+                        (resolved_type_is_flat_owned_byte_record(self.program, &param.ty)
+                            || resolved_type_is_flat_owned_byte_variant(self.program, &param.ty))
+                            && matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
+                            && exact_place
+                    } else {
+                        true
+                    }
                 }
                 OwnershipMode::Shared => actual == OwnershipMode::Shared,
                 OwnershipMode::Value => false,
@@ -9294,9 +9355,13 @@ fn deep(bytes: borrow Slice<u8>) -> usize {
                 // before invoking this private admission pass. Recreate that
                 // exact prerequisite because this focused test calls the pass
                 // directly instead of revalidating the whole function.
-                validator
-                    .byte_slice_aliases
-                    .insert(slice_parameter.clone(), slice_parameter);
+                validator.byte_slice_aliases.insert(
+                    slice_parameter.clone(),
+                    Place {
+                        root: slice_parameter,
+                        projections: Vec::new(),
+                    },
+                );
                 validator.validate_while_admission(&baseline).unwrap();
                 validator.validate_while_admission(&nested).unwrap();
                 (program, nested)

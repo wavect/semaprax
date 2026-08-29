@@ -4964,16 +4964,20 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 ));
                             }
                             if op.is_view()
-                                && !matches!(
-                                    args.first().map(|arg| &arg.kind),
-                                    Some(ExprKind::Var(_))
-                                )
+                                && args.first().is_none_or(|argument| {
+                                    !source_byte_view_place_is_admitted(
+                                        op,
+                                        argument,
+                                        &self.scopes[scope].bindings,
+                                        self.types,
+                                    )
+                                })
                             {
                                 self.diagnostics.push(error(
                                     self.program,
                                     "SPX-T266",
                                     format!(
-                                        "byte view `{name}` requires an exact named storage root"
+                                        "byte view `{name}` requires an exact admitted storage place"
                                     ),
                                     expression.span,
                                 ));
@@ -5970,6 +5974,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                             name,
                                             *name_span,
                                             &self.scopes[block_scope].bindings,
+                                            self.types,
                                         )
                                     })
                                     .flatten();
@@ -6016,12 +6021,16 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             value,
                             ..
                         } => {
+                            let assigned_projections = field
+                                .iter()
+                                .map(|field| field.name.clone())
+                                .collect::<Vec<_>>();
                             let target = self.scopes[block_scope].bindings.get(name.as_str()).map(
                                 |binding| {
                                     (
                                         binding.mutable,
                                         binding.ty.clone(),
-                                        !binding.active_loans.is_empty(),
+                                        has_active_overlapping_loan(binding, &assigned_projections),
                                     )
                                 },
                             );
@@ -10361,7 +10370,15 @@ fn check_expr(
                                 }
                             }
                             let borrow_origin = (actual.ty == Type::SliceU8)
-                                .then(|| local_borrow_origin(value, name, *name_span, &scope))
+                                .then(|| {
+                                    local_borrow_origin(
+                                        value,
+                                        name,
+                                        *name_span,
+                                        &scope,
+                                        types,
+                                    )
+                                })
                                 .flatten();
                             if let Some(origin) = &borrow_origin {
                                 activate_local_loan(&mut scope, origin);
@@ -11031,8 +11048,8 @@ fn check_argument_ownership(
             .with_help("create or receive an explicitly shared resource before this call"),
         ),
         ParamMode::Borrow
-            if types.is_flat_owned_byte_record(&actual.ty)
-                || types.is_flat_owned_byte_variant(&actual.ty) =>
+            if types.is_flat_owned_byte_record(&param.ty)
+                || types.is_flat_owned_byte_variant(&param.ty) =>
         {
             if !matches!(actual.mode, ParamMode::Own | ParamMode::Borrow)
                 || !source_place(arg, variables, types)
@@ -11049,8 +11066,61 @@ fn check_argument_ownership(
                 );
             }
         }
+        ParamMode::Borrow if param.ty == Type::Bytes => {
+            let projected = source_place(arg, variables, types)
+                .is_some_and(|place| !place.projections.is_empty());
+            if !projected {
+                return;
+            }
+            let admitted = crate::byte_ops::by_name(callee).is_some_and(|operation| {
+                operation == crate::byte_ops::ByteOp::BytesAsSlice
+                    && source_byte_view_place_is_admitted(operation, arg, variables, types)
+            });
+            if !admitted || actual.mode != ParamMode::Own {
+                diagnostics.push(
+                    error(
+                        program,
+                        "SPX-T266",
+                        "owned byte view requires an exact admitted storage place",
+                        arg.span,
+                    )
+                    .with_help(
+                        "use an owned Bytes local or one direct Bytes field of a flat owned record",
+                    ),
+                );
+            }
+        }
+        ParamMode::Borrow if types.contains_owned_bytes(&param.ty) => diagnostics.push(
+            error(
+                program,
+                "SPX-O118",
+                "borrowed owned-Bytes aggregate is outside the closed flat profile",
+                arg.span,
+            )
+            .with_help("borrow an exact named flat owned-Bytes aggregate place"),
+        ),
         ParamMode::Borrow | ParamMode::Shared | ParamMode::Value => {}
     }
+}
+
+fn source_byte_view_place_is_admitted(
+    operation: crate::byte_ops::ByteOp,
+    expression: &Expr,
+    variables: &HashMap<String, Binding>,
+    types: &TypeTable<'_>,
+) -> bool {
+    let Some(place) = source_place(expression, variables, types) else {
+        return false;
+    };
+    if place.projections.is_empty() {
+        return matches!(expression.kind, ExprKind::Var(_));
+    }
+    operation == crate::byte_ops::ByteOp::BytesAsSlice
+        && place.projections.len() == 1
+        && place.ty == Type::Bytes
+        && variables.get(&place.root).is_some_and(|binding| {
+            binding.mode == ParamMode::Own && types.is_flat_owned_byte_record(&binding.ty)
+        })
 }
 
 fn local_borrow_origin(
@@ -11058,26 +11128,48 @@ fn local_borrow_origin(
     borrower: &str,
     borrower_span: Span,
     variables: &HashMap<String, Binding>,
+    types: &TypeTable<'_>,
 ) -> Option<BorrowOrigin> {
-    let source = match &expression.kind {
-        ExprKind::Var(source) if variables.get(source)?.ty == Type::SliceU8 => source,
+    let (root, projections, parent_loan) = match &expression.kind {
+        ExprKind::Var(source) if variables.get(source)?.ty == Type::SliceU8 => {
+            let parent = variables.get(source)?.borrow_origin.clone();
+            parent.map_or_else(
+                || Some((source.clone(), Vec::new(), None)),
+                |origin| Some((origin.root, origin.projections, Some(origin.loan))),
+            )?
+        }
         ExprKind::Call { name, args, .. } => {
             let operation = crate::byte_ops::by_name(name)?;
             if !operation.is_view() && operation != crate::byte_ops::ByteOp::Range {
                 return None;
             }
-            let ExprKind::Var(source) = &args.first()?.kind else {
+            let source = args.first()?;
+            if !source_byte_view_place_is_admitted(operation, source, variables, types)
+                && operation != crate::byte_ops::ByteOp::Range
+            {
                 return None;
-            };
-            source
+            }
+            if operation == crate::byte_ops::ByteOp::Range {
+                let ExprKind::Var(source) = &source.kind else {
+                    return None;
+                };
+                let origin = variables.get(source)?.borrow_origin.clone()?;
+                (origin.root, origin.projections, Some(origin.loan))
+            } else {
+                let place = source_place(source, variables, types)?;
+                if place.projections.is_empty() {
+                    let parent = variables.get(&place.root)?.borrow_origin.clone();
+                    parent.map_or_else(
+                        || (place.root, Vec::new(), None),
+                        |origin| (origin.root, origin.projections, Some(origin.loan)),
+                    )
+                } else {
+                    (place.root, place.projections, None)
+                }
+            }
         }
         _ => return None,
     };
-    let parent = variables.get(source)?.borrow_origin.clone();
-    let (root, projections, parent_loan) = parent.map_or_else(
-        || (source.clone(), Vec::new(), None),
-        |origin| (origin.root, origin.projections, Some(origin.loan)),
-    );
     Some(BorrowOrigin {
         root,
         projections,

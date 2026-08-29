@@ -18,7 +18,10 @@ process termination, signal safety, raw traps, or a stable public binary ABI.
 The separate [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md) provides bounded
 synchronous immutable-loan planning and independent replay over verified HIR;
 it does not add cleanup liveness, runtime loan objects, general lifetime
-inference, nested owned aggregate borrowing, or backend authority. C11 and
+inference, general nested owned aggregate borrowing, or backend authority. The
+closed [Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)
+uses the existing field cleanup ownership and adds no cleanup action or schema.
+C11 and
 Wasm core are bootstrap lowering contracts; the portable public component
 boundary remains WIT/WebAssembly Components.
 

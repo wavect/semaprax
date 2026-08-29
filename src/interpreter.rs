@@ -2291,6 +2291,20 @@ impl Evaluator<'_> {
             .and_then(|(_, value)| (!matches!(value, Value::Moved)).then(|| value.clone()))
     }
 
+    fn lookup_place(environment: &Environment, place: &hir::Place) -> Option<Value> {
+        let mut value = Self::lookup(environment, &place.root)?;
+        for projection in &place.projections {
+            let hir::PlaceProjection::Field(field) = projection else {
+                return None;
+            };
+            let Value::Record(record) = value else {
+                return None;
+            };
+            value = record.fields.get(field)?.clone();
+        }
+        Some(value)
+    }
+
     fn take_owned(environment: &mut Environment, root: &ValueId) -> Option<Value> {
         let value = environment
             .iter_mut()
@@ -2466,12 +2480,9 @@ impl Evaluator<'_> {
                 }
             }
             ResolvedExprKind::BorrowPlace { operation, place } => {
-                if !place.projections.is_empty() {
-                    return Err(Flow::Guard("byte view has a projected storage root"));
-                }
                 let op = crate::byte_ops::by_id(operation.as_str())
                     .ok_or(Flow::Guard("unknown compiler-owned byte view"))?;
-                let source = Self::lookup(environment, &place.root)
+                let source = Self::lookup_place(environment, place)
                     .ok_or(Flow::Guard("unresolved byte view storage root"))?;
                 match (op, source) {
                     (crate::byte_ops::ByteOp::BytesAsSlice, Value::Bytes(value)) => {

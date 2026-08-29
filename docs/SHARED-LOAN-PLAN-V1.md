@@ -11,8 +11,9 @@ verification and HIR replay can reject an overlapping move, transfer, or
 assignment while that loan is live. The plan is compiler-owned data: it
 creates no runtime reference, cleanup action, capability, or authority.
 
-This is the required foundation for later nested owned-aggregate borrowing.
-It does not itself admit that feature.
+This is the required foundation for nested owned-aggregate borrowing. The
+additive [Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)
+admits only one direct field profile; general nesting remains closed.
 
 ## Closed admission
 
@@ -35,9 +36,10 @@ most **256 loans**.
 ## Owner places and provenance
 
 Each loan names the exact verified owner `Place`: its resolved root value and
-the canonical projection vector derived from HIR. The currently admitted
-own-root loans are unprojected; projected borrowing from owned aggregate
-fields remains closed. A root loan records no parent. A reborrow records the
+the canonical projection vector derived from HIR. Own-root loans are normally
+unprojected. The one additive field profile admits exactly one stable field-ID
+projection for `bytes_as_slice` on a named `own` flat monomorphic Owned Byte
+Record v1 place. A root loan records no parent. A reborrow records the
 exact live parent loan and preserves the ultimate owner place and provenance
 chain. Parent identities must precede their children, every chain must be
 acyclic, and a child cannot start before or end after its parent.
@@ -45,16 +47,15 @@ acyclic, and a child cannot start before or end after its parent.
 Version 1 accepts multiple simultaneous immutable loans. Equal-root sibling
 loans and reborrows remain separate loans with separate uses and endpoints;
 different owner roots remain independent. The overlap replay compares complete
-places defensively, including prefix/descendant relationships, even though v1
-does not yet admit projected owned-field loans. While any overlapping loan is
+places, including prefix/descendant relationships, so sibling fields are
+independent while a field and its parent overlap. While any overlapping loan is
 live, the verifier rejects assignment, unique transfer, `match own`, or move of
 the owner place or an overlapping prefix/descendant. Shared
 loans never make an unavailable owner available and never alter Cleanup
 Inventory or CleanupPlan liveness.
 
-Mutable loans, ownership through a borrowed/shared boundary, and inferred
-projection into the still-closed nested owned aggregate profiles are not
-admitted.
+Mutable loans, ownership through a borrowed/shared boundary, and every
+projection outside the exact direct owned-byte field profile remain closed.
 
 ## Last use and path edges
 
@@ -132,8 +133,9 @@ and evidence.
 The local evidence gate owns:
 
 - canonical dense identities and deterministic plan/Graph v23 fixtures;
-- exact unprojected owner roots, direct loans, parent reborrows, and multiple
-  equal-root shared loans;
+- exact unprojected owner roots, the authored-but-unrun direct stable-ID
+  owned-byte field profile, direct loans, parent reborrows, and multiple
+  equal-place shared loans;
 - straight-line and branch-specific last-use endpoints, including a move that
   becomes legal only after every overlapping path has ended, plus the distinct
   normal and residual-return successors of `TryOption`;
@@ -170,6 +172,7 @@ Shared Loan Plan v1 does not claim mutable borrowing, general lifetime
 inference, escaping borrows, borrow-valued results, closures, async or
 concurrent loans, cross-file or cross-task lifetimes, regions, arenas,
 retain/release, ARC, raw pointers, foreign ownership, or a public/native/Wasm/
-Component ABI. It does not admit nested owned aggregate borrowing, generalize
+Component ABI. Beyond the exact direct field profile, it does not admit nested
+owned aggregate borrowing, generalize
 `match borrow`, execute cleanup, prove process memory safety outside verified
 HIR, or complete either ownership row in the completion matrix.

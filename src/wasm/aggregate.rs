@@ -5683,6 +5683,15 @@ impl Emitter<'_> {
         operation: &DeclarationId,
         place: &crate::hir::Place,
     ) -> Result<Value, Diagnostic> {
+        if !place.projections.is_empty()
+            && (operation.as_str() != crate::byte_ops::BYTES_AS_SLICE_ID
+                || place.projections.len() != 1
+                || !matches!(place.projections[0], crate::hir::PlaceProjection::Field(_)))
+        {
+            return Err(error(
+                "borrowed place is outside the exact direct owned-Bytes field profile",
+            ));
+        }
         let source = self.place_value(place)?;
         let local = self.plan.expr_scalar(expr)?;
         match (operation.as_str(), &source) {

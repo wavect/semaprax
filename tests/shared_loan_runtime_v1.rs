@@ -11,6 +11,13 @@ static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 const SOURCE: &str = r#"
 module test.shared_loan_runtime_v1;
 
+@id("loan.packet")
+record Packet {
+    @id("loan.packet.left") left: Bytes,
+    @id("loan.packet.right") right: Bytes,
+    @id("loan.packet.marker") marker: i64,
+}
+
 @id("loan.consume")
 fn consume(value: own Bytes) -> i64 {
     match byte_get(bytes_as_slice(value), 0usize) {
@@ -41,8 +48,25 @@ fn multiple_reborrow() -> i64 {
     consume(owned) + observed
 }
 
+@id("loan.projected-field")
+fn projected_field() -> i64 {
+    let left_source = [8u8, 9u8];
+    let right_source = [7u8];
+    let packet = Packet {
+        left: bytes_copy(array_as_slice(left_source)),
+        right: bytes_copy(array_as_slice(right_source)),
+        marker: 35,
+    };
+    let view = bytes_as_slice(packet.left);
+    let consumed_sibling = consume(packet.right);
+    let observed = if byte_len(view) == 2usize { packet.marker } else { 0 };
+    consumed_sibling + observed
+}
+
 @id("app.main")
-fn main() -> i64 { multiple_reborrow() }
+fn main() -> i64 {
+    if projected_field() == 42 { multiple_reborrow() } else { 0 }
+}
 "#;
 
 const ADAPTER_SOURCE: &str = r#"
@@ -87,6 +111,38 @@ fn interpreter_executes_multiple_shared_views_reborrow_and_post_last_use_move() 
     let result = interpreter::interpret(
         &path,
         "loan.multiple-reborrow",
+        &[],
+        &InterpreterOptions::default(),
+    )
+    .unwrap();
+    std::fs::remove_file(path).unwrap();
+    assert!(result.returned);
+    assert_eq!(returned_value(&result.envelope), "42");
+    interpreter::verify_envelope(&result.envelope).unwrap();
+}
+
+#[test]
+fn interpreter_executes_a_projected_field_view_while_a_sibling_moves() {
+    let parsed = parse(SOURCE, Path::new("projected-field-borrow-v1.spx")).unwrap();
+    assert!(verify::verify(&parsed).is_empty());
+    let resolved = hir::resolve(&parsed).unwrap();
+    hir::validate(&resolved).unwrap();
+    let function = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "loan.projected-field")
+        .unwrap();
+    assert!(function.loan_plan.loans.iter().any(|loan| {
+        loan.origin.projections
+            == [hir::PlaceProjection::Field(hir::DeclarationId::new(
+                "loan.packet.left",
+            ))]
+    }));
+
+    let path = source_file();
+    let result = interpreter::interpret(
+        &path,
+        "loan.projected-field",
         &[],
         &InterpreterOptions::default(),
     )
@@ -176,7 +232,7 @@ fn node_wasm_executes_repeated_shared_loan_reentry_without_leaking_owned_slots()
         root.join("probe.mjs"),
         r#"import {readFile} from 'node:fs/promises';
 import {instantiateBytes} from './semaprax.js';
-const {instance}=await instantiateBytes(await readFile('./app.wasm'),{maxOwnedByteEntries:1});
+const {instance}=await instantiateBytes(await readFile('./app.wasm'),{maxOwnedByteEntries:2});
 for(let i=0;i<4;i+=1){const value=instance.exports.semaprax_main();if(value!==42n)throw Error(`semantic-or-settlement:${value}`);}
 console.log('shared-loan-runtime-v1-ok');
 "#,

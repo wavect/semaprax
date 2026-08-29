@@ -319,7 +319,11 @@ identities, exact owner-place and parent-reborrow provenance, multiple shared
 loans, path-sensitive last-use edges, deterministic bounds, and
 independent replay. Graph v23 projects those facts while preserving legacy
 Graph and cleanup bytes when no plan is required. This proof foundation does
-not yet admit nested owned aggregate borrowing, escaping borrows, general
+admit the authored-but-unrun
+[Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)
+only for `bytes_as_slice` of one stable-ID `Bytes` field on a named `own` flat
+record. Constructors, temporaries, deeper projections, variants, generics,
+resources, escaping borrows, general
 lifetime inference, mutable borrowing, or a public borrowed ABI; those remain
 evidence-gated extensions of this RFC.
 

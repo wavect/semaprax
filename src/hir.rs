@@ -2920,7 +2920,7 @@ pub enum ResolvedExprKind {
     /// A string literal held as its exact owned UTF-8 contents.
     String(String),
     Place(Place),
-    /// A compiler-owned, non-consuming view of one exact named storage root.
+    /// A compiler-owned, non-consuming view of one exact authenticated place.
     BorrowPlace {
         operation: DeclarationId,
         place: Place,

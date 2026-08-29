@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Authored the closed Projected Owned-Byte Field Shared Borrow v1 tranche:
+  exact direct stable-ID field provenance, prefix-overlap move safety, and
+  interpreter/native/Core-Wasm lowering for `bytes_as_slice` on a named flat
+  owned-byte record. Evidence is intentionally unrun and completion remains
+  Partial.
+
 - Added authored exact-boundary evidence for Shared Loan Plan v1. Deterministic
   typed-HIR fixtures now drive the canonical production planner and independent
   replay at exactly 4,096 program points, 4,096 CFG edges, and 1,000,000

@@ -104,8 +104,12 @@ with an owned-variant Graph v22 base schema instead of masking that older
 contract. The plan neither changes CleanupPlan
 liveness nor creates runtime
 references; legacy programs retain their prior Graph and cleanup bytes.
-Nested owned aggregate borrowing, public borrowed ABIs, and hosted promotion
-remain outside this architecture boundary.
+The additive authored-but-unrun
+[Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)
+preserves one direct stable field-ID projection through the same plan and
+lowers that exact profile in the interpreter, native C11, and Core-Wasm lanes.
+General nesting, public borrowed ABIs, and hosted promotion remain outside this
+architecture boundary.
 
 ### Semantic graph
 

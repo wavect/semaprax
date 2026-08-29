@@ -10,6 +10,19 @@ module test.shared_loan_hir_v1;
 @id("bytes.take")
 fn take(value: own Bytes) -> i64 { 1 }
 
+@id("loan.packet")
+record Packet {
+    @id("loan.packet.left") left: Bytes,
+    @id("loan.packet.right") right: Bytes,
+}
+
+@id("loan.projected-field")
+fn projected_field(packet: own Packet) -> usize {
+    let view = bytes_as_slice(packet.left);
+    let moved = take(packet.right);
+    byte_len(view)
+}
+
 @id("loan.paths")
 fn paths(input: borrow Slice<u8>, outer: bool, inner: bool, selector: i64) -> i64 {
     let owned = bytes_copy(input);
@@ -48,6 +61,14 @@ fn paths_index(program: &hir::ResolvedProgram) -> usize {
         .functions
         .iter()
         .position(|function| function.id.as_str() == "loan.paths")
+        .unwrap()
+}
+
+fn projected_index(program: &hir::ResolvedProgram) -> usize {
+    program
+        .functions
+        .iter()
+        .position(|function| function.id.as_str() == "loan.projected-field")
         .unwrap()
 }
 
@@ -186,4 +207,68 @@ fn attached_shared_loan_plan_replays_every_authenticated_surface() {
     reject_mutation("edge omission", |function| {
         function.loan_plan.edges.pop();
     });
+}
+
+#[test]
+fn projected_field_loan_retains_the_stable_field_identity_and_rejects_forgery() {
+    let program = fixture();
+    let function = &program.functions[projected_index(&program)];
+    let projected = function
+        .loan_plan
+        .loans
+        .iter()
+        .find(|loan| !loan.origin.projections.is_empty())
+        .unwrap();
+    assert_eq!(
+        projected.origin.projections,
+        [hir::PlaceProjection::Field(hir::DeclarationId::new(
+            "loan.packet.left",
+        ))]
+    );
+
+    for (name, projections) in [
+        ("projection omission", Vec::new()),
+        (
+            "sibling substitution",
+            vec![hir::PlaceProjection::Field(hir::DeclarationId::new(
+                "loan.packet.right",
+            ))],
+        ),
+        (
+            "deeper projection",
+            vec![
+                hir::PlaceProjection::Field(hir::DeclarationId::new("loan.packet.left")),
+                hir::PlaceProjection::Field(hir::DeclarationId::new("loan.packet.right")),
+            ],
+        ),
+    ] {
+        let mut forged = fixture();
+        let index = projected_index(&forged);
+        let function = &mut forged.functions[index];
+        function
+            .loan_plan
+            .loans
+            .iter_mut()
+            .find(|loan| !loan.origin.projections.is_empty())
+            .unwrap()
+            .origin
+            .projections = projections;
+        let diagnostic = hir::validate(&forged).expect_err(name);
+        assert_eq!(diagnostic.code, "SPX-H006", "{name}: {diagnostic:?}");
+    }
+
+    let mut forged = fixture();
+    let index = projected_index(&forged);
+    let function = &mut forged.functions[index];
+    let result_id = function.result_id.clone();
+    function
+        .loan_plan
+        .loans
+        .iter_mut()
+        .find(|loan| !loan.origin.projections.is_empty())
+        .unwrap()
+        .origin
+        .root = result_id;
+    let diagnostic = hir::validate(&forged).expect_err("root substitution");
+    assert_eq!(diagnostic.code, "SPX-H006");
 }

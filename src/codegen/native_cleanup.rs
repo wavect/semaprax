@@ -723,12 +723,16 @@ fn validate_expression(
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_) => {}
-        ResolvedExprKind::BorrowPlace { place, .. } => {
-            if !place.projections.is_empty() {
+        ResolvedExprKind::BorrowPlace { operation, place } => {
+            if !place.projections.is_empty()
+                && (operation.as_str() != crate::byte_ops::BYTES_AS_SLICE_ID
+                    || place.projections.len() != 1
+                    || !matches!(place.projections[0], crate::hir::PlaceProjection::Field(_)))
+            {
                 return Err(unsupported(
                     function,
                     format!(
-                        "uses projected borrowed place expression `{}`",
+                        "uses a borrowed place outside the exact direct owned-Bytes field profile `{}`",
                         expression.id
                     ),
                 ));

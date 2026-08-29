@@ -42,25 +42,36 @@ fn dependency_metadata_cannot_substitute_for_linked_source() {
 #[test]
 fn nonempty_capability_or_wrong_target_is_outside_the_effect_free_profile() {
     let report = report_from_source("authority", &simple_source("authority", 1));
-    let subject = subject(&report, "authority", "1.0.0", &[], &["fs.read"]);
-    let input = input(
+    let authority_subject = subject(&report, "authority", "1.0.0", &[], &["fs.read"]);
+    let authority_input = input(
         &[("authority", "1.0.0")],
-        vec![subject],
+        vec![authority_subject],
         "wasm32",
         &["fs.read"],
     );
-    let resolution = package_resolver::generate(&input, &ResolutionOptions::default())
+    let resolution = package_resolver::generate(&authority_input, &ResolutionOptions::default())
         .expect("resolver allowlist admits the declared capability");
     let options = build_options("authority", &["authority.answer"], MAX_BYTES, MAX_BYTES);
-    assert_eq!(generate_error(&resolution, &input, &options), "SPX-PB504");
+    assert_eq!(
+        generate_error(&resolution, &authority_input, &options),
+        "SPX-PB504"
+    );
 
     let report = report_from_source("native_only", &simple_source("native_only", 1));
-    let subject = subject(&report, "native_only", "1.0.0", &[], &[]);
-    let input = input(&[("native_only", "1.0.0")], vec![subject], "native64", &[]);
-    let resolution = package_resolver::generate(&input, &ResolutionOptions::default())
+    let native_subject = subject(&report, "native_only", "1.0.0", &[], &[]);
+    let native_input = input(
+        &[("native_only", "1.0.0")],
+        vec![native_subject],
+        "native64",
+        &[],
+    );
+    let resolution = package_resolver::generate(&native_input, &ResolutionOptions::default())
         .expect("native target is valid Resolver v1 evidence");
     let options = build_options("native_only", &["native_only.answer"], MAX_BYTES, MAX_BYTES);
-    assert_eq!(generate_error(&resolution, &input, &options), "SPX-PB504");
+    assert_eq!(
+        generate_error(&resolution, &native_input, &options),
+        "SPX-PB504"
+    );
 }
 
 #[test]

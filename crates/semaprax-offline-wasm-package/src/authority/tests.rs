@@ -14,8 +14,14 @@ impl TestRoot {
     }
 }
 
+impl AsRef<Path> for TestRoot {
+    fn as_ref(&self) -> &Path {
+        &self.0
+    }
+}
+
 fn root(label: &str) -> TestRoot {
-    let path = std::env::temp_dir().join(format!(
+    let path = std::env::temp_dir().canonicalize().unwrap().join(format!(
         "semaprax-offline-wasm-publisher-{label}-{}-{}",
         std::process::id(),
         NEXT_ROOT.fetch_add(1, Ordering::Relaxed)

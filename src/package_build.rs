@@ -100,10 +100,12 @@ fn build(
         wire::link_digest(&graph)
     };
 
-    let (emitted, overflowed) =
-        crate::bounded_output::with_limit(build_options.max_artifact_bytes, || {
-            crate::wasm::emit_resolved_package_scalar_exports(&resolved, &build_options.exports)
-        });
+    // The caller's artifact limit bounds returned bytes, not cumulative
+    // compiler scratch writes. Keep emission work under the frozen global
+    // ceiling, then enforce the exact caller limit on the emitted inventory.
+    let (emitted, overflowed) = crate::bounded_output::with_limit(MAX_ARTIFACT_BYTES, || {
+        crate::wasm::emit_resolved_package_scalar_exports(&resolved, &build_options.exports)
+    });
     if overflowed {
         return Err(limit_error(
             "package-build Wasm emission exceeded the artifact builder bound",
@@ -132,10 +134,9 @@ fn build(
         exports,
     };
     let wasm_sha256 = wire::wasm_digest(&module_wasm);
-    let (manifest_json, overflowed) =
-        crate::bounded_output::with_limit(build_options.max_artifact_bytes, || {
-            wire::render_manifest(&facts, build_options, &wasm_sha256, module_wasm.len())
-        });
+    let (manifest_json, overflowed) = crate::bounded_output::with_limit(MAX_ARTIFACT_BYTES, || {
+        wire::render_manifest(&facts, build_options, &wasm_sha256, module_wasm.len())
+    });
     if overflowed {
         return Err(limit_error(
             "package-build manifest render exceeded the artifact builder bound",

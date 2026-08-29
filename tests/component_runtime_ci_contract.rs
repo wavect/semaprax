@@ -56,6 +56,7 @@ fn standalone_runner_is_pinned_private_and_outside_the_root_workspace() {
     assert_eq!(
         members,
         [
+            "crates/semaprax-offline-wasm-package",
             "crates/semaprax-native-host",
             "crates/semaprax-native-loader",
             "crates/semaprax-native-rust-interop-platform",
@@ -365,6 +366,7 @@ fn component_job_fetches_root_and_runner_then_runs_every_gate_locked_and_offline
         "name: Private Wasmtime Component result runtime",
         "runs-on: ubuntu-24.04",
         "toolchain: 1.97.1",
+        "rust-version: 1.97.1",
         "manifest-path: platform-tests/component-runtime/Cargo.toml",
         "--config platform-tests/component-runtime/deny.toml",
         "scripts/component-runtime-v3.sh",

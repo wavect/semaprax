@@ -74,7 +74,7 @@ pub(super) fn simple_source(package: &str, value: i64) -> String {
 }
 
 fn fixture_path(tag: &str) -> PathBuf {
-    let safe = tag.replace('.', "_").replace('-', "_");
+    let safe = tag.replace(['.', '-'], "_");
     std::env::temp_dir().join(format!(
         "semaprax-package-build-{}-{}-{safe}.spx",
         std::process::id(),

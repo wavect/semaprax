@@ -40,6 +40,7 @@ jobs:
         uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
         with:
           command: check advisories bans licenses sources
+          rust-version: 1.97.1
           manifest-path: platform-tests/component-runtime/Cargo.toml
           arguments: --config platform-tests/component-runtime/deny.toml --all-features --locked
       - name: Fetch dependencies, then execute every v3/v4/v5/v6/v7/v8/v9/v10 Component gate offline

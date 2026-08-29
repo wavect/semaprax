@@ -137,6 +137,79 @@ fn validate_output_path(output: &Path) -> Result<(), PublicationError> {
     Ok(())
 }
 
+struct CompilerReplayFailure {
+    code: &'static str,
+    message: String,
+}
+
+impl From<semaprax::diagnostic::Diagnostic> for CompilerReplayFailure {
+    fn from(value: semaprax::diagnostic::Diagnostic) -> Self {
+        Self {
+            code: value.code,
+            message: value.to_string(),
+        }
+    }
+}
+
+impl PublicationError {
+    fn plain(code: &'static str, message: impl Into<String>) -> Self {
+        Self {
+            code,
+            message: message.into(),
+            compiler_code: None,
+            primary_code: None,
+            visibility: PublicationVisibility::NotPublished,
+            cleanup: CleanupStatus::NotNeeded,
+        }
+    }
+
+    fn replay(failure: CompilerReplayFailure) -> Self {
+        Self {
+            code: PP_REPLAY,
+            message: format!(
+                "compiler replay rejected package build: {}",
+                failure.message
+            ),
+            compiler_code: Some(failure.code),
+            primary_code: None,
+            visibility: PublicationVisibility::NotPublished,
+            cleanup: CleanupStatus::NotNeeded,
+        }
+    }
+
+    fn cleanup_incomplete(mut primary: Self) -> Self {
+        let primary_code = primary.code;
+        primary.code = PP_CLEANUP;
+        primary.message = format!(
+            "{}; exact authenticated stage cleanup did not settle",
+            primary.message
+        );
+        primary.primary_code = Some(primary_code);
+        primary.cleanup = CleanupStatus::Incomplete;
+        primary
+    }
+
+    fn unheld_namespace(primary: Self) -> Self {
+        let primary_code = primary.code;
+        Self {
+            code: PP_CLEANUP,
+            message: format!(
+                "{}; create-new staging may have produced a namespace entry without returning authenticated cleanup authority",
+                primary.message
+            ),
+            compiler_code: primary.compiler_code,
+            primary_code: Some(primary_code),
+            visibility: PublicationVisibility::NotPublished,
+            cleanup: CleanupStatus::Incomplete,
+        }
+    }
+
+    fn suppressed_after_attempt(mut primary: Self) -> Self {
+        primary.cleanup = CleanupStatus::SuppressedAfterPublicationAttempt;
+        primary
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -213,78 +286,5 @@ mod tests {
         assert_eq!(error.primary_code, Some(PP_CHANGED));
         assert_eq!(error.visibility, PublicationVisibility::NotPublished);
         assert_eq!(error.cleanup, CleanupStatus::Incomplete);
-    }
-}
-
-struct CompilerReplayFailure {
-    code: &'static str,
-    message: String,
-}
-
-impl From<semaprax::diagnostic::Diagnostic> for CompilerReplayFailure {
-    fn from(value: semaprax::diagnostic::Diagnostic) -> Self {
-        Self {
-            code: value.code,
-            message: value.to_string(),
-        }
-    }
-}
-
-impl PublicationError {
-    fn plain(code: &'static str, message: impl Into<String>) -> Self {
-        Self {
-            code,
-            message: message.into(),
-            compiler_code: None,
-            primary_code: None,
-            visibility: PublicationVisibility::NotPublished,
-            cleanup: CleanupStatus::NotNeeded,
-        }
-    }
-
-    fn replay(failure: CompilerReplayFailure) -> Self {
-        Self {
-            code: PP_REPLAY,
-            message: format!(
-                "compiler replay rejected package build: {}",
-                failure.message
-            ),
-            compiler_code: Some(failure.code),
-            primary_code: None,
-            visibility: PublicationVisibility::NotPublished,
-            cleanup: CleanupStatus::NotNeeded,
-        }
-    }
-
-    fn cleanup_incomplete(mut primary: Self) -> Self {
-        let primary_code = primary.code;
-        primary.code = PP_CLEANUP;
-        primary.message = format!(
-            "{}; exact authenticated stage cleanup did not settle",
-            primary.message
-        );
-        primary.primary_code = Some(primary_code);
-        primary.cleanup = CleanupStatus::Incomplete;
-        primary
-    }
-
-    fn unheld_namespace(primary: Self) -> Self {
-        let primary_code = primary.code;
-        Self {
-            code: PP_CLEANUP,
-            message: format!(
-                "{}; create-new staging may have produced a namespace entry without returning authenticated cleanup authority",
-                primary.message
-            ),
-            compiler_code: primary.compiler_code,
-            primary_code: Some(primary_code),
-            visibility: PublicationVisibility::NotPublished,
-            cleanup: CleanupStatus::Incomplete,
-        }
-    }
-
-    fn suppressed_after_attempt(mut primary: Self) -> Self {
-        primary.cleanup = CleanupStatus::SuppressedAfterPublicationAttempt;
-        primary
     }
 }

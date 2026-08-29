@@ -1,4 +1,3 @@
-
 use super::*;
 
 macro_rules! assert_not_impl {

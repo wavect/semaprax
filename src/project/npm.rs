@@ -466,6 +466,16 @@ fn recipe_type(ty: &crate::hir::ResolvedType) -> Result<String, Diagnostic> {
         } if declaration.as_str() == crate::prelude::OPTION_ID && arguments.len() == 1 => {
             Ok(format!("Option<{}>", recipe_type(&arguments[0])?))
         }
+        crate::hir::ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } if declaration.as_str() == crate::prelude::RESULT_ID && arguments.len() == 2 => {
+            Ok(format!(
+                "Result<{}, {}>",
+                recipe_type(&arguments[0])?,
+                recipe_type(&arguments[1])?
+            ))
+        }
         _ => Err(package_error("npm semantic recipe type is unsupported")),
     }
 }
@@ -588,6 +598,55 @@ fn render_recipe_expr(
             render_recipe_expr(then_branch, functions, values, local_index)?,
             render_recipe_expr(else_branch, functions, values, local_index)?,
         )),
+        ResolvedExprKind::ConstructVariant {
+            variant,
+            case,
+            fields,
+        } if variant.as_str() == crate::prelude::OPTION_ID
+            || variant.as_str() == crate::prelude::RESULT_ID =>
+        {
+            let (case_name, expected_field, field_name) = match case.as_str() {
+                crate::prelude::OPTION_NONE_ID => ("None", None, None),
+                crate::prelude::OPTION_SOME_ID => (
+                    "Some",
+                    Some(crate::prelude::OPTION_SOME_VALUE_ID),
+                    Some("value"),
+                ),
+                crate::prelude::RESULT_OK_ID => (
+                    "Ok",
+                    Some(crate::prelude::RESULT_OK_VALUE_ID),
+                    Some("value"),
+                ),
+                crate::prelude::RESULT_ERR_ID => (
+                    "Err",
+                    Some(crate::prelude::RESULT_ERR_ERROR_ID),
+                    Some("error"),
+                ),
+                _ => {
+                    return Err(package_error(
+                        "npm semantic recipe variant case is unsupported",
+                    ))
+                }
+            };
+            let fields = match (expected_field, field_name, fields.as_slice()) {
+                (None, None, []) => String::new(),
+                (Some(expected), Some(name), [field]) if field.field.as_str() == expected => {
+                    format!(
+                        "{name}: {}",
+                        render_recipe_expr(&field.value, functions, values, local_index)?
+                    )
+                }
+                _ => {
+                    return Err(package_error(
+                        "npm semantic recipe variant fields are not exact",
+                    ))
+                }
+            };
+            Ok(format!(
+                "{}::{case_name} {{ {fields} }}",
+                recipe_type(&expression.ty)?
+            ))
+        }
         ResolvedExprKind::Block { statements, tail } => {
             let mut rendered = String::from("{ ");
             for statement in statements {
@@ -655,6 +714,11 @@ fn render_recipe_expr(
                     ResolvedMatchPattern::Variant { case, fields, .. }
                         if case.as_str() == crate::prelude::OPTION_SOME_ID && fields.len() == 1 =>
                     {
+                        if fields[0].field.as_str() != crate::prelude::OPTION_SOME_VALUE_ID {
+                            return Err(package_error(
+                                "npm semantic recipe Option::Some field is not exact",
+                            ));
+                        }
                         let name = format!("v{}", *local_index);
                         *local_index += 1;
                         arm_values.insert(fields[0].binding.id.as_str().to_owned(), name.clone());
@@ -664,6 +728,32 @@ fn render_recipe_expr(
                         if case.as_str() == crate::prelude::OPTION_NONE_ID && fields.is_empty() =>
                     {
                         "Option::None {}".to_owned()
+                    }
+                    ResolvedMatchPattern::Variant { case, fields, .. }
+                        if case.as_str() == crate::prelude::RESULT_OK_ID && fields.len() == 1 =>
+                    {
+                        let name = format!("v{}", *local_index);
+                        *local_index += 1;
+                        if fields[0].field.as_str() != crate::prelude::RESULT_OK_VALUE_ID {
+                            return Err(package_error(
+                                "npm semantic recipe Result::Ok field is not exact",
+                            ));
+                        }
+                        arm_values.insert(fields[0].binding.id.as_str().to_owned(), name.clone());
+                        format!("Result::Ok {{ value: {name} }}")
+                    }
+                    ResolvedMatchPattern::Variant { case, fields, .. }
+                        if case.as_str() == crate::prelude::RESULT_ERR_ID && fields.len() == 1 =>
+                    {
+                        let name = format!("v{}", *local_index);
+                        *local_index += 1;
+                        if fields[0].field.as_str() != crate::prelude::RESULT_ERR_ERROR_ID {
+                            return Err(package_error(
+                                "npm semantic recipe Result::Err field is not exact",
+                            ));
+                        }
+                        arm_values.insert(fields[0].binding.id.as_str().to_owned(), name.clone());
+                        format!("Result::Err {{ error: {name} }}")
                     }
                     _ => {
                         return Err(package_error(

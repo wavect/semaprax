@@ -49,7 +49,7 @@ pub use npm::{
     PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6, PROJECT_NPM_BUILD_SCHEMA_V7,
 };
 
-/// Prepare the additive WP-10 direct-Bytes package from held HIR and the
+/// Prepare the additive WP-10/WP-11 owned-data package from held HIR and the
 /// canonical descriptor. This does not activate a Project manifest profile.
 pub fn prepare_owned_data_npm_build(
     program: &crate::hir::ResolvedProgram,
@@ -74,8 +74,9 @@ pub use public_api::{
     PublicApiExport, PublicApiLimits, PublicApiParameter, PublicApiParameterType,
     PublicApiResultType, PublicApiSubject, MAX_PUBLIC_API_BORROWED_INPUT_BYTES,
     MAX_PUBLIC_API_CLOSURE_FUNCTIONS, MAX_PUBLIC_API_DESCRIPTOR_BYTES, MAX_PUBLIC_API_EXPORTS,
-    MAX_PUBLIC_API_OWNED_OUTPUT_BYTES, MAX_PUBLIC_API_PARAMETERS, PUBLIC_OWNED_DATA_API_SCHEMA,
-    PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
+    MAX_PUBLIC_API_OWNED_OUTPUT_BYTES, MAX_PUBLIC_API_PARAMETERS, PUBLIC_OPTION_NONE_TAG,
+    PUBLIC_OPTION_SOME_TAG, PUBLIC_OWNED_DATA_API_SCHEMA, PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
+    PUBLIC_RESULT_ERR_TAG, PUBLIC_RESULT_OK_TAG,
 };
 pub(crate) use rename::{PreparedProjectRename, ProjectRenameDerivation};
 pub use revision::ProjectRevision;

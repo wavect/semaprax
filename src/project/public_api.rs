@@ -25,6 +25,10 @@ pub const MAX_PUBLIC_API_PARAMETERS: usize = 8;
 pub const MAX_PUBLIC_API_CLOSURE_FUNCTIONS: usize = 256;
 pub const MAX_PUBLIC_API_BORROWED_INPUT_BYTES: usize = 65_536;
 pub const MAX_PUBLIC_API_OWNED_OUTPUT_BYTES: usize = 65_536;
+pub const PUBLIC_OPTION_NONE_TAG: u32 = 0;
+pub const PUBLIC_OPTION_SOME_TAG: u32 = 1;
+pub const PUBLIC_RESULT_OK_TAG: u32 = 0;
+pub const PUBLIC_RESULT_ERR_TAG: u32 = 1;
 
 const MAX_STABLE_ID_BYTES: usize = 128;
 const MAX_PARAMETER_ID_BYTES: usize = 512;

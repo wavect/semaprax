@@ -1,4 +1,4 @@
-//! Authority-free WP-10 npm projection for direct owned `Bytes` results.
+//! Authority-free npm projection for the closed WP-10/WP-11 owned-data results.
 
 use std::path::Path;
 
@@ -33,6 +33,7 @@ struct OwnedExport {
     stable_id: String,
     wasm_export: String,
     parameters: Vec<PublicApiParameterType>,
+    result: PublicApiResultType,
 }
 
 pub(super) fn prepare(
@@ -210,15 +211,21 @@ fn exports_from_descriptor(
         .exports()
         .iter()
         .map(|export| {
-            if export.result() != PublicApiResultType::OwnedBytes {
+            if !matches!(
+                export.result(),
+                PublicApiResultType::OwnedBytes
+                    | PublicApiResultType::OptionOwnedBytes
+                    | PublicApiResultType::ResultOwnedBytesI64
+            ) {
                 return Err(package_error(
-                    "WP-10 package admits only direct Bytes results",
+                    "owned-data package result is outside the WP-11 families",
                 ));
             }
             Ok(OwnedExport {
                 stable_id: export.stable_id().as_str().to_owned(),
                 wasm_export: raw_symbol(export.stable_id().as_str()),
                 parameters: export.parameters().iter().map(|value| value.ty()).collect(),
+                result: export.result(),
             })
         })
         .collect()
@@ -262,7 +269,15 @@ export const wasmSha256=EXPECTED_WASM_SHA256;
 "#,
         digest = quote_json(wasm_sha256)
     );
-    runtime.push_str(&render_runtime_facade(exports));
+    let facade = if exports
+        .iter()
+        .any(|export| export.result != PublicApiResultType::OwnedBytes)
+    {
+        render_variant_runtime_facade(exports)
+    } else {
+        render_runtime_facade(exports)
+    };
+    runtime.push_str(&facade);
     runtime
 }
 
@@ -294,11 +309,43 @@ export async function instantiate(bytes){{return facade(await instantiateCore(by
     )
 }
 
+fn render_variant_runtime_facade(exports: &[OwnedExport]) -> String {
+    let facts = exports
+        .iter()
+        .map(|export| {
+            format!(
+                "[{},Object.freeze({{raw:{},params:Object.freeze([{}]),result:{}}})]",
+                quote_json(&export.stable_id),
+                quote_json(&export.wasm_export),
+                export
+                    .parameters
+                    .iter()
+                    .map(|p| quote_json(parameter_wire(*p)))
+                    .collect::<Vec<_>>()
+                    .join(","),
+                quote_json(export.result.wire_name()),
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(
+        r#"const FACTS=new Map([{facts}]),IDS=Object.freeze(Array.from(FACTS.keys())),RESULT=65536,POISON=0xa5;
+const encoder=new TextEncoder();
+function snapshot(value,type,label){{if(type==="borrow-str"){{if(typeof value!=="string")throw new TypeError(`${{label}} must be a string`);return encoder.encode(value)}}if(type==="borrow-slice-u8")return snapshotUint8(value,label);if(type==="i64"){{if(typeof value!=="bigint")throw new TypeError(`${{label}} must be bigint`);return value}}if(type==="bool"){{if(typeof value!=="boolean")throw new TypeError(`${{label}} must be boolean`);return value?1:0}}throw new Error("unknown descriptor parameter type")}}
+function facade(linked){{const e=linked.instance.exports,memory=e.memory;if(!(memory instanceof WebAssembly.Memory)||memory.buffer.byteLength!==131072)throw new Error("SEMAPRAX fixed owned-data memory invariant");let busy=false,poisoned=false;function invoke(id,values){{if(poisoned)throw new Error("SEMAPRAX owned-data runtime is poisoned");if(busy)throw new Error("SEMAPRAX owned-data call is non-reentrant");const fact=FACTS.get(id);if(!fact)throw new RangeError(`unknown SEMAPRAX export: ${{id}}`);if(values.length!==fact.params.length)throw new TypeError("SEMAPRAX argument count disagrees");const snapshots=values.map((v,i)=>snapshot(v,fact.params[i],`argument ${{i}}`));let used=0;for(const v of snapshots)if(v instanceof Uint8Array){{if(v.byteLength>65536-used)throw new RangeError("SEMAPRAX borrowed input capacity exceeded");used+=v.byteLength}}busy=true;let began=false,answer,primary=null;const bytes=new Uint8Array(memory.buffer),view=new DataView(memory.buffer),resultSize=fact.result==="owned-bytes"?8:16;try{{let offset=0;const raw=[];for(const v of snapshots){{if(v instanceof Uint8Array){{linked.copyInto(bytes,v,offset);raw.push(offset,v.byteLength);offset+=v.byteLength}}else raw.push(v)}}bytes.fill(POISON,RESULT,RESULT+resultSize);linked.arena.begin();began=true;const fn=e[fact.raw];if(typeof fn!=="function")throw new Error("SEMAPRAX raw adapter missing");const status=fn(...raw,RESULT);if(status!==0){{for(let i=RESULT;i<RESULT+resultSize;i++)if(bytes[i]!==POISON)throw new Error("SEMAPRAX failure modified result slot");if(status>=1&&status<=10)throw Object.assign(new Error(`SEMAPRAX semantic failure ${{status}}`),{{status,semapraxSemantic:true}});throw new Error(`SEMAPRAX call failed with status ${{status}}`)}}if(fact.result==="owned-bytes")answer=linked.arena.consume(view.getBigInt64(RESULT,true));else{{const tag=view.getUint32(RESULT,true);if(tag>1)throw new Error("SEMAPRAX owned variant tag invariant");if(fact.result==="option-owned-bytes")answer=tag===0?null:linked.arena.consume(view.getBigInt64(RESULT+8,true));else answer=tag===0?Object.freeze({{ok:true,value:linked.arena.consume(view.getBigInt64(RESULT+8,true))}}):Object.freeze({{ok:false,error:view.getBigInt64(RESULT+8,true)}})}}}}catch(error){{primary=error;if(!(error instanceof RangeError)&&!(error instanceof TypeError)&&error?.semapraxSemantic!==true){{poisoned=true;linked.arena.poison()}}}}finally{{let settlement=null;if(began)try{{linked.arena.settle()}}catch(error){{poisoned=true;settlement=error}}try{{bytes.fill(0,0,used);bytes.fill(POISON,RESULT,RESULT+resultSize)}}catch(error){{poisoned=true;settlement??=error}}busy=false;if(settlement!==null&&primary===null)primary=settlement}}if(primary)throw primary;return answer}}const functions=Object.create(null);for(const id of IDS)Object.defineProperty(functions,id,{{value:(...v)=>invoke(id,v),enumerable:true}});return Object.freeze({{functions:Object.freeze(functions),call:(id,...v)=>invoke(id,v),wasmSha256}})}}
+export async function instantiate(bytes){{return facade(await instantiateCore(bytes))}}export const exportIds=IDS;export default instantiate;
+"#
+    )
+}
+
 fn render_bindings(_exports: &[OwnedExport], _wasm_sha256: &str) -> String {
     "export { instantiate, exportIds, wasmSha256, default } from \"./semaprax.js\";\n".to_owned()
 }
 
 fn render_declarations(exports: &[OwnedExport]) -> String {
+    let has_variants = exports
+        .iter()
+        .any(|export| export.result != PublicApiResultType::OwnedBytes);
     let rows = exports
         .iter()
         .map(|export| {
@@ -310,13 +357,19 @@ fn render_declarations(exports: &[OwnedExport]) -> String {
                 .collect::<Vec<_>>()
                 .join(", ");
             format!(
-                "  readonly {}: ({params}) => Uint8Array;",
-                quote_json(&export.stable_id)
+                "  readonly {}: ({params}) => {};",
+                quote_json(&export.stable_id),
+                result_ts(export.result)
             )
         })
         .collect::<Vec<_>>()
         .join("\n");
-    format!("export interface SemapraxApi {{\n{rows}\n}}\nexport interface SemapraxRuntime {{ readonly functions: Readonly<SemapraxApi>; call<I extends keyof SemapraxApi>(id: I, ...args: Parameters<SemapraxApi[I]>): ReturnType<SemapraxApi[I]>; readonly wasmSha256: string; }}\nexport declare function instantiate(bytes: Uint8Array): Promise<SemapraxRuntime>;\nexport declare const exportIds: readonly (keyof SemapraxApi)[];\nexport default instantiate;\n")
+    let aliases = if has_variants {
+        "export type OptionalBytes = Uint8Array | null;\nexport type SemapraxResult<T, E> =\n  | { readonly ok: true; readonly value: T }\n  | { readonly ok: false; readonly error: E };\n"
+    } else {
+        ""
+    };
+    format!("{aliases}export interface SemapraxApi {{\n{rows}\n}}\nexport interface SemapraxRuntime {{ readonly functions: Readonly<SemapraxApi>; call<I extends keyof SemapraxApi>(id: I, ...args: Parameters<SemapraxApi[I]>): ReturnType<SemapraxApi[I]>; readonly wasmSha256: string; }}\nexport declare function instantiate(bytes: Uint8Array): Promise<SemapraxRuntime>;\nexport declare const exportIds: readonly (keyof SemapraxApi)[];\nexport default instantiate;\n")
 }
 
 fn render_metadata(
@@ -326,7 +379,7 @@ fn render_metadata(
     wasm_sha256: &str,
     exports: &[OwnedExport],
 ) -> String {
-    let shapes = exports.iter().map(|e| format!("{{\"stable_id\":{},\"wasm_export\":{},\"parameters\":[{}],\"result\":\"owned-bytes\",\"call\":\"(parameters..., result_out: i32) -> status: i32\"}}", quote_json(&e.stable_id), quote_json(&e.wasm_export), e.parameters.iter().map(|p| quote_json(parameter_wire(*p))).collect::<Vec<_>>().join(","))).collect::<Vec<_>>().join(",");
+    let shapes = exports.iter().map(|e| format!("{{\"stable_id\":{},\"wasm_export\":{},\"parameters\":[{}],\"result\":{},\"call\":\"(parameters..., result_out: i32) -> status: i32\"}}", quote_json(&e.stable_id), quote_json(&e.wasm_export), e.parameters.iter().map(|p| quote_json(parameter_wire(*p))).collect::<Vec<_>>().join(","), quote_json(e.result.wire_name()))).collect::<Vec<_>>().join(",");
     format!("{{\"schema\":\"{OWNED_DATA_API_SCHEMA}\",\"package\":{},\"version\":{},\"descriptor\":{},\"descriptor_digest\":{},\"wasm\":{{\"path\":\"app.wasm\",\"sha256\":{}}},\"limits\":{{\"borrowed_input_bytes\":65536,\"owned_output_bytes\":65536}},\"target\":[{shapes}],\"settlement\":{{\"copy_before_consume\":true,\"consume_exactly_once\":true,\"require_empty_arena\":true,\"poison_result_memory\":true}},\"artifacts\":[\"app.wasm\",\"semaprax.js\",\"semaprax.bindings.js\",\"semaprax.bindings.d.ts\",\"semaprax.api.json\",\"package.json\"]}}\n", quote_json(package), quote_json(version), quote_json(&String::from_utf8(descriptor.canonical_bytes()).expect("descriptor is UTF-8")), quote_json(&descriptor.digest()), quote_json(wasm_sha256))
 }
 
@@ -342,6 +395,14 @@ fn parameter_ts(value: PublicApiParameterType) -> &'static str {
         PublicApiParameterType::Bool => "boolean",
         PublicApiParameterType::BorrowStr => "string",
         PublicApiParameterType::BorrowSliceU8 => "Uint8Array",
+    }
+}
+fn result_ts(value: PublicApiResultType) -> &'static str {
+    match value {
+        PublicApiResultType::OwnedBytes => "Uint8Array",
+        PublicApiResultType::OptionOwnedBytes => "OptionalBytes",
+        PublicApiResultType::ResultOwnedBytesI64 => "SemapraxResult<Uint8Array, bigint>",
+        _ => unreachable!("owned-data result admission is closed"),
     }
 }
 fn raw_symbol(stable_id: &str) -> String {

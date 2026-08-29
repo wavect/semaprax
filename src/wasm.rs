@@ -802,7 +802,7 @@ pub fn emit_resolved_module_with_byte_exports(
     aggregate::emit_byte_exports(program, &plans)
 }
 
-/// Emit descriptor-driven WP-10 raw adapters for direct `Bytes` results.
+/// Emit descriptor-driven raw adapters for the closed WP-10/WP-11 results.
 pub fn emit_resolved_module_with_owned_data_exports(
     program: &ResolvedProgram,
     descriptor: &crate::project::PublicApiDescriptor,

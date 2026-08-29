@@ -1,13 +1,32 @@
-//! Descriptor-driven raw Wasm adapters for direct owned `Bytes` results.
+//! Descriptor-driven raw Wasm adapters for the closed public owned-data results.
 
 use crate::diagnostic::Diagnostic;
 use crate::hir::{DeclarationId, ResolvedProgram};
 use crate::project::{PublicApiDescriptor, PublicApiParameterType, PublicApiResultType};
+use crate::project::{
+    PUBLIC_OPTION_NONE_TAG, PUBLIC_OPTION_SOME_TAG, PUBLIC_RESULT_ERR_TAG, PUBLIC_RESULT_OK_TAG,
+};
+use crate::variant_layout::{VariantLayoutCache, VariantTarget};
 
 use super::{write_i64, write_u32, I32, I64};
 
-pub(super) const RESULT_SIZE: u32 = 8;
 pub(super) const BOUNDARY_STATUS: i32 = 11;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum ResultLayout {
+    Bytes,
+    OptionBytes { payload_offset: u32 },
+    ResultBytesI64 { payload_offset: u32 },
+}
+
+impl ResultLayout {
+    const fn size(self) -> u32 {
+        match self {
+            Self::Bytes => 8,
+            Self::OptionBytes { .. } | Self::ResultBytesI64 { .. } => 16,
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum ParameterType {
@@ -23,6 +42,7 @@ pub(super) struct OwnedDataExportPlan {
     pub(super) wasm_export: String,
     pub(super) function_id: DeclarationId,
     pub(super) parameters: Vec<ParameterType>,
+    pub(super) result: ResultLayout,
 }
 
 impl OwnedDataExportPlan {
@@ -68,7 +88,7 @@ impl OwnedDataExportPlan {
         body.push(0x71); // i32.and
         boundary_return(&mut body);
         local_get(&mut body, result_out);
-        i32_const(&mut body, 131_072 - RESULT_SIZE as i32);
+        i32_const(&mut body, 131_072 - self.result.size() as i32);
         body.push(0x4b); // i32.gt_u
         boundary_return(&mut body);
 
@@ -127,17 +147,17 @@ impl OwnedDataExportPlan {
         write_u32(&mut body, 0);
         body.push(0x22); // local.tee
         write_u32(&mut body, old_stack);
-        i32_const(&mut body, 8);
+        i32_const(&mut body, self.result.size() as i32);
         body.push(0x49); // i32.lt_u
         body.extend([0x04, 0x40, 0x00, 0x0b]); // invariant trap
         local_get(&mut body, result_out);
         local_get(&mut body, old_stack);
-        i32_const(&mut body, 8);
+        i32_const(&mut body, self.result.size() as i32);
         body.push(0x6b);
         body.push(0x46); // i32.eq: public out must not alias private temp
         boundary_return(&mut body);
         local_get(&mut body, old_stack);
-        i32_const(&mut body, 8);
+        i32_const(&mut body, self.result.size() as i32);
         body.push(0x6b);
         body.push(0x22);
         write_u32(&mut body, temporary_out);
@@ -170,7 +190,7 @@ impl OwnedDataExportPlan {
 
         local_get(&mut body, status);
         body.extend([0x04, 0x40]);
-        poison_temporary(&mut body, temporary_out);
+        poison_temporary(&mut body, temporary_out, self.result.size());
         local_get(&mut body, old_stack);
         body.push(0x24);
         write_u32(&mut body, 0);
@@ -178,14 +198,38 @@ impl OwnedDataExportPlan {
         body.push(0x0f);
         body.push(0x0b);
 
-        local_get(&mut body, temporary_out);
-        body.extend([0x29, 0x03, 0x00]); // i64.load align=8
-        body.push(0x21);
-        write_u32(&mut body, carrier);
-        poison_temporary(&mut body, temporary_out);
-        local_get(&mut body, result_out);
-        local_get(&mut body, carrier);
-        body.extend([0x37, 0x03, 0x00]); // final i64.store align=8
+        match self.result {
+            ResultLayout::Bytes => {
+                load_i64(&mut body, temporary_out, 0);
+                local_set(&mut body, carrier);
+                poison_temporary(&mut body, temporary_out, 8);
+                store_i64(&mut body, result_out, 0, carrier);
+            }
+            ResultLayout::OptionBytes { payload_offset } => {
+                authenticate_tag(&mut body, temporary_out, charged);
+                local_get(&mut body, charged);
+                i32_const(&mut body, PUBLIC_OPTION_NONE_TAG as i32);
+                body.push(0x46);
+                body.extend([0x04, 0x40]);
+                poison_temporary(&mut body, temporary_out, self.result.size());
+                store_i32(&mut body, result_out, 0, charged);
+                body.push(0x05);
+                load_i64(&mut body, temporary_out, payload_offset);
+                local_set(&mut body, carrier);
+                poison_temporary(&mut body, temporary_out, self.result.size());
+                store_i64(&mut body, result_out, payload_offset, carrier);
+                store_i32(&mut body, result_out, 0, charged);
+                body.push(0x0b);
+            }
+            ResultLayout::ResultBytesI64 { payload_offset } => {
+                authenticate_tag(&mut body, temporary_out, charged);
+                load_i64(&mut body, temporary_out, payload_offset);
+                local_set(&mut body, carrier);
+                poison_temporary(&mut body, temporary_out, self.result.size());
+                store_i64(&mut body, result_out, payload_offset, carrier);
+                store_i32(&mut body, result_out, 0, charged);
+            }
+        }
         local_get(&mut body, old_stack);
         body.push(0x24);
         write_u32(&mut body, 0);
@@ -195,10 +239,13 @@ impl OwnedDataExportPlan {
     }
 }
 
-fn poison_temporary(body: &mut Vec<u8>, pointer: u32) {
-    local_get(body, pointer);
-    i64_const(body, -6_510_615_555_426_900_571_i64); // 0xa5 repeated
-    body.extend([0x37, 0x03, 0x00]);
+fn poison_temporary(body: &mut Vec<u8>, pointer: u32, size: u32) {
+    for offset in (0..size).step_by(8) {
+        local_get(body, pointer);
+        i64_const(body, -6_510_615_555_426_900_571_i64); // 0xa5 repeated
+        body.extend([0x37, 0x03]);
+        write_u32(body, offset);
+    }
 }
 
 pub(super) fn prepare(
@@ -206,22 +253,22 @@ pub(super) fn prepare(
     descriptor: &PublicApiDescriptor,
 ) -> Result<Vec<OwnedDataExportPlan>, Diagnostic> {
     crate::hir::validate(program)?;
+    let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
     descriptor
         .exports()
         .iter()
         .map(|export| {
-            if export.result() != PublicApiResultType::OwnedBytes {
-                return Err(error("WP-10 admits only direct owned-bytes results"));
-            }
-            if !program
+            let function = program
                 .functions
                 .iter()
-                .any(|function| function.id == *export.stable_id())
-            {
-                return Err(error(
-                    "owned-data descriptor target is absent from held HIR",
-                ));
-            }
+                .find(|function| function.id == *export.stable_id())
+                .ok_or_else(|| error("owned-data descriptor target is absent from held HIR"))?;
+            let result = result_layout(
+                program,
+                &variant_layouts,
+                export.result(),
+                &function.return_type,
+            )?;
             let parameters = export
                 .parameters()
                 .iter()
@@ -237,9 +284,109 @@ pub(super) fn prepare(
                 wasm_export: raw_symbol(export.stable_id().as_str()),
                 function_id: export.stable_id().clone(),
                 parameters,
+                result,
             })
         })
         .collect()
+}
+
+fn result_layout(
+    program: &ResolvedProgram,
+    layouts: &VariantLayoutCache,
+    result: PublicApiResultType,
+    ty: &crate::hir::ResolvedType,
+) -> Result<ResultLayout, Diagnostic> {
+    if result == PublicApiResultType::OwnedBytes {
+        return Ok(ResultLayout::Bytes);
+    }
+    let layout = layouts.layout(ty)?;
+    layout.validate(program)?;
+    if layout.size != 16 || layout.align != 8 || layout.tag_size != 4 || layout.payload_offset != 8
+    {
+        return Err(error(
+            "owned-data variant target layout is not the fixed Wasm32 carrier",
+        ));
+    }
+    let expected = match result {
+        PublicApiResultType::OptionOwnedBytes => [
+            (crate::prelude::OPTION_NONE_ID, PUBLIC_OPTION_NONE_TAG, None),
+            (
+                crate::prelude::OPTION_SOME_ID,
+                PUBLIC_OPTION_SOME_TAG,
+                Some(crate::prelude::OPTION_SOME_VALUE_ID),
+            ),
+        ],
+        PublicApiResultType::ResultOwnedBytesI64 => [
+            (
+                crate::prelude::RESULT_OK_ID,
+                PUBLIC_RESULT_OK_TAG,
+                Some(crate::prelude::RESULT_OK_VALUE_ID),
+            ),
+            (
+                crate::prelude::RESULT_ERR_ID,
+                PUBLIC_RESULT_ERR_TAG,
+                Some(crate::prelude::RESULT_ERR_ERROR_ID),
+            ),
+        ],
+        _ => return Err(error("WP-11 admits only owned byte result families")),
+    };
+    if layout.cases.len() != expected.len() {
+        return Err(error("owned-data variant case inventory is not exact"));
+    }
+    for (case, (id, tag, field)) in layout.cases.iter().zip(expected) {
+        if case.case.as_str() != id || case.tag != tag {
+            return Err(error("owned-data variant discriminant disagrees"));
+        }
+        match field {
+            None if case.fields.is_empty() => {}
+            Some(field_id)
+                if case.fields.len() == 1
+                    && case.fields[0].field.as_str() == field_id
+                    && case.fields[0].offset == 0
+                    && case.fields[0].size == 8
+                    && case.fields[0].align == 8 => {}
+            _ => return Err(error("owned-data variant payload layout disagrees")),
+        }
+    }
+    Ok(match result {
+        PublicApiResultType::OptionOwnedBytes => ResultLayout::OptionBytes {
+            payload_offset: layout.payload_offset,
+        },
+        PublicApiResultType::ResultOwnedBytesI64 => ResultLayout::ResultBytesI64 {
+            payload_offset: layout.payload_offset,
+        },
+        _ => unreachable!("closed above"),
+    })
+}
+
+fn authenticate_tag(body: &mut Vec<u8>, pointer: u32, tag_local: u32) {
+    local_get(body, pointer);
+    body.extend([0x28, 0x02, 0x00]);
+    body.push(0x22);
+    write_u32(body, tag_local);
+    i32_const(body, 1);
+    body.push(0x4b);
+    body.extend([0x04, 0x40, 0x00, 0x0b]);
+}
+
+fn load_i64(body: &mut Vec<u8>, pointer: u32, offset: u32) {
+    local_get(body, pointer);
+    body.extend([0x29, 0x03]);
+    write_u32(body, offset);
+}
+
+fn store_i64(body: &mut Vec<u8>, pointer: u32, offset: u32, value: u32) {
+    local_get(body, pointer);
+    local_get(body, value);
+    body.extend([0x37, 0x03]);
+    write_u32(body, offset);
+}
+
+fn store_i32(body: &mut Vec<u8>, pointer: u32, offset: u32, value: u32) {
+    local_get(body, pointer);
+    local_get(body, value);
+    body.extend([0x36, 0x02]);
+    write_u32(body, offset);
 }
 
 fn raw_symbol(stable_id: &str) -> String {

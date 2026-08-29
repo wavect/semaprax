@@ -33,6 +33,33 @@ fn payload(input: borrow Slice<u8>) -> Bytes { bytes_copy(input) }
 fn main() -> i64 { 0 }
 "#;
 
+const VARIANT_SOURCE: &str = r#"module owned.variants;
+@id("variant.option")
+fn option(input: borrow Slice<u8>, present: bool) -> Option<Bytes> {
+    if present {
+        Option<Bytes>::Some { value: bytes_copy(input) }
+    } else {
+        Option<Bytes>::None {}
+    }
+}
+@id("variant.option-fail-after")
+fn option_fail_after(input: borrow Slice<u8>, zero: i64) -> Option<Bytes> {
+    let staged = bytes_copy(input);
+    let ignored = 1 / zero;
+    Option<Bytes>::Some { value: staged }
+}
+@id("variant.result")
+fn result(input: borrow Slice<u8>, error: i64, ok: bool) -> Result<Bytes, i64> {
+    if ok {
+        Result<Bytes, i64>::Ok { value: bytes_copy(input) }
+    } else {
+        Result<Bytes, i64>::Err { error: error }
+    }
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
 fn subject() -> PublicApiSubject<'static> {
     PublicApiSubject {
         project_schema: PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
@@ -55,6 +82,21 @@ fn selected() -> Vec<String> {
         "frame.fail-before",
         "frame.mixed",
         "frame.payload",
+    ]
+    .into_iter()
+    .map(str::to_owned)
+    .collect()
+}
+
+fn variant_resolved() -> hir::ResolvedProgram {
+    hir::resolve(&semaprax::check(VARIANT_SOURCE, "owned-variants.spx").unwrap()).unwrap()
+}
+
+fn variant_selected() -> Vec<String> {
+    [
+        "variant.option",
+        "variant.option-fail-after",
+        "variant.result",
     ]
     .into_iter()
     .map(str::to_owned)
@@ -266,25 +308,127 @@ console.log('owned-data-contract-ok');
 }
 
 #[test]
-fn project_v8_stays_inactive_and_wp10_rejects_option_result_descriptors() {
+fn option_result_package_is_exact_and_project_v8_stays_inactive() {
     assert!(
         semaprax::project::ProjectManifest::parse("schema = \"semaprax.project.v8\"\n").is_err()
     );
-    let source = r#"module no.wp11;
-@id("api.option") fn option(input: borrow Slice<u8>) -> Option<Bytes> { Option<Bytes>::Some { value: bytes_copy(input) } }
-@id("app.main") fn main() -> i64 { 0 }
-"#;
-    let program = hir::resolve(&semaprax::check(source, "no-wp11.spx").unwrap()).unwrap();
+    let program = variant_resolved();
     let descriptor =
-        derive_public_api_descriptor(&program, &["api.option".to_owned()], subject()).unwrap();
-    assert!(prepare_owned_data_npm_build(
+        derive_public_api_descriptor(&program, &variant_selected(), subject()).unwrap();
+    let build = prepare_owned_data_npm_build(
         &program,
         &descriptor,
-        "no-wp11",
+        "owned-variants",
         "0.1.0",
-        40 * 1024 * 1024
+        40 * 1024 * 1024,
     )
-    .is_err());
+    .unwrap();
+    build.verify().unwrap();
+    let package = artifacts(&build);
+    let declarations = String::from_utf8(
+        package
+            .iter()
+            .find(|row| row.0 == "semaprax.bindings.d.ts")
+            .unwrap()
+            .1
+            .clone(),
+    )
+    .unwrap();
+    assert!(declarations.contains("export type OptionalBytes = Uint8Array | null;"));
+    assert!(declarations.contains(
+        "readonly \"variant.option\": (arg0: Uint8Array, arg1: boolean) => OptionalBytes;"
+    ));
+    assert!(declarations.contains("export type SemapraxResult<T, E> ="));
+    assert!(declarations.contains("readonly \"variant.result\": (arg0: Uint8Array, arg1: bigint, arg2: boolean) => SemapraxResult<Uint8Array, bigint>;"));
+    let metadata = String::from_utf8(
+        package
+            .iter()
+            .find(|row| row.0 == "semaprax.api.json")
+            .unwrap()
+            .1
+            .clone(),
+    )
+    .unwrap();
+    assert!(metadata.contains("\"result\":\"option-owned-bytes\""));
+    assert!(metadata.contains("\"result\":\"result-owned-bytes-i64\""));
+    let runtime = String::from_utf8(
+        package
+            .iter()
+            .find(|row| row.0 == "semaprax.js")
+            .unwrap()
+            .1
+            .clone(),
+    )
+    .unwrap();
+    let tag_check = runtime.find("if(tag>1)").unwrap();
+    let payload_read = runtime.find("view.getBigInt64(RESULT+8,true)").unwrap();
+    assert!(tag_check < payload_read);
+    assert!(!runtime.contains("export async function instantiateCore"));
+    assert!(!runtime.contains("export function createArena"));
+}
+
+#[test]
+fn node_option_result_carriers_preserve_tags_liveness_and_first_failure() {
+    if Command::new("node").arg("--version").output().is_err() {
+        return;
+    }
+    let program = variant_resolved();
+    let descriptor =
+        derive_public_api_descriptor(&program, &variant_selected(), subject()).unwrap();
+    let build = prepare_owned_data_npm_build(
+        &program,
+        &descriptor,
+        "owned-variants",
+        "0.1.0",
+        40 * 1024 * 1024,
+    )
+    .unwrap();
+    let directory = std::env::temp_dir().join(format!(
+        "semaprax-owned-variants-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir(&directory).unwrap();
+    for (path, bytes) in artifacts(&build) {
+        fs::write(directory.join(path), bytes).unwrap();
+    }
+    fs::write(
+        directory.join("contract.mjs"),
+        r#"import fs from 'node:fs';
+import instantiate from './semaprax.bindings.js';
+const wasm=new Uint8Array(fs.readFileSync(new URL('./app.wasm',import.meta.url)));
+const api=await instantiate(wasm),option=api.functions['variant.option'],result=api.functions['variant.result'];
+if(option(new Uint8Array([9]),false)!==null)throw Error('None mapping');
+for(const input of [new Uint8Array(),new Uint8Array(65536).fill(0xff)]){const value=option(input,true);if(!(value instanceof Uint8Array)||value===input||value.length!==input.length)throw Error('Some carrier');for(let i=0;i<value.length;i++)if(value[i]!==input[i])throw Error('Some bytes')}
+for(let i=0;i<8;i++){const value=option(new Uint8Array([i]),true);if(value[0]!==i)throw Error('Some token rotation')}
+const ok=result(new Uint8Array([0,255]),7n,true);if(ok.ok!==true||!(ok.value instanceof Uint8Array)||ok.value[1]!==255)throw Error('Ok mapping');
+for(const error of [0n,-(1n<<63n),(1n<<63n)-1n]){const value=result(new Uint8Array([1]),error,false);if(value.ok!==false||value.error!==error||Object.keys(value).join(',')!=='ok,error')throw Error('Err mapping')}
+let primary;try{api.functions['variant.option-fail-after'](new Uint8Array([1,2]),0n)}catch(error){primary=error}if(!primary?.message.includes('semantic failure 4'))throw Error('first failure replaced');if(option(new Uint8Array([7]),true)[0]!==7)throw Error('settled semantic failure poisoned runtime');
+async function raw(){let instance=null,next=1;const entries=new Map(),decode=c=>{const w=BigInt.asUintN(64,c),length=Number(w&0xffffffffn),root=Number((w>>32n)&0xffffffffn),token=root&0x7fffffff;if((root&0x80000000)===0||token===0||length>65536)throw Error('carrier invariant');return{length,token}},resolve=v=>{const b=entries.get(v.token);if(!(b instanceof Uint8Array)||b.length!==v.length)throw Error('stale carrier');return b},read=c=>{const w=BigInt.asUintN(64,c),length=Number(w&0xffffffffn),root=Number((w>>32n)&0xffffffffn);if((root&0x80000000)!==0)return resolve(decode(c));if(!instance||root>instance.exports.memory.buffer.byteLength-length)throw Error('range');return new Uint8Array(instance.exports.memory.buffer,root,length)},allocate=b=>{const token=next++,copy=new Uint8Array(b);entries.set(token,copy);return BigInt.asIntN(64,((0x80000000n|BigInt(token))<<32n)|BigInt(copy.length))},semantic=code=>{throw Object.assign(Error(`semantic ${code}`),{semapraxSemantic:true})},arena={begin(){if(entries.size)throw Error('entered unsettled')},consume(c){const v=decode(c),copy=new Uint8Array(resolve(v));entries.delete(v.token);return copy},settle(){if(entries.size)throw Error('unsettled')}};const imports={spx_add:(a,b)=>a+b,spx_sub:(a,b)=>a-b,spx_mul:(a,b)=>a*b,spx_div:(a,b)=>b===0n?semantic(4):a/b,spx_rem:(a,b)=>b===0n?semantic(6):a%b,spx_neg:a=>-a,spx_contract_fail:semantic,spx_bytes_copy:c=>allocate(read(c)),spx_bytes_get:(c,i)=>{const b=read(c);return i<0n||i>=BigInt(b.length)?-1:b[Number(i)]},spx_bytes_drop:c=>{const v=decode(c);resolve(v);entries.delete(v.token)},spx_bytes_as_slice:c=>{read(c);return c},spx_owned_utf8_validate_v1:()=>1};instance=(await WebAssembly.instantiate(wasm,{env:imports})).instance;return{instance,arena}}
+const symbol=id=>'spx_owned_v1_'+Array.from(new TextEncoder().encode(id),b=>b.toString(16).padStart(2,'0')).join('');
+{const x=await raw(),e=x.instance.exports,u=new Uint8Array(e.memory.buffer),v=new DataView(e.memory.buffer),out=65536;u.set([3,4],0);u.fill(0x3c,out,out+16);x.arena.begin();if(e[symbol('variant.option')](0,2,0,out)!==0||v.getUint32(out,true)!==0)throw Error('raw None tag');if(u.slice(out+8,out+16).some(b=>b!==0x3c))throw Error('inactive None payload accessed');x.arena.settle();v.setUint32(out,2,true);let payloadReads=0,failed=false;try{const tag=v.getUint32(out,true);if(tag>1)throw Error('invalid tag');payloadReads++;v.getBigInt64(out+8,true)}catch{failed=true}if(!failed||payloadReads!==0)throw Error('invalid tag did not fail before payload')}
+{const x=await raw(),e=x.instance.exports,v=new DataView(e.memory.buffer),out=65536;x.arena.begin();if(e[symbol('variant.option')](0,0,1,out)!==0||v.getUint32(out,true)!==1)throw Error('raw Some tag');const carrier=v.getBigInt64(out+8,true);x.arena.consume(carrier);x.arena.settle();let failed=false;try{x.arena.consume(carrier)}catch{failed=true}if(!failed)throw Error('Some double consume')}
+{const x=await raw(),e=x.instance.exports,v=new DataView(e.memory.buffer),out=65536;x.arena.begin();if(e[symbol('variant.result')](0,0,-9n,0,out)!==0||v.getUint32(out,true)!==1||v.getBigInt64(out+8,true)!==-9n)throw Error('raw Err payload');x.arena.settle()}
+{const x=await raw(),e=x.instance.exports,u=new Uint8Array(e.memory.buffer),v=new DataView(e.memory.buffer),out=65536;x.arena.begin();if(e[symbol('variant.option')](0,0,1,out)!==0)throw Error('raw liveness setup');v.setUint32(out,0,true);let failed=false;try{x.arena.settle()}catch{failed=true}if(!failed)throw Error('tag/liveness mismatch')}
+{const x=await raw(),e=x.instance.exports,u=new Uint8Array(e.memory.buffer);for(const out of [1,131064,131056]){u.fill(0x3c,out,Math.min(out+16,u.length));const before=u.slice(out,Math.min(out+16,u.length));if(e[symbol('variant.option')](0,0,0,out)!==11)throw Error('variant pointer status');if(u.slice(out,Math.min(out+16,u.length)).some((b,i)=>b!==before[i]))throw Error('variant pointer modified')}}
+console.log('owned-variant-contract-ok');
+"#,
+    )
+    .unwrap();
+    let output = Command::new("node")
+        .arg("contract.mjs")
+        .current_dir(&directory)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
 
 #[test]
@@ -302,6 +446,32 @@ fn target_replays_descriptor_against_held_hir_before_lowering() {
     assert!(
         semaprax::wasm::emit_resolved_module_with_owned_data_exports(&foreign_program, &descriptor)
             .is_err()
+    );
+
+    let option_program = variant_resolved();
+    let option_descriptor =
+        derive_public_api_descriptor(&option_program, &["variant.option".to_owned()], subject())
+            .unwrap();
+    let result_with_same_id = r#"module foreign.variant;
+@id("variant.option")
+fn value(input: borrow Slice<u8>, present: bool) -> Result<Bytes, i64> {
+    if present {
+        Result<Bytes, i64>::Ok { value: bytes_copy(input) }
+    } else {
+        Result<Bytes, i64>::Err { error: 0 }
+    }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let result_program =
+        hir::resolve(&semaprax::check(result_with_same_id, "foreign-variant.spx").unwrap())
+            .unwrap();
+    assert!(
+        semaprax::wasm::emit_resolved_module_with_owned_data_exports(
+            &result_program,
+            &option_descriptor
+        )
+        .is_err()
     );
 }
 

@@ -26,8 +26,11 @@ pub use project_publication::{NewProjectAuthority, NewProjectAuthorityError};
 pub use descriptor::{Descriptor, ParameterKind, ResultKind};
 
 pub const NATIVE_RUST_OWNED_DATA_SDK_SCHEMA: &str = "semaprax.native-rust-owned-data-sdk.v1";
+pub const NATIVE_RUST_OWNED_UTF8_SDK_SCHEMA: &str = "semaprax.native-rust-owned-utf8-sdk.v1";
 pub const PUBLIC_OWNED_DATA_API_SCHEMA: &str = "semaprax.public-owned-data-api.v1";
 pub const PUBLIC_OWNED_DATA_PROJECT_SCHEMA: &str = "semaprax.project.v8";
+pub const PUBLIC_OWNED_UTF8_API_SCHEMA: &str = "semaprax.public-owned-utf8-api.v1";
+pub const PUBLIC_OWNED_UTF8_PROJECT_SCHEMA: &str = "semaprax.project.v10";
 pub const OWNED_CRATE_NAME: &str = "semaprax-generated-native-rust-owned-data-sdk";
 pub const OWNED_CRATE_VERSION: &str = "0.1.0";
 pub const MAX_DESCRIPTOR_BYTES: usize = 1024 * 1024;
@@ -35,8 +38,10 @@ pub const MAX_PROVIDER_BYTES: usize = 8 * 1024 * 1024;
 pub const MAX_ARCHIVE_BYTES: usize = 8 * 1024 * 1024;
 
 const DESCRIPTOR_DIGEST_DOMAIN: &[u8] = b"semaprax.public-owned-data-api.digest.v1\0";
+const UTF8_DESCRIPTOR_DIGEST_DOMAIN: &[u8] = b"semaprax.public-owned-utf8-api.digest.v1\0";
 const FLAT_DESCRIPTOR_DIGEST_DOMAIN: &[u8] = b"semaprax.public-flat-owned-record-api.digest.v1\0";
 const MANIFEST_DIGEST_DOMAIN: &[u8] = b"semaprax.native-rust-owned-data-sdk.manifest.v1\0";
+const UTF8_MANIFEST_DIGEST_DOMAIN: &[u8] = b"semaprax.native-rust-owned-utf8-sdk.manifest.v1\0";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HostTarget {
@@ -97,6 +102,7 @@ pub enum PackageMode {
     StandaloneEvidence,
     ProjectV8,
     ProjectV9FlatRecord,
+    ProjectV10OwnedUtf8,
 }
 
 pub fn build_flat_record_and_publish(
@@ -271,12 +277,14 @@ pub fn build_and_publish(plan: PackagePlan, output: &Path) -> Result<PackageBund
     if plan.provider_c.is_empty()
         || plan.provider_c.len() > MAX_PROVIDER_BYTES
         || raw_sha256(&plan.provider_c) != plan.provider_sha256
-        || (plan.mode == PackageMode::ProjectV8
-            && !provider_binds_descriptor(&plan.provider_c, &plan.descriptor_digest))
+        || (matches!(
+            plan.mode,
+            PackageMode::ProjectV8 | PackageMode::ProjectV10OwnedUtf8
+        ) && !provider_binds_descriptor(&plan.provider_c, &plan.descriptor_digest))
     {
         return Err(PackageError::provider());
     }
-    if descriptor_digest(&plan.descriptor) != plan.descriptor_digest {
+    if descriptor_digest_for_bytes(&plan.descriptor).as_deref() != Some(&plan.descriptor_digest) {
         return Err(PackageError::descriptor());
     }
     let descriptor = descriptor::replay(
@@ -284,6 +292,9 @@ pub fn build_and_publish(plan: PackagePlan, output: &Path) -> Result<PackageBund
         &plan.descriptor_digest,
         &plan.selected_exports,
     )?;
+    if !mode_accepts_descriptor(plan.mode, descriptor.schema) {
+        return Err(PackageError::descriptor());
+    }
     let sources = render::render_sources(&descriptor, target, plan.mode);
     let publication = publication::PublicationAuthority::new(output)?;
 
@@ -325,6 +336,7 @@ pub fn build_and_publish(plan: PackagePlan, output: &Path) -> Result<PackageBund
             ("descriptor.json", &plan.descriptor),
         ],
     )?;
+    let manifest_name = manifest_name(plan.mode);
     let files = [
         ("Cargo.toml", sources.cargo_toml.as_bytes()),
         ("build.rs", sources.build_rs.as_bytes()),
@@ -332,17 +344,14 @@ pub fn build_and_publish(plan: PackagePlan, output: &Path) -> Result<PackageBund
         ("owned_data_ffi.rs", sources.ffi_rs.as_bytes()),
         (archive_name, archive.as_slice()),
         ("descriptor.json", plan.descriptor.as_slice()),
-        (
-            "semaprax.native-rust-owned-data-sdk.json",
-            manifest.as_bytes(),
-        ),
+        (manifest_name, manifest.as_bytes()),
     ];
     let published = publication::publish_package(&publication, files)?;
     publication::verify_published(&publication, &published, files)?;
     Ok(PackageBundle {
         output_directory: output.to_path_buf(),
-        manifest_path: output.join("semaprax.native-rust-owned-data-sdk.json"),
-        manifest_digest: domain_digest(MANIFEST_DIGEST_DOMAIN, manifest.as_bytes()),
+        manifest_path: output.join(manifest_name),
+        manifest_digest: domain_digest(manifest_digest_domain(plan.mode), manifest.as_bytes()),
         descriptor_digest: plan.descriptor_digest,
         target_triple: target.triple().to_owned(),
     })
@@ -365,6 +374,51 @@ fn descriptor_digest(bytes: &[u8]) -> String {
     hasher.update((bytes.len() as u64).to_le_bytes());
     hasher.update(bytes);
     format!("sha256:{:x}", LowerHex(hasher.finalize()))
+}
+
+fn utf8_descriptor_digest(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(UTF8_DESCRIPTOR_DIGEST_DOMAIN);
+    hasher.update((bytes.len() as u64).to_le_bytes());
+    hasher.update(bytes);
+    format!("sha256:{:x}", LowerHex(hasher.finalize()))
+}
+
+fn descriptor_digest_for_schema(schema: &str, bytes: &[u8]) -> Option<String> {
+    match schema {
+        PUBLIC_OWNED_DATA_API_SCHEMA => Some(descriptor_digest(bytes)),
+        PUBLIC_OWNED_UTF8_API_SCHEMA => Some(utf8_descriptor_digest(bytes)),
+        _ => None,
+    }
+}
+
+fn descriptor_digest_for_bytes(bytes: &[u8]) -> Option<String> {
+    let value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+    descriptor_digest_for_schema(value.get("schema")?.as_str()?, bytes)
+}
+
+const fn manifest_name(mode: PackageMode) -> &'static str {
+    match mode {
+        PackageMode::ProjectV10OwnedUtf8 => "semaprax.native-rust-owned-utf8-sdk.json",
+        _ => "semaprax.native-rust-owned-data-sdk.json",
+    }
+}
+
+fn mode_accepts_descriptor(mode: PackageMode, schema: &str) -> bool {
+    match mode {
+        PackageMode::StandaloneEvidence | PackageMode::ProjectV8 => {
+            schema == PUBLIC_OWNED_DATA_API_SCHEMA
+        }
+        PackageMode::ProjectV10OwnedUtf8 => schema == PUBLIC_OWNED_UTF8_API_SCHEMA,
+        PackageMode::ProjectV9FlatRecord => false,
+    }
+}
+
+const fn manifest_digest_domain(mode: PackageMode) -> &'static [u8] {
+    match mode {
+        PackageMode::ProjectV10OwnedUtf8 => UTF8_MANIFEST_DIGEST_DOMAIN,
+        _ => MANIFEST_DIGEST_DOMAIN,
+    }
 }
 
 fn flat_descriptor_digest(bytes: &[u8]) -> String {
@@ -398,106 +452,4 @@ impl<T: AsRef<[u8]>> std::fmt::LowerHex for LowerHex<T> {
 }
 
 #[cfg(test)]
-mod tests {
-    use serde_json::Value;
-    use sha2::{Digest as _, Sha256};
-
-    use super::*;
-
-    fn descriptor_bytes(result: &str) -> Vec<u8> {
-        format!(
-            "{{\"schema\":\"semaprax.public-owned-data-api.v1\",\"project_schema\":\"semaprax.project.v8\",\"project_revision\":\"sha256:{}\",\"workspace_revision\":\"sha256:{}\",\"project_graph_digest\":\"sha256:{}\",\"exports\":[{{\"stable_id\":\"fixture.value\",\"typescript_name\":\"fixture.value\",\"rust_method_name\":\"spx_fixture_dot_value\",\"parameters\":[],\"result\":\"{result}\"}}],\"limits\":{{\"max_exports\":32,\"max_parameters\":8,\"max_closure_functions\":256,\"max_borrowed_input_bytes\":65536,\"max_owned_output_bytes\":65536,\"max_descriptor_bytes\":1048576}}}}\n",
-            "1".repeat(64),
-            "2".repeat(64),
-            "3".repeat(64),
-        )
-        .into_bytes()
-    }
-
-    #[test]
-    fn descriptor_digest_has_the_frozen_length_prefix_and_rejects_scalar_row_drift() {
-        let bytes = descriptor_bytes("usize");
-        let digest = descriptor_digest(&bytes);
-        let selected = vec!["fixture.value".to_owned()];
-        let replayed = descriptor::replay(&bytes, &digest, &selected).unwrap();
-        assert_eq!(replayed.exports_len(), 1);
-
-        let mut without_length = Sha256::new();
-        without_length.update(DESCRIPTOR_DIGEST_DOMAIN);
-        without_length.update(&bytes);
-        assert_ne!(
-            digest,
-            format!("sha256:{:x}", LowerHex(without_length.finalize()))
-        );
-
-        let mut missing = String::from_utf8(bytes.clone()).unwrap();
-        missing = missing.replace("\"result\":\"usize\"", "\"result\":null");
-        let missing = missing.into_bytes();
-        assert!(descriptor::replay(&missing, &descriptor_digest(&missing), &selected).is_err());
-
-        let mut surplus: Value = serde_json::from_slice(&bytes).unwrap();
-        surplus["exports"][0]["surplus"] = Value::Bool(true);
-        let mut surplus = serde_json::to_vec(&surplus).unwrap();
-        surplus.push(b'\n');
-        assert!(descriptor::replay(&surplus, &descriptor_digest(&surplus), &selected).is_err());
-    }
-
-    #[test]
-    fn provider_binding_is_exact_unique_and_descriptor_specific() {
-        let digest = descriptor_digest(&descriptor_bytes("owned-bytes"));
-        let line = format!("#define SPX_OWNED_DATA_DESCRIPTOR_DIGEST_V1 \"{digest}\"");
-        let provider = format!("#define SPX_NO_ENTRY_WRAPPER 1\n{line}\nint x;\n");
-        assert!(provider_binds_descriptor(provider.as_bytes(), &digest));
-        assert!(!provider_binds_descriptor(
-            format!("{provider}{line}\n").as_bytes(),
-            &digest
-        ));
-        assert!(!provider_binds_descriptor(
-            provider.as_bytes(),
-            &descriptor_digest(&descriptor_bytes("i64"))
-        ));
-    }
-
-    #[test]
-    fn standalone_source_and_manifest_shape_remain_frozen_while_project_mode_is_additive() {
-        let bytes = descriptor_bytes("owned-bytes");
-        let digest = descriptor_digest(&bytes);
-        let descriptor =
-            descriptor::replay(&bytes, &digest, &["fixture.value".to_owned()]).unwrap();
-        let target = HostTarget::current().unwrap();
-        let standalone =
-            render::render_sources(&descriptor, target, PackageMode::StandaloneEvidence);
-        let project = render::render_sources(&descriptor, target, PackageMode::ProjectV8);
-        assert!(standalone
-            .ffi_rs
-            .contains("if bytes.capacity()!=length{return Err(Failure::Host)}"));
-        assert!(!project
-            .ffi_rs
-            .contains("if bytes.capacity()!=length{return Err(Failure::Host)}"));
-        let archive = target.archive_name();
-        let files = [
-            ("Cargo.toml", standalone.cargo_toml.as_bytes()),
-            ("build.rs", standalone.build_rs.as_bytes()),
-            ("lib.rs", standalone.lib_rs.as_bytes()),
-            ("owned_data_ffi.rs", standalone.ffi_rs.as_bytes()),
-            (archive, b"archive".as_slice()),
-            ("descriptor.json", bytes.as_slice()),
-        ];
-        let standalone_manifest = render::render_manifest(
-            target,
-            &bytes,
-            &digest,
-            archive,
-            PackageMode::StandaloneEvidence,
-            "sha256:provider",
-            files,
-        );
-        let value: Value = serde_json::from_str(&standalone_manifest).unwrap();
-        assert_eq!(value["provider"].as_object().unwrap().len(), 3);
-        assert!(value["nonclaims"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|value| value == "no_project_v8_activation"));
-    }
-}
+mod tests;

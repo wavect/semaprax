@@ -139,13 +139,26 @@ int main(void) {
     const uint8_t expected[12] = {'h','e','l','l','o',0,0xe4,0xb8,0x96,0xe7,0x95,0x8c};
     if (memcmp(output, expected, 12) != 0) return 14;
     if (spx_owned_bytes_drop_v1(context, handle) != 0) return 15;
-    if (spx_owned_data_context_drop_v1(context) != 0) return 16;
+    spx_owned_data_test_fault_v1(context, UINT32_C(3));
+    tag = UINT32_MAX; handle = 0; error = -1;
+    if (spx_owned_data_call_spx_utf8_dot_greeting_v1(context, &tag, &handle, &error) != 0 || tag != 0 || handle == 0) return 16;
+    memset(output, 0, sizeof(output));
+    if (spx_owned_bytes_copy_v1(context, handle, output, sizeof(output)) != 0 || output[0] != UINT8_C(0xff)) return 17;
+    if (spx_owned_bytes_drop_v1(context, handle) != 0) return 18;
+    if (spx_owned_data_context_drop_v1(context) != 0) return 19;
     free(storage); return 0;
 }
 "#;
     fs::write(&c, format!("{}\n{probe}", provider.source())).unwrap();
     let compiled = Command::new("clang")
-        .args(["-std=c11", "-O2", "-Wall", "-Wextra", "-Werror"])
+        .args([
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-DSPX_OWNED_DATA_TESTING",
+        ])
         .arg(&c)
         .arg("-o")
         .arg(&executable)

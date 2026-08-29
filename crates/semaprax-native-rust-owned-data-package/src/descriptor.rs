@@ -3,8 +3,9 @@ use std::collections::BTreeSet;
 use serde_json::{Map, Value};
 
 use super::{
-    descriptor_digest, PackageError, MAX_DESCRIPTOR_BYTES, PUBLIC_OWNED_DATA_API_SCHEMA,
-    PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
+    descriptor_digest_for_schema, PackageError, MAX_DESCRIPTOR_BYTES, PUBLIC_OWNED_DATA_API_SCHEMA,
+    PUBLIC_OWNED_DATA_PROJECT_SCHEMA, PUBLIC_OWNED_UTF8_API_SCHEMA,
+    PUBLIC_OWNED_UTF8_PROJECT_SCHEMA,
 };
 
 const MAX_EXPORTS: usize = 32;
@@ -47,6 +48,7 @@ pub enum ResultKind {
     OwnedBytes,
     OptionOwnedBytes,
     ResultOwnedBytesI64,
+    OwnedUtf8,
 }
 
 impl ResultKind {
@@ -58,6 +60,7 @@ impl ResultKind {
             Self::OwnedBytes => "owned-bytes",
             Self::OptionOwnedBytes => "option-owned-bytes",
             Self::ResultOwnedBytesI64 => "result-owned-bytes-i64",
+            Self::OwnedUtf8 => "owned-utf8",
         }
     }
 
@@ -69,6 +72,7 @@ impl ResultKind {
             "owned-bytes" => Some(Self::OwnedBytes),
             "option-owned-bytes" => Some(Self::OptionOwnedBytes),
             "result-owned-bytes-i64" => Some(Self::ResultOwnedBytesI64),
+            "owned-utf8" => Some(Self::OwnedUtf8),
             _ => None,
         }
     }
@@ -91,6 +95,8 @@ pub struct Export {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Descriptor {
+    pub(crate) schema: &'static str,
+    pub(crate) project_schema: &'static str,
     project_revision: String,
     workspace_revision: String,
     project_graph_digest: String,
@@ -112,15 +118,24 @@ pub(crate) fn replay(
         || bytes.len() > MAX_DESCRIPTOR_BYTES
         || !bytes.ends_with(b"\n")
         || bytes.contains(&0)
-        || descriptor_digest(bytes) != digest
     {
         return Err(PackageError::descriptor());
     }
     let value: Value = serde_json::from_slice(bytes).map_err(|_| PackageError::descriptor())?;
     let root = exact_object(&value, 7)?;
-    if string(root, "schema")? != PUBLIC_OWNED_DATA_API_SCHEMA
-        || string(root, "project_schema")? != PUBLIC_OWNED_DATA_PROJECT_SCHEMA
+    let (schema, project_schema) = match (string(root, "schema")?, string(root, "project_schema")?)
     {
+        (PUBLIC_OWNED_DATA_API_SCHEMA, PUBLIC_OWNED_DATA_PROJECT_SCHEMA) => (
+            PUBLIC_OWNED_DATA_API_SCHEMA,
+            PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
+        ),
+        (PUBLIC_OWNED_UTF8_API_SCHEMA, PUBLIC_OWNED_UTF8_PROJECT_SCHEMA) => (
+            PUBLIC_OWNED_UTF8_API_SCHEMA,
+            PUBLIC_OWNED_UTF8_PROJECT_SCHEMA,
+        ),
+        _ => return Err(PackageError::descriptor()),
+    };
+    if descriptor_digest_for_schema(schema, bytes).as_deref() != Some(digest) {
         return Err(PackageError::descriptor());
     }
     let project_revision = digest_fact(root, "project_revision")?.to_owned();
@@ -180,6 +195,9 @@ pub(crate) fn replay(
         }
         let result =
             ResultKind::parse(string(row, "result")?).ok_or_else(PackageError::descriptor)?;
+        if result == ResultKind::OwnedUtf8 && schema != PUBLIC_OWNED_UTF8_API_SCHEMA {
+            return Err(PackageError::descriptor());
+        }
         exports.push(Export {
             stable_id: stable_id.to_owned(),
             rust_method_name,
@@ -189,6 +207,8 @@ pub(crate) fn replay(
     }
     validate_limits(root.get("limits").ok_or_else(PackageError::descriptor)?)?;
     let descriptor = Descriptor {
+        schema,
+        project_schema,
         project_revision,
         workspace_revision,
         project_graph_digest,
@@ -203,9 +223,9 @@ pub(crate) fn replay(
 fn render(descriptor: &Descriptor) -> Vec<u8> {
     let mut output = String::new();
     output.push_str("{\"schema\":");
-    json_string(&mut output, PUBLIC_OWNED_DATA_API_SCHEMA);
+    json_string(&mut output, descriptor.schema);
     output.push_str(",\"project_schema\":");
-    json_string(&mut output, PUBLIC_OWNED_DATA_PROJECT_SCHEMA);
+    json_string(&mut output, descriptor.project_schema);
     output.push_str(",\"project_revision\":");
     json_string(&mut output, &descriptor.project_revision);
     output.push_str(",\"workspace_revision\":");

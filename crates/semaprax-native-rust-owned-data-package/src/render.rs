@@ -5,9 +5,9 @@ use serde_json::Value;
 
 use super::descriptor::{json_string, Descriptor, ParameterKind, ResultKind};
 use super::{
-    descriptor_digest, raw_sha256, HostTarget, PackageError, PackageMode,
-    NATIVE_RUST_OWNED_DATA_SDK_SCHEMA, OWNED_CRATE_NAME, OWNED_CRATE_VERSION,
-    PUBLIC_OWNED_DATA_API_SCHEMA,
+    descriptor_digest_for_schema, raw_sha256, HostTarget, PackageError, PackageMode,
+    NATIVE_RUST_OWNED_DATA_SDK_SCHEMA, NATIVE_RUST_OWNED_UTF8_SDK_SCHEMA, OWNED_CRATE_NAME,
+    OWNED_CRATE_VERSION,
 };
 
 pub(crate) struct Sources {
@@ -62,7 +62,8 @@ fn render_lib(descriptor: &Descriptor) -> String {
             }
             ResultKind::OwnedBytes
             | ResultKind::OptionOwnedBytes
-            | ResultKind::ResultOwnedBytesI64 => {
+            | ResultKind::ResultOwnedBytesI64
+            | ResultKind::OwnedUtf8 => {
                 write!(
                     output,
                     "let raw=self.context.call_{}(",
@@ -75,6 +76,7 @@ fn render_lib(descriptor: &Descriptor) -> String {
                     ResultKind::OwnedBytes => output.push_str("if raw.tag!=0||raw.handle==0{if raw.handle!=0{self.context.discard(raw.handle).map_err(map_failure)?}return Err(CallError::AdapterRejected)}self.context.copy_and_settle(raw.handle).map_err(map_failure)"),
                     ResultKind::OptionOwnedBytes => output.push_str("match(raw.tag,raw.handle){(0,0)=>Ok(None),(1,handle)if handle!=0=>self.context.copy_and_settle(handle).map(Some).map_err(map_failure),(_,handle)=>{if handle!=0{self.context.discard(handle).map_err(map_failure)?}Err(CallError::AdapterRejected)}}"),
                     ResultKind::ResultOwnedBytesI64 => output.push_str("match(raw.tag,raw.handle){(0,handle)if handle!=0=>self.context.copy_and_settle(handle).map(Ok).map_err(map_failure),(1,0)=>Ok(Err(raw.error)),(_,handle)=>{if handle!=0{self.context.discard(handle).map_err(map_failure)?}Err(CallError::AdapterRejected)}}"),
+                    ResultKind::OwnedUtf8 => output.push_str("if raw.tag!=0||raw.handle==0{if raw.handle!=0{self.context.discard(raw.handle).map_err(map_failure)?}return Err(CallError::AdapterRejected)}let bytes=self.context.copy_and_settle(raw.handle).map_err(map_failure)?;String::from_utf8(bytes).map_err(|_|CallError::AdapterRejected)"),
                     _ => unreachable!("owned result branch"),
                 }
             }
@@ -113,7 +115,8 @@ fn render_ffi(descriptor: &Descriptor, mode: PackageMode) -> String {
             ResultKind::Usize => output.push_str(",value:*mut u64)->Status;\n"),
             ResultKind::OwnedBytes
             | ResultKind::OptionOwnedBytes
-            | ResultKind::ResultOwnedBytesI64 => {
+            | ResultKind::ResultOwnedBytesI64
+            | ResultKind::OwnedUtf8 => {
                 output.push_str(",tag:*mut u32,handle:*mut Handle,error:*mut i64)->Status;\n")
             }
         }
@@ -128,7 +131,7 @@ fn render_ffi(descriptor: &Descriptor, mode: PackageMode) -> String {
             ResultKind::I64 => output.push_str(")->Result<i64,Failure>{let mut value=0i64;let status=unsafe{raw_"),
             ResultKind::Bool => output.push_str(")->Result<bool,Failure>{let mut value=u8::MAX;let status=unsafe{raw_"),
             ResultKind::Usize => output.push_str(")->Result<u64,Failure>{let mut value=0u64;let status=unsafe{raw_"),
-            ResultKind::OwnedBytes | ResultKind::OptionOwnedBytes | ResultKind::ResultOwnedBytesI64 => output.push_str(")->Result<RawCall,Failure>{let mut value=RawCall{tag:u32::MAX,handle:0,error:0};let status=unsafe{raw_"),
+            ResultKind::OwnedBytes | ResultKind::OptionOwnedBytes | ResultKind::ResultOwnedBytesI64 | ResultKind::OwnedUtf8 => output.push_str(")->Result<RawCall,Failure>{let mut value=RawCall{tag:u32::MAX,handle:0,error:0};let status=unsafe{raw_"),
         }
         output.push_str(&export.rust_method_name);
         output.push_str("(self.raw.as_ptr()");
@@ -146,7 +149,8 @@ fn render_ffi(descriptor: &Descriptor, mode: PackageMode) -> String {
             }
             ResultKind::OwnedBytes
             | ResultKind::OptionOwnedBytes
-            | ResultKind::ResultOwnedBytesI64 => output.push_str(",&mut value.tag,&mut value.handle,&mut value.error)};if status!=0&&value.handle!=0{self.discard(value.handle)?}match status{0=>Ok(value),1=>Err(Failure::Semantic),2..=5=>Err(Failure::Adapter),_=>Err(Failure::Host)}}\n"),
+            | ResultKind::ResultOwnedBytesI64
+            | ResultKind::OwnedUtf8 => output.push_str(",&mut value.tag,&mut value.handle,&mut value.error)};if status!=0&&value.handle!=0{self.discard(value.handle)?}match status{0=>Ok(value),1=>Err(Failure::Semantic),2..=5=>Err(Failure::Adapter),_=>Err(Failure::Host)}}\n"),
         }
     }
     output.push_str("pub fn copy_and_settle(&mut self,handle:Handle)->Result<Vec<u8>,Failure>{let mut guard=Guard{context:self,handle,armed:true};let mut length=0u64;if unsafe{spx_owned_bytes_len_v1(guard.context.raw.as_ptr(),handle,&mut length)}!=0{return Err(Failure::Adapter)}if length>65536{return Err(Failure::Adapter)}let length=usize::try_from(length).map_err(|_|Failure::Adapter)?;let mut bytes=vec![0u8;length];");
@@ -200,6 +204,7 @@ fn rust_result(kind: ResultKind) -> &'static str {
         ResultKind::OwnedBytes => "Vec<u8>",
         ResultKind::OptionOwnedBytes => "Option<Vec<u8>>",
         ResultKind::ResultOwnedBytesI64 => "Result<Vec<u8>,i64>",
+        ResultKind::OwnedUtf8 => "String",
     }
 }
 
@@ -219,7 +224,7 @@ pub(crate) fn render_manifest(
     files.sort_by_key(|row| row.0.as_bytes());
     let mut output = String::new();
     output.push_str("{\"schema\":");
-    json_string(&mut output, NATIVE_RUST_OWNED_DATA_SDK_SCHEMA);
+    json_string(&mut output, manifest_schema(mode));
     output.push_str(",\"crate\":{\"name\":");
     json_string(&mut output, OWNED_CRATE_NAME);
     output.push_str(",\"version\":");
@@ -228,13 +233,13 @@ pub(crate) fn render_manifest(
     output.push_str(",\"target\":");
     json_string(&mut output, target.triple());
     output.push_str(",\"descriptor\":{\"schema\":");
-    json_string(&mut output, PUBLIC_OWNED_DATA_API_SCHEMA);
+    json_string(&mut output, descriptor_schema(mode));
     write!(output, ",\"bytes\":{},\"digest\":", descriptor.len()).unwrap();
     json_string(&mut output, descriptor_digest);
     output.push('}');
     output.push_str(",\"provider\":{\"abi\":\"opaque-handle.v1\",\"archive\":");
     json_string(&mut output, archive_name);
-    if mode == PackageMode::ProjectV8 {
+    if descriptor_bound(mode) {
         output.push_str(",\"descriptor_digest\":");
         json_string(&mut output, descriptor_digest);
         output.push_str(",\"source_sha256\":");
@@ -273,7 +278,8 @@ pub(crate) fn verify_manifest(
     files: [(&str, &[u8]); 6],
 ) -> Result<(), PackageError> {
     if !bytes.ends_with(b"\n")
-        || descriptor_digest(expected_descriptor) != expected_descriptor_digest
+        || descriptor_digest_for_schema(descriptor_schema(mode), expected_descriptor).as_deref()
+            != Some(expected_descriptor_digest)
     {
         return Err(PackageError::descriptor());
     }
@@ -282,7 +288,7 @@ pub(crate) fn verify_manifest(
         .as_object()
         .filter(|root| root.len() == 8)
         .ok_or_else(PackageError::descriptor)?;
-    if root.get("schema").and_then(Value::as_str) != Some(NATIVE_RUST_OWNED_DATA_SDK_SCHEMA)
+    if root.get("schema").and_then(Value::as_str) != Some(manifest_schema(mode))
         || root.get("target").and_then(Value::as_str) != Some(target.triple())
     {
         return Err(PackageError::descriptor());
@@ -291,13 +297,12 @@ pub(crate) fn verify_manifest(
     let descriptor_row = closed(root.get("descriptor"), 3)?;
     let provider = closed(
         root.get("provider"),
-        if mode == PackageMode::ProjectV8 { 5 } else { 3 },
+        if descriptor_bound(mode) { 5 } else { 3 },
     )?;
     let limits = closed(root.get("limits"), 4)?;
     if crate_row.get("name").and_then(Value::as_str) != Some(OWNED_CRATE_NAME)
         || crate_row.get("version").and_then(Value::as_str) != Some(OWNED_CRATE_VERSION)
-        || descriptor_row.get("schema").and_then(Value::as_str)
-            != Some(PUBLIC_OWNED_DATA_API_SCHEMA)
+        || descriptor_row.get("schema").and_then(Value::as_str) != Some(descriptor_schema(mode))
         || descriptor_row.get("bytes").and_then(Value::as_u64)
             != u64::try_from(expected_descriptor.len()).ok()
         || descriptor_row.get("digest").and_then(Value::as_str) != Some(expected_descriptor_digest)
@@ -310,7 +315,7 @@ pub(crate) fn verify_manifest(
     {
         return Err(PackageError::descriptor());
     }
-    if mode == PackageMode::ProjectV8
+    if descriptor_bound(mode)
         && (provider.get("descriptor_digest").and_then(Value::as_str)
             != Some(expected_descriptor_digest)
             || provider.get("source_sha256").and_then(Value::as_str) != Some(provider_sha256))
@@ -342,6 +347,12 @@ pub(crate) fn verify_manifest(
             "no_send_sync",
         ],
         PackageMode::ProjectV9FlatRecord => &[
+            "no_raw_handle_or_context_public_api",
+            "no_allocator_transfer",
+            "no_allocator_oom_abort_or_panic_recovery_proof",
+            "no_send_sync",
+        ],
+        PackageMode::ProjectV10OwnedUtf8 => &[
             "no_raw_handle_or_context_public_api",
             "no_allocator_transfer",
             "no_allocator_oom_abort_or_panic_recovery_proof",
@@ -403,6 +414,27 @@ pub(crate) fn verify_manifest(
         }
     }
     Ok(())
+}
+
+const fn descriptor_bound(mode: PackageMode) -> bool {
+    matches!(
+        mode,
+        PackageMode::ProjectV8 | PackageMode::ProjectV10OwnedUtf8
+    )
+}
+
+const fn manifest_schema(mode: PackageMode) -> &'static str {
+    match mode {
+        PackageMode::ProjectV10OwnedUtf8 => NATIVE_RUST_OWNED_UTF8_SDK_SCHEMA,
+        _ => NATIVE_RUST_OWNED_DATA_SDK_SCHEMA,
+    }
+}
+
+const fn descriptor_schema(mode: PackageMode) -> &'static str {
+    match mode {
+        PackageMode::ProjectV10OwnedUtf8 => super::PUBLIC_OWNED_UTF8_API_SCHEMA,
+        _ => super::PUBLIC_OWNED_DATA_API_SCHEMA,
+    }
 }
 
 fn closed(

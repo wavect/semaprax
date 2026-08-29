@@ -24,6 +24,7 @@ evidence, private experiments, and repository internals live in the separate
 | Build a multi-file project | [Project Manifest v1](PROJECT-MANIFEST-V1.md) |
 | Call SEMAPRAX from JavaScript | [Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md) |
 | Inspect the unpromoted Project v8 owned-byte SDK boundary | [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) |
+| Inspect the unpromoted Project v10 owned-string boundary | [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md) |
 | Query program meaning | [Agent Context v2](AGENT-CONTEXT-V2.md) |
 | Preview or apply a semantic change | [Semantic Patch v2](SEMANTIC-PATCH-V2.md), then [Impact](SEMANTIC-IMPACT-V1.md) and [Review](SEMANTIC-REVIEW-V1.md) |
 | Integrate a compiler report or generated artifact | Use the [reference catalog](#reference-catalog) |
@@ -75,6 +76,9 @@ targets unless its documented executable gate covers those targets.
   JavaScript/TypeScript and safe Rust. The implementation and executable gates
   are authored; the packages remain unpublished and exact-head hosted
   promotion is pending.
+- [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md): additive Project
+  v10 descriptor and physical JavaScript/safe-Rust string boundary. It is
+  authored but unrun, depends on Project v9 promotion, and remains unpublished.
 
 ## Agent workflow references
 

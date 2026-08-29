@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Added the unpromoted Project v10 `owned-utf8-api.v1` implementation above
+  the Project v9 physical adapters. Its distinct canonical descriptor admits
+  mixed scalar, owned-byte, and length-delimited UTF-8 results. Wasm/npm copy
+  and consume an opaque owned carrier before fatal decoding; the native
+  provider validates exact bytes before publishing a handle; and generated
+  safe Rust settles the handle before `String::from_utf8`, including hostile
+  invalid-UTF-8 conversion. The lower package independently selects the exact
+  v10 digest domain and rejects unknown schemas. Project v1-v9 identities and
+  carrier numbering remain additive preservation requirements. Evidence is
+  authored but was not run, and no hosted or publication claim follows.
+
 - Promoted the complete blocking matrix at exact commit
   `4cc03820c86e70527cb65c4b10ee3841c7af167d`: all 23 jobs are green in
   [run 33259787886](https://github.com/wavect/semaprax/actions/runs/33259787886),

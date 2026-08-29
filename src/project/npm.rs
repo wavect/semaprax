@@ -12,6 +12,7 @@ mod command_v4;
 mod data;
 mod flat_owned_record;
 mod owned_data;
+mod owned_utf8;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 mod publication;
 mod semantic_recipe_v8;
@@ -34,7 +35,7 @@ pub use carrier::{
     ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
     PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
     PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6, PROJECT_NPM_BUILD_SCHEMA_V7,
-    PROJECT_NPM_BUILD_SCHEMA_V8,
+    PROJECT_NPM_BUILD_SCHEMA_V8, PROJECT_NPM_BUILD_SCHEMA_V9,
 };
 
 pub(crate) fn prepare_owned_data(
@@ -203,7 +204,7 @@ pub(crate) fn prepare(
         }
         return flat_owned_record::prepare(program, &replayed, manifest.name(), version, max_bytes);
     }
-    if manifest.is_v8() {
+    if manifest.is_v8() || manifest.is_v10() {
         let version = manifest
             .package_version()
             .ok_or_else(|| package_error("owned-data npm facade requires a package version"))?;

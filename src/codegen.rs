@@ -75,8 +75,9 @@ use native_emit::{
 use native_emit::{emit_hir_c_with_labels, NativeOutputProfile};
 
 pub use native_owned_data_provider::{
-    emit_native_owned_data_provider, emit_project_v8_native_owned_data_provider,
-    emit_project_v9_native_flat_owned_record_provider, NativeOwnedDataProviderArtifact,
+    emit_native_owned_data_provider, emit_project_v10_native_owned_utf8_provider,
+    emit_project_v8_native_owned_data_provider, emit_project_v9_native_flat_owned_record_provider,
+    NativeOwnedDataProviderArtifact,
 };
 
 #[doc(hidden)]

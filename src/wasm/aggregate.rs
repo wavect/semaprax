@@ -1731,7 +1731,7 @@ fn emit_byte_exports_profile(
             .copied()
             .ok_or_else(|| error("selected owned-data export target is not indexed"))?;
         let utf8_index = SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT + command_import_count;
-        let body = plan.emit_wrapper_body(target, utf8_index)?;
+        let body = plan.emit_wrapper_body(target, utf8_index, BYTE_DROP_IMPORT)?;
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
     }

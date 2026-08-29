@@ -197,20 +197,31 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                         if let Some(parent) = &mut output_parent {
                             parent.retain().map_err(|error| vec![error])?;
                         }
-                        Ok(output)
+                        let project_version = snapshot
+                            .manifest()
+                            .schema()
+                            .strip_prefix("semaprax.project.")
+                            .expect("admitted Project schema has the frozen prefix")
+                            .to_owned();
+                        Ok((output, project_version))
                     })
                     .map_err(|errors| report(&errors, false))?;
                     if matches!(options.target.as_str(), "native") {
-                        println!("built project native executable {}", output.display());
+                        println!("built project native executable {}", output.0.display());
                     } else if matches!(options.target.as_str(), "rust") {
                         println!(
-                            "built Project v8 Native Rust owned-data package {}",
-                            output.display()
+                            "built Project {} Native Rust owned-data package {}",
+                            output.1,
+                            output.0.display()
                         );
                     } else if matches!(options.target.as_str(), "npm") {
-                        println!("built Project v2 npm package {}", output.display());
+                        println!(
+                            "built Project {} npm package {}",
+                            output.1,
+                            output.0.display()
+                        );
                     } else {
-                        println!("built project web package {}", output.display());
+                        println!("built project web package {}", output.0.display());
                     }
                 }
             }

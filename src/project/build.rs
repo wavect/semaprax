@@ -96,6 +96,24 @@ pub(super) fn build_owned(
             &entry_program,
             manifest.command().unwrap_or(""),
         ),
+        super::ProjectProfile::OwnedDataApiV1 | super::ProjectProfile::OwnedUtf8ApiV1 => {
+            super::derive_public_api_descriptor(
+                &entry_program,
+                manifest.web_exports(),
+                super::PublicApiSubject {
+                    project_schema: manifest.schema(),
+                    project_revision: &project_revision,
+                    workspace_revision: &workspace_revision,
+                    project_graph_digest: semantic.graph_digest(),
+                },
+            )
+            .and_then(|descriptor| {
+                crate::wasm::emit_resolved_module_with_owned_data_exports(
+                    &entry_program,
+                    &descriptor,
+                )
+            })
+        }
         super::ProjectProfile::FlatOwnedRecordApiV1 => Err(crate::diagnostic::Diagnostic::io(
             "SPX-W115",
             "Project v9 requires the descriptor-driven flat owned-record target route",

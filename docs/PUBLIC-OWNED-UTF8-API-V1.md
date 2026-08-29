@@ -8,6 +8,8 @@ Status: additive Project-v10 contract, gated on promoted Project v9.
 - Project profile: `owned-utf8-api.v1`
 - Descriptor schema: `semaprax.public-owned-utf8-api.v1`
 - npm metadata schema: `semaprax.owned-utf8-api.v1`
+- Native Rust manifest schema: `semaprax.native-rust-owned-utf8-sdk.v1`
+- Native Rust manifest file: `semaprax.native-rust-owned-utf8-sdk.json`
 - Descriptor digest domain: `semaprax.public-owned-utf8-api.digest.v1\0`
 
 All v8 descriptor, carrier, metadata, generated JavaScript, Wasm, native-provider,

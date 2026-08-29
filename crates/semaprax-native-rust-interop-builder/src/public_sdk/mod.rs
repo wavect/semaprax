@@ -18,7 +18,6 @@ const SPEC_SCHEMA: &str = "semaprax.native-rust-interop-spec.v1";
 const DESCRIPTOR_SCHEMA: &str = "semaprax.native-rust-interop-descriptor.v1";
 const SDK_SCHEMA: &str = "semaprax.native-rust-sdk.v1";
 pub const NATIVE_RUST_OWNED_DATA_SDK_SCHEMA: &str = "semaprax.native-rust-owned-data-sdk.v1";
-pub const NATIVE_RUST_OWNED_UTF8_SDK_SCHEMA: &str = "semaprax.native-rust-owned-utf8-sdk.v1";
 pub const PROJECT_NATIVE_RUST_SUBJECT_SCHEMA: &str = "semaprax.project-native-rust-subject.v1";
 pub const PROJECT_NATIVE_RUST_SDK_SCHEMA: &str = "semaprax.project-native-rust-sdk.v1";
 const PROJECT_DESCRIPTOR_SCHEMA: &str = "semaprax.project-native-rust-interop-descriptor.v1";

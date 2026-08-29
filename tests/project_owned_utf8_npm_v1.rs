@@ -8,7 +8,7 @@ use semaprax::project::{
 };
 
 const FACT: &str = "sha256:2222222222222222222222222222222222222222222222222222222222222222";
-const SOURCE: &str = "module utf8.npm;\n@id(\"bytes.raw\") fn raw(value: borrow Slice<u8>) -> Bytes { bytes_copy(value) }\n@id(\"utf8.greeting\") fn greeting() -> string { \"hello\\0世界\" }\n@id(\"app.main\") fn main() -> i64 { 0 }\n";
+const SOURCE: &str = "module utf8.npm;\n@id(\"bytes.raw\") fn raw(value: borrow Slice<u8>) -> Bytes { bytes_copy(value) }\n@id(\"utf8.greeting\") fn greeting() -> string { \"hello\\0世界\" }\n@id(\"utf8.length\") fn length(value: borrow str) -> i64 { str_len_bytes(value) }\n@id(\"app.main\") fn main() -> i64 { 0 }\n";
 
 fn subject() -> PublicApiSubject<'static> {
     PublicApiSubject {
@@ -40,7 +40,11 @@ fn artifacts(build: &ProjectNpmBuild) -> Vec<(String, Vec<u8>)> {
 fn v10_npm_maps_only_string_results_to_fatal_decoded_js_strings() {
     let checked = semaprax::check(SOURCE, "owned-utf8-npm.spx").unwrap();
     let program = semaprax::hir::resolve(&checked).unwrap();
-    let selected = vec!["bytes.raw".to_owned(), "utf8.greeting".to_owned()];
+    let selected = vec![
+        "bytes.raw".to_owned(),
+        "utf8.greeting".to_owned(),
+        "utf8.length".to_owned(),
+    ];
     let descriptor = derive_public_api_descriptor(&program, &selected, subject()).unwrap();
     let build = prepare_owned_data_npm_build(
         &program,
@@ -93,7 +97,7 @@ fn v10_npm_maps_only_string_results_to_fatal_decoded_js_strings() {
     }
     fs::write(
         directory.join("contract.mjs"),
-        "import fs from 'node:fs';import instantiate from './semaprax.bindings.js';const wasm=new Uint8Array(fs.readFileSync(new URL('./app.wasm',import.meta.url)));const api=await instantiate(wasm);const text=api.functions['utf8.greeting']();if(typeof text!=='string'||text!=='hello\\0世界')throw Error('string mapping');const input=new Uint8Array([0xff,0xc3,0x28]);const raw=api.functions['bytes.raw'](input);if(!(raw instanceof Uint8Array)||raw.length!==3||raw[0]!==0xff)throw Error('Bytes decoded');console.log('owned-utf8-ok');\n",
+        "import fs from 'node:fs';import instantiate from './semaprax.bindings.js';const wasm=new Uint8Array(fs.readFileSync(new URL('./app.wasm',import.meta.url)));const api=await instantiate(wasm);const text=api.functions['utf8.greeting']();if(typeof text!=='string'||text!=='hello\\0世界')throw Error('string mapping');const input=new Uint8Array([0xff,0xc3,0x28]);const raw=api.functions['bytes.raw'](input);if(!(raw instanceof Uint8Array)||raw.length!==3||raw[0]!==0xff)throw Error('Bytes decoded');let rejected=false;try{api.functions['utf8.length']('x\\ud800y')}catch(error){rejected=error instanceof TypeError}if(!rejected)throw Error('unpaired UTF-16 admitted');console.log('owned-utf8-ok');\n",
     )
     .unwrap();
     let output = Command::new("node")

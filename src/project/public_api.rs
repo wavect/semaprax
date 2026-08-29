@@ -1,8 +1,7 @@
-//! Canonical, authority-free semantic descriptor for the proposed Project v8
-//! public owned-data API.
+//! Canonical, authority-free semantic descriptor for the Project v8 owned-data
+//! and Project v10 owned-UTF8 public APIs.
 //!
-//! This module does not add a Project manifest profile or a build route. It
-//! derives one bounded target-neutral description from validated HIR so later
+//! It derives one bounded target-neutral description from validated HIR so
 //! target generators do not rediscover source signatures independently.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -10,6 +9,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 
+use super::public_utf8_api::{
+    validate_closure_shape as validate_owned_utf8_shape, PUBLIC_OWNED_UTF8_API_SCHEMA,
+    PUBLIC_OWNED_UTF8_PROJECT_SCHEMA, UTF8_DESCRIPTOR_DIGEST_DOMAIN,
+};
 use crate::call_index::{PersistentCallIndex, PersistentCallableKind};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::hir::{
@@ -72,6 +75,7 @@ pub enum PublicApiResultType {
     OwnedBytes,
     OptionOwnedBytes,
     ResultOwnedBytesI64,
+    OwnedUtf8,
 }
 
 impl PublicApiResultType {
@@ -83,6 +87,7 @@ impl PublicApiResultType {
             Self::OwnedBytes => "owned-bytes",
             Self::OptionOwnedBytes => "option-owned-bytes",
             Self::ResultOwnedBytesI64 => "result-owned-bytes-i64",
+            Self::OwnedUtf8 => "owned-utf8",
         }
     }
 
@@ -94,6 +99,7 @@ impl PublicApiResultType {
             "owned-bytes" => Some(Self::OwnedBytes),
             "option-owned-bytes" => Some(Self::OptionOwnedBytes),
             "result-owned-bytes-i64" => Some(Self::ResultOwnedBytesI64),
+            "owned-utf8" => Some(Self::OwnedUtf8),
             _ => None,
         }
     }
@@ -228,7 +234,11 @@ impl PublicApiDescriptor {
     }
 
     pub fn digest(&self) -> String {
-        domain_digest(DESCRIPTOR_DIGEST_DOMAIN, &self.canonical_bytes())
+        domain_digest(
+            descriptor_digest_domain(self.schema)
+                .expect("constructed public descriptor has a closed schema"),
+            &self.canonical_bytes(),
+        )
     }
 }
 
@@ -258,6 +268,9 @@ pub fn derive_public_api_descriptor(
             .get(id)
             .ok_or_else(|| api_error("selected closure contains a non-monomorphic callable"))?;
         validate_closure_function(function)?;
+        if subject.project_schema == PUBLIC_OWNED_UTF8_PROJECT_SCHEMA {
+            validate_owned_utf8_shape(function).map_err(api_error)?;
+        }
     }
 
     let mut exports = Vec::with_capacity(selected.len());
@@ -313,11 +326,12 @@ pub fn derive_public_api_descriptor(
                 "selected public API export `{stable_id}` exceeds the {MAX_PUBLIC_API_PARAMETERS}-parameter limit"
             )));
         }
-        let result = result_type(&function.return_type).ok_or_else(|| {
-            api_error(format!(
-                "selected public API export `{stable_id}` has an unsupported result"
-            ))
-        })?;
+        let result =
+            result_type(&function.return_type, subject.project_schema).ok_or_else(|| {
+                api_error(format!(
+                    "selected public API export `{stable_id}` has an unsupported result"
+                ))
+            })?;
         let rust_method_name = rust_method_name(stable_id)?;
         if !rust_names.insert(rust_method_name.clone()) {
             return Err(api_error("public API Rust method identities collide"));
@@ -331,8 +345,8 @@ pub fn derive_public_api_descriptor(
         });
     }
     let descriptor = PublicApiDescriptor {
-        schema: PUBLIC_OWNED_DATA_API_SCHEMA,
-        project_schema: PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
+        schema: descriptor_schema(subject.project_schema)?,
+        project_schema: project_schema(subject.project_schema)?,
         project_revision: subject.project_revision.to_owned(),
         workspace_revision: subject.workspace_revision.to_owned(),
         project_graph_digest: subject.project_graph_digest.to_owned(),
@@ -355,7 +369,7 @@ pub fn replay_public_api_descriptor(
     submitted_digest: &str,
 ) -> Result<PublicApiDescriptor, Diagnostic> {
     let parsed = parse_descriptor(submitted)?;
-    if domain_digest(DESCRIPTOR_DIGEST_DOMAIN, submitted) != submitted_digest {
+    if domain_digest(descriptor_digest_domain(parsed.schema)?, submitted) != submitted_digest {
         return Err(api_error("public API descriptor digest does not match"));
     }
     let rebuilt = derive_public_api_descriptor(program, selected, subject)?;
@@ -371,9 +385,12 @@ pub fn replay_public_api_descriptor(
 }
 
 fn validate_subject(subject: PublicApiSubject<'_>) -> Result<(), Diagnostic> {
-    if subject.project_schema != PUBLIC_OWNED_DATA_PROJECT_SCHEMA {
+    if !matches!(
+        subject.project_schema,
+        PUBLIC_OWNED_DATA_PROJECT_SCHEMA | PUBLIC_OWNED_UTF8_PROJECT_SCHEMA
+    ) {
         return Err(api_error(
-            "public API descriptor requires the exact Project v8 schema fact",
+            "public API descriptor requires an exact owned-data Project schema fact",
         ));
     }
     for (name, value) in [
@@ -388,6 +405,36 @@ fn validate_subject(subject: PublicApiSubject<'_>) -> Result<(), Diagnostic> {
         }
     }
     Ok(())
+}
+
+fn descriptor_schema(project: &str) -> Result<&'static str, Diagnostic> {
+    match project {
+        PUBLIC_OWNED_DATA_PROJECT_SCHEMA => Ok(PUBLIC_OWNED_DATA_API_SCHEMA),
+        PUBLIC_OWNED_UTF8_PROJECT_SCHEMA => Ok(PUBLIC_OWNED_UTF8_API_SCHEMA),
+        _ => Err(api_error(
+            "public API descriptor Project schema is unsupported",
+        )),
+    }
+}
+
+fn project_schema(project: &str) -> Result<&'static str, Diagnostic> {
+    match project {
+        PUBLIC_OWNED_DATA_PROJECT_SCHEMA => Ok(PUBLIC_OWNED_DATA_PROJECT_SCHEMA),
+        PUBLIC_OWNED_UTF8_PROJECT_SCHEMA => Ok(PUBLIC_OWNED_UTF8_PROJECT_SCHEMA),
+        _ => Err(api_error(
+            "public API descriptor Project schema is unsupported",
+        )),
+    }
+}
+
+fn descriptor_digest_domain(schema: &str) -> Result<&'static [u8], Diagnostic> {
+    match schema {
+        PUBLIC_OWNED_DATA_API_SCHEMA => Ok(DESCRIPTOR_DIGEST_DOMAIN),
+        PUBLIC_OWNED_UTF8_API_SCHEMA => Ok(UTF8_DESCRIPTOR_DIGEST_DOMAIN),
+        _ => Err(api_error(
+            "public API descriptor digest schema is unsupported",
+        )),
+    }
 }
 
 pub(super) fn validate_selected(selected: &[String]) -> Result<(), Diagnostic> {
@@ -586,12 +633,15 @@ pub(super) fn parameter_type(
     }
 }
 
-fn result_type(ty: &ResolvedType) -> Option<PublicApiResultType> {
+fn result_type(ty: &ResolvedType, project_schema: &str) -> Option<PublicApiResultType> {
     match ty {
         ResolvedType::I64 => Some(PublicApiResultType::I64),
         ResolvedType::Bool => Some(PublicApiResultType::Bool),
         ResolvedType::Usize => Some(PublicApiResultType::Usize),
         ResolvedType::Bytes => Some(PublicApiResultType::OwnedBytes),
+        ResolvedType::String if project_schema == PUBLIC_OWNED_UTF8_PROJECT_SCHEMA => {
+            Some(PublicApiResultType::OwnedUtf8)
+        }
         ResolvedType::Nominal {
             declaration,
             arguments,
@@ -704,6 +754,8 @@ struct ParsedExport {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct ParsedDescriptor {
+    schema: &'static str,
+    project_schema: &'static str,
     project_revision: String,
     workspace_revision: String,
     project_graph_digest: String,
@@ -713,6 +765,8 @@ struct ParsedDescriptor {
 impl ParsedDescriptor {
     fn from_descriptor(descriptor: &PublicApiDescriptor) -> Self {
         Self {
+            schema: descriptor.schema,
+            project_schema: descriptor.project_schema,
             project_revision: descriptor.project_revision.clone(),
             workspace_revision: descriptor.workspace_revision.clone(),
             project_graph_digest: descriptor.project_graph_digest.clone(),
@@ -750,11 +804,18 @@ fn parse_descriptor(bytes: &[u8]) -> Result<ParsedDescriptor, Diagnostic> {
     let value: Value = serde_json::from_slice(bytes)
         .map_err(|_| api_error("public API descriptor JSON is malformed"))?;
     let root = exact_object(&value, 7, "public API descriptor root")?;
-    if string(root, "schema")? != PUBLIC_OWNED_DATA_API_SCHEMA
-        || string(root, "project_schema")? != PUBLIC_OWNED_DATA_PROJECT_SCHEMA
+    let (schema, project_schema) = match (string(root, "schema")?, string(root, "project_schema")?)
     {
-        return Err(api_error("public API descriptor schema is unsupported"));
-    }
+        (PUBLIC_OWNED_DATA_API_SCHEMA, PUBLIC_OWNED_DATA_PROJECT_SCHEMA) => (
+            PUBLIC_OWNED_DATA_API_SCHEMA,
+            PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
+        ),
+        (PUBLIC_OWNED_UTF8_API_SCHEMA, PUBLIC_OWNED_UTF8_PROJECT_SCHEMA) => (
+            PUBLIC_OWNED_UTF8_API_SCHEMA,
+            PUBLIC_OWNED_UTF8_PROJECT_SCHEMA,
+        ),
+        _ => return Err(api_error("public API descriptor schema is unsupported")),
+    };
     let project_revision = string(root, "project_revision")?.to_owned();
     let workspace_revision = string(root, "workspace_revision")?.to_owned();
     let project_graph_digest = string(root, "project_graph_digest")?.to_owned();
@@ -820,6 +881,9 @@ fn parse_descriptor(bytes: &[u8]) -> Result<ParsedDescriptor, Diagnostic> {
         }
         let result = PublicApiResultType::parse(string(row, "result")?)
             .ok_or_else(|| api_error("public API result type is invalid"))?;
+        if result == PublicApiResultType::OwnedUtf8 && schema != PUBLIC_OWNED_UTF8_API_SCHEMA {
+            return Err(api_error("owned UTF-8 requires the v10 descriptor schema"));
+        }
         exports.push(ParsedExport {
             stable_id: stable_id.to_owned(),
             typescript_name: typescript_name.to_owned(),
@@ -829,6 +893,8 @@ fn parse_descriptor(bytes: &[u8]) -> Result<ParsedDescriptor, Diagnostic> {
         });
     }
     let parsed = ParsedDescriptor {
+        schema,
+        project_schema,
         project_revision,
         workspace_revision,
         project_graph_digest,
@@ -886,9 +952,9 @@ fn parse_limits(value: &Value) -> Result<(), Diagnostic> {
 fn render_parsed(parsed: &ParsedDescriptor) -> String {
     let mut output = String::with_capacity(4096);
     output.push_str("{\"schema\":");
-    output.push_str(&quote_json(PUBLIC_OWNED_DATA_API_SCHEMA));
+    output.push_str(&quote_json(parsed.schema));
     output.push_str(",\"project_schema\":");
-    output.push_str(&quote_json(PUBLIC_OWNED_DATA_PROJECT_SCHEMA));
+    output.push_str(&quote_json(parsed.project_schema));
     output.push_str(",\"project_revision\":");
     output.push_str(&quote_json(&parsed.project_revision));
     output.push_str(",\"workspace_revision\":");

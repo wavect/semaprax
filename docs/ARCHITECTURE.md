@@ -251,6 +251,16 @@ authenticate provider semantics; root HIR/codegen replay owns that proof. No
 route exposes a target aggregate layout. See [Public Flat Owned Record API
 v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md).
 
+Project v10 adds the distinct `owned-utf8-api.v1` descriptor without treating
+text as raw `Bytes`. The root Wasm and native adapters retain the exact byte
+length, validate UTF-8 before host publication, and preserve the opaque
+provider-handle settlement boundary. npm consumes the carrier before fatal
+decoding to a JavaScript string. The dependency-inverted lower Rust package
+replays the v10 digest domain, copies and settles the handle, and only then
+constructs a safe `String`; invalid UTF-8 therefore cannot escape or retain
+provider ownership. V8/v9 renderer and carrier identities remain separate.
+See [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md).
+
 `src/project_transport/` and `src/bin/semapraxd.rs` retain one authenticated
 Project revision for bounded requests. Read-only v2 is the default. Explicit
 opt-ins add one server-derived rename, the bounded workflow, or the additive

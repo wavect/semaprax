@@ -122,6 +122,8 @@ changes a long-term status to Implemented.
 | WP-14 frame-payload product | Authored, unrun | One committed corpus and display-rename proof authored across interpreter, native O0/O2, Core Wasm/Node, generated npm, and generated Rust lanes | Execute the complete identical corpus and external consumers on required hosts and browser runtimes. |
 | WP-15 v8 promotion | Pending | The twelve-gate contract is specified; no dedicated exact-head v8 promotion matrix or run is recorded | Add and pass every blocking Project/npm/browser/Rust/equivalence/sanitizer/hostile job on one exact commit, with no skip or allowed failure. |
 | Agent Transport v5 follow-on | Authored, unrun; unpromoted | Opt-in read-only descriptor and inline npm methods with typed descriptor binding, bounded framing, stale-subject rejection, and zero publication/process authority evidence | Execute focused gates, preserve v2–v4 bytes, then include the surface in an exact-head promotion decision. |
+| Project v9 flat owned record follow-on | Authored, unrun; unpromoted | Exact flat-record descriptor, Wasm/npm adapter, root native provider, and safe Rust package route with opaque-handle settlement | Execute cross-target physical consumers and preservation gates, then promote v9 before any dependent profile. |
+| Project v10 owned UTF-8 follow-on | Authored, unrun; blocked on v9 promotion | [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md), distinct canonical descriptor/digest, length-delimited Wasm/npm string, validating native provider, safe Rust `String`, and hostile invalid-UTF-8 settlement evidence | First promote v9; then execute exact replay/carrier, valid/invalid UTF-8, mixed scalar, host consumer, and v1-v9 byte-preservation gates on every required target. |
 
 Project v8 is therefore **implemented in the current source tree but not
 promoted**. The generated npm and Rust packages remain developer-preview and
@@ -141,7 +143,7 @@ row.
 | Agent-native semantic program | Partial | [RFC 0001](RFC-0001.md), [Agent Context v2](AGENT-CONTEXT-V2.md), [Project Agent Transport v5](PROJECT-AGENT-TRANSPORT-V5.md) | The complete program graph is persistent, queryable, schema-versioned, and validated on representative repositories. |
 | Human-readable program | Partial | [RFC 0001](RFC-0001.md) | Canonical source round-trips every stable language feature with migrations and reviewable diffs. |
 | Verified source semantics | Partial | [Architecture](ARCHITECTURE.md) | All admitted language features reach validated HIR only after complete type, effect, contract, and ownership checks. |
-| Cross-backend semantic equivalence | Partial | [Conformance Trace v1](CONFORMANCE-TRACE-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) | Every supported backend passes the same complete behavior, failure, cleanup, and contract corpus. |
+| Cross-backend semantic equivalence | Partial | [Conformance Trace v1](CONFORMANCE-TRACE-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md), [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md) | Every supported backend passes the same complete behavior, failure, cleanup, and contract corpus. |
 | Atomic agent changes | Partial | [Patch Evidence v1](SEMANTIC-PATCH-EVIDENCE-V1.md), [Workspace Change v1](SEMANTIC-WORKSPACE-CHANGE-V1.md) | General supported single- and multi-file semantic changes replay and publish atomically with recovery and provenance. |
 
 ### Language and safety
@@ -169,7 +171,7 @@ row.
 | --- | --- | --- | --- |
 | Fast development lane | Partial | [Interpreter v1](INTERPRETER-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) | Incremental execution, debugging, hot reload, and semantic equivalence meet the development-performance target. |
 | Optimizing native lane | Partial | [Architecture](ARCHITECTURE.md) | The production native backend covers the mature language, optimization, debug mapping, and supported hosts. |
-| WebAssembly core and components | Partial | [Wasm Scalar Exports](WASM-SCALAR-EXPORTS-V1.md), [Wasm Owned ABI](WASM-OWNED-ABI-V1.md) | Stable Components, resources, capabilities, multi-engine conformance, and packaging are verified. |
+| WebAssembly core and components | Partial | [Wasm Scalar Exports](WASM-SCALAR-EXPORTS-V1.md), [Wasm Owned ABI](WASM-OWNED-ABI-V1.md), [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md) | Stable Components, resources, capabilities, multi-engine conformance, and packaging are verified. |
 | Embedded and real-time | Partial | [Freestanding Profile v1](FREESTANDING-V1.md) | Hardware profiles, linker control, interrupts/RTOS, timing constraints, and representative targets are verified. |
 | SIMD and GPU | Partial | [SIMD Report v1](SIMD-REPORT-V1.md) | Vector/GPU lowering, legality, memory behavior, target selection, and performance evidence are implemented. |
 
@@ -178,12 +180,12 @@ row.
 | Requirement | Status | Evidence owner | Complete when |
 | --- | --- | --- | --- |
 | Interface-first packages and target matrices | Partial | [Package Report v1](PACKAGE-REPORT-V1.md) | Resolver, lockfile, compatibility, provenance, registry, and conformance are production-ready. |
-| Portable canonical ABI and native fast ABI | Partial | [ABI Report v1](ABI-REPORT-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) | Stable aggregate/resource/borrowed ABIs and cross-language conformance cover supported architectures. |
+| Portable canonical ABI and native fast ABI | Partial | [ABI Report v1](ABI-REPORT-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md), [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md) | Stable aggregate/resource/borrowed ABIs and cross-language conformance cover supported architectures. |
 | C and Objective-C | Partial | [C Header v1](C-HEADER-V1.md) | Import/export, ownership, errors, compiled consumers, Objective-C adapters, and compatibility are verified. |
 | C++ | Partial | [C++ Shim v1](CXX-SHIM-V1.md) | Compiled C++ consumers, ownership, exceptions, templates/adapters, and compatibility are verified. |
 | Java and Kotlin | Partial | [Android JNI Ownership v1](ANDROID-JNI-OWNERSHIP-V1.md) | Public JVM/JNI artifacts, ownership, exceptions, packaging, and conformance are verified. |
 | Swift and Apple frameworks | Partial | [Swift Ownership v1](APPLE-SWIFT-OWNERSHIP-V1.md) | Public Swift/Objective-C API, distributable frameworks, lifecycle, ownership, and device evidence are verified. |
-| JavaScript and TypeScript | Partial | [Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) | Stable general bindings, owned resources, async/callbacks, packaging, and browser/runtime breadth are verified. |
+| JavaScript and TypeScript | Partial | [Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md), [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md) | Stable general bindings, owned resources, async/callbacks, packaging, and browser/runtime breadth are verified. |
 | WIT and WebAssembly Components | Partial | [WIT Boundary v1](WIT-COMPONENT-BOUNDARY-V1.md) | Source-selected interfaces and resources run through a supported Component Model toolchain on multiple runtimes. |
 | OpenAPI, Protobuf/gRPC, GraphQL, and SQL | Partial | [OpenAPI v1](OPENAPI-V1.md) | Import/export, compatibility, live conformance, and all named schema families are verified. |
 

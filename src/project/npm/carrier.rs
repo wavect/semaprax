@@ -24,6 +24,7 @@ pub const PROJECT_NPM_BUILD_SCHEMA_V5: &str = "semaprax.project-npm-build.v5";
 pub const PROJECT_NPM_BUILD_SCHEMA_V6: &str = "semaprax.project-npm-build.v6";
 pub const PROJECT_NPM_BUILD_SCHEMA_V7: &str = "semaprax.project-npm-build.v7";
 pub const PROJECT_NPM_BUILD_SCHEMA_V8: &str = "semaprax.project-npm-build.v8";
+pub const PROJECT_NPM_BUILD_SCHEMA_V9: &str = "semaprax.project-npm-build.v9";
 const PROJECT_NPM_BUILD_DIGEST_DOMAIN: &[u8] = b"semaprax.project-npm-build.payload.v1\0";
 const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V2: &[u8] = b"semaprax.project-npm-build.payload.v2\0";
 const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V3: &[u8] = b"semaprax.project-npm-build.payload.v3\0";
@@ -32,6 +33,7 @@ const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V5: &[u8] = b"semaprax.project-npm-build.p
 const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V6: &[u8] = b"semaprax.project-npm-build.payload.v6\0";
 const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V7: &[u8] = b"semaprax.project-npm-build.payload.v7\0";
 const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V8: &[u8] = b"semaprax.project-npm-build.payload.v8\0";
+const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V9: &[u8] = b"semaprax.project-npm-build.payload.v9\0";
 pub const MAX_PROJECT_NPM_BUILD_BYTES: usize = 40 * 1024 * 1024;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -67,6 +69,7 @@ enum ReplayedNpmArtifacts {
     CommandV4([NpmArtifact; 7]),
     OwnedData([NpmArtifact; 6]),
     FlatOwnedRecord([NpmArtifact; 6]),
+    OwnedUtf8([NpmArtifact; 6]),
 }
 
 impl ReplayedNpmArtifacts {
@@ -75,7 +78,8 @@ impl ReplayedNpmArtifacts {
             Self::Text(value)
             | Self::Data(value)
             | Self::OwnedData(value)
-            | Self::FlatOwnedRecord(value) => value,
+            | Self::FlatOwnedRecord(value)
+            | Self::OwnedUtf8(value) => value,
             Self::Command(value)
             | Self::CommandV2(value)
             | Self::CommandV3(value)
@@ -271,6 +275,7 @@ impl ProjectNpmBuild {
             PROJECT_NPM_BUILD_SCHEMA_V6 => &command_v4::LINE_COMMAND_IO_PACKAGE_PATHS,
             PROJECT_NPM_BUILD_SCHEMA_V7 => &owned_data::OWNED_DATA_PACKAGE_PATHS,
             PROJECT_NPM_BUILD_SCHEMA_V8 => &flat_owned_record::PACKAGE_PATHS,
+            PROJECT_NPM_BUILD_SCHEMA_V9 => &owned_data::OWNED_DATA_PACKAGE_PATHS,
             _ => return Err(package_error("npm build schema is unsupported")),
         };
         let identity = NpmBuildIdentity {
@@ -385,6 +390,11 @@ impl ProjectNpmBuild {
                     .try_into()
                     .map_err(|_| package_error("npm build artifact inventory is not exact"))?,
             ),
+            PROJECT_NPM_BUILD_SCHEMA_V9 => ReplayedNpmArtifacts::OwnedUtf8(
+                artifacts
+                    .try_into()
+                    .map_err(|_| package_error("npm build artifact inventory is not exact"))?,
+            ),
             _ => unreachable!("carrier schema selected above"),
         };
         let payload_digest = match &artifacts {
@@ -422,6 +432,10 @@ impl ProjectNpmBuild {
             ReplayedNpmArtifacts::FlatOwnedRecord(artifacts) => {
                 flat_owned_record::validate_replayed(identity, artifacts)?;
                 payload_digest_artifacts_v8(identity, artifacts)
+            }
+            ReplayedNpmArtifacts::OwnedUtf8(artifacts) => {
+                owned_data::validate_replayed(identity, artifacts)?;
+                payload_digest_artifacts_v9(identity, artifacts)
             }
         };
         if json_string(object, "payload_digest")? != payload_digest {
@@ -555,6 +569,13 @@ pub(in crate::project) fn payload_digest_artifacts_v8(
     artifacts: &[NpmArtifact],
 ) -> String {
     payload_digest_artifacts_with_domain(PROJECT_NPM_BUILD_DIGEST_DOMAIN_V8, identity, artifacts)
+}
+
+pub(in crate::project) fn payload_digest_artifacts_v9(
+    identity: NpmBuildIdentity<'_>,
+    artifacts: &[NpmArtifact],
+) -> String {
+    payload_digest_artifacts_with_domain(PROJECT_NPM_BUILD_DIGEST_DOMAIN_V9, identity, artifacts)
 }
 
 fn payload_digest_artifacts_with_domain(
@@ -724,6 +745,7 @@ fn decode_carrier_artifacts(
         PROJECT_NPM_BUILD_SCHEMA_V6 => &command_v4::LINE_COMMAND_IO_PACKAGE_PATHS,
         PROJECT_NPM_BUILD_SCHEMA_V7 => &owned_data::OWNED_DATA_PACKAGE_PATHS,
         PROJECT_NPM_BUILD_SCHEMA_V8 => &flat_owned_record::PACKAGE_PATHS,
+        PROJECT_NPM_BUILD_SCHEMA_V9 => &owned_data::OWNED_DATA_PACKAGE_PATHS,
         _ => return Err(package_error("npm build schema is unsupported")),
     };
     let rows = value
@@ -776,6 +798,10 @@ fn decode_carrier_artifacts(
         PROJECT_NPM_BUILD_SCHEMA_V8 => artifacts
             .try_into()
             .map(ReplayedNpmArtifacts::FlatOwnedRecord)
+            .map_err(|_| package_error("npm build artifact inventory is not exact")),
+        PROJECT_NPM_BUILD_SCHEMA_V9 => artifacts
+            .try_into()
+            .map(ReplayedNpmArtifacts::OwnedUtf8)
             .map_err(|_| package_error("npm build artifact inventory is not exact")),
         _ => unreachable!("carrier schema selected above"),
     }

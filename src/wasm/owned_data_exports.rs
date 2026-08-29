@@ -19,6 +19,7 @@ pub(super) enum ResultLayout {
     Bool,
     Usize,
     Bytes,
+    Utf8,
     OptionBytes {
         payload_offset: u32,
     },
@@ -36,7 +37,7 @@ impl ResultLayout {
     fn private_size(&self) -> u32 {
         match self {
             Self::Bool => 4,
-            Self::I64 | Self::Usize | Self::Bytes => 8,
+            Self::I64 | Self::Usize | Self::Bytes | Self::Utf8 => 8,
             Self::OptionBytes { .. } | Self::ResultBytesI64 { .. } => 16,
             Self::FlatRecord { private_size, .. } => *private_size,
         }
@@ -102,6 +103,7 @@ impl OwnedDataExportPlan {
         &self,
         target_index: u32,
         utf8_validate_index: u32,
+        bytes_drop_index: u32,
     ) -> Result<Vec<u8>, Diagnostic> {
         let raw_count = u32::try_from(self.raw_params().len())
             .map_err(|_| error("owned-data wrapper parameter count overflows"))?;
@@ -269,6 +271,32 @@ impl OwnedDataExportPlan {
             ResultLayout::Bytes => {
                 load_i64(&mut body, temporary_out, 0);
                 local_set(&mut body, carrier);
+                poison_temporary(&mut body, temporary_out, 8);
+                store_i64(&mut body, result_out, 0, carrier);
+            }
+            ResultLayout::Utf8 => {
+                load_i64(&mut body, temporary_out, 0);
+                local_set(&mut body, carrier);
+                local_get(&mut body, carrier);
+                i64_const(&mut body, 32);
+                body.push(0x88); // i64.shr_u: packed carrier root
+                body.push(0xa7); // i32.wrap_i64
+                local_get(&mut body, carrier);
+                body.push(0xa7); // i32.wrap_i64: packed carrier length
+                body.push(0x10);
+                write_u32(&mut body, utf8_validate_index);
+                body.push(0x45); // i32.eqz
+                body.extend([0x04, 0x40]);
+                local_get(&mut body, carrier);
+                body.push(0x10);
+                write_u32(&mut body, bytes_drop_index);
+                poison_temporary(&mut body, temporary_out, 8);
+                local_get(&mut body, old_stack);
+                body.push(0x24);
+                write_u32(&mut body, 0);
+                i32_const(&mut body, 2); // adapter rejection after settlement
+                body.push(0x0f);
+                body.push(0x0b);
                 poison_temporary(&mut body, temporary_out, 8);
                 store_i64(&mut body, result_out, 0, carrier);
             }
@@ -524,6 +552,14 @@ fn result_layout(
         PublicApiResultType::Bool => return Ok(ResultLayout::Bool),
         PublicApiResultType::Usize => return Ok(ResultLayout::Usize),
         PublicApiResultType::OwnedBytes => return Ok(ResultLayout::Bytes),
+        PublicApiResultType::OwnedUtf8 if *ty == crate::hir::ResolvedType::String => {
+            return Ok(ResultLayout::Utf8)
+        }
+        PublicApiResultType::OwnedUtf8 => {
+            return Err(error(
+                "owned UTF-8 descriptor result disagrees with held HIR",
+            ))
+        }
         PublicApiResultType::OptionOwnedBytes | PublicApiResultType::ResultOwnedBytesI64 => {}
     }
     let layout = layouts.layout(ty)?;

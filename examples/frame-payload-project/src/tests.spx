@@ -1,0 +1,22 @@
+module frame_payload.tests;
+use function @id("frame.payload") from frame_payload.frame as payload;
+use function @id("frame.payload-maybe") from frame_payload.frame as payload_maybe;
+use function @id("frame.payload-result") from frame_payload.frame as payload_result;
+
+@id("frame-payload.tests.main")
+fn main() -> i64
+{
+    let valid = [83u8, 80u8, 88u8, 49u8, 0u8, 0u8, 0u8, 3u8, 65u8, 0u8, 66u8];
+    let invalid = [83u8, 80u8, 88u8, 49u8, 0u8, 0u8, 0u8, 2u8, 1u8];
+    let direct = payload(array_as_slice(valid));
+    let direct_ok = byte_len(bytes_as_slice(direct)) == 3usize;
+    let maybe_ok = match own payload_maybe(array_as_slice(valid)) {
+        Option::Some { value: bytes } => byte_len(bytes_as_slice(bytes)) == 3usize,
+        Option::None {} => false,
+    };
+    let result_ok = match own payload_result(array_as_slice(invalid)) {
+        Result::Ok { value: bytes } => byte_len(bytes_as_slice(bytes)) == 0usize,
+        Result::Err { error: code } => code == 3,
+    };
+    if direct_ok && maybe_ok && result_ok { 0 } else { 1 }
+}

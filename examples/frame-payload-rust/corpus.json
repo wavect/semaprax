@@ -1,0 +1,15 @@
+{
+  "schema": "semaprax.frame-payload-corpus.v1",
+  "maximum_frame_bytes": 65536,
+  "cases": [
+    {"name":"empty","kind":"hex","frame_hex":"","valid":false,"error":2},
+    {"name":"short","kind":"hex","frame_hex":"53505831","valid":false,"error":2},
+    {"name":"bad-magic","kind":"hex","frame_hex":"4241443100000000","valid":false,"error":1},
+    {"name":"zero","kind":"hex","frame_hex":"5350583100000000","valid":true,"payload_hex":""},
+    {"name":"text","kind":"hex","frame_hex":"535058310000000568656c6c6f","valid":true,"payload_hex":"68656c6c6f"},
+    {"name":"nul","kind":"hex","frame_hex":"5350583100000003410042","valid":true,"payload_hex":"410042"},
+    {"name":"invalid-utf8","kind":"hex","frame_hex":"5350583100000003c328ff","valid":true,"payload_hex":"c328ff"},
+    {"name":"max-65528","kind":"generated-index-mod-256","payload_length":65528,"valid":true},
+    {"name":"mismatch","kind":"hex","frame_hex":"53505831000000030102","valid":false,"error":3}
+  ]
+}

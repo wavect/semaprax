@@ -1,0 +1,7 @@
+module frame_payload.app;
+
+@id("frame-payload.app.main")
+fn main() -> i64
+{
+    0
+}

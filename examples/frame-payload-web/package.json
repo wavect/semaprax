@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit --strict --module nodenext --moduleResolution nodenext --target es2022 consumer.ts",
+    "test": "node consumer.mjs"
+  }
+}

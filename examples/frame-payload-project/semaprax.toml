@@ -1,0 +1,8 @@
+schema = "semaprax.project.v8"
+name = "frame-payload"
+version = "0.1.0"
+profile = "owned-data-api.v1"
+entry = "frame_payload.app"
+sources = ["src/app.spx", "src/frame.spx", "src/tests.spx"]
+web_exports = ["frame.payload", "frame.payload-maybe", "frame.payload-result"]
+tests = ["frame_payload.tests"]

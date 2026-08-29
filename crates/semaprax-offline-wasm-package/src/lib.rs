@@ -13,7 +13,12 @@ use std::path::{Component, Path, PathBuf};
 use semaprax::package_build::{
     self, OfflinePackageBuild, OfflinePackageBuildOptions, VerifiedOfflinePackageBuild,
 };
+use semaprax::package_build_v2::{
+    self, LinkedOfflinePackageBuild, LinkedOfflinePackageBuildOptions,
+    VerifiedLinkedOfflinePackageBuild,
+};
 use semaprax::package_resolver::{ResolutionInput, ResolutionOptions};
+use semaprax::package_source_capsule::{PackageSource, SourceCapsuleOptions};
 
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 mod authority;
@@ -66,6 +71,57 @@ impl std::error::Error for PublicationError {}
 pub struct PublishedOfflinePackageBuild {
     pub output: PathBuf,
     pub verified: VerifiedOfflinePackageBuild,
+}
+
+#[derive(Debug)]
+pub struct PublishedLinkedOfflinePackageBuild {
+    pub output: PathBuf,
+    pub verified: VerifiedLinkedOfflinePackageBuild,
+}
+
+/// Publishes an exactly replayed linked-v2 build through the same fixed
+/// create-new authority state machine as v1.
+#[allow(clippy::too_many_arguments)]
+pub fn publish_linked(
+    output: &Path,
+    build: LinkedOfflinePackageBuild,
+    capsule: String,
+    sources: Vec<PackageSource>,
+    resolution_evidence: String,
+    resolution_input: ResolutionInput,
+    resolution_options: ResolutionOptions,
+    capsule_options: SourceCapsuleOptions,
+    build_options: LinkedOfflinePackageBuildOptions,
+) -> Result<PublishedLinkedOfflinePackageBuild, PublicationError> {
+    validate_output_path(output)?;
+    let output = output.to_path_buf();
+    let mut verifier = |candidate: &LinkedOfflinePackageBuild| {
+        package_build_v2::verify(
+            candidate,
+            &capsule,
+            &sources,
+            &resolution_evidence,
+            &resolution_input,
+            &resolution_options,
+            &capsule_options,
+            &build_options,
+        )
+        .map_err(CompilerReplayFailure::from)
+    };
+    let verified = verifier(&build).map_err(PublicationError::replay)?;
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+    {
+        authority::publish_linked_verified(&output, &build, &mut verifier)?;
+        Ok(PublishedLinkedOfflinePackageBuild { output, verified })
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+    {
+        let _ = (output, build, verifier, verified);
+        Err(PublicationError::plain(
+            PP_INVALID,
+            "offline linked package publication is unsupported on this platform",
+        ))
+    }
 }
 
 /// Independently replays `build` before acquiring filesystem authority and a

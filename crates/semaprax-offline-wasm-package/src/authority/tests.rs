@@ -249,6 +249,19 @@ fn post_publish_output_path_substitution_is_visible_failure() {
 
 struct ClosureObserver<F>(F);
 
+#[test]
+fn shared_artifact_adapter_preserves_v1_file_names_order_and_bytes() {
+    let build = build();
+    assert_eq!(
+        ArtifactFiles::from_v1(&build).files(),
+        [
+            (MODULE_FILE, build.module_wasm.as_slice()),
+            (EVIDENCE_FILE, build.evidence_json.as_bytes()),
+            (MANIFEST_FILE, build.manifest_json.as_bytes()),
+        ]
+    );
+}
+
 impl<F> Observer for ClosureObserver<F>
 where
     F: for<'a, 'b> FnMut(PublishPoint, &'a ObservedPaths<'b>),

@@ -7,8 +7,9 @@ use crate::package_resolver::{ResolutionInput, ResolutionOptions};
 
 mod admission;
 mod model;
-mod wire;
+pub(crate) mod wire;
 
+pub(crate) use model::RUNTIME_IMPORTS;
 pub use model::{
     OfflinePackageBuild, OfflinePackageBuildOptions, VerifiedOfflinePackageBuild, EVIDENCE_SCHEMA,
     MANIFEST_SCHEMA, MAX_ARTIFACT_BYTES, MAX_EVIDENCE_BYTES, MAX_EVIDENCE_RENDER_BYTES, PROFILE,
@@ -189,7 +190,7 @@ fn build(
     })
 }
 
-fn validate_wasm_inventory(
+pub(crate) fn validate_wasm_inventory(
     wasm: &[u8],
     exports: &[crate::wasm::PackageScalarExportFact],
 ) -> Result<(), Diagnostic> {

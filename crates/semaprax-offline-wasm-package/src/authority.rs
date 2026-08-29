@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::package_build::OfflinePackageBuild;
+use semaprax::package_build_v2::LinkedOfflinePackageBuild;
 use semaprax_native_rust_interop_platform as platform;
 
 use crate::{
@@ -20,14 +21,38 @@ pub(crate) fn publish_verified<V>(
     build: &OfflinePackageBuild,
     verifier: &mut impl FnMut(&OfflinePackageBuild) -> Result<V, CompilerReplayFailure>,
 ) -> Result<(), PublicationError> {
+    let files = ArtifactFiles::from_v1(build);
+    let mut replay = || verifier(build);
     let mut observer = NoopObserver;
-    publish_observed(output, build, verifier, &mut observer)
+    publish_artifacts(output, files, &mut replay, &mut observer)
+}
+
+pub(crate) fn publish_linked_verified<V>(
+    output: &Path,
+    build: &LinkedOfflinePackageBuild,
+    verifier: &mut impl FnMut(&LinkedOfflinePackageBuild) -> Result<V, CompilerReplayFailure>,
+) -> Result<(), PublicationError> {
+    let files = ArtifactFiles::from_v2(build);
+    let mut replay = || verifier(build);
+    let mut observer = NoopObserver;
+    publish_artifacts(output, files, &mut replay, &mut observer)
 }
 
 fn publish_observed<V>(
     output: &Path,
     build: &OfflinePackageBuild,
     verifier: &mut impl FnMut(&OfflinePackageBuild) -> Result<V, CompilerReplayFailure>,
+    observer: &mut impl Observer,
+) -> Result<(), PublicationError> {
+    let files = ArtifactFiles::from_v1(build);
+    let mut replay = || verifier(build);
+    publish_artifacts(output, files, &mut replay, observer)
+}
+
+fn publish_artifacts<V>(
+    output: &Path,
+    artifacts: ArtifactFiles<'_>,
+    verifier: &mut impl FnMut() -> Result<V, CompilerReplayFailure>,
     observer: &mut impl Observer,
 ) -> Result<(), PublicationError> {
     let parent_path = output
@@ -93,14 +118,14 @@ fn publish_observed<V>(
         )),
     };
 
-    if let Err(primary) = staged.write_and_authenticate(build, observer) {
+    if let Err(primary) = staged.write_and_authenticate(artifacts, observer) {
         return Err(staged.fail_before_attempt(primary));
     }
     observer.at(PublishPoint::BeforeSecondReplay, &staged.paths());
-    if let Err(failure) = verifier(build) {
+    if let Err(failure) = verifier() {
         return Err(staged.fail_before_attempt(PublicationError::replay(failure)));
     }
-    if let Err(primary) = staged.authenticate_files(build) {
+    if let Err(primary) = staged.authenticate_files(artifacts) {
         return Err(staged.fail_before_attempt(primary));
     }
     if let Err(primary) = staged.prepare_for_publish(observer) {
@@ -195,7 +220,7 @@ impl StagedPublication {
 
     fn write_and_authenticate(
         &mut self,
-        build: &OfflinePackageBuild,
+        artifacts: ArtifactFiles<'_>,
         observer: &mut impl Observer,
     ) -> Result<(), PublicationError> {
         require_path_binding(
@@ -204,19 +229,19 @@ impl StagedPublication {
             "output parent path changed",
         )?;
         require_path_binding(&self.stage, &self.stage_path, "staging path changed")?;
-        for (index, (name, bytes)) in files(build).into_iter().enumerate() {
+        for (index, (name, bytes)) in artifacts.files().into_iter().enumerate() {
             observer.at(PublishPoint::BeforeWrite(index), &self.paths());
             platform::write_file_new_prepared(&self.stage, &mut self.inventory, name, bytes, 0o600)
                 .map_err(|_| changed("write create-new staged artifact"))?;
         }
-        self.authenticate_files(build)?;
+        self.authenticate_files(artifacts)?;
         platform::inventory_exact_prepared(&mut self.exact, &self.stage, &self.inventory)
             .map_err(|_| changed("authenticate exact staged inventory"))
     }
 
-    fn authenticate_files(&self, build: &OfflinePackageBuild) -> Result<(), PublicationError> {
+    fn authenticate_files(&self, artifacts: ArtifactFiles<'_>) -> Result<(), PublicationError> {
         let mut scratch = [0_u8; platform::FILE_COMPARE_SCRATCH_BYTES];
-        for (name, expected) in files(build) {
+        for (name, expected) in artifacts.files() {
             let held = self
                 .inventory
                 .file(name)
@@ -341,12 +366,37 @@ impl StagedPublication {
     }
 }
 
-fn files(build: &OfflinePackageBuild) -> [(&'static str, &[u8]); 3] {
-    [
-        (MODULE_FILE, build.module_wasm.as_slice()),
-        (EVIDENCE_FILE, build.evidence_json.as_bytes()),
-        (MANIFEST_FILE, build.manifest_json.as_bytes()),
-    ]
+#[derive(Clone, Copy)]
+struct ArtifactFiles<'a> {
+    module: &'a [u8],
+    evidence: &'a [u8],
+    manifest: &'a [u8],
+}
+
+impl<'a> ArtifactFiles<'a> {
+    fn from_v1(build: &'a OfflinePackageBuild) -> Self {
+        Self {
+            module: &build.module_wasm,
+            evidence: build.evidence_json.as_bytes(),
+            manifest: build.manifest_json.as_bytes(),
+        }
+    }
+
+    fn from_v2(build: &'a LinkedOfflinePackageBuild) -> Self {
+        Self {
+            module: &build.module_wasm,
+            evidence: build.evidence_json.as_bytes(),
+            manifest: build.manifest_json.as_bytes(),
+        }
+    }
+
+    fn files(self) -> [(&'static str, &'a [u8]); 3] {
+        [
+            (MODULE_FILE, self.module),
+            (EVIDENCE_FILE, self.evidence),
+            (MANIFEST_FILE, self.manifest),
+        ]
+    }
 }
 
 fn require_path_binding(

@@ -502,6 +502,14 @@ fn validate_compact_json(
     Ok(parser.object_keys)
 }
 
+pub(crate) fn validate_compact_json_keys(
+    value: &str,
+    maximum: usize,
+    label: &str,
+) -> Result<Vec<Vec<String>>, Diagnostic> {
+    validate_compact_json(value, maximum, label)
+}
+
 struct CanonicalJsonParser<'a> {
     bytes: &'a [u8],
     offset: usize,

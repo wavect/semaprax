@@ -4,6 +4,10 @@ use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::hir;
+use semaprax::interpreter::{
+    evaluate_resolved_owned_data, OwnedDataCleanupEvent, OwnedDataEvaluationOutcome,
+    OwnedDataValue, DEFAULT_MAX_STEPS,
+};
 use semaprax::project::{
     derive_public_api_descriptor, prepare_owned_data_npm_build, ProjectNpmBuild,
     PublicApiResultType, PublicApiSubject, PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
@@ -247,6 +251,84 @@ fn c_bytes(bytes: &[u8]) -> String {
         .map(|byte| format!("UINT8_C({byte})"))
         .collect::<Vec<_>>()
         .join(",")
+}
+
+#[test]
+fn reference_interpreter_runs_the_exact_corpus_with_status_identity_and_cleanup() {
+    let program = resolve(FRAME_SOURCE);
+    for (name, frame, valid, error) in corpus_frames() {
+        let expected = valid.then(|| frame[8..].to_vec());
+        let maybe = evaluate_resolved_owned_data(
+            &program,
+            "frame.payload-maybe",
+            &frame,
+            DEFAULT_MAX_STEPS,
+        )
+        .unwrap();
+        assert_eq!(maybe.function_id.as_str(), "frame.payload-maybe", "{name}");
+        assert_eq!(
+            maybe.outcome,
+            OwnedDataEvaluationOutcome::Returned(OwnedDataValue::OptionBytes(expected.clone())),
+            "{name}"
+        );
+        assert_eq!(
+            maybe.cleanup_events,
+            if valid {
+                vec![OwnedDataCleanupEvent::CopyOutAndSettleBytes]
+            } else {
+                Vec::new()
+            },
+            "{name}"
+        );
+
+        let result = evaluate_resolved_owned_data(
+            &program,
+            "frame.payload-result",
+            &frame,
+            DEFAULT_MAX_STEPS,
+        )
+        .unwrap();
+        assert_eq!(
+            result.function_id.as_str(),
+            "frame.payload-result",
+            "{name}"
+        );
+        let expected_result = match expected.clone() {
+            Some(payload) => Ok(payload),
+            None => Err(error),
+        };
+        assert_eq!(
+            result.outcome,
+            OwnedDataEvaluationOutcome::Returned(OwnedDataValue::ResultBytesI64(expected_result)),
+            "{name}"
+        );
+        assert_eq!(
+            result.cleanup_events,
+            if valid {
+                vec![OwnedDataCleanupEvent::CopyOutAndSettleBytes]
+            } else {
+                Vec::new()
+            },
+            "{name}"
+        );
+
+        if let Some(expected) = expected {
+            let direct =
+                evaluate_resolved_owned_data(&program, "frame.payload", &frame, DEFAULT_MAX_STEPS)
+                    .unwrap();
+            assert_eq!(direct.function_id.as_str(), "frame.payload", "{name}");
+            assert_eq!(
+                direct.outcome,
+                OwnedDataEvaluationOutcome::Returned(OwnedDataValue::Bytes(expected)),
+                "{name}"
+            );
+            assert_eq!(
+                direct.cleanup_events,
+                [OwnedDataCleanupEvent::CopyOutAndSettleBytes],
+                "{name}"
+            );
+        }
+    }
 }
 
 #[test]

@@ -63,7 +63,12 @@ pub(super) fn emit_hir_c_with_labels(
             output_profile.is_language_command(),
         );
     } else {
-        emit_native_prelude(&mut output, &resource_abi, program);
+        emit_native_prelude_profile(
+            &mut output,
+            &resource_abi,
+            program,
+            output_profile == NativeOutputProfile::OwnedUtf8Provider,
+        );
     }
     if output_profile == NativeOutputProfile::LineCommandIo {
         native_host_output::emit_line_command_runtime(&mut output);
@@ -188,6 +193,7 @@ pub(super) fn emit_hir_c_with_labels(
 pub(super) enum NativeOutputProfile {
     Legacy,
     OwnedDataProvider,
+    OwnedUtf8Provider,
     StdoutTranscript,
     UsefulDataCommand,
     LanguageCommandIo,
@@ -295,7 +301,23 @@ pub(super) fn emit_native_prelude(
     resource_abi: &native_resource::NativeResourceAbi,
     program: &ResolvedProgram,
 ) {
-    emit_native_prelude_inner(output, resource_abi, program, false, false);
+    emit_native_prelude_inner(output, resource_abi, program, false, false, false);
+}
+
+fn emit_native_prelude_profile(
+    output: &mut impl COutput,
+    resource_abi: &native_resource::NativeResourceAbi,
+    program: &ResolvedProgram,
+    length_delimited_strings: bool,
+) {
+    emit_native_prelude_inner(
+        output,
+        resource_abi,
+        program,
+        false,
+        false,
+        length_delimited_strings,
+    );
 }
 
 fn emit_native_prelude_without_public_failure(
@@ -304,7 +326,7 @@ fn emit_native_prelude_without_public_failure(
     program: &ResolvedProgram,
     command_carriers: bool,
 ) {
-    emit_native_prelude_inner(output, resource_abi, program, true, command_carriers);
+    emit_native_prelude_inner(output, resource_abi, program, true, command_carriers, false);
 }
 
 fn emit_native_prelude_inner(
@@ -313,9 +335,10 @@ fn emit_native_prelude_inner(
     program: &ResolvedProgram,
     omit_public_failure: bool,
     command_carriers: bool,
+    length_delimited_strings: bool,
 ) {
     let needs_borrowed_str = command_carriers || program_uses_borrowed_str(program);
-    if needs_borrowed_str || program_uses_byte_data(program) {
+    if needs_borrowed_str || program_uses_byte_data(program) || length_delimited_strings {
         native_runtime::emit_status_runtime_with_borrowed_str(output);
     } else {
         native_runtime::emit_status_runtime(output);
@@ -343,24 +366,36 @@ fn emit_native_prelude_inner(
         output.push_str(NATIVE_USIZE_RUNTIME_C);
     }
     if program_uses_strings(program) {
-        output.push_str(NATIVE_STRING_RUNTIME_C);
+        output.push_str(if length_delimited_strings {
+            NATIVE_LENGTH_DELIMITED_STRING_RUNTIME_C
+        } else {
+            NATIVE_STRING_RUNTIME_C
+        });
     }
     if program_uses_string_ops(program) {
         // String operation helpers stay out of programs that cannot reach
         // them, so existing projections keep their exact committed bytes.
-        output.push_str(NATIVE_STRING_OPS_RUNTIME_C);
+        output.push_str(if length_delimited_strings {
+            NATIVE_LENGTH_DELIMITED_STRING_OPS_RUNTIME_C
+        } else {
+            NATIVE_STRING_OPS_RUNTIME_C
+        });
     }
     if program_uses_string_ops_v2(program) {
         // Breadth-v2 string operation helpers gate as their own group so
         // first-wave programs keep their exact committed bytes.
-        output.push_str(NATIVE_STRING_OPS_V2_RUNTIME_C);
+        output.push_str(if length_delimited_strings {
+            NATIVE_LENGTH_DELIMITED_STRING_OPS_V2_RUNTIME_C
+        } else {
+            NATIVE_STRING_OPS_V2_RUNTIME_C
+        });
     }
     if needs_borrowed_str {
         // Borrowed text is a distinct length-aware carrier. Keep it behind a
         // reachability gate so every pre-text native projection is byte exact.
         output.push_str(NATIVE_BORROWED_STR_RUNTIME_C);
     }
-    if program_uses_byte_data(program) {
+    if program_uses_byte_data(program) || length_delimited_strings {
         native_byte_data::emit_runtime(output);
     }
 }
@@ -1234,6 +1269,48 @@ static __attribute__((unused)) void spx_string_drop(char *spx_value) {
 }
 "#;
 
+// Project v10 uses this private provider-only representation. It is selected
+// by a distinct output profile, so legacy native C bytes and behavior do not
+// change. The public boundary obtains the exact length from the allocation
+// header and never searches for a terminator.
+const NATIVE_LENGTH_DELIMITED_STRING_RUNTIME_C: &str = r#"#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct spx_string_v10 { uint64_t len; char data[]; };
+static __attribute__((unused)) struct spx_string_v10 *spx_string_header_v10(const char *value) {
+    return (struct spx_string_v10 *)((uint8_t *)value - offsetof(struct spx_string_v10, data));
+}
+static __attribute__((unused)) uint64_t spx_string_length_v10(const char *value) {
+    return spx_string_header_v10(value)->len;
+}
+static __attribute__((unused)) char *spx_string_from_literal(
+    const char *spx_data, uint64_t spx_len
+) {
+    if (spx_len > (uint64_t)SIZE_MAX - (uint64_t)offsetof(struct spx_string_v10, data) - UINT64_C(1))
+        spx_runtime_invariant_failure("string allocation length overflow");
+    struct spx_string_v10 *spx_value = (struct spx_string_v10 *)malloc(
+        offsetof(struct spx_string_v10, data) + (size_t)spx_len + 1u
+    );
+    if (spx_value == NULL) spx_runtime_invariant_failure("string allocation failed");
+    spx_value->len = spx_len;
+    if (spx_len != UINT64_C(0)) memcpy(spx_value->data, spx_data, (size_t)spx_len);
+    spx_value->data[spx_len] = '\0';
+    return spx_value->data;
+}
+static __attribute__((unused)) char *spx_string_clone(const char *spx_source) {
+    return spx_string_from_literal(spx_source, spx_string_length_v10(spx_source));
+}
+static __attribute__((unused)) bool spx_string_eq(const char *a, const char *b) {
+    uint64_t a_len = spx_string_length_v10(a), b_len = spx_string_length_v10(b);
+    return a_len == b_len && (a_len == UINT64_C(0) || memcmp(a, b, (size_t)a_len) == 0);
+}
+static __attribute__((unused)) void spx_string_drop(char *spx_value) {
+    free(spx_string_header_v10(spx_value));
+}
+"#;
+
 const NATIVE_STRING_OPS_RUNTIME_C: &str = r#"static __attribute__((unused)) int64_t spx_string_len(const char *spx_value) {
     return (int64_t)strlen(spx_value);
 }
@@ -1253,6 +1330,33 @@ static __attribute__((unused)) char *spx_string_concat(
     memcpy(spx_joined + spx_left_len, spx_right, (size_t)spx_right_len);
     spx_joined[spx_left_len + spx_right_len] = '\0';
     return spx_joined;
+}
+"#;
+
+const NATIVE_LENGTH_DELIMITED_STRING_OPS_RUNTIME_C: &str = r#"static __attribute__((unused)) int64_t spx_string_len(const char *spx_value) {
+    uint64_t length = spx_string_length_v10(spx_value);
+    if (length > (uint64_t)INT64_MAX) spx_runtime_invariant_failure("string length overflow");
+    return (int64_t)length;
+}
+static __attribute__((unused)) bool spx_string_is_empty(const char *spx_value) {
+    return spx_string_length_v10(spx_value) == UINT64_C(0);
+}
+static __attribute__((unused)) char *spx_string_concat(char *left, char *right) {
+    uint64_t left_len = spx_string_length_v10(left), right_len = spx_string_length_v10(right);
+    if (right_len > UINT64_MAX - left_len) spx_runtime_invariant_failure("string length overflow");
+    uint64_t joined_len = left_len + right_len;
+    char *joined;
+    if (joined_len == UINT64_C(0)) joined = spx_string_from_literal("", UINT64_C(0));
+    else {
+        if (joined_len > (uint64_t)SIZE_MAX) spx_runtime_invariant_failure("string length overflow");
+        char *temporary = (char *)malloc((size_t)joined_len);
+        if (temporary == NULL) spx_runtime_invariant_failure("string allocation failed");
+        if (left_len != UINT64_C(0)) memcpy(temporary, left, (size_t)left_len);
+        if (right_len != UINT64_C(0)) memcpy(temporary + left_len, right, (size_t)right_len);
+        joined = spx_string_from_literal(temporary, joined_len);
+        free(temporary);
+    }
+    return joined;
 }
 "#;
 
@@ -1304,6 +1408,35 @@ static __attribute__((unused)) char *spx_string_from_char(uint32_t spx_scalar) {
         spx_length = UINT64_C(4);
     }
     return spx_string_from_literal(spx_encoded, spx_length);
+}
+"#;
+
+const NATIVE_LENGTH_DELIMITED_STRING_OPS_V2_RUNTIME_C: &str = r#"static __attribute__((unused)) bool spx_string_starts_with(const char *value, const char *prefix) {
+    uint64_t value_len = spx_string_length_v10(value), prefix_len = spx_string_length_v10(prefix);
+    return prefix_len <= value_len && (prefix_len == UINT64_C(0) || memcmp(value, prefix, (size_t)prefix_len) == 0);
+}
+static __attribute__((unused)) bool spx_string_contains(const char *value, const char *needle) {
+    uint64_t value_len = spx_string_length_v10(value), needle_len = spx_string_length_v10(needle);
+    if (needle_len == UINT64_C(0)) return true;
+    if (needle_len > value_len) return false;
+    for (uint64_t offset = UINT64_C(0); offset <= value_len - needle_len; ++offset)
+        if (memcmp(value + offset, needle, (size_t)needle_len) == 0) return true;
+    return false;
+}
+static __attribute__((unused)) int64_t spx_string_len_chars(const char *value) {
+    uint64_t length = spx_string_length_v10(value), count = UINT64_C(0);
+    for (uint64_t offset = UINT64_C(0); offset < length; ++offset)
+        if ((((const uint8_t *)value)[offset] & UINT8_C(0xc0)) != UINT8_C(0x80)) ++count;
+    if (count > (uint64_t)INT64_MAX) spx_runtime_invariant_failure("string character length overflow");
+    return (int64_t)count;
+}
+static __attribute__((unused)) char *spx_string_from_char(uint32_t scalar) {
+    char encoded[4]; uint64_t length;
+    if (scalar < UINT32_C(0x80)) { encoded[0] = (char)(uint8_t)scalar; length = UINT64_C(1); }
+    else if (scalar < UINT32_C(0x800)) { encoded[0]=(char)(uint8_t)(UINT8_C(0xc0)|(uint8_t)(scalar>>6)); encoded[1]=(char)(uint8_t)(UINT8_C(0x80)|(uint8_t)(scalar&UINT32_C(0x3f))); length=UINT64_C(2); }
+    else if (scalar < UINT32_C(0x10000)) { encoded[0]=(char)(uint8_t)(UINT8_C(0xe0)|(uint8_t)(scalar>>12)); encoded[1]=(char)(uint8_t)(UINT8_C(0x80)|(uint8_t)((scalar>>6)&UINT32_C(0x3f))); encoded[2]=(char)(uint8_t)(UINT8_C(0x80)|(uint8_t)(scalar&UINT32_C(0x3f))); length=UINT64_C(3); }
+    else { encoded[0]=(char)(uint8_t)(UINT8_C(0xf0)|(uint8_t)(scalar>>18)); encoded[1]=(char)(uint8_t)(UINT8_C(0x80)|(uint8_t)((scalar>>12)&UINT32_C(0x3f))); encoded[2]=(char)(uint8_t)(UINT8_C(0x80)|(uint8_t)((scalar>>6)&UINT32_C(0x3f))); encoded[3]=(char)(uint8_t)(UINT8_C(0x80)|(uint8_t)(scalar&UINT32_C(0x3f))); length=UINT64_C(4); }
+    return spx_string_from_literal(encoded, length);
 }
 "#;
 

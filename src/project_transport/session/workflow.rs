@@ -232,6 +232,13 @@ impl Session {
                     "Project v8 owned-data builds require the future Agent Transport v5 descriptor-bound methods",
                 ));
             }
+            if snapshot.manifest().project_profile()
+                == crate::project::ProjectProfile::OwnedUtf8ApiV1
+            {
+                return Err(super::parameter_diagnostic(
+                    "Project v10 owned-UTF-8 builds require descriptor-bound agent transport methods",
+                ));
+            }
             let target = take_string(&mut params, "target")?;
             let max_bytes = take_optional_usize(&mut params, "max_bytes")?
                 .unwrap_or(DEFAULT_INLINE_BUILD_BYTES);

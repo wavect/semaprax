@@ -207,6 +207,16 @@ fn emit_hir_c_for_owned_data_provider(program: &ResolvedProgram) -> Result<Strin
     )
 }
 
+fn emit_hir_c_for_owned_utf8_provider(program: &ResolvedProgram) -> Result<String, Diagnostic> {
+    reject_native_rust_for_native(program)?;
+    emit_hir_c_with_labels(
+        program,
+        &HashMap::new(),
+        NativeOutputProfile::OwnedUtf8Provider,
+        None,
+    )
+}
+
 /// Emit the bounded native stdout-transcript profile from validated HIR.
 ///
 /// The generated C exposes `spx_stdout_transcript_run_v1` and performs no

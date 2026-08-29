@@ -82,6 +82,12 @@ layout-independent. Its descriptor-bound npm/Core-Wasm and
 native-provider/safe-Rust routes are now wired while preserving the v8 target
 routes, but executable and hosted promotion evidence remains outstanding.
 
+The next additive string tranche is specified by
+[Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md). Project v10 is gated
+on promoted Project v9 and keeps raw `Bytes` distinct from length-delimited,
+strictly validated host strings. Local generator/provider evidence is not a
+hosted promotion or a completion-matrix status change.
+
 ## 0.3: ownership and fast development
 
 Goal: make the language safer and faster to iterate on without widening public

@@ -25,6 +25,34 @@ const BYTE_COPY_IMPORT: u32 = SCALAR_IMPORT_COUNT;
 const BYTE_GET_IMPORT: u32 = SCALAR_IMPORT_COUNT + 1;
 const BYTE_DROP_IMPORT: u32 = SCALAR_IMPORT_COUNT + 2;
 const BYTE_AS_SLICE_IMPORT: u32 = SCALAR_IMPORT_COUNT + 3;
+const OWNED_UTF8_LITERAL_BASE: u32 = 196_608;
+
+#[derive(Default)]
+struct OwnedUtf8Literals {
+    offsets: HashMap<String, u32>,
+    bytes: Vec<u8>,
+}
+
+impl OwnedUtf8Literals {
+    fn intern(&mut self, value: &str) -> Result<(u32, u32), Diagnostic> {
+        if let Some(offset) = self.offsets.get(value) {
+            return Ok((*offset, value.len() as u32));
+        }
+        let relative = u32::try_from(self.bytes.len())
+            .map_err(|_| error("owned UTF-8 literal table overflows u32"))?;
+        let offset = OWNED_UTF8_LITERAL_BASE
+            .checked_add(relative)
+            .ok_or_else(|| error("owned UTF-8 literal address overflows"))?;
+        let length = u32::try_from(value.len())
+            .map_err(|_| error("owned UTF-8 literal length overflows u32"))?;
+        if length > 65_536 || self.bytes.len().saturating_add(value.len()) > 65_536 {
+            return Err(error("owned UTF-8 literal table exceeds 65536 bytes"));
+        }
+        self.offsets.insert(value.to_owned(), offset);
+        self.bytes.extend_from_slice(value.as_bytes());
+        Ok((offset, length))
+    }
+}
 const RANGE_DESCRIPTOR_SIZE: u32 = 32;
 const RANGE_DESCRIPTOR_TAG: u32 = 0x4000_0000;
 const RANGE_DESCRIPTOR_TAG_MASK: u32 = 0xc000_0000;
@@ -959,6 +987,7 @@ fn scalar_wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
         ResolvedType::Usize => Ok(I64),
         ResolvedType::SliceU8 | ResolvedType::Str => Ok(I64),
         ResolvedType::Bytes => Ok(I64),
+        ResolvedType::String => Ok(I64),
         ResolvedType::F32 => Ok(F32),
         ResolvedType::F64 => Ok(F64),
         ResolvedType::Bool => Ok(I32),
@@ -978,6 +1007,7 @@ fn scalar_size_align(ty: &ResolvedType) -> Result<(u32, u32), Diagnostic> {
         ResolvedType::Usize => Ok((8, 8)),
         ResolvedType::SliceU8 | ResolvedType::Str => Ok((8, 8)),
         ResolvedType::Bytes => Ok((8, 8)),
+        ResolvedType::String => Ok((8, 8)),
         ResolvedType::F32 => Ok((4, 4)),
         ResolvedType::F64 => Ok((8, 8)),
         ResolvedType::Bool => Ok((4, 4)),
@@ -1060,6 +1090,7 @@ pub(super) fn lower_selected_functions(
             function,
             &function_indexes,
             &variant_layouts,
+            None,
             None,
             None,
         )?);
@@ -1165,6 +1196,7 @@ pub(super) fn lower_selected_function_instances(
                 &variant_layouts,
                 None,
                 None,
+                None,
             )
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -1231,6 +1263,10 @@ fn emit_byte_exports_profile(
     command_io: Option<&super::command_io::CommandPlan>,
     owned_plans: &[super::owned_data_exports::OwnedDataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
+    let has_owned_utf8 = owned_plans
+        .iter()
+        .any(|plan| plan.result == super::owned_data_exports::ResultLayout::Utf8);
+    let mut owned_utf8_literals = OwnedUtf8Literals::default();
     if (plans.is_empty() && command_io.is_none() && owned_plans.is_empty())
         || (!super::program_uses_byte_data(program) && owned_plans.is_empty())
     {
@@ -1505,7 +1541,9 @@ fn emit_byte_exports_profile(
 
     let mut memory = Vec::new();
     write_u32(&mut memory, 1);
-    let memory_pages = if command_io.is_some() {
+    let memory_pages = if has_owned_utf8 {
+        4
+    } else if command_io.is_some() {
         6
     } else if host_output {
         super::host_output::MEMORY_PAGES
@@ -1662,6 +1700,7 @@ fn emit_byte_exports_profile(
             &variant_layouts,
             host_output.then_some(super::host_output::DATA_GLOBALS),
             range_bindings.as_ref(),
+            has_owned_utf8.then_some(&mut owned_utf8_literals),
         )?;
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
@@ -1706,6 +1745,21 @@ fn emit_byte_exports_profile(
         code.extend(body);
     }
     section(&mut module, 10, code);
+    if has_owned_utf8 {
+        let mut data = Vec::new();
+        write_u32(&mut data, 1);
+        data.push(0x00);
+        data.push(0x41);
+        write_i64(&mut data, i64::from(OWNED_UTF8_LITERAL_BASE));
+        data.push(0x0b);
+        write_u32(
+            &mut data,
+            u32::try_from(owned_utf8_literals.bytes.len())
+                .map_err(|_| error("owned UTF-8 literal table overflows u32"))?,
+        );
+        data.extend_from_slice(&owned_utf8_literals.bytes);
+        section(&mut module, 11, data);
+    }
     Ok(module)
 }
 
@@ -2035,6 +2089,7 @@ fn emit_profile(
             &variant_layouts,
             host_output.then_some(super::host_output::ROOT_GLOBALS),
             range_bindings.as_ref(),
+            None,
         )?;
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
@@ -2079,6 +2134,7 @@ fn emit_function(
     variant_layouts: &VariantLayoutCache,
     host_output: Option<super::host_output::Globals>,
     range_bindings: Option<&RangeBindings>,
+    owned_utf8_literals: Option<&mut OwnedUtf8Literals>,
 ) -> Result<Vec<u8>, Diagnostic> {
     let plan = FunctionPlan::build(program, function, variant_layouts)?;
     let mut body = Vec::new();
@@ -2235,6 +2291,7 @@ fn emit_function(
         failure_expression: None,
         host_output,
         range_bindings,
+        owned_utf8_literals,
     };
     for contract in &function.requires {
         let condition = emitter.emit_expr(contract)?;
@@ -2445,6 +2502,7 @@ struct Emitter<'a> {
     failure_expression: Option<ExpressionId>,
     host_output: Option<super::host_output::Globals>,
     range_bindings: Option<&'a RangeBindings>,
+    owned_utf8_literals: Option<&'a mut OwnedUtf8Literals>,
 }
 
 impl Emitter<'_> {
@@ -3382,9 +3440,24 @@ impl Emitter<'_> {
                     ty: ResolvedType::Bool,
                 })
             }
-            ResolvedExprKind::String(value) => Err(error(format!(
-                "string literal `{value}` is outside aggregate WebAssembly lowering"
-            ))),
+            ResolvedExprKind::String(value) => {
+                let literals = self.owned_utf8_literals.as_deref_mut().ok_or_else(|| {
+                    error("owned string literal reached a non-v10 WebAssembly profile")
+                })?;
+                let (offset, length) = literals.intern(value)?;
+                let carrier = (u64::from(offset) << 32) | u64::from(length);
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x42);
+                write_i64(self.output, carrier as i64);
+                self.output.push(0x10);
+                write_u32(self.output, BYTE_COPY_IMPORT);
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::String,
+                })
+            }
             ResolvedExprKind::Place(place) => {
                 let value = self.place_value(place)?;
                 self.materialize(expr, &value)
@@ -6508,7 +6581,7 @@ impl Emitter<'_> {
                 self.output.push(0x21);
                 write_u32(self.output, *local);
                 scalar_wasm_type(ty)?;
-                if *ty == ResolvedType::Bytes {
+                if matches!(ty, ResolvedType::Bytes | ResolvedType::String) {
                     self.clear_scalar(source)?;
                 }
             }
@@ -6516,7 +6589,7 @@ impl Emitter<'_> {
                 self.emit_pointer(*pointer);
                 self.get_scalar(source);
                 self.store_scalar(ty);
-                if *ty == ResolvedType::Bytes {
+                if matches!(ty, ResolvedType::Bytes | ResolvedType::String) {
                     self.clear_scalar(source)?;
                 }
             }
@@ -6740,7 +6813,8 @@ impl Emitter<'_> {
             | ResolvedType::Usize
             | ResolvedType::SliceU8
             | ResolvedType::Str
-            | ResolvedType::Bytes => self.output.extend([0x29, 0x03, 0x00]),
+            | ResolvedType::Bytes
+            | ResolvedType::String => self.output.extend([0x29, 0x03, 0x00]),
             ResolvedType::F64 => self.output.extend([0x2b, 0x03, 0x00]),
             ResolvedType::F32 => self.output.extend([0x2a, 0x02, 0x00]),
             ResolvedType::Bool | ResolvedType::Char | ResolvedType::I32 | ResolvedType::U8 => {
@@ -6756,7 +6830,8 @@ impl Emitter<'_> {
             | ResolvedType::Usize
             | ResolvedType::SliceU8
             | ResolvedType::Str
-            | ResolvedType::Bytes => self.output.extend([0x37, 0x03, 0x00]),
+            | ResolvedType::Bytes
+            | ResolvedType::String => self.output.extend([0x37, 0x03, 0x00]),
             ResolvedType::F64 => self.output.extend([0x39, 0x03, 0x00]),
             ResolvedType::F32 => self.output.extend([0x38, 0x02, 0x00]),
             ResolvedType::Bool | ResolvedType::Char | ResolvedType::I32 | ResolvedType::U8 => {

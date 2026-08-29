@@ -215,10 +215,13 @@ root entry instead of treating it as owned residue.
 | JSON depth | 8 |
 | unexpected inventory entries | 0 |
 
-Every limit uses checked cumulative accounting before allocation or filesystem
-effect. Exact capacity succeeds and capacity plus one rejects. Reads take at
-most the declared limit plus one byte so truncation, growth, and trailing data
-are distinguishable.
+Byte reads are bounded at the declared limit plus one, and count/depth limits
+are checked during bounded parsing or traversal. Checked cumulative arithmetic
+precedes any later growth or publication effect that depends on the admitted
+value. Exact capacity succeeds and capacity plus one rejects; truncation,
+growth, and trailing data remain distinguishable. Some parsers and inventory
+walkers necessarily allocate or visit the first over-limit item before
+rejecting it, but that bounded rejection grants no publication authority.
 
 The entry's `limits` object carries the fixed values in the table's order.
 Its `budget` object carries the corresponding `used_` fields, including exact

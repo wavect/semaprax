@@ -167,14 +167,16 @@ fn existing_core_matrix_and_global_authority_remain_bounded() {
             );
         }
     }
-    for forbidden in [
-        "actions/cache",
-        "actions/upload-artifact",
-        "actions/download-artifact",
-    ] {
-        assert!(
-            !workflow.contains(forbidden),
-            "WP01 must not introduce unauthenticated cache/artifact coupling"
-        );
+    for blocker in RELEASE_BLOCKERS {
+        for forbidden in [
+            "actions/cache",
+            "actions/upload-artifact",
+            "actions/download-artifact",
+        ] {
+            assert!(
+                !job(&workflow, blocker).contains(forbidden),
+                "release blocker `{blocker}` must not acquire cache/artifact coupling"
+            );
+        }
     }
 }

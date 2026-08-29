@@ -755,3 +755,100 @@ jobs:
     steps:
       - name: Confirm every release blocker passed
         run: echo "all release-blocking CI jobs passed"
+
+  release-artifacts:
+    name: Release artifact (${{ matrix.target }})
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    needs: release-gate
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            extension: tar.gz
+          - os: macos-15
+            target: aarch64-apple-darwin
+            extension: tar.gz
+          - os: windows-2025
+            target: x86_64-pc-windows-msvc
+            extension: zip
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: 1.97.1
+      - name: Build, package, and smoke-test the Unix release artifact
+        if: runner.os != 'Windows'
+        shell: bash
+        run: scripts/package-release.sh "$GITHUB_REF_NAME" "$GITHUB_SHA" "${{ matrix.target }}" dist
+      - name: Build, package, and smoke-test the Windows release artifact
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: scripts/package-release.ps1 -Tag $env:GITHUB_REF_NAME -Commit $env:GITHUB_SHA -Target "${{ matrix.target }}" -OutputRoot dist
+      - name: Retain the exact target archive for aggregate publication
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-${{ matrix.target }}
+          path: dist/semaprax-${{ github.ref_name }}-${{ matrix.target }}.${{ matrix.extension }}
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+  publish-release:
+    name: Publish tag release
+    if: ${{ startsWith(github.ref, 'refs/tags/v') && success() }}
+    needs:
+      - release-gate
+      - release-artifacts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Download every exercised target archive
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+      - name: Authenticate the complete archive inventory and produce SHA256SUMS
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' Cargo.toml)
+          test -n "$version"
+          test "$GITHUB_REF_NAME" = "v$version"
+          archives=(
+            "semaprax-v$version-x86_64-unknown-linux-gnu.tar.gz"
+            "semaprax-v$version-aarch64-apple-darwin.tar.gz"
+            "semaprax-v$version-x86_64-pc-windows-msvc.zip"
+          )
+          test "$(find dist -maxdepth 1 -type f -name 'semaprax-*' | wc -l | tr -d ' ')" = "${#archives[@]}"
+          for archive in "${archives[@]}"; do
+            test -f "dist/$archive"
+          done
+          (cd dist && sha256sum "${archives[@]}") > dist/SHA256SUMS
+          test "$(wc -l < dist/SHA256SUMS | tr -d ' ')" = "${#archives[@]}"
+      - name: Publish the pre-alpha archives only after complete aggregation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
+          SEMAPRAX v0.2 is pre-alpha research software.
+
+          These unsigned archives are not notarized and make no cross-host reproducible-build claim.
+          SHA-256 checksums are integrity facts, not signatures.
+          NOTES
+          gh release create "$GITHUB_REF_NAME" \
+            dist/semaprax-* dist/SHA256SUMS \
+            --verify-tag \
+            --prerelease \
+            --title "SEMAPRAX $GITHUB_REF_NAME" \
+            --notes-file "$RUNNER_TEMP/release-notes.md"

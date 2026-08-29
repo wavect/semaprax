@@ -1,11 +1,11 @@
 //! Separate safe Native Rust owned-data SDK package.
 
 use super::authentication::{authenticate_inventory, hold_matching};
-use super::owned_data_descriptor::{replay_descriptor, verify_manifest};
+use super::owned_data_descriptor::{replay_descriptor, verify_manifest, ManifestFacts};
 use super::*;
 
-const OWNED_CRATE_NAME: &str = "semaprax-generated-native-rust-owned-data-sdk";
-const OWNED_CRATE_VERSION: &str = "0.1.0";
+pub(super) const OWNED_CRATE_NAME: &str = "semaprax-generated-native-rust-owned-data-sdk";
+pub(super) const OWNED_CRATE_VERSION: &str = "0.1.0";
 const OWNED_MANIFEST_DOMAIN: &[u8] = b"semaprax.native-rust-owned-data-sdk.manifest.v1\0";
 const MAX_PROVIDER_BYTES: usize = 8 * 1024 * 1024;
 const MAX_ARCHIVE_BYTES: usize = 8 * 1024 * 1024;
@@ -81,7 +81,23 @@ fn build(
             ("descriptor.json", descriptor_bytes),
         ],
     );
-    verify_manifest(manifest.as_bytes(), &manifest)?;
+    verify_manifest(
+        manifest.as_bytes(),
+        &ManifestFacts {
+            target,
+            descriptor: descriptor_bytes,
+            descriptor_digest,
+            archive_name,
+            files: [
+                ("Cargo.toml", cargo_toml.as_bytes()),
+                ("build.rs", build_rs.as_bytes()),
+                ("lib.rs", lib_rs.as_bytes()),
+                ("owned_data_ffi.rs", ffi_rs.as_bytes()),
+                (archive_name, archive.as_slice()),
+                ("descriptor.json", descriptor_bytes),
+            ],
+        },
+    )?;
     publish_package(
         output,
         [
@@ -231,7 +247,7 @@ fn render_ffi(descriptor: &semaprax::project::PublicApiDescriptor) -> String {
         }
         output.push_str(",tag:*mut u32,handle:*mut Handle,error:*mut i64)->Status;\n");
     }
-    output.push_str("}\n#[derive(Clone,Copy)]pub(super)enum Failure{Semantic,Adapter,Host}\npub(super)struct RawCall{pub tag:u32,pub handle:Handle,pub error:i64}\npub(super)struct Context{storage:Vec<u64>,raw:NonNull<RawContext>,_thread:PhantomData<Rc<()>>}\nimpl Context{pub fn new()->Result<Self,Failure>{unsafe{let size=spx_owned_data_context_size_v1();let align=spx_owned_data_context_align_v1();if size==0||align==0||align>core::mem::align_of::<u64>()as u64{return Err(Failure::Adapter)}let words=usize::try_from((size+7)/8).map_err(|_|Failure::Adapter)?;let mut storage=vec![0u64;words];let raw:NonNull<RawContext>=NonNull::new(storage.as_mut_ptr().cast()).ok_or(Failure::Host)?;if spx_owned_data_context_init_v1(raw.as_ptr().cast(),size)!=0{return Err(Failure::Adapter)}Ok(Self{storage,raw,_thread:PhantomData})}}\n");
+    output.push_str("}\n#[derive(Clone,Copy)]pub(super)enum Failure{Semantic,Adapter,Host}\npub(super)struct RawCall{pub tag:u32,pub handle:Handle,pub error:i64}\npub(super)struct Context{storage:Vec<u64>,raw:NonNull<RawContext>,_thread:PhantomData<Rc<()>>}\nimpl Context{pub fn new()->Result<Self,Failure>{unsafe{let size=spx_owned_data_context_size_v1();let align=spx_owned_data_context_align_v1();if size==0||align==0||align>core::mem::align_of::<u64>()as u64{return Err(Failure::Adapter)}let rounded=size.checked_add(7).ok_or(Failure::Adapter)?;let words=usize::try_from(rounded/8).map_err(|_|Failure::Adapter)?;let mut storage=vec![0u64;words];let raw:NonNull<RawContext>=NonNull::new(storage.as_mut_ptr().cast()).ok_or(Failure::Host)?;if spx_owned_data_context_init_v1(raw.as_ptr().cast(),size)!=0{return Err(Failure::Adapter)}Ok(Self{storage,raw,_thread:PhantomData})}}\n");
     for export in descriptor.exports() {
         write!(
             output,
@@ -485,7 +501,7 @@ fn publish_package(output: &Path, files: [(&'static str, &[u8]); 7]) -> Result<(
     result
 }
 
-fn render_manifest(
+pub(super) fn render_manifest(
     target: &str,
     descriptor: &[u8],
     descriptor_digest: &str,

@@ -41,6 +41,7 @@ fn view() -> usize uses { process.args.read } {
     let bytes = str_as_bytes(argument);
     byte_len(bytes)
 }
+
 @id("app.main") fn main() -> i64 { 0 }
 "#;
         let ast = crate::parse(source, "command-root-hostile.spx").unwrap();
@@ -72,6 +73,8 @@ fn view() -> usize uses { process.args.read } {
 }
 
 mod inspection;
+#[cfg(test)]
+mod projected_byte_field_provenance_tests;
 mod type_reachability;
 mod validation;
 mod workspace_link;
@@ -1088,13 +1091,19 @@ pub struct ByteSliceRangeStep {
     pub end: ExpressionId,
 }
 
-/// Exact provenance for a byte view. In this first tranche every admitted
-/// source view is the complete symbolic parameter root (`offset = 0`,
-/// `length = root length`); aliases retain this fact rather than minting a new
-/// root. Host boundaries alone bind that symbol to external input storage.
+/// Exact provenance for a byte view. Legacy views retain a complete symbolic
+/// root (`offset = 0`, `length = root length`). The additive projected-field
+/// profile retains one stable field-ID projection and its authenticated type;
+/// aliases and ranges preserve those facts rather than minting a new root.
+/// Host boundaries alone bind external parameter symbols to input storage.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ByteSliceProvenance {
     pub root: ValueId,
+    /// Exact stable-ID path from `root` to the borrowed storage. Empty retains
+    /// the byte-for-byte legacy root provenance carried through Graph v23.
+    pub projections: Vec<PlaceProjection>,
+    /// Independently resolved type at the end of `projections`.
+    pub projected_type: ResolvedType,
     pub root_kind: ByteSliceRootKind,
     pub root_length: ByteSliceExtent,
     pub offset: ByteSliceExtent,
@@ -3238,6 +3247,7 @@ impl ResolvedStatement {
 
 fn derive_byte_slice_provenance(
     functions: &[ResolvedFunction],
+    declarations: &DeclarationIndex,
 ) -> Result<BTreeMap<ValueId, ByteSliceProvenance>, Diagnostic> {
     let mut facts = BTreeMap::new();
     let mut root_types = BTreeMap::<ValueId, ResolvedType>::new();
@@ -3253,6 +3263,8 @@ fn derive_byte_slice_provenance(
                     parameter.id.clone(),
                     ByteSliceProvenance {
                         root: parameter.id.clone(),
+                        projections: Vec::new(),
+                        projected_type: ResolvedType::SliceU8,
                         root_kind: ByteSliceRootKind::FunctionParameter,
                         root_length: ByteSliceExtent::ParameterLength,
                         offset: ByteSliceExtent::Constant(0),
@@ -3371,33 +3383,77 @@ fn derive_byte_slice_provenance(
     loop {
         let before = unresolved.len();
         unresolved.retain(|(binding, mutable, value)| {
-            if let ResolvedExprKind::BorrowPlace { place, .. } = &value.kind {
-                if *mutable || !place.projections.is_empty() {
+            if let ResolvedExprKind::BorrowPlace { operation, place } = &value.kind {
+                if *mutable {
                     return true;
                 }
                 let Some(root_ty) = root_types.get(&place.root) else {
                     return true;
                 };
-                let (root_kind, root_length) = match root_ty {
-                    ResolvedType::Bytes => {
-                        (ByteSliceRootKind::OwnedBytes, ByteSliceExtent::ValueLength)
-                    }
+                let (root_kind, root_length, projected_type) = match root_ty {
+                    ResolvedType::Bytes => (
+                        ByteSliceRootKind::OwnedBytes,
+                        ByteSliceExtent::ValueLength,
+                        ResolvedType::Bytes,
+                    ),
                     ResolvedType::ArrayU8(length) => (
                         ByteSliceRootKind::FixedArray,
                         ByteSliceExtent::Constant(u64::from(*length)),
+                        root_ty.clone(),
                     ),
                     ResolvedType::Str => {
                         if command_argument_views.contains(&place.root) {
                             (
                                 ByteSliceRootKind::CommandArguments,
                                 ByteSliceExtent::ValueLength,
+                                ResolvedType::Str,
                             )
                         } else {
-                            (ByteSliceRootKind::BorrowedStr, ByteSliceExtent::ValueLength)
+                            (
+                                ByteSliceRootKind::BorrowedStr,
+                                ByteSliceExtent::ValueLength,
+                                ResolvedType::Str,
+                            )
                         }
+                    }
+                    ResolvedType::Nominal {
+                        declaration,
+                        arguments,
+                    } if arguments.is_empty() && place.projections.len() == 1 => {
+                        let PlaceProjection::Field(field) = &place.projections[0] else {
+                            return true;
+                        };
+                        let Some(fields) = declarations.record_fields(declaration) else {
+                            return true;
+                        };
+                        let Some(resolved) = fields.iter().find(|candidate| candidate.id == *field)
+                        else {
+                            return true;
+                        };
+                        if resolved.ty != ResolvedType::Bytes {
+                            return true;
+                        }
+                        (
+                            ByteSliceRootKind::OwnedBytes,
+                            ByteSliceExtent::ValueLength,
+                            ResolvedType::Bytes,
+                        )
                     }
                     _ => return true,
                 };
+                if place.projections.is_empty() != !matches!(root_ty, ResolvedType::Nominal { .. })
+                {
+                    return true;
+                }
+                let expected_operation = match &projected_type {
+                    ResolvedType::Bytes => crate::byte_ops::BYTES_AS_SLICE_ID,
+                    ResolvedType::ArrayU8(_) => crate::byte_ops::ARRAY_AS_SLICE_ID,
+                    ResolvedType::Str => crate::byte_ops::STR_AS_BYTES_ID,
+                    _ => return true,
+                };
+                if operation.as_str() != expected_operation {
+                    return true;
+                }
                 facts.insert(
                     binding.id.clone(),
                     ByteSliceProvenance {
@@ -3406,6 +3462,8 @@ fn derive_byte_slice_provenance(
                         } else {
                             place.root.clone()
                         },
+                        projections: place.projections.clone(),
+                        projected_type,
                         root_kind,
                         root_length,
                         offset: ByteSliceExtent::Constant(0),
@@ -3857,7 +3915,7 @@ impl Resolver<'_> {
             .map(|function| self.resolve_function_template(function))
             .collect::<Result<_, _>>()?;
         let function_instances = self.discover_function_instances()?;
-        let byte_slice_roots = derive_byte_slice_provenance(&functions)?;
+        let byte_slice_roots = derive_byte_slice_provenance(&functions, &self.declarations)?;
         let mut declarations = self.declarations;
         declarations.byte_slice_roots = byte_slice_roots;
         let mut resolved = ResolvedProgram {

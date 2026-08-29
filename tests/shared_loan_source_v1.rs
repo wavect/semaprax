@@ -208,8 +208,10 @@ module test.shared_loan_projected_same_field;
 @id("bytes.take") fn take(value: own Bytes) -> i64 { 1 }
 @id("packet.invalid") fn invalid(packet: own Packet) -> usize {
     let projected = bytes_as_slice(packet.payload);
+    let alias = projected;
+    let range = byte_range(alias, 0usize, byte_len(alias));
     let moved = take(packet.payload);
-    byte_len(projected)
+    byte_len(range)
 }
 @id("app.main") fn main() -> i64 { 0 }
 "#;
@@ -338,6 +340,21 @@ module test.shared_loan_projected_temporary;
     assert!(diagnostics(temporary)
         .iter()
         .any(|diagnostic| diagnostic.code == "SPX-T266"));
+
+    let deeper = r#"
+module test.shared_loan_projected_deeper;
+@id("inner") record Inner { @id("inner.payload") payload: Bytes, }
+@id("outer") record Outer { @id("outer.inner") inner: Inner, }
+@id("outer.invalid") fn invalid(outer: own Outer) -> usize {
+    let projected = bytes_as_slice(outer.inner.payload);
+    byte_len(projected)
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let report = diagnostics(deeper);
+    assert!(report.iter().any(|diagnostic| {
+        diagnostic.code == "SPX-T268" && diagnostic.message.contains("nests owned `Bytes`")
+    }));
 }
 
 #[test]

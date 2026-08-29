@@ -724,11 +724,7 @@ fn validate_expression(
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::String(_) => {}
         ResolvedExprKind::BorrowPlace { operation, place } => {
-            if !place.projections.is_empty()
-                && (operation.as_str() != crate::byte_ops::BYTES_AS_SLICE_ID
-                    || place.projections.len() != 1
-                    || !matches!(place.projections[0], crate::hir::PlaceProjection::Field(_)))
-            {
+            if !borrow_place_shape_is_admitted(operation, place) {
                 return Err(unsupported(
                     function,
                     format!(
@@ -753,7 +749,9 @@ fn validate_expression(
             ));
         }
         ResolvedExprKind::Place(place) => {
-            if !place.projections.is_empty() {
+            if !place.projections.is_empty()
+                && !direct_owned_record_field_is_admitted(program, place, &expression.ty)
+            {
                 return Err(unsupported(
                     function,
                     format!("uses projected place expression `{}`", expression.id),
@@ -926,6 +924,47 @@ fn validate_expression(
         }
     }
     Ok(())
+}
+
+fn borrow_place_shape_is_admitted(operation: &DeclarationId, place: &crate::hir::Place) -> bool {
+    place.projections.is_empty()
+        || (operation.as_str() == crate::byte_ops::BYTES_AS_SLICE_ID
+            && matches!(
+                place.projections.as_slice(),
+                [crate::hir::PlaceProjection::Field(_)]
+            ))
+}
+
+fn direct_owned_record_field_is_admitted(
+    program: &ResolvedProgram,
+    place: &crate::hir::Place,
+    leaf: &ResolvedType,
+) -> bool {
+    let [crate::hir::PlaceProjection::Field(field)] = place.projections.as_slice() else {
+        return false;
+    };
+    let Some(owner) = program
+        .declarations
+        .declaration(field)
+        .and_then(|declaration| declaration.owner.as_ref())
+    else {
+        return false;
+    };
+    program
+        .declarations
+        .record_fields(owner)
+        .is_some_and(|fields| {
+            fields
+                .iter()
+                .any(|candidate| candidate.id == *field && candidate.ty == *leaf)
+                && fields
+                    .iter()
+                    .any(|candidate| candidate.ty == ResolvedType::Bytes)
+                && fields.iter().all(|candidate| {
+                    candidate.ty == ResolvedType::Bytes
+                        || crate::hir::is_scalar_resolved_type(&candidate.ty)
+                })
+        })
 }
 
 fn expression_contains_resource(
@@ -1173,6 +1212,31 @@ fn main() -> i64 { 0 }
             .iter()
             .find(|function| function.id.as_str() == id)
             .unwrap()
+    }
+
+    #[test]
+    fn projected_borrow_shape_gate_rejects_wrong_operation_and_depth() {
+        let field = crate::hir::PlaceProjection::Field(DeclarationId::new("packet.payload"));
+        let exact = crate::hir::Place {
+            root: crate::hir::ValueId::intrinsic_parameter("packet", 0),
+            projections: vec![field.clone()],
+        };
+        assert!(borrow_place_shape_is_admitted(
+            &DeclarationId::new(crate::byte_ops::BYTES_AS_SLICE_ID),
+            &exact,
+        ));
+        assert!(!borrow_place_shape_is_admitted(
+            &DeclarationId::new(crate::byte_ops::ARRAY_AS_SLICE_ID),
+            &exact,
+        ));
+        let deeper = crate::hir::Place {
+            root: exact.root,
+            projections: vec![field.clone(), field],
+        };
+        assert!(!borrow_place_shape_is_admitted(
+            &DeclarationId::new(crate::byte_ops::BYTES_AS_SLICE_ID),
+            &deeper,
+        ));
     }
 
     #[test]

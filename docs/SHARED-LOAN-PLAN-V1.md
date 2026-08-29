@@ -109,13 +109,14 @@ requires exact agreement. It rejects, at minimum:
 The plan is descriptive proof data. Neither a serialized plan nor its digest
 authorizes source changes, execution, memory access, or publication.
 
-## Graph v23 and compatibility
+## Graph v23/v24 and compatibility
 
-A program carrying a nonempty authenticated Shared Loan Plan v1 selects
-`semaprax.graph.v23`. Graph v23 projects dense loan identity, exact owner place,
-parent provenance, and canonical path edges. Graph consumers must reject
-v23 until they explicitly implement it; they must not silently read it as an
-older schema.
+A program carrying a nonempty authenticated unprojected Shared Loan Plan v1
+selects `semaprax.graph.v23`. The exact projected field profile selects
+additive `semaprax.graph.v24`, which adds the stable projection and resolved
+field type to byte-slice provenance. Both project dense loan identity, exact
+owner place, parent provenance, and canonical path edges. Consumers must reject
+either schema until explicitly implemented; v24 must never be read as v23.
 
 Programs that require no Shared Loan Plan preserve their legacy Graph version,
 bytes, Cleanup Inventory, and CleanupPlan schema and meaning. Shared Loan Plan
@@ -123,7 +124,7 @@ v1 does not widen CleanupPlan v6, Graph v22, the interpreter value model,
 native C11 layout, Core-Wasm layout, or any public ABI.
 
 Semantic Workspace v1 rejects a module that simultaneously requires the
-owned-variant Graph v22 base schema and a nonempty Shared Loan Plan. Graph v23
+owned-variant Graph v22 base schema and a nonempty Shared Loan Plan. Graph v23/v24
 must not mask an unsupported v22 base contract at either the source-schema or
 change-view boundary; a later combined schema requires its own specification
 and evidence.
@@ -132,7 +133,9 @@ and evidence.
 
 The local evidence gate owns:
 
-- canonical dense identities and deterministic plan/Graph v23 fixtures;
+- canonical dense identities, unchanged unprojected Graph v23 schema selection
+  and serialized fields, and
+  deterministic projected-provenance Graph v24 fixtures;
 - exact unprojected owner roots, the authored-but-unrun direct stable-ID
   owned-byte field profile, direct loans, parent reborrows, and multiple
   equal-place shared loans;

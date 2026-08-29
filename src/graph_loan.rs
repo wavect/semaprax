@@ -1,4 +1,4 @@
-//! Deterministic Graph v23 serialization for validated shared-loan plans.
+//! Deterministic Graph v23/v24 serialization for validated shared-loan plans.
 //!
 //! This renderer preserves every plan vector exactly as supplied. Canonical
 //! construction and hostile replay belong to [`crate::loan_plan`]; Graph must

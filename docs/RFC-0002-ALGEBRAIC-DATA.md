@@ -317,8 +317,9 @@ The additive [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md) gives the existing
 bounded synchronous immutable-borrow slice dense resolved-function-local loan
 identities, exact owner-place and parent-reborrow provenance, multiple shared
 loans, path-sensitive last-use edges, deterministic bounds, and
-independent replay. Graph v23 projects those facts while preserving legacy
-Graph and cleanup bytes when no plan is required. This proof foundation does
+independent replay. Graph v23 keeps its unprojected schema and fields; additive
+Graph v24 carries the direct field's stable projection and authenticated type
+while preserving legacy schema selection and cleanup bytes. This proof foundation does
 admit the authored-but-unrun
 [Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)
 only for `bytes_as_slice` of one stable-ID `Bytes` field on a named `own` flat

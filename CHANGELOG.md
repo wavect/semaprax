@@ -3,7 +3,8 @@
 ## Unreleased
 
 - Authored the closed Projected Owned-Byte Field Shared Borrow v1 tranche:
-  exact direct stable-ID field provenance, prefix-overlap move safety, and
+  exact direct stable-ID field provenance through aliases/ranges, additive
+  Graph v24 with unchanged unprojected v23 schema/fields, prefix-overlap move safety, and
   interpreter/native/Core-Wasm lowering for `bytes_as_slice` on a named flat
   owned-byte record. Evidence is intentionally unrun and completion remains
   Partial.

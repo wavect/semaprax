@@ -58,8 +58,10 @@ fn projected_field() -> i64 {
         marker: 35,
     };
     let view = bytes_as_slice(packet.left);
+    let alias = view;
+    let range = byte_range(alias, 0usize, byte_len(alias));
     let consumed_sibling = consume(packet.right);
-    let observed = if byte_len(view) == 2usize { packet.marker } else { 0 };
+    let observed = if byte_len(range) == 2usize { packet.marker } else { 0 };
     consumed_sibling + observed
 }
 

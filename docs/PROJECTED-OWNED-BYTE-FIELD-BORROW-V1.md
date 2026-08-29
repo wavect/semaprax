@@ -27,8 +27,9 @@ Admission requires all of the following:
 - the place has exactly one projection.
 
 The source verifier resolves the display field name, while HIR, Shared Loan
-Plan v1, replay, Graph v23, and every backend retain the stable field
-declaration ID. Constructors, call results, temporaries, borrowed roots,
+Plan v1, replay, additive Graph v24, and every backend retain the stable field
+declaration ID. Graph v23 retains its unprojected schema selection and fields.
+Constructors, call results, temporaries, borrowed roots,
 additional projections, variants, generics, resources, and other byte-view
 operations remain rejected.
 
@@ -44,7 +45,9 @@ its place is an ancestor or descendant of a live loan origin. Therefore:
 - moving a sibling field is independent; and
 - either the field or parent may move after the view's path-exact last use.
 
-Independent Shared Loan Plan replay authenticates the exact projected place.
+Independent Shared Loan Plan and byte-slice provenance replay authenticate the
+exact projected place and resolved `Bytes` field type. Direct aliases and
+`byte_range` reborrows retain the same root and stable projection vector.
 Changing the root, deleting or replacing the field ID, or adding another
 projection invalidates HIR with `SPX-H006`.
 
@@ -58,9 +61,9 @@ destructor. The live-loan gate prevents the field or containing owner from
 being destroyed while the view can still be used. Backends fail closed on a
 projected borrow outside this profile.
 
-This is an internal language feature only. It adds no public borrowed ABI,
-Component Model claim, syntax, Graph schema, Cleanup schema, ambient
-authority, dependency, or unsafe code.
+This is an internal language feature only. Additive Graph v24 does not
+reinterpret Graph v23. It adds no public borrowed ABI, Component Model claim,
+syntax, Cleanup schema, ambient authority, dependency, or unsafe code.
 
 ## Diagnostics
 
@@ -76,9 +79,11 @@ The authored evidence covers direct admission; constructor, temporary,
 borrowed-root, deeper, and substituted-projection rejection; same-field and
 parent move, assignment, record update, and `match own` rejection; sibling
 field movement and assignment independence; post-last-use movement; stable-ID
-retention across a display rename; hostile Shared Loan Plan mutations; legacy
-legacy borrowed `Bytes`, string, and slice call preservation; and equivalent
-interpreter, native `-O0`/`-O2`, and Core-Wasm execution while retaining the
+retention through direct aliases/ranges and across a display rename; hostile
+Shared Loan Plan and byte-slice provenance mutations; legacy borrowed `Bytes`,
+string and slice call preservation; unchanged unprojected Graph v23 schema
+selection and serialized fields; and equivalent interpreter, native
+`-O0`/`-O2`, and Core-Wasm execution while retaining the
 existing multiple-view and reborrow corpus.
 
 Those checks were authored but deliberately not executed in this tranche.
@@ -91,3 +96,6 @@ This specification does not admit general nested aggregate borrowing, mutable
 borrows, escaping borrows, public borrowed calls, fields reached through
 variants or multiple projections, generic aggregates, resources, constructors
 or temporaries, or a widening of Shared Loan Plan v1 beyond this exact profile.
+Deeper byte-field projections are additionally impossible in the current
+language because Owned Byte Record v1 rejects nested owned-byte fields before
+loan inference.

@@ -72,6 +72,8 @@ impl CommandProfilePlan {
                 .byte_slice_provenance(&parameter.id)
                 .ok_or_else(|| admission("command byte-slice parameter lacks provenance"))?;
             if provenance.root != parameter.id
+                || !provenance.projections.is_empty()
+                || provenance.projected_type != ResolvedType::SliceU8
                 || provenance.root_kind != ByteSliceRootKind::FunctionParameter
                 || provenance.root_length != ByteSliceExtent::ParameterLength
                 || provenance.offset != ByteSliceExtent::Constant(0)
@@ -320,6 +322,8 @@ fn validate_stdout_external_argument(
         .byte_slice_provenance(&place.root)
         .ok_or_else(|| admission("stdout_write operand lacks authenticated byte provenance"))?;
     if provenance.root_kind != ByteSliceRootKind::FunctionParameter
+        || !provenance.projections.is_empty()
+        || provenance.projected_type != ResolvedType::SliceU8
         || provenance.root_length != ByteSliceExtent::ParameterLength
         || provenance.offset != ByteSliceExtent::Constant(0)
         || provenance.length != ByteSliceExtent::ParameterLength

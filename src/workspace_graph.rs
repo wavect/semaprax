@@ -2280,7 +2280,22 @@ fn semantic_workspace_source_schema(
         )]);
     }
     Ok(if has_loans {
-        "semaprax.graph.v23"
+        if module
+            .functions
+            .iter()
+            .chain(
+                module
+                    .function_instances
+                    .iter()
+                    .map(|instance| &instance.function),
+            )
+            .flat_map(|function| &function.loan_plan.loans)
+            .any(|loan| !loan.origin.projections.is_empty())
+        {
+            "semaprax.graph.v24"
+        } else {
+            "semaprax.graph.v23"
+        }
     } else if instance_has_owned_variant {
         "semaprax.graph.v22"
     } else {

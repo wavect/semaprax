@@ -1326,7 +1326,8 @@ impl<'a> HirValidator<'a> {
                 &FunctionExecutionId::Generic(instance.id.clone()),
             )?;
         }
-        let expected_byte_roots = derive_byte_slice_provenance(&self.program.functions)?;
+        let expected_byte_roots =
+            derive_byte_slice_provenance(&self.program.functions, &self.program.declarations)?;
         if self.program.declarations.byte_slice_roots != expected_byte_roots {
             return Err(hir_error(
                 "byte-slice symbolic provenance is missing, forged, or non-canonical",

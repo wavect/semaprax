@@ -2531,6 +2531,8 @@ fn emit_external_byte_root_admission(
                     .byte_slice_provenance(&param.id)
                     .ok_or_else(|| error("external Slice<u8> parameter lacks provenance"))?;
                 if provenance.root != param.id
+                    || !provenance.projections.is_empty()
+                    || provenance.projected_type != ResolvedType::SliceU8
                     || provenance.root_kind != crate::hir::ByteSliceRootKind::FunctionParameter
                     || provenance.root_length != crate::hir::ByteSliceExtent::ParameterLength
                     || provenance.offset != crate::hir::ByteSliceExtent::Constant(0)
@@ -5683,11 +5685,7 @@ impl Emitter<'_> {
         operation: &DeclarationId,
         place: &crate::hir::Place,
     ) -> Result<Value, Diagnostic> {
-        if !place.projections.is_empty()
-            && (operation.as_str() != crate::byte_ops::BYTES_AS_SLICE_ID
-                || place.projections.len() != 1
-                || !matches!(place.projections[0], crate::hir::PlaceProjection::Field(_)))
-        {
+        if !borrow_place_shape_is_admitted(operation, place) {
             return Err(error(
                 "borrowed place is outside the exact direct owned-Bytes field profile",
             ));
@@ -7196,6 +7194,15 @@ impl Emitter<'_> {
     }
 }
 
+fn borrow_place_shape_is_admitted(operation: &DeclarationId, place: &crate::hir::Place) -> bool {
+    place.projections.is_empty()
+        || (operation.as_str() == crate::byte_ops::BYTES_AS_SLICE_ID
+            && matches!(
+                place.projections.as_slice(),
+                [crate::hir::PlaceProjection::Field(_)]
+            ))
+}
+
 fn value_type(value: &Value) -> &ResolvedType {
     match value {
         Value::Scalar { ty, .. } | Value::ScalarMemory { ty, .. } | Value::Aggregate { ty, .. } => {
@@ -7357,10 +7364,10 @@ mod tests {
     use std::sync::atomic::{AtomicU64, Ordering};
 
     use super::{
-        emit_owned_data_exports, emit_profile, function_import, hex_identity, intern_type,
-        lower_selected_function_instances, section, write_bytes, write_i64, write_name, write_u32,
-        Signature, I32, RANGE_DESCRIPTOR_ADDRESS_LIMIT, RANGE_DESCRIPTOR_POINTER_MASK,
-        SHADOW_STACK_TOP,
+        borrow_place_shape_is_admitted, emit_owned_data_exports, emit_profile, function_import,
+        hex_identity, intern_type, lower_selected_function_instances, section, write_bytes,
+        write_i64, write_name, write_u32, Signature, I32, RANGE_DESCRIPTOR_ADDRESS_LIMIT,
+        RANGE_DESCRIPTOR_POINTER_MASK, SHADOW_STACK_TOP,
     };
     use crate::codegen::native_aggregate::{
         resource_harness_scenario, wasm_address, HarnessAction, ResourceHarnessScenario,
@@ -7369,6 +7376,31 @@ mod tests {
     use crate::parse;
 
     static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+
+    #[test]
+    fn projected_borrow_shape_gate_rejects_wrong_operation_and_depth() {
+        let field = hir::PlaceProjection::Field(DeclarationId::new("packet.payload"));
+        let exact = hir::Place {
+            root: hir::ValueId::intrinsic_parameter("packet", 0),
+            projections: vec![field.clone()],
+        };
+        assert!(borrow_place_shape_is_admitted(
+            &DeclarationId::new(crate::byte_ops::BYTES_AS_SLICE_ID),
+            &exact,
+        ));
+        assert!(!borrow_place_shape_is_admitted(
+            &DeclarationId::new(crate::byte_ops::STR_AS_BYTES_ID),
+            &exact,
+        ));
+        let deeper = hir::Place {
+            root: exact.root,
+            projections: vec![field.clone(), field],
+        };
+        assert!(!borrow_place_shape_is_admitted(
+            &DeclarationId::new(crate::byte_ops::BYTES_AS_SLICE_ID),
+            &deeper,
+        ));
+    }
 
     #[test]
     fn owned_data_scalar_wrappers_publish_exact_width_and_preserve_foreign_sentinels() {

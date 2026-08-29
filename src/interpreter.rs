@@ -1149,6 +1149,32 @@ fn is_admitted_owned_byte_record(declarations: &hir::DeclarationIndex, ty: &Reso
             .all(|field| field.ty == ResolvedType::Bytes || is_admitted_resolved_scalar(&field.ty))
 }
 
+fn admitted_direct_owned_record_field(
+    declarations: &hir::DeclarationIndex,
+    place: &hir::Place,
+    leaf: &ResolvedType,
+) -> bool {
+    let [hir::PlaceProjection::Field(field)] = place.projections.as_slice() else {
+        return false;
+    };
+    let Some(declaration) = declarations.declaration(field) else {
+        return false;
+    };
+    let Some(owner) = declaration.owner.as_ref() else {
+        return false;
+    };
+    let owner_ty = ResolvedType::Nominal {
+        declaration: owner.clone(),
+        arguments: Vec::new(),
+    };
+    is_admitted_owned_byte_record(declarations, &owner_ty)
+        && declarations.record_fields(owner).is_some_and(|fields| {
+            fields
+                .iter()
+                .any(|candidate| candidate.id == *field && candidate.ty == *leaf)
+        })
+}
+
 /// Exact non-Copy sum profile admitted by Owned Byte Variant Algebra v1.
 /// Authored variants must be flat and monomorphic; generic admission is
 /// restricted to the exact compiler-owned prelude instances.
@@ -1536,7 +1562,10 @@ fn scan_closure(
             ResolvedExprKind::NativeRustImportCall(_) => {
                 Err(reject_scan(expression, REASON_IMPORT_CALL))
             }
-            ResolvedExprKind::Place(place) if !place.projections.is_empty() => {
+            ResolvedExprKind::Place(place)
+                if !place.projections.is_empty()
+                    && !admitted_direct_owned_record_field(declarations, place, &expression.ty) =>
+            {
                 Err(reject_scan(expression, REASON_PLACE_PROJECTION))
             }
             ResolvedExprKind::Call {
@@ -2317,6 +2346,29 @@ impl Evaluator<'_> {
         Some(std::mem::replace(value, Value::Moved))
     }
 
+    fn take_owned_place(environment: &mut Environment, place: &hir::Place) -> Option<Value> {
+        if place.projections.is_empty() {
+            return Self::take_owned(environment, &place.root);
+        }
+        let [hir::PlaceProjection::Field(field)] = place.projections.as_slice() else {
+            return None;
+        };
+        let value = environment
+            .iter_mut()
+            .rev()
+            .find(|(key, _)| key == &place.root)
+            .map(|(_, value)| value)?;
+        let Value::Record(record) = value else {
+            return None;
+        };
+        let record = Arc::get_mut(record)?;
+        let field = record.fields.get_mut(field)?;
+        if matches!(field, Value::Moved) {
+            return None;
+        }
+        Some(std::mem::replace(field, Value::Moved))
+    }
+
     fn value_has_type(&self, value: &Value, ty: &ResolvedType) -> bool {
         match (value, ty) {
             (Value::Int(_), ResolvedType::I64)
@@ -2463,19 +2515,16 @@ impl Evaluator<'_> {
             }
             ResolvedExprKind::String(value) => Ok(Value::String(value.clone())),
             ResolvedExprKind::Place(place) => {
-                if !place.projections.is_empty() {
-                    return Err(Flow::Guard("scalar profile has no place projections"));
-                }
                 let moves_storage = expression.ownership == hir::OwnershipMode::Own
                     && matches!(
                         &expression.ty,
                         ResolvedType::Bytes | ResolvedType::Nominal { .. }
                     );
                 if moves_storage {
-                    Self::take_owned(environment, &place.root)
+                    Self::take_owned_place(environment, place)
                         .ok_or(Flow::Guard("use of moved owned storage"))
                 } else {
-                    Self::lookup(environment, &place.root)
+                    Self::lookup_place(environment, place)
                         .ok_or(Flow::Guard("unresolved scalar place"))
                 }
             }
@@ -4228,6 +4277,53 @@ fn status_case_from_code(code: u32) -> Option<StatusCase> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn projected_owned_move_tombstones_only_the_exact_field_without_cloning() {
+        let root = ValueId::intrinsic_parameter("test.packet", 0);
+        let left = hir::DeclarationId::new("test.packet.left");
+        let right = hir::DeclarationId::new("test.packet.right");
+        let left_value = OwnedBytesValue {
+            allocation: 1,
+            bytes: Arc::from([1u8, 2u8].as_slice()),
+        };
+        let right_value = OwnedBytesValue {
+            allocation: 2,
+            bytes: Arc::from([3u8].as_slice()),
+        };
+        let mut environment = vec![(
+            root.clone(),
+            Value::Record(Arc::new(OwnedRecordValue {
+                record: hir::DeclarationId::new("test.packet"),
+                fields: BTreeMap::from([
+                    (left.clone(), Value::Bytes(left_value.clone())),
+                    (right.clone(), Value::Bytes(right_value.clone())),
+                ]),
+            })),
+        )];
+        let moved = Evaluator::<'_>::take_owned_place(
+            &mut environment,
+            &hir::Place {
+                root: root.clone(),
+                projections: vec![hir::PlaceProjection::Field(left.clone())],
+            },
+        )
+        .unwrap();
+        assert_eq!(moved, Value::Bytes(left_value));
+        let Value::Record(record) = &environment[0].1 else {
+            panic!("parent record must remain present");
+        };
+        assert!(matches!(record.fields.get(&left), Some(Value::Moved)));
+        assert_eq!(record.fields.get(&right), Some(&Value::Bytes(right_value)));
+        assert!(Evaluator::<'_>::take_owned_place(
+            &mut environment,
+            &hir::Place {
+                root,
+                projections: vec![hir::PlaceProjection::Field(left)],
+            },
+        )
+        .is_none());
+    }
 
     fn resolved(source: &str) -> hir::ResolvedProgram {
         let path = Path::new("resolved-evaluation.spx");

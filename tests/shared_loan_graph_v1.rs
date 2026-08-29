@@ -10,19 +10,6 @@ module test.shared_loan_graph_v1;
 @id("loan.consume-bytes")
 fn consume_bytes(value: own Bytes) -> i64 { 7 }
 
-@id("loan.packet")
-record Packet {
-    @id("loan.packet.payload") payload: Bytes,
-    @id("loan.packet.sibling") sibling: Bytes,
-}
-
-@id("loan.projected-field")
-fn projected_field(packet: own Packet) -> usize {
-    let view = bytes_as_slice(packet.payload);
-    let moved = consume_bytes(packet.sibling);
-    byte_len(view)
-}
-
 @id("loan.projected")
 fn projected() -> i64 {
     let source = [7u8, 8u8, 9u8];
@@ -36,6 +23,24 @@ fn projected() -> i64 {
 
 @id("app.main")
 fn main() -> i64 { 0 }
+"#;
+
+const PROJECTED_SOURCE: &str = r#"
+module test.projected_shared_loan_graph_v1;
+@id("loan.consume-bytes") fn consume_bytes(value: own Bytes) -> i64 { 7 }
+@id("loan.packet") record Packet {
+    @id("loan.packet.payload") payload: Bytes,
+    @id("loan.packet.sibling") sibling: Bytes,
+}
+@id("loan.projected-field")
+fn projected_field(packet: own Packet) -> usize {
+    let view = bytes_as_slice(packet.payload);
+    let alias = view;
+    let range = byte_range(alias, 0usize, byte_len(alias));
+    let moved = consume_bytes(packet.sibling);
+    byte_len(range)
+}
+@id("app.main") fn main() -> i64 { 0 }
 "#;
 
 const LEGACY_V22_SOURCE: &str = r#"
@@ -75,12 +80,10 @@ fn graph_v23_is_selected_deterministically_and_serializes_exact_typed_loan_prove
     assert!(first.contains("\"kind\":\"loan_plan\",\"schema\":\"semaprax.loan-plan.v1\""));
     assert!(first.contains("\"kind\":\"place\""));
     assert!(first.contains("\"projections\":[]"));
-    assert!(
-        first.contains("\"projections\":[{\"kind\":\"field\",\"field\":\"loan.packet.payload\"}]")
-    );
     assert!(first.contains("\"kind\":\"slice_view\""));
     assert!(first.contains("\"kind\":\"loan_endpoint\""));
     assert!(first.contains("\"kind\":\"loan_edge\""));
+    assert!(!first.contains("\"projected_type\""));
 
     let resolved = hir::resolve(&parsed).unwrap();
     hir::validate(&resolved).unwrap();
@@ -114,25 +117,48 @@ fn graph_v23_is_selected_deterministically_and_serializes_exact_typed_loan_prove
         .iter()
         .any(|loan| loan.parent.is_some()));
 
-    let field_function = resolved
-        .functions
-        .iter()
-        .find(|function| function.id.as_str() == "loan.projected-field")
-        .unwrap();
-    assert!(field_function.loan_plan.loans.iter().any(|loan| {
-        loan.origin.projections
-            == [hir::PlaceProjection::Field(hir::DeclarationId::new(
-                "loan.packet.payload",
-            ))]
-    }));
-
     let diagnostic = graph::reject_evidence_schema("semaprax.graph.v23").unwrap_err();
     assert_eq!(diagnostic.code, "SPX-G410");
 }
 
 #[test]
+fn projected_provenance_selects_v24_and_serializes_alias_and_range_identity() {
+    let parsed = parsed(PROJECTED_SOURCE, "projected-shared-loan-graph-v1.spx");
+    let first = graph::to_json(&parsed).unwrap();
+    assert_eq!(first, graph::to_json(&parsed).unwrap());
+    assert!(first.starts_with("{\"schema\":\"semaprax.graph.v24\","));
+    assert!(
+        first.contains("\"projections\":[{\"kind\":\"field\",\"field\":\"loan.packet.payload\"}]")
+    );
+    assert!(first.contains("\"projected_type\":{\"kind\":\"owned_bytes\"}"));
+    assert!(first.contains("\"ranges\":[{"));
+
+    let resolved = hir::resolve(&parsed).unwrap();
+    hir::validate(&resolved).unwrap();
+    let projected = resolved
+        .declarations
+        .byte_slice_provenances()
+        .filter(|(_, provenance)| !provenance.projections.is_empty())
+        .collect::<Vec<_>>();
+    assert!(projected.len() >= 3, "view, alias, and range facts");
+    assert!(projected.iter().all(|(_, provenance)| {
+        provenance.projections
+            == [hir::PlaceProjection::Field(hir::DeclarationId::new(
+                "loan.packet.payload",
+            ))]
+            && provenance.projected_type == hir::ResolvedType::Bytes
+    }));
+    assert!(projected
+        .iter()
+        .any(|(_, provenance)| !provenance.ranges.is_empty()));
+
+    let diagnostic = graph::reject_evidence_schema("semaprax.graph.v24").unwrap_err();
+    assert_eq!(diagnostic.code, "SPX-G410");
+}
+
+#[test]
 fn projected_loan_identity_uses_the_stable_field_id_not_its_display_name() {
-    let renamed = LOAN_SOURCE
+    let renamed = PROJECTED_SOURCE
         .replace(
             "@id(\"loan.packet.payload\") payload: Bytes",
             "@id(\"loan.packet.payload\") body: Bytes",

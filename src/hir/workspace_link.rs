@@ -255,7 +255,6 @@ pub(crate) fn link_owned_data_api_workspace(
         .drain(..)
         .map(|linked| linked.function)
         .collect::<Vec<_>>();
-    let byte_slice_roots = derive_byte_slice_provenance(&functions)?;
     let (mut declarations, mut types) = workspace_compiler_prelude()?;
     declarations.extend_linked_owned_data(
         &parts.types,
@@ -263,7 +262,7 @@ pub(crate) fn link_owned_data_api_workspace(
         &functions,
         &parts.declaration_facts,
     )?;
-    declarations.byte_slice_roots = byte_slice_roots;
+    declarations.byte_slice_roots = derive_byte_slice_provenance(&functions, &declarations)?;
     if !declarations.populate_type_facts() {
         return Err(link_error(
             "workspace owned-data linker could not construct exact type facts",
@@ -446,7 +445,6 @@ fn link_useful_data_workspace_profile(
         .drain(..)
         .map(|linked| linked.function)
         .collect::<Vec<_>>();
-    let byte_slice_roots = derive_byte_slice_provenance(&functions)?;
     // Useful-data expressions can carry the compiler-owned `Option<u8>`
     // result of `byte_get`. Rebuild the canonical prelude declaration facts
     // before inserting retained workspace functions; a default index would
@@ -467,7 +465,7 @@ fn link_useful_data_workspace_profile(
             .type_parameters
             .insert(function.id.clone(), Vec::new());
     }
-    declarations.byte_slice_roots = byte_slice_roots;
+    declarations.byte_slice_roots = derive_byte_slice_provenance(&functions, &declarations)?;
     if !declarations.populate_type_facts() {
         return Err(link_error(
             "workspace useful-data linker could not construct type facts",

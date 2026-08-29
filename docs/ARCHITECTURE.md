@@ -97,7 +97,7 @@ plan for synchronous immutable loans. It assigns dense
 resolved-function-local loan identities, authenticates exact owner places and
 parent reborrow provenance, and records path-sensitive last-use edges for
 multiple loans. Validated HIR independently rebuilds and exactly replays the
-plan before Graph v23 may project it. Try propagation retains distinct normal
+plan before Graph v23/v24 may project it. Try propagation retains distinct normal
 and residual-return CFG successors so later uses cannot extend a loan across
 an early return. Semantic Workspace v1 rejects a nonempty loan plan combined
 with an owned-variant Graph v22 base schema instead of masking that older
@@ -106,8 +106,11 @@ liveness nor creates runtime
 references; legacy programs retain their prior Graph and cleanup bytes.
 The additive authored-but-unrun
 [Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)
-preserves one direct stable field-ID projection through the same plan and
-lowers that exact profile in the interpreter, native C11, and Core-Wasm lanes.
+preserves one direct stable field-ID projection through byte-slice provenance,
+aliases, ranges, and the same plan. Additive Graph v24 owns the new facts while
+unprojected Graph v23 schema selection and serialized fields remain unchanged.
+The interpreter, native C11, and
+Core-Wasm lanes lower that exact profile.
 General nesting, public borrowed ABIs, and hosted promotion remain outside this
 architecture boundary.
 

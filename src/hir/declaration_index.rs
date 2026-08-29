@@ -166,10 +166,38 @@ impl DeclarationIndex {
                         .sum::<usize>()
             })
             .sum::<usize>();
+        let byte_slice_provenance_map = self
+            .byte_slice_roots
+            .iter()
+            .map(|(value, provenance)| {
+                std::mem::size_of::<(ValueId, ByteSliceProvenance)>()
+                    + value.as_str().len()
+                    + provenance.root.as_str().len()
+                    + provenance.projections.capacity() * std::mem::size_of::<PlaceProjection>()
+                    + provenance
+                        .projections
+                        .iter()
+                        .map(place_projection_owned_capacity)
+                        .sum::<usize>()
+                    + resolved_type_owned_capacity(&provenance.projected_type)
+                    + provenance.ranges.capacity() * std::mem::size_of::<ByteSliceRangeStep>()
+                    + provenance
+                        .ranges
+                        .iter()
+                        .map(|range| {
+                            range.source.as_str().len()
+                                + range.producer.as_str().len()
+                                + range.start.as_str().len()
+                                + range.end.as_str().len()
+                        })
+                        .sum::<usize>()
+            })
+            .sum::<usize>();
         declaration_map_backing
             + record_field_maps
             + variant_case_map
             + type_parameter_map
+            + byte_slice_provenance_map
             + declaration_bytes
             + field_bytes
             + case_bytes

@@ -939,6 +939,7 @@ fn is_source_graph_schema(value: &str) -> bool {
             | "semaprax.graph.v21"
             | "semaprax.graph.v22"
             | "semaprax.graph.v23"
+            | "semaprax.graph.v24"
     )
 }
 
@@ -985,7 +986,7 @@ mod tests {
         assert!(is_source_graph_schema("semaprax.graph.v21"));
         assert!(is_source_graph_schema("semaprax.graph.v22"));
         assert!(is_source_graph_schema("semaprax.graph.v23"));
-        assert!(!is_source_graph_schema("semaprax.graph.v24"));
+        assert!(is_source_graph_schema("semaprax.graph.v24"));
     }
     use std::path::{Path, PathBuf};
     use std::sync::atomic::{AtomicU64, Ordering};

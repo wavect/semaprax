@@ -19,8 +19,10 @@ record Packet {
 @id("loan.projected-field")
 fn projected_field(packet: own Packet) -> usize {
     let view = bytes_as_slice(packet.left);
+    let alias = view;
+    let range = byte_range(alias, 0usize, byte_len(alias));
     let moved = take(packet.right);
-    byte_len(view)
+    byte_len(range)
 }
 
 @id("loan.paths")
@@ -225,6 +227,22 @@ fn projected_field_loan_retains_the_stable_field_identity_and_rejects_forgery() 
             "loan.packet.left",
         ))]
     );
+    let projected_facts = program
+        .declarations
+        .byte_slice_provenances()
+        .filter(|(_, provenance)| !provenance.projections.is_empty())
+        .collect::<Vec<_>>();
+    assert!(projected_facts.len() >= 3, "direct, alias, and range facts");
+    assert!(projected_facts.iter().all(|(_, provenance)| {
+        provenance.projections
+            == [hir::PlaceProjection::Field(hir::DeclarationId::new(
+                "loan.packet.left",
+            ))]
+            && provenance.projected_type == hir::ResolvedType::Bytes
+    }));
+    assert!(projected_facts
+        .iter()
+        .any(|(_, provenance)| !provenance.ranges.is_empty()));
 
     for (name, projections) in [
         ("projection omission", Vec::new()),

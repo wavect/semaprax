@@ -131,8 +131,11 @@ ABIs prematurely.
 
 ### Development-loop outcomes
 
-- evolve the interpreter into a fast incremental execution lane;
-- add source-level trace and diagnostic mapping;
+- execute and promote the authored retained
+  [Prepared Project Interpreter and Source Trace v1](PROJECT-PREPARED-INTERPRETER-V1.md),
+  then evolve it into incremental refresh without weakening revision binding;
+- extend its expression-origin trace into source-level debugger and diagnostic
+  mapping across target runtimes;
 - execute and mature the authored
   [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md), which persists
   exact authenticated Project inputs only through one injected trusted,

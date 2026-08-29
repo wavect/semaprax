@@ -13,6 +13,7 @@ mod flat_owned_record;
 mod manifest;
 mod native_sdk;
 mod npm;
+mod prepared_interpreter;
 mod profile;
 mod public_api;
 mod public_utf8_api;
@@ -63,6 +64,15 @@ pub use npm::{
     PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
     PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6, PROJECT_NPM_BUILD_SCHEMA_V7,
     PROJECT_NPM_BUILD_SCHEMA_V8, PROJECT_NPM_BUILD_SCHEMA_V9,
+};
+pub use prepared_interpreter::{
+    prepare_project_interpreter, verify_project_source_trace,
+    verify_project_source_trace_against_revision, PreparedProjectExecution,
+    PreparedProjectExecutionOptions, PreparedProjectInterpreter, PreparedProjectInterpreterOptions,
+    ProjectExecutionCancellation, ProjectPreparedExecutionOutcome, ProjectSourceTrace,
+    ProjectSourceTraceEvent, DEFAULT_PROJECT_SOURCE_TRACE_BYTES,
+    DEFAULT_PROJECT_SOURCE_TRACE_EVENTS, MAX_PROJECT_SOURCE_TRACE_BYTES,
+    MAX_PROJECT_SOURCE_TRACE_EVENTS, MIN_PROJECT_SOURCE_TRACE_BYTES, PROJECT_SOURCE_TRACE_SCHEMA,
 };
 
 /// Prepare the additive WP-10/WP-11 owned-data package from held HIR and the

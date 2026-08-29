@@ -60,6 +60,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use sha2::{Digest as _, Sha256};
@@ -96,6 +97,10 @@ pub const MAX_STEPS_LIMIT: usize = 100_000_000;
 /// Fixed call-depth ceiling; exceeding it is an interpreter-capacity outcome,
 /// never a language status.
 pub const MAX_CALL_DEPTH: usize = 256;
+
+/// Fixed preparation bounds for the retained Project interpreter index.
+pub(crate) const MAX_PREPARED_ORIGIN_NODES: usize = 262_144;
+pub(crate) const MAX_PREPARED_INDEX_BYTES: usize = 16 * 1024 * 1024;
 
 const SOURCE_DIGEST_DOMAIN: &[u8] = b"semaprax.interpret.source.v1\0";
 const PAYLOAD_DIGEST_DOMAIN: &[u8] = b"semaprax.interpret.payload.v1\0";
@@ -513,6 +518,78 @@ pub enum ResolvedEvaluationOutcome {
     GuardError(String),
 }
 
+/// One expression origin observed by the retained Project evaluator.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ResolvedTraceEvent {
+    pub(crate) step: usize,
+    pub(crate) depth: usize,
+    pub(crate) phase: ResolvedTracePhase,
+    pub(crate) function_id: Arc<str>,
+    pub(crate) expression_id: Arc<str>,
+    pub(crate) span: crate::ast::Span,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum ResolvedTracePhase {
+    Requires,
+    Body,
+    Ensures,
+}
+
+impl ResolvedTracePhase {
+    pub(crate) const fn text(self) -> &'static str {
+        match self {
+            Self::Requires => "requires",
+            Self::Body => "body",
+            Self::Ensures => "ensures",
+        }
+    }
+}
+
+/// Closed outcomes for cancellation-aware prepared Project evaluation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum PreparedResolvedEvaluationOutcome {
+    ReturnedI64(i64),
+    LanguageFailure(NormalizedStatus),
+    FuelExhausted,
+    CallDepthExceeded,
+    Cancelled { before_step: usize },
+    GuardError(String),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PreparedResolvedEvaluation {
+    pub(crate) outcome: PreparedResolvedEvaluationOutcome,
+    pub(crate) steps_used: usize,
+    pub(crate) max_steps: usize,
+    pub(crate) events: Vec<ResolvedTraceEvent>,
+    pub(crate) dropped_events: usize,
+}
+
+/// Authority-free cached closure index. It contains only owned identities and
+/// vector positions, so it cannot outlive or alias a Project's HIR unsafely.
+pub(crate) struct PreparedResolvedI64 {
+    entry_id: String,
+    entry_index: usize,
+    function_indices: BTreeMap<String, usize>,
+    origin_nodes: usize,
+    index_bytes: usize,
+}
+
+impl PreparedResolvedI64 {
+    pub(crate) fn function_ids(&self) -> impl Iterator<Item = &str> {
+        self.function_indices.keys().map(String::as_str)
+    }
+
+    pub(crate) const fn origin_nodes(&self) -> usize {
+        self.origin_nodes
+    }
+
+    pub(crate) const fn index_bytes(&self) -> usize {
+        self.index_bytes
+    }
+}
+
 /// One normalized public owned-data value returned by the reference
 /// interpreter. The outer invocation outcome remains separate from a
 /// successful language-level `Result::Err`.
@@ -654,6 +731,9 @@ pub(crate) fn evaluate_resolved_zero_arg_i64(
                     }
                     Err(Flow::Exhausted) => ResolvedEvaluationOutcome::FuelExhausted,
                     Err(Flow::DepthExceeded) => ResolvedEvaluationOutcome::CallDepthExceeded,
+                    Err(Flow::Cancelled { .. }) => ResolvedEvaluationOutcome::GuardError(
+                        "unexpected cancellation in legacy resolved evaluation".to_owned(),
+                    ),
                     Err(Flow::Guard(detail)) => {
                         ResolvedEvaluationOutcome::GuardError(detail.to_owned())
                     }
@@ -674,6 +754,183 @@ pub(crate) fn evaluate_resolved_zero_arg_i64(
                 "resolved evaluation thread panicked after HIR validation",
             )]
         })
+    })
+}
+
+/// Validate and retain the exact transitive zero-argument i64 closure once.
+pub(crate) fn prepare_resolved_zero_arg_i64(
+    program: &hir::ResolvedProgram,
+    entry_id: &str,
+) -> Result<PreparedResolvedI64, Vec<Diagnostic>> {
+    hir::validate(program).map_err(|diagnostic| vec![diagnostic])?;
+    if program.entrypoint.as_str() != entry_id {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_CALLEE,
+            format!(
+                "selection `{entry_id}` is not the resolved entry point `{}`",
+                program.entrypoint
+            ),
+        )]);
+    }
+    let entry_index = program
+        .functions
+        .iter()
+        .position(|function| function.id.as_str() == entry_id)
+        .ok_or_else(|| {
+            vec![selection_error(
+                REASON_UNSUPPORTED_CALLEE,
+                format!("resolved entry `{entry_id}` is absent from the function index"),
+            )]
+        })?;
+    let entry = &program.functions[entry_index];
+    let explicit_entry = program
+        .declarations
+        .declaration(&entry.id)
+        .is_some_and(|declaration| declaration.identity_origin == hir::IdentityOrigin::Explicit);
+    if !explicit_entry {
+        return Err(vec![selection_error(
+            REASON_AUTOMATIC_IDENTITY,
+            format!("resolved entry `{entry_id}` does not have an explicit stable identity"),
+        )]);
+    }
+    if !entry.params.is_empty() || entry.return_type != ResolvedType::I64 {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_RESULT_TYPE,
+            format!("resolved entry `{entry_id}` must have type `fn main() -> i64`"),
+        )]);
+    }
+    let admitted = admitted_resolved_functions(program);
+    let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
+    let mut function_indices = BTreeMap::new();
+    let mut index_bytes = entry_id.len();
+    let mut origin_nodes = 0usize;
+    let mut expression_ids = BTreeSet::new();
+    for id in &closure {
+        let index = program
+            .functions
+            .iter()
+            .position(|function| function.id.as_str() == id)
+            .ok_or_else(|| vec![guard_error("prepared closure lost an admitted function")])?;
+        index_bytes = index_bytes.checked_add(id.len()).ok_or_else(|| {
+            vec![option_error(
+                "prepared interpreter index byte accounting overflowed".to_owned(),
+            )]
+        })?;
+        function_indices.insert(id.clone(), index);
+        let function = &program.functions[index];
+        let mut expressions = function
+            .requires
+            .iter()
+            .chain(&function.ensures)
+            .chain(std::iter::once(&function.body))
+            .collect::<Vec<_>>();
+        while let Some(expression) = expressions.pop() {
+            origin_nodes = origin_nodes.checked_add(1).ok_or_else(|| {
+                vec![option_error(
+                    "prepared origin-node accounting overflowed".to_owned(),
+                )]
+            })?;
+            index_bytes = index_bytes
+                .checked_add(expression.id.as_str().len())
+                .ok_or_else(|| {
+                    vec![option_error(
+                        "prepared index byte accounting overflowed".to_owned(),
+                    )]
+                })?;
+            if !expression_ids.insert(expression.id.as_str().to_owned()) {
+                return Err(vec![guard_error(
+                    "prepared closure contains a duplicate expression identity",
+                )]);
+            }
+            if origin_nodes > MAX_PREPARED_ORIGIN_NODES || index_bytes > MAX_PREPARED_INDEX_BYTES {
+                return Err(vec![option_error(format!(
+                    "prepared interpreter index exceeds {MAX_PREPARED_ORIGIN_NODES} nodes or {MAX_PREPARED_INDEX_BYTES} bytes"
+                ))]);
+            }
+            expressions.extend(child_expressions(expression));
+        }
+    }
+    Ok(PreparedResolvedI64 {
+        entry_id: entry_id.to_owned(),
+        entry_index,
+        function_indices,
+        origin_nodes,
+        index_bytes,
+    })
+}
+
+pub(crate) enum PreparedCancellation<'a> {
+    Never,
+    Atomic(&'a AtomicBool),
+}
+
+impl PreparedCancellation<'_> {
+    fn cancelled(&self, _completed_steps: usize) -> bool {
+        match self {
+            Self::Never => false,
+            Self::Atomic(flag) => flag.load(Ordering::Acquire),
+        }
+    }
+}
+
+/// Execute one previously admitted closure without rebuilding its function
+/// map or rescanning HIR. Callers choose the worker/thread boundary.
+pub(crate) fn evaluate_prepared_resolved_zero_arg_i64(
+    program: &hir::ResolvedProgram,
+    prepared: &PreparedResolvedI64,
+    max_steps: usize,
+    max_events: usize,
+    cancellation: PreparedCancellation<'_>,
+) -> Result<PreparedResolvedEvaluation, Vec<Diagnostic>> {
+    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) || max_events == 0 {
+        return Err(vec![option_error(format!(
+            "prepared evaluation requires max_steps 1..={MAX_STEPS_LIMIT} and max_events greater than zero"
+        ))]);
+    }
+    if program.entrypoint.as_str() != prepared.entry_id
+        || program
+            .functions
+            .get(prepared.entry_index)
+            .is_none_or(|entry| entry.id.as_str() != prepared.entry_id)
+    {
+        return Err(vec![guard_error(
+            "prepared closure no longer matches its resolved program",
+        )]);
+    }
+    let lookup = FunctionLookup::Prepared {
+        functions: &program.functions,
+        indices: &prepared.function_indices,
+    };
+    let entry = &program.functions[prepared.entry_index];
+    let mut evaluator = Evaluator::new_prepared(
+        lookup,
+        &program.declarations,
+        max_steps,
+        max_events,
+        cancellation,
+    );
+    let evaluated = evaluator.call_frame(entry, Vec::new(), 0);
+    let outcome = match evaluated {
+        Ok(Value::Int(value)) => PreparedResolvedEvaluationOutcome::ReturnedI64(value),
+        Ok(_) => PreparedResolvedEvaluationOutcome::GuardError(
+            "zero-argument i64 entry returned a non-i64 value".to_owned(),
+        ),
+        Err(Flow::Failure(status)) => PreparedResolvedEvaluationOutcome::LanguageFailure(status),
+        Err(Flow::Exhausted) => PreparedResolvedEvaluationOutcome::FuelExhausted,
+        Err(Flow::DepthExceeded) => PreparedResolvedEvaluationOutcome::CallDepthExceeded,
+        Err(Flow::Cancelled { before_step }) => {
+            PreparedResolvedEvaluationOutcome::Cancelled { before_step }
+        }
+        Err(Flow::Guard(detail)) => {
+            PreparedResolvedEvaluationOutcome::GuardError(detail.to_owned())
+        }
+    };
+    Ok(PreparedResolvedEvaluation {
+        outcome,
+        steps_used: evaluator.steps,
+        max_steps,
+        events: evaluator.trace_events,
+        dropped_events: evaluator.dropped_trace_events,
     })
 }
 
@@ -787,6 +1044,9 @@ pub fn evaluate_resolved_owned_data(
                     }
                     Err(Flow::Exhausted) => OwnedDataEvaluationOutcome::FuelExhausted,
                     Err(Flow::DepthExceeded) => OwnedDataEvaluationOutcome::CallDepthExceeded,
+                    Err(Flow::Cancelled { .. }) => OwnedDataEvaluationOutcome::GuardError(
+                        "unexpected cancellation in legacy owned-data evaluation".to_owned(),
+                    ),
                     Err(Flow::Guard(detail)) => {
                         OwnedDataEvaluationOutcome::GuardError(detail.to_owned())
                     }
@@ -1473,7 +1733,7 @@ fn scan_closure(
     entry_id: &str,
     admitted: &BTreeMap<&str, &ResolvedFunction>,
     declarations: &hir::DeclarationIndex,
-) -> Result<(), Vec<Diagnostic>> {
+) -> Result<BTreeSet<String>, Vec<Diagnostic>> {
     fn scan<'a>(
         expression: &'a ResolvedExpr,
         admitted: &BTreeMap<&'a str, &'a ResolvedFunction>,
@@ -1643,7 +1903,7 @@ fn scan_closure(
         )?;
         frontier.extend(queue);
     }
-    Ok(())
+    Ok(visited.into_iter().map(str::to_owned).collect())
 }
 
 fn admitted_resolved_functions(
@@ -1779,6 +2039,9 @@ pub(crate) fn evaluate_resolved_stdout_transcript(
         Err(Flow::Failure(status)) => ResolvedEvaluationOutcome::LanguageFailure(status),
         Err(Flow::Exhausted) => ResolvedEvaluationOutcome::FuelExhausted,
         Err(Flow::DepthExceeded) => ResolvedEvaluationOutcome::CallDepthExceeded,
+        Err(Flow::Cancelled { .. }) => ResolvedEvaluationOutcome::GuardError(
+            "unexpected cancellation in legacy hosted evaluation".to_owned(),
+        ),
         Err(Flow::Guard(detail)) => ResolvedEvaluationOutcome::GuardError(detail.to_owned()),
     };
     if !matches!(outcome, ResolvedEvaluationOutcome::ReturnedI64(_)) {
@@ -1893,7 +2156,7 @@ pub(crate) fn evaluate_resolved_language_command(
         stdin_consumed: false,
     };
     let mut evaluator = Evaluator {
-        admitted: &admitted,
+        admitted: FunctionLookup::Borrowed(&admitted),
         declarations: &program.declarations,
         steps: 0,
         budget: max_steps,
@@ -1902,6 +2165,13 @@ pub(crate) fn evaluate_resolved_language_command(
         stdout_transcript: Some(Vec::new()),
         stderr_transcript: Some(Vec::new()),
         command_input: Some(command_input),
+        cancellation: PreparedCancellation::Never,
+        trace_limit: 0,
+        trace_events: Vec::new(),
+        dropped_trace_events: 0,
+        current_function: None,
+        trace_identities: BTreeMap::new(),
+        trace_phase: ResolvedTracePhase::Body,
     };
     let evaluated = evaluator.call_frame(entry, Vec::new(), 0);
     let outcome = match evaluated {
@@ -1912,6 +2182,9 @@ pub(crate) fn evaluate_resolved_language_command(
         Err(Flow::Failure(status)) => CommandEvaluationOutcome::LanguageFailure(status),
         Err(Flow::Exhausted) => CommandEvaluationOutcome::FuelExhausted,
         Err(Flow::DepthExceeded) => CommandEvaluationOutcome::CallDepthExceeded,
+        Err(Flow::Cancelled { .. }) => CommandEvaluationOutcome::GuardError(
+            "unexpected cancellation in legacy hosted command evaluation".to_owned(),
+        ),
         Err(Flow::Guard(detail)) => CommandEvaluationOutcome::GuardError(detail.to_owned()),
     };
     let mut stdout = evaluator.stdout_transcript.take().unwrap_or_default();
@@ -2037,6 +2310,11 @@ fn child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
         | ResolvedExprKind::Place(_)
         | ResolvedExprKind::BorrowPlace { .. } => Vec::new(),
     }
+}
+
+/// Read-only structural traversal seam used by Project Source Trace replay.
+pub(crate) fn trace_child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
+    child_expressions(expression)
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -2170,6 +2448,7 @@ enum Flow {
     Failure(NormalizedStatus),
     Exhausted,
     DepthExceeded,
+    Cancelled { before_step: usize },
     Guard(&'static str),
 }
 
@@ -2256,8 +2535,27 @@ fn normalize_byte_range(code: u32) -> NormalizedStatus {
 
 type Environment = Vec<(ValueId, Value)>;
 
+enum FunctionLookup<'a> {
+    Borrowed(&'a BTreeMap<&'a str, &'a ResolvedFunction>),
+    Prepared {
+        functions: &'a [ResolvedFunction],
+        indices: &'a BTreeMap<String, usize>,
+    },
+}
+
+impl<'a> FunctionLookup<'a> {
+    fn get(&self, id: &str) -> Option<&'a ResolvedFunction> {
+        match self {
+            Self::Borrowed(functions) => functions.get(id).copied(),
+            Self::Prepared { functions, indices } => {
+                indices.get(id).and_then(|index| functions.get(*index))
+            }
+        }
+    }
+}
+
 struct Evaluator<'a> {
-    admitted: &'a BTreeMap<&'a str, &'a ResolvedFunction>,
+    admitted: FunctionLookup<'a>,
     declarations: &'a hir::DeclarationIndex,
     steps: usize,
     budget: usize,
@@ -2266,6 +2564,13 @@ struct Evaluator<'a> {
     stdout_transcript: Option<Vec<u8>>,
     stderr_transcript: Option<Vec<u8>>,
     command_input: Option<CommandInputState>,
+    cancellation: PreparedCancellation<'a>,
+    trace_limit: usize,
+    trace_events: Vec<ResolvedTraceEvent>,
+    dropped_trace_events: usize,
+    current_function: Option<Arc<str>>,
+    trace_identities: BTreeMap<String, Arc<str>>,
+    trace_phase: ResolvedTracePhase,
 }
 
 struct CommandInputState {
@@ -2283,7 +2588,7 @@ fn evaluate_resolved_entry<'a>(
     host_stdout: bool,
 ) -> (Result<Value, Flow>, usize, Vec<u8>) {
     let mut evaluator = Evaluator {
-        admitted,
+        admitted: FunctionLookup::Borrowed(admitted),
         declarations,
         steps: 0,
         budget,
@@ -2292,6 +2597,13 @@ fn evaluate_resolved_entry<'a>(
         stdout_transcript: host_stdout.then(Vec::new),
         stderr_transcript: None,
         command_input: None,
+        cancellation: PreparedCancellation::Never,
+        trace_limit: 0,
+        trace_events: Vec::new(),
+        dropped_trace_events: 0,
+        current_function: None,
+        trace_identities: BTreeMap::new(),
+        trace_phase: ResolvedTracePhase::Body,
     };
     let outcome = evaluator.evaluate_entry(entry, arguments);
     (
@@ -2302,14 +2614,46 @@ fn evaluate_resolved_entry<'a>(
 }
 
 impl Evaluator<'_> {
-    /// Charges one step before evaluating a node; `None` means the fuel
-    /// budget is exhausted.
-    fn charge(&mut self) -> Option<()> {
+    fn new_prepared<'a>(
+        admitted: FunctionLookup<'a>,
+        declarations: &'a hir::DeclarationIndex,
+        budget: usize,
+        trace_limit: usize,
+        cancellation: PreparedCancellation<'a>,
+    ) -> Evaluator<'a> {
+        Evaluator {
+            admitted,
+            declarations,
+            steps: 0,
+            budget,
+            next_byte_allocation: 0,
+            allocated_byte_payload: 0,
+            stdout_transcript: None,
+            stderr_transcript: None,
+            command_input: None,
+            cancellation,
+            trace_limit,
+            trace_events: Vec::with_capacity(trace_limit.min(4096)),
+            dropped_trace_events: 0,
+            current_function: None,
+            trace_identities: BTreeMap::new(),
+            trace_phase: ResolvedTracePhase::Body,
+        }
+    }
+
+    /// Charges one step before evaluating a node and observes cancellation at
+    /// that exact deterministic boundary.
+    fn charge(&mut self) -> Result<(), Flow> {
         if self.steps >= self.budget {
-            return None;
+            return Err(Flow::Exhausted);
+        }
+        if self.cancellation.cancelled(self.steps) {
+            return Err(Flow::Cancelled {
+                before_step: self.steps.saturating_add(1),
+            });
         }
         self.steps += 1;
-        Some(())
+        Ok(())
     }
 
     fn lookup(environment: &Environment, root: &ValueId) -> Option<Value> {
@@ -2465,9 +2809,25 @@ impl Evaluator<'_> {
         if depth >= MAX_CALL_DEPTH {
             return Err(Flow::DepthExceeded);
         }
+        let function_id = self.intern_trace_identity(function.id.as_str());
+        let previous_function = self.current_function.replace(function_id);
+        let previous_phase = self.trace_phase;
+        let result = self.call_frame_inner(function, values, depth);
+        self.current_function = previous_function;
+        self.trace_phase = previous_phase;
+        result
+    }
+
+    fn call_frame_inner(
+        &mut self,
+        function: &ResolvedFunction,
+        values: Vec<(ValueId, Value)>,
+        depth: usize,
+    ) -> Result<Value, Flow> {
         let mut frame: Environment = values;
+        self.trace_phase = ResolvedTracePhase::Requires;
         for clause in &function.requires {
-            self.charge().ok_or(Flow::Exhausted)?;
+            self.charge()?;
             match self.evaluate(clause, &mut frame, depth)? {
                 Value::Bool(true) => {}
                 Value::Bool(false) => {
@@ -2476,10 +2836,12 @@ impl Evaluator<'_> {
                 _ => return Err(Flow::Guard("non-boolean requires clause")),
             }
         }
+        self.trace_phase = ResolvedTracePhase::Body;
         let value = self.evaluate(&function.body, &mut frame, depth)?;
         frame.push((function.result_id.clone(), value.clone()));
+        self.trace_phase = ResolvedTracePhase::Ensures;
         for clause in &function.ensures {
-            self.charge().ok_or(Flow::Exhausted)?;
+            self.charge()?;
             match self.evaluate(clause, &mut frame, depth)? {
                 Value::Bool(true) => {}
                 Value::Bool(false) => {
@@ -2497,7 +2859,27 @@ impl Evaluator<'_> {
         environment: &mut Environment,
         depth: usize,
     ) -> Result<Value, Flow> {
-        self.charge().ok_or(Flow::Exhausted)?;
+        self.charge()?;
+        if self.trace_limit != 0 {
+            if self.trace_events.len() < self.trace_limit {
+                let expression_id = self.intern_trace_identity(expression.id.as_str());
+                self.trace_events.push(ResolvedTraceEvent {
+                    step: self.steps,
+                    depth,
+                    phase: self.trace_phase,
+                    function_id: self.current_function.clone().ok_or(Flow::Guard(
+                        "trace evaluation has no authenticated function frame",
+                    ))?,
+                    expression_id,
+                    span: expression.span,
+                });
+            } else {
+                self.dropped_trace_events = self
+                    .dropped_trace_events
+                    .checked_add(1)
+                    .ok_or(Flow::Guard("trace event accounting overflowed"))?;
+            }
+        }
         match &expression.kind {
             ResolvedExprKind::Int(value) => Ok(Value::Int(*value)),
             ResolvedExprKind::Int32(value) => Ok(Value::Int32(*value)),
@@ -2892,7 +3274,7 @@ impl Evaluator<'_> {
                 if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                     // Compiler-owned string operations evaluate in place;
                     // their byte semantics match the native and Wasm backends.
-                    self.charge().ok_or(Flow::Exhausted)?;
+                    self.charge()?;
                     let mut values = Vec::with_capacity(args.len());
                     for argument in args {
                         values.push(self.evaluate(argument, environment, depth)?);
@@ -2946,7 +3328,7 @@ impl Evaluator<'_> {
                     };
                 }
                 if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
-                    self.charge().ok_or(Flow::Exhausted)?;
+                    self.charge()?;
                     let mut values = Vec::with_capacity(args.len());
                     for argument in args {
                         values.push(self.evaluate(argument, environment, depth)?);
@@ -2981,7 +3363,7 @@ impl Evaluator<'_> {
                     };
                 }
                 if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
-                    self.charge().ok_or(Flow::Exhausted)?;
+                    self.charge()?;
                     let mut values = Vec::with_capacity(args.len());
                     for argument in args {
                         values.push(self.evaluate(argument, environment, depth)?);
@@ -3047,7 +3429,7 @@ impl Evaluator<'_> {
                     };
                 }
                 if crate::host_io_ops::by_id(callee.as_str()).is_some() {
-                    self.charge().ok_or(Flow::Exhausted)?;
+                    self.charge()?;
                     let [argument] = args.as_slice() else {
                         return Err(Flow::Guard("invalid stdout_write arity"));
                     };
@@ -3084,7 +3466,7 @@ impl Evaluator<'_> {
                         // place's type/mode. Parameter ownership is the call
                         // boundary authority: charge the argument node, then
                         // stage an alias without tombstoning its caller slot.
-                        self.charge().ok_or(Flow::Exhausted)?;
+                        self.charge()?;
                         let ResolvedExprKind::Place(place) = &argument.kind else {
                             return Err(Flow::Guard(
                                 "borrowed record call argument is not a named place",
@@ -3154,9 +3536,8 @@ impl Evaluator<'_> {
                             // loop fails closed through the existing exhausted
                             // budget path.
                             loop {
-                                let charge = self.charge();
-                                if charge.is_none() {
-                                    interrupted = Some(Flow::Exhausted);
+                                if let Err(flow) = self.charge() {
+                                    interrupted = Some(flow);
                                     break;
                                 }
                                 let flag = match self.evaluate(condition, environment, depth) {
@@ -3202,7 +3583,7 @@ impl Evaluator<'_> {
                     // Borrow-mode resolution authenticates an unprojected
                     // named place. Charge that expression node, but retain
                     // the environment's owner and stage only an Arc alias.
-                    self.charge().ok_or(Flow::Exhausted)?;
+                    self.charge()?;
                     let ResolvedExprKind::Place(place) = &scrutinee.kind else {
                         return Err(Flow::Guard(
                             "borrowed record match has a non-place scrutinee",
@@ -3538,6 +3919,16 @@ impl Evaluator<'_> {
                 "aggregate/import/match/try shape reached evaluation",
             )),
         }
+    }
+
+    fn intern_trace_identity(&mut self, identity: &str) -> Arc<str> {
+        if let Some(retained) = self.trace_identities.get(identity) {
+            return Arc::clone(retained);
+        }
+        let retained: Arc<str> = Arc::from(identity);
+        self.trace_identities
+            .insert(identity.to_owned(), Arc::clone(&retained));
+        retained
     }
 }
 
@@ -4474,7 +4865,7 @@ mod tests {
             (hir::DeclarationId::new("sum.choice.data"), BTreeMap::new()),
         ] {
             let mut evaluator = Evaluator {
-                admitted: &admitted,
+                admitted: FunctionLookup::Borrowed(&admitted),
                 declarations: &program.declarations,
                 steps: 0,
                 budget: 10_000,
@@ -4483,6 +4874,13 @@ mod tests {
                 stdout_transcript: None,
                 stderr_transcript: None,
                 command_input: None,
+                cancellation: PreparedCancellation::Never,
+                trace_limit: 0,
+                trace_events: Vec::new(),
+                dropped_trace_events: 0,
+                current_function: None,
+                trace_identities: BTreeMap::new(),
+                trace_phase: ResolvedTracePhase::Body,
             };
             let outcome = evaluator.call_frame(
                 inspect,

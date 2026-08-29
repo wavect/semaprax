@@ -87,6 +87,7 @@ Select every row touched by the change; these categories are cumulative.
 | Lexer, parser, or formatter | Success and diagnostic cases, canonical round-trip, unchanged legacy formatting |
 | Verifier or HIR | Focused verifier tests, hostile-HIR rejection where applicable, deterministic identity checks |
 | Runtime semantics | Interpreter/native O0/native O2/Wasm agreement for success, failure, evaluation order, and re-entry |
+| Prepared Project interpreter or source trace | One cached exact closure admission and one persistent worker across repeated entry/test execution; legacy outcome/fuel parity; cancellation boundaries; exact node/byte/event limits; deterministic truncation; canonical replay; retained-HIR source-origin binding; worker panic/disconnect fail-stop; and unchanged Interpreter/Project/Transport v1-v5 bytes |
 | Ownership or cleanup | Structural inventory, canonical plan build, independent replay, hostile mutation, success/failure settlement |
 | Graph schema | Exact new projection, legacy byte preservation, context projection, invalid/tampered rejection |
 | Semantic patch or repair | Preview, stale/drift rejection, no-write failures, independent replay, atomic A0 application |

@@ -133,6 +133,16 @@ fuel and normalized runtime statuses. `src/hosted_interpreter.rs` adds the
 bounded host-facing execution used by Project profiles. The interpreter is a
 development and conformance lane, not a target backend or proof engine.
 
+`src/project/prepared_interpreter/` adds an authority-neutral retained Project
+lane over the same evaluator. It caches the exact admitted entry/test closure
+indexes once, owns one sequential fixed-stack worker, observes monotonic
+cooperative cancellation only at evaluator step boundaries, and emits bounded
+`semaprax.project-source-trace.v1` expression origins. Plain replay proves the
+closed canonical wire; revision-bound replay additionally matches every event
+to retained HIR and authenticated source facts. It does not independently
+re-execute the dynamic path and grants no debugger, target, I/O, build, or
+publication authority.
+
 ### Native bootstrap backend
 
 `src/codegen.rs` owns native orchestration and admission. The

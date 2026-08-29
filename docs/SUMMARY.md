@@ -30,6 +30,7 @@ Audience: all documentation readers.
 - [Projected Owned-Byte Field Shared Borrow](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)
 - [Unsafe boundary mechanics](UNSAFE-BOUNDARIES-V1.md)
 - [Reference interpreter](INTERPRETER-V1.md)
+- [Prepared Project Interpreter and Source Trace v1](PROJECT-PREPARED-INTERPRETER-V1.md)
 
 ## Projects and generated consumers
 

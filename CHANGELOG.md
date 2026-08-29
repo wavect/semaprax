@@ -1,5 +1,12 @@
 # Changelog
 
+- Added the authored, unrun [Prepared Project Interpreter and Source Trace
+  v1](docs/PROJECT-PREPARED-INTERPRETER-V1.md): one cached exact entry/test
+  closure admission, one sequential long-lived fixed-stack worker, bounded
+  cancellation-aware expression origins, canonical trace replay, and retained
+  revision source-origin verification. Existing Interpreter, Project
+  execution, and Agent Transport v1-v5 wires remain unchanged.
+
 ## Unreleased
 
 - Authored the authority-neutral Project Profile Admission v1 kernel, routing

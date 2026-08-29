@@ -174,7 +174,7 @@ row.
 
 | Requirement | Status | Evidence owner | Complete when |
 | --- | --- | --- | --- |
-| Fast development lane | Partial | [Interpreter v1](INTERPRETER-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) | Incremental execution, debugging, hot reload, and semantic equivalence meet the development-performance target. |
+| Fast development lane | Partial; prepared Project interpreter/source trace authored and unrun | [Interpreter v1](INTERPRETER-V1.md), [Prepared Project Interpreter and Source Trace v1](PROJECT-PREPARED-INTERPRETER-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) | Execute and promote the prepared-worker/trace evidence; then incremental refresh, debugging, hot reload, and semantic equivalence must meet the development-performance target. |
 | Optimizing native lane | Partial | [Architecture](ARCHITECTURE.md) | The production native backend covers the mature language, optimization, debug mapping, and supported hosts. |
 | WebAssembly core and components | Partial | [Wasm Scalar Exports](WASM-SCALAR-EXPORTS-V1.md), [Wasm Owned ABI](WASM-OWNED-ABI-V1.md), [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md) | Stable Components, resources, capabilities, multi-engine conformance, and packaging are verified. |
 | Embedded and real-time | Partial | [Freestanding Profile v1](FREESTANDING-V1.md) | Hardware profiles, linker control, interrupts/RTOS, timing constraints, and representative targets are verified. |

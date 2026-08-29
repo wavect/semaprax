@@ -89,6 +89,7 @@ Audience: all documentation readers.
 - [Semantic package report v2](PACKAGE-REPORT-V2.md)
 - [Offline semantic package lock v2](OFFLINE-SEMANTIC-PACKAGE-LOCK-V2.md)
 - [Offline package compatibility evidence](OFFLINE-PACKAGE-COMPATIBILITY-EVIDENCE-V1.md)
+- [Offline deterministic package resolver](OFFLINE-PACKAGE-RESOLVER-V1.md)
 - [Offline package lock](OFFLINE-PACKAGE-LOCK-V1.md)
 - [Plugin manifest projection](PLUGIN-MANIFEST-V1.md)
 - [Region structure report](REGION-REPORT-V1.md)

@@ -96,6 +96,7 @@ Select every row touched by the change; these categories are cumulative.
 | Native backend or ABI | C11 compilation at required optimization levels, descriptor/header agreement, runtime status and cleanup conformance |
 | Wasm or JavaScript boundary | Structural Wasm validation, generated binding checks, Node execution, and browser/multi-engine evidence when claimed |
 | Report or schema projection | Closed admission/exclusion vocabulary, deterministic envelope, independent replay, tamper and budget rejection, cross-report consistency |
+| Offline package resolution | Strict SemVer/range boundaries, deterministic permutation and first-feasible backtracking, multi-root/transitive closure, conflict/duplicate/cycle rejection, exact bounds, ternary-target and capability policy, subject/report and outer-wire remint rejection, exact replay, and preserved Report/Lock/Compatibility bytes |
 | Private host integration | Authority inventory, fail-stop uncertainty, process/loader settlement, platform-specific hosted jobs |
 | Public API or generated SDK | External consumer with no source/workspace dependency, locked offline build, inventory and compatibility checks |
 

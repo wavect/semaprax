@@ -162,13 +162,22 @@ Evidence v1 are authored above Report v2. Unknown semantic closure or lock
 context drift remains indeterminate; evidence is unrun and the milestone is
 not promoted.
 
+An additive Offline Deterministic Package Resolver v1 is authored above those
+exact V2 subjects. It selects a first-feasible, bounded, source-replayed graph
+under strict semantic-version, target, and declared-capability policy and emits
+one independently replayed Lock-v2 result. Its focused public evidence is
+unrun. It is not acquisition, a registry/cache, a published lock workflow, a
+build sandbox, target execution, trusted provenance, or runtime capability
+enforcement, so the milestone remains unpromoted.
+
 Goal: turn bounded reports and private host evidence into a supported,
 versioned ecosystem surface.
 
 ### Package outcomes
 
-- interface-first manifests with resolver, lockfile, target matrix, capability
-  closure, provenance, licenses, and reproducible artifact records;
+- interface-first manifests that carry the bounded resolver into a published
+  lockfile workflow with target matrices, capability closure, provenance,
+  licenses, and reproducible artifact records;
 - compatibility analysis over types, effects, contracts, ownership, and target
   availability;
 - a package registry and offline cache model with explicit least authority;

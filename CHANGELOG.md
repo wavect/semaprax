@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Authored Offline Deterministic Package Resolver v1 and its focused public
+  evidence above exact source-replayed Semantic Package Subject v2 inputs. The
+  authority-free core fixes strict semantic-version ranges, deterministic
+  transactional first-feasible backtracking, target and declared-capability
+  admission, cumulative bounds, one final unchanged Lock-v2 generation/replay,
+  and an exact independently replayable evidence wrapper. Report v1/v2,
+  Subject/Lock v2, Lock v1, Compatibility v1, Graph, Project, and legacy CLI
+  behavior remain preservation owners; root help gains only the additive
+  command line. Evidence is intentionally unrun and no
+  completion or hosted promotion is claimed. This adds no discovery, registry,
+  network fetch, build-script or target execution, cache, publication,
+  signature/trusted provenance, or runtime capability/build authority.
+
 - Authored additive source-authenticated Offline Semantic Package Lock v2 and
   stable-ID-only Compatibility Evidence v1. Unknown closure or authenticated
   lock-context drift is indeterminate. V1/V2 report, Lock-v1, and Graph bytes

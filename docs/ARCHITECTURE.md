@@ -336,6 +336,17 @@ evidence; unknown closure or lock-context drift is indeterminate. See
 [Lock v2](OFFLINE-SEMANTIC-PACKAGE-LOCK-V2.md) and
 [Compatibility Evidence v1](OFFLINE-PACKAGE-COMPATIBILITY-EVIDENCE-V1.md).
 
+Additive `package_resolver` is an authority-free deterministic selector over a
+finite caller-owned catalog of those exact source-replayed V2 subjects. It
+normalizes strict semantic versions and the three frozen range forms, applies
+target and declared-capability admission, explores one transactionally bounded
+DFS trace, and emits exact replay evidence containing one unchanged Lock-v2
+result. The focused public evidence is authored but unrun. This layer performs
+no discovery, registry or network access, fetch, build-script or target
+execution, cache, publication, signature/provenance authentication, or runtime
+capability enforcement. See
+[Offline Deterministic Package Resolver v1](OFFLINE-PACKAGE-RESOLVER-V1.md).
+
 These modules must:
 
 - consume verified representations;

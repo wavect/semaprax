@@ -1336,6 +1336,20 @@ pub fn hold_directory(path: &Path) -> Result<Directory, Error> {
     Ok(Directory { file, identity })
 }
 
+pub fn hold_child_directory(parent: &Directory, name: &OsStr) -> Result<Directory, Error> {
+    recheck_directory(parent)?;
+    normal_name(name)?;
+    let file = relative_file(
+        &parent.file,
+        name,
+        DIRECTORY_READ_ACCESS,
+        FILE_OPEN,
+        FILE_DIRECTORY_FILE,
+    )?;
+    let identity = directory_information(&file)?;
+    Ok(Directory { file, identity })
+}
+
 pub fn recheck_directory(directory: &Directory) -> Result<(), Error> {
     if directory_information(&directory.file)? != directory.identity {
         return Err(Error::Changed);

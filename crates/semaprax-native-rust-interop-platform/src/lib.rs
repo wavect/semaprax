@@ -572,6 +572,11 @@ pub fn hold_directory(path: &Path) -> Result<HeldDirectory, Error> {
     semaprax_native_rust_interop_platform_sys::hold_directory(path).map(HeldDirectory)
 }
 
+pub fn hold_child_directory(parent: &HeldDirectory, name: &OsStr) -> Result<HeldDirectory, Error> {
+    semaprax_native_rust_interop_platform_sys::hold_child_directory(&parent.0, name)
+        .map(HeldDirectory)
+}
+
 pub fn recheck_directory(directory: &HeldDirectory) -> Result<(), Error> {
     semaprax_native_rust_interop_platform_sys::recheck_directory(&directory.0)
 }

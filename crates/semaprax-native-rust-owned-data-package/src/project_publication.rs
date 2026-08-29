@@ -25,7 +25,7 @@ pub enum NewProjectAuthorityError {
 pub struct NewProjectAuthority {
     parent: platform::HeldDirectory,
     stage: platform::HeldDirectory,
-    source: platform::HeldDirectory,
+    source: Option<platform::HeldDirectory>,
     stage_name: platform::PreparedStageName,
     source_name: platform::PreparedStageName,
     output_name: OsString,
@@ -72,7 +72,7 @@ impl NewProjectAuthority {
         Ok(Self {
             parent,
             stage,
-            source,
+            source: Some(source),
             stage_name,
             source_name,
             output_name: output_name.to_os_string(),
@@ -98,11 +98,15 @@ impl NewProjectAuthority {
         relative_path: &str,
         bytes: &[u8],
     ) -> Result<(), NewProjectAuthorityError> {
+        let source = self
+            .source
+            .as_ref()
+            .ok_or(NewProjectAuthorityError::Changed)?;
         let (directory, inventory, name) = match relative_path {
             "README.md" => (&self.stage, &mut self.root, "README.md"),
             "semaprax.toml" => (&self.stage, &mut self.root, "semaprax.toml"),
-            "src/app.spx" => (&self.source, &mut self.source_files, "app.spx"),
-            "src/tests.spx" => (&self.source, &mut self.source_files, "tests.spx"),
+            "src/app.spx" => (source, &mut self.source_files, "app.spx"),
+            "src/tests.spx" => (source, &mut self.source_files, "tests.spx"),
             _ => return Err(NewProjectAuthorityError::Invalid),
         };
         platform::write_file_new_prepared(directory, inventory, name, bytes, 0o600)
@@ -115,6 +119,10 @@ impl NewProjectAuthority {
         {
             return Err(NewProjectAuthorityError::Invalid);
         }
+        let source = self
+            .source
+            .as_ref()
+            .ok_or(NewProjectAuthorityError::Changed)?;
         authenticate_file(
             self.root.file("README.md").map_err(map_changed)?,
             files[0].1,
@@ -133,7 +141,7 @@ impl NewProjectAuthority {
         )?;
         let mut source_scan =
             platform::prepare_inventory_exact(&self.source_files).map_err(map_invalid)?;
-        platform::inventory_exact_prepared(&mut source_scan, &self.source, &self.source_files)
+        platform::inventory_exact_prepared(&mut source_scan, source, &self.source_files)
             .map_err(map_changed)?;
         let mut root_scan = platform::prepare_inventory_entries_exact(
             [
@@ -151,7 +159,7 @@ impl NewProjectAuthority {
                 self.root.file("README.md").map_err(map_changed)?,
                 self.root.file("semaprax.toml").map_err(map_changed)?,
             ],
-            [&self.source],
+            [source],
         )
         .map_err(map_changed)
     }
@@ -165,17 +173,23 @@ impl NewProjectAuthority {
             .settle_for_publish()
             .map_err(map_changed)?;
         self.root.settle_for_publish().map_err(map_changed)?;
+        drop(self.source.take());
         let mut publish =
             platform::prepare_publish_directory(&self.output_name).map_err(map_invalid)?;
-        platform::publish_directory_new_prepared(
+        let published = platform::publish_directory_new_prepared(
             &mut publish,
             &self.parent,
             &self.stage,
             &self.stage_name,
             &self.output_name,
-        )
-        .map_err(map_create)?;
-        self.published = true;
+        );
+        if published.is_ok() {
+            self.published = true;
+        }
+        self.source = Some(
+            platform::hold_child_directory(&self.stage, OsStr::new("src")).map_err(map_changed)?,
+        );
+        published.map_err(map_create)?;
         self.authenticate_published(files)
     }
 
@@ -183,22 +197,21 @@ impl NewProjectAuthority {
         &self,
         files: [(&str, &[u8]); 4],
     ) -> Result<(), NewProjectAuthorityError> {
+        let source = self
+            .source
+            .as_ref()
+            .ok_or(NewProjectAuthorityError::Changed)?;
         let readme = hold_matching(&self.stage, OsStr::new("README.md"), files[0].1)?;
         let manifest = hold_matching(&self.stage, OsStr::new("semaprax.toml"), files[1].1)?;
-        let app = hold_matching(&self.source, OsStr::new("app.spx"), files[2].1)?;
-        let tests = hold_matching(&self.source, OsStr::new("tests.spx"), files[3].1)?;
+        let app = hold_matching(source, OsStr::new("app.spx"), files[2].1)?;
+        let tests = hold_matching(source, OsStr::new("tests.spx"), files[3].1)?;
         let mut source_scan = platform::prepare_inventory_entries_exact(
             [OsStr::new("app.spx"), OsStr::new("tests.spx")],
             2,
         )
         .map_err(map_invalid)?;
-        platform::inventory_entries_exact_prepared(
-            &mut source_scan,
-            &self.source,
-            [&app, &tests],
-            [],
-        )
-        .map_err(map_changed)?;
+        platform::inventory_entries_exact_prepared(&mut source_scan, source, [&app, &tests], [])
+            .map_err(map_changed)?;
         let mut root_scan = platform::prepare_inventory_entries_exact(
             [
                 OsStr::new("README.md"),
@@ -212,12 +225,12 @@ impl NewProjectAuthority {
             &mut root_scan,
             &self.stage,
             [&readme, &manifest],
-            [&self.source],
+            [source],
         )
         .map_err(map_changed)?;
         platform::recheck_directory(&self.parent).map_err(map_changed)?;
         platform::recheck_directory(&self.stage).map_err(map_changed)?;
-        platform::recheck_directory(&self.source).map_err(map_changed)
+        platform::recheck_directory(source).map_err(map_changed)
     }
 }
 
@@ -226,14 +239,15 @@ impl Drop for NewProjectAuthority {
         if self.published {
             return;
         }
-        if platform::discard_owned_stage_prepared(
-            &self.stage,
-            &self.source,
-            &self.source_name,
-            &self.source_files,
-        )
-        .is_ok()
-        {
+        if self.source.as_ref().is_some_and(|source| {
+            platform::discard_owned_stage_prepared(
+                &self.stage,
+                source,
+                &self.source_name,
+                &self.source_files,
+            )
+            .is_ok()
+        }) {
             let _ = platform::discard_owned_stage_prepared(
                 &self.parent,
                 &self.stage,

@@ -506,15 +506,14 @@ fn build(binary: &Path, manifest: &Path, target: &str, output: &Path) {
 }
 
 fn configured_tool(variable: &str, candidates: &[&str]) -> PathBuf {
-    std::env::var_os(variable)
+    let configured = std::env::var_os(variable)
         .map(PathBuf::from)
-        .filter(|path| path.is_absolute() && path.is_file())
-        .or_else(|| {
-            candidates
-                .iter()
-                .map(PathBuf::from)
-                .find(|path| path.is_file())
-        })
+        .filter(|path| path.is_absolute());
+    configured
+        .into_iter()
+        .chain(candidates.iter().map(PathBuf::from))
+        .filter_map(|path| path.canonicalize().ok())
+        .find(|path| path.is_absolute() && path.is_file())
         .unwrap_or_else(|| panic!("{variable} must name an installed absolute tool"))
 }
 

@@ -1432,6 +1432,12 @@ pub fn hold_directory(path: &Path) -> Result<Directory, Error> {
     Ok(current)
 }
 
+pub fn hold_child_directory(parent: &Directory, name: &OsStr) -> Result<Directory, Error> {
+    recheck_directory(parent)?;
+    let name = c_name(name)?;
+    open_directory_at(parent.file.as_raw_fd(), &name)
+}
+
 pub fn recheck_directory(directory: &Directory) -> Result<(), Error> {
     let metadata = directory.file.metadata().map_err(|_| Error::Changed)?;
     if identity(&metadata) != (directory.dev, directory.ino)

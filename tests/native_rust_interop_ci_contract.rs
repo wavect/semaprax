@@ -667,7 +667,7 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
         ],
     );
     assert!(
-        windows_filesystem.matches("relative_file(").count() == 4,
+        windows_filesystem.matches("relative_file(").count() == 5,
         "Windows Nt RootDirectory helper definition/caller topology drifted"
     );
     assert!(
@@ -962,6 +962,13 @@ fn hosted_workflow_names_all_private_interop_evidence_boundaries() {
         .nth(1)
         .and_then(|tail| tail.split("\n  desktop-native-product:\n").next())
         .expect("Rust matrix job");
+    let verify_fetch = verify_job
+        .find("- name: Fetch the complete locked workspace dependency closure")
+        .expect("Rust matrix dependency fetch");
+    let verify_tests = verify_job
+        .find("- name: Run workspace tests")
+        .expect("Rust matrix workspace tests");
+    assert!(verify_fetch < verify_tests);
     assert!(!verify_job.contains("continue-on-error: true"));
     assert!(!verify_job.contains("--lib windows_"));
     assert_eq!(
@@ -974,6 +981,18 @@ fn hosted_workflow_names_all_private_interop_evidence_boundaries() {
             .count(),
         1
     );
+    let msrv_job = workflow
+        .split("\n  msrv:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  release-gate:\n").next())
+        .expect("minimum Rust job");
+    let msrv_fetch = msrv_job
+        .find("- name: Fetch the complete locked workspace dependency closure")
+        .expect("minimum Rust dependency fetch");
+    let msrv_tests = msrv_job
+        .find("cargo test --locked --workspace --all-targets --all-features")
+        .expect("minimum Rust workspace tests");
+    assert!(msrv_fetch < msrv_tests);
     let windows_environment = workflow
         .split("- name: Resolve the authenticated Windows SDK and MSVC environment")
         .nth(1)

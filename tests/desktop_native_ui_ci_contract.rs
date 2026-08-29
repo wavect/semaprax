@@ -347,6 +347,8 @@ fn windows_contract(source: &str) -> Result<(), String> {
             "$Matches[1] -ne $visualStudioMajor",
             "'-c', $uiSource, '-o', $object",
             "& $clangPath @compileArguments",
+            "[System.Environment]::SetEnvironmentVariable('SOURCE_DATE_EPOCH', '1', 'Process')",
+            "[System.Environment]::SetEnvironmentVariable('SOURCE_DATE_EPOCH', $previousSourceDateEpoch, 'Process')",
             "$linkArguments = @('/Brepro', '/nodefaultlib', '/subsystem:windows'",
             "'/entry:wWinMainCRTStartup', '/machine:x64', '/WX'",
             "\"/out:$destination\"",

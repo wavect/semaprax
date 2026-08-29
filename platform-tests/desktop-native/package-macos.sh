@@ -233,8 +233,8 @@ for binary in "$executable" "$provider"; do
 done
 
 actual_executable_images=$(otool -L "$executable" | sed -n '2,$s/^[[:space:]]*\([^[:space:]]*\).*/\1/p')
-expected_executable_images='/usr/lib/libiconv.2.dylib
-/usr/lib/libSystem.B.dylib'
+expected_executable_images='/usr/lib/libSystem.B.dylib
+/usr/lib/libiconv.2.dylib'
 if [ "$actual_executable_images" != "$expected_executable_images" ]; then
   echo "private desktop executable dependency allowlist changed" >&2
   printf '%s\n' "$actual_executable_images" >&2

@@ -136,8 +136,14 @@ function Build-Ui([string]$BuildRoot) {
   $object = Join-Path $BuildRoot 'SemapraxPrivate.obj'
   $compileArguments = @('-std=c11', '-pedantic-errors', '-Wall', '-Wextra',
     '-Werror', '-O2', '-c', $uiSource, '-o', $object)
-  & $clangPath @compileArguments
-  if ($LASTEXITCODE -ne 0) { throw 'private Windows native UI compilation failed' }
+  $previousSourceDateEpoch = [System.Environment]::GetEnvironmentVariable('SOURCE_DATE_EPOCH', 'Process')
+  try {
+    [System.Environment]::SetEnvironmentVariable('SOURCE_DATE_EPOCH', '1', 'Process')
+    & $clangPath @compileArguments
+    if ($LASTEXITCODE -ne 0) { throw 'private Windows native UI compilation failed' }
+  } finally {
+    [System.Environment]::SetEnvironmentVariable('SOURCE_DATE_EPOCH', $previousSourceDateEpoch, 'Process')
+  }
   $linkArguments = @('/Brepro', '/nodefaultlib', '/subsystem:windows',
     '/entry:wWinMainCRTStartup', '/machine:x64', '/WX', "/out:$destination",
     $object) + $uiLibraries

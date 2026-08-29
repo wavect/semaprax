@@ -1,9 +1,7 @@
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-pub(super) use semaprax::package_build::{
-    self, OfflinePackageBuild, OfflinePackageBuildOptions,
-};
+pub(super) use semaprax::package_build::{self, OfflinePackageBuild, OfflinePackageBuildOptions};
 pub(super) use semaprax::package_lock_v2::{self, Coordinate};
 pub(super) use semaprax::package_report_v2::{self, PackageReportV2Options};
 pub(super) use semaprax::package_resolver::{
@@ -11,8 +9,7 @@ pub(super) use semaprax::package_resolver::{
 };
 use sha2::{Digest as _, Sha256};
 
-pub(super) const BUILD_SCHEMA: &str =
-    "semaprax.offline-effect-free-wasm-package-build.v1";
+pub(super) const BUILD_SCHEMA: &str = "semaprax.offline-effect-free-wasm-package-build.v1";
 pub(super) const EVIDENCE_SCHEMA: &str =
     "semaprax.offline-effect-free-wasm-package-build-evidence.v1";
 pub(super) const EVIDENCE_DOMAIN: &[u8] =
@@ -50,13 +47,9 @@ pub(super) fn fixture_from_source(
     let resolution = package_resolver::generate(&input, &ResolutionOptions::default())
         .expect("canonical resolution evidence");
     let options = build_options(package, exports, MAX_BYTES, MAX_BYTES);
-    let build = package_build::generate(
-        &resolution,
-        &input,
-        &ResolutionOptions::default(),
-        &options,
-    )
-    .expect("effect-free package build");
+    let build =
+        package_build::generate(&resolution, &input, &ResolutionOptions::default(), &options)
+            .expect("effect-free package build");
     Fixture {
         input,
         resolution,
@@ -126,7 +119,15 @@ pub(super) fn input(
             .iter()
             .map(|(package, range)| Requirement {
                 package: (*package).to_owned(),
-                range: (*range).to_owned(),
+                range: if range
+                    .as_bytes()
+                    .first()
+                    .is_some_and(|byte| matches!(byte, b'=' | b'~' | b'^'))
+                {
+                    (*range).to_owned()
+                } else {
+                    format!("={range}")
+                },
             })
             .collect(),
         subjects,
@@ -174,21 +175,13 @@ pub(super) fn generate_error(
     input: &ResolutionInput,
     options: &OfflinePackageBuildOptions,
 ) -> String {
-    package_build::generate(
-        resolution,
-        input,
-        &ResolutionOptions::default(),
-        options,
-    )
-    .expect_err("package build must reject")[0]
+    package_build::generate(resolution, input, &ResolutionOptions::default(), options)
+        .expect_err("package build must reject")[0]
         .code
         .to_owned()
 }
 
-pub(super) fn verify_error(
-    build: &OfflinePackageBuild,
-    fixture: &Fixture,
-) -> String {
+pub(super) fn verify_error(build: &OfflinePackageBuild, fixture: &Fixture) -> String {
     package_build::verify(
         build,
         &fixture.resolution,
@@ -202,8 +195,7 @@ pub(super) fn verify_error(
 }
 
 pub(super) fn payload(envelope: &str) -> &str {
-    let start = envelope.find("\"payload\":").expect("payload marker")
-        + "\"payload\":".len();
+    let start = envelope.find("\"payload\":").expect("payload marker") + "\"payload\":".len();
     &envelope[start..envelope.len() - 1]
 }
 

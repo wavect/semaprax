@@ -105,6 +105,10 @@ checked-add is enforced before return or staging. Build options admit
 input remains bounded by the existing Report and Resolver limits. The Wasm
 module, manifest, and evidence each count toward the cumulative
 artifact bound using checked addition.
+Evidence fixed-point probes use a separate frozen 64 MiB cumulative render
+budget; discarded probes count against that builder ceiling, while only the
+converged evidence counts against `max_evidence_bytes` and the final cumulative
+artifact bound.
 
 ## Canonical artifacts and evidence
 
@@ -136,6 +140,8 @@ it is build metadata, not provenance, and must not make identical compiler
 source emit different package bytes. No host path, clock, nonce, locale,
 environment, or publication destination is rendered. Manifest and evidence are
 compact canonical UTF-8 JSON without a terminal LF.
+Their bounded structural parser rejects nesting deeper than 32 container
+levels; canonical v1 artifacts use substantially fewer levels.
 
 The evidence wrapper schema is
 `semaprax.offline-effect-free-wasm-package-build-evidence.v1`, with exact

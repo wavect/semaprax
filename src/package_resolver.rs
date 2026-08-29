@@ -207,7 +207,7 @@ pub(crate) fn verify_for_package_build(
             .into_iter()
             .map(|subject| {
                 package_lock_v2::authenticate_subject_for_package_build(subject, &mut work)
-                    .map_err(|error| wire::map_subject_error(&error))
+                    .map_err(|error| wire::map_package_build_subject_error(&error))
             })
             .collect::<Result<Vec<_>, Diagnostic>>()?;
         Ok(VerifiedPackageBuildResolution {

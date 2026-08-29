@@ -13,6 +13,9 @@ const MANIFEST_DOMAIN: &[u8] = b"semaprax.offline-effect-free-wasm-package-build
 const EVIDENCE_DOMAIN: &[u8] = b"semaprax.offline-effect-free-wasm-package-build-evidence.v1\0";
 const SOURCE_SET_DOMAIN: &[u8] = b"semaprax.offline-effect-free-wasm-package-source-set.v1\0";
 const LINK_DOMAIN: &[u8] = b"semaprax.offline-effect-free-wasm-package-link.v1\0";
+/// Closed structural parser bound. Generated v1 artifacts currently use at
+/// most four levels; the larger frozen ceiling admits no unbounded recursion.
+const MAX_JSON_DEPTH: usize = 32;
 
 macro_rules! bf {
     ($($argument:tt)*) => { bounded_output::budgeted_format(format_args!($($argument)*)) };
@@ -159,67 +162,310 @@ pub(crate) fn manifest_digest(manifest: &str) -> String {
 }
 
 pub(crate) fn validate_submitted_manifest(value: &str, maximum: usize) -> Result<(), Diagnostic> {
-    let top_level_keys = validate_compact_json(value, maximum, "manifest")?;
+    let object_keys = validate_compact_json(value, maximum, "manifest")?;
     let parsed: Value = serde_json::from_str(value)
         .map_err(|_| super::wire_error("package-build manifest is not JSON"))?;
-    let object = parsed
-        .as_object()
-        .ok_or_else(|| super::wire_error("package-build manifest must be an object"))?;
-    let keys = [
-        "schema",
-        "profile",
-        "root",
-        "packages",
-        "exports",
-        "runtime_imports",
-        "module",
-        "compiler",
-        "limits",
-        "nonclaims",
-    ];
-    if object.len() != keys.len()
-        || keys.iter().any(|key| !object.contains_key(*key))
-        || top_level_keys != keys.map(|key| key.to_owned())
-        || parsed["schema"].as_str() != Some(MANIFEST_SCHEMA)
-    {
-        return Err(super::wire_error(
-            "package-build manifest schema or member inventory is invalid",
-        ));
-    }
+    let mut order = ObjectOrder::new(&object_keys);
+    require_object(
+        &parsed,
+        &mut order,
+        &[
+            "schema",
+            "profile",
+            "root",
+            "packages",
+            "exports",
+            "runtime_imports",
+            "module",
+            "compiler",
+            "limits",
+            "nonclaims",
+        ],
+    )?;
+    require_exact_string(&parsed["schema"], MANIFEST_SCHEMA)?;
+    require_string(&parsed["profile"])?;
+    require_coordinate(&parsed["root"], &mut order)?;
+    require_object_array(&parsed["packages"], &mut order, require_manifest_package)?;
+    require_object_array(&parsed["exports"], &mut order, require_export)?;
+    require_object_array(
+        &parsed["runtime_imports"],
+        &mut order,
+        require_runtime_import,
+    )?;
+    require_object(&parsed["module"], &mut order, &["path", "sha256", "bytes"])?;
+    require_string(&parsed["module"]["path"])?;
+    require_string(&parsed["module"]["sha256"])?;
+    require_u64(&parsed["module"]["bytes"])?;
+    require_object(&parsed["compiler"], &mut order, &["package", "version"])?;
+    require_string(&parsed["compiler"]["package"])?;
+    require_string(&parsed["compiler"]["version"])?;
+    require_limits(&parsed["limits"], &mut order)?;
+    require_string_array(&parsed["nonclaims"])?;
+    order.finish()?;
     Ok(())
 }
 
 pub(crate) fn validate_submitted_evidence(value: &str, maximum: usize) -> Result<(), Diagnostic> {
-    let top_level_keys = validate_compact_json(value, maximum, "evidence")?;
+    let object_keys = validate_compact_json(value, maximum, "evidence")?;
     let parsed: Value = serde_json::from_str(value)
         .map_err(|_| super::wire_error("package-build evidence is not JSON"))?;
-    let object = parsed
+    let mut order = ObjectOrder::new(&object_keys);
+    require_object(
+        &parsed,
+        &mut order,
+        &["schema", "digest", "bytes", "payload"],
+    )?;
+    require_exact_string(&parsed["schema"], EVIDENCE_SCHEMA)?;
+    require_string(&parsed["digest"])?;
+    require_u64(&parsed["bytes"])?;
+    let payload = &parsed["payload"];
+    require_object(
+        payload,
+        &mut order,
+        &[
+            "schema",
+            "resolution_digest",
+            "resolution_bytes",
+            "lock_digest",
+            "lock_bytes",
+            "subjects",
+            "root",
+            "exports",
+            "package_source_set_digest",
+            "package_link_digest",
+            "manifest_digest",
+            "manifest_bytes",
+            "wasm_digest",
+            "wasm_bytes",
+            "limits",
+            "budget",
+            "nonclaims",
+        ],
+    )?;
+    require_exact_string(&payload["schema"], EVIDENCE_SCHEMA)?;
+    for key in [
+        "resolution_digest",
+        "lock_digest",
+        "package_source_set_digest",
+        "package_link_digest",
+        "manifest_digest",
+        "wasm_digest",
+    ] {
+        require_string(&payload[key])?;
+    }
+    for key in [
+        "resolution_bytes",
+        "lock_bytes",
+        "manifest_bytes",
+        "wasm_bytes",
+    ] {
+        require_u64(&payload[key])?;
+    }
+    require_object_array(&payload["subjects"], &mut order, require_subject)?;
+    require_coordinate(&payload["root"], &mut order)?;
+    require_object_array(&payload["exports"], &mut order, require_export)?;
+    require_limits(&payload["limits"], &mut order)?;
+    require_object(
+        &payload["budget"],
+        &mut order,
+        &[
+            "used_source_bytes",
+            "used_wasm_bytes",
+            "used_manifest_bytes",
+            "used_evidence_bytes",
+            "used_artifact_bytes",
+        ],
+    )?;
+    for key in [
+        "used_source_bytes",
+        "used_wasm_bytes",
+        "used_manifest_bytes",
+        "used_evidence_bytes",
+        "used_artifact_bytes",
+    ] {
+        require_u64(&payload["budget"][key])?;
+    }
+    require_string_array(&payload["nonclaims"])?;
+    order.finish()?;
+    let _ = exact_payload(value)?;
+    Ok(())
+}
+
+struct ObjectOrder<'a> {
+    objects: &'a [Vec<String>],
+    next: usize,
+}
+
+impl<'a> ObjectOrder<'a> {
+    fn new(objects: &'a [Vec<String>]) -> Self {
+        Self { objects, next: 0 }
+    }
+
+    fn take(&mut self, expected: &[&str]) -> Result<(), Diagnostic> {
+        let Some(actual) = self.objects.get(self.next) else {
+            return Err(super::wire_error(
+                "package-build JSON object inventory is incomplete",
+            ));
+        };
+        self.next += 1;
+        if actual
+            .iter()
+            .map(String::as_str)
+            .eq(expected.iter().copied())
+        {
+            Ok(())
+        } else {
+            Err(super::wire_error(
+                "package-build JSON object member order is noncanonical",
+            ))
+        }
+    }
+
+    fn finish(&self) -> Result<(), Diagnostic> {
+        if self.next == self.objects.len() {
+            Ok(())
+        } else {
+            Err(super::wire_error(
+                "package-build JSON contains an unvalidated object",
+            ))
+        }
+    }
+}
+
+fn require_object(
+    value: &Value,
+    order: &mut ObjectOrder<'_>,
+    keys: &[&str],
+) -> Result<(), Diagnostic> {
+    let object = value
         .as_object()
-        .ok_or_else(|| super::wire_error("package-build evidence must be an object"))?;
-    let keys = ["schema", "digest", "bytes", "payload"];
-    if object.len() != keys.len()
-        || keys.iter().any(|key| !object.contains_key(*key))
-        || top_level_keys != keys.map(|key| key.to_owned())
-        || parsed["schema"].as_str() != Some(EVIDENCE_SCHEMA)
-    {
+        .ok_or_else(|| super::wire_error("package-build JSON member must be an object"))?;
+    if object.len() != keys.len() || keys.iter().any(|key| !object.contains_key(*key)) {
         return Err(super::wire_error(
-            "package-build evidence schema or member inventory is invalid",
+            "package-build JSON object member inventory is invalid",
         ));
     }
-    let _ = exact_payload(value)?;
-    if parsed["bytes"].as_u64().is_none() || parsed["digest"].as_str().is_none() {
-        return Err(super::wire_error(
-            "package-build evidence byte or digest field has the wrong type",
-        ));
+    order.take(keys)
+}
+
+fn require_string(value: &Value) -> Result<(), Diagnostic> {
+    value
+        .as_str()
+        .map(|_| ())
+        .ok_or_else(|| super::wire_error("package-build JSON member must be a string"))
+}
+
+fn require_exact_string(value: &Value, expected: &str) -> Result<(), Diagnostic> {
+    if value.as_str() == Some(expected) {
+        Ok(())
+    } else {
+        Err(super::wire_error(
+            "package-build JSON schema identity is invalid",
+        ))
+    }
+}
+
+fn require_u64(value: &Value) -> Result<(), Diagnostic> {
+    value
+        .as_u64()
+        .map(|_| ())
+        .ok_or_else(|| super::wire_error("package-build JSON member must be an unsigned integer"))
+}
+
+fn require_string_array(value: &Value) -> Result<(), Diagnostic> {
+    let values = value
+        .as_array()
+        .ok_or_else(|| super::wire_error("package-build JSON member must be an array"))?;
+    values.iter().try_for_each(require_string)
+}
+
+fn require_object_array(
+    value: &Value,
+    order: &mut ObjectOrder<'_>,
+    validate: impl Fn(&Value, &mut ObjectOrder<'_>) -> Result<(), Diagnostic>,
+) -> Result<(), Diagnostic> {
+    let values = value
+        .as_array()
+        .ok_or_else(|| super::wire_error("package-build JSON member must be an array"))?;
+    for value in values {
+        validate(value, order)?;
     }
     Ok(())
+}
+
+fn require_coordinate(value: &Value, order: &mut ObjectOrder<'_>) -> Result<(), Diagnostic> {
+    require_object(value, order, &["package", "version"])?;
+    require_string(&value["package"])?;
+    require_string(&value["version"])
+}
+
+fn require_manifest_package(value: &Value, order: &mut ObjectOrder<'_>) -> Result<(), Diagnostic> {
+    require_object(
+        value,
+        order,
+        &["package", "version", "subject_digest", "source_revision"],
+    )?;
+    for key in ["package", "version", "subject_digest", "source_revision"] {
+        require_string(&value[key])?;
+    }
+    Ok(())
+}
+
+fn require_subject(value: &Value, order: &mut ObjectOrder<'_>) -> Result<(), Diagnostic> {
+    require_object(
+        value,
+        order,
+        &[
+            "package",
+            "version",
+            "subject_digest",
+            "subject_bytes",
+            "report_digest",
+            "source_revision",
+        ],
+    )?;
+    for key in [
+        "package",
+        "version",
+        "subject_digest",
+        "report_digest",
+        "source_revision",
+    ] {
+        require_string(&value[key])?;
+    }
+    require_u64(&value["subject_bytes"])
+}
+
+fn require_export(value: &Value, order: &mut ObjectOrder<'_>) -> Result<(), Diagnostic> {
+    require_object(
+        value,
+        order,
+        &["stable_id", "wasm_export", "parameters", "result"],
+    )?;
+    require_string(&value["stable_id"])?;
+    require_string(&value["wasm_export"])?;
+    require_string_array(&value["parameters"])?;
+    require_string(&value["result"])
+}
+
+fn require_runtime_import(value: &Value, order: &mut ObjectOrder<'_>) -> Result<(), Diagnostic> {
+    require_object(value, order, &["module", "name", "kind"])?;
+    require_string(&value["module"])?;
+    require_string(&value["name"])?;
+    require_string(&value["kind"])
+}
+
+fn require_limits(value: &Value, order: &mut ObjectOrder<'_>) -> Result<(), Diagnostic> {
+    require_object(value, order, &["max_artifact_bytes", "max_evidence_bytes"])?;
+    require_u64(&value["max_artifact_bytes"])?;
+    require_u64(&value["max_evidence_bytes"])
 }
 
 fn validate_compact_json(
     value: &str,
     maximum: usize,
     label: &str,
-) -> Result<Vec<String>, Diagnostic> {
+) -> Result<Vec<Vec<String>>, Diagnostic> {
     if value.is_empty()
         || value.len() > maximum
         || value.starts_with('\u{feff}')
@@ -234,7 +480,7 @@ fn validate_compact_json(
         bytes: value.as_bytes(),
         offset: 0,
         depth: 0,
-        top_level_keys: Vec::new(),
+        object_keys: Vec::new(),
     };
     parser.value()?;
     if parser.offset != parser.bytes.len() {
@@ -242,14 +488,14 @@ fn validate_compact_json(
             "package-build {label} has trailing JSON data"
         )));
     }
-    Ok(parser.top_level_keys)
+    Ok(parser.object_keys)
 }
 
 struct CanonicalJsonParser<'a> {
     bytes: &'a [u8],
     offset: usize,
     depth: usize,
-    top_level_keys: Vec<String>,
+    object_keys: Vec<Vec<String>>,
 }
 
 impl CanonicalJsonParser<'_> {
@@ -270,16 +516,15 @@ impl CanonicalJsonParser<'_> {
 
     fn object(&mut self) -> Result<(), Diagnostic> {
         self.enter(b'{')?;
-        let top_level = self.depth == 1;
+        let object_index = self.object_keys.len();
+        self.object_keys.push(Vec::new());
         let mut keys = BTreeSet::new();
         if self.take(b'}') {
             return self.leave();
         }
         loop {
             let key = self.string()?;
-            if top_level {
-                self.top_level_keys.push(key.clone());
-            }
+            self.object_keys[object_index].push(key.clone());
             if !keys.insert(key) {
                 return Err(super::wire_error(
                     "package-build JSON contains a duplicate key",
@@ -373,7 +618,7 @@ impl CanonicalJsonParser<'_> {
             .depth
             .checked_add(1)
             .ok_or_else(|| super::wire_error("package-build JSON depth overflowed"))?;
-        if self.depth > 32 {
+        if self.depth > MAX_JSON_DEPTH {
             return Err(super::wire_error(
                 "package-build JSON depth exceeds the closed bound",
             ));

@@ -19,11 +19,9 @@ fn canonical_manifest_evidence_and_receipt_are_exactly_bound() {
     assert_eq!(receipt.artifact_bytes, artifact_bytes(&fixture.build));
     assert_eq!(receipt.wasm_sha256.len(), 71);
     assert!(receipt.wasm_sha256.starts_with("sha256:"));
-    assert!(
-        receipt.wasm_sha256.as_bytes()[7..]
-            .iter()
-            .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
-    );
+    assert!(receipt.wasm_sha256.as_bytes()[7..]
+        .iter()
+        .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f')));
     assert!(!fixture.build.manifest_json.ends_with('\n'));
     assert!(!fixture.build.evidence_json.ends_with('\n'));
 
@@ -91,17 +89,18 @@ fn noncanonical_or_foreign_wire_is_rejected_before_semantic_receipt() {
     assert_eq!(verify_error(&terminal_lf, &fixture), "SPX-PB506");
 
     let mut duplicate = copied_build(&fixture.build);
-    duplicate.evidence_json = duplicate.evidence_json.replacen(
-        "{\"schema\":",
-        "{\"schema\":\"foreign\",\"schema\":",
-        1,
-    );
+    duplicate.evidence_json =
+        duplicate
+            .evidence_json
+            .replacen("{\"schema\":", "{\"schema\":\"foreign\",\"schema\":", 1);
     assert_eq!(verify_error(&duplicate, &fixture), "SPX-PB506");
 
     let mut foreign_manifest_member = copied_build(&fixture.build);
-    foreign_manifest_member.manifest_json = foreign_manifest_member
-        .manifest_json
-        .replacen("{\"schema\":", "{\"foreign\":0,\"schema\":", 1);
+    foreign_manifest_member.manifest_json = foreign_manifest_member.manifest_json.replacen(
+        "{\"schema\":",
+        "{\"foreign\":0,\"schema\":",
+        1,
+    );
     assert_eq!(
         verify_error(&foreign_manifest_member, &fixture),
         "SPX-PB506"
@@ -118,12 +117,42 @@ fn noncanonical_or_foreign_wire_is_rejected_before_semantic_receipt() {
         exact_payload,
     );
     assert_eq!(verify_error(&reordered, &fixture), "SPX-PB506");
+
+    let mut nested_manifest_order = copied_build(&fixture.build);
+    nested_manifest_order.manifest_json = nested_manifest_order.manifest_json.replacen(
+        "{\"package\":\"examples.calculator\",\"version\":\"1.0.0\"}",
+        "{\"version\":\"1.0.0\",\"package\":\"examples.calculator\"}",
+        1,
+    );
+    assert_eq!(verify_error(&nested_manifest_order, &fixture), "SPX-PB506");
+
+    let mut wrong_nested_type = copied_build(&fixture.build);
+    wrong_nested_type.manifest_json = wrong_nested_type.manifest_json.replacen(
+        "\"root\":{\"package\":\"examples.calculator\"",
+        "\"root\":{\"package\":0",
+        1,
+    );
+    assert_eq!(verify_error(&wrong_nested_type, &fixture), "SPX-PB506");
+
+    let exact = payload(&fixture.build.evidence_json);
+    let schema_end = exact.find(",\"resolution_digest\":").unwrap();
+    let resolution_start = schema_end + 1;
+    let resolution_end = exact.find(",\"resolution_bytes\":").unwrap();
+    let mut reordered_payload = String::from("{");
+    reordered_payload.push_str(&exact[resolution_start..resolution_end]);
+    reordered_payload.push(',');
+    reordered_payload.push_str(&exact[1..schema_end]);
+    reordered_payload.push_str(&exact[resolution_end..]);
+    let mut nested_evidence_order = copied_build(&fixture.build);
+    nested_evidence_order.evidence_json = remint_evidence(&reordered_payload);
+    assert_eq!(verify_error(&nested_evidence_order, &fixture), "SPX-PB506");
 }
 
 #[test]
 fn correctly_reminted_semantic_mutation_still_fails_exact_replay() {
     let fixture = fixture();
-    let mutated_payload = mutate_decimal_member(payload(&fixture.build.evidence_json), "wasm_bytes");
+    let mutated_payload =
+        mutate_decimal_member(payload(&fixture.build.evidence_json), "wasm_bytes");
     let mut reminted = copied_build(&fixture.build);
     reminted.evidence_json = remint_evidence(&mutated_payload);
     assert_eq!(verify_error(&reminted, &fixture), "SPX-PB507");

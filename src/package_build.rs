@@ -11,7 +11,7 @@ mod wire;
 
 pub use model::{
     OfflinePackageBuild, OfflinePackageBuildOptions, VerifiedOfflinePackageBuild, EVIDENCE_SCHEMA,
-    MANIFEST_SCHEMA, MAX_ARTIFACT_BYTES, MAX_EVIDENCE_BYTES, PROFILE,
+    MANIFEST_SCHEMA, MAX_ARTIFACT_BYTES, MAX_EVIDENCE_BYTES, MAX_EVIDENCE_RENDER_BYTES, PROFILE,
 };
 
 pub fn generate(
@@ -26,6 +26,7 @@ pub fn generate(
         resolution_options,
         build_options,
     )
+    .map(|built| built.artifacts)
     .map_err(|error| vec![error])
 }
 
@@ -51,24 +52,23 @@ pub fn verify(
         resolution_options,
         build_options,
     )?;
-    if &rebuilt != submitted {
+    if &rebuilt.artifacts != submitted {
         return Err(replay_error(
             "submitted package build does not exactly replay its inputs",
         ));
     }
-    let resolution = crate::package_resolver::verify_for_package_build(
-        resolution_evidence,
-        resolution_input,
-        resolution_options,
-    )
-    .map_err(|_| authentication_error("package-build resolver receipt replay failed"))?;
-    let artifact_bytes = artifact_bytes(&rebuilt)?;
+    let artifact_bytes = artifact_bytes(&rebuilt.artifacts)?;
     Ok(VerifiedOfflinePackageBuild {
         root_package: build_options.root_package.clone(),
-        packages: resolution.resolution.packages,
-        wasm_sha256: wire::wasm_digest(&rebuilt.module_wasm),
+        packages: rebuilt.packages,
+        wasm_sha256: wire::wasm_digest(&rebuilt.artifacts.module_wasm),
         artifact_bytes,
     })
+}
+
+struct BuiltPackage {
+    artifacts: OfflinePackageBuild,
+    packages: Vec<crate::package_lock_v2::Coordinate>,
 }
 
 fn build(
@@ -76,19 +76,29 @@ fn build(
     resolution_input: &ResolutionInput,
     resolution_options: &ResolutionOptions,
     build_options: &OfflinePackageBuildOptions,
-) -> Result<OfflinePackageBuild, Diagnostic> {
+) -> Result<BuiltPackage, Diagnostic> {
     admission::validate_options(build_options)?;
     let resolution = crate::package_resolver::verify_for_package_build(
         resolution_evidence,
         resolution_input,
         resolution_options,
     )
-    .map_err(|_| authentication_error("package-build resolver or Subject-v2 replay failed"))?;
+    .map_err(|error| {
+        map_nested_error(&error, "package-build resolver or Subject-v2 replay failed")
+    })?;
+    let packages = resolution.resolution.packages.clone();
     let (subject, coordinate, lock) =
         admission::select_subject(resolution_input, build_options, resolution)?;
     let (program, resolved) = admission::verify_source(&subject, build_options)?;
-    let graph = crate::graph::to_json(&program)
-        .map_err(|_| profile_error("package-build Graph projection failed"))?;
+    let link_digest = {
+        let graph = crate::graph::to_json(&program).map_err(|errors| {
+            errors.first().map_or_else(
+                || profile_error("package-build Graph projection failed"),
+                |error| map_nested_error(error, "package-build Graph projection failed"),
+            )
+        })?;
+        wire::link_digest(&graph)
+    };
 
     let (emitted, overflowed) =
         crate::bounded_output::with_limit(build_options.max_artifact_bytes, || {
@@ -99,8 +109,8 @@ fn build(
             "package-build Wasm emission exceeded the artifact builder bound",
         ));
     }
-    let (module_wasm, exports) =
-        emitted.map_err(|_| profile_error("package-build scalar Wasm admission failed"))?;
+    let (module_wasm, exports) = emitted
+        .map_err(|error| map_nested_error(&error, "package-build scalar Wasm admission failed"))?;
     validate_wasm_inventory(&module_wasm, &exports)?;
     if module_wasm.len() > build_options.max_artifact_bytes {
         return Err(limit_error("package-build Wasm exceeds max_artifact_bytes"));
@@ -114,7 +124,7 @@ fn build(
         source_revision: subject.source_revision,
         source_bytes: subject.canonical_source.len(),
         source_set_digest: wire::source_set_digest(&subject.canonical_source),
-        link_digest: wire::link_digest(&graph),
+        link_digest,
         resolution_digest: wire::wrapper_digest(resolution_evidence, "resolution evidence")?,
         resolution_bytes: resolution_evidence.len(),
         lock_digest: wire::wrapper_digest(&lock, "Lock v2")?,
@@ -144,29 +154,38 @@ fn build(
     let evidence_limit = build_options
         .max_evidence_bytes
         .min(build_options.max_artifact_bytes - artifact_prefix_bytes);
-    let (evidence, overflowed) = crate::bounded_output::with_limit(evidence_limit, || {
-        wire::render_evidence(
-            &facts,
-            build_options,
-            &manifest_json,
-            &manifest_digest,
-            &wasm_sha256,
-            module_wasm.len(),
-        )
-    });
+    let (evidence, overflowed) =
+        crate::bounded_output::with_limit(MAX_EVIDENCE_RENDER_BYTES, || {
+            wire::render_evidence(
+                &facts,
+                build_options,
+                &manifest_json,
+                &manifest_digest,
+                &wasm_sha256,
+                module_wasm.len(),
+            )
+        });
     if overflowed {
         return Err(limit_error(
-            "package-build evidence render exceeded max_evidence_bytes",
+            "package-build evidence fixed-point render exceeded its cumulative builder bound",
         ));
     }
     let evidence_json = evidence?;
+    if evidence_json.len() > evidence_limit {
+        return Err(limit_error(
+            "package-build evidence exceeds its final evidence or artifact bound",
+        ));
+    }
     let built = OfflinePackageBuild {
         module_wasm,
         manifest_json,
         evidence_json,
     };
     let _ = artifact_bytes_with_limit(&built, build_options.max_artifact_bytes)?;
-    Ok(built)
+    Ok(BuiltPackage {
+        artifacts: built,
+        packages,
+    })
 }
 
 fn validate_wasm_inventory(
@@ -281,6 +300,18 @@ fn wire_error(message: impl Into<String>) -> Diagnostic {
 
 fn replay_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-PB507", message.into())
+}
+
+fn map_nested_error(error: &Diagnostic, context: &str) -> Diagnostic {
+    match error.code {
+        "SPX-PR501" | "SPX-PL501" | "SPX-P401" => option_error(context),
+        "SPX-PR503" | "SPX-PL504" | "SPX-PL505" => association_error(context),
+        "SPX-PR504" | "SPX-P404" | "SPX-W115" => profile_error(context),
+        "SPX-PR505" | "SPX-PL506" | "SPX-P402" | "SPX-W116" => limit_error(context),
+        "SPX-PR502" | "SPX-PR506" | "SPX-PR507" | "SPX-PL502" | "SPX-PL503" | "SPX-PL507"
+        | "SPX-P403" => authentication_error(context),
+        _ => profile_error(context),
+    }
 }
 
 #[cfg(test)]

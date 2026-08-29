@@ -42,16 +42,13 @@ fn emitted_module_has_the_exact_runtime_import_and_selected_export_inventory() {
             "spx_contract_fail",
         ]
     );
-    exports.sort_by(|left, right| left.0.cmp(&right.0));
-    let mut expected_exports = vec![
+    let expected_exports = vec![
         (raw_scalar_symbol("calculator.add"), ExternalKind::Func),
         (raw_scalar_symbol("calculator.not"), ExternalKind::Func),
     ];
-    expected_exports.sort_by(|left, right| left.0.cmp(&right.0));
     assert_eq!(exports, expected_exports);
 
-    let manifest: serde_json::Value =
-        serde_json::from_str(&fixture.build.manifest_json).unwrap();
+    let manifest: serde_json::Value = serde_json::from_str(&fixture.build.manifest_json).unwrap();
     assert_eq!(
         manifest["runtime_imports"],
         serde_json::json!([
@@ -68,8 +65,18 @@ fn emitted_module_has_the_exact_runtime_import_and_selected_export_inventory() {
 
 #[test]
 fn artifacts_from_different_authenticated_builds_cannot_be_cross_paired() {
-    let first = fixture_from_source("pair", "1.0.0", &simple_source("pair", 41), &["pair.answer"]);
-    let second = fixture_from_source("pair", "1.0.0", &simple_source("pair", 42), &["pair.answer"]);
+    let first = fixture_from_source(
+        "pair",
+        "1.0.0",
+        &simple_source("pair", 41),
+        &["pair.answer"],
+    );
+    let second = fixture_from_source(
+        "pair",
+        "1.0.0",
+        &simple_source("pair", 42),
+        &["pair.answer"],
+    );
     assert_ne!(first.build.module_wasm, second.build.module_wasm);
 
     let mut foreign_module = copied_build(&first.build);

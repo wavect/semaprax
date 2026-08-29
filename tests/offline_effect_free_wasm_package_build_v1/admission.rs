@@ -29,21 +29,9 @@ fn resolver_root_and_selected_subject_must_be_one_exact_package() {
 fn dependency_metadata_cannot_substitute_for_linked_source() {
     let dependency_report = report_from_source("dependency", &simple_source("dependency", 7));
     let dependency_coordinate = coordinate("dependency", "1.0.0");
-    let dependency = subject(
-        &dependency_report,
-        "dependency",
-        "1.0.0",
-        &[],
-        &[],
-    );
+    let dependency = subject(&dependency_report, "dependency", "1.0.0", &[], &[]);
     let root_report = report_from_source("root", &simple_source("root", 9));
-    let root = subject(
-        &root_report,
-        "root",
-        "1.0.0",
-        &[dependency_coordinate],
-        &[],
-    );
+    let root = subject(&root_report, "root", "1.0.0", &[dependency_coordinate], &[]);
     let input = input(&[("root", "1.0.0")], vec![dependency, root], "wasm32", &[]);
     let resolution = package_resolver::generate(&input, &ResolutionOptions::default())
         .expect("dependency closure is valid Resolver v1 evidence");
@@ -68,12 +56,7 @@ fn nonempty_capability_or_wrong_target_is_outside_the_effect_free_profile() {
 
     let report = report_from_source("native_only", &simple_source("native_only", 1));
     let subject = subject(&report, "native_only", "1.0.0", &[], &[]);
-    let input = input(
-        &[("native_only", "1.0.0")],
-        vec![subject],
-        "native64",
-        &[],
-    );
+    let input = input(&[("native_only", "1.0.0")], vec![subject], "native64", &[]);
     let resolution = package_resolver::generate(&input, &ResolutionOptions::default())
         .expect("native target is valid Resolver v1 evidence");
     let options = build_options("native_only", &["native_only.answer"], MAX_BYTES, MAX_BYTES);
@@ -101,7 +84,10 @@ fn export_selection_and_authored_aggregate_surface_remain_closed() {
         "SPX-PB501"
     );
 
-    let report = report_from_source("examples.records", include_str!("../../examples/records.spx"));
+    let report = report_from_source(
+        "examples.records",
+        include_str!("../../examples/records.spx"),
+    );
     let subject = subject(&report, "examples.records", "1.0.0", &[], &[]);
     let input = input(
         &[("examples.records", "1.0.0")],
@@ -112,12 +98,20 @@ fn export_selection_and_authored_aggregate_surface_remain_closed() {
     let resolution = package_resolver::generate(&input, &ResolutionOptions::default())
         .expect("aggregate source is valid Resolver v1 target evidence");
     let options = build_options("examples.records", &["app.main"], MAX_BYTES, MAX_BYTES);
-    let error = package_build::generate(
-        &resolution,
-        &input,
-        &ResolutionOptions::default(),
-        &options,
-    )
-    .expect_err("authored aggregates remain outside scalar package v1");
+    let error =
+        package_build::generate(&resolution, &input, &ResolutionOptions::default(), &options)
+            .expect_err("authored aggregates remain outside scalar package v1");
     assert_eq!(error[0].code, "SPX-PB504");
+}
+
+#[test]
+fn root_option_uses_the_exact_source_module_grammar() {
+    let fixture = fixture();
+    for root in ["bad-name", "1bad", "bad..name", "bad."] {
+        let options = build_options(root, &["calculator.add"], MAX_BYTES, MAX_BYTES);
+        assert_eq!(
+            generate_error(&fixture.resolution, &fixture.input, &options),
+            "SPX-PB501"
+        );
+    }
 }

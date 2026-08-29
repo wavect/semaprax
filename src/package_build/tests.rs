@@ -236,3 +236,28 @@ fn public_selection_and_authority_options_fail_closed() {
         "SPX-PB504"
     );
 }
+
+#[test]
+fn nested_diagnostics_map_to_the_closed_package_build_family() {
+    let cases = [
+        ("SPX-PR501", "SPX-PB501"),
+        ("SPX-PR502", "SPX-PB502"),
+        ("SPX-PR503", "SPX-PB503"),
+        ("SPX-PR504", "SPX-PB504"),
+        ("SPX-PR505", "SPX-PB505"),
+        ("SPX-PR506", "SPX-PB502"),
+        ("SPX-PR507", "SPX-PB502"),
+        ("SPX-PL504", "SPX-PB503"),
+        ("SPX-PL506", "SPX-PB505"),
+        ("SPX-P402", "SPX-PB505"),
+        ("SPX-W115", "SPX-PB504"),
+        ("SPX-W116", "SPX-PB505"),
+    ];
+    for (nested, expected) in cases {
+        let nested = Diagnostic::io(nested, "nested failure");
+        assert_eq!(
+            map_nested_error(&nested, "package build failed").code,
+            expected
+        );
+    }
+}

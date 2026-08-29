@@ -52,14 +52,9 @@ pub(crate) fn validate_options(options: &OfflinePackageBuildOptions) -> Result<(
 }
 
 fn validate_package(value: &str) -> Result<(), Diagnostic> {
-    if value.is_empty()
-        || value.len() > 255
-        || !value
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
-    {
+    if value.len() > 255 || crate::workspace_graph::validate_entry_module(value).is_err() {
         return Err(super::option_error(
-            "package-build root package identity is invalid",
+            "package-build root package is outside the canonical module-name grammar",
         ));
     }
     Ok(())

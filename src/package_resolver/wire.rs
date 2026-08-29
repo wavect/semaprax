@@ -433,6 +433,14 @@ pub(super) fn map_subject_error(error: &Diagnostic) -> Diagnostic {
     }
 }
 
+pub(super) fn map_package_build_subject_error(error: &Diagnostic) -> Diagnostic {
+    match error.code {
+        "SPX-PL506" | "SPX-P402" => limit_error("nested Subject-v2 or Report-v2 bound failed"),
+        "SPX-PL504" => resolution_error("package-build Subject-v2 association failed"),
+        _ => authentication_error("Subject-v2 or Report-v2 replay failed"),
+    }
+}
+
 pub(super) fn map_lock_errors(errors: &[Diagnostic], message: &str) -> Diagnostic {
     errors.first().map_or_else(
         || resolution_error(message),

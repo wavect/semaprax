@@ -6,6 +6,10 @@ pub const EVIDENCE_SCHEMA: &str = "semaprax.offline-effect-free-wasm-package-bui
 pub const PROFILE: &str = "effect-free-core-wasm-scalar.v1";
 pub const MAX_ARTIFACT_BYTES: usize = 16 * 1024 * 1024;
 pub const MAX_EVIDENCE_BYTES: usize = 16 * 1024 * 1024;
+/// Cumulative allocation ceiling for the bounded evidence fixed-point builder.
+/// Discarded probes count here, while only the converged bytes count as an
+/// artifact and against `max_evidence_bytes`.
+pub const MAX_EVIDENCE_RENDER_BYTES: usize = 64 * 1024 * 1024;
 pub const MIN_LIMIT_BYTES: usize = 4 * 1024;
 pub const MAX_EXPORTS: usize = 32;
 pub const MAX_STABLE_ID_BYTES: usize = 128;

@@ -8,6 +8,17 @@
   owned-byte record. Evidence is intentionally unrun and completion remains
   Partial.
 
+- Authored additive Semantic Package Report v2 as a self-contained canonical
+  source subject whose verifier reruns ordinary source verification, rebuilds
+  validated HIR facts, regenerates the complete envelope, and exact-compares
+  it. The unpromoted schema carries stable-ID type trees, ownership, effects,
+  revision-independent structural contract facts, reachable nominal closure,
+  and closed available/unavailable/unproven target evidence under separate
+  projection, cumulative render-String, cardinality, and output bounds. V1 code, API, and bytes remain
+  unchanged; its documentation now narrows re-mint claims to exact bytes and
+  closed structural derivations. Focused evidence is authored but unrun; no
+  compatibility, authority, local-green, hosted, or completion claim is made.
+
 - Added authored exact-boundary evidence for Shared Loan Plan v1. Deterministic
   typed-HIR fixtures now drive the canonical production planner and independent
   replay at exactly 4,096 program points, 4,096 CFG edges, and 1,000,000

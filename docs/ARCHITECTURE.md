@@ -319,6 +319,14 @@ neither layer discovers paths, resolves or fetches versions, runs scripts,
 compiles targets, publishes files, or treats optional license/provenance claims
 as signed or trusted facts. See [Offline Package Lock v1](OFFLINE-PACKAGE-LOCK-V1.md).
 
+`src/package_report_v2.rs` and `src/package_report_v2/` define the additive
+self-contained Semantic Package Report v2. Its verifier rebuilds the exact
+report from embedded canonical source through the ordinary verifier and
+validated HIR. Stable-ID type/ownership/effect/contract facts, reachable
+nominal closure, and closed ternary target proofs are read-only evidence; the
+surface performs no compatibility decision and grants no package authority.
+See [Semantic Package Report v2](PACKAGE-REPORT-V2.md).
+
 These modules must:
 
 - consume verified representations;

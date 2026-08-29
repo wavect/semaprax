@@ -89,10 +89,12 @@ count, replays the package counts against the listed inventories, compares
 the target matrix and the unavailable-capability list against their closed
 canonical forms, checks every exclusion reason against the closed vocabulary,
 verifies strict stable-id ordering, and re-authenticates every embedded
-export-signature digest before returning the export summaries. Any mutation
-anywhere in the envelope invalidates verification, and mutations of the
-closed sections fail replay even when the outer digest was re-minted around
-the forgery.
+export-signature digest before returning the export summaries. This proves
+exact-byte integrity and the listed closed structural derivations. It does
+not authenticate the semantic truth of open interface fields after an
+attacker self-consistently changes those fields and re-mints every dependent
+digest. Source-authenticated semantic meaning is deliberately outside v1 and
+belongs exclusively to additive [Semantic Package Report v2](PACKAGE-REPORT-V2.md).
 
 Source bytes are snapshotted before parsing and re-checked after rendering;
 drift fails the whole command closed. All diagnostics use the previously
@@ -134,9 +136,9 @@ admitted symbol from the production native C11 projection, which already
 lowers the widened scalars (`int32_t`, `uint8_t`, `float`, `double`,
 `uint32_t` for char); any missing or duplicated prototype still fails closed
 with `SPX-P303`. The envelope schema stays `semaprax.package-report.v1`: no
-additive bump was required because verification authenticates structure,
-exact bytes, closed sections, counts, ordering, and embedded signature
-digests rather than any closed parameter/result type vocabulary, so
+additive bump was required because verification checks structure, exact
+bytes, closed sections, counts, ordering, and embedded signature digests
+rather than authenticating open parameter/result semantic truth, so
 pre-widening envelopes replay unchanged and all prior pinned KATs remain
 green untouched. The closed unavailable-capability inventory and exclusion
 vocabulary are unchanged.

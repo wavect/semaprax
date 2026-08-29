@@ -151,6 +151,12 @@ resolver, scripts, compilation, or publication authority. Its local gates are
 unexecuted and it is not yet the production package manager described by this
 milestone.
 
+An additive Semantic Package Report v2 implementation is also authored but
+unrun. It makes the report subject self-contained and source-authenticated and
+projects stable type, ownership, effect, structural-contract, reachable-type,
+and ternary target facts. Compatibility classification remains a subsequent
+stage and no milestone status is promoted.
+
 Goal: turn bounded reports and private host evidence into a supported,
 versioned ecosystem surface.
 

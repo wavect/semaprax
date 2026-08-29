@@ -86,6 +86,7 @@ Audience: all documentation readers.
 - [Freestanding object profile](FREESTANDING-V1.md)
 - [OpenAPI schema generation](OPENAPI-V1.md)
 - [Interface package report](PACKAGE-REPORT-V1.md)
+- [Semantic package report v2](PACKAGE-REPORT-V2.md)
 - [Offline package lock](OFFLINE-PACKAGE-LOCK-V1.md)
 - [Plugin manifest projection](PLUGIN-MANIFEST-V1.md)
 - [Region structure report](REGION-REPORT-V1.md)

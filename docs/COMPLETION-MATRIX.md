@@ -184,7 +184,7 @@ row.
 
 | Requirement | Status | Evidence owner | Complete when |
 | --- | --- | --- | --- |
-| Interface-first packages and target matrices | Partial | [Package Report v1](PACKAGE-REPORT-V1.md), [Offline Package Lock v1](OFFLINE-PACKAGE-LOCK-V1.md) | Resolver/version negotiation, published lockfile workflow, compatibility, trusted provenance, registry, and conformance are production-ready. |
+| Interface-first packages and target matrices | Partial | [Package Report v1](PACKAGE-REPORT-V1.md), [Semantic Package Report v2](PACKAGE-REPORT-V2.md), [Offline Package Lock v1](OFFLINE-PACKAGE-LOCK-V1.md) | Run and complete v2 boundary/hostile evidence; then add compatibility, resolver/version negotiation, published lockfile workflow, trusted provenance, registry, and conformance. |
 | Portable canonical ABI and native fast ABI | Partial | [ABI Report v1](ABI-REPORT-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md), [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md) | Stable aggregate/resource/borrowed ABIs and cross-language conformance cover supported architectures. |
 | C and Objective-C | Partial | [C Header v1](C-HEADER-V1.md) | Import/export, ownership, errors, compiled consumers, Objective-C adapters, and compatibility are verified. |
 | C++ | Partial | [C++ Shim v1](CXX-SHIM-V1.md) | Compiled C++ consumers, ownership, exceptions, templates/adapters, and compatibility are verified. |

@@ -48,6 +48,7 @@ pub mod openapi;
 pub mod owned_resource_corpus;
 pub mod package_lock;
 pub mod package_report;
+pub mod package_report_v2;
 pub mod parser;
 pub mod patch;
 pub mod patch_evidence;

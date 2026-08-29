@@ -251,7 +251,7 @@ module test.bytes_lexical_borrow;
     let view = array_as_slice(data);
     let owned = bytes_copy(view);
     let owned_view = bytes_as_slice(owned);
-    take(owned)
+    take(owned) + byte_len(owned_view)
 }
 "#;
     assert!(error_codes(source).contains(&"SPX-T265"));

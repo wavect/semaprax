@@ -132,27 +132,29 @@ pub(crate) struct BuiltCapsule {
     pub(crate) import_facts: Vec<LinkedPackageImportFact>,
 }
 
+pub(crate) struct VerifiedSourceCapsuleFacts {
+    pub(crate) digest: String,
+    pub(crate) bytes: usize,
+    pub(crate) source_set_digest: String,
+    pub(crate) link_digest: String,
+    pub(crate) root_package: String,
+    pub(crate) packages: Vec<Coordinate>,
+    pub(crate) source_revisions: Vec<(Coordinate, String)>,
+    pub(crate) exports: Vec<String>,
+}
+
 impl VerifiedSourceCapsule {
-    pub(crate) fn new(
-        digest: String,
-        bytes: usize,
-        source_set_digest: String,
-        link_digest: String,
-        root_package: String,
-        packages: Vec<Coordinate>,
-        source_revisions: Vec<(Coordinate, String)>,
-        exports: Vec<String>,
-    ) -> Self {
+    pub(crate) fn new(facts: VerifiedSourceCapsuleFacts) -> Self {
         Self {
             schema: SCHEMA.to_owned(),
-            digest,
-            bytes,
-            source_set_digest,
-            link_digest,
-            root_package,
-            packages,
-            source_revisions,
-            exports,
+            digest: facts.digest,
+            bytes: facts.bytes,
+            source_set_digest: facts.source_set_digest,
+            link_digest: facts.link_digest,
+            root_package: facts.root_package,
+            packages: facts.packages,
+            source_revisions: facts.source_revisions,
+            exports: facts.exports,
         }
     }
 }

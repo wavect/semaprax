@@ -1,6 +1,7 @@
 # Offline Multi-Package Source Capsule v1
 
 Status: **authored, unrun, unpublished, and unpromoted**.
+Audience: compiler, package-tooling, and semantic-evidence contributors.
 
 Offline Multi-Package Source Capsule v1 is an additive, authority-free bridge
 between exact Resolver-v1 selection and a future linked package build. It

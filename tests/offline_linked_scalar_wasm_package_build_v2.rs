@@ -30,6 +30,9 @@ fn fixture(provider_value: i64) -> Fixture {
     let provider_source = format!(
         "module {PROVIDER};\n\n@id(\"lib.math.answer\")\nfn answer() -> i64\n{{\n    {provider_value}\n}}\n"
     );
+    let provider_interface_source = format!(
+        "module {PROVIDER};\n\n@id(\"lib.math.answer\")\nfn main() -> i64\n{{\n    {provider_value}\n}}\n"
+    );
     let mut root_source = format!(
         "module {ROOT};\nuse function @id(\"lib.math.answer\") from {PROVIDER} as answer;\n\n"
     );
@@ -39,13 +42,18 @@ fn fixture(provider_value: i64) -> Fixture {
     // exact typed interface equality before linking it.
     let mut root_interface_source = format!("module {ROOT};\n\n");
     let mut exports = Vec::new();
-    for index in 0..16 {
+    for index in 0..31 {
         let id = format!("app.main.f{index:02}");
         root_source.push_str(&format!(
             "@id(\"{id}\")\nfn f{index:02}() -> i64\n{{\n    answer() + {index}\n}}\n\n"
         ));
+        let interface_name = if index == 0 {
+            "main".to_owned()
+        } else {
+            format!("f{index:02}")
+        };
         root_interface_source.push_str(&format!(
-            "@id(\"{id}\")\nfn f{index:02}() -> i64\n{{\n    {index}\n}}\n\n"
+            "@id(\"{id}\")\nfn {interface_name}() -> i64\n{{\n    {index}\n}}\n\n"
         ));
         exports.push(id);
     }
@@ -53,7 +61,7 @@ fn fixture(provider_value: i64) -> Fixture {
     root_interface_source.push_str("@id(\"app.main.run\")\nfn run() -> i64\n{\n    0\n}\n");
     exports.push("app.main.run".to_owned());
 
-    let provider_report = report(PROVIDER, &provider_source);
+    let provider_report = report(PROVIDER, &provider_interface_source);
     let root_report = report(ROOT, &root_interface_source);
     let provider_coordinate = coordinate(PROVIDER);
     let provider_subject =
@@ -313,7 +321,7 @@ fn mutate_decimal_member(wire: &str, member: &str) -> String {
         .find(|character: char| !character.is_ascii_digit())
         .map(|offset| start + offset)
         .expect("numeric member terminator");
-    let mut bytes = wire[start..end].as_bytes().to_vec();
+    let mut bytes = wire.as_bytes()[start..end].to_vec();
     let last = bytes.last_mut().expect("non-empty decimal");
     *last = if *last == b'9' { b'8' } else { *last + 1 };
     format!(
@@ -339,7 +347,10 @@ fn remint_evidence(payload: &str) -> String {
 fn verify(
     build: &LinkedOfflinePackageBuild,
     fixture: &Fixture,
-) -> Result<package_build_v2::VerifiedLinkedOfflinePackageBuild, semaprax::diagnostic::Diagnostic> {
+) -> Result<
+    package_build_v2::VerifiedLinkedOfflinePackageBuild,
+    Box<semaprax::diagnostic::Diagnostic>,
+> {
     verify_with_options(build, fixture, &fixture.build_options)
 }
 
@@ -347,7 +358,10 @@ fn verify_with_options(
     build: &LinkedOfflinePackageBuild,
     fixture: &Fixture,
     options: &LinkedOfflinePackageBuildOptions,
-) -> Result<package_build_v2::VerifiedLinkedOfflinePackageBuild, semaprax::diagnostic::Diagnostic> {
+) -> Result<
+    package_build_v2::VerifiedLinkedOfflinePackageBuild,
+    Box<semaprax::diagnostic::Diagnostic>,
+> {
     package_build_v2::verify(
         build,
         &fixture.capsule,
@@ -358,6 +372,7 @@ fn verify_with_options(
         &fixture.capsule_options,
         options,
     )
+    .map_err(Box::new)
 }
 
 fn generate_error(fixture: &Fixture, options: &LinkedOfflinePackageBuildOptions) -> &'static str {

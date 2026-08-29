@@ -324,7 +324,7 @@ fn linked_held_replay_failure_settles_before_any_publication() {
         &mut observer,
     )
     .unwrap_err();
-    assert_eq!(error.code, PP_REPLAY);
+    assert_eq!(error.code, crate::PP_REPLAY);
     assert_eq!(error.compiler_code, Some("SPX-PB607"));
     assert_eq!(error.visibility, PublicationVisibility::NotPublished);
     assert_eq!(error.cleanup, CleanupStatus::Settled);

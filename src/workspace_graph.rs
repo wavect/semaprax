@@ -1021,8 +1021,7 @@ pub(crate) fn build_owned(
 }
 
 pub(crate) use package::{
-    build_package_scalar_sources, PackageWorkspaceImport, PackageWorkspaceLink,
-    PackageWorkspaceModule,
+    build_package_scalar_sources, PackageWorkspaceImport, PackageWorkspaceModule,
 };
 
 impl WorkspaceGraphBuild {

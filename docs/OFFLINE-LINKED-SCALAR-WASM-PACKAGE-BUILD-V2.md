@@ -2,6 +2,7 @@
 
 Status: frozen additive v2 contract; implementation and evidence authored,
 unrun, unpublished, and unpromoted.
+Audience: compiler, package-tooling, and platform-authority contributors.
 
 ## Purpose and authority boundary
 

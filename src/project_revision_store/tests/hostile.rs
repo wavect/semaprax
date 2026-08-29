@@ -98,8 +98,7 @@ fn root_and_stored_objects_reject_special_permission_bits() {
     let revision = revision();
     std::fs::set_permissions(&root_fixture.store, std::fs::Permissions::from_mode(0o1700)).unwrap();
     let error = persist(&root_fixture.store, &revision, revision.project_revision())
-        .err()
-        .expect("special permission bits must reject");
+        .expect_err("special permission bits must reject");
     assert_eq!(error[0].code, "SPX-G193");
 
     let file_fixture = Fixture::new("file-special-mode");

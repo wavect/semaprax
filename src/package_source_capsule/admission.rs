@@ -229,19 +229,19 @@ pub(crate) fn build(
         );
         let resolution_digest = super::wire::wrapper_digest(resolution_evidence)?;
         let lock_digest = super::wire::wrapper_digest(&selected.resolution.lock)?;
-        let json = super::wire::render(
-            &resolution_digest,
-            resolution_evidence.len(),
-            &lock_digest,
-            selected.resolution.lock.len(),
+        let json = super::wire::render(super::wire::RenderInput {
+            resolution_digest: &resolution_digest,
+            resolution_bytes: resolution_evidence.len(),
+            lock_digest: &lock_digest,
+            lock_bytes: selected.resolution.lock.len(),
             options,
-            &package_facts,
-            &import_facts,
-            &linked_function_ids,
+            facts: &package_facts,
+            imports: &import_facts,
+            linked_function_ids: &linked_function_ids,
             sources,
-            &source_set_digest,
-            &link_digest,
-        )?;
+            source_set_digest: &source_set_digest,
+            link_digest: &link_digest,
+        })?;
         let digest = super::wire::wrapper_digest(&json)?;
         Ok((json, digest, package_facts, source_set_digest, link_digest))
     });
@@ -262,16 +262,16 @@ pub(crate) fn build(
         .map(|fact| (fact.coordinate.clone(), fact.source_revision.clone()))
         .collect();
     let exports = workspace.root_exports.clone();
-    let receipt = VerifiedSourceCapsule::new(
+    let receipt = VerifiedSourceCapsule::new(super::model::VerifiedSourceCapsuleFacts {
         digest,
-        json.len(),
+        bytes: json.len(),
         source_set_digest,
         link_digest,
-        options.root_package.clone(),
+        root_package: options.root_package.clone(),
         packages,
         source_revisions,
         exports,
-    );
+    });
     Ok(BuiltCapsule {
         json,
         receipt,

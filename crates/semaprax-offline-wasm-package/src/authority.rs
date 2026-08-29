@@ -38,6 +38,7 @@ pub(crate) fn publish_linked_verified<V>(
     publish_artifacts(output, files, &mut replay, &mut observer)
 }
 
+#[cfg(test)]
 fn publish_observed<V>(
     output: &Path,
     build: &OfflinePackageBuild,

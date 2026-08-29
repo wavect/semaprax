@@ -20,19 +20,34 @@ const MAX_JSON_VALUES: usize = 16_384;
 const MAX_JSON_OBJECTS: usize = 2_048;
 const MAX_JSON_KEYS: usize = 16_384;
 
-pub(crate) fn render(
-    resolution_digest: &str,
-    resolution_bytes: usize,
-    lock_digest: &str,
-    lock_bytes: usize,
-    options: &SourceCapsuleOptions,
-    facts: &[LinkedPackageSourceFact],
-    imports: &[LinkedPackageImportFact],
-    linked_function_ids: &[String],
-    sources: &[super::PackageSource],
-    source_set_digest: &str,
-    link_digest: &str,
-) -> Result<String, Diagnostic> {
+pub(crate) struct RenderInput<'a> {
+    pub(crate) resolution_digest: &'a str,
+    pub(crate) resolution_bytes: usize,
+    pub(crate) lock_digest: &'a str,
+    pub(crate) lock_bytes: usize,
+    pub(crate) options: &'a SourceCapsuleOptions,
+    pub(crate) facts: &'a [LinkedPackageSourceFact],
+    pub(crate) imports: &'a [LinkedPackageImportFact],
+    pub(crate) linked_function_ids: &'a [String],
+    pub(crate) sources: &'a [super::PackageSource],
+    pub(crate) source_set_digest: &'a str,
+    pub(crate) link_digest: &'a str,
+}
+
+pub(crate) fn render(input: RenderInput<'_>) -> Result<String, Diagnostic> {
+    let RenderInput {
+        resolution_digest,
+        resolution_bytes,
+        lock_digest,
+        lock_bytes,
+        options,
+        facts,
+        imports,
+        linked_function_ids,
+        sources,
+        source_set_digest,
+        link_digest,
+    } = input;
     let packages = facts.iter().zip(sources).map(|(fact, source)| bounded_output::budgeted_format(format_args!(
         "{{\"package\":{},\"version\":{},\"subject_digest\":{},\"report_digest\":{},\"interface_digest\":{},\"interface_source_revision\":{},\"source_revision\":{},\"source_digest\":{},\"source_bytes\":{},\"source\":{}}}",
         quote_json(&fact.coordinate.package), quote_json(&fact.coordinate.version),

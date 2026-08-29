@@ -46,7 +46,7 @@ fn main() -> i64 { 0 }
 module lib.math;
 
 @id("lib.answer")
-fn answer() -> i64 { 0 }
+fn main() -> i64 { 0 }
 "#,
         "lib-interface.spx",
     );
@@ -186,7 +186,11 @@ module app.main;
 use function @id("lib.answer") from lib.math as answer;
 
 @id("app.main")
-fn main() -> bool { answer() == 41 }
+fn main() -> i64
+    ensures result == 42
+{
+    answer() + 1
+}
 "#,
         "app.spx",
     );

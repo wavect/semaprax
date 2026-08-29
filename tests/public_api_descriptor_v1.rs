@@ -256,6 +256,44 @@ fn selection_identity_closure_and_parameter_limits_fail_closed() {
         derive_public_api_descriptor(&contract, &["contract.value".to_owned()], subject()).is_err()
     );
 
+    let imported = resolve(
+        r#"module import.api;
+@id("import.host")
+interface Host permits {} {
+    @id("import.host.echo")
+    import rust fn echo(value: i64) -> unit effects {} failure infallible;
+}
+@id("import.value")
+fn value(input: i64) -> i64 {
+    let acknowledged = echo(input);
+    input
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+    );
+    assert!(
+        derive_public_api_descriptor(&imported, &["import.value".to_owned()], subject()).is_err()
+    );
+
+    let effectful = resolve(
+        r#"module effect.api;
+permit { host.echo }
+@id("effect.host")
+interface Host permits { host.echo } {
+    @id("effect.host.echo")
+    import rust fn echo(value: i64) -> i64
+        effects { host.echo }
+        failure status "host.echo.v1";
+}
+@id("effect.value")
+fn value(input: i64) -> i64 uses { host.echo } { echo(input) }
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+    );
+    assert!(
+        derive_public_api_descriptor(&effectful, &["effect.value".to_owned()], subject()).is_err()
+    );
+
     let eight = (0..MAX_PUBLIC_API_PARAMETERS)
         .map(|index| format!("p{index}: i64"))
         .collect::<Vec<_>>()

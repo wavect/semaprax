@@ -1,0 +1,287 @@
+//! Authority-free Offline Effect-Free Scalar Core-Wasm Package Build v1.
+
+use std::collections::BTreeSet;
+
+use crate::diagnostic::Diagnostic;
+use crate::package_resolver::{ResolutionInput, ResolutionOptions};
+
+mod admission;
+mod model;
+mod wire;
+
+pub use model::{
+    OfflinePackageBuild, OfflinePackageBuildOptions, VerifiedOfflinePackageBuild, EVIDENCE_SCHEMA,
+    MANIFEST_SCHEMA, MAX_ARTIFACT_BYTES, MAX_EVIDENCE_BYTES, PROFILE,
+};
+
+pub fn generate(
+    resolution_evidence: &str,
+    resolution_input: &ResolutionInput,
+    resolution_options: &ResolutionOptions,
+    build_options: &OfflinePackageBuildOptions,
+) -> Result<OfflinePackageBuild, Vec<Diagnostic>> {
+    build(
+        resolution_evidence,
+        resolution_input,
+        resolution_options,
+        build_options,
+    )
+    .map_err(|error| vec![error])
+}
+
+pub fn verify(
+    submitted: &OfflinePackageBuild,
+    resolution_evidence: &str,
+    resolution_input: &ResolutionInput,
+    resolution_options: &ResolutionOptions,
+    build_options: &OfflinePackageBuildOptions,
+) -> Result<VerifiedOfflinePackageBuild, Diagnostic> {
+    admission::validate_options(build_options)?;
+    if submitted.module_wasm.len() > build_options.max_artifact_bytes {
+        return Err(limit_error(
+            "submitted package-build Wasm exceeds the artifact bound",
+        ));
+    }
+    let _ = artifact_bytes_with_limit(submitted, build_options.max_artifact_bytes)?;
+    wire::validate_submitted_manifest(&submitted.manifest_json, build_options.max_artifact_bytes)?;
+    wire::validate_submitted_evidence(&submitted.evidence_json, build_options.max_evidence_bytes)?;
+    let rebuilt = build(
+        resolution_evidence,
+        resolution_input,
+        resolution_options,
+        build_options,
+    )?;
+    if &rebuilt != submitted {
+        return Err(replay_error(
+            "submitted package build does not exactly replay its inputs",
+        ));
+    }
+    let resolution = crate::package_resolver::verify_for_package_build(
+        resolution_evidence,
+        resolution_input,
+        resolution_options,
+    )
+    .map_err(|_| authentication_error("package-build resolver receipt replay failed"))?;
+    let artifact_bytes = artifact_bytes(&rebuilt)?;
+    Ok(VerifiedOfflinePackageBuild {
+        root_package: build_options.root_package.clone(),
+        packages: resolution.resolution.packages,
+        wasm_sha256: wire::wasm_digest(&rebuilt.module_wasm),
+        artifact_bytes,
+    })
+}
+
+fn build(
+    resolution_evidence: &str,
+    resolution_input: &ResolutionInput,
+    resolution_options: &ResolutionOptions,
+    build_options: &OfflinePackageBuildOptions,
+) -> Result<OfflinePackageBuild, Diagnostic> {
+    admission::validate_options(build_options)?;
+    let resolution = crate::package_resolver::verify_for_package_build(
+        resolution_evidence,
+        resolution_input,
+        resolution_options,
+    )
+    .map_err(|_| authentication_error("package-build resolver or Subject-v2 replay failed"))?;
+    let (subject, coordinate, lock) =
+        admission::select_subject(resolution_input, build_options, resolution)?;
+    let (program, resolved) = admission::verify_source(&subject, build_options)?;
+    let graph = crate::graph::to_json(&program)
+        .map_err(|_| profile_error("package-build Graph projection failed"))?;
+
+    let (emitted, overflowed) =
+        crate::bounded_output::with_limit(build_options.max_artifact_bytes, || {
+            crate::wasm::emit_resolved_package_scalar_exports(&resolved, &build_options.exports)
+        });
+    if overflowed {
+        return Err(limit_error(
+            "package-build Wasm emission exceeded the artifact builder bound",
+        ));
+    }
+    let (module_wasm, exports) =
+        emitted.map_err(|_| profile_error("package-build scalar Wasm admission failed"))?;
+    validate_wasm_inventory(&module_wasm, &exports)?;
+    if module_wasm.len() > build_options.max_artifact_bytes {
+        return Err(limit_error("package-build Wasm exceeds max_artifact_bytes"));
+    }
+
+    let facts = model::BuildFacts {
+        coordinate,
+        subject_digest: subject.subject_digest,
+        subject_bytes: subject.subject_bytes,
+        report_digest: subject.report_digest,
+        source_revision: subject.source_revision,
+        source_bytes: subject.canonical_source.len(),
+        source_set_digest: wire::source_set_digest(&subject.canonical_source),
+        link_digest: wire::link_digest(&graph),
+        resolution_digest: wire::wrapper_digest(resolution_evidence, "resolution evidence")?,
+        resolution_bytes: resolution_evidence.len(),
+        lock_digest: wire::wrapper_digest(&lock, "Lock v2")?,
+        lock_bytes: lock.len(),
+        exports,
+    };
+    let wasm_sha256 = wire::wasm_digest(&module_wasm);
+    let (manifest_json, overflowed) =
+        crate::bounded_output::with_limit(build_options.max_artifact_bytes, || {
+            wire::render_manifest(&facts, build_options, &wasm_sha256, module_wasm.len())
+        });
+    if overflowed {
+        return Err(limit_error(
+            "package-build manifest render exceeded the artifact builder bound",
+        ));
+    }
+    let manifest_digest = wire::manifest_digest(&manifest_json);
+    let artifact_prefix_bytes = module_wasm
+        .len()
+        .checked_add(manifest_json.len())
+        .ok_or_else(|| limit_error("package-build artifact byte sum overflowed"))?;
+    if artifact_prefix_bytes > build_options.max_artifact_bytes {
+        return Err(limit_error(
+            "package-build Wasm and manifest exceed max_artifact_bytes",
+        ));
+    }
+    let evidence_limit = build_options
+        .max_evidence_bytes
+        .min(build_options.max_artifact_bytes - artifact_prefix_bytes);
+    let (evidence, overflowed) = crate::bounded_output::with_limit(evidence_limit, || {
+        wire::render_evidence(
+            &facts,
+            build_options,
+            &manifest_json,
+            &manifest_digest,
+            &wasm_sha256,
+            module_wasm.len(),
+        )
+    });
+    if overflowed {
+        return Err(limit_error(
+            "package-build evidence render exceeded max_evidence_bytes",
+        ));
+    }
+    let evidence_json = evidence?;
+    let built = OfflinePackageBuild {
+        module_wasm,
+        manifest_json,
+        evidence_json,
+    };
+    let _ = artifact_bytes_with_limit(&built, build_options.max_artifact_bytes)?;
+    Ok(built)
+}
+
+fn validate_wasm_inventory(
+    wasm: &[u8],
+    exports: &[crate::wasm::PackageScalarExportFact],
+) -> Result<(), Diagnostic> {
+    use wasmparser::{ExternalKind, Parser, Payload, TypeRef, Validator, WasmFeatures};
+
+    Validator::new_with_features(WasmFeatures::all())
+        .validate_all(wasm)
+        .map_err(|_| profile_error("compiler-emitted package Wasm failed structural validation"))?;
+    let mut imports = Vec::new();
+    let mut actual_exports = Vec::new();
+    let mut seen_exports = BTreeSet::new();
+    for payload in Parser::new(0).parse_all(wasm) {
+        match payload.map_err(|_| profile_error("package-build Wasm inventory is malformed"))? {
+            Payload::ImportSection(section) => {
+                for import in section.into_imports() {
+                    let import = import
+                        .map_err(|_| profile_error("package-build Wasm import is malformed"))?;
+                    if !matches!(import.ty, TypeRef::Func(_)) {
+                        return Err(profile_error(
+                            "package-build Wasm contains a non-function import",
+                        ));
+                    }
+                    imports.push((import.module.to_owned(), import.name.to_owned()));
+                }
+            }
+            Payload::ExportSection(section) => {
+                for export in section {
+                    let export = export
+                        .map_err(|_| profile_error("package-build Wasm export is malformed"))?;
+                    if export.kind != ExternalKind::Func
+                        || !seen_exports.insert(export.name.to_owned())
+                    {
+                        return Err(profile_error(
+                            "package-build Wasm export inventory is not unique functions",
+                        ));
+                    }
+                    actual_exports.push(export.name.to_owned());
+                }
+            }
+            _ => {}
+        }
+    }
+    let expected_imports = model::RUNTIME_IMPORTS
+        .iter()
+        .map(|name| ("env".to_owned(), (*name).to_owned()))
+        .collect::<Vec<_>>();
+    if imports != expected_imports {
+        return Err(profile_error(
+            "package-build Wasm runtime import inventory is not exact",
+        ));
+    }
+    let expected_exports = exports
+        .iter()
+        .map(|export| export.wasm_export.clone())
+        .collect::<Vec<_>>();
+    if actual_exports != expected_exports {
+        return Err(profile_error(
+            "package-build Wasm public export inventory is not exact",
+        ));
+    }
+    Ok(())
+}
+
+fn artifact_bytes(build: &OfflinePackageBuild) -> Result<usize, Diagnostic> {
+    build
+        .module_wasm
+        .len()
+        .checked_add(build.manifest_json.len())
+        .and_then(|value| value.checked_add(build.evidence_json.len()))
+        .ok_or_else(|| limit_error("package-build artifact byte sum overflowed"))
+}
+
+fn artifact_bytes_with_limit(
+    build: &OfflinePackageBuild,
+    maximum: usize,
+) -> Result<usize, Diagnostic> {
+    let bytes = artifact_bytes(build)?;
+    if bytes > maximum {
+        return Err(limit_error(
+            "package-build cumulative artifacts exceed max_artifact_bytes",
+        ));
+    }
+    Ok(bytes)
+}
+
+fn option_error(message: impl Into<String>) -> Diagnostic {
+    Diagnostic::io("SPX-PB501", message.into())
+}
+
+fn authentication_error(message: impl Into<String>) -> Diagnostic {
+    Diagnostic::io("SPX-PB502", message.into())
+}
+
+fn association_error(message: impl Into<String>) -> Diagnostic {
+    Diagnostic::io("SPX-PB503", message.into())
+}
+
+fn profile_error(message: impl Into<String>) -> Diagnostic {
+    Diagnostic::io("SPX-PB504", message.into())
+}
+
+fn limit_error(message: impl Into<String>) -> Diagnostic {
+    Diagnostic::io("SPX-PB505", message.into())
+}
+
+fn wire_error(message: impl Into<String>) -> Diagnostic {
+    Diagnostic::io("SPX-PB506", message.into())
+}
+
+fn replay_error(message: impl Into<String>) -> Diagnostic {
+    Diagnostic::io("SPX-PB507", message.into())
+}
+
+#[cfg(test)]
+mod tests;

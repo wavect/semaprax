@@ -64,6 +64,13 @@ pub struct VerifiedSemanticPackageReport {
     pub exports_unproven: usize,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct VerifiedPackageBuildSource {
+    pub(crate) package: String,
+    pub(crate) source_revision: String,
+    pub(crate) canonical_source: String,
+}
+
 /// Generate v2 from one held, bounded source snapshot. The embedded subject is
 /// the canonical source projection, not a path or a claim supplied separately.
 pub fn generate(
@@ -105,6 +112,18 @@ pub(crate) fn verify_envelope_for_resolution(
     envelope: &str,
 ) -> Result<VerifiedSemanticPackageReport, Diagnostic> {
     verify_envelope_impl(envelope, true)
+}
+
+pub(crate) fn verify_envelope_for_package_build(
+    envelope: &str,
+) -> Result<VerifiedPackageBuildSource, Diagnostic> {
+    let subject = wire::parse_subject_for_resolution(envelope)?;
+    let receipt = verify_envelope_impl(envelope, true)?;
+    Ok(VerifiedPackageBuildSource {
+        package: receipt.package,
+        source_revision: receipt.source_revision,
+        canonical_source: subject.source,
+    })
 }
 
 fn verify_envelope_impl(

@@ -782,6 +782,32 @@ pub fn emit_resolved_module_with_scalar_exports(
     emit_resolved_module_internal(program, &plans, &[])
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PackageScalarExportFact {
+    pub(crate) stable_id: String,
+    pub(crate) wasm_export: String,
+    pub(crate) parameters: Vec<&'static str>,
+    pub(crate) result: &'static str,
+}
+
+pub(crate) fn emit_resolved_package_scalar_exports(
+    program: &ResolvedProgram,
+    export_ids: &[String],
+) -> Result<(Vec<u8>, Vec<PackageScalarExportFact>), Diagnostic> {
+    let plans = scalar_exports::prepare(program, export_ids)?;
+    let facts = plans
+        .iter()
+        .map(|plan| PackageScalarExportFact {
+            stable_id: plan.stable_id.clone(),
+            wasm_export: plan.wasm_export.clone(),
+            parameters: plan.params.iter().map(|ty| ty.text()).collect(),
+            result: plan.result.text(),
+        })
+        .collect();
+    let wasm = emit_resolved_module_internal(program, &plans, &[])?;
+    Ok((wasm, facts))
+}
+
 /// Emit Public Borrowed Text Export Profile v1 from resolved HIR.
 pub fn emit_resolved_module_with_text_exports(
     program: &ResolvedProgram,

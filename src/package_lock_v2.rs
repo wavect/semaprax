@@ -73,6 +73,19 @@ pub(crate) struct ResolutionSubject {
     pub(crate) targets: BTreeMap<String, String>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PackageBuildSubject {
+    pub(crate) coordinate: Coordinate,
+    pub(crate) subject_digest: String,
+    pub(crate) subject_bytes: usize,
+    pub(crate) report_digest: String,
+    pub(crate) source_revision: String,
+    pub(crate) canonical_source: String,
+    pub(crate) dependencies: Vec<Coordinate>,
+    pub(crate) capabilities: Vec<String>,
+    pub(crate) targets: BTreeMap<String, String>,
+}
+
 pub(crate) fn authenticate_subject_for_resolution(
     bytes: &str,
     work: &mut usize,
@@ -82,6 +95,30 @@ pub(crate) fn authenticate_subject_for_resolution(
         coordinate: subject.coordinate,
         subject_digest: subject.digest,
         subject_bytes: subject.bytes,
+        dependencies: subject.dependencies,
+        capabilities: subject.capabilities,
+        targets: subject.targets,
+    })
+}
+
+pub(crate) fn authenticate_subject_for_package_build(
+    bytes: &str,
+    work: &mut usize,
+) -> Result<PackageBuildSubject, Diagnostic> {
+    let subject = subject::parse_subject_for_resolution(bytes, work)?;
+    let source = crate::package_report_v2::verify_envelope_for_package_build(&subject.report)?;
+    if source.package != subject.coordinate.package || source.source_revision != subject.revision {
+        return Err(wire::confusion_error(
+            "package-build source receipt disagrees with authenticated Subject v2",
+        ));
+    }
+    Ok(PackageBuildSubject {
+        coordinate: subject.coordinate,
+        subject_digest: subject.digest,
+        subject_bytes: subject.bytes,
+        report_digest: subject.report_digest,
+        source_revision: subject.revision,
+        canonical_source: source.canonical_source,
         dependencies: subject.dependencies,
         capabilities: subject.capabilities,
         targets: subject.targets,

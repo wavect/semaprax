@@ -75,11 +75,18 @@ pub struct VerifiedResolution {
     pub lock: String,
 }
 
+pub(crate) struct VerifiedPackageBuildResolution {
+    pub(crate) resolution: VerifiedResolution,
+    pub(crate) selected_subjects: Vec<package_lock_v2::PackageBuildSubject>,
+}
+
 pub fn generate(
     input: &ResolutionInput,
     options: &ResolutionOptions,
 ) -> Result<String, Vec<Diagnostic>> {
-    bounded_build(input, options).map_err(|error| vec![error])
+    bounded_build(input, options)
+        .map(|built| built.evidence)
+        .map_err(|error| vec![error])
 }
 
 pub fn verify(
@@ -96,7 +103,7 @@ pub fn verify(
     let (result, overflowed) = bounded_output::with_limit(MAX_RENDER_BYTES, || {
         wire::parse_wrapper(evidence)?;
         let rebuilt = build(input, options)?;
-        if rebuilt != evidence {
+        if rebuilt.evidence != evidence {
             return Err(wire::replay_error(
                 "resolution evidence does not exactly replay inputs",
             ));
@@ -111,10 +118,10 @@ pub fn verify(
     result
 }
 
-fn bounded_build(
-    input: &ResolutionInput,
+fn bounded_build<'a>(
+    input: &'a ResolutionInput,
     options: &ResolutionOptions,
-) -> Result<String, Diagnostic> {
+) -> Result<BuiltResolution<'a>, Diagnostic> {
     let (result, overflowed) =
         bounded_output::with_limit(MAX_RENDER_BYTES, || build(input, options));
     if overflowed {
@@ -125,7 +132,15 @@ fn bounded_build(
     result
 }
 
-fn build(input: &ResolutionInput, options: &ResolutionOptions) -> Result<String, Diagnostic> {
+struct BuiltResolution<'a> {
+    evidence: String,
+    selected_subjects: Vec<&'a str>,
+}
+
+fn build<'a>(
+    input: &'a ResolutionInput,
+    options: &ResolutionOptions,
+) -> Result<BuiltResolution<'a>, Diagnostic> {
     validate_options(options)?;
     let mut work = 0usize;
     let requirements = model::validate_input(input, &mut work)?;
@@ -159,7 +174,53 @@ fn build(input: &ResolutionInput, options: &ResolutionOptions) -> Result<String,
             "resolution evidence exceeds output bound",
         ));
     }
-    Ok(envelope)
+    let selected_subjects = solved.selected.values().map(|entry| entry.bytes).collect();
+    Ok(BuiltResolution {
+        evidence: envelope,
+        selected_subjects,
+    })
+}
+
+pub(crate) fn verify_for_package_build(
+    evidence: &str,
+    input: &ResolutionInput,
+    options: &ResolutionOptions,
+) -> Result<VerifiedPackageBuildResolution, Diagnostic> {
+    validate_options(options)?;
+    if evidence.len() > options.max_bytes || evidence.len() > MAX_OUTPUT_BYTES {
+        return Err(wire::limit_error(
+            "resolution evidence exceeds output bound",
+        ));
+    }
+    let (result, overflowed) = bounded_output::with_limit(MAX_RENDER_BYTES, || {
+        wire::parse_wrapper(evidence)?;
+        let rebuilt = build(input, options)?;
+        if rebuilt.evidence != evidence {
+            return Err(wire::replay_error(
+                "resolution evidence does not exactly replay inputs",
+            ));
+        }
+        let resolution = receipt(evidence)?;
+        let mut work = 0usize;
+        let selected_subjects = rebuilt
+            .selected_subjects
+            .into_iter()
+            .map(|subject| {
+                package_lock_v2::authenticate_subject_for_package_build(subject, &mut work)
+                    .map_err(|error| wire::map_subject_error(&error))
+            })
+            .collect::<Result<Vec<_>, Diagnostic>>()?;
+        Ok(VerifiedPackageBuildResolution {
+            resolution,
+            selected_subjects,
+        })
+    });
+    if overflowed {
+        return Err(wire::limit_error(
+            "resolution cumulative String budget exceeded",
+        ));
+    }
+    result
 }
 
 fn receipt(evidence: &str) -> Result<VerifiedResolution, Diagnostic> {

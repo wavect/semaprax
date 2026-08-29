@@ -150,22 +150,13 @@ fn existing_core_matrix_and_global_authority_remain_bounded() {
     ));
     assert!(verify.contains("fail-fast: false"));
     assert!(verify.contains("os: [ubuntu-latest, macos-latest, windows-latest]"));
-    assert_eq!(
-        workflow.matches("continue-on-error: true").count(),
-        1,
-        "the sole recent non-blocking diagnostic is an explicit, bounded exception"
-    );
-    assert!(verify.contains(
-        "name: Diagnose bounded Windows Native Rust Interop unit evidence (non-blocking)"
-    ));
+    assert!(!workflow.contains("continue-on-error: true"));
 
     for blocker in RELEASE_BLOCKERS {
-        if *blocker != "verify" {
-            assert!(
-                !job(&workflow, blocker).contains("continue-on-error"),
-                "release blocker `{blocker}` must not mask failures"
-            );
-        }
+        assert!(
+            !job(&workflow, blocker).contains("continue-on-error"),
+            "release blocker `{blocker}` must not mask failures"
+        );
     }
     for blocker in RELEASE_BLOCKERS {
         for forbidden in [

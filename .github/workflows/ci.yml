@@ -427,11 +427,6 @@ jobs:
       - name: Require private Native Rust Interop A+B replay, static-link, runtime, and hostile evidence
         if: runner.os != 'Windows'
         run: cargo test --locked -p semaprax-native-rust-interop -- --nocapture
-      - name: Diagnose bounded Windows Native Rust Interop unit evidence (non-blocking)
-        if: runner.os == 'Windows'
-        continue-on-error: true
-        timeout-minutes: 5
-        run: cargo test --locked -p semaprax-native-rust-interop --lib windows_ -- --nocapture --test-threads=1
       - name: Require private Native Rust Interop platform authority evidence
         run: cargo test --locked -p semaprax-native-rust-interop-platform --all-targets -- --nocapture
       - name: Require Windows callable-v2 and private callable-v3 physical evidence

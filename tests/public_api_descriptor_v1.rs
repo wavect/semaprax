@@ -538,14 +538,18 @@ fn legacy_project_v1_through_v7_canonical_manifest_bytes_are_unchanged() {
 }
 
 #[test]
-fn project_v8_remains_inactive_and_target_generators_do_not_rediscover_the_schema() {
+fn project_v8_is_activated_only_by_manifest_and_profile_admission() {
     let manifest = include_str!("../src/project/manifest.rs");
     let profile = include_str!("../src/project/profile.rs");
     let npm = include_str!("../src/project/npm.rs");
     let native_sdk = include_str!("../src/project/native_sdk.rs");
     let wasm = include_str!("../src/wasm.rs");
-    for frozen in [manifest, profile, npm, native_sdk, wasm] {
-        assert!(!frozen.contains(PUBLIC_OWNED_DATA_PROJECT_SCHEMA));
-        assert!(!frozen.contains(PUBLIC_OWNED_DATA_API_SCHEMA));
+
+    for admission in [manifest, profile] {
+        assert!(admission.contains(PUBLIC_OWNED_DATA_PROJECT_SCHEMA));
+    }
+    for target_orchestrator in [npm, native_sdk, wasm] {
+        assert!(!target_orchestrator.contains(PUBLIC_OWNED_DATA_PROJECT_SCHEMA));
+        assert!(!target_orchestrator.contains(PUBLIC_OWNED_DATA_API_SCHEMA));
     }
 }

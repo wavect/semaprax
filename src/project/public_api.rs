@@ -373,7 +373,7 @@ pub fn replay_public_api_descriptor(
 fn validate_subject(subject: PublicApiSubject<'_>) -> Result<(), Diagnostic> {
     if subject.project_schema != PUBLIC_OWNED_DATA_PROJECT_SCHEMA {
         return Err(api_error(
-            "public API descriptor requires the inactive Project v8 schema fact",
+            "public API descriptor requires the exact Project v8 schema fact",
         ));
     }
     for (name, value) in [

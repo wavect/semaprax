@@ -1,8 +1,7 @@
 # Project Revision Store v1
 
-Status: additive implementation and a focused Unix evidence subset authored;
-the complete evidence programme, local execution, and hosted execution are not
-claimed.
+Status: additive implementation and an expanded Unix evidence programme
+authored; local execution and hosted execution are not claimed.
 
 Audience: compiler contributors, host integrators, and agent-tool authors.
 
@@ -29,6 +28,11 @@ pub fn load(
     entry_digest: &str,
     expected_project_revision: &str,
 ) -> Result<project::ProjectRevision, Vec<Diagnostic>>;
+
+pub fn identify(
+    revision: &project::ProjectRevision,
+    expected_project_revision: &str,
+) -> Result<ProjectRevisionStoreLocator, Vec<Diagnostic>>;
 ```
 
 `ProjectRevisionStoreReceipt` is opaque, is not `Clone`, `Default`, or serde
@@ -37,7 +41,14 @@ data, and exposes only borrowed `entry_digest()`, `project_revision()`,
 path, handle, stage, write, build, mutation, or reusable authorization
 authority.
 
-Both operations require an absolute, normalized store root selected by the
+`ProjectRevisionStoreLocator` is likewise opaque and authority-neutral. It
+exposes the same four borrowed subject getters and is prepared without opening
+or observing a store root. It lets a caller retain the deterministic entry
+digest before publication and resolve `SPX-I216` only by calling the ordinary
+fully replayed `load` route. It is not evidence that publication occurred and
+cannot authorize adoption of an existing entry.
+
+`persist` and `load` require an absolute, normalized store root selected by the
 host. The root must already exist as one real directory owned by the process's
 current effective user with exact `0700` permissions. A relative root, `.` or
 `..` component, symlink/reparse point, non-directory, owner/mode disagreement,
@@ -45,9 +56,12 @@ or path/held-handle disagreement rejects before a store effect. Every
 invocation opens and owns a fresh root authority; no authority object escapes
 or can be reused.
 
-The host must additionally exclude uncooperative mutation by another process
-running as that same effective user for the duration of the invocation. The
-advisory root lock serializes cooperating store callers only; it is not a
+The host must additionally exclude uncooperative mutation of the selected
+root, its ancestors, and the invocation-owned stage by another process running
+as that same effective user for the duration of the invocation. On Darwin this
+precondition also excludes mutation authority granted through ACLs
+independently of the checked owner and mode bits. The advisory root lock
+serializes cooperating store callers only; it is not a
 security boundary against a same-principal peer that ignores it. The hostile
 substitution, no-adoption, and no-concurrent-mutation claims below are scoped
 to the enforced owner/mode boundary and that explicit host guarantee.
@@ -168,6 +182,16 @@ published persistence subject. Same-size corruption of an unrelated retained
 entry never grants authority: selecting it still requires complete replay,
 and the next invocation independently authenticates it again.
 
+For read availability only, `load` may additionally observe at most one inert
+top-level name with the exact grammar `.stage-<entry-hex>`. It authenticates
+only that name's current-euid real-directory type, exact `0700` mode, and stable
+top-level identity, caches that identity, and rechecks the exact root inventory
+and stage identity before returning. It never opens, traverses, reads, adopts, deletes,
+repairs, or publishes the inert stage. An invalid name, a second stage, a
+non-directory, a special permission bit, or identity drift rejects. `persist`
+continues to require zero stage entries on entry and therefore rejects while
+any inert stage remains.
+
 ## Publication and authority order
 
 Persistence has this fixed order:
@@ -195,15 +219,17 @@ adoption, overwrite, rollback, recovery, eviction, or garbage collection.
 Before the rename, failure leaves any partial stage inert and preserves all
 bytes. After the rename, any uncertainty is
 post-pivot ambiguity: the immutable entry may be visible and is never removed
-automatically. A later operation rejects every retained stage or unexpected
-root entry instead of treating it as owned residue.
+automatically. A later persistence operation rejects every retained stage or
+unexpected root entry instead of treating it as owned residue. A later load
+may quarantine one exact stage-shaped top identity under the read-only rule
+above; this restores access to unrelated complete entries but is not recovery.
 
 ## Exact limits
 
 | Field | Maximum |
 | --- | ---: |
 | retained published entries | 32 |
-| simultaneous stage entries | 1 during the owning invocation, 0 on entry |
+| simultaneous stage entries | 1 during the owning invocation; load may quarantine 1 inert stage on entry; persist requires 0 |
 | manifest bytes | 65,536 |
 | Workspace manifest bytes | 1,048,576 |
 | sources | 16 |
@@ -264,15 +290,31 @@ store operation into Project success.
 
 ## Evidence and nonclaims
 
-Authored evidence must cover canonical persist/load round-trip for every
-admitted Project profile; deterministic entry JSON and digest; exact-capacity
-and plus-one rejection; stale expected subject; manifest/source/Workspace/
+Authored evidence covers canonical persist/load round-trip for every currently
+constructible Project revision in v1-v8 and v10; deterministic entry JSON and
+digest; exact-capacity and plus-one rejection; stale expected subject;
+manifest/source/Workspace/
 Project/graph binding mutations; same-byte path substitution after authority
 capture under the trusted-root contract; root/entry/file
 symlinks and hard links; partial stage; root and nested foreign bytes; existing
 destination collision; stage and published truncation/growth; permission and
 identity drift before and after the pivot; post-pivot ambiguity; and exact
-legacy Project Manifest v1-v10 and Transport v2-v5 byte preservation.
+legacy Project Manifest v1-v10 and Transport v2-v5 byte preservation. The
+expanded authored subset additionally covers an authority-neutral locator,
+unrelated load availability with one untraversed inert stage, rejection of a
+second, invalid, or non-private stage, cached stage-identity drift, exact
+special-mode rejection, and an expected-plus-one created/stored-file reread
+boundary. The shared reread case uses an unbounded synthetic reader and proves
+that only expected length plus one is consumed. These tests remain unexecuted in this
+documentation state.
+
+Project v9 remains an explicit evidence blocker rather than a storage
+exception: ordinary Phase-A admission rejects its
+`flat-owned-record-api.v1` profile with `SPX-W115` before a `ProjectRevision`
+can be constructed. A named regression preserves that boundary. Literal
+v1-v10 round-trip evidence therefore depends on a separate Project v9
+admission tranche; this store neither fabricates a revision nor weakens replay
+to hide the gap.
 
 This store does not persist HIR, graph indexes, compiler output, packages,
 artifacts, patches, templates, locks, approvals, credentials, or executable

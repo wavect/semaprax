@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Hardened the authored Project Revision Store v1 without changing published
+  entry bytes: every created-file replay is bounded to expected length plus
+  one, exact Unix modes include special permission bits, one inert stage may be
+  quarantined by top identity for unrelated loads while persistence remains
+  blocked, and a pure locator permits post-pivot ambiguity to be resolved only
+  by ordinary full replay. Added authored v1-v8/v10 profile round trips, an
+  explicit Project v9 `SPX-W115` admission-blocker regression, and hostile
+  residue, identity, and permission evidence; no local or hosted execution,
+  cleanup, adoption, Windows support, cache, or promotion is claimed.
+
 - Authored Offline Effect-Free Scalar Core-Wasm Package Build v1 above exact
   Resolver-v1 and Lock-v2 replay. The authority-free compiler slice admits one
   dependency-free selected Subject v2, independently rebuilds its embedded

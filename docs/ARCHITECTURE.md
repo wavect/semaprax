@@ -289,6 +289,13 @@ per invocation; later checks revalidate names and top identities without
 rereading metadata. Selecting an entry or
 publishing a new one additionally owns all bytes and rebuilds meaning through
 the ordinary Project Phase-A/HIR path; stored bytes never bypass verification.
+For read availability, one exact inert stage-shaped top identity may be cached
+and rechecked without being opened or traversed; persistence still rejects all
+residue. A pure locator exposes the deterministic subject digest so callers can
+resolve post-pivot ambiguity only through ordinary full load replay. Neither
+surface adopts, deletes, repairs, or authorizes the stage. Darwin callers also
+own the explicit host precondition excluding ancestor and ACL-granted mutation
+authority that owner/mode checks cannot prove.
 Non-Unix hosts fail before an
 entry effect. No store handle, receipt, daemon integration, build authority,
 cleanup, recovery, eviction, or garbage collection is exposed.

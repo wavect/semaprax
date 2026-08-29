@@ -89,6 +89,20 @@ pub struct ProjectRevisionStoreReceipt {
     project_graph_digest: String,
 }
 
+/// A deterministic, authority-neutral identity for one exact store entry.
+///
+/// A locator carries no root, path, handle, publication, or mutation
+/// authority. It can be prepared before persistence and used to resolve a
+/// post-publication ambiguity only through the ordinary fully replayed
+/// [`load`] route.
+#[derive(Debug)]
+pub struct ProjectRevisionStoreLocator {
+    entry_digest: String,
+    project_revision: String,
+    workspace_revision: String,
+    project_graph_digest: String,
+}
+
 impl ProjectRevisionStoreReceipt {
     pub fn entry_digest(&self) -> &str {
         &self.entry_digest
@@ -105,6 +119,36 @@ impl ProjectRevisionStoreReceipt {
     pub fn project_graph_digest(&self) -> &str {
         &self.project_graph_digest
     }
+}
+
+impl ProjectRevisionStoreLocator {
+    pub fn entry_digest(&self) -> &str {
+        &self.entry_digest
+    }
+
+    pub fn project_revision(&self) -> &str {
+        &self.project_revision
+    }
+
+    pub fn workspace_revision(&self) -> &str {
+        &self.workspace_revision
+    }
+
+    pub fn project_graph_digest(&self) -> &str {
+        &self.project_graph_digest
+    }
+}
+
+/// Identify the exact immutable entry for an already-authenticated revision.
+///
+/// This operation does not access the filesystem or grant authority. Resolving
+/// an uncertain publication still requires [`load`], which independently
+/// authenticates and rebuilds the complete stored subject.
+pub fn identify(
+    revision: &ProjectRevision,
+    expected_project_revision: &str,
+) -> Result<ProjectRevisionStoreLocator, Vec<Diagnostic>> {
+    Ok(PreparedEntry::from_revision(revision, expected_project_revision)?.locator())
 }
 
 /// Persist one exact immutable revision through an injected store root.
@@ -290,6 +334,15 @@ impl PreparedEntry {
     ))]
     fn receipt(&self) -> ProjectRevisionStoreReceipt {
         ProjectRevisionStoreReceipt {
+            entry_digest: self.entry_digest.clone(),
+            project_revision: self.project_revision.clone(),
+            workspace_revision: self.workspace_revision.clone(),
+            project_graph_digest: self.project_graph_digest.clone(),
+        }
+    }
+
+    fn locator(&self) -> ProjectRevisionStoreLocator {
+        ProjectRevisionStoreLocator {
             entry_digest: self.entry_digest.clone(),
             project_revision: self.project_revision.clone(),
             workspace_revision: self.workspace_revision.clone(),

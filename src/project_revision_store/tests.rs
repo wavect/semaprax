@@ -82,6 +82,29 @@ fn exact_revision_round_trips_through_one_content_addressed_entry() {
 }
 
 #[test]
+fn authority_neutral_locator_matches_publication_and_opens_no_store() {
+    let fixture = Fixture::new("locator");
+    let revision = revision();
+    let locator = identify(&revision, revision.project_revision()).unwrap();
+    assert_eq!(std::fs::read_dir(&fixture.store).unwrap().count(), 0);
+    let receipt = persist(&fixture.store, &revision, revision.project_revision()).unwrap();
+    assert_eq!(locator.entry_digest(), receipt.entry_digest());
+    assert_eq!(locator.project_revision(), receipt.project_revision());
+    assert_eq!(locator.workspace_revision(), receipt.workspace_revision());
+    assert_eq!(
+        locator.project_graph_digest(),
+        receipt.project_graph_digest()
+    );
+    let loaded = load(
+        &fixture.store,
+        locator.entry_digest(),
+        locator.project_revision(),
+    )
+    .unwrap();
+    assert_eq!(loaded.project_revision(), revision.project_revision());
+}
+
+#[test]
 fn stale_subject_rejects_before_the_first_store_effect() {
     let fixture = Fixture::new("stale");
     let revision = revision();
@@ -170,10 +193,21 @@ fn owned_partial_stage_is_preserved_and_blocks_future_adoption() {
         .store
         .join(format!(".stage-{}", prepared.entry_hex()));
     assert!(stage.join("entry.json").is_file());
+    let loaded = load(
+        &fixture.store,
+        &prepared.entry_digest,
+        &prepared.project_revision,
+    )
+    .err()
+    .expect("an unpublished inert stage cannot satisfy load");
+    assert_eq!(loaded[0].code, "SPX-G193");
     let later = persist(&fixture.store, &revision, revision.project_revision()).unwrap_err();
     assert_eq!(later[0].code, "SPX-G193");
     assert!(stage.join("entry.json").is_file());
 }
+
+mod hostile;
+mod profiles;
 
 #[test]
 fn staged_byte_drift_is_rejected_and_never_published_or_deleted() {
@@ -310,7 +344,9 @@ fn same_name_stage_substitution_is_identity_rejected_with_foreign_bytes_preserve
 fn post_pivot_uncertainty_preserves_a_complete_loadable_entry() {
     let fixture = Fixture::new("post-pivot");
     let revision = revision();
+    let locator = identify(&revision, revision.project_revision()).unwrap();
     let prepared = prepared(&revision);
+    assert_eq!(locator.entry_digest(), prepared.entry_digest);
     let error = unix::persist_with_hook(&fixture.store, &prepared, |point, _| {
         if point == StorePoint::AfterPublish {
             return Err(std::io::Error::other("injected uncertainty"));
@@ -322,8 +358,8 @@ fn post_pivot_uncertainty_preserves_a_complete_loadable_entry() {
     assert!(fixture.store.join(prepared.entry_hex()).is_dir());
     let loaded = load(
         &fixture.store,
-        &prepared.entry_digest,
-        &prepared.project_revision,
+        locator.entry_digest(),
+        locator.project_revision(),
     )
     .unwrap();
     assert_eq!(loaded.project_revision(), revision.project_revision());

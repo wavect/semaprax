@@ -23,6 +23,7 @@ struct Identity {
     device: u64,
     inode: u64,
     mode: u32,
+    uid: u32,
 }
 
 struct RetainedEntryFact {
@@ -33,6 +34,13 @@ struct RetainedEntryFact {
 struct RootInventory {
     names: BTreeSet<String>,
     retained: BTreeMap<String, RetainedEntryFact>,
+    inert_stage: Option<(String, Identity)>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum RootInventoryPolicy {
+    RejectStages,
+    AllowOneInertStage,
 }
 
 struct CreatedEntry {
@@ -94,7 +102,7 @@ pub(super) fn persist_with_hook(
     fs2::FileExt::try_lock_exclusive(&lock_file)
         .map_err(|error| authentication(format!("Project Revision Store root is busy: {error}")))?;
     let lock = AdvisoryLock::new(lock_file);
-    let initial = root_inventory(&root)?;
+    let initial = root_inventory(&root, RootInventoryPolicy::RejectStages)?;
     require_publication_capacity(initial.names.len())?;
     let destination = prepared.entry_hex();
     if initial.names.contains(destination) {
@@ -123,7 +131,7 @@ pub(super) fn persist_with_hook(
         stage_identity,
         "store stage changed before writing",
     )?;
-    require_root_inventory(&root, &with_stage, &initial.retained)?;
+    require_root_inventory(&root, &with_stage, &initial.retained, None)?;
     let created = write_entry(&stage_fd, prepared)?;
     let prepared_paths = prepared
         .sources
@@ -141,7 +149,7 @@ pub(super) fn persist_with_hook(
         stage_identity,
         "store stage changed after writing",
     )?;
-    require_root_inventory(&root, &with_stage, &initial.retained)?;
+    require_root_inventory(&root, &with_stage, &initial.retained, None)?;
     require_exact_inventory(&stage_fd, &expected_stage_inventory, &created.inventory)?;
     sync_created_directories(&stage_fd, &created.directories)?;
     fs::fsync(&root).map_err(|error| {
@@ -161,7 +169,7 @@ pub(super) fn persist_with_hook(
         stage_identity,
         "store stage changed before publication",
     )?;
-    require_root_inventory(&root, &with_stage, &initial.retained)?;
+    require_root_inventory(&root, &with_stage, &initial.retained, None)?;
     require_exact_inventory(&stage_fd, &expected_stage_inventory, &created.inventory)?;
     authenticate_prepared(&stage_fd, prepared)?;
     hook(StorePoint::BeforePublish, root_path).map_err(|error| {
@@ -176,7 +184,7 @@ pub(super) fn persist_with_hook(
         stage_identity,
         "store stage changed immediately before publication",
     )?;
-    require_root_inventory(&root, &with_stage, &initial.retained)?;
+    require_root_inventory(&root, &with_stage, &initial.retained, None)?;
     require_exact_inventory(&stage_fd, &expected_stage_inventory, &created.inventory)?;
     sync_created_directories(&stage_fd, &created.directories)?;
     fs::fsync(&root).map_err(|error| {
@@ -196,7 +204,7 @@ pub(super) fn persist_with_hook(
         stage_identity,
         "store stage changed before publication",
     )?;
-    require_root_inventory(&root, &with_stage, &initial.retained)?;
+    require_root_inventory(&root, &with_stage, &initial.retained, None)?;
     require_exact_inventory(&stage_fd, &expected_stage_inventory, &created.inventory)?;
     authenticate_prepared(&stage_fd, prepared)?;
     fs::renameat_with(
@@ -251,7 +259,7 @@ pub(super) fn persist_with_hook(
     .map_err(|_| post_pivot("Project Revision Store published entry identity changed"))?;
     require_root_path_identity(root_path, root_identity)
         .map_err(|_| post_pivot("Project Revision Store root path changed after publication"))?;
-    require_root_inventory(&root, &published_inventory, &initial.retained).map_err(|_| {
+    require_root_inventory(&root, &published_inventory, &initial.retained, None).map_err(|_| {
         post_pivot("Project Revision Store root inventory changed after publication")
     })?;
     lock.release().map_err(|error| {
@@ -279,6 +287,31 @@ pub(super) fn retained_metadata_authentications() -> usize {
 }
 
 pub(super) fn load(root_path: &Path, entry_digest: &str) -> Result<StoredEntry, Vec<Diagnostic>> {
+    load_with_hook_inner(root_path, entry_digest, |_| Ok(()))
+}
+
+#[cfg(test)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum LoadPoint {
+    AfterInventory,
+}
+
+#[cfg(test)]
+pub(super) fn load_with_hook(
+    root_path: &Path,
+    entry_digest: &str,
+    mut hook: impl FnMut(LoadPoint, &Path) -> Result<(), std::io::Error>,
+) -> Result<StoredEntry, Vec<Diagnostic>> {
+    load_with_hook_inner(root_path, entry_digest, |path| {
+        hook(LoadPoint::AfterInventory, path)
+    })
+}
+
+fn load_with_hook_inner(
+    root_path: &Path,
+    entry_digest: &str,
+    mut hook: impl FnMut(&Path) -> Result<(), std::io::Error>,
+) -> Result<StoredEntry, Vec<Diagnostic>> {
     let root = open_root(root_path)?;
     let root_identity = identity(&root)?;
     require_root_path_identity(root_path, root_identity)?;
@@ -289,7 +322,9 @@ pub(super) fn load(root_path: &Path, entry_digest: &str) -> Result<StoredEntry, 
     fs2::FileExt::try_lock_shared(&lock_file)
         .map_err(|error| authentication(format!("Project Revision Store root is busy: {error}")))?;
     let lock = AdvisoryLock::new(lock_file);
-    let inventory = root_inventory(&root)?;
+    let inventory = root_inventory(&root, RootInventoryPolicy::AllowOneInertStage)?;
+    hook(root_path)
+        .map_err(|error| io(format!("Project Revision Store load hook failed: {error}")))?;
     let entry_hex = entry_digest
         .strip_prefix("sha256:")
         .ok_or_else(|| authentication("Project Revision Store digest prefix is absent"))?;
@@ -310,7 +345,12 @@ pub(super) fn load(root_path: &Path, entry_digest: &str) -> Result<StoredEntry, 
         entry_identity,
         "store entry changed while loading",
     )?;
-    require_root_inventory(&root, &inventory.names, &inventory.retained)?;
+    require_root_inventory(
+        &root,
+        &inventory.names,
+        &inventory.retained,
+        inventory.inert_stage.as_ref(),
+    )?;
     lock.release().map_err(|error| {
         io(format!(
             "cannot release Project Revision Store root: {error}"
@@ -380,7 +420,7 @@ fn open_root(path: &Path) -> Result<OwnedFd, Vec<Diagnostic>> {
         .map_err(|error| authentication(format!("cannot inspect store root: {error}")))?;
     if !FileType::from_raw_mode(stat.st_mode).is_dir()
         || stat.st_uid != rustix::process::geteuid().as_raw()
-        || stat.st_mode as u32 & 0o777 != 0o700
+        || stat.st_mode as u32 & 0o7777 != 0o700
     {
         return Err(authentication(
             "Project Revision Store root must be one current-euid-owned 0700 directory",
@@ -399,19 +439,49 @@ fn require_root_path_identity(path: &Path, expected: Identity) -> Result<(), Vec
     Ok(())
 }
 
-fn root_inventory(root: &OwnedFd) -> Result<RootInventory, Vec<Diagnostic>> {
+fn root_inventory(
+    root: &OwnedFd,
+    policy: RootInventoryPolicy,
+) -> Result<RootInventory, Vec<Diagnostic>> {
     let names = directory_names(root)?;
-    if names.len() > MAX_STORE_ENTRIES {
-        return Err(super::limit("retained_entries", MAX_STORE_ENTRIES));
-    }
     let mut retained = BTreeMap::new();
+    let mut inert_stage = None;
     for name in names {
-        if name.len() != 64
-            || !name
-                .as_bytes()
-                .iter()
-                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
-        {
+        if let Some(entry_hex) = name.strip_prefix(".stage-") {
+            if policy != RootInventoryPolicy::AllowOneInertStage
+                || inert_stage.is_some()
+                || !canonical_entry_hex(entry_hex)
+            {
+                return Err(authentication(
+                    "Project Revision Store root inventory contains foreign or excess stage bytes",
+                ));
+            }
+            let stat =
+                fs::statat(root, name.as_bytes(), AtFlags::SYMLINK_NOFOLLOW).map_err(|error| {
+                    authentication(format!(
+                        "cannot inspect inert store stage identity: {error}"
+                    ))
+                })?;
+            if !FileType::from_raw_mode(stat.st_mode).is_dir()
+                || stat.st_uid != rustix::process::geteuid().as_raw()
+                || stat.st_mode as u32 & 0o7777 != 0o700
+            {
+                return Err(authentication(
+                    "Project Revision Store inert stage is not one exact 0700 directory",
+                ));
+            }
+            inert_stage = Some((
+                name,
+                Identity {
+                    device: stat.st_dev as u64,
+                    inode: stat.st_ino as u64,
+                    mode: stat.st_mode as u32,
+                    uid: stat.st_uid as u32,
+                },
+            ));
+            continue;
+        }
+        if !canonical_entry_hex(&name) {
             return Err(authentication(
                 "Project Revision Store root inventory contains foreign bytes",
             ));
@@ -427,17 +497,34 @@ fn root_inventory(root: &OwnedFd) -> Result<RootInventory, Vec<Diagnostic>> {
         }
         let fact = authenticate_retained_entry(root, &name)?;
         retained.insert(name, fact);
+        if retained.len() > MAX_STORE_ENTRIES {
+            return Err(super::limit("retained_entries", MAX_STORE_ENTRIES));
+        }
     }
     Ok(RootInventory {
-        names: retained.keys().cloned().collect(),
+        names: retained
+            .keys()
+            .cloned()
+            .chain(inert_stage.iter().map(|(name, _)| name.clone()))
+            .collect(),
         retained,
+        inert_stage,
     })
+}
+
+fn canonical_entry_hex(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .as_bytes()
+            .iter()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
 }
 
 fn require_root_inventory(
     root: &OwnedFd,
     expected: &BTreeSet<String>,
     retained: &BTreeMap<String, RetainedEntryFact>,
+    inert_stage: Option<&(String, Identity)>,
 ) -> Result<(), Vec<Diagnostic>> {
     let observed = directory_names(root)?.into_iter().collect::<BTreeSet<_>>();
     if observed != *expected {
@@ -451,6 +538,14 @@ fn require_root_inventory(
             name.as_bytes(),
             fact.identity,
             "Project Revision Store retained entry identity changed",
+        )?;
+    }
+    if let Some((name, expected_identity)) = inert_stage {
+        require_identity_at(
+            root,
+            name.as_bytes(),
+            *expected_identity,
+            "Project Revision Store inert stage identity changed",
         )?;
     }
     Ok(())
@@ -558,7 +653,7 @@ fn require_file_size(
         .map_err(|error| authentication(format!("cannot inspect retained store file: {error}")))?;
     if !FileType::from_raw_mode(stat.st_mode).is_file()
         || stat.st_nlink != 1
-        || stat.st_mode as u32 & 0o777 != 0o600
+        || stat.st_mode as u32 & 0o7777 != 0o600
         || stat.st_size < 0
         || stat.st_size as u64 != expected_bytes as u64
     {
@@ -909,7 +1004,7 @@ fn walk(
                 "Project Revision Store inventory contains a link or special object",
             ));
         }
-        let permissions = stat.st_mode as u32 & 0o777;
+        let permissions = stat.st_mode as u32 & 0o7777;
         if (file_type.is_dir() && permissions != 0o700)
             || (file_type.is_file() && permissions != 0o600)
         {
@@ -930,6 +1025,7 @@ fn walk(
                     device: stat.st_dev as u64,
                     inode: stat.st_ino as u64,
                     mode: stat.st_mode as u32,
+                    uid: stat.st_uid as u32,
                 },
             ),
         );
@@ -973,12 +1069,7 @@ fn write_file(parent: &OwnedFd, name: &[u8], bytes: &[u8]) -> Result<Identity, V
             "cannot replay Project Revision Store file: {error}"
         ))
     })?;
-    let mut observed = Vec::with_capacity(bytes.len());
-    file.read_to_end(&mut observed).map_err(|error| {
-        io(format!(
-            "cannot replay Project Revision Store file: {error}"
-        ))
-    })?;
+    let observed = read_expected_plus_one(&mut file, bytes.len())?;
     if observed != bytes || identity(&file)? != expected_identity {
         return Err(authentication(
             "Project Revision Store file changed while being settled",
@@ -991,6 +1082,25 @@ fn write_file(parent: &OwnedFd, name: &[u8], bytes: &[u8]) -> Result<Identity, V
         "Project Revision Store file path changed while being settled",
     )?;
     Ok(expected_identity)
+}
+
+pub(super) fn read_expected_plus_one(
+    reader: &mut impl Read,
+    expected_len: usize,
+) -> Result<Vec<u8>, Vec<Diagnostic>> {
+    let maximum = expected_len
+        .checked_add(1)
+        .ok_or_else(|| super::limit("stored_file_bytes", expected_len))?;
+    let mut observed = Vec::with_capacity(maximum);
+    reader
+        .take(maximum as u64)
+        .read_to_end(&mut observed)
+        .map_err(|error| {
+            io(format!(
+                "cannot replay Project Revision Store file: {error}"
+            ))
+        })?;
+    Ok(observed)
 }
 
 fn read_nested_file(root: &OwnedFd, path: &str, limit: usize) -> Result<Vec<u8>, Vec<Diagnostic>> {
@@ -1011,7 +1121,7 @@ fn read_file(parent: &OwnedFd, name: &str, limit: usize) -> Result<Vec<u8>, Vec<
         .map_err(|error| authentication(format!("cannot inspect stored file: {error}")))?;
     if !FileType::from_raw_mode(stat.st_mode).is_file()
         || stat.st_nlink != 1
-        || stat.st_mode as u32 & 0o777 != 0o600
+        || stat.st_mode as u32 & 0o7777 != 0o600
     {
         return Err(authentication(
             "Project Revision Store input is not one regular non-linked file",
@@ -1020,14 +1130,13 @@ fn read_file(parent: &OwnedFd, name: &str, limit: usize) -> Result<Vec<u8>, Vec<
     if stat.st_size < 0 || stat.st_size as u64 > limit as u64 {
         return Err(super::limit("stored_file_bytes", limit));
     }
+    let expected_len = stat.st_size as usize;
     let mut file = std::fs::File::from(fd);
-    let mut bytes = Vec::with_capacity(stat.st_size as usize);
-    std::io::Read::by_ref(&mut file)
-        .take(limit as u64 + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|error| io(format!("cannot read Project Revision Store file: {error}")))?;
-    if bytes.len() > limit {
-        return Err(super::limit("stored_file_bytes", limit));
+    let bytes = read_expected_plus_one(&mut file, expected_len)?;
+    if bytes.len() != expected_len {
+        return Err(authentication(
+            "Project Revision Store file size changed while reading",
+        ));
     }
     if identity(&file)? != expected_identity {
         return Err(authentication(
@@ -1046,7 +1155,7 @@ fn read_file(parent: &OwnedFd, name: &str, limit: usize) -> Result<Vec<u8>, Vec<
 fn require_entry_directory_mode(directory: &OwnedFd) -> Result<(), Vec<Diagnostic>> {
     let stat = fs::fstat(directory)
         .map_err(|error| authentication(format!("cannot inspect store directory: {error}")))?;
-    if !FileType::from_raw_mode(stat.st_mode).is_dir() || stat.st_mode as u32 & 0o777 != 0o700 {
+    if !FileType::from_raw_mode(stat.st_mode).is_dir() || stat.st_mode as u32 & 0o7777 != 0o700 {
         return Err(authentication(
             "Project Revision Store entry directory permissions are not exact",
         ));
@@ -1088,6 +1197,7 @@ fn identity<Fd: AsFd>(fd: Fd) -> Result<Identity, Vec<Diagnostic>> {
         device: stat.st_dev as u64,
         inode: stat.st_ino as u64,
         mode: stat.st_mode as u32,
+        uid: stat.st_uid as u32,
     })
 }
 
@@ -1098,6 +1208,7 @@ fn identity_at<Fd: AsFd>(parent: Fd, name: &[u8]) -> Result<Identity, Vec<Diagno
         device: stat.st_dev as u64,
         inode: stat.st_ino as u64,
         mode: stat.st_mode as u32,
+        uid: stat.st_uid as u32,
     })
 }
 

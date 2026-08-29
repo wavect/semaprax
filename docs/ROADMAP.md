@@ -130,8 +130,11 @@ ABIs prematurely.
   [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md), which persists
   exact authenticated Project inputs only through one injected trusted,
   current-euid-owned `0700` held root under an explicit host-exclusive
-  same-principal-mutation precondition, and deliberately remains neither an
-  ambient cache nor a verifier bypass;
+  same-principal, ancestor, and Darwin-ACL mutation precondition; its authored
+  hardening keeps persistence fail-closed while allowing unrelated reads past
+  one untraversed inert stage identity and exposes only an authority-neutral
+  locator for full-replay ambiguity resolution. It deliberately remains
+  neither an ambient cache nor a verifier bypass;
 - broaden context and impact edges beyond the current bounded call and
   workspace families;
 - measure semantic-context cost and usefulness on representative repositories

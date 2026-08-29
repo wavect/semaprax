@@ -866,8 +866,23 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             println!("{preview}");
             Ok(())
         }
-        "version" | "--version" | "-V" => {
-            println!("semaprax {}", env!("CARGO_PKG_VERSION"));
+        "version" => {
+            let output = cli::version::render(cli::version::Invocation::Command, &args[1..])
+                .map_err(|error| {
+                    eprintln!("{error}");
+                    2
+                })?;
+            print!("{output}");
+            Ok(())
+        }
+        "--version" | "-V" => {
+            let output = cli::version::render(cli::version::Invocation::Flag, &args[1..]).map_err(
+                |error| {
+                    eprintln!("{error}");
+                    2
+                },
+            )?;
+            print!("{output}");
             Ok(())
         }
         "help" | "--help" | "-h" => {
@@ -2126,6 +2141,7 @@ fn print_help() {
            semaprax patch-with-evidence-v2 <file> <patch.spatch> <evidence.json>\n\
            semaprax repairs <file> assign-function-id <automatic-function-id>\n\
            semaprax repair <file> <repair-id> --persistent-id <persistent-id>\n\
-           semaprax version"
+           semaprax version [--json]\n\
+           semaprax --version"
     );
 }

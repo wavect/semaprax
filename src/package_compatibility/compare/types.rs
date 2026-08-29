@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use serde_json::Value;
 
-use super::Report;
+use super::super::model::Report;
 
 pub(super) fn reachable_shared_types(
     shared: &BTreeSet<String>,

@@ -534,6 +534,8 @@ jobs:
       - name: Package and execute private macOS desktop and native UI applications
         if: runner.os == 'macOS'
         shell: bash
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
         run: |
           set -euo pipefail
           platform-tests/desktop-native/package-macos.sh \

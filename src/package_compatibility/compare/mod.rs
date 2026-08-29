@@ -5,8 +5,6 @@ use std::collections::BTreeSet;
 use crate::diagnostic::Diagnostic;
 use serde_json::Value;
 
-#[cfg(test)]
-use super::model::Report;
 use super::model::{Authenticated, Finding};
 use super::wire::{charge, digest, limit_error};
 

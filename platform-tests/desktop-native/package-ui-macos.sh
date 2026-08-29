@@ -1,12 +1,12 @@
 #!/bin/sh
 set -eu
 
-readonly_clang_version='Apple clang version 21.0.0 (clang-2100.1.1.101)'
-readonly_ld_version='@(#)PROGRAM:ld PROJECT:ld-1267'
-readonly_sdk_version='26.5'
-readonly_sdk_build='25F70'
+readonly_clang_version='Apple clang version 17.0.0 (clang-1700.0.13.5)'
+readonly_ld_version='@(#)PROGRAM:ld PROJECT:ld-1167.5'
+readonly_sdk_version='15.5'
+readonly_sdk_build='24F74'
 readonly_deployment_target='11.0'
-readonly_ld_build_version='1267.0'
+readonly_ld_build_version='1167.5'
 
 if [ "$(uname -s)" != "Darwin" ] || [ "$(uname -m)" != "arm64" ]; then
   echo "private desktop UI packaging requires arm64 macOS" >&2

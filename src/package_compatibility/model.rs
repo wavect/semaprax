@@ -3,7 +3,6 @@ use std::collections::BTreeMap;
 use serde_json::Value;
 
 use crate::bounded_output;
-use crate::bounded_output::BudgetedJoin as _;
 use crate::diagnostic::quote_json;
 use crate::package_lock_v2;
 

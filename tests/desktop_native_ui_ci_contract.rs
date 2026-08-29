@@ -29,8 +29,8 @@ fn private_native_ui_is_platform_real_feature_gated_and_source_locked() {
         &lock,
         &[
             "network=forbidden-cargo-offline",
-            "macos.ld.project=ld-1267",
-            "macos.sdk.build=25F70",
+            "macos.ld.project=ld-1167.5",
+            "macos.sdk.build=24F74",
             "windows.clang.version=20.1.8",
             "windows.vswhere.version=3.1.7.39155",
             "windows.visual-studio.major=18",
@@ -259,8 +259,8 @@ fn macos_contract(source: &str) -> Result<(), String> {
         source,
         &[
             "package-ui-macos.sh ABSOLUTE_NEW_OUTPUT_DIRECTORY ABSOLUTE_ENGINE_PACKAGE",
-            "Apple clang version 21.0.0 (clang-2100.1.1.101)",
-            "@(#)PROGRAM:ld PROJECT:ld-1267",
+            "Apple clang version 17.0.0 (clang-1700.0.13.5)",
+            "@(#)PROGRAM:ld PROJECT:ld-1167.5",
             "--show-sdk-build-version",
             "--ld-path=\"$ld_tool\"",
             "SOURCE_DATE_EPOCH=1 ZERO_AR_DATE=1",

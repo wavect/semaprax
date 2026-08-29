@@ -19,8 +19,10 @@ pub const MAX_JSON_DEPTH: usize = 64;
 pub const MAX_INPUT_BYTES: usize = 160 * 1024 * 1024;
 pub const MAX_OUTPUT_BYTES: usize = 16 * 1024 * 1024;
 pub(super) const MIN_OUTPUT_BYTES: usize = 4_096;
-pub(super) const DIGEST_DOMAIN: &[u8] = b"semaprax.offline-package-compatibility-evidence.v1\0";
-pub(super) const INPUT_DOMAIN: &[u8] = b"semaprax.offline-package-compatibility-input.v1\0";
+pub(in crate::package_compatibility) const DIGEST_DOMAIN: &[u8] =
+    b"semaprax.offline-package-compatibility-evidence.v1\0";
+pub(in crate::package_compatibility) const INPUT_DOMAIN: &[u8] =
+    b"semaprax.offline-package-compatibility-input.v1\0";
 
 macro_rules! bf { ($($argument:tt)*) => { bounded_output::budgeted_format(format_args!($($argument)*)) }; }
 

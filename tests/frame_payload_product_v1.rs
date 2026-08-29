@@ -563,14 +563,18 @@ fn project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_r
         &fs::read(root.join("after-web/generated/semaprax.api.json")).unwrap(),
     )
     .unwrap();
-    assert_eq!(before_api["exports"], after_api["exports"]);
+    let before_descriptor: serde_json::Value =
+        serde_json::from_str(before_api["descriptor"].as_str().unwrap()).unwrap();
+    let after_descriptor: serde_json::Value =
+        serde_json::from_str(after_api["descriptor"].as_str().unwrap()).unwrap();
+    assert_eq!(before_descriptor["exports"], after_descriptor["exports"]);
     assert_ne!(
-        before_api["project_revision"],
-        after_api["project_revision"]
+        before_descriptor["project_revision"],
+        after_descriptor["project_revision"]
     );
     assert_ne!(
-        before_api["workspace_revision"],
-        after_api["workspace_revision"]
+        before_descriptor["workspace_revision"],
+        after_descriptor["workspace_revision"]
     );
 
     fs::remove_dir_all(root).unwrap();

@@ -12,9 +12,10 @@ use super::{ProjectSnapshot, ProjectSource, AUTHENTICATED_PROJECT_SUBJECT_OPERAT
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 const RUST_OWNED_DATA_PUBLICATION_SUBJECT: &str = "Project v8 Native Rust owned-data package";
 
-/// Invocation-borrowed, target-neutral subject for the inactive owned-data
-/// Rust SDK builder. Construction always derives and replays the canonical
-/// public descriptor before lending any effectful build operation.
+/// Invocation-borrowed, target-neutral subject for the standalone owned-data
+/// Rust SDK builder and the activated Project-v8 route. Construction always
+/// derives and replays the canonical public descriptor before lending any
+/// effectful build operation.
 pub struct ProjectOwnedDataNativeSdkSubject<'a> {
     program: &'a ResolvedProgram,
     selected: &'a [String],

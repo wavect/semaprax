@@ -12,6 +12,7 @@ mod manifest;
 mod native_sdk;
 mod npm;
 mod profile;
+mod public_api;
 mod rename;
 mod revision;
 mod semantic;
@@ -55,6 +56,14 @@ pub use profile::{
     PROJECT_PROFILE_LINE_COMMAND_IO_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
     PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
     PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
+};
+pub use public_api::{
+    derive_public_api_descriptor, replay_public_api_descriptor, PublicApiDescriptor,
+    PublicApiExport, PublicApiLimits, PublicApiParameter, PublicApiParameterType,
+    PublicApiResultType, PublicApiSubject, MAX_PUBLIC_API_BORROWED_INPUT_BYTES,
+    MAX_PUBLIC_API_CLOSURE_FUNCTIONS, MAX_PUBLIC_API_DESCRIPTOR_BYTES, MAX_PUBLIC_API_EXPORTS,
+    MAX_PUBLIC_API_OWNED_OUTPUT_BYTES, MAX_PUBLIC_API_PARAMETERS, PUBLIC_OWNED_DATA_API_SCHEMA,
+    PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
 };
 pub(crate) use rename::{PreparedProjectRename, ProjectRenameDerivation};
 pub use revision::ProjectRevision;

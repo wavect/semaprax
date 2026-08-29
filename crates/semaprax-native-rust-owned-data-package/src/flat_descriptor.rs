@@ -5,6 +5,10 @@ use sha2::{Digest, Sha256};
 
 use super::{flat_descriptor_digest, PackageError, MAX_DESCRIPTOR_BYTES};
 
+mod render;
+#[cfg(test)]
+mod tests;
+
 pub(crate) const API_SCHEMA: &str = "semaprax.public-flat-owned-record-api.v1";
 pub(crate) const PROJECT_SCHEMA: &str = "semaprax.project.v9";
 
@@ -199,85 +203,10 @@ pub(crate) fn replay(
         project_graph_digest,
         exports,
     };
-    if render(&descriptor) != bytes {
+    if render::canonical(&descriptor) != bytes {
         return Err(PackageError::descriptor());
     }
     Ok(descriptor)
-}
-
-fn render(descriptor: &Descriptor) -> Vec<u8> {
-    let mut output = String::new();
-    output.push_str("{\"schema\":");
-    super::descriptor::json_string(&mut output, API_SCHEMA);
-    output.push_str(",\"project_schema\":");
-    super::descriptor::json_string(&mut output, PROJECT_SCHEMA);
-    output.push_str(",\"project_revision\":");
-    super::descriptor::json_string(&mut output, &descriptor.project_revision);
-    output.push_str(",\"workspace_revision\":");
-    super::descriptor::json_string(&mut output, &descriptor.workspace_revision);
-    output.push_str(",\"project_graph_digest\":");
-    super::descriptor::json_string(&mut output, &descriptor.project_graph_digest);
-    output.push_str(",\"exports\":[");
-    for (export_index, export) in descriptor.exports.iter().enumerate() {
-        if export_index != 0 {
-            output.push(',');
-        }
-        output.push_str("{\"stable_id\":");
-        super::descriptor::json_string(&mut output, &export.stable_id);
-        output.push_str(",\"typescript_name\":");
-        super::descriptor::json_string(&mut output, &export.stable_id);
-        output.push_str(",\"rust_method_name\":");
-        super::descriptor::json_string(&mut output, &export.rust_method_name);
-        output.push_str(",\"parameters\":[");
-        for (ordinal, parameter) in export.parameters.iter().enumerate() {
-            if ordinal != 0 {
-                output.push(',');
-            }
-            output.push_str("{\"stable_id\":");
-            super::descriptor::json_string(&mut output, &parameter.stable_id);
-            output.push_str(",\"source_name\":");
-            super::descriptor::json_string(&mut output, &parameter.source_name);
-            output.push_str(",\"ordinal\":");
-            output.push_str(&ordinal.to_string());
-            output.push_str(",\"type\":");
-            super::descriptor::json_string(&mut output, parameter.kind.wire_name());
-            output.push('}');
-        }
-        output.push_str("],\"result\":{\"type\":\"flat-owned-record\",\"record_id\":");
-        super::descriptor::json_string(&mut output, &export.record_id);
-        output.push_str(",\"record_source_name\":");
-        super::descriptor::json_string(&mut output, &export.record_source_name);
-        output.push_str(",\"record_host_name\":");
-        super::descriptor::json_string(&mut output, &export.record_host_name);
-        output.push_str(",\"fields\":[");
-        for (ordinal, field) in export.fields.iter().enumerate() {
-            if ordinal != 0 {
-                output.push(',');
-            }
-            output.push_str("{\"stable_id\":");
-            super::descriptor::json_string(&mut output, &field.stable_id);
-            output.push_str(",\"source_name\":");
-            super::descriptor::json_string(&mut output, &field.source_name);
-            output.push_str(",\"host_name\":");
-            super::descriptor::json_string(&mut output, &field.host_name);
-            output.push_str(",\"ordinal\":");
-            output.push_str(&ordinal.to_string());
-            output.push_str(",\"type\":");
-            super::descriptor::json_string(
-                &mut output,
-                match field.kind {
-                    FieldKind::I64 => "i64",
-                    FieldKind::Bool => "bool",
-                    FieldKind::Usize => "usize",
-                    FieldKind::OwnedBytes => "owned-bytes",
-                },
-            );
-            output.push('}');
-        }
-        output.push_str("]}}");
-    }
-    output.push_str("],\"limits\":{\"max_exports\":32,\"max_parameters\":8,\"max_closure_functions\":256,\"max_record_fields\":64,\"max_borrowed_input_bytes\":65536,\"max_owned_output_bytes\":65536,\"max_descriptor_bytes\":1048576},\"settlement\":{\"carrier\":\"opaque-handle-plus-scalars.v1\",\"copy_before_settle\":true,\"publish_after_settle\":true,\"exactly_one_owned_field\":true}}\n");
-    output.into_bytes()
 }
 
 fn parse_parameters(
@@ -452,117 +381,5 @@ fn host_field_name(source_name: &str, stable_id: &str) -> String {
         source_name.to_owned()
     } else {
         stable_host_name("field", stable_id)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn field(id: &str, source: &str, kind: FieldKind, ordinal: usize) -> Field {
-        Field {
-            stable_id: id.to_owned(),
-            source_name: source.to_owned(),
-            host_name: host_field_name(source, id),
-            kind,
-            ordinal,
-        }
-    }
-
-    fn export(id: &str, record_id: &str, record_source: &str, fields: Vec<Field>) -> Export {
-        Export {
-            stable_id: id.to_owned(),
-            rust_method_name: rust_method_name(id).unwrap(),
-            parameters: Vec::new(),
-            record_id: record_id.to_owned(),
-            record_source_name: record_source.to_owned(),
-            record_host_name: host_record_name(record_source, record_id),
-            fields,
-        }
-    }
-
-    fn descriptor(exports: Vec<Export>) -> Descriptor {
-        let digest = format!("sha256:{}", "0".repeat(64));
-        Descriptor {
-            project_revision: digest.clone(),
-            workspace_revision: digest.clone(),
-            project_graph_digest: digest,
-            exports,
-        }
-    }
-
-    #[test]
-    fn replay_requires_exact_canonical_bytes_even_with_a_reminted_digest() {
-        let value = descriptor(vec![export(
-            "api.first",
-            "record.first",
-            "Packet",
-            vec![field("field.bytes", "bytes", FieldKind::OwnedBytes, 0)],
-        )]);
-        let canonical = render(&value);
-        replay(
-            &canonical,
-            &flat_descriptor_digest(&canonical),
-            &["api.first".to_owned()],
-        )
-        .unwrap();
-        let mut drifted = canonical;
-        drifted.splice(1..1, b" ".iter().copied());
-        assert!(replay(
-            &drifted,
-            &flat_descriptor_digest(&drifted),
-            &["api.first".to_owned()],
-        )
-        .is_err());
-    }
-
-    #[test]
-    fn replay_rejects_cross_export_record_identity_disagreement() {
-        let host_collision = descriptor(vec![
-            export(
-                "api.first",
-                "record.first",
-                "Packet",
-                vec![field("field.first", "bytes", FieldKind::OwnedBytes, 0)],
-            ),
-            export(
-                "api.second",
-                "record.second",
-                "Packet",
-                vec![field("field.second", "bytes", FieldKind::OwnedBytes, 0)],
-            ),
-        ]);
-        let bytes = render(&host_collision);
-        assert!(replay(
-            &bytes,
-            &flat_descriptor_digest(&bytes),
-            &["api.first".to_owned(), "api.second".to_owned()],
-        )
-        .is_err());
-
-        let inconsistent = descriptor(vec![
-            export(
-                "api.first",
-                "record.shared",
-                "Packet",
-                vec![field("field.first", "bytes", FieldKind::OwnedBytes, 0)],
-            ),
-            export(
-                "api.second",
-                "record.shared",
-                "Packet",
-                vec![
-                    field("field.flag", "flag", FieldKind::Bool, 0),
-                    field("field.first", "bytes", FieldKind::OwnedBytes, 1),
-                ],
-            ),
-        ]);
-        let bytes = render(&inconsistent);
-        assert!(replay(
-            &bytes,
-            &flat_descriptor_digest(&bytes),
-            &["api.first".to_owned(), "api.second".to_owned()],
-        )
-        .is_err());
     }
 }

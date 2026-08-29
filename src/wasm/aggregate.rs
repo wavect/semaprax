@@ -6178,9 +6178,9 @@ impl Emitter<'_> {
 
         let right = self.emit_expr(right)?;
         if matches!(value_type(&left), ResolvedType::F32 | ResolvedType::F64)
-            && !matches!(
+            && matches!(
                 op,
-                BinaryOp::Eq | BinaryOp::Ne | BinaryOp::And | BinaryOp::Or
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
             )
         {
             return self.emit_float_binary(expr, op, &left, &right, destination);

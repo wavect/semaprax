@@ -63,14 +63,14 @@ pub(super) fn parse_range(value: &str) -> Result<Range, Diagnostic> {
         }),
         "^" => {
             let upper = match lower {
-                Version(major, _, _) if major != 0 => Version(
+                Version(major @ 1..=u32::MAX, _, _) => Version(
                     major
                         .checked_add(1)
                         .ok_or_else(|| wire::input_error("caret upper bound overflows"))?,
                     0,
                     0,
                 ),
-                Version(0, minor, _) if minor != 0 => Version(
+                Version(0, minor @ 1..=u32::MAX, _) => Version(
                     0,
                     minor
                         .checked_add(1)

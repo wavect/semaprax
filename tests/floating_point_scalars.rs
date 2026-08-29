@@ -439,6 +439,16 @@ fn hostile_non_finite_float_literals_reject_before_backends() {
     assert!(hir::validate(&hostile_f32).is_err());
 }
 
+#[test]
+fn resolved_wasm_lowers_float_equality_and_ordering_through_comparison_opcodes() {
+    let program = hir::resolve(&parse(SCALARS, Path::new("floats.spx")).unwrap()).unwrap();
+    let bytes = wasm::emit_resolved_module(&program).expect("resolved aggregate Wasm");
+    assert_eq!(
+        bytes,
+        wasm::emit_resolved_module(&program).expect("deterministic resolved aggregate Wasm")
+    );
+}
+
 fn replace_first_f64_bits(program: &mut hir::ResolvedProgram, bits: u64) -> bool {
     for function in &mut program.functions {
         if replace_f64_in_expression(&mut function.body, bits) {

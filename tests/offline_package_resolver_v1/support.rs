@@ -119,7 +119,7 @@ pub(super) fn error_code(input: &ResolutionInput) -> String {
     package_resolver::generate(input, &ResolutionOptions::default())
         .expect_err("resolution must reject")[0]
         .code
-        .clone()
+        .to_owned()
 }
 
 pub(super) fn remint(schema: &str, domain: &[u8], payload: &str) -> String {

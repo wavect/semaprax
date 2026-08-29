@@ -1,5 +1,7 @@
 # Offline Deterministic Package Resolver v1
 
+Audience: maintainers, contributors, reviewers, and technical evaluators.
+
 Status: implementation and focused executable evidence authored; evidence is
 not yet run or promoted.
 

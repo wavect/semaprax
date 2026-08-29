@@ -984,18 +984,26 @@ fn run(args: Vec<String>) -> Result<(), u8> {
 }
 
 fn write_package_resolver_stdout(evidence: &str) -> Result<(), Diagnostic> {
+    #[cfg(unix)]
+    let mut stdout = std::fs::File::from(
+        rustix::io::dup(rustix::stdio::stdout()).map_err(|_| package_resolver_stdout_error())?,
+    );
+    #[cfg(not(unix))]
     let stdout = std::io::stdout();
+    #[cfg(not(unix))]
     let mut stdout = stdout.lock();
     stdout
         .write_all(evidence.as_bytes())
         .and_then(|()| stdout.write_all(b"\n"))
         .and_then(|()| stdout.flush())
-        .map_err(|_| {
-            Diagnostic::io(
-                "SPX-I215",
-                "cannot write package-resolve evidence to standard output",
-            )
-        })
+        .map_err(|_| package_resolver_stdout_error())
+}
+
+fn package_resolver_stdout_error() -> Diagnostic {
+    Diagnostic::io(
+        "SPX-I215",
+        "cannot write package-resolve evidence to standard output",
+    )
 }
 
 fn serve_options(args: &[String]) -> Result<agent_transport::TransportLimits, u8> {

@@ -248,11 +248,11 @@ fn first_feasible_backtracking_and_catalog_permutation_are_exact() {
 
 #[test]
 fn exact_lock_boundary_ignores_nested_limits_text_strings_and_escapes() {
-    let evidence = r#"{"payload":{"lock":{"inner":{"limits":{"n":1}},"text":"},\"limits\": still inside","escaped":"\\"},"rows":[{"value":"]"}]},"limits":{"outer":true}}}"#;
+    let evidence = r#"{"payload":{"lock":{"inner":{"limits":{"n":1}},"text":"},\"limits\": still inside","escaped":"\\","rows":[{"value":"]"}]},"limits":{"outer":true}}}"#;
     let extracted = model::exact_lock_bytes(evidence).unwrap();
     assert_eq!(
         extracted,
-        r#"{"inner":{"limits":{"n":1}},"text":"},\"limits\": still inside","escaped":"\\"},"rows":[{"value":"]"}]}"#
+        r#"{"inner":{"limits":{"n":1}},"text":"},\"limits\": still inside","escaped":"\\","rows":[{"value":"]"}]}"#
     );
     assert!(serde_json::from_str::<serde_json::Value>(extracted).is_ok());
     assert_eq!(
@@ -541,7 +541,7 @@ fn public_selected_package_limit_accepts_four_and_rejects_five() {
         ("examples/calculator.spx", "examples.calculator"),
         ("examples/chars.spx", "examples.chars"),
         ("examples/floats.spx", "examples.floats"),
-        ("examples/field_mutation.spx", "examples.field_mutation"),
+        ("examples/integers_i32.spx", "examples.integers_i32"),
     ];
     let reports = fixtures
         .iter()

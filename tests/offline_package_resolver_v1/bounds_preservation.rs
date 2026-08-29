@@ -3,8 +3,8 @@ use super::support::*;
 #[test]
 fn catalog_limits_are_global_and_selected_graph_overflow_is_structural() {
     let package = "resolver.bounds";
-    let report = report(package);
-    let one = subject(&report, package, "1.0.0", &[], &[]);
+    let package_report = report(package);
+    let one = subject(&package_report, package, "1.0.0", &[], &[]);
     assert_eq!(
         error_code(&input(&[(package, "=1.0.0")], vec![], "native64", &[])),
         "SPX-PR505"
@@ -19,7 +19,7 @@ fn catalog_limits_are_global_and_selected_graph_overflow_is_structural() {
         "SPX-PR505"
     );
     let versions = (0..=MAX_VERSIONS_PER_PACKAGE)
-        .map(|patch| subject(&report, package, &format!("1.0.{patch}"), &[], &[]))
+        .map(|patch| subject(&package_report, package, &format!("1.0.{patch}"), &[], &[]))
         .collect::<Vec<_>>();
     assert_eq!(
         error_code(&input(&[(package, "^1.0.0")], versions, "native64", &[])),
@@ -96,7 +96,13 @@ fn decision_and_work_exhaustion_abort_the_whole_search() {
     let literal = "a".repeat(940_000);
     let large_report = report_from_source(
         package,
-        &format!("module {package};\nfn main() -> string {{ \"{literal}\" }}\n"),
+        &format!(
+            "module {package};\n\
+             @id(\"{package}.payload\")\n\
+             fn payload() -> string {{ \"{literal}\" }}\n\
+             @id(\"{package}.main\")\n\
+             fn main() -> i64 {{ 0 }}\n"
+        ),
     );
     let subjects = (0..9)
         .map(|patch| subject(&large_report, package, &format!("1.0.{patch}"), &[], &[]))

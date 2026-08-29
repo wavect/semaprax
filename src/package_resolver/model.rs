@@ -52,7 +52,7 @@ pub(super) fn validate_input(
                 "requirements must be strictly package-sorted and unique",
             ));
         }
-        previous = Some(requirement.package.clone());
+        previous = Some(&requirement.package);
         parsed.push(ParsedRequirement {
             package: requirement.package.clone(),
             text: requirement.range.clone(),
@@ -88,7 +88,7 @@ fn validate_values(values: &[String], maximum: usize, label: &str) -> Result<(),
                 "{label} values must be strictly sorted and unique"
             )));
         }
-        previous = Some(value.clone());
+        previous = Some(value);
     }
     Ok(())
 }

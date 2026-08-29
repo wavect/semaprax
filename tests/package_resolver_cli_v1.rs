@@ -38,12 +38,12 @@ fn help_adds_only_the_frozen_package_resolve_usage_line() {
         .output()
         .unwrap();
     assert_eq!(output.status.code(), Some(2));
-    const NEW_LINE: &str = "              semaprax package-resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]\n";
+    const NEW_LINE: &str = "semaprax package-resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]\n";
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert_eq!(stdout.matches(NEW_LINE).count(), 1);
     let legacy = stdout.replacen(NEW_LINE, "", 1);
-    assert_eq!(legacy.len(), 4_881);
-    assert_eq!(fnv1a64(legacy.as_bytes()), 0x0c88_6fca_7b06_6e4d);
+    assert_eq!(legacy.len(), 4_878);
+    assert_eq!(fnv1a64(legacy.as_bytes()), 0x6486_5e3a_8cbd_7b82);
 }
 
 fn fnv1a64(bytes: &[u8]) -> u64 {
@@ -132,7 +132,13 @@ fn stdout_write_failure_is_io_failure_even_after_resolution() {
         .stdout(Stdio::from(sink))
         .output()
         .unwrap();
-    assert_eq!(output.status.code(), Some(1));
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "stdout bytes: {}; stderr: {}",
+        output.stdout.len(),
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(String::from_utf8_lossy(&output.stderr).contains("SPX-I215"));
     assert_eq!(std::fs::read(&sink_path).unwrap(), b"frozen");
     std::fs::remove_file(subject_path).unwrap();

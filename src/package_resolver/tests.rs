@@ -126,7 +126,31 @@ fn first_feasible_backtracking_and_catalog_permutation_are_exact() {
             version: "1.1.0".to_owned(),
         }]
     );
-    assert_eq!(verified.lock, model::exact_lock_bytes(&evidence).unwrap());
+    let independent_lock = package_lock_v2::generate(
+        std::slice::from_ref(&reverse.subjects[0]),
+        &package_lock_v2::LockOptions::default(),
+    )
+    .unwrap();
+    let extracted = model::exact_lock_bytes(&evidence).unwrap();
+    assert!(serde_json::from_str::<serde_json::Value>(extracted).is_ok());
+    assert_eq!(extracted, independent_lock);
+    assert_eq!(verified.lock, independent_lock);
+    assert!(evidence.contains(&format!("\"lock\":{independent_lock},\"limits\":")));
+}
+
+#[test]
+fn exact_lock_boundary_ignores_nested_limits_text_strings_and_escapes() {
+    let evidence = r#"{"payload":{"lock":{"inner":{"limits":{"n":1}},"text":"},\"limits\": still inside","escaped":"\\"},"rows":[{"value":"]"}]},"limits":{"outer":true}}}"#;
+    let extracted = model::exact_lock_bytes(evidence).unwrap();
+    assert_eq!(
+        extracted,
+        r#"{"inner":{"limits":{"n":1}},"text":"},\"limits\": still inside","escaped":"\\"},"rows":[{"value":"]"}]}"#
+    );
+    assert!(serde_json::from_str::<serde_json::Value>(extracted).is_ok());
+    assert_eq!(
+        &evidence[evidence.find(extracted).unwrap() + extracted.len()..],
+        ",\"limits\":{\"outer\":true}}}"
+    );
 }
 
 #[test]

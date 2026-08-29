@@ -201,16 +201,61 @@ pub(super) fn recheck_lock_policy(
 
 pub(super) fn exact_lock_bytes(evidence: &str) -> Result<&str, Diagnostic> {
     const START: &str = "\"lock\":";
-    const END: &str = ",\"limits\":";
     let start = evidence
         .find(START)
         .map(|offset| offset + START.len())
         .ok_or_else(|| wire::wire_error("exact embedded Lock-v2 missing"))?;
-    let end = evidence[start..]
-        .find(END)
-        .map(|offset| start + offset)
-        .ok_or_else(|| wire::wire_error("embedded Lock-v2 terminator missing"))?;
+    let end = structural_json_value_end(evidence.as_bytes(), start)?;
+    let suffix_end = end
+        .checked_add(",\"limits\":".len())
+        .ok_or_else(|| wire::wire_error("embedded Lock-v2 boundary overflows"))?;
+    if evidence.get(end..suffix_end) != Some(",\"limits\":") {
+        return Err(wire::wire_error(
+            "embedded Lock-v2 is not followed by outer limits",
+        ));
+    }
     Ok(&evidence[start..end])
+}
+
+fn structural_json_value_end(bytes: &[u8], start: usize) -> Result<usize, Diagnostic> {
+    if bytes.get(start) != Some(&b'{') {
+        return Err(wire::wire_error("embedded Lock-v2 must be a JSON object"));
+    }
+    let mut stack = vec![b'}'];
+    let mut string = false;
+    let mut escaped = false;
+    for (offset, byte) in bytes[start + 1..].iter().copied().enumerate() {
+        let index = start + 1 + offset;
+        if string {
+            if escaped {
+                escaped = false;
+            } else if byte == b'\\' {
+                escaped = true;
+            } else if byte == b'"' {
+                string = false;
+            }
+            continue;
+        }
+        match byte {
+            b'"' => string = true,
+            b'{' => stack.push(b'}'),
+            b'[' => stack.push(b']'),
+            b'}' | b']' => {
+                if stack.pop() != Some(byte) {
+                    return Err(wire::wire_error(
+                        "embedded Lock-v2 JSON nesting is invalid",
+                    ));
+                }
+                if stack.is_empty() {
+                    return Ok(index + 1);
+                }
+            }
+            _ => {}
+        }
+    }
+    Err(wire::wire_error(
+        "embedded Lock-v2 JSON value is unterminated",
+    ))
 }
 
 pub(super) fn catalog_digest<'a>(entries: impl Iterator<Item = &'a str>, count: usize) -> String {

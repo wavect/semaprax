@@ -5,6 +5,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
+fn canonical_source(path: &str, source: &str) -> String {
+    crate::format::canonical(&crate::parse(source, Path::new(path)).unwrap())
+}
+
 fn manifest() -> String {
     "schema = \"semaprax.project.v1\"\nname = \"calculator\"\nentry = \"calculator.app\"\nsources = [\"a/core.spx\", \"t/tests.spx\", \"z/app.spx\"]\nweb_exports = [\"calculator.add\", \"calculator.divide\"]\ntests = [\"calculator.tests\"]\n".to_owned()
 }
@@ -33,7 +37,9 @@ fn fixture_v8() -> PathBuf {
     std::fs::write(root.join(MANIFEST_FILE), manifest_v8()).unwrap();
     std::fs::write(
         root.join("a/core.spx"),
-        r#"module owned_frame.core;
+        canonical_source(
+            "a/core.spx",
+            r#"module owned_frame.core;
 
 @id("owned-frame.gate")
 variant Gate {
@@ -49,6 +55,11 @@ record Unused { @id("owned-frame.unused.value") value: i64, }
 
 @id("owned-frame.choose")
 fn choose(value: i64) -> bool {
+    value >= 0
+}
+
+@id("owned-frame.count")
+fn count(value: i64) -> i64 {
     let gate = Gate::Open { code: value };
     let decision = Decision {
         allowed: match gate {
@@ -56,11 +67,8 @@ fn choose(value: i64) -> bool {
             Gate::Closed {} => false,
         },
     };
-    decision.allowed
+    if decision.allowed { value } else { 0 }
 }
-
-@id("owned-frame.count")
-fn count(value: i64) -> i64 { if choose(value) { value } else { 0 } }
 
 @id("owned-frame.payload")
 fn payload(input: borrow Slice<u8>) -> Bytes {
@@ -69,12 +77,12 @@ fn payload(input: borrow Slice<u8>) -> Bytes {
 
 @id("owned-frame.payload-maybe")
 fn payload_maybe(input: borrow Slice<u8>) -> Option<Bytes> {
-    Option::Some { value: payload(input) }
+    Option<Bytes>::Some { value: payload(input) }
 }
 
 @id("owned-frame.payload-result")
 fn payload_result(input: borrow Slice<u8>) -> Result<Bytes, i64> {
-    Result::Ok { value: payload(input) }
+    Result<Bytes, i64>::Ok { value: payload(input) }
 }
 
 @id("owned-frame.size")
@@ -83,26 +91,33 @@ fn size() -> usize { 7usize }
 @id("owned-frame.valid")
 fn valid(value: i64) -> bool { choose(value) }
 "#,
+        ),
     )
     .unwrap();
     std::fs::write(
         root.join("t/tests.spx"),
-        r#"module owned_frame.tests;
+        canonical_source(
+            "t/tests.spx",
+            r#"module owned_frame.tests;
 use function @id("owned-frame.choose") from owned_frame.core as choose;
 
 @id("owned-frame.tests.main")
 fn main() -> i64 { if choose(7) { 0 } else { 1 } }
 "#,
+        ),
     )
     .unwrap();
     std::fs::write(
         root.join("z/app.spx"),
-        r#"module owned_frame.app;
+        canonical_source(
+            "z/app.spx",
+            r#"module owned_frame.app;
 use function @id("owned-frame.choose") from owned_frame.core as choose;
 
 @id("owned-frame.app.main")
 fn main() -> i64 { if choose(42) { 42 } else { 0 } }
 "#,
+        ),
     )
     .unwrap();
     root.canonicalize().unwrap()
@@ -322,29 +337,37 @@ fn canonical_manifest_round_trips_and_rejects_confusion() {
 #[test]
 fn owned_project_test_validation_binds_the_exact_supplied_bytes() {
     let manifest = "schema = \"semaprax.project.v1\"\nname = \"owned-check\"\nentry = \"owned_check.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"owned-check.value\"]\ntests = [\"owned_check.tests\"]\n";
-    let app = "module owned_check.app;\n\n@id(\"owned-check.value\")\nfn value() -> i64 { 42 }\n\n@id(\"owned-check.app.main\")\nfn main() -> i64 { value() }\n";
-    let passing =
-        "module owned_check.tests;\n\n@id(\"owned-check.tests.main\")\nfn main() -> i64 { 0 }\n";
-    let failing = passing.replace("{ 0 }", "{ 1 }");
+    let app = canonical_source(
+        "src/app.spx",
+        "module owned_check.app;\n\n@id(\"owned-check.value\")\nfn value() -> i64 { 42 }\n\n@id(\"owned-check.app.main\")\nfn main() -> i64 { value() }\n",
+    );
+    let passing = canonical_source(
+        "src/tests.spx",
+        "module owned_check.tests;\n\n@id(\"owned-check.tests.main\")\nfn main() -> i64 { 0 }\n",
+    );
+    let failing = canonical_source(
+        "src/tests.spx",
+        "module owned_check.tests;\n\n@id(\"owned-check.tests.main\")\nfn main() -> i64 { 1 }\n",
+    );
     let options = ProjectExecutionOptions::default();
 
     let execution = validate_owned_project_test(
         manifest,
-        &[("src/app.spx", app), ("src/tests.spx", passing)],
+        &[("src/app.spx", &app), ("src/tests.spx", &passing)],
         &options,
     )
     .unwrap();
     assert!(execution.command_succeeded());
     let hostile = validate_owned_project_test(
         manifest,
-        &[("src/app.spx", app), ("src/tests.spx", &failing)],
+        &[("src/app.spx", &app), ("src/tests.spx", &failing)],
         &options,
     )
     .unwrap();
     assert!(!hostile.command_succeeded());
     assert!(validate_owned_project_test(
         manifest,
-        &[("src/tests.spx", passing), ("src/app.spx", app)],
+        &[("src/tests.spx", &passing), ("src/app.spx", &app)],
         &options,
     )
     .is_err());
@@ -829,7 +852,7 @@ fn legacy_project_profiles_reject_the_v8_rust_route_before_effects() {
     assert_eq!(diagnostics[0].code, "SPX-J114");
     assert!(diagnostics[0]
         .message
-        .contains("exact Project v8 owned-data-api.v1 profile"));
+        .contains("requires the exact Project v8 owned-data-api.v1"));
     assert!(!output.exists());
     let _ = std::fs::remove_dir_all(root);
 }

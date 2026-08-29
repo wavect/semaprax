@@ -848,7 +848,7 @@ mod tests {
             use std::os::unix::fs::PermissionsExt;
 
             let ordinal = NEXT.fetch_add(1, Ordering::Relaxed);
-            let directory = std::env::temp_dir().join(format!(
+            let directory = std::env::temp_dir().canonicalize().unwrap().join(format!(
                 "semaprax-project-revision-store-{label}-{}-{ordinal}",
                 std::process::id()
             ));
@@ -1297,7 +1297,13 @@ mod tests {
                 "SPX-G191"
             );
         }
-        let exact = format!("{}.spx", "x".repeat(MAX_STORE_SOURCE_PATH_BYTES - 4));
+        let exact = format!(
+            "{}/{}/{}/{}.spx",
+            "x".repeat(60),
+            "x".repeat(60),
+            "x".repeat(60),
+            "x".repeat(MAX_STORE_SOURCE_PATH_BYTES - 187),
+        );
         assert_eq!(exact.len(), MAX_STORE_SOURCE_PATH_BYTES);
         assert!(validate_source_path(&exact).is_ok());
         let error = validate_source_path(&format!("x{exact}")).unwrap_err();

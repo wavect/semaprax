@@ -251,8 +251,8 @@ mod hostile_source_tests {
     fn v9_facade_closes_i64_and_utf16_before_busy_or_arena_effects() {
         let source = r#"
 module flat.hostile;
-@id("flat.packet") record Packet { @id("flat.bytes") bytes: Bytes, @id("flat.flag") flag: bool }
-@id("flat.make") fn make(text: borrow Str, value: i64) -> Packet { Packet { bytes: bytes_copy(str_as_bytes(text)), flag: value == 0 } }
+@id("flat.packet") record Packet { @id("flat.bytes") bytes: Bytes, @id("flat.flag") flag: bool, }
+@id("flat.make") fn make(text: borrow str, value: i64) -> Packet { Packet { bytes: bytes_copy(str_as_bytes(text)), flag: value == 0 } }
 @id("flat.main") fn main() -> i64 { 0 }
 "#;
         let checked = crate::check(source, Path::new("flat-hostile.spx")).unwrap();

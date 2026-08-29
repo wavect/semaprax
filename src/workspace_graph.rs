@@ -6321,7 +6321,7 @@ record Wrapper {
 @id("lib.choice")
 variant Choice {
     @id("lib.choice.ready") Ready {
-        @id("lib.choice.ready.payload") payload: Payload,
+        @id("lib.choice.ready.payload") payload: i64,
     },
     @id("lib.choice.empty") Empty,
 }
@@ -6335,11 +6335,11 @@ record Unused {
 fn helper(value: i64) -> i64 {
     let wrapper = Wrapper { payload: Payload { value } };
     let nested = match wrapper {
-        Wrapper { payload: Payload { value } } => value,
+        Wrapper { payload: Payload { value: inner } } => inner,
     };
-    let choice = Choice::Ready { payload: Payload { value: nested } };
+    let choice = Choice::Ready { payload: nested };
     match choice {
-        Choice::Ready { payload } => payload.value,
+        Choice::Ready { payload } => payload,
         Choice::Empty {} => 0,
     }
 }

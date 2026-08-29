@@ -184,6 +184,15 @@ publication evidence is authored but unrun. This is not multi-package source
 linking, acquisition, a registry/cache, trusted provenance, runtime execution,
 capability enforcement, or a hermetic sandbox, so 0.4 remains unpromoted.
 
+An additive Offline Multi-Package Source Capsule v1 is authored above exact
+Resolver-v1 replay. It admits two through four effect-free scalar packages,
+requires the source-derived import graph to equal the selected Subject-v2
+dependency graph, exact-compares normalized Report-v2 interfaces, binds an
+explicit root and only its explicit exports, and retains the ordinary linked
+HIR behind a crate-private replay seam. Its focused evidence is unrun. It is
+not a package build, acquisition, publication, provenance, target execution,
+runtime enforcement, or hermetic sandbox, so 0.4 remains unpromoted.
+
 Goal: turn bounded reports and private host evidence into a supported,
 versioned ecosystem surface.
 
@@ -192,9 +201,9 @@ versioned ecosystem surface.
 - interface-first manifests that carry the bounded resolver into a published
   lockfile workflow with target matrices, capability closure, provenance,
   licenses, and reproducible artifact records;
-- extend the authored dependency-free effect-free package build only after a
-  source capsule can authenticate multi-package workspace linking without
-  treating dependency metadata as executable source;
+- consume the authored source-capsule replay seam from a separately evidenced
+  multi-package build without treating dependency metadata as executable
+  source;
 - compatibility analysis over types, effects, contracts, ownership, and target
   availability;
 - a package registry and offline cache model with explicit least authority;

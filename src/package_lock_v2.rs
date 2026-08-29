@@ -86,6 +86,27 @@ pub(crate) struct PackageBuildSubject {
     pub(crate) targets: BTreeMap<String, String>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PackageSourceSubject {
+    pub(crate) coordinate: Coordinate,
+    pub(crate) subject_digest: String,
+    #[allow(
+        dead_code,
+        reason = "retained for Offline Package Build v2 subject accounting"
+    )]
+    pub(crate) subject_bytes: usize,
+    pub(crate) report: String,
+    pub(crate) report_digest: String,
+    pub(crate) interface: crate::package_report_v2::ScalarPackageInterface,
+    pub(crate) dependencies: Vec<Coordinate>,
+    pub(crate) capabilities: Vec<String>,
+    #[allow(
+        dead_code,
+        reason = "retained for Offline Package Build v2 target association"
+    )]
+    pub(crate) targets: BTreeMap<String, String>,
+}
+
 pub(crate) fn authenticate_subject_for_resolution(
     bytes: &str,
     work: &mut usize,
@@ -119,6 +140,33 @@ pub(crate) fn authenticate_subject_for_package_build(
         report_digest: subject.report_digest,
         source_revision: subject.revision,
         canonical_source: source.canonical_source,
+        dependencies: subject.dependencies,
+        capabilities: subject.capabilities,
+        targets: subject.targets,
+    })
+}
+
+pub(crate) fn authenticate_subject_for_package_source(
+    bytes: &str,
+    work: &mut usize,
+) -> Result<PackageSourceSubject, Diagnostic> {
+    let subject = subject::parse_subject_for_resolution(bytes, work)?;
+    let interface =
+        crate::package_report_v2::verify_scalar_interface_for_package_source(&subject.report)?;
+    if interface.package != subject.coordinate.package
+        || interface.source_revision != subject.revision
+    {
+        return Err(wire::confusion_error(
+            "package-source interface disagrees with authenticated Subject v2",
+        ));
+    }
+    Ok(PackageSourceSubject {
+        coordinate: subject.coordinate,
+        subject_digest: subject.digest,
+        subject_bytes: subject.bytes,
+        report: subject.report,
+        report_digest: subject.report_digest,
+        interface,
         dependencies: subject.dependencies,
         capabilities: subject.capabilities,
         targets: subject.targets,

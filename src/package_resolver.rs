@@ -80,6 +80,11 @@ pub(crate) struct VerifiedPackageBuildResolution {
     pub(crate) selected_subjects: Vec<package_lock_v2::PackageBuildSubject>,
 }
 
+pub(crate) struct VerifiedPackageSourceResolution {
+    pub(crate) resolution: VerifiedResolution,
+    pub(crate) selected_subjects: Vec<package_lock_v2::PackageSourceSubject>,
+}
+
 pub fn generate(
     input: &ResolutionInput,
     options: &ResolutionOptions,
@@ -211,6 +216,48 @@ pub(crate) fn verify_for_package_build(
             })
             .collect::<Result<Vec<_>, Diagnostic>>()?;
         Ok(VerifiedPackageBuildResolution {
+            resolution,
+            selected_subjects,
+        })
+    });
+    if overflowed {
+        return Err(wire::limit_error(
+            "resolution cumulative String budget exceeded",
+        ));
+    }
+    result
+}
+
+pub(crate) fn verify_for_package_source(
+    evidence: &str,
+    input: &ResolutionInput,
+    options: &ResolutionOptions,
+) -> Result<VerifiedPackageSourceResolution, Diagnostic> {
+    validate_options(options)?;
+    if evidence.len() > options.max_bytes || evidence.len() > MAX_OUTPUT_BYTES {
+        return Err(wire::limit_error(
+            "resolution evidence exceeds output bound",
+        ));
+    }
+    let (result, overflowed) = bounded_output::with_limit(MAX_RENDER_BYTES, || {
+        wire::parse_wrapper(evidence)?;
+        let rebuilt = build(input, options)?;
+        if rebuilt.evidence != evidence {
+            return Err(wire::replay_error(
+                "resolution evidence does not exactly replay inputs",
+            ));
+        }
+        let resolution = receipt(evidence)?;
+        let mut work = 0usize;
+        let selected_subjects = rebuilt
+            .selected_subjects
+            .into_iter()
+            .map(|subject| {
+                package_lock_v2::authenticate_subject_for_package_source(subject, &mut work)
+                    .map_err(|error| wire::map_package_build_subject_error(&error))
+            })
+            .collect::<Result<Vec<_>, Diagnostic>>()?;
+        Ok(VerifiedPackageSourceResolution {
             resolution,
             selected_subjects,
         })

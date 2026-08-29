@@ -354,6 +354,18 @@ execution, cache, publication, signature/provenance authentication, or runtime
 capability enforcement. See
 [Offline Deterministic Package Resolver v1](OFFLINE-PACKAGE-RESOLVER-V1.md).
 
+Additive `package_source_capsule` consumes exact Resolver-v1 replay and two
+through four caller-owned canonical implementation sources. The ordinary
+semantic-workspace graph derives function imports over synthetic logical paths,
+exact-compares that direct module graph with the selected Subject-v2 graph,
+and exact-compares normalized scalar interface vectors with selected Report-v2
+facts before reusing the existing authority-free HIR linker. Report source is
+interface evidence only; capsule source is the sole executable code. The
+explicit selected root and only its sorted explicit export IDs are bound in
+the capsule, while a crate-private replay seam retains linked HIR for a future
+build consumer. The authored surface is unrun and adds no build or publication
+authority. See [Offline Multi-Package Source Capsule v1](OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md).
+
 Additive `package_build` consumes that exact resolver evidence only through an
 independent replay route. The v1 profile deliberately admits one selected,
 dependency-free Subject v2 whose embedded canonical source is rebuilt through

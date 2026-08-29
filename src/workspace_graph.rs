@@ -14,6 +14,7 @@
 
 mod expected_projection;
 mod operation_sidecar;
+mod package;
 mod retained_validation;
 
 use operation_sidecar::build_operation_sidecar;
@@ -1018,6 +1019,11 @@ pub(crate) fn build_owned(
 ) -> Result<WorkspaceGraphBuild, Vec<Diagnostic>> {
     build_owned_with_builder_limit(sources, MAX_BUILDER_BYTES)
 }
+
+pub(crate) use package::{
+    build_package_scalar_sources, PackageWorkspaceImport, PackageWorkspaceLink,
+    PackageWorkspaceModule,
+};
 
 impl WorkspaceGraphBuild {
     pub(crate) fn contains_module(&self, module: &str) -> bool {

@@ -112,6 +112,11 @@ modules, and selected exports. It is a bounded project input, not a dependency
 manager or package registry. See [Project Manifest v1](docs/PROJECT-MANIFEST-V1.md)
 and its additive versioned extensions for exact limits.
 
+The additive library-only [Offline Multi-Package Source Capsule v1](docs/OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md)
+authenticates a narrow caller-owned, effect-free scalar package source closure
+above exact offline resolution. It is authored but unrun and is not yet a
+multi-package build or package-manager workflow.
+
 ## A small SEMAPRAX program
 
 ```semaprax

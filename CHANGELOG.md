@@ -12,6 +12,19 @@
   residue, identity, and permission evidence; no local or hosted execution,
   cleanup, adoption, Windows support, cache, or promotion is claimed.
 
+- Authored Offline Multi-Package Source Capsule v1 above exact Resolver-v1,
+  Subject/Lock-v2, and Report-v2 replay. The authority-free library admits two
+  through four caller-owned effect-free scalar implementation sources, requires
+  their source-derived direct import graph to exactly equal selected dependency
+  metadata, exact-compares typed interfaces while omitting display/parameter
+  names, binds an explicit root and only its explicit exports, and retains the
+  ordinary linked HIR behind a crate-private future-build seam. Canonical wire,
+  source/import/output bounds, root-only export, and hostile association
+  evidence is authored but unrun; existing package bytes and APIs are
+  preserved and no completion or promotion claim is made. This adds no build,
+  publication, acquisition, registry/network/cache, provenance, execution,
+  runtime enforcement, dynamic linking, or hermetic sandbox authority.
+
 - Authored Offline Effect-Free Scalar Core-Wasm Package Build v1 above exact
   Resolver-v1 and Lock-v2 replay. The authority-free compiler slice admits one
   dependency-free selected Subject v2, independently rebuilds its embedded

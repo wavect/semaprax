@@ -18,6 +18,46 @@
   passed. The generated Rust builder remains unpublished, and no registry,
   general aggregate/resource ABI, or multi-engine browser claim follows.
 
+- Activated the exact additive Project Manifest v8 `owned-data-api.v1`
+  implementation behind its closed profile. One canonical, domain-separated
+  public API descriptor now derives from authenticated linked HIR and is
+  independently replayed before driving direct `Bytes`, `Option<Bytes>`, and
+  `Result<Bytes, i64>` npm/Wasm bindings or the safe Rust package. The Rust
+  route keeps semantic/provider emission in the root compiler and delegates
+  held compiler/archive tools, deterministic package rendering, no-clobber
+  publication, and exact reopening to the dependency-inverted
+  `semaprax-native-rust-owned-data-package` crate. Generated safe Rust forbids
+  unsafe code; opaque provider-handle FFI remains private, and no allocator
+  transfer is introduced. Project v1–v7 preservation evidence is authored.
+  These gates were not executed by this documentation audit, the packages are
+  unpublished, and exact-head hosted promotion remains pending.
+
+- Added the frame-payload Project v8 validation product with one committed
+  binary-frame corpus shared by the reference interpreter, native C11 O0/O2,
+  Core Wasm/Node, generated npm, and generated Rust consumer lanes. Authored
+  evidence compares exact branches, bytes, language errors, semantic status,
+  cleanup/settlement facts, and stable API identity before and after a
+  display-only rename. The product is repository evidence, not a hosted-green,
+  browser-breadth, registry, stable-ABI, or release claim.
+
+- Added opt-in read-only Project Agent Transport v5 with exactly
+  `project/api-describe` and `project/npm-build-inline` above the preserved v2
+  inspection method set. Responses bind exact retained Project/workspace
+  revisions, canonical descriptor bytes/digest, an independently replayed npm
+  carrier, and an exact typed descriptor subject under the complete response
+  budget. The profile adds no filesystem write, process, target selection,
+  publication, mutation, persistence, or reusable authority. Focused hostile
+  and preservation evidence is authored but was not executed by this
+  documentation audit; local and hosted promotion remain open.
+
+- Added the WP-01–WP-15 developer-preview implementation audit to the completion
+  matrix. CI decomposition, deterministic versioning, release packaging,
+  `doctor`, `new`, the executable quickstart, and Project v8 WP-08–WP-14 are
+  distinguished as authored-but-unrun implementation/evidence. WP-04 v0.2
+  promotion and WP-15 Project v8 promotion remain explicitly pending, no
+  long-term row moves to Implemented, and no exact-head hosted result is
+  claimed.
+
 - Added the locally evidenced Shared Loan Plan v1 proof layer for bounded
   synchronous immutable borrowing rooted in `own` storage. Dense
   resolved-function-local loan identities, exact owner-place and parent-reborrow

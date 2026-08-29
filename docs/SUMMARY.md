@@ -49,6 +49,7 @@ Audience: all documentation readers.
 - [Agent context v2](AGENT-CONTEXT-V2.md)
 - [Agent transport v1](AGENT-TRANSPORT-V1.md)
 - [Project agent transport v2](PROJECT-AGENT-TRANSPORT-V2.md)
+- [Project agent transport v5](PROJECT-AGENT-TRANSPORT-V5.md)
 - [Project rename transaction](PROJECT-RENAME-TRANSACTION-V1.md)
 - [Project agent workflow](PROJECT-AGENT-WORKFLOW-V1.md)
 - [Semantic impact](SEMANTIC-IMPACT-V1.md)

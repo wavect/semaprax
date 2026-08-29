@@ -166,6 +166,8 @@ publication authority.
 
 | Command | Purpose |
 | --- | --- |
+| `semaprax --version` / `version --json` | Report deterministic package and injected commit identity. |
+| `semaprax doctor [--target …] [--json]` | Check the bounded local native, Web, and contributor tool requirements without network access. |
 | `semaprax new <destination>` | Create and validate a Project v1 calculator from the built-in template. |
 | `semaprax check …` | Parse, resolve, type-check, and verify a file or project manifest. |
 | `semaprax fmt <file> [--check]` | Write or check canonical formatting. |
@@ -181,6 +183,16 @@ Run `semaprax --help` for the complete command list. Many report, evidence,
 workspace, and host-integration commands are narrow protocol surfaces intended
 for tool authors; their versioned reference documents define the exact
 admission rules and non-claims.
+
+The current source tree also contains an exact Project v8
+`owned-data-api.v1` developer-preview route for `--target npm` and
+`--target rust`, plus the `examples/frame-payload-*` validation fixtures. Its
+implementation and executable evidence are authored, but the current
+integration head has not completed the required exact-head hosted promotion.
+The generated packages are unpublished and must not be treated as a stable or
+supported general owned-data ABI. See [Public Owned Data API
+v1](docs/PUBLIC-OWNED-DATA-API-V1.md) and the [completion
+matrix](docs/COMPLETION-MATRIX.md).
 
 ## Project status
 

@@ -28,6 +28,11 @@ Design text, generated placeholders, source compilation alone, a proof-only
 model, or a narrower private target does not complete a broader row. Local,
 hosted, private, public, and proof-only evidence are distinct.
 
+In the programme audit below, **Authored, unrun** means that implementation and
+executable evidence are present in the current source tree, but this audit did
+not execute them. It is weaker than local green evidence and cannot support a
+hosted or public promotion claim.
+
 ## Current summary
 
 **Overall product objective: Partial**
@@ -48,8 +53,12 @@ The strongest current vertical slices are:
 - scalar and selected Copy/owned-data execution through interpreter, native
   C11/Clang, and Core WebAssembly/Node lanes, including the closed flat
   [Owned Byte Variant Algebra v1](OWNED-BYTE-VARIANT-ALGEBRA-V1.md) slice;
-- bounded multi-file Project manifests with selected Web, npm, native-command,
-  and unpublished Rust SDK consumers;
+- bounded multi-file Project manifests through the additive Project v8
+  `owned-data-api.v1` implementation, with one canonical descriptor driving
+  Web/npm and unpublished safe Rust package generation;
+- the authored frame-payload corpus across interpreter, native C11 O0/O2,
+  Core Wasm/Node, generated npm, and generated Rust consumer lanes, plus the
+  read-only Project Agent Transport v5 descriptor/carrier surface;
 - private desktop/mobile and host-integration evidence.
 
 The largest remaining gaps are general ownership and lifetime safety, stable
@@ -88,6 +97,37 @@ v2–v7 references, [Bounded Language Command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V
 [Wasm Scalar Exports](WASM-SCALAR-EXPORTS-V1.md), and
 [Native Rust Interoperability](NATIVE-RUST-INTEROP-V1.md).
 
+## WP-01–WP-15 implementation and promotion audit
+
+This table tracks the bounded developer-preview programme separately from the
+49-requirement product contract. It records what is present in the current
+source tree, not what was executed by this documentation-only audit. No row below
+changes a long-term status to Implemented.
+
+| Work package | Current source state | Authored evidence | Remaining gate |
+| --- | --- | --- | --- |
+| WP-01 CI decomposition | Authored, unrun | Dedicated desktop/native product matrix, release aggregation, and CI contract evidence | Execute the workflow and preserve a blocking exact-head release aggregation. |
+| WP-02 deterministic version | Authored, unrun | Human and canonical JSON version renderers with injected commit identity and focused CLI evidence | Execute local gates and bind the exact release commit in hosted artifacts. |
+| WP-03 release artifacts | Authored, unrun | Deterministic Unix/Windows packaging, manifest/checksum workflow, smoke route, and contract evidence | Exercise every advertised archive on its build host at the release head. |
+| WP-04 v0.2 promotion | Pending | Promotion criteria are specified; no promotion record was added | Obtain one exact-head green release gate and record its run and artifact inventory. |
+| WP-05 `doctor` | Authored, unrun | Injected-host checks, human/JSON rendering, and focused CLI evidence | Execute the gates on the supported hosts; this does not itself promote v0.2. |
+| WP-06 `new` | Authored, unrun | Compiled-in calculator template, staged authenticated publication, and hostile path/failure evidence | Execute the generator, Project check/test, and publication gates. |
+| WP-07 quickstart | Authored, unrun | Executable quickstart document and mirrored repository test | Execute the documented sequence against the candidate compiler. |
+| WP-08 v8 specification | Specified | [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) freezes identifiers, admission, lifetime, compatibility, and twelve completion gates | Keep the specification synchronized with the additive implementation and promotion evidence. |
+| WP-09 canonical descriptor | Authored, unrun | Validated-HIR derivation, canonical bytes/digest, independent replay, stable host naming, and hostile descriptor evidence | Execute focused replay/KAT and legacy-preservation gates. |
+| WP-10 direct `Bytes` npm/Wasm | Authored, unrun | Profile-specific Wasm carrier, fresh host-owned `Uint8Array` copy-out, settlement, npm inventory, and hostile carrier evidence | Execute Node/browser, capacity, settlement, and legacy-byte gates. |
+| WP-11 `Option<Bytes>` / `Result<Bytes, i64>` | Authored, unrun | Fixed tags, active-payload handling, TypeScript mapping, cleanup evidence, and reference-interpreter normalization | Execute interpreter/native/Wasm/npm branch and hostile-tag equivalence gates. |
+| WP-12 safe native/Rust SDK | Authored, unrun; unpublished | Root-owned authenticated HIR/provider derivation plus a dependency-inverted held-tool/publication crate, safe generated API, private FFI quarantine, opaque handles, replay, and external-consumer evidence | Execute O0/O2, offline consumer, hostile handle, sanitizer, and Linux/macOS/Windows gates; intentionally decide publication support. |
+| WP-13 Project v8 activation | Authored, unrun | Exact v8 manifest/profile parsing, bounded multi-root linking, semantic-recipe replay, and CLI `web`/`npm`/`rust` routing | Execute v1–v7 KAT preservation and every v8 target route at one candidate head. |
+| WP-14 frame-payload product | Authored, unrun | One committed corpus and display-rename proof authored across interpreter, native O0/O2, Core Wasm/Node, generated npm, and generated Rust lanes | Execute the complete identical corpus and external consumers on required hosts and browser runtimes. |
+| WP-15 v8 promotion | Pending | The twelve-gate contract is specified; no dedicated exact-head v8 promotion matrix or run is recorded | Add and pass every blocking Project/npm/browser/Rust/equivalence/sanitizer/hostile job on one exact commit, with no skip or allowed failure. |
+| Agent Transport v5 follow-on | Authored, unrun; unpromoted | Opt-in read-only descriptor and inline npm methods with typed descriptor binding, bounded framing, stale-subject rejection, and zero publication/process authority evidence | Execute focused gates, preserve v2–v4 bytes, then include the surface in an exact-head promotion decision. |
+
+Project v8 is therefore **implemented in the current source tree but not
+promoted**. The generated npm and Rust packages remain developer-preview and
+unpublished surfaces. WP-15 is the explicit blocker for describing the bounded
+owned-data API as hosted, supported, or released.
+
 ## Long-term product contract
 
 The “Evidence owner” column points to the document that defines the strongest
@@ -98,10 +138,10 @@ row.
 
 | Requirement | Status | Evidence owner | Complete when |
 | --- | --- | --- | --- |
-| Agent-native semantic program | Partial | [RFC 0001](RFC-0001.md), [Agent Context v2](AGENT-CONTEXT-V2.md) | The complete program graph is persistent, queryable, schema-versioned, and validated on representative repositories. |
+| Agent-native semantic program | Partial | [RFC 0001](RFC-0001.md), [Agent Context v2](AGENT-CONTEXT-V2.md), [Project Agent Transport v5](PROJECT-AGENT-TRANSPORT-V5.md) | The complete program graph is persistent, queryable, schema-versioned, and validated on representative repositories. |
 | Human-readable program | Partial | [RFC 0001](RFC-0001.md) | Canonical source round-trips every stable language feature with migrations and reviewable diffs. |
 | Verified source semantics | Partial | [Architecture](ARCHITECTURE.md) | All admitted language features reach validated HIR only after complete type, effect, contract, and ownership checks. |
-| Cross-backend semantic equivalence | Partial | [Conformance Trace v1](CONFORMANCE-TRACE-V1.md) | Every supported backend passes the same complete behavior, failure, cleanup, and contract corpus. |
+| Cross-backend semantic equivalence | Partial | [Conformance Trace v1](CONFORMANCE-TRACE-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) | Every supported backend passes the same complete behavior, failure, cleanup, and contract corpus. |
 | Atomic agent changes | Partial | [Patch Evidence v1](SEMANTIC-PATCH-EVIDENCE-V1.md), [Workspace Change v1](SEMANTIC-WORKSPACE-CHANGE-V1.md) | General supported single- and multi-file semantic changes replay and publish atomically with recovery and provenance. |
 
 ### Language and safety
@@ -110,9 +150,9 @@ row.
 | --- | --- | --- | --- |
 | Records and algebraic variants | Partial | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md), [Owned Byte Record Algebra](OWNED-BYTE-RECORD-ALGEBRA-V1.md), [Owned Byte Variant Algebra](OWNED-BYTE-VARIANT-ALGEBRA-V1.md) | General nested/generic/resource aggregates, matching, layout, cleanup, and public ABIs are verified. |
 | Functions, closures, interfaces, implementations, generics | Partial | [RFC 0001](RFC-0001.md) | Closures, interfaces/implementations, inference, constraints, specialization, and cross-target execution are complete. |
-| `Option` and `Result`; no null or unchecked exceptions | Partial | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md), [Owned Byte Variant Algebra](OWNED-BYTE-VARIANT-ALGEBRA-V1.md) | General Copy and owned propagation/matching, residual conversion, ABI, and target behavior are verified. |
+| `Option` and `Result`; no null or unchecked exceptions | Partial | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md), [Owned Byte Variant Algebra](OWNED-BYTE-VARIANT-ALGEBRA-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) | General Copy and owned propagation/matching, residual conversion, ABI, and target behavior are verified. |
 | Immutable-by-default values and explicit mutation | Partial | [Explicit Mutation v1](EXPLICIT-MUTATION-V1.md), [Field Mutation v1](FIELD-MUTATION-V1.md) | Aggregate, collection, borrowed, and concurrency-aware mutation rules are verified. |
-| Unique ownership and move safety | Partial | [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md), [Owned Byte Variant Algebra](OWNED-BYTE-VARIANT-ALGEBRA-V1.md), [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md) | General owned values, aliases, nested aggregates, control flow, FFI, cleanup, and target execution are verified. |
+| Unique ownership and move safety | Partial | [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md), [Owned Byte Variant Algebra](OWNED-BYTE-VARIANT-ALGEBRA-V1.md), [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) | General owned values, aliases, nested aggregates, control flow, FFI, cleanup, and target execution are verified. |
 | Borrowed views and lifetime safety | Partial | [Useful Text Consumer v1](USEFUL-TEXT-CONSUMER-V1.md), [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md) | General lifetime inference, mutable and escaping borrows, nested owned aggregate borrowing, cross-file use, and public host ABI behavior are verified. |
 | Regions and arenas | Partial | [Region Report v1](REGION-REPORT-V1.md) | Region inference and runtime placement are implemented and verified; the report alone is insufficient. |
 | Shared immutable ARC and managed zones | Partial | [ARC Zone Model v1](ARC-ZONES-V1.md) | Language, runtime, cycle, escape, and concurrency semantics execute on supported targets. |
@@ -127,7 +167,7 @@ row.
 
 | Requirement | Status | Evidence owner | Complete when |
 | --- | --- | --- | --- |
-| Fast development lane | Partial | [Interpreter v1](INTERPRETER-V1.md) | Incremental execution, debugging, hot reload, and semantic equivalence meet the development-performance target. |
+| Fast development lane | Partial | [Interpreter v1](INTERPRETER-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) | Incremental execution, debugging, hot reload, and semantic equivalence meet the development-performance target. |
 | Optimizing native lane | Partial | [Architecture](ARCHITECTURE.md) | The production native backend covers the mature language, optimization, debug mapping, and supported hosts. |
 | WebAssembly core and components | Partial | [Wasm Scalar Exports](WASM-SCALAR-EXPORTS-V1.md), [Wasm Owned ABI](WASM-OWNED-ABI-V1.md) | Stable Components, resources, capabilities, multi-engine conformance, and packaging are verified. |
 | Embedded and real-time | Partial | [Freestanding Profile v1](FREESTANDING-V1.md) | Hardware profiles, linker control, interrupts/RTOS, timing constraints, and representative targets are verified. |
@@ -138,12 +178,12 @@ row.
 | Requirement | Status | Evidence owner | Complete when |
 | --- | --- | --- | --- |
 | Interface-first packages and target matrices | Partial | [Package Report v1](PACKAGE-REPORT-V1.md) | Resolver, lockfile, compatibility, provenance, registry, and conformance are production-ready. |
-| Portable canonical ABI and native fast ABI | Partial | [ABI Report v1](ABI-REPORT-V1.md) | Stable aggregate/resource/borrowed ABIs and cross-language conformance cover supported architectures. |
+| Portable canonical ABI and native fast ABI | Partial | [ABI Report v1](ABI-REPORT-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) | Stable aggregate/resource/borrowed ABIs and cross-language conformance cover supported architectures. |
 | C and Objective-C | Partial | [C Header v1](C-HEADER-V1.md) | Import/export, ownership, errors, compiled consumers, Objective-C adapters, and compatibility are verified. |
 | C++ | Partial | [C++ Shim v1](CXX-SHIM-V1.md) | Compiled C++ consumers, ownership, exceptions, templates/adapters, and compatibility are verified. |
 | Java and Kotlin | Partial | [Android JNI Ownership v1](ANDROID-JNI-OWNERSHIP-V1.md) | Public JVM/JNI artifacts, ownership, exceptions, packaging, and conformance are verified. |
 | Swift and Apple frameworks | Partial | [Swift Ownership v1](APPLE-SWIFT-OWNERSHIP-V1.md) | Public Swift/Objective-C API, distributable frameworks, lifecycle, ownership, and device evidence are verified. |
-| JavaScript and TypeScript | Partial | [Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md) | Stable general bindings, owned resources, async/callbacks, packaging, and browser/runtime breadth are verified. |
+| JavaScript and TypeScript | Partial | [Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) | Stable general bindings, owned resources, async/callbacks, packaging, and browser/runtime breadth are verified. |
 | WIT and WebAssembly Components | Partial | [WIT Boundary v1](WIT-COMPONENT-BOUNDARY-V1.md) | Source-selected interfaces and resources run through a supported Component Model toolchain on multiple runtimes. |
 | OpenAPI, Protobuf/gRPC, GraphQL, and SQL | Partial | [OpenAPI v1](OPENAPI-V1.md) | Import/export, compatibility, live conformance, and all named schema families are verified. |
 

@@ -13,7 +13,7 @@ SEMAPRAX follows risk rather than feature count. Stable semantic identity,
 sound ownership, replayable change authority, and honest target boundaries take
 priority over broad syntax or generated artifact volume.
 
-## Current priority: finish the v0.2 product exit
+## Current priority: close exact-head promotion gates
 
 The current codebase has a bounded multi-file calculator, Project agent
 workflow, stable-ID JavaScript/TypeScript and unpublished Rust consumers, and a
@@ -35,35 +35,43 @@ Exit outcomes:
 The [v0.2 audit](COMPLETION-MATRIX.md#v02-product-exit-audit) is the acceptance
 checklist.
 
-## Developer preview: public owned-data integrations
+## Developer preview: promote the authored Project v8 slice
 
-After the v0.2 release gate is closed, the next bounded product tranche is the
-additive [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md). Its proposed
-Project Manifest v8 profile keeps v1–v7 frozen and admits only scalar and
-borrowed text/byte parameters with scalar or copied owned-byte results.
+Implementation has moved ahead of the intended promotion sequence: the
+additive [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) Project v8
+profile, npm/Wasm route, safe Rust package route, reference-interpreter lane,
+frame-payload validation product, and read-only Project Agent Transport v5 are
+now authored in the current source tree. This roadmap does not treat authored
+tests as executed evidence. Exact-head hosted promotion remains open, and
+v1–v7 compatibility is still a mandatory gate.
 
-Sequence this tranche narrowly:
+The next outcomes are therefore validation and promotion, not another semantic
+widening:
 
-1. freeze and independently replay one target-neutral public API descriptor;
-2. generate JavaScript/TypeScript and safe Rust consumers from that descriptor;
-3. prove direct `Bytes`, then `Option<Bytes>` and `Result<Bytes, i64>`, with
-   exact copy-out and settlement before host publication;
-4. activate Project v8 only after both target consumers and all legacy
-   preservation gates are independently green; and
-5. validate one realistic multi-module project across interpreter, native,
-   Wasm, installed npm, and compiler-free Rust consumption before any hosted
-   or completion-matrix promotion.
+1. execute the descriptor, HIR-link, carrier, settlement, hostile-input, and
+   v1–v7 known-answer gates at one integration head;
+2. execute the identical frame-payload corpus through interpreter, native
+   C11 O0/O2, Core Wasm/Node, installed npm, and compiler-free Rust consumers;
+3. run strict TypeScript, real-browser, sanitizer, MSRV, and Linux/macOS/Windows
+   jobs without skips, retries, masks, or allowed failures;
+4. preserve the baseline/display-renamed stable-ID proof across both generated
+   consumer packages; and
+5. record the exact commit and hosted run before describing the bounded API as
+   promoted, supported, or released.
 
-After Project v8 target activation, the additive read-only [Project Agent
-Transport v5](PROJECT-AGENT-TRANSPORT-V5.md) exposes only its canonical API
-descriptor and bounded inline npm carrier. It must retain exact revision and
+The authored additive read-only [Project Agent Transport
+v5](PROJECT-AGENT-TRANSPORT-V5.md) exposes only the canonical API descriptor and
+bounded inline npm carrier. Promotion must still prove exact revision and typed
 descriptor replay, zero write/process/publication authority, and byte-frozen
-v2-v4 behavior before any broader agent workflow is considered.
+v2–v4 behavior before any broader agent workflow is considered.
 
 Records, authored variants, nested algebraic data, owned UTF-8 strings,
 allocator transfer, callbacks, async work, and general public aggregate ABIs
-remain outside this preview. The versioned specification owns its exact
-identifiers, admission, lifetime, compatibility, and promotion gates.
+remain outside the Project v8 preview. Project v9 flat owned records
+and Project v10 owned UTF-8 remain follow-on work after the preceding profiles
+are promoted; internal record/variant support is not a public aggregate ABI.
+The versioned specification owns exact identifiers, admission, lifetime,
+compatibility, and promotion gates.
 
 ## 0.3: ownership and fast development
 

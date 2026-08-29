@@ -1,6 +1,7 @@
 # Public Owned Data API v1
 
-Status: proposed versioned contract; not implemented or activated.
+Status: implementation and executable evidence authored; local and exact-head
+hosted promotion are not claimed.
 
 Audience: language users, generated-SDK consumers, tool authors, and compiler
 contributors.
@@ -8,8 +9,11 @@ contributors.
 Public Owned Data API v1 defines one additive Project profile for calling a
 closed set of stable-ID functions from JavaScript/TypeScript and safe Rust. It
 extends the existing fixed-memory byte-data mechanism with controlled owned
-byte results. This document is a design and completion contract, not evidence
-that Project Manifest v8, either generated SDK, or either carrier exists.
+byte results. Project Manifest v8, both generated consumer routes, the
+reference-interpreter lane, and their focused evidence are authored in the
+current source tree. This document does not claim those gates were executed at
+the current head, that either package is published, or that hosted promotion is
+complete.
 
 The profile deliberately copies every successful owned result into host-owned
 storage before publication. It does not expose a SEMAPRAX pointer, allocator,
@@ -54,9 +58,9 @@ strictly sorted unique paths. `web_exports` contains 1–32 strictly sorted
 unique stable IDs. There are no `command`, `input`, or `capabilities` fields.
 Unknown, missing, extra, duplicated, or reordered assignments reject.
 
-Project v8 must enter the existing closed `ProjectProfile` dispatch as one
-distinct variant. Schema or profile text must never be converted into loose
-feature flags from which downstream authority is inferred.
+Project v8 enters the existing closed `ProjectProfile` dispatch as one distinct
+variant. Schema or profile text is never converted into loose feature flags
+from which downstream authority is inferred.
 
 ## Semantic admission
 
@@ -304,9 +308,10 @@ a separately reviewed compatibility change.
 
 ## Completion gates
 
-This specification may move from proposed to locally evidenced only when all
+This implementation may be described as locally evidenced only when all
 applicable gates below pass at the same commit. Completion-matrix or public
-promotion additionally requires the exact hosted gate in item 12.
+promotion additionally requires the exact hosted gate in item 12. Authored but
+unexecuted repository tests do not satisfy either condition.
 
 1. **Parser and canonical manifest:** exact v8 assignment/order/LF/profile
    acceptance; every malformed, capacity, ordering, schema/profile-confusion,
@@ -368,9 +373,10 @@ promotion additionally requires the exact hosted gate in item 12.
     Skipped, cancelled, diagnostic-only, retried, or allowed-failure jobs do
     not count.
 
-Until all twelve gates exist and the applicable exact-head jobs are green,
-this document does not activate Project v8, publish either SDK, or promote any
-completion-matrix status.
+The current source tree activates Project v8 behind its exact manifest/profile
+and CLI routes, but activation is not promotion. Until all twelve gates exist
+and the applicable exact-head jobs are green, neither generated package is a
+published supported SDK and no completion-matrix status is promoted.
 
 ## Nonclaims
 

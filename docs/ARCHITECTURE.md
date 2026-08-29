@@ -194,6 +194,48 @@ capsules never carry reusable authority.
 admission, linking, execution, builds, npm carriers, rename planning, and the
 unpublished native Rust SDK bridge.
 
+Project v8 adds one closed `owned-data-api.v1` route. `src/project/public_api.rs`
+derives and independently replays the sole semantic API descriptor from the
+authenticated linked-HIR subject. `src/project/npm/owned_data.rs` and the
+owned-data Wasm lowering consume that descriptor for the npm package. The
+reference-interpreter entry in `src/interpreter.rs` returns a normalized
+scalar/owned/variant value and one explicit copy-out-and-settle boundary event;
+it does not grant target or publication authority.
+
+The Rust target deliberately crosses a dependency-inverted trust boundary:
+
+```text
+held Project v8 snapshot + validated linked HIR
+                    |
+       canonical descriptor + semantic replay
+                    |
+       root-owned native provider C emission
+                    |
+  semaprax-native-rust-owned-data-package
+       | held compiler/archive tools
+       | deterministic safe/FFI package rendering
+       | no-clobber staged publication + exact reopen
+                    |
+       unpublished compiler-free Rust package
+```
+
+The root crate retains semantic authority and contains no new unsafe Rust. The
+lower package crate receives only the already replayed descriptor, selected
+stable IDs, provider bytes and their digests. It independently parses the
+closed descriptor, binds provider/descriptor identity, selects only the exact
+current host target, and owns external tool and filesystem effects. Generated
+safe code forbids unsafe code; the private generated FFI sibling remains the
+quarantine for opaque provider handles. Neither layer transfers provider
+allocation into a host allocator.
+
+`examples/frame-payload-project`, `examples/frame-payload-web`,
+`examples/frame-payload-rust`, and `tests/frame_payload_product_v1.rs` form one
+authored validation product over an identical corpus. Its lanes cover the
+reference interpreter, native C11 O0/O2, Core Wasm/Node, generated npm, and
+generated Rust package, including stable-ID display rename and settlement
+facts. Those repository gates were not executed by the documentation audit and
+do not establish exact-head hosted promotion.
+
 `src/project_transport/` and `src/bin/semapraxd.rs` retain one authenticated
 Project revision for bounded requests. Read-only v2 is the default. Explicit
 opt-ins add one server-derived rename, the bounded workflow, or the additive
@@ -231,6 +273,9 @@ contract:
 - `crates/semaprax-native-host`: connected callable and settlement host;
 - `crates/semaprax-native-rust-interop-*`: unpublished deterministic Rust SDK
   builder and platform-specific publication authority;
+- `crates/semaprax-native-rust-owned-data-package`: dependency-inverted
+  Project-v8 held-tool, archive, deterministic rendering, publication, and
+  reopening authority; it receives no source or HIR authority;
 - `src/native_settlement.rs`, `src/arc_zones.rs`, and `src/scoped_tasks.rs`:
   target-neutral proof models rather than wired runtime features;
 - `src/agent_runtime.rs` and `src/economic_agent.rs`: injected-host Rust APIs
@@ -270,7 +315,8 @@ a supported language, CLI, ABI, or runtime surface.
 | Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs` |
 | Single-file transactions | `src/patch.rs`, `src/patch/`, `src/patch_evidence.rs`, `src/repair.rs` |
 | Managed workspace | `src/workspace.rs`, `src/workspace_*`, `src/semantic_workspace*` |
-| Project and daemon | `src/project/`, `src/project_transport/`, `src/bin/semapraxd.rs` |
+| Project, public descriptor, and daemon | `src/project/`, `src/project/public_api.rs`, `src/project_transport/`, `src/bin/semapraxd.rs` |
+| Generated Rust package authority | `src/project/native_sdk.rs`, `crates/semaprax-native-rust-owned-data-package/`, `crates/semaprax-native-rust-interop-builder/` |
 | Interpreter | `src/interpreter.rs`, `src/hosted_interpreter.rs` |
 | Native backend | `src/codegen.rs`, `src/codegen/native_*` |
 | WebAssembly backend | `src/wasm.rs`, `src/wasm/` |

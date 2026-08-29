@@ -313,6 +313,16 @@ public scalar-record lowering and private resource-record proof harness both
 consume the same validated cleanup plan; the private harness does not open a
 public resource ABI or admission gate.
 
+The additive [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md) gives the existing
+bounded synchronous immutable-borrow slice dense resolved-function-local loan
+identities, exact owner-place and parent-reborrow provenance, multiple shared
+loans, path-sensitive last-use edges, deterministic bounds, and
+independent replay. Graph v23 projects those facts while preserving legacy
+Graph and cleanup bytes when no plan is required. This proof foundation does
+not yet admit nested owned aggregate borrowing, escaping borrows, general
+lifetime inference, mutable borrowing, or a public borrowed ABI; those remain
+evidence-gated extensions of this RFC.
+
 ## Exhaustiveness
 
 Use a constructor-pattern matrix:

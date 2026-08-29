@@ -525,6 +525,14 @@ fn link_error(message: impl Into<String>) -> Diagnostic {
 }
 
 fn rebuild_cleanup_metadata(program: &mut ResolvedProgram) -> Result<(), Diagnostic> {
+    let loan_plans = program
+        .functions
+        .iter()
+        .map(|function| crate::loan_plan::build_plan(program, function))
+        .collect::<Result<Vec<_>, _>>()?;
+    for (function, loan_plan) in program.functions.iter_mut().zip(loan_plans) {
+        function.loan_plan = loan_plan;
+    }
     let inventories = program
         .functions
         .iter()

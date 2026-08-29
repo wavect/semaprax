@@ -12,7 +12,15 @@ This RFC defines the target-neutral destruction, cleanup, and failure contract r
 
 This RFC supplies the cleanup foundation for [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md). It covers uniquely owned opaque resources, aggregates that transitively contain them, transfers, partial initialization, ordinary and checked-failure exits, imported finalizers, explicit fallible close operations, and consistent native/Wasm behavior.
 
-It does not yet define borrowing lifetimes, shared-reference retain/release, regions, foreign unwinding across SEMAPRAX frames, asynchronous cancellation, process termination, signal safety, raw traps, or a stable public binary ABI. C11 and Wasm core are bootstrap lowering contracts; the portable public component boundary remains WIT/WebAssembly Components.
+It does not define a borrowed runtime ABI, shared-reference retain/release,
+regions, foreign unwinding across SEMAPRAX frames, asynchronous cancellation,
+process termination, signal safety, raw traps, or a stable public binary ABI.
+The separate [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md) provides bounded
+synchronous immutable-loan planning and independent replay over verified HIR;
+it does not add cleanup liveness, runtime loan objects, general lifetime
+inference, nested owned aggregate borrowing, or backend authority. C11 and
+Wasm core are bootstrap lowering contracts; the portable public component
+boundary remains WIT/WebAssembly Components.
 
 ## Safety contract
 

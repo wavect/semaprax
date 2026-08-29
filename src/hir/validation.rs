@@ -5,6 +5,7 @@
 //! the parent module.
 
 use super::*;
+use crate::loan_plan::{LoanCause, LoanId, LoanPointPhase};
 
 fn owned_byte_record_copy_field_is_admitted(ty: &ResolvedType) -> bool {
     matches!(
@@ -216,9 +217,41 @@ pub(super) struct HirValidator<'a> {
     expression_ids: BTreeSet<ExpressionId>,
     value_ids: BTreeSet<ValueId>,
     byte_slice_aliases: BTreeMap<ValueId, ValueId>,
+    canonical_loan_ids: BTreeMap<(ExpressionId, LoanCause), LoanId>,
+    canonical_loan_liveness: BTreeSet<(ExpressionId, LoanPointPhase, LoanId)>,
 }
 
 impl<'a> HirValidator<'a> {
+    fn binding_has_live_loans(
+        &self,
+        binding: &ValidationBinding,
+        expression: &ExpressionId,
+        phase: LoanPointPhase,
+    ) -> Result<bool, Diagnostic> {
+        for loan in &binding.active_loans {
+            if self
+                .canonical_loan_liveness
+                .contains(&(expression.clone(), phase, *loan))
+            {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
+    fn exact_loan_id(
+        &self,
+        execution: &FunctionExecutionId,
+        expression: &ExpressionId,
+        cause: &LoanCause,
+    ) -> Result<Option<LoanId>, Diagnostic> {
+        let _ = execution;
+        Ok(self
+            .canonical_loan_ids
+            .get(&(expression.clone(), cause.clone()))
+            .copied())
+    }
+
     fn execution_function(&self, id: &FunctionExecutionId) -> Option<&ResolvedFunction> {
         match id {
             FunctionExecutionId::Monomorphic(declaration) => {
@@ -289,12 +322,48 @@ impl<'a> HirValidator<'a> {
                 )));
             }
         }
+        let mut canonical_loan_ids = BTreeMap::new();
+        let mut canonical_loan_liveness = BTreeSet::new();
+        for function in program.functions.iter().chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        ) {
+            let plan = crate::loan_plan::build_plan(program, function)?;
+            for endpoint in &plan.endpoints {
+                let live = match endpoint.point.phase {
+                    LoanPointPhase::Before => &endpoint.live_before,
+                    LoanPointPhase::After => &endpoint.live_after,
+                };
+                canonical_loan_liveness.extend(live.iter().map(|loan| {
+                    (
+                        endpoint.point.expression.clone(),
+                        endpoint.point.phase,
+                        *loan,
+                    )
+                }));
+            }
+            for loan in plan.loans {
+                if loan.start.phase != LoanPointPhase::Before
+                    || canonical_loan_ids
+                        .insert((loan.site, loan.cause), loan.id)
+                        .is_some()
+                {
+                    return Err(hir_error(
+                        "canonical shared-loan identity is ambiguous or malformed",
+                    ));
+                }
+            }
+        }
         Ok(Self {
             program,
             functions,
             expression_ids: BTreeSet::new(),
             value_ids: BTreeSet::new(),
             byte_slice_aliases: BTreeMap::new(),
+            canonical_loan_ids,
+            canonical_loan_liveness,
         })
     }
 
@@ -2113,7 +2182,7 @@ impl<'a> HirValidator<'a> {
                     ty: param.ty.clone(),
                     ownership: param.ownership,
                     availability: Availability::Available,
-                    lexically_borrowed: false,
+                    active_loans: BTreeSet::new(),
                     moved_places: BTreeMap::new(),
                     definitely_partial: BTreeSet::new(),
                 },
@@ -2176,7 +2245,7 @@ impl<'a> HirValidator<'a> {
                 ty: function.return_type.clone(),
                 ownership: returned,
                 availability: Availability::Available,
-                lexically_borrowed: false,
+                active_loans: BTreeSet::new(),
                 moved_places: BTreeMap::new(),
                 definitely_partial: BTreeSet::new(),
             },
@@ -2378,7 +2447,7 @@ impl<'a> HirValidator<'a> {
                                     ty: binding.ty.clone(),
                                     ownership,
                                     availability: Availability::Available,
-                                    lexically_borrowed: false,
+                                    active_loans: BTreeSet::new(),
                                     moved_places: BTreeMap::new(),
                                     definitely_partial: BTreeSet::new(),
                                 },
@@ -4571,7 +4640,11 @@ impl<'a> HirValidator<'a> {
                             let owner = scope.get_mut(&place.root).ok_or_else(|| {
                                 hir_error("byte view owner disappeared before lexical borrow")
                             })?;
-                            owner.lexically_borrowed = true;
+                            owner.active_loans.extend(self.exact_loan_id(
+                                function,
+                                &value.id,
+                                &LoanCause::SliceView,
+                            )?);
                         }
                     }
                     if self.is_owned_resource(&binding.ty, binding.ownership)? {
@@ -4588,7 +4661,7 @@ impl<'a> HirValidator<'a> {
                             ty: binding.ty.clone(),
                             ownership: binding.ownership,
                             availability: Availability::Available,
-                            lexically_borrowed: false,
+                            active_loans: BTreeSet::new(),
                             moved_places: BTreeMap::new(),
                             definitely_partial: BTreeSet::new(),
                         },
@@ -4631,7 +4704,7 @@ impl<'a> HirValidator<'a> {
                             binding.id
                         )));
                     };
-                    if target.lexically_borrowed {
+                    if self.binding_has_live_loans(&target, &assigned.id, LoanPointPhase::After)? {
                         return Err(hir_error(
                             "SPX-T265: assignment would replace lexically borrowed byte storage",
                         ));
@@ -5174,7 +5247,11 @@ impl<'a> HirValidator<'a> {
                                 unreachable!("borrow mode authenticated a place above")
                             };
                             if let Some(owner) = arm_scope.get_mut(&place.root) {
-                                owner.lexically_borrowed = true;
+                                owner.active_loans.extend(self.exact_loan_id(
+                                    function,
+                                    &expression.id,
+                                    &LoanCause::MatchBorrow { arm: 0 },
+                                )?);
                             }
                             Some(place.root.clone())
                         } else {
@@ -5308,7 +5385,13 @@ impl<'a> HirValidator<'a> {
                     let mut arm_scope = scopes.pop().expect("record match arm scope retained");
                     if let Some(root) = borrowed_root {
                         if let Some(owner) = arm_scope.get_mut(&root) {
-                            owner.lexically_borrowed = false;
+                            if let Some(loan) = self.exact_loan_id(
+                                function,
+                                &expression.id,
+                                &LoanCause::MatchBorrow { arm: 0 },
+                            )? {
+                                owner.active_loans.remove(&loan);
+                            }
                         }
                     }
                     if !matches!(arm.value.ty, ResolvedType::I64 | ResolvedType::Bool) {
@@ -5372,7 +5455,15 @@ impl<'a> HirValidator<'a> {
                                 unreachable!()
                             };
                             if let Some(owner) = arm_scope.get_mut(&place.root) {
-                                owner.lexically_borrowed = true;
+                                owner.active_loans.extend(self.exact_loan_id(
+                                    function,
+                                    &expression.id,
+                                    &LoanCause::MatchBorrow {
+                                        arm: u16::try_from(index).map_err(|_| {
+                                            hir_error("match loan arm index overflows")
+                                        })?,
+                                    },
+                                )?);
                             }
                         }
                         match &arm.pattern {
@@ -5468,7 +5559,7 @@ impl<'a> HirValidator<'a> {
                                             ty: field.binding.ty.clone(),
                                             ownership: binding_ownership,
                                             availability: Availability::Available,
-                                            lexically_borrowed: false,
+                                            active_loans: BTreeSet::new(),
                                             moved_places: BTreeMap::new(),
                                             definitely_partial: BTreeSet::new(),
                                         },
@@ -5545,7 +5636,16 @@ impl<'a> HirValidator<'a> {
                             unreachable!()
                         };
                         if let Some(owner) = arm_scope.get_mut(&place.root) {
-                            owner.lexically_borrowed = false;
+                            if let Some(loan) = self.exact_loan_id(
+                                function,
+                                &expression.id,
+                                &LoanCause::MatchBorrow {
+                                    arm: u16::try_from(index)
+                                        .map_err(|_| hir_error("match loan arm index overflows"))?,
+                                },
+                            )? {
+                                owner.active_loans.remove(&loan);
+                            }
                         }
                     }
                     let arm = &arms[index];
@@ -5655,7 +5755,7 @@ impl<'a> HirValidator<'a> {
                                     ty: binding.ty.clone(),
                                     ownership: OwnershipMode::Value,
                                     availability: Availability::Available,
-                                    lexically_borrowed: false,
+                                    active_loans: BTreeSet::new(),
                                     moved_places: BTreeMap::new(),
                                     definitely_partial: BTreeSet::new(),
                                 },
@@ -6758,7 +6858,11 @@ impl<'a> HirValidator<'a> {
                                                 "byte view owner disappeared before lexical borrow",
                                             )
                                         })?;
-                                    owner.lexically_borrowed = true;
+                                    owner.active_loans.extend(self.exact_loan_id(
+                                        function,
+                                        &value.id,
+                                        &LoanCause::SliceView,
+                                    )?);
                                 }
                             }
                             if self.is_owned_resource(&binding.ty, binding.ownership)? {
@@ -6775,7 +6879,7 @@ impl<'a> HirValidator<'a> {
                                     ty: binding.ty.clone(),
                                     ownership: binding.ownership,
                                     availability: Availability::Available,
-                                    lexically_borrowed: false,
+                                    active_loans: BTreeSet::new(),
                                     moved_places: BTreeMap::new(),
                                     definitely_partial: BTreeSet::new(),
                                 },
@@ -6803,7 +6907,11 @@ impl<'a> HirValidator<'a> {
                                     binding.id
                                 )));
                             };
-                            if target.lexically_borrowed {
+                            if self.binding_has_live_loans(
+                                &target,
+                                &assigned.id,
+                                LoanPointPhase::After,
+                            )? {
                                 return Err(hir_error(
                                     "SPX-T265: assignment would replace lexically borrowed byte storage",
                                 ));
@@ -7199,7 +7307,7 @@ impl<'a> HirValidator<'a> {
                                         ty: binding.ty.clone(),
                                         ownership: OwnershipMode::Value,
                                         availability: Availability::Available,
-                                        lexically_borrowed: false,
+                                        active_loans: BTreeSet::new(),
                                         moved_places: BTreeMap::new(),
                                         definitely_partial: BTreeSet::new(),
                                     },
@@ -7350,7 +7458,11 @@ impl<'a> HirValidator<'a> {
                             unreachable!("borrow mode authenticated a place above")
                         };
                         if let Some(owner) = arm_scope.get_mut(&place.root) {
-                            owner.lexically_borrowed = true;
+                            owner.active_loans.extend(self.exact_loan_id(
+                                function,
+                                &expression.id,
+                                &LoanCause::MatchBorrow { arm: 0 },
+                            )?);
                         }
                         Some(place.root.clone())
                     } else {
@@ -7400,7 +7512,13 @@ impl<'a> HirValidator<'a> {
                     )?;
                     if let Some(root) = borrowed_root {
                         if let Some(owner) = arm_scope.get_mut(&root) {
-                            owner.lexically_borrowed = false;
+                            if let Some(loan) = self.exact_loan_id(
+                                function,
+                                &expression.id,
+                                &LoanCause::MatchBorrow { arm: 0 },
+                            )? {
+                                owner.active_loans.remove(&loan);
+                            }
                         }
                     }
                     if !matches!(arm.value.ty, ResolvedType::I64 | ResolvedType::Bool) {
@@ -7489,7 +7607,16 @@ impl<'a> HirValidator<'a> {
                             unreachable!()
                         };
                         if let Some(owner) = arm_scope.get_mut(&place.root) {
-                            owner.lexically_borrowed = true;
+                            owner.active_loans.extend(self.exact_loan_id(
+                                function,
+                                &expression.id,
+                                &LoanCause::MatchBorrow {
+                                    arm:
+                                        u16::try_from(arm_index).map_err(|_| {
+                                            hir_error("match loan arm index overflows")
+                                        })?,
+                                },
+                            )?);
                         }
                     }
                     match &arm.pattern {
@@ -7585,7 +7712,7 @@ impl<'a> HirValidator<'a> {
                                         ty: pattern_field.binding.ty.clone(),
                                         ownership: binding_ownership,
                                         availability: Availability::Available,
-                                        lexically_borrowed: false,
+                                        active_loans: BTreeSet::new(),
                                         moved_places: BTreeMap::new(),
                                         definitely_partial: BTreeSet::new(),
                                     },
@@ -7623,7 +7750,16 @@ impl<'a> HirValidator<'a> {
                             unreachable!()
                         };
                         if let Some(owner) = arm_scope.get_mut(&place.root) {
-                            owner.lexically_borrowed = false;
+                            if let Some(loan) = self.exact_loan_id(
+                                function,
+                                &expression.id,
+                                &LoanCause::MatchBorrow {
+                                    arm: u16::try_from(arm_index)
+                                        .map_err(|_| hir_error("match loan arm index overflows"))?,
+                                },
+                            )? {
+                                owner.active_loans.remove(&loan);
+                            }
                         }
                     }
                     if *mode != ResolvedMatchMode::Value
@@ -8140,7 +8276,11 @@ impl<'a> HirValidator<'a> {
                             && Self::place_availability(binding, &place.projections)
                                 == Availability::Available;
                         if should_move {
-                            if binding.lexically_borrowed {
+                            if self.binding_has_live_loans(
+                                binding,
+                                &expression.id,
+                                LoanPointPhase::Before,
+                            )? {
                                 return Err(hir_error(
                                     "SPX-T265: move or transfer would invalidate a lexical byte view",
                                 ));
@@ -8312,7 +8452,9 @@ impl<'a> HirValidator<'a> {
     ) {
         for id in ids {
             if let (Some(target), Some(source)) = (target.get_mut(id), source.get(id)) {
-                target.lexically_borrowed |= source.lexically_borrowed;
+                target
+                    .active_loans
+                    .extend(source.active_loans.iter().copied());
             }
         }
     }
@@ -8328,7 +8470,9 @@ impl<'a> HirValidator<'a> {
                 let moved_places = Self::join_moved_places(baseline, conditional);
                 let definitely_partial = Self::join_definitely_partial(baseline, conditional);
                 baseline.availability = baseline.availability.join(conditional.availability);
-                baseline.lexically_borrowed |= conditional.lexically_borrowed;
+                baseline
+                    .active_loans
+                    .extend(conditional.active_loans.iter().copied());
                 baseline.moved_places = moved_places;
                 baseline.definitely_partial = definitely_partial;
             }
@@ -8346,8 +8490,11 @@ impl<'a> HirValidator<'a> {
                 (target.get_mut(id), then_scope.get(id), else_scope.get(id))
             {
                 target.availability = then_value.availability.join(else_value.availability);
-                target.lexically_borrowed =
-                    then_value.lexically_borrowed || else_value.lexically_borrowed;
+                target.active_loans = then_value
+                    .active_loans
+                    .union(&else_value.active_loans)
+                    .copied()
+                    .collect();
                 target.moved_places = Self::join_moved_places(then_value, else_value);
                 target.definitely_partial = Self::join_definitely_partial(then_value, else_value);
             }

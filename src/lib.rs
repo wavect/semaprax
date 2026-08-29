@@ -38,6 +38,7 @@ pub mod hygienic;
 pub mod impact;
 pub mod interpreter;
 pub mod lexer;
+pub mod loan_plan;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]
 pub(crate) mod native_settlement;
@@ -88,6 +89,7 @@ pub mod workspace;
 pub mod workspace_patch_evidence;
 
 mod graph_cleanup;
+mod graph_loan;
 pub(crate) mod host_io_ops;
 mod host_ownership;
 mod prelude;

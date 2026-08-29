@@ -17,6 +17,7 @@ use crate::cleanup::CleanupInventory;
 use crate::cleanup_plan::CleanupPlan;
 use crate::conformance::STATUS_DOMAIN_MAX_BYTES_V1;
 use crate::diagnostic::Diagnostic;
+use crate::loan_plan::{LoanId, LoanPlan};
 use crate::source_verify::{self, is_scalar_source_type};
 
 macro_rules! format {
@@ -74,7 +75,12 @@ mod inspection;
 mod validation;
 mod workspace_link;
 
-pub use inspection::validate;
+/// Validate resolved HIR and independently replay its canonical shared-loan
+/// proof attachment before any semantic consumer may trust it.
+pub fn validate(program: &ResolvedProgram) -> Result<(), Diagnostic> {
+    inspection::validate(program)?;
+    crate::loan_plan::validate_program(program)
+}
 use inspection::{
     path_is_prefix, reject_nul_identity, resolved_lifecycle_effects, validate_nul_free_identities,
     visit_resolved_calls,
@@ -954,7 +960,7 @@ impl fmt::Display for ValueId {
 pub struct ExpressionId(String);
 
 impl ExpressionId {
-    fn new(function: &FunctionExecutionId, path: &str) -> Self {
+    pub(crate) fn new(function: &FunctionExecutionId, path: &str) -> Self {
         Self(exact_string(scoped_identity(function, "expression", path)))
     }
 
@@ -1487,6 +1493,7 @@ fn materialize_function_template(
         body,
         cleanup: CleanupInventory::unresolved(),
         cleanup_plan: CleanupPlan::unresolved(),
+        loan_plan: LoanPlan::unresolved(),
         span: template.span,
     })
 }
@@ -2814,6 +2821,7 @@ pub struct ResolvedFunction {
     pub body: ResolvedExpr,
     pub cleanup: CleanupInventory,
     pub cleanup_plan: CleanupPlan,
+    pub loan_plan: LoanPlan,
     pub span: Span,
 }
 
@@ -3501,8 +3509,8 @@ struct ValidationBinding {
     availability: Availability,
     moved_places: BTreeMap<Vec<PlaceProjection>, Availability>,
     definitely_partial: BTreeSet<Vec<PlaceProjection>>,
-    /// Conservative lexical borrow held through the owning block.
-    lexically_borrowed: bool,
+    /// Exact shared loans currently protecting this storage root.
+    active_loans: BTreeSet<LoanId>,
 }
 
 /// Restores the most recently published ownership scope on every early
@@ -3843,6 +3851,26 @@ impl Resolver<'_> {
             function_instances,
         };
         analyze_byte_data_capacity(&resolved)?;
+        let loan_plans = resolved
+            .functions
+            .iter()
+            .map(|function| crate::loan_plan::build_plan(&resolved, function))
+            .collect::<Result<Vec<_>, _>>()?;
+        for (function, loan_plan) in resolved.functions.iter_mut().zip(loan_plans) {
+            function.loan_plan = loan_plan;
+        }
+        let instance_loan_plans = resolved
+            .function_instances
+            .iter()
+            .map(|instance| crate::loan_plan::build_plan(&resolved, &instance.function))
+            .collect::<Result<Vec<_>, _>>()?;
+        for (instance, loan_plan) in resolved
+            .function_instances
+            .iter_mut()
+            .zip(instance_loan_plans)
+        {
+            instance.function.loan_plan = loan_plan;
+        }
         let inventories = resolved
             .functions
             .iter()
@@ -4211,6 +4239,7 @@ impl Resolver<'_> {
             body,
             cleanup: CleanupInventory::unresolved(),
             cleanup_plan: CleanupPlan::unresolved(),
+            loan_plan: LoanPlan::unresolved(),
             span: function.span,
         })
     }
@@ -11029,7 +11058,7 @@ fn main() -> i64 { 0 }
                         ty: param.ty.clone(),
                         ownership: param.ownership,
                         availability: Availability::Available,
-                        lexically_borrowed: false,
+                        active_loans: BTreeSet::new(),
                         moved_places: BTreeMap::new(),
                         definitely_partial: BTreeSet::new(),
                     },

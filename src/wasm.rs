@@ -4757,6 +4757,38 @@ function createByteDataRuntime(options = {}) {
   };
   const read = decoded => {
     if (decoded.tagged) return resolve(decoded);
+    if ((decoded.root & 0xc0000000) === 0x40000000) {
+      // The guest validates the descriptor against its private binding globals
+      // immediately before this synchronous import. The adapter independently
+      // replays the carrier-to-memory identity, shape, and extent checks before
+      // it reads either guest memory or an authenticated owned entry.
+      const pointer = (decoded.root & 0xffff) * 8;
+      if (pointer > 131072 - 32) throw new Error("SEMAPRAX byte range descriptor bounds invariant");
+      const bytes = memory();
+      const descriptor = new DataView(bytes.buffer, bytes.byteOffset + pointer, 32);
+      const identity = descriptor.getUint32(0, true);
+      const self = descriptor.getUint32(4, true);
+      const carrierIdentity = (decoded.root >>> 16) & 0x1fff;
+      if (identity === 0 || identity !== carrierIdentity || self !== pointer) {
+        throw new Error("SEMAPRAX byte range descriptor identity invariant");
+      }
+      const ultimate = decode(descriptor.getBigInt64(8, true));
+      const offset = descriptor.getBigUint64(16, true);
+      const length = descriptor.getBigUint64(24, true);
+      if (length !== BigInt(decoded.length)) throw new Error("SEMAPRAX byte range descriptor length invariant");
+      if ((ultimate.root & 0xc0000000) === 0x40000000) {
+        throw new Error("SEMAPRAX nested byte range descriptor invariant");
+      }
+      if (offset > BigInt(ultimate.length) || length > BigInt(ultimate.length) - offset) {
+        throw new Error("SEMAPRAX byte range descriptor extent invariant");
+      }
+      const root = ultimate.tagged ? resolve(ultimate) : (() => {
+        if (ultimate.root > 131072 - ultimate.length) throw new Error("SEMAPRAX fixed byte range invariant");
+        return bytes.slice(ultimate.root, ultimate.root + ultimate.length);
+      })();
+      const start = Number(offset);
+      return root.slice(start, start + Number(length));
+    }
     if (decoded.root > 131072 - decoded.length) throw new Error("SEMAPRAX fixed byte range invariant");
     return memory().slice(decoded.root, decoded.root + decoded.length);
   };

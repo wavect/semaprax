@@ -62,6 +62,26 @@ fn binding_owned_capacity(binding: &Binding) -> usize {
                 + place.capacity() * std::mem::size_of::<String>()
                 + place.iter().map(String::capacity).sum::<usize>()
         });
+    let loans = binding.active_loans.iter().fold(0usize, |bytes, loan| {
+        bytes
+            + loan.id.borrower.capacity()
+            + loan.projections.capacity() * std::mem::size_of::<String>()
+            + loan.projections.iter().map(String::capacity).sum::<usize>()
+    });
+    let origin = binding.borrow_origin.as_ref().map_or(0usize, |origin| {
+        origin.root.capacity()
+            + origin.loan.borrower.capacity()
+            + origin
+                .parent
+                .as_ref()
+                .map_or(0usize, |parent| parent.borrower.capacity())
+            + origin.projections.capacity() * std::mem::size_of::<String>()
+            + origin
+                .projections
+                .iter()
+                .map(String::capacity)
+                .sum::<usize>()
+    });
     binding
         .moved_places
         .capacity()
@@ -75,6 +95,14 @@ fn binding_owned_capacity(binding: &Binding) -> usize {
         .saturating_add(ast_type_owned_capacity(&binding.ty))
         .saturating_add(moved)
         .saturating_add(partial)
+        .saturating_add(
+            binding
+                .active_loans
+                .len()
+                .saturating_mul(std::mem::size_of::<SourceLoan>()),
+        )
+        .saturating_add(loans)
+        .saturating_add(origin)
 }
 
 #[cfg(test)]
@@ -123,9 +151,35 @@ struct Binding {
     native_unit_discard: bool,
     /// Explicit Mutation v1: only local `let mut` bindings are mutable.
     mutable: bool,
-    /// A local byte view keeps its exact owner/storage root borrowed through
-    /// the end of this lexical scope.
-    lexically_borrowed: bool,
+    /// Exact invocation-local shared loans currently protecting this place.
+    /// A set, rather than a Boolean or counter, makes nested settlement
+    /// remove only the loan it created.
+    active_loans: BTreeSet<SourceLoan>,
+    /// Ultimate local owner protected by this borrowed slice binding. Slice
+    /// aliases and ranges retain this origin instead of treating the parent
+    /// descriptor as independently owned storage.
+    borrow_origin: Option<BorrowOrigin>,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct SourceLoan {
+    id: SourceLoanId,
+    projections: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct SourceLoanId {
+    borrower: String,
+    start: usize,
+    end: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct BorrowOrigin {
+    root: String,
+    projections: Vec<String>,
+    loan: SourceLoanId,
+    parent: Option<SourceLoanId>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -2590,7 +2644,8 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                             definitely_partial: HashSet::new(),
                             native_unit_discard: false,
                             mutable: false,
-                            lexically_borrowed: false,
+                            active_loans: BTreeSet::new(),
+                            borrow_origin: None,
                         },
                     )
                     .is_some()
@@ -3574,7 +3629,8 @@ fn check_record_pattern(
                                     definitely_partial: HashSet::new(),
                                     native_unit_discard: false,
                                     mutable: false,
-                                    lexically_borrowed: false,
+                                    active_loans: BTreeSet::new(),
+                                    borrow_origin: None,
                                 },
                             );
                         }
@@ -5734,8 +5790,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             if let (Some(then_binding), Some(else_binding)) =
                                 (then_bindings.get(name), else_bindings.get(name))
                             {
-                                binding.lexically_borrowed = then_binding.lexically_borrowed
-                                    || else_binding.lexically_borrowed;
+                                binding.active_loans = then_binding
+                                    .active_loans
+                                    .union(&else_binding.active_loans)
+                                    .cloned()
+                                    .collect();
                                 binding.moved_places =
                                     join_moved_places(then_binding, else_binding);
                                 binding.definitely_partial =
@@ -5889,9 +5948,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 {
                                     if self.allow_moves {
                                         mark_value_sources_moved(
+                                            self.program,
                                             value,
                                             &mut self.scopes[block_scope].bindings,
                                             self.types,
+                                            self.diagnostics,
                                         );
                                     } else {
                                         self.diagnostics.push(error(
@@ -5902,12 +5963,21 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         ));
                                     }
                                 }
-                                if let Some(root) = direct_byte_view_root(value) {
-                                    if let Some(owner) =
-                                        self.scopes[block_scope].bindings.get_mut(root)
-                                    {
-                                        owner.lexically_borrowed = true;
-                                    }
+                                let borrow_origin = (binding_ty == Type::SliceU8)
+                                    .then(|| {
+                                        local_borrow_origin(
+                                            value,
+                                            name,
+                                            *name_span,
+                                            &self.scopes[block_scope].bindings,
+                                        )
+                                    })
+                                    .flatten();
+                                if let Some(origin) = &borrow_origin {
+                                    activate_local_loan(
+                                        &mut self.scopes[block_scope].bindings,
+                                        origin,
+                                    );
                                 }
                                 self.scopes[block_scope].bindings.insert(
                                     name.clone(),
@@ -5919,7 +5989,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         definitely_partial: HashSet::new(),
                                         native_unit_discard: actual.native_unit,
                                         mutable: *mutable,
-                                        lexically_borrowed: false,
+                                        active_loans: BTreeSet::new(),
+                                        borrow_origin,
                                     },
                                 );
                             }
@@ -5950,7 +6021,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     (
                                         binding.mutable,
                                         binding.ty.clone(),
-                                        binding.lexically_borrowed,
+                                        !binding.active_loans.is_empty(),
                                     )
                                 },
                             );
@@ -5962,8 +6033,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     *name_span,
                                 ));
                             }
-                            if let Some((mutable, binding_ty, lexically_borrowed)) = target {
-                                if lexically_borrowed {
+                            if let Some((mutable, binding_ty, has_active_loans)) = target {
+                                if has_active_loans {
                                     self.diagnostics.push(error(
                                         self.program,
                                         "SPX-T265",
@@ -6119,6 +6190,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         // they complete through ResumeWhileBody instead.
                         Statement::While { .. } => {}
                     }
+                    release_dead_local_loans(
+                        &mut self.scopes[block_scope].bindings,
+                        statements.get(index + 1..).unwrap_or_default(),
+                        tail,
+                    );
                     self.advance_block_statement(
                         expression,
                         statements,
@@ -6200,6 +6276,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         }
                     }
                     let _ = baseline_names;
+                    release_dead_local_loans(
+                        &mut self.scopes[block_scope].bindings,
+                        statements.get(index + 1..).unwrap_or_default(),
+                        tail,
+                    );
                     self.advance_block_statement(
                         expression,
                         statements,
@@ -6875,9 +6956,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         if self.types.needs_drop(&declared.ty) && actual.mode == ParamMode::Own {
                             if self.allow_moves {
                                 mark_value_sources_moved(
+                                    self.program,
                                     &field.value,
                                     &mut self.scopes[scope].bindings,
                                     self.types,
+                                    self.diagnostics,
                                 );
                             } else {
                                 self.diagnostics.push(error(
@@ -7016,9 +7099,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         if self.types.needs_drop(&expected) && actual.mode == ParamMode::Own {
                             if self.allow_moves {
                                 mark_value_sources_moved(
+                                    self.program,
                                     &field.value,
                                     &mut self.scopes[scope].bindings,
                                     self.types,
+                                    self.diagnostics,
                                 );
                             } else {
                                 self.diagnostics.push(error(
@@ -7101,9 +7186,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     if self.types.needs_drop(&base_value.ty) {
                         match base_value.mode {
                             ParamMode::Own if self.allow_moves => mark_value_sources_moved(
+                                self.program,
                                 base,
                                 &mut self.scopes[scope].bindings,
                                 self.types,
+                                self.diagnostics,
                             ),
                             ParamMode::Own => self.diagnostics.push(error(
                                 self.program,
@@ -7214,9 +7301,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         if self.types.needs_drop(&expected) && actual.mode == ParamMode::Own {
                             if self.allow_moves {
                                 mark_value_sources_moved(
+                                    self.program,
                                     &field.value,
                                     &mut self.scopes[scope].bindings,
                                     self.types,
+                                    self.diagnostics,
                                 );
                             } else {
                                 self.diagnostics.push(error(
@@ -7462,9 +7551,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     ));
                                 } else if self.allow_moves {
                                     mark_value_sources_moved(
+                                        self.program,
                                         scrutinee,
                                         &mut self.scopes[scope].bindings,
                                         self.types,
+                                        self.diagnostics,
                                     );
                                 } else {
                                     self.diagnostics.push(error(
@@ -7531,11 +7622,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             if let Some(place) =
                                 source_place(scrutinee, &self.scopes[scope].bindings, self.types)
                             {
-                                if let Some(owner) =
-                                    self.scopes[arm_scope].bindings.get_mut(&place.root)
-                                {
-                                    owner.lexically_borrowed = true;
-                                }
+                                activate_match_loan(
+                                    &mut self.scopes[arm_scope].bindings,
+                                    &place,
+                                    expression.span,
+                                );
                             }
                         }
                         match &first.pattern {
@@ -7660,9 +7751,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 ));
                             }
                             MatchMode::Own if self.allow_moves => mark_value_sources_moved(
+                                self.program,
                                 scrutinee,
                                 &mut self.scopes[scope].bindings,
                                 self.types,
+                                self.diagnostics,
                             ),
                             MatchMode::Own => self.diagnostics.push(error(
                                 self.program,
@@ -7707,9 +7800,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             source_place(scrutinee, &self.scopes[scope].bindings, self.types)
                         {
                             if place.projections.is_empty() {
-                                if let Some(owner) = baseline.get_mut(&place.root) {
-                                    owner.lexically_borrowed = true;
-                                }
+                                activate_match_loan(&mut baseline, &place, expression.span);
                             }
                         }
                     }
@@ -7948,7 +8039,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                             definitely_partial: HashSet::new(),
                                             native_unit_discard: false,
                                             mutable: false,
-                                            lexically_borrowed: false,
+                                            active_loans: BTreeSet::new(),
+                                            borrow_origin: None,
                                         },
                                     );
                                 }
@@ -8096,7 +8188,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         definitely_partial: HashSet::new(),
                                         native_unit_discard: false,
                                         mutable: false,
-                                        lexically_borrowed: false,
+                                        active_loans: BTreeSet::new(),
+                                        borrow_origin: None,
                                     },
                                 );
                             }
@@ -9017,7 +9110,13 @@ fn check_expr(
                     }
                     if types.needs_drop(&declared.ty) && actual.mode == ParamMode::Own {
                         if allow_moves {
-                            mark_value_sources_moved(&field.value, variables, types);
+                            mark_value_sources_moved(
+                                program,
+                                &field.value,
+                                variables,
+                                types,
+                                diagnostics,
+                            );
                         } else {
                             diagnostics.push(error(
                                 program,
@@ -9143,7 +9242,13 @@ fn check_expr(
                     }
                     if types.needs_drop(&expected) && actual.mode == ParamMode::Own {
                         if allow_moves {
-                            mark_value_sources_moved(&field.value, variables, types);
+                            mark_value_sources_moved(
+                                program,
+                                &field.value,
+                                variables,
+                                types,
+                                diagnostics,
+                            );
                         } else {
                             diagnostics.push(error(
                                 program,
@@ -9234,7 +9339,8 @@ fn check_expr(
                                         definitely_partial: HashSet::new(),
                                         native_unit_discard: false,
                                         mutable: false,
-                                        lexically_borrowed: false,
+                                        active_loans: BTreeSet::new(),
+                                        borrow_origin: None,
                                     },
                                 );
                             }
@@ -9419,7 +9525,13 @@ fn check_expr(
                                 scrutinee.span,
                             ));
                         } else if allow_moves {
-                            mark_value_sources_moved(scrutinee, variables, types);
+                            mark_value_sources_moved(
+                                program,
+                                scrutinee,
+                                variables,
+                                types,
+                                diagnostics,
+                            );
                         } else {
                             diagnostics.push(error(
                                 program,
@@ -9468,9 +9580,7 @@ fn check_expr(
                 let mut arm_variables = variables.clone();
                 if *mode == MatchMode::Borrow {
                     if let Some(place) = source_place(scrutinee, variables, types) {
-                        if let Some(owner) = arm_variables.get_mut(&place.root) {
-                            owner.lexically_borrowed = true;
-                        }
+                        activate_match_loan(&mut arm_variables, &place, expr.span);
                     }
                 }
                 match &first.pattern {
@@ -9607,7 +9717,13 @@ fn check_expr(
                         ));
                     }
                     MatchMode::Own if allow_moves => {
-                        mark_value_sources_moved(scrutinee, variables, types);
+                        mark_value_sources_moved(
+                            program,
+                            scrutinee,
+                            variables,
+                            types,
+                            diagnostics,
+                        );
                     }
                     MatchMode::Own => diagnostics.push(error(
                         program,
@@ -9643,9 +9759,7 @@ fn check_expr(
                 if *mode == MatchMode::Borrow {
                     if let Some(place) = source_place(scrutinee, variables, types) {
                         if place.projections.is_empty() {
-                            if let Some(owner) = arm_variables.get_mut(&place.root) {
-                                owner.lexically_borrowed = true;
-                            }
+                            activate_match_loan(&mut arm_variables, &place, expr.span);
                         }
                     }
                 }
@@ -9763,7 +9877,8 @@ fn check_expr(
                                         definitely_partial: HashSet::new(),
                                         native_unit_discard: false,
                                         mutable: false,
-                                        lexically_borrowed: false,
+                                        active_loans: BTreeSet::new(),
+                                        borrow_origin: None,
                                     },
                                 );
                             }
@@ -10023,7 +10138,13 @@ fn check_expr(
             if types.needs_drop(&base_value.ty) {
                 match base_value.mode {
                     ParamMode::Own if allow_moves => {
-                        mark_value_sources_moved(base, variables, types);
+                        mark_value_sources_moved(
+                            program,
+                            base,
+                            variables,
+                            types,
+                            diagnostics,
+                        );
                     }
                     ParamMode::Own => diagnostics.push(error(
                         program,
@@ -10088,7 +10209,13 @@ fn check_expr(
                     }
                     if types.needs_drop(&expected) && actual.mode == ParamMode::Own {
                         if allow_moves {
-                            mark_value_sources_moved(&field.value, variables, types);
+                            mark_value_sources_moved(
+                                program,
+                                &field.value,
+                                variables,
+                                types,
+                                diagnostics,
+                            );
                         } else {
                             diagnostics.push(error(
                                 program,
@@ -10177,7 +10304,7 @@ fn check_expr(
         ExprKind::Block { statements, tail } => {
             let outer_names = variables.keys().cloned().collect::<Vec<_>>();
             let mut scope = variables.clone();
-            for statement in statements {
+            for (index, statement) in statements.iter().enumerate() {
                 match statement {
                     Statement::Let {
                         name,
@@ -10217,7 +10344,13 @@ fn check_expr(
                                 && actual.mode == ParamMode::Own
                             {
                                 if allow_moves {
-                                    mark_value_sources_moved(value, &mut scope, types);
+                                    mark_value_sources_moved(
+                                        program,
+                                        value,
+                                        &mut scope,
+                                        types,
+                                        diagnostics,
+                                    );
                                 } else {
                                     diagnostics.push(error(
                                         program,
@@ -10226,6 +10359,12 @@ fn check_expr(
                                         value.span,
                                     ));
                                 }
+                            }
+                            let borrow_origin = (actual.ty == Type::SliceU8)
+                                .then(|| local_borrow_origin(value, name, *name_span, &scope))
+                                .flatten();
+                            if let Some(origin) = &borrow_origin {
+                                activate_local_loan(&mut scope, origin);
                             }
                             scope.insert(
                                 name.clone(),
@@ -10237,7 +10376,8 @@ fn check_expr(
                                     definitely_partial: HashSet::new(),
                                     native_unit_discard: actual.native_unit,
                                     mutable: false,
-                                    lexically_borrowed: false,
+                                    active_loans: BTreeSet::new(),
+                                    borrow_origin,
                                 },
                             );
                         }
@@ -10301,6 +10441,11 @@ fn check_expr(
                         );
                     }
                 }
+                release_dead_local_loans(
+                    &mut scope,
+                    statements.get(index + 1..).unwrap_or_default(),
+                    tail,
+                );
             }
             let actual = check_expr(
                 program,
@@ -10380,6 +10525,11 @@ fn check_expr(
                     if let (Some(then_binding), Some(else_binding)) =
                         (then_variables.get(name), else_variables.get(name))
                     {
+                        binding.active_loans = then_binding
+                            .active_loans
+                            .union(&else_binding.active_loans)
+                            .cloned()
+                            .collect();
                         binding.moved_places = join_moved_places(then_binding, else_binding);
                         binding.definitely_partial =
                             join_definitely_partial(then_binding, else_binding);
@@ -10818,7 +10968,7 @@ fn check_argument_ownership(
             if let Some(place) = source_place(arg, variables, types) {
                 if variables
                     .get(&place.root)
-                    .is_some_and(|binding| binding.lexically_borrowed)
+                    .is_some_and(|binding| has_active_overlapping_loan(binding, &place.projections))
                 {
                     diagnostics.push(error(
                         program,
@@ -10861,7 +11011,7 @@ fn check_argument_ownership(
                     )),
                 );
             } else if allow_moves {
-                mark_value_sources_moved(arg, variables, types);
+                mark_value_sources_moved(program, arg, variables, types, diagnostics);
             } else {
                 diagnostics.push(error(
                     program,
@@ -10903,27 +11053,186 @@ fn check_argument_ownership(
     }
 }
 
-fn direct_byte_view_root(expression: &Expr) -> Option<&str> {
-    let ExprKind::Call { name, args, .. } = &expression.kind else {
-        return None;
+fn local_borrow_origin(
+    expression: &Expr,
+    borrower: &str,
+    borrower_span: Span,
+    variables: &HashMap<String, Binding>,
+) -> Option<BorrowOrigin> {
+    let source = match &expression.kind {
+        ExprKind::Var(source) if variables.get(source)?.ty == Type::SliceU8 => source,
+        ExprKind::Call { name, args, .. } => {
+            let operation = crate::byte_ops::by_name(name)?;
+            if !operation.is_view() && operation != crate::byte_ops::ByteOp::Range {
+                return None;
+            }
+            let ExprKind::Var(source) = &args.first()?.kind else {
+                return None;
+            };
+            source
+        }
+        _ => return None,
     };
-    if !crate::byte_ops::by_name(name).is_some_and(crate::byte_ops::ByteOp::is_view) {
-        return None;
+    let parent = variables.get(source)?.borrow_origin.clone();
+    let (root, projections, parent_loan) = parent.map_or_else(
+        || (source.clone(), Vec::new(), None),
+        |origin| (origin.root, origin.projections, Some(origin.loan)),
+    );
+    Some(BorrowOrigin {
+        root,
+        projections,
+        loan: SourceLoanId {
+            borrower: borrower.to_owned(),
+            start: borrower_span.start,
+            end: borrower_span.end,
+        },
+        parent: parent_loan,
+    })
+}
+
+fn activate_local_loan(variables: &mut HashMap<String, Binding>, origin: &BorrowOrigin) {
+    if let Some(owner) = variables.get_mut(&origin.root) {
+        owner.active_loans.insert(SourceLoan {
+            id: origin.loan.clone(),
+            projections: origin.projections.clone(),
+        });
     }
-    let [Expr {
-        kind: ExprKind::Var(root),
-        ..
-    }] = args.as_slice()
-    else {
-        return None;
-    };
-    Some(root)
+}
+
+fn activate_match_loan(variables: &mut HashMap<String, Binding>, place: &SourcePlace, span: Span) {
+    if let Some(owner) = variables.get_mut(&place.root) {
+        owner.active_loans.insert(SourceLoan {
+            id: SourceLoanId {
+                borrower: "match borrow".to_owned(),
+                start: span.start,
+                end: span.end,
+            },
+            projections: place.projections.clone(),
+        });
+    }
+}
+
+fn has_active_overlapping_loan(binding: &Binding, projections: &[String]) -> bool {
+    binding.active_loans.iter().any(|loan| {
+        loan.projections.starts_with(projections) || projections.starts_with(&loan.projections)
+    })
+}
+
+fn expression_uses_name(expression: &Expr, name: &str) -> bool {
+    let mut pending = vec![expression];
+    while let Some(expression) = pending.pop() {
+        match &expression.kind {
+            ExprKind::Var(candidate) if candidate == name => return true,
+            ExprKind::Call { args, .. } | ExprKind::SuperMethod { args, .. } => {
+                pending.extend(args)
+            }
+            ExprKind::MethodCall { receiver, args, .. } => {
+                pending.push(receiver);
+                pending.extend(args);
+            }
+            ExprKind::Unary { value, .. }
+            | ExprKind::Try { operand: value }
+            | ExprKind::Project { base: value, .. } => pending.push(value),
+            ExprKind::Binary { left, right, .. } => {
+                pending.push(left);
+                pending.push(right);
+            }
+            ExprKind::Block { statements, tail } => {
+                pending.push(tail);
+                for statement in statements {
+                    match statement {
+                        Statement::Let { value, .. } | Statement::Assign { value, .. } => {
+                            pending.push(value)
+                        }
+                        Statement::Unsafe { body, .. } => pending.push(body),
+                        Statement::While {
+                            condition, body, ..
+                        } => {
+                            pending.push(condition);
+                            pending.push(body);
+                        }
+                    }
+                }
+            }
+            ExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                pending.push(condition);
+                pending.push(then_branch);
+                pending.push(else_branch);
+            }
+            ExprKind::ConstructRecord { fields, .. }
+            | ExprKind::ConstructVariant { fields, .. } => {
+                pending.extend(fields.iter().map(|field| &field.value));
+            }
+            ExprKind::Match {
+                scrutinee, arms, ..
+            } => {
+                pending.push(scrutinee);
+                for arm in arms {
+                    if let Some(guard) = &arm.guard {
+                        pending.push(guard);
+                    }
+                    pending.push(&arm.value);
+                }
+            }
+            ExprKind::UpdateRecord { base, fields } => {
+                pending.push(base);
+                pending.extend(fields.iter().map(|field| &field.value));
+            }
+            ExprKind::Int(_)
+            | ExprKind::Int32(_)
+            | ExprKind::Char(_)
+            | ExprKind::Uint8(_)
+            | ExprKind::Usize(_)
+            | ExprKind::ArrayU8(_)
+            | ExprKind::RepeatArrayU8 { .. }
+            | ExprKind::Float32(_)
+            | ExprKind::Float64(_)
+            | ExprKind::Bool(_)
+            | ExprKind::String(_)
+            | ExprKind::Var(_) => {}
+        }
+    }
+    false
+}
+
+fn release_dead_local_loans(
+    variables: &mut HashMap<String, Binding>,
+    remaining: &[Statement],
+    tail: &Expr,
+) {
+    let dead = variables
+        .iter()
+        .filter_map(|(name, binding)| {
+            let origin = binding.borrow_origin.as_ref()?;
+            let used = remaining.iter().any(|statement| match statement {
+                Statement::Let { value, .. } | Statement::Assign { value, .. } => {
+                    expression_uses_name(value, name)
+                }
+                Statement::Unsafe { body, .. } => expression_uses_name(body, name),
+                Statement::While {
+                    condition, body, ..
+                } => expression_uses_name(condition, name) || expression_uses_name(body, name),
+            }) || expression_uses_name(tail, name);
+            (!used).then_some((origin.root.clone(), origin.loan.clone()))
+        })
+        .collect::<Vec<_>>();
+    for (root, loan) in dead {
+        if let Some(owner) = variables.get_mut(&root) {
+            owner.active_loans.retain(|active| active.id != loan);
+        }
+    }
 }
 
 fn mark_value_sources_moved(
+    program: &Program,
     expr: &Expr,
     variables: &mut HashMap<String, Binding>,
     types: &TypeTable<'_>,
+    diagnostics: &mut Vec<Diagnostic>,
 ) {
     enum Frame<'a> {
         Enter(&'a Expr, usize),
@@ -10952,7 +11261,16 @@ fn mark_value_sources_moved(
                             && binding.mode == ParamMode::Own
                             && binding.availability == Availability::Available
                         {
-                            binding.availability = Availability::Moved;
+                            if has_active_overlapping_loan(binding, &[]) {
+                                diagnostics.push(error(
+                                    program,
+                                    "SPX-T265",
+                                    "move or transfer would invalidate an active shared loan",
+                                    expr.span,
+                                ));
+                            } else {
+                                binding.availability = Availability::Moved;
+                            }
                         }
                     }
                 }
@@ -10961,9 +11279,18 @@ fn mark_value_sources_moved(
                     if let Some(place) = source_place(expr, &scopes[scope], types) {
                         if let Some(binding) = scopes[scope].get_mut(&place.root) {
                             if binding.mode == ParamMode::Own {
-                                binding
-                                    .moved_places
-                                    .insert(place.projections, Availability::Moved);
+                                if has_active_overlapping_loan(binding, &place.projections) {
+                                    diagnostics.push(error(
+                                        program,
+                                        "SPX-T265",
+                                        "move or transfer would invalidate an active shared loan",
+                                        expr.span,
+                                    ));
+                                } else {
+                                    binding
+                                        .moved_places
+                                        .insert(place.projections, Availability::Moved);
+                                }
                             }
                         }
                     } else {
@@ -11066,7 +11393,9 @@ fn join_conditional(
             let moved_places = join_moved_places(baseline, conditional);
             let definitely_partial = join_definitely_partial(baseline, conditional);
             baseline.availability = baseline.availability.join(conditional.availability);
-            baseline.lexically_borrowed |= conditional.lexically_borrowed;
+            baseline
+                .active_loans
+                .extend(conditional.active_loans.iter().cloned());
             baseline.moved_places = moved_places;
             baseline.definitely_partial = definitely_partial;
         }
@@ -11464,7 +11793,8 @@ mod iterative_verifier_tests {
                     definitely_partial: HashSet::new(),
                     native_unit_discard: false,
                     mutable: false,
-                    lexically_borrowed: false,
+                    active_loans: BTreeSet::new(),
+                    borrow_origin: None,
                 },
             );
         }

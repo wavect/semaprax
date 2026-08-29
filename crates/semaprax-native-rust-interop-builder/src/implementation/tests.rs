@@ -5872,6 +5872,76 @@ fn cleanup_retained_census_covers_shared_transition_and_staging_families() {
 }
 
 #[test]
+fn hir_retained_capacity_counts_complete_loan_plans_on_generic_instances() {
+    let source = r#"
+module capacity.loan_plan_instance;
+
+@id("loan.generic")
+fn generic_marker<T>(marker: T) -> i64 { 1 }
+
+@id("loan.concrete")
+fn concrete_loan() -> i64 {
+    let source = [7u8, 8u8, 9u8];
+    let owned = bytes_copy(array_as_slice(source));
+    let parent = bytes_as_slice(owned);
+    let child = byte_range(parent, 1usize, byte_len(parent));
+    if byte_len(child) == 2usize { 1 } else { 0 }
+}
+
+@id("app.main")
+fn main() -> i64 { generic_marker<i64>(0) }
+"#;
+    let program = crate::parse(source, Path::new("loan-plan-instance-capacity.spx")).unwrap();
+    let mut resolved = hir::resolve(&program).unwrap();
+    let instance_index = resolved
+        .function_instances
+        .iter()
+        .position(|instance| instance.template.as_str() == "loan.generic")
+        .expect("generic call materializes a concrete function instance");
+    let canonical_plan = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "loan.concrete")
+        .expect("concrete loan function is retained")
+        .loan_plan
+        .clone();
+    assert!(!canonical_plan.loans.is_empty());
+    // Generic templates are intentionally scalar-only today. Attach a plan
+    // produced by the real canonical builder to the concrete instance solely
+    // to prove that this retained-capacity census does not omit instances if
+    // their semantic admission grows in a later schema.
+    resolved.function_instances[instance_index]
+        .function
+        .loan_plan = canonical_plan;
+    let plan = &resolved.function_instances[instance_index]
+        .function
+        .loan_plan;
+    assert!(!plan.loans.is_empty());
+    assert!(!plan.endpoints.is_empty());
+    assert!(!plan.edges.is_empty());
+    assert!(plan.loans.iter().any(|loan| !loan.ends.is_empty()));
+    assert!(plan.loans.iter().any(|loan| !loan.end_edges.is_empty()));
+    assert!(plan.edges.iter().any(|edge| !edge.live.is_empty()));
+
+    let plan_capacity = capacity::hir_loan_plan_owned_capacity(plan).unwrap();
+    assert!(
+        plan_capacity > plan.loans.capacity() * std::mem::size_of::<semaprax::loan_plan::Loan>(),
+        "nested identities and CFG vectors must be charged in addition to loan headers"
+    );
+    let with_plan = hir_owned_capacity(&resolved).unwrap();
+    resolved.function_instances[instance_index]
+        .function
+        .loan_plan = semaprax::loan_plan::LoanPlan {
+        schema: semaprax::loan_plan::LOAN_PLAN_SCHEMA_V1,
+        loans: Vec::new(),
+        endpoints: Vec::new(),
+        edges: Vec::new(),
+    };
+    let without_plan = hir_owned_capacity(&resolved).unwrap();
+    assert_eq!(with_plan.checked_sub(without_plan), Some(plan_capacity));
+}
+
+#[test]
 fn cleanup_fieldwise_payload_and_vec_floors_are_covered() {
     let source = include_str!("../../../../tests/fixtures/native_rust_hir_capacity.spx");
     let program = crate::parse(source, Path::new("native-rust-hir-capacity.spx")).unwrap();

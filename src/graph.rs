@@ -927,7 +927,7 @@ fn agent_function_json(
     );
     if matches!(
         graph_schema(program),
-        "semaprax.graph.v14" | "semaprax.graph.v21" | "semaprax.graph.v22"
+        "semaprax.graph.v14" | "semaprax.graph.v21" | "semaprax.graph.v22" | "semaprax.graph.v23"
     ) {
         write!(
             output,
@@ -1012,6 +1012,14 @@ fn agent_function_json(
             quote_json(&function.return_type.identity_key()),
             type_facts_array(program, &selected_functions, &selected_types)?,
             agent_type_declarations_json(program, &selected_types)?
+        )
+        .expect("writing to a string cannot fail");
+    }
+    if graph_schema(program) == "semaprax.graph.v23" {
+        write!(
+            output,
+            ",\"loans\":{}",
+            crate::graph_loan::loan_plan_json(&function.loan_plan)
         )
         .expect("writing to a string cannot fail");
     }
@@ -1276,6 +1284,13 @@ fn result_propagation_json(expression: &ResolvedExpr) -> String {
 }
 
 pub(crate) fn graph_schema(program: &ResolvedProgram) -> &'static str {
+    if program
+        .function_instances
+        .iter()
+        .any(|instance| !instance.function.loan_plan.loans.is_empty())
+    {
+        return "semaprax.graph.v23";
+    }
     graph_schema_from_parts(
         &program.types,
         &program.functions,
@@ -1297,7 +1312,12 @@ pub fn reject_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
 }
 
 pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
-    if schema == "semaprax.graph.v22" {
+    if schema == "semaprax.graph.v23" {
+        Err(Diagnostic::io(
+            "SPX-G410",
+            "shared-loan programs select `semaprax.graph.v23`, which is outside this evidence flow's admission",
+        ))
+    } else if schema == "semaprax.graph.v22" {
         Err(Diagnostic::io(
             "SPX-G410",
             "owned variant programs select `semaprax.graph.v22`, which is outside this evidence flow's admission",
@@ -1501,6 +1521,20 @@ fn expression_has_explicit_match_mode(expression: &ResolvedExpr) -> bool {
 }
 
 pub(crate) fn graph_schema_from_parts(
+    types: &[hir::ResolvedTypeDeclaration],
+    functions: &[ResolvedFunction],
+    function_templates: &[hir::ResolvedFunctionTemplate],
+) -> &'static str {
+    if functions
+        .iter()
+        .any(|function| !function.loan_plan.loans.is_empty())
+    {
+        return "semaprax.graph.v23";
+    }
+    graph_schema_from_parts_without_loans(types, functions, function_templates)
+}
+
+pub(crate) fn graph_schema_from_parts_without_loans(
     types: &[hir::ResolvedTypeDeclaration],
     functions: &[ResolvedFunction],
     function_templates: &[hir::ResolvedFunctionTemplate],
@@ -3566,8 +3600,10 @@ fn byte_slice_fact_json(
         provenance.producer.as_ref().map_or_else(|| "null".to_owned(), |id| quote_json(id.as_str()))
     );
     if schema != "semaprax.graph.v20"
-        && !(matches!(schema, "semaprax.graph.v21" | "semaprax.graph.v22")
-            && !provenance.ranges.is_empty())
+        && !(matches!(
+            schema,
+            "semaprax.graph.v21" | "semaprax.graph.v22" | "semaprax.graph.v23"
+        ) && !provenance.ranges.is_empty())
     {
         return base;
     }
@@ -3596,7 +3632,10 @@ fn portable_indexed_byte_data_json(
     schema: &str,
     program: &ResolvedProgram,
 ) -> Result<String, Diagnostic> {
-    let v21 = matches!(schema, "semaprax.graph.v21" | "semaprax.graph.v22");
+    let v21 = matches!(
+        schema,
+        "semaprax.graph.v21" | "semaprax.graph.v22" | "semaprax.graph.v23"
+    );
     let has_portable_indexed_data = program.types.iter().any(type_declaration_has_usize)
         || program.functions.iter().any(function_has_usize)
         || program.function_templates.iter().any(|template| {
@@ -4339,7 +4378,7 @@ fn graph_json(
 
         write!(
             output,
-            "{{\"id\":{},\"kind\":\"function\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"params\":[{}],\"result_id\":{},\"result\":{{\"id\":{},\"type_id\":{},\"ownership_mode\":{}}},\"return_type_id\":{},\"effects\":{},\"requires_graph\":[{}],\"ensures_graph\":[{}],\"calls\":{},\"body\":{},\"cleanup\":{}}}",
+            "{{\"id\":{},\"kind\":\"function\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"params\":[{}],\"result_id\":{},\"result\":{{\"id\":{},\"type_id\":{},\"ownership_mode\":{}}},\"return_type_id\":{},\"effects\":{},\"requires_graph\":[{}],\"ensures_graph\":[{}],\"calls\":{},\"body\":{},\"cleanup\":{}",
             quote_json(function.id.as_str()),
             quote_json(&function.name),
             quote_json(identity_origin.text()),
@@ -4358,6 +4397,16 @@ fn graph_json(
             cleanup
         )
         .expect("writing to a string cannot fail");
+        if schema == "semaprax.graph.v23" {
+            write!(
+                output,
+                ",\"loans\":{}}}",
+                crate::graph_loan::loan_plan_json(&function.loan_plan)
+            )
+            .expect("writing to a string cannot fail");
+        } else {
+            output.push('}');
+        }
     }
     for template in &program.function_templates {
         if !selected_functions.contains(&template.id) {
@@ -4448,7 +4497,7 @@ fn graph_json(
         let execution = FunctionExecutionId::Generic(instance.id.clone()).identity_key();
         write!(
             output,
-            "{{\"id\":{},\"kind\":\"function_instance\",\"persistent\":false,\"template\":{},\"instance\":{},\"type_arguments\":[{}],\"params\":[{}],\"result_id\":{},\"return_type\":{},\"requires_graph\":[{}],\"ensures_graph\":[{}],\"body\":{},\"cleanup\":{}}}",
+            "{{\"id\":{},\"kind\":\"function_instance\",\"persistent\":false,\"template\":{},\"instance\":{},\"type_arguments\":[{}],\"params\":[{}],\"result_id\":{},\"return_type\":{},\"requires_graph\":[{}],\"ensures_graph\":[{}],\"body\":{},\"cleanup\":{}",
             quote_json(&execution),
             quote_json(instance.template.as_str()),
             quote_json(instance.id.as_str()),
@@ -4462,6 +4511,16 @@ fn graph_json(
             crate::graph_cleanup::cleanup_plan_json(&function.cleanup_plan)
         )
         .expect("writing to a string cannot fail");
+        if schema == "semaprax.graph.v23" {
+            write!(
+                output,
+                ",\"loans\":{}}}",
+                crate::graph_loan::loan_plan_json(&function.loan_plan)
+            )
+            .expect("writing to a string cannot fail");
+        } else {
+            output.push('}');
+        }
     }
     output.push_str("]}");
     Ok(output.into_string())
@@ -5972,6 +6031,49 @@ fn main() -> i64 { 0 }
     fn internal_hir_renderer_preserves_its_trusted_source_revision() {
         let graph = to_hir_json(&resolved_program(), "trusted-source-revision").unwrap();
         assert!(graph.contains("\"revision\":\"trusted-source-revision\""));
+    }
+
+    #[test]
+    fn loan_bearing_generic_instance_defensively_selects_v23() {
+        let source = r#"
+module test.graph_instance_loan;
+@id("generic.marker") fn marker<T>() -> bool { true }
+@id("app.main") fn main() -> i64 { if marker<bool>() { 1 } else { 0 } }
+"#;
+        let mut program =
+            hir::resolve(&parse(source, Path::new("graph-instance-loan.spx")).unwrap())
+                .expect("generic instance resolves");
+        assert_eq!(program.function_instances.len(), 1);
+        assert_ne!(graph_schema(&program), "semaprax.graph.v23");
+
+        // Generic source admission is intentionally scalar-only today, so an
+        // authenticated instance cannot yet acquire a real loan. Exercise the
+        // schema selector defensively without invoking the validating renderer:
+        // if that boundary widens later, an instance attachment must never be
+        // silently serialized under an older schema.
+        let function = &mut program.function_instances[0].function;
+        let site = function.body.id.clone();
+        function.loan_plan.schema = crate::loan_plan::LOAN_PLAN_SCHEMA_V1;
+        function.loan_plan.loans.push(crate::loan_plan::Loan {
+            id: crate::loan_plan::LoanId(0),
+            site: site.clone(),
+            origin: hir::Place {
+                root: function.result_id.clone(),
+                projections: Vec::new(),
+            },
+            parent: None,
+            start: crate::loan_plan::LoanProgramPoint {
+                expression: site.clone(),
+                phase: crate::loan_plan::LoanPointPhase::Before,
+            },
+            ends: vec![crate::loan_plan::LoanProgramPoint {
+                expression: site,
+                phase: crate::loan_plan::LoanPointPhase::After,
+            }],
+            end_edges: vec![0],
+            cause: crate::loan_plan::LoanCause::SliceView,
+        });
+        assert_eq!(graph_schema(&program), "semaprax.graph.v23");
     }
 
     #[test]

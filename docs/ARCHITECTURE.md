@@ -90,6 +90,23 @@ Invalid owned tags or tag/liveness disagreement fail-stop before payload
 authority, cleanup, or result publication. Nested/generic owned variants,
 non-Copy propagation, and public aggregate ABIs remain outside this boundary.
 
+`src/loan_plan.rs` owns the additive plan schema, builder, and replay;
+`src/graph_loan.rs` owns its Graph projection. The
+[Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md) is a bounded, target-neutral proof
+plan for synchronous immutable loans. It assigns dense
+resolved-function-local loan identities, authenticates exact owner places and
+parent reborrow provenance, and records path-sensitive last-use edges for
+multiple loans. Validated HIR independently rebuilds and exactly replays the
+plan before Graph v23 may project it. Try propagation retains distinct normal
+and residual-return CFG successors so later uses cannot extend a loan across
+an early return. Semantic Workspace v1 rejects a nonempty loan plan combined
+with an owned-variant Graph v22 base schema instead of masking that older
+contract. The plan neither changes CleanupPlan
+liveness nor creates runtime
+references; legacy programs retain their prior Graph and cleanup bytes.
+Nested owned aggregate borrowing, public borrowed ABIs, and hosted promotion
+remain outside this architecture boundary.
+
 ### Semantic graph
 
 `src/graph.rs` and `src/graph_cleanup.rs` project validated program and cleanup

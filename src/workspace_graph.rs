@@ -1762,19 +1762,15 @@ impl WorkspaceGraphBuild {
             .modules
             .into_iter()
             .map(|module| {
-                let source_graph_schema = graph::graph_schema_from_parts(
-                    &module.types,
-                    &module.functions,
-                    &module.function_templates,
-                );
-                WorkspaceGraphChangeModule {
+                let source_graph_schema = semantic_workspace_source_schema(&module)?;
+                Ok(WorkspaceGraphChangeModule {
                     path: module.path,
                     module: module.module,
                     source_graph_schema,
                     permits: module.permits,
-                }
+                })
             })
-            .collect();
+            .collect::<Result<Vec<_>, Vec<Diagnostic>>>()?;
         let declarations = self
             .hir
             .declarations
@@ -1843,11 +1839,7 @@ impl WorkspaceGraphBuild {
     ) -> Result<BTreeMap<String, &'static str>, Vec<Diagnostic>> {
         let mut schemas = BTreeMap::new();
         for module in &self.hir.modules {
-            let schema = graph::graph_schema_from_parts(
-                &module.types,
-                &module.functions,
-                &module.function_templates,
-            );
+            let schema = semantic_workspace_source_schema(module)?;
             if schemas.insert(module.path.clone(), schema).is_some() {
                 return Err(vec![graph_error(
                     "SPX-G173",
@@ -1863,6 +1855,41 @@ impl WorkspaceGraphBuild {
         }
         Ok(schemas)
     }
+}
+
+fn semantic_workspace_source_schema(
+    module: &WorkspaceResolvedModule,
+) -> Result<&'static str, Vec<Diagnostic>> {
+    let base_schema = graph::graph_schema_from_parts_without_loans(
+        &module.types,
+        &module.functions,
+        &module.function_templates,
+    );
+    let has_loans = module
+        .functions
+        .iter()
+        .any(|function| !function.loan_plan.loans.is_empty())
+        || module
+            .function_instances
+            .iter()
+            .any(|instance| !instance.function.loan_plan.loans.is_empty());
+    let instance_has_owned_variant = module.function_instances.iter().any(|instance| {
+        instance.function.cleanup.schema == crate::cleanup::CLEANUP_INVENTORY_SCHEMA_V2
+            || instance.function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V6
+    });
+    if has_loans && (base_schema == "semaprax.graph.v22" || instance_has_owned_variant) {
+        return Err(vec![graph_error(
+            "SPX-G410",
+            "Shared Loan Plan v1 cannot mask an owned-variant Graph v22 base schema in Semantic Workspace v1",
+        )]);
+    }
+    Ok(if has_loans {
+        "semaprax.graph.v23"
+    } else if instance_has_owned_variant {
+        "semaprax.graph.v22"
+    } else {
+        graph::graph_schema_from_parts(&module.types, &module.functions, &module.function_templates)
+    })
 }
 
 fn resolved_function_callees(function: &hir::ResolvedFunction) -> BTreeSet<hir::DeclarationId> {
@@ -3682,6 +3709,16 @@ type ResolvedCore = (
 // backend-private map into existing Graph evidence.
 const GRAPH_ACCOUNTED_RESOLVED_PROGRAM_BYTES: usize = std::mem::size_of::<hir::ResolvedProgram>()
     - std::mem::size_of::<BTreeMap<String, hir::DeclarationId>>();
+// Shared Loan Plan v1 is an independently bounded proof sidecar. Preserve the
+// frozen empty-sidecar accounting for legacy workspaces, then charge the full
+// carrier and its owned allocation only when a retained function has a real
+// own-root plan. This keeps evidence independent of incidental Rust layout
+// growth without making nonempty proof data free.
+const GRAPH_ACCOUNTED_RESOLVED_FUNCTION_BYTES: usize = std::mem::size_of::<hir::ResolvedFunction>()
+    - std::mem::size_of::<crate::loan_plan::LoanPlan>();
+const GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES: usize =
+    std::mem::size_of::<hir::ResolvedFunctionInstance>()
+        - std::mem::size_of::<crate::loan_plan::LoanPlan>();
 
 fn build_resolved_core(
     programs: &[Program],
@@ -3731,21 +3768,31 @@ fn build_resolved_core(
                 .get(item.id.as_str())
                 .is_some_and(|owner| owner.module == program.module)
         })?;
-        let functions = filter_owned_vec(resolved.functions, |item| {
-            authored
-                .get(item.id.as_str())
-                .is_some_and(|owner| owner.module == program.module)
-        })?;
+        let functions = filter_owned_vec_accounted(
+            resolved.functions,
+            GRAPH_ACCOUNTED_RESOLVED_FUNCTION_BYTES,
+            |item| retained_loan_plan_bytes(&item.loan_plan),
+            |item| {
+                authored
+                    .get(item.id.as_str())
+                    .is_some_and(|owner| owner.module == program.module)
+            },
+        )?;
         let function_templates = filter_owned_vec(resolved.function_templates, |item| {
             authored
                 .get(item.id.as_str())
                 .is_some_and(|owner| owner.module == program.module)
         })?;
-        let function_instances = filter_owned_vec(resolved.function_instances, |item| {
-            authored
-                .get(item.template.as_str())
-                .is_some_and(|owner| owner.module == program.module)
-        })?;
+        let function_instances = filter_owned_vec_accounted(
+            resolved.function_instances,
+            GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES,
+            |item| retained_loan_plan_bytes(&item.function.loan_plan),
+            |item| {
+                authored
+                    .get(item.template.as_str())
+                    .is_some_and(|owner| owner.module == program.module)
+            },
+        )?;
         modules.push(WorkspaceResolvedModule {
             path: crate::bounded_output::budgeted_clone(&program.path),
             module,
@@ -3803,6 +3850,35 @@ fn filter_owned_vec<T>(
             .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?,
     )?;
     Ok(items.into_iter().filter(|item| keep(item)).collect())
+}
+
+fn filter_owned_vec_accounted<T>(
+    items: Vec<T>,
+    fixed_element_bytes: usize,
+    mut extra_owned_bytes: impl FnMut(&T) -> Result<usize, Vec<Diagnostic>>,
+    mut keep: impl FnMut(&T) -> bool,
+) -> Result<Vec<T>, Vec<Diagnostic>> {
+    let fixed = items
+        .len()
+        .checked_mul(fixed_element_bytes)
+        .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+    let mut bytes = fixed;
+    for item in &items {
+        bytes = bytes
+            .checked_add(extra_owned_bytes(item)?)
+            .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+    }
+    reserve_builder_structure(bytes)?;
+    Ok(items.into_iter().filter(|item| keep(item)).collect())
+}
+
+fn retained_loan_plan_bytes(plan: &crate::loan_plan::LoanPlan) -> Result<usize, Vec<Diagnostic>> {
+    if plan.loans.is_empty() {
+        return Ok(0);
+    }
+    crate::loan_plan::owned_capacity_bytes(plan)
+        .and_then(|owned| std::mem::size_of::<crate::loan_plan::LoanPlan>().checked_add(owned))
+        .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])
 }
 
 fn authenticated_declaration_fingerprints(
@@ -8933,5 +9009,65 @@ fn main() -> i64 { 0 }
             error[0].message,
             "workspace type aliases are not admitted in interface/import parameter carriers"
         );
+    }
+
+    #[test]
+    fn shared_loans_cannot_mask_an_owned_variant_v22_workspace_base_schema() {
+        let app = canonical_source(
+            "app/main.spx",
+            r#"
+module app.main;
+
+@id("app.choice")
+variant Choice {
+    @id("app.choice.none") None,
+    @id("app.choice.data") Data {
+        @id("app.choice.data.payload") payload: Bytes,
+    },
+}
+
+@id("app.consume")
+fn consume(value: own Choice) -> i64 {
+    match own value {
+        Choice::None {} => 0,
+        Choice::Data { payload } => 1,
+    }
+}
+
+@id("app.view")
+fn view(input: borrow Slice<u8>) -> usize {
+    let owned = bytes_copy(input);
+    let bytes = bytes_as_slice(owned);
+    byte_len(bytes)
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#,
+        );
+        let support = canonical_source(
+            "lib/support.spx",
+            r#"
+module lib.support;
+
+@id("lib.support.ready")
+fn ready() -> i64 { 0 }
+"#,
+        );
+        let sources = vec![app, support];
+        let build = build_owned(sources.clone()).unwrap();
+        let error = build
+            .source_graph_schemas()
+            .expect_err("Graph v23 must not hide an unsupported v22 base schema");
+        assert_eq!(error[0].code, "SPX-G410");
+        assert!(error[0].message.contains("cannot mask"));
+
+        let (change, _) =
+            build_owned_retaining_sources_for_change(sources, MAX_CHANGE_BUILDER_BYTES).unwrap();
+        let error = match change.into_change_view() {
+            Err(error) => error,
+            Ok(_) => panic!("change view must share the same complete schema gate"),
+        };
+        assert_eq!(error[0].code, "SPX-G410");
     }
 }

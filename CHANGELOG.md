@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Added the locally evidenced Shared Loan Plan v1 proof layer for bounded
+  synchronous immutable borrowing rooted in `own` storage. Dense
+  resolved-function-local loan identities, exact owner-place and parent-reborrow
+  provenance, multiple shared loans, path-sensitive CFG-edge last-use
+  endpoints including distinct normal/residual `?` successors, independent
+  replay, and checked limits of 256 loans, 4,096
+  program points, 4,096 edges, and 1,000,000 work units select Graph v23 while
+  preserving legacy Graph and cleanup bytes when no plan is required. This is
+  the foundation for, not admission of, nested owned aggregate borrowing; it
+  adds no runtime loan object, public borrowed ABI, or hosted promotion claim.
+  Semantic Workspace v1 fails closed rather than allowing Graph v23 to mask a
+  simultaneous owned-variant Graph v22 base contract.
+
 - Added the locally evidenced Owned Byte Variant Algebra v1 tranche: flat
   monomorphic authored variants with direct `Bytes` plus Copy scalars, and the
   exact `Option<Bytes>`, `Result<Bytes, i64|bool>`, and

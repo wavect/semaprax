@@ -5884,6 +5884,88 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
     Ok(total)
 }
 
+fn hir_loan_program_point_owned_capacity(point: &semaprax::loan_plan::LoanProgramPoint) -> usize {
+    point.expression.as_str().len()
+}
+
+fn hir_loan_place_owned_capacity(place: &crate::hir::Place) -> Option<usize> {
+    let mut total = place.root.as_str().len().checked_add(
+        place
+            .projections
+            .capacity()
+            .checked_mul(std::mem::size_of::<crate::hir::PlaceProjection>())?,
+    )?;
+    for projection in &place.projections {
+        total = total.checked_add(match projection {
+            crate::hir::PlaceProjection::Field(field) => field.as_str().len(),
+            crate::hir::PlaceProjection::VariantField { case, field } => {
+                case.as_str().len().checked_add(field.as_str().len())?
+            }
+        })?;
+    }
+    Some(total)
+}
+
+pub(super) fn hir_loan_plan_owned_capacity(plan: &semaprax::loan_plan::LoanPlan) -> Option<usize> {
+    // `schema` is a static string and therefore retains no owned allocation.
+    // The inline `LoanPlan` itself is already part of `ResolvedFunction`.
+    let mut total = plan
+        .loans
+        .capacity()
+        .checked_mul(std::mem::size_of::<semaprax::loan_plan::Loan>())?
+        .checked_add(
+            plan.endpoints
+                .capacity()
+                .checked_mul(std::mem::size_of::<semaprax::loan_plan::LoanEndpoint>())?,
+        )?
+        .checked_add(
+            plan.edges
+                .capacity()
+                .checked_mul(std::mem::size_of::<semaprax::loan_plan::LoanEdge>())?,
+        )?;
+    for loan in &plan.loans {
+        total = total
+            .checked_add(loan.site.as_str().len())?
+            .checked_add(hir_loan_place_owned_capacity(&loan.origin)?)?
+            .checked_add(hir_loan_program_point_owned_capacity(&loan.start))?
+            .checked_add(
+                loan.ends
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<semaprax::loan_plan::LoanProgramPoint>())?,
+            )?
+            .checked_add(
+                loan.end_edges
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<u16>())?,
+            )?;
+        for end in &loan.ends {
+            total = total.checked_add(hir_loan_program_point_owned_capacity(end))?;
+        }
+    }
+    for endpoint in &plan.endpoints {
+        total = total.checked_add(hir_loan_program_point_owned_capacity(&endpoint.point))?;
+        for ids in [
+            &endpoint.live_before,
+            &endpoint.starts,
+            &endpoint.kills,
+            &endpoint.live_after,
+        ] {
+            total = total.checked_add(
+                ids.capacity()
+                    .checked_mul(std::mem::size_of::<semaprax::loan_plan::LoanId>())?,
+            )?;
+        }
+    }
+    for edge in &plan.edges {
+        total = total.checked_add(
+            edge.live
+                .capacity()
+                .checked_mul(std::mem::size_of::<semaprax::loan_plan::LoanId>())?,
+        )?;
+    }
+    Some(total)
+}
+
 fn hir_function_owned_capacity(function: &ResolvedFunction) -> Result<usize, Diagnostic> {
     let mut total = std::mem::size_of::<ResolvedFunction>()
         .checked_add(function.id.as_str().len())
@@ -5939,6 +6021,7 @@ fn hir_function_owned_capacity(function: &ResolvedFunction) -> Result<usize, Dia
                 )?,
             )
         })
+        .and_then(|bytes| bytes.checked_add(hir_loan_plan_owned_capacity(&function.loan_plan)?))
         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
     Ok(total)
 }

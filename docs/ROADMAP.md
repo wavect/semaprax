@@ -44,7 +44,10 @@ ABIs prematurely.
 
 - generalize unique ownership beyond the current bounded Copy, string, byte,
   resource, flat owned-byte record, and flat owned-byte variant slices;
-- implement borrow/lifetime inference, reborrowing, and escape analysis;
+- use the bounded [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md) as the
+  independently replayed proof foundation, then admit nested owned aggregate
+  borrowing before general lifetime inference, mutable borrowing, and escape
+  analysis;
 - make cleanup plans cover general control flow, nested aggregates, calls, and
   FFI with independently replayed exactly-once behavior;
 - integrate regions/arenas and opt-in shared immutable ARC only after their

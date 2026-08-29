@@ -25,6 +25,7 @@ Audience: all documentation readers.
 - [Portable indexed byte data](PORTABLE-INDEXED-BYTE-DATA-V1.md)
 - [Owned Byte Record Algebra](OWNED-BYTE-RECORD-ALGEBRA-V1.md)
 - [Owned Byte Variant Algebra](OWNED-BYTE-VARIANT-ALGEBRA-V1.md)
+- [Shared Loan Plan](SHARED-LOAN-PLAN-V1.md)
 - [Unsafe boundary mechanics](UNSAFE-BOUNDARIES-V1.md)
 - [Reference interpreter](INTERPRETER-V1.md)
 

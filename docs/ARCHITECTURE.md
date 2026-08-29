@@ -239,9 +239,14 @@ do not establish exact-head hosted promotion.
 `src/project/flat_owned_record.rs` is the authority-free additive Project-v9
 description layer. It authenticates the exact one-direct-`Bytes` flat record
 result shape from HIR, independently replays its versioned descriptor, and
-projects safe TypeScript/Rust types plus an opaque-handle settlement plan. It
-does not expose target aggregate layout or activate a target publication route;
-see [Public Flat Owned Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md).
+projects safe TypeScript/Rust types plus an opaque-handle settlement plan.
+`src/project/npm/flat_owned_record.rs`, the aggregate-aware owned-data Wasm
+adapter, and the root native provider wire that descriptor to the additive npm
+and safe-Rust package routes. The lower unpublished package crate replays the
+descriptor, provider integrity binding, tools, and publication, but does not
+authenticate provider semantics; root HIR/codegen replay owns that proof. No
+route exposes a target aggregate layout. See [Public Flat Owned Record API
+v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md).
 
 `src/project_transport/` and `src/bin/semapraxd.rs` retain one authenticated
 Project revision for bounded requests. Read-only v2 is the default. Explicit

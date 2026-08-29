@@ -6,6 +6,7 @@
 
 use std::fmt::Write as _;
 
+use crate::aggregate_layout::{AggregateFieldValueKind, AggregateLayout, AggregateTarget};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{DeclarationId, ResolvedProgram, ResolvedType};
 use crate::project::{
@@ -13,6 +14,7 @@ use crate::project::{
 };
 use crate::variant_layout::{VariantLayout, VariantTarget};
 
+use super::native_emit::c_record_symbol;
 use super::native_emit::{c_case_symbol, c_field_symbol, c_function_symbol, c_variant_symbol};
 
 const STATUS_CAPACITY: usize = 64;
@@ -71,6 +73,169 @@ pub fn emit_project_v8_native_owned_data_provider(
         descriptor_digest,
         true,
     )
+}
+
+pub fn emit_project_v9_native_flat_owned_record_provider(
+    program: &ResolvedProgram,
+    selected: &[String],
+    subject: PublicApiSubject<'_>,
+    descriptor_bytes: &[u8],
+    descriptor_digest: &str,
+) -> Result<NativeOwnedDataProviderArtifact, Diagnostic> {
+    crate::hir::validate(program)?;
+    let descriptor = crate::project::replay_flat_owned_record_api_descriptor(
+        program,
+        selected,
+        subject,
+        descriptor_bytes,
+        descriptor_digest,
+    )?;
+    let mut source = String::from("#define SPX_NO_ENTRY_WRAPPER 1\n");
+    writeln!(
+        source,
+        "#define SPX_OWNED_DATA_DESCRIPTOR_DIGEST_V1 \"{descriptor_digest}\""
+    )
+    .unwrap();
+    source.push_str(&super::emit_hir_c_for_owned_data_provider(program)?);
+    source.push('\n');
+    let mut runtime = String::new();
+    emit_provider_runtime(&mut runtime);
+    runtime = runtime.replace(
+        "static bool spx_owned_data_overlap_v1(",
+        "static __attribute__((unused)) bool spx_owned_data_overlap_v1(",
+    );
+    source.push_str(&runtime);
+    for export in descriptor.exports() {
+        emit_flat_export(&mut source, program, export)?;
+    }
+    Ok(NativeOwnedDataProviderArtifact {
+        source,
+        descriptor: descriptor_bytes.to_vec(),
+        descriptor_digest: descriptor_digest.to_owned(),
+    })
+}
+
+fn emit_flat_export(
+    output: &mut String,
+    program: &ResolvedProgram,
+    export: &crate::project::FlatOwnedRecordExport,
+) -> Result<(), Diagnostic> {
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id == *export.stable_id())
+        .ok_or_else(|| provider_error("flat record provider export is absent"))?;
+    let layout =
+        AggregateLayout::for_type(program, AggregateTarget::Native64, &function.return_type)?;
+    layout.validate(program)?;
+    if layout.record != *export.record_id() || layout.fields.len() != export.fields().len() {
+        return Err(provider_error(
+            "flat record native layout disagrees with descriptor",
+        ));
+    }
+    let symbol = provider_call_symbol(export.rust_method_name());
+    write!(
+        output,
+        "SPX_OWNED_DATA_EXPORT spx_owned_data_status_v1 {symbol}(spx_context_v1 *context"
+    )
+    .unwrap();
+    for (index, (_, _, parameter)) in export.parameters().iter().enumerate() {
+        match parameter {
+            PublicApiParameterType::I64 => write!(output, ", int64_t arg_{index}"),
+            PublicApiParameterType::Bool => write!(output, ", uint8_t arg_{index}"),
+            PublicApiParameterType::BorrowStr | PublicApiParameterType::BorrowSliceU8 => write!(
+                output,
+                ", const uint8_t *arg_{index}, uint64_t arg_{index}_len"
+            ),
+        }
+        .unwrap();
+    }
+    writeln!(output, ", uint64_t *carrier_out) {{").unwrap();
+    writeln!(output, "    if (context == NULL || carrier_out == NULL || context->marker != SPX_OWNED_DATA_CONTEXT_MARKER || spx_owned_data_overlap_v1(context, sizeof(*context), carrier_out, sizeof(*carrier_out) * UINT64_C({}))) return SPX_OWNED_DATA_ADAPTER_FAILURE;", export.fields().len()).unwrap();
+    writeln!(output, "    for (uintptr_t index = (uintptr_t)0; index < sizeof(*carrier_out) * UINT64_C({}); ++index) if (((const uint8_t *)carrier_out)[index] != UINT8_MAX) return SPX_OWNED_DATA_ADAPTER_FAILURE;", export.fields().len()).unwrap();
+    output.push_str("    uint64_t borrowed = UINT64_C(0);\n");
+    for (index, (_, _, parameter)) in export.parameters().iter().enumerate() {
+        match parameter {
+            PublicApiParameterType::Bool => writeln!(output, "    if (arg_{index} > UINT8_C(1)) return SPX_OWNED_DATA_ADAPTER_FAILURE;"),
+            PublicApiParameterType::BorrowStr => writeln!(output, "    if (arg_{index}_len > UINT64_C(65536) - borrowed || (arg_{index}_len != UINT64_C(0) && arg_{index} == NULL) || !spx_owned_data_utf8_v1(arg_{index}, arg_{index}_len)) return SPX_OWNED_DATA_ADAPTER_FAILURE; borrowed += arg_{index}_len; spx_str_v1 value_{index} = {{ .data = arg_{index}, .len = arg_{index}_len }};"),
+            PublicApiParameterType::BorrowSliceU8 => writeln!(output, "    if (arg_{index}_len > UINT64_C(65536) - borrowed || (arg_{index}_len != UINT64_C(0) && arg_{index} == NULL)) return SPX_OWNED_DATA_ADAPTER_FAILURE; borrowed += arg_{index}_len; spx_slice_u8_v1 value_{index} = {{ .ptr = arg_{index}_len == UINT64_C(0) ? NULL : arg_{index}, .len = arg_{index}_len }};"),
+            PublicApiParameterType::I64 => Ok(()),
+        }.unwrap();
+    }
+    output.push_str("    (void)borrowed;\n");
+    writeln!(
+        output,
+        "    struct spx_status_entry statuses[UINT32_C({STATUS_CAPACITY})];"
+    )
+    .unwrap();
+    output.push_str("    struct spx_context semantic = {0};\n    if (context->invocation == UINT64_MAX) return SPX_OWNED_DATA_ADAPTER_FAILURE;\n    ++context->invocation;\n");
+    writeln!(output, "    if (!spx_context_init(&semantic, context->invocation, statuses, UINT32_C({STATUS_CAPACITY}), NULL, NULL, NULL)) return SPX_OWNED_DATA_ADAPTER_FAILURE;").unwrap();
+    let record = c_record_symbol(&function.return_type);
+    writeln!(output, "    struct {record} result = {{0}};").unwrap();
+    let arguments = export
+        .parameters()
+        .iter()
+        .enumerate()
+        .map(|(index, (_, _, parameter))| match parameter {
+            PublicApiParameterType::I64 => format!("arg_{index}"),
+            PublicApiParameterType::Bool => format!("arg_{index} != UINT8_C(0)"),
+            PublicApiParameterType::BorrowStr | PublicApiParameterType::BorrowSliceU8 => {
+                format!("value_{index}")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    let comma = if arguments.is_empty() { "" } else { ", " };
+    writeln!(output, "    if ({}(&semantic{comma}{arguments}, &result) != SPX_STATUS_SUCCESS) return SPX_OWNED_DATA_SEMANTIC_FAILURE;", c_function_symbol(export.stable_id())).unwrap();
+    writeln!(
+        output,
+        "    uint64_t carrier[{}] = {{0}};",
+        export.fields().len()
+    )
+    .unwrap();
+    let mut owned_field = None;
+    for (field, physical) in export.fields().iter().zip(&layout.fields) {
+        if field.stable_id() != &physical.field {
+            return Err(provider_error("flat record native field order disagrees"));
+        }
+        let member = c_field_symbol(field.stable_id());
+        match field.ty() {
+            crate::project::FlatOwnedRecordFieldType::I64 => writeln!(
+                output,
+                "    memcpy(&carrier[{}], &result.{member}, sizeof(result.{member}));",
+                field.ordinal()
+            )
+            .unwrap(),
+            crate::project::FlatOwnedRecordFieldType::Bool => writeln!(
+                output,
+                "    carrier[{}] = result.{member} ? UINT64_C(1) : UINT64_C(0);",
+                field.ordinal()
+            )
+            .unwrap(),
+            crate::project::FlatOwnedRecordFieldType::Usize => writeln!(
+                output,
+                "    carrier[{}] = result.{member};",
+                field.ordinal()
+            )
+            .unwrap(),
+            crate::project::FlatOwnedRecordFieldType::OwnedBytes => {
+                if physical.value_kind != AggregateFieldValueKind::OwnedBytes
+                    || owned_field.replace((field.ordinal(), member)).is_some()
+                {
+                    return Err(provider_error(
+                        "flat record native owned field is not exact",
+                    ));
+                }
+            }
+        }
+    }
+    let (owned_ordinal, owned_member) =
+        owned_field.ok_or_else(|| provider_error("flat record native owned field is absent"))?;
+    output.push_str("    spx_owned_bytes_handle_v1 published = UINT64_C(0);\n");
+    writeln!(output, "    spx_owned_data_status_v1 attached = spx_owned_data_attach_v1(context, &result.{owned_member}, &published);").unwrap();
+    writeln!(output, "    if (attached != SPX_OWNED_DATA_SUCCESS) {{ spx_bytes_drop(&result.{owned_member}); return attached; }}").unwrap();
+    writeln!(output, "    carrier[{owned_ordinal}] = published;\n    memcpy(carrier_out, carrier, sizeof(carrier));\n    return SPX_OWNED_DATA_SUCCESS;\n}}").unwrap();
+    Ok(())
 }
 
 fn emit_provider(

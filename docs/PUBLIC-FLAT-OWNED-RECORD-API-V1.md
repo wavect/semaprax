@@ -50,7 +50,7 @@ renames therefore do not change callable or member identity.
 | --- | --- | --- |
 | `i64` | `bigint` | `i64` |
 | `bool` | `boolean` | `bool` |
-| `usize` | `bigint` | `u64` |
+| `usize` | `bigint` | `usize` |
 | `Bytes` | `Uint8Array` | `Vec<u8>` |
 
 The generated TypeScript result is a readonly interface. The generated safe
@@ -78,14 +78,22 @@ aggregate ABI reaches application code.
 
 ## Evidence boundary
 
+The physical npm/Core-Wasm and native-provider/safe-Rust routes are wired to
+the exact descriptor. The npm facade authenticates every scalar before copying
+and settling its sole opaque handle, then constructs the frozen object. The
+Rust route independently regenerates the provider from replayed HIR before the
+unpublished lower crate compiles and publishes a safe struct package. That
+lower crate proves descriptor, byte-integrity, tool, and filesystem facts; it
+does not independently prove provider semantics.
+
 Local implementation evidence must cover canonical and hostile manifests,
 descriptor derivation/replay and every-byte mutation, exact one-byte-field
 admission, every excluded field shape, persistent-ID rename behavior,
 TypeScript and safe Rust projections, opaque carrier planning, copy-before-
 settle and publish-after-settle traces, capacity boundaries, and v1-v8 known
-answers. Target activation additionally requires real npm/Wasm and compiler-
-free Rust consumers plus equivalent interpreter/native/Wasm results. Hosted
-promotion requires one exact blocking Linux/macOS/Windows head.
+answers. This implementation tranche has not run those target consumers or
+equivalence gates. Hosted promotion requires one exact blocking
+Linux/macOS/Windows head.
 
 This tranche does not claim nested aggregates, variants, resources, owned
 strings, zero-copy transfer, a public native aggregate ABI, general records,

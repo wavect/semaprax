@@ -341,6 +341,12 @@ pub(crate) fn verify_manifest(
             "no_allocator_oom_abort_or_panic_recovery_proof",
             "no_send_sync",
         ],
+        PackageMode::ProjectV9FlatRecord => &[
+            "no_raw_handle_or_context_public_api",
+            "no_allocator_transfer",
+            "no_allocator_oom_abort_or_panic_recovery_proof",
+            "no_send_sync",
+        ],
     };
     if !exact_strings(
         root.get("nonclaims").and_then(Value::as_array),

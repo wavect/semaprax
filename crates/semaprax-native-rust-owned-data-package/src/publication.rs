@@ -13,6 +13,53 @@ pub(crate) struct HeldTools {
     archiver: platform::HeldTool,
 }
 
+/// One invocation-local publication authority. The original parent handle is
+/// retained from absence preflight through provider staging, final rename and
+/// exact post-publication verification, so an ambient same-path substitution
+/// can never redirect a later phase.
+pub(crate) struct PublicationAuthority {
+    parent_path: PathBuf,
+    output: PathBuf,
+    output_name: std::ffi::OsString,
+    parent: platform::HeldDirectory,
+}
+
+impl PublicationAuthority {
+    pub(crate) fn new(output: &Path) -> Result<Self, PackageError> {
+        if !output.is_absolute() {
+            return Err(PackageError::publication());
+        }
+        let parent_path = output
+            .parent()
+            .ok_or_else(PackageError::publication)?
+            .to_path_buf();
+        let output_name = output
+            .file_name()
+            .ok_or_else(PackageError::publication)?
+            .to_os_string();
+        let parent =
+            platform::hold_directory(&parent_path).map_err(|_| PackageError::publication())?;
+        let probe =
+            platform::prepare_child_name(&output_name).map_err(|_| PackageError::publication())?;
+        if !platform::child_absent_prepared(&parent, &probe)
+            .map_err(|_| PackageError::publication())?
+        {
+            return Err(PackageError::publication());
+        }
+        platform::recheck_directory(&parent).map_err(|_| PackageError::publication())?;
+        Ok(Self {
+            parent_path,
+            output: output.to_path_buf(),
+            output_name,
+            parent,
+        })
+    }
+
+    pub(crate) fn recheck(&self) -> Result<(), PackageError> {
+        platform::recheck_directory(&self.parent).map_err(|_| PackageError::publication())
+    }
+}
+
 impl HeldTools {
     pub(crate) fn from_environment() -> Result<Self, PackageError> {
         let clang_path = absolute_environment_path("CLANG")?;
@@ -37,32 +84,13 @@ fn absolute_environment_path(name: &str) -> Result<PathBuf, PackageError> {
         .ok_or_else(PackageError::tool)
 }
 
-pub(crate) fn preflight_output(output: &Path) -> Result<(), PackageError> {
-    if !output.is_absolute() {
-        return Err(PackageError::publication());
-    }
-    let parent_path = output.parent().ok_or_else(PackageError::publication)?;
-    let output_name = output.file_name().ok_or_else(PackageError::publication)?;
-    let parent = platform::hold_directory(parent_path).map_err(|_| PackageError::publication())?;
-    let probe =
-        platform::prepare_child_name(output_name).map_err(|_| PackageError::publication())?;
-    if !platform::child_absent_prepared(&parent, &probe).map_err(|_| PackageError::publication())? {
-        return Err(PackageError::publication());
-    }
-    platform::recheck_directory(&parent).map_err(|_| PackageError::publication())
-}
-
 pub(crate) fn build_archive(
     provider: &[u8],
     target: HostTarget,
-    output: &Path,
+    authority: &PublicationAuthority,
     tools: &HeldTools,
 ) -> Result<Vec<u8>, PackageError> {
-    if !output.is_absolute() {
-        return Err(PackageError::publication());
-    }
-    let root = output.parent().ok_or_else(PackageError::publication)?;
-    let parent = platform::hold_directory(root).map_err(|_| PackageError::publication())?;
+    authority.recheck()?;
     let name = format!(
         ".semaprax-owned-data-provider-{}-{}",
         std::process::id(),
@@ -70,7 +98,7 @@ pub(crate) fn build_archive(
     );
     let prepared =
         platform::prepare_stage_name(OsStr::new(&name)).map_err(|_| PackageError::publication())?;
-    let path = root.join(&name);
+    let path = authority.parent_path.join(&name);
     let object_name = if cfg!(windows) {
         "module.obj"
     } else {
@@ -87,7 +115,7 @@ pub(crate) fn build_archive(
         OsStr::new(internal_archive_name),
     ])
     .map_err(|_| PackageError::publication())?;
-    let directory = platform::create_directory_new_prepared(&parent, &prepared, 0o700)
+    let directory = platform::create_directory_new_prepared(&authority.parent, &prepared, 0o700)
         .map_err(|_| PackageError::publication())?;
     let mut inventory = inventory;
     let result = (|| {
@@ -169,28 +197,32 @@ pub(crate) fn build_archive(
         )
         .map_err(|_| PackageError::publication())
     })();
-    let cleanup =
-        platform::discard_owned_stage_prepared(&parent, &directory, &prepared, &inventory);
+    let cleanup = platform::discard_owned_stage_prepared(
+        &authority.parent,
+        &directory,
+        &prepared,
+        &inventory,
+    );
     match (result, cleanup) {
-        (Ok(bytes), Ok(())) => Ok(bytes),
+        (Ok(bytes), Ok(())) => {
+            authority.recheck()?;
+            Ok(bytes)
+        }
         (Err(error), _) => Err(error),
         (Ok(_), Err(_)) => Err(PackageError::publication()),
     }
 }
 
 pub(crate) fn publish_package(
-    output: &Path,
+    authority: &PublicationAuthority,
     files: [(&str, &[u8]); 7],
-) -> Result<(), PackageError> {
-    if !output.is_absolute() {
-        return Err(PackageError::publication());
-    }
-    let parent_path = output.parent().ok_or_else(PackageError::publication)?;
-    let output_name = output.file_name().ok_or_else(PackageError::publication)?;
-    let parent = platform::hold_directory(parent_path).map_err(|_| PackageError::publication())?;
-    let probe =
-        platform::prepare_child_name(output_name).map_err(|_| PackageError::publication())?;
-    if !platform::child_absent_prepared(&parent, &probe).map_err(|_| PackageError::publication())? {
+) -> Result<platform::HeldDirectory, PackageError> {
+    authority.recheck()?;
+    let probe = platform::prepare_child_name(&authority.output_name)
+        .map_err(|_| PackageError::publication())?;
+    if !platform::child_absent_prepared(&authority.parent, &probe)
+        .map_err(|_| PackageError::publication())?
+    {
         return Err(PackageError::publication());
     }
     let stage_name_text = format!(
@@ -200,11 +232,11 @@ pub(crate) fn publish_package(
     );
     let stage_name = platform::prepare_stage_name(OsStr::new(&stage_name_text))
         .map_err(|_| PackageError::publication())?;
-    let stage_path = parent_path.join(&stage_name_text);
+    let stage_path = authority.parent_path.join(&stage_name_text);
     let names = files.map(|(name, _)| OsStr::new(name));
     let inventory =
         platform::prepare_discard_inventory(names).map_err(|_| PackageError::publication())?;
-    let stage = platform::create_directory_new_prepared(&parent, &stage_name, 0o700)
+    let stage = platform::create_directory_new_prepared(&authority.parent, &stage_name, 0o700)
         .map_err(|_| PackageError::publication())?;
     let mut inventory = inventory;
     let result = (|| {
@@ -225,45 +257,63 @@ pub(crate) fn publish_package(
         inventory
             .settle_for_publish()
             .map_err(|_| PackageError::publication())?;
-        let mut publish = platform::prepare_publish_directory(output_name)
+        let mut publish = platform::prepare_publish_directory(&authority.output_name)
             .map_err(|_| PackageError::publication())?;
         platform::publish_directory_new_prepared(
             &mut publish,
-            &parent,
+            &authority.parent,
             &stage,
             &stage_name,
-            output_name,
+            &authority.output_name,
         )
-        .map_err(|_| PackageError::publication())
+        .map_err(|_| PackageError::publication())?;
+        if !platform::same_directory_path(&stage, &authority.output)
+            .map_err(|_| PackageError::publication())?
+        {
+            return Err(PackageError::publication());
+        }
+        authority.recheck()
     })();
     if result.is_err() {
-        let _ = platform::discard_owned_stage_prepared(&parent, &stage, &stage_name, &inventory);
+        let _ = platform::discard_owned_stage_prepared(
+            &authority.parent,
+            &stage,
+            &stage_name,
+            &inventory,
+        );
     }
-    result
+    result.map(|()| stage)
 }
 
 pub(crate) fn verify_published(
-    output: &Path,
+    authority: &PublicationAuthority,
+    directory: &platform::HeldDirectory,
     files: [(&str, &[u8]); 7],
 ) -> Result<(), PackageError> {
-    let directory = platform::hold_directory(output).map_err(|_| PackageError::publication())?;
+    authority.recheck()?;
+    if !platform::same_directory_path(directory, &authority.output)
+        .map_err(|_| PackageError::publication())?
+    {
+        return Err(PackageError::publication());
+    }
     let held = files
         .iter()
-        .map(|(name, bytes)| hold_matching(&directory, name, bytes))
+        .map(|(name, bytes)| hold_matching(directory, name, bytes))
         .collect::<Result<Vec<_>, _>>()?;
     let names = files.map(|(name, _)| OsStr::new(name));
     let mut scan = platform::prepare_inventory_entries_exact(names, 7)
         .map_err(|_| PackageError::publication())?;
     platform::inventory_entries_exact_prepared(
         &mut scan,
-        &directory,
+        directory,
         [
             &held[0], &held[1], &held[2], &held[3], &held[4], &held[5], &held[6],
         ],
         [],
     )
     .map_err(|_| PackageError::publication())?;
-    platform::recheck_directory(&directory).map_err(|_| PackageError::publication())
+    platform::recheck_directory(directory).map_err(|_| PackageError::publication())?;
+    authority.recheck()
 }
 
 fn hold_matching(

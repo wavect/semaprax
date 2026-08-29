@@ -1,9 +1,11 @@
 //! Dependency-inverted packaging authority for the owned-data Rust SDK.
 //!
 //! This crate deliberately knows neither SEMAPRAX HIR nor Project paths. Its
-//! input is one bounded compiler-emitted provider and the canonical public
-//! descriptor. It independently replays that descriptor, renders the exact
-//! safe package, holds explicit tools, and owns the single no-clobber publish.
+//! input is one bounded root-authenticated provider and the canonical public
+//! descriptor. It independently replays the descriptor and provider integrity
+//! binding, renders the exact safe package, holds explicit tools, and owns the
+//! single no-clobber publish. Provider semantics remain the root compiler's
+//! responsibility: this lower crate has neither HIR nor codegen authority.
 
 #![forbid(unsafe_code)]
 
@@ -12,6 +14,8 @@ use std::path::{Path, PathBuf};
 use sha2::{Digest, Sha256};
 
 mod descriptor;
+mod flat_descriptor;
+mod flat_render;
 mod publication;
 mod render;
 
@@ -27,6 +31,7 @@ pub const MAX_PROVIDER_BYTES: usize = 8 * 1024 * 1024;
 pub const MAX_ARCHIVE_BYTES: usize = 8 * 1024 * 1024;
 
 const DESCRIPTOR_DIGEST_DOMAIN: &[u8] = b"semaprax.public-owned-data-api.digest.v1\0";
+const FLAT_DESCRIPTOR_DIGEST_DOMAIN: &[u8] = b"semaprax.public-flat-owned-record-api.digest.v1\0";
 const MANIFEST_DIGEST_DOMAIN: &[u8] = b"semaprax.native-rust-owned-data-sdk.manifest.v1\0";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -87,6 +92,72 @@ pub struct PackagePlan {
 pub enum PackageMode {
     StandaloneEvidence,
     ProjectV8,
+    ProjectV9FlatRecord,
+}
+
+pub fn build_flat_record_and_publish(
+    plan: PackagePlan,
+    output: &Path,
+) -> Result<PackageBundle, PackageError> {
+    if plan.mode != PackageMode::ProjectV9FlatRecord {
+        return Err(PackageError::descriptor());
+    }
+    let target = HostTarget::current().ok_or_else(PackageError::tool)?;
+    if plan.provider_c.is_empty()
+        || plan.provider_c.len() > MAX_PROVIDER_BYTES
+        || raw_sha256(&plan.provider_c) != plan.provider_sha256
+        || !provider_binds_descriptor(&plan.provider_c, &plan.descriptor_digest)
+        || flat_descriptor_digest(&plan.descriptor) != plan.descriptor_digest
+    {
+        return Err(PackageError::provider());
+    }
+    let descriptor = flat_descriptor::replay(
+        &plan.descriptor,
+        &plan.descriptor_digest,
+        &plan.selected_exports,
+    )?;
+    let sources = flat_render::render_sources(&descriptor, target);
+    let publication = publication::PublicationAuthority::new(output)?;
+    let tools = publication::HeldTools::from_environment()?;
+    let archive = publication::build_archive(&plan.provider_c, target, &publication, &tools)?;
+    let archive_name = target.archive_name();
+    let manifest = flat_render::render_manifest(
+        target,
+        &plan.descriptor,
+        &plan.descriptor_digest,
+        archive_name,
+        &plan.provider_sha256,
+        [
+            ("Cargo.toml", sources.cargo_toml.as_bytes()),
+            ("build.rs", sources.build_rs.as_bytes()),
+            ("lib.rs", sources.lib_rs.as_bytes()),
+            ("owned_data_ffi.rs", sources.ffi_rs.as_bytes()),
+            (archive_name, archive.as_slice()),
+            ("descriptor.json", &plan.descriptor),
+        ],
+    );
+    flat_render::verify_manifest(manifest.as_bytes(), &manifest)?;
+    let files = [
+        ("Cargo.toml", sources.cargo_toml.as_bytes()),
+        ("build.rs", sources.build_rs.as_bytes()),
+        ("lib.rs", sources.lib_rs.as_bytes()),
+        ("owned_data_ffi.rs", sources.ffi_rs.as_bytes()),
+        (archive_name, archive.as_slice()),
+        ("descriptor.json", plan.descriptor.as_slice()),
+        (
+            "semaprax.native-rust-owned-data-sdk.json",
+            manifest.as_bytes(),
+        ),
+    ];
+    let published = publication::publish_package(&publication, files)?;
+    publication::verify_published(&publication, &published, files)?;
+    Ok(PackageBundle {
+        output_directory: output.to_path_buf(),
+        manifest_path: output.join("semaprax.native-rust-owned-data-sdk.json"),
+        manifest_digest: domain_digest(MANIFEST_DIGEST_DOMAIN, manifest.as_bytes()),
+        descriptor_digest: plan.descriptor_digest,
+        target_triple: target.triple().to_owned(),
+    })
 }
 
 impl PackagePlan {
@@ -210,12 +281,12 @@ pub fn build_and_publish(plan: PackagePlan, output: &Path) -> Result<PackageBund
         &plan.selected_exports,
     )?;
     let sources = render::render_sources(&descriptor, target, plan.mode);
-    publication::preflight_output(output)?;
+    let publication = publication::PublicationAuthority::new(output)?;
 
     // Tool/environment authority is frozen before any stage or artifact is
     // created. There is no PATH fallback and no post-effect environment read.
     let tools = publication::HeldTools::from_environment()?;
-    let archive = publication::build_archive(&plan.provider_c, target, output, &tools)?;
+    let archive = publication::build_archive(&plan.provider_c, target, &publication, &tools)?;
     let archive_name = target.archive_name();
     let manifest = render::render_manifest(
         target,
@@ -262,8 +333,8 @@ pub fn build_and_publish(plan: PackagePlan, output: &Path) -> Result<PackageBund
             manifest.as_bytes(),
         ),
     ];
-    publication::publish_package(output, files)?;
-    publication::verify_published(output, files)?;
+    let published = publication::publish_package(&publication, files)?;
+    publication::verify_published(&publication, &published, files)?;
     Ok(PackageBundle {
         output_directory: output.to_path_buf(),
         manifest_path: output.join("semaprax.native-rust-owned-data-sdk.json"),
@@ -287,6 +358,14 @@ fn domain_digest(domain: &[u8], bytes: &[u8]) -> String {
 fn descriptor_digest(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(DESCRIPTOR_DIGEST_DOMAIN);
+    hasher.update((bytes.len() as u64).to_le_bytes());
+    hasher.update(bytes);
+    format!("sha256:{:x}", LowerHex(hasher.finalize()))
+}
+
+fn flat_descriptor_digest(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(FLAT_DESCRIPTOR_DIGEST_DOMAIN);
     hasher.update((bytes.len() as u64).to_le_bytes());
     hasher.update(bytes);
     format!("sha256:{:x}", LowerHex(hasher.finalize()))

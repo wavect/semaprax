@@ -67,9 +67,10 @@ v2–v4 behavior before any broader agent workflow is considered.
 
 Records, authored variants, nested algebraic data, owned UTF-8 strings,
 allocator transfer, callbacks, async work, and general public aggregate ABIs
-remain outside the Project v8 preview. Project v9 flat owned records
-and Project v10 owned UTF-8 remain follow-on work after the preceding profiles
-are promoted; internal record/variant support is not a public aggregate ABI.
+remain outside the Project v8 preview. Project v9 flat owned records and
+Project v10 owned UTF-8 are additive implementation tranches, not promotions
+of the Project v8 preview; internal record/variant support is not a public
+aggregate ABI.
 The versioned specification owns exact identifiers, admission, lifetime,
 compatibility, and promotion gates.
 
@@ -77,8 +78,9 @@ The first controlled widening after that promotion is the additive
 [Public Flat Owned Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md): one
 monomorphic result record with exactly one direct `Bytes` field and only direct
 `i64`/`bool`/`usize` siblings. Its descriptor and host projections must remain
-layout-independent; target activation follows only after the v8 target routes
-are integrated and preserved.
+layout-independent. Its descriptor-bound npm/Core-Wasm and
+native-provider/safe-Rust routes are now wired while preserving the v8 target
+routes, but executable and hosted promotion evidence remains outstanding.
 
 ## 0.3: ownership and fast development
 

@@ -1131,11 +1131,10 @@ impl WorkspaceGraphBuild {
                 profile,
                 crate::project::ProjectProfile::OwnedDataApiV1
                     | crate::project::ProjectProfile::FlatOwnedRecordApiV1
-            )
-                || (module.types.is_empty()
-                    && module.interfaces.is_empty()
-                    && module.function_templates.is_empty()
-                    && module.function_instances.is_empty());
+            ) || (module.types.is_empty()
+                && module.interfaces.is_empty()
+                && module.function_templates.is_empty()
+                && module.function_instances.is_empty());
             if !permits_admitted || !project_shape_admitted {
                 return Err(vec![graph_error(
                     "SPX-G172",
@@ -1980,11 +1979,10 @@ impl WorkspaceGraphBuild {
                 profile,
                 crate::project::ProjectProfile::OwnedDataApiV1
                     | crate::project::ProjectProfile::FlatOwnedRecordApiV1
-            )
-                || (module.types.is_empty()
-                    && module.interfaces.is_empty()
-                    && module.function_templates.is_empty()
-                    && module.function_instances.is_empty());
+            ) || (module.types.is_empty()
+                && module.interfaces.is_empty()
+                && module.function_templates.is_empty()
+                && module.function_instances.is_empty());
             if !permits_admitted || !project_shape_admitted {
                 return Err(vec![graph_error(
                     "SPX-G172",
@@ -2129,8 +2127,7 @@ impl WorkspaceGraphBuild {
             profile,
             crate::project::ProjectProfile::OwnedDataApiV1
                 | crate::project::ProjectProfile::FlatOwnedRecordApiV1
-        )
-            && self.edges.iter().any(|edge| edge.kind == "type_import")
+        ) && self.edges.iter().any(|edge| edge.kind == "type_import")
         {
             return Err(vec![graph_error(
                 "SPX-G172",

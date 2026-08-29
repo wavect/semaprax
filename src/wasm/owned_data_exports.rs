@@ -19,8 +19,12 @@ pub(super) enum ResultLayout {
     Bool,
     Usize,
     Bytes,
-    OptionBytes { payload_offset: u32 },
-    ResultBytesI64 { payload_offset: u32 },
+    OptionBytes {
+        payload_offset: u32,
+    },
+    ResultBytesI64 {
+        payload_offset: u32,
+    },
     FlatRecord {
         private_size: u32,
         public_size: u32,
@@ -187,18 +191,28 @@ impl OwnedDataExportPlan {
         i32_const(&mut body, private_size as i32);
         body.push(0x49); // i32.lt_u
         body.extend([0x04, 0x40, 0x00, 0x0b]); // invariant trap
-        local_get(&mut body, result_out);
-        local_get(&mut body, old_stack);
-        i32_const(&mut body, private_size as i32);
-        body.push(0x6b);
-        body.push(0x46); // i32.eq: public out must not alias private temp
-        boundary_return(&mut body);
         local_get(&mut body, old_stack);
         i32_const(&mut body, private_size as i32);
         body.push(0x6b);
         body.push(0x22);
         write_u32(&mut body, temporary_out);
-        body.push(0x24); // global.set
+        // Authenticate complete half-open range disjointness. Equality alone
+        // is insufficient when the private aggregate and public carrier have
+        // different sizes and would admit aligned partial overlap.
+        local_get(&mut body, result_out);
+        local_get(&mut body, temporary_out);
+        i32_const(&mut body, private_size as i32);
+        body.push(0x6a);
+        body.push(0x49); // public_start < private_end
+        local_get(&mut body, temporary_out);
+        local_get(&mut body, result_out);
+        i32_const(&mut body, public_size as i32);
+        body.push(0x6a);
+        body.push(0x49); // private_start < public_end
+        body.push(0x71); // i32.and
+        boundary_return(&mut body);
+        local_get(&mut body, temporary_out);
+        body.push(0x24); // global.set private shadow stack
         write_u32(&mut body, 0);
 
         raw = 0;
@@ -305,6 +319,9 @@ impl OwnedDataExportPlan {
                 {
                     match field.kind {
                         FlatRecordFieldKind::Bool => {
+                            i64_const(&mut body, 0);
+                            local_set(&mut body, scalar);
+                            store_i64(&mut body, result_out, field.public_offset, scalar);
                             load_i32(&mut body, temporary_out, field.source_offset);
                             local_set(&mut body, charged);
                             store_i32(&mut body, result_out, field.public_offset, charged);
@@ -424,7 +441,9 @@ pub(super) fn prepare_flat_records(
                 .zip(&layout.fields)
                 .map(|(field, physical)| {
                     if field.stable_id() != &physical.field {
-                        return Err(error("flat record field order disagrees with Wasm32 layout"));
+                        return Err(error(
+                            "flat record field order disagrees with Wasm32 layout",
+                        ));
                     }
                     let kind = match field.ty() {
                         crate::project::FlatOwnedRecordFieldType::I64 => FlatRecordFieldKind::I64,
@@ -442,7 +461,12 @@ pub(super) fn prepare_flat_records(
                         AggregateFieldValueKind::Copy
                     };
                     if physical.value_kind != expected_value_kind
-                        || physical.size != if kind == FlatRecordFieldKind::Bool { 4 } else { 8 }
+                        || physical.size
+                            != if kind == FlatRecordFieldKind::Bool {
+                                4
+                            } else {
+                                8
+                            }
                     {
                         return Err(error("flat record field representation is not exact"));
                     }

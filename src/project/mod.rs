@@ -36,6 +36,17 @@ pub use execution::{
     verify_execution_envelope, ProjectExecution, ProjectExecutionOptions, ProjectExecutionOutcome,
     ProjectExecutionRole, PROJECT_EXECUTION_SCHEMA,
 };
+pub use flat_owned_record::{
+    derive_flat_owned_record_api_descriptor, render_flat_owned_record_metadata,
+    render_flat_owned_record_rust, render_flat_owned_record_rust_sdk_manifest,
+    render_flat_owned_record_typescript, replay_flat_owned_record_api_descriptor,
+    replay_flat_owned_record_metadata, replay_flat_owned_record_rust_sdk_manifest,
+    FlatOwnedRecordApiDescriptor, FlatOwnedRecordCarrierPlan, FlatOwnedRecordExport,
+    FlatOwnedRecordField, FlatOwnedRecordFieldType, FlatOwnedRecordSettlement,
+    FLAT_OWNED_RECORD_API_SCHEMA, FLAT_OWNED_RECORD_METADATA_SCHEMA,
+    FLAT_OWNED_RECORD_NPM_BUILD_SCHEMA, FLAT_OWNED_RECORD_PROJECT_SCHEMA,
+    FLAT_OWNED_RECORD_RUST_SDK_SCHEMA,
+};
 use manifest::{capacity, grammar};
 pub use manifest::{
     ProjectManifest, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES,
@@ -51,17 +62,7 @@ pub use npm::{
     ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
     PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
     PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6, PROJECT_NPM_BUILD_SCHEMA_V7,
-};
-pub use flat_owned_record::{
-    derive_flat_owned_record_api_descriptor, render_flat_owned_record_metadata,
-    render_flat_owned_record_rust, render_flat_owned_record_rust_sdk_manifest,
-    render_flat_owned_record_typescript, replay_flat_owned_record_api_descriptor,
-    replay_flat_owned_record_metadata, replay_flat_owned_record_rust_sdk_manifest,
-    FlatOwnedRecordApiDescriptor, FlatOwnedRecordCarrierPlan, FlatOwnedRecordExport,
-    FlatOwnedRecordField, FlatOwnedRecordFieldType, FlatOwnedRecordSettlement,
-    FLAT_OWNED_RECORD_API_SCHEMA, FLAT_OWNED_RECORD_METADATA_SCHEMA,
-    FLAT_OWNED_RECORD_NPM_BUILD_SCHEMA, FLAT_OWNED_RECORD_PROJECT_SCHEMA,
-    FLAT_OWNED_RECORD_RUST_SDK_SCHEMA,
+    PROJECT_NPM_BUILD_SCHEMA_V8,
 };
 
 /// Prepare the additive WP-10/WP-11 owned-data package from held HIR and the
@@ -81,9 +82,9 @@ pub use profile::{
     PROJECT_COMMAND_STDIN_READ_CAPABILITY, PROJECT_COMMAND_STDOUT_CAPABILITY,
     PROJECT_LANGUAGE_COMMAND_INPUT_V1, PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1,
     PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1, PROJECT_PROFILE_LINE_COMMAND_IO_V1,
-    PROJECT_PROFILE_OWNED_DATA_API_V1,
-    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2,
-    PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
+    PROJECT_PROFILE_OWNED_DATA_API_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
+    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
+    PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
 };
 pub use public_api::{
     derive_public_api_descriptor, replay_public_api_descriptor, PublicApiDescriptor,

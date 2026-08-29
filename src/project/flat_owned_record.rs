@@ -23,6 +23,12 @@ use super::public_api::{
 };
 use super::{PublicApiParameterType, PublicApiSubject};
 
+mod projections;
+mod settlement;
+
+pub use projections::{render_flat_owned_record_rust, render_flat_owned_record_typescript};
+pub use settlement::FlatOwnedRecordSettlement;
+
 pub const FLAT_OWNED_RECORD_PROJECT_SCHEMA: &str = "semaprax.project.v9";
 pub const FLAT_OWNED_RECORD_API_SCHEMA: &str = "semaprax.public-flat-owned-record-api.v1";
 pub const FLAT_OWNED_RECORD_METADATA_SCHEMA: &str = "semaprax.flat-owned-record-api.v1";
@@ -63,7 +69,7 @@ impl FlatOwnedRecordFieldType {
         match self {
             Self::I64 => "i64",
             Self::Bool => "bool",
-            Self::Usize => "u64",
+            Self::Usize => "usize",
             Self::OwnedBytes => "Vec<u8>",
         }
     }
@@ -144,78 +150,6 @@ pub struct FlatOwnedRecordCarrierPlan {
     pub scalar_field_ordinals: Vec<u32>,
     pub copy_before_settle: bool,
     pub publish_after_settle: bool,
-}
-
-/// Target-neutral publication sequencer. It carries no provider handle and
-/// performs no copy/drop itself; adapters advance it only after the named
-/// physical step has succeeded. A failure is sticky and publication is
-/// impossible until authentication, copy, and settlement all completed.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct FlatOwnedRecordSettlement {
-    state: SettlementState,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum SettlementState {
-    Received,
-    Authenticated,
-    Copied,
-    Settled,
-    Published,
-    Failed,
-}
-
-impl FlatOwnedRecordSettlement {
-    pub const fn received() -> Self {
-        Self {
-            state: SettlementState::Received,
-        }
-    }
-
-    pub fn authenticated(&mut self) -> Result<(), Diagnostic> {
-        self.advance(SettlementState::Received, SettlementState::Authenticated)
-    }
-
-    pub fn copy_completed(&mut self) -> Result<(), Diagnostic> {
-        self.advance(SettlementState::Authenticated, SettlementState::Copied)
-    }
-
-    pub fn settlement_completed(&mut self) -> Result<(), Diagnostic> {
-        self.advance(SettlementState::Copied, SettlementState::Settled)
-    }
-
-    pub fn publish(&mut self) -> Result<(), Diagnostic> {
-        self.advance(SettlementState::Settled, SettlementState::Published)
-    }
-
-    pub fn fail(&mut self) -> Result<(), Diagnostic> {
-        if self.state == SettlementState::Published {
-            return Err(error(
-                "flat owned-record failure cannot replace a published result",
-            ));
-        }
-        self.state = SettlementState::Failed;
-        Ok(())
-    }
-
-    pub const fn is_published(self) -> bool {
-        matches!(self.state, SettlementState::Published)
-    }
-
-    fn advance(
-        &mut self,
-        expected: SettlementState,
-        next: SettlementState,
-    ) -> Result<(), Diagnostic> {
-        if self.state != expected {
-            self.state = SettlementState::Failed;
-            return Err(error(
-                "flat owned-record publication transition is out of order",
-            ));
-        }
-        self.state = next;
-        Ok(())
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -516,87 +450,6 @@ pub fn replay_flat_owned_record_api_descriptor(
     Ok(rebuilt)
 }
 
-pub fn render_flat_owned_record_typescript(descriptor: &FlatOwnedRecordApiDescriptor) -> String {
-    let mut records = BTreeMap::<&str, &FlatOwnedRecordExport>::new();
-    for export in &descriptor.exports {
-        records.entry(&export.record_host_name).or_insert(export);
-    }
-    let mut output = String::new();
-    for (name, export) in records {
-        output.push_str("export interface ");
-        output.push_str(name);
-        output.push_str(" {\n");
-        for field in &export.fields {
-            output.push_str("  readonly ");
-            output.push_str(&field.host_name);
-            output.push_str(": ");
-            output.push_str(field.ty.typescript());
-            output.push_str(";\n");
-        }
-        output.push_str("}\n");
-    }
-    output.push_str("export interface SemapraxApi {\n");
-    for export in &descriptor.exports {
-        output.push_str("  readonly ");
-        output.push_str(&quote_json(export.typescript_name()));
-        output.push_str(": (");
-        for (index, (_, _, ty)) in export.parameters.iter().enumerate() {
-            if index != 0 {
-                output.push_str(", ");
-            }
-            output.push_str("arg");
-            output.push_str(&index.to_string());
-            output.push_str(": ");
-            output.push_str(parameter_typescript(*ty));
-        }
-        output.push_str(") => ");
-        output.push_str(&export.record_host_name);
-        output.push_str(";\n");
-    }
-    output.push_str("}\n");
-    output
-}
-
-pub fn render_flat_owned_record_rust(descriptor: &FlatOwnedRecordApiDescriptor) -> String {
-    let mut records = BTreeMap::<&str, &FlatOwnedRecordExport>::new();
-    for export in &descriptor.exports {
-        records.entry(&export.record_host_name).or_insert(export);
-    }
-    let mut output = String::from(
-        "#![forbid(unsafe_code)]\n#[derive(Clone, Debug, Eq, PartialEq)]\npub struct CallError { message: &'static str }\nimpl CallError { pub fn message(&self) -> &str { self.message } }\n",
-    );
-    for (name, export) in records {
-        output.push_str("#[derive(Clone, Debug, Eq, PartialEq)]\npub struct ");
-        output.push_str(name);
-        output.push_str(" {\n");
-        for field in &export.fields {
-            output.push_str("    pub ");
-            output.push_str(&field.host_name);
-            output.push_str(": ");
-            output.push_str(field.ty.rust());
-            output.push_str(",\n");
-        }
-        output.push_str("}\n");
-    }
-    output.push_str("pub trait SemapraxApi {\n");
-    for export in &descriptor.exports {
-        output.push_str("    fn ");
-        output.push_str(export.rust_method_name());
-        output.push_str("(&self");
-        for (index, (_, _, ty)) in export.parameters.iter().enumerate() {
-            output.push_str(", arg");
-            output.push_str(&index.to_string());
-            output.push_str(": ");
-            output.push_str(parameter_rust(*ty));
-        }
-        output.push_str(") -> Result<");
-        output.push_str(&export.record_host_name);
-        output.push_str(", CallError>;\n");
-    }
-    output.push_str("}\n");
-    output
-}
-
 /// Render the v9 npm semantic metadata. Publication code must bind these bytes
 /// into the additive v8 npm carrier; this function performs no I/O.
 pub fn render_flat_owned_record_metadata(
@@ -826,24 +679,6 @@ fn host_field_name(source_name: &str, stable_id: &str) -> String {
         source_name.to_owned()
     } else {
         stable_host_name("field", stable_id)
-    }
-}
-
-fn parameter_typescript(ty: PublicApiParameterType) -> &'static str {
-    match ty {
-        PublicApiParameterType::I64 => "bigint",
-        PublicApiParameterType::Bool => "boolean",
-        PublicApiParameterType::BorrowStr => "string",
-        PublicApiParameterType::BorrowSliceU8 => "Uint8Array",
-    }
-}
-
-fn parameter_rust(ty: PublicApiParameterType) -> &'static str {
-    match ty {
-        PublicApiParameterType::I64 => "i64",
-        PublicApiParameterType::Bool => "bool",
-        PublicApiParameterType::BorrowStr => "&str",
-        PublicApiParameterType::BorrowSliceU8 => "&[u8]",
     }
 }
 

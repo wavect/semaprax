@@ -303,7 +303,7 @@ fn build(subjects: &[String], options: &PackageLockOptions) -> Result<String, Di
         }
     }
 
-    let (order, dependents) = topological_order(&packages, &mut budget)?;
+    let order = topological_order(&packages, &mut budget)?;
     let mut depth = BTreeMap::<Coordinate, usize>::new();
     let mut closures = BTreeMap::<Coordinate, BTreeSet<String>>::new();
     for coordinate in &order {
@@ -392,7 +392,6 @@ fn build(subjects: &[String], options: &PackageLockOptions) -> Result<String, Di
         &packages,
         &identities,
         &order,
-        &dependents,
         &depth,
         &closures,
         &all_capabilities,
@@ -417,19 +416,18 @@ fn build(subjects: &[String], options: &PackageLockOptions) -> Result<String, Di
     })
 }
 
-/// Compute the deterministic logical payload of the complete builder model,
-/// including its bounded topology scratch arenas. This deliberately excludes
-/// allocator headers, capacity, pointers, and host `usize` widths: those are
-/// platform-dependent and are not part of the authenticated model. Repeated
-/// owned values are charged at every modeled location, while fixed-width
-/// logical fields use their wire widths.
+/// Compute the deterministic logical payload retained after graph derivation.
+/// This deliberately excludes allocator headers, capacity, pointers, host
+/// `usize` widths, and topology scratch dropped before this accounting point:
+/// those are either platform-dependent or no longer retained. Repeated owned
+/// values are charged at every retained location, while fixed-width logical
+/// fields use their wire widths.
 #[allow(clippy::too_many_arguments)]
 fn retained_state_bytes(
     total_subject_bytes: usize,
     packages: &BTreeMap<Coordinate, PackageSubject>,
     identities: &BTreeMap<String, String>,
     order: &[Coordinate],
-    dependents: &BTreeMap<Coordinate, Vec<Coordinate>>,
     depth: &BTreeMap<Coordinate, usize>,
     closures: &BTreeMap<Coordinate, BTreeSet<String>>,
     all_capabilities: &BTreeSet<String>,
@@ -479,20 +477,6 @@ fn retained_state_bytes(
     }
     for coordinate in order {
         account_coordinate(&mut bytes, coordinate)?;
-    }
-    // Kahn traversal owns one remaining-count coordinate and may retain one
-    // ready-frontier coordinate for every package. Charge the complete bounded
-    // arenas rather than a data-dependent peak subset.
-    for coordinate in packages.keys() {
-        account_coordinate(&mut bytes, coordinate)?;
-        account_retained(&mut bytes, LOGICAL_USIZE_BYTES)?;
-        account_coordinate(&mut bytes, coordinate)?;
-    }
-    for (coordinate, rows) in dependents {
-        account_coordinate(&mut bytes, coordinate)?;
-        for dependent in rows {
-            account_coordinate(&mut bytes, dependent)?;
-        }
     }
     for coordinate in depth.keys() {
         account_coordinate(&mut bytes, coordinate)?;
@@ -1018,7 +1002,7 @@ fn parse_provenance(value: &Value) -> Result<Vec<ProvenanceFact>, Diagnostic> {
 fn topological_order(
     packages: &BTreeMap<Coordinate, PackageSubject>,
     budget: &mut Budget,
-) -> Result<(Vec<Coordinate>, BTreeMap<Coordinate, Vec<Coordinate>>), Diagnostic> {
+) -> Result<Vec<Coordinate>, Diagnostic> {
     let mut remaining = packages
         .iter()
         .map(|(coordinate, subject)| (coordinate.clone(), subject.dependencies.len()))
@@ -1070,7 +1054,7 @@ fn topological_order(
             "package dependency graph contains a cycle".to_owned(),
         ));
     }
-    Ok((order, dependents))
+    Ok(order)
 }
 
 fn intersect_targets<'a>(

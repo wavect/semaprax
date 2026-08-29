@@ -145,8 +145,10 @@ input to reconstruction.
 Every lock carries frozen `limits` and deterministic `budget` objects. Builder
 bytes count the exact subject inputs plus every logical payload clone retained
 by the model: package map keys and records and digests, identity coordinates,
-complete topology count/frontier/dependent arenas, order and depth entries,
-per-package and aggregate capability closures, targets, roots, and edges.
+dependency-first order and depth entries, per-package and aggregate capability
+closures, targets, roots, and edges. Temporary topology count, frontier, and
+dependent arenas are dropped before this post-build retained-state accounting
+point and are not conflated with it.
 The eleven budget counters and requested ceiling are charged as fixed-width
 logical fields. Counters and booleans use eight and one bytes;
 allocator headers, spare capacity, pointers, and host `usize` widths are not

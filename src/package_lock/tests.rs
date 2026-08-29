@@ -98,24 +98,52 @@ fn frozen_limit_helpers_accept_exact_and_reject_one_more() {
         "SPX-L406"
     );
 
-    let packages = BTreeMap::new();
-    let identities = BTreeMap::new();
-    let order = Vec::new();
-    let dependents = BTreeMap::new();
-    let depth = BTreeMap::new();
-    let closures = BTreeMap::new();
-    let capabilities = BTreeSet::new();
-    let targets = Vec::new();
-    let depended_on = BTreeSet::new();
-    let roots = Vec::new();
-    let edges = Vec::new();
+    let package = Coordinate {
+        package: "p".to_owned(),
+        version: "v".to_owned(),
+    };
+    let dependency = Coordinate {
+        package: "d".to_owned(),
+        version: "1".to_owned(),
+    };
+    let subject = PackageSubject {
+        coordinate: package.clone(),
+        subject_digest: "sd".to_owned(),
+        subject_bytes: 7,
+        report_digest: "rd".to_owned(),
+        report_bytes: 11,
+        report_envelope_digest: "ed".to_owned(),
+        targets: vec![TargetFact {
+            target: "t".to_owned(),
+            available: true,
+        }],
+        dependencies: vec![dependency.clone()],
+        capabilities: vec!["c".to_owned()],
+        licenses: vec!["l".to_owned()],
+        provenance: vec![ProvenanceFact {
+            kind: "k".to_owned(),
+            value: "v".to_owned(),
+        }],
+    };
+    let packages = BTreeMap::from([(package.clone(), subject)]);
+    let identities = BTreeMap::from([("p".to_owned(), "v".to_owned())]);
+    let order = vec![package.clone()];
+    let depth = BTreeMap::from([(package.clone(), 1)]);
+    let closures = BTreeMap::from([(package.clone(), BTreeSet::from(["c".to_owned()]))]);
+    let capabilities = BTreeSet::from(["c".to_owned()]);
+    let targets = vec![TargetFact {
+        target: "t".to_owned(),
+        available: true,
+    }];
+    let depended_on = BTreeSet::from([dependency.clone()]);
+    let roots = vec![package.clone()];
+    let edges = vec![(dependency, package)];
     let account = |subject_bytes| {
         retained_state_bytes(
             subject_bytes,
             &packages,
             &identities,
             &order,
-            &dependents,
             &depth,
             &closures,
             &capabilities,
@@ -125,7 +153,10 @@ fn frozen_limit_helpers_accept_exact_and_reject_one_more() {
             &edges,
         )
     };
-    let exact_subject_bytes = MAX_BUILDER_BYTES - BUILDER_FIXED_LOGICAL_BYTES;
+    // 96 fixed bytes + 7 subject bytes + 62 bytes across every nonempty
+    // retained package/identity/order/depth/closure/target/root/edge location.
+    assert_eq!(account(7).unwrap(), 165);
+    let exact_subject_bytes = MAX_BUILDER_BYTES - (165 - 7);
     assert_eq!(account(exact_subject_bytes).unwrap(), MAX_BUILDER_BYTES);
     assert_eq!(
         account(exact_subject_bytes + 1).unwrap_err().code,

@@ -218,6 +218,14 @@ reference-interpreter entry in `src/interpreter.rs` returns a normalized
 scalar/owned/variant value and one explicit copy-out-and-settle boundary event;
 it does not grant target or publication authority.
 
+Immutable Project revisions and snapshots expose separate read-only descriptor
+accessors for the v8 owned-data, v9 flat-owned-record, and v10 owned-UTF8
+profiles. Each accessor replays the sealed Phase-A descriptor against the
+retained linked HIR and exact Project subject; Transport v5 continues to call
+only the v8-specific accessor and is not widened. CLI success labels distinguish
+the newly reachable v9 npm and Rust products without changing target authority
+or promotion state.
+
 The Rust target deliberately crosses a dependency-inverted trust boundary:
 
 ```text

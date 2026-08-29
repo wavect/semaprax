@@ -63,7 +63,6 @@ impl PreparedProjectAdmission {
         }
     }
 
-    #[cfg(test)]
     pub(super) fn flat_record_descriptor(&self) -> Option<&FlatOwnedRecordApiDescriptor> {
         match self {
             Self::FlatOwnedRecordApiV1(descriptor) => Some(descriptor.as_ref()),

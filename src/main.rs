@@ -236,38 +236,10 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                         Ok((output, snapshot.manifest().project_profile()))
                     })
                     .map_err(|errors| report(&errors, false))?;
-                    if matches!(options.target.as_str(), "native") {
-                        println!("built project native executable {}", output.0.display());
-                    } else if matches!(options.target.as_str(), "rust") {
-                        match output.1 {
-                            project::ProjectProfile::FlatOwnedRecordApiV1 => println!(
-                                "built Project v9 Native Rust flat owned-record package {}",
-                                output.0.display()
-                            ),
-                            project::ProjectProfile::OwnedUtf8ApiV1 => println!(
-                                "built Project v10 Native Rust owned-data package {}",
-                                output.0.display()
-                            ),
-                            _ => println!(
-                                "built Project v8 Native Rust owned-data package {}",
-                                output.0.display()
-                            ),
-                        }
-                    } else if matches!(options.target.as_str(), "npm") {
-                        match output.1 {
-                            project::ProjectProfile::FlatOwnedRecordApiV1 => {
-                                println!("built Project v9 npm package {}", output.0.display());
-                            }
-                            project::ProjectProfile::OwnedUtf8ApiV1 => {
-                                println!("built Project v10 npm package {}", output.0.display());
-                            }
-                            _ => {
-                                println!("built Project v2 npm package {}", output.0.display());
-                            }
-                        }
-                    } else {
-                        println!("built project web package {}", output.0.display());
-                    }
+                    println!(
+                        "{}",
+                        project_build_success(&options.target, output.1, &output.0)
+                    );
                 }
             }
             Ok(())
@@ -2199,6 +2171,58 @@ fn project_execution_held(
             Err(1)
         }
         _ => unreachable!("validated project execution command"),
+    }
+}
+
+fn project_build_success(
+    target: &str,
+    profile: project::ProjectProfile,
+    output: &std::path::Path,
+) -> String {
+    let product = match (target, profile) {
+        ("native", _) => "project native executable",
+        ("rust", project::ProjectProfile::FlatOwnedRecordApiV1) => {
+            "Project v9 Native Rust flat owned-record package"
+        }
+        ("rust", project::ProjectProfile::OwnedUtf8ApiV1) => {
+            "Project v10 Native Rust owned-data package"
+        }
+        ("rust", _) => "Project v8 Native Rust owned-data package",
+        ("npm", project::ProjectProfile::FlatOwnedRecordApiV1) => "Project v9 npm package",
+        ("npm", project::ProjectProfile::OwnedUtf8ApiV1) => "Project v10 npm package",
+        ("npm", _) => "Project v2 npm package",
+        _ => "project web package",
+    };
+    format!("built {product} {}", output.display())
+}
+
+#[cfg(test)]
+mod project_build_success_tests {
+    use super::*;
+
+    #[test]
+    fn profile_selected_success_labels_are_exact() {
+        let output = std::path::Path::new("dist");
+        assert_eq!(
+            project_build_success(
+                "rust",
+                project::ProjectProfile::FlatOwnedRecordApiV1,
+                output,
+            ),
+            "built Project v9 Native Rust flat owned-record package dist"
+        );
+        assert_eq!(
+            project_build_success("npm", project::ProjectProfile::FlatOwnedRecordApiV1, output,),
+            "built Project v9 npm package dist"
+        );
+        assert_eq!(
+            project_build_success("rust", project::ProjectProfile::OwnedDataApiV1, output),
+            "built Project v8 Native Rust owned-data package dist"
+        );
+        assert_eq!(
+            project_build_success("npm", project::ProjectProfile::OwnedUtf8ApiV1, output),
+            "built Project v10 npm package dist"
+        );
     }
 }
 

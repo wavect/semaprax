@@ -234,7 +234,7 @@ impl ProjectRevision {
         .map_err(|error| vec![error])
     }
 
-    /// Derive and independently replay the canonical Project v9 flat
+    /// Independently replay the retained canonical Project v9 flat
     /// owned-record descriptor from this immutable retained subject.
     pub fn flat_owned_record_api_descriptor(
         &self,
@@ -251,12 +251,15 @@ impl ProjectRevision {
             workspace_revision: &self.workspace_revision,
             project_graph_digest: self.semantic.graph_digest(),
         };
-        let descriptor = super::derive_flat_owned_record_api_descriptor(
-            &self.entry_program,
-            self.manifest.web_exports(),
-            subject,
-        )
-        .map_err(|error| vec![error])?;
+        let descriptor = self
+            .profile_admission
+            .flat_record_descriptor()
+            .ok_or_else(|| {
+                vec![Diagnostic::io(
+                    "SPX-J113",
+                    "retained Project v9 admission has no flat owned-record descriptor",
+                )]
+            })?;
         super::replay_flat_owned_record_api_descriptor(
             &self.entry_program,
             self.manifest.web_exports(),
@@ -267,7 +270,7 @@ impl ProjectRevision {
         .map_err(|error| vec![error])
     }
 
-    /// Derive and independently replay the canonical Project v10 owned UTF-8
+    /// Independently replay the retained canonical Project v10 owned UTF-8
     /// descriptor from this immutable retained subject.
     pub fn owned_utf8_api_descriptor(&self) -> Result<super::PublicApiDescriptor, Vec<Diagnostic>> {
         if self.manifest.project_profile() != ProjectProfile::OwnedUtf8ApiV1 {
@@ -282,12 +285,12 @@ impl ProjectRevision {
             workspace_revision: &self.workspace_revision,
             project_graph_digest: self.semantic.graph_digest(),
         };
-        let descriptor = super::derive_public_api_descriptor(
-            &self.entry_program,
-            self.manifest.web_exports(),
-            subject,
-        )
-        .map_err(|error| vec![error])?;
+        let descriptor = self.profile_admission.owned_descriptor().ok_or_else(|| {
+            vec![Diagnostic::io(
+                "SPX-J105",
+                "retained Project v10 admission has no owned UTF-8 descriptor",
+            )]
+        })?;
         super::replay_public_api_descriptor(
             &self.entry_program,
             self.manifest.web_exports(),

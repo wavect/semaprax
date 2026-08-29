@@ -304,17 +304,14 @@ expanded authored subset additionally covers an authority-neutral locator,
 unrelated load availability with one untraversed inert stage, rejection of a
 second, invalid, or non-private stage, cached stage-identity drift, exact
 special-mode rejection, and an expected-plus-one created/stored-file reread
-boundary. The shared reread case uses an unbounded synthetic reader and proves
-that only expected length plus one is consumed. These tests remain unexecuted in this
-documentation state.
+boundary. The shared reread case uses an unbounded synthetic reader and is
+authored to assert that only expected length plus one is consumed. These tests
+remain unexecuted in this documentation state.
 
-Project v9 remains an explicit evidence blocker rather than a storage
-exception: ordinary Phase-A admission rejects its
-`flat-owned-record-api.v1` profile with `SPX-W115` before a `ProjectRevision`
-can be constructed. A named regression preserves that boundary. Literal
-v1-v10 round-trip evidence therefore depends on a separate Project v9
-admission tranche; this store neither fabricates a revision nor weakens replay
-to hide the gap.
+Project v9 now completes the ordinary descriptor-replayed Phase-A admission
+route before its revision reaches this store. Literal v1-v10 round-trip
+evidence is authored against real admitted revisions; the store neither
+fabricates a revision nor weakens replay to accept an unauthenticated profile.
 
 This store does not persist HIR, graph indexes, compiler output, packages,
 artifacts, patches, templates, locks, approvals, credentials, or executable

@@ -44,11 +44,14 @@ provider, or generated package.
 
 ## Compatibility
 
-Project v1-v8 manifest bytes, target bytes, diagnostics, carriers, and
-publication behavior are unchanged. Project v10 keeps its existing descriptor
-and target behavior. The additive behavior is that a semantically valid v9
-subject reaches the existing descriptor-driven target route instead of the
-former unconditional `SPX-W115` placeholder rejection.
+Project v1-v8 manifest bytes, target bytes, carriers, and publication behavior
+are required to remain unchanged; the preservation gates are authored but
+unrun. Project v10 keeps its existing descriptor and target behavior. The
+additive behavior is that a semantically valid v9 subject reaches the existing
+descriptor-driven target route instead of the former unconditional `SPX-W115`
+placeholder rejection. The closed execution-envelope verifier's invalid-schema
+diagnostic now names v1 through v10 because those are its exact admitted
+schemas; no earlier successful envelope bytes change.
 
 The Project execution v1 envelope schema is unchanged. Its independent verifier
 admits the exact v9 and v10 Project schema strings already rendered by retained

@@ -151,6 +151,15 @@
   stage publication facts. Evidence is authored but was not run, the generated
   packages are unpublished, and neither local nor hosted promotion is claimed.
 
+- Added the authority-neutral Project Profile Admission v1 kernel and removed
+  the obsolete blanket Project-v9 Phase-A rejection. Retained Project snapshots
+  now expose separate replay-checked v9 flat-record and v10 owned-UTF8
+  descriptor accessors, while the existing v8 accessor and Transport v5 remain
+  strictly v8-only. Project-v9 npm and Rust success messages now identify the
+  selected profile truthfully. The implementation and preservation evidence
+  are authored but unrun; no package publication or profile promotion is
+  claimed.
+
 - Added the unpromoted Project v10 `owned-utf8-api.v1` implementation above
   the Project v9 physical adapters. Its distinct canonical descriptor admits
   mixed scalar, owned-byte, and length-delimited UTF-8 results. Wasm/npm copy

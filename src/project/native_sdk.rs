@@ -482,6 +482,23 @@ mod tests {
 
     static SERIAL: AtomicU64 = AtomicU64::new(0);
 
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+    #[test]
+    fn owned_profile_publication_subjects_are_exact_and_distinct() {
+        assert_eq!(
+            super::RUST_OWNED_DATA_PUBLICATION_SUBJECT,
+            "Project v8 Native Rust owned-data package"
+        );
+        assert_eq!(
+            super::RUST_FLAT_OWNED_RECORD_PUBLICATION_SUBJECT,
+            "Project v9 Native Rust flat owned-record package"
+        );
+        assert_eq!(
+            super::RUST_OWNED_UTF8_PUBLICATION_SUBJECT,
+            "Project v10 Native Rust owned-UTF8 package"
+        );
+    }
+
     struct Fixture(PathBuf);
 
     impl Drop for Fixture {

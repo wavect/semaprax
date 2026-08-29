@@ -98,7 +98,8 @@ fn range_and_append_are_explicit_hir_not_replayed_as_generic_calls() {
     let graph =
         semaprax::graph::to_json(&parse(&source, Path::new("spxgrep-lines-app.spx")).unwrap())
             .unwrap();
-    assert!(graph.contains("\"schema\":\"semaprax.graph.v20\""));
+    assert!(graph.contains("\"schema\":\"semaprax.graph.v23\""));
+    assert!(graph.contains("\"kind\":\"loan_plan\",\"schema\":\"semaprax.loan-plan.v1\""));
     assert!(graph.contains("\"kind\":\"byte_range\""));
     assert!(graph.contains("\"operation\":\"core.host.stdout-append\""));
     assert!(program

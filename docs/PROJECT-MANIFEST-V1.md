@@ -233,9 +233,12 @@ inventory. Compiler-owned fallible `byte_range` and cumulative
 `stdout_append`/`stderr_append` share an exact 65,536-byte output envelope and
 publish both semantic transcripts only with a settled terminal result.
 
-Range meaning selects Graph v20 and CleanupPlan v4. Core-Wasm uses private
-invocation-local descriptors bound to an exact root token, offset, and length;
-they are neither public pointers nor owned tokens. The npm artifact is bound by
+Range meaning selects Graph v20 when no later schema is required, and keeps
+CleanupPlan v4. The committed line-filter's nonempty Shared Loan Plan selects
+Graph v23 while retaining its exact byte-range and command-I/O facts.
+Core-Wasm uses private invocation-local descriptors bound to an exact root
+token, offset, and length; they are neither public pointers nor owned tokens.
+The npm artifact is bound by
 independently replayed `semaprax.project-npm-build.v6`. Cross-module imports may
 add only `borrow Slice<u8>` parameters to an otherwise admitted monomorphic
 signature whose result is a non-borrowing scalar.

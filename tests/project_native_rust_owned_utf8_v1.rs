@@ -4,6 +4,19 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
+fn configured_tool(variable: &str, candidates: &[&str]) -> PathBuf {
+    std::env::var_os(variable)
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute() && path.is_file())
+        .or_else(|| {
+            candidates
+                .iter()
+                .map(PathBuf::from)
+                .find(|path| path.is_file())
+        })
+        .unwrap_or_else(|| panic!("{variable} must name an installed absolute tool"))
+}
+
 struct Fixture(PathBuf);
 
 impl Drop for Fixture {
@@ -21,12 +34,17 @@ fn fixture() -> Fixture {
     std::fs::create_dir_all(root.join("src")).unwrap();
     std::fs::write(
         root.join("semaprax.toml"),
-        "schema = \"semaprax.project.v10\"\nname = \"utf8-route\"\nversion = \"1.0.0\"\nprofile = \"owned-utf8-api.v1\"\nentry = \"utf8.app\"\nsources = [\"src/app.spx\"]\nweb_exports = [\"utf8.count\", \"utf8.greeting\"]\ntests = [\"utf8.tests\"]\n",
+        "schema = \"semaprax.project.v10\"\nname = \"utf8-route\"\nversion = \"1.0.0\"\nprofile = \"owned-utf8-api.v1\"\nentry = \"utf8.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"utf8.count\", \"utf8.greeting\"]\ntests = [\"utf8.tests\"]\n",
     )
     .unwrap();
     std::fs::write(
         root.join("src/app.spx"),
-        "module utf8.app;\n@id(\"utf8.count\") fn count() -> i64 { 7 }\n@id(\"utf8.greeting\") fn greeting() -> string { \"hello\\0世界\" }\n@id(\"utf8.tests\") fn tests() -> i64 { 0 }\n@id(\"utf8.app.main\") fn main() -> i64 { 0 }\n",
+        "module utf8.app;\n\n@id(\"utf8.count\")\nfn count() -> i64\n{\n    7\n}\n\n@id(\"utf8.greeting\")\nfn greeting() -> string\n{\n    \"hello\\u{0}世界\"\n}\n\n@id(\"utf8.app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("src/tests.spx"),
+        "module utf8.tests;\n\n@id(\"utf8.tests.main\")\nfn main() -> i64\n{\n    0\n}\n",
     )
     .unwrap();
     Fixture(root.canonicalize().unwrap())
@@ -36,6 +54,12 @@ fn fixture() -> Fixture {
 fn project_v10_rust_route_emits_a_distinct_mixed_safe_string_package() {
     let fixture = fixture();
     let output = fixture.0.join("rust");
+    let clang = configured_tool("CLANG", &["/usr/bin/clang"]);
+    let archiver = if cfg!(target_os = "macos") {
+        configured_tool("SEMAPRAX_ARCHIVER", &["/usr/bin/libtool"])
+    } else {
+        configured_tool("SEMAPRAX_ARCHIVER", &["/usr/bin/ar", "/bin/ar"])
+    };
     let built = Command::new(env!("CARGO_BIN_EXE_semaprax"))
         .args([
             "build",
@@ -47,6 +71,8 @@ fn project_v10_rust_route_emits_a_distinct_mixed_safe_string_package() {
         ])
         .arg(&output)
         .current_dir(&fixture.0)
+        .env("CLANG", clang)
+        .env("SEMAPRAX_ARCHIVER", archiver)
         .output()
         .unwrap();
     assert!(
@@ -95,12 +121,12 @@ fn rust_profile_rejection_precedes_explicit_parent_creation() {
     .unwrap();
     std::fs::write(
         root.join("src/app.spx"),
-        "module legacy.app;\n@id(\"legacy.add\") fn add(left: i64, right: i64) -> i64 { left + right }\n@id(\"legacy.app.main\") fn main() -> i64 { add(19, 23) }\n",
+        "module legacy.app;\n\n@id(\"legacy.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n\n@id(\"legacy.app.main\")\nfn main() -> i64\n{\n    add(19, 23)\n}\n",
     )
     .unwrap();
     std::fs::write(
         root.join("src/tests.spx"),
-        "module legacy.tests;\n@id(\"legacy.tests.main\") fn main() -> i64 { 0 }\n",
+        "module legacy.tests;\n\n@id(\"legacy.tests.main\")\nfn main() -> i64\n{\n    0\n}\n",
     )
     .unwrap();
     let fixture = Fixture(root.canonicalize().unwrap());

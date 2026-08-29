@@ -31,6 +31,9 @@ impl Session {
             let canonical = String::from_utf8(descriptor.canonical_bytes()).map_err(|_| {
                 super::parameter_diagnostic("canonical public API descriptor is not UTF-8")
             })?;
+            let canonical = canonical.strip_suffix('\n').ok_or_else(|| {
+                super::parameter_diagnostic("canonical public API descriptor lacks its terminator")
+            })?;
             Ok(format!(
                 "{{\"descriptor\":{canonical},\"descriptor_digest\":{}}}",
                 crate::diagnostic::quote_json(&descriptor.digest()),
@@ -58,6 +61,9 @@ impl Session {
             let descriptor = snapshot.public_api_descriptor()?;
             let canonical = String::from_utf8(descriptor.canonical_bytes()).map_err(|_| {
                 super::parameter_diagnostic("canonical public API descriptor is not UTF-8")
+            })?;
+            let canonical = canonical.strip_suffix('\n').ok_or_else(|| {
+                super::parameter_diagnostic("canonical public API descriptor lacks its terminator")
             })?;
             let response_without_carrier = codec::bounded_success_response(
                 id,

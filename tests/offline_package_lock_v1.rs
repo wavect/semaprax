@@ -48,7 +48,7 @@ fn report(module: &str) -> String {
     std::fs::write(
         &path,
         format!(
-            "module {module};\n\n@id({})\nfn value() -> i64 {{ 1 }}\n",
+            "module {module};\n\n@id({})\nfn main() -> i64 {{ 1 }}\n",
             quote_json(&stable_id)
         ),
     )

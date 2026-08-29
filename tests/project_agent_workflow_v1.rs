@@ -66,12 +66,12 @@ impl Fixture {
         .unwrap();
         std::fs::write(
             root.join("src/app.spx"),
-            "module agent_owned.app;\n\n@id(\"agent-owned.payload\")\nfn payload(input: borrow Slice<u8>) -> Bytes { bytes_copy(input) }\n\n@id(\"agent-owned.app.main\")\nfn main() -> i64 { 0 }\n",
+            "module agent_owned.app;\n\n@id(\"agent-owned.payload\")\nfn payload(input: borrow Slice<u8>) -> Bytes\n{\n    bytes_copy(input)\n}\n\n@id(\"agent-owned.app.main\")\nfn main() -> i64\n{\n    0\n}\n",
         )
         .unwrap();
         std::fs::write(
             root.join("src/tests.spx"),
-            "module agent_owned.tests;\n\n@id(\"agent-owned.tests.main\")\nfn main() -> i64 { 0 }\n",
+            "module agent_owned.tests;\n\n@id(\"agent-owned.tests.main\")\nfn main() -> i64\n{\n    0\n}\n",
         )
         .unwrap();
         Self(root.canonicalize().unwrap())

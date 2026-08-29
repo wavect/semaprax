@@ -1,6 +1,6 @@
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
+use std::process::{Child, ChildStderr, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::project::{self, ProjectNpmBuild};
@@ -28,12 +28,12 @@ impl Fixture {
         .unwrap();
         std::fs::write(
             root.join("src/app.spx"),
-            "module agent_owned.app;\n\n@id(\"agent-owned.payload\")\nfn payload(input: borrow Slice<u8>) -> Bytes { bytes_copy(input) }\n\n@id(\"agent-owned.app.main\")\nfn main() -> i64 { 0 }\n",
+            "module agent_owned.app;\n\n@id(\"agent-owned.payload\")\nfn payload(input: borrow Slice<u8>) -> Bytes\n{\n    bytes_copy(input)\n}\n\n@id(\"agent-owned.app.main\")\nfn main() -> i64\n{\n    0\n}\n",
         )
         .unwrap();
         std::fs::write(
             root.join("src/tests.spx"),
-            "module agent_owned.tests;\n\n@id(\"agent-owned.tests.main\")\nfn main() -> i64 { 0 }\n",
+            "module agent_owned.tests;\n\n@id(\"agent-owned.tests.main\")\nfn main() -> i64\n{\n    0\n}\n",
         )
         .unwrap();
         Self(root.canonicalize().unwrap())
@@ -57,12 +57,12 @@ impl Fixture {
         .unwrap();
         std::fs::write(
             root.join("src/app.spx"),
-            "module legacy.app;\n\n@id(\"legacy.value\")\nfn value() -> i64 { 1 }\n\n@id(\"legacy.app.main\")\nfn main() -> i64 { 0 }\n",
+            "module legacy.app;\n\n@id(\"legacy.value\")\nfn value() -> i64\n{\n    1\n}\n\n@id(\"legacy.app.main\")\nfn main() -> i64\n{\n    0\n}\n",
         )
         .unwrap();
         std::fs::write(
             root.join("src/tests.spx"),
-            "module legacy.tests;\n\n@id(\"legacy.tests.main\")\nfn main() -> i64 { 0 }\n",
+            "module legacy.tests;\n\n@id(\"legacy.tests.main\")\nfn main() -> i64\n{\n    0\n}\n",
         )
         .unwrap();
         Self(root.canonicalize().unwrap())
@@ -102,6 +102,7 @@ struct Daemon {
     child: Child,
     input: ChildStdin,
     output: BufReader<ChildStdout>,
+    error: BufReader<ChildStderr>,
 }
 
 impl Daemon {
@@ -125,6 +126,7 @@ impl Daemon {
         Self {
             input: child.stdin.take().unwrap(),
             output: BufReader::new(child.stdout.take().unwrap()),
+            error: BufReader::new(child.stderr.take().unwrap()),
             child,
         }
     }
@@ -136,7 +138,13 @@ impl Daemon {
         self.input.write_all(b"\n").unwrap();
         self.input.flush().unwrap();
         let mut line = String::new();
-        self.output.read_line(&mut line).unwrap();
+        let bytes = self.output.read_line(&mut line).unwrap();
+        if bytes == 0 {
+            let status = self.child.wait().unwrap();
+            let mut error = String::new();
+            self.error.read_to_string(&mut error).unwrap();
+            panic!("daemon exited before a response: status={status} stderr={error}");
+        }
         assert!(line.ends_with('\n'));
         line.pop();
         assert!(!line.bytes().any(|byte| matches!(byte, b'\n' | b'\r')));
@@ -398,9 +406,11 @@ fn v5_rejects_decoys_foreign_remints_and_legacy_profile_confusion() {
 fn v5_descriptor_response_uses_the_exact_framed_capacity_boundary() {
     let fixture = Fixture::new("response-boundary");
     let descriptor = direct_descriptor(&fixture);
+    let canonical = String::from_utf8(descriptor.canonical_bytes()).unwrap();
+    let canonical = canonical.strip_suffix('\n').unwrap();
     let result = format!(
         "{{\"descriptor\":{},\"descriptor_digest\":{}}}",
-        String::from_utf8(descriptor.canonical_bytes()).unwrap(),
+        canonical,
         serde_json::to_string(&descriptor.digest()).unwrap(),
     );
     let exact_response = format!("{{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{result}}}").len() + 1;
@@ -424,7 +434,7 @@ fn v5_descriptor_response_uses_the_exact_framed_capacity_boundary() {
         "jsonrpc":"2.0","id":2,"method":"project/api-describe",
         "params":subject(&project_revision, &workspace_revision)
     }));
-    assert_eq!(raw.as_bytes(), b"{\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32001,\"message\":\"response exceeds configured byte limit\"}}");
+    assert_eq!(raw.as_bytes(), b"{\"jsonrpc\":\"2.0\",\"id\":2,\"error\":{\"code\":-32001,\"message\":\"response exceeds configured byte limit\"}}");
     drop(short.input);
     assert!(short.child.wait().unwrap().success());
 }

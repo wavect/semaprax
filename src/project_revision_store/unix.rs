@@ -40,6 +40,33 @@ struct CreatedEntry {
     directories: Vec<OwnedFd>,
 }
 
+struct AdvisoryLock {
+    file: std::fs::File,
+    held: bool,
+}
+
+impl AdvisoryLock {
+    fn new(file: std::fs::File) -> Self {
+        Self { file, held: true }
+    }
+
+    fn release(mut self) -> Result<(), std::io::Error> {
+        let result = fs2::FileExt::unlock(&self.file);
+        if result.is_ok() {
+            self.held = false;
+        }
+        result
+    }
+}
+
+impl Drop for AdvisoryLock {
+    fn drop(&mut self) {
+        if self.held {
+            let _ = fs2::FileExt::unlock(&self.file);
+        }
+    }
+}
+
 pub(super) fn persist(root: &Path, prepared: &PreparedEntry) -> Result<(), Vec<Diagnostic>> {
     persist_with_hook(root, prepared, |_, _| Ok(()))
 }
@@ -60,12 +87,13 @@ pub(super) fn persist_with_hook(
     let root = open_root(root_path)?;
     let root_identity = identity(&root)?;
     require_root_path_identity(root_path, root_identity)?;
-    let lock = std::fs::File::from(
+    let lock_file = std::fs::File::from(
         rustix::io::dup(&root)
             .map_err(|error| io(format!("cannot duplicate held store root: {error}")))?,
     );
-    fs2::FileExt::try_lock_exclusive(&lock)
+    fs2::FileExt::try_lock_exclusive(&lock_file)
         .map_err(|error| authentication(format!("Project Revision Store root is busy: {error}")))?;
+    let lock = AdvisoryLock::new(lock_file);
     let initial = root_inventory(&root)?;
     require_publication_capacity(initial.names.len())?;
     let destination = prepared.entry_hex();
@@ -226,7 +254,7 @@ pub(super) fn persist_with_hook(
     require_root_inventory(&root, &published_inventory, &initial.retained).map_err(|_| {
         post_pivot("Project Revision Store root inventory changed after publication")
     })?;
-    fs2::FileExt::unlock(&lock).map_err(|error| {
+    lock.release().map_err(|error| {
         post_pivot(format!(
             "cannot release Project Revision Store root: {error}"
         ))
@@ -254,12 +282,13 @@ pub(super) fn load(root_path: &Path, entry_digest: &str) -> Result<StoredEntry, 
     let root = open_root(root_path)?;
     let root_identity = identity(&root)?;
     require_root_path_identity(root_path, root_identity)?;
-    let lock = std::fs::File::from(
+    let lock_file = std::fs::File::from(
         rustix::io::dup(&root)
             .map_err(|error| io(format!("cannot duplicate held store root: {error}")))?,
     );
-    fs2::FileExt::try_lock_shared(&lock)
+    fs2::FileExt::try_lock_shared(&lock_file)
         .map_err(|error| authentication(format!("Project Revision Store root is busy: {error}")))?;
+    let lock = AdvisoryLock::new(lock_file);
     let inventory = root_inventory(&root)?;
     let entry_hex = entry_digest
         .strip_prefix("sha256:")
@@ -282,7 +311,7 @@ pub(super) fn load(root_path: &Path, entry_digest: &str) -> Result<StoredEntry, 
         "store entry changed while loading",
     )?;
     require_root_inventory(&root, &inventory.names, &inventory.retained)?;
-    fs2::FileExt::unlock(&lock).map_err(|error| {
+    lock.release().map_err(|error| {
         io(format!(
             "cannot release Project Revision Store root: {error}"
         ))

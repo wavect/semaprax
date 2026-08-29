@@ -813,6 +813,93 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
     }
 }
 
+fn expression_uses_str_ops(expression: &ResolvedExpr) -> bool {
+    match &expression.kind {
+        ResolvedExprKind::Call { callee, args, .. } => {
+            crate::str_ops::by_id(callee.as_str()).is_some_and(|op| {
+                matches!(
+                    op,
+                    crate::str_ops::StrOp::StartsWith | crate::str_ops::StrOp::Contains
+                )
+            }) || args.iter().any(expression_uses_str_ops)
+        }
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            call.args.iter().any(expression_uses_str_ops)
+        }
+        ResolvedExprKind::HostCommandCall(call) => call.args.iter().any(expression_uses_str_ops),
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => {
+            expression_uses_str_ops(source)
+                || expression_uses_str_ops(start)
+                || expression_uses_str_ops(end)
+        }
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::TryOption { operand: value, .. }
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => expression_uses_str_ops(value),
+        ResolvedExprKind::Binary { left, right, .. } => {
+            expression_uses_str_ops(left) || expression_uses_str_ops(right)
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            statements.iter().any(|statement| {
+                (0..statement.child_count())
+                    .any(|index| statement.child(index).is_some_and(expression_uses_str_ops))
+            }) || expression_uses_str_ops(tail)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            expression_uses_str_ops(condition)
+                || expression_uses_str_ops(then_branch)
+                || expression_uses_str_ops(else_branch)
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => fields
+            .iter()
+            .any(|field| expression_uses_str_ops(&field.value)),
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => {
+            expression_uses_str_ops(scrutinee)
+                || arms.iter().any(|arm| {
+                    arm.guard.as_deref().is_some_and(expression_uses_str_ops)
+                        || expression_uses_str_ops(&arm.value)
+                })
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            expression_uses_str_ops(base)
+                || fields
+                    .iter()
+                    .any(|field| expression_uses_str_ops(&field.value))
+        }
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
+        | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::String(_)
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => false,
+    }
+}
+
+fn program_uses_str_ops(program: &ResolvedProgram) -> bool {
+    program.functions.iter().any(|function| {
+        expression_uses_str_ops(&function.body)
+            || function.requires.iter().any(expression_uses_str_ops)
+            || function.ensures.iter().any(expression_uses_str_ops)
+    })
+}
+
 fn error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-W110", message)
 }
@@ -1266,6 +1353,8 @@ fn emit_byte_exports_profile(
     let has_owned_utf8 = owned_plans
         .iter()
         .any(|plan| plan.result == super::owned_data_exports::ResultLayout::Utf8);
+    let uses_str_ops = program_uses_str_ops(program);
+    let text_helper_count = if uses_str_ops { 2_u32 } else { 0 };
     let mut owned_utf8_literals = OwnedUtf8Literals::default();
     if (plans.is_empty() && command_io.is_none() && owned_plans.is_empty())
         || (!super::program_uses_byte_data(program) && owned_plans.is_empty())
@@ -1363,6 +1452,16 @@ fn emit_byte_exports_profile(
         &mut types,
         &mut type_indexes,
     );
+    let text_helper_type = uses_str_ops.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64],
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
 
     let mut function_types = Vec::with_capacity(executable_functions.len());
     for (function, _) in &executable_functions {
@@ -1470,20 +1569,30 @@ fn emit_byte_exports_profile(
         )
     });
 
-    let function_indexes = executable_functions
+    let import_count = SCALAR_IMPORT_COUNT
+        + BYTE_IMPORT_COUNT
+        + command_import_count
+        + u32::from(owned_utf8_validate.is_some());
+    let mut function_indexes = executable_functions
         .iter()
         .enumerate()
         .map(|(index, (_, execution))| {
             (
                 execution.clone(),
-                SCALAR_IMPORT_COUNT
-                    + BYTE_IMPORT_COUNT
-                    + command_import_count
-                    + u32::from(owned_utf8_validate.is_some())
-                    + u32::try_from(index).unwrap_or(u32::MAX),
+                import_count + text_helper_count + u32::try_from(index).unwrap_or(u32::MAX),
             )
         })
         .collect::<HashMap<_, _>>();
+    if uses_str_ops {
+        function_indexes.insert(
+            FunctionExecutionId::Monomorphic(DeclarationId::new(crate::str_ops::STARTS_WITH_ID)),
+            import_count,
+        );
+        function_indexes.insert(
+            FunctionExecutionId::Monomorphic(DeclarationId::new(crate::str_ops::CONTAINS_ID)),
+            import_count + 1,
+        );
+    }
 
     let mut module = b"\0asm\x01\0\0\0".to_vec();
     let mut type_section = Vec::new();
@@ -1496,13 +1605,7 @@ fn emit_byte_exports_profile(
     section(&mut module, 1, type_section);
 
     let mut imports = Vec::new();
-    write_u32(
-        &mut imports,
-        SCALAR_IMPORT_COUNT
-            + BYTE_IMPORT_COUNT
-            + command_import_count
-            + u32::from(owned_utf8_validate.is_some()),
-    );
+    write_u32(&mut imports, import_count);
     for name in ["spx_add", "spx_sub", "spx_mul", "spx_div", "spx_rem"] {
         function_import(&mut imports, "env", name, binary_checked);
     }
@@ -1529,11 +1632,15 @@ fn emit_byte_exports_profile(
     section(&mut module, 2, imports);
 
     let mut functions = Vec::new();
-    write_u32(
-        &mut functions,
-        u32::try_from(function_types.len() + wrapper_types.len())
-            .map_err(|_| error("too many Public Useful Data functions"))?,
-    );
+    let function_count = u32::try_from(function_types.len() + wrapper_types.len())
+        .map_err(|_| error("too many Public Useful Data functions"))?
+        .checked_add(text_helper_count)
+        .ok_or_else(|| error("too many Public Useful Data functions"))?;
+    write_u32(&mut functions, function_count);
+    if let Some(text_helper_type) = text_helper_type {
+        write_u32(&mut functions, text_helper_type);
+        write_u32(&mut functions, text_helper_type);
+    }
     for type_index in function_types.into_iter().chain(wrapper_types) {
         write_u32(&mut functions, type_index);
     }
@@ -1541,7 +1648,7 @@ fn emit_byte_exports_profile(
 
     let mut memory = Vec::new();
     write_u32(&mut memory, 1);
-    let memory_pages = if has_owned_utf8 {
+    let base_memory_pages = if has_owned_utf8 {
         4
     } else if command_io.is_some() {
         6
@@ -1550,6 +1657,7 @@ fn emit_byte_exports_profile(
     } else {
         super::data_exports::FIXED_MEMORY_PAGES
     };
+    let memory_pages = base_memory_pages;
     memory.extend([0x01, memory_pages, memory_pages]);
     section(&mut module, 5, memory);
 
@@ -1641,10 +1749,8 @@ fn emit_byte_exports_profile(
             super::line_command_io::append_export(&mut exports);
         }
     }
-    let wrapper_base = SCALAR_IMPORT_COUNT
-        .checked_add(BYTE_IMPORT_COUNT)
-        .and_then(|value| value.checked_add(command_import_count))
-        .and_then(|value| value.checked_add(u32::from(owned_utf8_validate.is_some())))
+    let wrapper_base = import_count
+        .checked_add(text_helper_count)
         .and_then(|value| value.checked_add(u32::try_from(executable_functions.len()).ok()?))
         .ok_or_else(|| error("Public Useful Data wrapper index overflows u32"))?;
     for (ordinal, plan) in plans.iter().enumerate() {
@@ -1682,16 +1788,26 @@ fn emit_byte_exports_profile(
     section(&mut module, 7, exports);
 
     let mut code = Vec::new();
-    write_u32(
-        &mut code,
-        u32::try_from(
-            executable_functions.len()
-                + plans.len()
-                + owned_plans.len()
-                + usize::from(command_io.is_some()),
-        )
-        .map_err(|_| error("too many Public Useful Data bodies"))?,
-    );
+    let body_count = u32::try_from(
+        executable_functions.len()
+            + plans.len()
+            + owned_plans.len()
+            + usize::from(command_io.is_some()),
+    )
+    .map_err(|_| error("too many Public Useful Data bodies"))?
+    .checked_add(text_helper_count)
+    .ok_or_else(|| error("too many Public Useful Data bodies"))?;
+    write_u32(&mut code, body_count);
+    if uses_str_ops {
+        let mut starts_with = Vec::new();
+        super::text_exports::emit_starts_with_body(&mut starts_with);
+        write_u32(&mut code, starts_with.len() as u32);
+        code.extend(starts_with);
+        let mut contains = Vec::new();
+        super::text_exports::emit_contains_bounded_scan_body(&mut contains);
+        write_u32(&mut code, contains.len() as u32);
+        code.extend(contains);
+    }
     for (function, _) in &executable_functions {
         let body = emit_function(
             program,
@@ -5194,6 +5310,9 @@ impl Emitter<'_> {
             if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
                 return self.emit_byte_op(expr, op, args);
             }
+            if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
+                return self.emit_str_op(expr, op, args);
+            }
         }
         let target = self
             .program
@@ -5442,6 +5561,79 @@ impl Emitter<'_> {
                 "byte range must lower from authenticated ByteRange HIR",
             )),
         }
+    }
+
+    fn emit_str_op(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: crate::str_ops::StrOp,
+        args: &[ResolvedExpr],
+    ) -> Result<Value, Diagnostic> {
+        if args.len() != op.arity() {
+            return Err(error(
+                "borrowed text operation arity disagrees with resolved HIR",
+            ));
+        }
+        let mut values = Vec::with_capacity(args.len());
+        for (argument, expected) in args.iter().zip(op.param_types()) {
+            let value = self.emit_expr(argument)?;
+            require_type(
+                value_type(&value),
+                expected,
+                "borrowed text operation argument",
+            )?;
+            values.push(value);
+        }
+        self.apply_call_commit(&expr.id)?;
+        require_type(
+            &expr.ty,
+            &op.return_type(),
+            "borrowed text operation result",
+        )?;
+        let local = self.plan.expr_scalar(expr)?;
+        match op {
+            crate::str_ops::StrOp::LenBytes | crate::str_ops::StrOp::IsEmpty => {
+                self.get_scalar(&values[0]);
+                self.output.push(0xa7); // i32.wrap_i64: aggregate carrier length
+                if op == crate::str_ops::StrOp::IsEmpty {
+                    self.output.push(0x45); // i32.eqz
+                } else {
+                    self.output.push(0xad); // i64.extend_i32_u
+                }
+            }
+            crate::str_ops::StrOp::StartsWith | crate::str_ops::StrOp::Contains => {
+                self.emit_text_helper_view(&values[0]);
+                self.emit_text_helper_view(&values[1]);
+                let execution = FunctionExecutionId::Monomorphic(DeclarationId::new(op.id()));
+                let helper = self
+                    .function_indexes
+                    .get(&execution)
+                    .copied()
+                    .ok_or_else(|| error("borrowed text helper is not indexed"))?;
+                self.output.push(0x10);
+                write_u32(self.output, helper);
+            }
+        }
+        self.output.push(0x21);
+        write_u32(self.output, local);
+        Ok(Value::Scalar {
+            local,
+            ty: expr.ty.clone(),
+        })
+    }
+
+    fn emit_text_helper_view(&mut self, value: &Value) {
+        // Aggregate byte carriers encode pointer-high/length-low, while the
+        // shared text helpers use pointer-low/length-high.
+        self.get_scalar(value);
+        self.output.push(0x42);
+        write_i64(self.output, 32);
+        self.output.push(0x88); // pointer into the low half
+        self.get_scalar(value);
+        self.output.push(0x42);
+        write_i64(self.output, 32);
+        self.output.push(0x86); // length into the high half
+        self.output.push(0x84); // i64.or
     }
 
     fn emit_array_literal(

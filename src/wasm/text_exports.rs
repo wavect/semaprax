@@ -698,6 +698,10 @@ pub(super) fn emit_starts_with_body(body: &mut impl ByteOutput) {
 
 /// Internal packed-view contains helper: `(i64 value, i64 needle) -> i32`.
 pub(super) fn emit_contains_body(body: &mut impl ByteOutput) {
+    emit_contains_body_at(body, KMP_TABLE_BASE);
+}
+
+pub(super) fn emit_contains_body_at(body: &mut impl ByteOutput, kmp_table_base: u32) {
     // value_ptr, value_len, needle_ptr, needle_len, matched, index, table_value
     write_u32(body, 1);
     write_u32(body, 7);
@@ -718,7 +722,7 @@ pub(super) fn emit_contains_body(body: &mut impl ByteOutput) {
     local_set(body, 6); // matched
     i32_const(body, 0);
     local_set(body, 7); // index-zero sentinel
-    store_kmp_prefix(body, 7, 6);
+    store_kmp_prefix(body, 7, 6, kmp_table_base);
     i32_const(body, 1);
     local_set(body, 7); // index
     body.extend_bytes(&[0x02, 0x40, 0x03, 0x40]);
@@ -726,14 +730,14 @@ pub(super) fn emit_contains_body(body: &mut impl ByteOutput) {
     local_get(body, 5);
     body.push(0x4f);
     body.extend_bytes(&[0x0d, 0x01]);
-    emit_kmp_fallback(body, 4, 7, 6);
+    emit_kmp_fallback(body, 4, 7, 6, kmp_table_base);
     load8_indexed(body, 4, 6);
     load8_indexed(body, 4, 7);
     body.push(0x46);
     body.extend_bytes(&[0x04, 0x40]);
     increment_local(body, 6);
     body.push(0x0b);
-    store_kmp_prefix(body, 7, 6);
+    store_kmp_prefix(body, 7, 6, kmp_table_base);
     increment_local(body, 7);
     body.extend_bytes(&[0x0c, 0x00, 0x0b, 0x0b]);
 
@@ -748,7 +752,7 @@ pub(super) fn emit_contains_body(body: &mut impl ByteOutput) {
     local_get(body, 3);
     body.push(0x4f);
     body.extend_bytes(&[0x0d, 0x01]);
-    emit_kmp_fallback(body, 2, 7, 6);
+    emit_kmp_fallback(body, 2, 7, 6, kmp_table_base);
     load8_indexed(body, 4, 6);
     load8_indexed(body, 2, 7);
     body.push(0x46);
@@ -765,7 +769,63 @@ pub(super) fn emit_contains_body(body: &mut impl ByteOutput) {
     body.push(0x0b);
 }
 
-fn emit_kmp_fallback(body: &mut impl ByteOutput, haystack_ptr: u32, index: u32, matched: u32) {
+/// Internal packed-view contains helper for mixed aggregate/data modules.
+/// Those modules reserve their fixed memory for byte arenas and owned UTF-8
+/// literals, so this bounded scan uses locals only and preserves that ABI.
+pub(super) fn emit_contains_bounded_scan_body(body: &mut impl ByteOutput) {
+    // value_ptr, value_len, needle_ptr, needle_len, start, offset
+    write_u32(body, 1);
+    write_u32(body, 6);
+    body.push(I32);
+    unpack_view(body, 0, 2, 3);
+    unpack_view(body, 1, 4, 5);
+    local_get(body, 5);
+    body.push(0x45); // empty needle
+    if_return_i32(body, 1);
+    local_get(body, 5);
+    local_get(body, 3);
+    body.push(0x4b); // needle_len > value_len
+    if_return_i32(body, 0);
+    i32_const(body, 0);
+    local_set(body, 6);
+    body.extend_bytes(&[0x02, 0x40, 0x03, 0x40]); // outer block + loop
+    local_get(body, 6);
+    local_get(body, 5);
+    body.push(0x6a); // start + needle_len
+    local_get(body, 3);
+    body.push(0x4b); // beyond value_len
+    body.extend_bytes(&[0x0d, 0x01]); // break outer block
+    i32_const(body, 0);
+    local_set(body, 7);
+    body.extend_bytes(&[0x02, 0x40, 0x03, 0x40]); // inner block + loop
+    local_get(body, 7);
+    local_get(body, 5);
+    body.push(0x4f); // offset >= needle_len
+    if_return_i32(body, 1);
+    local_get(body, 2);
+    local_get(body, 6);
+    body.push(0x6a);
+    local_get(body, 7);
+    body.push(0x6a);
+    body.extend_bytes(&[0x2d, 0x00, 0x00]); // i32.load8_u
+    load8_indexed(body, 4, 7);
+    body.push(0x47); // ne
+    body.extend_bytes(&[0x0d, 0x01]); // break inner block
+    increment_local(body, 7);
+    body.extend_bytes(&[0x0c, 0x00, 0x0b, 0x0b]);
+    increment_local(body, 6);
+    body.extend_bytes(&[0x0c, 0x00, 0x0b, 0x0b]);
+    i32_const(body, 0);
+    body.push(0x0b);
+}
+
+fn emit_kmp_fallback(
+    body: &mut impl ByteOutput,
+    haystack_ptr: u32,
+    index: u32,
+    matched: u32,
+    kmp_table_base: u32,
+) {
     body.extend_bytes(&[0x02, 0x40, 0x03, 0x40]);
     local_get(body, matched);
     body.push(0x45);
@@ -774,13 +834,13 @@ fn emit_kmp_fallback(body: &mut impl ByteOutput, haystack_ptr: u32, index: u32, 
     load8_indexed(body, haystack_ptr, index);
     body.push(0x46);
     body.extend_bytes(&[0x0d, 0x01]);
-    load_kmp_prefix_before(body, matched);
+    load_kmp_prefix_before(body, matched, kmp_table_base);
     local_set(body, matched);
     body.extend_bytes(&[0x0c, 0x00, 0x0b, 0x0b]);
 }
 
-fn store_kmp_prefix(body: &mut impl ByteOutput, index: u32, value: u32) {
-    i32_const(body, KMP_TABLE_BASE as i32);
+fn store_kmp_prefix(body: &mut impl ByteOutput, index: u32, value: u32, kmp_table_base: u32) {
+    i32_const(body, kmp_table_base as i32);
     local_get(body, index);
     i32_const(body, 1);
     body.push(0x74); // shl => u16 byte offset
@@ -789,8 +849,8 @@ fn store_kmp_prefix(body: &mut impl ByteOutput, index: u32, value: u32) {
     body.extend_bytes(&[0x3b, 0x01, 0x00]); // i32.store16 align=2 offset=0
 }
 
-fn load_kmp_prefix_before(body: &mut impl ByteOutput, matched: u32) {
-    i32_const(body, KMP_TABLE_BASE as i32 - 2);
+fn load_kmp_prefix_before(body: &mut impl ByteOutput, matched: u32, kmp_table_base: u32) {
+    i32_const(body, kmp_table_base as i32 - 2);
     local_get(body, matched);
     i32_const(body, 1);
     body.push(0x74);

@@ -499,7 +499,7 @@ fn emit_export(
     program: &ResolvedProgram,
     export: &crate::project::PublicApiExport,
     return_type: &ResolvedType,
-    project_v8: bool,
+    _project_v8: bool,
 ) -> Result<(), Diagnostic> {
     let symbol = provider_call_symbol(export.rust_method_name());
     write!(
@@ -549,9 +549,7 @@ fn emit_export(
             PublicApiParameterType::I64 => Ok(()),
         }.unwrap();
     }
-    if project_v8 {
-        output.push_str("    (void)borrowed;\n");
-    }
+    output.push_str("    (void)borrowed;\n");
     writeln!(
         output,
         "    struct spx_status_entry statuses[UINT32_C({STATUS_CAPACITY})];"

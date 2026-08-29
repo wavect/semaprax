@@ -485,7 +485,7 @@ fn render_expr(
         ResolvedExprKind::Float32(bits) => render_float(f64::from(f32::from_bits(*bits)), "f32"),
         ResolvedExprKind::Float64(bits) => render_float(f64::from_bits(*bits), "f64"),
         ResolvedExprKind::Bool(value) => Ok(value.to_string()),
-        ResolvedExprKind::String(value) => Ok(quote_json(value)),
+        ResolvedExprKind::String(value) => Ok(crate::format::canonical_string(value)),
         ResolvedExprKind::Place(place) => render_place(place, names, values),
         ResolvedExprKind::BorrowPlace { operation, place } => {
             let operation = crate::byte_ops::by_id(operation.as_str()).ok_or_else(|| {

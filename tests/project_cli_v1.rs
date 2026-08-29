@@ -300,7 +300,7 @@ fn project_build_rejections_happen_before_any_output_clobber() {
                 "-o",
                 blocked_output.to_str().unwrap(),
             ],
-            "Project v1 publishes only explicit web and native targets; native-callable publication remains held",
+            "Project manifests publish only explicit web, native, npm, and Project-v8 rust targets; native-callable publication remains held",
         ),
     ] {
         let output = cli(&fixture.root, &arguments);

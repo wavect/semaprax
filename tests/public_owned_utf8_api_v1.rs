@@ -9,7 +9,7 @@ use std::process::Command;
 const FACT: &str = "sha256:1111111111111111111111111111111111111111111111111111111111111111";
 const SOURCE: &str = r#"module utf8.api;
 @id("utf8.greeting")
-fn greeting() -> string { "hello\0世界" }
+fn greeting() -> string { "hello\u{0}世界" }
 @id("utf8.forward")
 fn forward() -> string { greeting() }
 @id("bytes.raw")
@@ -100,7 +100,7 @@ fn v10_rejects_compiler_owned_string_intrinsics_before_backend_selection() {
         ("from-char", "", "string_from_char('x')"),
         (
             "nested",
-            "@id(\"utf8.ignore\") fn ignore(value: own string) -> string { \"literal\" }\n",
+            "@id(\"utf8.ignore\") fn ignore(value: string) -> string { \"literal\" }\n",
             "ignore(string_concat(\"left\", \"right\"))",
         ),
     ] {

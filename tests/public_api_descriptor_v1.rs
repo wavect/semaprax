@@ -545,9 +545,9 @@ fn project_v8_is_activated_only_by_manifest_and_profile_admission() {
     let native_sdk = include_str!("../src/project/native_sdk.rs");
     let wasm = include_str!("../src/wasm.rs");
 
-    for admission in [manifest, profile] {
-        assert!(admission.contains(PUBLIC_OWNED_DATA_PROJECT_SCHEMA));
-    }
+    assert!(manifest.contains(PUBLIC_OWNED_DATA_PROJECT_SCHEMA));
+    assert!(profile.contains("PROJECT_PROFILE_OWNED_DATA_API_V1"));
+    assert!(profile.contains("owned-data-api.v1"));
     for target_orchestrator in [npm, native_sdk, wasm] {
         assert!(!target_orchestrator.contains(PUBLIC_OWNED_DATA_PROJECT_SCHEMA));
         assert!(!target_orchestrator.contains(PUBLIC_OWNED_DATA_API_SCHEMA));

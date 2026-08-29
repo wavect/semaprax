@@ -5,6 +5,19 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
+fn configured_tool(variable: &str, candidates: &[&str]) -> PathBuf {
+    std::env::var_os(variable)
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute() && path.is_file())
+        .or_else(|| {
+            candidates
+                .iter()
+                .map(PathBuf::from)
+                .find(|path| path.is_file())
+        })
+        .unwrap_or_else(|| panic!("{variable} must name an installed absolute tool"))
+}
+
 struct Fixture(PathBuf);
 
 impl Drop for Fixture {
@@ -30,21 +43,21 @@ fn fixture(export_name: &str) -> Fixture {
     std::fs::write(
         root.join("a/core.spx"),
         format!(
-            "module route.core;\n\n@id(\"route.decision\")\nrecord Decision {{ @id(\"route.decision.allowed\") allowed: bool, }}\n\n@id(\"route.valid\")\nfn {export_name}(value: i64) -> bool {{\n    let decision = Decision {{ allowed: value >= 0, }};\n    decision.allowed\n}}\n\n@id(\"route.payload\")\nfn payload(input: borrow Slice<u8>) -> Bytes {{ bytes_copy(input) }}\n\n@id(\"route.size\")\nfn size() -> usize {{ 7usize }}\n"
+            "module route.core;\n\n@id(\"route.decision\")\nrecord Decision {{\n    @id(\"route.decision.allowed\")\n    allowed: bool,\n}}\n\n@id(\"route.valid\")\nfn {export_name}(value: i64) -> bool\n{{\n    let decision = Decision {{ allowed: value >= 0 }};\n    decision.allowed\n}}\n\n@id(\"route.payload\")\nfn payload(input: borrow Slice<u8>) -> Bytes\n{{\n    bytes_copy(input)\n}}\n\n@id(\"route.size\")\nfn size() -> usize\n{{\n    7usize\n}}\n"
         ),
     )
     .unwrap();
     std::fs::write(
         root.join("t/tests.spx"),
         format!(
-            "module route.tests;\nuse function @id(\"route.valid\") from route.core as {export_name};\n\n@id(\"route.tests.main\")\nfn main() -> i64 {{ if {export_name}(1) {{ 0 }} else {{ 1 }} }}\n"
+            "module route.tests;\nuse function @id(\"route.valid\") from route.core as {export_name};\n\n@id(\"route.tests.main\")\nfn main() -> i64\n{{\n    if {export_name}(1) {{ 0 }} else {{ 1 }}\n}}\n"
         ),
     )
     .unwrap();
     std::fs::write(
         root.join("z/app.spx"),
         format!(
-            "module route.app;\nuse function @id(\"route.valid\") from route.core as {export_name};\n\n@id(\"route.app.main\")\nfn main() -> i64 {{ if {export_name}(1) {{ 0 }} else {{ 1 }} }}\n"
+            "module route.app;\nuse function @id(\"route.valid\") from route.core as {export_name};\n\n@id(\"route.app.main\")\nfn main() -> i64\n{{\n    if {export_name}(1) {{ 0 }} else {{ 1 }}\n}}\n"
         ),
     )
     .unwrap();
@@ -52,6 +65,12 @@ fn fixture(export_name: &str) -> Fixture {
 }
 
 fn run(root: &Path, output: &str) -> Output {
+    let clang = configured_tool("CLANG", &["/usr/bin/clang"]);
+    let archiver = if cfg!(target_os = "macos") {
+        configured_tool("SEMAPRAX_ARCHIVER", &["/usr/bin/libtool"])
+    } else {
+        configured_tool("SEMAPRAX_ARCHIVER", &["/usr/bin/ar", "/bin/ar"])
+    };
     Command::new(env!("CARGO_BIN_EXE_semaprax"))
         .args([
             "build",
@@ -63,6 +82,8 @@ fn run(root: &Path, output: &str) -> Output {
             output,
         ])
         .current_dir(root)
+        .env("CLANG", clang)
+        .env("SEMAPRAX_ARCHIVER", archiver)
         .output()
         .unwrap()
 }

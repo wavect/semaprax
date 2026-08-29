@@ -98,14 +98,14 @@ fn private_desktop_packages_are_feature_gated_native_and_source_locked() {
         ],
     );
 
-    let verify_job = workflow
-        .split("  verify:\n")
+    let desktop_job = workflow
+        .split("  desktop-native-product:\n")
         .nth(1)
         .and_then(|tail| tail.split("\n  ios-static-cross-check:").next())
-        .expect("verify workflow job must remain structurally delimited");
+        .expect("desktop workflow job must remain structurally delimited");
     assert_contains_all(
         "desktop workflow",
-        verify_job,
+        desktop_job,
         &[
             "timeout-minutes: 60",
             "toolchain: 1.97.1",
@@ -113,8 +113,8 @@ fn private_desktop_packages_are_feature_gated_native_and_source_locked() {
             "platform-tests/desktop-native/package-windows.ps1",
         ],
     );
-    assert_eq!(verify_job.matches("package-macos.sh").count(), 1);
-    assert_eq!(verify_job.matches("package-windows.ps1").count(), 1);
+    assert_eq!(desktop_job.matches("package-macos.sh").count(), 1);
+    assert_eq!(desktop_job.matches("package-windows.ps1").count(), 1);
 }
 
 #[test]

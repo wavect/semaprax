@@ -44,14 +44,14 @@ fn private_native_ui_is_platform_real_feature_gated_and_source_locked() {
     windows_contract(&format!("{windows_script}\n{windows_source}"))
         .unwrap_or_else(|error| panic!("{error}"));
 
-    let verify_job = workflow
-        .split("  verify:\n")
+    let desktop_job = workflow
+        .split("  desktop-native-product:\n")
         .nth(1)
         .and_then(|tail| tail.split("\n  ios-static-cross-check:").next())
-        .expect("verify workflow job must remain structurally delimited");
+        .expect("desktop workflow job must remain structurally delimited");
     assert_contains_all(
         "native UI workflow",
-        verify_job,
+        desktop_job,
         &[
             "platform-tests/desktop-native/package-ui-macos.sh",
             "platform-tests/desktop-native/package-ui-windows.ps1",
@@ -59,8 +59,8 @@ fn private_native_ui_is_platform_real_feature_gated_and_source_locked() {
             "semaprax-private-desktop-ui-v1",
         ],
     );
-    assert_eq!(verify_job.matches("package-ui-macos.sh").count(), 1);
-    assert_eq!(verify_job.matches("package-ui-windows.ps1").count(), 1);
+    assert_eq!(desktop_job.matches("package-ui-macos.sh").count(), 1);
+    assert_eq!(desktop_job.matches("package-ui-windows.ps1").count(), 1);
 }
 
 #[test]

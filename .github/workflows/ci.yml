@@ -445,20 +445,6 @@ jobs:
           cargo test --locked -p semaprax --lib codegen::native_callable_provider_v3::tests::physical_failure_injection_and_durable_settlement_boundaries_are_exact_at_o0_o2 -- --exact
           cargo test --locked -p semaprax-native-host --lib settlement_host_v3_integration::generated_provider_loader_host_v3_end_to_end_is_exact -- --exact
           cargo test --locked -p semaprax-native-host --lib settlement_host_v3_integration::generated_provider_loader_host_v3_physical_failures_are_durable_at_o0_o2 -- --exact
-      - name: Package and execute private Windows desktop application
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: platform-tests/desktop-native/package-windows.ps1 -OutputRoot "$env:RUNNER_TEMP/semaprax-private-desktop-v3"
-      - name: Package and execute private macOS desktop application
-        if: runner.os == 'macOS'
-        run: platform-tests/desktop-native/package-macos.sh "$RUNNER_TEMP/semaprax-private-desktop-v3"
-      - name: Package and execute private Windows native UI application
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: platform-tests/desktop-native/package-ui-windows.ps1 -OutputRoot "$env:RUNNER_TEMP/semaprax-private-desktop-ui-v1" -EngineRoot "$env:RUNNER_TEMP/semaprax-private-desktop-v3"
-      - name: Package and execute private macOS native UI application
-        if: runner.os == 'macOS'
-        run: platform-tests/desktop-native/package-ui-macos.sh "$RUNNER_TEMP/semaprax-private-desktop-ui-v1" "$RUNNER_TEMP/semaprax-private-desktop-v3"
       - name: Require native cleanup sanitizers (Linux)
         if: runner.os == 'Linux'
         env:
@@ -525,6 +511,41 @@ jobs:
       - name: Verify publishable crate
         if: runner.os == 'Linux'
         run: cargo package --locked -p semaprax
+
+  desktop-native-product:
+    name: Private desktop + native UI product (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, macos-15]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: 1.97.1
+      - name: Fetch the locked desktop dependency closure
+        run: cargo fetch --locked
+      - name: Package and execute private Windows desktop and native UI applications
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          platform-tests/desktop-native/package-windows.ps1 `
+            -OutputRoot "$env:RUNNER_TEMP/semaprax-private-desktop-v3"
+          platform-tests/desktop-native/package-ui-windows.ps1 `
+            -OutputRoot "$env:RUNNER_TEMP/semaprax-private-desktop-ui-v1" `
+            -EngineRoot "$env:RUNNER_TEMP/semaprax-private-desktop-v3"
+      - name: Package and execute private macOS desktop and native UI applications
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          platform-tests/desktop-native/package-macos.sh \
+            "$RUNNER_TEMP/semaprax-private-desktop-v3"
+          platform-tests/desktop-native/package-ui-macos.sh \
+            "$RUNNER_TEMP/semaprax-private-desktop-ui-v1" \
+            "$RUNNER_TEMP/semaprax-private-desktop-v3"
 
   ios-static-cross-check:
     name: Private iOS static loader + host runtime
@@ -709,3 +730,28 @@ jobs:
         run: echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
       - run: cargo check --locked --workspace --all-targets --all-features
       - run: cargo test --locked --workspace --all-targets --all-features
+
+  release-gate:
+    name: Release gate
+    if: ${{ success() }}
+    needs:
+      - supply-chain
+      - component-runtime-v3
+      - wasm-scalar-exports-browser-v1
+      - project-product-acceptance-v1
+      - project-v1
+      - native-rust-sdk-v1
+      - verify
+      - desktop-native-product
+      - ios-static-cross-check
+      - ios-swift-app-cross-check
+      - android-emulator-cross-check
+      - android-jni-app-cross-check
+      - callable-host-sanitizers
+      - rust-host-address-sanitizer
+      - msrv
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Confirm every release blocker passed
+        run: echo "all release-blocking CI jobs passed"

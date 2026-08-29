@@ -46,7 +46,9 @@ pub mod openapi;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]
 pub mod owned_resource_corpus;
+pub mod package_compatibility;
 pub mod package_lock;
+pub mod package_lock_v2;
 pub mod package_report;
 pub mod package_report_v2;
 pub mod parser;

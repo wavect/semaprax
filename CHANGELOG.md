@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Authored additive source-authenticated Offline Semantic Package Lock v2 and
+  stable-ID-only Compatibility Evidence v1. Unknown closure or authenticated
+  lock-context drift is indeterminate. V1/V2 report, Lock-v1, and Graph bytes
+  remain unchanged. Evidence is unrun; no completion or promotion is claimed.
+
 - Authored the closed Projected Owned-Byte Field Shared Borrow v1 tranche:
   exact direct stable-ID field provenance through aliases/ranges, additive
   Graph v24 with unchanged unprojected v23 schema/fields, prefix-overlap move safety, and

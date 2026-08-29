@@ -157,6 +157,11 @@ projects stable type, ownership, effect, structural-contract, reachable-type,
 and ternary target facts. Compatibility classification remains a subsequent
 stage and no milestone status is promoted.
 
+An additive source-authenticated Lock v2 and stable-ID-only Compatibility
+Evidence v1 are authored above Report v2. Unknown semantic closure or lock
+context drift remains indeterminate; evidence is unrun and the milestone is
+not promoted.
+
 Goal: turn bounded reports and private host evidence into a supported,
 versioned ecosystem surface.
 

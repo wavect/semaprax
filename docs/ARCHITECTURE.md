@@ -330,6 +330,12 @@ nominal closure, and closed ternary target proofs are read-only evidence; the
 surface performs no compatibility decision and grants no package authority.
 See [Semantic Package Report v2](PACKAGE-REPORT-V2.md).
 
+Additive `package_lock_v2` binds exact source-replayed V2 reports into a
+bounded offline graph. `package_compatibility` emits stable-ID-only comparison
+evidence; unknown closure or lock-context drift is indeterminate. See
+[Lock v2](OFFLINE-SEMANTIC-PACKAGE-LOCK-V2.md) and
+[Compatibility Evidence v1](OFFLINE-PACKAGE-COMPATIBILITY-EVIDENCE-V1.md).
+
 These modules must:
 
 - consume verified representations;

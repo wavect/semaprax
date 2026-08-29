@@ -944,9 +944,10 @@ fn hosted_workflow_names_all_private_interop_evidence_boundaries() {
         "cargo test --locked --workspace --exclude semaprax-native-rust-interop --all-targets --all-features",
         "Require private Native Rust Interop A+B replay, static-link, runtime, and hostile evidence",
         "cargo test --locked -p semaprax-native-rust-interop -- --nocapture",
-        "Diagnose private Native Rust Interop A+B replay, static-link, runtime, and hostile evidence (Windows bounded; non-blocking)",
+        "Diagnose bounded Windows Native Rust Interop unit evidence (non-blocking)",
         "continue-on-error: true",
-        "cargo test --locked -p semaprax-native-rust-interop --all-targets --all-features -- --nocapture --test-threads=2",
+        "timeout-minutes: 5",
+        "cargo test --locked -p semaprax-native-rust-interop --lib windows_ -- --nocapture --test-threads=1",
         "Require private Native Rust Interop platform authority evidence",
         "cargo test --locked -p semaprax-native-rust-interop-platform --all-targets -- --nocapture",
         "Require private Native Rust Interop ASan + UBSan round trip (Linux)",
@@ -960,6 +961,16 @@ fn hosted_workflow_names_all_private_interop_evidence_boundaries() {
     ] {
         assert!(workflow.contains(required), "workflow is missing `{required}`");
     }
+    let windows_diagnostic = workflow
+        .split("      - name: Diagnose bounded Windows Native Rust Interop unit evidence (non-blocking)\n")
+        .nth(1)
+        .and_then(|tail| {
+            tail.split("      - name: Require private Native Rust Interop platform authority evidence\n")
+                .next()
+        })
+        .expect("bounded Windows interop diagnostic step");
+    assert!(!windows_diagnostic.contains("--all-targets"));
+    assert!(!windows_diagnostic.contains("--all-features"));
     assert_eq!(
         workflow
             .lines()

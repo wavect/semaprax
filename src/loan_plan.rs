@@ -25,6 +25,9 @@ pub enum LoanPointPhase {
     After,
 }
 
+#[cfg(test)]
+mod boundary_tests;
+
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct LoanProgramPoint {
     pub expression: ExpressionId,
@@ -381,8 +384,43 @@ fn build_cfg_plan(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
 ) -> Result<LoanPlan, Diagnostic> {
-    let mut work = 0usize;
-    let cfg = build_cfg(function, &mut work)?;
+    let mut work = WorkCounter::new(MAX_LOAN_PLAN_WORK_V1);
+    build_cfg_plan_counted(program, function, &mut work)
+}
+
+#[derive(Clone, Copy, Debug)]
+struct WorkCounter {
+    used: usize,
+    limit: usize,
+}
+
+impl WorkCounter {
+    fn new(limit: usize) -> Self {
+        Self { used: 0, limit }
+    }
+}
+
+/// Build through the production planner while retaining the exact consumed
+/// work count for boundary evidence. Focused tests may lower the limit to prove
+/// that the first unit past an exact boundary fails closed; this entry point is
+/// absent from production builds.
+#[cfg(test)]
+fn build_cfg_plan_with_work_limit(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    limit: usize,
+) -> (Result<LoanPlan, Diagnostic>, usize) {
+    let mut work = WorkCounter::new(limit);
+    let result = build_cfg_plan_counted(program, function, &mut work);
+    (result, work.used)
+}
+
+fn build_cfg_plan_counted(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    work: &mut WorkCounter,
+) -> Result<LoanPlan, Diagnostic> {
+    let cfg = build_cfg(function, work)?;
     let mut aliases = BTreeMap::<ValueId, Place>::new();
     let mut bound = BTreeMap::<ExpressionId, ValueId>::new();
     let mut ownership = function
@@ -391,7 +429,7 @@ fn build_cfg_plan(
         .map(|param| (param.id.clone(), param.ownership))
         .collect::<BTreeMap<_, _>>();
     for expression in &cfg.expressions {
-        charge(&mut work)?;
+        charge(work)?;
         if let ResolvedExprKind::Match { arms, .. } = &expression.kind {
             for arm in arms {
                 inventory_pattern_ownership(&arm.pattern, &mut ownership);
@@ -414,7 +452,7 @@ fn build_cfg_plan(
 
     let mut drafts = Vec::<CfgDraft>::new();
     for expression in &cfg.expressions {
-        charge(&mut work)?;
+        charge(work)?;
         let view = match &expression.kind {
             ResolvedExprKind::BorrowPlace { place, .. } => Some(place.clone()),
             ResolvedExprKind::ByteRange { source, .. } => expression_place(source),
@@ -426,7 +464,7 @@ fn build_cfg_plan(
         if let Some(place) = view {
             drafts.push(CfgDraft {
                 site: expression.id.clone(),
-                origin: resolve_origin(&aliases, place.clone(), &mut work)?,
+                origin: resolve_origin(&aliases, place.clone(), work)?,
                 parent_root: aliases
                     .contains_key(&place.root)
                     .then(|| place.root.clone()),
@@ -461,7 +499,7 @@ fn build_cfg_plan(
                     .ok_or_else(|| error("borrowed call lacks an exact place origin"))?;
                 drafts.push(CfgDraft {
                     site: expression.id.clone(),
-                    origin: resolve_origin(&aliases, place.clone(), &mut work)?,
+                    origin: resolve_origin(&aliases, place.clone(), work)?,
                     parent_root: aliases
                         .contains_key(&place.root)
                         .then(|| place.root.clone()),
@@ -485,7 +523,7 @@ fn build_cfg_plan(
         {
             let place = expression_place(scrutinee)
                 .ok_or_else(|| error("borrow match lacks an exact place origin"))?;
-            let origin = resolve_origin(&aliases, place.clone(), &mut work)?;
+            let origin = resolve_origin(&aliases, place.clone(), work)?;
             for (index, arm) in arms.iter().enumerate() {
                 let entry = arm.guard.as_deref().unwrap_or(&arm.value);
                 drafts.push(CfgDraft {
@@ -551,7 +589,7 @@ fn build_cfg_plan(
         .collect::<Vec<_>>();
     let mut live = drafts
         .iter()
-        .map(|draft| live_nodes(&cfg, draft.start, &draft.seeds, &mut work))
+        .map(|draft| live_nodes(&cfg, draft.start, &draft.seeds, work))
         .collect::<Result<Vec<_>, _>>()?;
     for _ in 0..=drafts.len() {
         let mut changed = false;
@@ -563,21 +601,21 @@ fn build_cfg_plan(
             let before = live[parent].len();
             let mut seeds = drafts[parent].seeds.clone();
             seeds.extend(live[child].iter().copied());
-            live[parent] = live_nodes(&cfg, drafts[parent].start, &seeds, &mut work)?;
+            live[parent] = live_nodes(&cfg, drafts[parent].start, &seeds, work)?;
             changed |= live[parent].len() != before;
         }
         if !changed {
             break;
         }
     }
-    reject_cfg_overlaps(program, &cfg, &aliases, &drafts, &live, &mut work)?;
+    reject_cfg_overlaps(program, &cfg, &aliases, &drafts, &live, work)?;
 
     let mut edge_live = vec![Vec::<LoanId>::new(); cfg.edges.len()];
     let mut termination_edges = vec![Vec::<u16>::new(); drafts.len()];
     for (loan_index, nodes) in live.iter().enumerate() {
         let id = LoanId(loan_index as u16);
         for (edge_index, (from, to)) in cfg.edges.iter().copied().enumerate() {
-            charge(&mut work)?;
+            charge(work)?;
             if nodes.contains(&from) && nodes.contains(&to) {
                 edge_live[edge_index].push(id);
             } else if nodes.contains(&from) && !nodes.contains(&to) {
@@ -632,7 +670,10 @@ fn inventory_pattern_ownership(
     }
 }
 
-fn build_cfg<'a>(function: &'a ResolvedFunction, work: &mut usize) -> Result<Cfg<'a>, Diagnostic> {
+fn build_cfg<'a>(
+    function: &'a ResolvedFunction,
+    work: &mut WorkCounter,
+) -> Result<Cfg<'a>, Diagnostic> {
     let roots = function
         .requires
         .iter()
@@ -904,7 +945,7 @@ fn live_nodes(
     cfg: &Cfg<'_>,
     start: u16,
     seeds: &BTreeSet<u16>,
-    work: &mut usize,
+    work: &mut WorkCounter,
 ) -> Result<BTreeSet<u16>, Diagnostic> {
     let mut reachable = BTreeSet::new();
     let mut pending = vec![start];
@@ -937,7 +978,7 @@ fn reject_cfg_overlaps(
     aliases: &BTreeMap<ValueId, Place>,
     drafts: &[CfgDraft],
     live: &[BTreeSet<u16>],
-    work: &mut usize,
+    work: &mut WorkCounter,
 ) -> Result<(), Diagnostic> {
     let mut nonconsuming = BTreeSet::new();
     for expression in &cfg.expressions {
@@ -1166,7 +1207,7 @@ fn resolve_parent(
 fn resolve_origin(
     aliases: &BTreeMap<ValueId, Place>,
     mut place: Place,
-    work: &mut usize,
+    work: &mut WorkCounter,
 ) -> Result<Place, Diagnostic> {
     let mut seen = BTreeSet::new();
     while let Some(alias) = aliases.get(&place.root) {
@@ -1201,11 +1242,12 @@ fn point(expression: &ResolvedExpr, phase: LoanPointPhase) -> LoanProgramPoint {
     }
 }
 
-fn charge(work: &mut usize) -> Result<(), Diagnostic> {
-    *work = work
+fn charge(work: &mut WorkCounter) -> Result<(), Diagnostic> {
+    work.used = work
+        .used
         .checked_add(1)
         .ok_or_else(|| error("loan checked-work counter overflows"))?;
-    if *work > MAX_LOAN_PLAN_WORK_V1 {
+    if work.used > work.limit {
         return Err(error("loan analysis exceeds 1,000,000 checked work"));
     }
     Ok(())

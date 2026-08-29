@@ -140,14 +140,24 @@ The local evidence gate owns:
 - rejection of premature moves and transfers plus hostile mutations across
   loan, endpoint, edge, ordering, and omission surfaces;
 - the exact 256-loan boundary and 257-loan rejection, plus proof that a large
-  loan-free function does not acquire the plan's CFG limits; and
+  loan-free function does not acquire the plan's CFG limits;
+- deterministic resolved-HIR fixtures at exactly 4,096 program points and
+  exactly 4,096 CFG edges, independent canonical rebuild at both boundaries,
+  hostile boundary-carrier reorder rejection, and isolated first-overflow
+  diagnostics (the first representable point overflow is 4,098 because every
+  expression contributes paired Before/After points);
+- one real 256-loan canonical fixture whose disconnected typed Boolean roots
+  are composed from independently measured production-planner charge deltas
+  to consume exactly 1,000,000 work units, plus exact replay, a limit-minus-one
+  rejection on the final unit, and a production-limit overflow that stops at
+  unit 1,000,001; and
 - preservation of Graph v22 selection with no loan carrier when no plan is
   needed, while the existing cleanup-plan gates remain the cleanup authority.
 
-Dedicated exact-boundary fixtures for the 4,096-program-point,
-4,096-CFG-edge, and 1,000,000-work ceilings remain pending. Those ceilings are
-implemented as checked fail-closed limits, but this document does not promote
-their boundary coverage beyond the evidence that currently exists.
+The dedicated exact-boundary fixtures are authored in the current source tree
+but were not executed by this implementation audit. Their source presence is
+not local-green or hosted evidence; promotion remains contingent on executing
+the focused gate at the exact claimed commit.
 
 Interpreter, native, and Wasm regression gates must continue to prove that
 admitted programs retain identical observable behavior, but they consume no

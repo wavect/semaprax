@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Added authored exact-boundary evidence for Shared Loan Plan v1. Deterministic
+  typed-HIR fixtures now drive the canonical production planner and independent
+  replay at exactly 4,096 program points, 4,096 CFG edges, and 1,000,000
+  checked work units, with isolated first-overflow diagnostics and hostile
+  carrier reorder rejection. The work fixture derives its padding from exact
+  production-counter deltas and reaches the production constant rather than a
+  weakened test-only ceiling. The counter refactor preserves the schema,
+  admission, cleanup meaning, backend bytes, diagnostics, and public ABI. The
+  focused evidence was authored but not run in this audit, so no local-green or
+  hosted promotion is claimed.
+
 - Added the unpromoted Project v9 `flat-owned-record-api.v1` implementation as
   the first additive follow-on to Project v8. Its distinct descriptor admits
   one direct owned-byte field with direct Copy-scalar siblings, while npm/Wasm

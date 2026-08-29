@@ -3,8 +3,9 @@ use crate::diagnostic::Diagnostic;
 use super::profile::{
     ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_INPUT_V1,
     PROJECT_COMMAND_STDOUT_CAPABILITY, PROJECT_LANGUAGE_COMMAND_INPUT_V1,
-    PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1, PROJECT_PROFILE_LINE_COMMAND_IO_V1,
-    PROJECT_PROFILE_OWNED_DATA_API_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
+    PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1, PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1,
+    PROJECT_PROFILE_LINE_COMMAND_IO_V1, PROJECT_PROFILE_OWNED_DATA_API_V1,
+    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
     PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
     PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
 };
@@ -31,6 +32,8 @@ pub const PROJECT_SCHEMA_V6: &str = "semaprax.project.v6";
 pub const PROJECT_SCHEMA_V7: &str = "semaprax.project.v7";
 /// Additive Project Manifest v8 schema for the bounded public owned-data API.
 pub const PROJECT_SCHEMA_V8: &str = "semaprax.project.v8";
+/// Additive Project Manifest v9 schema for the flat owned-record API.
+pub const PROJECT_SCHEMA_V9: &str = "semaprax.project.v9";
 pub const MAX_MANIFEST_BYTES: usize = 64 * 1024;
 pub const MAX_NAME_BYTES: usize = 64;
 pub const MAX_VERSION_BYTES: usize = 128;
@@ -375,9 +378,42 @@ impl ProjectManifest {
                         parse_array_assignment(lines[7], "tests")?,
                     )
                 }
+                PROJECT_SCHEMA_V9 => {
+                    if lines.len() != 9 || lines.last() != Some(&"") {
+                        return Err(grammar(
+                            "Project v9 manifest must contain exactly eight ordered assignments and one terminal LF",
+                        ));
+                    }
+                    let version = parse_string_assignment(lines[2], "version")?;
+                    if !valid_semver(&version) {
+                        return Err(grammar(
+                            "Project v9 version must be canonical Semantic Versioning text of at most 128 bytes",
+                        ));
+                    }
+                    if parse_string_assignment(lines[3], "profile")?
+                        != PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1
+                    {
+                        return Err(grammar(
+                            "Project v9 profile is not flat-owned-record-api.v1",
+                        ));
+                    }
+                    (
+                        PROJECT_SCHEMA_V9,
+                        parse_string_assignment(lines[1], "name")?,
+                        Some(version),
+                        ProjectProfile::FlatOwnedRecordApiV1,
+                        parse_string_assignment(lines[4], "entry")?,
+                        parse_array_assignment(lines[5], "sources")?,
+                        parse_array_assignment(lines[6], "web_exports")?,
+                        None,
+                        None,
+                        Vec::new(),
+                        parse_array_assignment(lines[7], "tests")?,
+                    )
+                }
                 _ => {
                     return Err(grammar(
-                        "Project manifest schema is neither semaprax.project.v1, semaprax.project.v2, semaprax.project.v3, semaprax.project.v4, semaprax.project.v5, semaprax.project.v6, semaprax.project.v7, nor semaprax.project.v8",
+                        "Project manifest schema is neither semaprax.project.v1, semaprax.project.v2, semaprax.project.v3, semaprax.project.v4, semaprax.project.v5, semaprax.project.v6, semaprax.project.v7, semaprax.project.v8, nor semaprax.project.v9",
                     ))
                 }
             };
@@ -390,6 +426,7 @@ impl ProjectManifest {
             PROJECT_SCHEMA_V6 => "Project v6",
             PROJECT_SCHEMA_V7 => "Project v7",
             PROJECT_SCHEMA_V8 => "Project v8",
+            PROJECT_SCHEMA_V9 => "Project v9",
             _ => unreachable!("schema was selected by the closed parser"),
         };
         if !valid_name(&name) {
@@ -527,6 +564,10 @@ impl ProjectManifest {
         self.schema == PROJECT_SCHEMA_V8
     }
 
+    pub fn is_v9(&self) -> bool {
+        self.schema == PROJECT_SCHEMA_V9
+    }
+
     pub fn entry(&self) -> &str {
         &self.entry
     }
@@ -652,7 +693,7 @@ impl ProjectManifest {
                 render_array(&self.capabilities),
                 self.test_module,
             )
-        } else {
+        } else if self.schema == PROJECT_SCHEMA_V8 {
             debug_assert_eq!(self.schema, PROJECT_SCHEMA_V8);
             format!(
                 "schema = \"{PROJECT_SCHEMA_V8}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ntests = [\"{}\"]\n",
@@ -663,6 +704,22 @@ impl ProjectManifest {
                 self.profile
                     .name()
                     .expect("Project v8 carries a named profile"),
+                self.entry,
+                render_array(&self.sources),
+                render_array(&self.web_exports),
+                self.test_module,
+            )
+        } else {
+            debug_assert_eq!(self.schema, PROJECT_SCHEMA_V9);
+            format!(
+                "schema = \"{PROJECT_SCHEMA_V9}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ntests = [\"{}\"]\n",
+                self.name,
+                self.package_version
+                    .as_deref()
+                    .expect("Project v9 carries a package version"),
+                self.profile
+                    .name()
+                    .expect("Project v9 carries a named profile"),
                 self.entry,
                 render_array(&self.sources),
                 render_array(&self.web_exports),

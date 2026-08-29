@@ -96,6 +96,10 @@ pub(super) fn build_owned(
             &entry_program,
             manifest.command().unwrap_or(""),
         ),
+        super::ProjectProfile::FlatOwnedRecordApiV1 => Err(crate::diagnostic::Diagnostic::io(
+            "SPX-W115",
+            "Project v9 requires the descriptor-driven flat owned-record target route",
+        )),
     }
     .map_err(|error| vec![error])?;
     let sources = files

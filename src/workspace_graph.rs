@@ -1040,7 +1040,11 @@ impl WorkspaceGraphBuild {
         entry_module: &str,
         profile: crate::project::ProjectProfile,
     ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
-        if profile == crate::project::ProjectProfile::OwnedDataApiV1 {
+        if matches!(
+            profile,
+            crate::project::ProjectProfile::OwnedDataApiV1
+                | crate::project::ProjectProfile::FlatOwnedRecordApiV1
+        ) {
             return self.linked_owned_data_api_program_with_roots(entry_module, &[]);
         }
         validate_entry_module(entry_module)?;
@@ -1123,7 +1127,11 @@ impl WorkspaceGraphBuild {
                             crate::command_io_ops::STDIN_READ_EFFECT,
                             crate::host_io_ops::STDOUT_WRITE_EFFECT,
                         ]);
-            let project_shape_admitted = profile == crate::project::ProjectProfile::OwnedDataApiV1
+            let project_shape_admitted = matches!(
+                profile,
+                crate::project::ProjectProfile::OwnedDataApiV1
+                    | crate::project::ProjectProfile::FlatOwnedRecordApiV1
+            )
                 || (module.types.is_empty()
                     && module.interfaces.is_empty()
                     && module.function_templates.is_empty()
@@ -1243,6 +1251,9 @@ impl WorkspaceGraphBuild {
             crate::project::ProjectProfile::OwnedDataApiV1 => {
                 unreachable!("Project v8 uses the exact function-reachable linker")
             }
+            crate::project::ProjectProfile::FlatOwnedRecordApiV1 => {
+                unreachable!("Project v9 uses the exact aggregate-aware linker")
+            }
         }
         .map_err(|error| vec![error])
     }
@@ -1258,7 +1269,11 @@ impl WorkspaceGraphBuild {
         additional_roots: &[String],
         profile: crate::project::ProjectProfile,
     ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
-        if profile == crate::project::ProjectProfile::OwnedDataApiV1 {
+        if matches!(
+            profile,
+            crate::project::ProjectProfile::OwnedDataApiV1
+                | crate::project::ProjectProfile::FlatOwnedRecordApiV1
+        ) {
             return self.linked_owned_data_api_program_with_roots(entry_module, additional_roots);
         }
         let base = self.linked_project_program(entry_module, profile)?;
@@ -1393,6 +1408,9 @@ impl WorkspaceGraphBuild {
             }
             crate::project::ProjectProfile::OwnedDataApiV1 => {
                 unreachable!("Project v8 uses the exact function-reachable linker")
+            }
+            crate::project::ProjectProfile::FlatOwnedRecordApiV1 => {
+                unreachable!("Project v9 uses the exact aggregate-aware linker")
             }
         }
         .map_err(|error| vec![error])
@@ -1958,7 +1976,11 @@ impl WorkspaceGraphBuild {
                             crate::command_io_ops::STDIN_READ_EFFECT,
                             crate::host_io_ops::STDOUT_WRITE_EFFECT,
                         ]);
-            let project_shape_admitted = profile == crate::project::ProjectProfile::OwnedDataApiV1
+            let project_shape_admitted = matches!(
+                profile,
+                crate::project::ProjectProfile::OwnedDataApiV1
+                    | crate::project::ProjectProfile::FlatOwnedRecordApiV1
+            )
                 || (module.types.is_empty()
                     && module.interfaces.is_empty()
                     && module.function_templates.is_empty()
@@ -1988,7 +2010,11 @@ impl WorkspaceGraphBuild {
             // therefore cannot broaden or spuriously reject the exact union
             // linked below. The retained closure is independently checked by
             // the owned-data linker and canonical descriptor.
-            if profile == crate::project::ProjectProfile::OwnedDataApiV1 {
+            if matches!(
+                profile,
+                crate::project::ProjectProfile::OwnedDataApiV1
+                    | crate::project::ProjectProfile::FlatOwnedRecordApiV1
+            ) {
                 continue;
             }
             for function in &module.functions {
@@ -2012,7 +2038,8 @@ impl WorkspaceGraphBuild {
                     | crate::project::ProjectProfile::UsefulDataCommandV2
                     | crate::project::ProjectProfile::LanguageCommandIoV1
                     | crate::project::ProjectProfile::LineCommandIoV1
-                    | crate::project::ProjectProfile::OwnedDataApiV1 => {
+                    | crate::project::ProjectProfile::OwnedDataApiV1
+                    | crate::project::ProjectProfile::FlatOwnedRecordApiV1 => {
                         hir::useful_data_workspace_parameter_admitted(
                             &parameter.ty,
                             parameter.ownership,
@@ -2035,6 +2062,7 @@ impl WorkspaceGraphBuild {
                     crate::project::ProjectProfile::OwnedDataApiV1 => {
                         hir::owned_data_api_workspace_return_admitted(&function.return_type)
                     }
+                    crate::project::ProjectProfile::FlatOwnedRecordApiV1 => true,
                 };
                 let effects_admitted = function.effects.is_empty()
                     || (matches!(
@@ -2083,6 +2111,9 @@ impl WorkspaceGraphBuild {
                         crate::project::ProjectProfile::OwnedDataApiV1 => {
                             "Owned Data API v1 linker"
                         }
+                        crate::project::ProjectProfile::FlatOwnedRecordApiV1 => {
+                            "Flat Owned Record API v1 linker"
+                        }
                     };
                     return Err(vec![graph_error(
                         "SPX-G172",
@@ -2094,7 +2125,11 @@ impl WorkspaceGraphBuild {
                 }
             }
         }
-        if profile != crate::project::ProjectProfile::OwnedDataApiV1
+        if !matches!(
+            profile,
+            crate::project::ProjectProfile::OwnedDataApiV1
+                | crate::project::ProjectProfile::FlatOwnedRecordApiV1
+        )
             && self.edges.iter().any(|edge| edge.kind == "type_import")
         {
             return Err(vec![graph_error(

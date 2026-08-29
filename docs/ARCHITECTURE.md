@@ -236,6 +236,13 @@ generated Rust package, including stable-ID display rename and settlement
 facts. Those repository gates were not executed by the documentation audit and
 do not establish exact-head hosted promotion.
 
+`src/project/flat_owned_record.rs` is the authority-free additive Project-v9
+description layer. It authenticates the exact one-direct-`Bytes` flat record
+result shape from HIR, independently replays its versioned descriptor, and
+projects safe TypeScript/Rust types plus an opaque-handle settlement plan. It
+does not expose target aggregate layout or activate a target publication route;
+see [Public Flat Owned Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md).
+
 `src/project_transport/` and `src/bin/semapraxd.rs` retain one authenticated
 Project revision for bounded requests. Read-only v2 is the default. Explicit
 opt-ins add one server-derived rename, the bounded workflow, or the additive

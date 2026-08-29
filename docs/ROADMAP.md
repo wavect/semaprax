@@ -73,6 +73,13 @@ are promoted; internal record/variant support is not a public aggregate ABI.
 The versioned specification owns exact identifiers, admission, lifetime,
 compatibility, and promotion gates.
 
+The first controlled widening after that promotion is the additive
+[Public Flat Owned Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md): one
+monomorphic result record with exactly one direct `Bytes` field and only direct
+`i64`/`bool`/`usize` siblings. Its descriptor and host projections must remain
+layout-independent; target activation follows only after the v8 target routes
+are integrated and preserved.
+
 ## 0.3: ownership and fast development
 
 Goal: make the language safer and faster to iterate on without widening public

@@ -390,7 +390,7 @@ fn validate_subject(subject: PublicApiSubject<'_>) -> Result<(), Diagnostic> {
     Ok(())
 }
 
-fn validate_selected(selected: &[String]) -> Result<(), Diagnostic> {
+pub(super) fn validate_selected(selected: &[String]) -> Result<(), Diagnostic> {
     if !(1..=MAX_PUBLIC_API_EXPORTS).contains(&selected.len()) {
         return Err(api_error(format!(
             "public API descriptor requires 1..={MAX_PUBLIC_API_EXPORTS} exports"
@@ -411,7 +411,7 @@ fn validate_selected(selected: &[String]) -> Result<(), Diagnostic> {
     Ok(())
 }
 
-fn selected_closure(
+pub(super) fn selected_closure(
     program: &ResolvedProgram,
     selected: &[String],
     functions: &BTreeMap<DeclarationId, &ResolvedFunction>,
@@ -471,7 +471,7 @@ fn selected_closure(
     Ok(closure)
 }
 
-fn validate_closure_function(function: &ResolvedFunction) -> Result<(), Diagnostic> {
+pub(super) fn validate_closure_function(function: &ResolvedFunction) -> Result<(), Diagnostic> {
     if !function.effects.is_empty() {
         return Err(api_error(format!(
             "public API closure function `{}` must be effect-free",
@@ -571,7 +571,10 @@ fn expression_reaches_import(root: &ResolvedExpr) -> bool {
     false
 }
 
-fn parameter_type(ty: &ResolvedType, ownership: OwnershipMode) -> Option<PublicApiParameterType> {
+pub(super) fn parameter_type(
+    ty: &ResolvedType,
+    ownership: OwnershipMode,
+) -> Option<PublicApiParameterType> {
     match (ty, ownership) {
         (ResolvedType::I64, OwnershipMode::Value) => Some(PublicApiParameterType::I64),
         (ResolvedType::Bool, OwnershipMode::Value) => Some(PublicApiParameterType::Bool),
@@ -609,7 +612,7 @@ fn result_type(ty: &ResolvedType) -> Option<PublicApiResultType> {
     }
 }
 
-fn rust_method_name(stable_id: &str) -> Result<String, Diagnostic> {
+pub(super) fn rust_method_name(stable_id: &str) -> Result<String, Diagnostic> {
     if !valid_stable_id(stable_id) {
         return Err(api_error("public API stable identity is not portable"));
     }
@@ -961,7 +964,7 @@ fn valid_stable_id(value: &str) -> bool {
         })
 }
 
-fn valid_sha256_fact(value: &str) -> bool {
+pub(super) fn valid_sha256_fact(value: &str) -> bool {
     value.len() == 71
         && value.starts_with("sha256:")
         && value.as_bytes()[7..]

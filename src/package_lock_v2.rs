@@ -1,5 +1,7 @@
 //! Source-authenticated Offline Semantic Package Lock v2.
 
+use std::collections::BTreeMap;
+
 use serde_json::Value;
 
 use crate::diagnostic::Diagnostic;
@@ -59,6 +61,31 @@ impl Default for LockOptions {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VerifiedLock {
     pub packages: Vec<Coordinate>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ResolutionSubject {
+    pub(crate) coordinate: Coordinate,
+    pub(crate) subject_digest: String,
+    pub(crate) subject_bytes: usize,
+    pub(crate) dependencies: Vec<Coordinate>,
+    pub(crate) capabilities: Vec<String>,
+    pub(crate) targets: BTreeMap<String, String>,
+}
+
+pub(crate) fn authenticate_subject_for_resolution(
+    bytes: &str,
+    work: &mut usize,
+) -> Result<ResolutionSubject, Diagnostic> {
+    let subject = subject::parse_subject(bytes, work)?;
+    Ok(ResolutionSubject {
+        coordinate: subject.coordinate,
+        subject_digest: subject.digest,
+        subject_bytes: subject.bytes,
+        dependencies: subject.dependencies,
+        capabilities: subject.capabilities,
+        targets: subject.targets,
+    })
 }
 
 pub fn create_subject(

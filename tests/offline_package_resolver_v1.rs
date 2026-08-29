@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::package_compatibility::{self, CompatibilityInput, CompatibilityOptions};
@@ -164,6 +164,11 @@ fn public_limits_and_input_grammar_are_closed() {
     assert_eq!(MAX_WORK_UNITS, 8 * 1024 * 1024);
     assert_eq!(MAX_JSON_DEPTH, 128);
     assert_eq!(MAX_RENDER_BYTES, 64 * 1024 * 1024);
+    // The public graph is capped at four selected identities, so 256-edge and
+    // depth-32 exact/+1 construction is intentionally unreachable here. Exact
+    // helper boundaries remain owned by the core solver unit evidence. CLI
+    // grammar, held-file, cumulative-read, and stdout evidence is a separate
+    // lane and is not simulated through this authority-free Rust API.
 
     let package = "resolver.grammar";
     let one = subject(&report(package), package, "1.2.3", &[], &[]);
@@ -664,6 +669,49 @@ fn domain_digest(domain: &[u8], bytes: &[u8]) -> String {
     )
 }
 
+fn sha256(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hasher.finalize())
+    )
+}
+
+fn catalog_digest(subjects: &[&str]) -> String {
+    const DOMAIN: &[u8] = b"semaprax.offline-package-resolution-catalog.v1\0";
+    let mut hasher = Sha256::new();
+    hasher.update(DOMAIN);
+    hasher.update((subjects.len() as u64).to_le_bytes());
+    for subject in subjects {
+        hasher.update((subject.len() as u64).to_le_bytes());
+        hasher.update(subject.as_bytes());
+    }
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hasher.finalize())
+    )
+}
+
+fn assert_ordered(haystack: &str, needles: &[&str]) {
+    let mut offset = 0;
+    for needle in needles {
+        let found = haystack[offset..]
+            .find(needle)
+            .unwrap_or_else(|| panic!("missing ordered fragment {needle}"));
+        offset += found + needle.len();
+    }
+}
+
+fn between<'a>(wire: &'a str, start: &str, end: &str) -> &'a str {
+    let offset = wire.rfind(start).expect("start marker") + start.len();
+    let finish = wire[offset..]
+        .find(end)
+        .map(|value| offset + value)
+        .expect("end marker");
+    &wire[offset..finish]
+}
+
 #[test]
 fn wire_mutation_remint_truncation_insertion_and_input_drift_are_rejected() {
     const DOMAIN: &[u8] = b"semaprax.offline-package-resolution-evidence.v1\0";
@@ -684,6 +732,32 @@ fn wire_mutation_remint_truncation_insertion_and_input_drift_are_rejected() {
     ));
     let receipt = package_resolver::verify(&evidence, &request, &options).unwrap();
     assert!(evidence.contains(&format!("\"lock\":{}", receipt.lock)));
+    let missing_key = evidence.replacen(
+        "\"schema\":\"semaprax.offline-package-resolution-evidence.v1\",",
+        "",
+        1,
+    );
+    let unknown_key = evidence.replacen('{', "{\"unknown\":0,", 1);
+    let duplicate_key = evidence.replacen(
+        '{',
+        "{\"schema\":\"semaprax.offline-package-resolution-evidence.v1\",",
+        1,
+    );
+    for malformed in [
+        missing_key,
+        unknown_key,
+        duplicate_key,
+        format!("\u{feff}{evidence}"),
+        format!("{evidence}\r"),
+        evidence.replacen('{', "{ ", 1),
+    ] {
+        assert_eq!(
+            package_resolver::verify(&malformed, &request, &options)
+                .unwrap_err()
+                .code,
+            "SPX-PR506"
+        );
+    }
     assert_eq!(
         package_resolver::verify(&evidence[..evidence.len() - 1], &request, &options)
             .unwrap_err()
@@ -720,14 +794,256 @@ fn wire_mutation_remint_truncation_insertion_and_input_drift_are_rejected() {
             .code,
         "SPX-PR507"
     );
+
+    let substitute_package = "resolver.wire.substitute";
+    let substituted = input(
+        &[(substitute_package, "=1.0.0")],
+        vec![subject(
+            &report(substitute_package),
+            substitute_package,
+            "1.0.0",
+            &[],
+            &[],
+        )],
+        "native64",
+        &[],
+    );
+    assert_eq!(
+        package_resolver::verify(&evidence, &substituted, &options)
+            .unwrap_err()
+            .code,
+        "SPX-PR507"
+    );
+    let substitute_evidence = generate(&substituted);
+    let substitute_value: serde_json::Value = serde_json::from_str(&substitute_evidence).unwrap();
+    let substitute_catalog_digest = substitute_value["payload"]["catalog"]["digest"]
+        .as_str()
+        .unwrap();
+    let original_value: serde_json::Value = serde_json::from_str(&evidence).unwrap();
+    let original_catalog_digest = original_value["payload"]["catalog"]["digest"]
+        .as_str()
+        .unwrap();
+    let catalog_remint = remint(
+        package_resolver::SCHEMA,
+        DOMAIN,
+        &payload(&evidence).replacen(original_catalog_digest, substitute_catalog_digest, 1),
+    );
+    assert_eq!(
+        package_resolver::verify(&catalog_remint, &request, &options)
+            .unwrap_err()
+            .code,
+        "SPX-PR507"
+    );
 }
+
 #[test]
-fn resolver_preserves_report_v1_v2_lock_v2_and_compatibility_v1_bytes() {
+fn minimal_evidence_has_an_independent_canonical_wire_oracle() {
+    const DOMAIN: &[u8] = b"semaprax.offline-package-resolution-evidence.v1\0";
+    let package = "resolver.oracle";
+    let report = report(package);
+    let subject = subject(&report, package, "1.0.0", &[], &[]);
+    let request = input(
+        &[(package, "=1.0.0")],
+        vec![subject.clone()],
+        "native64",
+        &[],
+    );
+    let evidence = generate(&request);
+    let value: serde_json::Value = serde_json::from_str(&evidence).unwrap();
+    let raw_payload = payload(&evidence);
+    assert_eq!(
+        evidence,
+        remint(package_resolver::SCHEMA, DOMAIN, raw_payload)
+    );
+    assert_ordered(
+        &evidence,
+        &["\"schema\":", "\"digest\":", "\"bytes\":", "\"payload\":"],
+    );
+    assert_ordered(
+        raw_payload,
+        &[
+            "\"schema\":",
+            "\"requirements\":",
+            "\"target\":",
+            "\"allowed_capabilities\":",
+            "\"catalog\":",
+            "\"selected\":",
+            "\"lock_digest\":",
+            "\"lock_bytes\":",
+            "\"lock\":",
+        ],
+    );
+    let catalog = &value["payload"]["catalog"];
+    let expected_catalog_digest = catalog_digest(&[&subject]);
+    assert_eq!(catalog["subjects"].as_u64(), Some(1));
+    assert_eq!(catalog["bytes"].as_u64(), Some(subject.len() as u64));
+    assert_eq!(
+        catalog["digest"].as_str(),
+        Some(expected_catalog_digest.as_str())
+    );
+    assert!(raw_payload.contains(&format!(
+        "\"catalog\":{{\"subjects\":1,\"bytes\":{},\"digest\":\"{}\"}}",
+        subject.len(),
+        expected_catalog_digest
+    )));
+    let selected = value["payload"]["selected"].as_array().unwrap();
+    assert_eq!(selected.len(), 1);
+    assert_eq!(selected[0]["package"].as_str(), Some(package));
+    assert_eq!(selected[0]["version"].as_str(), Some("1.0.0"));
+    let subject_value: serde_json::Value = serde_json::from_str(&subject).unwrap();
+    assert_eq!(
+        selected[0]["subject_digest"].as_str(),
+        subject_value["digest"].as_str()
+    );
+    assert_eq!(
+        selected[0]["subject_bytes"].as_u64(),
+        Some(subject.len() as u64)
+    );
+    assert!(raw_payload.contains(&format!(
+        "\"selected\":[{{\"package\":\"{package}\",\"version\":\"1.0.0\",\"subject_digest\":\"{}\",\"subject_bytes\":{}}}]",
+        subject_value["digest"].as_str().unwrap(),
+        subject.len()
+    )));
+
+    let lock = &value["payload"]["lock"];
+    assert_eq!(
+        value["payload"]["lock_digest"].as_str(),
+        lock["digest"].as_str()
+    );
+    let receipt =
+        package_resolver::verify(&evidence, &request, &ResolutionOptions::default()).unwrap();
+    assert_eq!(
+        value["payload"]["lock_bytes"].as_u64(),
+        Some(receipt.lock.len() as u64)
+    );
+    assert!(raw_payload.contains(&format!("\"lock\":{},\"limits\":", receipt.lock)));
+
+    let limits = &value["payload"]["limits"];
+    let limits_raw = between(raw_payload, "\"limits\":", ",\"budget\":");
+    assert_ordered(
+        limits_raw,
+        &[
+            "max_requirements",
+            "max_subjects",
+            "max_versions_per_package",
+            "max_selected_packages",
+            "max_allowed_capabilities",
+            "max_subject_bytes",
+            "max_total_subject_bytes",
+            "max_edges",
+            "max_depth",
+            "max_decisions",
+            "max_work_units",
+            "max_json_depth",
+            "max_render_bytes",
+            "max_output_bytes",
+            "requested_max_bytes",
+        ],
+    );
+    for (key, expected) in [
+        ("max_requirements", MAX_REQUIREMENTS),
+        ("max_subjects", MAX_SUBJECTS),
+        ("max_versions_per_package", MAX_VERSIONS_PER_PACKAGE),
+        ("max_selected_packages", MAX_SELECTED_PACKAGES),
+        ("max_allowed_capabilities", MAX_ALLOWED_CAPABILITIES),
+        ("max_subject_bytes", MAX_SUBJECT_BYTES),
+        ("max_total_subject_bytes", MAX_TOTAL_SUBJECT_BYTES),
+        ("max_edges", MAX_EDGES),
+        ("max_depth", MAX_DEPTH),
+        ("max_decisions", MAX_DECISIONS),
+        ("max_work_units", MAX_WORK_UNITS),
+        ("max_json_depth", MAX_JSON_DEPTH),
+        ("max_render_bytes", MAX_RENDER_BYTES),
+        ("max_output_bytes", MAX_OUTPUT_BYTES),
+        ("requested_max_bytes", MAX_OUTPUT_BYTES),
+    ] {
+        assert_eq!(limits[key].as_u64(), Some(expected as u64), "{key}");
+    }
+    let source_bytes = serde_json::from_str::<serde_json::Value>(&report).unwrap()["payload"]
+        ["source"]["bytes"]
+        .as_u64()
+        .unwrap();
+    let budget = &value["payload"]["budget"];
+    let budget_raw = between(raw_payload, "\"budget\":", ",\"nonclaims\":");
+    assert_ordered(
+        budget_raw,
+        &[
+            "used_subjects",
+            "used_subject_bytes",
+            "used_selected_packages",
+            "used_edges",
+            "used_depth",
+            "used_decisions",
+            "used_allowed_capabilities",
+            "used_work_units",
+        ],
+    );
+    assert_eq!(budget["used_subjects"].as_u64(), Some(1));
+    assert_eq!(
+        budget["used_subject_bytes"].as_u64(),
+        Some(subject.len() as u64)
+    );
+    assert_eq!(budget["used_selected_packages"].as_u64(), Some(1));
+    assert_eq!(budget["used_edges"].as_u64(), Some(0));
+    assert_eq!(budget["used_depth"].as_u64(), Some(1));
+    assert_eq!(budget["used_decisions"].as_u64(), Some(1));
+    assert_eq!(budget["used_allowed_capabilities"].as_u64(), Some(0));
+    assert_eq!(budget["used_work_units"].as_u64(), Some(source_bytes + 11));
+}
+
+#[test]
+fn input_authentication_resolution_and_policy_failure_order_is_stable() {
+    let package = "resolver.precedence";
+    let invalid_grammar = input(
+        &[("resolver.z", "=1.0.0"), (package, "=1.0.0")],
+        vec!["not-json".to_owned()],
+        "native64",
+        &[],
+    );
+    assert_eq!(error_code(&invalid_grammar), "SPX-PR501");
+    assert_eq!(
+        error_code(&input(
+            &[(package, "=1.0.0")],
+            vec!["not-json".to_owned()],
+            "native64",
+            &[]
+        )),
+        "SPX-PR502"
+    );
+
+    let high = subject(&report(package), package, "1.1.0", &[], &["denied"]);
+    let low = subject(
+        &report(package),
+        package,
+        "1.0.0",
+        &[coordinate("resolver.precedence.missing", "1.0.0")],
+        &[],
+    );
+    assert_eq!(
+        error_code(&input(
+            &[(package, "^1.0.0")],
+            vec![high, low],
+            "native64",
+            &[]
+        )),
+        "SPX-PR503"
+    );
+}
+
+#[test]
+fn meaning_v1_kat_and_same_binary_resolver_purity_are_pinned() {
+    let meaning_v1 = package_report::generate(
+        Path::new("examples/meaning.spx"),
+        &PackageReportOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        sha256(meaning_v1.as_bytes()),
+        "sha256:97bcde287804d9311f343157058926fb0648e66282461ede138e98824aac06f2"
+    );
+
     let package = "resolver.preservation";
     let report = report(package);
-    let report_path = fixture_from_report_source(package, &report);
-    let legacy_report_before =
-        package_report::generate(&report_path, &PackageReportOptions::default()).unwrap();
     let v1 = subject(&report, package, "1.0.0", &[], &[]);
     let v2 = subject(&report, package, "1.1.0", &[], &[]);
     let lock_before =
@@ -761,13 +1077,9 @@ fn resolver_preserves_report_v1_v2_lock_v2_and_compatibility_v1_bytes() {
         package_resolver::verify(&resolution, &request, &ResolutionOptions::default()).unwrap();
     assert_eq!(receipt.packages, vec![coordinate(package, "1.1.0")]);
 
-    let report_after =
-        package_report_v2::generate(&report_path, &PackageReportV2Options::default()).unwrap();
-    let legacy_report_after =
-        package_report::generate(&report_path, &PackageReportOptions::default()).unwrap();
-    std::fs::remove_file(report_path).unwrap();
-    assert_eq!(report_after, report);
-    assert_eq!(legacy_report_after, legacy_report_before);
+    // These same-binary before/after checks establish only that resolution is
+    // pure and does not mutate caller-owned reports/subjects or legacy module
+    // state. They are not independent byte-compatibility KATs.
     assert_eq!(
         package_lock_v2::generate(std::slice::from_ref(&v1), &LockOptions::default()).unwrap(),
         lock_before
@@ -781,12 +1093,4 @@ fn resolver_preserves_report_v1_v2_lock_v2_and_compatibility_v1_bytes() {
             .unwrap(),
         compatibility_before
     );
-}
-
-fn fixture_from_report_source(package: &str, report: &str) -> PathBuf {
-    let value: serde_json::Value = serde_json::from_str(report).unwrap();
-    let source = value["payload"]["source"]["text"].as_str().unwrap();
-    let path = fixture_path(package);
-    std::fs::write(&path, source).unwrap();
-    path
 }

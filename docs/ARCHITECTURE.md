@@ -347,6 +347,29 @@ execution, cache, publication, signature/provenance authentication, or runtime
 capability enforcement. See
 [Offline Deterministic Package Resolver v1](OFFLINE-PACKAGE-RESOLVER-V1.md).
 
+Additive `package_build` consumes that exact resolver evidence only through an
+independent replay route. The v1 profile deliberately admits one selected,
+dependency-free Subject v2 whose embedded canonical source is rebuilt through
+Report v2 and the ordinary verifier/HIR path. It then reuses the unchanged
+Public Scalar Export Profile v1 to emit one structurally validated Core-Wasm
+module, a canonical manifest, and independently replayable evidence. The
+module's seven fixed `env` function imports are recorded as runtime semantic
+dependencies; they are not SEMAPRAX capability declarations. Submitted
+manifest/evidence facts never become reconstruction inputs. The pure compiler
+layer has no filesystem, process, registry, network, publication, runtime, or
+sandbox authority. See [Offline Effect-Free Scalar Core-Wasm Package Build
+v1](OFFLINE-PURE-WASM-PACKAGE-BUILD-V1.md).
+
+The separate `semaprax-offline-wasm-package` crate is the only publication
+boundary for that profile. Its safe facade replays the complete caller-owned
+build before acquiring a held destination, stages exactly three create-new
+files, exact-compares held staged bytes before settle, and performs one
+no-replace directory publication. Previsibility cleanup is limited to the
+authenticated stage inventory; publication uncertainty is fail-stop. This is
+create-new local publication, not acquisition, a registry/cache, provenance,
+runtime enforcement, or a hermetic operating-system build sandbox. Its
+authored evidence is unrun and the crate is unpromoted.
+
 These modules must:
 
 - consume verified representations;
@@ -417,6 +440,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Native backend | `src/codegen.rs`, `src/codegen/native_*` |
 | WebAssembly backend | `src/wasm.rs`, `src/wasm/` |
 | Reports and offline package graph | the focused `*_report`, `package_lock`, schema, manifest, header, and shim modules |
+| Effect-free package build and publication | `src/package_build.rs`, `src/package_build/`, `crates/semaprax-offline-wasm-package/` |
 | Private host/runtime evidence | `crates/semaprax-native-*`, `platform-tests/` |
 | Executable evidence | `tests/`, crate-local tests, `platform-tests/`, `.github/workflows/` |
 

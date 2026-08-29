@@ -218,3 +218,22 @@ Project v1-v10, Transport v2-v5, Graph, CleanupPlan, existing scalar-Wasm
 artifacts, and all accepted CLI output bytes remain unchanged. The only
 resolver widening is a crate-private authenticated selected-subject snapshot;
 the public Resolver v1 API and evidence bytes are frozen.
+
+## Authored evidence
+
+The focused integration evidence is split by failure class:
+
+- canonical manifest/evidence field order, compact-wire rejection,
+  duplicate-key rejection, domain re-mint resistance, and independent receipt
+  replay;
+- exact singleton root/selected-subject association, dependency-metadata
+  rejection, empty capability/target policy, stable-ID selection, and authored
+  aggregate exclusion;
+- `wasmparser` validation plus exact fixed runtime-import and selected-export
+  inventories, including cross-paired module/manifest/evidence rejection; and
+- option endpoints, cumulative three-artifact checked accounting, and exact
+  evidence/artifact fixed-point boundaries with `limit - 1` rejection.
+
+These tests are authored but were not executed by this implementation batch.
+They do not promote the profile, publisher, Wasm runtime behavior, or any
+completion-matrix row.

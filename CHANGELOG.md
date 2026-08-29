@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- Authored Offline Effect-Free Scalar Core-Wasm Package Build v1 above exact
+  Resolver-v1 and Lock-v2 replay. The authority-free compiler slice admits one
+  dependency-free selected Subject v2, independently rebuilds its embedded
+  canonical source, reuses the unchanged Public Scalar Export Profile v1,
+  validates the exact seven-function runtime import and selected-export
+  inventory, and exact-replays canonical manifest/evidence and Wasm bytes under
+  cumulative bounds. A separate safe unpublished crate stages an exact
+  three-file create-new inventory and performs no-replace local publication
+  only after independent replay and held-byte comparison. Hostile canonical
+  wire, root/subject association, dependency/capability/profile rejection,
+  artifact cross-pairing, fixed-point bound, and publication evidence is
+  authored but unrun; no local-green, hosted, support, release, or completion
+  claim is made. This adds no acquisition, registry/network/cache, build
+  scripts or external tools, multi-package source linking, target execution,
+  runtime capability enforcement, trusted provenance, or hermetic OS sandbox.
+
 - Authored Offline Deterministic Package Resolver v1 and its focused public
   evidence above exact source-replayed Semantic Package Subject v2 inputs. The
   authority-free core fixes strict semantic-version ranges, deterministic

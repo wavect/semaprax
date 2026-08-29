@@ -170,6 +170,17 @@ unrun. It is not acquisition, a registry/cache, a published lock workflow, a
 build sandbox, target execution, trusted provenance, or runtime capability
 enforcement, so the milestone remains unpromoted.
 
+An additive Offline Effect-Free Scalar Core-Wasm Package Build v1 is authored
+above exact Resolver-v1 replay. Its intentionally narrow first slice accepts
+one dependency-free selected Subject v2, replays the embedded canonical source,
+emits the unchanged scalar Core-Wasm profile, authenticates the exact runtime
+import/export inventory, and returns canonical manifest/evidence bytes. A
+separate safe crate provides create-new exact-inventory local publication after
+independent replay. The hostile wire, association, cross-pairing, bound, and
+publication evidence is authored but unrun. This is not multi-package source
+linking, acquisition, a registry/cache, trusted provenance, runtime execution,
+capability enforcement, or a hermetic sandbox, so 0.4 remains unpromoted.
+
 Goal: turn bounded reports and private host evidence into a supported,
 versioned ecosystem surface.
 
@@ -178,6 +189,9 @@ versioned ecosystem surface.
 - interface-first manifests that carry the bounded resolver into a published
   lockfile workflow with target matrices, capability closure, provenance,
   licenses, and reproducible artifact records;
+- extend the authored dependency-free effect-free package build only after a
+  source capsule can authenticate multi-package workspace linking without
+  treating dependency metadata as executable source;
 - compatibility analysis over types, effects, contracts, ownership, and target
   availability;
 - a package registry and offline cache model with explicit least authority;

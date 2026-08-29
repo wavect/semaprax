@@ -835,6 +835,42 @@ pub fn emit_resolved_module_with_owned_data_exports(
     aggregate::emit_owned_data_exports(program, &plans)
 }
 
+/// Emit descriptor-driven private flat-record carriers for Project v9. The
+/// carrier exposes no target aggregate layout: each declaration-ordered field
+/// occupies one private eight-byte slot and the sole owned handle is written
+/// last.
+pub fn emit_resolved_module_with_flat_owned_record_exports(
+    program: &ResolvedProgram,
+    descriptor: &crate::project::FlatOwnedRecordApiDescriptor,
+) -> Result<Vec<u8>, Diagnostic> {
+    let selected = descriptor
+        .exports()
+        .iter()
+        .map(|export| export.stable_id().as_str().to_owned())
+        .collect::<Vec<_>>();
+    let subject = crate::project::PublicApiSubject {
+        project_schema: crate::project::FLAT_OWNED_RECORD_PROJECT_SCHEMA,
+        project_revision: descriptor.project_revision(),
+        workspace_revision: descriptor.workspace_revision(),
+        project_graph_digest: descriptor.project_graph_digest(),
+    };
+    let replayed = crate::project::replay_flat_owned_record_api_descriptor(
+        program,
+        &selected,
+        subject,
+        &descriptor.canonical_bytes(),
+        &descriptor.digest(),
+    )?;
+    if &replayed != descriptor {
+        return Err(Diagnostic::io(
+            "SPX-W124",
+            "flat owned-record target descriptor does not match held HIR",
+        ));
+    }
+    let plans = owned_data_exports::prepare_flat_records(program, descriptor)?;
+    aggregate::emit_owned_data_exports(program, &plans)
+}
+
 /// Emit selected Useful Data wrappers plus success-only stdout transcript
 /// exports from already validated resolved HIR.
 pub(crate) fn emit_resolved_module_with_byte_exports_and_stdout_transcript(

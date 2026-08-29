@@ -1,5 +1,6 @@
 //! Descriptor-driven raw Wasm adapters for the closed public owned-data results.
 
+use crate::aggregate_layout::{AggregateFieldValueKind, AggregateLayoutCache, AggregateTarget};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{DeclarationId, ResolvedProgram};
 use crate::project::{PublicApiDescriptor, PublicApiParameterType, PublicApiResultType};
@@ -12,7 +13,7 @@ use super::{write_i64, write_u32, I32, I64};
 
 pub(super) const BOUNDARY_STATUS: i32 = 11;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) enum ResultLayout {
     I64,
     Bool,
@@ -20,16 +21,44 @@ pub(super) enum ResultLayout {
     Bytes,
     OptionBytes { payload_offset: u32 },
     ResultBytesI64 { payload_offset: u32 },
+    FlatRecord {
+        private_size: u32,
+        public_size: u32,
+        fields: Vec<FlatRecordFieldLayout>,
+    },
 }
 
 impl ResultLayout {
-    const fn size(self) -> u32 {
+    fn private_size(&self) -> u32 {
         match self {
             Self::Bool => 4,
             Self::I64 | Self::Usize | Self::Bytes => 8,
             Self::OptionBytes { .. } | Self::ResultBytesI64 { .. } => 16,
+            Self::FlatRecord { private_size, .. } => *private_size,
         }
     }
+
+    fn public_size(&self) -> u32 {
+        match self {
+            Self::FlatRecord { public_size, .. } => *public_size,
+            _ => self.private_size(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum FlatRecordFieldKind {
+    I64,
+    Bool,
+    Usize,
+    OwnedBytes,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) struct FlatRecordFieldLayout {
+    source_offset: u32,
+    public_offset: u32,
+    kind: FlatRecordFieldKind,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -78,12 +107,16 @@ impl OwnedDataExportPlan {
         let temporary_out = raw_count + 2;
         let status = raw_count + 3;
         let carrier = raw_count + 4;
+        let scalar = raw_count + 5;
         let mut body = Vec::new();
         write_u32(&mut body, 2);
         write_u32(&mut body, 4);
         body.push(I32);
-        write_u32(&mut body, 1);
+        write_u32(&mut body, 2);
         body.push(I64);
+
+        let private_size = self.result.private_size();
+        let public_size = self.result.public_size();
 
         // Authenticate alignment and the complete fixed-memory range before
         // evaluating or calling any semantic function.
@@ -92,7 +125,7 @@ impl OwnedDataExportPlan {
         body.push(0x71); // i32.and
         boundary_return(&mut body);
         local_get(&mut body, result_out);
-        i32_const(&mut body, 131_072 - self.result.size() as i32);
+        i32_const(&mut body, 131_072 - public_size as i32);
         body.push(0x4b); // i32.gt_u
         boundary_return(&mut body);
 
@@ -151,17 +184,17 @@ impl OwnedDataExportPlan {
         write_u32(&mut body, 0);
         body.push(0x22); // local.tee
         write_u32(&mut body, old_stack);
-        i32_const(&mut body, self.result.size() as i32);
+        i32_const(&mut body, private_size as i32);
         body.push(0x49); // i32.lt_u
         body.extend([0x04, 0x40, 0x00, 0x0b]); // invariant trap
         local_get(&mut body, result_out);
         local_get(&mut body, old_stack);
-        i32_const(&mut body, self.result.size() as i32);
+        i32_const(&mut body, private_size as i32);
         body.push(0x6b);
         body.push(0x46); // i32.eq: public out must not alias private temp
         boundary_return(&mut body);
         local_get(&mut body, old_stack);
-        i32_const(&mut body, self.result.size() as i32);
+        i32_const(&mut body, private_size as i32);
         body.push(0x6b);
         body.push(0x22);
         write_u32(&mut body, temporary_out);
@@ -194,7 +227,7 @@ impl OwnedDataExportPlan {
 
         local_get(&mut body, status);
         body.extend([0x04, 0x40]);
-        poison_temporary(&mut body, temporary_out, self.result.size());
+        poison_temporary(&mut body, temporary_out, private_size);
         local_get(&mut body, old_stack);
         body.push(0x24);
         write_u32(&mut body, 0);
@@ -202,11 +235,11 @@ impl OwnedDataExportPlan {
         body.push(0x0f);
         body.push(0x0b);
 
-        match self.result {
+        match &self.result {
             ResultLayout::I64 | ResultLayout::Usize => {
                 load_i64(&mut body, temporary_out, 0);
                 local_set(&mut body, carrier);
-                poison_temporary(&mut body, temporary_out, self.result.size());
+                poison_temporary(&mut body, temporary_out, private_size);
                 store_i64(&mut body, result_out, 0, carrier);
             }
             ResultLayout::Bool => {
@@ -216,7 +249,7 @@ impl OwnedDataExportPlan {
                 i32_const(&mut body, 1);
                 body.push(0x4b); // i32.gt_u
                 body.extend([0x04, 0x40, 0x00, 0x0b]); // invalid HIR result traps
-                poison_temporary(&mut body, temporary_out, self.result.size());
+                poison_temporary(&mut body, temporary_out, private_size);
                 store_i32(&mut body, result_out, 0, charged);
             }
             ResultLayout::Bytes => {
@@ -231,23 +264,63 @@ impl OwnedDataExportPlan {
                 i32_const(&mut body, PUBLIC_OPTION_NONE_TAG as i32);
                 body.push(0x46);
                 body.extend([0x04, 0x40]);
-                poison_temporary(&mut body, temporary_out, self.result.size());
+                poison_temporary(&mut body, temporary_out, private_size);
                 store_i32(&mut body, result_out, 0, charged);
                 body.push(0x05);
-                load_i64(&mut body, temporary_out, payload_offset);
+                load_i64(&mut body, temporary_out, *payload_offset);
                 local_set(&mut body, carrier);
-                poison_temporary(&mut body, temporary_out, self.result.size());
-                store_i64(&mut body, result_out, payload_offset, carrier);
+                poison_temporary(&mut body, temporary_out, private_size);
+                store_i64(&mut body, result_out, *payload_offset, carrier);
                 store_i32(&mut body, result_out, 0, charged);
                 body.push(0x0b);
             }
             ResultLayout::ResultBytesI64 { payload_offset } => {
                 authenticate_tag(&mut body, temporary_out, charged);
-                load_i64(&mut body, temporary_out, payload_offset);
+                load_i64(&mut body, temporary_out, *payload_offset);
                 local_set(&mut body, carrier);
-                poison_temporary(&mut body, temporary_out, self.result.size());
-                store_i64(&mut body, result_out, payload_offset, carrier);
+                poison_temporary(&mut body, temporary_out, private_size);
+                store_i64(&mut body, result_out, *payload_offset, carrier);
                 store_i32(&mut body, result_out, 0, charged);
+            }
+            ResultLayout::FlatRecord { fields, .. } => {
+                // Authenticate every bool before exposing any scalar field.
+                for field in fields
+                    .iter()
+                    .filter(|field| field.kind == FlatRecordFieldKind::Bool)
+                {
+                    load_i32(&mut body, temporary_out, field.source_offset);
+                    i32_const(&mut body, 1);
+                    body.push(0x4b);
+                    body.extend([0x04, 0x40, 0x00, 0x0b]);
+                }
+                let owned = fields
+                    .iter()
+                    .find(|field| field.kind == FlatRecordFieldKind::OwnedBytes)
+                    .ok_or_else(|| error("flat record carrier lost its owned field"))?;
+                load_i64(&mut body, temporary_out, owned.source_offset);
+                local_set(&mut body, carrier);
+                for field in fields
+                    .iter()
+                    .filter(|field| field.kind != FlatRecordFieldKind::OwnedBytes)
+                {
+                    match field.kind {
+                        FlatRecordFieldKind::Bool => {
+                            load_i32(&mut body, temporary_out, field.source_offset);
+                            local_set(&mut body, charged);
+                            store_i32(&mut body, result_out, field.public_offset, charged);
+                        }
+                        FlatRecordFieldKind::I64 | FlatRecordFieldKind::Usize => {
+                            load_i64(&mut body, temporary_out, field.source_offset);
+                            local_set(&mut body, scalar);
+                            store_i64(&mut body, result_out, field.public_offset, scalar);
+                        }
+                        FlatRecordFieldKind::OwnedBytes => unreachable!("filtered above"),
+                    }
+                }
+                poison_temporary(&mut body, temporary_out, private_size);
+                // The sole ownership-bearing field is the carrier commit and
+                // is therefore always the final public write.
+                store_i64(&mut body, result_out, owned.public_offset, carrier);
             }
         }
         local_get(&mut body, old_stack);
@@ -313,6 +386,104 @@ pub(super) fn prepare(
                 function_id: export.stable_id().clone(),
                 parameters,
                 result,
+            })
+        })
+        .collect()
+}
+
+pub(super) fn prepare_flat_records(
+    program: &ResolvedProgram,
+    descriptor: &crate::project::FlatOwnedRecordApiDescriptor,
+) -> Result<Vec<OwnedDataExportPlan>, Diagnostic> {
+    crate::hir::validate(program)?;
+    let layouts = AggregateLayoutCache::build(program, AggregateTarget::Wasm32)?;
+    descriptor
+        .exports()
+        .iter()
+        .map(|export| {
+            let function = program
+                .functions
+                .iter()
+                .find(|function| function.id == *export.stable_id())
+                .ok_or_else(|| error("flat record descriptor target is absent from held HIR"))?;
+            let layout = layouts.layout(&function.return_type)?;
+            layout.validate(program)?;
+            if layout.record != *export.record_id()
+                || layout.fields.len() != export.fields().len()
+                || layout.align != 8
+            {
+                return Err(error("flat record Wasm32 layout disagrees with descriptor"));
+            }
+            let public_size = u32::try_from(export.fields().len())
+                .ok()
+                .and_then(|count| count.checked_mul(8))
+                .ok_or_else(|| error("flat record public carrier size overflows"))?;
+            let fields = export
+                .fields()
+                .iter()
+                .zip(&layout.fields)
+                .map(|(field, physical)| {
+                    if field.stable_id() != &physical.field {
+                        return Err(error("flat record field order disagrees with Wasm32 layout"));
+                    }
+                    let kind = match field.ty() {
+                        crate::project::FlatOwnedRecordFieldType::I64 => FlatRecordFieldKind::I64,
+                        crate::project::FlatOwnedRecordFieldType::Bool => FlatRecordFieldKind::Bool,
+                        crate::project::FlatOwnedRecordFieldType::Usize => {
+                            FlatRecordFieldKind::Usize
+                        }
+                        crate::project::FlatOwnedRecordFieldType::OwnedBytes => {
+                            FlatRecordFieldKind::OwnedBytes
+                        }
+                    };
+                    let expected_value_kind = if kind == FlatRecordFieldKind::OwnedBytes {
+                        AggregateFieldValueKind::OwnedBytes
+                    } else {
+                        AggregateFieldValueKind::Copy
+                    };
+                    if physical.value_kind != expected_value_kind
+                        || physical.size != if kind == FlatRecordFieldKind::Bool { 4 } else { 8 }
+                    {
+                        return Err(error("flat record field representation is not exact"));
+                    }
+                    Ok(FlatRecordFieldLayout {
+                        source_offset: physical.offset,
+                        public_offset: field
+                            .ordinal()
+                            .checked_mul(8)
+                            .ok_or_else(|| error("flat record public field offset overflows"))?,
+                        kind,
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            if fields
+                .iter()
+                .filter(|field| field.kind == FlatRecordFieldKind::OwnedBytes)
+                .count()
+                != 1
+            {
+                return Err(error("flat record carrier requires one owned field"));
+            }
+            let parameters = export
+                .parameters()
+                .iter()
+                .map(|(_, _, parameter)| match parameter {
+                    PublicApiParameterType::I64 => ParameterType::I64,
+                    PublicApiParameterType::Bool => ParameterType::Bool,
+                    PublicApiParameterType::BorrowStr => ParameterType::BorrowStr,
+                    PublicApiParameterType::BorrowSliceU8 => ParameterType::BorrowSliceU8,
+                })
+                .collect();
+            Ok(OwnedDataExportPlan {
+                stable_id: export.stable_id().as_str().to_owned(),
+                wasm_export: raw_symbol(export.stable_id().as_str()),
+                function_id: export.stable_id().clone(),
+                parameters,
+                result: ResultLayout::FlatRecord {
+                    private_size: layout.size,
+                    public_size,
+                    fields,
+                },
             })
         })
         .collect()

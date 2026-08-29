@@ -10,6 +10,7 @@ mod command_v2;
 mod command_v3;
 mod command_v4;
 mod data;
+mod owned_data;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 mod publication;
 
@@ -30,8 +31,18 @@ use carrier::{
 pub use carrier::{
     ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
     PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
-    PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6,
+    PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6, PROJECT_NPM_BUILD_SCHEMA_V7,
 };
+
+pub(crate) fn prepare_owned_data(
+    program: &crate::hir::ResolvedProgram,
+    descriptor: &crate::project::PublicApiDescriptor,
+    package: &str,
+    version: &str,
+    max_bytes: usize,
+) -> Result<ProjectNpmBuild, Diagnostic> {
+    owned_data::prepare(program, descriptor, package, version, max_bytes)
+}
 
 pub(crate) const USEFUL_TEXT_PACKAGE_PATHS: [&str; 6] = [
     "app.wasm",
@@ -310,6 +321,19 @@ fn derive_exports(
 pub(super) fn render_semantic_recipe(
     program: &crate::hir::ResolvedProgram,
 ) -> Result<String, Diagnostic> {
+    render_semantic_recipe_profile(program, false)
+}
+
+pub(super) fn render_owned_data_semantic_recipe(
+    program: &crate::hir::ResolvedProgram,
+) -> Result<String, Diagnostic> {
+    render_semantic_recipe_profile(program, true)
+}
+
+fn render_semantic_recipe_profile(
+    program: &crate::hir::ResolvedProgram,
+    preserve_public_names: bool,
+) -> Result<String, Diagnostic> {
     use std::collections::BTreeMap;
 
     if program.functions.is_empty() || program.functions.len() > 256 {
@@ -372,7 +396,11 @@ pub(super) fn render_semantic_recipe(
             .iter()
             .enumerate()
             .map(|(index, parameter)| {
-                let name = format!("p{index}");
+                let name = if preserve_public_names {
+                    parameter.name.clone()
+                } else {
+                    format!("p{index}")
+                };
                 values.insert(parameter.id.as_str().to_owned(), name.clone());
                 let ty = recipe_type(&parameter.ty)?;
                 let mode = match parameter.ownership {

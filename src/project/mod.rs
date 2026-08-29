@@ -46,8 +46,20 @@ pub use native_sdk::{ProjectNativeSdkExport, ProjectNativeSdkSubject};
 pub use npm::{
     ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
     PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
-    PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6,
+    PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6, PROJECT_NPM_BUILD_SCHEMA_V7,
 };
+
+/// Prepare the additive WP-10 direct-Bytes package from held HIR and the
+/// canonical descriptor. This does not activate a Project manifest profile.
+pub fn prepare_owned_data_npm_build(
+    program: &crate::hir::ResolvedProgram,
+    descriptor: &PublicApiDescriptor,
+    package: &str,
+    version: &str,
+    max_bytes: usize,
+) -> Result<ProjectNpmBuild, Diagnostic> {
+    npm::prepare_owned_data(program, descriptor, package, version, max_bytes)
+}
 pub use profile::{
     ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_ARGS_READ_CAPABILITY,
     PROJECT_COMMAND_INPUT_V1, PROJECT_COMMAND_STDERR_WRITE_CAPABILITY,

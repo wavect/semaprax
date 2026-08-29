@@ -1192,28 +1192,35 @@ pub(super) fn emit_byte_exports(
     program: &ResolvedProgram,
     plans: &[super::data_exports::DataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
-    emit_byte_exports_profile(program, plans, false, false, None)
+    emit_byte_exports_profile(program, plans, false, false, None, &[])
+}
+
+pub(super) fn emit_owned_data_exports(
+    program: &ResolvedProgram,
+    plans: &[super::owned_data_exports::OwnedDataExportPlan],
+) -> Result<Vec<u8>, Diagnostic> {
+    emit_byte_exports_profile(program, &[], false, false, None, plans)
 }
 
 pub(super) fn emit_byte_exports_with_stdout_transcript(
     program: &ResolvedProgram,
     plans: &[super::data_exports::DataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
-    emit_byte_exports_profile(program, plans, true, false, None)
+    emit_byte_exports_profile(program, plans, true, false, None, &[])
 }
 
 pub(super) fn emit_useful_data_command_v2(
     program: &ResolvedProgram,
     plans: &[super::data_exports::DataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
-    emit_byte_exports_profile(program, plans, true, true, None)
+    emit_byte_exports_profile(program, plans, true, true, None, &[])
 }
 
 pub(super) fn emit_language_command_io(
     program: &ResolvedProgram,
     plan: &super::command_io::CommandPlan,
 ) -> Result<Vec<u8>, Diagnostic> {
-    emit_byte_exports_profile(program, &[], true, false, Some(plan))
+    emit_byte_exports_profile(program, &[], true, false, Some(plan), &[])
 }
 
 fn emit_byte_exports_profile(
@@ -1222,8 +1229,11 @@ fn emit_byte_exports_profile(
     host_output: bool,
     publish_only_truthy: bool,
     command_io: Option<&super::command_io::CommandPlan>,
+    owned_plans: &[super::owned_data_exports::OwnedDataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
-    if (plans.is_empty() && command_io.is_none()) || !super::program_uses_byte_data(program) {
+    if (plans.is_empty() && command_io.is_none() && owned_plans.is_empty())
+        || !super::program_uses_byte_data(program)
+    {
         return Err(error(
             "Public Useful Data Export v1 requires selected byte-data exports",
         ));
@@ -1351,6 +1361,16 @@ fn emit_byte_exports_profile(
             )
         })
         .collect::<Vec<_>>();
+    wrapper_types.extend(owned_plans.iter().map(|plan| {
+        intern_type(
+            Signature {
+                params: plan.raw_params(),
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    }));
     if command_io.is_some() {
         wrapper_types.push(intern_type(
             Signature {
@@ -1403,6 +1423,16 @@ fn emit_byte_exports_profile(
             ),
         )
     });
+    let owned_utf8_validate = (!owned_plans.is_empty()).then(|| {
+        intern_type(
+            Signature {
+                params: vec![I32, I32],
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
 
     let function_indexes = executable_functions
         .iter()
@@ -1413,6 +1443,7 @@ fn emit_byte_exports_profile(
                 SCALAR_IMPORT_COUNT
                     + BYTE_IMPORT_COUNT
                     + command_import_count
+                    + u32::from(owned_utf8_validate.is_some())
                     + u32::try_from(index).unwrap_or(u32::MAX),
             )
         })
@@ -1431,7 +1462,10 @@ fn emit_byte_exports_profile(
     let mut imports = Vec::new();
     write_u32(
         &mut imports,
-        SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT + command_import_count,
+        SCALAR_IMPORT_COUNT
+            + BYTE_IMPORT_COUNT
+            + command_import_count
+            + u32::from(owned_utf8_validate.is_some()),
     );
     for name in ["spx_add", "spx_sub", "spx_mul", "spx_div", "spx_rem"] {
         function_import(&mut imports, "env", name, binary_checked);
@@ -1452,6 +1486,9 @@ fn emit_byte_exports_profile(
             "spx_command_owned_bytes_validate_v1",
             owned_validate,
         );
+    }
+    if let Some(ty) = owned_utf8_validate {
+        function_import(&mut imports, "env", "spx_owned_utf8_validate_v1", ty);
     }
     section(&mut module, 2, imports);
 
@@ -1537,7 +1574,7 @@ fn emit_byte_exports_profile(
             4_u32
         })
         .checked_add(
-            u32::try_from(plans.len() + usize::from(command_io.is_some()))
+            u32::try_from(plans.len() + owned_plans.len() + usize::from(command_io.is_some()))
                 .map_err(|_| error("too many data exports"))?,
         )
         .ok_or_else(|| error("Public Useful Data export count overflows u32"))?,
@@ -1569,6 +1606,7 @@ fn emit_byte_exports_profile(
     let wrapper_base = SCALAR_IMPORT_COUNT
         .checked_add(BYTE_IMPORT_COUNT)
         .and_then(|value| value.checked_add(command_import_count))
+        .and_then(|value| value.checked_add(u32::from(owned_utf8_validate.is_some())))
         .and_then(|value| value.checked_add(u32::try_from(executable_functions.len()).ok()?))
         .ok_or_else(|| error("Public Useful Data wrapper index overflows u32"))?;
     for (ordinal, plan) in plans.iter().enumerate() {
@@ -1579,6 +1617,18 @@ fn emit_byte_exports_profile(
             wrapper_base
                 .checked_add(u32::try_from(ordinal).map_err(|_| error("too many wrappers"))?)
                 .ok_or_else(|| error("Public Useful Data wrapper index overflows u32"))?,
+        );
+    }
+    for (ordinal, plan) in owned_plans.iter().enumerate() {
+        write_name(&mut exports, &plan.wasm_export);
+        exports.push(0x00);
+        write_u32(
+            &mut exports,
+            wrapper_base
+                .checked_add(
+                    u32::try_from(plans.len() + ordinal).map_err(|_| error("too many wrappers"))?,
+                )
+                .ok_or_else(|| error("owned-data wrapper index overflows u32"))?,
         );
     }
     if let Some(plan) = command_io {
@@ -1596,8 +1646,13 @@ fn emit_byte_exports_profile(
     let mut code = Vec::new();
     write_u32(
         &mut code,
-        u32::try_from(executable_functions.len() + plans.len() + usize::from(command_io.is_some()))
-            .map_err(|_| error("too many Public Useful Data bodies"))?,
+        u32::try_from(
+            executable_functions.len()
+                + plans.len()
+                + owned_plans.len()
+                + usize::from(command_io.is_some()),
+        )
+        .map_err(|_| error("too many Public Useful Data bodies"))?,
     );
     for (function, _) in &executable_functions {
         let body = emit_function(
@@ -1628,6 +1683,16 @@ fn emit_byte_exports_profile(
         } else {
             plan.emit_wrapper_body(target, 0, 1)?
         };
+        write_u32(&mut code, body.len() as u32);
+        code.extend(body);
+    }
+    for plan in owned_plans {
+        let target = function_indexes
+            .get(&FunctionExecutionId::Monomorphic(plan.function_id.clone()))
+            .copied()
+            .ok_or_else(|| error("selected owned-data export target is not indexed"))?;
+        let utf8_index = SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT + command_import_count;
+        let body = plan.emit_wrapper_body(target, utf8_index)?;
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
     }

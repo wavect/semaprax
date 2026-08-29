@@ -3,6 +3,7 @@
     reason = "the CLI preserves structured Diagnostic values across command boundaries"
 )]
 
+use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 
@@ -747,8 +748,7 @@ fn run(args: Vec<String>) -> Result<(), u8> {
         },
         "package-resolve" => match cli::package_resolver::run(&args[1..]) {
             Ok(evidence) => {
-                println!("{evidence}");
-                Ok(())
+                write_package_resolver_stdout(&evidence).map_err(|error| report(&[error], false))
             }
             Err(cli::package_resolver::PackageResolverCliError::Usage(message)) => {
                 eprintln!("{message}");
@@ -981,6 +981,21 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             Err(2)
         }
     }
+}
+
+fn write_package_resolver_stdout(evidence: &str) -> Result<(), Diagnostic> {
+    let stdout = std::io::stdout();
+    let mut stdout = stdout.lock();
+    stdout
+        .write_all(evidence.as_bytes())
+        .and_then(|()| stdout.write_all(b"\n"))
+        .and_then(|()| stdout.flush())
+        .map_err(|_| {
+            Diagnostic::io(
+                "SPX-I215",
+                "cannot write package-resolve evidence to standard output",
+            )
+        })
 }
 
 fn serve_options(args: &[String]) -> Result<agent_transport::TransportLimits, u8> {

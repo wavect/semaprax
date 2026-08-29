@@ -21,8 +21,24 @@ pub(crate) enum PackageResolverCliError {
 
 pub(crate) fn run(arguments: &[String]) -> Result<String, PackageResolverCliError> {
     let parsed = parse(arguments)?;
-    let subjects = read_subjects(&parsed.paths)
-        .map_err(|error| PackageResolverCliError::Domain(vec![error]))?;
+    let current_dir = std::env::current_dir().map_err(|_| {
+        PackageResolverCliError::Domain(vec![io_error(
+            "cannot capture the package-resolve current directory",
+        )])
+    })?;
+    let paths = parsed
+        .paths
+        .iter()
+        .map(|path| {
+            if path.is_absolute() {
+                path.clone()
+            } else {
+                current_dir.join(path)
+            }
+        })
+        .collect::<Vec<_>>();
+    let subjects =
+        read_subjects(&paths).map_err(|error| PackageResolverCliError::Domain(vec![error]))?;
     package_resolver::generate(
         &ResolutionInput {
             requirements: parsed.requirements,
@@ -52,6 +68,11 @@ fn parse(arguments: &[String]) -> Result<Parsed, PackageResolverCliError> {
     while let Some(value) = arguments.get(index) {
         if value.starts_with('-') {
             break;
+        }
+        if value.starts_with('@') {
+            return Err(usage(
+                "package-resolve subject files must not use `@` response-file syntax",
+            ));
         }
         paths.push(PathBuf::from(value));
         index += 1;

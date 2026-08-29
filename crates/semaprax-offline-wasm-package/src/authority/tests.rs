@@ -43,6 +43,14 @@ fn build() -> OfflinePackageBuild {
     }
 }
 
+fn linked_build() -> LinkedOfflinePackageBuild {
+    LinkedOfflinePackageBuild {
+        module_wasm: b"\0asm\x01\0\0\0".to_vec(),
+        manifest_json: "{\"linked_manifest\":true}".to_owned(),
+        evidence_json: "{\"linked_evidence\":true}".to_owned(),
+    }
+}
+
 fn accept(_: &OfflinePackageBuild) -> Result<(), CompilerReplayFailure> {
     Ok(())
 }
@@ -260,6 +268,72 @@ fn shared_artifact_adapter_preserves_v1_file_names_order_and_bytes() {
             (MANIFEST_FILE, build.manifest_json.as_bytes()),
         ]
     );
+}
+
+#[test]
+fn linked_adapter_uses_the_same_exact_file_inventory_and_held_second_replay() {
+    let root = root("linked-success");
+    let output = root.join("package");
+    let build = linked_build();
+    let mut held_replays = 0;
+    publish_linked_verified(&output, &build, &mut |_| {
+        held_replays += 1;
+        Ok(())
+    })
+    .unwrap();
+    assert_eq!(held_replays, 1);
+    assert_eq!(
+        fs::read(output.join(MODULE_FILE)).unwrap(),
+        build.module_wasm
+    );
+    assert_eq!(
+        fs::read(output.join(EVIDENCE_FILE)).unwrap(),
+        build.evidence_json.as_bytes()
+    );
+    assert_eq!(
+        fs::read(output.join(MANIFEST_FILE)).unwrap(),
+        build.manifest_json.as_bytes()
+    );
+    let mut names = fs::read_dir(output)
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name())
+        .collect::<Vec<_>>();
+    names.sort();
+    assert_eq!(
+        names,
+        [MODULE_FILE, EVIDENCE_FILE, MANIFEST_FILE].map(std::ffi::OsString::from)
+    );
+}
+
+#[test]
+fn linked_held_replay_failure_settles_before_any_publication() {
+    let root = root("linked-replay-failure");
+    let output = root.join("package");
+    let build = linked_build();
+    let mut replay = || -> Result<(), CompilerReplayFailure> {
+        Err(CompilerReplayFailure {
+            code: "SPX-PB607",
+            message: "injected linked replay rejection".to_owned(),
+        })
+    };
+    let mut observer = NoopObserver;
+    let error = publish_artifacts(
+        &output,
+        ArtifactFiles::from_v2(&build),
+        &mut replay,
+        &mut observer,
+    )
+    .unwrap_err();
+    assert_eq!(error.code, PP_REPLAY);
+    assert_eq!(error.compiler_code, Some("SPX-PB607"));
+    assert_eq!(error.visibility, PublicationVisibility::NotPublished);
+    assert_eq!(error.cleanup, CleanupStatus::Settled);
+    assert!(!output.exists());
+    assert!(!fs::read_dir(&root).unwrap().any(|entry| entry
+        .unwrap()
+        .file_name()
+        .to_string_lossy()
+        .starts_with(".semaprax-")));
 }
 
 impl<F> Observer for ClosureObserver<F>

@@ -17,6 +17,13 @@ The separate safe publisher may create one new directory, but `publish_linked`
 uses the exact v1 held-authority state machine, fixed three-file inventory,
 two compiler replays, byte authentication, settlement, no-replace publication,
 and post-publication authentication. V2 does not duplicate platform logic.
+On every supported platform the host must exclude uncooperative namespace and
+content mutation of the destination, its parent, and its complete ancestor
+chain for the invocation. Unix/macOS additionally requires a
+current-effective-user-owned destination parent with exact mode `0700`.
+POSIX creation cannot atomically return the created-directory handle, and the
+Darwin mode check does not mechanically authenticate ACL authority. These are
+mandatory host preconditions, not an advisory-lock or hermeticity claim.
 
 ## Inputs and closed profile
 

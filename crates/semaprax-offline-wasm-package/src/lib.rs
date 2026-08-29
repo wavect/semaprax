@@ -81,6 +81,16 @@ pub struct PublishedLinkedOfflinePackageBuild {
 
 /// Publishes an exactly replayed linked-v2 build through the same fixed
 /// create-new authority state machine as v1.
+///
+/// On every platform the host must exclude all uncooperative namespace or
+/// content mutation of the destination path, its parent, and its ancestor chain
+/// for the complete invocation; held parent-relative checks cannot prove that
+/// an absolute ancestor path was not concurrently rebound. On Unix/macOS the
+/// destination parent must additionally be current-euid-owned with exact mode
+/// 0700. POSIX directory creation cannot atomically return the created directory
+/// handle, and Darwin ACL authority is outside the mechanical mode-bit check.
+/// These coordination requirements are part of the linked-v2 authority
+/// contract, not an advisory lock guarantee.
 #[allow(clippy::too_many_arguments)]
 pub fn publish_linked(
     output: &Path,

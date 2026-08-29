@@ -102,7 +102,7 @@ fn read_subjects(paths: &[PathBuf]) -> Result<Vec<String>, Diagnostic> {
                 "package-lock subject input must be a regular file".to_owned(),
             ));
         }
-        let identity = held_input_identity(&metadata)?;
+        let identity = held_input_identity(&file, &metadata)?;
         if !identities.insert(identity) {
             return Err(Diagnostic::io(
                 "SPX-I215",
@@ -177,31 +177,33 @@ fn subject_limit() -> Diagnostic {
 }
 
 #[cfg(unix)]
-fn held_input_identity(metadata: &std::fs::Metadata) -> Result<(u64, u64), Diagnostic> {
+fn held_input_identity(
+    _file: &std::fs::File,
+    metadata: &std::fs::Metadata,
+) -> Result<(u64, u64), Diagnostic> {
     use std::os::unix::fs::MetadataExt as _;
     Ok((metadata.dev(), metadata.ino()))
 }
 
 #[cfg(windows)]
-fn held_input_identity(metadata: &std::fs::Metadata) -> Result<(u64, u64), Diagnostic> {
-    use std::os::windows::fs::MetadataExt as _;
-    let volume = metadata.volume_serial_number().ok_or_else(|| {
-        Diagnostic::io(
-            "SPX-I215",
-            "held package-lock subject volume identity is unavailable".to_owned(),
-        )
-    })?;
-    let index = metadata.file_index().ok_or_else(|| {
+fn held_input_identity(
+    file: &std::fs::File,
+    _metadata: &std::fs::Metadata,
+) -> Result<(u64, u64), Diagnostic> {
+    let information = winapi_util::file::information(file).map_err(|_| {
         Diagnostic::io(
             "SPX-I215",
             "held package-lock subject file identity is unavailable".to_owned(),
         )
     })?;
-    Ok((u64::from(volume), index))
+    Ok((information.volume_serial_number(), information.file_index()))
 }
 
 #[cfg(not(any(unix, windows)))]
-fn held_input_identity(_metadata: &std::fs::Metadata) -> Result<(u64, u64), Diagnostic> {
+fn held_input_identity(
+    _file: &std::fs::File,
+    _metadata: &std::fs::Metadata,
+) -> Result<(u64, u64), Diagnostic> {
     Err(Diagnostic::io(
         "SPX-I215",
         "held package-lock subject identity is unsupported on this host".to_owned(),

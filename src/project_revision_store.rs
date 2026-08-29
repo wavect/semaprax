@@ -7,11 +7,30 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 
 use crate::diagnostic::{quote_json, Diagnostic};
-use crate::project::{ProjectManifest, ProjectRevision, ProjectSource};
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
+use crate::project::ProjectManifest;
+use crate::project::{ProjectRevision, ProjectSource};
 
 #[cfg(all(
     unix,
@@ -188,6 +207,15 @@ struct PreparedEntry {
     entry_digest: String,
 }
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 pub(super) struct StoredEntry {
     entry_json: Vec<u8>,
     manifest: Vec<u8>,
@@ -251,6 +279,15 @@ impl PreparedEntry {
         Ok(prepared)
     }
 
+    #[cfg(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    ))]
     fn receipt(&self) -> ProjectRevisionStoreReceipt {
         ProjectRevisionStoreReceipt {
             entry_digest: self.entry_digest.clone(),
@@ -260,6 +297,15 @@ impl PreparedEntry {
         }
     }
 
+    #[cfg(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    ))]
     fn entry_hex(&self) -> &str {
         self.entry_digest
             .strip_prefix("sha256:")
@@ -387,6 +433,15 @@ fn render_entry(prepared: &PreparedEntry, entry_json_bytes: usize) -> String {
     )
 }
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 fn replay_stored(
     stored: StoredEntry,
     entry_digest: &str,
@@ -497,6 +552,15 @@ fn replay_stored(
     Ok(revision)
 }
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 #[derive(Clone)]
 struct EntryHeader {
     project_schema: String,
@@ -510,6 +574,15 @@ struct EntryHeader {
     sources: Vec<StoredSourceHeader>,
 }
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 #[derive(Clone)]
 struct StoredSourceHeader {
     path: String,
@@ -519,6 +592,15 @@ struct StoredSourceHeader {
     bytes: usize,
 }
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 fn parse_entry_header(bytes: &[u8]) -> Result<EntryHeader, Vec<Diagnostic>> {
     if bytes.len() > MAX_STORE_ENTRY_JSON_BYTES {
         return Err(limit("entry_json_bytes", MAX_STORE_ENTRY_JSON_BYTES));
@@ -644,6 +726,15 @@ fn parse_entry_header(bytes: &[u8]) -> Result<EntryHeader, Vec<Diagnostic>> {
     })
 }
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 pub(super) fn source_inventory(bytes: &[u8]) -> Result<Vec<(String, usize)>, Vec<Diagnostic>> {
     Ok(parse_entry_header(bytes)?
         .sources
@@ -652,6 +743,15 @@ pub(super) fn source_inventory(bytes: &[u8]) -> Result<Vec<(String, usize)>, Vec
         .collect())
 }
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 fn child<'a>(
     object: &'a Map<String, Value>,
     key: &str,
@@ -665,6 +765,15 @@ fn child<'a>(
     Ok(child)
 }
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 fn exact_keys(object: &Map<String, Value>, keys: &[&str]) -> Result<(), Vec<Diagnostic>> {
     if object.len() != keys.len() || keys.iter().any(|key| !object.contains_key(*key)) {
         return Err(grammar(
@@ -674,6 +783,15 @@ fn exact_keys(object: &Map<String, Value>, keys: &[&str]) -> Result<(), Vec<Diag
     Ok(())
 }
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 fn string<'a>(object: &'a Map<String, Value>, key: &str) -> Result<&'a str, Vec<Diagnostic>> {
     object
         .get(key)
@@ -681,12 +799,30 @@ fn string<'a>(object: &'a Map<String, Value>, key: &str) -> Result<&'a str, Vec<
         .ok_or_else(|| grammar(format!("Project Revision Store `{key}` must be a string")))
 }
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 fn digest_field(object: &Map<String, Value>, key: &str) -> Result<String, Vec<Diagnostic>> {
     let value = string(object, key)?;
     require_digest(value, key)?;
     Ok(value.to_owned())
 }
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 fn number(object: &Map<String, Value>, key: &str) -> Result<usize, Vec<Diagnostic>> {
     let value = object
         .get(key)
@@ -695,6 +831,15 @@ fn number(object: &Map<String, Value>, key: &str) -> Result<usize, Vec<Diagnosti
     usize::try_from(value).map_err(|_| limit(key, usize::MAX))
 }
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 fn json_depth(value: &Value) -> usize {
     match value {
         Value::Array(values) => 1 + values.iter().map(json_depth).max().unwrap_or(0),
@@ -807,6 +952,15 @@ fn replay(message: impl Into<String>) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G192", message)]
 }
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 pub(super) fn authentication(message: impl Into<String>) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G193", message)]
 }
@@ -815,6 +969,15 @@ pub(super) fn io(message: impl Into<String>) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-I215", message)]
 }
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 pub(super) fn post_pivot(message: impl Into<String>) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-I216", message)]
 }

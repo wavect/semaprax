@@ -199,6 +199,37 @@ impl ProjectRevision {
         .map_err(|error| vec![error])
     }
 
+    /// Derive and independently replay the canonical Project v8 public API
+    /// descriptor from this immutable retained subject.
+    pub fn public_api_descriptor(&self) -> Result<super::PublicApiDescriptor, Vec<Diagnostic>> {
+        if self.manifest.project_profile() != ProjectProfile::OwnedDataApiV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-J105",
+                "public owned-data API description requires Project v8 owned-data-api.v1",
+            )]);
+        }
+        let subject = super::PublicApiSubject {
+            project_schema: self.manifest.schema(),
+            project_revision: &self.project_revision,
+            workspace_revision: &self.workspace_revision,
+            project_graph_digest: self.semantic.graph_digest(),
+        };
+        let descriptor = super::derive_public_api_descriptor(
+            &self.entry_program,
+            self.manifest.web_exports(),
+            subject,
+        )
+        .map_err(|error| vec![error])?;
+        super::replay_public_api_descriptor(
+            &self.entry_program,
+            self.manifest.web_exports(),
+            subject,
+            &descriptor.canonical_bytes(),
+            &descriptor.digest(),
+        )
+        .map_err(|error| vec![error])
+    }
+
     /// Emit the sole retained test-module closure as legacy core Wasm.
     pub fn test_wasm_module(&self) -> Result<Vec<u8>, Vec<Diagnostic>> {
         crate::wasm::emit_resolved_module(&self.test_program).map_err(|error| vec![error])

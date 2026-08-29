@@ -17,6 +17,7 @@ pub(crate) enum ServerProfile {
     ReadOnlyV2,
     ProjectRenameV1,
     ProjectWorkflowV1,
+    ProjectOwnedDataV1,
 }
 
 impl ServerConfig {
@@ -29,6 +30,7 @@ impl ServerConfig {
         let mut max_response_bytes = None;
         let mut allow_project_rename = false;
         let mut allow_project_workflow = false;
+        let mut allow_project_owned_data = false;
 
         while let Some(argument) = arguments.next() {
             let Some(option) = argument.to_str() else {
@@ -67,6 +69,12 @@ impl ServerConfig {
                 "--allow-project-workflow" => {
                     return Err("--allow-project-workflow may not be repeated".to_owned());
                 }
+                "--allow-project-owned-data" if !allow_project_owned_data => {
+                    allow_project_owned_data = true;
+                }
+                "--allow-project-owned-data" => {
+                    return Err("--allow-project-owned-data may not be repeated".to_owned());
+                }
                 unknown => return Err(format!("unknown semapraxd option `{unknown}`")),
             }
         }
@@ -84,10 +92,18 @@ impl ServerConfig {
                     .to_owned(),
             );
         }
+        if allow_project_owned_data && (allow_project_rename || allow_project_workflow) {
+            return Err(
+                "--allow-project-owned-data is mutually exclusive with every other Project daemon authority profile"
+                    .to_owned(),
+            );
+        }
         Ok(Self {
             manifest_path: manifest_path.unwrap_or_else(|| PathBuf::from(DEFAULT_MANIFEST)),
             limits,
-            profile: if allow_project_workflow {
+            profile: if allow_project_owned_data {
+                ServerProfile::ProjectOwnedDataV1
+            } else if allow_project_workflow {
                 ServerProfile::ProjectWorkflowV1
             } else if allow_project_rename {
                 ServerProfile::ProjectRenameV1
@@ -171,6 +187,25 @@ mod tests {
             "--allow-project-rename"
         ])
         .is_err());
+
+        let owned = parse(&["semapraxd", "--stdio", "--allow-project-owned-data"]).unwrap();
+        assert_eq!(owned.profile(), ServerProfile::ProjectOwnedDataV1);
+        assert!(parse(&[
+            "semapraxd",
+            "--stdio",
+            "--allow-project-owned-data",
+            "--allow-project-owned-data"
+        ])
+        .is_err());
+        for conflicting in ["--allow-project-rename", "--allow-project-workflow"] {
+            assert!(parse(&[
+                "semapraxd",
+                "--stdio",
+                "--allow-project-owned-data",
+                conflicting
+            ])
+            .is_err());
+        }
 
         let workflow = parse(&["semapraxd", "--stdio", "--allow-project-workflow"]).unwrap();
         assert_eq!(workflow.profile(), ServerProfile::ProjectWorkflowV1);

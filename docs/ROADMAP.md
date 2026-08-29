@@ -54,6 +54,12 @@ Sequence this tranche narrowly:
    Wasm, installed npm, and compiler-free Rust consumption before any hosted
    or completion-matrix promotion.
 
+After Project v8 target activation, the additive read-only [Project Agent
+Transport v5](PROJECT-AGENT-TRANSPORT-V5.md) exposes only its canonical API
+descriptor and bounded inline npm carrier. It must retain exact revision and
+descriptor replay, zero write/process/publication authority, and byte-frozen
+v2-v4 behavior before any broader agent workflow is considered.
+
 Records, authored variants, nested algebraic data, owned UTF-8 strings,
 allocator transfer, callbacks, async work, and general public aggregate ABIs
 remain outside this preview. The versioned specification owns its exact

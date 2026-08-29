@@ -57,7 +57,22 @@ const PROJECT_WORKFLOW_METHODS: [&str; 16] = [
     "workspace/snapshot",
     "workspace/status",
 ];
+const PROJECT_OWNED_DATA_METHODS: [&str; 12] = [
+    "check",
+    "context",
+    "graph",
+    "ping",
+    "project/api-describe",
+    "project/npm-build-inline",
+    "protocol",
+    "shutdown",
+    "test",
+    "workspace/open",
+    "workspace/snapshot",
+    "workspace/status",
+];
 
+mod owned_data;
 mod rename;
 mod workflow;
 
@@ -99,6 +114,13 @@ pub(super) fn serve<R: BufRead, W: Write>(
     let mut output = FrameWriter::new(output, limits);
     let snapshot = crate::project::load_snapshot(&manifest_path)
         .map_err(|diagnostics| io::Error::other(diagnostic_message(&diagnostics)))?;
+    if config.profile() == ServerProfile::ProjectOwnedDataV1
+        && snapshot.manifest().project_profile() != crate::project::ProjectProfile::OwnedDataApiV1
+    {
+        return Err(io::Error::other(
+            "SPX-J105: Agent Transport v5 requires Project v8 owned-data-api.v1",
+        ));
+    }
     let mut session = Session {
         snapshot: Some(snapshot),
         state: SessionState::Configured,
@@ -235,6 +257,8 @@ impl Session {
             "impact" => self.change_impact(id, params),
             "review" => self.change_review(id, params),
             "build" => self.build(id, params),
+            "project/api-describe" => self.api_describe(id, params),
+            "project/npm-build-inline" => self.npm_build_inline(id, params),
             unknown => self.error(
                 id,
                 METHOD_NOT_FOUND,
@@ -410,6 +434,11 @@ impl Session {
                 super::PROJECT_WORKFLOW_TRANSPORT_SCHEMA,
                 PROJECT_WORKFLOW_METHODS.as_slice(),
                 "[\"no_network_socket_tls_or_peer_authentication\",\"no_request_selected_root_path_source_patch_evidence_output_tool_or_environment_authority\",\"single_file_explicit_exported_function_display_rename_only\",\"project_bound_structural_impact_and_fixed_review_not_general_change_analysis\",\"web_only_inline_build_no_filesystem_process_or_target_execution\",\"no_general_multi_file_change_import_alias_or_managed_workspace_authority\",\"no_exactly_once_delivery_deduplication_or_output_delivery_guarantee\",\"no_persistent_disk_cache_or_incremental_refresh\",\"no_concurrent_batch_or_out_of_order_processing\"]",
+            ),
+            ServerProfile::ProjectOwnedDataV1 => (
+                super::PROJECT_OWNED_DATA_TRANSPORT_SCHEMA,
+                PROJECT_OWNED_DATA_METHODS.as_slice(),
+                "[\"no_network_socket_tls_or_peer_authentication\",\"no_request_selected_root_path_source_patch_output_target_tool_or_environment_authority\",\"project_v8_owned_data_descriptor_and_npm_carrier_only\",\"read_only_no_source_write_rename_change_or_publication_authority\",\"no_filesystem_write_process_launch_target_execution_or_package_materialization\",\"no_persistent_disk_cache_or_incremental_refresh\",\"no_concurrent_batch_or_out_of_order_processing\"]",
             ),
         };
         Ok(format!(

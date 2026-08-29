@@ -242,6 +242,10 @@ impl ProjectSnapshot {
         self.revision.build_npm_inline(max_bytes)
     }
 
+    pub fn public_api_descriptor(&self) -> Result<PublicApiDescriptor, Vec<Diagnostic>> {
+        self.revision.public_api_descriptor()
+    }
+
     pub fn test_wasm_module(&self) -> Result<Vec<u8>, Vec<Diagnostic>> {
         self.revision.test_wasm_module()
     }

@@ -88,6 +88,28 @@ pub struct ProjectNpmBuild {
     pub(super) trusted: TrustedNpmBinding,
 }
 
+/// Exact descriptor facts recovered only after complete v7 carrier replay.
+/// This is authority-free comparison data, not a build or publication token.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct OwnedDataDescriptorBinding {
+    canonical: String,
+    digest: String,
+    project_revision: String,
+    workspace_revision: String,
+    project_graph_digest: String,
+}
+
+impl OwnedDataDescriptorBinding {
+    pub(crate) fn matches(&self, descriptor: &crate::project::PublicApiDescriptor) -> bool {
+        let canonical = descriptor.canonical_bytes();
+        self.canonical.as_bytes() == canonical.as_slice()
+            && self.digest == descriptor.digest()
+            && self.project_revision == descriptor.project_revision()
+            && self.workspace_revision == descriptor.workspace_revision()
+            && self.project_graph_digest == descriptor.project_graph_digest()
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct TrustedNpmBinding {
     project_schema: String,
@@ -135,6 +157,69 @@ impl ProjectNpmBuild {
             ));
         }
         Ok(())
+    }
+
+    /// Replay the complete owned-data carrier and recover its exact embedded
+    /// descriptor binding. String decoys outside the canonical metadata row,
+    /// duplicate keys, and re-minted outer identity facts cannot satisfy this
+    /// route because `verify` first requires exact canonical reconstruction.
+    fn owned_data_descriptor_binding(&self) -> Result<OwnedDataDescriptorBinding, Diagnostic> {
+        self.verify()?;
+        let artifacts = match decode_carrier_artifacts(&self.envelope, self.max_bytes)? {
+            ReplayedNpmArtifacts::OwnedData(artifacts) => artifacts,
+            _ => {
+                return Err(package_error(
+                    "npm carrier is not the Project v8 owned-data schema",
+                ))
+            }
+        };
+        let metadata = artifacts
+            .iter()
+            .find(|artifact| artifact.path == "semaprax.api.json")
+            .ok_or_else(|| package_error("owned-data API metadata is absent"))?;
+        let value: serde_json::Value = serde_json::from_slice(metadata.bytes())
+            .map_err(|_| package_error("owned-data API metadata is not valid JSON"))?;
+        let object = value
+            .as_object()
+            .ok_or_else(|| package_error("owned-data API metadata must be one object"))?;
+        require_exact_keys(
+            object,
+            &[
+                "artifacts",
+                "descriptor",
+                "descriptor_digest",
+                "limits",
+                "package",
+                "schema",
+                "settlement",
+                "target",
+                "version",
+                "wasm",
+            ],
+        )?;
+        Ok(OwnedDataDescriptorBinding {
+            canonical: json_string(object, "descriptor")?.to_owned(),
+            digest: json_string(object, "descriptor_digest")?.to_owned(),
+            project_revision: self.trusted.project_revision.clone(),
+            workspace_revision: self.trusted.workspace_revision.clone(),
+            project_graph_digest: self.trusted.project_graph_digest.clone(),
+        })
+    }
+
+    /// Independently replay this carrier and require its exact embedded v8
+    /// descriptor and retained Project subject to equal `descriptor`.
+    /// Success grants no build or publication authority.
+    pub fn verify_public_api_descriptor(
+        &self,
+        descriptor: &crate::project::PublicApiDescriptor,
+    ) -> Result<(), Diagnostic> {
+        if self.owned_data_descriptor_binding()?.matches(descriptor) {
+            Ok(())
+        } else {
+            Err(package_error(
+                "npm carrier descriptor does not match the retained Project subject",
+            ))
+        }
     }
 
     /// Inspect an untrusted serialized envelope for canonical compiler

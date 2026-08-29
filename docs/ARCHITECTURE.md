@@ -196,8 +196,12 @@ unpublished native Rust SDK bridge.
 
 `src/project_transport/` and `src/bin/semapraxd.rs` retain one authenticated
 Project revision for bounded requests. Read-only v2 is the default. Explicit
-opt-ins add one server-derived rename and workflow; they do not add general
-patch, filesystem, network, persistence, or recovery authority.
+opt-ins add one server-derived rename, the bounded workflow, or the additive
+read-only Project v8 descriptor/npm carrier surface. Transport v5 compares the
+carrier's independently replayed typed descriptor binding with the retained
+canonical descriptor before returning either. These profiles do not add
+general patch, filesystem, process, publication, network, persistence, or
+recovery authority.
 
 ## Reports and projections
 

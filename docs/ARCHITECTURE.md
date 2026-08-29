@@ -265,6 +265,22 @@ no HIR and cannot independently prove provider semantics; root HIR/codegen
 replay alone owns that proof. V8/v9 renderer and carrier identities remain
 separate. See [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md).
 
+`src/project_revision_store.rs` and `src/project_revision_store/unix.rs` own
+the additive [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md). The
+authority-neutral layer independently binds canonical manifest/source facts,
+Workspace and Project revisions, and the Project graph digest into one closed
+content-addressed entry. The Unix authority layer opens one host-injected
+absolute root component-by-component, performs all reads and effects relative
+to held descriptors, publishes a completely replayed create-new stage with a
+same-root no-replace rename, and settles the held directory before and after
+the pivot. Root admission bounds unrelated entries to content-addressed
+metadata and exact structural/identity replay; selecting an entry or
+publishing a new one additionally owns all bytes and rebuilds meaning through
+the ordinary Project Phase-A/HIR path; stored bytes never bypass verification.
+Non-Unix hosts fail before an
+entry effect. No store handle, receipt, daemon integration, build authority,
+cleanup, recovery, eviction, or garbage collection is exposed.
+
 `src/project_transport/` and `src/bin/semapraxd.rs` retain one authenticated
 Project revision for bounded requests. Read-only v2 is the default. Explicit
 opt-ins add one server-derived rename, the bounded workflow, or the additive
@@ -358,6 +374,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Single-file transactions | `src/patch.rs`, `src/patch/`, `src/patch_evidence.rs`, `src/repair.rs` |
 | Managed workspace | `src/workspace.rs`, `src/workspace_*`, `src/semantic_workspace*` |
 | Project, public descriptor, and daemon | `src/project/`, `src/project/public_api.rs`, `src/project_transport/`, `src/bin/semapraxd.rs` |
+| Immutable Project revision inputs | `src/project_revision_store.rs`, `src/project_revision_store/unix.rs` |
 | Generated Rust package authority | `src/project/native_sdk.rs`, `crates/semaprax-native-rust-owned-data-package/`, `crates/semaprax-native-rust-interop-builder/` |
 | Interpreter | `src/interpreter.rs`, `src/hosted_interpreter.rs` |
 | Native backend | `src/codegen.rs`, `src/codegen/native_*` |

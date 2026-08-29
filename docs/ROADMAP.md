@@ -125,8 +125,10 @@ ABIs prematurely.
 
 - evolve the interpreter into a fast incremental execution lane;
 - add source-level trace and diagnostic mapping;
-- persist authenticated Project revisions without granting ambient filesystem
-  authority;
+- execute and mature the authored
+  [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md), which persists
+  exact authenticated Project inputs only through one injected held root and
+  deliberately remains neither an ambient cache nor a verifier bypass;
 - broaden context and impact edges beyond the current bounded call and
   workspace families;
 - measure semantic-context cost and usefulness on representative repositories

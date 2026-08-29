@@ -1,7 +1,8 @@
 # Project Revision Store v1
 
-Status: additive implementation and hostile evidence authored; local and
-hosted execution are not claimed.
+Status: additive implementation and a focused Unix evidence subset authored;
+the complete evidence programme, local execution, and hosted execution are not
+claimed.
 
 Audience: compiler contributors, host integrators, and agent-tool authors.
 
@@ -144,6 +145,18 @@ the newly rebuilt authority-neutral `ProjectRevision`. The caller-provided
 foreign, malformed, truncated, or self-consistently reminted entry fails
 closed.
 
+Root-inventory admission does not compile every unrelated retained Project.
+For each of at most 32 retained entries it reads at most the 1,048,576-byte
+canonical `entry.json`, verifies that its content-address digest equals the
+directory name, and authenticates the complete held structural inventory,
+exact file sizes, modes, link counts, and stable identities. Thus unrelated
+metadata replay is cumulatively bounded by 33,554,432 bytes and 9,280
+inventory objects. Complete byte/digest/semantic replay is reserved for the
+selected load subject and the newly staged and published persistence subject.
+Same-size corruption of an unrelated retained entry therefore does not grant
+authority: selecting it still requires complete replay, while structural or
+metadata corruption prevents every operation immediately.
+
 ## Publication and authority order
 
 Persistence has this fixed order:
@@ -151,7 +164,8 @@ Persistence has this fixed order:
 1. validate the expected subject and prepare the complete canonical carrier;
 2. open the absolute root component-by-component with `O_NOFOLLOW` and retain
    its identity;
-3. authenticate the bounded root inventory;
+3. acquire one non-blocking advisory lock on the held root, rebind the supplied
+   path to that exact identity, and authenticate the bounded root inventory;
 4. create exactly one `.stage-<entry-hex>` directory with create-new semantics;
 5. create every directory and file relative to held descriptors with
    `O_NOFOLLOW`, `O_EXCL`, and no path rediscovery;
@@ -250,3 +264,9 @@ network service, invoke a process/tool, build a target, mutate source, evict,
 recover, repair, clean, or garbage collect. Authored but unrun evidence does
 not establish local, hosted, cross-platform, public, mature, or production
 support.
+
+The focused authored gate is:
+
+```sh
+cargo test --locked -p semaprax --all-features --lib project_revision_store::tests -- --test-threads=1
+```

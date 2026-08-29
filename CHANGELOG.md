@@ -25,6 +25,23 @@
   target execution, sandbox enforcement, source mutation, lockfile publication,
   trusted provenance, or completion-status promotion.
 
+- Added the explicitly injected, Unix-only Project Revision Store v1 for exact
+  already-authenticated Project inputs. A closed content-addressed entry binds
+  canonical manifest and sources, Workspace manifest/revision, Project
+  revision, and graph digest; loading independently replays the complete
+  recursive inventory and rebuilds ordinary Phase-A/HIR meaning. Unrelated
+  retained entries receive bounded content-addressed metadata and structural
+  authentication rather than an unbounded eager semantic rebuild. Publication
+  uses one held absolute root, handle-relative create-new staging, complete
+  file/directory settlement, and same-root no-replace rename, with foreign,
+  partial, colliding, drifted, or substituted structures preserved and
+  rejected; complete selected entries also reject truncated or foreign bytes.
+  The receipt has no reusable authority; Transport v2-v5 and Project
+  v1-v10 bytes remain unchanged; no daemon, ambient cache, build, recovery,
+  eviction, GC, Windows-support, local-green, hosted, or promotion claim is
+  added. A focused evidence subset is authored but was not run; complete
+  profile and hostile coverage is not claimed.
+
 - Added the unpromoted Project v9 `flat-owned-record-api.v1` implementation as
   the first additive follow-on to Project v8. Its distinct descriptor admits
   one direct owned-byte field with direct Copy-scalar siblings, while npm/Wasm

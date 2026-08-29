@@ -101,6 +101,14 @@ pub use semantic::{
     PROJECT_SEMANTIC_CONTEXT_SCHEMA, PROJECT_SEMANTIC_GRAPH_SCHEMA, PROJECT_SEMANTIC_IMPACT_SCHEMA,
 };
 
+pub(crate) fn rebuild_owned_revision(
+    manifest: ProjectManifest,
+    sources: Vec<SemanticWorkspaceSource>,
+) -> Result<ProjectRevision, Vec<Diagnostic>> {
+    let built = build::build_owned(&manifest, sources)?;
+    Ok(ProjectRevision::from_built(manifest, built))
+}
+
 const MANIFEST_FILE: &str = "semaprax.toml";
 const MAX_HELD_DIRECTORIES: usize = 128;
 

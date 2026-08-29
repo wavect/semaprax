@@ -130,6 +130,14 @@ entry/test HIR, one complete declared-project graph, and one typed context
 index. It reauthenticates held inputs around every revision-bound semantic
 response and grants no build or mutation authority.
 
+The explicitly injected [Project Revision Store
+v1](PROJECT-REVISION-STORE-V1.md) may persist the exact canonical manifest and
+source inputs of an already authenticated authority-neutral revision. Loading
+independently replays the content-addressed inventory and rebuilds the ordinary
+Project Phase-A/HIR subject; it is neither a serialized-verifier bypass nor a
+default daemon cache. Project Manifest v1-v10 and Transport v2-v5 wire bytes
+remain unchanged.
+
 Web publication inherits the scalar package's documented fresh-output,
 caller-exclusive parent/new-tree contract.
 

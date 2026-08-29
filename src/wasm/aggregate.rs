@@ -3201,8 +3201,8 @@ impl Emitter<'_> {
         for transition in &transitions {
             match transition {
                 crate::cleanup_plan::CleanupTransition::Initialize { destination, .. } => {
-                    if !self.set_variant_storage_flags_from_value(&destination, value)? {
-                        self.set_storage_flag(&destination, true)?;
+                    if !self.set_variant_storage_flags_from_value(destination, value)? {
+                        self.set_storage_flag(destination, true)?;
                     }
                 }
                 crate::cleanup_plan::CleanupTransition::InitializeVariant {
@@ -3212,7 +3212,7 @@ impl Emitter<'_> {
                 } => {
                     let layout = variant_layout(self.variant_layouts, value_type(value))?;
                     if layout.variant != *variant
-                        || !self.set_variant_storage_flags_from_value(&destination, value)?
+                        || !self.set_variant_storage_flags_from_value(destination, value)?
                     {
                         return Err(error(
                             "conditional variant initialization disagrees with carrier",
@@ -3235,9 +3235,9 @@ impl Emitter<'_> {
                         self.output.push(0x21);
                         write_u32(self.output, local);
                     }
-                    self.set_storage_flag(&source, false)?;
-                    if !self.set_variant_storage_flags_from_value(&destination, value)? {
-                        self.set_storage_flag(&destination, true)?;
+                    self.set_storage_flag(source, false)?;
+                    if !self.set_variant_storage_flags_from_value(destination, value)? {
+                        self.set_storage_flag(destination, true)?;
                     }
                 }
                 crate::cleanup_plan::CleanupTransition::TransferVariant {

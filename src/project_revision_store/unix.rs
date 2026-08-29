@@ -319,7 +319,7 @@ fn open_root(path: &Path) -> Result<OwnedFd, Vec<Diagnostic>> {
     }
     let mut current = fs::openat(
         CWD,
-        b"/",
+        b"/".as_slice(),
         OFlags::RDONLY | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
         Mode::empty(),
     )
@@ -599,7 +599,7 @@ fn write_entry(
             )?,
         ),
     );
-    fs::mkdirat(directory, b"sources", Mode::from_raw_mode(0o700)).map_err(|error| {
+    fs::mkdirat(directory, b"sources".as_slice(), Mode::from_raw_mode(0o700)).map_err(|error| {
         io(format!(
             "cannot create Project Revision Store sources: {error}"
         ))
@@ -993,7 +993,7 @@ fn read_file(parent: &OwnedFd, name: &str, limit: usize) -> Result<Vec<u8>, Vec<
     }
     let mut file = std::fs::File::from(fd);
     let mut bytes = Vec::with_capacity(stat.st_size as usize);
-    file.by_ref()
+    std::io::Read::by_ref(&mut file)
         .take(limit as u64 + 1)
         .read_to_end(&mut bytes)
         .map_err(|error| io(format!("cannot read Project Revision Store file: {error}")))?;

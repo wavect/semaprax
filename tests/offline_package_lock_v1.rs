@@ -235,7 +235,11 @@ fn subject_and_lock_tamper_fail_even_after_outer_digest_remint() {
         .remove(0);
     assert_eq!(error.code, "SPX-L404");
 
-    let lock = package_lock::generate(&[subject.clone()], &PackageLockOptions::default()).unwrap();
+    let lock = package_lock::generate(
+        std::slice::from_ref(&subject),
+        &PackageLockOptions::default(),
+    )
+    .unwrap();
     let forged_lock = remint_wrapper(
         &lock.replacen("\"version\":\"1.0.0\"", "\"version\":\"9.9.9\"", 1),
         LOCK_DOMAIN,

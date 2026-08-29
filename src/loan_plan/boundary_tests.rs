@@ -236,7 +236,7 @@ fn exact_million_work_build_replays_and_the_first_extra_unit_is_fail_closed() {
         let after_matches = base_work + matches * match_work;
         for branches in 0..=((MAX_LOAN_PLAN_WORK_V1 - after_matches) / branch_work) {
             let remaining = MAX_LOAN_PLAN_WORK_V1 - after_matches - branches * branch_work;
-            if remaining % leaf_work != 0 {
+            if !remaining.is_multiple_of(leaf_work) {
                 continue;
             }
             let leaves = remaining / leaf_work;

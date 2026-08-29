@@ -136,6 +136,18 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             print!("{plan}");
             Ok(())
         }
+        "doctor" => {
+            let outcome = cli::doctor::run(&args[1..]).map_err(|error| {
+                eprintln!("doctor: {error}");
+                2
+            })?;
+            print!("{}", outcome.output);
+            if outcome.exit_code == 0 {
+                Ok(())
+            } else {
+                Err(outcome.exit_code)
+            }
+        }
         "build" => {
             let options = cli::build::parse(&args[1..])?;
             match &options.input {
@@ -2083,6 +2095,7 @@ fn print_help() {
             semaprax context-benchmark <manifest>\n\
             semaprax serve <file> [--max-request-bytes N]\n\
             semaprax quality-plan <quick|changed|full> [exact-changed-path ...]\n\
+            semaprax doctor [--target native|web|all] [--json]\n\
            semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm] [--function stable-id] [--export stable-id ...] [-o path]\n\
            semaprax run <file>\n\
            semaprax run [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n\

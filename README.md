@@ -66,14 +66,15 @@ semaprax run examples/meaning.spx
 Create a checked calculator project from the built-in template:
 
 ```sh
-semaprax new my-project
-cd my-project
+semaprax new first-semaprax
+cd first-semaprax
 semaprax check semaprax.toml
 semaprax test semaprax.toml
 ```
 
 The generator uses only compiled-in files and does not initialize Git, install
-dependencies, or access a network.
+dependencies, or access a network. Continue with the executable
+[quickstart](docs/QUICKSTART.md) to run, inspect, and build the project.
 
 ### Inspect the semantic graph
 

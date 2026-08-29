@@ -1,4 +1,8 @@
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use same_file::Handle;
+use semaprax::diagnostic::Diagnostic;
 
 use super::project::{is_project_manifest, DEFAULT_MANIFEST};
 
@@ -14,6 +18,219 @@ pub(crate) struct BuildOptions {
 pub(crate) enum BuildInput {
     Source(PathBuf),
     Project(PathBuf),
+}
+
+pub(crate) trait ProjectBuildParentHook {
+    fn before_create(&self, grandparent: &Path, parent: &Path) -> Result<(), String>;
+}
+
+struct NoopProjectBuildParentHook;
+
+impl ProjectBuildParentHook for NoopProjectBuildParentHook {
+    fn before_create(&self, _grandparent: &Path, _parent: &Path) -> Result<(), String> {
+        Ok(())
+    }
+}
+
+pub(crate) struct ProjectOutputParent {
+    created: Option<CreatedProjectOutputParent>,
+    retain: bool,
+}
+
+struct CreatedProjectOutputParent {
+    grandparent: PathBuf,
+    grandparent_identity: Handle,
+    parent: PathBuf,
+    parent_identity: Handle,
+}
+
+impl ProjectOutputParent {
+    pub(crate) fn prepare(output: &Path) -> Result<Self, Diagnostic> {
+        Self::prepare_with_hook(output, &NoopProjectBuildParentHook)
+    }
+
+    pub(crate) fn prepare_with_hook(
+        output: &Path,
+        hook: &dyn ProjectBuildParentHook,
+    ) -> Result<Self, Diagnostic> {
+        let parent = output
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new("."));
+        match fs::symlink_metadata(parent) {
+            Ok(metadata) => {
+                if !is_plain_directory(&metadata) {
+                    return Err(parent_error(
+                        "explicit Project output parent must be a real non-reparse directory",
+                    ));
+                }
+                return Ok(Self {
+                    created: None,
+                    retain: true,
+                });
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => {
+                return Err(parent_error(format!(
+                    "cannot inspect explicit Project output parent {}: {error}",
+                    parent.display()
+                )))
+            }
+        }
+
+        let grandparent = parent
+            .parent()
+            .filter(|path| !path.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new("."));
+        let metadata = fs::symlink_metadata(grandparent).map_err(|error| {
+            parent_error(format!(
+                "explicit Project output may create only one missing parent; cannot inspect grandparent {}: {error}",
+                grandparent.display()
+            ))
+        })?;
+        if !is_plain_directory(&metadata) {
+            return Err(parent_error(
+                "explicit Project output grandparent must be a real non-reparse directory",
+            ));
+        }
+        let grandparent_identity = Handle::from_path(grandparent).map_err(|error| {
+            parent_error(format!(
+                "cannot identify explicit Project output grandparent: {error}"
+            ))
+        })?;
+        hook.before_create(grandparent, parent).map_err(|error| {
+            parent_error(format!(
+                "explicit Project output parent creation was interrupted before effects: {error}"
+            ))
+        })?;
+        authenticate_directory(
+            grandparent,
+            &grandparent_identity,
+            "explicit Project output grandparent changed before parent creation",
+        )?;
+
+        fs::create_dir(parent).map_err(|error| {
+            parent_error(format!(
+                "cannot create the single missing explicit Project output parent {}: {error}",
+                parent.display()
+            ))
+        })?;
+        let parent_metadata = fs::symlink_metadata(parent).map_err(|error| {
+            parent_error(format!(
+                "cannot inspect created explicit Project output parent: {error}"
+            ))
+        })?;
+        if !is_plain_directory(&parent_metadata) {
+            return Err(parent_error(
+                "created explicit Project output parent is not a real non-reparse directory",
+            ));
+        }
+        let parent_identity = Handle::from_path(parent).map_err(|error| {
+            parent_error(format!(
+                "cannot identify created explicit Project output parent: {error}"
+            ))
+        })?;
+        let lease = Self {
+            created: Some(CreatedProjectOutputParent {
+                grandparent: grandparent.to_path_buf(),
+                grandparent_identity,
+                parent: parent.to_path_buf(),
+                parent_identity,
+            }),
+            retain: false,
+        };
+        let created = lease.created.as_ref().expect("created parent lease");
+        authenticate_directory(
+            &created.grandparent,
+            &created.grandparent_identity,
+            "explicit Project output grandparent changed after parent creation",
+        )?;
+        authenticate_directory(
+            &created.parent,
+            &created.parent_identity,
+            "created explicit Project output parent identity changed",
+        )?;
+        Ok(lease)
+    }
+
+    pub(crate) fn retain(&mut self) -> Result<(), Diagnostic> {
+        if let Some(created) = &self.created {
+            authenticate_directory(
+                &created.grandparent,
+                &created.grandparent_identity,
+                "explicit Project output grandparent changed after child publication",
+            )?;
+            authenticate_directory(
+                &created.parent,
+                &created.parent_identity,
+                "created explicit Project output parent changed after child publication",
+            )?;
+        }
+        self.retain = true;
+        Ok(())
+    }
+}
+
+impl Drop for ProjectOutputParent {
+    fn drop(&mut self) {
+        let Some(created) = &self.created else {
+            return;
+        };
+        if self.retain
+            || !same_plain_directory(&created.grandparent, &created.grandparent_identity)
+            || !same_plain_directory(&created.parent, &created.parent_identity)
+            || !directory_is_empty(&created.parent)
+            || !same_plain_directory(&created.grandparent, &created.grandparent_identity)
+            || !same_plain_directory(&created.parent, &created.parent_identity)
+        {
+            return;
+        }
+        let _ = fs::remove_dir(&created.parent);
+    }
+}
+
+fn directory_is_empty(path: &Path) -> bool {
+    fs::read_dir(path)
+        .ok()
+        .is_some_and(|mut entries| entries.next().is_none())
+}
+
+fn authenticate_directory(path: &Path, expected: &Handle, message: &str) -> Result<(), Diagnostic> {
+    if same_plain_directory(path, expected) {
+        Ok(())
+    } else {
+        Err(parent_error(message))
+    }
+}
+
+fn same_plain_directory(path: &Path, expected: &Handle) -> bool {
+    fs::symlink_metadata(path)
+        .ok()
+        .is_some_and(|metadata| is_plain_directory(&metadata))
+        && Handle::from_path(path)
+            .ok()
+            .is_some_and(|identity| identity == *expected)
+}
+
+fn is_plain_directory(metadata: &fs::Metadata) -> bool {
+    metadata.is_dir() && !metadata.file_type().is_symlink() && !metadata_is_reparse(metadata)
+}
+
+#[cfg(windows)]
+fn metadata_is_reparse(metadata: &fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt;
+
+    const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+    metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
+}
+
+#[cfg(not(windows))]
+fn metadata_is_reparse(_metadata: &fs::Metadata) -> bool {
+    false
+}
+
+fn parent_error(message: impl Into<String>) -> Diagnostic {
+    Diagnostic::io("SPX-I301", message)
 }
 
 pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {

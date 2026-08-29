@@ -176,11 +176,20 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                         if options.target == "native" {
                             output = with_native_executable_suffix(output);
                         }
+                        let mut output_parent = options
+                            .output
+                            .as_ref()
+                            .map(|_| cli::build::ProjectOutputParent::prepare(&output))
+                            .transpose()
+                            .map_err(|error| vec![error])?;
                         match options.target.as_str() {
                             "web" | "wasm" => snapshot.build_web(&output)?,
                             "npm" => snapshot.build_npm(&output)?,
                             "native" => snapshot.build_native(&output)?,
                             _ => unreachable!("validated project target"),
+                        }
+                        if let Some(parent) = &mut output_parent {
+                            parent.retain().map_err(|error| vec![error])?;
                         }
                         Ok(output)
                     })

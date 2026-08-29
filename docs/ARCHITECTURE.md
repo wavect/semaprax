@@ -282,6 +282,18 @@ Read-only commands are implemented in focused modules such as
 `src/package_report.rs`, `src/plugin_manifest.rs`, `src/region_report.rs`,
 `src/simd_report.rs`, and `src/ui_schema.rs`.
 
+`src/package_lock.rs` is an authority-free additive offline graph layer above
+the Interface Package Report. It accepts only explicit already-owned subject
+envelopes, independently replays each exact report, rejects coordinate and
+graph confusion, derives deterministic dependency-first order, exact target
+intersection, and transitive declared-capability closure, then emits an
+independently replayable lock to memory/stdout. `src/cli/package_lock.rs`
+retains each explicitly
+named input handle, rejects duplicate held file identities, and reads it once;
+neither layer discovers paths, resolves or fetches versions, runs scripts,
+compiles targets, publishes files, or treats optional license/provenance claims
+as signed or trusted facts. See [Offline Package Lock v1](OFFLINE-PACKAGE-LOCK-V1.md).
+
 These modules must:
 
 - consume verified representations;
@@ -350,7 +362,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Interpreter | `src/interpreter.rs`, `src/hosted_interpreter.rs` |
 | Native backend | `src/codegen.rs`, `src/codegen/native_*` |
 | WebAssembly backend | `src/wasm.rs`, `src/wasm/` |
-| Reports | the focused `*_report`, schema, manifest, header, and shim modules |
+| Reports and offline package graph | the focused `*_report`, `package_lock`, schema, manifest, header, and shim modules |
 | Private host/runtime evidence | `crates/semaprax-native-*`, `platform-tests/` |
 | Executable evidence | `tests/`, crate-local tests, `platform-tests/`, `.github/workflows/` |
 

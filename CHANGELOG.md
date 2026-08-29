@@ -13,6 +13,18 @@
   focused evidence was authored but not run in this audit, so no local-green or
   hosted promotion is claimed.
 
+- Authored Offline Package Lock v1 as an additive, read-only, independently
+  replayable package graph above exact Interface Package Report v1 envelopes.
+  The authority-free library and stdout-only CLI authenticate explicit finite
+  subject bytes, stable module/version coordinates, dependency-first topology,
+  report target intersection, transitive declared-capability closure, and only
+  caller-supplied integrity-bound license/provenance claims under strict
+  count/depth/byte/work limits. Cycle, diamond, duplicate, foreign dependency,
+  version, schema, target, digest re-mint, and legacy-report evidence is
+  authored but unexecuted. This adds no resolver, registry, fetch, scripts,
+  target execution, sandbox enforcement, source mutation, lockfile publication,
+  trusted provenance, or completion-status promotion.
+
 - Added the unpromoted Project v9 `flat-owned-record-api.v1` implementation as
   the first additive follow-on to Project v8. Its distinct descriptor admits
   one direct owned-byte field with direct Copy-scalar siblings, while npm/Wasm

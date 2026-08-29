@@ -183,7 +183,7 @@ row.
 
 | Requirement | Status | Evidence owner | Complete when |
 | --- | --- | --- | --- |
-| Interface-first packages and target matrices | Partial | [Package Report v1](PACKAGE-REPORT-V1.md) | Resolver, lockfile, compatibility, provenance, registry, and conformance are production-ready. |
+| Interface-first packages and target matrices | Partial | [Package Report v1](PACKAGE-REPORT-V1.md), [Offline Package Lock v1](OFFLINE-PACKAGE-LOCK-V1.md) | Resolver/version negotiation, published lockfile workflow, compatibility, trusted provenance, registry, and conformance are production-ready. |
 | Portable canonical ABI and native fast ABI | Partial | [ABI Report v1](ABI-REPORT-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md), [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md) | Stable aggregate/resource/borrowed ABIs and cross-language conformance cover supported architectures. |
 | C and Objective-C | Partial | [C Header v1](C-HEADER-V1.md) | Import/export, ownership, errors, compiled consumers, Objective-C adapters, and compatibility are verified. |
 | C++ | Partial | [C++ Shim v1](CXX-SHIM-V1.md) | Compiled C++ consumers, ownership, exceptions, templates/adapters, and compatibility are verified. |
@@ -216,7 +216,7 @@ row.
 | Typed holes and compiler-generated repairs | Partial | [Diagnostic Repair v1](DIAGNOSTIC-REPAIR-V1.md) | General obligations and composable sound repairs are generated, ranked, reviewed, and replay-verified. |
 | Proof-carrying patches | Partial | [Patch Evidence v2](SEMANTIC-PATCH-EVIDENCE-V2.md) | General semantic claims, tests, targets, capability deltas, provenance, and compatibility are independently verified before commit. |
 | Semantic human review | Partial | [Semantic Review v1](SEMANTIC-REVIEW-V1.md) | Complete repository-wide behavioral, API, security, memory, target, migration, and unsafe summaries are evidence-backed. |
-| Sandboxed builds and dependencies | Partial | [Capability Manifest v1](CAPABILITY-MANIFEST-V1.md) | Resolver, lockfile, package graph, reproducibility, and actual least-authority enforcement are verified. |
+| Sandboxed builds and dependencies | Partial | [Capability Manifest v1](CAPABILITY-MANIFEST-V1.md), [Offline Package Lock v1](OFFLINE-PACKAGE-LOCK-V1.md) | Resolver, published lock workflow, reproducible acquired inputs, and actual least-authority build/dependency enforcement are verified. |
 | Debugger, profiler, diagnostics, and operations | Partial | [Architecture](ARCHITECTURE.md) | Source-level debugging/profiling, crash and trace mapping, observability, and deployment diagnostics cover every backend. |
 
 ## Final validation product

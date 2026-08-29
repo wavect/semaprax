@@ -119,7 +119,9 @@ and hosted promotion remains pending.
 See also [ABI-REPORT-V1.md](ABI-REPORT-V1.md) for the sibling read-only ABI
 descriptor whose admission profile this report mirrors, and
 [CAPABILITY-MANIFEST-V1.md](CAPABILITY-MANIFEST-V1.md) for the capability
-vocabulary of the same modules.
+vocabulary of the same modules. [Offline Package Lock v1](OFFLINE-PACKAGE-LOCK-V1.md)
+is the additive, read-only package-graph consumer of exact report envelopes;
+it does not change this report's schema or bytes.
 
 ## Widened scalar profile (2026-08-24)
 

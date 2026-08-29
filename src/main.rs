@@ -727,6 +727,19 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             println!("{envelope}");
             Ok(())
         }
+        "package-lock" => match cli::package_lock::run(&args[1..]) {
+            Ok(lock) => {
+                println!("{lock}");
+                Ok(())
+            }
+            Err(cli::package_lock::PackageLockCliError::Usage(message)) => {
+                eprintln!("{message}");
+                Err(2)
+            }
+            Err(cli::package_lock::PackageLockCliError::Domain(errors)) => {
+                Err(report(&errors, false))
+            }
+        },
         "region-report" => {
             let path = required_path(&args, 1)?;
             let options = region_report_options(&args)?;
@@ -2181,6 +2194,7 @@ fn print_help() {
             semaprax abi-report <file> --function name|stable-id[,...] [--function ...] [--max-bytes N]\n\
              semaprax capability-manifest <file> [--max-bytes N]\n\
               semaprax package-report <file> [--max-bytes N]\n\
+              semaprax package-lock <subject.json>... [--max-bytes N]\n\
              semaprax region-report <file> [--max-bytes N]\n\
              semaprax simd-report <file> [--max-bytes N]\n\
             semaprax protocol-check <file> [--max-bytes N]\n\

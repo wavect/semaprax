@@ -138,6 +138,14 @@ WebAssembly lanes, with stable source/graph migrations.
 
 ## 0.4: components, packages, and interoperability
 
+The first bounded offline lock is now authored as a read-only graph over an
+explicit finite set of integrity-bound Package Report subjects. It establishes
+canonical coordinates, dependency-first order, graph rejection, exact target
+intersection, and declared-capability closure without a registry, fetch,
+resolver, scripts, compilation, or publication authority. Its local gates are
+unexecuted and it is not yet the production package manager described by this
+milestone.
+
 Goal: turn bounded reports and private host evidence into a supported,
 versioned ecosystem surface.
 

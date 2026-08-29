@@ -353,10 +353,13 @@ capability allowlists, report/subject mutation and re-digested forgery, wire
 mutation/truncation/insertion, exact replay, decision/work exhaustion as a
 whole-operation bounds failure, and malformed CLI inputs.
 
-CLI hostility covers atomic symlink/reparse leaf rejection, same-file aliases,
-non-regular files, pre-sized oversize input, short read/growth, invalid UTF-8,
+CLI hostility covers atomic Unix symlink-leaf rejection, exact static Windows
+reparse-attribute admission, same-file aliases, non-regular files, pre-sized
+oversize input, injected deterministic short read/growth drift, invalid UTF-8,
 repeated/late/unknown flags, zero and 65 subjects, duplicate options, and
-non-atomic stdout failure behavior. Focused preservation owners are
+non-atomic stdout failure behavior. A reliable hosted actual-reparse fixture on
+Windows is not yet authored or run and remains required before hosted Windows
+promotion. Focused preservation owners are
 `src/package_lock/tests.rs`, `src/package_lock_v2/tests.rs`,
 `src/package_report_v2/tests.rs`, `src/package_compatibility/tests.rs`,
 `tests/offline_package_lock_v1.rs`, `tests/package_report_v1.rs`,

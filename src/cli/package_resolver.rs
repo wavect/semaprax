@@ -250,6 +250,22 @@ struct HeldInput {
 }
 
 fn read_subjects(paths: &[PathBuf]) -> Result<Vec<String>, Diagnostic> {
+    read_subjects_with_hook(paths, &mut NoopSubjectReadHook)
+}
+
+trait SubjectReadHook {
+    fn before_read(&mut self, _index: usize, _file: &std::fs::File) {}
+    fn after_read(&mut self, _index: usize, _file: &std::fs::File) {}
+}
+
+struct NoopSubjectReadHook;
+
+impl SubjectReadHook for NoopSubjectReadHook {}
+
+fn read_subjects_with_hook(
+    paths: &[PathBuf],
+    hook: &mut impl SubjectReadHook,
+) -> Result<Vec<String>, Diagnostic> {
     let mut held = Vec::with_capacity(paths.len());
     let mut identities = BTreeSet::new();
     let mut declared_total = 0usize;
@@ -282,12 +298,16 @@ fn read_subjects(paths: &[PathBuf]) -> Result<Vec<String>, Diagnostic> {
 
     let mut subjects = Vec::with_capacity(held.len());
     let mut actual_total = 0usize;
-    for HeldInput {
-        file,
-        bytes,
-        identity,
-    } in held
+    for (
+        index,
+        HeldInput {
+            file,
+            bytes,
+            identity,
+        },
+    ) in held.into_iter().enumerate()
     {
+        hook.before_read(index, &file);
         let mut content = Vec::with_capacity(bytes);
         let remaining = MAX_TOTAL_SUBJECT_BYTES
             .checked_sub(actual_total)
@@ -300,6 +320,7 @@ fn read_subjects(paths: &[PathBuf]) -> Result<Vec<String>, Diagnostic> {
             .take(read_limit as u64)
             .read_to_end(&mut content)
             .map_err(|_| io_error("cannot read held package-resolve subject input"))?;
+        hook.after_read(index, &file);
         actual_total = actual_total
             .checked_add(content.len())
             .ok_or_else(|| limit_error("actual total_subject_bytes overflow"))?;
@@ -335,14 +356,21 @@ fn inspect(file: &std::fs::File) -> Result<std::fs::Metadata, Diagnostic> {
     #[cfg(windows)]
     {
         use std::os::windows::fs::MetadataExt as _;
-        const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x0000_0400;
-        if metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+        if !windows_file_attributes_are_admitted(metadata.file_attributes()) {
             return Err(io_error(
                 "package-resolve subject input must not be a reparse point",
             ));
         }
     }
     Ok(metadata)
+}
+
+#[cfg(any(windows, test))]
+const WINDOWS_FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x0000_0400;
+
+#[cfg(any(windows, test))]
+fn windows_file_attributes_are_admitted(attributes: u32) -> bool {
+    attributes & WINDOWS_FILE_ATTRIBUTE_REPARSE_POINT == 0
 }
 
 #[cfg(unix)]
@@ -414,4 +442,121 @@ fn limit_error(message: impl Into<String>) -> Diagnostic {
 
 fn usage(message: impl Into<String>) -> PackageResolverCliError {
     PackageResolverCliError::Usage(message.into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+
+    fn temp_file(label: &str, bytes: &[u8]) -> PathBuf {
+        let path = std::env::temp_dir().join(format!(
+            "semaprax-package-resolver-read-hook-{label}-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::write(&path, bytes).unwrap();
+        path
+    }
+
+    struct TruncateBeforeRead {
+        path: PathBuf,
+        before: usize,
+        after: usize,
+    }
+
+    impl SubjectReadHook for TruncateBeforeRead {
+        fn before_read(&mut self, index: usize, file: &std::fs::File) {
+            assert_eq!(index, 0);
+            self.before += 1;
+            let _ = file;
+            std::fs::OpenOptions::new()
+                .write(true)
+                .open(&self.path)
+                .unwrap()
+                .set_len(1)
+                .unwrap();
+        }
+
+        fn after_read(&mut self, index: usize, _file: &std::fs::File) {
+            assert_eq!(index, 0);
+            self.after += 1;
+        }
+    }
+
+    #[test]
+    fn deterministic_short_read_rejects_before_subject_processing() {
+        let path = temp_file("truncate", b"{}");
+        let later = temp_file("truncate-later", b"{}");
+        let mut hook = TruncateBeforeRead {
+            path: path.clone(),
+            before: 0,
+            after: 0,
+        };
+        let error = read_subjects_with_hook(&[path.clone(), later.clone()], &mut hook).unwrap_err();
+        assert_eq!(error.code, "SPX-I215");
+        assert_eq!((hook.before, hook.after), (1, 1));
+        std::fs::remove_file(path).unwrap();
+        std::fs::remove_file(later).unwrap();
+    }
+
+    struct GrowAfterRead {
+        path: PathBuf,
+        before: usize,
+        after: usize,
+    }
+
+    impl SubjectReadHook for GrowAfterRead {
+        fn before_read(&mut self, index: usize, _file: &std::fs::File) {
+            assert_eq!(index, 0);
+            self.before += 1;
+        }
+
+        fn after_read(&mut self, index: usize, _file: &std::fs::File) {
+            assert_eq!(index, 0);
+            self.after += 1;
+            std::fs::OpenOptions::new()
+                .write(true)
+                .open(&self.path)
+                .unwrap()
+                .set_len(3)
+                .unwrap();
+        }
+    }
+
+    #[test]
+    fn deterministic_post_read_growth_rejects_metadata_drift() {
+        let path = temp_file("growth", b"{}");
+        let later = temp_file("growth-later", b"{}");
+        let mut hook = GrowAfterRead {
+            path: path.clone(),
+            before: 0,
+            after: 0,
+        };
+        let error = read_subjects_with_hook(&[path.clone(), later.clone()], &mut hook).unwrap_err();
+        assert_eq!(error.code, "SPX-I215");
+        assert_eq!((hook.before, hook.after), (1, 1));
+        std::fs::remove_file(path).unwrap();
+        std::fs::remove_file(later).unwrap();
+    }
+
+    #[test]
+    fn windows_reparse_attribute_admission_has_exact_bit_boundary() {
+        assert!(windows_file_attributes_are_admitted(0));
+        assert!(windows_file_attributes_are_admitted(
+            WINDOWS_FILE_ATTRIBUTE_REPARSE_POINT - 1
+        ));
+        assert!(windows_file_attributes_are_admitted(
+            WINDOWS_FILE_ATTRIBUTE_REPARSE_POINT << 1
+        ));
+        assert!(!windows_file_attributes_are_admitted(
+            WINDOWS_FILE_ATTRIBUTE_REPARSE_POINT
+        ));
+        assert!(!windows_file_attributes_are_admitted(
+            WINDOWS_FILE_ATTRIBUTE_REPARSE_POINT | 1
+        ));
+        assert!(!windows_file_attributes_are_admitted(u32::MAX));
+    }
 }

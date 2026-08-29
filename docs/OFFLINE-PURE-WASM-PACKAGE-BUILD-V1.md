@@ -90,7 +90,7 @@ state is private.
   project signature.
 - The source has empty `permit`, interface, native-import, generic, resource,
   and authored aggregate inventories under the existing scalar profile.
-- The linked HIR has no function effects and passes the ordinary HIR validator.
+- The resolved HIR has no function effects and passes the ordinary HIR validator.
 - Every selected export is an explicit monomorphic function declared by the
   root module and is admitted by the unchanged Public Scalar Export Profile v1
   (`i64` and `bool` only).

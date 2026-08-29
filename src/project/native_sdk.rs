@@ -9,6 +9,9 @@ use crate::hir::{IdentityOrigin, ResolvedProgram};
 
 use super::{ProjectSnapshot, ProjectSource, AUTHENTICATED_PROJECT_SUBJECT_OPERATION};
 
+#[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+const RUST_OWNED_DATA_PUBLICATION_SUBJECT: &str = "Project v8 Native Rust owned-data package";
+
 /// Invocation-borrowed, target-neutral subject for the inactive owned-data
 /// Rust SDK builder. Construction always derives and replays the canonical
 /// public descriptor before lending any effectful build operation.
@@ -173,6 +176,104 @@ impl<'a> ProjectNativeSdkSubject<'a> {
 }
 
 impl ProjectSnapshot {
+    /// Build the exact Project-v8 selected closure as a safe owned-data Rust
+    /// package. Descriptor and semantic-recipe replay are completed before the
+    /// lower held-tool/publication layer receives any bytes.
+    #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+    pub fn build_rust(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
+        if !self.manifest().is_v8() {
+            return Err(vec![Diagnostic::io(
+                "SPX-J114",
+                "the rust target requires the exact Project v8 owned-data-api.v1 profile",
+            )]);
+        }
+        let selected = self.manifest().web_exports();
+        let subject = super::PublicApiSubject {
+            project_schema: self.manifest().schema(),
+            project_revision: self.project_revision(),
+            workspace_revision: self.workspace_revision(),
+            project_graph_digest: self.semantic.graph_digest(),
+        };
+        let descriptor =
+            super::derive_public_api_descriptor(self.entry_program(), selected, subject)
+                .map_err(|error| vec![error])?;
+        let descriptor_bytes = descriptor.canonical_bytes();
+        let descriptor_digest = descriptor.digest();
+        let replayed = super::replay_public_api_descriptor(
+            self.entry_program(),
+            selected,
+            subject,
+            &descriptor_bytes,
+            &descriptor_digest,
+        )
+        .map_err(|error| vec![error])?;
+        if replayed != descriptor {
+            return Err(vec![rust_build_error(
+                "Project v8 descriptor derivation and replay disagree",
+            )]);
+        }
+
+        let recipe = super::npm::render_owned_data_semantic_recipe(self.entry_program())
+            .map_err(|error| vec![error])?;
+        let replayed_program =
+            super::npm::replay_owned_data_semantic_recipe(self.entry_program(), &recipe)
+                .map_err(|error| vec![error])?;
+        let replayed_descriptor = super::replay_public_api_descriptor(
+            &replayed_program,
+            selected,
+            subject,
+            &descriptor_bytes,
+            &descriptor_digest,
+        )
+        .map_err(|error| vec![error])?;
+        if replayed_descriptor != descriptor {
+            return Err(vec![rust_build_error(
+                "Project v8 descriptor disagrees with semantic-recipe replay",
+            )]);
+        }
+
+        let provider = crate::codegen::emit_project_v8_native_owned_data_provider(
+            self.entry_program(),
+            selected,
+            subject,
+            &descriptor_bytes,
+            &descriptor_digest,
+        )
+        .map_err(|error| vec![error])?;
+        let replayed_provider = crate::codegen::emit_project_v8_native_owned_data_provider(
+            &replayed_program,
+            selected,
+            subject,
+            &descriptor_bytes,
+            &descriptor_digest,
+        )
+        .map_err(|error| vec![error])?;
+        if provider != replayed_provider
+            || provider.descriptor() != descriptor_bytes
+            || provider.descriptor_digest() != descriptor_digest
+        {
+            return Err(vec![rust_build_error(
+                "Project v8 native provider disagrees with independent replay",
+            )]);
+        }
+
+        self.recheck()?;
+        let provider_bytes = provider.source().as_bytes().to_vec();
+        let plan = semaprax_native_rust_owned_data_package::PackagePlan::new(
+            descriptor_bytes,
+            descriptor_digest,
+            selected.to_vec(),
+            provider_bytes.clone(),
+            semaprax_native_rust_owned_data_package::provider_sha256(&provider_bytes),
+            semaprax_native_rust_owned_data_package::PackageMode::ProjectV8,
+        );
+        semaprax_native_rust_owned_data_package::build_and_publish(plan, output)
+            .map_err(|failure| vec![lower_build_error(failure)])?;
+        self.published_subject = Some(RUST_OWNED_DATA_PUBLICATION_SUBJECT);
+        self.recheck()
+            .map_err(|drift| self.publication_uncertainty(drift))
+    }
+
     /// Lend one authenticated Project subject to a potentially effectful
     /// operation while all declared Project inputs remain held.
     ///
@@ -198,6 +299,30 @@ impl ProjectSnapshot {
                 Err(primary)
             }
         }
+    }
+}
+
+#[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+fn rust_build_error(message: impl Into<String>) -> Diagnostic {
+    Diagnostic::io("SPX-B114", message)
+}
+
+#[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+fn lower_build_error(failure: semaprax_native_rust_owned_data_package::PackageError) -> Diagnostic {
+    use semaprax_native_rust_owned_data_package::PackageErrorKind;
+
+    match failure.kind() {
+        PackageErrorKind::Descriptor | PackageErrorKind::Provider => {
+            rust_build_error("Project v8 Native Rust package replay failed")
+        }
+        PackageErrorKind::ToolConfiguration => Diagnostic::io(
+            "SPX-I234",
+            "Project v8 Native Rust package requires explicit absolute CLANG and archiver tools",
+        ),
+        PackageErrorKind::Publication => Diagnostic::io(
+            "SPX-I234",
+            "Project v8 Native Rust package publication failed",
+        ),
     }
 }
 

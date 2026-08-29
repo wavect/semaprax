@@ -351,10 +351,17 @@ pub(super) fn render_semantic_recipe(
     render_semantic_recipe_profile(program, false)
 }
 
-pub(super) fn render_owned_data_semantic_recipe(
+pub(crate) fn render_owned_data_semantic_recipe(
     program: &crate::hir::ResolvedProgram,
 ) -> Result<String, Diagnostic> {
     semantic_recipe_v8::render(program)
+}
+
+pub(crate) fn replay_owned_data_semantic_recipe(
+    linked: &crate::hir::ResolvedProgram,
+    recipe: &str,
+) -> Result<crate::hir::ResolvedProgram, Diagnostic> {
+    semantic_recipe_v8::replay_against(linked, recipe)
 }
 
 fn render_semantic_recipe_profile(

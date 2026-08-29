@@ -600,7 +600,6 @@ mod authority;
 mod build;
 mod descriptor;
 mod owned_data;
-mod owned_data_descriptor;
 mod package;
 mod project;
 

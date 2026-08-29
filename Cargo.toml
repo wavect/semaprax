@@ -18,6 +18,7 @@ members = [
     "crates/semaprax-native-loader",
     "crates/semaprax-native-rust-interop-platform",
     "crates/semaprax-native-rust-interop-platform-sys",
+    "crates/semaprax-native-rust-owned-data-package",
     "crates/semaprax-native-rust-interop-builder",
 ]
 default-members = ["."]
@@ -44,6 +45,7 @@ unstable-wit-component-harness = []
 [target.'cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))'.dependencies]
 fs2 = "=0.4.3"
 getrandom = "=0.4.3"
+semaprax-native-rust-owned-data-package = { version = "=0.1.0", path = "crates/semaprax-native-rust-owned-data-package" }
 
 [target.'cfg(unix)'.dependencies]
 rustix = { version = "=1.1.4", default-features = false, features = ["fs", "std"] }

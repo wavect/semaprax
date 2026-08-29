@@ -167,6 +167,7 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                             let suffix = match options.target.as_str() {
                                 "web" | "wasm" => "web".to_owned(),
                                 "npm" => "npm".to_owned(),
+                                "rust" => "rust".to_owned(),
                                 _ => format!("out{}", std::env::consts::EXE_SUFFIX),
                             };
                             snapshot
@@ -175,6 +176,10 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                         });
                         if options.target == "native" {
                             output = with_native_executable_suffix(output);
+                        }
+                        if options.target == "rust" {
+                            output = cli::build::absolute_rust_output(&output)
+                                .map_err(|error| vec![error])?;
                         }
                         let mut output_parent = options
                             .output
@@ -186,6 +191,7 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                             "web" | "wasm" => snapshot.build_web(&output)?,
                             "npm" => snapshot.build_npm(&output)?,
                             "native" => snapshot.build_native(&output)?,
+                            "rust" => snapshot.build_rust(&output)?,
                             _ => unreachable!("validated project target"),
                         }
                         if let Some(parent) = &mut output_parent {
@@ -196,6 +202,11 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                     .map_err(|errors| report(&errors, false))?;
                     if matches!(options.target.as_str(), "native") {
                         println!("built project native executable {}", output.display());
+                    } else if matches!(options.target.as_str(), "rust") {
+                        println!(
+                            "built Project v8 Native Rust owned-data package {}",
+                            output.display()
+                        );
                     } else if matches!(options.target.as_str(), "npm") {
                         println!("built Project v2 npm package {}", output.display());
                     } else {

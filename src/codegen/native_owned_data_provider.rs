@@ -46,6 +46,41 @@ pub fn emit_native_owned_data_provider(
     descriptor_bytes: &[u8],
     descriptor_digest: &str,
 ) -> Result<NativeOwnedDataProviderArtifact, Diagnostic> {
+    emit_provider(
+        program,
+        selected,
+        subject,
+        descriptor_bytes,
+        descriptor_digest,
+        false,
+    )
+}
+
+pub fn emit_project_v8_native_owned_data_provider(
+    program: &ResolvedProgram,
+    selected: &[String],
+    subject: PublicApiSubject<'_>,
+    descriptor_bytes: &[u8],
+    descriptor_digest: &str,
+) -> Result<NativeOwnedDataProviderArtifact, Diagnostic> {
+    emit_provider(
+        program,
+        selected,
+        subject,
+        descriptor_bytes,
+        descriptor_digest,
+        true,
+    )
+}
+
+fn emit_provider(
+    program: &ResolvedProgram,
+    selected: &[String],
+    subject: PublicApiSubject<'_>,
+    descriptor_bytes: &[u8],
+    descriptor_digest: &str,
+    project_v8: bool,
+) -> Result<NativeOwnedDataProviderArtifact, Diagnostic> {
     crate::hir::validate(program)?;
     let descriptor = replay_public_api_descriptor(
         program,
@@ -54,30 +89,52 @@ pub fn emit_native_owned_data_provider(
         descriptor_bytes,
         descriptor_digest,
     )?;
-    if descriptor.exports().iter().any(|export| {
-        !matches!(
-            export.result(),
-            PublicApiResultType::OwnedBytes
-                | PublicApiResultType::OptionOwnedBytes
-                | PublicApiResultType::ResultOwnedBytesI64
-        )
-    }) {
+    if !project_v8
+        && descriptor.exports().iter().any(|export| {
+            !matches!(
+                export.result(),
+                PublicApiResultType::OwnedBytes
+                    | PublicApiResultType::OptionOwnedBytes
+                    | PublicApiResultType::ResultOwnedBytesI64
+            )
+        })
+    {
         return Err(provider_error(
             "native owned-data provider requires only owned Bytes result exports",
         ));
     }
-
     let mut source = String::from("#define SPX_NO_ENTRY_WRAPPER 1\n");
+    if project_v8 {
+        writeln!(
+            source,
+            "#define SPX_OWNED_DATA_DESCRIPTOR_DIGEST_V1 \"{descriptor_digest}\""
+        )
+        .expect("writing provider descriptor binding cannot fail");
+    }
     source.push_str(&super::emit_hir_c_for_owned_data_provider(program)?);
     source.push('\n');
-    emit_provider_runtime(&mut source);
+    let mut runtime = String::new();
+    emit_provider_runtime(&mut runtime);
+    if project_v8 {
+        runtime = runtime.replace(
+            "static bool spx_owned_data_overlap_v1(",
+            "static __attribute__((unused)) bool spx_owned_data_overlap_v1(",
+        );
+    }
+    source.push_str(&runtime);
     for export in descriptor.exports() {
         let function = program
             .functions
             .iter()
             .find(|function| function.id == *export.stable_id())
             .ok_or_else(|| provider_error("replayed native owned-data export is absent"))?;
-        emit_export(&mut source, program, export, &function.return_type)?;
+        emit_export(
+            &mut source,
+            program,
+            export,
+            &function.return_type,
+            project_v8,
+        )?;
     }
     Ok(NativeOwnedDataProviderArtifact {
         source,
@@ -243,6 +300,7 @@ fn emit_export(
     program: &ResolvedProgram,
     export: &crate::project::PublicApiExport,
     return_type: &ResolvedType,
+    project_v8: bool,
 ) -> Result<(), Diagnostic> {
     let symbol = provider_call_symbol(export.rust_method_name());
     write!(
@@ -263,10 +321,25 @@ fn emit_export(
         }
         .unwrap();
     }
-    output.push_str(
-        ", uint32_t *tag_out, spx_owned_bytes_handle_v1 *handle_out, int64_t *error_out) {\n",
-    );
-    output.push_str("    if (context == NULL || tag_out == NULL || handle_out == NULL || error_out == NULL || context->marker != SPX_OWNED_DATA_CONTEXT_MARKER || spx_owned_data_overlap_v1(tag_out, sizeof(*tag_out), handle_out, sizeof(*handle_out)) || spx_owned_data_overlap_v1(tag_out, sizeof(*tag_out), error_out, sizeof(*error_out)) || spx_owned_data_overlap_v1(handle_out, sizeof(*handle_out), error_out, sizeof(*error_out)) || *handle_out != UINT64_C(0)) return SPX_OWNED_DATA_ADAPTER_FAILURE;\n    uint64_t borrowed = UINT64_C(0);\n");
+    match export.result() {
+        PublicApiResultType::I64 => output.push_str(", int64_t *value_out) {\n"),
+        PublicApiResultType::Bool => output.push_str(", uint8_t *value_out) {\n"),
+        PublicApiResultType::Usize => output.push_str(", uint64_t *value_out) {\n"),
+        PublicApiResultType::OwnedBytes
+        | PublicApiResultType::OptionOwnedBytes
+        | PublicApiResultType::ResultOwnedBytesI64 => output.push_str(
+            ", uint32_t *tag_out, spx_owned_bytes_handle_v1 *handle_out, int64_t *error_out) {\n",
+        ),
+    }
+    match export.result() {
+        PublicApiResultType::I64 | PublicApiResultType::Bool | PublicApiResultType::Usize => {
+            output.push_str("    if (context == NULL || value_out == NULL || context->marker != SPX_OWNED_DATA_CONTEXT_MARKER) return SPX_OWNED_DATA_ADAPTER_FAILURE;\n");
+        }
+        PublicApiResultType::OwnedBytes
+        | PublicApiResultType::OptionOwnedBytes
+        | PublicApiResultType::ResultOwnedBytesI64 => output.push_str("    if (context == NULL || tag_out == NULL || handle_out == NULL || error_out == NULL || context->marker != SPX_OWNED_DATA_CONTEXT_MARKER || spx_owned_data_overlap_v1(tag_out, sizeof(*tag_out), handle_out, sizeof(*handle_out)) || spx_owned_data_overlap_v1(tag_out, sizeof(*tag_out), error_out, sizeof(*error_out)) || spx_owned_data_overlap_v1(handle_out, sizeof(*handle_out), error_out, sizeof(*error_out)) || *handle_out != UINT64_C(0)) return SPX_OWNED_DATA_ADAPTER_FAILURE;\n"),
+    }
+    output.push_str("    uint64_t borrowed = UINT64_C(0);\n");
     for (index, parameter) in export.parameters().iter().enumerate() {
         match parameter.ty() {
             PublicApiParameterType::Bool => writeln!(output, "    if (arg_{index} > UINT8_C(1)) return SPX_OWNED_DATA_ADAPTER_FAILURE;"),
@@ -274,6 +347,9 @@ fn emit_export(
             PublicApiParameterType::BorrowSliceU8 => writeln!(output, "    if (arg_{index}_len > UINT64_C(65536) - borrowed || (arg_{index}_len != UINT64_C(0) && arg_{index} == NULL)) return SPX_OWNED_DATA_ADAPTER_FAILURE; borrowed += arg_{index}_len; spx_slice_u8_v1 value_{index} = {{ .ptr = arg_{index}_len == UINT64_C(0) ? NULL : arg_{index}, .len = arg_{index}_len }};"),
             PublicApiParameterType::I64 => Ok(()),
         }.unwrap();
+    }
+    if project_v8 {
+        output.push_str("    (void)borrowed;\n");
     }
     writeln!(
         output,
@@ -299,6 +375,21 @@ fn emit_export(
         .join(", ");
     let comma = if arguments.is_empty() { "" } else { ", " };
     match export.result() {
+        PublicApiResultType::I64 => {
+            output.push_str("    int64_t result = INT64_C(0);\n");
+            writeln!(output, "    if ({call}(&semantic{comma}{arguments}, &result) != SPX_STATUS_SUCCESS) return SPX_OWNED_DATA_SEMANTIC_FAILURE;").unwrap();
+            output.push_str("    *value_out = result;\n    return SPX_OWNED_DATA_SUCCESS;\n");
+        }
+        PublicApiResultType::Bool => {
+            output.push_str("    bool result = false;\n");
+            writeln!(output, "    if ({call}(&semantic{comma}{arguments}, &result) != SPX_STATUS_SUCCESS) return SPX_OWNED_DATA_SEMANTIC_FAILURE;").unwrap();
+            output.push_str("    *value_out = result ? UINT8_C(1) : UINT8_C(0);\n    return SPX_OWNED_DATA_SUCCESS;\n");
+        }
+        PublicApiResultType::Usize => {
+            output.push_str("    uint64_t result = UINT64_C(0);\n");
+            writeln!(output, "    if ({call}(&semantic{comma}{arguments}, &result) != SPX_STATUS_SUCCESS) return SPX_OWNED_DATA_SEMANTIC_FAILURE;").unwrap();
+            output.push_str("    *value_out = result;\n    return SPX_OWNED_DATA_SUCCESS;\n");
+        }
         PublicApiResultType::OwnedBytes => {
             output.push_str("    spx_bytes_v1 result = {0};\n");
             writeln!(output, "    if ({call}(&semantic{comma}{arguments}, &result) != SPX_STATUS_SUCCESS) return SPX_OWNED_DATA_SEMANTIC_FAILURE;").unwrap();
@@ -316,7 +407,6 @@ fn emit_export(
             &arguments,
             false,
         )?,
-        _ => unreachable!("owned-result admission checked"),
     }
     output.push_str("}\n");
     Ok(())

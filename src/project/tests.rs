@@ -786,6 +786,23 @@ fn native_destination_checks_reject_existing_outputs_before_emission() {
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+#[test]
+fn legacy_project_profiles_reject_the_v8_rust_route_before_effects() {
+    let root = fixture();
+    let output = root.with_extension("forbidden-rust-sdk");
+    let diagnostics = with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
+        snapshot.build_rust(&output)
+    })
+    .unwrap_err();
+    assert_eq!(diagnostics[0].code, "SPX-J114");
+    assert!(diagnostics[0]
+        .message
+        .contains("exact Project v8 owned-data-api.v1 profile"));
+    assert!(!output.exists());
+    let _ = std::fs::remove_dir_all(root);
+}
+
 #[test]
 fn native_entry_c_projections_are_deterministic() {
     let first = with_authenticated_project(&fixture().join(MANIFEST_FILE), |snapshot| {

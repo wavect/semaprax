@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 use same_file::Handle;
 use semaprax::diagnostic::Diagnostic;
@@ -233,6 +233,41 @@ fn parent_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-I301", message)
 }
 
+pub(crate) fn absolute_rust_output(path: &Path) -> Result<PathBuf, Diagnostic> {
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .map_err(|error| {
+                parent_error(format!(
+                    "cannot resolve Project v8 Rust output {}: {error}",
+                    path.display()
+                ))
+            })?
+            .join(path)
+    };
+    let mut normalized = PathBuf::new();
+    for component in absolute.components() {
+        match component {
+            Component::Prefix(prefix) => normalized.push(prefix.as_os_str()),
+            Component::RootDir => normalized.push(component.as_os_str()),
+            Component::Normal(value) => normalized.push(value),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                return Err(parent_error(
+                    "Project v8 Rust output may not contain parent traversal",
+                ))
+            }
+        }
+    }
+    if normalized.file_name().is_none() {
+        return Err(parent_error(
+            "Project v8 Rust output must name one package directory",
+        ));
+    }
+    Ok(normalized)
+}
+
 pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
     let mut input = None::<PathBuf>;
     let mut output = None::<PathBuf>;
@@ -319,13 +354,20 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
             "native".to_owned()
         }
     });
-    if !matches!(
-        target.as_str(),
-        "native" | "native-callable" | "web" | "wasm" | "npm"
-    ) {
-        eprintln!(
-            "unsupported target `{target}`; available: native, native-callable, web, wasm, npm"
-        );
+    let project_rust = matches!(&input, BuildInput::Project(_)) && target == "rust";
+    if !project_rust
+        && !matches!(
+            target.as_str(),
+            "native" | "native-callable" | "web" | "wasm" | "npm"
+        )
+    {
+        if matches!(&input, BuildInput::Project(_)) {
+            eprintln!("unsupported target `{target}`; available: native, web, wasm, npm, rust");
+        } else {
+            eprintln!(
+                "unsupported target `{target}`; available: native, native-callable, web, wasm, npm"
+            );
+        }
         return Err(2);
     }
     if target == "native-callable" {
@@ -346,9 +388,9 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
         return Err(2);
     }
     if matches!(&input, BuildInput::Project(_)) {
-        if !matches!(target.as_str(), "web" | "wasm" | "native" | "npm") {
+        if !matches!(target.as_str(), "web" | "wasm" | "native" | "npm" | "rust") {
             eprintln!(
-                "Project v1 publishes only explicit web and native targets; native-callable publication remains held"
+                "Project manifests publish only explicit web, native, npm, and Project-v8 rust targets; native-callable publication remains held"
             );
             return Err(2);
         }
@@ -485,5 +527,32 @@ mod tests {
             "app.main",
         ]))
         .is_err());
+
+        let rust = parse(&strings(&[
+            "--manifest-path",
+            "fixtures/semaprax.toml",
+            "--target",
+            "rust",
+            "-o",
+            "sdk",
+        ]))
+        .unwrap();
+        assert_eq!(rust.target, "rust");
+        assert_eq!(rust.output, Some(PathBuf::from("sdk")));
+        assert!(matches!(rust.input, BuildInput::Project(_)));
+        assert!(parse(&strings(&["app.spx", "--target", "rust"])).is_err());
+        assert!(parse(&strings(&[
+            "--manifest-path",
+            DEFAULT_MANIFEST,
+            "--target",
+            "rust",
+            "--export",
+            "app.main",
+        ]))
+        .is_err());
+        let normalized = absolute_rust_output(Path::new("dist/rust")).unwrap();
+        assert!(normalized.is_absolute());
+        assert!(normalized.ends_with(Path::new("dist/rust")));
+        assert!(absolute_rust_output(Path::new("dist/../rust")).is_err());
     }
 }

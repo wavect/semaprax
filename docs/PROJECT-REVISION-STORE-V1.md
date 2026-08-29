@@ -290,8 +290,8 @@ store operation into Project success.
 
 ## Evidence and nonclaims
 
-Authored evidence covers canonical persist/load round-trip for every currently
-constructible Project revision in v1-v8 and v10; deterministic entry JSON and
+Authored evidence covers canonical persist/load round-trip for every Project
+revision in v1-v10; deterministic entry JSON and
 digest; exact-capacity and plus-one rejection; stale expected subject;
 manifest/source/Workspace/
 Project/graph binding mutations; same-byte path substitution after authority

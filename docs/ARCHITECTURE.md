@@ -201,6 +201,15 @@ capsules never carry reusable authority.
 admission, linking, execution, builds, npm carriers, rename planning, and the
 unpublished native Rust SDK bridge.
 
+`src/project/admission/` is the sole exhaustive, authority-neutral Phase-A
+profile dispatcher. It consumes the already linked entry HIR and exact retained
+Project subject, runs the unchanged schema-selected target admission, and
+retains v8/v9/v10 descriptors only as sealed compiler state. A prepared value
+is neither evidence nor effect authority, and later public consumers still
+replay descriptor bytes against retained HIR. This closes the ordinary v9
+Project route without modifying an earlier profile or target schema. See
+[Project Profile Admission v1](PROJECT-PROFILE-ADMISSION-V1.md).
+
 Project v8 adds one closed `owned-data-api.v1` route. `src/project/public_api.rs`
 derives and independently replays the sole semantic API descriptor from the
 authenticated linked-HIR subject. `src/project/npm/owned_data.rs` and the

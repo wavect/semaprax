@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Authored the authority-neutral Project Profile Admission v1 kernel, routing
+  the existing Project-v9 flat owned-record descriptor and target adapter
+  through ordinary Project construction and Revision Store replay while adding
+  exact v9/v10 execution-envelope verification and preserving earlier profile
+  schemas and bytes. Evidence remains unrun and no profile is promoted.
+
 - Authored Linked Scalar Core-Wasm Package Build v2 as the first consumer of
   the exact Multi-Package Source Capsule replay seam. The authority-free build
   moves retained linked HIR into the unchanged scalar Wasm emitter, binds the
@@ -19,10 +25,10 @@
   one, exact Unix modes include special permission bits, one inert stage may be
   quarantined by top identity for unrelated loads while persistence remains
   blocked, and a pure locator permits post-pivot ambiguity to be resolved only
-  by ordinary full replay. Added authored v1-v8/v10 profile round trips, an
-  explicit Project v9 `SPX-W115` admission-blocker regression, and hostile
-  residue, identity, and permission evidence; no local or hosted execution,
-  cleanup, adoption, Windows support, cache, or promotion is claimed.
+  by ordinary full replay. Added authored v1-v10 profile round trips and
+  hostile residue, identity, and permission evidence; no local or hosted
+  execution, cleanup, adoption, Windows support, cache, or promotion is
+  claimed.
 
 - Authored Offline Multi-Package Source Capsule v1 above exact Resolver-v1,
   Subject/Lock-v2, and Report-v2 replay. The authority-free library admits two

@@ -5,6 +5,7 @@
 //! and retains held identities for a final caller-boundary recheck. It creates
 //! no managed workspace and grants no publication authority.
 
+mod admission;
 mod authority;
 mod build;
 mod execution;

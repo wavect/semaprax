@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 use crate::diagnostic::Diagnostic;
 use crate::semantic_workspace::{self, SemanticWorkspaceSource};
 
-use super::{semantic, ProjectManifest, ProjectSource};
+use super::{admission, semantic, ProjectManifest, ProjectSource, PublicApiSubject};
 
 pub(super) struct BuiltProject {
     pub(super) sources: Vec<ProjectSource>,
@@ -15,6 +15,7 @@ pub(super) struct BuiltProject {
     pub(super) entry_program: crate::hir::ResolvedProgram,
     pub(super) test_program: crate::hir::ResolvedProgram,
     pub(super) semantic: semantic::ProjectSemanticState,
+    pub(super) profile_admission: admission::PreparedProjectAdmission,
 }
 
 /// Build and validate the complete manifest-owned Project from already-owned
@@ -57,68 +58,19 @@ pub(super) fn build_owned(
         &project_revision,
         manifest.test_module(),
     )?;
-    // This is the complete public Web-export admission gate used by ordinary
-    // Project loading. Candidate planning must not validate a weaker profile.
-    match manifest.project_profile() {
-        super::ProjectProfile::ScalarV1 => crate::wasm::emit_resolved_module_with_scalar_exports(
-            &entry_program,
-            manifest.web_exports(),
-        ),
-        super::ProjectProfile::UsefulTextConsumerV1 => {
-            crate::wasm::emit_resolved_module_with_text_exports(
-                &entry_program,
-                manifest.web_exports(),
-            )
-        }
-        super::ProjectProfile::UsefulDataV1 => crate::wasm::emit_resolved_module_with_byte_exports(
-            &entry_program,
-            manifest.web_exports(),
-        ),
-        super::ProjectProfile::UsefulDataCommandV1 => {
-            crate::wasm::emit_resolved_module_with_byte_exports_and_stdout_transcript(
-                &entry_program,
-                manifest.web_exports(),
-            )
-        }
-        super::ProjectProfile::UsefulDataCommandV2 => {
-            crate::wasm::emit_resolved_useful_data_command_v2(
-                &entry_program,
-                manifest.command().unwrap_or(""),
-            )
-        }
-        super::ProjectProfile::LanguageCommandIoV1 => {
-            crate::wasm::emit_resolved_language_command_io_v1(
-                &entry_program,
-                manifest.command().unwrap_or(""),
-            )
-        }
-        super::ProjectProfile::LineCommandIoV1 => crate::wasm::emit_resolved_line_command_io_v1(
-            &entry_program,
-            manifest.command().unwrap_or(""),
-        ),
-        super::ProjectProfile::OwnedDataApiV1 | super::ProjectProfile::OwnedUtf8ApiV1 => {
-            super::derive_public_api_descriptor(
-                &entry_program,
-                manifest.web_exports(),
-                super::PublicApiSubject {
-                    project_schema: manifest.schema(),
-                    project_revision: &project_revision,
-                    workspace_revision: &workspace_revision,
-                    project_graph_digest: semantic.graph_digest(),
-                },
-            )
-            .and_then(|descriptor| {
-                crate::wasm::emit_resolved_module_with_owned_data_exports(
-                    &entry_program,
-                    &descriptor,
-                )
-            })
-        }
-        super::ProjectProfile::FlatOwnedRecordApiV1 => Err(crate::diagnostic::Diagnostic::io(
-            "SPX-W115",
-            "Project v9 requires the descriptor-driven flat owned-record target route",
-        )),
-    }
+    // This is the complete public target admission gate used by ordinary
+    // Project loading. Candidate planning must not validate a weaker profile,
+    // and every additive schema must pass this one exhaustive dispatcher.
+    let profile_admission = admission::prepare(
+        manifest,
+        &entry_program,
+        PublicApiSubject {
+            project_schema: manifest.schema(),
+            project_revision: &project_revision,
+            workspace_revision: &workspace_revision,
+            project_graph_digest: semantic.graph_digest(),
+        },
+    )
     .map_err(|error| vec![error])?;
     let sources = files
         .into_iter()
@@ -142,6 +94,7 @@ pub(super) fn build_owned(
         entry_program,
         test_program,
         semantic,
+        profile_admission,
     })
 }
 

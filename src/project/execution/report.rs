@@ -13,9 +13,9 @@ use sha2::{Digest as _, Sha256};
 
 use super::{ProjectExecutionOutcome, ProjectExecutionRole};
 use crate::project::{
-    MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_STABLE_ID_BYTES, PROJECT_SCHEMA, PROJECT_SCHEMA_V2,
-    PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7,
-    PROJECT_SCHEMA_V8,
+    MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_STABLE_ID_BYTES, PROJECT_SCHEMA, PROJECT_SCHEMA_V10,
+    PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6,
+    PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
 };
 
 pub const PROJECT_EXECUTION_SCHEMA: &str = "semaprax.project-execution.v1";
@@ -157,10 +157,11 @@ pub fn verify_execution_envelope(envelope: &str) -> Result<(), Diagnostic> {
             | PROJECT_SCHEMA_V6
             | PROJECT_SCHEMA_V7
             | PROJECT_SCHEMA_V8
+            | PROJECT_SCHEMA_V9
+            | PROJECT_SCHEMA_V10
     ) {
         return Err(verification_error(
-            "project_schema must name an admitted Project v1, v2, v3, v4, v5, v6, v7, or v8 schema"
-                .to_owned(),
+            "project_schema must name an admitted Project v1 through v10 schema".to_owned(),
         ));
     }
     let project = require_bounded_text(object, "project", MAX_NAME_BYTES)?;
@@ -500,4 +501,37 @@ fn require_usize(
 
 fn verification_error(message: String) -> Diagnostic {
     Diagnostic::io("SPX-F106", message)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::project::{PROJECT_SCHEMA_V10, PROJECT_SCHEMA_V9};
+
+    #[test]
+    fn additive_project_schemas_render_and_replay_without_widening_the_envelope() {
+        for schema in [PROJECT_SCHEMA_V9, PROJECT_SCHEMA_V10] {
+            let envelope = render(
+                schema,
+                "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                "profile",
+                ProjectExecutionRole::Test,
+                "profile.tests",
+                "profile.tests.main",
+                1,
+                100,
+                65_536,
+                &ProjectExecutionOutcome::Returned(0),
+            )
+            .unwrap();
+            verify_execution_envelope(&envelope).unwrap();
+            assert!(verify_execution_envelope(&envelope.replacen(
+                schema,
+                "semaprax.project.v99",
+                1
+            ))
+            .is_err());
+        }
+    }
 }

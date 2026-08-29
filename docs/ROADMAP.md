@@ -89,6 +89,13 @@ routes. The implementation and executable evidence are authored but unrun;
 the generated packages are unpublished, and hosted promotion remains
 outstanding.
 
+The authority-neutral [Project Profile Admission
+v1](PROJECT-PROFILE-ADMISSION-V1.md) dispatcher is now authored as the sole
+ordinary Phase-A profile gate. It routes the existing v9 descriptor and Wasm
+adapter through normal Project construction and Revision Store replay while
+preserving v1-v8 and v10 schemas. Its focused evidence is unrun and does not
+promote or publish any Project profile.
+
 The next additive string tranche is specified by
 [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md). Project v10 is gated
 on promoted Project v9 and keeps raw `Bytes` distinct from length-delimited,

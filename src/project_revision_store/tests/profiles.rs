@@ -39,7 +39,7 @@ fn authored_profile(label: &str, manifest: &str, sources: &[(&str, &str)]) -> (F
 }
 
 #[test]
-fn every_constructible_project_profile_in_v1_to_v8_and_v10_round_trips() {
+fn every_project_profile_in_v1_to_v10_round_trips() {
     let repository = Path::new(env!("CARGO_MANIFEST_DIR"));
     for relative in [
         "examples/calculator-project/semaprax.toml",
@@ -69,10 +69,7 @@ fn every_constructible_project_profile_in_v1_to_v8_and_v10_round_trips() {
         ],
     );
     round_trip(&v10);
-}
 
-#[test]
-fn project_v9_phase_a_rejection_is_the_explicit_round_trip_blocker() {
     let (_v9_fixture, v9) = authored_profile(
         "profile-v9",
         "schema = \"semaprax.project.v9\"\nname = \"frame-info\"\nversion = \"0.1.0\"\nprofile = \"flat-owned-record-api.v1\"\nentry = \"frame.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"frame.info\"]\ntests = [\"frame.tests\"]\n",
@@ -87,8 +84,5 @@ fn project_v9_phase_a_rejection_is_the_explicit_round_trip_blocker() {
             ),
         ],
     );
-    let error = crate::project::load_snapshot(&v9)
-        .err()
-        .expect("Project v9 Phase-A currently rejects before a revision exists");
-    assert_eq!(error[0].code, "SPX-W115");
+    round_trip(&v9);
 }

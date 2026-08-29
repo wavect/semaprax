@@ -1,0 +1,37 @@
+use super::*;
+
+#[test]
+fn every_prepared_variant_reports_one_exact_closed_profile() {
+    let legacy = [
+        (PreparedProjectAdmission::ScalarV1, ProjectProfile::ScalarV1),
+        (
+            PreparedProjectAdmission::UsefulTextConsumerV1,
+            ProjectProfile::UsefulTextConsumerV1,
+        ),
+        (
+            PreparedProjectAdmission::UsefulDataV1,
+            ProjectProfile::UsefulDataV1,
+        ),
+        (
+            PreparedProjectAdmission::UsefulDataCommandV1,
+            ProjectProfile::UsefulDataCommandV1,
+        ),
+        (
+            PreparedProjectAdmission::UsefulDataCommandV2,
+            ProjectProfile::UsefulDataCommandV2,
+        ),
+        (
+            PreparedProjectAdmission::LanguageCommandIoV1,
+            ProjectProfile::LanguageCommandIoV1,
+        ),
+        (
+            PreparedProjectAdmission::LineCommandIoV1,
+            ProjectProfile::LineCommandIoV1,
+        ),
+    ];
+    for (prepared, expected) in legacy {
+        assert_eq!(prepared.profile(), expected);
+        assert!(prepared.owned_descriptor().is_none());
+        assert!(prepared.flat_record_descriptor().is_none());
+    }
+}

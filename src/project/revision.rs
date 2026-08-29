@@ -7,7 +7,9 @@
 
 use crate::diagnostic::Diagnostic;
 
-use super::{build::BuiltProject, execution, npm, semantic, ProjectManifest, ProjectNpmBuild};
+use super::{
+    admission, build::BuiltProject, execution, npm, semantic, ProjectManifest, ProjectNpmBuild,
+};
 use super::{ProjectExecution, ProjectExecutionOptions, ProjectExecutionRole, ProjectProfile};
 use super::{ProjectSource, ProjectWebBuild};
 
@@ -21,6 +23,7 @@ pub struct ProjectRevision {
     pub(super) entry_program: crate::hir::ResolvedProgram,
     pub(super) test_program: crate::hir::ResolvedProgram,
     pub(super) semantic: semantic::ProjectSemanticState,
+    pub(super) profile_admission: admission::PreparedProjectAdmission,
 }
 
 impl ProjectRevision {
@@ -34,6 +37,7 @@ impl ProjectRevision {
             entry_program: built.entry_program,
             test_program: built.test_program,
             semantic: built.semantic,
+            profile_admission: built.profile_admission,
         }
     }
 
@@ -68,6 +72,10 @@ impl ProjectRevision {
     /// Report successful admission. Complete profile validation occurred before
     /// this revision became observable.
     pub fn check(&self) -> Result<(), Vec<Diagnostic>> {
+        debug_assert_eq!(
+            self.profile_admission.profile(),
+            self.manifest.project_profile()
+        );
         Ok(())
     }
 
@@ -143,21 +151,17 @@ impl ProjectRevision {
     /// Build Project v1 as one deterministic pathless scalar-Web carrier.
     pub fn build_web_inline(&self, max_bytes: usize) -> Result<ProjectWebBuild, Vec<Diagnostic>> {
         if self.manifest.project_profile() != ProjectProfile::ScalarV1 {
-            let version = if self.manifest.is_v2() {
-                "v2"
-            } else if self.manifest.is_v3() {
-                "v3"
-            } else if self.manifest.is_v4() {
-                "v4"
-            } else if self.manifest.is_v5() {
-                "v5"
-            } else if self.manifest.is_v6() {
-                "v6"
-            } else if self.manifest.is_v7() {
-                "v7"
-            } else {
-                debug_assert!(self.manifest.is_v8());
-                "v8"
+            let version = match self.manifest.project_profile() {
+                ProjectProfile::ScalarV1 => unreachable!("scalar profile returned above"),
+                ProjectProfile::UsefulTextConsumerV1 => "v2",
+                ProjectProfile::UsefulDataV1 => "v3",
+                ProjectProfile::UsefulDataCommandV1 => "v4",
+                ProjectProfile::UsefulDataCommandV2 => "v5",
+                ProjectProfile::LanguageCommandIoV1 => "v6",
+                ProjectProfile::LineCommandIoV1 => "v7",
+                ProjectProfile::OwnedDataApiV1 => "v8",
+                ProjectProfile::FlatOwnedRecordApiV1 => "v9",
+                ProjectProfile::OwnedUtf8ApiV1 => "v10",
             };
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
@@ -214,12 +218,12 @@ impl ProjectRevision {
             workspace_revision: &self.workspace_revision,
             project_graph_digest: self.semantic.graph_digest(),
         };
-        let descriptor = super::derive_public_api_descriptor(
-            &self.entry_program,
-            self.manifest.web_exports(),
-            subject,
-        )
-        .map_err(|error| vec![error])?;
+        let descriptor = self.profile_admission.owned_descriptor().ok_or_else(|| {
+            vec![Diagnostic::io(
+                "SPX-J105",
+                "retained Project v8 admission has no owned-data descriptor",
+            )]
+        })?;
         super::replay_public_api_descriptor(
             &self.entry_program,
             self.manifest.web_exports(),

@@ -2,6 +2,7 @@
 
 Status: additive implementation and evidence authored, not locally run or
 hosted-promoted.
+Audience: package tooling authors and compiler contributors.
 
 Semantic Package Report v2 is a deterministic, authority-free semantic
 subject for later offline compatibility analysis. It preserves every v1 API

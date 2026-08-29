@@ -1,6 +1,7 @@
 # Offline Package Compatibility Evidence v1
 
 Status: additive focused evidence authored, unrun and unpromoted.
+Audience: package tooling authors and compiler contributors.
 
 Exact base/candidate reports must be byte-identical to selected subjects in
 independently replayed Lock-v2 graphs. The closed scope is

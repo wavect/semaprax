@@ -80,9 +80,9 @@ borrowed-root, deeper, and substituted-projection rejection; same-field and
 parent move, assignment, record update, and `match own` rejection; sibling
 field movement and assignment independence; post-last-use movement; stable-ID
 retention through direct aliases/ranges and across a display rename; hostile
-Shared Loan Plan and byte-slice provenance mutations; legacy borrowed `Bytes`,
-string and slice call preservation; unchanged unprojected Graph v23 schema
-selection and serialized fields; and equivalent interpreter, native
+Shared Loan Plan and byte-slice provenance mutations; legacy owned `Bytes`,
+borrowed string, and borrowed slice call preservation; unchanged unprojected
+Graph v23 schema selection and serialized fields; and equivalent interpreter, native
 `-O0`/`-O2`, and Core-Wasm execution while retaining the
 existing multiple-view and reborrow corpus.
 

@@ -1,6 +1,7 @@
 # Offline Semantic Package Lock v2
 
 Status: additive implementation and evidence authored, unrun and unpromoted.
+Audience: package tooling authors and compiler contributors.
 
 Lock v2 is a distinct authority-free graph over at most four exact
 caller-owned Semantic Package Report v2 subjects. Each subject embeds the

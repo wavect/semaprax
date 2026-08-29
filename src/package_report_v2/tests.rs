@@ -64,12 +64,13 @@ fn source_only_mutation_with_full_outer_remint_is_rejected() {
 fn contract_normalization_ignores_display_renames() {
     fn facts(source: &str) -> (Vec<String>, Vec<String>) {
         let program = crate::parse(source, Path::new("rename.spx")).expect("parse");
-        assert!(crate::verify::verify(&program).is_empty());
+        let diagnostics = crate::verify::verify(&program);
+        assert!(diagnostics.is_empty(), "{diagnostics:?}");
         let resolved = crate::hir::resolve(&program).expect("HIR");
         super::contract::normalize(&resolved.functions[0]).expect("stable contract")
     }
-    let before = "module rename;\n@id(\"stable.f\")\nfn before(value: i64) -> i64 requires value >= 0 ensures result == value { value }\n";
-    let after = "module rename;\n@id(\"stable.f\")\nfn after(renamed: i64) -> i64 requires renamed >= 0 ensures result == renamed { renamed }\n";
+    let before = "module rename;\n@id(\"stable.f\")\nfn before(value: i64) -> i64 requires value >= 0 ensures result == value { value }\n@id(\"app.main\") fn main() -> i64 { 0 }\n";
+    let after = "module rename;\n@id(\"stable.f\")\nfn after(renamed: i64) -> i64 requires renamed >= 0 ensures result == renamed { renamed }\n@id(\"app.main\") fn main() -> i64 { 0 }\n";
     assert_eq!(facts(before), facts(after));
 }
 
@@ -90,9 +91,11 @@ fn subject(flag: bool) -> Result<bool, bool>
 {
     Result<bool, bool>::Ok { value: flag }
 }
+@id("app.main") fn main() -> i64 { 0 }
 "#;
     let program = crate::parse(source, Path::new("contract-unproven.spx")).expect("parse");
-    assert!(crate::verify::verify(&program).is_empty());
+    let diagnostics = crate::verify::verify(&program);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
     let canonical = crate::format::canonical(&program);
     let envelope =
         super::build_from_canonical_source(&canonical, &PackageReportV2Options::default())

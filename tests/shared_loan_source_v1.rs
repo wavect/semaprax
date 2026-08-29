@@ -358,19 +358,20 @@ module test.shared_loan_projected_deeper;
 }
 
 #[test]
-fn legacy_borrowed_bytes_slice_and_string_calls_remain_admitted() {
+fn legacy_owned_bytes_and_borrowed_slice_and_string_calls_remain_admitted() {
     let source = r#"
 module test.shared_loan_legacy_borrow_calls;
 @id("borrow.slice") fn borrow_slice(value: borrow Slice<u8>) -> usize { byte_len(value) }
 @id("borrow.string") fn borrow_string(value: borrow str) -> i64 { 1 }
-@id("borrow.bytes") fn borrow_bytes(value: borrow Bytes) -> i64 { 1 }
+@id("own.bytes") fn own_bytes(value: own Bytes) -> i64 { 1 }
 @id("borrow.forward")
 fn forward(slice: borrow Slice<u8>, text: borrow str) -> i64 {
     let length = borrow_slice(slice);
     let owned = bytes_copy(slice);
-    borrow_bytes(owned) + borrow_string(text)
+    own_bytes(owned) + borrow_string(text)
 }
 @id("app.main") fn main() -> i64 { 0 }
 "#;
-    assert!(diagnostics(source).is_empty());
+    let report = diagnostics(source);
+    assert!(report.is_empty(), "{report:?}");
 }

@@ -4641,7 +4641,9 @@ impl<'a> HirValidator<'a> {
                                 "byte-slice local must be a direct immutable alias or authenticated view",
                             )),
                         };
-                        if *mutable || !place.projections.is_empty() {
+                        let is_authenticated_view =
+                            matches!(&value.kind, ResolvedExprKind::BorrowPlace { .. });
+                        if *mutable || (!is_authenticated_view && !place.projections.is_empty()) {
                             return Err(hir_error(
                                 "byte-slice local alias must be immutable and unprojected",
                             ));
@@ -6850,7 +6852,11 @@ impl<'a> HirValidator<'a> {
                                         "byte-slice local must be a direct immutable alias or authenticated view",
                                     )),
                                 };
-                                if *mutable || !place.projections.is_empty() {
+                                let is_authenticated_view =
+                                    matches!(&value.kind, ResolvedExprKind::BorrowPlace { .. });
+                                if *mutable
+                                    || (!is_authenticated_view && !place.projections.is_empty())
+                                {
                                     return Err(hir_error(
                                         "byte-slice local alias must be immutable and unprojected",
                                     ));

@@ -17,7 +17,7 @@ evidence, private experiments, and repository internals live in the separate
 
 | You want to… | Start with… |
 | --- | --- |
-| Try the language | The root [README](../README.md) and its runnable examples |
+| Try the language | Create a calculator with `semaprax new my-project`, then follow the root [README](../README.md) |
 | Understand the language design | [RFC 0001](RFC-0001.md) |
 | Work with records, variants, matching, `Option`, or `Result` | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md) |
 | Understand ownership and cleanup | [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |

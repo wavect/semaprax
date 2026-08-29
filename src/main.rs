@@ -148,6 +148,14 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                 Err(outcome.exit_code)
             }
         }
+        "new" => {
+            let destination = cli::new_project::run(&args[1..]).map_err(|error| {
+                eprintln!("new: {error}");
+                error.exit_code()
+            })?;
+            println!("created calculator project {}", destination.display());
+            Ok(())
+        }
         "build" => {
             let options = cli::build::parse(&args[1..])?;
             match &options.input {
@@ -2096,6 +2104,7 @@ fn print_help() {
             semaprax serve <file> [--max-request-bytes N]\n\
             semaprax quality-plan <quick|changed|full> [exact-changed-path ...]\n\
             semaprax doctor [--target native|web|all] [--json]\n\
+            semaprax new <destination> [--name project-name] [--template calculator]\n\
            semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm] [--function stable-id] [--export stable-id ...] [-o path]\n\
            semaprax run <file>\n\
            semaprax run [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n\

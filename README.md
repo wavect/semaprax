@@ -63,6 +63,18 @@ semaprax check examples/meaning.spx
 semaprax run examples/meaning.spx
 ```
 
+Create a checked calculator project from the built-in template:
+
+```sh
+semaprax new my-project
+cd my-project
+semaprax check semaprax.toml
+semaprax test semaprax.toml
+```
+
+The generator uses only compiled-in files and does not initialize Git, install
+dependencies, or access a network.
+
 ### Inspect the semantic graph
 
 ```sh
@@ -153,6 +165,7 @@ publication authority.
 
 | Command | Purpose |
 | --- | --- |
+| `semaprax new <destination>` | Create and validate a Project v1 calculator from the built-in template. |
 | `semaprax check …` | Parse, resolve, type-check, and verify a file or project manifest. |
 | `semaprax fmt <file> [--check]` | Write or check canonical formatting. |
 | `semaprax run …` / `semaprax test …` | Execute an admitted file or project through the development path. |

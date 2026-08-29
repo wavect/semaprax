@@ -14,6 +14,9 @@ pub(super) const BOUNDARY_STATUS: i32 = 11;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum ResultLayout {
+    I64,
+    Bool,
+    Usize,
     Bytes,
     OptionBytes { payload_offset: u32 },
     ResultBytesI64 { payload_offset: u32 },
@@ -22,7 +25,8 @@ pub(super) enum ResultLayout {
 impl ResultLayout {
     const fn size(self) -> u32 {
         match self {
-            Self::Bytes => 8,
+            Self::Bool => 4,
+            Self::I64 | Self::Usize | Self::Bytes => 8,
             Self::OptionBytes { .. } | Self::ResultBytesI64 { .. } => 16,
         }
     }
@@ -199,6 +203,22 @@ impl OwnedDataExportPlan {
         body.push(0x0b);
 
         match self.result {
+            ResultLayout::I64 | ResultLayout::Usize => {
+                load_i64(&mut body, temporary_out, 0);
+                local_set(&mut body, carrier);
+                poison_temporary(&mut body, temporary_out, self.result.size());
+                store_i64(&mut body, result_out, 0, carrier);
+            }
+            ResultLayout::Bool => {
+                load_i32(&mut body, temporary_out, 0);
+                local_set(&mut body, charged);
+                local_get(&mut body, charged);
+                i32_const(&mut body, 1);
+                body.push(0x4b); // i32.gt_u
+                body.extend([0x04, 0x40, 0x00, 0x0b]); // invalid HIR result traps
+                poison_temporary(&mut body, temporary_out, self.result.size());
+                store_i32(&mut body, result_out, 0, charged);
+            }
             ResultLayout::Bytes => {
                 load_i64(&mut body, temporary_out, 0);
                 local_set(&mut body, carrier);
@@ -240,11 +260,19 @@ impl OwnedDataExportPlan {
 }
 
 fn poison_temporary(body: &mut Vec<u8>, pointer: u32, size: u32) {
-    for offset in (0..size).step_by(8) {
+    let full_words = size / 8;
+    for word in 0..full_words {
+        let offset = word * 8;
         local_get(body, pointer);
         i64_const(body, -6_510_615_555_426_900_571_i64); // 0xa5 repeated
         body.extend([0x37, 0x03]);
         write_u32(body, offset);
+    }
+    if size % 8 == 4 {
+        local_get(body, pointer);
+        i32_const(body, -1_515_870_811_i32); // 0xa5 repeated
+        body.extend([0x36, 0x02]);
+        write_u32(body, full_words * 8);
     }
 }
 
@@ -296,8 +324,12 @@ fn result_layout(
     result: PublicApiResultType,
     ty: &crate::hir::ResolvedType,
 ) -> Result<ResultLayout, Diagnostic> {
-    if result == PublicApiResultType::OwnedBytes {
-        return Ok(ResultLayout::Bytes);
+    match result {
+        PublicApiResultType::I64 => return Ok(ResultLayout::I64),
+        PublicApiResultType::Bool => return Ok(ResultLayout::Bool),
+        PublicApiResultType::Usize => return Ok(ResultLayout::Usize),
+        PublicApiResultType::OwnedBytes => return Ok(ResultLayout::Bytes),
+        PublicApiResultType::OptionOwnedBytes | PublicApiResultType::ResultOwnedBytesI64 => {}
     }
     let layout = layouts.layout(ty)?;
     layout.validate(program)?;
@@ -372,6 +404,12 @@ fn authenticate_tag(body: &mut Vec<u8>, pointer: u32, tag_local: u32) {
 fn load_i64(body: &mut Vec<u8>, pointer: u32, offset: u32) {
     local_get(body, pointer);
     body.extend([0x29, 0x03]);
+    write_u32(body, offset);
+}
+
+fn load_i32(body: &mut Vec<u8>, pointer: u32, offset: u32) {
+    local_get(body, pointer);
+    body.extend([0x28, 0x02]);
     write_u32(body, offset);
 }
 

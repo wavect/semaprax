@@ -52,6 +52,31 @@ impl Fixture {
         Self(root.canonicalize().unwrap())
     }
 
+    fn owned_data(label: &str) -> Self {
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-project-workflow-v8-{label}-{}-{}",
+            std::process::id(),
+            SERIAL.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        std::fs::write(
+            root.join("semaprax.toml"),
+            "schema = \"semaprax.project.v8\"\nname = \"agent-owned\"\nversion = \"1.0.0\"\nprofile = \"owned-data-api.v1\"\nentry = \"agent_owned.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"agent-owned.payload\"]\ntests = [\"agent_owned.tests\"]\n",
+        )
+        .unwrap();
+        std::fs::write(
+            root.join("src/app.spx"),
+            "module agent_owned.app;\n\n@id(\"agent-owned.payload\")\nfn payload(input: borrow Slice<u8>) -> Bytes { bytes_copy(input) }\n\n@id(\"agent-owned.app.main\")\nfn main() -> i64 { 0 }\n",
+        )
+        .unwrap();
+        std::fs::write(
+            root.join("src/tests.spx"),
+            "module agent_owned.tests;\n\n@id(\"agent-owned.tests.main\")\nfn main() -> i64 { 0 }\n",
+        )
+        .unwrap();
+        Self(root.canonicalize().unwrap())
+    }
+
     fn manifest(&self) -> PathBuf {
         self.0.join("semaprax.toml")
     }
@@ -81,6 +106,39 @@ fn daemon_v2_web_and_npm_targets_return_the_same_text_carrier() {
         project::PROJECT_NPM_BUILD_SCHEMA
     );
     assert_eq!(web["result"]["build"], npm["result"]["build"]);
+    daemon.finish();
+}
+
+#[test]
+fn daemon_v1_does_not_widen_to_v8_builds_and_preserves_existing_test_execution() {
+    let fixture = Fixture::owned_data("closed-build");
+    let mut daemon = Daemon::start(&fixture);
+    let opened = daemon.call(json!({"jsonrpc":"2.0","id":1,"method":"workspace/open"}));
+    let project_revision = opened["result"]["project_revision"].as_str().unwrap();
+    let workspace_revision = opened["result"]["workspace_revision"].as_str().unwrap();
+    let build = daemon.call(json!({
+        "jsonrpc":"2.0","id":2,"method":"build","params":{
+            "project_revision":project_revision,
+            "workspace_revision":workspace_revision,
+            "target":"npm"
+        }
+    }));
+    assert!(build["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("future Agent Transport v5"));
+
+    let test = daemon.call(json!({
+        "jsonrpc":"2.0","id":3,"method":"test","params":{
+            "project_revision":project_revision,
+            "workspace_revision":workspace_revision
+        }
+    }));
+    assert_eq!(test["result"]["command_succeeded"], true);
+    assert_eq!(
+        test["result"]["execution"]["project_schema"],
+        project::PROJECT_SCHEMA_V8
+    );
     daemon.finish();
 }
 

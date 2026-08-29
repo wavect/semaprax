@@ -427,6 +427,45 @@ fn every_submitted_byte_and_structural_mutation_fails_replay() {
         .is_err());
     }
 
+    let canonical = String::from_utf8(bytes.clone()).unwrap();
+    let exports_start = canonical.find("\"exports\":[").unwrap() + "\"exports\":[".len();
+    let second_row = canonical[exports_start..]
+        .find("},{\"stable_id\":\"api.bytes\"")
+        .unwrap()
+        + exports_start;
+    let mut missing_scalar = canonical.clone();
+    missing_scalar.replace_range(exports_start..second_row + 2, "");
+    let missing_scalar = missing_scalar.into_bytes();
+    assert!(replay_public_api_descriptor(
+        &program,
+        &selected(),
+        subject(),
+        &missing_scalar,
+        &remint_descriptor_digest(&missing_scalar),
+    )
+    .is_err());
+
+    let scalar_start = canonical.find("{\"stable_id\":\"api.i64\"").unwrap();
+    let scalar_end = canonical[scalar_start..]
+        .find("},{\"stable_id\":\"api.mixed\"")
+        .unwrap()
+        + scalar_start;
+    let surplus_row = canonical[scalar_start..scalar_end]
+        .replace("api.i64", "api.scalar-surplus")
+        .replace("spx_api_dot_i64", "spx_api_dot_scalar_hyphen_surplus");
+    let exports_end = canonical.find("],\"limits\":").unwrap();
+    let mut surplus_scalar = canonical.clone();
+    surplus_scalar.insert_str(exports_end, &format!(",{surplus_row}"));
+    let surplus_scalar = surplus_scalar.into_bytes();
+    assert!(replay_public_api_descriptor(
+        &program,
+        &selected(),
+        subject(),
+        &surplus_scalar,
+        &remint_descriptor_digest(&surplus_scalar),
+    )
+    .is_err());
+
     let foreign_revision = String::from_utf8(bytes.clone())
         .unwrap()
         .replace(

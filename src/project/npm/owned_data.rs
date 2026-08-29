@@ -1,7 +1,5 @@
 //! Authority-free npm projection for the closed WP-10/WP-11 owned-data results.
 
-use std::path::Path;
-
 use sha2::{Digest, Sha256};
 
 use crate::diagnostic::{quote_json, Diagnostic};
@@ -61,8 +59,31 @@ pub(super) fn prepare(
     if &replayed != descriptor {
         return Err(package_error("owned-data descriptor replay disagrees"));
     }
+    let semantic_recipe = super::render_owned_data_semantic_recipe(program)?;
+    let replayed_program = super::semantic_recipe_v8::replay_against(program, &semantic_recipe)?;
+    let replayed_descriptor = replay_public_api_descriptor(
+        &replayed_program,
+        &selected,
+        subject,
+        &descriptor.canonical_bytes(),
+        &descriptor.digest(),
+    )?;
+    if &replayed_descriptor != descriptor {
+        return Err(package_error(
+            "owned-data descriptor disagrees with independent semantic replay",
+        ));
+    }
     let exports = exports_from_descriptor(descriptor)?;
     let wasm = crate::wasm::emit_resolved_module_with_owned_data_exports(program, descriptor)?;
+    let replayed_wasm = crate::wasm::emit_resolved_module_with_owned_data_exports(
+        &replayed_program,
+        &replayed_descriptor,
+    )?;
+    if replayed_wasm != wasm {
+        return Err(package_error(
+            "owned-data Wasm disagrees with independent semantic replay",
+        ));
+    }
     let artifacts = render_package(package, version, descriptor, &wasm, &exports)?;
     let artifact_bytes = artifacts.iter().try_fold(0_usize, |total, artifact| {
         total
@@ -70,7 +91,6 @@ pub(super) fn prepare(
             .filter(|value| *value <= max_bytes)
             .ok_or_else(|| package_error("owned-data npm artifacts exceed the trusted limit"))
     })?;
-    let semantic_recipe = super::render_owned_data_semantic_recipe(program)?;
     let identity = NpmBuildIdentity {
         project_schema: PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
         package,
@@ -136,16 +156,7 @@ pub(super) fn validate_replayed(
         return Err(package_error("owned-data API metadata identity disagrees"));
     }
     let descriptor_bytes = super::json_string(object, "descriptor")?.as_bytes();
-    let ast = crate::parse(
-        identity.semantic_recipe,
-        Path::new("semaprax-owned-data-recipe.spx"),
-    )
-    .map_err(|_| package_error("owned-data semantic recipe does not parse"))?;
-    let program = crate::hir::resolve(&ast)
-        .map_err(|_| package_error("owned-data semantic recipe does not resolve"))?;
-    if super::render_owned_data_semantic_recipe(&program)? != identity.semantic_recipe {
-        return Err(package_error("owned-data semantic recipe is not canonical"));
-    }
+    let program = super::semantic_recipe_v8::replay(identity.semantic_recipe)?;
     let descriptor_value: serde_json::Value = serde_json::from_slice(descriptor_bytes)
         .map_err(|_| package_error("owned-data descriptor metadata is invalid"))?;
     let exports_value = descriptor_value
@@ -211,16 +222,6 @@ fn exports_from_descriptor(
         .exports()
         .iter()
         .map(|export| {
-            if !matches!(
-                export.result(),
-                PublicApiResultType::OwnedBytes
-                    | PublicApiResultType::OptionOwnedBytes
-                    | PublicApiResultType::ResultOwnedBytesI64
-            ) {
-                return Err(package_error(
-                    "owned-data package result is outside the WP-11 families",
-                ));
-            }
             Ok(OwnedExport {
                 stable_id: export.stable_id().as_str().to_owned(),
                 wasm_export: raw_symbol(export.stable_id().as_str()),
@@ -269,7 +270,14 @@ export const wasmSha256=EXPECTED_WASM_SHA256;
 "#,
         digest = quote_json(wasm_sha256)
     );
-    let facade = if exports
+    let facade = if exports.iter().any(|export| {
+        matches!(
+            export.result,
+            PublicApiResultType::I64 | PublicApiResultType::Bool | PublicApiResultType::Usize
+        )
+    }) {
+        render_mixed_runtime_facade(exports)
+    } else if exports
         .iter()
         .any(|export| export.result != PublicApiResultType::OwnedBytes)
     {
@@ -279,6 +287,36 @@ export const wasmSha256=EXPECTED_WASM_SHA256;
     };
     runtime.push_str(&facade);
     runtime
+}
+
+fn render_mixed_runtime_facade(exports: &[OwnedExport]) -> String {
+    let facts = exports
+        .iter()
+        .map(|export| {
+            format!(
+                "[{},Object.freeze({{raw:{},params:Object.freeze([{}]),result:{}}})]",
+                quote_json(&export.stable_id),
+                quote_json(&export.wasm_export),
+                export
+                    .parameters
+                    .iter()
+                    .map(|parameter| quote_json(parameter_wire(*parameter)))
+                    .collect::<Vec<_>>()
+                    .join(","),
+                quote_json(export.result.wire_name()),
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(
+        r#"const FACTS=new Map([{facts}]),IDS=Object.freeze(Array.from(FACTS.keys())),RESULT=65536,POISON=0xa5;
+const encoder=new TextEncoder();
+function snapshot(value,type,label){{if(type==="borrow-str"){{if(typeof value!=="string")throw new TypeError(`${{label}} must be a string`);return encoder.encode(value)}}if(type==="borrow-slice-u8")return snapshotUint8(value,label);if(type==="i64"){{if(typeof value!=="bigint")throw new TypeError(`${{label}} must be bigint`);return value}}if(type==="bool"){{if(typeof value!=="boolean")throw new TypeError(`${{label}} must be boolean`);return value?1:0}}throw new Error("unknown descriptor parameter type")}}
+function resultSize(result){{if(result==="bool")return 4;return result==="option-owned-bytes"||result==="result-owned-bytes-i64"?16:8}}
+function facade(linked){{const e=linked.instance.exports,memory=e.memory;if(!(memory instanceof WebAssembly.Memory)||memory.buffer.byteLength!==131072)throw new Error("SEMAPRAX fixed owned-data memory invariant");let busy=false,poisoned=false;function invoke(id,values){{if(poisoned)throw new Error("SEMAPRAX owned-data runtime is poisoned");if(busy)throw new Error("SEMAPRAX owned-data call is non-reentrant");const fact=FACTS.get(id);if(!fact)throw new RangeError(`unknown SEMAPRAX export: ${{id}}`);if(values.length!==fact.params.length)throw new TypeError("SEMAPRAX argument count disagrees");const snapshots=values.map((value,index)=>snapshot(value,fact.params[index],`argument ${{index}}`));let used=0;for(const value of snapshots)if(value instanceof Uint8Array){{if(value.byteLength>65536-used)throw new RangeError("SEMAPRAX borrowed input capacity exceeded");used+=value.byteLength}}busy=true;let began=false,answer,primary=null;const bytes=new Uint8Array(memory.buffer),view=new DataView(memory.buffer),size=resultSize(fact.result);try{{let offset=0;const raw=[];for(const value of snapshots){{if(value instanceof Uint8Array){{linked.copyInto(bytes,value,offset);raw.push(offset,value.byteLength);offset+=value.byteLength}}else raw.push(value)}}bytes.fill(POISON,RESULT,RESULT+size);linked.arena.begin();began=true;const fn=e[fact.raw];if(typeof fn!=="function")throw new Error("SEMAPRAX raw adapter missing");const status=fn(...raw,RESULT);if(status!==0){{for(let index=RESULT;index<RESULT+size;index++)if(bytes[index]!==POISON)throw new Error("SEMAPRAX failure modified result slot");if(status>=1&&status<=10)throw Object.assign(new Error(`SEMAPRAX semantic failure ${{status}}`),{{status,semapraxSemantic:true}});throw new Error(`SEMAPRAX call failed with status ${{status}}`)}}switch(fact.result){{case "i64":answer=view.getBigInt64(RESULT,true);break;case "usize":answer=view.getBigUint64(RESULT,true);break;case "bool":{{const value=view.getUint32(RESULT,true);if(value>1)throw new Error("SEMAPRAX bool result invariant");answer=value===1;break}}case "owned-bytes":answer=linked.arena.consume(view.getBigInt64(RESULT,true));break;case "option-owned-bytes":{{const tag=view.getUint32(RESULT,true);if(tag>1)throw new Error("SEMAPRAX owned variant tag invariant");answer=tag===0?null:linked.arena.consume(view.getBigInt64(RESULT+8,true));break}}case "result-owned-bytes-i64":{{const tag=view.getUint32(RESULT,true);if(tag>1)throw new Error("SEMAPRAX owned variant tag invariant");answer=tag===0?Object.freeze({{ok:true,value:linked.arena.consume(view.getBigInt64(RESULT+8,true))}}):Object.freeze({{ok:false,error:view.getBigInt64(RESULT+8,true)}});break}}default:throw new Error("unknown descriptor result type")}}}}catch(error){{primary=error;if(!(error instanceof RangeError)&&!(error instanceof TypeError)&&error?.semapraxSemantic!==true){{poisoned=true;linked.arena.poison()}}}}finally{{let settlement=null;if(began)try{{linked.arena.settle()}}catch(error){{poisoned=true;settlement=error}}try{{bytes.fill(0,0,used);bytes.fill(POISON,RESULT,RESULT+size)}}catch(error){{poisoned=true;settlement??=error}}busy=false;if(settlement!==null&&primary===null)primary=settlement}}if(primary)throw primary;return answer}}const functions=Object.create(null);for(const id of IDS)Object.defineProperty(functions,id,{{value:(...values)=>invoke(id,values),enumerable:true}});return Object.freeze({{functions:Object.freeze(functions),call:(id,...values)=>invoke(id,values),wasmSha256}})}}
+export async function instantiate(bytes){{return facade(await instantiateCore(bytes))}}export const exportIds=IDS;export default instantiate;
+"#
+    )
 }
 
 fn render_runtime_facade(exports: &[OwnedExport]) -> String {
@@ -343,9 +381,12 @@ fn render_bindings(_exports: &[OwnedExport], _wasm_sha256: &str) -> String {
 }
 
 fn render_declarations(exports: &[OwnedExport]) -> String {
-    let has_variants = exports
-        .iter()
-        .any(|export| export.result != PublicApiResultType::OwnedBytes);
+    let has_variants = exports.iter().any(|export| {
+        matches!(
+            export.result,
+            PublicApiResultType::OptionOwnedBytes | PublicApiResultType::ResultOwnedBytesI64
+        )
+    });
     let rows = exports
         .iter()
         .map(|export| {
@@ -399,10 +440,11 @@ fn parameter_ts(value: PublicApiParameterType) -> &'static str {
 }
 fn result_ts(value: PublicApiResultType) -> &'static str {
     match value {
+        PublicApiResultType::I64 | PublicApiResultType::Usize => "bigint",
+        PublicApiResultType::Bool => "boolean",
         PublicApiResultType::OwnedBytes => "Uint8Array",
         PublicApiResultType::OptionOwnedBytes => "OptionalBytes",
         PublicApiResultType::ResultOwnedBytesI64 => "SemapraxResult<Uint8Array, bigint>",
-        _ => unreachable!("owned-data result admission is closed"),
     }
 }
 fn raw_symbol(stable_id: &str) -> String {

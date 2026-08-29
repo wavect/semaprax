@@ -6290,6 +6290,11 @@ record Payload {
     @id("lib.payload.value") value: i64,
 }
 
+@id("lib.wrapper")
+record Wrapper {
+    @id("lib.wrapper.payload") payload: Payload,
+}
+
 @id("lib.choice")
 variant Choice {
     @id("lib.choice.ready") Ready {
@@ -6305,9 +6310,13 @@ record Unused {
 
 @id("lib.helper")
 fn helper(value: i64) -> i64 {
-    let choice = Choice::Ready { payload: Payload { value } };
+    let wrapper = Wrapper { payload: Payload { value } };
+    let nested = match wrapper {
+        Wrapper { payload: Payload { value } } => value,
+    };
+    let choice = Choice::Ready { payload: Payload { value: nested } };
     match choice {
-        Choice::Ready { payload: Payload { value } } => value,
+        Choice::Ready { payload } => payload.value,
         Choice::Empty {} => 0,
     }
 }
@@ -6347,7 +6356,7 @@ fn unselected(value: i64) -> i64 {
             .collect::<BTreeSet<_>>();
         assert_eq!(
             authored_types,
-            BTreeSet::from(["lib.choice", "lib.payload"])
+            BTreeSet::from(["lib.choice", "lib.payload", "lib.wrapper"])
         );
         assert!(linked
             .declarations

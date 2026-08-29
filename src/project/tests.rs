@@ -17,6 +17,97 @@ fn manifest_v3() -> String {
     "schema = \"semaprax.project.v3\"\nname = \"binary-frame\"\nversion = \"2.0.0-beta.2+local.9\"\nprofile = \"useful-data.v1\"\nentry = \"frame.app\"\nsources = [\"a/core.spx\", \"t/tests.spx\", \"z/app.spx\"]\nweb_exports = [\"frame.checksum\", \"frame.valid\"]\ntests = [\"frame.tests\"]\n".to_owned()
 }
 
+fn manifest_v8() -> String {
+    "schema = \"semaprax.project.v8\"\nname = \"owned-frame\"\nversion = \"1.0.0\"\nprofile = \"owned-data-api.v1\"\nentry = \"owned_frame.app\"\nsources = [\"a/core.spx\", \"t/tests.spx\", \"z/app.spx\"]\nweb_exports = [\"owned-frame.count\", \"owned-frame.payload\", \"owned-frame.payload-maybe\", \"owned-frame.payload-result\", \"owned-frame.size\", \"owned-frame.valid\"]\ntests = [\"owned_frame.tests\"]\n".to_owned()
+}
+
+fn fixture_v8() -> PathBuf {
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-project-v8-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir_all(root.join("a")).unwrap();
+    std::fs::create_dir_all(root.join("t")).unwrap();
+    std::fs::create_dir_all(root.join("z")).unwrap();
+    std::fs::write(root.join(MANIFEST_FILE), manifest_v8()).unwrap();
+    std::fs::write(
+        root.join("a/core.spx"),
+        r#"module owned_frame.core;
+
+@id("owned-frame.gate")
+variant Gate {
+    @id("owned-frame.gate.open") Open { @id("owned-frame.gate.open.code") code: i64, },
+    @id("owned-frame.gate.closed") Closed,
+}
+
+@id("owned-frame.decision")
+record Decision { @id("owned-frame.decision.allowed") allowed: bool, }
+
+@id("owned-frame.unused")
+record Unused { @id("owned-frame.unused.value") value: i64, }
+
+@id("owned-frame.choose")
+fn choose(value: i64) -> bool {
+    let gate = Gate::Open { code: value };
+    let decision = Decision {
+        allowed: match gate {
+            Gate::Open { code } => code >= 0,
+            Gate::Closed {} => false,
+        },
+    };
+    decision.allowed
+}
+
+@id("owned-frame.count")
+fn count(value: i64) -> i64 { if choose(value) { value } else { 0 } }
+
+@id("owned-frame.payload")
+fn payload(input: borrow Slice<u8>) -> Bytes {
+    if choose(1) { bytes_copy(input) } else { bytes_copy(input) }
+}
+
+@id("owned-frame.payload-maybe")
+fn payload_maybe(input: borrow Slice<u8>) -> Option<Bytes> {
+    Option::Some { value: payload(input) }
+}
+
+@id("owned-frame.payload-result")
+fn payload_result(input: borrow Slice<u8>) -> Result<Bytes, i64> {
+    Result::Ok { value: payload(input) }
+}
+
+@id("owned-frame.size")
+fn size() -> usize { 7usize }
+
+@id("owned-frame.valid")
+fn valid(value: i64) -> bool { choose(value) }
+"#,
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("t/tests.spx"),
+        r#"module owned_frame.tests;
+use function @id("owned-frame.choose") from owned_frame.core as choose;
+
+@id("owned-frame.tests.main")
+fn main() -> i64 { if choose(7) { 0 } else { 1 } }
+"#,
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("z/app.spx"),
+        r#"module owned_frame.app;
+use function @id("owned-frame.choose") from owned_frame.core as choose;
+
+@id("owned-frame.app.main")
+fn main() -> i64 { if choose(42) { 42 } else { 0 } }
+"#,
+    )
+    .unwrap();
+    root.canonicalize().unwrap()
+}
+
 fn fixture() -> PathBuf {
     let root = std::env::temp_dir().join(format!(
         "semaprax-project-v1-{}-{}",
@@ -528,6 +619,49 @@ fn authenticated_entry_and_test_execution_are_exact_deterministic_and_read_only(
         .unwrap()
         .starts_with("sha256:"));
 
+    assert_eq!(file_inventory(&root), before);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_v8_executes_existing_entry_and_test_envelopes_and_routes_owned_data_npm() {
+    let root = fixture_v8();
+    let before = file_inventory(&root);
+    let (entry, test, build) = with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
+        let entry = snapshot.execute_entry(&ProjectExecutionOptions::default())?;
+        let test = snapshot.execute_test(&ProjectExecutionOptions::default())?;
+        let build = snapshot.build_npm_inline(MAX_PROJECT_NPM_BUILD_BYTES)?;
+        Ok((entry, test, build))
+    })
+    .unwrap();
+
+    assert_eq!(entry.outcome(), &ProjectExecutionOutcome::Returned(42));
+    assert!(entry.command_succeeded());
+    assert_eq!(test.outcome(), &ProjectExecutionOutcome::Returned(0));
+    assert!(test.command_succeeded());
+    for execution in [&entry, &test] {
+        verify_execution_envelope(execution.envelope()).unwrap();
+        let envelope: serde_json::Value = serde_json::from_str(execution.envelope()).unwrap();
+        assert_eq!(envelope["project_schema"], PROJECT_SCHEMA_V8);
+        assert_eq!(
+            envelope["nonclaims"],
+            serde_json::json!([
+                "in_process_reference_interpreter_only",
+                "no_target_execution",
+                "no_filesystem_process_or_backend_authority",
+                "no_test_discovery",
+                "no_cache_or_persistence",
+            ])
+        );
+    }
+    build.verify().unwrap();
+    let envelope: serde_json::Value = serde_json::from_str(build.envelope()).unwrap();
+    assert_eq!(envelope["schema"], PROJECT_NPM_BUILD_SCHEMA_V7);
+    assert_eq!(envelope["project_schema"], PROJECT_SCHEMA_V8);
+    let recipe = envelope["semantic_recipe"].as_str().unwrap();
+    assert!(recipe.contains("@id(\"owned-frame.gate\")"));
+    assert!(recipe.contains("@id(\"owned-frame.decision\")"));
+    assert!(!recipe.contains("owned-frame.unused"));
     assert_eq!(file_inventory(&root), before);
     let _ = std::fs::remove_dir_all(root);
 }

@@ -1232,7 +1232,7 @@ fn emit_byte_exports_profile(
     owned_plans: &[super::owned_data_exports::OwnedDataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
     if (plans.is_empty() && command_io.is_none() && owned_plans.is_empty())
-        || !super::program_uses_byte_data(program)
+        || (!super::program_uses_byte_data(program) && owned_plans.is_empty())
     {
         return Err(error(
             "Public Useful Data Export v1 requires selected byte-data exports",
@@ -6979,7 +6979,7 @@ mod tests {
     use std::sync::atomic::{AtomicU64, Ordering};
 
     use super::{
-        emit_profile, function_import, hex_identity, intern_type,
+        emit_owned_data_exports, emit_profile, function_import, hex_identity, intern_type,
         lower_selected_function_instances, section, write_bytes, write_i64, write_name, write_u32,
         Signature, I32, RANGE_DESCRIPTOR_ADDRESS_LIMIT, RANGE_DESCRIPTOR_POINTER_MASK,
         SHADOW_STACK_TOP,
@@ -6991,6 +6991,92 @@ mod tests {
     use crate::parse;
 
     static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+
+    #[test]
+    fn owned_data_scalar_wrappers_publish_exact_width_and_preserve_foreign_sentinels() {
+        let node = Command::new("node").arg("--version").output().unwrap();
+        assert!(
+            node.status.success(),
+            "Node is required for owned-data evidence"
+        );
+        let source = r#"
+module test.owned_data_scalars;
+@id("scalar.signed") fn signed() -> i64 { -7 }
+@id("scalar.flag") fn flag() -> bool { true }
+@id("scalar.maximum") fn maximum() -> usize { 18446744073709551615usize }
+@id("scalar.main") fn main() -> i64 { 0 }
+"#;
+        let resolved =
+            hir::resolve(&parse(source, Path::new("owned-data-scalars.spx")).unwrap()).unwrap();
+        let plans = [
+            super::super::owned_data_exports::OwnedDataExportPlan {
+                stable_id: "scalar.flag".to_owned(),
+                wasm_export: "flag".to_owned(),
+                function_id: DeclarationId::new("scalar.flag"),
+                parameters: Vec::new(),
+                result: super::super::owned_data_exports::ResultLayout::Bool,
+            },
+            super::super::owned_data_exports::OwnedDataExportPlan {
+                stable_id: "scalar.maximum".to_owned(),
+                wasm_export: "maximum".to_owned(),
+                function_id: DeclarationId::new("scalar.maximum"),
+                parameters: Vec::new(),
+                result: super::super::owned_data_exports::ResultLayout::Usize,
+            },
+            super::super::owned_data_exports::OwnedDataExportPlan {
+                stable_id: "scalar.signed".to_owned(),
+                wasm_export: "signed".to_owned(),
+                function_id: DeclarationId::new("scalar.signed"),
+                parameters: Vec::new(),
+                result: super::super::owned_data_exports::ResultLayout::I64,
+            },
+        ];
+        let bytes = emit_owned_data_exports(&resolved, &plans).unwrap();
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        let stem = format!("semaprax-owned-data-scalars-{}-{id}", std::process::id());
+        let wasm_path = std::env::temp_dir().join(format!("{stem}.wasm"));
+        let script_path = std::env::temp_dir().join(format!("{stem}.mjs"));
+        std::fs::write(&wasm_path, bytes).unwrap();
+        let script = r#"import { readFile } from "node:fs/promises";
+const bytes = await readFile(process.argv[2]);
+const env = Object.freeze({
+  spx_add: (a,b) => a+b, spx_sub: (a,b) => a-b, spx_mul: (a,b) => a*b,
+  spx_div: (a,b) => a/b, spx_rem: (a,b) => a%b, spx_neg: a => -a,
+  spx_contract_fail: () => { throw new Error("contract"); },
+  spx_bytes_copy: () => { throw new Error("bytes_copy"); },
+  spx_bytes_get: () => { throw new Error("bytes_get"); },
+  spx_bytes_drop: () => { throw new Error("bytes_drop"); },
+  spx_bytes_as_slice: () => { throw new Error("bytes_as_slice"); },
+  spx_owned_utf8_validate_v1: () => { throw new Error("utf8_validate"); },
+});
+const { instance } = await WebAssembly.instantiate(bytes, { env });
+const output = 65536, memory = new Uint8Array(instance.exports.memory.buffer);
+const view = new DataView(memory.buffer), sentinel = 0x5a;
+memory.fill(sentinel, output, output + 16);
+if (instance.exports.flag(output) !== 0 || view.getUint32(output, true) !== 1) throw new Error("bool result");
+for (let index = output + 4; index < output + 16; index++) if (memory[index] !== sentinel) throw new Error("bool overwrote foreign bytes");
+memory.fill(sentinel, output, output + 16);
+if (instance.exports.signed(output) !== 0 || view.getBigInt64(output, true) !== -7n) throw new Error("i64 result");
+for (let index = output + 8; index < output + 16; index++) if (memory[index] !== sentinel) throw new Error("i64 overwrote foreign bytes");
+memory.fill(sentinel, output, output + 16);
+if (instance.exports.maximum(output) !== 0 || view.getBigUint64(output, true) !== 18446744073709551615n) throw new Error("usize result");
+for (let index = output + 8; index < output + 16; index++) if (memory[index] !== sentinel) throw new Error("usize overwrote foreign bytes");
+"#;
+        std::fs::write(&script_path, script).unwrap();
+        let output = Command::new("node")
+            .arg(&script_path)
+            .arg(&wasm_path)
+            .output()
+            .unwrap();
+        let _ = std::fs::remove_file(script_path);
+        let _ = std::fs::remove_file(wasm_path);
+        assert!(
+            output.status.success(),
+            "stdout={} stderr={}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
 
     #[test]
     fn range_descriptor_carrier_covers_the_entire_private_shadow_stack() {

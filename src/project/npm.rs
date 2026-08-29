@@ -13,6 +13,7 @@ mod data;
 mod owned_data;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 mod publication;
+mod semantic_recipe_v8;
 
 use std::path::Path;
 
@@ -171,6 +172,32 @@ pub(crate) fn prepare(
     project_graph_digest: &str,
     max_bytes: usize,
 ) -> Result<ProjectNpmBuild, Diagnostic> {
+    if manifest.is_v8() {
+        let version = manifest
+            .package_version()
+            .ok_or_else(|| package_error("owned-data npm facade requires a package version"))?;
+        let subject = crate::project::PublicApiSubject {
+            project_schema: manifest.schema(),
+            project_revision,
+            workspace_revision,
+            project_graph_digest,
+        };
+        let derived =
+            crate::project::derive_public_api_descriptor(program, manifest.web_exports(), subject)?;
+        let replayed = crate::project::replay_public_api_descriptor(
+            program,
+            manifest.web_exports(),
+            subject,
+            &derived.canonical_bytes(),
+            &derived.digest(),
+        )?;
+        if replayed != derived {
+            return Err(package_error(
+                "owned-data npm descriptor derivation and replay disagree",
+            ));
+        }
+        return owned_data::prepare(program, &replayed, manifest.name(), version, max_bytes);
+    }
     if manifest.is_v7() {
         return command_v4::prepare(
             manifest,
@@ -327,7 +354,7 @@ pub(super) fn render_semantic_recipe(
 pub(super) fn render_owned_data_semantic_recipe(
     program: &crate::hir::ResolvedProgram,
 ) -> Result<String, Diagnostic> {
-    render_semantic_recipe_profile(program, true)
+    semantic_recipe_v8::render(program)
 }
 
 fn render_semantic_recipe_profile(

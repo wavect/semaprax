@@ -70,7 +70,8 @@ use crate::cleanup_plan::{ContractPhase, StatusCase};
 use crate::conformance::{NormalizedStatus, Retryability, StatusClass};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::hir::{
-    ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedStatement, ResolvedType, ValueId,
+    DeclarationId, ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedStatement,
+    ResolvedType, ValueId,
 };
 use crate::runtime_status::{normalize_arithmetic, normalize_contract};
 use crate::{graph, hir, parse, patch, verify};
@@ -512,6 +513,44 @@ pub enum ResolvedEvaluationOutcome {
     GuardError(String),
 }
 
+/// One normalized public owned-data value returned by the reference
+/// interpreter. The outer invocation outcome remains separate from a
+/// successful language-level `Result::Err`.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum OwnedDataValue {
+    Bytes(Vec<u8>),
+    OptionBytes(Option<Vec<u8>>),
+    ResultBytesI64(Result<Vec<u8>, i64>),
+}
+
+/// Closed outcomes for the read-only public owned-data interpreter profile.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum OwnedDataEvaluationOutcome {
+    Returned(OwnedDataValue),
+    LanguageFailure(NormalizedStatus),
+    FuelExhausted,
+    CallDepthExceeded,
+    GuardError(String),
+}
+
+/// Boundary cleanup observed while copying an interpreter-owned result into
+/// its public host value. Each active returned `Bytes` carrier produces
+/// exactly one event; `None` and `Result::Err` produce none.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OwnedDataCleanupEvent {
+    CopyOutAndSettleBytes,
+}
+
+/// Deterministic, authority-free facts for one owned-data interpretation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OwnedDataEvaluation {
+    pub function_id: DeclarationId,
+    pub outcome: OwnedDataEvaluationOutcome,
+    pub cleanup_events: Vec<OwnedDataCleanupEvent>,
+    pub steps_used: usize,
+    pub max_steps: usize,
+}
+
 /// Closed outcomes for one hosted Language Command I/O v1 invocation.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CommandEvaluationOutcome {
@@ -636,6 +675,243 @@ pub(crate) fn evaluate_resolved_zero_arg_i64(
             )]
         })
     })
+}
+
+/// Evaluate one exact public owned-data export from already-validated HIR.
+///
+/// This is a read-only reference lane: it accepts exactly one invocation-
+/// borrowed `Slice<u8>` and one of the three Project-v8 result shapes
+/// (`Bytes`, `Option<Bytes>`, or `Result<Bytes, i64>`). It performs no target
+/// execution and grants no filesystem, process, publication, or raw-carrier
+/// authority. Copy-out consumes the interpreter carrier and records its one
+/// normalized settlement event.
+pub fn evaluate_resolved_owned_data(
+    program: &hir::ResolvedProgram,
+    entry_id: &str,
+    input: &[u8],
+    max_steps: usize,
+) -> Result<OwnedDataEvaluation, Vec<Diagnostic>> {
+    hir::validate(program).map_err(|diagnostic| vec![diagnostic])?;
+    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
+        return Err(vec![option_error(format!(
+            "owned-data evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
+        ))]);
+    }
+    if input.len() as u64 > crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES {
+        return Err(vec![argument_error(format!(
+            "owned-data argument exceeds {} bytes",
+            crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES
+        ))]);
+    }
+    let entry = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == entry_id)
+        .ok_or_else(|| {
+            vec![selection_error(
+                REASON_UNSUPPORTED_CALLEE,
+                format!("resolved owned-data export `{entry_id}` is absent"),
+            )]
+        })?;
+    let explicit_entry = program
+        .declarations
+        .declaration(&entry.id)
+        .is_some_and(|declaration| declaration.identity_origin == hir::IdentityOrigin::Explicit);
+    if !explicit_entry {
+        return Err(vec![selection_error(
+            REASON_AUTOMATIC_IDENTITY,
+            format!("resolved owned-data export `{entry_id}` has no explicit stable identity"),
+        )]);
+    }
+    let [parameter] = entry.params.as_slice() else {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_PARAMETER_TYPE,
+            format!("resolved owned-data export `{entry_id}` must take one borrowed Slice<u8>"),
+        )]);
+    };
+    if parameter.ty != ResolvedType::SliceU8 || parameter.ownership != hir::OwnershipMode::Borrow {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_PARAMETER_TYPE,
+            format!("resolved owned-data export `{entry_id}` must take one borrowed Slice<u8>"),
+        )]);
+    }
+    if !owned_data_result_is_admitted(&entry.return_type) {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_RESULT_TYPE,
+            format!(
+                "resolved owned-data export `{entry_id}` must return Bytes, Option<Bytes>, or Result<Bytes, i64>"
+            ),
+        )]);
+    }
+    if !entry.effects.is_empty() {
+        return Err(vec![selection_error(
+            REASON_DECLARED_EFFECTS,
+            format!("resolved owned-data export `{entry_id}` declares effects"),
+        )]);
+    }
+
+    hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
+    let admitted = admitted_resolved_functions(program);
+    scan_closure(entry_id, &admitted, &program.declarations)?;
+    let arguments = [(
+        parameter.name.clone(),
+        ArgumentValue::BorrowedSlice(input.to_vec()),
+    )];
+    let return_type = entry.return_type.clone();
+
+    std::thread::scope(|scope| {
+        let worker = std::thread::Builder::new()
+            .name("semaprax-owned-data-evaluate".to_owned())
+            .stack_size(EVALUATION_STACK_BYTES)
+            .spawn_scoped(scope, || {
+                let (evaluated, steps_used, _) = evaluate_resolved_entry(
+                    entry,
+                    &arguments,
+                    &admitted,
+                    &program.declarations,
+                    max_steps,
+                    false,
+                );
+                let mut cleanup_events = Vec::with_capacity(1);
+                let outcome = match evaluated {
+                    Ok(value) => {
+                        match copy_out_owned_data(value, &return_type, &mut cleanup_events) {
+                            Ok(value) => OwnedDataEvaluationOutcome::Returned(value),
+                            Err(detail) => {
+                                OwnedDataEvaluationOutcome::GuardError(detail.to_owned())
+                            }
+                        }
+                    }
+                    Err(Flow::Failure(status)) => {
+                        OwnedDataEvaluationOutcome::LanguageFailure(status)
+                    }
+                    Err(Flow::Exhausted) => OwnedDataEvaluationOutcome::FuelExhausted,
+                    Err(Flow::DepthExceeded) => OwnedDataEvaluationOutcome::CallDepthExceeded,
+                    Err(Flow::Guard(detail)) => {
+                        OwnedDataEvaluationOutcome::GuardError(detail.to_owned())
+                    }
+                };
+                OwnedDataEvaluation {
+                    function_id: entry.id.clone(),
+                    outcome,
+                    cleanup_events,
+                    steps_used,
+                    max_steps,
+                }
+            })
+            .map_err(|error| {
+                vec![guard_error(&format!(
+                    "owned-data evaluation thread failed to start: {error}"
+                ))]
+            })?;
+        worker.join().map_err(|_| {
+            vec![guard_error(
+                "owned-data evaluation thread panicked after HIR validation",
+            )]
+        })
+    })
+}
+
+fn owned_data_result_is_admitted(ty: &ResolvedType) -> bool {
+    matches!(ty, ResolvedType::Bytes)
+        || matches!(
+            ty,
+            ResolvedType::Nominal {
+                declaration,
+                arguments,
+            } if declaration.as_str() == crate::prelude::OPTION_ID
+                && arguments.as_slice() == [ResolvedType::Bytes]
+        )
+        || matches!(
+            ty,
+            ResolvedType::Nominal {
+                declaration,
+                arguments,
+            } if declaration.as_str() == crate::prelude::RESULT_ID
+                && arguments.as_slice() == [ResolvedType::Bytes, ResolvedType::I64]
+        )
+}
+
+fn settle_interpreted_bytes(
+    value: Value,
+    cleanup_events: &mut Vec<OwnedDataCleanupEvent>,
+) -> Result<Vec<u8>, &'static str> {
+    let Value::Bytes(value) = value else {
+        return Err("owned-data result payload is not Bytes");
+    };
+    if value.bytes.len() as u64 > crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES {
+        return Err("owned-data result exceeds the public output bound");
+    }
+    let bytes = value.bytes.as_ref().to_vec();
+    cleanup_events.push(OwnedDataCleanupEvent::CopyOutAndSettleBytes);
+    Ok(bytes)
+}
+
+fn copy_out_owned_data(
+    value: Value,
+    expected: &ResolvedType,
+    cleanup_events: &mut Vec<OwnedDataCleanupEvent>,
+) -> Result<OwnedDataValue, &'static str> {
+    if expected == &ResolvedType::Bytes {
+        return settle_interpreted_bytes(value, cleanup_events).map(OwnedDataValue::Bytes);
+    }
+    let Value::Variant(value) = value else {
+        return Err("owned-data result is not the authenticated variant carrier");
+    };
+    if &value.ty != expected {
+        return Err("owned-data result carrier type disagrees with its signature");
+    }
+    let mut value = Arc::try_unwrap(value)
+        .map_err(|_| "owned-data result still has a live alias at copy-out")?;
+    match value.variant.as_str() {
+        crate::prelude::OPTION_ID => match value.case.as_str() {
+            crate::prelude::OPTION_NONE_ID if value.fields.is_empty() => {
+                Ok(OwnedDataValue::OptionBytes(None))
+            }
+            crate::prelude::OPTION_SOME_ID if value.fields.len() == 1 => {
+                let (field, payload) = value
+                    .fields
+                    .pop_first()
+                    .ok_or("Option::Some result has no authenticated value payload")?;
+                if field.as_str() != crate::prelude::OPTION_SOME_VALUE_ID {
+                    return Err("Option::Some result has an unauthenticated payload identity");
+                }
+                settle_interpreted_bytes(payload, cleanup_events)
+                    .map(Some)
+                    .map(OwnedDataValue::OptionBytes)
+            }
+            _ => Err("Option<Bytes> result has an invalid active case or payload inventory"),
+        },
+        crate::prelude::RESULT_ID => match value.case.as_str() {
+            crate::prelude::RESULT_OK_ID if value.fields.len() == 1 => {
+                let (field, payload) = value
+                    .fields
+                    .pop_first()
+                    .ok_or("Result::Ok result has no authenticated value payload")?;
+                if field.as_str() != crate::prelude::RESULT_OK_VALUE_ID {
+                    return Err("Result::Ok result has an unauthenticated payload identity");
+                }
+                settle_interpreted_bytes(payload, cleanup_events)
+                    .map(Ok)
+                    .map(OwnedDataValue::ResultBytesI64)
+            }
+            crate::prelude::RESULT_ERR_ID if value.fields.len() == 1 => {
+                let (field, error) = value
+                    .fields
+                    .pop_first()
+                    .ok_or("Result::Err result has no authenticated error payload")?;
+                if field.as_str() != crate::prelude::RESULT_ERR_ERROR_ID {
+                    return Err("Result::Err result has an unauthenticated payload identity");
+                }
+                let Value::Int(error) = error else {
+                    return Err("Result::Err payload is not i64");
+                };
+                Ok(OwnedDataValue::ResultBytesI64(Err(error)))
+            }
+            _ => Err("Result<Bytes, i64> has an invalid active case or payload inventory"),
+        },
+        _ => Err("owned-data result uses an unauthenticated variant identity"),
+    }
 }
 
 /// Interpret one selected function of one verified source file.

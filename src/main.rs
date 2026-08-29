@@ -745,6 +745,19 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                 Err(report(&errors, false))
             }
         },
+        "package-resolve" => match cli::package_resolver::run(&args[1..]) {
+            Ok(evidence) => {
+                println!("{evidence}");
+                Ok(())
+            }
+            Err(cli::package_resolver::PackageResolverCliError::Usage(message)) => {
+                eprintln!("{message}");
+                Err(2)
+            }
+            Err(cli::package_resolver::PackageResolverCliError::Domain(errors)) => {
+                Err(report(&errors, false))
+            }
+        },
         "region-report" => {
             let path = required_path(&args, 1)?;
             let options = region_report_options(&args)?;
@@ -2200,6 +2213,7 @@ fn print_help() {
              semaprax capability-manifest <file> [--max-bytes N]\n\
               semaprax package-report <file> [--max-bytes N]\n\
               semaprax package-lock <subject.json>... [--max-bytes N]\n\
+              semaprax package-resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]\n\
              semaprax region-report <file> [--max-bytes N]\n\
              semaprax simd-report <file> [--max-bytes N]\n\
             semaprax protocol-check <file> [--max-bytes N]\n\

@@ -304,7 +304,7 @@ fn read_subjects_with_hook(
     for path in paths {
         let file = open_leaf_no_follow(path)?;
         let metadata = inspect(&file)?;
-        let identity = held_input_identity(&metadata)?;
+        let identity = held_input_identity(&file, &metadata)?;
         if !identities.insert(identity) {
             return Err(io_error(
                 "package-resolve subject inputs must have distinct held file identities",
@@ -360,7 +360,7 @@ fn read_subjects_with_hook(
             return Err(limit_error("actual subject byte bound exceeded"));
         }
         let after = inspect(&file)?;
-        if held_input_identity(&after)? != identity
+        if held_input_identity(&file, &after)? != identity
             || usize::try_from(after.len()).ok() != Some(bytes)
             || content.len() != bytes
         {
@@ -436,25 +436,29 @@ fn open_leaf_no_follow(_path: &Path) -> Result<std::fs::File, Diagnostic> {
 }
 
 #[cfg(unix)]
-fn held_input_identity(metadata: &std::fs::Metadata) -> Result<(u64, u64), Diagnostic> {
+fn held_input_identity(
+    _file: &std::fs::File,
+    metadata: &std::fs::Metadata,
+) -> Result<(u64, u64), Diagnostic> {
     use std::os::unix::fs::MetadataExt as _;
     Ok((metadata.dev(), metadata.ino()))
 }
 
 #[cfg(windows)]
-fn held_input_identity(metadata: &std::fs::Metadata) -> Result<(u64, u64), Diagnostic> {
-    use std::os::windows::fs::MetadataExt as _;
-    let volume = metadata
-        .volume_serial_number()
-        .ok_or_else(|| io_error("held package-resolve subject volume identity is unavailable"))?;
-    let index = metadata
-        .file_index()
-        .ok_or_else(|| io_error("held package-resolve subject file identity is unavailable"))?;
-    Ok((u64::from(volume), index))
+fn held_input_identity(
+    file: &std::fs::File,
+    _metadata: &std::fs::Metadata,
+) -> Result<(u64, u64), Diagnostic> {
+    let information = winapi_util::file::information(file)
+        .map_err(|_| io_error("held package-resolve subject file identity is unavailable"))?;
+    Ok((information.volume_serial_number(), information.file_index()))
 }
 
 #[cfg(not(any(unix, windows)))]
-fn held_input_identity(_metadata: &std::fs::Metadata) -> Result<(u64, u64), Diagnostic> {
+fn held_input_identity(
+    _file: &std::fs::File,
+    _metadata: &std::fs::Metadata,
+) -> Result<(u64, u64), Diagnostic> {
     Err(io_error(
         "held package-resolve subject identity is unsupported on this host",
     ))

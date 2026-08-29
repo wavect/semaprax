@@ -6000,12 +6000,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 );
                             }
                         }
-                        Statement::Assign {
-                            name,
-                            name_span,
-                            value,
-                            ..
-                        } if !self.allow_moves => {
+                        Statement::Assign { value, .. } if !self.allow_moves => {
                             // Contract expressions stay pure: no stores.
                             self.diagnostics.push(error(
                                 self.program,

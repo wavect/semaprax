@@ -320,6 +320,37 @@ fn canonical_manifest_round_trips_and_rejects_confusion() {
 }
 
 #[test]
+fn owned_project_test_validation_binds_the_exact_supplied_bytes() {
+    let manifest = "schema = \"semaprax.project.v1\"\nname = \"owned-check\"\nentry = \"owned_check.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"owned-check.value\"]\ntests = [\"owned_check.tests\"]\n";
+    let app = "module owned_check.app;\n\n@id(\"owned-check.value\")\nfn value() -> i64 { 42 }\n\n@id(\"owned-check.app.main\")\nfn main() -> i64 { value() }\n";
+    let passing =
+        "module owned_check.tests;\n\n@id(\"owned-check.tests.main\")\nfn main() -> i64 { 0 }\n";
+    let failing = passing.replace("{ 0 }", "{ 1 }");
+    let options = ProjectExecutionOptions::default();
+
+    let execution = validate_owned_project_test(
+        manifest,
+        &[("src/app.spx", app), ("src/tests.spx", passing)],
+        &options,
+    )
+    .unwrap();
+    assert!(execution.command_succeeded());
+    let hostile = validate_owned_project_test(
+        manifest,
+        &[("src/app.spx", app), ("src/tests.spx", &failing)],
+        &options,
+    )
+    .unwrap();
+    assert!(!hostile.command_succeeded());
+    assert!(validate_owned_project_test(
+        manifest,
+        &[("src/tests.spx", passing), ("src/app.spx", app)],
+        &options,
+    )
+    .is_err());
+}
+
+#[test]
 fn canonical_v2_manifest_round_trips_with_explicit_package_metadata() {
     let parsed = ProjectManifest::parse(&manifest_v2()).unwrap();
     assert_eq!(parsed.schema(), PROJECT_SCHEMA_V2);

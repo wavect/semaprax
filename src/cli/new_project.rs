@@ -83,6 +83,8 @@ pub(crate) fn create_with_hook(
     let files = templates::render(name);
     let paths = files.iter().map(|file| file.path).collect::<Vec<_>>();
     validate_template_inventory(&paths).map_err(NewProjectFailure::creation)?;
+    let expected = expected_files(&files)?;
+    validate_rendered_project(expected)?;
 
     let file_name = destination.file_name().ok_or_else(|| {
         NewProjectFailure::creation("new project destination must name one directory")
@@ -135,36 +137,9 @@ pub(crate) fn create_with_hook(
             .write(file.path, &file.bytes)
             .map_err(|error| authority_failure("write staged project", error))?;
     }
-    let expected = expected_files(&files)?;
     authority
         .authenticate(expected)
         .map_err(|error| authority_failure("authenticate staged project", error))?;
-    require_ambient_binding(&authority, &parent, &staging)?;
-
-    let manifest = staging.join("semaprax.toml");
-    project::with_authenticated_project(&manifest, |snapshot| {
-        snapshot.check()?;
-        let execution = snapshot.execute_test(&ProjectExecutionOptions::default())?;
-        if execution.command_succeeded() {
-            Ok(())
-        } else {
-            Err(vec![semaprax::diagnostic::Diagnostic::io(
-                "SPX-I001",
-                "generated calculator project tests did not pass",
-            )])
-        }
-    })
-    .map_err(|diagnostics| {
-        NewProjectFailure::creation(format!(
-            "generated project failed authentication, check, or test: {}",
-            diagnostics
-                .iter()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join("; ")
-        ))
-    })?;
-
     require_ambient_binding(&authority, &parent, &staging)?;
     authority
         .publish_and_verify(expected)
@@ -305,6 +280,40 @@ fn expected_files(files: &[TemplateFile]) -> Result<[(&str, &[u8]); 4], NewProje
         .collect::<Vec<_>>()
         .try_into()
         .map_err(|_| NewProjectFailure::creation("calculator template inventory is not exact"))
+}
+
+fn validate_rendered_project(files: [(&str, &[u8]); 4]) -> Result<(), NewProjectFailure> {
+    let manifest = std::str::from_utf8(files[1].1).map_err(|_| {
+        NewProjectFailure::creation("generated project manifest is not canonical UTF-8")
+    })?;
+    let app = std::str::from_utf8(files[2].1).map_err(|_| {
+        NewProjectFailure::creation("generated project app source is not canonical UTF-8")
+    })?;
+    let tests = std::str::from_utf8(files[3].1).map_err(|_| {
+        NewProjectFailure::creation("generated project test source is not canonical UTF-8")
+    })?;
+    let execution = project::validate_owned_project_test(
+        manifest,
+        &[(files[2].0, app), (files[3].0, tests)],
+        &ProjectExecutionOptions::default(),
+    )
+    .map_err(|diagnostics| {
+        NewProjectFailure::creation(format!(
+            "generated project failed exact owned-byte check or test: {}",
+            diagnostics
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join("; ")
+        ))
+    })?;
+    if execution.command_succeeded() {
+        Ok(())
+    } else {
+        Err(NewProjectFailure::creation(
+            "generated calculator project tests did not pass",
+        ))
+    }
 }
 
 fn require_ambient_binding(

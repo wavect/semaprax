@@ -124,6 +124,19 @@ fn calculator_template_has_exact_deterministic_bytes() {
 }
 
 #[test]
+fn generated_project_validation_never_reopens_the_ambient_staging_tree() {
+    let implementation = include_str!("../src/cli/new_project.rs");
+    assert!(implementation.contains("project::validate_owned_project_test"));
+    assert!(!implementation.contains("project::with_authenticated_project"));
+    assert!(
+        implementation
+            .find("validate_rendered_project(expected)")
+            .unwrap()
+            < implementation.find("create_staging_authority").unwrap()
+    );
+}
+
+#[test]
 fn generated_project_passes_check_test_and_web_build() {
     let fixture = Fixture::new("developer-loop");
     assert_success(&cli(&fixture.root, &["new", "calculator"]));

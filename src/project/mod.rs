@@ -487,6 +487,47 @@ pub fn with_authenticated_project<T>(
     }
 }
 
+/// Build, check, and execute the declared test closure from exact caller-owned
+/// bytes. This path has no filesystem, handle, process, or publication
+/// authority; it is intended for immutable rendered subjects that must be
+/// admitted before any publication authority is acquired.
+#[doc(hidden)]
+pub fn validate_owned_project_test(
+    manifest_source: &str,
+    sources: &[(&str, &str)],
+    options: &ProjectExecutionOptions,
+) -> Result<ProjectExecution, Vec<Diagnostic>> {
+    let manifest = ProjectManifest::parse(manifest_source)?;
+    if sources.len() != manifest.sources().len()
+        || sources
+            .iter()
+            .zip(manifest.sources())
+            .any(|((actual, _), expected)| *actual != expected.as_str())
+    {
+        return Err(grammar(
+            "owned Project source bytes must exactly match the ordered manifest inventory",
+        ));
+    }
+    let mut total_source_bytes = 0usize;
+    let mut workspace_sources = Vec::with_capacity(sources.len());
+    for (path, source) in sources {
+        total_source_bytes = total_source_bytes
+            .checked_add(source.len())
+            .ok_or_else(|| capacity("total_source_bytes", MAX_TOTAL_SOURCE_BYTES))?;
+        if total_source_bytes > MAX_TOTAL_SOURCE_BYTES {
+            return Err(capacity("total_source_bytes", MAX_TOTAL_SOURCE_BYTES));
+        }
+        workspace_sources.push(SemanticWorkspaceSource {
+            path: (*path).to_owned(),
+            source: (*source).to_owned(),
+        });
+    }
+    let built = build::build_owned(&manifest, workspace_sources)?;
+    let revision = ProjectRevision::from_built(manifest, built);
+    revision.check()?;
+    revision.execute_test(options)
+}
+
 pub(crate) fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic>> {
     let manifest_selection = DeclaredPathSelection::open(manifest_path, "manifest")?;
     let manifest_path = manifest_selection.canonical_path.clone();

@@ -213,6 +213,46 @@ fn injected_write_failure_never_publishes_and_cleans_owned_staging() {
 }
 
 #[cfg(unix)]
+struct SubstituteParentAfterStage {
+    parent: PathBuf,
+    displaced: PathBuf,
+}
+
+#[cfg(unix)]
+impl new_project::WriteHook for SubstituteParentAfterStage {
+    fn after_stage_created(&self) -> Result<(), String> {
+        std::fs::rename(&self.parent, &self.displaced).map_err(|error| error.to_string())?;
+        std::fs::create_dir(&self.parent).map_err(|error| error.to_string())?;
+        std::fs::write(self.parent.join("foreign"), b"unchanged\n")
+            .map_err(|error| error.to_string())
+    }
+
+    fn before_write(&self, _index: usize, _relative_path: &str) -> Result<(), String> {
+        Err("write hook must not run after parent identity drift".to_owned())
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn post_hold_parent_substitution_fails_before_any_staged_file_write() {
+    let fixture = Fixture::new("post-hold-parent-substitution");
+    let parent = fixture.root.join("selected");
+    let displaced = fixture.root.join("selected-held");
+    std::fs::create_dir(&parent).unwrap();
+    let destination = parent.join("calculator");
+    let hook = SubstituteParentAfterStage {
+        parent: parent.clone(),
+        displaced: displaced.clone(),
+    };
+
+    let error = new_project::create_with_hook(&destination, "calculator", &hook).unwrap_err();
+    assert_eq!(error.exit_code(), 1);
+    assert_eq!(read_tree(&parent)["foreign"], b"unchanged\n");
+    assert!(!parent.join("calculator").exists());
+    assert!(parent_names(&displaced).is_empty());
+}
+
+#[cfg(unix)]
 struct SubstituteParentBeforeWrite {
     parent: PathBuf,
     displaced: PathBuf,

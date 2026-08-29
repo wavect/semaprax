@@ -54,6 +54,10 @@ impl fmt::Display for NewProjectFailure {
 }
 
 pub(crate) trait WriteHook {
+    fn after_stage_created(&self) -> Result<(), String> {
+        Ok(())
+    }
+
     fn before_write(&self, index: usize, relative_path: &str) -> Result<(), String>;
 }
 
@@ -113,6 +117,12 @@ pub(crate) fn create_with_hook(
         ));
     }
     let (mut authority, staging) = create_staging_authority(&parent, file_name)?;
+    hook.after_stage_created().map_err(|error| {
+        NewProjectFailure::creation(format!(
+            "injected failure after staged project creation: {error}"
+        ))
+    })?;
+    require_original_parent_identity(&parent, &parent_identity)?;
     require_ambient_binding(&authority, &parent, &staging)?;
     for (index, file) in files.iter().enumerate() {
         hook.before_write(index, file.path).map_err(|error| {
@@ -310,6 +320,22 @@ fn require_ambient_binding(
     } else {
         Err(NewProjectFailure::creation(
             "new project parent or staging path identity changed",
+        ))
+    }
+}
+
+fn require_original_parent_identity(
+    parent: &Path,
+    expected: &Handle,
+) -> Result<(), NewProjectFailure> {
+    if Handle::from_path(parent)
+        .ok()
+        .is_some_and(|observed| observed == *expected)
+    {
+        Ok(())
+    } else {
+        Err(NewProjectFailure::creation(
+            "new project parent identity changed before staged writes",
         ))
     }
 }

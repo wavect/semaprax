@@ -6,16 +6,54 @@ use sha2::{Digest as _, Sha256};
 use super::*;
 
 fn remint(schema: &str, domain: &[u8], payload: &str) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(domain);
-    hasher.update((payload.len() as u64).to_le_bytes());
-    hasher.update(payload.as_bytes());
+    let digest = test_digest(domain, payload.as_bytes());
     format!(
-        "{{\"schema\":{},\"digest\":\"sha256:{:x}\",\"bytes\":{},\"payload\":{}}}",
+        "{{\"schema\":{},\"digest\":{},\"bytes\":{},\"payload\":{}}}",
         crate::diagnostic::quote_json(schema),
-        crate::digest_hex::LowerHex(hasher.finalize()),
+        crate::diagnostic::quote_json(&digest),
         payload.len(),
         payload
+    )
+}
+
+fn test_digest(domain: &[u8], bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(domain);
+    hasher.update((bytes.len() as u64).to_le_bytes());
+    hasher.update(bytes);
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize()),
+    )
+}
+
+fn replace_subject_report(subject: &str, report: &str) -> String {
+    const PAYLOAD: &str = "\"payload\":";
+    const REPORT: &str = "\"report\":";
+    const END: &str = ",\"dependencies\":";
+    let payload_offset = subject.find(PAYLOAD).unwrap() + PAYLOAD.len();
+    let payload = &subject[payload_offset..subject.len() - 1];
+    let report_offset = payload.find(REPORT).unwrap() + REPORT.len();
+    let report_end = payload[report_offset..].find(END).unwrap() + report_offset;
+    let old_report = &payload[report_offset..report_end];
+    let value: serde_json::Value = serde_json::from_str(payload).unwrap();
+    let old_digest = value["report_digest"].as_str().unwrap();
+    let new_digest = test_digest(
+        b"semaprax.offline-semantic-package-report.v2\0",
+        report.as_bytes(),
+    );
+    let rebound = payload
+        .replacen(old_report, report, 1)
+        .replacen(old_digest, &new_digest, 1)
+        .replacen(
+            &format!("\"report_bytes\":{}", old_report.len()),
+            &format!("\"report_bytes\":{}", report.len()),
+            1,
+        );
+    remint(
+        package_lock_v2::SUBJECT_SCHEMA,
+        b"semaprax.offline-semantic-package-subject.v2\0",
+        &rebound,
     )
 }
 
@@ -92,6 +130,69 @@ fn options_and_semver_boundaries_are_closed() {
     ] {
         assert_eq!(semver::parse_range(invalid).unwrap_err().code, "SPX-PR501");
     }
+    assert!(semver::parse_range("=4294967295.0.0").is_ok());
+    assert_eq!(
+        semver::parse_range("=4294967296.0.0")
+            .unwrap_err()
+            .code,
+        "SPX-PR501"
+    );
+    assert_eq!(
+        semver::parse_range("=10000000000.0.0")
+            .unwrap_err()
+            .code,
+        "SPX-PR501"
+    );
+    let huge = format!("={}.0.0", "1".repeat(1024 * 1024));
+    assert_eq!(semver::parse_range(&huge).unwrap_err().code, "SPX-PR501");
+}
+
+#[test]
+fn nested_report_bounds_and_authentication_keep_distinct_resolver_codes() {
+    let report = report("examples/meaning.spx");
+    let subject = subject("examples.meaning", "1.0.0", &report, &[], &[]);
+    let marker = "\"payload\":";
+    let offset = report.find(marker).unwrap() + marker.len();
+    let payload = &report[offset..report.len() - 1];
+    let value: serde_json::Value = serde_json::from_str(payload).unwrap();
+    let requested = value["limits"]["requested_max_bytes"].as_u64().unwrap();
+    let bounded_payload = payload.replacen(
+        &format!("\"requested_max_bytes\":{requested}"),
+        &format!("\"requested_max_bytes\":{}", crate::package_report_v2::MAX_OUTPUT_BYTES + 1),
+        1,
+    );
+    let bounded_report = remint(
+        crate::package_report_v2::SCHEMA,
+        b"semaprax.package-report-v2.payload.v1\0",
+        &bounded_payload,
+    );
+    let bounded_subject = replace_subject_report(&subject, &bounded_report);
+    assert_eq!(
+        generate(
+            &input(vec![bounded_subject], "=1.0.0"),
+            &ResolutionOptions::default()
+        )
+        .unwrap_err()[0]
+            .code,
+        "SPX-PR505"
+    );
+
+    let changed_payload = payload.replacen("add(19, 23)", "add(18, 23)", 1);
+    let changed_report = remint(
+        crate::package_report_v2::SCHEMA,
+        b"semaprax.package-report-v2.payload.v1\0",
+        &changed_payload,
+    );
+    let changed_subject = replace_subject_report(&subject, &changed_report);
+    assert_eq!(
+        generate(
+            &input(vec![changed_subject], "=1.0.0"),
+            &ResolutionOptions::default()
+        )
+        .unwrap_err()[0]
+            .code,
+        "SPX-PR502"
+    );
 }
 
 #[test]

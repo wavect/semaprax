@@ -22,6 +22,12 @@ impl Range {
 }
 
 pub(super) fn parse_version(value: &str) -> Result<Version, Diagnostic> {
+    const MAX_VERSION_BYTES: usize = 10 + 1 + 10 + 1 + 10;
+    if value.len() > MAX_VERSION_BYTES {
+        return Err(wire::input_error(
+            "version exceeds the frozen three-u32 byte width",
+        ));
+    }
     let mut parts = value.split('.');
     let major = component(parts.next(), "major")?;
     let minor = component(parts.next(), "minor")?;
@@ -85,6 +91,11 @@ pub(super) fn parse_range(value: &str) -> Result<Range, Diagnostic> {
 
 fn component(value: Option<&str>, label: &str) -> Result<u32, Diagnostic> {
     let value = value.ok_or_else(|| wire::input_error(format!("missing {label} component")))?;
+    if value.len() > 10 {
+        return Err(wire::input_error(format!(
+            "{label} component exceeds the u32 decimal width"
+        )));
+    }
     if value.is_empty()
         || (value.len() > 1 && value.starts_with('0'))
         || !value.bytes().all(|byte| byte.is_ascii_digit())

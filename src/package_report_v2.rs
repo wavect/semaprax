@@ -98,9 +98,36 @@ pub fn generate(
 /// canonical source subject. No submitted semantic or target field is trusted
 /// as an input to reconstruction.
 pub fn verify_envelope(envelope: &str) -> Result<VerifiedSemanticPackageReport, Diagnostic> {
-    let subject = wire::parse_subject(envelope)?;
-    let rebuilt = build_from_canonical_source(&subject.source, &subject.options)
-        .map_err(|_| consistency_error("embedded source does not rebuild a valid v2 envelope"))?;
+    verify_envelope_impl(envelope, false)
+}
+
+pub(crate) fn verify_envelope_for_resolution(
+    envelope: &str,
+) -> Result<VerifiedSemanticPackageReport, Diagnostic> {
+    verify_envelope_impl(envelope, true)
+}
+
+fn verify_envelope_impl(
+    envelope: &str,
+    preserve_bound_diagnostic: bool,
+) -> Result<VerifiedSemanticPackageReport, Diagnostic> {
+    let subject = if preserve_bound_diagnostic {
+        wire::parse_subject_for_resolution(envelope)
+    } else {
+        wire::parse_subject(envelope)
+    }?;
+    let rebuilt =
+        build_from_canonical_source(&subject.source, &subject.options).map_err(|errors| {
+            if preserve_bound_diagnostic {
+                if let Some(error) = errors
+                    .into_iter()
+                    .find(|error| matches!(error.code, "SPX-P401" | "SPX-P402"))
+                {
+                    return error;
+                }
+            }
+            consistency_error("embedded source does not rebuild a valid v2 envelope")
+        })?;
     if rebuilt != envelope {
         return Err(consistency_error(
             "submitted v2 envelope does not exactly replay its embedded source subject",

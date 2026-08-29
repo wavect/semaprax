@@ -51,6 +51,21 @@ pub(super) fn create_subject(
 }
 
 pub(super) fn parse_subject(bytes: &str, work: &mut usize) -> Result<Subject, Diagnostic> {
+    parse_subject_impl(bytes, work, false)
+}
+
+pub(super) fn parse_subject_for_resolution(
+    bytes: &str,
+    work: &mut usize,
+) -> Result<Subject, Diagnostic> {
+    parse_subject_impl(bytes, work, true)
+}
+
+fn parse_subject_impl(
+    bytes: &str,
+    work: &mut usize,
+    preserve_report_bound: bool,
+) -> Result<Subject, Diagnostic> {
     let payload = parse_wrapper(bytes, SUBJECT_SCHEMA, SUBJECT_DOMAIN, "subject")?;
     let value: Value = serde_json::from_str(payload)
         .map_err(|_| wire_error("semantic subject payload is not JSON"))?;
@@ -71,8 +86,18 @@ pub(super) fn parse_subject(bytes: &str, work: &mut usize) -> Result<Subject, Di
             "semantic report byte/digest binding failed",
         ));
     }
-    let receipt = package_report_v2::verify_envelope(&report)
-        .map_err(|_| authentication_error("semantic subject v2 report replay failed"))?;
+    let receipt = if preserve_report_bound {
+        package_report_v2::verify_envelope_for_resolution(&report)
+    } else {
+        package_report_v2::verify_envelope(&report)
+    }
+    .map_err(|error| {
+        if preserve_report_bound && matches!(error.code, "SPX-P401" | "SPX-P402") {
+            limit_error("semantic subject v2 nested report bound failed")
+        } else {
+            authentication_error("semantic subject v2 report replay failed")
+        }
+    })?;
     if receipt.package != coordinate.package {
         return Err(confusion_error(
             "semantic subject package differs from report",

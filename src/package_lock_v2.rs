@@ -77,7 +77,7 @@ pub(crate) fn authenticate_subject_for_resolution(
     bytes: &str,
     work: &mut usize,
 ) -> Result<ResolutionSubject, Diagnostic> {
-    let subject = subject::parse_subject(bytes, work)?;
+    let subject = subject::parse_subject_for_resolution(bytes, work)?;
     Ok(ResolutionSubject {
         coordinate: subject.coordinate,
         subject_digest: subject.digest,

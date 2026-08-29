@@ -5,8 +5,8 @@ use crate::bounded_output;
 use crate::diagnostic::Diagnostic;
 
 use super::{
-    consistency_error, report_quote_json as quote_json, PackageReportV2Options, MAX_OUTPUT_BYTES,
-    MAX_SOURCE_BYTES, SCHEMA,
+    consistency_error, limit_error, report_quote_json as quote_json, PackageReportV2Options,
+    MAX_OUTPUT_BYTES, MAX_SOURCE_BYTES, SCHEMA,
 };
 
 pub(super) const SOURCE_SCHEMA: &str = "semaprax.canonical-source.v1";
@@ -24,8 +24,27 @@ pub(super) struct ParsedSubject {
 }
 
 pub(super) fn parse_subject(envelope: &str) -> Result<ParsedSubject, Diagnostic> {
+    parse_subject_impl(envelope, false)
+}
+
+pub(super) fn parse_subject_for_resolution(envelope: &str) -> Result<ParsedSubject, Diagnostic> {
+    parse_subject_impl(envelope, true)
+}
+
+fn parse_subject_impl(
+    envelope: &str,
+    preserve_bound_diagnostic: bool,
+) -> Result<ParsedSubject, Diagnostic> {
+    if envelope.len() > MAX_OUTPUT_BYTES {
+        return Err(if preserve_bound_diagnostic {
+            limit_error("v2 envelope exceeds the frozen output bound")
+        } else {
+            consistency_error(
+                "v2 envelope must be bounded compact UTF-8 without BOM, CR, or terminal LF",
+            )
+        });
+    }
     if envelope.is_empty()
-        || envelope.len() > MAX_OUTPUT_BYTES
         || envelope.starts_with('\u{feff}')
         || envelope.ends_with('\n')
         || envelope.contains('\r')
@@ -100,7 +119,11 @@ pub(super) fn parse_subject(envelope: &str) -> Result<ParsedSubject, Diagnostic>
             consistency_error("v2 requested_max_bytes must be a host-sized unsigned integer")
         })?;
     let options = PackageReportV2Options::new(requested_max_bytes).map_err(|_| {
-        consistency_error("v2 requested_max_bytes is outside the frozen option range")
+        if preserve_bound_diagnostic {
+            limit_error("v2 requested_max_bytes is outside the frozen option range")
+        } else {
+            consistency_error("v2 requested_max_bytes is outside the frozen option range")
+        }
     })?;
     let source = payload_value
         .get("source")
@@ -116,9 +139,11 @@ pub(super) fn parse_subject(envelope: &str) -> Result<ParsedSubject, Diagnostic>
         .and_then(Value::as_str)
         .ok_or_else(|| consistency_error("v2 source subject text must be a string"))?;
     if source_text.len() > MAX_SOURCE_BYTES {
-        return Err(consistency_error(bf!(
-            "v2 canonical source exceeds {MAX_SOURCE_BYTES} bytes"
-        )));
+        return Err(if preserve_bound_diagnostic {
+            limit_error(bf!("v2 canonical source exceeds {MAX_SOURCE_BYTES} bytes"))
+        } else {
+            consistency_error(bf!("v2 canonical source exceeds {MAX_SOURCE_BYTES} bytes"))
+        });
     }
     Ok(ParsedSubject {
         source: source_text.to_owned(),

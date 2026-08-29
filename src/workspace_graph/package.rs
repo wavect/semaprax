@@ -6,11 +6,22 @@ use crate::package_report_v2::ScalarPackageInterface;
 use super::{build_owned, hir, WorkspaceSource};
 
 pub(crate) struct PackageWorkspaceLink {
-    pub(crate) program: hir::ResolvedProgram,
+    build: super::WorkspaceGraphBuild,
+    root_package: String,
     pub(crate) modules: Vec<PackageWorkspaceModule>,
     pub(crate) imports: Vec<PackageWorkspaceImport>,
-    pub(crate) linked_function_ids: Vec<String>,
     pub(crate) root_exports: Vec<String>,
+}
+
+impl PackageWorkspaceLink {
+    /// Link the exact authenticated root export set and its transitive scalar
+    /// callees. Package roots deliberately do not inherit Project's authored
+    /// `main` display-name requirement; the byte-lowest selected `fn() -> i64`
+    /// export is the internal HIR anchor and remains an ordinary package export.
+    pub(crate) fn link_root_exports(&self) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        self.build
+            .linked_package_scalar_exports(&self.root_package, &self.root_exports)
+    }
 }
 
 pub(crate) struct PackageWorkspaceModule {
@@ -142,21 +153,6 @@ pub(crate) fn build_package_scalar_sources(
         });
     }
     modules.sort_by(|left, right| left.package.as_bytes().cmp(right.package.as_bytes()));
-    let program = build.linked_scalar_program(root_package)?;
-    let mut linked_function_ids = program
-        .functions
-        .iter()
-        .map(|function| function.id.as_str().to_owned())
-        .collect::<Vec<_>>();
-    linked_function_ids.sort_by(|left, right| left.as_bytes().cmp(right.as_bytes()));
-    if linked_function_ids
-        .windows(2)
-        .any(|pair| pair[0] == pair[1])
-    {
-        return Err(vec![package_error(
-            "package-source linked function identities are duplicated",
-        )]);
-    }
     root_exports.sort_by(|left, right| left.as_bytes().cmp(right.as_bytes()));
     if root_exports.windows(2).any(|pair| pair[0] == pair[1]) {
         return Err(vec![package_error(
@@ -164,10 +160,10 @@ pub(crate) fn build_package_scalar_sources(
         )]);
     }
     Ok(PackageWorkspaceLink {
-        program,
+        build,
+        root_package: root_package.to_owned(),
         modules,
         imports,
-        linked_function_ids,
         root_exports,
     })
 }
@@ -178,4 +174,127 @@ fn package_error(message: impl Into<String>) -> Diagnostic {
 
 fn package_profile_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-PS504", message.into())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::*;
+
+    fn source(path: &str, text: &str) -> WorkspaceSource {
+        let program = crate::parse(text, Path::new(path)).expect("package fixture parses");
+        WorkspaceSource {
+            path: path.to_owned(),
+            source: crate::format::canonical(&program),
+        }
+    }
+
+    fn provider() -> WorkspaceSource {
+        source(
+            "lib.spx",
+            r#"
+module lib.math;
+
+@id("lib.answer")
+fn answer() -> i64 { 41 }
+
+@id("lib.unused")
+fn unused() -> i64 { 99 }
+"#,
+        )
+    }
+
+    #[test]
+    fn package_link_uses_non_main_anchor_and_retains_uncalled_selected_export() {
+        let root = source(
+            "app.spx",
+            r#"
+module app.main;
+use function @id("lib.answer") from lib.math as answer;
+
+@id("app.anchor")
+fn boot() -> i64 { answer() }
+
+@id("app.uncalled")
+fn inspect(value: bool) -> bool { value }
+
+@id("app.z_anchor")
+fn alternate() -> i64 { 7 }
+
+@id("workspace.synthetic.main.authored")
+fn prefixed(value: bool) -> bool { value }
+"#,
+        );
+        let package = build_package_scalar_sources(vec![root, provider()], "app.main")
+            .expect("package workspace");
+        let linked = package.link_root_exports().expect("package-only link");
+        assert_eq!(linked.entrypoint.as_str(), "app.anchor");
+        assert!(linked
+            .functions
+            .iter()
+            .all(|function| function.name != "main"));
+        assert_eq!(
+            linked
+                .functions
+                .iter()
+                .map(|function| function.id.as_str())
+                .collect::<BTreeSet<_>>(),
+            BTreeSet::from([
+                "app.anchor",
+                "app.uncalled",
+                "app.z_anchor",
+                "lib.answer",
+                "workspace.synthetic.main.authored",
+            ])
+        );
+        assert!(!linked
+            .functions
+            .iter()
+            .any(|function| function.id.as_str() == "lib.unused"));
+    }
+
+    #[test]
+    fn package_link_rejects_root_without_noarg_i64_anchor() {
+        let root = source(
+            "app.spx",
+            r#"
+module app.main;
+use function @id("lib.answer") from lib.math as answer;
+
+@id("app.only_bool")
+fn inspect() -> bool { answer() == 41 }
+"#,
+        );
+        let package = build_package_scalar_sources(vec![root, provider()], "app.main")
+            .expect("package workspace");
+        assert_eq!(
+            package.link_root_exports().unwrap_err()[0].code,
+            "SPX-PS504"
+        );
+    }
+
+    #[test]
+    fn package_link_rejects_noncanonical_export_root_order() {
+        let root = source(
+            "app.spx",
+            r#"
+module app.main;
+use function @id("lib.answer") from lib.math as answer;
+
+@id("app.a")
+fn first() -> i64 { answer() }
+
+@id("app.b")
+fn second() -> i64 { 2 }
+"#,
+        );
+        let mut package = build_package_scalar_sources(vec![root, provider()], "app.main")
+            .expect("package workspace");
+        package.root_exports.reverse();
+        assert_eq!(
+            package.link_root_exports().unwrap_err()[0].code,
+            "SPX-PS503"
+        );
+    }
 }

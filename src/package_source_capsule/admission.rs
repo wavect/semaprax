@@ -177,6 +177,18 @@ pub(crate) fn build(
         })
         .collect::<Result<Vec<_>, Diagnostic>>()?;
 
+    let program = workspace.link_root_exports().map_err(|errors| {
+        errors.into_iter().next().map_or_else(
+            || super::profile_error("package-source export link failed"),
+            super::map_graph_error,
+        )
+    })?;
+    let linked_function_ids = program
+        .functions
+        .iter()
+        .map(|function| function.id.as_str().to_owned())
+        .collect::<Vec<_>>();
+
     let (rendered, overflowed) = crate::bounded_output::with_limit(super::MAX_RENDER_BYTES, || {
         let mut package_facts = Vec::with_capacity(sources.len());
         for ((source, coordinate), subject) in sources
@@ -213,7 +225,7 @@ pub(crate) fn build(
             &options.root_package,
             &workspace.modules,
             &workspace.imports,
-            &workspace.linked_function_ids,
+            &linked_function_ids,
         );
         let resolution_digest = super::wire::wrapper_digest(resolution_evidence)?;
         let lock_digest = super::wire::wrapper_digest(&selected.resolution.lock)?;
@@ -225,7 +237,7 @@ pub(crate) fn build(
             options,
             &package_facts,
             &import_facts,
-            &workspace.linked_function_ids,
+            &linked_function_ids,
             sources,
             &source_set_digest,
             &link_digest,
@@ -263,7 +275,7 @@ pub(crate) fn build(
     Ok(BuiltCapsule {
         json,
         receipt,
-        program: workspace.program,
+        program,
         selected_subjects: selected.selected_subjects,
         package_facts,
         import_facts,

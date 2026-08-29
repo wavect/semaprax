@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Authored Linked Scalar Core-Wasm Package Build v2 as the first consumer of
+  the exact Multi-Package Source Capsule replay seam. The authority-free build
+  moves retained linked HIR into the unchanged scalar Wasm emitter, binds the
+  selected closure, root-owned exports, capsule/source-set/link facts, and
+  distinct canonical v2 manifest/evidence under cumulative bounds. The safe
+  `publish_linked` facade reuses the v1 exact three-file, two-replay,
+  no-replace, settlement, and post-publication authority state machine. Real
+  two-package, cross-pair/mutation, provider-export, boundary/fixed-point, and
+  publication failure evidence is authored but unrun; v1 bytes/order remain
+  preservation owners and no publication, target-conformance, provenance, or
+  hermetic-sandbox claim is promoted.
+
 - Hardened the authored Project Revision Store v1 without changing published
   entry bytes: every created-file replay is bounded to expected length plus
   one, exact Unix modes include special permission bits, one inert stage may be

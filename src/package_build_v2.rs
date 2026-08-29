@@ -36,6 +36,7 @@ pub fn generate(
     .map_err(|error| vec![error])
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn verify(
     submitted: &LinkedOfflinePackageBuild,
     capsule: &str,

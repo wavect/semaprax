@@ -99,8 +99,8 @@ pub(crate) use validation::validate_core;
 use validation::HirValidator;
 pub(crate) use workspace_link::{
     link_language_command_io_workspace, link_line_command_io_workspace,
-    link_owned_data_api_workspace, link_scalar_workspace, link_useful_data_command_workspace,
-    link_useful_data_workspace, link_useful_text_workspace,
+    link_owned_data_api_workspace, link_package_scalar_workspace, link_scalar_workspace,
+    link_useful_data_command_workspace, link_useful_data_workspace, link_useful_text_workspace,
     owned_data_api_workspace_return_admitted, useful_data_workspace_parameter_admitted,
     useful_data_workspace_return_admitted,
 };

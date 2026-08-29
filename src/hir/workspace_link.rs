@@ -13,7 +13,27 @@ use super::*;
 pub(crate) fn link_scalar_workspace(
     module: String,
     entrypoint: DeclarationId,
+    linked_functions: Vec<LinkedScalarFunction>,
+) -> Result<ResolvedProgram, Diagnostic> {
+    link_scalar_workspace_impl(module, entrypoint, linked_functions, true)
+}
+
+/// Package builds need an internal `fn() -> i64` HIR anchor, but package
+/// exports are identified persistently rather than by the source display name
+/// `main`. Project callers continue through `link_scalar_workspace` above.
+pub(crate) fn link_package_scalar_workspace(
+    module: String,
+    entrypoint: DeclarationId,
+    linked_functions: Vec<LinkedScalarFunction>,
+) -> Result<ResolvedProgram, Diagnostic> {
+    link_scalar_workspace_impl(module, entrypoint, linked_functions, false)
+}
+
+fn link_scalar_workspace_impl(
+    module: String,
+    entrypoint: DeclarationId,
     mut linked_functions: Vec<LinkedScalarFunction>,
+    require_main_display_name: bool,
 ) -> Result<ResolvedProgram, Diagnostic> {
     if linked_functions.is_empty() {
         return Err(link_error("workspace scalar closure has no functions"));
@@ -48,7 +68,7 @@ pub(crate) fn link_scalar_workspace(
         }
         if function.id == entrypoint {
             entry_origin = Some(linked.origin);
-            if function.name != "main" {
+            if require_main_display_name && function.name != "main" {
                 return Err(link_error(
                     "workspace scalar entry point is not an authored `main` function",
                 ));

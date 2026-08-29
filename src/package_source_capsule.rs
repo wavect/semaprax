@@ -45,6 +45,7 @@ pub fn verify(
     resolution_options: &ResolutionOptions,
     options: &SourceCapsuleOptions,
 ) -> Result<VerifiedSourceCapsule, Diagnostic> {
+    admission::validate_options(options)?;
     wire::validate_submitted(capsule, options.max_bytes)?;
     let built = admission::build(
         sources,
@@ -73,6 +74,7 @@ pub(crate) fn verify_for_linked_build(
     resolution_options: &ResolutionOptions,
     options: &SourceCapsuleOptions,
 ) -> Result<VerifiedLinkedSourceCapsule, Diagnostic> {
+    admission::validate_options(options)?;
     wire::validate_submitted(capsule, options.max_bytes)?;
     let built = admission::build(
         sources,

@@ -1,6 +1,7 @@
 # Offline Linked Scalar Core-Wasm Package Build v2
 
-Status: frozen additive v2 contract.
+Status: frozen additive v2 contract; implementation and evidence authored,
+unrun, unpublished, and unpromoted.
 
 ## Purpose and authority boundary
 
@@ -34,7 +35,10 @@ authenticated capsule root. Selected exports contain 1..=32 strictly
 byte-sorted unique stable IDs. The capsule receipt's `exports` inventory is
 root-owned, byte-sorted, and unique; provider-only IDs remain private evidence
 and are rejected rather than inferred from linked HIR.
-The linked HIR is passed directly to the existing scalar Wasm emitter.
+The capsule requires a byte-lowest root-owned `fn() -> i64` stable ID as its
+internal HIR anchor; its display name need not be `main`, and all selected root
+exports remain retained roots. The linked HIR is passed directly to the
+existing scalar Wasm emitter.
 
 The emitted module must structurally validate and contain exactly these seven
 function imports, in order, from `env`: `spx_add`, `spx_sub`, `spx_mul`,

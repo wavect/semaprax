@@ -114,8 +114,13 @@ and its additive versioned extensions for exact limits.
 
 The additive library-only [Offline Multi-Package Source Capsule v1](docs/OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md)
 authenticates a narrow caller-owned, effect-free scalar package source closure
-above exact offline resolution. It is authored but unrun and is not yet a
-multi-package build or package-manager workflow.
+above exact offline resolution. [Linked Scalar Core-Wasm Package Build
+v2](docs/OFFLINE-LINKED-SCALAR-WASM-PACKAGE-BUILD-V2.md) consumes only that
+replayed closure and retained HIR, while the separate safe publisher reuses the
+existing exact three-file authority state machine. Both surfaces and their
+hostile evidence are authored but unrun and unpromoted; they are not a package
+manager, target-conformance result, trusted-provenance system, or hermetic build
+sandbox.
 
 ## A small SEMAPRAX program
 

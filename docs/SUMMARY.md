@@ -92,6 +92,7 @@ Audience: all documentation readers.
 - [Offline deterministic package resolver](OFFLINE-PACKAGE-RESOLVER-V1.md)
 - [Offline pure Wasm package build](OFFLINE-PURE-WASM-PACKAGE-BUILD-V1.md)
 - [Offline multi-package source capsule](OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md)
+- [Offline linked scalar Wasm package build v2](OFFLINE-LINKED-SCALAR-WASM-PACKAGE-BUILD-V2.md)
 - [Offline package lock](OFFLINE-PACKAGE-LOCK-V1.md)
 - [Plugin manifest projection](PLUGIN-MANIFEST-V1.md)
 - [Region structure report](REGION-REPORT-V1.md)

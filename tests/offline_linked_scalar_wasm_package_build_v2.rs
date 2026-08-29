@@ -150,6 +150,7 @@ fn fixture(provider_value: i64) -> Fixture {
 #[test]
 fn real_two_package_capsule_generates_and_independently_replays() {
     let fixture = fixture(41);
+    assert!(!fixture.sources[0].source.contains("fn main("));
     let verified = verify(&fixture.build, &fixture).expect("exact linked build replay");
     assert_eq!(verified.root_package, ROOT);
     assert_eq!(
@@ -158,6 +159,10 @@ fn real_two_package_capsule_generates_and_independently_replays() {
     );
     assert_eq!(verified.capsule_digest.len(), 71);
     assert_eq!(verified.artifact_bytes, artifact_bytes(&fixture.build));
+    assert!(fixture
+        .build
+        .manifest_json
+        .contains("\"stable_id\":\"app.main.f15\""));
 }
 
 #[test]

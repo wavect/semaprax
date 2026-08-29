@@ -27,6 +27,10 @@ The root is explicit input. It is bound into the wrapper and link digest and
 is never inferred from requirements, dependency indegree, or a `main`
 declaration. `exports()` contains only sorted, unique, explicit stable IDs
 owned by that root module. Provider identities cannot become build exports.
+At least one root export must have the exact signature `fn() -> i64`; the
+byte-lowest such stable ID is the internal HIR anchor. This does not grant its
+display name special meaning, infer a `main` declaration, or remove any other
+selected root export from the retained call closure.
 
 The crate-private `verify_for_linked_build` seam performs the same complete
 replay and returns the public receipt plus the retained `hir::ResolvedProgram`,
@@ -42,8 +46,9 @@ The closed v1 profile requires:
   evidence for `wasm32` with an empty capability allowlist;
 - an explicit selected root and one caller-owned canonical source and exact
   selected Report-v2 envelope per coordinate;
-- only effect-free `i64`/`bool` value parameters and results, no declared
-  permits, nominal types, interfaces, templates, or type imports;
+- only effect-free `i64`/`bool` value parameters and results, including at
+  least one explicit root-owned `fn() -> i64` HIR anchor, no declared permits,
+  nominal types, interfaces, templates, or type imports;
 - exact equality between each source-derived typed function fact vector and
   the selected Report-v2 interface after display and parameter names are
   omitted; and
@@ -52,8 +57,10 @@ The closed v1 profile requires:
 
 Function import target, alias, and ordinal remain separate authenticated link
 facts. The ordinary semantic-workspace graph builds synthetic logical paths
-only, and its existing `linked_scalar_program(root)` performs the link. Every
-selected module must be reachable from the explicit root. Capsule sources are
+only. A package-only linker retains every authenticated root export plus its
+transitive function-call closure while leaving the Project linker's authored
+`main` contract unchanged. Every selected module must be reachable from the
+explicit root. Capsule sources are
 the only executable code; the source embedded in Report v2 proves interface
 facts but is not linked as an implementation.
 

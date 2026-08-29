@@ -359,12 +359,16 @@ through four caller-owned canonical implementation sources. The ordinary
 semantic-workspace graph derives function imports over synthetic logical paths,
 exact-compares that direct module graph with the selected Subject-v2 graph,
 and exact-compares normalized scalar interface vectors with selected Report-v2
-facts before reusing the existing authority-free HIR linker. Report source is
-interface evidence only; capsule source is the sole executable code. The
-explicit selected root and only its sorted explicit export IDs are bound in
-the capsule, while a crate-private replay seam retains linked HIR for a future
-build consumer. The authored surface is unrun and adds no build or publication
-authority. See [Offline Multi-Package Source Capsule v1](OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md).
+facts before using a package-only variant of the existing authority-free scalar
+HIR linker. It retains every explicit root export and its transitive callees,
+uses the byte-lowest root-owned `fn() -> i64` only as the HIR anchor, and leaves
+the Project linker's authored-`main` rule unchanged. Report source is interface
+evidence only; capsule source is the sole executable code. The explicit
+selected root and only its sorted explicit export IDs are bound in the capsule,
+while a crate-private replay seam retains linked HIR for the separate
+linked-build consumer. The authored surface is unrun and adds no build or
+publication authority. See [Offline Multi-Package Source Capsule
+v1](OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md).
 
 Additive `package_build` consumes that exact resolver evidence only through an
 independent replay route. The v1 profile deliberately admits one selected,
@@ -379,8 +383,18 @@ layer has no filesystem, process, registry, network, publication, runtime, or
 sandbox authority. See [Offline Effect-Free Scalar Core-Wasm Package Build
 v1](OFFLINE-PURE-WASM-PACKAGE-BUILD-V1.md).
 
+Additive `package_build_v2` consumes only the capsule's independently replayed
+private receipt and retained linked HIR. It emits a distinct canonical v2
+manifest/evidence pair around the unchanged effect-free scalar Core-Wasm
+emitter, binds the complete selected package closure plus capsule, source-set,
+link, and root-export facts, and revalidates the exact seven-import/export
+inventory. Its two-package, cross-pair, mutation, bound, fixed-point, and
+publisher evidence is authored but unrun. It adds no source reconstruction,
+external tool, registry, runtime, or publication authority. See [Offline
+Linked Scalar Core-Wasm Package Build v2](OFFLINE-LINKED-SCALAR-WASM-PACKAGE-BUILD-V2.md).
+
 The separate `semaprax-offline-wasm-package` crate is the only publication
-boundary for that profile. Its safe facade replays the complete caller-owned
+boundary for both build profiles. Its safe facade replays the complete caller-owned
 build before acquiring a held destination, stages exactly three create-new
 files, exact-compares held staged bytes before settle, and performs one
 no-replace directory publication. Previsibility cleanup is limited to the
@@ -464,7 +478,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Native backend | `src/codegen.rs`, `src/codegen/native_*` |
 | WebAssembly backend | `src/wasm.rs`, `src/wasm/` |
 | Reports and offline package graph | the focused `*_report`, `package_lock`, schema, manifest, header, and shim modules |
-| Effect-free package build and publication | `src/package_build.rs`, `src/package_build/`, `crates/semaprax-offline-wasm-package/` |
+| Effect-free package build and publication | `src/package_build.rs`, `src/package_build/`, `src/package_build_v2.rs`, `src/package_build_v2/`, `crates/semaprax-offline-wasm-package/` |
 | Private host/runtime evidence | `crates/semaprax-native-*`, `platform-tests/` |
 | Executable evidence | `tests/`, crate-local tests, `platform-tests/`, `.github/workflows/` |
 

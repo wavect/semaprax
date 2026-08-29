@@ -193,6 +193,16 @@ HIR behind a crate-private replay seam. Its focused evidence is unrun. It is
 not a package build, acquisition, publication, provenance, target execution,
 runtime enforcement, or hermetic sandbox, so 0.4 remains unpromoted.
 
+An additive Linked Scalar Core-Wasm Package Build v2 now consumes only that
+capsule's exact replay receipt and retained linked HIR. It binds the selected
+package closure, explicit root and root-owned exports, source-set/link facts,
+and distinct canonical v2 manifest/evidence around the unchanged scalar Wasm
+emitter. The safe publisher reuses the v1 held-authority state machine rather
+than adding platform authority. Two-package, hostile cross-pair/mutation,
+fixed-point/boundary, and publication-settlement evidence is authored but
+unrun; no target conformance, acquisition, trusted provenance, or hermetic
+sandbox is claimed, so 0.4 remains unpromoted.
+
 Goal: turn bounded reports and private host evidence into a supported,
 versioned ecosystem surface.
 
@@ -201,9 +211,8 @@ versioned ecosystem surface.
 - interface-first manifests that carry the bounded resolver into a published
   lockfile workflow with target matrices, capability closure, provenance,
   licenses, and reproducible artifact records;
-- consume the authored source-capsule replay seam from a separately evidenced
-  multi-package build without treating dependency metadata as executable
-  source;
+- execute the authored source-capsule, linked-build-v2, shared-publication, and
+  build-v1 preservation evidence on the exact candidate head;
 - compatibility analysis over types, effects, contracts, ownership, and target
   availability;
 - a package registry and offline cache model with explicit least authority;

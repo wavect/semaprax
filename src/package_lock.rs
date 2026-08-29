@@ -35,6 +35,7 @@ pub const MAX_WORK_UNITS: usize = 16_384;
 pub const MAX_BUILDER_BYTES: usize = 16_777_216;
 pub const MAX_OUTPUT_BYTES: usize = 8_388_608;
 const MIN_OUTPUT_BYTES: usize = 4_096;
+const BUILDER_FIXED_LOGICAL_BYTES: usize = 12 * 8;
 
 const TARGET_KEYS: [&str; 2] = ["available", "target"];
 const CAPABILITY_DOMAINS: [&str; 5] = ["filesystem", "home", "network", "process", "secrets"];
@@ -302,7 +303,7 @@ fn build(subjects: &[String], options: &PackageLockOptions) -> Result<String, Di
         }
     }
 
-    let (order, _) = topological_order(&packages, &mut budget)?;
+    let (order, dependents) = topological_order(&packages, &mut budget)?;
     let mut depth = BTreeMap::<Coordinate, usize>::new();
     let mut closures = BTreeMap::<Coordinate, BTreeSet<String>>::new();
     for coordinate in &order {
@@ -386,27 +387,20 @@ fn build(subjects: &[String], options: &PackageLockOptions) -> Result<String, Di
     }
     edges.sort();
 
-    // Every retained string is debited once in addition to the exact owned
-    // subject bytes. This is a conservative deterministic builder bound.
-    budget.builder_bytes = budget.total_subject_bytes;
-    for subject in packages.values() {
-        debit_builder_string(&mut budget, &subject.coordinate.package)?;
-        debit_builder_string(&mut budget, &subject.coordinate.version)?;
-        for dependency in &subject.dependencies {
-            debit_builder_string(&mut budget, &dependency.package)?;
-            debit_builder_string(&mut budget, &dependency.version)?;
-        }
-        for fact in &subject.capabilities {
-            debit_builder_string(&mut budget, fact)?;
-        }
-        for fact in &subject.licenses {
-            debit_builder_string(&mut budget, fact)?;
-        }
-        for fact in &subject.provenance {
-            debit_builder_string(&mut budget, &fact.kind)?;
-            debit_builder_string(&mut budget, &fact.value)?;
-        }
-    }
+    budget.builder_bytes = retained_state_bytes(
+        budget.total_subject_bytes,
+        &packages,
+        &identities,
+        &order,
+        &dependents,
+        &depth,
+        &closures,
+        &all_capabilities,
+        &target_matrix,
+        &depended_on,
+        &roots,
+        &edges,
+    )?;
 
     converge_output_budget(budget, options.max_bytes, 32, |fixed_budget| {
         render_lock(
@@ -421,6 +415,126 @@ fn build(subjects: &[String], options: &PackageLockOptions) -> Result<String, Di
             fixed_budget,
         )
     })
+}
+
+/// Compute the deterministic logical payload of the complete builder model,
+/// including its bounded topology scratch arenas. This deliberately excludes
+/// allocator headers, capacity, pointers, and host `usize` widths: those are
+/// platform-dependent and are not part of the authenticated model. Repeated
+/// owned values are charged at every modeled location, while fixed-width
+/// logical fields use their wire widths.
+#[allow(clippy::too_many_arguments)]
+fn retained_state_bytes(
+    total_subject_bytes: usize,
+    packages: &BTreeMap<Coordinate, PackageSubject>,
+    identities: &BTreeMap<String, String>,
+    order: &[Coordinate],
+    dependents: &BTreeMap<Coordinate, Vec<Coordinate>>,
+    depth: &BTreeMap<Coordinate, usize>,
+    closures: &BTreeMap<Coordinate, BTreeSet<String>>,
+    all_capabilities: &BTreeSet<String>,
+    target_matrix: &[TargetFact],
+    depended_on: &BTreeSet<Coordinate>,
+    roots: &[Coordinate],
+    edges: &[(Coordinate, Coordinate)],
+) -> Result<usize, Diagnostic> {
+    const LOGICAL_USIZE_BYTES: usize = 8;
+    const LOGICAL_BOOL_BYTES: usize = 1;
+
+    // Eleven budget counters plus the invocation's requested output ceiling.
+    let mut bytes = BUILDER_FIXED_LOGICAL_BYTES;
+    account_retained(&mut bytes, total_subject_bytes)?;
+
+    for (map_coordinate, subject) in packages {
+        // The package map owns a coordinate key independently of the copy in
+        // the package value.
+        account_coordinate(&mut bytes, map_coordinate)?;
+        account_coordinate(&mut bytes, &subject.coordinate)?;
+        account_string(&mut bytes, &subject.subject_digest)?;
+        account_retained(&mut bytes, LOGICAL_USIZE_BYTES)?;
+        account_string(&mut bytes, &subject.report_digest)?;
+        account_retained(&mut bytes, LOGICAL_USIZE_BYTES)?;
+        account_string(&mut bytes, &subject.report_envelope_digest)?;
+        for target in &subject.targets {
+            account_string(&mut bytes, &target.target)?;
+            account_retained(&mut bytes, LOGICAL_BOOL_BYTES)?;
+        }
+        for dependency in &subject.dependencies {
+            account_coordinate(&mut bytes, dependency)?;
+        }
+        for capability in &subject.capabilities {
+            account_string(&mut bytes, capability)?;
+        }
+        for license in &subject.licenses {
+            account_string(&mut bytes, license)?;
+        }
+        for fact in &subject.provenance {
+            account_string(&mut bytes, &fact.kind)?;
+            account_string(&mut bytes, &fact.value)?;
+        }
+    }
+    for (package, version) in identities {
+        account_string(&mut bytes, package)?;
+        account_string(&mut bytes, version)?;
+    }
+    for coordinate in order {
+        account_coordinate(&mut bytes, coordinate)?;
+    }
+    // Kahn traversal owns one remaining-count coordinate and may retain one
+    // ready-frontier coordinate for every package. Charge the complete bounded
+    // arenas rather than a data-dependent peak subset.
+    for coordinate in packages.keys() {
+        account_coordinate(&mut bytes, coordinate)?;
+        account_retained(&mut bytes, LOGICAL_USIZE_BYTES)?;
+        account_coordinate(&mut bytes, coordinate)?;
+    }
+    for (coordinate, rows) in dependents {
+        account_coordinate(&mut bytes, coordinate)?;
+        for dependent in rows {
+            account_coordinate(&mut bytes, dependent)?;
+        }
+    }
+    for coordinate in depth.keys() {
+        account_coordinate(&mut bytes, coordinate)?;
+        account_retained(&mut bytes, LOGICAL_USIZE_BYTES)?;
+    }
+    for (coordinate, closure) in closures {
+        account_coordinate(&mut bytes, coordinate)?;
+        for capability in closure {
+            account_string(&mut bytes, capability)?;
+        }
+    }
+    for capability in all_capabilities {
+        account_string(&mut bytes, capability)?;
+    }
+    for target in target_matrix {
+        account_string(&mut bytes, &target.target)?;
+        account_retained(&mut bytes, LOGICAL_BOOL_BYTES)?;
+    }
+    for coordinate in depended_on {
+        account_coordinate(&mut bytes, coordinate)?;
+    }
+    for coordinate in roots {
+        account_coordinate(&mut bytes, coordinate)?;
+    }
+    for (dependency, dependent) in edges {
+        account_coordinate(&mut bytes, dependency)?;
+        account_coordinate(&mut bytes, dependent)?;
+    }
+    Ok(bytes)
+}
+
+fn account_coordinate(bytes: &mut usize, coordinate: &Coordinate) -> Result<(), Diagnostic> {
+    account_string(bytes, &coordinate.package)?;
+    account_string(bytes, &coordinate.version)
+}
+
+fn account_string(bytes: &mut usize, value: &str) -> Result<(), Diagnostic> {
+    account_retained(bytes, value.len())
+}
+
+fn account_retained(bytes: &mut usize, amount: usize) -> Result<(), Diagnostic> {
+    checked_add(bytes, amount, MAX_BUILDER_BYTES, "builder_bytes")
 }
 
 fn converge_output_budget(
@@ -1309,15 +1423,6 @@ fn debit_work(budget: &mut Budget, amount: usize) -> Result<(), Diagnostic> {
         amount,
         MAX_WORK_UNITS,
         "builder_work_units",
-    )
-}
-
-fn debit_builder_string(budget: &mut Budget, value: &str) -> Result<(), Diagnostic> {
-    checked_add(
-        &mut budget.builder_bytes,
-        value.len(),
-        MAX_BUILDER_BYTES,
-        "builder_bytes",
     )
 }
 

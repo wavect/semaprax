@@ -142,10 +142,18 @@ input to reconstruction.
 | builder bytes | 16,777,216 |
 | output bytes | 8,388,608 |
 
-Every lock carries frozen `limits` and exact `budget` objects. The limits also
-record the invocation's `requested_max_bytes`, which may only narrow the frozen
-8 MiB output ceiling. Count, depth, byte, and work arithmetic is checked before
-growth. An exact limit succeeds; one more fails closed without partial output.
+Every lock carries frozen `limits` and deterministic `budget` objects. Builder
+bytes count the exact subject inputs plus every logical payload clone retained
+by the model: package map keys and records and digests, identity coordinates,
+complete topology count/frontier/dependent arenas, order and depth entries,
+per-package and aggregate capability closures, targets, roots, and edges.
+The eleven budget counters and requested ceiling are charged as fixed-width
+logical fields. Counters and booleans use eight and one bytes;
+allocator headers, spare capacity, pointers, and host `usize` widths are not
+authenticated because they are platform-dependent. The limits also record the
+invocation's `requested_max_bytes`, which may only narrow the frozen 8 MiB
+output ceiling. Count, depth, byte, and work arithmetic fails closed without
+partial output.
 
 ## Diagnostics
 
@@ -180,11 +188,13 @@ growth. An exact limit succeeds; one more fails closed without partial output.
 
 ## Evidence and status
 
-Authored evidence covers canonical KAT/determinism, exact replay, report and
+Authored evidence covers canonical determinism, exact replay, report and
 subject tamper, digest re-mint, legacy Package Report preservation, diamond and
 tie ordering, cycle/self-edge, duplicate identity/version/edge, foreign and
 version-mismatched dependencies, target confusion, capability closure,
-optional fact preservation, and every frozen limit. This implementation and
-evidence are unexecuted in this tranche. No completion-matrix status is
-promoted and no hosted, supported, resolver, registry, or enforcement claim is
-made.
+optional fact preservation, helper-level exact/overflow arithmetic, JSON-depth
+and output boundaries, package-count rejection, and CLI held-file alias
+rejection. Full production-builder exact/+1 fixtures for every independent
+frozen limit remain pending. This implementation and evidence are unexecuted
+in this tranche. No completion-matrix status is promoted and no hosted,
+supported, resolver, registry, or enforcement claim is made.

@@ -20,8 +20,10 @@
   report target intersection, transitive declared-capability closure, and only
   caller-supplied integrity-bound license/provenance claims under strict
   count/depth/byte/work limits. Cycle, diamond, duplicate, foreign dependency,
-  version, schema, target, digest re-mint, and legacy-report evidence is
-  authored but unexecuted. This adds no resolver, registry, fetch, scripts,
+  version, schema, target, digest re-mint, legacy-report, helper-level limit,
+  JSON-depth/output, and held-file alias evidence is authored but unexecuted;
+  full production-builder exact/+1 fixtures for every frozen limit remain
+  pending. This adds no resolver, registry, fetch, scripts,
   target execution, sandbox enforcement, source mutation, lockfile publication,
   trusted provenance, or completion-status promotion.
 

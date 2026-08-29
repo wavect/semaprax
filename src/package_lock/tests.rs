@@ -54,7 +54,7 @@ fn output_budget_nonconvergence_fails_closed() {
 }
 
 #[test]
-fn every_frozen_limit_accepts_exact_and_rejects_one_more() {
+fn frozen_limit_helpers_accept_exact_and_reject_one_more() {
     validate_package_count(MAX_PACKAGES).unwrap();
     assert_eq!(
         validate_package_count(MAX_PACKAGES + 1).unwrap_err().code,
@@ -82,19 +82,55 @@ fn every_frozen_limit_accepts_exact_and_rejects_one_more() {
         );
     }
 
-    for (label, maximum) in [
-        ("builder_work_units", MAX_WORK_UNITS),
-        ("builder_bytes", MAX_BUILDER_BYTES),
-    ] {
-        let mut exact = 0usize;
-        checked_add(&mut exact, maximum, maximum, label).unwrap();
-        assert_eq!(exact, maximum);
-        assert_eq!(
-            checked_add(&mut exact, 1, maximum, label).unwrap_err().code,
-            "SPX-L406",
-            "{label}"
-        );
-    }
+    let mut exact_work = 0usize;
+    checked_add(
+        &mut exact_work,
+        MAX_WORK_UNITS,
+        MAX_WORK_UNITS,
+        "builder_work_units",
+    )
+    .unwrap();
+    assert_eq!(exact_work, MAX_WORK_UNITS);
+    assert_eq!(
+        checked_add(&mut exact_work, 1, MAX_WORK_UNITS, "builder_work_units")
+            .unwrap_err()
+            .code,
+        "SPX-L406"
+    );
+
+    let packages = BTreeMap::new();
+    let identities = BTreeMap::new();
+    let order = Vec::new();
+    let dependents = BTreeMap::new();
+    let depth = BTreeMap::new();
+    let closures = BTreeMap::new();
+    let capabilities = BTreeSet::new();
+    let targets = Vec::new();
+    let depended_on = BTreeSet::new();
+    let roots = Vec::new();
+    let edges = Vec::new();
+    let account = |subject_bytes| {
+        retained_state_bytes(
+            subject_bytes,
+            &packages,
+            &identities,
+            &order,
+            &dependents,
+            &depth,
+            &closures,
+            &capabilities,
+            &targets,
+            &depended_on,
+            &roots,
+            &edges,
+        )
+    };
+    let exact_subject_bytes = MAX_BUILDER_BYTES - BUILDER_FIXED_LOGICAL_BYTES;
+    assert_eq!(account(exact_subject_bytes).unwrap(), MAX_BUILDER_BYTES);
+    assert_eq!(
+        account(exact_subject_bytes + 1).unwrap_err().code,
+        "SPX-L406"
+    );
 
     let exact_depth = format!(
         "{}0{}",

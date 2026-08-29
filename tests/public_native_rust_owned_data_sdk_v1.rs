@@ -15,6 +15,18 @@ const SELECTED: [&str; 3] = [
 ];
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
+fn configured_tool(variable: &str, candidates: &[&str]) -> PathBuf {
+    let configured = std::env::var_os(variable)
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute());
+    configured
+        .into_iter()
+        .chain(candidates.iter().map(PathBuf::from))
+        .filter_map(|path| path.canonicalize().ok())
+        .find(|path| path.is_absolute() && path.is_file())
+        .unwrap_or_else(|| panic!("{variable} must name an installed absolute tool"))
+}
+
 struct Fixture(PathBuf);
 
 impl Fixture {
@@ -287,25 +299,15 @@ fn published_safe_package_builds_offline_and_fail_stops_on_unsettled_handles() {
             .success(),
         "WP12 requires clang"
     );
-    let archiver = if cfg!(windows) {
-        PathBuf::from(
-            std::env::var_os("SEMAPRAX_ARCHIVER")
-                .expect("WP12 Windows gate requires SEMAPRAX_ARCHIVER"),
-        )
+    let archiver_candidates: &[&str] = if cfg!(windows) {
+        &[]
     } else if cfg!(target_os = "macos") {
-        PathBuf::from("/usr/bin/libtool")
-    } else if Path::new("/usr/bin/ar").is_file() {
-        PathBuf::from("/usr/bin/ar")
-    } else if Path::new("/bin/ar").is_file() {
-        PathBuf::from("/bin/ar")
+        &["/usr/bin/libtool"]
     } else {
-        panic!("WP12 requires an installed archiver");
+        &["/usr/bin/ar", "/bin/ar"]
     };
-    let clang_path = if cfg!(windows) {
-        PathBuf::from(std::env::var_os("CLANG").expect("WP12 Windows gate requires CLANG"))
-    } else {
-        PathBuf::from("/usr/bin/clang")
-    };
+    let archiver = configured_tool("SEMAPRAX_ARCHIVER", archiver_candidates);
+    let clang_path = configured_tool("CLANG", &["/usr/bin/clang"]);
     let fixture = Fixture::new("package");
     let generated = fixture.0.join("generated-sdk");
     let setup_manifest =

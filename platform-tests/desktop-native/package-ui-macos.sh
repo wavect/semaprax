@@ -228,11 +228,19 @@ assert_rejected_without_result \
 timeout_app="$scratch/timeout/SemapraxPrivateUI.app"
 mkdir -p "$scratch/timeout"
 cp -R "$app" "$timeout_app"
-if [ ! -x /usr/bin/yes ] || ! file /usr/bin/yes | grep -F 'Mach-O' >/dev/null; then
-  echo "bounded macOS UI timeout probe is unavailable" >&2
+timeout_source="$repo/platform-tests/desktop-native/timeout-engine-macos.c"
+timeout_engine="$scratch/timeout-engine"
+SOURCE_DATE_EPOCH=1 ZERO_AR_DATE=1 "$clang_tool" \
+  -isysroot "$sdk_path" \
+  -mmacosx-version-min="$readonly_deployment_target" \
+  --ld-path="$ld_tool" -std=c11 -pedantic-errors -Wall -Wextra -Werror -O2 \
+  "$timeout_source" -o "$timeout_engine"
+if [ ! -x "$timeout_engine" ] ||
+   ! file "$timeout_engine" | grep -F 'Mach-O 64-bit' | grep -F 'arm64' >/dev/null; then
+  echo "bounded silent macOS UI timeout probe is unavailable" >&2
   exit 1
 fi
-cp /usr/bin/yes "$timeout_app/Contents/Resources/SemapraxPrivateEngine"
+cp "$timeout_engine" "$timeout_app/Contents/Resources/SemapraxPrivateEngine"
 write_engine_manifest \
   "$timeout_app/Contents/Resources/SemapraxPrivateEngine" \
   "$timeout_app/Contents/Resources/SemapraxPrivateEngine.sha256"

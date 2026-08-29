@@ -20,8 +20,29 @@ use semaprax::{
 
 mod cli;
 
+// Windows reserves a smaller main-thread stack than the admitted compiler
+// depth requires. One explicit worker keeps the CLI's stack budget identical
+// across targets without changing the library entry points.
+const CLI_STACK_BYTES: usize = 16 * 1024 * 1024;
+
 fn main() -> ExitCode {
-    match run(std::env::args().skip(1).collect()) {
+    let args = std::env::args().skip(1).collect();
+    let worker = match std::thread::Builder::new()
+        .name("semaprax-cli".to_owned())
+        .stack_size(CLI_STACK_BYTES)
+        .spawn(move || run(args))
+    {
+        Ok(worker) => worker,
+        Err(error) => {
+            eprintln!("fatal: unable to start the bounded compiler worker: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    let outcome = match worker.join() {
+        Ok(outcome) => outcome,
+        Err(payload) => std::panic::resume_unwind(payload),
+    };
+    match outcome {
         Ok(()) => ExitCode::SUCCESS,
         Err(code) => ExitCode::from(code),
     }

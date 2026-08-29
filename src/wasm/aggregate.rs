@@ -60,6 +60,7 @@ const RANGE_DESCRIPTOR_POINTER_MASK: u32 = 0x0000_ffff;
 const RANGE_DESCRIPTOR_COOKIE_MASK: u32 = 0x1fff;
 
 pub(super) const SHADOW_STACK_TOP: u32 = 65_536;
+#[allow(dead_code)] // Used by the compile-time bound below and its unit-test witness.
 pub(super) const RANGE_DESCRIPTOR_ADDRESS_LIMIT: u32 = (RANGE_DESCRIPTOR_POINTER_MASK + 1) * 8;
 // Range descriptors are eight-byte aligned allocations in the private shadow
 // stack. The carrier stores their address in eight-byte units, so the entire

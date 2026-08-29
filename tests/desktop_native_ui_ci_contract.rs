@@ -7,6 +7,7 @@ fn private_native_ui_is_platform_real_feature_gated_and_source_locked() {
     let cargo = read(root, "crates/semaprax-native-host/Cargo.toml");
     let macos_script = read(root, "platform-tests/desktop-native/package-ui-macos.sh");
     let macos_source = read(root, "platform-tests/desktop-native/ui-macos.m");
+    let macos_timeout = read(root, "platform-tests/desktop-native/timeout-engine-macos.c");
     let macos_plist = read(root, "platform-tests/desktop-native/Info-ui.plist");
     let windows_script = read(root, "platform-tests/desktop-native/package-ui-windows.ps1");
     let windows_source = read(root, "platform-tests/desktop-native/ui-windows.c");
@@ -39,8 +40,10 @@ fn private_native_ui_is_platform_real_feature_gated_and_source_locked() {
         ],
     );
 
-    macos_contract(&format!("{macos_script}\n{macos_source}\n{macos_plist}"))
-        .unwrap_or_else(|error| panic!("{error}"));
+    macos_contract(&format!(
+        "{macos_script}\n{macos_source}\n{macos_timeout}\n{macos_plist}"
+    ))
+    .unwrap_or_else(|error| panic!("{error}"));
     windows_contract(&format!("{windows_script}\n{windows_source}"))
         .unwrap_or_else(|error| panic!("{error}"));
 
@@ -67,9 +70,10 @@ fn private_native_ui_is_platform_real_feature_gated_and_source_locked() {
 fn native_ui_source_locks_reject_hostile_gate_removal() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let macos = format!(
-        "{}\n{}\n{}",
+        "{}\n{}\n{}\n{}",
         read(root, "platform-tests/desktop-native/package-ui-macos.sh"),
         read(root, "platform-tests/desktop-native/ui-macos.m"),
+        read(root, "platform-tests/desktop-native/timeout-engine-macos.c",),
         read(root, "platform-tests/desktop-native/Info-ui.plist")
     );
     let windows = format!(
@@ -115,7 +119,8 @@ fn native_ui_source_locks_reject_hostile_gate_removal() {
             "printf '\\000' >>\"$mismatch_engine\"",
             "removed mismatch mutation",
         ),
-        macos.replace("cp /usr/bin/yes", "removed timeout engine"),
+        macos.replace("timeout-engine-macos.c", "removed-timeout-engine.c"),
+        macos.replace("signal(SIGTERM, SIG_IGN)", "removed timeout resistance"),
         macos.replace("kEngineDeadlineSeconds", "removedEngineDeadline"),
         macos.replace("[task terminate]", "removed task termination"),
         macos.replace("SIGKILL", "REMOVED_SIGKILL"),
@@ -295,7 +300,8 @@ fn macos_contract(source: &str) -> Result<(), String> {
             "write_engine_manifest",
             "printf '\\000' >>\"$mismatch_engine\"",
             "assert_rejected_without_result",
-            "cp /usr/bin/yes",
+            "timeout-engine-macos.c",
+            "signal(SIGTERM, SIG_IGN)",
             "CC_SHA256(engineBytes.bytes",
             "kEngineDeadlineSeconds",
             "deadline.timeIntervalSinceNow > 0",

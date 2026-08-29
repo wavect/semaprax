@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
+#[cfg(unix)]
+use std::sync::Mutex;
 
 #[path = "../src/cli/new_project.rs"]
 mod new_project;
@@ -208,6 +210,112 @@ fn injected_write_failure_never_publishes_and_cleans_owned_staging() {
     assert_eq!(error.exit_code(), 1);
     assert!(!destination.exists());
     assert!(parent_names(&fixture.root).is_empty());
+}
+
+#[cfg(unix)]
+struct SubstituteParentBeforeWrite {
+    parent: PathBuf,
+    displaced: PathBuf,
+    fired: Mutex<bool>,
+}
+
+#[cfg(unix)]
+impl new_project::WriteHook for SubstituteParentBeforeWrite {
+    fn before_write(&self, index: usize, _relative_path: &str) -> Result<(), String> {
+        let mut fired = self.fired.lock().unwrap();
+        if index != 1 || *fired {
+            return Ok(());
+        }
+        std::fs::rename(&self.parent, &self.displaced).map_err(|error| error.to_string())?;
+        std::fs::create_dir(&self.parent).map_err(|error| error.to_string())?;
+        std::fs::write(self.parent.join("foreign"), b"unchanged\n")
+            .map_err(|error| error.to_string())?;
+        *fired = true;
+        Ok(())
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn parent_substitution_cannot_redirect_staged_writes_or_publication() {
+    let fixture = Fixture::new("parent-substitution");
+    let parent = fixture.root.join("selected");
+    let displaced = fixture.root.join("selected-held");
+    std::fs::create_dir(&parent).unwrap();
+    let destination = parent.join("calculator");
+    let hook = SubstituteParentBeforeWrite {
+        parent: parent.clone(),
+        displaced: displaced.clone(),
+        fired: Mutex::new(false),
+    };
+
+    let error = new_project::create_with_hook(&destination, "calculator", &hook).unwrap_err();
+    assert_eq!(error.exit_code(), 1);
+    assert_eq!(read_tree(&parent)["foreign"], b"unchanged\n");
+    assert!(!parent.join("calculator").exists());
+    assert!(parent_names(&displaced).is_empty());
+}
+
+#[cfg(unix)]
+struct SubstituteStageBeforeWrite {
+    parent: PathBuf,
+    fired: Mutex<bool>,
+}
+
+#[cfg(unix)]
+impl new_project::WriteHook for SubstituteStageBeforeWrite {
+    fn before_write(&self, index: usize, _relative_path: &str) -> Result<(), String> {
+        let mut fired = self.fired.lock().unwrap();
+        if index != 1 || *fired {
+            return Ok(());
+        }
+        let stage_name = std::fs::read_dir(&self.parent)
+            .map_err(|error| error.to_string())?
+            .map(|entry| entry.map(|entry| entry.file_name()))
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| error.to_string())?
+            .into_iter()
+            .find(|name| name.to_string_lossy().starts_with(".semaprax-new-"))
+            .ok_or_else(|| "staging directory was not visible".to_owned())?;
+        let stage = self.parent.join(&stage_name);
+        std::fs::rename(&stage, self.parent.join("held-stage"))
+            .map_err(|error| error.to_string())?;
+        std::fs::create_dir(&stage).map_err(|error| error.to_string())?;
+        std::fs::create_dir(stage.join("src")).map_err(|error| error.to_string())?;
+        std::fs::write(stage.join("foreign"), b"unchanged\n").map_err(|error| error.to_string())?;
+        *fired = true;
+        Ok(())
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn stage_substitution_cannot_receive_writes_or_be_published() {
+    let fixture = Fixture::new("stage-substitution");
+    let destination = fixture.root.join("calculator");
+    let hook = SubstituteStageBeforeWrite {
+        parent: fixture.root.clone(),
+        fired: Mutex::new(false),
+    };
+
+    let error = new_project::create_with_hook(&destination, "calculator", &hook).unwrap_err();
+    assert_eq!(error.exit_code(), 1);
+    assert!(!destination.exists());
+    let replacement = std::fs::read_dir(&fixture.root)
+        .unwrap()
+        .map(Result::unwrap)
+        .find(|entry| {
+            entry
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".semaprax-new-")
+        })
+        .unwrap()
+        .path();
+    assert_eq!(read_tree(&replacement)["foreign"], b"unchanged\n");
+    assert!(!replacement.join("README.md").exists());
+    assert!(!replacement.join("semaprax.toml").exists());
+    assert!(read_tree(&replacement.join("src")).is_empty());
 }
 
 #[test]

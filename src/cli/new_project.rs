@@ -2,13 +2,13 @@
 mod templates;
 
 use std::fmt;
-use std::fs::{self, OpenOptions};
-use std::io::Write;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use same_file::Handle;
 use semaprax::project::{self, ProjectExecutionOptions};
+use semaprax_native_rust_owned_data_package::{NewProjectAuthority, NewProjectAuthorityError};
 
 use templates::TemplateFile;
 
@@ -112,39 +112,8 @@ pub(crate) fn create_with_hook(
             "new project parent identity changed during canonicalization",
         ));
     }
-    let final_path = parent.join(file_name);
-    require_absent(&final_path)?;
-
-    let staging = create_staging_directory(&parent)?;
-    let staging_metadata = fs::symlink_metadata(&staging).map_err(|error| {
-        NewProjectFailure::creation(format!(
-            "cannot inspect new project staging directory: {error}"
-        ))
-    })?;
-    if !is_plain_directory(&staging_metadata) {
-        return Err(NewProjectFailure::creation(
-            "new project staging path is not a real non-reparse directory",
-        ));
-    }
-    let staging_identity = Handle::from_path(&staging).map_err(|error| {
-        NewProjectFailure::creation(format!(
-            "cannot identify new project staging directory: {error}"
-        ))
-    })?;
-    let mut guard = StagingGuard {
-        parent: parent.clone(),
-        parent_identity,
-        staging: staging.clone(),
-        staging_identity,
-        files: &files,
-        armed: true,
-    };
-
-    fs::create_dir(staging.join("src")).map_err(|error| {
-        NewProjectFailure::creation(format!(
-            "cannot create staged project source directory: {error}"
-        ))
-    })?;
+    let (mut authority, staging) = create_staging_authority(&parent, file_name)?;
+    require_ambient_binding(&authority, &parent, &staging)?;
     for (index, file) in files.iter().enumerate() {
         hook.before_write(index, file.path).map_err(|error| {
             NewProjectFailure::creation(format!(
@@ -152,9 +121,15 @@ pub(crate) fn create_with_hook(
                 file.path
             ))
         })?;
-        write_create_new(&staging, file)?;
+        authority
+            .write(file.path, &file.bytes)
+            .map_err(|error| authority_failure("write staged project", error))?;
     }
-    authenticate_complete(&staging, &guard.staging_identity, &files)?;
+    let expected = expected_files(&files)?;
+    authority
+        .authenticate(expected)
+        .map_err(|error| authority_failure("authenticate staged project", error))?;
+    require_ambient_binding(&authority, &parent, &staging)?;
 
     let manifest = staging.join("semaprax.toml");
     project::with_authenticated_project(&manifest, |snapshot| {
@@ -180,19 +155,10 @@ pub(crate) fn create_with_hook(
         ))
     })?;
 
-    authenticate_parent(&parent, &guard.parent_identity)?;
-    authenticate_complete(&staging, &guard.staging_identity, &files)?;
-    require_absent(&final_path)?;
-    publish_no_replace(&staging, &final_path).map_err(|error| {
-        NewProjectFailure::creation(format!(
-            "cannot publish new project `{}`: {error}",
-            file_name.to_string_lossy()
-        ))
-    })?;
-    guard.armed = false;
-
-    authenticate_parent(&parent, &guard.parent_identity)?;
-    authenticate_complete(&final_path, &guard.staging_identity, &files)?;
+    require_ambient_binding(&authority, &parent, &staging)?;
+    authority
+        .publish_and_verify(expected)
+        .map_err(|error| authority_failure("publish and verify new project", error))?;
     Ok(destination.to_path_buf())
 }
 
@@ -304,18 +270,17 @@ fn validate_name(name: &str) -> Result<(), String> {
     }
 }
 
-fn create_staging_directory(parent: &Path) -> Result<PathBuf, NewProjectFailure> {
+fn create_staging_authority(
+    parent: &Path,
+    output_name: &std::ffi::OsStr,
+) -> Result<(NewProjectAuthority, PathBuf), NewProjectFailure> {
     for _ in 0..MAX_STAGING_ATTEMPTS {
         let serial = STAGING_SERIAL.fetch_add(1, Ordering::Relaxed);
-        let path = parent.join(format!(".semaprax-new-{}-{serial}", std::process::id()));
-        match fs::create_dir(&path) {
-            Ok(()) => return Ok(path),
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
-            Err(error) => {
-                return Err(NewProjectFailure::creation(format!(
-                    "cannot create same-parent new project staging directory: {error}"
-                )))
-            }
+        let name = format!(".semaprax-new-{}-{serial}", std::process::id());
+        match NewProjectAuthority::create(parent, output_name, std::ffi::OsStr::new(&name)) {
+            Ok(authority) => return Ok((authority, parent.join(name))),
+            Err(NewProjectAuthorityError::StageExists) => continue,
+            Err(error) => return Err(authority_failure("create staged project", error)),
         }
     }
     Err(NewProjectFailure::creation(
@@ -323,144 +288,34 @@ fn create_staging_directory(parent: &Path) -> Result<PathBuf, NewProjectFailure>
     ))
 }
 
-fn write_create_new(root: &Path, file: &TemplateFile) -> Result<(), NewProjectFailure> {
-    let path = root.join(file.path);
-    let mut output = OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&path)
-        .map_err(|error| {
-            NewProjectFailure::creation(format!(
-                "cannot create staged project file `{}`: {error}",
-                file.path
-            ))
-        })?;
-    output.write_all(&file.bytes).map_err(|error| {
-        NewProjectFailure::creation(format!(
-            "cannot write staged project file `{}`: {error}",
-            file.path
-        ))
-    })?;
-    output.sync_all().map_err(|error| {
-        NewProjectFailure::creation(format!(
-            "cannot sync staged project file `{}`: {error}",
-            file.path
-        ))
-    })
+fn expected_files(files: &[TemplateFile]) -> Result<[(&str, &[u8]); 4], NewProjectFailure> {
+    files
+        .iter()
+        .map(|file| (file.path, file.bytes.as_slice()))
+        .collect::<Vec<_>>()
+        .try_into()
+        .map_err(|_| NewProjectFailure::creation("calculator template inventory is not exact"))
 }
 
-fn require_absent(path: &Path) -> Result<(), NewProjectFailure> {
-    match fs::symlink_metadata(path) {
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Ok(_) => Err(NewProjectFailure::creation(format!(
-            "new project destination already exists: {}",
-            path.display()
-        ))),
-        Err(error) => Err(NewProjectFailure::creation(format!(
-            "cannot inspect new project destination {}: {error}",
-            path.display()
-        ))),
-    }
-}
-
-fn authenticate_parent(parent: &Path, expected: &Handle) -> Result<(), NewProjectFailure> {
-    let metadata = fs::symlink_metadata(parent).map_err(|error| {
-        NewProjectFailure::creation(format!("cannot recheck new project parent: {error}"))
-    })?;
-    if !is_plain_directory(&metadata)
-        || Handle::from_path(parent)
-            .ok()
-            .is_none_or(|observed| observed != *expected)
-    {
-        Err(NewProjectFailure::creation(
-            "new project parent identity changed during generation",
-        ))
-    } else {
-        Ok(())
-    }
-}
-
-fn authenticate_complete(
-    root: &Path,
-    expected_identity: &Handle,
-    files: &[TemplateFile],
+fn require_ambient_binding(
+    authority: &NewProjectAuthority,
+    parent: &Path,
+    staging: &Path,
 ) -> Result<(), NewProjectFailure> {
-    if !same_plain_directory(root, expected_identity) {
-        return Err(NewProjectFailure::creation(
-            "staged project directory identity changed",
-        ));
-    }
-    if directory_names(root)? != ["README.md", "semaprax.toml", "src"]
-        || directory_names(&root.join("src"))? != ["app.spx", "tests.spx"]
+    if authority
+        .ambient_paths_still_bind(parent, staging)
+        .map_err(|error| authority_failure("recheck staged project authority", error))?
     {
-        return Err(NewProjectFailure::creation(
-            "staged project inventory changed",
-        ));
+        Ok(())
+    } else {
+        Err(NewProjectFailure::creation(
+            "new project parent or staging path identity changed",
+        ))
     }
-    for file in files {
-        let path = root.join(file.path);
-        let metadata = fs::symlink_metadata(&path).map_err(|error| {
-            NewProjectFailure::creation(format!(
-                "cannot authenticate staged project file `{}`: {error}",
-                file.path
-            ))
-        })?;
-        if !is_plain_regular_file(&metadata)
-            || fs::read(&path).ok().as_deref() != Some(file.bytes.as_slice())
-        {
-            return Err(NewProjectFailure::creation(format!(
-                "staged project file `{}` changed",
-                file.path
-            )));
-        }
-    }
-    Ok(())
-}
-
-fn directory_names(path: &Path) -> Result<Vec<String>, NewProjectFailure> {
-    let metadata = fs::symlink_metadata(path).map_err(|error| {
-        NewProjectFailure::creation(format!("cannot inspect staged project directory: {error}"))
-    })?;
-    if !is_plain_directory(&metadata) {
-        return Err(NewProjectFailure::creation(
-            "staged project contains a non-directory or reparse directory",
-        ));
-    }
-    let mut names = fs::read_dir(path)
-        .map_err(|error| {
-            NewProjectFailure::creation(format!("cannot enumerate staged project: {error}"))
-        })?
-        .map(|entry| {
-            entry
-                .map_err(|error| {
-                    NewProjectFailure::creation(format!(
-                        "cannot inspect staged project entry: {error}"
-                    ))
-                })?
-                .file_name()
-                .into_string()
-                .map_err(|_| NewProjectFailure::creation("staged project has a non-UTF-8 entry"))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    names.sort();
-    Ok(names)
-}
-
-fn same_plain_directory(path: &Path, expected: &Handle) -> bool {
-    fs::symlink_metadata(path)
-        .ok()
-        .is_some_and(|metadata| is_plain_directory(&metadata))
-        && Handle::from_path(path)
-            .ok()
-            .is_some_and(|identity| identity == *expected)
 }
 
 fn is_plain_directory(metadata: &fs::Metadata) -> bool {
     metadata.is_dir() && !metadata.file_type().is_symlink() && !metadata_is_reparse(metadata)
-}
-
-fn is_plain_regular_file(metadata: &fs::Metadata) -> bool {
-    metadata.is_file() && !metadata.file_type().is_symlink() && !metadata_is_reparse(metadata)
 }
 
 #[cfg(windows)]
@@ -476,129 +331,12 @@ fn metadata_is_reparse(_metadata: &fs::Metadata) -> bool {
     false
 }
 
-fn publish_no_replace(source: &Path, destination: &Path) -> std::io::Result<()> {
-    #[cfg(any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
-    ))]
-    {
-        use std::os::unix::ffi::OsStrExt as _;
-
-        Ok(rustix::fs::renameat_with(
-            rustix::fs::CWD,
-            source.as_os_str().as_bytes(),
-            rustix::fs::CWD,
-            destination.as_os_str().as_bytes(),
-            rustix::fs::RenameFlags::NOREPLACE,
-        )?)
-    }
-    #[cfg(windows)]
-    {
-        renamore::rename_exclusive(source, destination)
-    }
-    #[cfg(all(
-        unix,
-        not(any(
-            target_os = "linux",
-            target_os = "android",
-            target_vendor = "apple",
-            target_os = "redox"
-        ))
-    ))]
-    {
-        let _ = (source, destination);
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Unsupported,
-            "atomic no-replace rename is unavailable on this Unix target",
-        ))
-    }
-    #[cfg(not(any(unix, windows)))]
-    {
-        let _ = (source, destination);
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Unsupported,
-            "atomic no-replace rename is unavailable on this target",
-        ))
-    }
-}
-
-struct StagingGuard<'a> {
-    parent: PathBuf,
-    parent_identity: Handle,
-    staging: PathBuf,
-    staging_identity: Handle,
-    files: &'a [TemplateFile],
-    armed: bool,
-}
-
-impl Drop for StagingGuard<'_> {
-    fn drop(&mut self) {
-        if !self.armed
-            || !same_plain_directory(&self.parent, &self.parent_identity)
-            || !owned_subset(&self.staging, &self.staging_identity, self.files)
-        {
-            return;
-        }
-        for file in self.files {
-            let path = self.staging.join(file.path);
-            if fs::symlink_metadata(&path)
-                .ok()
-                .is_some_and(|metadata| is_plain_regular_file(&metadata))
-                && fs::read(&path).ok().as_deref() == Some(file.bytes.as_slice())
-            {
-                let _ = fs::remove_file(path);
-            }
-        }
-        let _ = fs::remove_dir(self.staging.join("src"));
-        let _ = fs::remove_dir(&self.staging);
-    }
-}
-
-fn owned_subset(root: &Path, identity: &Handle, files: &[TemplateFile]) -> bool {
-    if !same_plain_directory(root, identity) {
-        return false;
-    }
-    let Ok(root_entries) = fs::read_dir(root) else {
-        return false;
+fn authority_failure(action: &str, error: NewProjectAuthorityError) -> NewProjectFailure {
+    let reason = match error {
+        NewProjectAuthorityError::Exists => "a no-clobber entry already exists",
+        NewProjectAuthorityError::StageExists => "a staging entry already exists",
+        NewProjectAuthorityError::Changed => "held filesystem authority changed",
+        NewProjectAuthorityError::Invalid => "the requested inventory or name is invalid",
     };
-    for entry in root_entries {
-        let Ok(entry) = entry else { return false };
-        let name = entry.file_name();
-        if name == "src" {
-            let Ok(metadata) = fs::symlink_metadata(entry.path()) else {
-                return false;
-            };
-            if !is_plain_directory(&metadata) {
-                return false;
-            }
-            let Ok(source_entries) = fs::read_dir(entry.path()) else {
-                return false;
-            };
-            for source in source_entries {
-                let Ok(source) = source else { return false };
-                let relative = format!("src/{}", source.file_name().to_string_lossy());
-                if !matches_exact_file(&source.path(), &relative, files) {
-                    return false;
-                }
-            }
-        } else {
-            let relative = name.to_string_lossy();
-            if !matches_exact_file(&entry.path(), &relative, files) {
-                return false;
-            }
-        }
-    }
-    true
-}
-
-fn matches_exact_file(path: &Path, relative: &str, files: &[TemplateFile]) -> bool {
-    let Some(expected) = files.iter().find(|file| file.path == relative) else {
-        return false;
-    };
-    fs::symlink_metadata(path)
-        .ok()
-        .is_some_and(|metadata| is_plain_regular_file(&metadata))
-        && fs::read(path).ok().as_deref() == Some(expected.bytes.as_slice())
+    NewProjectFailure::creation(format!("cannot {action}: {reason}"))
 }

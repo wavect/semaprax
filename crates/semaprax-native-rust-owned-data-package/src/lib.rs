@@ -16,8 +16,12 @@ use sha2::{Digest, Sha256};
 mod descriptor;
 mod flat_descriptor;
 mod flat_render;
+mod project_publication;
 mod publication;
 mod render;
+
+#[doc(hidden)]
+pub use project_publication::{NewProjectAuthority, NewProjectAuthorityError};
 
 pub use descriptor::{Descriptor, ParameterKind, ResultKind};
 

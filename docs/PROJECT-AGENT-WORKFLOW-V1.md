@@ -2,8 +2,11 @@
 
 Audience: agent and tool authors, plus compiler contributors.
 
-Status: locally evidenced additive Project Agent Transport v4; exact-head
-hosted promotion pending.
+Status: additive Project Agent Transport v4 is exact-head hosted green at
+`4cc03820c86e70527cb65c4b10ee3841c7af167d` in the blocking Project Product
+Acceptance jobs for [Ubuntu](https://github.com/wavect/semaprax/actions/runs/33259787886/job/99119653326),
+[macOS](https://github.com/wavect/semaprax/actions/runs/33259787886/job/99119653276),
+and [Windows](https://github.com/wavect/semaprax/actions/runs/33259787886/job/99119653334).
 
 ## Scope
 
@@ -119,6 +122,7 @@ carrier mutations, and no managed-Workspace schema confusion.
 
 General/multi-file change, import-alias/identity operations, request-selected
 patches or outputs, native/Rust daemon builds, persistent indexing, network
-service, concurrency, recovery, exactly-once delivery, target execution, and
-hosted promotion remain open. This bounded workflow does not complete any
+service, concurrency, recovery, exactly-once delivery, and target execution
+remain open. Exact-head hosted promotion is limited to the bounded workflow
+above. This bounded workflow does not complete any
 long-term product-contract row; see the completion matrix for current totals.

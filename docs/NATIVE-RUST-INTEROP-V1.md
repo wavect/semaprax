@@ -5,10 +5,14 @@ Audience: maintainers, host integrators, and compiler contributors.
 Status: private A+B design and implementation are exact-head hosted green at
 `50b96dccabe3b3dcbcdf38bab380f3eb8699184c` in [run
 32402944574](https://github.com/wavect/semaprax/actions/runs/32402944574).
-The additive Public Native Rust SDK v1 Phase C implementation is locally
-evidenced and awaits its exact-head Ubuntu/macOS/Windows promotion matrix; its
-builder tooling remains unpublished and it grants no registry, installed/public
-CLI, or root `semaprax` CLI claim. The six
+The additive Public Native Rust SDK v1 Phase C implementation is exact-head
+hosted green at `4cc03820c86e70527cb65c4b10ee3841c7af167d` in
+[run 33259787886](https://github.com/wavect/semaprax/actions/runs/33259787886),
+including blocking [Ubuntu](https://github.com/wavect/semaprax/actions/runs/33259787886/job/99119653296),
+[macOS](https://github.com/wavect/semaprax/actions/runs/33259787886/job/99119653159),
+and [Windows](https://github.com/wavect/semaprax/actions/runs/33259787886/job/99119653243)
+jobs. Its builder tooling remains unpublished and it grants no registry,
+installed/public CLI, or root `semaprax` CLI claim. The six
 output artifacts have frozen
 whole-byte known-answer identities after independent exact replay and exhaustive
 byte-edit rejection. That wire freeze alone is not runtime or platform
@@ -283,7 +287,8 @@ nonclaims. The external calculator and callback consumers depend only on the
 generated package, compile locked and offline, and exercise stable-ID exports,
 the Rust-import callback, status mapping, deterministic double builds, display
 rename preservation, and one same-source Rust/native-C/Core-Wasm result.
-Exact-head hosted promotion remains pending.
+The exact-head three-host promotion gate is satisfied at the commit and run
+cited above.
 
 ### Project Native Rust SDK v1
 
@@ -328,7 +333,8 @@ rename, shuts the daemon down, then independently rebuilds and reruns both
 consumers. It proves stable-ID behavior while requiring the Project,
 workspace, subject, and changed-source revisions to change; it deliberately
 does not claim whole-package byte equality across a semantic source rename.
-Hosted Ubuntu/macOS/Windows promotion remains pending. This entry point adds no
+Hosted Ubuntu/macOS/Windows promotion is satisfied by the blocking Project
+Product Acceptance jobs in the exact run cited above. This entry point adds no
 root or installed/public CLI, registry, dependency, general Project SDK, capability, import,
 aggregate, resource, or publication-path claim beyond the existing bounded
 builder output.
@@ -349,8 +355,8 @@ cross-target reuse, unwind, abort/OOM/signal/process recovery, power-loss
 durability, async/reentrant/cross-thread use, provenance or ambient authority,
 error text/payload evidence, exactly-once effects, other ecosystem bindings,
 dynamic dependency identity or filesystem-race isolation,
-stable Rust ABI, public CLI/registry/network, general interop readiness, and a
-completion-matrix promotion.
+stable Rust ABI, public CLI/registry/network, general interop readiness, and
+completion of a long-term completion-matrix row.
 
 The focused CLI contract is exercised with:
 
@@ -363,7 +369,7 @@ above: Ubuntu, macOS, Windows, Rust 1.85, and the required Linux sanitizer lane
 are green together, including Windows runtime/capacity settlement. This proves
 only the frozen private scalar/static-link profile at that head. Phase C keeps
 the three implementation crates and root package unpublished but adds the
-narrow builder API and generated local package described above; that additive
-promotion remains pending its exact-head three-host gate. Local runs qualify only when
+narrow builder API and generated local package described above; its exact-head
+three-host gate is satisfied by the run cited above. Local runs qualify only when
 `RUSTC` and `CLANG` explicitly select the admitted absolute tools; an ambient
 launcher or proxy is intentionally not equivalent evidence.

@@ -66,22 +66,24 @@ exists but has not completed exact-head hosted promotion.
 
 | Exit criterion | Evidence | Remaining gate |
 | --- | --- | --- |
-| Multi-module calculator project | Evidenced | Keep Project Manifest admission and source closure green on the promotion commit. |
-| Same verified calculator logic on native and browser lanes | Prior-head hosted | Run the complete identical success/failure corpus on the exact release head and required hosts. |
-| Several stable-ID functions callable from TypeScript and Rust | Prior-head hosted, current builder remains unpublished | Promote the exact-head JS/TS and compiler-free Rust consumers and publish an intentionally supported Rust entry point. |
-| Browser calculator consumes Project exports | Prior-head Chromium; expanded three-fixture proof is local | Promote the baseline and display-renamed Project fixtures on the exact release head. |
-| Project daemon inspect/derive/preview/apply/rebuild loop | Prior-head hosted | Promote Transport v4 and preserve its bounded authority contract. |
-| Stable external API survives a display rename | Prior-head hosted; expanded artifact proof is local | Promote the complete renamed Project and consumer proof on the exact release head. |
-| Project tests demonstrate native/Wasm equivalence | Prior-head hosted | Promote the full entry/test and consumer corpus on the exact release head. |
+| Multi-module calculator project | Exact-head hosted | Keep Project Manifest admission and source closure green on subsequent release candidates. |
+| Same verified calculator logic on native and browser lanes | Exact-head hosted | Preserve the identical success/failure corpus on subsequent release candidates and broaden browser engines only when claimed. |
+| Several stable-ID functions callable from TypeScript and Rust | Exact-head hosted; builder remains unpublished | Publish an intentionally supported Rust entry point. |
+| Browser calculator consumes Project exports | Exact-head Chromium, including the display-renamed fixture | Add multi-engine evidence only when broader browser compatibility is claimed. |
+| Project daemon inspect/derive/preview/apply/rebuild loop | Exact-head hosted | Preserve Transport v4's bounded authority contract on subsequent release candidates. |
+| Stable external API survives a display rename | Exact-head hosted | Preserve the complete renamed Project and consumer proof on subsequent release candidates. |
+| Project tests demonstrate native/Wasm equivalence | Exact-head hosted | Preserve the full entry/test and consumer corpus on subsequent release candidates. |
 | Multi-module line-filter product | Local | Add exact-head hosted and real-browser/multi-engine evidence. |
-| Full promotion CI for every public release claim | Pending | All blocking release jobs must pass at one exact candidate commit without diagnostic masks. |
+| Full promotion CI for every public release claim | Exact-head hosted | Keep all blocking release jobs green on the final release commit without diagnostic masks. |
 
-The v0.2 release objective therefore remains **Partial**. The implementation
-criteria have bounded evidence; the mandatory exact-head promotion criterion
-has not been met.
+The v0.2 release objective remains **Partial**. The blocking matrix is green at
+exact commit `4cc03820c86e70527cb65c4b10ee3841c7af167d` in
+[run 33259787886](https://github.com/wavect/semaprax/actions/runs/33259787886),
+but the line-filter still lacks the stated browser/runtime breadth and the Rust
+builder remains unpublished.
 
 Evidence owners: [Project Manifest v1](PROJECT-MANIFEST-V1.md) and its additive
-v2–v5 references, [Bounded Language Command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V1.md),
+v2–v7 references, [Bounded Language Command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V1.md),
 [Project Agent Workflow](PROJECT-AGENT-WORKFLOW-V1.md),
 [Wasm Scalar Exports](WASM-SCALAR-EXPORTS-V1.md), and
 [Native Rust Interoperability](NATIVE-RUST-INTEROP-V1.md).

@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- Promoted the complete blocking matrix at exact commit
+  `4cc03820c86e70527cb65c4b10ee3841c7af167d`: all 23 jobs are green in
+  [run 33259787886](https://github.com/wavect/semaprax/actions/runs/33259787886),
+  and the matching mdBook is green in
+  [Docs run 33259787881](https://github.com/wavect/semaprax/actions/runs/33259787881).
+  Command-I/O and the line-filter now pin their real Shared Loan Plan
+  composition as Graph v23 while retaining the v19/v20 facts; the lexical
+  transfer negative control keeps its view live after transfer; and the
+  Native Rust builder's exact capacity envelopes include every retained loan
+  plan. The shared Windows job replaces the duplicate all-target/all-feature
+  interop diagnostic with the focused `windows_` library evidence under a
+  five-minute cap; that diagnostic completed in 77 seconds and the formerly
+  starved desktop, UI, documentation, release, example, and package tail all
+  passed. The generated Rust builder remains unpublished, and no registry,
+  general aggregate/resource ABI, or multi-engine browser claim follows.
+
 - Added the locally evidenced Shared Loan Plan v1 proof layer for bounded
   synchronous immutable borrowing rooted in `own` storage. Dense
   resolved-function-local loan identities, exact owner-place and parent-reborrow

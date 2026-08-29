@@ -17,19 +17,19 @@ priority over broad syntax or generated artifact volume.
 
 The current codebase has a bounded multi-file calculator, Project agent
 workflow, stable-ID JavaScript/TypeScript and unpublished Rust consumers, and a
-multi-file line-filter product. The release exit remains open because the
-complete promotion matrix has not passed at one exact candidate commit.
+multi-file line-filter product. The blocking promotion matrix is exact-head
+green at `4cc03820c86e70527cb65c4b10ee3841c7af167d` in
+[run 33259787886](https://github.com/wavect/semaprax/actions/runs/33259787886).
+The release exit remains open on line-filter browser/runtime breadth,
+intentional Rust publication, and final release notes.
 
 Exit outcomes:
 
-1. Make the blocking baseline, Product, browser, Project, public SDK, mobile,
-   sanitizer, MSRV, and dependency-policy jobs green at one exact head.
-2. Remove diagnostic masks from every claim required for release.
-3. Re-run baseline and display-renamed Project consumers against the exact
-   generated artifacts.
-4. Confirm the line-filter product on hosted native and WebAssembly lanes and
+1. Confirm the line-filter product on hosted native and WebAssembly lanes and
    add the browser/runtime breadth claimed by the release.
-5. Publish release notes that cite the exact commit and preserve all bounded
+2. Publish the Rust builder only through an intentionally supported entry
+   point, or keep the release claim explicitly unpublished.
+3. Publish release notes that cite the exact commit and preserve all bounded
    non-claims.
 
 The [v0.2 audit](COMPLETION-MATRIX.md#v02-product-exit-audit) is the acceptance

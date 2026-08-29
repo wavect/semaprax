@@ -77,6 +77,7 @@ pub(super) fn replay_descriptor(
     Ok(())
 }
 
+#[derive(Clone, Copy)]
 pub(super) struct ManifestFacts<'a> {
     pub target: &'a str,
     pub descriptor: &'a [u8],
@@ -102,9 +103,7 @@ pub(super) fn verify_manifest(
     let descriptor = closed_object(root.get("descriptor"), 3, "descriptor")?;
     let provider = closed_object(root.get("provider"), 3, "provider")?;
     let limits = closed_object(root.get("limits"), 4, "limits")?;
-    if expected.descriptor_digest
-        != domain_digest(PUBLIC_DESCRIPTOR_DIGEST_DOMAIN, expected.descriptor)
-    {
+    if expected.descriptor_digest != public_descriptor_digest(expected.descriptor) {
         return Err(error("owned-data SDK descriptor digest fact disagrees"));
     }
     let expected_names = [
@@ -210,6 +209,17 @@ pub(super) fn verify_manifest(
     Ok(())
 }
 
+fn public_descriptor_digest(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(PUBLIC_DESCRIPTOR_DIGEST_DOMAIN);
+    hasher.update((bytes.len() as u64).to_le_bytes());
+    hasher.update(bytes);
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hasher.finalize())
+    )
+}
+
 fn string_set_exact(values: &[Value], expected: &[&str]) -> bool {
     values.len() == expected.len()
         && expected.iter().all(|expected| {
@@ -251,7 +261,7 @@ mod tests {
             ("libsemaprax_native_rust_owned_data_sdk.a", b"archive"),
             ("descriptor.json", descriptor),
         ];
-        let descriptor_digest = domain_digest(PUBLIC_DESCRIPTOR_DIGEST_DOMAIN, descriptor);
+        let descriptor_digest = public_descriptor_digest(descriptor);
         let facts = ManifestFacts {
             target: "aarch64-apple-darwin",
             descriptor,
@@ -267,6 +277,13 @@ mod tests {
             facts.files,
         );
         verify_manifest(manifest.as_bytes(), &facts).unwrap();
+
+        let missing_length_digest = domain_digest(PUBLIC_DESCRIPTOR_DIGEST_DOMAIN, descriptor);
+        let wrong_digest_facts = ManifestFacts {
+            descriptor_digest: &missing_length_digest,
+            ..facts
+        };
+        assert!(verify_manifest(manifest.as_bytes(), &wrong_digest_facts).is_err());
 
         let original: Value = serde_json::from_str(&manifest).unwrap();
         let mut mutations = Vec::new();

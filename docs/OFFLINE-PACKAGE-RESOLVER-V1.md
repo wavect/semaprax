@@ -40,6 +40,12 @@ generate(&ResolutionInput, &ResolutionOptions)
     -> Result<String, Vec<Diagnostic>>
 verify(&str, &ResolutionInput, &ResolutionOptions)
     -> Result<VerifiedResolution, Diagnostic>
+
+Public constants:
+SCHEMA, MAX_REQUIREMENTS, MAX_SUBJECTS, MAX_VERSIONS_PER_PACKAGE,
+MAX_SELECTED_PACKAGES, MAX_ALLOWED_CAPABILITIES, MAX_SUBJECT_BYTES,
+MAX_TOTAL_SUBJECT_BYTES, MAX_EDGES, MAX_DEPTH, MAX_DECISIONS,
+MAX_WORK_UNITS, MAX_JSON_DEPTH, MAX_RENDER_BYTES, MAX_OUTPUT_BYTES
 ```
 
 `ResolutionOptions::new` accepts 4,096 through 16,777,216 bytes inclusive.
@@ -279,8 +285,9 @@ resolver and final Lock-v2 structural/confusion/cycle failures map to `PR503`;
 all resolver or nested bounds failures map to `PR505`; malformed outer evidence
 maps to `PR506`; and a final or verification-time exact replay mismatch maps to
 `PR507`. The original nested message is not copied into the public diagnostic.
-CLI current-directory, no-follow open, metadata, read, and file-identity
-failures use the existing stable host-I/O diagnostic `SPX-I215`; CLI declared
+CLI current-directory, no-follow open, metadata, read, file-identity, and
+stdout write/flush failures use the existing stable host-I/O diagnostic
+`SPX-I215`; CLI declared
 or actual byte-bound failures use `SPX-PR505`, and invalid UTF-8 uses
 `SPX-PR501`.
 

@@ -230,6 +230,70 @@ impl ProjectRevision {
         .map_err(|error| vec![error])
     }
 
+    /// Derive and independently replay the canonical Project v9 flat
+    /// owned-record descriptor from this immutable retained subject.
+    pub fn flat_owned_record_api_descriptor(
+        &self,
+    ) -> Result<super::FlatOwnedRecordApiDescriptor, Vec<Diagnostic>> {
+        if self.manifest.project_profile() != ProjectProfile::FlatOwnedRecordApiV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-J113",
+                "public flat owned-record API description requires Project v9 flat-owned-record-api.v1",
+            )]);
+        }
+        let subject = super::PublicApiSubject {
+            project_schema: self.manifest.schema(),
+            project_revision: &self.project_revision,
+            workspace_revision: &self.workspace_revision,
+            project_graph_digest: self.semantic.graph_digest(),
+        };
+        let descriptor = super::derive_flat_owned_record_api_descriptor(
+            &self.entry_program,
+            self.manifest.web_exports(),
+            subject,
+        )
+        .map_err(|error| vec![error])?;
+        super::replay_flat_owned_record_api_descriptor(
+            &self.entry_program,
+            self.manifest.web_exports(),
+            subject,
+            &descriptor.canonical_bytes(),
+            &descriptor.digest(),
+        )
+        .map_err(|error| vec![error])
+    }
+
+    /// Derive and independently replay the canonical Project v10 owned UTF-8
+    /// descriptor from this immutable retained subject.
+    pub fn owned_utf8_api_descriptor(&self) -> Result<super::PublicApiDescriptor, Vec<Diagnostic>> {
+        if self.manifest.project_profile() != ProjectProfile::OwnedUtf8ApiV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-J105",
+                "public owned UTF-8 API description requires Project v10 owned-utf8-api.v1",
+            )]);
+        }
+        let subject = super::PublicApiSubject {
+            project_schema: self.manifest.schema(),
+            project_revision: &self.project_revision,
+            workspace_revision: &self.workspace_revision,
+            project_graph_digest: self.semantic.graph_digest(),
+        };
+        let descriptor = super::derive_public_api_descriptor(
+            &self.entry_program,
+            self.manifest.web_exports(),
+            subject,
+        )
+        .map_err(|error| vec![error])?;
+        super::replay_public_api_descriptor(
+            &self.entry_program,
+            self.manifest.web_exports(),
+            subject,
+            &descriptor.canonical_bytes(),
+            &descriptor.digest(),
+        )
+        .map_err(|error| vec![error])
+    }
+
     /// Emit the sole retained test-module closure as legacy core Wasm.
     pub fn test_wasm_module(&self) -> Result<Vec<u8>, Vec<Diagnostic>> {
         crate::wasm::emit_resolved_module(&self.test_program).map_err(|error| vec![error])

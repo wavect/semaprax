@@ -233,23 +233,37 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                         if let Some(parent) = &mut output_parent {
                             parent.retain().map_err(|error| vec![error])?;
                         }
-                        Ok((output, snapshot.manifest().is_v10()))
+                        Ok((output, snapshot.manifest().project_profile()))
                     })
                     .map_err(|errors| report(&errors, false))?;
                     if matches!(options.target.as_str(), "native") {
                         println!("built project native executable {}", output.0.display());
                     } else if matches!(options.target.as_str(), "rust") {
-                        let version = if output.1 { "v10" } else { "v8" };
-                        println!(
-                            "built Project {} Native Rust owned-data package {}",
-                            version,
-                            output.0.display()
-                        );
+                        match output.1 {
+                            project::ProjectProfile::FlatOwnedRecordApiV1 => println!(
+                                "built Project v9 Native Rust flat owned-record package {}",
+                                output.0.display()
+                            ),
+                            project::ProjectProfile::OwnedUtf8ApiV1 => println!(
+                                "built Project v10 Native Rust owned-data package {}",
+                                output.0.display()
+                            ),
+                            _ => println!(
+                                "built Project v8 Native Rust owned-data package {}",
+                                output.0.display()
+                            ),
+                        }
                     } else if matches!(options.target.as_str(), "npm") {
-                        if output.1 {
-                            println!("built Project v10 npm package {}", output.0.display());
-                        } else {
-                            println!("built Project v2 npm package {}", output.0.display());
+                        match output.1 {
+                            project::ProjectProfile::FlatOwnedRecordApiV1 => {
+                                println!("built Project v9 npm package {}", output.0.display());
+                            }
+                            project::ProjectProfile::OwnedUtf8ApiV1 => {
+                                println!("built Project v10 npm package {}", output.0.display());
+                            }
+                            _ => {
+                                println!("built Project v2 npm package {}", output.0.display());
+                            }
                         }
                     } else {
                         println!("built project web package {}", output.0.display());

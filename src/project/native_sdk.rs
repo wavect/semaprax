@@ -13,6 +13,9 @@ use super::{ProjectSnapshot, ProjectSource, AUTHENTICATED_PROJECT_SUBJECT_OPERAT
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 const RUST_OWNED_DATA_PUBLICATION_SUBJECT: &str = "Project v8 Native Rust owned-data package";
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+const RUST_FLAT_OWNED_RECORD_PUBLICATION_SUBJECT: &str =
+    "Project v9 Native Rust flat owned-record package";
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 const RUST_OWNED_UTF8_PUBLICATION_SUBJECT: &str = "Project v10 Native Rust owned-UTF8 package";
 
 /// Invocation-borrowed, target-neutral subject for the standalone owned-data
@@ -180,9 +183,9 @@ impl<'a> ProjectNativeSdkSubject<'a> {
 }
 
 impl ProjectSnapshot {
-    /// Build the exact Project-v8 selected closure as a safe owned-data Rust
-    /// package. Descriptor and semantic-recipe replay are completed before the
-    /// lower held-tool/publication layer receives any bytes.
+    /// Build the exact profile-selected Project-v8/v9/v10 closure as a safe
+    /// Rust package. Descriptor and semantic-recipe replay are completed
+    /// before the lower held-tool/publication layer receives any bytes.
     #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
     pub fn build_rust(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
         if self.manifest().is_v9() {
@@ -380,7 +383,7 @@ impl ProjectSnapshot {
         );
         semaprax_native_rust_owned_data_package::build_flat_record_and_publish(plan, output)
             .map_err(|failure| vec![lower_flat_record_build_error(failure)])?;
-        self.published_subject = Some(RUST_OWNED_DATA_PUBLICATION_SUBJECT);
+        self.published_subject = Some(RUST_FLAT_OWNED_RECORD_PUBLICATION_SUBJECT);
         self.recheck()
             .map_err(|drift| self.publication_uncertainty(drift))
     }

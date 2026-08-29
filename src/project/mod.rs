@@ -277,6 +277,20 @@ impl ProjectSnapshot {
         self.revision.public_api_descriptor()
     }
 
+    /// Derive and replay the exact Project v9 flat owned-record descriptor
+    /// without granting target or publication authority.
+    pub fn flat_owned_record_api_descriptor(
+        &self,
+    ) -> Result<FlatOwnedRecordApiDescriptor, Vec<Diagnostic>> {
+        self.revision.flat_owned_record_api_descriptor()
+    }
+
+    /// Derive and replay the exact Project v10 owned UTF-8 descriptor without
+    /// granting target or publication authority.
+    pub fn owned_utf8_api_descriptor(&self) -> Result<PublicApiDescriptor, Vec<Diagnostic>> {
+        self.revision.owned_utf8_api_descriptor()
+    }
+
     pub fn test_wasm_module(&self) -> Result<Vec<u8>, Vec<Diagnostic>> {
         self.revision.test_wasm_module()
     }

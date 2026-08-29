@@ -1040,6 +1040,9 @@ impl WorkspaceGraphBuild {
         entry_module: &str,
         profile: crate::project::ProjectProfile,
     ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        if profile == crate::project::ProjectProfile::OwnedDataApiV1 {
+            return self.linked_owned_data_api_program_with_roots(entry_module, &[]);
+        }
         validate_entry_module(entry_module)?;
         let Some(entry_path) = self.hir.module_paths.get(entry_module).cloned() else {
             return Err(vec![graph_error(
@@ -1120,12 +1123,12 @@ impl WorkspaceGraphBuild {
                             crate::command_io_ops::STDIN_READ_EFFECT,
                             crate::host_io_ops::STDOUT_WRITE_EFFECT,
                         ]);
-            if !permits_admitted
-                || !module.types.is_empty()
-                || !module.interfaces.is_empty()
-                || !module.function_templates.is_empty()
-                || !module.function_instances.is_empty()
-            {
+            let project_shape_admitted = profile == crate::project::ProjectProfile::OwnedDataApiV1
+                || (module.types.is_empty()
+                    && module.interfaces.is_empty()
+                    && module.function_templates.is_empty()
+                    && module.function_instances.is_empty());
+            if !permits_admitted || !project_shape_admitted {
                 return Err(vec![graph_error(
                     "SPX-G172",
                     format!(
@@ -1237,6 +1240,9 @@ impl WorkspaceGraphBuild {
             crate::project::ProjectProfile::LineCommandIoV1 => {
                 hir::link_useful_data_workspace(entry_module.to_owned(), entrypoint, functions)
             }
+            crate::project::ProjectProfile::OwnedDataApiV1 => {
+                unreachable!("Project v8 uses the exact function-reachable linker")
+            }
         }
         .map_err(|error| vec![error])
     }
@@ -1252,6 +1258,9 @@ impl WorkspaceGraphBuild {
         additional_roots: &[String],
         profile: crate::project::ProjectProfile,
     ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        if profile == crate::project::ProjectProfile::OwnedDataApiV1 {
+            return self.linked_owned_data_api_program_with_roots(entry_module, additional_roots);
+        }
         let base = self.linked_project_program(entry_module, profile)?;
         if additional_roots.is_empty() {
             return Ok(base);
@@ -1382,7 +1391,354 @@ impl WorkspaceGraphBuild {
                     functions,
                 )
             }
+            crate::project::ProjectProfile::OwnedDataApiV1 => {
+                unreachable!("Project v8 uses the exact function-reachable linker")
+            }
         }
+        .map_err(|error| vec![error])
+    }
+
+    /// Link exactly the union of the Project-v8 entry closure and selected
+    /// public roots. Older Project profiles deliberately retain their frozen
+    /// module-oriented behavior; v8's owned-data runtime must be absent for
+    /// every unrelated function, including one in an otherwise reachable
+    /// module.
+    fn linked_owned_data_api_program_with_roots(
+        &self,
+        entry_module: &str,
+        additional_roots: &[String],
+    ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        validate_entry_module(entry_module)?;
+        let mut available = BTreeMap::<hir::DeclarationId, hir::LinkedScalarFunction>::new();
+        let mut entrypoints = Vec::new();
+        for module in &self.hir.modules {
+            for function in &module.functions {
+                let Some(fact) = self.hir.declarations.get(function.id.as_str()) else {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "workspace owned-data function is absent from declaration facts",
+                    )]);
+                };
+                if fact.kind != hir::DeclarationKind::Function
+                    || fact.path.as_deref() != Some(module.path.as_str())
+                    || fact.module.as_deref() != Some(module.module.as_str())
+                {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "workspace owned-data function facts disagree with its retained body",
+                    )]);
+                }
+                if module.module == entry_module && function.name == "main" {
+                    if !function.params.is_empty() || function.return_type != hir::ResolvedType::I64
+                    {
+                        return Err(vec![graph_error(
+                            "SPX-G172",
+                            "workspace owned-data entry must have the exact signature fn main() -> i64",
+                        )]);
+                    }
+                    entrypoints.push((function.id.clone(), fact.origin));
+                }
+                if available
+                    .insert(
+                        function.id.clone(),
+                        hir::LinkedScalarFunction {
+                            function: function.clone(),
+                            origin: fact.origin,
+                        },
+                    )
+                    .is_some()
+                {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "workspace owned-data function identity is duplicated",
+                    )]);
+                }
+            }
+        }
+        let [(entrypoint, hir::IdentityOrigin::Explicit)] = entrypoints.as_slice() else {
+            return Err(vec![graph_error(
+                "SPX-G172",
+                "workspace owned-data entry module must declare exactly one explicit authored `main` function",
+            )]);
+        };
+        let entrypoint = entrypoint.clone();
+        let mut pending = BTreeSet::from([entrypoint.clone()]);
+        pending.extend(
+            additional_roots
+                .iter()
+                .map(|root| hir::DeclarationId::new(root.clone())),
+        );
+        let mut retained = BTreeSet::new();
+        while let Some(function_id) = pending.pop_first() {
+            let Some(linked) = available.get(&function_id) else {
+                return Err(vec![Diagnostic::io(
+                    "SPX-W115",
+                    format!(
+                        "selected Project Web export identity `{function_id}` does not name an authenticated function"
+                    ),
+                )]);
+            };
+            if !retained.insert(function_id.clone()) {
+                continue;
+            }
+            if retained.len() > crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
+                return Err(vec![graph_error(
+                    "SPX-G172",
+                    format!(
+                        "workspace owned-data linked inventory exceeds {} functions",
+                        crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS
+                    ),
+                )]);
+            }
+            for callee in resolved_function_callees(&linked.function) {
+                if available.contains_key(&callee) {
+                    if !retained.contains(&callee) {
+                        pending.insert(callee);
+                    }
+                } else if crate::string_ops::by_id(callee.as_str()).is_none()
+                    && crate::str_ops::by_id(callee.as_str()).is_none()
+                    && crate::byte_ops::by_id(callee.as_str()).is_none()
+                    && crate::host_io_ops::by_id(callee.as_str()).is_none()
+                    && crate::command_io_ops::by_id(callee.as_str()).is_none()
+                {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        format!("owned-data closure calls unauthenticated function `{callee}`"),
+                    )]);
+                }
+            }
+        }
+        let functions = retained
+            .into_iter()
+            .map(|id| {
+                available
+                    .get(&id)
+                    .map(|linked| hir::LinkedScalarFunction {
+                        function: linked.function.clone(),
+                        origin: linked.origin,
+                    })
+                    .ok_or_else(|| {
+                        vec![graph_error(
+                            "SPX-G173",
+                            "owned-data closure names an unauthenticated function",
+                        )]
+                    })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let referenced_imports = functions
+            .iter()
+            .flat_map(|linked| resolved_function_imports(&linked.function))
+            .collect::<BTreeSet<_>>();
+        let mut imports =
+            BTreeMap::<hir::DeclarationId, (&hir::ResolvedInterface, &hir::ResolvedImport)>::new();
+        for module in &self.hir.modules {
+            for interface in &module.interfaces {
+                for import in &interface.imports {
+                    if import.interface != interface.id
+                        || imports
+                            .insert(import.id.clone(), (interface, import))
+                            .is_some()
+                    {
+                        return Err(vec![graph_error(
+                            "SPX-G173",
+                            "workspace owned-data import inventory is ambiguous",
+                        )]);
+                    }
+                }
+            }
+        }
+        let mut selected_imports =
+            BTreeMap::<hir::DeclarationId, BTreeSet<hir::DeclarationId>>::new();
+        for import_id in referenced_imports {
+            let Some((interface, _)) = imports.get(&import_id) else {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    format!("owned-data closure references unknown import `{import_id}`"),
+                )]);
+            };
+            selected_imports
+                .entry(interface.id.clone())
+                .or_default()
+                .insert(import_id);
+        }
+        let interfaces = selected_imports
+            .into_iter()
+            .map(|(interface_id, selected)| {
+                let interface = imports
+                    .values()
+                    .find_map(|(interface, _)| (interface.id == interface_id).then_some(*interface))
+                    .ok_or_else(|| {
+                        vec![graph_error(
+                            "SPX-G173",
+                            "owned-data interface selection lost its authenticated owner",
+                        )]
+                    })?;
+                let mut interface = interface.clone();
+                interface
+                    .imports
+                    .retain(|import| selected.contains(&import.id));
+                Ok(interface)
+            })
+            .collect::<Result<Vec<_>, Vec<Diagnostic>>>()?;
+
+        let mut available_types = BTreeMap::new();
+        for module in &self.hir.modules {
+            for declaration in &module.types {
+                if available_types
+                    .insert(declaration.id.clone(), declaration.clone())
+                    .is_some()
+                {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "workspace owned-data type identity is duplicated",
+                    )]);
+                }
+            }
+        }
+        let types = hir::reachable_authored_types(&functions, &interfaces, &available_types)
+            .map_err(|error| vec![error])?;
+
+        fn retain_fact(
+            authenticated: &BTreeMap<String, WorkspaceDeclarationFact>,
+            selected: &mut BTreeMap<hir::DeclarationId, hir::LinkedDeclarationFact>,
+            id: &hir::DeclarationId,
+            kind: hir::DeclarationKind,
+            owner: Option<&hir::DeclarationId>,
+        ) -> Result<(), Vec<Diagnostic>> {
+            let Some(fact) = authenticated.get(id.as_str()) else {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    format!("owned-data declaration `{id}` has no Phase-A fact"),
+                )]);
+            };
+            if fact.kind != kind || fact.owner.as_deref() != owner.map(hir::DeclarationId::as_str) {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    format!("owned-data declaration `{id}` disagrees with its Phase-A fact"),
+                )]);
+            }
+            if selected
+                .insert(
+                    id.clone(),
+                    hir::LinkedDeclarationFact {
+                        kind: fact.kind,
+                        origin: fact.origin,
+                        owner: owner.cloned(),
+                    },
+                )
+                .is_some()
+            {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    format!("owned-data declaration `{id}` is selected more than once"),
+                )]);
+            }
+            Ok(())
+        }
+
+        let mut declaration_facts = BTreeMap::new();
+        for linked in &functions {
+            retain_fact(
+                &self.hir.declarations,
+                &mut declaration_facts,
+                &linked.function.id,
+                hir::DeclarationKind::Function,
+                None,
+            )?;
+        }
+        for declaration in &types {
+            let kind = match &declaration.kind {
+                hir::ResolvedTypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
+                hir::ResolvedTypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
+                hir::ResolvedTypeDeclarationKind::Class { .. }
+                | hir::ResolvedTypeDeclarationKind::Resource { .. } => {
+                    return Err(vec![graph_error(
+                        "SPX-G172",
+                        "owned-data type projection escaped the record/variant profile",
+                    )]);
+                }
+            };
+            retain_fact(
+                &self.hir.declarations,
+                &mut declaration_facts,
+                &declaration.id,
+                kind,
+                None,
+            )?;
+            match &declaration.kind {
+                hir::ResolvedTypeDeclarationKind::Record { fields } => {
+                    for field in fields {
+                        retain_fact(
+                            &self.hir.declarations,
+                            &mut declaration_facts,
+                            &field.id,
+                            hir::DeclarationKind::Field,
+                            Some(&declaration.id),
+                        )?;
+                    }
+                }
+                hir::ResolvedTypeDeclarationKind::Variant { cases } => {
+                    for case in cases {
+                        retain_fact(
+                            &self.hir.declarations,
+                            &mut declaration_facts,
+                            &case.id,
+                            hir::DeclarationKind::VariantCase,
+                            Some(&declaration.id),
+                        )?;
+                        for field in &case.fields {
+                            retain_fact(
+                                &self.hir.declarations,
+                                &mut declaration_facts,
+                                &field.id,
+                                hir::DeclarationKind::CaseField,
+                                Some(&case.id),
+                            )?;
+                        }
+                    }
+                }
+                hir::ResolvedTypeDeclarationKind::Class { .. }
+                | hir::ResolvedTypeDeclarationKind::Resource { .. } => {
+                    unreachable!("rejected above")
+                }
+            }
+        }
+        for interface in &interfaces {
+            retain_fact(
+                &self.hir.declarations,
+                &mut declaration_facts,
+                &interface.id,
+                hir::DeclarationKind::Interface,
+                None,
+            )?;
+            for import in &interface.imports {
+                retain_fact(
+                    &self.hir.declarations,
+                    &mut declaration_facts,
+                    &import.id,
+                    hir::DeclarationKind::Import,
+                    Some(&interface.id),
+                )?;
+            }
+        }
+        let permits = functions
+            .iter()
+            .flat_map(|linked| linked.function.effects.iter().cloned())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        hir::link_owned_data_api_workspace(
+            entry_module.to_owned(),
+            entrypoint,
+            functions,
+            hir::LinkedOwnedDataParts {
+                permits,
+                types,
+                interfaces,
+                declaration_facts,
+            },
+        )
         .map_err(|error| vec![error])
     }
 
@@ -1602,12 +1958,12 @@ impl WorkspaceGraphBuild {
                             crate::command_io_ops::STDIN_READ_EFFECT,
                             crate::host_io_ops::STDOUT_WRITE_EFFECT,
                         ]);
-            if !permits_admitted
-                || !module.types.is_empty()
-                || !module.interfaces.is_empty()
-                || !module.function_templates.is_empty()
-                || !module.function_instances.is_empty()
-            {
+            let project_shape_admitted = profile == crate::project::ProjectProfile::OwnedDataApiV1
+                || (module.types.is_empty()
+                    && module.interfaces.is_empty()
+                    && module.function_templates.is_empty()
+                    && module.function_instances.is_empty());
+            if !permits_admitted || !project_shape_admitted {
                 return Err(vec![graph_error(
                     "SPX-G172",
                     format!(
@@ -1626,6 +1982,14 @@ impl WorkspaceGraphBuild {
                     "SPX-G172",
                     "workspace scalar provider modules may not declare `main`",
                 )]);
+            }
+            // Project v8 target admission is reachability-gated. Irrelevant
+            // verified functions receive no runtime or target authority and
+            // therefore cannot broaden or spuriously reject the exact union
+            // linked below. The retained closure is independently checked by
+            // the owned-data linker and canonical descriptor.
+            if profile == crate::project::ProjectProfile::OwnedDataApiV1 {
+                continue;
             }
             for function in &module.functions {
                 let admitted_parameter = |parameter: &hir::ResolvedParam| match profile {
@@ -1647,7 +2011,8 @@ impl WorkspaceGraphBuild {
                     | crate::project::ProjectProfile::UsefulDataCommandV1
                     | crate::project::ProjectProfile::UsefulDataCommandV2
                     | crate::project::ProjectProfile::LanguageCommandIoV1
-                    | crate::project::ProjectProfile::LineCommandIoV1 => {
+                    | crate::project::ProjectProfile::LineCommandIoV1
+                    | crate::project::ProjectProfile::OwnedDataApiV1 => {
                         hir::useful_data_workspace_parameter_admitted(
                             &parameter.ty,
                             parameter.ownership,
@@ -1666,6 +2031,9 @@ impl WorkspaceGraphBuild {
                     | crate::project::ProjectProfile::LanguageCommandIoV1
                     | crate::project::ProjectProfile::LineCommandIoV1 => {
                         hir::useful_data_workspace_return_admitted(&function.return_type)
+                    }
+                    crate::project::ProjectProfile::OwnedDataApiV1 => {
+                        hir::owned_data_api_workspace_return_admitted(&function.return_type)
                     }
                 };
                 let effects_admitted = function.effects.is_empty()
@@ -1712,6 +2080,9 @@ impl WorkspaceGraphBuild {
                         crate::project::ProjectProfile::LineCommandIoV1 => {
                             "Line Command I/O v1 linker"
                         }
+                        crate::project::ProjectProfile::OwnedDataApiV1 => {
+                            "Owned Data API v1 linker"
+                        }
                     };
                     return Err(vec![graph_error(
                         "SPX-G172",
@@ -1723,7 +2094,9 @@ impl WorkspaceGraphBuild {
                 }
             }
         }
-        if self.edges.iter().any(|edge| edge.kind == "type_import") {
+        if profile != crate::project::ProjectProfile::OwnedDataApiV1
+            && self.edges.iter().any(|edge| edge.kind == "type_import")
+        {
             return Err(vec![graph_error(
                 "SPX-G172",
                 "workspace scalar linker does not admit `use type` imports",
@@ -1996,6 +2369,109 @@ fn resolved_function_callees(function: &hir::ResolvedFunction) -> BTreeSet<hir::
         visit(postcondition, &mut callees);
     }
     callees
+}
+
+fn resolved_function_imports(function: &hir::ResolvedFunction) -> BTreeSet<hir::DeclarationId> {
+    fn visit(expression: &hir::ResolvedExpr, imports: &mut BTreeSet<hir::DeclarationId>) {
+        match &expression.kind {
+            hir::ResolvedExprKind::NativeRustImportCall(call) => {
+                imports.insert(call.import.clone());
+                for argument in &call.args {
+                    visit(argument, imports);
+                }
+            }
+            hir::ResolvedExprKind::ByteRange {
+                source, start, end, ..
+            } => {
+                visit(source, imports);
+                visit(start, imports);
+                visit(end, imports);
+            }
+            hir::ResolvedExprKind::Call { args, .. }
+            | hir::ResolvedExprKind::HostCommandCall(hir::ResolvedHostCommandCall {
+                args, ..
+            }) => {
+                for argument in args {
+                    visit(argument, imports);
+                }
+            }
+            hir::ResolvedExprKind::Unary { value, .. }
+            | hir::ResolvedExprKind::Try { operand: value, .. }
+            | hir::ResolvedExprKind::TryOption { operand: value, .. }
+            | hir::ResolvedExprKind::Project { base: value, .. }
+            | hir::ResolvedExprKind::Upcast { source: value } => visit(value, imports),
+            hir::ResolvedExprKind::Binary { left, right, .. } => {
+                visit(left, imports);
+                visit(right, imports);
+            }
+            hir::ResolvedExprKind::Block { statements, tail } => {
+                for statement in statements {
+                    for index in 0..statement.child_count() {
+                        if let Some(child) = statement.child(index) {
+                            visit(child, imports);
+                        }
+                    }
+                }
+                visit(tail, imports);
+            }
+            hir::ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                visit(condition, imports);
+                visit(then_branch, imports);
+                visit(else_branch, imports);
+            }
+            hir::ResolvedExprKind::ConstructRecord { fields, .. }
+            | hir::ResolvedExprKind::ConstructVariant { fields, .. } => {
+                for field in fields {
+                    visit(&field.value, imports);
+                }
+            }
+            hir::ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
+                visit(scrutinee, imports);
+                for arm in arms {
+                    if let Some(guard) = &arm.guard {
+                        visit(guard, imports);
+                    }
+                    visit(&arm.value, imports);
+                }
+            }
+            hir::ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                visit(base, imports);
+                for field in fields {
+                    visit(&field.value, imports);
+                }
+            }
+            hir::ResolvedExprKind::Int(_)
+            | hir::ResolvedExprKind::Int32(_)
+            | hir::ResolvedExprKind::Char(_)
+            | hir::ResolvedExprKind::Uint8(_)
+            | hir::ResolvedExprKind::Usize(_)
+            | hir::ResolvedExprKind::Float32(_)
+            | hir::ResolvedExprKind::Float64(_)
+            | hir::ResolvedExprKind::Bool(_)
+            | hir::ResolvedExprKind::String(_)
+            | hir::ResolvedExprKind::ArrayU8(_)
+            | hir::ResolvedExprKind::RepeatArrayU8 { .. }
+            | hir::ResolvedExprKind::BorrowPlace { .. }
+            | hir::ResolvedExprKind::Place(_) => {}
+        }
+    }
+
+    let mut imports = BTreeSet::new();
+    for expression in function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+    {
+        visit(expression, &mut imports);
+    }
+    imports
 }
 
 impl WorkspaceGraphChangeView {
@@ -5782,6 +6258,117 @@ fn unselected(value: i64) -> i64 { value + 100 }
         assert!(error[0]
             .message
             .contains("does not name an authenticated function"));
+    }
+
+    #[test]
+    fn owned_data_roots_retain_exact_private_aggregate_closure_and_authenticated_members() {
+        let app = canonical_source(
+            "app/main.spx",
+            r#"
+module app.main;
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#,
+        );
+        let test = canonical_source(
+            "test/main.spx",
+            r#"
+module test.main;
+
+@id("test.main")
+fn main() -> i64 { 0 }
+"#,
+        );
+        let exports = canonical_source(
+            "lib/exports.spx",
+            r#"
+module lib.exports;
+
+@id("lib.payload")
+record Payload {
+    @id("lib.payload.value") value: i64,
+}
+
+@id("lib.choice")
+variant Choice {
+    @id("lib.choice.ready") Ready {
+        @id("lib.choice.ready.payload") payload: Payload,
+    },
+    @id("lib.choice.empty") Empty,
+}
+
+@id("lib.unused")
+record Unused {
+    @id("lib.unused.value") value: bool,
+}
+
+@id("lib.helper")
+fn helper(value: i64) -> i64 {
+    let choice = Choice::Ready { payload: Payload { value } };
+    match choice {
+        Choice::Ready { payload: Payload { value } } => value,
+        Choice::Empty {} => 0,
+    }
+}
+
+@id("lib.selected")
+fn selected(value: i64) -> i64 { helper(value) }
+
+@id("lib.unselected")
+fn unselected(value: i64) -> i64 {
+    let ignored = Unused { value: true };
+    value
+}
+"#,
+        );
+        let build = build_owned(vec![app, test, exports]).unwrap();
+        let linked = build
+            .linked_scalar_program_with_roots(
+                "app.main",
+                &["lib.selected".to_owned()],
+                crate::project::ProjectProfile::OwnedDataApiV1,
+            )
+            .unwrap();
+        let functions = linked
+            .functions
+            .iter()
+            .map(|function| function.id.as_str())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            functions,
+            BTreeSet::from(["app.main", "lib.helper", "lib.selected"])
+        );
+        let authored_types = linked
+            .types
+            .iter()
+            .map(|declaration| declaration.id.as_str())
+            .filter(|id| !crate::prelude::is_compiler_owned_id(id))
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            authored_types,
+            BTreeSet::from(["lib.choice", "lib.payload"])
+        );
+        assert!(linked
+            .declarations
+            .declaration(&hir::DeclarationId::new("lib.choice.ready.payload"))
+            .is_some());
+        assert!(linked
+            .declarations
+            .declaration(&hir::DeclarationId::new("lib.unused"))
+            .is_none());
+
+        let mut hostile = build;
+        hostile.hir.declarations.remove("lib.choice.ready.payload");
+        let error = hostile
+            .linked_scalar_program_with_roots(
+                "app.main",
+                &["lib.selected".to_owned()],
+                crate::project::ProjectProfile::OwnedDataApiV1,
+            )
+            .unwrap_err();
+        assert_eq!(error[0].code, "SPX-G173");
+        assert!(error[0].message.contains("has no Phase-A fact"));
     }
 
     #[test]

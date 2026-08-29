@@ -40,7 +40,7 @@ pub use manifest::{
     ProjectManifest, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES,
     MAX_SOURCES, MAX_STABLE_ID_BYTES, MAX_TOTAL_SOURCE_BYTES, MAX_VERSION_BYTES, MAX_WEB_EXPORTS,
     PROJECT_SCHEMA, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5,
-    PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7,
+    PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8,
 };
 pub use native_sdk::{
     with_native_owned_data_sdk_subject, ProjectNativeSdkExport, ProjectNativeSdkSubject,
@@ -68,9 +68,9 @@ pub use profile::{
     PROJECT_COMMAND_INPUT_V1, PROJECT_COMMAND_STDERR_WRITE_CAPABILITY,
     PROJECT_COMMAND_STDIN_READ_CAPABILITY, PROJECT_COMMAND_STDOUT_CAPABILITY,
     PROJECT_LANGUAGE_COMMAND_INPUT_V1, PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1,
-    PROJECT_PROFILE_LINE_COMMAND_IO_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
-    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
-    PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
+    PROJECT_PROFILE_LINE_COMMAND_IO_V1, PROJECT_PROFILE_OWNED_DATA_API_V1,
+    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2,
+    PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
 };
 pub use public_api::{
     derive_public_api_descriptor, replay_public_api_descriptor, PublicApiDescriptor,
@@ -348,6 +348,12 @@ impl ProjectSnapshot {
     /// destination must not exist, so publication never clobbers a file the
     /// caller did not create for this exact operation.
     pub fn build_native(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
+        if self.manifest.project_profile() == ProjectProfile::OwnedDataApiV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-I308",
+                "Project v8 owned-data-api.v1 does not admit native executable publication",
+            )]);
+        }
         match std::fs::symlink_metadata(output) {
             Ok(_) => {
                 return Err(vec![Diagnostic::io(

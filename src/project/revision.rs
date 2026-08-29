@@ -151,9 +151,13 @@ impl ProjectRevision {
                 "v4"
             } else if self.manifest.is_v5() {
                 "v5"
-            } else {
-                debug_assert!(self.manifest.is_v6());
+            } else if self.manifest.is_v6() {
                 "v6"
+            } else if self.manifest.is_v7() {
+                "v7"
+            } else {
+                debug_assert!(self.manifest.is_v8());
+                "v8"
             };
             return Err(vec![Diagnostic::io(
                 "SPX-W120",

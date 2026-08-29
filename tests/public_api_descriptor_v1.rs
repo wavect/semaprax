@@ -379,9 +379,12 @@ fn exact_and_over_limit_closures_are_distinguished() {
         (resolve(&source), vec!["closure.000".to_owned()])
     }
 
-    let (exact, selected) = chain(MAX_PUBLIC_API_CLOSURE_FUNCTIONS);
+    // The linked executable inventory includes the mandatory unselected main
+    // function. Therefore 255 selected closure functions + main is the exact
+    // 256-function Project-v8 inventory boundary.
+    let (exact, selected) = chain(MAX_PUBLIC_API_CLOSURE_FUNCTIONS - 1);
     assert!(derive_public_api_descriptor(&exact, &selected, subject()).is_ok());
-    let (over, selected) = chain(MAX_PUBLIC_API_CLOSURE_FUNCTIONS + 1);
+    let (over, selected) = chain(MAX_PUBLIC_API_CLOSURE_FUNCTIONS);
     assert!(derive_public_api_descriptor(&over, &selected, subject()).is_err());
 }
 

@@ -72,6 +72,7 @@ fn view() -> usize uses { process.args.read } {
 }
 
 mod inspection;
+mod type_reachability;
 mod validation;
 mod workspace_link;
 
@@ -89,13 +90,16 @@ pub(crate) use inspection::{
     validate_attached_identity_references, workspace_call_sites, workspace_expression_identity,
 };
 
+pub(crate) use type_reachability::reachable_authored_types;
 pub(crate) use validation::validate_core;
 #[cfg(test)]
 use validation::HirValidator;
 pub(crate) use workspace_link::{
-    link_language_command_io_workspace, link_line_command_io_workspace, link_scalar_workspace,
-    link_useful_data_command_workspace, link_useful_data_workspace, link_useful_text_workspace,
-    useful_data_workspace_parameter_admitted, useful_data_workspace_return_admitted,
+    link_language_command_io_workspace, link_line_command_io_workspace,
+    link_owned_data_api_workspace, link_scalar_workspace, link_useful_data_command_workspace,
+    link_useful_data_workspace, link_useful_text_workspace,
+    owned_data_api_workspace_return_admitted, useful_data_workspace_parameter_admitted,
+    useful_data_workspace_return_admitted,
 };
 
 #[allow(dead_code, reason = "private Workspace Semantic Graph Phase-A seam")]
@@ -1884,6 +1888,23 @@ pub struct ResolvedProgram {
 pub(crate) struct LinkedScalarFunction {
     pub(crate) function: ResolvedFunction,
     pub(crate) origin: IdentityOrigin,
+}
+
+/// Phase-A-authenticated declaration identity used only while projecting one
+/// exact linked Project closure into an independently validated HIR program.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct LinkedDeclarationFact {
+    pub(crate) kind: DeclarationKind,
+    pub(crate) origin: IdentityOrigin,
+    pub(crate) owner: Option<DeclarationId>,
+}
+
+/// Exact non-function semantic inventory needed by a Project-v8 closure.
+pub(crate) struct LinkedOwnedDataParts {
+    pub(crate) permits: Vec<String>,
+    pub(crate) types: Vec<ResolvedTypeDeclaration>,
+    pub(crate) interfaces: Vec<ResolvedInterface>,
+    pub(crate) declaration_facts: BTreeMap<DeclarationId, LinkedDeclarationFact>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

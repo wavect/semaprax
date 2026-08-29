@@ -225,6 +225,13 @@ impl Session {
             return self.error(id, METHOD_NOT_FOUND, "method not found: build");
         }
         self.subject(id, params, |snapshot, mut params| {
+            if snapshot.manifest().project_profile()
+                == crate::project::ProjectProfile::OwnedDataApiV1
+            {
+                return Err(super::parameter_diagnostic(
+                    "Project v8 owned-data builds require the future Agent Transport v5 descriptor-bound methods",
+                ));
+            }
             let target = take_string(&mut params, "target")?;
             let max_bytes = take_optional_usize(&mut params, "max_bytes")?
                 .unwrap_or(DEFAULT_INLINE_BUILD_BYTES);

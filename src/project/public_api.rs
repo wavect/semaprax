@@ -241,6 +241,11 @@ pub fn derive_public_api_descriptor(
 ) -> Result<PublicApiDescriptor, Diagnostic> {
     validate_subject(subject)?;
     validate_selected(selected)?;
+    if program.functions.is_empty() || program.functions.len() > MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
+        return Err(api_error(format!(
+            "public API linked executable inventory must contain 1..={MAX_PUBLIC_API_CLOSURE_FUNCTIONS} functions"
+        )));
+    }
     let call_index = PersistentCallIndex::build(program)?;
     let functions = program
         .functions

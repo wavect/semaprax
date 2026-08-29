@@ -209,6 +209,84 @@ pub(crate) fn link_useful_data_workspace(
     )
 }
 
+/// Assemble the exact Project-v8 entry plus selected public-function closure.
+/// Public signature, effect, import, contract, and acyclicity policy remains
+/// owned by the canonical API descriptor. This route retains only the
+/// ordinary verified record/variant declarations and interfaces structurally
+/// required to validate and lower that already-selected closure.
+pub(crate) fn link_owned_data_api_workspace(
+    module: String,
+    entrypoint: DeclarationId,
+    mut linked_functions: Vec<LinkedScalarFunction>,
+    parts: LinkedOwnedDataParts,
+) -> Result<ResolvedProgram, Diagnostic> {
+    if linked_functions.is_empty() {
+        return Err(link_error("workspace owned-data closure has no functions"));
+    }
+    linked_functions.sort_by(|left, right| left.function.id.cmp(&right.function.id));
+    let mut seen = BTreeSet::new();
+    let mut entry_origin = None;
+    for linked in &linked_functions {
+        if !seen.insert(linked.function.id.clone()) {
+            return Err(link_error(format!(
+                "workspace owned-data closure duplicates function `{}`",
+                linked.function.id
+            )));
+        }
+        if linked.function.id == entrypoint {
+            entry_origin = Some(linked.origin);
+            if linked.function.name != "main"
+                || !linked.function.params.is_empty()
+                || linked.function.return_type != ResolvedType::I64
+            {
+                return Err(link_error(
+                    "workspace owned-data entry point must be an authored `fn main() -> i64`",
+                ));
+            }
+        }
+    }
+    if entry_origin != Some(IdentityOrigin::Explicit) {
+        return Err(link_error(
+            "workspace owned-data entry point must have an explicit authored identity",
+        ));
+    }
+
+    let functions = linked_functions
+        .drain(..)
+        .map(|linked| linked.function)
+        .collect::<Vec<_>>();
+    let byte_slice_roots = derive_byte_slice_provenance(&functions)?;
+    let (mut declarations, mut types) = workspace_compiler_prelude()?;
+    declarations.extend_linked_owned_data(
+        &parts.types,
+        &parts.interfaces,
+        &functions,
+        &parts.declaration_facts,
+    )?;
+    declarations.byte_slice_roots = byte_slice_roots;
+    if !declarations.populate_type_facts() {
+        return Err(link_error(
+            "workspace owned-data linker could not construct exact type facts",
+        ));
+    }
+    types.extend(parts.types);
+    let mut linked = ResolvedProgram {
+        module,
+        permits: parts.permits,
+        entrypoint,
+        declarations,
+        types,
+        interfaces: parts.interfaces,
+        function_templates: Vec::new(),
+        functions,
+        function_instances: Vec::new(),
+    };
+    analyze_byte_data_capacity(&linked)?;
+    rebuild_cleanup_metadata(&mut linked)?;
+    validate(&linked)?;
+    Ok(linked)
+}
+
 /// Assemble the additive Project v4 command closure. This keeps the Useful
 /// Data value/profile boundary intact while reconstructing exactly the one
 /// compiler-owned stdout capability authenticated by the manifest/linker.
@@ -314,8 +392,9 @@ fn link_useful_data_workspace_profile(
                 )
             }),
         };
+        let return_admitted = useful_data_workspace_return_admitted(&function.return_type);
         if !effects_admitted
-            || !useful_data_workspace_return_admitted(&function.return_type)
+            || !return_admitted
             || function.params.iter().any(|parameter| {
                 !useful_data_workspace_parameter_admitted(&parameter.ty, parameter.ownership)
             })
@@ -372,47 +451,7 @@ fn link_useful_data_workspace_profile(
     // result of `byte_get`. Rebuild the canonical prelude declaration facts
     // before inserting retained workspace functions; a default index would
     // lose the nominal type behind match/capacity validation.
-    let prelude_only = Program {
-        path: "<useful-data-workspace-linker>".to_owned(),
-        module: "compiler.prelude".to_owned(),
-        module_uses: Vec::new(),
-        permits: Vec::new(),
-        types: Vec::new(),
-        interfaces: Vec::new(),
-        protocols: Vec::new(),
-        functions: Vec::new(),
-    };
-    let mut declarations = DeclarationIndex::from_verified(&prelude_only)?;
-    let compiler_types = crate::prelude::declarations()
-        .iter()
-        .map(|declaration| {
-            let id = DeclarationId::new(declaration.stable_id.clone());
-            let TypeDeclarationKind::Variant { .. } = &declaration.kind else {
-                return Err(link_error(
-                    "workspace useful-data prelude contains an unsupported type kind",
-                ));
-            };
-            Ok(ResolvedTypeDeclaration {
-                type_parameters: declarations
-                    .type_parameters(&id)
-                    .ok_or_else(|| {
-                        link_error("workspace useful-data prelude type parameters are absent")
-                    })?
-                    .to_vec(),
-                kind: ResolvedTypeDeclarationKind::Variant {
-                    cases: declarations
-                        .variant_cases(&id)
-                        .ok_or_else(|| {
-                            link_error("workspace useful-data prelude variant cases are absent")
-                        })?
-                        .to_vec(),
-                },
-                id,
-                name: declaration.name.clone(),
-                span: declaration.span,
-            })
-        })
-        .collect::<Result<Vec<_>, Diagnostic>>()?;
+    let (mut declarations, compiler_types) = workspace_compiler_prelude()?;
     for function in &functions {
         let origin = origins
             .get(&function.id)
@@ -514,6 +553,62 @@ pub(crate) fn useful_data_workspace_return_admitted(ty: &ResolvedType) -> bool {
             | ResolvedType::ArrayU8(_)
             | ResolvedType::Bytes
     )
+}
+
+pub(crate) fn owned_data_api_workspace_return_admitted(ty: &ResolvedType) -> bool {
+    useful_data_workspace_return_admitted(ty)
+        || matches!(
+            ty,
+            ResolvedType::Nominal {
+                declaration,
+                arguments,
+            } if (declaration.as_str() == crate::prelude::OPTION_ID
+                && arguments.as_slice() == [ResolvedType::Bytes])
+                || (declaration.as_str() == crate::prelude::RESULT_ID
+                    && arguments.as_slice() == [ResolvedType::Bytes, ResolvedType::I64])
+        )
+}
+
+fn workspace_compiler_prelude(
+) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
+    let prelude_only = Program {
+        path: "<workspace-linker>".to_owned(),
+        module: "compiler.prelude".to_owned(),
+        module_uses: Vec::new(),
+        permits: Vec::new(),
+        types: Vec::new(),
+        interfaces: Vec::new(),
+        protocols: Vec::new(),
+        functions: Vec::new(),
+    };
+    let declarations = DeclarationIndex::from_verified(&prelude_only)?;
+    let compiler_types = crate::prelude::declarations()
+        .iter()
+        .map(|declaration| {
+            let id = DeclarationId::new(declaration.stable_id.clone());
+            let TypeDeclarationKind::Variant { .. } = &declaration.kind else {
+                return Err(link_error(
+                    "workspace linker prelude contains an unsupported type kind",
+                ));
+            };
+            Ok(ResolvedTypeDeclaration {
+                type_parameters: declarations
+                    .type_parameters(&id)
+                    .ok_or_else(|| link_error("workspace prelude type parameters are absent"))?
+                    .to_vec(),
+                kind: ResolvedTypeDeclarationKind::Variant {
+                    cases: declarations
+                        .variant_cases(&id)
+                        .ok_or_else(|| link_error("workspace prelude variant cases are absent"))?
+                        .to_vec(),
+                },
+                id,
+                name: declaration.name.clone(),
+                span: declaration.span,
+            })
+        })
+        .collect::<Result<Vec<_>, Diagnostic>>()?;
+    Ok((declarations, compiler_types))
 }
 
 fn scalar_type(ty: &ResolvedType) -> bool {

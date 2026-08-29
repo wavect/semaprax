@@ -82,21 +82,16 @@ fn project_v6_canonical_bytes_remain_frozen() {
 }
 
 #[test]
-fn project_v7_execute_entry_report_round_trips_and_v8_remains_unsupported() {
+fn project_v7_execute_entry_report_bytes_remain_deterministic_and_replayable() {
     let project = real_project_fixture();
     let execution = with_authenticated_project(&project.0.join("semaprax.toml"), |snapshot| {
         snapshot.execute_entry(&ProjectExecutionOptions::default())
     })
     .unwrap();
     verify_execution_envelope(execution.envelope()).unwrap();
-
-    let unsupported = execution.envelope().replacen(
-        "\"project_schema\":\"semaprax.project.v7\"",
-        "\"project_schema\":\"semaprax.project.v8\"",
-        1,
-    );
-    assert_ne!(unsupported, execution.envelope());
-    let error = verify_execution_envelope(&unsupported).unwrap_err();
-    assert_eq!(error.code, "SPX-F106");
-    assert!(error.message.contains("v1, v2, v3, v4, v5, v6, or v7"));
+    let repeated = with_authenticated_project(&project.0.join("semaprax.toml"), |snapshot| {
+        snapshot.execute_entry(&ProjectExecutionOptions::default())
+    })
+    .unwrap();
+    assert_eq!(repeated.envelope(), execution.envelope());
 }

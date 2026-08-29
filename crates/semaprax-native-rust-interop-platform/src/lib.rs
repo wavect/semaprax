@@ -123,6 +123,16 @@ pub fn child_absent_prepared(
     semaprax_native_rust_interop_platform_sys::child_absent_prepared(&directory.0, &name.0)
 }
 
+pub fn same_child_directory_prepared(
+    parent: &HeldDirectory,
+    name: &PreparedChildName,
+    child: &HeldDirectory,
+) -> Result<bool, Error> {
+    semaprax_native_rust_interop_platform_sys::same_child_directory_prepared(
+        &parent.0, &name.0, &child.0,
+    )
+}
+
 pub fn prepare_stage_name_arena(maximum: usize) -> Result<PreparedStageName, Error> {
     semaprax_native_rust_interop_platform_sys::prepare_relative_name_arena(maximum)
         .map(PreparedStageName)
@@ -579,6 +589,11 @@ pub fn hold_child_directory(parent: &HeldDirectory, name: &OsStr) -> Result<Held
 
 pub fn recheck_directory(directory: &HeldDirectory) -> Result<(), Error> {
     semaprax_native_rust_interop_platform_sys::recheck_directory(&directory.0)
+}
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+pub fn directory_is_current_user_private(directory: &HeldDirectory) -> Result<bool, Error> {
+    semaprax_native_rust_interop_platform_sys::directory_is_current_user_private(&directory.0)
 }
 
 pub fn same_directory_path(directory: &HeldDirectory, path: &Path) -> Result<bool, Error> {

@@ -146,7 +146,7 @@ fn artifact_and_evidence_mutations_fail_exact_replay() {
         )
         .unwrap_err()
         .code,
-        "SPX-PB507"
+        "SPX-PB506"
     );
 }
 

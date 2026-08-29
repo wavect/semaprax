@@ -14,29 +14,6 @@ impl TestRoot {
     }
 }
 
-impl AsRef<Path> for TestRoot {
-    fn as_ref(&self) -> &Path {
-        &self.0
-    }
-}
-
-impl Drop for TestRoot {
-    fn drop(&mut self) {
-        let temporary = std::env::temp_dir();
-        let valid_name = self.0.file_name().is_some_and(|name| {
-            name.to_string_lossy()
-                .starts_with("semaprax-offline-wasm-publisher-")
-        });
-        let valid_parent = self.0.parent() == Some(temporary.as_path());
-        let plain_directory = fs::symlink_metadata(&self.0)
-            .ok()
-            .is_some_and(|metadata| metadata.is_dir() && !metadata.file_type().is_symlink());
-        if valid_name && valid_parent && plain_directory {
-            let _ = fs::remove_dir_all(&self.0);
-        }
-    }
-}
-
 fn root(label: &str) -> TestRoot {
     let path = std::env::temp_dir().join(format!(
         "semaprax-offline-wasm-publisher-{label}-{}-{}",
@@ -44,6 +21,11 @@ fn root(label: &str) -> TestRoot {
         NEXT_ROOT.fetch_add(1, Ordering::Relaxed)
     ));
     fs::create_dir(&path).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o700)).unwrap();
+    }
     TestRoot(path)
 }
 
@@ -232,6 +214,29 @@ fn post_publish_mutation_is_reported_visible_and_never_discarded() {
     assert_eq!(fs::read(output.join("foreign")).unwrap(), b"foreign");
     assert_eq!(
         fs::read(output.join(MODULE_FILE)).unwrap(),
+        build().module_wasm
+    );
+}
+
+#[test]
+fn post_publish_output_path_substitution_is_visible_failure() {
+    let root = root("post-publish-path-substitution");
+    let output = root.join("package");
+    let displaced = root.join("displaced");
+    let mut observer = ClosureObserver(|point: PublishPoint, paths: &ObservedPaths<'_>| {
+        if point == PublishPoint::AfterPublish {
+            fs::rename(paths.output, &displaced).unwrap();
+            fs::create_dir(paths.output).unwrap();
+            fs::write(paths.output.join("sentinel"), b"foreign").unwrap();
+        }
+    });
+    let error = publish_observed(&output, &build(), &mut accept, &mut observer).unwrap_err();
+    assert_eq!(error.code, PP_PUBLISHED_CHANGED);
+    assert_eq!(error.visibility, PublicationVisibility::Published);
+    assert_eq!(error.cleanup, CleanupStatus::NotNeeded);
+    assert_eq!(fs::read(output.join("sentinel")).unwrap(), b"foreign");
+    assert_eq!(
+        fs::read(displaced.join(MODULE_FILE)).unwrap(),
         build().module_wasm
     );
 }

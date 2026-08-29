@@ -67,7 +67,10 @@ fn evidence_limit_converges_to_exact_fixed_point_and_cannot_widen_artifacts() {
     );
 }
 
-fn converge(fixture: &Fixture, artifact: bool) -> (OfflinePackageBuildOptions, OfflinePackageBuild) {
+fn converge(
+    fixture: &Fixture,
+    artifact: bool,
+) -> (OfflinePackageBuildOptions, OfflinePackageBuild) {
     let mut options = OfflinePackageBuildOptions {
         root_package: fixture.options.root_package.clone(),
         exports: fixture.options.exports.clone(),

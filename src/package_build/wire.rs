@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use serde_json::Value;
 use sha2::{Digest as _, Sha256};
 
@@ -16,6 +18,12 @@ const LINK_DOMAIN: &[u8] = b"semaprax.offline-effect-free-wasm-package-link.v1\0
 /// Closed structural parser bound. Generated v1 artifacts currently use at
 /// most four levels; the larger frozen ceiling admits no unbounded recursion.
 const MAX_JSON_DEPTH: usize = 32;
+/// Structural work bounds are deliberately far above the generated v1 shape
+/// (at most 32 exports) while preventing a byte-bounded hostile array from
+/// expanding into millions of DOM nodes or per-object key inventories.
+const MAX_JSON_VALUES: usize = 4_096;
+const MAX_JSON_OBJECTS: usize = 512;
+const MAX_JSON_KEYS: usize = 4_096;
 
 macro_rules! bf {
     ($($argument:tt)*) => { bounded_output::budgeted_format(format_args!($($argument)*)) };
@@ -480,6 +488,9 @@ fn validate_compact_json(
         bytes: value.as_bytes(),
         offset: 0,
         depth: 0,
+        values: 0,
+        objects: 0,
+        keys: 0,
         object_keys: Vec::new(),
     };
     parser.value()?;
@@ -495,11 +506,23 @@ struct CanonicalJsonParser<'a> {
     bytes: &'a [u8],
     offset: usize,
     depth: usize,
+    values: usize,
+    objects: usize,
+    keys: usize,
     object_keys: Vec<Vec<String>>,
 }
 
 impl CanonicalJsonParser<'_> {
     fn value(&mut self) -> Result<(), Diagnostic> {
+        self.values = self
+            .values
+            .checked_add(1)
+            .ok_or_else(|| super::wire_error("package-build JSON value count overflowed"))?;
+        if self.values > MAX_JSON_VALUES {
+            return Err(super::wire_error(
+                "package-build JSON value inventory exceeds the closed bound",
+            ));
+        }
         match self.peek() {
             Some(b'{') => self.object(),
             Some(b'[') => self.array(),
@@ -516,6 +539,15 @@ impl CanonicalJsonParser<'_> {
 
     fn object(&mut self) -> Result<(), Diagnostic> {
         self.enter(b'{')?;
+        self.objects = self
+            .objects
+            .checked_add(1)
+            .ok_or_else(|| super::wire_error("package-build JSON object count overflowed"))?;
+        if self.objects > MAX_JSON_OBJECTS {
+            return Err(super::wire_error(
+                "package-build JSON object inventory exceeds the closed bound",
+            ));
+        }
         let object_index = self.object_keys.len();
         self.object_keys.push(Vec::new());
         let mut keys = BTreeSet::new();
@@ -524,6 +556,15 @@ impl CanonicalJsonParser<'_> {
         }
         loop {
             let key = self.string()?;
+            self.keys = self
+                .keys
+                .checked_add(1)
+                .ok_or_else(|| super::wire_error("package-build JSON key count overflowed"))?;
+            if self.keys > MAX_JSON_KEYS {
+                return Err(super::wire_error(
+                    "package-build JSON key inventory exceeds the closed bound",
+                ));
+            }
             self.object_keys[object_index].push(key.clone());
             if !keys.insert(key) {
                 return Err(super::wire_error(
@@ -728,4 +769,46 @@ fn domain_digest(domain: &[u8], bytes: &[u8]) -> String {
         crate::digest_hex::LowerHex(hasher.finalize())
     )
 }
-use std::collections::BTreeSet;
+#[cfg(test)]
+mod structural_bound_tests {
+    use super::*;
+
+    fn parse(value: &str) -> Result<(), Diagnostic> {
+        let mut parser = CanonicalJsonParser {
+            bytes: value.as_bytes(),
+            offset: 0,
+            depth: 0,
+            values: 0,
+            objects: 0,
+            keys: 0,
+            object_keys: Vec::new(),
+        };
+        parser.value()?;
+        if parser.offset == parser.bytes.len() {
+            Ok(())
+        } else {
+            Err(super::super::wire_error("test JSON has trailing data"))
+        }
+    }
+
+    #[test]
+    fn structural_depth_bound_accepts_32_and_rejects_33() {
+        let at_limit = format!("{}0{}", "[".repeat(32), "]".repeat(32));
+        parse(&at_limit).expect("depth 32");
+        let over_limit = format!("{}0{}", "[".repeat(33), "]".repeat(33));
+        assert_eq!(parse(&over_limit).unwrap_err().code, "SPX-PB506");
+    }
+
+    #[test]
+    fn structural_value_and_object_amplification_is_bounded() {
+        let at_value_limit = format!("[{}]", vec!["0"; MAX_JSON_VALUES - 1].join(","));
+        parse(&at_value_limit).expect("value bound");
+        let over_value_limit = format!("[{}]", vec!["0"; MAX_JSON_VALUES].join(","));
+        assert_eq!(parse(&over_value_limit).unwrap_err().code, "SPX-PB506");
+
+        let at_object_limit = format!("[{}]", vec!["{}"; MAX_JSON_OBJECTS].join(","));
+        parse(&at_object_limit).expect("object bound");
+        let over_object_limit = format!("[{}]", vec!["{}"; MAX_JSON_OBJECTS + 1].join(","));
+        assert_eq!(parse(&over_object_limit).unwrap_err().code, "SPX-PB506");
+    }
+}

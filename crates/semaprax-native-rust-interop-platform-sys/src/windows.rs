@@ -3910,6 +3910,23 @@ pub fn child_absent_prepared(
     child_absent_impl(directory, name)
 }
 
+pub fn same_child_directory_prepared(
+    parent: &Directory,
+    name: &PreparedRelativeName,
+    child: &Directory,
+) -> Result<bool, Error> {
+    recheck_directory(parent)?;
+    recheck_directory(child)?;
+    let rebound = relative_file_prepared(
+        &parent.file,
+        name,
+        DIRECTORY_READ_ACCESS,
+        FILE_OPEN,
+        FILE_DIRECTORY_FILE,
+    )?;
+    Ok(directory_information(&rebound)? == child.identity)
+}
+
 fn read_exact_offset(file: &File, mut bytes: &mut [u8], mut offset: u64) -> Result<(), Error> {
     while !bytes.is_empty() {
         let read = file.seek_read(bytes, offset).map_err(|_| Error::Changed)?;

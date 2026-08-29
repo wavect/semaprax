@@ -70,6 +70,16 @@ pub struct PublishedOfflinePackageBuild {
 
 /// Independently replays `build` before acquiring filesystem authority and a
 /// second time immediately before the no-replace publication attempt.
+///
+/// On every platform the host must exclude all uncooperative namespace or
+/// content mutation of the destination path, its parent, and its ancestor chain
+/// for the complete invocation; held parent-relative checks cannot prove that
+/// an absolute ancestor path was not concurrently rebound. On Unix/macOS the
+/// destination parent must additionally be current-euid-owned with exact mode
+/// 0700. POSIX directory creation cannot atomically return the created directory
+/// handle, and Darwin ACL authority is outside the mechanical mode-bit check.
+/// These coordination requirements are part of the v1 authority contract, not
+/// an advisory lock guarantee.
 pub fn publish(
     output: &Path,
     build: OfflinePackageBuild,
@@ -79,6 +89,10 @@ pub fn publish(
     build_options: OfflinePackageBuildOptions,
 ) -> Result<PublishedOfflinePackageBuild, PublicationError> {
     validate_output_path(output)?;
+    // Own every success-result allocation before replay can acquire and publish
+    // through filesystem authority. The post-rename success path only moves
+    // already-owned state.
+    let output = output.to_path_buf();
     let mut verifier = |candidate: &OfflinePackageBuild| {
         package_build::verify(
             candidate,
@@ -93,16 +107,13 @@ pub fn publish(
 
     #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
     {
-        authority::publish_verified(output, &build, &mut verifier)?;
-        Ok(PublishedOfflinePackageBuild {
-            output: output.to_path_buf(),
-            verified,
-        })
+        authority::publish_verified(&output, &build, &mut verifier)?;
+        Ok(PublishedOfflinePackageBuild { output, verified })
     }
 
     #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
     {
-        let _ = (build, verifier, verified);
+        let _ = (output, build, verifier, verified);
         Err(PublicationError::plain(
             PP_INVALID,
             "offline package publication is unsupported on this platform",

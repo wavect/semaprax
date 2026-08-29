@@ -1453,6 +1453,16 @@ pub fn recheck_directory(directory: &Directory) -> Result<(), Error> {
     Ok(())
 }
 
+/// Admits a Unix publication root only inside the repository's explicit
+/// trusted-root model. Owner/mode checks are necessary but not sufficient:
+/// callers separately uphold the documented no-uncooperative-mutation
+/// precondition, including ancestor stability and Darwin ACL authority.
+pub fn directory_is_current_user_private(directory: &Directory) -> Result<bool, Error> {
+    recheck_directory(directory)?;
+    let metadata = directory.file.metadata().map_err(|_| Error::Changed)?;
+    Ok(metadata.uid() == unsafe { libc::geteuid() } && metadata.mode() & 0o7777 == 0o700)
+}
+
 pub fn same_directory_path(directory: &Directory, path: &Path) -> Result<bool, Error> {
     recheck_directory(directory)?;
     let rebound = hold_directory(path)?;
@@ -4513,6 +4523,17 @@ pub fn child_absent_prepared(
     name: &PreparedRelativeName,
 ) -> Result<bool, Error> {
     child_absent_impl(directory, name)
+}
+
+pub fn same_child_directory_prepared(
+    parent: &Directory,
+    name: &PreparedRelativeName,
+    child: &Directory,
+) -> Result<bool, Error> {
+    recheck_directory(parent)?;
+    recheck_directory(child)?;
+    let rebound = open_directory_at(parent.file.as_raw_fd(), &name.0)?;
+    Ok(prepared_directory_identity(&rebound) == prepared_directory_identity(child))
 }
 
 fn exact_archive_member(archive: &RegularFile, input: &RegularFile) -> Result<(), Error> {

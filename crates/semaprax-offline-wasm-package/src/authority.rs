@@ -40,6 +40,15 @@ fn publish_observed<V>(
         .to_os_string();
     let parent =
         platform::hold_directory(&parent_path).map_err(|_| changed("hold output parent"))?;
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    if !platform::directory_is_current_user_private(&parent)
+        .map_err(|_| changed("authenticate private output parent"))?
+    {
+        return Err(PublicationError::plain(
+            PP_INVALID,
+            "Unix publication parent must be current-euid-owned with exact mode 0700",
+        ));
+    }
     require_path_binding(&parent, &parent_path, "output parent path changed")?;
     let output_probe = platform::prepare_child_name(&output_name)
         .map_err(|_| PublicationError::plain(PP_INVALID, "publication leaf is invalid"))?;
@@ -68,6 +77,7 @@ fn publish_observed<V>(
         parent_path,
         output_path: output.to_path_buf(),
         output_name,
+        output_probe,
         stage,
         stage_name,
         stage_path,
@@ -77,6 +87,10 @@ fn publish_observed<V>(
         publish,
         publication_attempted: false,
         published: false,
+        post_files: None,
+        post_failure: Some(published_changed(
+            "published output failed exact post-publication authentication",
+        )),
     };
 
     if let Err(primary) = staged.write_and_authenticate(build, observer) {
@@ -111,7 +125,7 @@ fn publish_observed<V>(
     }
     staged.published = true;
     observer.at(PublishPoint::AfterPublish, &staged.paths());
-    staged.authenticate_published(build)
+    staged.authenticate_published()
 }
 
 fn allocate_stage(
@@ -156,6 +170,7 @@ struct StagedPublication {
     parent_path: PathBuf,
     output_path: PathBuf,
     output_name: OsString,
+    output_probe: platform::PreparedChildName,
     stage: platform::HeldDirectory,
     stage_name: platform::PreparedStageName,
     stage_path: PathBuf,
@@ -165,6 +180,8 @@ struct StagedPublication {
     publish: platform::PreparedPublishDirectory,
     publication_attempted: bool,
     published: bool,
+    post_files: Option<[platform::HeldRegularFile; 3]>,
+    post_failure: Option<PublicationError>,
 }
 
 impl StagedPublication {
@@ -229,9 +246,28 @@ impl StagedPublication {
         self.authenticate_files_for_settle()?;
         platform::inventory_exact_prepared(&mut self.exact, &self.stage, &self.inventory)
             .map_err(|_| changed("reauthenticate exact staged inventory before settle"))?;
+        self.prepare_post_files()?;
         self.inventory
             .settle_for_publish()
             .map_err(|_| changed("settle staged artifact handles"))
+    }
+
+    fn prepare_post_files(&mut self) -> Result<(), PublicationError> {
+        let module =
+            platform::hold_regular_file_prepared(&self.stage, &self.inventory, MODULE_FILE)
+                .map_err(|_| changed("prepare held module for post-publication authentication"))?;
+        let evidence =
+            platform::hold_regular_file_prepared(&self.stage, &self.inventory, EVIDENCE_FILE)
+                .map_err(|_| {
+                    changed("prepare held evidence for post-publication authentication")
+                })?;
+        let manifest =
+            platform::hold_regular_file_prepared(&self.stage, &self.inventory, MANIFEST_FILE)
+                .map_err(|_| {
+                    changed("prepare held manifest for post-publication authentication")
+                })?;
+        self.post_files = Some([module, evidence, manifest]);
+        Ok(())
     }
 
     fn authenticate_files_for_settle(&self) -> Result<(), PublicationError> {
@@ -246,30 +282,46 @@ impl StagedPublication {
         Ok(())
     }
 
-    fn authenticate_published(
-        &mut self,
-        build: &OfflinePackageBuild,
-    ) -> Result<(), PublicationError> {
+    fn authenticate_published(&mut self) -> Result<(), PublicationError> {
         debug_assert!(self.publication_attempted && self.published);
-        if !platform::same_directory_path(&self.stage, &self.output_path)
-            .map_err(|_| published_changed("reopen published output"))?
-        {
-            return Err(published_changed("published output path identity changed"));
+        if !matches!(
+            platform::same_child_directory_prepared(&self.parent, &self.output_probe, &self.stage,),
+            Ok(true)
+        ) {
+            return Err(self.take_post_failure());
         }
-        let module = hold_matching(&self.stage, MODULE_FILE, build.module_wasm.as_slice())?;
-        let evidence = hold_matching(&self.stage, EVIDENCE_FILE, build.evidence_json.as_bytes())?;
-        let manifest = hold_matching(&self.stage, MANIFEST_FILE, build.manifest_json.as_bytes())?;
-        platform::inventory_entries_exact_prepared(
+        let Some(files) = self.post_files.as_ref() else {
+            return Err(self.take_post_failure());
+        };
+        for file in files {
+            if platform::recheck_regular_file(file).is_err() {
+                return Err(self.take_post_failure());
+            }
+        }
+        if platform::inventory_entries_exact_prepared(
             &mut self.post,
             &self.stage,
-            [&module, &evidence, &manifest],
+            [&files[0], &files[1], &files[2]],
             [],
         )
-        .map_err(|_| published_changed("authenticate exact published inventory"))?;
-        platform::recheck_directory(&self.parent)
-            .map_err(|_| published_changed("recheck published parent"))?;
-        platform::recheck_directory(&self.stage)
-            .map_err(|_| published_changed("recheck published directory"))
+        .is_err()
+            || platform::recheck_directory(&self.parent).is_err()
+            || platform::recheck_directory(&self.stage).is_err()
+        {
+            return Err(self.take_post_failure());
+        }
+        Ok(())
+    }
+
+    fn take_post_failure(&mut self) -> PublicationError {
+        self.post_failure.take().unwrap_or(PublicationError {
+            code: PP_PUBLISHED_CHANGED,
+            message: String::new(),
+            compiler_code: None,
+            primary_code: None,
+            visibility: PublicationVisibility::Published,
+            cleanup: CleanupStatus::NotNeeded,
+        })
     }
 
     fn fail_before_attempt(&self, mut primary: PublicationError) -> PublicationError {
@@ -295,24 +347,6 @@ fn files(build: &OfflinePackageBuild) -> [(&'static str, &[u8]); 3] {
         (EVIDENCE_FILE, build.evidence_json.as_bytes()),
         (MANIFEST_FILE, build.manifest_json.as_bytes()),
     ]
-}
-
-fn hold_matching(
-    directory: &platform::HeldDirectory,
-    name: &str,
-    expected: &[u8],
-) -> Result<platform::HeldRegularFile, PublicationError> {
-    let file = platform::hold_regular_file(directory, OsStr::new(name))
-        .map_err(|_| published_changed("hold published artifact"))?;
-    let mut scratch = [0_u8; platform::FILE_COMPARE_SCRATCH_BYTES];
-    if !platform::compare_exact(&file, expected, &mut scratch)
-        .map_err(|_| published_changed("authenticate published artifact bytes"))?
-    {
-        return Err(published_changed("authenticate published artifact bytes"));
-    }
-    platform::recheck_regular_file(&file)
-        .map_err(|_| published_changed("recheck published artifact identity"))?;
-    Ok(file)
 }
 
 fn require_path_binding(

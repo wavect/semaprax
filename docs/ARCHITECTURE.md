@@ -368,7 +368,12 @@ no-replace directory publication. Previsibility cleanup is limited to the
 authenticated stage inventory; publication uncertainty is fail-stop. This is
 create-new local publication, not acquisition, a registry/cache, provenance,
 runtime enforcement, or a hermetic operating-system build sandbox. Its
-authored evidence is unrun and the crate is unpromoted.
+authored evidence is unrun and the crate is unpromoted. Every platform has the
+explicit host precondition excluding every uncooperative mutation of the
+destination path, parent, ancestors, or stage for the invocation. Unix/macOS
+additionally requires and checks a current-euid-owned exact-mode-0700 parent;
+the precondition includes Darwin ACL-granted authority because POSIX directory
+creation cannot atomically return the created directory handle.
 
 These modules must:
 

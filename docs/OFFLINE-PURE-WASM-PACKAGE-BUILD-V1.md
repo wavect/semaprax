@@ -64,7 +64,14 @@ accepts an output path plus owned build, resolver evidence, original resolver
 input/options, and build options. It calls the compiler verifier before any
 destination authority is acquired and again from retained invocation-local
 inputs before the no-replace publication boundary. Its handle-owning authority
-state is private.
+state is private. Success returns `PublishedOfflinePackageBuild { output,
+verified }`. Failure returns the frozen `PublicationError` fields `code`,
+`message`, `compiler_code`, `primary_code`, `visibility`, and `cleanup` using
+the diagnostic and state enums specified under Publication authority below.
+The public compiler constants freeze the two schema identities, profile name,
+16 MiB artifact/evidence maxima, and 64 MiB cumulative evidence-render ceiling;
+`OfflinePackageBuildOptions::new` applies the same admission as generation and
+verification.
 
 ## Admission
 
@@ -128,8 +135,10 @@ authenticates the complete three-file inventory.
 `semaprax.offline-effect-free-wasm-package-build.v1` and exact member order:
 `schema,profile,root,packages,exports,runtime_imports,module,compiler,limits,nonclaims`.
 The profile is `effect-free-core-wasm-scalar.v1`. Coordinates use
-`package,version`; selected subject facts use
-`package,version,subject_digest,source_revision`; export facts use
+`package,version`; manifest `packages` rows use
+`package,version,subject_digest,source_revision`, while evidence `subjects`
+rows use `package,version,subject_digest,subject_bytes,report_digest,
+source_revision`. Export facts use
 `stable_id,wasm_export,parameters,result`. `runtime_imports` binds the exact
 compiler-required `env` function inventory `spx_add`, `spx_sub`, `spx_mul`,
 `spx_div`, `spx_rem`, `spx_neg`, and `spx_contract_fail`; these imports are a
@@ -141,7 +150,9 @@ source emit different package bytes. No host path, clock, nonce, locale,
 environment, or publication destination is rendered. Manifest and evidence are
 compact canonical UTF-8 JSON without a terminal LF.
 Their bounded structural parser rejects nesting deeper than 32 container
-levels; canonical v1 artifacts use substantially fewer levels.
+levels, more than 4,096 JSON values or keys, or more than 512 objects;
+canonical v1 artifacts use substantially fewer resources. These work bounds
+apply before the second schema-aware DOM parse.
 
 The evidence wrapper schema is
 `semaprax.offline-effect-free-wasm-package-build-evidence.v1`, with exact
@@ -206,6 +217,22 @@ because cleanup was no longer permitted, not that no stage existed.
 The publisher never overwrites, resumes, recovers, garbage-collects, or deletes
 foreign bytes. Unix creates mode-0700 stages and mode-0600 files. Windows uses
 inherited ACLs and makes no Unix-equivalent confidentiality claim.
+
+Every platform requires a host guarantee excluding uncooperative mutation of
+the destination path, its parent, its full ancestor chain, and staged contents
+by every other process or principal for the invocation. Held parent-relative
+checks cannot prove that an absolute ancestor path was not concurrently rebound.
+Without that guarantee, v1 publication is unsupported and its post-publication
+checks are not a security boundary against an uncooperative peer.
+
+POSIX `mkdirat` additionally does not atomically return a handle for the
+directory it creates. Unix/macOS publication therefore requires the destination
+parent to be a real directory owned by the current effective user with exact
+mode `0700`, which the publisher checks through its held handle. Mode/owner
+checks alone do not exclude access granted through Darwin ACLs, so the host
+guarantee covers that authority too. Windows uses one atomic `NtCreateFile`
+create-and-hold operation, but still requires the cross-platform ancestor/path
+stability guarantee above.
 
 ## Nonclaims
 

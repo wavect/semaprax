@@ -26,7 +26,7 @@ const SELECTED: [&str; 3] = [
 
 fn temporary(label: &str) -> PathBuf {
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-    std::env::temp_dir().join(format!(
+    std::env::temp_dir().canonicalize().unwrap().join(format!(
         "semaprax-frame-payload-{label}-{}-{id}",
         std::process::id()
     ))
@@ -44,7 +44,8 @@ fn subject() -> PublicApiSubject<'static> {
 }
 
 fn resolve(source: &str) -> hir::ResolvedProgram {
-    let checked = semaprax::check(source, Path::new("frame.spx")).unwrap();
+    let source = format!("{source}\n@id(\"frame.fixture.main\")\nfn main() -> i64 {{ 0 }}\n");
+    let checked = semaprax::check(&source, Path::new("frame.spx")).unwrap();
     hir::resolve(&checked).unwrap()
 }
 
@@ -359,15 +360,15 @@ fn native_owned_data_provider_runs_the_exact_corpus_at_o0_and_o2() {
     let mut declarations = String::new();
     let mut cases = String::new();
     for (index, (name, frame, valid, error)) in frames.iter().enumerate() {
-        writeln!(
-            declarations,
-            "static const uint8_t case_{index}[]={{ {} }};",
-            c_bytes(frame)
-        )
-        .unwrap();
         let pointer = if frame.is_empty() {
             "NULL".to_owned()
         } else {
+            writeln!(
+                declarations,
+                "static const uint8_t case_{index}[]={{ {} }};",
+                c_bytes(frame)
+            )
+            .unwrap();
             format!("case_{index}")
         };
         writeln!(
@@ -478,19 +479,43 @@ fn copy_project(destination: &Path, renamed: bool) {
 }
 
 fn build(binary: &Path, manifest: &Path, target: &str, output: &Path) {
-    let result = Command::new(binary)
+    let mut command = Command::new(binary);
+    command
         .args(["build", "--manifest-path"])
         .arg(manifest)
         .args(["--target", target, "-o"])
-        .arg(output)
-        .output()
-        .unwrap();
+        .arg(output);
+    if target == "rust" {
+        let clang = configured_tool("CLANG", &["/usr/bin/clang"]);
+        let archiver = if cfg!(target_os = "macos") {
+            configured_tool("SEMAPRAX_ARCHIVER", &["/usr/bin/libtool"])
+        } else {
+            configured_tool("SEMAPRAX_ARCHIVER", &["/usr/bin/ar", "/bin/ar"])
+        };
+        command
+            .env("CLANG", clang)
+            .env("SEMAPRAX_ARCHIVER", archiver);
+    }
+    let result = command.output().unwrap();
     assert!(
         result.status.success(),
         "target={target} stdout={} stderr={}",
         String::from_utf8_lossy(&result.stdout),
         String::from_utf8_lossy(&result.stderr)
     );
+}
+
+fn configured_tool(variable: &str, candidates: &[&str]) -> PathBuf {
+    std::env::var_os(variable)
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute() && path.is_file())
+        .or_else(|| {
+            candidates
+                .iter()
+                .map(PathBuf::from)
+                .find(|path| path.is_file())
+        })
+        .unwrap_or_else(|| panic!("{variable} must name an installed absolute tool"))
 }
 
 #[test]
@@ -520,24 +545,20 @@ fn project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_r
         run_node_consumer(&npm_consumer);
 
         let rust_consumer = root.join(format!("{label}-rust"));
+        let rust_sdk = root.join(format!("{label}-generated-sdk"));
         fs::create_dir_all(rust_consumer.join("src")).unwrap();
-        fs::write(
-            rust_consumer.join("Cargo.toml"),
-            include_bytes!("../examples/frame-payload-rust/Cargo.toml"),
-        )
-        .unwrap();
+        let rust_manifest = include_str!("../examples/frame-payload-rust/Cargo.toml").replace(
+            "../frame-payload-generated-sdk",
+            &format!("../{label}-generated-sdk"),
+        );
+        fs::write(rust_consumer.join("Cargo.toml"), rust_manifest).unwrap();
         fs::write(
             rust_consumer.join("src/main.rs"),
             include_bytes!("../examples/frame-payload-rust/src/main.rs"),
         )
         .unwrap();
         fs::write(rust_consumer.join("corpus.json"), CORPUS).unwrap();
-        build(
-            binary,
-            &project.join("semaprax.toml"),
-            "rust",
-            &rust_consumer.join("generated-sdk"),
-        );
+        build(binary, &project.join("semaprax.toml"), "rust", &rust_sdk);
         let result = Command::new("cargo")
             .args(["run", "--quiet", "--offline", "--manifest-path"])
             .arg(rust_consumer.join("Cargo.toml"))

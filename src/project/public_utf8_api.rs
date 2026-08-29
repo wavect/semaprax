@@ -50,12 +50,7 @@ fn expression_reaches_string_intrinsic(root: &ResolvedExpr) -> bool {
                 return true;
             }
         }
-        for index in 0..expression.child_count() {
-            let Some(child) = expression.child(index) else {
-                return true;
-            };
-            pending.push(child);
-        }
+        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
     }
     false
 }
@@ -66,12 +61,7 @@ fn expression_reaches_owned_string(root: &ResolvedExpr) -> bool {
         if expression.ty == ResolvedType::String {
             return true;
         }
-        for index in 0..expression.child_count() {
-            let Some(child) = expression.child(index) else {
-                return true;
-            };
-            pending.push(child);
-        }
+        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
     }
     false
 }

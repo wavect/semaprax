@@ -3,312 +3,67 @@ module frame_payload.frame;
 @id("frame.octet-to-usize")
 fn octet_to_usize(value: u8) -> usize
 {
-    match value {
-        0u8 => 0usize,
-        1u8 => 1usize,
-        2u8 => 2usize,
-        3u8 => 3usize,
-        4u8 => 4usize,
-        5u8 => 5usize,
-        6u8 => 6usize,
-        7u8 => 7usize,
-        8u8 => 8usize,
-        9u8 => 9usize,
-        10u8 => 10usize,
-        11u8 => 11usize,
-        12u8 => 12usize,
-        13u8 => 13usize,
-        14u8 => 14usize,
-        15u8 => 15usize,
-        16u8 => 16usize,
-        17u8 => 17usize,
-        18u8 => 18usize,
-        19u8 => 19usize,
-        20u8 => 20usize,
-        21u8 => 21usize,
-        22u8 => 22usize,
-        23u8 => 23usize,
-        24u8 => 24usize,
-        25u8 => 25usize,
-        26u8 => 26usize,
-        27u8 => 27usize,
-        28u8 => 28usize,
-        29u8 => 29usize,
-        30u8 => 30usize,
-        31u8 => 31usize,
-        32u8 => 32usize,
-        33u8 => 33usize,
-        34u8 => 34usize,
-        35u8 => 35usize,
-        36u8 => 36usize,
-        37u8 => 37usize,
-        38u8 => 38usize,
-        39u8 => 39usize,
-        40u8 => 40usize,
-        41u8 => 41usize,
-        42u8 => 42usize,
-        43u8 => 43usize,
-        44u8 => 44usize,
-        45u8 => 45usize,
-        46u8 => 46usize,
-        47u8 => 47usize,
-        48u8 => 48usize,
-        49u8 => 49usize,
-        50u8 => 50usize,
-        51u8 => 51usize,
-        52u8 => 52usize,
-        53u8 => 53usize,
-        54u8 => 54usize,
-        55u8 => 55usize,
-        56u8 => 56usize,
-        57u8 => 57usize,
-        58u8 => 58usize,
-        59u8 => 59usize,
-        60u8 => 60usize,
-        61u8 => 61usize,
-        62u8 => 62usize,
-        63u8 => 63usize,
-        64u8 => 64usize,
-        65u8 => 65usize,
-        66u8 => 66usize,
-        67u8 => 67usize,
-        68u8 => 68usize,
-        69u8 => 69usize,
-        70u8 => 70usize,
-        71u8 => 71usize,
-        72u8 => 72usize,
-        73u8 => 73usize,
-        74u8 => 74usize,
-        75u8 => 75usize,
-        76u8 => 76usize,
-        77u8 => 77usize,
-        78u8 => 78usize,
-        79u8 => 79usize,
-        80u8 => 80usize,
-        81u8 => 81usize,
-        82u8 => 82usize,
-        83u8 => 83usize,
-        84u8 => 84usize,
-        85u8 => 85usize,
-        86u8 => 86usize,
-        87u8 => 87usize,
-        88u8 => 88usize,
-        89u8 => 89usize,
-        90u8 => 90usize,
-        91u8 => 91usize,
-        92u8 => 92usize,
-        93u8 => 93usize,
-        94u8 => 94usize,
-        95u8 => 95usize,
-        96u8 => 96usize,
-        97u8 => 97usize,
-        98u8 => 98usize,
-        99u8 => 99usize,
-        100u8 => 100usize,
-        101u8 => 101usize,
-        102u8 => 102usize,
-        103u8 => 103usize,
-        104u8 => 104usize,
-        105u8 => 105usize,
-        106u8 => 106usize,
-        107u8 => 107usize,
-        108u8 => 108usize,
-        109u8 => 109usize,
-        110u8 => 110usize,
-        111u8 => 111usize,
-        112u8 => 112usize,
-        113u8 => 113usize,
-        114u8 => 114usize,
-        115u8 => 115usize,
-        116u8 => 116usize,
-        117u8 => 117usize,
-        118u8 => 118usize,
-        119u8 => 119usize,
-        120u8 => 120usize,
-        121u8 => 121usize,
-        122u8 => 122usize,
-        123u8 => 123usize,
-        124u8 => 124usize,
-        125u8 => 125usize,
-        126u8 => 126usize,
-        127u8 => 127usize,
-        128u8 => 128usize,
-        129u8 => 129usize,
-        130u8 => 130usize,
-        131u8 => 131usize,
-        132u8 => 132usize,
-        133u8 => 133usize,
-        134u8 => 134usize,
-        135u8 => 135usize,
-        136u8 => 136usize,
-        137u8 => 137usize,
-        138u8 => 138usize,
-        139u8 => 139usize,
-        140u8 => 140usize,
-        141u8 => 141usize,
-        142u8 => 142usize,
-        143u8 => 143usize,
-        144u8 => 144usize,
-        145u8 => 145usize,
-        146u8 => 146usize,
-        147u8 => 147usize,
-        148u8 => 148usize,
-        149u8 => 149usize,
-        150u8 => 150usize,
-        151u8 => 151usize,
-        152u8 => 152usize,
-        153u8 => 153usize,
-        154u8 => 154usize,
-        155u8 => 155usize,
-        156u8 => 156usize,
-        157u8 => 157usize,
-        158u8 => 158usize,
-        159u8 => 159usize,
-        160u8 => 160usize,
-        161u8 => 161usize,
-        162u8 => 162usize,
-        163u8 => 163usize,
-        164u8 => 164usize,
-        165u8 => 165usize,
-        166u8 => 166usize,
-        167u8 => 167usize,
-        168u8 => 168usize,
-        169u8 => 169usize,
-        170u8 => 170usize,
-        171u8 => 171usize,
-        172u8 => 172usize,
-        173u8 => 173usize,
-        174u8 => 174usize,
-        175u8 => 175usize,
-        176u8 => 176usize,
-        177u8 => 177usize,
-        178u8 => 178usize,
-        179u8 => 179usize,
-        180u8 => 180usize,
-        181u8 => 181usize,
-        182u8 => 182usize,
-        183u8 => 183usize,
-        184u8 => 184usize,
-        185u8 => 185usize,
-        186u8 => 186usize,
-        187u8 => 187usize,
-        188u8 => 188usize,
-        189u8 => 189usize,
-        190u8 => 190usize,
-        191u8 => 191usize,
-        192u8 => 192usize,
-        193u8 => 193usize,
-        194u8 => 194usize,
-        195u8 => 195usize,
-        196u8 => 196usize,
-        197u8 => 197usize,
-        198u8 => 198usize,
-        199u8 => 199usize,
-        200u8 => 200usize,
-        201u8 => 201usize,
-        202u8 => 202usize,
-        203u8 => 203usize,
-        204u8 => 204usize,
-        205u8 => 205usize,
-        206u8 => 206usize,
-        207u8 => 207usize,
-        208u8 => 208usize,
-        209u8 => 209usize,
-        210u8 => 210usize,
-        211u8 => 211usize,
-        212u8 => 212usize,
-        213u8 => 213usize,
-        214u8 => 214usize,
-        215u8 => 215usize,
-        216u8 => 216usize,
-        217u8 => 217usize,
-        218u8 => 218usize,
-        219u8 => 219usize,
-        220u8 => 220usize,
-        221u8 => 221usize,
-        222u8 => 222usize,
-        223u8 => 223usize,
-        224u8 => 224usize,
-        225u8 => 225usize,
-        226u8 => 226usize,
-        227u8 => 227usize,
-        228u8 => 228usize,
-        229u8 => 229usize,
-        230u8 => 230usize,
-        231u8 => 231usize,
-        232u8 => 232usize,
-        233u8 => 233usize,
-        234u8 => 234usize,
-        235u8 => 235usize,
-        236u8 => 236usize,
-        237u8 => 237usize,
-        238u8 => 238usize,
-        239u8 => 239usize,
-        240u8 => 240usize,
-        241u8 => 241usize,
-        242u8 => 242usize,
-        243u8 => 243usize,
-        244u8 => 244usize,
-        245u8 => 245usize,
-        246u8 => 246usize,
-        247u8 => 247usize,
-        248u8 => 248usize,
-        249u8 => 249usize,
-        250u8 => 250usize,
-        251u8 => 251usize,
-        252u8 => 252usize,
-        253u8 => 253usize,
-        254u8 => 254usize,
-        _ => 255usize,
-    }
+    octet_step_128(value, 0usize)
 }
+
+@id("frame.octet-step-128")
+fn octet_step_128(value: u8, converted: usize) -> usize
+{
+    if value >= 128u8 { octet_step_64(value - 128u8, converted + 128usize) } else { octet_step_64(value, converted) }
+}
+
+@id("frame.octet-step-64")
+fn octet_step_64(value: u8, converted: usize) -> usize
+{
+    if value >= 64u8 { octet_step_32(value - 64u8, converted + 64usize) } else { octet_step_32(value, converted) }
+}
+
+@id("frame.octet-step-32")
+fn octet_step_32(value: u8, converted: usize) -> usize
+{
+    if value >= 32u8 { octet_step_16(value - 32u8, converted + 32usize) } else { octet_step_16(value, converted) }
+}
+
+@id("frame.octet-step-16")
+fn octet_step_16(value: u8, converted: usize) -> usize
+{
+    if value >= 16u8 { octet_step_8(value - 16u8, converted + 16usize) } else { octet_step_8(value, converted) }
+}
+
+@id("frame.octet-step-8")
+fn octet_step_8(value: u8, converted: usize) -> usize
+{
+    if value >= 8u8 { octet_step_4(value - 8u8, converted + 8usize) } else { octet_step_4(value, converted) }
+}
+
+@id("frame.octet-step-4")
+fn octet_step_4(value: u8, converted: usize) -> usize
+{
+    if value >= 4u8 { octet_step_2(value - 4u8, converted + 4usize) } else { octet_step_2(value, converted) }
+}
+
+@id("frame.octet-step-2")
+fn octet_step_2(value: u8, converted: usize) -> usize
+{
+    if value >= 2u8 { octet_step_1(value - 2u8, converted + 2usize) } else { octet_step_1(value, converted) }
+}
+
+@id("frame.octet-step-1")
+fn octet_step_1(value: u8, converted: usize) -> usize
+{
+    if value == 1u8 { converted + 1usize } else { converted }
+}
+
 @id("frame.has-magic")
 fn has_magic(frame: borrow Slice<u8>) -> bool
 {
-    match byte_get(frame, 0usize) {
-        Option::Some { value: first } =>
-            match byte_get(frame, 1usize) {
-                Option::Some { value: second } =>
-                    match byte_get(frame, 2usize) {
-                        Option::Some { value: third } =>
-                            match byte_get(frame, 3usize) {
-                                Option::Some { value: fourth } =>
-                                    first == 83u8 && second == 80u8 && third == 88u8 && fourth == 49u8,
-                                Option::None {} => false,
-                            },
-                        Option::None {} => false,
-                    },
-                Option::None {} => false,
-            },
-        Option::None {} => false,
-    }
+    match byte_get(frame, 0usize) { Option::Some { value: first } => match byte_get(frame, 1usize) { Option::Some { value: second } => match byte_get(frame, 2usize) { Option::Some { value: third } => match byte_get(frame, 3usize) { Option::Some { value: fourth } => first == 83u8 && second == 80u8 && third == 88u8 && fourth == 49u8, Option::None {} => false, }, Option::None {} => false, }, Option::None {} => false, }, Option::None {} => false, }
 }
 
 @id("frame.declared-length")
-fn declared_length(frame: borrow Slice<u8>) -> Option<usize>
+fn declared_length(frame: borrow Slice<u8>) -> usize
 {
-    match byte_get(frame, 4usize) {
-        Option::Some { value: first } =>
-            match byte_get(frame, 5usize) {
-                Option::Some { value: second } =>
-                    match byte_get(frame, 6usize) {
-                        Option::Some { value: third } =>
-                            match byte_get(frame, 7usize) {
-                                Option::Some { value: fourth } =>
-                                    Option<usize>::Some {
-                                        value: octet_to_usize(first) * 16777216usize
-                                            + octet_to_usize(second) * 65536usize
-                                            + octet_to_usize(third) * 256usize
-                                            + octet_to_usize(fourth),
-                                    },
-                                Option::None {} => Option<usize>::None {},
-                            },
-                        Option::None {} => Option<usize>::None {},
-                    },
-                Option::None {} => Option<usize>::None {},
-            },
-        Option::None {} => Option<usize>::None {},
-    }
+    match byte_get(frame, 4usize) { Option::Some { value: first } => match byte_get(frame, 5usize) { Option::Some { value: second } => match byte_get(frame, 6usize) { Option::Some { value: third } => match byte_get(frame, 7usize) { Option::Some { value: fourth } => octet_to_usize(first) * 16777216usize + octet_to_usize(second) * 65536usize + octet_to_usize(third) * 256usize + octet_to_usize(fourth), Option::None {} => 0usize, }, Option::None {} => 0usize, }, Option::None {} => 0usize, }, Option::None {} => 0usize, }
 }
 
 @id("frame.payload")
@@ -317,46 +72,23 @@ fn payload(frame: borrow Slice<u8>) -> Bytes
     bytes_copy(byte_range(frame, 8usize, byte_len(frame)))
 }
 
+@id("frame.status")
+fn frame_status(frame: borrow Slice<u8>) -> i64
+{
+    let length = byte_len(frame);
+    if length < 8usize { 2 } else { if !has_magic(frame) { 1 } else { if declared_length(frame) == length - 8usize { 0 } else { 3 } } }
+}
+
 @id("frame.payload-maybe")
 fn payload_maybe(frame: borrow Slice<u8>) -> Option<Bytes>
 {
     let length = byte_len(frame);
-    if length < 8usize || !has_magic(frame) {
-        Option<Bytes>::None {}
-    } else {
-        match declared_length(frame) {
-            Option::Some { value: declared } =>
-                if declared == length - 8usize {
-                    Option<Bytes>::Some {
-                        value: bytes_copy(byte_range(frame, 8usize, length)),
-                    }
-                } else {
-                    Option<Bytes>::None {}
-                },
-            Option::None {} => Option<Bytes>::None {},
-        }
-    }
+    if length < 8usize { Option<Bytes>::None {} } else { if !has_magic(frame) { Option<Bytes>::None {} } else { if declared_length(frame) == length - 8usize { Option<Bytes>::Some { value: bytes_copy(byte_range(frame, 8usize, length)) } } else { Option<Bytes>::None {} } } }
 }
 
 @id("frame.payload-result")
 fn payload_result(frame: borrow Slice<u8>) -> Result<Bytes, i64>
 {
     let length = byte_len(frame);
-    if length < 8usize {
-        Result<Bytes, i64>::Err { error: 2 }
-    } else if !has_magic(frame) {
-        Result<Bytes, i64>::Err { error: 1 }
-    } else {
-        match declared_length(frame) {
-            Option::Some { value: declared } =>
-                if declared == length - 8usize {
-                    Result<Bytes, i64>::Ok {
-                        value: bytes_copy(byte_range(frame, 8usize, length)),
-                    }
-                } else {
-                    Result<Bytes, i64>::Err { error: 3 }
-                },
-            Option::None {} => Result<Bytes, i64>::Err { error: 2 },
-        }
-    }
+    if length < 8usize { Result<Bytes, i64>::Err { error: 2 } } else { if !has_magic(frame) { Result<Bytes, i64>::Err { error: 1 } } else { if declared_length(frame) == length - 8usize { Result<Bytes, i64>::Ok { value: bytes_copy(byte_range(frame, 8usize, length)) } } else { Result<Bytes, i64>::Err { error: 3 } } } }
 }

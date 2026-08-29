@@ -188,15 +188,29 @@ fn extract_build(raw: &str) -> &str {
     &raw[start..raw.len() - 2]
 }
 
+fn direct_descriptor(fixture: &Fixture) -> project::PublicApiDescriptor {
+    project::with_authenticated_project(&fixture.manifest(), |snapshot| {
+        snapshot.public_api_descriptor()
+    })
+    .unwrap()
+}
+
+fn direct_descriptor_and_build(
+    fixture: &Fixture,
+) -> (project::PublicApiDescriptor, ProjectNpmBuild) {
+    project::with_authenticated_project(&fixture.manifest(), |snapshot| {
+        let descriptor = snapshot.public_api_descriptor()?;
+        let build = snapshot.build_npm_inline(project::MAX_PROJECT_NPM_BUILD_BYTES)?;
+        Ok((descriptor, build))
+    })
+    .unwrap()
+}
+
 #[test]
 fn v5_returns_one_exact_descriptor_and_replayable_carrier_without_authority() {
     let fixture = Fixture::new("primary");
     let before = fixture.inventory();
-    let direct_snapshot = project::load_snapshot(&fixture.manifest()).unwrap();
-    let direct_descriptor = direct_snapshot.public_api_descriptor().unwrap();
-    let direct_build = direct_snapshot
-        .build_npm_inline(project::MAX_PROJECT_NPM_BUILD_BYTES)
-        .unwrap();
+    let (direct_descriptor, direct_build) = direct_descriptor_and_build(&fixture);
     direct_build
         .verify_public_api_descriptor(&direct_descriptor)
         .unwrap();
@@ -330,16 +344,8 @@ fn v5_returns_one_exact_descriptor_and_replayable_carrier_without_authority() {
 fn v5_rejects_decoys_foreign_remints_and_legacy_profile_confusion() {
     let first = Fixture::new("first");
     let second = Fixture::new("second");
-    let first_snapshot = project::load_snapshot(&first.manifest()).unwrap();
-    let second_snapshot = project::load_snapshot(&second.manifest()).unwrap();
-    let first_descriptor = first_snapshot.public_api_descriptor().unwrap();
-    let second_descriptor = second_snapshot.public_api_descriptor().unwrap();
-    let first_build = first_snapshot
-        .build_npm_inline(project::MAX_PROJECT_NPM_BUILD_BYTES)
-        .unwrap();
-    let second_build = second_snapshot
-        .build_npm_inline(project::MAX_PROJECT_NPM_BUILD_BYTES)
-        .unwrap();
+    let (first_descriptor, first_build) = direct_descriptor_and_build(&first);
+    let (second_descriptor, second_build) = direct_descriptor_and_build(&second);
     assert!(first_build
         .verify_public_api_descriptor(&second_descriptor)
         .is_err());
@@ -391,8 +397,7 @@ fn v5_rejects_decoys_foreign_remints_and_legacy_profile_confusion() {
 #[test]
 fn v5_descriptor_response_uses_the_exact_framed_capacity_boundary() {
     let fixture = Fixture::new("response-boundary");
-    let snapshot = project::load_snapshot(&fixture.manifest()).unwrap();
-    let descriptor = snapshot.public_api_descriptor().unwrap();
+    let descriptor = direct_descriptor(&fixture);
     let result = format!(
         "{{\"descriptor\":{},\"descriptor_digest\":{}}}",
         String::from_utf8(descriptor.canonical_bytes()).unwrap(),

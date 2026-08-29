@@ -22,7 +22,7 @@ fn maybe(input: borrow Slice<u8>) -> Option<Bytes> {
 }
 
 @id("owned.result")
-fn result(input: borrow Slice<u8>) -> Result<Bytes, i64> {
+fn result_value(input: borrow Slice<u8>) -> Result<Bytes, i64> {
     if byte_len(input) == 0usize {
         Result<Bytes, i64>::Err { error: -7 }
     } else {
@@ -41,7 +41,8 @@ fn main() -> i64 { 0 }
 
 fn program() -> hir::ResolvedProgram {
     let ast = parse(SOURCE, "owned-data-interpreter-v1.spx").unwrap();
-    assert!(verify::verify(&ast).is_empty());
+    let diagnostics = verify::verify(&ast);
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
     let program = hir::resolve(&ast).unwrap();
     hir::validate(&program).unwrap();
     program

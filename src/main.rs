@@ -1,3 +1,8 @@
+#![allow(
+    clippy::result_large_err,
+    reason = "the CLI preserves structured Diagnostic values across command boundaries"
+)]
+
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 

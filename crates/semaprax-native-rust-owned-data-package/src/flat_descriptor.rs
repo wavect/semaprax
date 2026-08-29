@@ -173,7 +173,14 @@ pub(crate) fn replay(
     }
     let mut records = std::collections::BTreeMap::<&str, (&str, &str, &Vec<Field>)>::new();
     let mut host_records = std::collections::BTreeMap::<&str, &str>::new();
+    let mut source_records = std::collections::BTreeMap::<&str, &str>::new();
     for export in &exports {
+        if let Some(previous) = source_records.insert(&export.record_source_name, &export.record_id)
+        {
+            if previous != export.record_id {
+                return Err(PackageError::descriptor());
+            }
+        }
         if let Some(previous) = host_records.insert(&export.record_host_name, &export.record_id) {
             if previous != export.record_id {
                 return Err(PackageError::descriptor());

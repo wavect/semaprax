@@ -3197,7 +3197,8 @@ impl Emitter<'_> {
             })
             .cloned()
             .collect::<Vec<_>>();
-        for transition in transitions {
+        let mut completed_variant_destinations = std::collections::BTreeSet::new();
+        for transition in &transitions {
             match transition {
                 crate::cleanup_plan::CleanupTransition::Initialize { destination, .. } => {
                     if !self.set_variant_storage_flags_from_value(&destination, value)? {
@@ -3210,7 +3211,7 @@ impl Emitter<'_> {
                     ..
                 } => {
                     let layout = variant_layout(self.variant_layouts, value_type(value))?;
-                    if layout.variant != variant
+                    if layout.variant != *variant
                         || !self.set_variant_storage_flags_from_value(&destination, value)?
                     {
                         return Err(error(
@@ -3240,53 +3241,151 @@ impl Emitter<'_> {
                     }
                 }
                 crate::cleanup_plan::CleanupTransition::TransferVariant {
-                    source,
+                    source: _,
                     destination,
                     variant,
                     ..
                 } => {
-                    let source_ty = self
-                        .plan
-                        .cleanup_storage_types
-                        .get(&source.storage)
-                        .ok_or_else(|| error("dynamic variant transfer source type is absent"))?;
-                    let destination_ty = self
-                        .plan
-                        .cleanup_storage_types
-                        .get(&destination.storage)
-                        .ok_or_else(|| {
-                            error("dynamic variant transfer destination type is absent")
-                        })?;
-                    let layout = variant_layout(self.variant_layouts, value_type(value))?;
-                    if layout.variant != variant
-                        || source_ty != destination_ty
-                        || source_ty != value_type(value)
-                    {
-                        return Err(error("dynamic variant transfer disagrees with storage"));
-                    }
-                    // `emit_expr_inner` may already have performed the single
-                    // physical fieldwise materialization and poisoned its
-                    // former source carrier. The returned expression value is
-                    // therefore the authoritative carrier whose tag must
-                    // agree with the still-source-owned logical flags.
-                    self.assert_conditional_variant_liveness(&source, value)?;
-                    self.assert_variant_destination_dead(&destination)?;
-                    // Cleanup transitions move authority, not the physical
-                    // carrier. The ordinary expression materialization below
-                    // performs the single fieldwise move. Copying here would
-                    // poison `source_value` and make that later move observe a
-                    // synthetic tag-zero carrier, orphaning the selected
-                    // payload.
-                    self.set_storage_flag(&source, false)?;
-                    if !self.set_variant_storage_flags_from_value(&destination, value)? {
-                        return Err(error(
-                            "dynamic variant transfer destination is not conditional",
-                        ));
+                    let key = (destination.clone(), variant.clone());
+                    if completed_variant_destinations.insert(key) {
+                        let sources = transitions
+                            .iter()
+                            .filter_map(|candidate| match candidate {
+                                crate::cleanup_plan::CleanupTransition::TransferVariant {
+                                    source,
+                                    destination: candidate_destination,
+                                    variant: candidate_variant,
+                                    ..
+                                } if candidate_destination == destination
+                                    && candidate_variant == variant =>
+                                {
+                                    Some(source.clone())
+                                }
+                                _ => None,
+                            })
+                            .collect::<Vec<_>>();
+                        self.apply_variant_transfer_group(&sources, destination, variant, value)?;
                     }
                 }
                 crate::cleanup_plan::CleanupTransition::AuthenticateVariantCase { .. } => {}
                 _ => unreachable!("filtered byte cleanup transition"),
             }
+        }
+        Ok(())
+    }
+
+    fn apply_variant_transfer_group(
+        &mut self,
+        sources: &[crate::cleanup_plan::CleanupPlace],
+        destination: &crate::cleanup_plan::CleanupPlace,
+        variant: &DeclarationId,
+        value: &Value,
+    ) -> Result<(), Diagnostic> {
+        let destination_ty = self
+            .plan
+            .cleanup_storage_types
+            .get(&destination.storage)
+            .ok_or_else(|| error("dynamic variant transfer destination type is absent"))?;
+        let layout = variant_layout(self.variant_layouts, value_type(value))?;
+        if sources.is_empty()
+            || layout.variant != *variant
+            || destination_ty != value_type(value)
+            || sources.iter().any(|source| {
+                self.plan.cleanup_storage_types.get(&source.storage) != Some(destination_ty)
+            })
+        {
+            return Err(error("dynamic variant transfer disagrees with storage"));
+        }
+        if sources.len() == 1 {
+            self.assert_conditional_variant_liveness(&sources[0], value)?;
+        } else {
+            self.assert_merged_variant_liveness(sources, value)?;
+        }
+        self.assert_variant_destination_dead(destination)?;
+        // Cleanup transitions move authority, not the physical carrier. The
+        // ordinary expression materialization already performed the one
+        // fieldwise move, so only the logical source epochs change here.
+        for source in sources {
+            self.set_storage_flag(source, false)?;
+        }
+        if !self.set_variant_storage_flags_from_value(destination, value)? {
+            return Err(error(
+                "dynamic variant transfer destination is not conditional",
+            ));
+        }
+        Ok(())
+    }
+
+    fn assert_merged_variant_liveness(
+        &mut self,
+        sources: &[crate::cleanup_plan::CleanupPlace],
+        value: &Value,
+    ) -> Result<(), Diagnostic> {
+        let Value::Aggregate { pointer, ty } = value else {
+            return Err(error(
+                "merged variant liveness requires an aggregate carrier",
+            ));
+        };
+        let layout = variant_layout(self.variant_layouts, ty)?;
+        self.emit_pointer(*pointer);
+        self.output.extend([0x28, 0x02, 0x00, 0x41]);
+        write_i64(
+            self.output,
+            i64::try_from(layout.cases.len())
+                .map_err(|_| error("merged variant case count overflows i64"))?,
+        );
+        self.output.push(0x4f);
+        self.trap_if();
+
+        let destination_leaves = self
+            .plan
+            .cleanup_place_flags
+            .keys()
+            .filter(|leaf| {
+                leaf.storage == sources[0].storage
+                    && leaf.projections.starts_with(&sources[0].projections)
+                    && leaf.projections.len() == sources[0].projections.len() + 2
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        if destination_leaves.is_empty() {
+            return Err(error("merged conditional variant has no payload leaves"));
+        }
+        for leaf in destination_leaves {
+            let relative = leaf
+                .projections
+                .strip_prefix(sources[0].projections.as_slice())
+                .ok_or_else(|| error("merged variant leaf prefix is inconsistent"))?;
+            let case = layout
+                .case(&relative[0])
+                .ok_or_else(|| error("merged variant liveness case is absent"))?;
+            self.output.extend([0x41, 0x00]);
+            for source in sources {
+                let projections = source
+                    .projections
+                    .iter()
+                    .chain(relative)
+                    .cloned()
+                    .collect::<Vec<_>>();
+                let source_leaf = crate::cleanup_plan::CleanupPlace {
+                    storage: source.storage.clone(),
+                    projections,
+                };
+                let flag = self
+                    .plan
+                    .cleanup_place_flags
+                    .get(&source_leaf)
+                    .copied()
+                    .ok_or_else(|| error("merged variant source leaf is absent"))?;
+                self.output.push(0x20);
+                write_u32(self.output, flag);
+                self.output.push(0x6a);
+            }
+            self.emit_pointer(*pointer);
+            self.output.extend([0x28, 0x02, 0x00, 0x41]);
+            write_i64(self.output, i64::from(case.tag));
+            self.output.extend([0x46, 0x47]);
+            self.trap_if();
         }
         Ok(())
     }

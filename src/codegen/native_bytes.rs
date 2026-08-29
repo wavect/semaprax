@@ -543,24 +543,39 @@ impl NativeBytesPlan {
         layout: &VariantLayout,
     ) -> Result<String, Diagnostic> {
         let mut output = self.apply_at(at)?;
-        for transition in self.transitions.get(at).into_iter().flatten() {
-            if let CleanupTransition::TransferVariant {
-                source,
-                destination,
-                variant,
-                ..
-            } = transition
-            {
-                if variant != &layout.variant {
-                    return Err(error("variant transfer identity disagrees with layout"));
-                }
-                output.push_str(&self.emit_variant_transfer(
+        let variant_transitions = self
+            .transitions
+            .get(at)
+            .into_iter()
+            .flatten()
+            .filter_map(|transition| match transition {
+                CleanupTransition::TransferVariant {
                     source,
                     destination,
-                    carrier,
-                    layout,
-                )?);
+                    variant,
+                    ..
+                } => Some((source, destination, variant)),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        let alternative_destinations = variant_transitions.iter().fold(
+            BTreeMap::<&CleanupPlace, usize>::new(),
+            |mut counts, row| {
+                *counts.entry(row.1).or_default() += 1;
+                counts
+            },
+        );
+        for (source, destination, variant) in variant_transitions {
+            // Variant-producing `if` branches are transferred while each
+            // branch is still selected. Reapplying their joined alternatives
+            // here would demand that both mutually exclusive sources be live.
+            if alternative_destinations[&destination] > 1 {
+                continue;
             }
+            if variant != &layout.variant {
+                return Err(error("variant transfer identity disagrees with layout"));
+            }
+            output.push_str(&self.emit_variant_transfer(source, destination, carrier, layout)?);
         }
         Ok(output)
     }

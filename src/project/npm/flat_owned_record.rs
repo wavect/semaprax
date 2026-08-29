@@ -3,9 +3,7 @@
 use sha2::{Digest, Sha256};
 
 use crate::diagnostic::{quote_json, Diagnostic};
-use crate::project::{
-    FlatOwnedRecordApiDescriptor, FlatOwnedRecordFieldType, PublicApiParameterType,
-};
+use crate::project::FlatOwnedRecordApiDescriptor;
 
 use super::carrier::{
     artifact, payload_digest_artifacts_v8, render_carrier_artifacts, trusted_binding, NpmArtifact,

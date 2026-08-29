@@ -241,6 +241,7 @@ dependencies = [
  "renamore",
  "rustix",
  "same-file",
+ "semaprax-native-rust-owned-data-package",
  "serde_json",
  "sha2",
  "wasmparser",
@@ -260,6 +261,7 @@ version = "0.1.0"
 dependencies = [
  "semaprax",
  "semaprax-native-rust-interop-platform",
+ "semaprax-native-rust-owned-data-package",
  "serde_json",
  "sha2",
 ]
@@ -278,6 +280,15 @@ dependencies = [
  "libc",
  "sha2",
  "windows-sys",
+]
+
+[[package]]
+name = "semaprax-native-rust-owned-data-package"
+version = "0.1.0"
+dependencies = [
+ "semaprax-native-rust-interop-platform",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]

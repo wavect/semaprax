@@ -196,7 +196,7 @@ impl OwnedDataExportPlan {
         local_get(&mut body, old_stack);
         i32_const(&mut body, private_size as i32);
         body.push(0x6b);
-        body.push(0x22);
+        body.push(0x21); // local.set; the pointer is reloaded for each use below
         write_u32(&mut body, temporary_out);
         // Authenticate complete half-open range disjointness. Equality alone
         // is insufficient when the private aggregate and public carrier have

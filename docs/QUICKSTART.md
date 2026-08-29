@@ -1,5 +1,9 @@
 # Quickstart
 
+Audience: new SEMAPRAX users and contributors.
+
+Status: pre-alpha bounded calculator workflow; not a production-readiness claim.
+
 This quickstart uses the installed `semaprax` CLI to create and exercise the
 built-in calculator Project v1 template. It does not access a network,
 initialize Git, or install dependencies.

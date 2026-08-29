@@ -267,6 +267,7 @@ pub(crate) fn render_manifest(
     output
 }
 
+#[allow(clippy::too_many_arguments, reason = "manifest inputs remain explicit")]
 pub(crate) fn verify_manifest(
     bytes: &[u8],
     target: HostTarget,

@@ -6,12 +6,13 @@
 
 use crate::diagnostic::Diagnostic;
 use crate::hir::{IdentityOrigin, ResolvedProgram};
+use std::path::Path;
 
 use super::{ProjectSnapshot, ProjectSource, AUTHENTICATED_PROJECT_SUBJECT_OPERATION};
 
-#[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 const RUST_OWNED_DATA_PUBLICATION_SUBJECT: &str = "Project v8 Native Rust owned-data package";
-#[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 const RUST_OWNED_UTF8_PUBLICATION_SUBJECT: &str = "Project v10 Native Rust owned-UTF8 package";
 
 /// Invocation-borrowed, target-neutral subject for the standalone owned-data
@@ -182,7 +183,7 @@ impl ProjectSnapshot {
     /// Build the exact Project-v8 selected closure as a safe owned-data Rust
     /// package. Descriptor and semantic-recipe replay are completed before the
     /// lower held-tool/publication layer receives any bytes.
-    #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
     pub fn build_rust(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
         if self.manifest().is_v9() {
             return self.build_flat_owned_record_rust(output);
@@ -195,7 +196,7 @@ impl ProjectSnapshot {
         }
         let project_v10 = self.manifest().is_v10();
         let version = if project_v10 { "v10" } else { "v8" };
-        let selected = self.manifest().web_exports();
+        let selected = self.manifest().web_exports().to_vec();
         let subject = super::PublicApiSubject {
             project_schema: self.manifest().schema(),
             project_revision: self.project_revision(),
@@ -203,13 +204,13 @@ impl ProjectSnapshot {
             project_graph_digest: self.semantic.graph_digest(),
         };
         let descriptor =
-            super::derive_public_api_descriptor(self.entry_program(), selected, subject)
+            super::derive_public_api_descriptor(self.entry_program(), &selected, subject)
                 .map_err(|error| vec![error])?;
         let descriptor_bytes = descriptor.canonical_bytes();
         let descriptor_digest = descriptor.digest();
         let replayed = super::replay_public_api_descriptor(
             self.entry_program(),
-            selected,
+            &selected,
             subject,
             &descriptor_bytes,
             &descriptor_digest,
@@ -228,7 +229,7 @@ impl ProjectSnapshot {
                 .map_err(|error| vec![error])?;
         let replayed_descriptor = super::replay_public_api_descriptor(
             &replayed_program,
-            selected,
+            &selected,
             subject,
             &descriptor_bytes,
             &descriptor_digest,
@@ -247,7 +248,7 @@ impl ProjectSnapshot {
         };
         let provider = emit_provider(
             self.entry_program(),
-            selected,
+            &selected,
             subject,
             &descriptor_bytes,
             &descriptor_digest,
@@ -255,7 +256,7 @@ impl ProjectSnapshot {
         .map_err(|error| vec![error])?;
         let replayed_provider = emit_provider(
             &replayed_program,
-            selected,
+            &selected,
             subject,
             &descriptor_bytes,
             &descriptor_digest,
@@ -275,7 +276,7 @@ impl ProjectSnapshot {
         let plan = semaprax_native_rust_owned_data_package::PackagePlan::new(
             descriptor_bytes,
             descriptor_digest,
-            selected.to_vec(),
+            selected,
             provider_bytes.clone(),
             semaprax_native_rust_owned_data_package::provider_sha256(&provider_bytes),
             if project_v10 {
@@ -295,23 +296,26 @@ impl ProjectSnapshot {
             .map_err(|drift| self.publication_uncertainty(drift))
     }
 
-    #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
     fn build_flat_owned_record_rust(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
-        let selected = self.manifest().web_exports();
+        let selected = self.manifest().web_exports().to_vec();
         let subject = super::PublicApiSubject {
             project_schema: self.manifest().schema(),
             project_revision: self.project_revision(),
             workspace_revision: self.workspace_revision(),
             project_graph_digest: self.semantic.graph_digest(),
         };
-        let descriptor =
-            super::derive_flat_owned_record_api_descriptor(self.entry_program(), selected, subject)
-                .map_err(|error| vec![error])?;
+        let descriptor = super::derive_flat_owned_record_api_descriptor(
+            self.entry_program(),
+            &selected,
+            subject,
+        )
+        .map_err(|error| vec![error])?;
         let bytes = descriptor.canonical_bytes();
         let digest = descriptor.digest();
         let replayed = super::replay_flat_owned_record_api_descriptor(
             self.entry_program(),
-            selected,
+            &selected,
             subject,
             &bytes,
             &digest,
@@ -329,7 +333,7 @@ impl ProjectSnapshot {
                 .map_err(|error| vec![error])?;
         let replayed_descriptor = super::replay_flat_owned_record_api_descriptor(
             &replayed_program,
-            selected,
+            &selected,
             subject,
             &bytes,
             &digest,
@@ -342,7 +346,7 @@ impl ProjectSnapshot {
         }
         let provider = crate::codegen::emit_project_v9_native_flat_owned_record_provider(
             self.entry_program(),
-            selected,
+            &selected,
             subject,
             &bytes,
             &digest,
@@ -350,7 +354,7 @@ impl ProjectSnapshot {
         .map_err(|error| vec![error])?;
         let replayed_provider = crate::codegen::emit_project_v9_native_flat_owned_record_provider(
             &replayed_program,
-            selected,
+            &selected,
             subject,
             &bytes,
             &digest,
@@ -369,7 +373,7 @@ impl ProjectSnapshot {
         let plan = semaprax_native_rust_owned_data_package::PackagePlan::new(
             bytes,
             digest,
-            selected.to_vec(),
+            selected,
             provider_bytes.clone(),
             semaprax_native_rust_owned_data_package::provider_sha256(&provider_bytes),
             semaprax_native_rust_owned_data_package::PackageMode::ProjectV9FlatRecord,
@@ -379,6 +383,14 @@ impl ProjectSnapshot {
         self.published_subject = Some(RUST_OWNED_DATA_PUBLICATION_SUBJECT);
         self.recheck()
             .map_err(|drift| self.publication_uncertainty(drift))
+    }
+
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+    pub fn build_rust(&mut self, _output: &Path) -> Result<(), Vec<Diagnostic>> {
+        Err(vec![Diagnostic::io(
+            "SPX-J114",
+            "the rust target is available only on Linux, macOS, and Windows hosts",
+        )])
     }
 
     /// Lend one authenticated Project subject to a potentially effectful
@@ -409,12 +421,12 @@ impl ProjectSnapshot {
     }
 }
 
-#[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 fn rust_build_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-B114", message)
 }
 
-#[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 fn lower_build_error(
     failure: semaprax_native_rust_owned_data_package::PackageError,
     version: &str,
@@ -436,7 +448,7 @@ fn lower_build_error(
     }
 }
 
-#[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 fn lower_flat_record_build_error(
     failure: semaprax_native_rust_owned_data_package::PackageError,
 ) -> Diagnostic {

@@ -12,6 +12,10 @@ mod project {
     }
 }
 
+#[allow(
+    clippy::result_large_err,
+    reason = "the included CLI module preserves the production Diagnostic API"
+)]
 #[path = "../src/cli/build.rs"]
 mod build_cli;
 

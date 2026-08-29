@@ -49,7 +49,7 @@ fn option_fail_after(input: borrow Slice<u8>, zero: i64) -> Option<Bytes> {
     Option<Bytes>::Some { value: staged }
 }
 @id("variant.result")
-fn result(input: borrow Slice<u8>, error: i64, ok: bool) -> Result<Bytes, i64> {
+fn result_value(input: borrow Slice<u8>, error: i64, ok: bool) -> Result<Bytes, i64> {
     if ok {
         Result<Bytes, i64>::Ok { value: bytes_copy(input) }
     } else {

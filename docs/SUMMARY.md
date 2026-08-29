@@ -7,6 +7,7 @@ Audience: all documentation readers.
 # Public documentation
 
 - [Documentation overview](index.md)
+- [Quickstart](QUICKSTART.md)
 
 ## Language contract
 

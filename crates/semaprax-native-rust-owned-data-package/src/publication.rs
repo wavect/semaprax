@@ -215,7 +215,7 @@ pub(crate) fn build_archive(
 
 pub(crate) fn publish_package(
     authority: &PublicationAuthority,
-    files: [(&str, &[u8]); 7],
+    files: [(&'static str, &[u8]); 7],
 ) -> Result<platform::HeldDirectory, PackageError> {
     authority.recheck()?;
     let probe = platform::prepare_child_name(&authority.output_name)
@@ -288,7 +288,7 @@ pub(crate) fn publish_package(
 pub(crate) fn verify_published(
     authority: &PublicationAuthority,
     directory: &platform::HeldDirectory,
-    files: [(&str, &[u8]); 7],
+    files: [(&'static str, &[u8]); 7],
 ) -> Result<(), PackageError> {
     authority.recheck()?;
     if !platform::same_directory_path(directory, &authority.output)

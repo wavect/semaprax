@@ -1,5 +1,7 @@
 # Project Agent Transport v5
 
+Audience: agent and tool authors, plus compiler contributors.
+
 Status: additive implementation and focused evidence authored; local and
 hosted promotion are not claimed.
 

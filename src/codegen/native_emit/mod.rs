@@ -296,6 +296,10 @@ fn emit_fixed_byte_array_declarations(
     Ok(())
 }
 
+#[cfg_attr(
+    not(test),
+    allow(dead_code, reason = "resource preflight seam is exercised by tests")
+)]
 pub(super) fn emit_native_prelude(
     output: &mut impl COutput,
     resource_abi: &native_resource::NativeResourceAbi,

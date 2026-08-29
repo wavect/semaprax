@@ -493,13 +493,25 @@ impl FlowState {
 
     fn remove(&mut self, flags: &BTreeSet<LivenessFlagId>) {
         self.live_order.retain(|flag| !flags.contains(flag));
-        for variant in &mut self.conditional_variants {
+        self.conditional_variants.retain_mut(|variant| {
+            let carried_payload = variant
+                .cases
+                .iter()
+                .any(|(_, case_flags)| !case_flags.is_empty());
             for (_, case_flags) in &mut variant.cases {
                 case_flags.retain(|flag| !flags.contains(flag));
             }
-        }
-        self.conditional_variants
-            .retain(|variant| variant.cases.iter().any(|(_, flags)| !flags.is_empty()));
+            // A zero-payload active case is still an initialized owned value.
+            // Retain that case identity until its root is explicitly moved,
+            // consumed, or leaves its cleanup region.
+            if !carried_payload {
+                return true;
+            }
+            variant
+                .cases
+                .iter()
+                .any(|(_, case_flags)| !case_flags.is_empty())
+        });
     }
 
     fn append_distinct(&mut self, flags: impl IntoIterator<Item = LivenessFlagId>) {
@@ -1974,6 +1986,9 @@ impl<'a> PlanBuilder<'a> {
             self.finalizers_for(&state, |place| region_storages.contains(&place.storage));
         state.remove(&finalized_flags);
         state.remove(&finalized_conditional);
+        state
+            .conditional_variants
+            .retain(|variant| !region_storages.contains(&variant.root.storage));
 
         let continuation_block = self.new_block(parent)?;
         let edge = self.new_edge(block, continuation_block, EdgeCondition::Always)?;
@@ -2039,14 +2054,85 @@ impl<'a> PlanBuilder<'a> {
                 "branch join has conflicting cleanup initialization histories",
             ));
         }
-        if left.conditional_variants != right.conditional_variants {
+        let left_variants = left
+            .conditional_variants
+            .iter()
+            .map(|variant| (&variant.root, variant))
+            .collect::<BTreeMap<_, _>>();
+        let right_variants = right
+            .conditional_variants
+            .iter()
+            .map(|variant| (&variant.root, variant))
+            .collect::<BTreeMap<_, _>>();
+        if left_variants.len() != left.conditional_variants.len()
+            || right_variants.len() != right.conditional_variants.len()
+            || left_variants.keys().ne(right_variants.keys())
+        {
             return Err(plan_error(
-                "branch join disagrees on conditional variant liveness",
+                "branch join disagrees on conditional variant roots",
             ));
+        }
+        let mut conditional_variants = Vec::with_capacity(left_variants.len());
+        for (root, left_variant) in left_variants {
+            let right_variant = right_variants[root];
+            if left_variant.variant != right_variant.variant {
+                return Err(plan_error(
+                    "branch join disagrees on conditional variant identity",
+                ));
+            }
+            let left_cases = left_variant
+                .cases
+                .iter()
+                .map(|(case, flags)| (case, flags))
+                .collect::<BTreeMap<_, _>>();
+            let right_cases = right_variant
+                .cases
+                .iter()
+                .map(|(case, flags)| (case, flags))
+                .collect::<BTreeMap<_, _>>();
+            let domain = self
+                .program
+                .declarations
+                .variant_cases(&left_variant.variant)
+                .ok_or_else(|| plan_error("branch join variant has no closed case domain"))?;
+            let mut cases = Vec::new();
+            for declared_case in domain {
+                let left_flags = left_cases.get(&declared_case.id).copied();
+                let right_flags = right_cases.get(&declared_case.id).copied();
+                let flags = match (left_flags, right_flags) {
+                    (Some(left_flags), Some(right_flags)) if left_flags == right_flags => {
+                        left_flags
+                    }
+                    (Some(_), Some(_)) => {
+                        return Err(plan_error(
+                            "branch join disagrees on conditional case payload liveness",
+                        ));
+                    }
+                    (Some(flags), None) | (None, Some(flags)) => flags,
+                    (None, None) => continue,
+                };
+                cases.push((declared_case.id.clone(), flags.clone()));
+            }
+            if cases.len()
+                != left_cases
+                    .keys()
+                    .chain(right_cases.keys())
+                    .collect::<BTreeSet<_>>()
+                    .len()
+            {
+                return Err(plan_error(
+                    "branch join conditional state references a foreign case",
+                ));
+            }
+            conditional_variants.push(ConditionalFlowVariant {
+                root: root.clone(),
+                variant: left_variant.variant.clone(),
+                cases,
+            });
         }
         Ok(FlowState {
             live_order,
-            conditional_variants: left.conditional_variants.clone(),
+            conditional_variants,
         })
     }
 

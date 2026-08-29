@@ -1,6 +1,10 @@
 # Public Flat Owned Record API v1
 
-Status: additive implementation tranche; hosted promotion is not claimed.
+Status: authored but unrun; unpublished and unpromoted additive Project-v9
+implementation tranche.
+
+Audience: compiler contributors, generated-package integrators, and promotion
+reviewers.
 
 Project v9 widens the public owned-data result vocabulary by exactly one
 authored aggregate shape. It preserves Project v1-v8 and all v8 descriptor,
@@ -80,13 +84,15 @@ aggregate ABI reaches application code.
 
 ## Evidence boundary
 
-The physical npm/Core-Wasm and native-provider/safe-Rust routes are wired to
-the exact descriptor. The npm facade authenticates every scalar before copying
-and settling its sole opaque handle, then constructs the frozen object. The
-Rust route independently regenerates the provider from replayed HIR before the
-unpublished lower crate compiles and publishes a safe struct package. That
-lower crate proves descriptor, byte-integrity, tool, and filesystem facts; it
-does not independently prove provider semantics. Its published seven-file
+The authored physical npm/Core-Wasm and native-provider/safe-Rust routes are
+wired to the exact descriptor. The npm facade authenticates every scalar
+before copying and settling its sole opaque handle, then constructs the frozen
+object. The root Rust route independently regenerates the provider from
+replayed HIR before the unpublished lower crate compiles and stages a safe
+struct package. That lower crate proves descriptor, byte-integrity, tool, and
+filesystem facts; it verifies the renamed stage through its retained stage
+authority, and does not independently prove provider semantics. Root
+HIR/codegen replay alone owns that semantic proof. Its generated seven-file
 manifest is the sole producer of
 `semaprax.native-rust-flat-owned-record-sdk.v1`; the authority-free root
 descriptor layer defines no second document under that schema.
@@ -99,6 +105,10 @@ settle and publish-after-settle traces, capacity boundaries, and v1-v8 known
 answers. This implementation tranche has not run those target consumers or
 equivalence gates. Hosted promotion requires one exact blocking
 Linux/macOS/Windows head.
+
+No test, target consumer, hosted job, registry publication, or release
+promotion is claimed by the authored source state. The upstream baseline at
+`4cc03820c86e70527cb65c4b10ee3841c7af167d` predates Project v9.
 
 This tranche does not claim nested aggregates, variants, resources, owned
 strings, zero-copy transfer, a public native aggregate ABI, general records,

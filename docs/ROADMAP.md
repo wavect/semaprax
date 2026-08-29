@@ -17,11 +17,14 @@ priority over broad syntax or generated artifact volume.
 
 The current codebase has a bounded multi-file calculator, Project agent
 workflow, stable-ID JavaScript/TypeScript and unpublished Rust consumers, and a
-multi-file line-filter product. The blocking promotion matrix is exact-head
-green at `4cc03820c86e70527cb65c4b10ee3841c7af167d` in
+multi-file line-filter product. The upstream baseline blocking matrix is green
+at its exact commit `4cc03820c86e70527cb65c4b10ee3841c7af167d` in
 [run 33259787886](https://github.com/wavect/semaprax/actions/runs/33259787886).
+That historical exact-head evidence predates and does not promote the later
+WP-01–WP-15, Project v8, Agent Transport v5, Project v9, or Project v10 work.
 The release exit remains open on line-filter browser/runtime breadth,
-intentional Rust publication, and final release notes.
+intentional Rust publication, final tagged-artifact execution, and release
+notes.
 
 Exit outcomes:
 
@@ -31,6 +34,8 @@ Exit outcomes:
    point, or keep the release claim explicitly unpublished.
 3. Publish release notes that cite the exact commit and preserve all bounded
    non-claims.
+4. Complete WP-04 only after the tagged release artifacts, checksums, and smoke
+   paths pass at that same exact release head.
 
 The [v0.2 audit](COMPLETION-MATRIX.md#v02-product-exit-audit) is the acceptance
 checklist.
@@ -80,13 +85,17 @@ monomorphic result record with exactly one direct `Bytes` field and only direct
 `i64`/`bool`/`usize` siblings. Its descriptor and host projections must remain
 layout-independent. Its descriptor-bound npm/Core-Wasm and
 native-provider/safe-Rust routes are now wired while preserving the v8 target
-routes, but executable and hosted promotion evidence remains outstanding.
+routes. The implementation and executable evidence are authored but unrun;
+the generated packages are unpublished, and hosted promotion remains
+outstanding.
 
 The next additive string tranche is specified by
 [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md). Project v10 is gated
 on promoted Project v9 and keeps raw `Bytes` distinct from length-delimited,
-strictly validated host strings. Local generator/provider evidence is not a
-hosted promotion or a completion-matrix status change.
+strictly validated host strings. Its implementation and executable evidence
+are likewise authored but unrun and unpublished. Neither tranche is promoted,
+and authored generator/provider evidence is not a hosted result or a
+completion-matrix status change.
 
 ## 0.3: ownership and fast development
 

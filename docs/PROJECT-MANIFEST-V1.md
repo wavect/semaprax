@@ -217,7 +217,9 @@ additive lanes are exact-head hosted green at
 [macOS](https://github.com/wavect/semaprax/actions/runs/33259787886/job/99119653276),
 and [Windows](https://github.com/wavect/semaprax/actions/runs/33259787886/job/99119653334)
 Project Product Acceptance jobs, including `project_native_publication_v1` and
-the Project Native Rust SDK gate. Project v1 does not
+the Project Native Rust SDK gate. That upstream baseline run proves only the
+lanes present at its exact head; it does not execute or promote later WP or
+Project-v8/v9/v10 work. Project v1 does not
 claim general packages/dependencies, registry or network access, capabilities,
 aggregate or resource composition, generics, interface/native imports or
 `use type` edges, effects, general multi-file compilation, native output

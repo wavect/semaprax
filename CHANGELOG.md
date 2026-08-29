@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Added the unpromoted Project v9 `flat-owned-record-api.v1` implementation as
+  the first additive follow-on to Project v8. Its distinct descriptor admits
+  one direct owned-byte field with direct Copy-scalar siblings, while npm/Wasm
+  and native-provider/safe-Rust adapters keep target aggregate layouts private
+  and settle the sole opaque handle before host-object publication. The root
+  compiler alone authenticates provider semantics; the unpublished lower
+  package authenticates descriptor, byte-integrity, held-tool, and retained-
+  stage publication facts. Evidence is authored but was not run, the generated
+  packages are unpublished, and neither local nor hosted promotion is claimed.
+
 - Added the unpromoted Project v10 `owned-utf8-api.v1` implementation above
   the Project v9 physical adapters. Its distinct canonical descriptor admits
   mixed scalar, owned-byte, and length-delimited UTF-8 results. Wasm/npm copy
@@ -13,7 +23,7 @@
   carrier numbering remain additive preservation requirements. Evidence is
   authored but was not run, and no hosted or publication claim follows.
 
-- Promoted the complete blocking matrix at exact commit
+- Recorded the upstream baseline blocking matrix at exact commit
   `4cc03820c86e70527cb65c4b10ee3841c7af167d`: all 23 jobs are green in
   [run 33259787886](https://github.com/wavect/semaprax/actions/runs/33259787886),
   and the matching mdBook is green in
@@ -28,16 +38,21 @@
   starved desktop, UI, documentation, release, example, and package tail all
   passed. The generated Rust builder remains unpublished, and no registry,
   general aggregate/resource ABI, or multi-engine browser claim follows.
+  This run predates the later WP-01–WP-15, Project v8, Agent Transport v5,
+  Project v9, and Project v10 source work; it does not execute or promote any
+  of those additions. WP-04 tagged artifact/release promotion and WP-15
+  Project v8 hosted promotion remain pending.
 
-- Activated the exact additive Project Manifest v8 `owned-data-api.v1`
+- Added the authored exact additive Project Manifest v8 `owned-data-api.v1`
   implementation behind its closed profile. One canonical, domain-separated
   public API descriptor now derives from authenticated linked HIR and is
   independently replayed before driving direct `Bytes`, `Option<Bytes>`, and
   `Result<Bytes, i64>` npm/Wasm bindings or the safe Rust package. The Rust
   route keeps semantic/provider emission in the root compiler and delegates
   held compiler/archive tools, deterministic package rendering, no-clobber
-  publication, and exact reopening to the dependency-inverted
-  `semaprax-native-rust-owned-data-package` crate. Generated safe Rust forbids
+  publication, and verification through retained stage authority to the
+  dependency-inverted `semaprax-native-rust-owned-data-package` crate.
+  Generated safe Rust forbids
   unsafe code; opaque provider-handle FFI remains private, and no allocator
   transfer is introduced. Project v1–v7 preservation evidence is authored.
   These gates were not executed by this documentation audit, the packages are

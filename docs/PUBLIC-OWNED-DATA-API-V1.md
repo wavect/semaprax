@@ -373,10 +373,13 @@ unexecuted repository tests do not satisfy either condition.
     Skipped, cancelled, diagnostic-only, retried, or allowed-failure jobs do
     not count.
 
-The current source tree activates Project v8 behind its exact manifest/profile
-and CLI routes, but activation is not promotion. Until all twelve gates exist
-and the applicable exact-head jobs are green, neither generated package is a
-published supported SDK and no completion-matrix status is promoted.
+The current source tree contains the authored Project v8 implementation behind
+its exact manifest/profile and CLI routes. That source wiring is not execution
+or promotion. Until all twelve gates are executed and the applicable
+exact-head jobs are green, neither generated package is a published supported
+SDK and no completion-matrix status is promoted. The upstream baseline run
+linked by the completion matrix predates this work and supplies no Project v8
+promotion evidence.
 
 ## Nonclaims
 

@@ -246,20 +246,24 @@ projects safe TypeScript/Rust types plus an opaque-handle settlement plan.
 `src/project/npm/flat_owned_record.rs`, the aggregate-aware owned-data Wasm
 adapter, and the root native provider wire that descriptor to the additive npm
 and safe-Rust package routes. The lower unpublished package crate replays the
-descriptor, provider integrity binding, tools, and publication, but does not
-authenticate provider semantics; root HIR/codegen replay owns that proof. No
-route exposes a target aggregate layout. See [Public Flat Owned Record API
-v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md).
+descriptor, provider integrity binding, held tools, and publication facts,
+then verifies the renamed stage through its retained stage authority. It does
+not authenticate provider semantics; root HIR/codegen replay alone owns that
+proof. No route exposes a target aggregate layout. See [Public Flat Owned
+Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md).
 
 Project v10 adds the distinct `owned-utf8-api.v1` descriptor without treating
 text as raw `Bytes`. The root Wasm and native adapters retain the exact byte
 length, validate UTF-8 before host publication, and preserve the opaque
 provider-handle settlement boundary. npm consumes the carrier before fatal
 decoding to a JavaScript string. The dependency-inverted lower Rust package
-replays the v10 digest domain, copies and settles the handle, and only then
-constructs a safe `String`; invalid UTF-8 therefore cannot escape or retain
-provider ownership. V8/v9 renderer and carrier identities remain separate.
-See [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md).
+replays the v10 digest domain and provider-integrity binding, owns held tools
+and publication, verifies the renamed stage through retained stage authority,
+copies and settles the handle, and only then constructs a safe `String`;
+invalid UTF-8 therefore cannot escape or retain provider ownership. It receives
+no HIR and cannot independently prove provider semantics; root HIR/codegen
+replay alone owns that proof. V8/v9 renderer and carrier identities remain
+separate. See [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md).
 
 `src/project_transport/` and `src/bin/semapraxd.rs` retain one authenticated
 Project revision for bounded requests. Read-only v2 is the default. Explicit

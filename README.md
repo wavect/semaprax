@@ -194,6 +194,12 @@ supported general owned-data ABI. See [Public Owned Data API
 v1](docs/PUBLIC-OWNED-DATA-API-V1.md) and the [completion
 matrix](docs/COMPLETION-MATRIX.md).
 
+The source tree also contains authored-but-unrun Project v9 flat-owned-record
+and Project v10 owned-UTF-8 follow-ons. Their generated packages are
+unpublished, neither profile is promoted, and v10 remains gated on v9
+promotion. See [Public Flat Owned Record API v1](docs/PUBLIC-FLAT-OWNED-RECORD-API-V1.md)
+and [Public Owned UTF-8 API v1](docs/PUBLIC-OWNED-UTF8-API-V1.md).
+
 ## Project status
 
 **Release line:** v0.2 · **Maturity:** pre-alpha research · **Overall goal:**

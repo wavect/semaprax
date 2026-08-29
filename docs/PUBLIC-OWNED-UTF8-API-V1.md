@@ -1,6 +1,10 @@
 # Public Owned UTF-8 API v1
 
-Status: additive Project-v10 contract, gated on promoted Project v9.
+Status: authored but unrun; unpublished and unpromoted additive Project-v10
+implementation tranche, gated on promoted Project v9.
+
+Audience: compiler contributors, generated-package integrators, and promotion
+reviewers.
 
 ## Closed identity
 
@@ -40,6 +44,12 @@ silently decoded. The generated Rust facade copies and settles the opaque
 handle before `String::from_utf8`, so valid and hostile invalid byte sequences
 both settle provider ownership exactly once.
 
+The root compiler alone authenticates provider semantics from replayed HIR.
+The unpublished lower package authenticates the closed descriptor, provider
+byte integrity, compiler-declared textual binding, held tools, and filesystem
+publication facts; it verifies the renamed stage through retained stage
+authority and receives no HIR or independent semantic-proof authority.
+
 ## Settlement
 
 Copy does not transfer ownership. Consume/drop settles exactly one live handle.
@@ -49,6 +59,11 @@ conversion failure cannot leave a live provider handle. Stale, foreign,
 wrong-length, repeated, or exhausted handles retain the v8 fail-closed rules.
 
 ## Non-claims
+
+The implementation and its executable evidence are authored but were not run.
+No generated package is published, and neither local nor hosted promotion is
+claimed. Project v10 remains blocked on Project v9 promotion; the upstream
+baseline at `4cc03820c86e70527cb65c4b10ee3841c7af167d` predates both profiles.
 
 This profile adds no command, filesystem, process, network, daemon, recovery,
 arbitrary publication, or general text-streaming authority. It does not decode

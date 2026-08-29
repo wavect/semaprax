@@ -85,11 +85,14 @@ exists but has not completed exact-head hosted promotion.
 | Multi-module line-filter product | Local | Add exact-head hosted and real-browser/multi-engine evidence. |
 | Full promotion CI for every public release claim | Exact-head hosted | Keep all blocking release jobs green on the final release commit without diagnostic masks. |
 
-The v0.2 release objective remains **Partial**. The blocking matrix is green at
-exact commit `4cc03820c86e70527cb65c4b10ee3841c7af167d` in
+The v0.2 release objective remains **Partial**. The upstream baseline blocking
+matrix is green at its exact commit
+`4cc03820c86e70527cb65c4b10ee3841c7af167d` in
 [run 33259787886](https://github.com/wavect/semaprax/actions/runs/33259787886),
 but the line-filter still lacks the stated browser/runtime breadth and the Rust
-builder remains unpublished.
+builder remains unpublished. That prior exact-head run does not execute or
+promote WP-01–WP-15, Project v8, Agent Transport v5, Project v9, or Project v10
+work authored later in this source tree.
 
 Evidence owners: [Project Manifest v1](PROJECT-MANIFEST-V1.md) and its additive
 v2–v7 references, [Bounded Language Command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V1.md),
@@ -109,7 +112,7 @@ changes a long-term status to Implemented.
 | WP-01 CI decomposition | Authored, unrun | Dedicated desktop/native product matrix, release aggregation, and CI contract evidence | Execute the workflow and preserve a blocking exact-head release aggregation. |
 | WP-02 deterministic version | Authored, unrun | Human and canonical JSON version renderers with injected commit identity and focused CLI evidence | Execute local gates and bind the exact release commit in hosted artifacts. |
 | WP-03 release artifacts | Authored, unrun | Deterministic Unix/Windows packaging, manifest/checksum workflow, smoke route, and contract evidence | Exercise every advertised archive on its build host at the release head. |
-| WP-04 v0.2 promotion | Pending | Promotion criteria are specified; no promotion record was added | Obtain one exact-head green release gate and record its run and artifact inventory. |
+| WP-04 v0.2 tagged artifact/release promotion | Pending | Promotion criteria are specified; no tagged artifact or release-promotion record was added | Exercise the final tagged artifacts at one exact head, pass the release gate, and record its run, checksums, and artifact inventory. |
 | WP-05 `doctor` | Authored, unrun | Injected-host checks, human/JSON rendering, and focused CLI evidence | Execute the gates on the supported hosts; this does not itself promote v0.2. |
 | WP-06 `new` | Authored, unrun | Compiled-in calculator template, staged authenticated publication, and hostile path/failure evidence | Execute the generator, Project check/test, and publication gates. |
 | WP-07 quickstart | Authored, unrun | Executable quickstart document and mirrored repository test | Execute the documented sequence against the candidate compiler. |
@@ -122,13 +125,14 @@ changes a long-term status to Implemented.
 | WP-14 frame-payload product | Authored, unrun | One committed corpus and display-rename proof authored across interpreter, native O0/O2, Core Wasm/Node, generated npm, and generated Rust lanes | Execute the complete identical corpus and external consumers on required hosts and browser runtimes. |
 | WP-15 v8 promotion | Pending | The twelve-gate contract is specified; no dedicated exact-head v8 promotion matrix or run is recorded | Add and pass every blocking Project/npm/browser/Rust/equivalence/sanitizer/hostile job on one exact commit, with no skip or allowed failure. |
 | Agent Transport v5 follow-on | Authored, unrun; unpromoted | Opt-in read-only descriptor and inline npm methods with typed descriptor binding, bounded framing, stale-subject rejection, and zero publication/process authority evidence | Execute focused gates, preserve v2–v4 bytes, then include the surface in an exact-head promotion decision. |
-| Project v9 flat owned record follow-on | Authored, unrun; unpromoted | Exact flat-record descriptor, Wasm/npm adapter, root native provider, and safe Rust package route with opaque-handle settlement | Execute cross-target physical consumers and preservation gates, then promote v9 before any dependent profile. |
-| Project v10 owned UTF-8 follow-on | Authored, unrun; blocked on v9 promotion | [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md), distinct canonical descriptor/digest, length-delimited Wasm/npm string, validating native provider, safe Rust `String`, and hostile invalid-UTF-8 settlement evidence | First promote v9; then execute exact replay/carrier, valid/invalid UTF-8, mixed scalar, host consumer, and v1-v9 byte-preservation gates on every required target. |
+| Project v9 flat owned record follow-on | Authored, unrun; unpublished; unpromoted | [Public Flat Owned Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md), exact flat-record descriptor, Wasm/npm adapter, root native provider, and safe Rust package route with opaque-handle settlement | Execute cross-target physical consumers and preservation gates, then make an explicit v9 publication and promotion decision before any dependent profile. |
+| Project v10 owned UTF-8 follow-on | Authored, unrun; unpublished; unpromoted; blocked on v9 promotion | [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md), distinct canonical descriptor/digest, length-delimited Wasm/npm string, validating native provider, safe Rust `String`, and hostile invalid-UTF-8 settlement evidence | First promote v9; then execute exact replay/carrier, valid/invalid UTF-8, mixed scalar, host consumer, and v1-v9 byte-preservation gates on every required target before any publication or promotion. |
 
-Project v8 is therefore **implemented in the current source tree but not
-promoted**. The generated npm and Rust packages remain developer-preview and
-unpublished surfaces. WP-15 is the explicit blocker for describing the bounded
-owned-data API as hosted, supported, or released.
+The Project v8 implementation and executable evidence are therefore
+**authored in the current source tree but unrun and unpromoted**. The generated
+npm and Rust packages remain developer-preview and unpublished surfaces.
+WP-15 is the explicit blocker for describing the bounded owned-data API as
+hosted, supported, or released.
 
 ## Long-term product contract
 

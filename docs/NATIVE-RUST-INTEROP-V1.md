@@ -17,6 +17,9 @@ output artifacts have frozen
 whole-byte known-answer identities after independent exact replay and exhaustive
 byte-edit rejection. That wire freeze alone is not runtime or platform
 evidence; the hosted private A+B gate above supplies the promotion evidence.
+Run 33259787886 is upstream baseline evidence for the exact Phase-C surface at
+that commit only; it does not execute or promote later WP or Project-v8/v9/v10
+work.
 
 Native Rust Interoperability v1 is an additive, current-host, scalar bridge. It
 does not change callable v2/v3, the native loader or host, Graph schemas, Wasm,

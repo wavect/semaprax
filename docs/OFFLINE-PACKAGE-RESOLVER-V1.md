@@ -1,7 +1,7 @@
 # Offline Deterministic Package Resolver v1
 
-Status: proposed specification; implementation and executable evidence are not
-yet authored.
+Status: implementation and focused executable evidence authored; evidence is
+not yet run or promoted.
 
 Offline Deterministic Package Resolver v1 selects one integrity-bound version
 per package from a finite caller-owned catalog of source-replayed subjects. It is an
@@ -56,8 +56,10 @@ owns every subject byte.
 
 Versions are canonical unsigned-decimal `major.minor.patch` triples. Every
 component fits `u32`; zero is written `0`; other components have no leading
-zero. Prerelease, build, wildcard, comparison-list, union, and whitespace
-syntax is rejected.
+zero. Each component is rejected above ten bytes before digit scanning, and
+the complete triple is rejected above 32 bytes before delimiter scanning.
+Prerelease, build, wildcard, comparison-list, union, and whitespace syntax is
+rejected.
 
 The only range forms are:
 
@@ -282,9 +284,15 @@ authentication, `PR503` resolution/conflict, `PR504` target/capability policy,
 Nested diagnostics never escape this public surface. Subject/Report replay
 failures map to `PR502`; target/capability policy failures map to `PR504`;
 resolver and final Lock-v2 structural/confusion/cycle failures map to `PR503`;
-all resolver or nested bounds failures map to `PR505`; malformed outer evidence
-maps to `PR506`; and a final or verification-time exact replay mismatch maps to
+global resolver or nested bounds failures map to `PR505`; branch-local selected
+package, edge, and depth overflow remains a backtrackable structural rejection
+and maps to `PR503` only if search is exhausted. Malformed outer evidence maps
+to `PR506`; and a final or verification-time exact replay mismatch maps to
 `PR507`. The original nested message is not copied into the public diagnostic.
+After an exhausted search with mixed candidate failures, any observed
+structural/conflict rejection selects `PR503`; otherwise any observed
+target/capability rejection selects `PR504`; otherwise absence of a root
+candidate selects `PR503`. A successful branch ignores rejection history.
 CLI current-directory, no-follow open, metadata, read, file-identity, and
 stdout write/flush failures use the existing stable host-I/O diagnostic
 `SPX-I215`; CLI declared

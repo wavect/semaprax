@@ -1,7 +1,7 @@
 use super::support::*;
 
 #[test]
-fn catalog_and_selected_graph_count_overflows_are_global_bounds_failures() {
+fn catalog_limits_are_global_and_selected_graph_overflow_is_structural() {
     let package = "resolver.bounds";
     let report = report(package);
     let one = subject(&report, package, "1.0.0", &[], &[]);
@@ -47,7 +47,7 @@ fn catalog_and_selected_graph_count_overflows_are_global_bounds_failures() {
         .collect::<Vec<_>>();
     assert_eq!(
         error_code(&input(&[(names[0], "=1.0.0")], chain, "native64", &[])),
-        "SPX-PR505"
+        "SPX-PR503"
     );
 }
 

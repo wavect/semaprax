@@ -33,7 +33,9 @@ pub(super) fn parse_version(value: &str) -> Result<Version, Diagnostic> {
     let minor = component(parts.next(), "minor")?;
     let patch = component(parts.next(), "patch")?;
     if parts.next().is_some() {
-        return Err(wire::input_error("version must contain exactly three components"));
+        return Err(wire::input_error(
+            "version must contain exactly three components",
+        ));
     }
     Ok(Version(major, minor, patch))
 }

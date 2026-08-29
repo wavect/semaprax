@@ -115,10 +115,18 @@ fn options_and_semver_boundaries_are_closed() {
             .code,
         "SPX-PR501"
     );
-    assert!(semver::parse_range("=1.2.3").unwrap().contains(semver::Version(1, 2, 3)));
-    assert!(semver::parse_range("^0.2.3").unwrap().contains(semver::Version(0, 2, u32::MAX)));
-    assert!(!semver::parse_range("^0.2.3").unwrap().contains(semver::Version(0, 3, 0)));
-    assert!(semver::parse_range("~1.2.3").unwrap().contains(semver::Version(1, 2, u32::MAX)));
+    assert!(semver::parse_range("=1.2.3")
+        .unwrap()
+        .contains(semver::Version(1, 2, 3)));
+    assert!(semver::parse_range("^0.2.3")
+        .unwrap()
+        .contains(semver::Version(0, 2, u32::MAX)));
+    assert!(!semver::parse_range("^0.2.3")
+        .unwrap()
+        .contains(semver::Version(0, 3, 0)));
+    assert!(semver::parse_range("~1.2.3")
+        .unwrap()
+        .contains(semver::Version(1, 2, u32::MAX)));
     for invalid in [
         "1.2.3",
         "=01.2.3",
@@ -132,15 +140,11 @@ fn options_and_semver_boundaries_are_closed() {
     }
     assert!(semver::parse_range("=4294967295.0.0").is_ok());
     assert_eq!(
-        semver::parse_range("=4294967296.0.0")
-            .unwrap_err()
-            .code,
+        semver::parse_range("=4294967296.0.0").unwrap_err().code,
         "SPX-PR501"
     );
     assert_eq!(
-        semver::parse_range("=10000000000.0.0")
-            .unwrap_err()
-            .code,
+        semver::parse_range("=10000000000.0.0").unwrap_err().code,
         "SPX-PR501"
     );
     let huge = format!("={}.0.0", "1".repeat(1024 * 1024));
@@ -158,7 +162,10 @@ fn nested_report_bounds_and_authentication_keep_distinct_resolver_codes() {
     let requested = value["limits"]["requested_max_bytes"].as_u64().unwrap();
     let bounded_payload = payload.replacen(
         &format!("\"requested_max_bytes\":{requested}"),
-        &format!("\"requested_max_bytes\":{}", crate::package_report_v2::MAX_OUTPUT_BYTES + 1),
+        &format!(
+            "\"requested_max_bytes\":{}",
+            crate::package_report_v2::MAX_OUTPUT_BYTES + 1
+        ),
         1,
     );
     let bounded_report = remint(
@@ -378,7 +385,11 @@ fn catalog_confusion_and_outer_remints_fail_closed() {
             "SPX-PR506"
         );
     }
-    let too_deep = format!("{}0{}", "[".repeat(MAX_JSON_DEPTH + 1), "]".repeat(MAX_JSON_DEPTH + 1));
+    let too_deep = format!(
+        "{}0{}",
+        "[".repeat(MAX_JSON_DEPTH + 1),
+        "]".repeat(MAX_JSON_DEPTH + 1)
+    );
     assert_eq!(
         verify(&too_deep, &valid, &ResolutionOptions::default())
             .unwrap_err()
@@ -415,7 +426,10 @@ fn catalog_confusion_and_outer_remints_fail_closed() {
 fn input_and_catalog_count_limits_precede_subject_replay() {
     let invalid_options = ResolutionOptions { max_bytes: 1 };
     let empty = input(vec![], "=1.0.0");
-    assert_eq!(generate(&empty, &invalid_options).unwrap_err()[0].code, "SPX-PR501");
+    assert_eq!(
+        generate(&empty, &invalid_options).unwrap_err()[0].code,
+        "SPX-PR501"
+    );
     assert_eq!(
         generate(&empty, &ResolutionOptions::default()).unwrap_err()[0].code,
         "SPX-PR505"
@@ -491,10 +505,10 @@ fn unavailable_and_unproven_candidates_are_policy_rejections() {
         let catalog = catalog::Catalog {
             entries: vec![entry],
             by_package: BTreeMap::from([("fixture.package".to_owned(), vec![0])]),
-            by_coordinate: BTreeMap::from([((
-                "fixture.package".to_owned(),
-                semver::Version(1, 0, 0),
-            ), 0)]),
+            by_coordinate: BTreeMap::from([(
+                ("fixture.package".to_owned(), semver::Version(1, 0, 0)),
+                0,
+            )]),
             target_inventory: BTreeSet::from(["native64".to_owned()]),
             total_bytes: 0,
             digest: "sha256:fixture".to_owned(),

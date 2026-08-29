@@ -123,7 +123,11 @@ fn validate_payload(payload: &Value) -> Result<(), Diagnostic> {
         &["subjects", "bytes", "digest"],
         "catalog binding",
     )?;
-    require_numbers(&payload["catalog"], &["subjects", "bytes"], "catalog binding")?;
+    require_numbers(
+        &payload["catalog"],
+        &["subjects", "bytes"],
+        "catalog binding",
+    )?;
     require_strings(&payload["catalog"], &["digest"], "catalog binding")?;
     require_keys(
         &payload["limits"],
@@ -212,7 +216,9 @@ fn require_keys(value: &Value, keys: &[&str], label: &str) -> Result<(), Diagnos
         .as_object()
         .ok_or_else(|| wire_error(format!("{label} must be object")))?;
     if object.len() != keys.len() || keys.iter().any(|key| !object.contains_key(*key)) {
-        return Err(wire_error(format!("{label} keys are not the closed schema")));
+        return Err(wire_error(format!(
+            "{label} keys are not the closed schema"
+        )));
     }
     Ok(())
 }
@@ -428,9 +434,10 @@ pub(super) fn map_subject_error(error: &Diagnostic) -> Diagnostic {
 }
 
 pub(super) fn map_lock_errors(errors: &[Diagnostic], message: &str) -> Diagnostic {
-    errors
-        .first()
-        .map_or_else(|| resolution_error(message), |error| map_lock_error(error, message))
+    errors.first().map_or_else(
+        || resolution_error(message),
+        |error| map_lock_error(error, message),
+    )
 }
 
 pub(super) fn map_lock_error(error: &Diagnostic, message: &str) -> Diagnostic {

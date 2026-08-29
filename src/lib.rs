@@ -51,6 +51,7 @@ pub mod package_lock;
 pub mod package_lock_v2;
 pub mod package_report;
 pub mod package_report_v2;
+pub mod package_resolver;
 pub mod parser;
 pub mod patch;
 pub mod patch_evidence;

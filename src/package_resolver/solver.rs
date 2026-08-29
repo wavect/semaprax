@@ -7,9 +7,7 @@ use super::catalog::{Catalog, Entry};
 use super::model::ParsedRequirement;
 use super::semver::{Range, Version};
 use super::wire;
-use super::{
-    ResolutionInput, MAX_DECISIONS, MAX_DEPTH, MAX_EDGES, MAX_SELECTED_PACKAGES,
-};
+use super::{ResolutionInput, MAX_DECISIONS, MAX_DEPTH, MAX_EDGES, MAX_SELECTED_PACKAGES};
 
 #[derive(Clone, Eq, Ord, PartialEq, PartialOrd)]
 enum ConstraintTag {

@@ -10,10 +10,10 @@ use super::semver::{self, Range};
 use super::solver::Solved;
 use super::wire::{self, render_wrapper};
 use super::{
-    ResolutionInput, ResolutionOptions, CATALOG_DOMAIN, MAX_ALLOWED_CAPABILITIES,
-    MAX_DECISIONS, MAX_DEPTH, MAX_EDGES, MAX_JSON_DEPTH, MAX_OUTPUT_BYTES, MAX_RENDER_BYTES,
-    MAX_REQUIREMENTS, MAX_SELECTED_PACKAGES, MAX_SUBJECT_BYTES, MAX_SUBJECTS,
-    MAX_TOTAL_SUBJECT_BYTES, MAX_VERSIONS_PER_PACKAGE, MAX_WORK_UNITS, SCHEMA,
+    ResolutionInput, ResolutionOptions, CATALOG_DOMAIN, MAX_ALLOWED_CAPABILITIES, MAX_DECISIONS,
+    MAX_DEPTH, MAX_EDGES, MAX_JSON_DEPTH, MAX_OUTPUT_BYTES, MAX_RENDER_BYTES, MAX_REQUIREMENTS,
+    MAX_SELECTED_PACKAGES, MAX_SUBJECTS, MAX_SUBJECT_BYTES, MAX_TOTAL_SUBJECT_BYTES,
+    MAX_VERSIONS_PER_PACKAGE, MAX_WORK_UNITS, SCHEMA,
 };
 
 macro_rules! bf {
@@ -38,7 +38,11 @@ pub(super) fn validate_input(
     if !matches!(input.target.as_str(), "native64" | "wasm32") {
         return Err(wire::input_error("target is outside the closed set"));
     }
-    validate_values(&input.allowed_capabilities, MAX_ALLOWED_CAPABILITIES, "capability")?;
+    validate_values(
+        &input.allowed_capabilities,
+        MAX_ALLOWED_CAPABILITIES,
+        "capability",
+    )?;
     let mut previous = None;
     let mut parsed = Vec::with_capacity(input.requirements.len());
     for (row, requirement) in input.requirements.iter().enumerate() {
@@ -160,10 +164,7 @@ pub(super) fn render_evidence(
     Ok(render_wrapper(&payload))
 }
 
-pub(super) fn recheck_lock_policy(
-    lock: &str,
-    input: &ResolutionInput,
-) -> Result<(), Diagnostic> {
+pub(super) fn recheck_lock_policy(lock: &str, input: &ResolutionInput) -> Result<(), Diagnostic> {
     let value: Value = serde_json::from_str(lock)
         .map_err(|_| wire::authentication_error("verified Lock-v2 is not JSON"))?;
     let allowed = input
@@ -189,7 +190,10 @@ pub(super) fn recheck_lock_policy(
             .as_array()
             .ok_or_else(|| wire::authentication_error("Lock-v2 capability closure missing"))?
         {
-            if capability.as_str().is_none_or(|value| !allowed.contains(value)) {
+            if capability
+                .as_str()
+                .is_none_or(|value| !allowed.contains(value))
+            {
                 return Err(wire::policy_error(
                     "Lock-v2 capability policy recheck failed",
                 ));
@@ -242,9 +246,7 @@ fn structural_json_value_end(bytes: &[u8], start: usize) -> Result<usize, Diagno
             b'[' => stack.push(b']'),
             b'}' | b']' => {
                 if stack.pop() != Some(byte) {
-                    return Err(wire::wire_error(
-                        "embedded Lock-v2 JSON nesting is invalid",
-                    ));
+                    return Err(wire::wire_error("embedded Lock-v2 JSON nesting is invalid"));
                 }
                 if stack.is_empty() {
                     return Ok(index + 1);

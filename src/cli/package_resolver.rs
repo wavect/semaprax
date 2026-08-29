@@ -5,14 +5,26 @@ use std::io::Read as _;
 use std::path::{Path, PathBuf};
 
 use semaprax::diagnostic::Diagnostic;
-use semaprax::package_resolver::{self, Requirement, ResolutionInput, ResolutionOptions};
+use semaprax::package_resolver::{
+    self, Requirement, ResolutionInput, ResolutionOptions,
+    MAX_ALLOWED_CAPABILITIES as MAX_CAPABILITIES, MAX_OUTPUT_BYTES, MAX_REQUIREMENTS, MAX_SUBJECTS,
+    MAX_SUBJECT_BYTES, MAX_TOTAL_SUBJECT_BYTES,
+};
 
-const MAX_SUBJECTS: usize = 64;
-const MAX_SUBJECT_BYTES: usize = 17 * 1024 * 1024;
-const MAX_TOTAL_SUBJECT_BYTES: usize = 128 * 1024 * 1024;
-const MAX_REQUIREMENTS: usize = 4;
-const MAX_CAPABILITIES: usize = 256;
 const MAX_NAME_BYTES: usize = 255;
+const MAX_RANGE_BYTES: usize = 33;
+const MAX_REQUIREMENT_BYTES: usize = MAX_NAME_BYTES + 1 + MAX_RANGE_BYTES;
+const MAX_VERSION_COMPONENT_BYTES: usize = 10;
+const MAX_OUTPUT_DECIMAL_BYTES: usize = decimal_width(MAX_OUTPUT_BYTES);
+
+const fn decimal_width(mut value: usize) -> usize {
+    let mut width = 1;
+    while value >= 10 {
+        value /= 10;
+        width += 1;
+    }
+    width
+}
 
 pub(crate) enum PackageResolverCliError {
     Usage(String),
@@ -69,6 +81,11 @@ fn parse(arguments: &[String]) -> Result<Parsed, PackageResolverCliError> {
         if value.starts_with('-') {
             break;
         }
+        if paths.len() == MAX_SUBJECTS {
+            return Err(usage(format!(
+                "package-resolve requires 1..{MAX_SUBJECTS} explicit subject files"
+            )));
+        }
         if value.starts_with('@') {
             return Err(usage(
                 "package-resolve subject files must not use `@` response-file syntax",
@@ -85,6 +102,11 @@ fn parse(arguments: &[String]) -> Result<Parsed, PackageResolverCliError> {
 
     let mut requirements = Vec::new();
     while arguments.get(index).map(String::as_str) == Some("--require") {
+        if requirements.len() == MAX_REQUIREMENTS {
+            return Err(usage(format!(
+                "package-resolve requires 1..{MAX_REQUIREMENTS} contiguous `--require` values"
+            )));
+        }
         let value = arguments
             .get(index + 1)
             .ok_or_else(|| usage("package-resolve option `--require` requires a value"))?;
@@ -122,6 +144,11 @@ fn parse(arguments: &[String]) -> Result<Parsed, PackageResolverCliError> {
 
     let mut allowed_capabilities = Vec::new();
     while arguments.get(index).map(String::as_str) == Some("--allow-capability") {
+        if allowed_capabilities.len() == MAX_CAPABILITIES {
+            return Err(usage(format!(
+                "package-resolve accepts at most {MAX_CAPABILITIES} capabilities"
+            )));
+        }
         let value = arguments
             .get(index + 1)
             .ok_or_else(|| usage("package-resolve option `--allow-capability` requires a value"))?;
@@ -168,6 +195,9 @@ fn parse(arguments: &[String]) -> Result<Parsed, PackageResolverCliError> {
 }
 
 fn parse_requirement(value: &str) -> Result<Requirement, PackageResolverCliError> {
+    if value.len() > MAX_REQUIREMENT_BYTES {
+        return Err(usage("package-resolve requirement exceeds its byte bound"));
+    }
     let (package, range) = value
         .split_once(':')
         .ok_or_else(|| usage("package-resolve requirement must be `<package>:<range>`"))?;
@@ -195,7 +225,7 @@ fn validate_name(kind: &str, value: &str) -> Result<(), PackageResolverCliError>
 
 fn validate_range(value: &str) -> Result<(), PackageResolverCliError> {
     let bytes = value.as_bytes();
-    if bytes.len() < 6 || !matches!(bytes[0], b'=' | b'^' | b'~') {
+    if bytes.len() < 6 || bytes.len() > MAX_RANGE_BYTES || !matches!(bytes[0], b'=' | b'^' | b'~') {
         return Err(usage("package-resolve range grammar is invalid"));
     }
     let components = value[1..].split('.').collect::<Vec<_>>();
@@ -205,6 +235,7 @@ fn validate_range(value: &str) -> Result<(), PackageResolverCliError> {
     let mut parsed = [0u32; 3];
     for (index, component) in components.iter().enumerate() {
         if component.is_empty()
+            || component.len() > MAX_VERSION_COMPONENT_BYTES
             || !component.bytes().all(|byte| byte.is_ascii_digit())
             || (component.len() > 1 && component.starts_with('0'))
         {
@@ -229,6 +260,7 @@ fn validate_range(value: &str) -> Result<(), PackageResolverCliError> {
 
 fn canonical_number(option: &str, value: &str) -> Result<usize, PackageResolverCliError> {
     if value.is_empty()
+        || value.len() > MAX_OUTPUT_DECIMAL_BYTES
         || !value.bytes().all(|byte| byte.is_ascii_digit())
         || (value.len() > 1 && value.starts_with('0'))
     {
@@ -445,118 +477,7 @@ fn usage(message: impl Into<String>) -> PackageResolverCliError {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::sync::atomic::{AtomicU64, Ordering};
+mod held_read_tests;
 
-    static NEXT: AtomicU64 = AtomicU64::new(0);
-
-    fn temp_file(label: &str, bytes: &[u8]) -> PathBuf {
-        let path = std::env::temp_dir().join(format!(
-            "semaprax-package-resolver-read-hook-{label}-{}-{}",
-            std::process::id(),
-            NEXT.fetch_add(1, Ordering::Relaxed)
-        ));
-        std::fs::write(&path, bytes).unwrap();
-        path
-    }
-
-    struct TruncateBeforeRead {
-        path: PathBuf,
-        before: usize,
-        after: usize,
-    }
-
-    impl SubjectReadHook for TruncateBeforeRead {
-        fn before_read(&mut self, index: usize, file: &std::fs::File) {
-            assert_eq!(index, 0);
-            self.before += 1;
-            let _ = file;
-            std::fs::OpenOptions::new()
-                .write(true)
-                .open(&self.path)
-                .unwrap()
-                .set_len(1)
-                .unwrap();
-        }
-
-        fn after_read(&mut self, index: usize, _file: &std::fs::File) {
-            assert_eq!(index, 0);
-            self.after += 1;
-        }
-    }
-
-    #[test]
-    fn deterministic_short_read_rejects_before_subject_processing() {
-        let path = temp_file("truncate", b"{}");
-        let later = temp_file("truncate-later", b"{}");
-        let mut hook = TruncateBeforeRead {
-            path: path.clone(),
-            before: 0,
-            after: 0,
-        };
-        let error = read_subjects_with_hook(&[path.clone(), later.clone()], &mut hook).unwrap_err();
-        assert_eq!(error.code, "SPX-I215");
-        assert_eq!((hook.before, hook.after), (1, 1));
-        std::fs::remove_file(path).unwrap();
-        std::fs::remove_file(later).unwrap();
-    }
-
-    struct GrowAfterRead {
-        path: PathBuf,
-        before: usize,
-        after: usize,
-    }
-
-    impl SubjectReadHook for GrowAfterRead {
-        fn before_read(&mut self, index: usize, _file: &std::fs::File) {
-            assert_eq!(index, 0);
-            self.before += 1;
-        }
-
-        fn after_read(&mut self, index: usize, _file: &std::fs::File) {
-            assert_eq!(index, 0);
-            self.after += 1;
-            std::fs::OpenOptions::new()
-                .write(true)
-                .open(&self.path)
-                .unwrap()
-                .set_len(3)
-                .unwrap();
-        }
-    }
-
-    #[test]
-    fn deterministic_post_read_growth_rejects_metadata_drift() {
-        let path = temp_file("growth", b"{}");
-        let later = temp_file("growth-later", b"{}");
-        let mut hook = GrowAfterRead {
-            path: path.clone(),
-            before: 0,
-            after: 0,
-        };
-        let error = read_subjects_with_hook(&[path.clone(), later.clone()], &mut hook).unwrap_err();
-        assert_eq!(error.code, "SPX-I215");
-        assert_eq!((hook.before, hook.after), (1, 1));
-        std::fs::remove_file(path).unwrap();
-        std::fs::remove_file(later).unwrap();
-    }
-
-    #[test]
-    fn windows_reparse_attribute_admission_has_exact_bit_boundary() {
-        assert!(windows_file_attributes_are_admitted(0));
-        assert!(windows_file_attributes_are_admitted(
-            WINDOWS_FILE_ATTRIBUTE_REPARSE_POINT - 1
-        ));
-        assert!(windows_file_attributes_are_admitted(
-            WINDOWS_FILE_ATTRIBUTE_REPARSE_POINT << 1
-        ));
-        assert!(!windows_file_attributes_are_admitted(
-            WINDOWS_FILE_ATTRIBUTE_REPARSE_POINT
-        ));
-        assert!(!windows_file_attributes_are_admitted(
-            WINDOWS_FILE_ATTRIBUTE_REPARSE_POINT | 1
-        ));
-        assert!(!windows_file_attributes_are_admitted(u32::MAX));
-    }
-}
+#[cfg(test)]
+mod bounded_parser_tests;

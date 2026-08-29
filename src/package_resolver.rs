@@ -89,7 +89,9 @@ pub fn verify(
 ) -> Result<VerifiedResolution, Diagnostic> {
     validate_options(options)?;
     if evidence.len() > options.max_bytes || evidence.len() > MAX_OUTPUT_BYTES {
-        return Err(wire::limit_error("resolution evidence exceeds output bound"));
+        return Err(wire::limit_error(
+            "resolution evidence exceeds output bound",
+        ));
     }
     let (result, overflowed) = bounded_output::with_limit(MAX_RENDER_BYTES, || {
         wire::parse_wrapper(evidence)?;
@@ -153,14 +155,16 @@ fn build(input: &ResolutionInput, options: &ResolutionOptions) -> Result<String,
         work,
     )?;
     if envelope.len() > options.max_bytes || envelope.len() > MAX_OUTPUT_BYTES {
-        return Err(wire::limit_error("resolution evidence exceeds output bound"));
+        return Err(wire::limit_error(
+            "resolution evidence exceeds output bound",
+        ));
     }
     Ok(envelope)
 }
 
 fn receipt(evidence: &str) -> Result<VerifiedResolution, Diagnostic> {
-    let value: Value =
-        serde_json::from_str(evidence).map_err(|_| wire::wire_error("replayed evidence not JSON"))?;
+    let value: Value = serde_json::from_str(evidence)
+        .map_err(|_| wire::wire_error("replayed evidence not JSON"))?;
     let payload = &value["payload"];
     let packages = payload["selected"]
         .as_array()

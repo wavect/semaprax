@@ -7,7 +7,7 @@ use super::model;
 use super::semver::{self, compare_coordinates, Version};
 use super::wire;
 use super::{
-    ResolutionInput, MAX_SUBJECT_BYTES, MAX_SUBJECTS, MAX_TOTAL_SUBJECT_BYTES,
+    ResolutionInput, MAX_SUBJECTS, MAX_SUBJECT_BYTES, MAX_TOTAL_SUBJECT_BYTES,
     MAX_VERSIONS_PER_PACKAGE,
 };
 
@@ -93,7 +93,14 @@ pub(super) fn authenticate<'a>(
     }
     let target_inventory = entries
         .first()
-        .map(|entry| entry.subject.targets.keys().cloned().collect::<BTreeSet<_>>())
+        .map(|entry| {
+            entry
+                .subject
+                .targets
+                .keys()
+                .cloned()
+                .collect::<BTreeSet<_>>()
+        })
         .ok_or_else(|| wire::limit_error("empty catalog"))?;
     for entry in &entries {
         for key in entry.subject.targets.keys() {

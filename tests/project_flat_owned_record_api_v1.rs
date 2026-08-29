@@ -331,3 +331,19 @@ fn npm_metadata_binds_one_descriptor_and_private_settlement() {
     tampered.insert(tampered.len() - 2, b' ');
     assert!(replay_flat_owned_record_metadata(&descriptor, wasm_digest, &tampered).is_err());
 }
+
+#[test]
+fn transport_v4_rejects_v9_before_target_or_carrier_selection() {
+    let workflow = include_str!("../src/project_transport/session/workflow.rs");
+    let rejection = workflow
+        .find("ProjectProfile::FlatOwnedRecordApiV1")
+        .expect("Transport v4 must close Project v9 builds");
+    let target = workflow[rejection..]
+        .find("take_string(&mut params, \"target\")")
+        .expect("target parsing remains after the Project v9 rejection");
+    let carrier = workflow[rejection..]
+        .find("snapshot.build_npm_inline(max_bytes)")
+        .expect("carrier selection remains after the Project v9 rejection");
+    assert!(target > 0 && carrier > target);
+    assert!(workflow[rejection..rejection + target].contains("not admitted by Agent Transport v4"));
+}

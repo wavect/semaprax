@@ -233,6 +233,13 @@ impl Session {
                 ));
             }
             if snapshot.manifest().project_profile()
+                == crate::project::ProjectProfile::FlatOwnedRecordApiV1
+            {
+                return Err(super::parameter_diagnostic(
+                    "Project v9 flat owned-record builds are not admitted by Agent Transport v4",
+                ));
+            }
+            if snapshot.manifest().project_profile()
                 == crate::project::ProjectProfile::OwnedUtf8ApiV1
             {
                 return Err(super::parameter_diagnostic(

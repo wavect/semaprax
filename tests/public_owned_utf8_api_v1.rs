@@ -94,6 +94,38 @@ fn v8_cannot_describe_or_replay_owned_utf8() {
 }
 
 #[test]
+fn v10_rejects_compiler_owned_string_intrinsics_before_backend_selection() {
+    for (name, declarations, expression) in [
+        ("concat", "", "string_concat(\"left\", \"right\")"),
+        ("from-char", "", "string_from_char('x')"),
+        (
+            "nested",
+            "@id(\"utf8.ignore\") fn ignore(value: own string) -> string { \"literal\" }\n",
+            "ignore(string_concat(\"left\", \"right\"))",
+        ),
+    ] {
+        let source = format!(
+            "module utf8.intrinsic;\n{declarations}@id(\"utf8.{name}\") fn selected() -> string {{ {expression} }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n"
+        );
+        let checked = semaprax::check(&source, "owned-utf8-intrinsic.spx").unwrap();
+        let program = semaprax::hir::resolve(&checked).unwrap();
+        let error = derive_public_api_descriptor(
+            &program,
+            &[format!("utf8.{name}")],
+            subject(PUBLIC_OWNED_UTF8_PROJECT_SCHEMA),
+        )
+        .unwrap_err();
+        assert_eq!(error.code, "SPX-J113");
+        assert_eq!(
+            error.message,
+            format!(
+                "owned UTF-8 closure function `utf8.{name}` may not call a compiler-owned string intrinsic"
+            )
+        );
+    }
+}
+
+#[test]
 fn native_provider_carries_embedded_nul_by_exact_length_and_settles() {
     if Command::new("clang").arg("--version").output().is_err() {
         return;

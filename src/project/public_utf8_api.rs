@@ -9,11 +9,17 @@ pub(super) const UTF8_DESCRIPTOR_DIGEST_DOMAIN: &[u8] =
     b"semaprax.public-owned-utf8-api.digest.v1\0";
 
 pub(super) fn validate_closure_shape(function: &ResolvedFunction) -> Result<(), String> {
+    if expression_reaches_string_intrinsic(&function.body) {
+        return Err(format!(
+            "owned UTF-8 closure function `{}` may not call a compiler-owned string intrinsic",
+            function.id
+        ));
+    }
     let reaches_owned_string = expression_reaches_owned_string(&function.body);
     if function.return_type == ResolvedType::String {
         if !is_direct_string_carrier(&function.body) {
             return Err(format!(
-                "owned UTF-8 closure function `{}` must return one literal or direct call carrier",
+                "owned UTF-8 closure function `{}` must return one literal or direct retained-function call carrier",
                 function.id
             ));
         }
@@ -34,6 +40,24 @@ fn is_direct_string_carrier(expression: &ResolvedExpr) -> bool {
         }
         _ => false,
     }
+}
+
+fn expression_reaches_string_intrinsic(root: &ResolvedExpr) -> bool {
+    let mut pending = vec![root];
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
+            if crate::string_ops::by_id(callee.as_str()).is_some() {
+                return true;
+            }
+        }
+        for index in 0..expression.child_count() {
+            let Some(child) = expression.child(index) else {
+                return true;
+            };
+            pending.push(child);
+        }
+    }
+    false
 }
 
 fn expression_reaches_owned_string(root: &ResolvedExpr) -> bool {

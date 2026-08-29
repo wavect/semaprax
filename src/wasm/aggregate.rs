@@ -2900,11 +2900,14 @@ impl Emitter<'_> {
     }
 
     fn clear_scalar(&mut self, value: &Value) -> Result<(), Diagnostic> {
-        require_type(
+        if !matches!(
             value_type(value),
-            &ResolvedType::Bytes,
-            "owned Bytes poison",
-        )?;
+            ResolvedType::Bytes | ResolvedType::String
+        ) {
+            return Err(error(
+                "owned scalar poison requires an exact Bytes or String carrier",
+            ));
+        }
         match value {
             Value::Scalar { local, .. } => {
                 self.output.extend([0x42, 0x00, 0x21]);
@@ -2916,7 +2919,7 @@ impl Emitter<'_> {
                 write_i64(self.output, 0);
                 self.store_scalar(ty);
             }
-            Value::Aggregate { .. } => return Err(error("owned Bytes poison is not scalar")),
+            Value::Aggregate { .. } => return Err(error("owned carrier poison is not scalar")),
         }
         Ok(())
     }

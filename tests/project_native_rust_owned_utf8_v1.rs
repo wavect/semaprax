@@ -79,3 +79,46 @@ fn project_v10_rust_route_emits_a_distinct_mixed_safe_string_package() {
     assert!(safe.contains("pub fn spx_utf8_dot_count(&mut self)->Result<i64,CallError>"));
     assert!(safe.contains("pub fn spx_utf8_dot_greeting(&mut self)->Result<String,CallError>"));
 }
+
+#[test]
+fn rust_profile_rejection_precedes_explicit_parent_creation() {
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-project-rust-profile-rejection-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    std::fs::write(
+        root.join("semaprax.toml"),
+        "schema = \"semaprax.project.v1\"\nname = \"legacy\"\nentry = \"legacy.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"legacy.add\"]\ntests = [\"legacy.tests\"]\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("src/app.spx"),
+        "module legacy.app;\n@id(\"legacy.add\") fn add(left: i64, right: i64) -> i64 { left + right }\n@id(\"legacy.app.main\") fn main() -> i64 { add(19, 23) }\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("src/tests.spx"),
+        "module legacy.tests;\n@id(\"legacy.tests.main\") fn main() -> i64 { 0 }\n",
+    )
+    .unwrap();
+    let fixture = Fixture(root.canonicalize().unwrap());
+    let output = fixture.0.join("missing-parent/rust");
+    let rejected = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .args([
+            "build",
+            "--manifest-path",
+            "semaprax.toml",
+            "--target",
+            "rust",
+            "-o",
+        ])
+        .arg(&output)
+        .current_dir(&fixture.0)
+        .output()
+        .unwrap();
+    assert!(!rejected.status.success());
+    assert!(String::from_utf8_lossy(&rejected.stderr).contains("SPX-J114"));
+    assert!(!fixture.0.join("missing-parent").exists());
+}

@@ -180,6 +180,15 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                         if options.target == "rust" {
                             output = cli::build::absolute_rust_output(&output)
                                 .map_err(|error| vec![error])?;
+                            if !snapshot.manifest().is_v8()
+                                && !snapshot.manifest().is_v9()
+                                && !snapshot.manifest().is_v10()
+                            {
+                                return Err(vec![Diagnostic::io(
+                                    "SPX-J114",
+                                    "the rust target requires the exact Project v8 owned-data-api.v1, Project v9 flat-owned-record-api.v1, or Project v10 owned-utf8-api.v1 profile",
+                                )]);
+                            }
                         }
                         let mut output_parent = options
                             .output
@@ -197,29 +206,24 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                         if let Some(parent) = &mut output_parent {
                             parent.retain().map_err(|error| vec![error])?;
                         }
-                        let project_version = snapshot
-                            .manifest()
-                            .schema()
-                            .strip_prefix("semaprax.project.")
-                            .expect("admitted Project schema has the frozen prefix")
-                            .to_owned();
-                        Ok((output, project_version))
+                        Ok((output, snapshot.manifest().is_v10()))
                     })
                     .map_err(|errors| report(&errors, false))?;
                     if matches!(options.target.as_str(), "native") {
                         println!("built project native executable {}", output.0.display());
                     } else if matches!(options.target.as_str(), "rust") {
+                        let version = if output.1 { "v10" } else { "v8" };
                         println!(
                             "built Project {} Native Rust owned-data package {}",
-                            output.1,
+                            version,
                             output.0.display()
                         );
                     } else if matches!(options.target.as_str(), "npm") {
-                        println!(
-                            "built Project {} npm package {}",
-                            output.1,
-                            output.0.display()
-                        );
+                        if output.1 {
+                            println!("built Project v10 npm package {}", output.0.display());
+                        } else {
+                            println!("built Project v2 npm package {}", output.0.display());
+                        }
                     } else {
                         println!("built project web package {}", output.0.display());
                     }

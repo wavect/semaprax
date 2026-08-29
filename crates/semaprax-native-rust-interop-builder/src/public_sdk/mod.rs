@@ -17,6 +17,7 @@ use crate::diagnostic::Diagnostic;
 const SPEC_SCHEMA: &str = "semaprax.native-rust-interop-spec.v1";
 const DESCRIPTOR_SCHEMA: &str = "semaprax.native-rust-interop-descriptor.v1";
 const SDK_SCHEMA: &str = "semaprax.native-rust-sdk.v1";
+pub const NATIVE_RUST_OWNED_DATA_SDK_SCHEMA: &str = "semaprax.native-rust-owned-data-sdk.v1";
 pub const PROJECT_NATIVE_RUST_SUBJECT_SCHEMA: &str = "semaprax.project-native-rust-subject.v1";
 pub const PROJECT_NATIVE_RUST_SDK_SCHEMA: &str = "semaprax.project-native-rust-sdk.v1";
 const PROJECT_DESCRIPTOR_SCHEMA: &str = "semaprax.project-native-rust-interop-descriptor.v1";
@@ -114,6 +115,44 @@ pub struct NativeRustSdkBundle {
     manifest_digest: String,
     crate_name: String,
     target_triple: String,
+}
+
+/// Immutable facts returned after one distinct owned-data package is
+/// authenticated and published.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NativeRustOwnedDataSdkBundle {
+    output_directory: PathBuf,
+    manifest_path: PathBuf,
+    manifest_digest: String,
+    descriptor_digest: String,
+    crate_name: String,
+    target_triple: String,
+}
+
+impl NativeRustOwnedDataSdkBundle {
+    pub fn output_directory(&self) -> &Path {
+        &self.output_directory
+    }
+
+    pub fn manifest_path(&self) -> &Path {
+        &self.manifest_path
+    }
+
+    pub fn manifest_digest(&self) -> &str {
+        &self.manifest_digest
+    }
+
+    pub fn descriptor_digest(&self) -> &str {
+        &self.descriptor_digest
+    }
+
+    pub fn crate_name(&self) -> &str {
+        &self.crate_name
+    }
+
+    pub fn target_triple(&self) -> &str {
+        &self.target_triple
+    }
 }
 
 /// Immutable facts returned only after one authenticated Project SDK package
@@ -560,10 +599,13 @@ mod authentication;
 mod authority;
 mod build;
 mod descriptor;
+mod owned_data;
+mod owned_data_descriptor;
 mod package;
 mod project;
 
 pub use build::build_native_rust_sdk;
+pub use owned_data::build_native_rust_owned_data_sdk;
 pub use project::build_project_native_rust_sdk;
 
 #[cfg(test)]

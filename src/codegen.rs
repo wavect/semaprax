@@ -36,6 +36,7 @@ mod native_host_contract;
 mod native_host_output;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 mod native_module_lease;
+mod native_owned_data_provider;
 mod native_resource;
 mod native_runtime;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
@@ -72,6 +73,15 @@ use native_emit::{
     function_index, preflight_resource_lowering,
 };
 use native_emit::{emit_hir_c_with_labels, NativeOutputProfile};
+
+pub use native_owned_data_provider::{
+    emit_native_owned_data_provider, NativeOwnedDataProviderArtifact,
+};
+
+#[doc(hidden)]
+pub fn native_owned_data_provider_symbol(rust_method: &str) -> String {
+    native_owned_data_provider::public_provider_call_symbol(rust_method)
+}
 
 pub(super) trait COutput: std::fmt::Write {
     fn push_str(&mut self, value: &str);
@@ -184,6 +194,16 @@ pub(crate) fn emit_resolved_c_with_source(
 pub fn emit_hir_c(program: &ResolvedProgram) -> Result<String, Diagnostic> {
     reject_native_rust_for_native(program)?;
     emit_hir_c_with_labels(program, &HashMap::new(), NativeOutputProfile::Legacy, None)
+}
+
+fn emit_hir_c_for_owned_data_provider(program: &ResolvedProgram) -> Result<String, Diagnostic> {
+    reject_native_rust_for_native(program)?;
+    emit_hir_c_with_labels(
+        program,
+        &HashMap::new(),
+        NativeOutputProfile::OwnedDataProvider,
+        None,
+    )
 }
 
 /// Emit the bounded native stdout-transcript profile from validated HIR.

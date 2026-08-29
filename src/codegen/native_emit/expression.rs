@@ -1489,6 +1489,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
     fn emit_if_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
         struct Continuation<'a> {
             expr: &'a ResolvedExpr,
+            then_branch: &'a ResolvedExpr,
             else_branch: &'a ResolvedExpr,
             temporary: String,
         }
@@ -1520,6 +1521,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             self.indent += 1;
             continuations.push(Continuation {
                 expr: current,
+                then_branch,
                 else_branch,
                 temporary,
             });
@@ -1532,13 +1534,23 @@ impl<'a, O: COutput> CEmitter<'a, O> {
 
         while let Some(continuation) = continuations.pop() {
             self.require_type(&value.ty, &continuation.expr.ty, "then branch")?;
-            self.assign_branch_result(continuation.expr, &continuation.temporary, &value)?;
+            self.assign_branch_result(
+                continuation.expr,
+                continuation.then_branch,
+                &continuation.temporary,
+                &value,
+            )?;
             self.indent -= 1;
             self.line("} else {");
             self.indent += 1;
             let else_value = self.emit_expr(continuation.else_branch)?;
             self.require_type(&else_value.ty, &continuation.expr.ty, "else branch")?;
-            self.assign_branch_result(continuation.expr, &continuation.temporary, &else_value)?;
+            self.assign_branch_result(
+                continuation.expr,
+                continuation.else_branch,
+                &continuation.temporary,
+                &else_value,
+            )?;
             self.indent -= 1;
             self.line("}");
             value = CValue {
@@ -1552,6 +1564,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
     fn assign_branch_result(
         &mut self,
         expr: &ResolvedExpr,
+        branch: &ResolvedExpr,
         temporary: &str,
         value: &CValue,
     ) -> Result<(), Diagnostic> {
@@ -1566,6 +1579,20 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             for line in transitions.lines() {
                 self.line(line);
             }
+        } else if variant_declaration_id(self.program, &expr.ty)?.is_some() {
+            if let Some(plan) = self.bytes_plan {
+                let layout = self.variant_layout(&expr.ty)?;
+                let transitions = plan.transfer_variant_branch_to(
+                    &branch.id,
+                    &crate::cleanup_plan::StorageId::Temporary(expr.id.clone()),
+                    &value.code,
+                    &layout,
+                )?;
+                for line in transitions.lines() {
+                    self.line(line);
+                }
+            }
+            self.line(&format!("{temporary} = {};", value.code));
         } else if !matches!(expr.ty, ResolvedType::ArrayU8(0)) {
             self.line(&format!("{temporary} = {};", value.code));
         }

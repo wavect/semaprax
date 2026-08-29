@@ -9,6 +9,60 @@ use crate::hir::{IdentityOrigin, ResolvedProgram};
 
 use super::{ProjectSnapshot, ProjectSource, AUTHENTICATED_PROJECT_SUBJECT_OPERATION};
 
+/// Invocation-borrowed, target-neutral subject for the inactive owned-data
+/// Rust SDK builder. Construction always derives and replays the canonical
+/// public descriptor before lending any effectful build operation.
+pub struct ProjectOwnedDataNativeSdkSubject<'a> {
+    program: &'a ResolvedProgram,
+    selected: &'a [String],
+    subject: super::PublicApiSubject<'a>,
+    descriptor: super::PublicApiDescriptor,
+}
+
+impl<'a> ProjectOwnedDataNativeSdkSubject<'a> {
+    pub fn program(&self) -> &ResolvedProgram {
+        self.program
+    }
+
+    pub fn selected(&self) -> &[String] {
+        self.selected
+    }
+
+    pub const fn subject(&self) -> super::PublicApiSubject<'a> {
+        self.subject
+    }
+
+    pub fn descriptor(&self) -> &super::PublicApiDescriptor {
+        &self.descriptor
+    }
+}
+
+/// Validate one HIR/subject pair and lend its exact canonical descriptor to an
+/// owned-data SDK operation. This does not parse or activate Project v8.
+pub fn with_native_owned_data_sdk_subject<T>(
+    program: &ResolvedProgram,
+    selected: &[String],
+    subject: super::PublicApiSubject<'_>,
+    operation: impl FnOnce(ProjectOwnedDataNativeSdkSubject<'_>) -> Result<T, Vec<Diagnostic>>,
+) -> Result<T, Vec<Diagnostic>> {
+    let descriptor = super::derive_public_api_descriptor(program, selected, subject)
+        .map_err(|error| vec![error])?;
+    super::replay_public_api_descriptor(
+        program,
+        selected,
+        subject,
+        &descriptor.canonical_bytes(),
+        &descriptor.digest(),
+    )
+    .map_err(|error| vec![error])?;
+    operation(ProjectOwnedDataNativeSdkSubject {
+        program,
+        selected,
+        subject,
+        descriptor,
+    })
+}
+
 /// One manifest-selected stable-ID export and its authenticated declaration
 /// origin inside the complete Project source set.
 #[derive(Clone, Debug, Eq, PartialEq)]

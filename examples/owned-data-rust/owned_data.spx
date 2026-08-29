@@ -1,0 +1,43 @@
+module owned.data;
+
+@id("frame.payload")
+fn frame_payload(input: borrow Slice<u8>) -> Bytes {
+    bytes_copy(input)
+}
+
+@id("frame.payload-maybe")
+fn optional_payload(input: borrow Slice<u8>) -> Option<Bytes> {
+    if byte_len(input) == 0usize {
+        make_none()
+    } else {
+        make_some(input)
+    }
+}
+
+@id("frame.make-none")
+fn make_none() -> Option<Bytes> { Option<Bytes>::None {} }
+
+@id("frame.make-some")
+fn make_some(input: borrow Slice<u8>) -> Option<Bytes> {
+    Option<Bytes>::Some { value: bytes_copy(input) }
+}
+
+@id("frame.payload-result")
+fn parse_payload(input: borrow Slice<u8>) -> Result<Bytes, i64> {
+    if byte_len(input) == 1usize {
+        make_error()
+    } else {
+        make_ok(input)
+    }
+}
+
+@id("frame.make-error")
+fn make_error() -> Result<Bytes, i64> { Result<Bytes, i64>::Err { error: -7 } }
+
+@id("frame.make-ok")
+fn make_ok(input: borrow Slice<u8>) -> Result<Bytes, i64> {
+    Result<Bytes, i64>::Ok { value: bytes_copy(input) }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }

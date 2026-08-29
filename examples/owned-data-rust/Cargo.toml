@@ -1,0 +1,15 @@
+[package]
+name = "semaprax-owned-data-rust-setup"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.85"
+publish = false
+
+[workspace]
+
+[dependencies]
+semaprax = { path = "../.." }
+semaprax-native-rust-interop = { path = "../../crates/semaprax-native-rust-interop-builder" }
+
+[lints.rust]
+unsafe_code = "forbid"

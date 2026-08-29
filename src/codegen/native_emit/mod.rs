@@ -187,6 +187,7 @@ pub(super) fn emit_hir_c_with_labels(
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum NativeOutputProfile {
     Legacy,
+    OwnedDataProvider,
     StdoutTranscript,
     UsefulDataCommand,
     LanguageCommandIo,
@@ -996,7 +997,7 @@ pub(super) fn c_record_symbol(ty: &ResolvedType) -> String {
     symbol
 }
 
-fn c_variant_symbol(ty: &ResolvedType) -> String {
+pub(super) fn c_variant_symbol(ty: &ResolvedType) -> String {
     let ResolvedType::Nominal {
         declaration,
         arguments,
@@ -1602,7 +1603,10 @@ fn emit_function(
     .expect("writing to a string cannot fail");
 
     if let Some(plan) = &bytes_plan {
-        output.push_str(&plan.declarations(function));
+        output.push_str(&plan.declarations(
+            function,
+            emission.output_profile == NativeOutputProfile::OwnedDataProvider,
+        ));
         for (index, parameter) in function.params.iter().enumerate() {
             if matches!(parameter.ty, ResolvedType::Bytes) {
                 output.push_str(&plan.initialize_parameter(

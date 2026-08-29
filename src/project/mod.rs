@@ -42,7 +42,10 @@ pub use manifest::{
     PROJECT_SCHEMA, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5,
     PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7,
 };
-pub use native_sdk::{ProjectNativeSdkExport, ProjectNativeSdkSubject};
+pub use native_sdk::{
+    with_native_owned_data_sdk_subject, ProjectNativeSdkExport, ProjectNativeSdkSubject,
+    ProjectOwnedDataNativeSdkSubject,
+};
 pub use npm::{
     ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
     PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,

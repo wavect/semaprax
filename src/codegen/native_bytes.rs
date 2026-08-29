@@ -277,7 +277,11 @@ impl NativeBytesPlan {
         }))
     }
 
-    pub(super) fn declarations(&self, function: &ResolvedFunction) -> String {
+    pub(super) fn declarations(
+        &self,
+        function: &ResolvedFunction,
+        provider_retains_all_slots: bool,
+    ) -> String {
         let live_parameters = function
             .cleanup_plan
             .entry_state
@@ -291,8 +295,9 @@ impl NativeBytesPlan {
             // unreachable in this function. Keep it visible to the cleanup
             // bridge without letting strict Clang warning gates reject the
             // intentionally inert declaration.
-            let maybe_unused = if self.inactive_places.contains(&slot.place)
-                && !self.referenced_places.contains(&slot.place)
+            let maybe_unused = if provider_retains_all_slots
+                || (self.inactive_places.contains(&slot.place)
+                    && !self.referenced_places.contains(&slot.place))
             {
                 " __attribute__((unused))"
             } else {
@@ -669,6 +674,40 @@ impl NativeBytesPlan {
             source.flag,
             destination.flag
         ))
+    }
+
+    pub(super) fn transfer_variant_branch_to(
+        &self,
+        source_at: &ExpressionId,
+        destination_storage: &StorageId,
+        carrier: &str,
+        layout: &VariantLayout,
+    ) -> Result<String, Diagnostic> {
+        let source = self
+            .transitions
+            .get(source_at)
+            .into_iter()
+            .flatten()
+            .rev()
+            .find_map(|transition| match transition {
+                CleanupTransition::TransferVariant {
+                    destination,
+                    variant,
+                    ..
+                } if variant == &layout.variant => Some(destination.clone()),
+                CleanupTransition::InitializeVariant {
+                    destination,
+                    variant,
+                    ..
+                } if variant == &layout.variant => Some(destination.clone()),
+                _ => None,
+            })
+            .ok_or_else(|| error("owned variant branch has no authenticated source"))?;
+        let destination = CleanupPlace {
+            storage: destination_storage.clone(),
+            projections: Vec::new(),
+        };
+        self.emit_variant_transfer(&source, &destination, carrier, layout)
     }
 
     pub(super) fn call_argument(

@@ -36,6 +36,7 @@ Audience: all documentation readers.
 - [Project Manifest v3](PROJECT-MANIFEST-V3.md)
 - [Project Manifest v4](PROJECT-MANIFEST-V4.md)
 - [Project Manifest v5](PROJECT-MANIFEST-V5.md)
+- [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md)
 - [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md)
 - [Public Flat Owned Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md)
 - [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md)

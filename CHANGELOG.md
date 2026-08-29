@@ -32,12 +32,16 @@
   canonical manifest and sources, Workspace manifest/revision, Project
   revision, and graph digest; loading independently replays the complete
   recursive inventory and rebuilds ordinary Phase-A/HIR meaning. Unrelated
-  retained entries receive bounded content-addressed metadata and structural
-  authentication rather than an unbounded eager semantic rebuild. Publication
-  uses one held absolute root, handle-relative create-new staging, complete
-  file/directory settlement, and same-root no-replace rename, with foreign,
-  partial, colliding, drifted, or substituted structures preserved and
-  rejected; complete selected entries also reject truncated or foreign bytes.
+  retained entries receive one bounded, invocation-cached content-addressed
+  metadata and structural authentication rather than an unbounded eager
+  semantic rebuild. Publication requires a current-euid-owned exact-`0700`
+  held absolute root plus a host guarantee excluding uncooperative
+  same-principal mutation; its advisory lock only serializes cooperating
+  callers. Handle-relative create-new staging retains every created parent for
+  later effects, settles files/directories, and uses same-root no-replace
+  rename. Under that trusted-root contract, foreign, partial, colliding,
+  drifted, or substituted structures are preserved and rejected; complete
+  selected entries also reject truncated or foreign bytes.
   The receipt has no reusable authority; Transport v2-v5 and Project
   v1-v10 bytes remain unchanged; no daemon, ambient cache, build, recovery,
   eviction, GC, Windows-support, local-green, hosted, or promotion claim is

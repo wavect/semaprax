@@ -53,6 +53,7 @@ const NONCLAIMS: &[&str] = &[
     "no_target_execution_or_artifact_publication",
     "no_dependency_registry_or_package_resolution",
     "no_raw_path_trust_or_symlink_traversal",
+    "requires_trusted_exclusive_current_euid_root",
     "no_adoption_overwrite_cleanup_recovery_eviction_or_gc",
     "no_power_loss_network_nfs_overlay_or_durability_guarantee",
     "no_acl_xattr_or_ads_preservation",
@@ -206,7 +207,9 @@ impl PreparedEntry {
         let manifest = revision.manifest().to_canonical_toml().into_bytes();
         require_max("manifest_bytes", manifest.len(), MAX_STORE_MANIFEST_BYTES)?;
         let sources = prepared_sources(revision.sources())?;
-        let workspace_manifest = render_workspace_manifest(&sources)?.into_bytes();
+        let workspace_manifest = render_workspace_manifest(&sources)
+            .map_err(|_| replay("Project Workspace source facts cannot be rendered exactly"))?
+            .into_bytes();
         if workspace_manifest.as_slice() != revision.workspace_manifest().as_bytes() {
             return Err(replay(
                 "Project Workspace manifest differs from independent source-fact replay",
@@ -424,7 +427,8 @@ fn replay_stored(
             source: source.into_bytes(),
         });
     }
-    let independent_workspace_manifest = render_workspace_manifest(&sources)?;
+    let independent_workspace_manifest = render_workspace_manifest(&sources)
+        .map_err(|_| replay("stored Workspace source facts are not admitted"))?;
     if independent_workspace_manifest != workspace_manifest {
         return Err(replay(
             "stored Workspace manifest differs from source-fact replay",
@@ -841,6 +845,8 @@ mod tests {
 
     impl Fixture {
         fn new(label: &str) -> Self {
+            use std::os::unix::fs::PermissionsExt;
+
             let ordinal = NEXT.fetch_add(1, Ordering::Relaxed);
             let directory = std::env::temp_dir().join(format!(
                 "semaprax-project-revision-store-{label}-{}-{ordinal}",
@@ -849,6 +855,7 @@ mod tests {
             std::fs::create_dir(&directory).unwrap();
             let store = directory.join("store");
             std::fs::create_dir(&store).unwrap();
+            std::fs::set_permissions(&store, std::fs::Permissions::from_mode(0o700)).unwrap();
             Self { directory, store }
         }
     }
@@ -949,6 +956,23 @@ mod tests {
     }
 
     #[test]
+    fn unrelated_retained_metadata_is_authenticated_once_per_invocation() {
+        let fixture = Fixture::new("retained-once");
+        let revision = revision();
+        persist(&fixture.store, &revision, revision.project_revision()).unwrap();
+
+        let mut candidate = prepared(&revision);
+        candidate.project_graph_digest = format!("sha256:{}", "0".repeat(64));
+        candidate.entry_json = render_entry_fixed_point(&candidate).unwrap();
+        candidate.entry_digest = framed_digest(ENTRY_DIGEST_DOMAIN, &candidate.entry_json);
+        unix::reset_retained_metadata_authentications();
+        let error = unix::persist_with_hook(&fixture.store, &candidate, |_, _| Ok(()))
+            .expect_err("foreign candidate graph binding must reject");
+        assert!(matches!(error[0].code, "SPX-G192" | "SPX-G193"));
+        assert_eq!(unix::retained_metadata_authentications(), 1);
+    }
+
+    #[test]
     fn foreign_root_bytes_fail_closed_before_stage_creation() {
         let fixture = Fixture::new("foreign-root");
         let revision = revision();
@@ -1040,6 +1064,18 @@ mod tests {
             let error = persist(&root, &revision, revision.project_revision()).unwrap_err();
             assert_eq!(error[0].code, "SPX-G193");
         }
+    }
+
+    #[test]
+    fn store_root_rejects_non_private_permissions_before_effect() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let fixture = Fixture::new("root-permissions");
+        let revision = revision();
+        std::fs::set_permissions(&fixture.store, std::fs::Permissions::from_mode(0o750)).unwrap();
+        let error = persist(&fixture.store, &revision, revision.project_revision()).unwrap_err();
+        assert_eq!(error[0].code, "SPX-G193");
+        assert_eq!(std::fs::read_dir(&fixture.store).unwrap().count(), 0);
     }
 
     #[test]
@@ -1266,6 +1302,29 @@ mod tests {
         assert!(validate_source_path(&exact).is_ok());
         let error = validate_source_path(&format!("x{exact}")).unwrap_err();
         assert_eq!(error[0].code, "SPX-G190");
+    }
+
+    #[test]
+    fn selected_entry_workspace_fact_failure_stays_inside_store_diagnostics() {
+        let revision = revision();
+        let mut prepared = prepared(&revision);
+        prepared.sources[0].source_graph_schema = "foreign.workspace.graph".to_owned();
+        prepared.entry_json = render_entry_fixed_point(&prepared).unwrap();
+        prepared.entry_digest = framed_digest(ENTRY_DIGEST_DOMAIN, &prepared.entry_json);
+        let stored = StoredEntry {
+            entry_json: prepared.entry_json.clone(),
+            manifest: prepared.manifest.clone(),
+            workspace_manifest: prepared.workspace_manifest.clone(),
+            sources: prepared
+                .sources
+                .iter()
+                .map(|source| (source.path.clone(), source.source.clone()))
+                .collect(),
+        };
+        let error = replay_stored(stored, &prepared.entry_digest, &prepared.project_revision)
+            .err()
+            .expect("foreign selected Workspace facts must reject");
+        assert_eq!(error[0].code, "SPX-G192");
     }
 
     #[test]

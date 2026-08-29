@@ -270,11 +270,16 @@ the additive [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md). The
 authority-neutral layer independently binds canonical manifest/source facts,
 Workspace and Project revisions, and the Project graph digest into one closed
 content-addressed entry. The Unix authority layer opens one host-injected
-absolute root component-by-component, performs all reads and effects relative
-to held descriptors, publishes a completely replayed create-new stage with a
-same-root no-replace rename, and settles the held directory before and after
-the pivot. Root admission bounds unrelated entries to content-addressed
-metadata and exact structural/identity replay; selecting an entry or
+absolute root component-by-component, requires current-euid ownership and
+exact `0700` mode, and treats the advisory lock only as cooperating-caller
+serialization under an explicit host guarantee excluding uncooperative
+same-principal mutation. It performs all reads and effects relative to held
+descriptors, retains every created parent authority, publishes a completely
+replayed create-new stage with a same-root no-replace rename, and settles held
+directories before and after the pivot. Root admission authenticates and
+caches unrelated content-addressed metadata and structural/identity facts once
+per invocation; later checks revalidate names and top identities without
+rereading metadata. Selecting an entry or
 publishing a new one additionally owns all bytes and rebuilds meaning through
 the ordinary Project Phase-A/HIR path; stored bytes never bypass verification.
 Non-Unix hosts fail before an

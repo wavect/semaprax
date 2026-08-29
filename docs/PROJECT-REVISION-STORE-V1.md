@@ -38,10 +38,19 @@ path, handle, stage, write, build, mutation, or reusable authorization
 authority.
 
 Both operations require an absolute, normalized store root selected by the
-host. The root must already exist. A relative root, `.` or `..` component,
-symlink/reparse point, non-directory, or path/held-handle disagreement rejects
-before a store effect. Every invocation opens and owns a fresh root authority;
-no authority object escapes or can be reused.
+host. The root must already exist as one real directory owned by the process's
+current effective user with exact `0700` permissions. A relative root, `.` or
+`..` component, symlink/reparse point, non-directory, owner/mode disagreement,
+or path/held-handle disagreement rejects before a store effect. Every
+invocation opens and owns a fresh root authority; no authority object escapes
+or can be reused.
+
+The host must additionally exclude uncooperative mutation by another process
+running as that same effective user for the duration of the invocation. The
+advisory root lock serializes cooperating store callers only; it is not a
+security boundary against a same-principal peer that ignores it. The hostile
+substitution, no-adoption, and no-concurrent-mutation claims below are scoped
+to the enforced owner/mode boundary and that explicit host guarantee.
 
 The safe implementation is admitted only on Unix hosts with the existing
 `rustix` handle-relative filesystem primitives and atomic no-replace rename.
@@ -146,16 +155,18 @@ foreign, malformed, truncated, or self-consistently reminted entry fails
 closed.
 
 Root-inventory admission does not compile every unrelated retained Project.
-For each of at most 32 retained entries it reads at most the 1,048,576-byte
-canonical `entry.json`, verifies that its content-address digest equals the
-directory name, and authenticates the complete held structural inventory,
-exact file sizes, modes, link counts, and stable identities. Thus unrelated
-metadata replay is cumulatively bounded by 33,554,432 bytes and 9,280
-inventory objects. Complete byte/digest/semantic replay is reserved for the
-selected load subject and the newly staged and published persistence subject.
-Same-size corruption of an unrelated retained entry therefore does not grant
-authority: selecting it still requires complete replay, while structural or
-metadata corruption prevents every operation immediately.
+Exactly once per invocation, for each of at most 32 retained entries, it reads
+at most the 1,048,576-byte canonical `entry.json`, verifies that its
+content-address digest equals the directory name, and authenticates and caches
+the complete held structural inventory, exact file sizes, modes, link counts,
+and stable identities. Thus unrelated metadata replay is cumulatively bounded
+by 33,554,432 bytes and 9,280 distinct inventory objects. Later invocation
+checks compare exact root names and cached retained-entry identities without
+rereading metadata or adopting a changed entry. Complete byte/digest/semantic
+replay is reserved for the selected load subject and the newly staged and
+published persistence subject. Same-size corruption of an unrelated retained
+entry never grants authority: selecting it still requires complete replay,
+and the next invocation independently authenticates it again.
 
 ## Publication and authority order
 
@@ -164,11 +175,13 @@ Persistence has this fixed order:
 1. validate the expected subject and prepare the complete canonical carrier;
 2. open the absolute root component-by-component with `O_NOFOLLOW` and retain
    its identity;
-3. acquire one non-blocking advisory lock on the held root, rebind the supplied
-   path to that exact identity, and authenticate the bounded root inventory;
+3. enforce current-euid ownership and exact `0700` mode, acquire one
+   non-blocking advisory lock for cooperating callers, rebind the supplied path
+   to that exact identity, and authenticate/cache the bounded root inventory;
 4. create exactly one `.stage-<entry-hex>` directory with create-new semantics;
 5. create every directory and file relative to held descriptors with
-   `O_NOFOLLOW`, `O_EXCL`, and no path rediscovery;
+   `O_NOFOLLOW` and `O_EXCL`, retain every created parent descriptor, and use
+   those retained descriptors for all later child effects and synchronization;
 6. synchronize and independently replay the complete staged inventory;
 7. recheck root identity and the exact root inventory;
 8. atomically rename the stage to `<entry-hex>` in the same held root using
@@ -177,9 +190,10 @@ Persistence has this fixed order:
    independently replay the entry again, recheck root identity/inventory, and
    only then return the prebuilt receipt.
 
-There is no retry, cleanup, deletion, adoption, overwrite, rollback, recovery,
-eviction, or garbage collection. Before the rename, failure leaves any partial
-stage inert and preserves all bytes. After the rename, any uncertainty is
+Under the trusted-root requirement there is no retry, cleanup, deletion,
+adoption, overwrite, rollback, recovery, eviction, or garbage collection.
+Before the rename, failure leaves any partial stage inert and preserves all
+bytes. After the rename, any uncertainty is
 post-pivot ambiguity: the immutable entry may be visible and is never removed
 automatically. A later operation rejects every retained stage or unexpected
 root entry instead of treating it as owned residue.
@@ -221,6 +235,7 @@ no_daemon_transport_or_protocol_authority
 no_target_execution_or_artifact_publication
 no_dependency_registry_or_package_resolution
 no_raw_path_trust_or_symlink_traversal
+requires_trusted_exclusive_current_euid_root
 no_adoption_overwrite_cleanup_recovery_eviction_or_gc
 no_power_loss_network_nfs_overlay_or_durability_guarantee
 no_acl_xattr_or_ads_preservation
@@ -249,7 +264,8 @@ store operation into Project success.
 Authored evidence must cover canonical persist/load round-trip for every
 admitted Project profile; deterministic entry JSON and digest; exact-capacity
 and plus-one rejection; stale expected subject; manifest/source/Workspace/
-Project/graph binding mutations; same-byte path substitution; root/entry/file
+Project/graph binding mutations; same-byte path substitution after authority
+capture under the trusted-root contract; root/entry/file
 symlinks and hard links; partial stage; root and nested foreign bytes; existing
 destination collision; stage and published truncation/growth; permission and
 identity drift before and after the pivot; post-pivot ambiguity; and exact

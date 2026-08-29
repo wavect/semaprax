@@ -13,11 +13,31 @@ use super::{
 };
 use crate::diagnostic::Diagnostic;
 
+#[cfg(test)]
+std::thread_local! {
+    static RETAINED_METADATA_AUTHENTICATIONS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct Identity {
     device: u64,
     inode: u64,
     mode: u32,
+}
+
+struct RetainedEntryFact {
+    identity: Identity,
+    _structural_inventory: BTreeMap<String, (bool, Identity)>,
+}
+
+struct RootInventory {
+    names: BTreeSet<String>,
+    retained: BTreeMap<String, RetainedEntryFact>,
+}
+
+struct CreatedEntry {
+    inventory: BTreeMap<String, (bool, Identity)>,
+    directories: Vec<OwnedFd>,
 }
 
 pub(super) fn persist(root: &Path, prepared: &PreparedEntry) -> Result<(), Vec<Diagnostic>> {
@@ -47,9 +67,9 @@ pub(super) fn persist_with_hook(
     fs2::FileExt::try_lock_exclusive(&lock)
         .map_err(|error| authentication(format!("Project Revision Store root is busy: {error}")))?;
     let initial = root_inventory(&root)?;
-    require_publication_capacity(initial.len())?;
+    require_publication_capacity(initial.names.len())?;
     let destination = prepared.entry_hex();
-    if initial.contains(destination) {
+    if initial.names.contains(destination) {
         return Err(authentication(
             "Project Revision Store content-addressed destination already exists",
         ));
@@ -66,7 +86,7 @@ pub(super) fn persist_with_hook(
     require_entry_directory_mode(&stage_fd)?;
     hook(StorePoint::AfterStageCreate, root_path)
         .map_err(|error| io(format!("Project Revision Store stage hook failed: {error}")))?;
-    let mut with_stage = initial.clone();
+    let mut with_stage = initial.names.clone();
     with_stage.insert(stage.clone());
     require_root_path_identity(root_path, root_identity)?;
     require_identity_at(
@@ -75,15 +95,15 @@ pub(super) fn persist_with_hook(
         stage_identity,
         "store stage changed before writing",
     )?;
-    require_root_inventory(&root, &with_stage)?;
-    let created_inventory = write_entry(&stage_fd, prepared)?;
+    require_root_inventory(&root, &with_stage, &initial.retained)?;
+    let created = write_entry(&stage_fd, prepared)?;
     let prepared_paths = prepared
         .sources
         .iter()
         .map(|source| source.path.clone())
         .collect::<Vec<_>>();
     let expected_stage_inventory = expected_inventory(&prepared_paths)?;
-    require_exact_inventory(&stage_fd, &expected_stage_inventory, &created_inventory)?;
+    require_exact_inventory(&stage_fd, &expected_stage_inventory, &created.inventory)?;
     hook(StorePoint::AfterStageWrite, root_path)
         .map_err(|error| io(format!("Project Revision Store write hook failed: {error}")))?;
     require_root_path_identity(root_path, root_identity)?;
@@ -93,9 +113,9 @@ pub(super) fn persist_with_hook(
         stage_identity,
         "store stage changed after writing",
     )?;
-    require_root_inventory(&root, &with_stage)?;
-    require_exact_inventory(&stage_fd, &expected_stage_inventory, &created_inventory)?;
-    sync_directory_tree(&stage_fd)?;
+    require_root_inventory(&root, &with_stage, &initial.retained)?;
+    require_exact_inventory(&stage_fd, &expected_stage_inventory, &created.inventory)?;
+    sync_created_directories(&stage_fd, &created.directories)?;
     fs::fsync(&root).map_err(|error| {
         io(format!(
             "cannot settle Project Revision Store stage: {error}"
@@ -113,8 +133,8 @@ pub(super) fn persist_with_hook(
         stage_identity,
         "store stage changed before publication",
     )?;
-    require_root_inventory(&root, &with_stage)?;
-    require_exact_inventory(&stage_fd, &expected_stage_inventory, &created_inventory)?;
+    require_root_inventory(&root, &with_stage, &initial.retained)?;
+    require_exact_inventory(&stage_fd, &expected_stage_inventory, &created.inventory)?;
     authenticate_prepared(&stage_fd, prepared)?;
     hook(StorePoint::BeforePublish, root_path).map_err(|error| {
         io(format!(
@@ -128,9 +148,9 @@ pub(super) fn persist_with_hook(
         stage_identity,
         "store stage changed immediately before publication",
     )?;
-    require_root_inventory(&root, &with_stage)?;
-    require_exact_inventory(&stage_fd, &expected_stage_inventory, &created_inventory)?;
-    sync_directory_tree(&stage_fd)?;
+    require_root_inventory(&root, &with_stage, &initial.retained)?;
+    require_exact_inventory(&stage_fd, &expected_stage_inventory, &created.inventory)?;
+    sync_created_directories(&stage_fd, &created.directories)?;
     fs::fsync(&root).map_err(|error| {
         io(format!(
             "cannot resettle Project Revision Store stage: {error}"
@@ -148,8 +168,8 @@ pub(super) fn persist_with_hook(
         stage_identity,
         "store stage changed before publication",
     )?;
-    require_root_inventory(&root, &with_stage)?;
-    require_exact_inventory(&stage_fd, &expected_stage_inventory, &created_inventory)?;
+    require_root_inventory(&root, &with_stage, &initial.retained)?;
+    require_exact_inventory(&stage_fd, &expected_stage_inventory, &created.inventory)?;
     authenticate_prepared(&stage_fd, prepared)?;
     fs::renameat_with(
         &root,
@@ -188,9 +208,9 @@ pub(super) fn persist_with_hook(
     authenticate_prepared(&published, prepared).map_err(|_| {
         post_pivot("published Project Revision Store entry failed exact authentication")
     })?;
-    require_exact_inventory(&published, &expected_stage_inventory, &created_inventory)
+    require_exact_inventory(&published, &expected_stage_inventory, &created.inventory)
         .map_err(|_| post_pivot("published Project Revision Store identity inventory changed"))?;
-    let mut published_inventory = initial;
+    let mut published_inventory = initial.names;
     published_inventory.insert(destination.to_owned());
     require_identity(&root, root_identity, "store root changed after publication")
         .map_err(|_| post_pivot("Project Revision Store root changed after publication"))?;
@@ -203,7 +223,7 @@ pub(super) fn persist_with_hook(
     .map_err(|_| post_pivot("Project Revision Store published entry identity changed"))?;
     require_root_path_identity(root_path, root_identity)
         .map_err(|_| post_pivot("Project Revision Store root path changed after publication"))?;
-    require_root_inventory(&root, &published_inventory).map_err(|_| {
+    require_root_inventory(&root, &published_inventory, &initial.retained).map_err(|_| {
         post_pivot("Project Revision Store root inventory changed after publication")
     })?;
     fs2::FileExt::unlock(&lock).map_err(|error| {
@@ -220,6 +240,16 @@ pub(super) fn require_publication_capacity(entries: usize) -> Result<(), Vec<Dia
     Ok(())
 }
 
+#[cfg(test)]
+pub(super) fn reset_retained_metadata_authentications() {
+    RETAINED_METADATA_AUTHENTICATIONS.with(|count| count.set(0));
+}
+
+#[cfg(test)]
+pub(super) fn retained_metadata_authentications() -> usize {
+    RETAINED_METADATA_AUTHENTICATIONS.with(std::cell::Cell::get)
+}
+
 pub(super) fn load(root_path: &Path, entry_digest: &str) -> Result<StoredEntry, Vec<Diagnostic>> {
     let root = open_root(root_path)?;
     let root_identity = identity(&root)?;
@@ -234,7 +264,7 @@ pub(super) fn load(root_path: &Path, entry_digest: &str) -> Result<StoredEntry, 
     let entry_hex = entry_digest
         .strip_prefix("sha256:")
         .ok_or_else(|| authentication("Project Revision Store digest prefix is absent"))?;
-    if !inventory.contains(entry_hex) {
+    if !inventory.names.contains(entry_hex) {
         return Err(authentication(
             "Project Revision Store entry is absent from the exact root inventory",
         ));
@@ -251,7 +281,7 @@ pub(super) fn load(root_path: &Path, entry_digest: &str) -> Result<StoredEntry, 
         entry_identity,
         "store entry changed while loading",
     )?;
-    require_root_inventory(&root, &inventory)?;
+    require_root_inventory(&root, &inventory.names, &inventory.retained)?;
     fs2::FileExt::unlock(&lock).map_err(|error| {
         io(format!(
             "cannot release Project Revision Store root: {error}"
@@ -319,9 +349,12 @@ fn open_root(path: &Path) -> Result<OwnedFd, Vec<Diagnostic>> {
     }
     let stat = fs::fstat(&current)
         .map_err(|error| authentication(format!("cannot inspect store root: {error}")))?;
-    if !FileType::from_raw_mode(stat.st_mode).is_dir() {
+    if !FileType::from_raw_mode(stat.st_mode).is_dir()
+        || stat.st_uid != rustix::process::geteuid().as_raw()
+        || stat.st_mode as u32 & 0o777 != 0o700
+    {
         return Err(authentication(
-            "Project Revision Store root is not one real directory",
+            "Project Revision Store root must be one current-euid-owned 0700 directory",
         ));
     }
     Ok(current)
@@ -337,12 +370,12 @@ fn require_root_path_identity(path: &Path, expected: Identity) -> Result<(), Vec
     Ok(())
 }
 
-fn root_inventory(root: &OwnedFd) -> Result<BTreeSet<String>, Vec<Diagnostic>> {
+fn root_inventory(root: &OwnedFd) -> Result<RootInventory, Vec<Diagnostic>> {
     let names = directory_names(root)?;
     if names.len() > MAX_STORE_ENTRIES {
         return Err(super::limit("retained_entries", MAX_STORE_ENTRIES));
     }
-    let mut result = BTreeSet::new();
+    let mut retained = BTreeMap::new();
     for name in names {
         if name.len() != 64
             || !name
@@ -363,15 +396,19 @@ fn root_inventory(root: &OwnedFd) -> Result<BTreeSet<String>, Vec<Diagnostic>> {
                 "Project Revision Store root entry is not one real directory",
             ));
         }
-        authenticate_retained_entry(root, &name)?;
-        result.insert(name);
+        let fact = authenticate_retained_entry(root, &name)?;
+        retained.insert(name, fact);
     }
-    Ok(result)
+    Ok(RootInventory {
+        names: retained.keys().cloned().collect(),
+        retained,
+    })
 }
 
 fn require_root_inventory(
     root: &OwnedFd,
     expected: &BTreeSet<String>,
+    retained: &BTreeMap<String, RetainedEntryFact>,
 ) -> Result<(), Vec<Diagnostic>> {
     let observed = directory_names(root)?.into_iter().collect::<BTreeSet<_>>();
     if observed != *expected {
@@ -379,15 +416,23 @@ fn require_root_inventory(
             "Project Revision Store root inventory changed",
         ));
     }
-    for name in expected {
-        if name.len() == 64 {
-            authenticate_retained_entry(root, name)?;
-        }
+    for (name, fact) in retained {
+        require_identity_at(
+            root,
+            name.as_bytes(),
+            fact.identity,
+            "Project Revision Store retained entry identity changed",
+        )?;
     }
     Ok(())
 }
 
-fn authenticate_retained_entry(root: &OwnedFd, name: &str) -> Result<(), Vec<Diagnostic>> {
+fn authenticate_retained_entry(
+    root: &OwnedFd,
+    name: &str,
+) -> Result<RetainedEntryFact, Vec<Diagnostic>> {
+    #[cfg(test)]
+    RETAINED_METADATA_AUTHENTICATIONS.with(|count| count.set(count.get() + 1));
     let entry = open_directory_at(root, name.as_bytes()).map_err(|_| {
         authentication("Project Revision Store retained entry cannot be opened exactly")
     })?;
@@ -469,7 +514,10 @@ fn authenticate_retained_entry(root: &OwnedFd, name: &str) -> Result<(), Vec<Dia
         entry_identity,
         "Project Revision Store retained entry path changed",
     )?;
-    Ok(())
+    Ok(RetainedEntryFact {
+        identity: entry_identity,
+        _structural_inventory: initial_inventory,
+    })
 }
 
 fn require_file_size(
@@ -524,7 +572,7 @@ fn directory_names(directory: &OwnedFd) -> Result<Vec<String>, Vec<Diagnostic>> 
 fn write_entry(
     directory: &OwnedFd,
     prepared: &PreparedEntry,
-) -> Result<BTreeMap<String, (bool, Identity)>, Vec<Diagnostic>> {
+) -> Result<CreatedEntry, Vec<Diagnostic>> {
     let mut created = BTreeMap::new();
     created.insert(
         "entry.json".to_owned(),
@@ -565,6 +613,9 @@ fn write_entry(
         "created sources path changed",
     )?;
     created.insert("sources".to_owned(), (true, sources_identity));
+    let mut held_parent_indexes = BTreeMap::new();
+    held_parent_indexes.insert(String::new(), 0usize);
+    let mut held_directories = vec![sources];
     let mut parents = BTreeSet::new();
     for source in &prepared.sources {
         let segments = source.path.split('/').collect::<Vec<_>>();
@@ -580,44 +631,63 @@ fn write_entry(
     let mut parents = parents.into_iter().collect::<Vec<_>>();
     parents.sort_by_key(|path| (path.split('/').count(), path.clone()));
     for parent in parents {
-        let (container, leaf) = open_parent(&sources, &parent)?;
-        fs::mkdirat(&container, leaf.as_bytes(), Mode::from_raw_mode(0o700)).map_err(|error| {
+        let (container_path, leaf) = parent
+            .rsplit_once('/')
+            .map_or(("", parent.as_str()), |(container, leaf)| (container, leaf));
+        let container_index = *held_parent_indexes
+            .get(container_path)
+            .ok_or_else(|| authentication("created source parent authority is absent"))?;
+        let container = &held_directories[container_index];
+        fs::mkdirat(container, leaf.as_bytes(), Mode::from_raw_mode(0o700)).map_err(|error| {
             io(format!(
                 "cannot create Project Revision Store source path: {error}"
             ))
         })?;
-        let held = open_directory_at(&container, leaf.as_bytes())?;
+        let held = open_directory_at(container, leaf.as_bytes())?;
         let held_identity = identity(&held)?;
         require_identity_at(
-            &container,
+            container,
             leaf.as_bytes(),
             held_identity,
             "created source directory path changed",
         )?;
         created.insert(format!("sources/{parent}"), (true, held_identity));
+        let held_index = held_directories.len();
+        held_directories.push(held);
+        held_parent_indexes.insert(parent, held_index);
     }
     for source in &prepared.sources {
-        let (parent, leaf) = open_parent(&sources, &source.path)?;
-        let file_identity = write_file(&parent, leaf.as_bytes(), &source.source)?;
+        let (parent_path, leaf) = source
+            .path
+            .rsplit_once('/')
+            .map_or(("", source.path.as_str()), |(parent, leaf)| (parent, leaf));
+        let parent_index = *held_parent_indexes
+            .get(parent_path)
+            .ok_or_else(|| authentication("created source parent authority is absent"))?;
+        let parent = &held_directories[parent_index];
+        let file_identity = write_file(parent, leaf.as_bytes(), &source.source)?;
         created.insert(format!("sources/{}", source.path), (false, file_identity));
     }
-    Ok(created)
+    Ok(CreatedEntry {
+        inventory: created,
+        directories: held_directories,
+    })
 }
 
-fn sync_directory_tree(directory: &OwnedFd) -> Result<(), Vec<Diagnostic>> {
-    for name in directory_names(directory)? {
-        let stat =
-            fs::statat(directory, name.as_bytes(), AtFlags::SYMLINK_NOFOLLOW).map_err(|error| {
-                authentication(format!("cannot inspect store tree before sync: {error}"))
-            })?;
-        if FileType::from_raw_mode(stat.st_mode).is_dir() {
-            let child = open_directory_at(directory, name.as_bytes())?;
-            sync_directory_tree(&child)?;
-        }
+fn sync_created_directories(
+    stage: &OwnedFd,
+    directories: &[OwnedFd],
+) -> Result<(), Vec<Diagnostic>> {
+    for directory in directories.iter().rev() {
+        fs::fsync(directory).map_err(|error| {
+            io(format!(
+                "cannot settle Project Revision Store directory: {error}"
+            ))
+        })?;
     }
-    fs::fsync(directory).map_err(|error| {
+    fs::fsync(stage).map_err(|error| {
         io(format!(
-            "cannot settle Project Revision Store directory: {error}"
+            "cannot settle Project Revision Store stage directory: {error}"
         ))
     })
 }

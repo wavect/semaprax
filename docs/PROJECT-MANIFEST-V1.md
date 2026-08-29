@@ -135,8 +135,10 @@ v1](PROJECT-REVISION-STORE-V1.md) may persist the exact canonical manifest and
 source inputs of an already authenticated authority-neutral revision. Loading
 independently replays the content-addressed inventory and rebuilds the ordinary
 Project Phase-A/HIR subject; it is neither a serialized-verifier bypass nor a
-default daemon cache. Project Manifest v1-v10 and Transport v2-v5 wire bytes
-remain unchanged.
+default daemon cache. Its Unix root must be current-euid-owned, exact `0700`,
+and host-exclusive against uncooperative same-principal mutation for the whole
+invocation; its advisory lock coordinates cooperating callers only. Project
+Manifest v1-v10 and Transport v2-v5 wire bytes remain unchanged.
 
 Web publication inherits the scalar package's documented fresh-output,
 caller-exclusive parent/new-tree contract.

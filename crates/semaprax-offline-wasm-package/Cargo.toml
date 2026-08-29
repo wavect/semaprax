@@ -1,0 +1,17 @@
+[package]
+name = "semaprax-offline-wasm-package"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.88"
+publish = false
+description = "Safe create-new publication for verified SEMAPRAX effect-free Core-Wasm packages"
+license = "Apache-2.0"
+
+[dependencies]
+semaprax = { version = "=0.2.0", path = "../.." }
+
+[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
+semaprax-native-rust-interop-platform = { version = "=0.1.0", path = "../semaprax-native-rust-interop-platform" }
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -259,6 +259,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "semaprax-offline-wasm-package"
+version = "0.1.0"
+dependencies = [
+ "semaprax",
+ "semaprax-native-rust-interop-platform",
+]
+
+[[package]]
 name = "semaprax-native-host"
 version = "0.1.0"
 dependencies = [

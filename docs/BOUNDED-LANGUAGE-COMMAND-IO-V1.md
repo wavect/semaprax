@@ -154,9 +154,12 @@ create-new destination preservation, and stable-ID selection across a display
 rename. It grants no new process authority beyond the existing fixed adapter.
 
 Reachable command-input or stderr meaning selects additive
-`semaprax.graph.v19` above v18. Graph v19 records the closed operation table,
-status domain, immutable invocation-root provenance, input/output bounds, and
-success-only publication policy.
+`semaprax.graph.v19` above v18 when no later schema is required. Graph v19
+records the closed operation table, status domain, immutable invocation-root
+provenance, input/output bounds, and success-only publication policy. A
+command-I/O program that also carries a nonempty Shared Loan Plan selects
+Graph v23 and retains these exact command-I/O facts alongside the authenticated
+loan-plan projection.
 
 Windows npm publication remains deliberately fail-closed: Project v6 can
 build and independently replay the carrier, but it does not claim a weaker

@@ -209,7 +209,8 @@ fn hir_cleanup_and_graph_authenticate_the_closed_command_io_contract() {
 
     let ast = parse(SOURCE, "bounded-language-command-io-graph.spx").unwrap();
     let json = graph::to_json(&ast).unwrap();
-    assert!(json.contains("\"schema\":\"semaprax.graph.v19\""));
+    assert!(json.contains("\"schema\":\"semaprax.graph.v23\""));
+    assert!(json.contains("\"kind\":\"loan_plan\",\"schema\":\"semaprax.loan-plan.v1\""));
     assert!(json.contains("\"status_domain\":\"semaprax.command-input.v1\""));
     assert!(json.contains("\"root_kind\":\"command_arguments\""));
     assert!(json.contains("\"max_arguments\":16"));

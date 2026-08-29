@@ -175,22 +175,28 @@ safe platform facade. The invocation:
 5. creates the stage no-clobber, writes the three fixed files create-new, and
    authenticates exact inventory and file identities;
 6. independently re-verifies the retained immutable build inputs and
-   exact-compares every held staged file immediately before settle;
+   exact-compares every held staged file, then consumes a second exact
+   inventory scan immediately before settle;
 7. sets a fail-stop `publication_attempted` state and publishes the prepared
    directory no-clobber;
 8. immediately marks a successful rename return as `published` before any
    post-publication check; neither state may discard;
 9. on a failure after a stage was successfully held but before publication was
    attempted, attempts only exact authenticated discard; cleanup failure cannot
-   replace the sticky primary failure and is reported separately.
+   replace the sticky primary failure and is reported separately. A create-new
+   call that may have created the stage but returned no authenticated handle is
+   reported as incomplete cleanup and is never ambiently deleted.
 
 Open, information, write, close, inventory, identity, rename, or post-rename
 uncertainty is fail-stop. Publisher diagnostics are `SPX-PP501` invalid or
 unsupported destination, `PP502` compiler replay rejection, `PP503` existing
 output, `PP504` exhausted stage allocation, `PP505` previsibility authority
-drift, `PP506` sticky primary with incomplete cleanup, and `PP507` visible
-post-publication authentication failure. Errors separately expose
-`NotPublished|Published` visibility and `NotNeeded|Settled|Incomplete` cleanup.
+drift, `PP506` sticky primary with incomplete or unheld-namespace cleanup, and
+`PP507` visible post-publication authentication failure. Errors separately expose
+`NotPublished|Published` visibility and
+`NotNeeded|Settled|Incomplete|SuppressedAfterPublicationAttempt` cleanup. The
+suppressed state means an attempted rename retained a stage deliberately
+because cleanup was no longer permitted, not that no stage existed.
 The publisher never overwrites, resumes, recovers, garbage-collects, or deletes
 foreign bytes. Unix creates mode-0700 stages and mode-0600 files. Windows uses
 inherited ACLs and makes no Unix-equivalent confidentiality claim.

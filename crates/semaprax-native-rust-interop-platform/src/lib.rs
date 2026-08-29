@@ -5,7 +5,7 @@
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
-pub use semaprax_native_rust_interop_platform_sys::Error;
+pub use semaprax_native_rust_interop_platform_sys::{CreateDirectoryNewFailure, Error};
 pub const SDK_ARCHIVE_MAX_BYTES: u64 =
     semaprax_native_rust_interop_platform_sys::SDK_ARCHIVE_MAX_BYTES;
 
@@ -600,6 +600,17 @@ pub fn create_directory_new_prepared(
     mode: u32,
 ) -> Result<HeldDirectory, Error> {
     semaprax_native_rust_interop_platform_sys::create_directory_new_prepared(
+        &parent.0, &name.0, mode,
+    )
+    .map(HeldDirectory)
+}
+
+pub fn create_directory_new_prepared_settled(
+    parent: &HeldDirectory,
+    name: &PreparedStageName,
+    mode: u32,
+) -> Result<HeldDirectory, CreateDirectoryNewFailure> {
+    semaprax_native_rust_interop_platform_sys::create_directory_new_prepared_settled(
         &parent.0, &name.0, mode,
     )
     .map(HeldDirectory)

@@ -1482,25 +1482,16 @@ pub fn create_directory_new_prepared(
     name: &PreparedRelativeNameArena,
     mode: u32,
 ) -> Result<Directory, Error> {
-    create_directory_new_prepared_with_creation_state(parent, name, mode)
-        .map_err(|failure| failure.error)
+    create_directory_new_prepared_settled(parent, name, mode).map_err(|failure| failure.error)
 }
 
-#[derive(Clone, Copy)]
-struct CreateDirectoryNewFailure {
-    error: Error,
-    #[cfg(target_os = "macos")]
-    namespace_created: bool,
-}
-
-fn create_directory_new_prepared_with_creation_state(
+pub fn create_directory_new_prepared_settled(
     parent: &Directory,
     name: &PreparedRelativeNameArena,
     mode: u32,
 ) -> Result<Directory, CreateDirectoryNewFailure> {
     let settled = |error| CreateDirectoryNewFailure {
         error,
-        #[cfg(target_os = "macos")]
         namespace_created: false,
     };
     recheck_directory(parent).map_err(settled)?;
@@ -1524,7 +1515,6 @@ fn create_directory_new_prepared_with_creation_state(
     }
     open_directory_at(parent.file.as_raw_fd(), name).map_err(|error| CreateDirectoryNewFailure {
         error,
-        #[cfg(target_os = "macos")]
         namespace_created: true,
     })
 }
@@ -3188,7 +3178,14 @@ pub fn publish_directory_new_prepared(
     #[cfg(not(any(target_os = "linux", target_os = "macos")))]
     let result = -1;
     if result != 0 {
-        return Err(Error::Exists);
+        let errno = std::io::Error::last_os_error().raw_os_error();
+        return Err(
+            if errno == Some(libc::EEXIST) || errno == Some(libc::ENOTEMPTY) {
+                Error::Exists
+            } else {
+                Error::Changed
+            },
+        );
     }
     Ok(())
 }
@@ -4787,19 +4784,18 @@ pub fn archive_prepared_settled(
     recheck_executable(archiver).map_err(preflight)?;
     recheck_executable_launch_path(archiver).map_err(preflight)?;
     recheck_directory(cwd).map_err(preflight)?;
-    let scratch =
-        create_directory_new_prepared_with_creation_state(cwd, &prepared.scratch_name, 0o700)
-            .map_err(|failure| {
-                darwin_archive_failure(
-                    failure.error,
-                    Phase::ScratchCreation,
-                    if failure.namespace_created {
-                        Settlement::Uncertain
-                    } else {
-                        Settlement::Settled
-                    },
-                )
-            })?;
+    let scratch = create_directory_new_prepared_settled(cwd, &prepared.scratch_name, 0o700)
+        .map_err(|failure| {
+            darwin_archive_failure(
+                failure.error,
+                Phase::ScratchCreation,
+                if failure.namespace_created {
+                    Settlement::Uncertain
+                } else {
+                    Settlement::Settled
+                },
+            )
+        })?;
     let output_limit = prepared.command.output.capacity();
     let process_output = std::mem::take(&mut prepared.command.output);
     let uncertain = |error, phase| darwin_archive_failure(error, phase, Settlement::Uncertain);

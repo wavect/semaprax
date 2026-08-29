@@ -1,18 +1,50 @@
 use std::fs;
+use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use super::*;
 
 static NEXT_ROOT: AtomicU64 = AtomicU64::new(0);
 
-fn root(label: &str) -> PathBuf {
+struct TestRoot(PathBuf);
+
+impl TestRoot {
+    fn join(&self, path: impl AsRef<Path>) -> PathBuf {
+        self.0.join(path)
+    }
+}
+
+impl AsRef<Path> for TestRoot {
+    fn as_ref(&self) -> &Path {
+        &self.0
+    }
+}
+
+impl Drop for TestRoot {
+    fn drop(&mut self) {
+        let temporary = std::env::temp_dir();
+        let valid_name = self.0.file_name().is_some_and(|name| {
+            name.to_string_lossy()
+                .starts_with("semaprax-offline-wasm-publisher-")
+        });
+        let valid_parent = self.0.parent() == Some(temporary.as_path());
+        let plain_directory = fs::symlink_metadata(&self.0)
+            .ok()
+            .is_some_and(|metadata| metadata.is_dir() && !metadata.file_type().is_symlink());
+        if valid_name && valid_parent && plain_directory {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+}
+
+fn root(label: &str) -> TestRoot {
     let path = std::env::temp_dir().join(format!(
         "semaprax-offline-wasm-publisher-{label}-{}-{}",
         std::process::id(),
         NEXT_ROOT.fetch_add(1, Ordering::Relaxed)
     ));
     fs::create_dir(&path).unwrap();
-    path
+    TestRoot(path)
 }
 
 fn build() -> OfflinePackageBuild {
@@ -33,7 +65,10 @@ fn publishes_only_the_exact_three_file_inventory() {
     let output = root.join("package");
     let build = build();
     publish_observed(&output, &build, &mut accept, &mut NoopObserver).unwrap();
-    assert_eq!(fs::read(output.join(MODULE_FILE)).unwrap(), build.module_wasm);
+    assert_eq!(
+        fs::read(output.join(MODULE_FILE)).unwrap(),
+        build.module_wasm
+    );
     assert_eq!(
         fs::read(output.join(EVIDENCE_FILE)).unwrap(),
         build.evidence_json.as_bytes()
@@ -81,7 +116,12 @@ fn foreign_precreated_inventory_name_is_preserved_on_cleanup_failure() {
     let stage = fs::read_dir(&root)
         .unwrap()
         .map(|entry| entry.unwrap().path())
-        .find(|path| path.file_name().unwrap().to_string_lossy().starts_with(".semaprax-"))
+        .find(|path| {
+            path.file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with(".semaprax-")
+        })
         .unwrap();
     assert_eq!(fs::read(stage.join(EVIDENCE_FILE)).unwrap(), b"foreign");
 }
@@ -105,6 +145,34 @@ fn same_byte_file_substitution_is_rejected_before_visibility() {
 }
 
 #[test]
+fn foreign_entry_added_during_second_replay_is_never_published() {
+    let root = root("second-inventory");
+    let output = root.join("package");
+    let mut observer = ClosureObserver(|point: PublishPoint, paths: &ObservedPaths<'_>| {
+        if point == PublishPoint::BeforeSecondReplay {
+            fs::write(paths.stage.join("foreign"), b"foreign").unwrap();
+        }
+    });
+    let error = publish_observed(&output, &build(), &mut accept, &mut observer).unwrap_err();
+    assert_eq!(error.code, crate::PP_CLEANUP);
+    assert_eq!(error.primary_code, Some(PP_CHANGED));
+    assert_eq!(error.cleanup, CleanupStatus::Incomplete);
+    assert_eq!(error.visibility, PublicationVisibility::NotPublished);
+    assert!(!output.exists());
+    let stage = fs::read_dir(&root)
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .find(|path| {
+            path.file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with(".semaprax-")
+        })
+        .unwrap();
+    assert_eq!(fs::read(stage.join("foreign")).unwrap(), b"foreign");
+}
+
+#[test]
 fn second_replay_failure_discards_the_exact_stage_and_keeps_the_primary() {
     let root = root("second-replay");
     let output = root.join("package");
@@ -114,14 +182,13 @@ fn second_replay_failure_discards_the_exact_stage_and_keeps_the_primary() {
             message: "adversarial replay mismatch".to_owned(),
         })
     };
-    let error =
-        publish_observed(&output, &build(), &mut verifier, &mut NoopObserver).unwrap_err();
+    let error = publish_observed(&output, &build(), &mut verifier, &mut NoopObserver).unwrap_err();
     assert_eq!(error.code, crate::PP_REPLAY);
     assert_eq!(error.compiler_code, Some("SPX-PB507"));
     assert_eq!(error.cleanup, CleanupStatus::Settled);
     assert_eq!(error.visibility, PublicationVisibility::NotPublished);
     assert!(!output.exists());
-    assert_eq!(fs::read_dir(root).unwrap().count(), 0);
+    assert_eq!(fs::read_dir(&root).unwrap().count(), 0);
 }
 
 #[test]
@@ -136,7 +203,10 @@ fn output_race_at_publish_is_fail_stop_and_preserves_foreign_bytes() {
     });
     let error = publish_observed(&output, &build(), &mut accept, &mut observer).unwrap_err();
     assert_eq!(error.code, PP_EXISTS);
-    assert_eq!(error.cleanup, CleanupStatus::NotNeeded);
+    assert_eq!(
+        error.cleanup,
+        CleanupStatus::SuppressedAfterPublicationAttempt
+    );
     assert_eq!(error.visibility, PublicationVisibility::NotPublished);
     assert_eq!(fs::read(output.join("sentinel")).unwrap(), b"foreign");
     assert!(fs::read_dir(&root).unwrap().any(|entry| entry
@@ -160,7 +230,10 @@ fn post_publish_mutation_is_reported_visible_and_never_discarded() {
     assert_eq!(error.visibility, PublicationVisibility::Published);
     assert_eq!(error.cleanup, CleanupStatus::NotNeeded);
     assert_eq!(fs::read(output.join("foreign")).unwrap(), b"foreign");
-    assert_eq!(fs::read(output.join(MODULE_FILE)).unwrap(), build().module_wasm);
+    assert_eq!(
+        fs::read(output.join(MODULE_FILE)).unwrap(),
+        build().module_wasm
+    );
 }
 
 struct ClosureObserver<F>(F);

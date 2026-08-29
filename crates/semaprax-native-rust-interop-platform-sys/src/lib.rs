@@ -34,6 +34,15 @@ pub enum Error {
     OutputLimit,
 }
 
+/// Failure settlement for create-new directory authority. When
+/// `namespace_created` is true, the name may exist but no authenticated handle
+/// was returned, so callers must fail stop rather than delete it ambiently.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CreateDirectoryNewFailure {
+    pub error: Error,
+    pub namespace_created: bool,
+}
+
 pub const SDK_ARCHIVE_MAX_BYTES: u64 = 8_388_608;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

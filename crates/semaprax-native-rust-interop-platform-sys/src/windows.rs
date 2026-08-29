@@ -1386,17 +1386,39 @@ pub fn create_directory_new(
 pub fn create_directory_new_prepared(
     parent: &Directory,
     name: &PreparedRelativeNameArena,
-    _mode: u32,
+    mode: u32,
 ) -> Result<Directory, Error> {
-    recheck_directory(parent)?;
+    create_directory_new_prepared_settled(parent, name, mode).map_err(|failure| failure.error)
+}
+
+pub fn create_directory_new_prepared_settled(
+    parent: &Directory,
+    name: &PreparedRelativeNameArena,
+    _mode: u32,
+) -> Result<Directory, CreateDirectoryNewFailure> {
+    let settled = |error| CreateDirectoryNewFailure {
+        error,
+        namespace_created: false,
+    };
+    recheck_directory(parent).map_err(settled)?;
     let file = relative_file_arena(
         &parent.file,
         name,
         DIRECTORY_OWNED_ACCESS,
         FILE_CREATE,
         FILE_DIRECTORY_FILE,
-    )?;
-    let identity = directory_information(&file)?;
+    )
+    .map_err(|error| CreateDirectoryNewFailure {
+        error,
+        // A non-collision NT create failure is conservatively uncertain: the
+        // native call may have committed the namespace before failing to
+        // return usable authority.
+        namespace_created: error != Error::Exists,
+    })?;
+    let identity = directory_information(&file).map_err(|error| CreateDirectoryNewFailure {
+        error,
+        namespace_created: true,
+    })?;
     Ok(Directory { file, identity })
 }
 

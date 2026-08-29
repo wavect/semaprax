@@ -41,6 +41,7 @@ pub enum CleanupStatus {
     NotNeeded,
     Settled,
     Incomplete,
+    SuppressedAfterPublicationAttempt,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -61,6 +62,7 @@ impl fmt::Display for PublicationError {
 
 impl std::error::Error for PublicationError {}
 
+#[derive(Debug)]
 pub struct PublishedOfflinePackageBuild {
     pub output: PathBuf,
     pub verified: VerifiedOfflinePackageBuild,
@@ -127,6 +129,7 @@ fn validate_output_path(output: &Path) -> Result<(), PublicationError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use semaprax::package_resolver::Requirement;
 
     #[test]
     fn destination_must_be_absolute_normalized_and_have_a_leaf() {
@@ -143,11 +146,62 @@ mod tests {
             PP_INVALID
         );
         assert_eq!(
-            validate_output_path(Path::new("/"))
-                .unwrap_err()
-                .code,
+            validate_output_path(Path::new("/")).unwrap_err().code,
             PP_INVALID
         );
+    }
+
+    #[test]
+    fn compiler_replay_rejection_precedes_destination_parent_authority() {
+        let parent = std::env::temp_dir().join(format!(
+            "semaprax-publisher-ordering-missing-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let error = publish(
+            &parent.join("package"),
+            OfflinePackageBuild {
+                module_wasm: Vec::new(),
+                manifest_json: String::new(),
+                evidence_json: String::new(),
+            },
+            String::new(),
+            ResolutionInput {
+                requirements: vec![Requirement {
+                    package: "missing".to_owned(),
+                    range: "=1.0.0".to_owned(),
+                }],
+                subjects: Vec::new(),
+                target: "wasm32".to_owned(),
+                allowed_capabilities: Vec::new(),
+            },
+            ResolutionOptions::default(),
+            OfflinePackageBuildOptions {
+                root_package: "missing".to_owned(),
+                exports: vec!["fn:missing".to_owned()],
+                max_artifact_bytes: 4 * 1024,
+                max_evidence_bytes: 4 * 1024,
+            },
+        )
+        .unwrap_err();
+        assert_eq!(error.code, PP_REPLAY);
+        assert_eq!(error.cleanup, CleanupStatus::NotNeeded);
+        assert!(!parent.exists());
+    }
+
+    #[test]
+    fn unheld_created_namespace_is_explicitly_cleanup_incomplete() {
+        let error = PublicationError::unheld_namespace(PublicationError::plain(
+            PP_CHANGED,
+            "create held staging directory",
+        ));
+        assert_eq!(error.code, PP_CLEANUP);
+        assert_eq!(error.primary_code, Some(PP_CHANGED));
+        assert_eq!(error.visibility, PublicationVisibility::NotPublished);
+        assert_eq!(error.cleanup, CleanupStatus::Incomplete);
     }
 }
 
@@ -180,7 +234,10 @@ impl PublicationError {
     fn replay(failure: CompilerReplayFailure) -> Self {
         Self {
             code: PP_REPLAY,
-            message: format!("compiler replay rejected package build: {}", failure.message),
+            message: format!(
+                "compiler replay rejected package build: {}",
+                failure.message
+            ),
             compiler_code: Some(failure.code),
             primary_code: None,
             visibility: PublicationVisibility::NotPublished,
@@ -197,6 +254,26 @@ impl PublicationError {
         );
         primary.primary_code = Some(primary_code);
         primary.cleanup = CleanupStatus::Incomplete;
+        primary
+    }
+
+    fn unheld_namespace(primary: Self) -> Self {
+        let primary_code = primary.code;
+        Self {
+            code: PP_CLEANUP,
+            message: format!(
+                "{}; create-new staging may have produced a namespace entry without returning authenticated cleanup authority",
+                primary.message
+            ),
+            compiler_code: primary.compiler_code,
+            primary_code: Some(primary_code),
+            visibility: PublicationVisibility::NotPublished,
+            cleanup: CleanupStatus::Incomplete,
+        }
+    }
+
+    fn suppressed_after_attempt(mut primary: Self) -> Self {
+        primary.cleanup = CleanupStatus::SuppressedAfterPublicationAttempt;
         primary
     }
 }

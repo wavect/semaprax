@@ -38,7 +38,8 @@ fn publish_observed<V>(
         .file_name()
         .ok_or_else(|| PublicationError::plain(PP_INVALID, "publication output has no leaf"))?
         .to_os_string();
-    let parent = platform::hold_directory(&parent_path).map_err(|_| changed("hold output parent"))?;
+    let parent =
+        platform::hold_directory(&parent_path).map_err(|_| changed("hold output parent"))?;
     require_path_binding(&parent, &parent_path, "output parent path changed")?;
     let output_probe = platform::prepare_child_name(&output_name)
         .map_err(|_| PublicationError::plain(PP_INVALID, "publication leaf is invalid"))?;
@@ -101,11 +102,12 @@ fn publish_observed<V>(
         &staged.stage_name,
         &staged.output_name,
     ) {
-        return Err(if error == platform::Error::Exists {
+        let primary = if error == platform::Error::Exists {
             PublicationError::plain(PP_EXISTS, "publication output appeared before rename")
         } else {
             changed("attempt no-replace publication")
-        });
+        };
+        return Err(PublicationError::suppressed_after_attempt(primary));
     }
     staged.published = true;
     observer.at(PublishPoint::AfterPublish, &staged.paths());
@@ -128,9 +130,18 @@ fn allocate_stage(
         let text = format!(".semaprax-wasm-package-{}-{serial}", std::process::id());
         let prepared = platform::prepare_stage_name(OsStr::new(&text))
             .map_err(|_| PublicationError::plain(PP_INVALID, "stage name is invalid"))?;
-        match platform::create_directory_new_prepared(parent, &prepared, 0o700) {
+        match platform::create_directory_new_prepared_settled(parent, &prepared, 0o700) {
             Ok(stage) => return Ok((prepared, parent_path.join(text), stage)),
-            Err(platform::Error::Exists) => continue,
+            Err(failure)
+                if failure.error == platform::Error::Exists && !failure.namespace_created =>
+            {
+                continue;
+            }
+            Err(failure) if failure.namespace_created => {
+                return Err(PublicationError::unheld_namespace(changed(
+                    "create held staging directory",
+                )));
+            }
             Err(_) => return Err(changed("create held staging directory")),
         }
     }
@@ -170,18 +181,16 @@ impl StagedPublication {
         build: &OfflinePackageBuild,
         observer: &mut impl Observer,
     ) -> Result<(), PublicationError> {
-        require_path_binding(&self.parent, &self.parent_path, "output parent path changed")?;
+        require_path_binding(
+            &self.parent,
+            &self.parent_path,
+            "output parent path changed",
+        )?;
         require_path_binding(&self.stage, &self.stage_path, "staging path changed")?;
         for (index, (name, bytes)) in files(build).into_iter().enumerate() {
             observer.at(PublishPoint::BeforeWrite(index), &self.paths());
-            platform::write_file_new_prepared(
-                &self.stage,
-                &mut self.inventory,
-                name,
-                bytes,
-                0o600,
-            )
-            .map_err(|_| changed("write create-new staged artifact"))?;
+            platform::write_file_new_prepared(&self.stage, &mut self.inventory, name, bytes, 0o600)
+                .map_err(|_| changed("write create-new staged artifact"))?;
         }
         self.authenticate_files(build)?;
         platform::inventory_exact_prepared(&mut self.exact, &self.stage, &self.inventory)
@@ -211,9 +220,15 @@ impl StagedPublication {
         observer: &mut impl Observer,
     ) -> Result<(), PublicationError> {
         observer.at(PublishPoint::BeforeSettle, &self.paths());
-        require_path_binding(&self.parent, &self.parent_path, "output parent path changed")?;
+        require_path_binding(
+            &self.parent,
+            &self.parent_path,
+            "output parent path changed",
+        )?;
         require_path_binding(&self.stage, &self.stage_path, "staging path changed")?;
         self.authenticate_files_for_settle()?;
+        platform::inventory_exact_prepared(&mut self.exact, &self.stage, &self.inventory)
+            .map_err(|_| changed("reauthenticate exact staged inventory before settle"))?;
         self.inventory
             .settle_for_publish()
             .map_err(|_| changed("settle staged artifact handles"))
@@ -241,14 +256,13 @@ impl StagedPublication {
         {
             return Err(published_changed("published output path identity changed"));
         }
-        let held = files(build)
-            .into_iter()
-            .map(|(name, expected)| hold_matching(&self.stage, name, expected))
-            .collect::<Result<Vec<_>, _>>()?;
+        let module = hold_matching(&self.stage, MODULE_FILE, build.module_wasm.as_slice())?;
+        let evidence = hold_matching(&self.stage, EVIDENCE_FILE, build.evidence_json.as_bytes())?;
+        let manifest = hold_matching(&self.stage, MANIFEST_FILE, build.manifest_json.as_bytes())?;
         platform::inventory_entries_exact_prepared(
             &mut self.post,
             &self.stage,
-            [&held[0], &held[1], &held[2]],
+            [&module, &evidence, &manifest],
             [],
         )
         .map_err(|_| published_changed("authenticate exact published inventory"))?;
@@ -314,7 +328,10 @@ fn require_path_binding(
 }
 
 fn changed(action: &'static str) -> PublicationError {
-    PublicationError::plain(PP_CHANGED, format!("held authority changed while trying to {action}"))
+    PublicationError::plain(
+        PP_CHANGED,
+        format!("held authority changed while trying to {action}"),
+    )
 }
 
 fn published_changed(action: &'static str) -> PublicationError {

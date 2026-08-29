@@ -513,6 +513,36 @@ fn archive_nonregular_output_insertions_are_exactly_present_and_never_followed()
 
 #[cfg(target_os = "macos")]
 #[test]
+fn darwin_create_directory_reports_unheld_created_namespace() {
+    use std::ffi::OsStr;
+
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-darwin-settled-create-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos(),
+    ));
+    std::fs::create_dir(&root).unwrap();
+    let root = std::fs::canonicalize(root).unwrap();
+    let parent = super::platform::hold_directory(&root).unwrap();
+    let mut name = super::platform::prepare_relative_name_arena(13).unwrap();
+    super::platform::set_relative_name_arena(&mut name, OsStr::new("unheld-stage")).unwrap();
+    super::platform::test_inject_archive_scratch_open_failure(true);
+    let failure = super::platform::create_directory_new_prepared_settled(&parent, &name, 0o700)
+        .err()
+        .expect("injected post-create open failure must fail");
+    super::platform::test_inject_archive_scratch_open_failure(false);
+    assert_eq!(failure.error, Error::Changed);
+    assert!(failure.namespace_created);
+    assert!(root.join("unheld-stage").is_dir());
+    drop(parent);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(target_os = "macos")]
+#[test]
 fn darwin_archive_scratch_open_failure_reports_created_namespace_as_uncertain() {
     use std::ffi::OsStr;
 

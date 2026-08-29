@@ -1,7 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use sha2::{Digest, Sha256};
-
 use crate::call_index::PersistentCallIndex;
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
@@ -182,7 +180,7 @@ fn derive_export(
             Ok(FlatOwnedRecordField {
                 stable_id: field.id.clone(),
                 source_name: field.name.clone(),
-                host_name: host_field_name(&field.name, field.id.as_str()),
+                host_name: host_field_name(field.id.as_str()),
                 ordinal: field.index,
                 ty,
             })
@@ -203,53 +201,29 @@ fn derive_export(
         rust_method_name,
         parameters,
         record_id: record.id.clone(),
-        record_host_name: host_record_name(&record.name, record.id.as_str()),
+        record_host_name: host_record_name(record.id.as_str()),
         record_source_name: record.name.clone(),
         fields,
     })
 }
 
 fn stable_host_name(prefix: &str, stable_id: &str) -> String {
-    let digest = Sha256::digest(stable_id.as_bytes());
-    let hex = format!("{:x}", crate::digest_hex::LowerHex(digest));
-    match prefix {
-        "record" => format!("SpxRecordH{hex}"),
-        "field" => format!("spx_field_h{hex}"),
+    let mut output = match prefix {
+        "record" => String::from("SpxRecordId"),
+        "field" => String::from("spx_field_id_"),
         _ => unreachable!("closed host-name family"),
+    };
+    for byte in stable_id.bytes() {
+        use std::fmt::Write as _;
+        write!(output, "{byte:02x}").expect("writing to a String cannot fail");
     }
+    output
 }
 
-fn host_record_name(source_name: &str, stable_id: &str) -> String {
-    if source_name
-        .bytes()
-        .next()
-        .is_some_and(|byte| byte.is_ascii_uppercase())
-        && source_name.bytes().all(|byte| byte.is_ascii_alphanumeric())
-    {
-        source_name.to_owned()
-    } else {
-        stable_host_name("record", stable_id)
-    }
+fn host_record_name(stable_id: &str) -> String {
+    stable_host_name("record", stable_id)
 }
 
-fn host_field_name(source_name: &str, stable_id: &str) -> String {
-    const RUST_KEYWORDS: &[&str] = &[
-        "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn",
-        "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
-        "return", "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe",
-        "use", "where", "while", "async", "await", "dyn",
-    ];
-    if source_name
-        .bytes()
-        .next()
-        .is_some_and(|byte| byte.is_ascii_lowercase() || byte == b'_')
-        && source_name
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
-        && !RUST_KEYWORDS.contains(&source_name)
-    {
-        source_name.to_owned()
-    } else {
-        stable_host_name("field", stable_id)
-    }
+fn host_field_name(stable_id: &str) -> String {
+    stable_host_name("field", stable_id)
 }

@@ -1,12 +1,11 @@
 use semaprax::hir;
 use semaprax::project::{
     derive_flat_owned_record_api_descriptor, render_flat_owned_record_metadata,
-    render_flat_owned_record_rust, render_flat_owned_record_rust_sdk_manifest,
-    render_flat_owned_record_typescript, replay_flat_owned_record_api_descriptor,
-    replay_flat_owned_record_metadata, replay_flat_owned_record_rust_sdk_manifest,
+    render_flat_owned_record_rust, render_flat_owned_record_typescript,
+    replay_flat_owned_record_api_descriptor, replay_flat_owned_record_metadata,
     FlatOwnedRecordFieldType, FlatOwnedRecordSettlement, ProjectManifest, ProjectProfile,
     PublicApiSubject, FLAT_OWNED_RECORD_API_SCHEMA, FLAT_OWNED_RECORD_METADATA_SCHEMA,
-    FLAT_OWNED_RECORD_PROJECT_SCHEMA, FLAT_OWNED_RECORD_RUST_SDK_SCHEMA,
+    FLAT_OWNED_RECORD_PROJECT_SCHEMA,
 };
 use sha2::{Digest, Sha256};
 
@@ -191,18 +190,38 @@ fn generated_mappings_are_safe_and_hide_the_carrier() {
             .unwrap();
     let typescript = render_flat_owned_record_typescript(&descriptor);
     let rust = render_flat_owned_record_rust(&descriptor);
+    let export = &descriptor.exports()[0];
+    let record = export.record_host_name();
+    let payload = export
+        .fields()
+        .iter()
+        .find(|field| field.stable_id().as_str() == "frame.info.payload")
+        .unwrap()
+        .host_name();
+    let kind = export
+        .fields()
+        .iter()
+        .find(|field| field.stable_id().as_str() == "frame.info.kind")
+        .unwrap()
+        .host_name();
+    let valid = export
+        .fields()
+        .iter()
+        .find(|field| field.stable_id().as_str() == "frame.info.valid")
+        .unwrap()
+        .host_name();
     assert!(typescript.contains("readonly"));
-    assert!(typescript.contains("interface FrameInfo"));
-    assert!(typescript.contains("readonly payload: Uint8Array"));
-    assert!(typescript.contains("readonly kind: bigint"));
-    assert!(typescript.contains("readonly valid: boolean"));
+    assert!(typescript.contains(&format!("interface {record}")));
+    assert!(typescript.contains(&format!("readonly {payload}: Uint8Array")));
+    assert!(typescript.contains(&format!("readonly {kind}: bigint")));
+    assert!(typescript.contains(&format!("readonly {valid}: boolean")));
     assert!(typescript.contains("Uint8Array"));
     assert!(typescript.contains("bigint"));
     assert!(rust.starts_with("#![forbid(unsafe_code)]"));
-    assert!(rust.contains("pub struct FrameInfo"));
-    assert!(rust.contains("pub payload: Vec<u8>"));
-    assert!(rust.contains("pub kind: i64"));
-    assert!(rust.contains("pub valid: bool"));
+    assert!(rust.contains(&format!("pub struct {record}")));
+    assert!(rust.contains(&format!("pub {payload}: Vec<u8>")));
+    assert!(rust.contains(&format!("pub {kind}: i64")));
+    assert!(rust.contains(&format!("pub {valid}: bool")));
     assert!(rust.contains("Vec<u8>"));
     for forbidden in ["handle", "pointer", "offset", "unsafe", "repr(C)"] {
         assert!(!typescript.contains(forbidden), "{forbidden}");
@@ -210,6 +229,57 @@ fn generated_mappings_are_safe_and_hide_the_carrier() {
             assert!(!rust.contains(forbidden), "{forbidden}");
         }
     }
+}
+
+#[test]
+fn display_renames_preserve_stable_id_derived_host_identities() {
+    let original = derive_flat_owned_record_api_descriptor(
+        &resolve(SOURCE),
+        &["frame.info".to_owned()],
+        subject(),
+    )
+    .unwrap();
+    let renamed_source = SOURCE
+        .replace("FrameInfo", "RenamedFrame")
+        .replace("payload:", "renamed_payload:");
+    let renamed = derive_flat_owned_record_api_descriptor(
+        &resolve(&renamed_source),
+        &["frame.info".to_owned()],
+        subject(),
+    )
+    .unwrap();
+    let original_export = &original.exports()[0];
+    let renamed_export = &renamed.exports()[0];
+    assert_eq!(
+        original_export.record_host_name(),
+        renamed_export.record_host_name()
+    );
+    assert_eq!(
+        original_export.record_host_name(),
+        "SpxRecordId6672616d652e696e666f2e74797065"
+    );
+    assert_eq!(
+        original_export
+            .fields()
+            .iter()
+            .map(|field| (field.stable_id(), field.host_name()))
+            .collect::<Vec<_>>(),
+        renamed_export
+            .fields()
+            .iter()
+            .map(|field| (field.stable_id(), field.host_name()))
+            .collect::<Vec<_>>()
+    );
+    assert_ne!(original.canonical_bytes(), renamed.canonical_bytes());
+    assert_eq!(
+        original_export
+            .fields()
+            .iter()
+            .find(|field| field.stable_id().as_str() == "frame.info.payload")
+            .unwrap()
+            .host_name(),
+        "spx_field_id_6672616d652e696e666f2e7061796c6f6164"
+    );
 }
 
 #[test]
@@ -244,27 +314,19 @@ fn publication_requires_authenticate_copy_settle_then_publish() {
 }
 
 #[test]
-fn npm_and_rust_manifests_bind_one_descriptor_and_private_settlement() {
+fn npm_metadata_binds_one_descriptor_and_private_settlement() {
     let program = resolve(SOURCE);
     let descriptor =
         derive_flat_owned_record_api_descriptor(&program, &["frame.info".to_owned()], subject())
             .unwrap();
     let wasm_digest = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-    let provider_digest = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
     let npm = render_flat_owned_record_metadata(&descriptor, wasm_digest).unwrap();
-    let rust = render_flat_owned_record_rust_sdk_manifest(&descriptor, provider_digest).unwrap();
     replay_flat_owned_record_metadata(&descriptor, wasm_digest, &npm).unwrap();
-    replay_flat_owned_record_rust_sdk_manifest(&descriptor, provider_digest, &rust).unwrap();
     assert!(String::from_utf8_lossy(&npm).contains(FLAT_OWNED_RECORD_METADATA_SCHEMA));
-    assert!(String::from_utf8_lossy(&rust).contains(FLAT_OWNED_RECORD_RUST_SDK_SCHEMA));
     assert!(npm
         .windows(descriptor.digest().len())
         .any(|window| { window == descriptor.digest().as_bytes() }));
-    assert!(rust
-        .windows(descriptor.digest().len())
-        .any(|window| { window == descriptor.digest().as_bytes() }));
     assert!(render_flat_owned_record_metadata(&descriptor, "sha256:bad").is_err());
-    assert!(render_flat_owned_record_rust_sdk_manifest(&descriptor, "sha256:bad").is_err());
     let mut tampered = npm.clone();
     tampered.insert(tampered.len() - 2, b' ');
     assert!(replay_flat_owned_record_metadata(&descriptor, wasm_digest, &tampered).is_err());

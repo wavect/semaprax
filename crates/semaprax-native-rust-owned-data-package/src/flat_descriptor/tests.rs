@@ -4,7 +4,7 @@ fn field(id: &str, source: &str, kind: FieldKind, ordinal: usize) -> Field {
     Field {
         stable_id: id.to_owned(),
         source_name: source.to_owned(),
-        host_name: host_field_name(source, id),
+        host_name: host_field_name(id),
         kind,
         ordinal,
     }
@@ -17,7 +17,7 @@ fn export(id: &str, record_id: &str, record_source: &str, fields: Vec<Field>) ->
         parameters: Vec::new(),
         record_id: record_id.to_owned(),
         record_source_name: record_source.to_owned(),
-        record_host_name: host_record_name(record_source, record_id),
+        record_host_name: host_record_name(record_id),
         fields,
     }
 }

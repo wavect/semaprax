@@ -1,9 +1,7 @@
 use std::collections::BTreeSet;
 
-use serde_json::{Map, Value};
-use sha2::{Digest, Sha256};
-
 use super::{flat_descriptor_digest, PackageError, MAX_DESCRIPTOR_BYTES};
+use serde_json::{Map, Value};
 
 mod render;
 #[cfg(test)]
@@ -119,7 +117,7 @@ pub(crate) fn replay(
         let record_host_name = string(result, "record_host_name")?;
         if !valid_stable_id(record_id)
             || !valid_source_name(source_name)
-            || record_host_name != host_record_name(source_name, record_id)
+            || record_host_name != host_record_name(record_id)
         {
             return Err(PackageError::descriptor());
         }
@@ -138,7 +136,7 @@ pub(crate) fn replay(
             let host_name = string(field, "host_name")?;
             if !valid_stable_id(field_id)
                 || !valid_source_name(field_source)
-                || host_name != host_field_name(field_source, field_id)
+                || host_name != host_field_name(field_id)
                 || field.get("ordinal").and_then(Value::as_u64) != Some(ordinal as u64)
                 || !field_ids.insert(field_id)
                 || !field_names.insert(host_name)
@@ -338,48 +336,22 @@ fn rust_method_name(stable_id: &str) -> Result<String, PackageError> {
 }
 
 fn stable_host_name(prefix: &str, stable_id: &str) -> String {
-    let digest = format!(
-        "{:x}",
-        super::LowerHex(Sha256::digest(stable_id.as_bytes()))
-    );
-    match prefix {
-        "record" => format!("SpxRecordH{digest}"),
-        "field" => format!("spx_field_h{digest}"),
+    let mut output = match prefix {
+        "record" => String::from("SpxRecordId"),
+        "field" => String::from("spx_field_id_"),
         _ => unreachable!("closed host-name family"),
+    };
+    for byte in stable_id.bytes() {
+        use std::fmt::Write as _;
+        write!(output, "{byte:02x}").expect("writing to a String cannot fail");
     }
+    output
 }
 
-fn host_record_name(source_name: &str, stable_id: &str) -> String {
-    if source_name
-        .bytes()
-        .next()
-        .is_some_and(|byte| byte.is_ascii_uppercase())
-        && source_name.bytes().all(|byte| byte.is_ascii_alphanumeric())
-    {
-        source_name.to_owned()
-    } else {
-        stable_host_name("record", stable_id)
-    }
+fn host_record_name(stable_id: &str) -> String {
+    stable_host_name("record", stable_id)
 }
 
-fn host_field_name(source_name: &str, stable_id: &str) -> String {
-    const KEYWORDS: &[&str] = &[
-        "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn",
-        "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
-        "return", "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe",
-        "use", "where", "while", "async", "await", "dyn",
-    ];
-    if source_name
-        .bytes()
-        .next()
-        .is_some_and(|byte| byte.is_ascii_lowercase() || byte == b'_')
-        && source_name
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
-        && !KEYWORDS.contains(&source_name)
-    {
-        source_name.to_owned()
-    } else {
-        stable_host_name("field", stable_id)
-    }
+fn host_field_name(stable_id: &str) -> String {
+    stable_host_name("field", stable_id)
 }

@@ -43,8 +43,10 @@ Public Owned Data API v1.
 `semaprax.public-flat-owned-record-api.v1` is distinct from the v8 descriptor.
 It binds the retained Project subject, selected exports and parameters, record
 and field identities, presentation names, exact ordinals and closed field
-types. Host identifiers derive injectively from persistent IDs; display-only
-renames therefore do not change callable or member identity.
+types. Host identifiers are the role prefix followed by the lowercase hex of
+every persistent-ID byte, an injective mapping independent of source display
+names. Display-only renames therefore do not change callable or member
+identity.
 
 | SEMAPRAX field | TypeScript | Rust |
 | --- | --- | --- |
@@ -84,7 +86,10 @@ and settling its sole opaque handle, then constructs the frozen object. The
 Rust route independently regenerates the provider from replayed HIR before the
 unpublished lower crate compiles and publishes a safe struct package. That
 lower crate proves descriptor, byte-integrity, tool, and filesystem facts; it
-does not independently prove provider semantics.
+does not independently prove provider semantics. Its published seven-file
+manifest is the sole producer of
+`semaprax.native-rust-flat-owned-record-sdk.v1`; the authority-free root
+descriptor layer defines no second document under that schema.
 
 Local implementation evidence must cover canonical and hostile manifests,
 descriptor derivation/replay and every-byte mutation, exact one-byte-field

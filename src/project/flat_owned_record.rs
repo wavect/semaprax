@@ -19,10 +19,7 @@ mod projections;
 mod settlement;
 
 pub use derivation::derive_flat_owned_record_api_descriptor;
-pub use metadata::{
-    render_flat_owned_record_metadata, render_flat_owned_record_rust_sdk_manifest,
-    replay_flat_owned_record_metadata, replay_flat_owned_record_rust_sdk_manifest,
-};
+pub use metadata::{render_flat_owned_record_metadata, replay_flat_owned_record_metadata};
 pub use projections::{render_flat_owned_record_rust, render_flat_owned_record_typescript};
 pub use settlement::FlatOwnedRecordSettlement;
 
@@ -30,7 +27,6 @@ pub const FLAT_OWNED_RECORD_PROJECT_SCHEMA: &str = "semaprax.project.v9";
 pub const FLAT_OWNED_RECORD_API_SCHEMA: &str = "semaprax.public-flat-owned-record-api.v1";
 pub const FLAT_OWNED_RECORD_METADATA_SCHEMA: &str = "semaprax.flat-owned-record-api.v1";
 pub const FLAT_OWNED_RECORD_NPM_BUILD_SCHEMA: &str = "semaprax.project-npm-build.v8";
-pub const FLAT_OWNED_RECORD_RUST_SDK_SCHEMA: &str = "semaprax.native-rust-flat-owned-record-sdk.v1";
 pub const MAX_FLAT_RECORD_FIELDS: usize = 64;
 pub const MAX_FLAT_RECORD_DESCRIPTOR_BYTES: usize = 1024 * 1024;
 

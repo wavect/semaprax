@@ -214,7 +214,7 @@ held Project v8 snapshot + validated linked HIR
   semaprax-native-rust-owned-data-package
        | held compiler/archive tools
        | deterministic safe/FFI package rendering
-       | no-clobber staged publication + exact reopen
+       | no-clobber staged publication + held-stage verification
                     |
        unpublished compiler-free Rust package
 ```
@@ -222,11 +222,14 @@ held Project v8 snapshot + validated linked HIR
 The root crate retains semantic authority and contains no new unsafe Rust. The
 lower package crate receives only the already replayed descriptor, selected
 stable IDs, provider bytes and their digests. It independently parses the
-closed descriptor, binds provider/descriptor identity, selects only the exact
-current host target, and owns external tool and filesystem effects. Generated
-safe code forbids unsafe code; the private generated FFI sibling remains the
-quarantine for opaque provider handles. Neither layer transfers provider
-allocation into a host allocator.
+closed descriptor, checks provider integrity and the compiler-declared textual
+descriptor binding, selects only the exact current host target, and owns
+external tool and filesystem effects. It has no HIR or code-generation
+authority and therefore does not independently authenticate provider semantics;
+the root compiler owns that replay-equal proof. Generated safe code forbids
+unsafe code; the private generated FFI sibling remains the quarantine for
+opaque provider handles. Neither layer transfers provider allocation into a
+host allocator.
 
 `examples/frame-payload-project`, `examples/frame-payload-web`,
 `examples/frame-payload-rust`, and `tests/frame_payload_product_v1.rs` form one
@@ -287,7 +290,8 @@ contract:
   builder and platform-specific publication authority;
 - `crates/semaprax-native-rust-owned-data-package`: dependency-inverted
   Project-v8 held-tool, archive, deterministic rendering, publication, and
-  reopening authority; it receives no source or HIR authority;
+  held-stage verification authority; it receives no source, HIR, or provider
+  semantic-authentication authority;
 - `src/native_settlement.rs`, `src/arc_zones.rs`, and `src/scoped_tasks.rs`:
   target-neutral proof models rather than wired runtime features;
 - `src/agent_runtime.rs` and `src/economic_agent.rs`: injected-host Rust APIs

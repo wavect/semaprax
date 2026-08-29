@@ -23,6 +23,7 @@ evidence, private experiments, and repository internals live in the separate
 | Understand ownership and cleanup | [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
 | Build a multi-file project | [Project Manifest v1](PROJECT-MANIFEST-V1.md) |
 | Call SEMAPRAX from JavaScript | [Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md) |
+| Understand the proposed owned-byte SDK boundary | [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) |
 | Query program meaning | [Agent Context v2](AGENT-CONTEXT-V2.md) |
 | Preview or apply a semantic change | [Semantic Patch v2](SEMANTIC-PATCH-V2.md), then [Impact](SEMANTIC-IMPACT-V1.md) and [Review](SEMANTIC-REVIEW-V1.md) |
 | Integrate a compiler report or generated artifact | Use the [reference catalog](#reference-catalog) |
@@ -69,6 +70,9 @@ targets unless its documented executable gate covers those targets.
 - [Useful Text Consumer v1](USEFUL-TEXT-CONSUMER-V1.md) and
   [Portable Indexed Byte Data v1](PORTABLE-INDEXED-BYTE-DATA-V1.md): narrow text
   and byte-data profiles.
+- [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md): proposed additive
+  Project v8 profile and completion contract for copied owned-byte results in
+  JavaScript/TypeScript and safe Rust. It is not yet activated.
 
 ## Agent workflow references
 

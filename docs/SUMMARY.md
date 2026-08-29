@@ -36,6 +36,7 @@ Audience: all documentation readers.
 - [Project Manifest v3](PROJECT-MANIFEST-V3.md)
 - [Project Manifest v4](PROJECT-MANIFEST-V4.md)
 - [Project Manifest v5](PROJECT-MANIFEST-V5.md)
+- [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md)
 - [Useful Text Consumer v1](USEFUL-TEXT-CONSUMER-V1.md)
 - [Bounded stdout transcript](BOUNDED-STDOUT-TRANSCRIPT-V1.md)
 - [Bounded Language Command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V1.md)

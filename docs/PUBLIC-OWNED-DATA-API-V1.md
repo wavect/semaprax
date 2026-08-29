@@ -1,0 +1,384 @@
+# Public Owned Data API v1
+
+Status: proposed versioned contract; not implemented or activated.
+
+Audience: language users, generated-SDK consumers, tool authors, and compiler
+contributors.
+
+Public Owned Data API v1 defines one additive Project profile for calling a
+closed set of stable-ID functions from JavaScript/TypeScript and safe Rust. It
+extends the existing fixed-memory byte-data mechanism with controlled owned
+byte results. This document is a design and completion contract, not evidence
+that Project Manifest v8, either generated SDK, or either carrier exists.
+
+The profile deliberately copies every successful owned result into host-owned
+storage before publication. It does not expose a SEMAPRAX pointer, allocator,
+arena token, or provider handle to application code.
+
+## Fixed protocol identifiers
+
+The following identifiers are exact and are not aliases:
+
+| Layer | Identifier |
+| --- | --- |
+| Project schema | `semaprax.project.v8` |
+| Project profile | `owned-data-api.v1` |
+| Canonical API descriptor | `semaprax.public-owned-data-api.v1` |
+| npm build carrier | `semaprax.project-npm-build.v7` |
+| npm API metadata | `semaprax.owned-data-api.v1` |
+| Rust SDK manifest | `semaprax.native-rust-owned-data-sdk.v1` |
+
+Each identifier selects only the contract in this document. An earlier
+Project schema cannot select `owned-data-api.v1`, and Project v8 cannot select
+an earlier profile. Consumers must reject unknown identifiers rather than
+fall back to a scalar, useful-data, command, or legacy SDK route.
+
+## Canonical Project manifest
+
+Project v8 has exactly eight assignments in this order and one terminal LF:
+
+```toml
+schema = "semaprax.project.v8"
+name = "frame-payload"
+version = "0.1.0"
+profile = "owned-data-api.v1"
+entry = "frame_payload.app"
+sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
+web_exports = ["frame.payload", "frame.payload-maybe", "frame.payload-result"]
+tests = ["frame_payload.tests"]
+```
+
+The existing canonical name, Semantic Versioning, module, source-path,
+stable-ID, and ordering rules apply unchanged. `sources` contains 2–16
+strictly sorted unique paths. `web_exports` contains 1–32 strictly sorted
+unique stable IDs. There are no `command`, `input`, or `capabilities` fields.
+Unknown, missing, extra, duplicated, or reordered assignments reject.
+
+Project v8 must enter the existing closed `ProjectProfile` dispatch as one
+distinct variant. Schema or profile text must never be converted into loose
+feature flags from which downstream authority is inferred.
+
+## Semantic admission
+
+Admission is derived from validated, linked HIR. Source-shaped declarations,
+generated metadata, target artifacts, or caller assertions are not semantic
+authority.
+
+Every selected export must satisfy all of the following:
+
+- it is a source-authored function with an explicit persistent `@id` equal to
+  the selected `web_exports` identity;
+- it is monomorphic and is not the Project entry function;
+- it has 0–8 parameters, each with one exact admitted parameter type;
+- it has exactly one result with one exact admitted result type;
+- the function and every function in its transitive closure are effect-free,
+  import-free, and contract-free;
+- the complete selected closure is acyclic; direct and mutual recursion both
+  reject;
+- the linked executable function inventory is nonempty and contains at most
+  the existing public-export bound of 256 functions; and
+- the closure passes the ordinary verifier, ownership checks, cleanup-plan
+  construction, and independent cleanup-plan replay before descriptor or
+  target generation.
+
+All selected roots, including roots disconnected from the Project entry, are
+linked under one authenticated held Project snapshot. The union of their
+closures is checked once; a function reachable from more than one root is not
+duplicated or charged twice.
+
+### Admitted types
+
+The parameter vocabulary is exactly:
+
+- `i64`
+- `bool`
+- `borrow str`
+- `borrow Slice<u8>`
+
+The result vocabulary is exactly:
+
+- `i64`
+- `bool`
+- `usize`
+- `Bytes`
+- `Option<Bytes>`
+- `Result<Bytes, i64>`
+
+`Option` and `Result` here are the authenticated compiler-owned variants.
+They are admitted only in the exact unnested forms above. `Result::Err` is a
+successful API invocation carrying a language value; it is not an adapter or
+host-call failure.
+
+Borrowed arguments are invocation-bounded snapshots. Their cumulative encoded
+or byte length across one external call is at most 65,536 bytes. An owned byte
+result has an exact length in `0..=65_536`; capacity-plus-one rejects before a
+host value becomes observable.
+
+### Exact exclusions
+
+The public boundary rejects all of the following, even when the shape exists
+inside an otherwise valid SEMAPRAX program:
+
+- owned parameters;
+- resource parameters or results;
+- fixed arrays or any other arrays as public values;
+- borrowed results;
+- authored records;
+- authored variants;
+- nested `Option` or `Result` values;
+- `Result` error types other than exactly `i64`;
+- callbacks or callable imports;
+- async functions or async values;
+- shared values;
+- public mutation or mutable borrowed arguments;
+- multiple returned values or unit results;
+- host allocator adoption or zero-copy allocator transfer; and
+- direct raw pointer, arena-token, provider-handle, or context exposure.
+
+The profile also grants no filesystem, process, environment, clock, random,
+network, thread, UI, registry, signing, or publication authority.
+
+## Canonical public API descriptor
+
+The compiler derives one canonical descriptor from the authenticated Project
+revisions, Project graph digest, validated HIR, selected stable IDs, and fixed
+limits. Its schema is `semaprax.public-owned-data-api.v1`. It contains, in
+strict stable-ID order:
+
+- the Project schema, Project revision, Workspace revision, and Project graph
+  digest;
+- every export stable ID;
+- every parameter's stable identity, source display name, ordinal, and one
+  closed parameter-type tag;
+- one closed result-type tag for each export; and
+- the exact export, parameter, closure-function, borrowed-input, and
+  owned-output limits.
+
+The descriptor has deterministic canonical bytes and a domain-separated
+digest. Parsing is closed and bounded. Independent replay must reconstruct the
+same facts from the same retained Project subject and reject truncation,
+insertion, deletion, reordering, duplication, unknown fields or tags, changed
+revisions, changed graph digest, or any byte mutation.
+
+This descriptor is the sole semantic API source for JavaScript bindings,
+TypeScript declarations, npm metadata, native provider descriptors, and the
+safe Rust SDK. A target may add authenticated target-layout facts, but it may
+not rediscover or reinterpret a source signature. If two targets require
+different semantic descriptors, the profile must remain inactive.
+
+Display names are presentation only. Generated APIs are keyed by, or derive
+their collision-checked host identifier from, the persistent stable ID. A
+source display rename that preserves the stable ID must preserve descriptor
+meaning and the external API.
+
+## Host type mappings
+
+| SEMAPRAX | TypeScript | Rust |
+| --- | --- | --- |
+| `i64` | `bigint` | `i64` |
+| `bool` | `boolean` | `bool` |
+| `usize` | `bigint` | `u64` |
+| `borrow str` | `string` | `&str` |
+| `borrow Slice<u8>` | `Uint8Array` | `&[u8]` |
+| `Bytes` | `Uint8Array` | `Vec<u8>` |
+| `Option<Bytes>` | `Uint8Array \| null` | `Option<Vec<u8>>` |
+| `Result<Bytes, i64>` | `SemapraxResult<Uint8Array, bigint>` | `Result<Vec<u8>, i64>` |
+
+TypeScript uses this exact result definition:
+
+```ts
+export type SemapraxResult<T, E> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly error: E };
+```
+
+JavaScript accepts only ordinary, attached, fixed-length `Uint8Array` byte
+inputs. It rejects shared, resizable, detached, differently typed, `DataView`,
+and implicitly coercible inputs. Strings are encoded as checked UTF-8. Every
+borrowed argument is snapshotted before public scratch is mutated, and the
+complete call is synchronous and non-reentrant.
+
+For safe Rust, adapter, semantic, or host-call failure is an outer SDK error.
+The table's `Result<Vec<u8>, i64>` is the successful SEMAPRAX language value
+inside that outer result. Generated safe API code forbids unsafe code and
+exposes no raw provider handle or context.
+
+## Result representation and lifetime
+
+The target-neutral variant discriminants are fixed:
+
+```text
+Option: None = 0, Some = 1
+Result: Ok = 0, Err = 1
+```
+
+Any other tag is an invariant failure before payload access. `None` and `Err`
+own no byte carrier. `Some` and `Ok` own exactly one active byte carrier.
+Inactive payload storage is never read, copied, or dropped. A tag/liveness
+disagreement fails before publication.
+
+Before a generated API call returns to JavaScript or safe Rust, it must
+complete this sequence in order:
+
+1. authenticate the SEMAPRAX owned result and its active-case liveness;
+2. query and check its exact length against the authenticated carrier and the
+   65,536-byte output bound;
+3. allocate exact host-owned storage and copy exactly that many bytes;
+4. consume or drop the SEMAPRAX carrier exactly once;
+5. prove the invocation's provider or arena is settled, with no live result,
+   provisional result, or cleanup obligation remaining; and
+6. only then publish the host-owned `Uint8Array`, `Vec<u8>`, `null`, or error
+   branch to application code.
+
+The host allocation is never adopted by SEMAPRAX, and SEMAPRAX allocation is
+never adopted by the host. Empty owned bytes still carry real ownership until
+settled. Failure before result publication preserves the caller-visible result
+slot and exposes no partial bytes. Failure after staging but before
+publication settles the staged owner exactly once. If exact settlement cannot
+be proven, the invocation fails closed and publishes no language value.
+
+The Wasm wrapper never exposes its raw carrier. It clears or poisons temporary
+result storage after settlement and requires an empty arena before success.
+The native provider uses an opaque, provider-owned handle only inside the
+private FFI sibling; safe Rust queries length, copies, settles through an
+internal guard, disarms the guard, and only then returns `Vec<u8>`. A panic may
+not cross the FFI boundary. No allocator pointer is converted directly into a
+`Vec<u8>`.
+
+## Generated artifacts and carriers
+
+The npm output inventory is exactly:
+
+1. `app.wasm`
+2. `semaprax.js`
+3. `semaprax.bindings.js`
+4. `semaprax.bindings.d.ts`
+5. `semaprax.api.json`
+6. `package.json`
+
+`semaprax.api.json` uses `semaprax.owned-data-api.v1` and binds the canonical
+API descriptor, Wasm digest, fixed limits, exact target call shapes, ordered
+artifact inventory, and owned-result settlement policy. The surrounding
+context-bound npm build carrier uses `semaprax.project-npm-build.v7` and binds
+the retained Project subject plus the exact ordered artifacts, bytes, digests,
+and payload digest. Inspection or replay proves consistency only; neither the
+metadata nor carrier grants build or publication authority.
+
+The owned-data Rust package uses manifest
+`semaprax.native-rust-owned-data-sdk.v1`. It binds the same canonical API
+descriptor and exact generated package/provider inventories. It is distinct
+from, and does not reinterpret, the existing scalar Rust SDK manifest. The
+safe package must build locked and offline without repository source or a
+workspace dependency. Unsafe FFI remains quarantined outside the root
+`semaprax` crate and outside the generated safe API.
+
+The raw Wasm owned-result call shape is profile-specific:
+
+```text
+(parameters..., result_out: i32) -> status: i32
+```
+
+The adapter validates alignment and the complete result-out range before
+semantic execution. It writes one authenticated carrier only after semantic
+success and cleanup-plan result publication. Status and out-of-band adapter
+failure remain distinct from a successful language `Result::Err`.
+
+## Compatibility
+
+Project v8 and every protocol above are additive. Project v1–v7 parsing,
+diagnostic selection, canonical manifest bytes, linked meaning, generated
+artifacts, npm carrier schemas and bytes, Rust SDK v1 schemas and bytes, scalar
+Web exports, command packages, and target known answers must remain unchanged.
+
+The v8 implementation must be reachability- and profile-gated. When Project v8
+is absent, it emits no owned-data descriptor, metadata, helper, arena/provider
+operation, target branch, artifact, or runtime state. Earlier schemas reject
+the new profile, and v8 rejects all earlier profile names. There is no migration
+that silently rewrites an earlier manifest as v8.
+
+Stable-ID display rename compatibility requires the same selected identity,
+signature, descriptor semantics, host API identity, and generated consumer
+behavior before and after rename. A signature, ownership, effect, contract,
+import, or stable-ID change is not a display rename and must reject or produce
+a separately reviewed compatibility change.
+
+## Completion gates
+
+This specification may move from proposed to locally evidenced only when all
+applicable gates below pass at the same commit. Completion-matrix or public
+promotion additionally requires the exact hosted gate in item 12.
+
+1. **Parser and canonical manifest:** exact v8 assignment/order/LF/profile
+   acceptance; every malformed, capacity, ordering, schema/profile-confusion,
+   source-count, and export-count rejection; byte-for-byte v1–v7 manifest and
+   diagnostic preservation.
+2. **HIR admission:** success for every admitted parameter/result type and
+   their mixed 0–8-parameter signatures; rejection of every exact exclusion;
+   stable-ID selection, non-entry, monomorphic, effect/import/contract-free,
+   acyclic closure, 256-function bound, and hostile-HIR validation.
+3. **Descriptor replay:** canonical bytes and digest; zero-export rejection;
+   one and 32 exports; zero, one, and 8 parameters; strict ordering and
+   uniqueness; display rename; revision/graph binding; independent replay;
+   byte mutation, truncation, insertion, deletion, foreign-subject,
+   unknown-tag, and budget rejection; one descriptor driving every target
+   generator.
+4. **Interpreter/native/Wasm equivalence:** the same source corpus produces
+   equal scalar, byte, `Option`, and language-`Result` values and normalized
+   failures through interpreter, native O0/O2, and Core-Wasm, including empty,
+   embedded-NUL, invalid-UTF-8, `0xff`, `None`, `Some`, `Ok`, and minimum/zero/
+   maximum `Err(i64)` cases.
+5. **JavaScript and TypeScript consumption:** compiler-free installed package
+   use; exact declarations and result union; stable-ID access; string and byte
+   input validation; snapshot isolation; repeated calls; digest and metadata
+   authentication; ordinary fresh `Uint8Array` results; no raw carrier access;
+   locked offline pack/install.
+6. **Safe Rust consumption:** exact descriptor/manifest replay; generated API
+   with unsafe forbidden; locked offline external consumer; exact `Vec<u8>`,
+   `Option`, inner language `Result`, and outer call-error behavior; no raw
+   handle/context; panic containment; O0/O2 equality.
+7. **Hostile carriers:** malformed Wasm/provider/artifact digest; invalid or
+   unaligned result pointer; zero, stale, foreign, or duplicate handle/token;
+   wrong length; invalid tag; inactive forged payload; tag/liveness mismatch;
+   wrong destination length; double consume/drop; provider copy/drop failure;
+   arena/provider non-settlement; tampered re-digested metadata.
+8. **Cleanup exactness:** independent cleanup-plan replay and target traces for
+   success, pre-publication failure, post-staging failure, inactive cases,
+   postcondition failure, copy failure, settlement failure, repeated entry,
+   token/handle rotation, first-failure stickiness, exact-once active-owner
+   settlement, and no partial result publication.
+9. **Stable-ID display rename:** a multi-module fixture is built and consumed
+   before and after a display-only rename; Project graph facts, canonical API
+   identity, npm and Rust method identity, and consumer behavior remain bound
+   to the unchanged stable ID, while presentation facts may change.
+10. **Capacity boundaries:** minus-one, exact, and plus-one cases for 32
+    exports, 8 parameters, 256 linked functions, 65,536 cumulative borrowed
+    input bytes, 65,536 owned output bytes, every descriptor/carrier byte
+    budget, Wasm result storage, native destination length, and handle/arena
+    capacity.
+11. **Compatibility preservation:** known-answer bytes for every Project v1–v7
+    manifest, existing npm carrier, scalar and useful-data Web artifact,
+    command package, and scalar Rust SDK remain exact; profile-absent builds
+    contain no v8 runtime or metadata; all earlier mismatch diagnostics remain
+    stable.
+12. **Cross-platform hosted promotion:** all focused gates, hostile tests,
+    external JS/TypeScript and Rust consumers, native O0/O2, browser execution,
+    sanitizers, deterministic inventories, and compatibility KATs pass on one
+    exact commit in blocking Linux, macOS, and Windows jobs, with every claimed
+    browser/runtime and minimum-Rust-version lane named by the release gate.
+    Skipped, cancelled, diagnostic-only, retried, or allowed-failure jobs do
+    not count.
+
+Until all twelve gates exist and the applicable exact-head jobs are green,
+this document does not activate Project v8, publish either SDK, or promote any
+completion-matrix status.
+
+## Nonclaims
+
+Public Owned Data API v1 does not claim public records or authored variants,
+nested algebraic data, resources, owned inputs, borrowed outputs, owned UTF-8
+strings, mutable/shared values, multiple returns, general generics, lifetime
+inference, zero-copy transfer, allocator interoperability, callbacks, imports,
+effects, contracts, async, reentrancy, threads, shared memory, memory growth,
+WIT/Component Model support, C/C++/Swift/Kotlin bindings, native executable
+support for Project v8, package resolution, registry publication, signing,
+provenance, or general public aggregate ABI stability.

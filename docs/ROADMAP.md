@@ -35,6 +35,30 @@ Exit outcomes:
 The [v0.2 audit](COMPLETION-MATRIX.md#v02-product-exit-audit) is the acceptance
 checklist.
 
+## Developer preview: public owned-data integrations
+
+After the v0.2 release gate is closed, the next bounded product tranche is the
+additive [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md). Its proposed
+Project Manifest v8 profile keeps v1–v7 frozen and admits only scalar and
+borrowed text/byte parameters with scalar or copied owned-byte results.
+
+Sequence this tranche narrowly:
+
+1. freeze and independently replay one target-neutral public API descriptor;
+2. generate JavaScript/TypeScript and safe Rust consumers from that descriptor;
+3. prove direct `Bytes`, then `Option<Bytes>` and `Result<Bytes, i64>`, with
+   exact copy-out and settlement before host publication;
+4. activate Project v8 only after both target consumers and all legacy
+   preservation gates are independently green; and
+5. validate one realistic multi-module project across interpreter, native,
+   Wasm, installed npm, and compiler-free Rust consumption before any hosted
+   or completion-matrix promotion.
+
+Records, authored variants, nested algebraic data, owned UTF-8 strings,
+allocator transfer, callbacks, async work, and general public aggregate ABIs
+remain outside this preview. The versioned specification owns its exact
+identifiers, admission, lifetime, compatibility, and promotion gates.
+
 ## 0.3: ownership and fast development
 
 Goal: make the language safer and faster to iterate on without widening public

@@ -156,7 +156,7 @@ fn non_regular_and_invalid_utf8_inputs_fail_with_io_diagnostic() {
     std::fs::write(&invalid, [0xff]).unwrap();
     let output = minimally_shaped(&invalid).output().unwrap();
     assert_eq!(output.status.code(), Some(1));
-    assert!(String::from_utf8_lossy(&output.stderr).contains("SPX-I215"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("SPX-PR501"));
     std::fs::remove_file(invalid).unwrap();
 }
 

@@ -268,8 +268,15 @@ fn read_subjects(paths: &[PathBuf]) -> Result<Vec<String>, Diagnostic> {
     } in held
     {
         let mut content = Vec::with_capacity(bytes);
+        let remaining = MAX_TOTAL_SUBJECT_BYTES
+            .checked_sub(actual_total)
+            .ok_or_else(|| limit_error("actual total_subject_bytes exceeds its bound"))?;
+        let read_limit = MAX_SUBJECT_BYTES
+            .min(remaining)
+            .checked_add(1)
+            .ok_or_else(|| limit_error("subject read limit overflow"))?;
         (&file)
-            .take((MAX_SUBJECT_BYTES + 1) as u64)
+            .take(read_limit as u64)
             .read_to_end(&mut content)
             .map_err(|_| io_error("cannot read held package-resolve subject input"))?;
         actual_total = actual_total
@@ -289,7 +296,7 @@ fn read_subjects(paths: &[PathBuf]) -> Result<Vec<String>, Diagnostic> {
         }
         subjects.push(
             String::from_utf8(content)
-                .map_err(|_| io_error("package-resolve subject input must be valid UTF-8"))?,
+                .map_err(|_| input_error("package-resolve subject input must be valid UTF-8"))?,
         );
     }
     Ok(subjects)
@@ -374,6 +381,10 @@ fn held_input_identity(_metadata: &std::fs::Metadata) -> Result<(u64, u64), Diag
 
 fn io_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-I215", message.into())
+}
+
+fn input_error(message: impl Into<String>) -> Diagnostic {
+    Diagnostic::io("SPX-PR501", message.into())
 }
 
 fn limit_error(message: impl Into<String>) -> Diagnostic {

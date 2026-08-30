@@ -547,7 +547,7 @@ pub(super) fn walk_program(
     Ok(())
 }
 
-fn walk_function(
+pub(super) fn walk_function(
     function: &mut Function,
     nodes: &mut usize,
     visit: &mut impl FnMut(&mut Expr) -> Result<()>,

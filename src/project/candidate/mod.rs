@@ -18,7 +18,9 @@ mod draft;
 mod expression;
 mod extraction;
 mod intent;
+mod movement;
 mod rebase;
+mod record_field;
 mod recovery;
 mod schemas;
 mod wire;
@@ -154,7 +156,21 @@ impl ProjectCandidate {
         }
         let mut programs = parse_revision(&self.revision)?;
         let mut before = invariant_facts(&programs);
+        let mut field_addition = None;
+        let mut movement = None;
         let (summary, addition) = match change.intent.get("kind").and_then(Value::as_str) {
+            Some("add_record_field") => {
+                let (summary, field) =
+                    record_field::apply(&self.revision, &mut programs, &change.intent)?;
+                field_addition = Some(field);
+                (summary, None)
+            }
+            Some("move_declaration") => {
+                let (summary, moved) =
+                    movement::apply(&self.revision, &mut programs, &change.intent)?;
+                movement = Some(moved);
+                (summary, None)
+            }
             Some("add_declaration") => {
                 let (summary, addition) =
                     declaration::apply(&self.revision, &mut programs, &change.intent)?;
@@ -171,6 +187,20 @@ impl ProjectCandidate {
             ),
             _ => (intent::apply(&mut programs, &change.intent)?, None),
         };
+        if let Some(moved) = &movement {
+            let fact = before[&moved.source_path]["functions"]
+                .as_object_mut()
+                .and_then(|functions| functions.remove(&moved.id))
+                .ok_or_else(|| invalid("moved function is absent from its source inventory"))?;
+            let destination = before[&moved.destination_path]["functions"]
+                .as_object_mut()
+                .ok_or_else(|| invalid("move destination is absent from the source inventory"))?;
+            if destination.insert(moved.id.clone(), fact).is_some() {
+                return Err(invalid(
+                    "move destination already contains the function identity",
+                ));
+            }
+        }
         if let Some(addition) = &addition {
             let functions = before[&addition.path]["functions"]
                 .as_object_mut()
@@ -239,12 +269,24 @@ impl ProjectCandidate {
                 "candidate source replay disagrees with intended projection",
             ));
         }
-        preserve_explicit_identities(&self.revision, &candidate, addition.as_ref())?;
+        preserve_explicit_identities(
+            &self.revision,
+            &candidate,
+            addition.as_ref(),
+            field_addition.as_ref(),
+            movement.as_ref(),
+        )?;
         if summary.kind == "replace_expression" {
             expression::validate_replacement(&self.revision, &candidate, &change.intent)?;
         }
         if summary.kind == "extract_function" {
             extraction::validate(&self.revision, &candidate, &change.intent)?;
+        }
+        if summary.kind == "add_record_field" {
+            record_field::validate(&self.revision, &candidate, &change.intent)?;
+        }
+        if summary.kind == "move_declaration" {
+            movement::validate(&self.revision, &candidate, &change.intent)?;
         }
         if self.revision.manifest().to_canonical_toml() != candidate.manifest().to_canonical_toml()
         {
@@ -264,6 +306,12 @@ impl ProjectCandidate {
         });
         if let Some(addition) = addition {
             operation["new_declaration"] = json!({"id":addition.id,"name":addition.name,"path":addition.path,"module":addition.module});
+        }
+        if let Some(field) = field_addition {
+            operation["new_declaration"] = json!({"id":field.id,"name":field.name,"owner":field.owner,"kind":"field","path":field.path,"module":field.module});
+        }
+        if let Some(moved) = movement {
+            operation["relocation"] = json!({"id":moved.id,"source_path":moved.source_path,"source_module":moved.source_module,"destination_path":moved.destination_path,"destination_module":moved.destination_module});
         }
         summaries.push(operation);
         Self::finish(
@@ -509,6 +557,8 @@ fn preserve_explicit_identities(
     base: &ProjectRevision,
     candidate: &ProjectRevision,
     addition: Option<&declaration::DeclarationAddition>,
+    field: Option<&record_field::FieldAddition>,
+    movement: Option<&movement::DeclarationMove>,
 ) -> Result<(), Vec<Diagnostic>> {
     fn identities(revision: &ProjectRevision) -> Result<BTreeMap<String, Value>, Vec<Diagnostic>> {
         let graph: Value = serde_json::from_str(revision.semantic_graph())
@@ -521,7 +571,7 @@ fn preserve_explicit_identities(
             .map(|d| (d["id"].as_str().unwrap_or_default().to_owned(), d.clone()))
             .collect())
     }
-    let before = identities(base)?;
+    let mut before = identities(base)?;
     let mut after = identities(candidate)?;
     if let Some(addition) = addition {
         let expected = json!({"id":addition.id,"kind":"function","identity_origin":"explicit","owner":null,"path":addition.path,"module":addition.module});
@@ -532,6 +582,30 @@ fn preserve_explicit_identities(
                 "candidate does not contain exactly the planned added function identity",
             ));
         }
+    }
+    if let Some(field) = field {
+        let expected = json!({"id":field.id,"kind":"field","identity_origin":"explicit","owner":field.owner,"path":field.path,"module":field.module});
+        if before.contains_key(&field.id) || after.remove(&field.id).as_ref() != Some(&expected) {
+            return Err(invalid(
+                "candidate does not contain exactly the planned added field identity",
+            ));
+        }
+    }
+    if let Some(moved) = movement {
+        let fact = before
+            .get_mut(&moved.id)
+            .ok_or_else(|| invalid("moved identity is absent from the original graph"))?;
+        if fact["kind"] != "function"
+            || !fact["owner"].is_null()
+            || fact["path"] != moved.source_path
+            || fact["module"] != moved.source_module
+        {
+            return Err(invalid(
+                "moved identity does not match its exact original owner",
+            ));
+        }
+        fact["path"] = json!(moved.destination_path);
+        fact["module"] = json!(moved.destination_module);
     }
     if before != after {
         return Err(invalid(

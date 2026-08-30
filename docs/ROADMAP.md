@@ -165,6 +165,12 @@ candidate recovery capsules are now authored, unrun. Extend their bounded
 forms without treating source-replayed recovery as warm HIR persistence or
 complete session/draft recovery.
 
+Cross-file scalar function moves and Copy record-field migration now have
+authored, unrun paths. Continue with interface implementation, diagnostic repair
+integration and ownership-sensitive changes. New data-access and audit HIR
+facets still need reverse dependency indexes and candidate deltas; current
+Project unsafe admission is unchanged.
+
 The first [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
 foundation is authored, unrun: immutable retained Project/HIR state, canonical
 rebuildable image bytes, typed stable-ID lookup, and bounded existing analysis.

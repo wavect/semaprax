@@ -147,6 +147,8 @@ const METHODS: &[Method] = &[
                     "loans",
                     "cleanup",
                     "relationships",
+                    "data-access",
+                    "unsafe-boundaries",
                 ]),
                 required: true,
             },

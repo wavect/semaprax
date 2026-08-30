@@ -10,6 +10,8 @@ use crate::workspace_graph::WorkspaceGraphProjectionModule;
 
 pub const IMAGE_FUNCTION_SUMMARY_SCHEMA: &str = "semaprax.image-function-summary.v1";
 pub const IMAGE_FACET_SCHEMA: &str = "semaprax.image-facet.v1";
+mod relationships;
+
 const MAX_ITEMS: usize = 65_536;
 const MAX_INTERMEDIATE_BYTES: usize = 16 * 1024 * 1024;
 const MAX_REPORT_BYTES: usize = 1024 * 1024;
@@ -23,9 +25,11 @@ pub enum ImageFacet {
     Loans,
     Cleanup,
     Relationships,
+    DataAccess,
+    UnsafeBoundaries,
 }
 impl ImageFacet {
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 9] = [
         Self::Signature,
         Self::Contracts,
         Self::Callers,
@@ -33,6 +37,8 @@ impl ImageFacet {
         Self::Loans,
         Self::Cleanup,
         Self::Relationships,
+        Self::DataAccess,
+        Self::UnsafeBoundaries,
     ];
     pub fn name(self) -> &'static str {
         match self {
@@ -43,6 +49,8 @@ impl ImageFacet {
             Self::Loans => "loans",
             Self::Cleanup => "cleanup",
             Self::Relationships => "relationships",
+            Self::DataAccess => "data-access",
+            Self::UnsafeBoundaries => "unsafe-boundaries",
         }
     }
     pub fn parse(name: &str) -> Result<Self, Vec<Diagnostic>> {
@@ -239,6 +247,9 @@ impl ProjectSemanticImage {
         facet: ImageFacet,
     ) -> Result<Vec<Value>, Vec<Diagnostic>> {
         Ok(match facet {
+            ImageFacet::DataAccess | ImageFacet::UnsafeBoundaries => {
+                relationships::items(self, module, function, facet)?
+            }
             ImageFacet::Signature => {
                 let mut items = function.params.iter().enumerate().map(|(index, param)| json!({"kind":"parameter", "index": index, "id":param.id.as_str(), "name":param.name, "type_id":param.ty.identity_key(), "ownership":ownership(param.ownership), "span":span(param.span)})).collect::<Vec<_>>();
                 items.push(json!({"kind":"result", "id":function.result_id.as_str(), "type_id":function.return_type.identity_key()}));

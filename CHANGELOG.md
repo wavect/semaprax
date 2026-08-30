@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added authored, unrun same-source `Result::Err` zero/minimum/maximum gates
+  across the reference interpreter, native O0/O2, actual npm/Wasm and an
+  external locked/offline safe-Rust SDK consumer. Exact payload bits, successful
+  language errors versus invocation failure, owned cleanup and recovery are
+  observed without changing production code, package formats or status claims.
+
 - Added an authored, unrun v8 installed npm consumer gate for baseline and
   renamed frame projects: real offline pack/locked install, independently
   checked tarball integrity, exact installed bytes, package-name Node imports,

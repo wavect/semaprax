@@ -726,6 +726,50 @@ flags, disabled lifecycle scripts, private cache and cleared npm configuration
 are not OS-level network confinement. This gate is authored and unrun, covers
 v8 only, and does not establish registry publication or hosted promotion.
 
+### Authored same-source Result-extrema gates
+
+`tests/support/owned_result_product.rs` supplies one canonical two-source v8
+Project to the interpreter/native/npm fixture and the private Rust SDK fixture.
+Its single stable-ID export returns `Err(0)`, `Err(i64::MIN)` and
+`Err(i64::MAX)` for three input lengths, successful copied Bytes for two
+others, and a genuine division failure after staging Bytes for a sixth.
+The extrema stay exact integers; JavaScript expectations use decimal strings
+converted to `BigInt`, never JSON numbers.
+
+`tests/project_owned_result_extrema_v1.rs` checks the retained Project HIR in
+the reference interpreter, actual native providers at O0/O2, and the real
+six-file npm publication. The native and raw-Wasm observations distinguish
+successful Err status/tag/payload bits from invocation failure, calibrate real
+owner allocation/consumption, and require untouched failure outputs and
+recovery on the same native context or Wasm instance. Native language failure
+is normalized to status 1; the interpreter and raw Wasm retain division status
+4. Interpreter cleanup events describe boundary copy-out, not a physical
+allocator trace. Provision Clang and Node plus the existing full-toolchain
+prerequisites for Windows npm publication:
+
+```sh
+cargo test --locked -p semaprax --test project_owned_result_extrema_v1 same_source_result_extrema_match_interpreter_native_and_npm -- --exact
+```
+
+`crates/semaprax-toolchain/tests/project_owned_result_extrema_sdk_v1.rs`
+publishes the same source through the real Rust builder and reopens all seven
+files. It checks the retained descriptor, all parsed manifest facts, inventory
+hashes and regenerated provider-source binding before running a separately
+locked/offline, unsafe-forbidden Rust consumer. That consumer distinguishes
+`Ok(Err(...))` from an outer `CallError::SemanticFailure`, reuses two SDK
+objects, and retains independent output vectors after both objects are
+dropped. This is not a new package verifier or evidence that an SDK object
+retains one physical native context. Provision absolute `CLANG` and
+`SEMAPRAX_ARCHIVER`, native Cargo, and the existing Windows MSVC environment:
+
+```sh
+cargo test --locked -p semaprax-toolchain --test project_owned_result_extrema_sdk_v1 provisioned_result_extrema_publish_and_run -- --ignored --exact
+```
+
+Both gates remain authored and unrun. They add no production ABI, schema,
+artifact or completion-status change and do not replace sanitizer or exact-head
+hosted evidence.
+
 ## Nonclaims
 
 Public Owned Data API v1 does not claim public records or authored variants,

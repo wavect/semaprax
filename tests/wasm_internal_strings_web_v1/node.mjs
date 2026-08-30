@@ -14,7 +14,7 @@ const success=(id,args,value)=>{
   assert(Object.isFrozen(result));assert.deepEqual(result,{kind:'success',value});
 };
 success('web.content',[],42n);
-success('',[],17n);
+success('-web.constant',[],17n);
 success('web.bool',[false],false);success('web.bool',[true],true);
 success('__proto__',[],11n);success('web."</script>λ',[],13n);
 for(const [id,args,domain,code] of [
@@ -30,7 +30,7 @@ assert(Object.isFrozen(capacity));
 assert.deepEqual(capacity,{kind:'capacity',cause:'cumulative_bytes'});
 success('web.capacity',[1n],1n);success('web.content',[],42n);
 for(const action of [
-  ()=>runtime.call('unknown'),()=>runtime.call('web.bool',0),
+  ()=>runtime.call('unknown'),()=>runtime.call(''),()=>runtime.call('web.bool',0),
   ()=>runtime.call('web.divide',1),()=>runtime.call('web.divide',1n<<63n),
   ()=>runtime.call('web.content',1n),
 ]){assert.throws(action,TypeError);success('web.content',[],42n)}

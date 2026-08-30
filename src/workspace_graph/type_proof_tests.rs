@@ -774,9 +774,14 @@ module graph.v14;
             "sha256:{:x}",
             crate::digest_hex::LowerHex(Sha256::digest(json.as_bytes()))
         );
+        // Includes the current AST carrier's charged builder bytes. Adding the
+        // static implementation Vec increases Program by 24 bytes on 64-bit
+        // hosts; the prebound retains all 65 footprints instead of undercharging
+        // to preserve an earlier digest. Wire-order and independent replay below
+        // remain exact.
         assert_eq!(
             document_sha,
-            "sha256:e4a78dabb26de46141a5f3b920183279317a409aaa07c0cc222f58df3ad82636"
+            "sha256:a5c4c1e1847514f8a268f837d40793131d543e7a579289cfcf408fb5888e5a81"
         );
         assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

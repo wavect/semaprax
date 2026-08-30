@@ -73,7 +73,7 @@ try{
   assert.equal(await page.evaluate(()=>globalThis.__webInstantiations),1);
   assert.equal(await page.locator('script:not([src])').count(),0);
   assert.deepEqual(await page.locator('#export-select option').allTextContents(),
-    ['', '__proto__',hostile,'web.bool','web.capacity','web.content','web.divide','web.required']);
+    ['-web.constant', '__proto__',hostile,'web.bool','web.capacity','web.content','web.divide','web.required']);
   async function invoke(id,input,expected){
     await page.getByLabel('Export identity').selectOption({value:id});
     if(typeof input==='boolean'){
@@ -91,7 +91,7 @@ try{
     assert.equal(await button.isEnabled(),true);
   }
   await invoke('web.content',undefined,{kind:'success',value:'42'});
-  await invoke('',undefined,{kind:'success',value:'17'});
+  await invoke('-web.constant',undefined,{kind:'success',value:'17'});
   await invoke('web.bool',false,{kind:'success',value:false});
   await invoke('web.bool',true,{kind:'success',value:true});
   await invoke('web.divide','0',{kind:'failure',domain:'semaprax.arithmetic.v1',code:4});

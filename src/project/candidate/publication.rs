@@ -463,7 +463,7 @@ mod publication_boundary_tests {
         let errors = result.expect_err("postpublication drift must fail explicitly");
         assert!(errors.iter().any(|error| error.code == "SPX-G248"));
         assert_eq!(
-            crate::workspace::snapshot(&root)
+            crate::workspace_graph::snapshot(&root, "calculator.app")
                 .unwrap()
                 .workspace_revision(),
             proof.candidate_workspace_revision()

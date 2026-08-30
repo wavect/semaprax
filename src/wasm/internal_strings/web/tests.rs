@@ -76,17 +76,21 @@ fn source_drift_and_growth_are_rejected_before_destination_creation() {
 }
 
 #[test]
-fn explicit_empty_identity_keeps_existing_compiler_admission() {
+fn empty_identity_rejects_and_leading_dash_identity_remains_exact() {
     let root = directory();
     let source = root.join("input.spx");
     let output = root.join("output");
     std::fs::write(&source, SOURCE.replace("@id(\"main\")", "@id(\"\")")).unwrap();
-    build_web_from_source(&source, &output, &[String::new()]).unwrap();
+    let errors = build_web_from_source(&source, &output, &[String::new()]).unwrap_err();
+    assert_eq!(errors[0].code, "SPX-H006");
+    assert!(!output.exists());
+    std::fs::write(&source, SOURCE.replace("@id(\"main\")", "@id(\"-main\")")).unwrap();
+    build_web_from_source(&source, &output, &["-main".to_owned()]).unwrap();
     let declarations = std::fs::read_to_string(output.join("semaprax.d.ts")).unwrap();
-    assert!(declarations.contains("call(id: \"\")"));
+    assert!(declarations.contains("call(id: \"-main\")"));
     let descriptor =
         std::fs::read_to_string(output.join("semaprax.internal-strings.json")).unwrap();
-    assert!(descriptor.contains("\"stable_id\":\"\""));
+    assert!(descriptor.contains("\"stable_id\":\"-main\""));
     for path in [
         "app.wasm",
         "semaprax.js",

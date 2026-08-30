@@ -2835,11 +2835,11 @@ fn main() -> i64 uses { created.capability } { helper() }
                 raw_sha(artifacts.evidence()),
             ],
             [
-                "sha256:e905189674278bd79974ca26ef8894c18aa7deedd959ac5583c7a61719cc7cad",
-                "sha256:921aaa09bcc9db0b018ec8b9f3f688acd529231729a94c98a4bf24d948efb614",
-                "sha256:61a746bb3d352d7d365502985d835c0329d10d0d672f34f7d835e1b0ff5d7db7",
-                "sha256:685d1b93d84fe886f9d7cbb5073fd4df13658a0583f84eb3c8de604c189aee13",
-                "sha256:a60facf23d4c674e836e8d7eb8360b302d6667597e8bdb8e90648b93523ea7ae",
+                "sha256:188f109f7369c3f80dd0a630560020360bbb4889880e70be7b3e3127c3efe33c",
+                "sha256:7370824d05fda483b661c5ccc8d83d3fdc6d4470156fccb192963b49ac2baa4b",
+                "sha256:4231998f0a21876cc774550b1cfe2d6853d1e6849a9543b9e85dedb165f436fb",
+                "sha256:13eb75a3966899e65a78b6c284fd74da4e6f5fe664b0ac311a2baacd33a3b08b",
+                "sha256:58d1d4a0f2734beba8a95db7812bdcb874128ca034afce9ce1b46137d15d0d23",
             ]
         );
 
@@ -2886,7 +2886,7 @@ fn main() -> i64 uses { created.capability } { helper() }
         assert_eq!(value["budget"]["used_receipt_bytes"], receipt.len());
         assert_eq!(
             raw_sha(&receipt),
-            "sha256:87301271fdda6a565b669990612b0380afeb1ee57076e27700882b942b4be87d"
+            "sha256:16b8e774bf838f14e86fa50e2c613e3080ca3bef99c0706ecb1d7f0de33a3674"
         );
         fixture.assert_exclusive_reacquire();
     }
@@ -3559,7 +3559,7 @@ fn main() -> i64 uses { created.capability } { helper() }
         assert_eq!(receipt_value["result"], "applied");
         assert_eq!(
             raw_sha(&receipt),
-            "sha256:22814ce15db07b18c4a35c03d333c11553c7f9eb8a31d73dcbf0fc57c207e23d"
+            "sha256:1c2977ff57ab5566e0bc0ec667bcbe2d12589e8fc5ab6d5e1eb462acc21f4f10"
         );
         assert_eq!(fixture.raw_inventory(), raw_before);
         assert_ne!(

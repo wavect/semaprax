@@ -1217,7 +1217,7 @@ use function @id("image.add") from image.core as plus;
     #[test]
     fn unsupported_or_effectful_migrations_and_unbound_body_nodes_fail_closed() {
         let invalid = [
-            json!({"kind":"change_function_signature","target":"image.add","parameters":[]}),
+            json!({"kind":"change_function_signature","target":"image.add","parameters":[{"from":"missing"}]}),
             json!({"kind":"change_function_signature","target":"image.add","append_parameters":[{"name":"offset","type":"i64","argument":{"kind":"call","target":"image.add","arguments":[]}}]}),
             json!({"kind":"change_function_signature","target":"image.add","append_parameters":[{"name":"a","type":"i64","argument":{"kind":"i64","value":0}}]}),
             json!({"kind":"replace_function_body","target":"image.add","body":{"kind":"place","name":"missing"}}),

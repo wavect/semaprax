@@ -328,6 +328,11 @@ jobs:
   verify:
     name: Rust ${{ matrix.os }}
     timeout-minutes: 60
+    env:
+      # Keep the test compiler inside the cache host's 256-MiB executable bound
+      # and avoid linking debug symbols into every integration-test binary.
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
     strategy:
       fail-fast: false
       matrix:
@@ -727,6 +732,9 @@ jobs:
         run: scripts/verify-rust-host-asan.sh
 
   msrv:
+    env:
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
     name: Rust 1.88 minimum
     runs-on: ubuntu-latest
     timeout-minutes: 20

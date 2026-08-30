@@ -54,7 +54,7 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
     ] {
         fs::copy(source_root.join(path), fixture_root.join(path)).unwrap();
     }
-    for index in 0..2 {
+    for (index, name) in ["baseline", "renamed"].into_iter().enumerate() {
         if index == 1 {
             let path = fixture_root.join("src/core.spx");
             let original = fs::read_to_string(&path).unwrap();
@@ -74,7 +74,7 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
                 for (field, value) in actual.into_iter().enumerate() {
                     assert_eq!(
                         value, expected[field][index],
-                        "{} fixture {index}",
+                        "{} fixture {name}",
                         fields[field]
                     );
                 }

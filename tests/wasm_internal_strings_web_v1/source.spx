@@ -1,7 +1,7 @@
 module string_web.product;
 
-@id("")
-fn empty_identity() -> i64 { 17 }
+@id("-web.constant")
+fn leading_dash_identity() -> i64 { 17 }
 @id("internal.identity")
 fn identity(value: string) -> string { value }
 @id("web.content")

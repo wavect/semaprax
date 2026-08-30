@@ -24,6 +24,25 @@ fn job<'a>(workflow: &'a str, name: &str) -> &'a str {
 }
 
 #[test]
+fn workspace_ci_keeps_bounded_test_executables_and_fail_fast_coverage() {
+    let workflow = read(".github/workflows/ci.yml");
+    for name in ["verify", "msrv"] {
+        let selected = job(&workflow, name);
+        assert!(
+            selected.contains("CARGO_PROFILE_DEV_DEBUG: \"0\""),
+            "{name}"
+        );
+        assert!(
+            selected.contains("CARGO_PROFILE_TEST_DEBUG: \"0\""),
+            "{name}"
+        );
+        assert!(selected.contains("cargo test --locked --workspace --all-targets --all-features"));
+        assert!(!selected.contains("--no-fail-fast"));
+        assert!(!selected.contains("continue-on-error"));
+    }
+}
+
+#[test]
 fn tag_artifacts_are_exact_blocking_children_of_the_release_gate() {
     let workflow = read(".github/workflows/ci.yml");
     let artifacts = job(&workflow, "release-artifacts");

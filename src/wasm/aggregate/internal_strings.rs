@@ -2,6 +2,9 @@
 //! select this mode; its drop index deliberately agrees with the reused ledger.
 
 use super::*;
+// This standalone profile retains its own diagnostic namespace even when it
+// reuses the private owned-data planner.
+use crate::wasm::internal_strings::error;
 use crate::wasm::internal_strings::Export;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -61,8 +64,10 @@ pub(in crate::wasm) fn emit(
                 .map_err(|_| error("standalone String owner count overflows"))?,
         );
     }
-    let frame_paths = owned_stack::longest_paths(&frames, &edges)?;
-    let owner_paths = owned_stack::longest_paths(&owners, &edges)?;
+    let frame_paths = owned_stack::longest_paths(&frames, &edges)
+        .map_err(|diagnostic| error(diagnostic.message))?;
+    let owner_paths = owned_stack::longest_paths(&owners, &edges)
+        .map_err(|diagnostic| error(diagnostic.message))?;
     let stack = exports
         .iter()
         .map(|export| frame_paths[&export.id])

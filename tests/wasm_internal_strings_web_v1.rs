@@ -12,7 +12,7 @@ mod package_replay;
 use package_replay::{reopen, replay, Fixture, INVENTORY};
 
 const IDS: [&str; 8] = [
-    "",
+    "-web.constant",
     "__proto__",
     "web.\"</script>λ",
     "web.bool",
@@ -43,13 +43,8 @@ fn cli(source: &Path, output: &Path, target: &str, ids: &[&str]) -> Output {
         .arg(source)
         .args(["--target", target, "--profile", "internal-strings-v1"]);
     for id in ids {
-        // Existing separated spelling admits an explicitly empty identity;
-        // equals spelling intentionally retains its missing-value rejection.
-        if id.is_empty() {
-            command.args(["--export", ""]);
-        } else {
-            command.arg(format!("--export={id}"));
-        }
+        // Equals spelling preserves source-valid leading-dash identities.
+        command.arg(format!("--export={id}"));
     }
     command.arg("-o").arg(output).output().unwrap()
 }
@@ -118,7 +113,7 @@ fn real_cli_packages_replay_exactly_and_preserve_direct_compiler_and_renamed_api
     );
     let html = std::str::from_utf8(&files["index.html"]).unwrap();
     let app = std::str::from_utf8(&files["app.js"]).unwrap();
-    for id in IDS.into_iter().filter(|id| !id.is_empty()) {
+    for id in IDS {
         assert!(!html.contains(id));
         assert!(!app.contains(id));
     }
@@ -262,6 +257,15 @@ fn invalid_cli_profiles_and_admission_create_no_output_and_existing_bytes_surviv
         assert!(!absent.exists());
     }
     let path = fixture.write("source.spx", source());
+    let invalid_source = source().replace("@id(\"-web.constant\")", "@id(\"\")");
+    let invalid_path = fixture.write("empty-identity.spx", &invalid_source);
+    let errors = semaprax::check(&invalid_source, "empty-identity.spx").unwrap_err();
+    assert!(errors.iter().any(|error| error.code == "SPX-H006"));
+    // An unselected invalid identity must still fail before publication.
+    let error = cli(&invalid_path, &absent, "web", &["web.content"]);
+    assert!(!error.status.success());
+    assert!(String::from_utf8_lossy(&error.stderr).contains("SPX-H006"));
+    assert!(!absent.exists());
     let error = cli(&path, &absent, "web", &["missing"]);
     assert!(!error.status.success());
     assert!(String::from_utf8_lossy(&error.stderr).contains("SPX-W111"));

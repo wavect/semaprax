@@ -20,6 +20,6 @@ if (boolean.kind === 'success') {
   void value;
 }
 runtime.call('__proto__');
-runtime.call('');
+runtime.call('-web.constant');
 runtime.call('web."</script>λ');
 runtime.call('web.capacity', 1n);

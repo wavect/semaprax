@@ -242,7 +242,7 @@ fn unrelated_declarations_cannot_change_selected_artifacts_or_planning() {
     )
     .unwrap();
     let additions = r#"
-@id("unused.record") record Unused { value: i64, }
+@id("unused.record") record Unused { @id("unused.record.value") value: i64, }
 @id("unused.record_value") fn record_value() -> Unused { Unused { value: 3 } }
 @id("unused.generic") fn generic<T>(value: T) -> T { value }
 @id("unused.instance") fn instance() -> i64 { generic<i64>(9) }

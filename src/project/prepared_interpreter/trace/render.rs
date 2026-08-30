@@ -269,7 +269,7 @@ fn payload_fits(
 
 fn rendered_envelope_len(payload_bytes: usize) -> Option<usize> {
     const DIGEST_PLACEHOLDER: &str =
-        "0000000000000000000000000000000000000000000000000000000000000000";
+        "sha256:0000000000000000000000000000000000000000000000000000000000000000";
     let wrapper = format!(
         "{{\"schema\":{},\"digest\":{},\"bytes\":{},\"payload\":}}",
         quote_json(PROJECT_SOURCE_TRACE_SCHEMA),
@@ -364,4 +364,21 @@ fn role_text(role: ProjectExecutionRole) -> &'static str {
 
 fn trace_error(message: &str) -> Diagnostic {
     Diagnostic::io("SPX-F110", message)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn envelope_length_accounting_uses_the_exact_digest_shape() {
+        for payload_bytes in [0usize, 9, 10, 99, 100, 999, 1_000, 65_536] {
+            let payload = "x".repeat(payload_bytes);
+            let digest = domain_digest(PAYLOAD_DIGEST_DOMAIN, payload.as_bytes());
+            assert_eq!(
+                rendered_envelope_len(payload_bytes),
+                Some(render_envelope(&payload, &digest).len())
+            );
+        }
+    }
 }

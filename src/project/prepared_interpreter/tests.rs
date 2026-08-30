@@ -27,8 +27,9 @@ fn remint_payload(envelope: &str, mutate: impl FnOnce(&str) -> String) -> String
     let payload = mutate(payload);
     let mut hasher = Sha256::new();
     hasher.update(TRACE_PAYLOAD_DOMAIN);
+    hasher.update((payload.len() as u64).to_le_bytes());
     hasher.update(payload.as_bytes());
-    let digest = format!("{:x}", hasher.finalize());
+    let digest = format!("sha256:{:x}", hasher.finalize());
     format!(
         "{{\"schema\":{},\"digest\":{},\"bytes\":{},\"payload\":{}}}",
         crate::diagnostic::quote_json(PROJECT_SOURCE_TRACE_SCHEMA),

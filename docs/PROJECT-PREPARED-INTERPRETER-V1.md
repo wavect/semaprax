@@ -45,8 +45,9 @@ same evaluator as the legacy Project route.
 | trace bytes | 65,536–16,777,216 |
 | trace events | 1–65,536 |
 | prepared origin nodes | 262,144 |
-| prepared index bytes | 16,777,216 |
-| worker execution/queued request | one/at most one, sequentially |
+| prepared index content bytes | 16,777,216 |
+| retained workers per process | 8 |
+| execution/queued request per worker | one/zero; concurrent calls fail `SPX-F109` |
 
 Defaults are 1,000,000 steps, 1 MiB, and 4,096 events. Once the event ceiling
 or byte budget is reached, evaluation continues and the deterministic prefix
@@ -54,6 +55,9 @@ records exact `recorded_events`, `dropped_events`, and `truncated` facts. Trace
 saturation never changes the language outcome. Prefix selection performs one
 bounded linear scan: source strings and event JSON are retained only for events
 that fit, and the renderer never repeatedly reconstructs oversized prefixes.
+The index-byte ceiling accounts canonical identity and source-fact content;
+the separate node and worker ceilings bound implementation overhead without
+claiming allocator-specific heap-byte equality.
 
 ## Source Trace v1
 

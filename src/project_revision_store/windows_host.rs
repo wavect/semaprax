@@ -65,6 +65,32 @@ pub fn replay(
     digest: &str,
     expected: &str,
 ) -> Result<ProjectRevision, Vec<Diagnostic>> {
+    require_digest(digest, "entry_digest")?;
+    require_digest(expected, "expected_project_revision")?;
+    require_max(
+        "entry_json_bytes",
+        stored.entry_json.len(),
+        MAX_STORE_ENTRY_JSON_BYTES,
+    )?;
+    require_max(
+        "manifest_bytes",
+        stored.manifest.len(),
+        MAX_STORE_MANIFEST_BYTES,
+    )?;
+    require_max(
+        "workspace_manifest_bytes",
+        stored.workspace_manifest.len(),
+        MAX_STORE_WORKSPACE_MANIFEST_BYTES,
+    )?;
+    require_max("source_count", stored.sources.len(), MAX_STORE_SOURCES)?;
+    let mut total = 0usize;
+    for (path, bytes) in &stored.sources {
+        require_max("source_path_bytes", path.len(), MAX_STORE_SOURCE_PATH_BYTES)?;
+        total = total
+            .checked_add(bytes.len())
+            .ok_or_else(|| limit("total_source_bytes", MAX_STORE_TOTAL_SOURCE_BYTES))?;
+        require_max("total_source_bytes", total, MAX_STORE_TOTAL_SOURCE_BYTES)?;
+    }
     replay_stored_for_profile(stored, digest, expected, EntryProfile::Windows)
 }
 
@@ -76,6 +102,11 @@ pub struct Metadata {
 
 /// Bound and canonically replay metadata before a private host uses its sizes.
 pub fn inspect(entry_json: &[u8], expected_hex: Option<&str>) -> Result<Metadata, Vec<Diagnostic>> {
+    require_max(
+        "entry_json_bytes",
+        entry_json.len(),
+        MAX_STORE_ENTRY_JSON_BYTES,
+    )?;
     let expected = framed_digest(WINDOWS_ENTRY_DIGEST_DOMAIN, entry_json);
     if expected_hex.is_some_and(|hex| expected.strip_prefix("sha256:") != Some(hex)) {
         return Err(authentication(

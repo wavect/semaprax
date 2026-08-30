@@ -111,6 +111,31 @@ fn private_windows_host_receives_checked_bytes_and_cannot_skip_load_replay() {
     );
 }
 
+#[test]
+fn private_windows_replay_bounds_untrusted_host_carriers_before_parsing() {
+    let digest = format!("sha256:{}", "0".repeat(64));
+    let stored = StoredEntry {
+        entry_json: Vec::new(),
+        manifest: vec![0; MAX_STORE_MANIFEST_BYTES + 1],
+        workspace_manifest: Vec::new(),
+        sources: Vec::new(),
+    };
+    assert_eq!(
+        windows_host::replay(stored, &digest, &digest)
+            .err()
+            .unwrap()[0]
+            .code,
+        "SPX-G191"
+    );
+    assert_eq!(
+        windows_host::inspect(&vec![0; MAX_STORE_ENTRY_JSON_BYTES + 1], None)
+            .err()
+            .unwrap()[0]
+            .code,
+        "SPX-G191"
+    );
+}
+
 fn prepared(revision: &ProjectRevision) -> PreparedEntry {
     PreparedEntry::from_revision(revision, revision.project_revision()).unwrap()
 }

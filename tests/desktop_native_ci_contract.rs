@@ -158,6 +158,10 @@ fn macos_source_lock_rejects_hostile_gate_removal() {
         source.replace("otool -hv", "otool -l"),
         source.replace("otool -D", "otool -L"),
         source.replace("otool -L", "otool -l"),
+        source.replace(
+            "expected_executable_images='/usr/lib/libiconv.2.dylib\n/usr/lib/libSystem.B.dylib'",
+            "expected_executable_images='/usr/lib/foreign.dylib'",
+        ),
         source.replace("load_commands=$(otool -l \"$binary\")", "load_commands=''"),
         source.replace(
             "$(printf '%s\\n' \"$load_commands\" | sed -n '1p')",
@@ -402,6 +406,8 @@ fn macos_contract(source: &str) -> Result<(), String> {
             "LC_RPATH|@loader_path|@executable_path|/private/|/Users/|/Volumes/|target/",
             "otool -L",
             "actual_executable_images",
+            "expected_executable_images='/usr/lib/libiconv.2.dylib\n/usr/lib/libSystem.B.dylib'",
+            "if [ \"$actual_executable_images\" != \"$expected_executable_images\" ]; then",
             "actual_provider_images",
             "nm -gjU",
             "actual_provider_exports",

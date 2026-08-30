@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added stable-ID exhaustive variant match intentions for source variants and
+  authenticated Option/Result, with exact nominal scrutinee staging and scoped
+  payload bindings. Discovery and recursive schemas expose complete case/field
+  inventories; semantic rebase binds those inventories before replay. Tests are
+  authored, unrun. General patterns, owned/borrowed match modes, runtime evidence
+  and source/publication authority remain outside this change.
+
 - Added stable-ID record field value projection with an exact-owner typed
   temporary, single base evaluation, deterministic scope hygiene, and ordinary
   ownership/cleanup admission. Catalogue and hole discovery describe eligible

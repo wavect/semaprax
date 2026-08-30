@@ -56,7 +56,7 @@ selected case carries only one of them. Explicit arguments materialize as
 ordinary canonical `.spx`, such as `Option<bool>::Some { value: true }`.
 
 Classes, resource creation, nested or named generic arguments, borrow-preserving
-field views, record updates and match synthesis remain outside this constructor
+field views, record updates and general pattern synthesis remain outside this constructor
 grammar. A named field type does not waive ordinary profile, ownership, effect,
 or backend admission.
 
@@ -101,6 +101,53 @@ Bodies, authenticated expression replacements, contracts, declaration bodies
 and hole fills share the existing constructor/admission path. Generated locals
 are visible in the canonical source diff; they are not graph-only state.
 
+## Exhaustive variant matching
+
+The `match` constructor selects the owning variant identity, unlike a `variant`
+constructor whose target is one case. It describes an exhaustive value match
+through explicit case and payload field identities:
+
+```json
+{
+  "kind": "match",
+  "target": "core.option",
+  "type_arguments": ["i64"],
+  "value": {"kind": "place", "name": "payment"},
+  "arms": [
+    {"target": "core.option.none", "fields": [], "body": {"kind": "i64", "value": 0}},
+    {"target": "core.option.some", "fields": [{"target": "core.option.some.value", "name": "amount"}], "body": {"kind": "place", "name": "amount"}}
+  ]
+}
+```
+
+Source variants require an explicit owner, every case, and every payload field.
+The separate prelude route authenticates the complete selected Option/Result
+family. The same unique local/imported binding and exact direct-scalar generic
+argument rules apply. Every case occurs once, with every field of that case
+bound once; omitted, repeated, unknown, or foreign identities reject. Unit
+cases have an empty `fields` array. Requested arm and payload-field order is
+preserved rather than sorted. This constructor has no wildcard, guard,
+record/scalar pattern, nested pattern, or borrowed/owned match mode.
+
+The compiler stages `value` once in a hygienic local annotated with the exact
+nominal owner and ordered generic arguments, then emits an ordinary value
+match over that local. Pattern source names are compiler-derived. A same-layout
+variant or a phantom generic argument mismatch cannot substitute for the
+requested owner. Generated source contains the staging local and all patterns;
+the graph and cache contain no additional meaning.
+
+Each payload's `name` is an explicit bounded local identifier. Bindings are
+unique within an arm and cannot capture an existing lexical name, a callable,
+type/import binding, or a generated temporary. `_` is not a binding name.
+Arm bodies may refer to their own bindings; sibling bodies and the scrutinee
+cannot. Nested matches inherit only their actual outer lexical scope.
+
+Existing source verification remains responsible for Copy match eligibility,
+consistent admitted arm result types, effects, contracts, ownership, cleanup,
+and target admission. In particular this does not extend the language's
+variant payload, aggregate arm-result, or ownership-aware matching support.
+Construction and discovery are not evidence that an arbitrary match is valid.
+
 ## Checked bindings and candidate admission
 
 Construction resolves the requested identities through the retained checked
@@ -117,7 +164,7 @@ names are compiler bindings rather than invented imports; their definitions
 remain part of the existing compiler prelude contract, not hidden candidate
 state or new canonical files.
 
-The expression lowers to the existing record/variant AST forms. Whole-body
+The expression lowers to the existing aggregate, projection and match AST forms. Whole-body
 replacement, authenticated expression replacement, contract construction and
 function declaration bodies share the revision-aware constructor. Body and
 expression hole fills reuse those ordinary intention paths. There is no new
@@ -153,7 +200,7 @@ shape. Eligible catalogues and hole contexts now include the four prelude cases,
 so whole-report bytes can change even for a scalar-only source project.
 
 The self-contained [constructor schemas](CANDIDATE-CONSTRUCTOR-SCHEMAS-V1.md)
-describe both recursive shapes. Schema validation alone cannot establish
+describe the recursive shapes. Schema validation alone cannot establish
 membership, complete field coverage, unique aliases, lexical scope, types,
 effects or ownership. Adding a discoverable constructor does not widen the
 session's method set or grant execution/publication authority.
@@ -166,6 +213,16 @@ claim that any supplied base matches the owner or that a value-binding operation
 preserves a loan. `project` is listed among available constructor kinds only
 when this inventory is nonempty. Existing aggregate constructor entries are
 unchanged; projects with no eligible record fields gain no projection property.
+
+An optional nonempty `aggregate_matches` inventory describes each visible
+variant owner and its complete declaration-ordered case/payload inventory.
+Descriptors carry existing bindings, template field types, optional generic
+parameters, retained-HIR evidence ownership, and once-only typed value staging.
+Prelude owners carry the existing compiler-owned schema/digest provenance and
+null source path/module. The `match` constructor kind appears when this
+inventory is nonempty. The two prelude families may make it nonempty even for
+a source project without its own variants. These are available shapes, not
+exhaustiveness or type proofs for a submitted request.
 
 ## Rebase and limits
 
@@ -185,6 +242,13 @@ owning-record descriptor at each original/rebased intermediate revision.
 Deleting or reidentifying a field, moving it to another owner, or changing the
 owner's field/type-parameter inventory conflicts with `SPX-G235` before replay.
 No same-spelling field fallback is used during rebase.
+
+Match dependencies bind the complete checked variant owner, ordered cases,
+payload identities/types, type parameters and any compiler-prelude provenance
+at each original/rebased intermediate revision. Reidentifying even a unit case
+or payload field conflicts with `SPX-G235` despite unchanged names and nominal
+owner identity. Adding or removing a case cannot silently change an intended
+exhaustive match. Accepted dependencies still undergo complete source replay.
 
 Existing Semantic Change byte/JSON limits, recursive expression node/depth
 limits, and catalogue/context rendering limits remain enforced. Identity and
@@ -208,6 +272,13 @@ bounds, not measured proportional lookup costs or aggregate heap guarantees.
 Projection discovery separately bounds its repeated field/template metadata to
 65,536 items and 1 MiB, while retaining the enclosing catalogue/context limits.
 
+Match lowering uses the same shared expression budget: the wire node becomes
+a block, with three additional generated nodes for its let, match and variable.
+Arm patterns, payload bindings, explicit type arguments and recursive bodies
+also consume the budget. Child expressions account for the generated nesting;
+no nested match resets the global node count. Match discovery remains bounded
+by the aggregate inventory and rendering limits and the enclosing report cap.
+
 Focused aggregate constructor integration, schema/discovery, and semantic
 rebase regressions are authored but intentionally unrun. Executed canonical
 round-trip, graph, target and runtime evidence remains required before a
@@ -219,3 +290,8 @@ generic variants, all four prelude cases, typed hole recovery, malformed inputs
 and capacity rejection. [Rebase regressions](../tests/project_candidate_rebase_v1.rs)
 include a checked generic field-type change while the nominal instance and
 function identities remain unchanged. These files are authored evidence only.
+
+[Match regressions](../tests/project_candidate_match_expressions_v1.rs) are
+authored and unrun. They cover stable-ID selection, typed staging, lexical
+bindings, discovery, recovery and rejection. The rebase regressions also cover
+case/payload identity changes with an unchanged variant owner and signature.

@@ -12,6 +12,13 @@ use crate::hir::{
 };
 use crate::project::ProjectRevision;
 
+#[path = "aggregate_match.rs"]
+mod matching;
+pub(super) use matching::match_plan;
+pub(in crate::project::candidate) use matching::{
+    aggregate_match_dependency_fingerprint, aggregate_matches,
+};
+
 const MAX_FIELDS: usize = MAX_EXPRESSION_NODES - 1;
 pub(in crate::project::candidate) const MAX_AGGREGATE_TYPE_ARGUMENTS: usize =
     MAX_EXPRESSION_NODES - 1;

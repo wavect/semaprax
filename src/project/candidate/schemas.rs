@@ -165,6 +165,29 @@ fn expression_schema() -> Value {
         json!("generated_let_statement_projection_and_place");
     projection["x-base-depth-increment"] = json!(2);
     variants.push(projection);
+    let mut matching = closed(&[
+        ("kind", json!({"const":"match"})),
+        ("target", text(MAX_ID_BYTES)),
+        ("value", reference("expression")),
+        (
+            "arms",
+            json!({"type":"array","maxItems":MAX_EXPRESSION_NODES-1,
+            "items":closed(&[
+                ("target",text(MAX_ID_BYTES)),
+                ("fields",json!({"type":"array","maxItems":MAX_EXPRESSION_NODES-1,
+                    "items":closed(&[("target",text(MAX_ID_BYTES)),("name",identifier())])})),
+                ("body",reference("expression")),
+            ]),"x-requires-exact-exhaustive-case-and-field-coverage":true}),
+        ),
+    ]);
+    matching["properties"]["type_arguments"] = json!({"type":"array",
+        "maxItems":MAX_AGGREGATE_TYPE_ARGUMENTS,"items":{"enum":["i64","bool"]},
+        "x-counts-toward-expression-node-budget":true,"x-requires-exact-declared-arity":true});
+    matching["x-implicit-match-nodes"] = json!(3);
+    matching["x-pattern-node-charge"] = json!("one_per_arm_and_payload_binder");
+    matching["x-total-payload-binders-maximum"] = json!(MAX_EXPRESSION_NODES - 1);
+    matching["x-value-and-body-depth-increment"] = json!(2);
+    variants.push(matching);
     variants.push(closed(&[
         ("kind", json!({"const":"binary"})),
         (
@@ -301,7 +324,7 @@ mod aggregate_expression_schema_tests {
             kinds,
             [
                 "i64", "i32", "u8", "usize", "bool", "place", "call", "binary", "unary", "if",
-                "record", "variant", "project"
+                "record", "variant", "project", "match"
             ]
             .into_iter()
             .collect()
@@ -361,5 +384,39 @@ mod aggregate_expression_schema_tests {
         assert!(projection["properties"].get("owner").is_none());
         assert!(projection["properties"].get("name").is_none());
         assert!(projection["properties"].get("source").is_none());
+    }
+
+    #[test]
+    fn exhaustive_match_schema_closes_case_payload_bindings_and_recursive_bodies() {
+        let schema = expression_schema();
+        let matching = schema["oneOf"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["properties"]["kind"]["const"] == "match")
+            .unwrap();
+        assert_eq!(matching["additionalProperties"], false);
+        assert_eq!(
+            matching["required"],
+            json!(["kind", "target", "value", "arms"])
+        );
+        assert_eq!(matching["properties"].as_object().unwrap().len(), 5);
+        assert_eq!(matching["properties"]["value"], reference("expression"));
+        let arm = &matching["properties"]["arms"]["items"];
+        assert_eq!(arm["additionalProperties"], false);
+        assert_eq!(arm["required"], json!(["target", "fields", "body"]));
+        assert_eq!(arm["properties"]["body"], reference("expression"));
+        let field = &arm["properties"]["fields"]["items"];
+        assert_eq!(field["additionalProperties"], false);
+        assert_eq!(field["required"], json!(["target", "name"]));
+        assert_eq!(field["properties"]["name"], identifier());
+        assert!(arm["properties"].get("guard").is_none());
+        assert!(matching["properties"].get("mode").is_none());
+        assert_eq!(matching["x-implicit-match-nodes"], 3);
+        assert_eq!(matching["x-value-and-body-depth-increment"], 2);
+        assert!(!matching["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("type_arguments")));
     }
 }

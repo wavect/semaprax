@@ -14,7 +14,12 @@ evidence.
 The release tag must be `v` followed by the root `Cargo.toml` package version.
 The packaging scripts reject a mismatch before building. They also require the
 exact 40-character lowercase hexadecimal Git commit supplied by the workflow;
-that commit is embedded into both binaries and recorded in the manifest.
+that commit is embedded into the compiler CLI's version response and recorded
+in the manifest. The daemon has no version command or separately attested
+embedded commit. The scripts check the supplied label's form and the unpacked
+CLI's agreement with it; they do not independently authenticate the checkout
+against Git HEAD or the tag. Exact-checkout provenance remains the release
+workflow's responsibility, not a consequence of this self-consistency check.
 
 The admitted release hosts and target archives are:
 
@@ -34,6 +39,42 @@ publish any private library crate or promote its platform support.
 The platform script unpacks its completed archive and uses the unpacked
 `semaprax` binary to run `--version`, `version --json`, `check`, and `run`
 before the archive can be uploaded.
+
+## Build-output selection
+
+Both scripts reserve a fresh `build-<target>` directory under the requested
+output root and pass its absolute path through Cargo's explicit `--target-dir`.
+They copy both binaries only from that same build directory. Ambient
+`CARGO_TARGET_DIR` or Cargo configuration cannot redirect the build while
+leaving the packager to select stale binaries from the repository's `target/`.
+The build directory, package stage, archive and smoke extraction paths must
+all be absent, including dangling links, before any of those paths is created.
+A new output root is still supported. Windows resolves relative output paths
+from PowerShell's filesystem location, not the process working directory.
+The Unix host query and version/run smoke checks also retain each command's
+exit status: expected stdout cannot turn a failed command into release success.
+
+These scripts assume a trusted, quiescent source checkout and output parent.
+Fresh-path checks are not retained-handle authentication against concurrent
+filesystem substitution. Failures leave build/staging residue for inspection;
+the scripts do not delete or retry over it. A successful archive still needs
+the exact-head release gate and real unpacked-binary execution described above.
+
+`tests/release_packaging_unix_v1.rs` and
+`tests/release_packaging_windows_v1.rs` author packaging-mechanics regressions
+using deliberately fake toolchain executables. They distinguish fresh build
+output from stale sentinels, exercise paths containing spaces and rejection
+before build/staging effects, and run the actual archive/extraction scripts
+when selected. Unix failures include commands that emit the expected stdout
+but exit unsuccessfully. The Windows fixture also separates PowerShell's location from
+the process working directory. These tests were not run while implementing
+the correction; even when run, fake tools do not prove compiler execution,
+daemon behavior, release provenance, or a successful product release.
+
+```sh
+cargo test --locked -p semaprax --test release_packaging_unix_v1
+cargo test --locked -p semaprax --test release_packaging_windows_v1
+```
 
 ## Publication boundary
 

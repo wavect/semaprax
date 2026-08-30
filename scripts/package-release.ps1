@@ -20,27 +20,44 @@ $versions = @(
 if ($versions.Count -ne 1 -or [string]::IsNullOrEmpty($versions[0])) { Reject 'Cargo package version is missing or ambiguous' }
 $version = $versions[0]
 if ($Tag -cne "v$version") { Reject 'tag does not equal v plus the Cargo package version' }
-if ($Commit -cnotmatch '^[0-9a-f]{40}$') { Reject 'commit must be exactly 40 lowercase hexadecimal characters' }
+if ($Commit.Length -ne 40 -or $Commit -cnotmatch '^[0-9a-f]{40}$') { Reject 'commit must be exactly 40 lowercase hexadecimal characters' }
 if ($Target -cne 'x86_64-pc-windows-msvc') { Reject 'unsupported Windows release target' }
 $hostLine = @(rustc -vV | Where-Object { $_ -cmatch '^host: ' })
 if ($LASTEXITCODE -ne 0 -or $hostLine.Count -ne 1 -or $hostLine[0] -cne "host: $Target") { Reject 'Rust host does not equal the requested release target' }
 
-$output = [System.IO.Path]::GetFullPath($OutputRoot)
+# PowerShell's filesystem location can differ from the process current directory.
+# Resolve through its provider before using .NET filesystem APIs below.
+if ((Get-Location).Provider.Name -cne 'FileSystem') { Reject 'release location must use the filesystem provider' }
+$outputProvider = $null
+$outputDrive = $null
+$output = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputRoot, [ref]$outputProvider, [ref]$outputDrive)
+if ($outputProvider.Name -cne 'FileSystem' -or -not [System.IO.Path]::IsPathRooted($output)) { Reject 'output root must resolve to an absolute filesystem path' }
 $packageName = "semaprax-$Tag-$Target"
 $packageRoot = Join-Path $output $packageName
 $archive = Join-Path $output "$packageName.zip"
 $smokeRoot = Join-Path $output "smoke-$Target"
-foreach ($path in @($packageRoot, $archive, $smokeRoot)) {
-    if (Test-Path -LiteralPath $path) { Reject "output path already exists: $path" }
+$buildRoot = Join-Path $output "build-$Target"
+foreach ($path in @($packageRoot, $archive, $smokeRoot, $buildRoot)) {
+    $existing = $null
+    try {
+        $existing = Get-Item -LiteralPath $path -Force -ErrorAction Stop
+    } catch [System.Management.Automation.ItemNotFoundException] {
+        # Absence is expected; Get-Item also exposes a dangling link as an item.
+    }
+    if ($null -ne $existing) { Reject "output path already exists: $path" }
 }
-[System.IO.Directory]::CreateDirectory((Join-Path $packageRoot 'smoke')) | Out-Null
-[System.IO.Directory]::CreateDirectory($smokeRoot) | Out-Null
+[System.IO.Directory]::CreateDirectory($output) | Out-Null
+New-Item -ItemType Directory -Path $packageRoot -ErrorAction Stop | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $packageRoot 'smoke') -ErrorAction Stop | Out-Null
+New-Item -ItemType Directory -Path $smokeRoot -ErrorAction Stop | Out-Null
+New-Item -ItemType Directory -Path $buildRoot -ErrorAction Stop | Out-Null
 
 $env:SEMAPRAX_BUILD_COMMIT = $Commit
-cargo build --locked --release --target $Target -p semaprax -p semaprax-toolchain --bin semaprax-full --bin semapraxd
+cargo build --locked --release --target $Target --target-dir $buildRoot -p semaprax -p semaprax-toolchain --bin semaprax-full --bin semapraxd
 if ($LASTEXITCODE -ne 0) { Reject 'cargo build failed' }
-Copy-Item -LiteralPath "target/$Target/release/semaprax-full.exe" -Destination (Join-Path $packageRoot 'semaprax.exe')
-Copy-Item -LiteralPath "target/$Target/release/semapraxd.exe" -Destination (Join-Path $packageRoot 'semapraxd.exe')
+$releaseRoot = Join-Path (Join-Path $buildRoot $Target) 'release'
+Copy-Item -LiteralPath (Join-Path $releaseRoot 'semaprax-full.exe') -Destination (Join-Path $packageRoot 'semaprax.exe')
+Copy-Item -LiteralPath (Join-Path $releaseRoot 'semapraxd.exe') -Destination (Join-Path $packageRoot 'semapraxd.exe')
 Copy-Item -LiteralPath 'LICENSE' -Destination $packageRoot
 Copy-Item -LiteralPath 'README.md' -Destination $packageRoot
 

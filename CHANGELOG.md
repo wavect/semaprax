@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Bound Unix and Windows release packaging to an explicit fresh Cargo build
+  directory instead of copying potentially stale default-target binaries.
+  Preserved fresh output-root creation, tightened path-collision preflight,
+  corrected Windows current-location and commit-length handling, and retained
+  Unix host-query/smoke command failures despite matching stdout. Added
+  fake-tool packaging regressions and clarified CLI-only commit embedding and
+  trusted-workspace limitations. Tests and builds remain unrun; no release
+  or production evidence is promoted.
+
 - Aligned native v8/v10 descriptor replay with the compiler's per-export
   parameter-identity uniqueness rule, rejecting correctly rehashed duplicate
   identities without changing canonical output or schemas. Added matching

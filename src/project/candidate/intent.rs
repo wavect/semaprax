@@ -16,11 +16,11 @@ use crate::ast::{
 };
 use crate::diagnostic::Diagnostic;
 
-const MAX_NAME_BYTES: usize = 128;
-const MAX_ID_BYTES: usize = 4096;
-const MAX_APPEND_PARAMETERS: usize = 16;
-const MAX_EXPRESSION_DEPTH: usize = 64;
-const MAX_EXPRESSION_NODES: usize = 4096;
+pub(super) const MAX_NAME_BYTES: usize = 128;
+pub(super) const MAX_ID_BYTES: usize = 4096;
+pub(super) const MAX_APPEND_PARAMETERS: usize = 16;
+pub(super) const MAX_EXPRESSION_DEPTH: usize = 64;
+pub(super) const MAX_EXPRESSION_NODES: usize = 4096;
 const MAX_WALK_DEPTH: usize = 256;
 const MAX_WALK_NODES: usize = 1_048_576;
 
@@ -191,6 +191,39 @@ pub(super) fn apply(programs: &mut [Program], intent: &Value) -> Result<IntentSu
             let body = constructor.expression(member(intent, "body")?, 0)?;
             programs[owner].functions[function_index].body = body;
         }
+        "add_contract" => {
+            object(intent, &["kind", "target", "phase", "predicate"])?;
+            let phase = text(intent, "phase")?;
+            if !matches!(phase, "requires" | "ensures") {
+                return Err(grammar("contract phase must be requires or ensures"));
+            }
+            if function
+                .requires
+                .len()
+                .saturating_add(function.ensures.len())
+                >= 1024
+            {
+                return Err(capacity("candidate contract inventory exceeds its limit"));
+            }
+            let mut places = function
+                .params
+                .iter()
+                .map(|p| p.name.clone())
+                .collect::<BTreeSet<_>>();
+            if phase == "ensures" {
+                places.insert("result".to_owned());
+            }
+            let predicate =
+                construct_expression(&programs[owner], &places, member(intent, "predicate")?)?;
+            let function = &mut programs[owner].functions[function_index];
+            // Append exactly one predicate. Never alter, delete, reorder or
+            // infer a replacement for an existing contract.
+            if phase == "requires" {
+                function.requires.push(predicate);
+            } else {
+                function.ensures.push(predicate);
+            }
+        }
         _ => return Err(grammar("unsupported candidate intention kind")),
     }
     Ok(IntentSummary {
@@ -200,7 +233,28 @@ pub(super) fn apply(programs: &mut [Program], intent: &Value) -> Result<IntentSu
     })
 }
 
-fn call_bindings(program: &Program) -> Result<BTreeMap<String, String>> {
+/// Construct an expression from a caller-authenticated lexical scope. This
+/// helper grants no admission: complete source replay owns all type, effect,
+/// ownership, contract and target checks.
+pub(super) fn construct_expression(
+    program: &Program,
+    scope_names: &BTreeSet<String>,
+    value: &Value,
+) -> Result<Expr> {
+    let bindings = call_bindings(program)?;
+    let params = scope_names
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    Constructor {
+        bindings: &bindings,
+        params: &params,
+        nodes: 0,
+    }
+    .expression(value, 0)
+}
+
+pub(super) fn call_bindings(program: &Program) -> Result<BTreeMap<String, String>> {
     let mut bindings = BTreeMap::new();
     for (name, id) in program
         .functions
@@ -475,7 +529,7 @@ fn capacity(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G226", message)]
 }
 
-fn walk_program(
+pub(super) fn walk_program(
     program: &mut Program,
     nodes: &mut usize,
     visit: &mut impl FnMut(&mut Expr) -> Result<()>,

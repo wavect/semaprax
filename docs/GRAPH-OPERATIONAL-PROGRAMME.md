@@ -32,6 +32,9 @@ outstanding without requiring another permission request now.
 | Candidate protocol | [candidate transport](../src/image_transport/candidates.rs), [Candidate Protocol v2](IMAGE-CANDIDATE-PROTOCOL-V2.md), [protocol evidence](../tests/image_candidate_transport_v2.rs) |
 | Holes | [draft module](../src/project/candidate/draft.rs), [Typed Holes v1](PROJECT-CANDIDATE-HOLES-V1.md), [hole evidence](../tests/project_candidate_holes_v1.rs) |
 | Signature mapping | [signature engine](../src/project/candidate/signature.rs), [Signature Evolution v1](PROJECT-SIGNATURE-EVOLUTION-V1.md) |
+| Expression changes | [expression module](../src/project/candidate/expression.rs), [Expression Change v1](PROJECT-EXPRESSION-CHANGE-V1.md), [expression evidence](../tests/project_candidate_expression_v1.rs) |
+| Contract changes | [intent module](../src/project/candidate/intent.rs), [Contract Change v1](PROJECT-CONTRACT-CHANGE-V1.md), [candidate evidence](../tests/project_candidates_v1.rs) |
+| Rebase | [rebase module](../src/project/candidate/rebase.rs), [Candidate Rebase v1](PROJECT-CANDIDATE-REBASE-V1.md), [rebase evidence](../tests/project_candidate_rebase_v1.rs) |
 | Store | [project_revision_store.rs](../src/project_revision_store.rs), [Store v1](PROJECT-REVISION-STORE-V1.md), [Windows-entry v1](PROJECT-REVISION-STORE-WINDOWS-V1.md), [store evidence](../src/project_revision_store/tests.rs) |
 | Analysis | [workspace_analysis.rs](../src/workspace_analysis.rs), [Workspace Analysis v1](WORKSPACE-ANALYSIS-V1.md); retained six-family typed indexes and existing Context/Impact/Review |
 | Existing mutation | [semantic workspace operations](../src/semantic_workspace_operations.rs), [Operations v1](SEMANTIC-WORKSPACE-OPERATIONS-V1.md), [operation evidence](../tests/semantic_workspace_operations_v1.rs); [Project rename](PROJECT-RENAME-TRANSACTION-V1.md) and [rename evidence](../tests/project_agent_transport_rename_v1.rs) |
@@ -60,7 +63,7 @@ working implementation alongside the prior Image foundation.
 | Requirement | Status and remaining evidence |
 | --- | --- |
 | Immutable overlays against one immutable base, branching and discard | Candidate authored/unrun. Applying returns a new value; siblings retain their base, dropping discards. Candidate-only v2 retains bounded candidate/draft registries and exposes discard. No durable registry or recovered branch lifecycle. |
-| Versioned Semantic Change IR and mandatory constraints | Partial, Candidate authored/unrun for three closed intents. Base revision, identities, exports, effects, permits, contract inventory and profile/core-target preservation are checked in that slice. General operation constraints and semantic-delta proof for all intention kinds remain open. |
+| Versioned Semantic Change IR and mandatory constraints | Partial, Candidate authored/unrun for five closed intention kinds. Base revision, identities, exports, effects, permits, exact contract inventory changes and profile/core-target preservation are checked in that slice. General operation constraints and semantic-delta proof for all intention kinds remain open. |
 | Typed expression/declaration constructors | Partial. Candidate body constructors cover a bounded scalar/parameter/operator/call surface. General expressions, owned values, declaration constructors and expected-type/effect/ownership-guided discovery are missing. |
 | Ephemeral typed holes | Partial, authored/unrun Holes. Immutable body-hole drafts report expected type, parameter scope, effect budget, contracts, accessible calls and explicitly prior-body loan/cleanup facts; filling performs complete candidate admission. Unresolved drafts expose no candidate/source materialization API. General expression holes, recursive incomplete declarations and complete next-expression ownership guidance remain open. |
 | Candidate ID, base/candidate revisions, semantic/source-diff digests, validation/diagnostics/gates | Partial, Candidate authored/unrun. Complete successful candidates carry digests, source changes, validation facts and required gates. Invalid/incomplete candidate state with queryable unresolved diagnostics is missing. |
@@ -72,18 +75,18 @@ working implementation alongside the prior Image foundation.
 | --- | --- |
 | `rename_declaration` | Partial. Existing managed declaration/import-alias operations and Project display rename; Candidate adds explicit monomorphic non-main function display rename. General types/fields/interfaces, candidate discovery and all dependent-reference cases remain. |
 | `change_function_signature` | Partial, authored/unrun. Append scalar parameters with literal arguments, or retain/reorder/remove existing by-value built-in Copy parameters with hygienic left-to-right staging of every original argument. Parameter renaming, type/result changes, ownership-sensitive mapping, dependent declarations and external consumer migration remain missing. |
-| `replace_expression` | Missing target-expression operation with expected type, ownership and effect-budget constraints. Whole-body replacement is not this operation. |
+| `replace_expression` | Partial, authored/unrun. Body-expression selection uses actual revision-scoped HIR identity and unambiguous canonical AST provenance; replacement uses authenticated lexical scope, expected-type/ownership checks and full Project admission. Contract-region replacement, generic/synthetic selections and general typed constructors remain open. |
 | `replace_function_body` | Partial, Candidate authored/unrun: bounded typed constructors for explicit monomorphic non-main functions followed by full source admission. General body/control/data/ownership shapes remain. |
 | `extract_function` | Missing stable-ID synthesis, capture/parameter/ownership derivation, call substitution and replay evidence. |
 | `add_declaration` | Missing typed declaration operation, placement/namespace/identity checks and dependency updates. Existing file creation with supplied source is not declaration synthesis. |
 | `move_declaration` | Missing stable-ID move plus import/caller migration. Existing managed file moves are not semantic declaration moves. |
 | `implement_interface` | Missing required-member discovery, typed implementation construction and contract/dispatch replay. |
 | `add_record_field` | Missing constructor, match and projection migration with layout/ownership/target validation. |
-| `add_contract` | Missing typed contract insertion plus dependent-candidate validation. Reading existing predicates is not insertion. |
+| `add_contract` | Partial, authored/unrun. Append one typed requires/ensures predicate to an explicit monomorphic non-main function, preserving prior predicates and exact other invariants with full Project admission. General declaration contracts, proof of runtime satisfaction and external compatibility remain open. |
 | `repair_diagnostic` | Partial. [Diagnostic Repair v1](DIAGNOSTIC-REPAIR-V1.md), [repair.rs](../src/repair.rs), and [repair evidence](../tests/diagnostic_repair_v1.rs) cover bounded ID assignment; generalized typed repairs and candidate integration are missing. |
 
 `change/catalog <target>` now provides candidate-bound constructor discovery
-in candidate-only v2 for the three supported intention classes. Unsupported
+in candidate-only v2 for the five supported intention classes. Unsupported
 targets expose no operations; each payload still requires full admission.
 Discovery of fully proven legal transitions remains open; this catalogue does
 not advertise the aspirational table above. Existing [hygienic generation](HYGIENIC-GEN-V1.md) is related typed
@@ -123,7 +126,7 @@ commit authority is **Partial** in existing A0/managed Workspace routes and
 
 | Requested surface | Current status |
 | --- | --- |
-| `protocol/capabilities`, `protocol/schemas` | Authored/unrun Protocol. Closed read-only capability and catalogue-driven request/success/error envelopes. Complete bundled schemas for all nested semantic payloads are missing; current payload schema URNs are references. |
+| `protocol/capabilities`, `protocol/schemas` | Authored/unrun Protocol. Host-selected capabilities and catalogue-driven request/success/error envelopes. Additive `protocol/constructor-schemas` supplies self-contained closed typed-expression/intent/change schemas. Complete bundled response schemas and executed client/schema compatibility remain missing. |
 | `workspace/open`, `workspace/status`, `query/catalog` | Authored/unrun Protocol. Host binds the manifest; open returns the retained image handle and cannot select a new path. |
 | `change/catalog`, `validation/catalog` | Authored/unrun candidate-only v2. Target-specific constructor discovery and independent candidate replay are available; arbitrary payload validity requires apply. General legal-transition discovery and execution routes remain open. |
 | Read-only, candidate-only, source-commit, build-enabled, test-enabled, artifact-materialization-enabled sessions | Explicit read-only v1 and candidate-only v2 authored/unrun. Source-commit, build, test and artifact profiles remain missing; no agent authority elevation is implied. |
@@ -141,12 +144,12 @@ commit authority is **Partial** in existing A0/managed Workspace routes and
 
 | Requirement | Status and remaining evidence |
 | --- | --- |
-| Semantic rebase/merge | Missing. Need stable-ID conflict classification, regenerated canonical source, independent reparse and revalidation. Stale rejection alone is not rebase. |
-| Conflict cases | Missing executable matrix: unrelated body/display rename rebase; body/postcondition compatibility with revalidation; competing signature edits conflict; deletion versus new caller conflict. |
+| Semantic rebase/merge | Partial, authored/unrun Rebase. Stable-ID target/dependency conflict classification, display-normalized call facts, canonical source replay and same-root history merge cover supported intentions. General moves/declarations, ownership-sensitive reconciliation and cross-manifest merging remain open. |
+| Conflict cases | Focused Rebase cases are authored/unrun: unrelated body/display rename, body/postcondition revalidation, competing signature conflicts and deleted call dependencies. Execute the matrix, expand to all intended operations and preserve expected-expression remapping before claiming full coverage. |
 | Candidate branching | Partial in-memory immutable siblings and bounded candidate-only v2 registry. Persistence and recovery remain missing. |
 | Parallel read-only requests | Immutable revisions are reusable, but the new NDJSON loop is sequential. Missing bounded concurrent request scheduling and deterministic isolation evidence. |
 | Session recovery and content-addressed candidate persistence | Missing. Existing Store reconstructs source revisions; it does not restore candidate intentions, cursors, pending validation or authority. |
-| Manual edits and stale recovery | Partial held-input absorbing invalidation and exact base rejection. Missing semantic recovery/rebase UX and recovery benchmarks. |
+| Manual edits and stale recovery | Partial held-input absorbing invalidation, exact base rejection and library rebase onto a separately admitted revision. Candidate-only protocol selects retained revisions only; live disk refresh/session recovery and recovery benchmarks remain open. |
 
 ## Required twelve-step signature demonstration
 

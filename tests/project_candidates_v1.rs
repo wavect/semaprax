@@ -89,7 +89,7 @@ fn change_catalog_is_revision_bound_and_omits_unsupported_targets() {
     assert_eq!(report["candidate_digest"], candidate.candidate_digest());
     assert_eq!(report["requires_full_candidate_validation"], true);
     assert_eq!(report["admission"], "constructor_discovery_only");
-    assert_eq!(report["operations"].as_array().unwrap().len(), 3);
+    assert_eq!(report["operations"].as_array().unwrap().len(), 5);
     assert_eq!(
         report["operations"][1]["exactly_one_form"]
             .as_array()
@@ -118,6 +118,82 @@ fn source<'a>(revision: &'a ProjectRevision, path: &str) -> &'a str {
         .find(|source| source.path() == path)
         .unwrap()
         .source()
+}
+
+#[test]
+fn contract_insertion_preserves_existing_predicates_and_replays_without_writes() {
+    let fixture = Fixture::new();
+    let untouched = inventory(&fixture.0);
+    let revision = fixture.revision();
+    let original =
+        ProjectCandidate::open(Arc::clone(&revision), revision.project_revision()).unwrap();
+    let requires = SemanticChange::new(revision.project_revision(), &json!({
+        "kind":"add_contract", "target":"calculator.divide", "phase":"requires",
+        "predicate":{"kind":"binary","op":">=","left":{"kind":"place","name":"left"},"right":{"kind":"i64","value":0}},
+    })).unwrap();
+    let constrained = original
+        .apply(original.candidate_digest(), &requires)
+        .unwrap();
+    let ensures = SemanticChange::new(constrained.revision().project_revision(), &json!({
+        "kind":"add_contract", "target":"calculator.divide", "phase":"ensures",
+        "predicate":{"kind":"binary","op":"==","left":{"kind":"place","name":"result"},"right":{"kind":"binary","op":"/","left":{"kind":"place","name":"left"},"right":{"kind":"place","name":"right"}}},
+    })).unwrap();
+    let candidate = constrained
+        .apply(constrained.candidate_digest(), &ensures)
+        .unwrap();
+    let program =
+        semaprax::parse(source(candidate.revision(), "src/core.spx"), "src/core.spx").unwrap();
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.stable_id == "calculator.divide")
+        .unwrap();
+    assert_eq!(function.requires.len(), 2);
+    assert_eq!(function.ensures.len(), 1);
+    assert!(source(candidate.revision(), "src/core.spx").contains("requires right != 0"));
+    let replay = ProjectCandidate::replay(
+        Arc::clone(&revision),
+        revision.project_revision(),
+        &[requires, ensures],
+        candidate.to_json().as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(candidate.candidate_digest(), replay.candidate_digest());
+    assert_eq!(
+        original.revision().project_revision(),
+        revision.project_revision()
+    );
+    assert_eq!(inventory(&fixture.0), untouched);
+}
+
+#[test]
+fn contract_insertion_rejects_wrong_phase_result_scope_and_non_boolean_predicates() {
+    let fixture = Fixture::new();
+    let revision = fixture.revision();
+    let candidate =
+        ProjectCandidate::open(Arc::clone(&revision), revision.project_revision()).unwrap();
+    for (phase, predicate) in [
+        ("invariant", json!({"kind":"bool","value":true})),
+        ("requires", json!({"kind":"place","name":"result"})),
+    ] {
+        let change = SemanticChange::new(revision.project_revision(), &json!({
+            "kind":"add_contract", "target":"calculator.add", "phase":phase, "predicate":predicate,
+        })).unwrap();
+        assert_code(
+            candidate.apply(candidate.candidate_digest(), &change),
+            "SPX-G225",
+        );
+    }
+    let change = SemanticChange::new(revision.project_revision(), &json!({
+        "kind":"add_contract", "target":"calculator.add", "phase":"ensures", "predicate":{"kind":"i64","value":1},
+    })).unwrap();
+    assert!(candidate
+        .apply(candidate.candidate_digest(), &change)
+        .is_err());
+    assert_eq!(
+        candidate.revision().project_revision(),
+        revision.project_revision()
+    );
 }
 
 #[test]

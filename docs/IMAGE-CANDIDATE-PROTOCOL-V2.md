@@ -54,8 +54,12 @@ content digests, not filesystem paths or authority credentials.
 | `candidate/validate` | `candidate_revision` | Independent replay of retained changes from base, tests not run |
 | `candidate/impact` | `candidate_revision`, `target`; optional `depth`, `max_bytes`, `max_nodes` | Candidate-bound Project semantic impact |
 | `candidate/compare` | `candidate_revision`, `other_candidate_revision` | Existing descriptive same-base comparison |
+| `candidate/merge` | `candidate_revision`, `other_candidate_revision` | Reconciled candidate plus bounded report; shared original base retained |
+| `candidate/rebase` | `candidate_revision`, `new_base_candidate_revision` | Replayed candidate on the selected retained candidate's admitted revision |
 | `candidate/discard` | `candidate_revision` | Confirmation that only that handle was removed |
 | `change/catalog` | `candidate_revision`, `target` | Target-specific constructor discovery; arbitrary payload legality is not promised |
+| `expression/catalog` | `candidate_revision`, `target` | Revision-bound expression identities, expected types, scope, and replacement eligibility |
+| `protocol/constructor-schemas` | none beyond `image_revision` | Self-contained closed typed-expression, intent, and change-envelope JSON Schemas |
 | `validation/catalog` | none | Available independent replay and external gates still required |
 | `hole/open` | `candidate_revision`, `target`, `hole_id`; optional `draft_revision` | New draft with a body hole, or new sibling with another hole |
 | `hole/query` | `draft_revision`, `hole_id` | Bound typed context for one unresolved hole |
@@ -67,6 +71,18 @@ content digests, not filesystem paths or authority credentials.
 current Project revision and compiler-owned mandatory requirements. It is not
 a graph mutation, source string, or arbitrary patch. The existing semantic
 change implementation owns the closed nested constructor grammar.
+
+Merge requires the library's shared original-base and conflict checks; its
+resulting source diff remains anchored to that original base. Rebase selects
+only an existing candidate registry entry's admitted Project revision. Neither
+accepts source bytes, a path, a caller-created HIR, or an unregistered revision.
+Both routes replay through the existing candidate source and target checks.
+Their response combines a compact candidate handle and the exact reconciliation
+report, capped at 65,536 bytes before wrapping. Report overflow, conflict,
+registry capacity, or authentication failure leaves every registry entry
+unchanged. The complete resulting candidate report remains available through
+the existing chunk query. These are conservative bounded operations, not a
+general source merge or behavioral-equivalence proof.
 
 `candidate/query` starts at byte offset zero. `chunk_bytes` is 1024–65,536
 (default 16,384). Offsets must be UTF-8 character boundaries within the canonical
@@ -90,20 +106,25 @@ The merged v2 method catalog drives dispatch, parameter schemas, query discovery
 version-matched instructions, and generated TypeScript/Python/Rust source
 helpers. V2 results use `semaprax.image-agent-result.v2`; discovery payloads use
 their additive `.v2` schemas. Existing semantic payload schemas stay unchanged.
-Closed RPC envelopes and parameter schemas reference owning nested constructor
-and payload contracts by URN; the protocol does not bundle a complete JSON
-Schema validator for typed expressions or HIR. Generated helpers perform no
-transport or filesystem I/O themselves.
+Closed RPC envelopes retain their existing constructor URN references.
+`protocol/constructor-schemas` supplies the matching self-contained closed
+documents described in [Candidate Constructor Schemas
+v1](CANDIDATE-CONSTRUCTOR-SCHEMAS-V1.md). These describe structural grammar;
+the compiler still owns lexical, scope, type, effect, and ownership admission.
+Complete nested semantic response/HIR schemas and a runtime JSON Schema
+validator are not bundled. Generated helpers perform no transport or filesystem
+I/O themselves.
 
 Candidate validation reparses canonical source and independently replays
 existing compiler-owned target projections. It does not execute generated code,
-run Project tests, establish behavioral equivalence, approve changes, merge
-candidates, or commit source. Required external gates remain reported as unrun.
-Comparison is descriptive; a separate future semantic merge/rebase contract is
-not implied by this protocol.
+run Project tests, establish behavioral equivalence, approve changes, or commit
+source. Required external gates remain reported as unrun. Comparison remains
+descriptive; callers must explicitly select the separate merge/rebase methods
+for their bounded reconciliation behavior.
 
 `tests/image_candidate_transport_v2.rs` contains authored coverage for profile
 separation, catalog/client consistency, immutable siblings, canonical report
 chunks, replay validation, invalid-intent atomicity, stale handles, hole
 completion boundaries, candidate/draft capacity, retained draft lifetime after
-candidate discard, and absorbing Unix source drift. None were executed here.
+candidate discard, absorbing Unix source drift, retained-base merge/rebase,
+closed constructor documents, and expression discovery. None were executed here.

@@ -152,9 +152,12 @@ The complete requirement ledger is the
 read-only/candidate-only protocol discovery, immutable typed candidate previews,
 body-hole drafts and ordered Copy signature mapping are now authored additions,
 not verified completion. Extend those bounded forms into the requested general
-operations, ownership-sensitive signature migration and expression holes;
+operations, ownership-sensitive signature migration and expression holes.
+Expression replacement, additive contracts and conservative stable-ID
+rebase/merge now have authored, unrun implementations; broaden these alongside
+declaration/record/interface operations and full semantic conflict coverage;
 connect separately authorized test/build/source-commit capabilities; then
-establish incremental reuse, persistence, semantic rebase, and representative
+establish incremental reuse, persistence, general semantic reconciliation, and representative
 task-level benchmarks without reducing the original goal.
 
 The first [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)

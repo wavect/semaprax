@@ -49,13 +49,15 @@ These have the bounded meanings below. They do not assert external consumer
 compatibility, general formal equivalence, runtime behavior, or every platform
 target in the mature language contract.
 
-Three operation shapes are currently admitted:
+Five operation kinds are currently admitted:
 
 | Kind | Exact additional fields | Behavior |
 | --- | --- | --- |
 | `rename_declaration` | `target`, `name` | Rename an explicitly identified monomorphic top-level non-main function and its local call spellings. Imports continue to address its unchanged stable ID and retain aliases. |
 | `change_function_signature` | `target`, `append_parameters` | Append 1–16 by-value scalar parameters and append the supplied exact scalar literals to every authenticated local/import call. Existing parameter and argument order is unchanged. |
 | `replace_function_body` | `target`, `body` | Construct a new expression AST and admit the complete resulting Project through the real verifier. Existing contracts and declared effects remain. |
+| `replace_expression` | `target`, `expression_id`, `replacement` | Select an authenticated body expression through its current HIR ID and construct a replacement in its lexical scope; preserve the expected type and revalidate the complete Project. See [Expression Change v1](PROJECT-EXPRESSION-CHANGE-V1.md). |
+| `add_contract` | `target`, `phase`, `predicate` | Append one typed pre/postcondition, preserving every existing predicate and all declared effects; see [Contract Change v1](PROJECT-CONTRACT-CHANGE-V1.md). |
 
 An appended parameter has exactly `name`, `type`, and `argument`. Its type is
 `i64`, `i32`, `u8`, `usize`, or `bool`; its argument has matching `kind` and
@@ -95,7 +97,9 @@ source materialization. An invalid constructor never becomes a public candidate.
 
 Application parses only the admitted revision's canonical sources and invokes
 the closed AST transformation. Module permits, per-function declared effects,
-and contract inventories must remain unchanged. The constructors preserve
+and contract inventories must remain unchanged, except that `add_contract`
+permits exactly one count increment for its authenticated target and phase.
+That operation retains existing predicates in order. Other constructors preserve
 predicate ASTs except for the declared signature call-site migration; the
 inventory comparison alone is not a formal proof of predicate equivalence.
 
@@ -124,7 +128,14 @@ mapping is listed only for eligible by-value built-in Copy signatures.
 This is constructor discovery, not proof that an arbitrary supplied payload
 is legal: full `apply` admission still decides namespace, type, contract,
 ownership and target constraints. Fully proven transition discovery remains
-part of the wider programme.
+part of the wider programme. Main functions can expose expression replacement
+without exposing the non-main signature, body or contract operations.
+
+`SemanticChange::constructor_schemas()` emits self-contained structural JSON
+Schemas for the typed expression vocabulary, closed intention alternatives,
+and canonical change envelope. Structural validation cannot establish lexical
+scope, types, contracts, ownership, target admission, canonical JSON bytes or
+duplicate-key rejection; the compiler remains authoritative for these checks.
 
 [Typed body holes](PROJECT-CANDIDATE-HOLES-V1.md) add an immutable draft wrapper.
 Unfilled holes have context but no materializable source or candidate evidence;
@@ -149,6 +160,12 @@ complete behavioral proof. Impact currently uses the existing six cross-file
 edge families. Full local call migration is broader than that impact report.
 `compare(other)` requires a common base and reports target overlap and source
 revision equality. It is descriptive and cannot authorize semantic merge.
+
+The additive [semantic rebase/merge API](PROJECT-CANDIDATE-REBASE-V1.md)
+classifies stable-ID conflicts and constructs a fully revalidated candidate.
+Its separate report binds the parent candidates and selected base. It adds no
+publication authority; the original candidate report remains the ordinary
+source/diff/validation carrier, not a merge receipt by itself.
 
 All digests use SHA-256 over `domain || u64_le(bytes.len) || bytes`. Domains are
 `semaprax.project-candidate.v1\0`, `semaprax.candidate.source-diff.v1\0`,

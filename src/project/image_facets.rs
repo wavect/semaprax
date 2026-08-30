@@ -240,7 +240,7 @@ impl ProjectSemanticImage {
         )
     }
 
-    fn facet_items(
+    pub(super) fn facet_items(
         &self,
         module: &WorkspaceGraphProjectionModule,
         function: &ResolvedFunction,

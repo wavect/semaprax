@@ -127,6 +127,22 @@
   unchanged source/v10 admission. Tests/builds remain unrun; no ordinary-Wasm
   settlement or production promotion is claimed.
 
+- Added source-backed semantic image persistence and explicit refresh reports,
+  candidate semantic delta replay, and diagnostic protocol v4 with optional
+  host-selected tests. Added explicit store/load and diagnostic CLI commands
+  plus an integrated signature/merge/managed-publication scenario. These remain
+  authored and unrun; no warm HIR cache, raw Git-source publication or full
+  graph-operational completion is claimed.
+
+- Added candidate-bound static test relevance and explicitly host-selected
+  interpreter-test execution with fixed limits and replay-bound reports.
+  Rejected attempts now retain bounded diagnostics and can offer one fully
+  admitted integer literal repair. Added a separate candidate publication
+  bridge through existing locked managed Workspace evidence and `ACTIVE`
+  authority; original Git files remain unchanged. Test-enabled protocol v3
+  grants no source/build/native/Wasm authority. All new regressions are authored,
+  unrun by request; the full graph-operational programme remains incomplete.
+
 - Added typed cross-file scalar function moves and Copy record-field additions,
   including stable-ID import/call migration, constructor/pattern migration,
   exact identity allowances, source replay, discovery and semantic conflict

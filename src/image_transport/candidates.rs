@@ -4,11 +4,18 @@
 use std::collections::BTreeMap;
 
 use super::*;
-use crate::project::{ProjectCandidate, ProjectCandidateDraft, SemanticChange};
+use crate::project::{
+    CandidateTestPolicy, ProjectCandidate, ProjectCandidateDraft, SemanticChange,
+};
 use crate::project_transport::codec::RequestId;
 
 pub const CANDIDATE_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v2";
 pub const CANDIDATE_RESULT_SCHEMA: &str = "semaprax.image-agent-result.v2";
+pub const TEST_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v3";
+pub const TEST_RESULT_SCHEMA: &str = "semaprax.image-agent-result.v3";
+mod diagnostics;
+pub use diagnostics::{DIAGNOSTIC_PROTOCOL_SCHEMA, DIAGNOSTIC_RESULT_SCHEMA};
+const MAX_ATTEMPTS: usize = 16;
 const MAX_CANDIDATES: usize = 16;
 const MAX_DRAFTS: usize = 16;
 const MAX_RETAINED_REPORT_BYTES: usize = 256 * 1024 * 1024;
@@ -61,6 +68,9 @@ pub(super) enum Action {
     HoleFill,
     HoleComplete,
     HoleDiscard,
+    TestPlan,
+    Test,
+    Diagnostic(diagnostics::Action),
 }
 
 macro_rules! method {
@@ -74,6 +84,23 @@ macro_rules! method {
         }
     };
 }
+
+const TEST_METHODS: &[Method] = &[
+    method!(
+        "candidate/test-plan",
+        TestPlan,
+        &[REVISION, CANDIDATE],
+        true,
+        "semaprax.project-candidate-test-plan.v1"
+    ),
+    method!(
+        "candidate/test",
+        Test,
+        &[REVISION, CANDIDATE],
+        false,
+        "semaprax.project-candidate-test-report.v1"
+    ),
+];
 
 const CANDIDATE_METHODS: &[Method] = &[
     method!(
@@ -285,6 +312,7 @@ struct DraftEntry {
 pub(super) struct Registry {
     candidates: BTreeMap<String, Arc<ProjectCandidate>>,
     drafts: BTreeMap<String, DraftEntry>,
+    attempts: BTreeMap<String, Arc<crate::project::ProjectCandidateAttempt>>,
 }
 
 enum Mutation {
@@ -293,6 +321,8 @@ enum Mutation {
     Draft(DraftEntry),
     DropCandidate(String),
     DropDraft(String),
+    Attempt(Arc<crate::project::ProjectCandidateAttempt>),
+    DropAttempt(String),
 }
 
 impl Registry {
@@ -318,10 +348,21 @@ impl Registry {
                     .values()
                     .map(|value| value.draft.retained_report_bytes()),
             )
+            .chain(
+                self.attempts
+                    .values()
+                    .map(|attempt| attempt.retained_report_bytes()),
+            )
             .sum()
     }
     fn admit(&self, mutation: &Mutation) -> Result<(), Vec<Diagnostic>> {
         let added = match mutation {
+            Mutation::Attempt(attempt) if !self.attempts.contains_key(attempt.attempt_digest()) => {
+                if self.attempts.len() >= MAX_ATTEMPTS {
+                    return Err(failure("SPX-G242", "rejected attempt registry is full"));
+                }
+                attempt.retained_report_bytes()
+            }
             Mutation::Candidate(value)
                 if !self.candidates.contains_key(value.candidate_digest()) =>
             {
@@ -349,6 +390,14 @@ impl Registry {
     fn commit(&mut self, mutation: Mutation) {
         match mutation {
             Mutation::None => (),
+            Mutation::Attempt(attempt) => {
+                self.attempts
+                    .entry(attempt.attempt_digest().to_owned())
+                    .or_insert(attempt);
+            }
+            Mutation::DropAttempt(id) => {
+                self.attempts.remove(&id);
+            }
             Mutation::Candidate(candidate) => {
                 self.candidates
                     .entry(candidate.candidate_digest().to_owned())
@@ -369,19 +418,40 @@ impl Registry {
     }
 }
 
-pub(super) fn handle(
+pub(super) fn handle_diagnostics(
     snapshot: &mut ProjectSnapshot,
     image: &ProjectSemanticImage,
     registry: &mut Registry,
+    test_policy: Option<&CandidateTestPolicy>,
     id: &RequestId,
     name: &str,
     params: Map<String, Value>,
 ) -> Vec<u8> {
-    let Some(method) = methods().into_iter().find(|method| method.name == name) else {
+    diagnostics::handle(snapshot, image, registry, test_policy, id, name, params)
+}
+
+pub(super) fn handle(
+    snapshot: &mut ProjectSnapshot,
+    image: &ProjectSemanticImage,
+    registry: &mut Registry,
+    test_policy: Option<&CandidateTestPolicy>,
+    id: &RequestId,
+    name: &str,
+    params: Map<String, Value>,
+) -> Vec<u8> {
+    let test_enabled = test_policy.is_some();
+    let Some(method) = methods(test_enabled)
+        .into_iter()
+        .find(|method| method.name == name)
+    else {
         return codec::bounded_error_response(
             Some(id),
             -32601,
-            "method is not available in the candidate-only image profile",
+            if test_enabled {
+                "method is not available in the test-enabled image profile"
+            } else {
+                "method is not available in the candidate-only image profile"
+            },
             MAX_RESPONSE_BYTES,
         );
     };
@@ -394,9 +464,9 @@ pub(super) fn handle(
         );
     }
     let prepared = snapshot.with_authenticated_request(|_| {
-        let (payload, mutation) = prepare(method, &params, image, registry)?;
+        let (payload, mutation) = prepare(method, &params, image, registry, test_policy)?;
         registry.admit(&mutation)?;
-        let mut result = json!({"schema":CANDIDATE_RESULT_SCHEMA, "protocol":CANDIDATE_PROTOCOL_SCHEMA, "image_revision":image.image_digest(), "project_revision":image.revision().project_revision(), "payload":payload});
+        let mut result = json!({"schema":result_schema(test_enabled), "protocol":protocol_schema(test_enabled), "image_revision":image.image_digest(), "project_revision":image.revision().project_revision(), "payload":payload});
         result.sort_all_objects();
         let response = codec::bounded_success_response(id, &result.to_string(), MAX_RESPONSE_BYTES);
         // Response overflow is a failure. Discard the prepared mutation even
@@ -418,27 +488,59 @@ pub(super) fn handle(
     }
 }
 
-fn methods() -> Vec<&'static Method> {
+fn methods(test_enabled: bool) -> Vec<&'static Method> {
     let mut methods = METHODS.iter().chain(CANDIDATE_METHODS).collect::<Vec<_>>();
+    if test_enabled {
+        methods.extend(TEST_METHODS);
+    }
     methods.sort_by_key(|method| method.name);
     methods
 }
 
-fn descriptor(method: &Method) -> Value {
+fn protocol_schema(test_enabled: bool) -> &'static str {
+    if test_enabled {
+        TEST_PROTOCOL_SCHEMA
+    } else {
+        CANDIDATE_PROTOCOL_SCHEMA
+    }
+}
+fn result_schema(test_enabled: bool) -> &'static str {
+    if test_enabled {
+        TEST_RESULT_SCHEMA
+    } else {
+        CANDIDATE_RESULT_SCHEMA
+    }
+}
+
+fn descriptor(method: &Method, test_enabled: bool) -> Value {
     let mut descriptor = method_description(method);
     descriptor["success_response_schema"]["properties"]["result"]["properties"]["protocol"]
-        ["const"] = json!(CANDIDATE_PROTOCOL_SCHEMA);
+        ["const"] = json!(protocol_schema(test_enabled));
     descriptor["success_response_schema"]["properties"]["result"]["properties"]["schema"]
-        ["const"] = json!(CANDIDATE_RESULT_SCHEMA);
+        ["const"] = json!(result_schema(test_enabled));
     descriptor["success_response_schema"]["properties"]["result"]["properties"]["payload"]
-        ["$ref"] = json!(format!("urn:{}", profile_payload_schema(method)));
+        ["$ref"] = json!(format!(
+        "urn:{}",
+        profile_payload_schema(method, test_enabled)
+    ));
     if matches!(method.operation, Operation::Candidate(_)) {
         descriptor["capability"] = json!("candidate_prepare");
+    }
+    if matches!(method.operation, Operation::Candidate(Action::Test)) {
+        descriptor["capability"] = json!("candidate_test");
     }
     descriptor
 }
 
-fn profile_payload_schema(method: &Method) -> String {
+fn profile_payload_schema(method: &Method, test_enabled: bool) -> String {
+    if test_enabled
+        && matches!(
+            method.operation,
+            Operation::Candidate(Action::ValidationCatalog)
+        )
+    {
+        return "semaprax.image-validation-catalog.v2".to_owned();
+    }
     if matches!(
         method.operation,
         Operation::Capabilities
@@ -448,11 +550,12 @@ fn profile_payload_schema(method: &Method) -> String {
             | Operation::Client
     ) {
         format!(
-            "{}.v2",
+            "{}.v{}",
             method
                 .payload_schema
                 .strip_suffix(".v1")
-                .expect("v1 discovery payload")
+                .expect("v1 discovery payload"),
+            if test_enabled { 3 } else { 2 }
         )
     } else {
         method.payload_schema.to_owned()
@@ -464,8 +567,11 @@ fn prepare(
     params: &Map<String, Value>,
     image: &ProjectSemanticImage,
     registry: &Registry,
+    test_policy: Option<&CandidateTestPolicy>,
 ) -> Result<(Value, Mutation), Vec<Diagnostic>> {
-    let payload_schema = profile_payload_schema(method);
+    let test_enabled = test_policy.is_some();
+    let protocol = protocol_schema(test_enabled);
+    let payload_schema = profile_payload_schema(method, test_enabled);
     let payload = match method.operation {
         Operation::Candidate(action) => {
             if text(params, "image_revision") != image.image_digest() {
@@ -474,24 +580,35 @@ fn prepare(
                     "candidate protocol image revision is stale",
                 ));
             }
-            return prepare_candidate(action, params, image, registry);
+            return prepare_candidate(action, params, image, registry, test_policy);
         }
         Operation::Capabilities => {
-            json!({"schema":payload_schema, "protocol":CANDIDATE_PROTOCOL_SCHEMA, "capabilities":["semantic_read","candidate_prepare"], "methods":methods().iter().map(|method| method.name).collect::<Vec<_>>(), "max_request_bytes":MAX_REQUEST_BYTES, "max_response_bytes":MAX_RESPONSE_BYTES, "max_candidates":MAX_CANDIDATES,"max_drafts":MAX_DRAFTS,"max_retained_report_bytes":MAX_RETAINED_REPORT_BYTES,"source_authority":false,"test_execution":false,"target_execution":false})
+            let mut payload = json!({"schema":payload_schema, "protocol":protocol, "capabilities":["semantic_read","candidate_prepare"], "methods":methods(test_enabled).iter().map(|method| method.name).collect::<Vec<_>>(), "max_request_bytes":MAX_REQUEST_BYTES, "max_response_bytes":MAX_RESPONSE_BYTES, "max_candidates":MAX_CANDIDATES,"max_drafts":MAX_DRAFTS,"max_retained_report_bytes":MAX_RETAINED_REPORT_BYTES,"source_authority":false,"test_execution":test_enabled,"target_execution":false});
+            if let Some(policy) = test_policy {
+                payload["capabilities"] =
+                    json!(["semantic_read", "candidate_prepare", "candidate_test"]);
+                payload["test_policy"] = json!({"max_steps":policy.max_steps(),"max_execution_bytes":policy.max_execution_bytes(),"max_report_bytes":policy.max_report_bytes(),"engine":"project_interpreter","scope":"complete_declared_test_closure","request_overrides":false});
+            }
+            payload
         }
         Operation::Schemas => {
-            json!({"schema":payload_schema,"protocol":CANDIDATE_PROTOCOL_SCHEMA,"methods":methods().into_iter().map(descriptor).collect::<Vec<_>>()})
+            json!({"schema":payload_schema,"protocol":protocol,"methods":methods(test_enabled).into_iter().map(|method| descriptor(method,test_enabled)).collect::<Vec<_>>()})
         }
         Operation::Catalog => {
-            json!({"schema":payload_schema,"queries":methods().into_iter().filter(|method| method.query).map(descriptor).collect::<Vec<_>>()})
+            json!({"schema":payload_schema,"queries":methods(test_enabled).into_iter().filter(|method| method.query).map(|method| descriptor(method,test_enabled)).collect::<Vec<_>>()})
         }
         Operation::Instructions => {
-            json!({"schema":payload_schema,"protocol":CANDIDATE_PROTOCOL_SCHEMA,"instructions":"Use workspace/open for the exact image_revision. candidate/open returns a candidate_revision. Send both on candidate operations. apply-intent returns a new immutable sibling; previous candidates remain unchanged. Query report chunks, run independent candidate/validate, inspect impact and compare. hole/open and hole/fill return draft_revision handles; unresolved drafts can only be queried, filled, completed or discarded, never built or committed. A failed request leaves registries unchanged. Source drift permanently invalidates this session. Only the host can choose this candidate-only profile; no operation elevates it to source-write, runtime test or build authority."})
+            let instructions = if test_enabled {
+                "Use workspace/open then candidate/open for exact revision handles. Candidate preparation, validation and holes remain source-authority-free. candidate/test-plan reports static relevance, not coverage. candidate/test independently replays the complete candidate and executes its complete declared test closure under fixed host limits. No request can increase limits or grant source, native/Wasm runtime, process, build or artifact authority. Unresolved drafts cannot be tested. No test result commits a candidate or satisfies external target/full-quality gates. Source drift invalidates the session."
+            } else {
+                "Use workspace/open for the exact image_revision. candidate/open returns a candidate_revision. Send both on candidate operations. apply-intent returns a new immutable sibling; previous candidates remain unchanged. Query report chunks, run independent candidate/validate, inspect impact and compare. hole/open and hole/fill return draft_revision handles; unresolved drafts can only be queried, filled, completed or discarded, never built or committed. A failed request leaves registries unchanged. Source drift permanently invalidates this session. Only the host can choose this candidate-only profile; no operation elevates it to source-write, runtime test or build authority."
+            };
+            json!({"schema":payload_schema,"protocol":protocol,"instructions":instructions})
         }
         Operation::Client => {
             let old_names = serde_json::to_string(&method_names()).expect("method names serialize");
             let names = serde_json::to_string(
-                &methods()
+                &methods(test_enabled)
                     .iter()
                     .map(|method| method.name)
                     .collect::<Vec<_>>(),
@@ -499,8 +616,8 @@ fn prepare(
             .expect("method names serialize");
             let source = client_source(text(params, "language"))
                 .replace(&old_names, &names)
-                .replace(PROTOCOL_SCHEMA, CANDIDATE_PROTOCOL_SCHEMA);
-            json!({"schema":payload_schema,"protocol":CANDIDATE_PROTOCOL_SCHEMA,"language":text(params,"language"),"source":source})
+                .replace(PROTOCOL_SCHEMA, protocol);
+            json!({"schema":payload_schema,"protocol":protocol,"language":text(params,"language"),"source":source})
         }
         _ => dispatch(method, params, image)?,
     };
@@ -512,8 +629,37 @@ fn prepare_candidate(
     params: &Map<String, Value>,
     image: &ProjectSemanticImage,
     registry: &Registry,
+    test_policy: Option<&CandidateTestPolicy>,
 ) -> Result<(Value, Mutation), Vec<Diagnostic>> {
     match action {
+        Action::Diagnostic(_) => Err(failure(
+            "SPX-G241",
+            "diagnostic actions require the explicitly selected v4 profile",
+        )),
+        Action::TestPlan => {
+            if test_policy.is_none() {
+                return Err(failure(
+                    "SPX-G239",
+                    "candidate test profile is not selected by the host",
+                ));
+            }
+            let candidate = registry.candidate(text(params, "candidate_revision"))?;
+            Ok((
+                parse_payload(candidate.test_plan(candidate.candidate_digest())?)?,
+                Mutation::None,
+            ))
+        }
+        Action::Test => {
+            let policy = test_policy.ok_or_else(|| {
+                failure(
+                    "SPX-G239",
+                    "candidate test execution requires explicit host policy",
+                )
+            })?;
+            let candidate = registry.candidate(text(params, "candidate_revision"))?;
+            let report = candidate.execute_tests(candidate.candidate_digest(), policy)?;
+            Ok((parse_payload(report.to_json().to_owned())?, Mutation::None))
+        }
         Action::Open => retain_candidate(Arc::new(ProjectCandidate::open(
             Arc::clone(image.revision()),
             image.revision().project_revision(),
@@ -691,10 +837,19 @@ fn prepare_candidate(
             parse_payload(SemanticChange::constructor_schemas()?)?,
             Mutation::None,
         )),
-        Action::ValidationCatalog => Ok((
-            json!({"schema":"semaprax.image-validation-catalog.v1","available":[{"method":"candidate/validate","kind":"independent_source_and_target_projection_replay","runtime_execution":false}],"required_external_gates":["affected_project_tests","native_and_wasm_runtime_conformance","full_quality_profile"],"tests":"not_run","source_authority":false}),
-            Mutation::None,
-        )),
+        Action::ValidationCatalog => {
+            let mut payload = json!({"schema":"semaprax.image-validation-catalog.v1","available":[{"method":"candidate/validate","kind":"independent_source_and_target_projection_replay","runtime_execution":false}],"required_external_gates":["affected_project_tests","native_and_wasm_runtime_conformance","full_quality_profile"],"tests":"not_run","source_authority":false});
+            if test_policy.is_some() {
+                payload["schema"] = json!("semaprax.image-validation-catalog.v2");
+                payload["available"].as_array_mut().expect("array").push(json!({"method":"candidate/test","kind":"bounded_project_interpreter_test_closure","runtime_execution":true}));
+                payload["tests"] = json!("available_only_on_explicit_request");
+                payload["required_external_gates"] = json!([
+                    "native_and_wasm_runtime_conformance",
+                    "full_quality_profile"
+                ]);
+            }
+            Ok((payload, Mutation::None))
+        }
         Action::HoleOpen => {
             let candidate = registry.candidate(text(params, "candidate_revision"))?;
             let draft = if let Some(id) = params.get("draft_revision").and_then(Value::as_str) {

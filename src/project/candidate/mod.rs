@@ -14,21 +14,46 @@ use super::{build, ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 
 mod catalog;
 mod declaration;
+mod delta;
+mod diagnostics;
 mod draft;
 mod expression;
 mod extraction;
 mod intent;
 mod movement;
+mod publication;
 mod rebase;
 mod record_field;
 mod recovery;
 mod schemas;
+mod testing;
 mod wire;
+
+pub use testing::{
+    CandidateTestPolicy, CandidateTestReport, MAX_CANDIDATE_TEST_STEPS,
+    MAX_PROJECT_CANDIDATE_TEST_PLAN_BYTES, MAX_PROJECT_CANDIDATE_TEST_REPORT_BYTES,
+    PROJECT_CANDIDATE_TEST_PLAN_SCHEMA, PROJECT_CANDIDATE_TEST_REPORT_SCHEMA,
+};
+
+pub use diagnostics::{
+    ProjectCandidateAttempt, ProjectCandidateAttemptOutcome, PROJECT_CANDIDATE_ATTEMPT_SCHEMA,
+    PROJECT_CANDIDATE_REPAIR_CATALOG_SCHEMA,
+};
+
+pub use delta::{
+    MAX_PROJECT_CANDIDATE_SEMANTIC_DELTA_BYTES, MAX_PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_BYTES,
+    PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_SCHEMA, PROJECT_CANDIDATE_SEMANTIC_DELTA_SCHEMA,
+};
 
 pub use draft::{
     ProjectCandidateDraft, MAX_PROJECT_CANDIDATE_HOLES, PROJECT_CANDIDATE_DRAFT_SCHEMA,
     PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA,
 };
+pub use publication::{
+    apply_candidate_publication, prepare_candidate_publication, ProjectCandidatePublication,
+    MAX_PROJECT_CANDIDATE_PUBLICATION_BYTES, PROJECT_CANDIDATE_PUBLICATION_SCHEMA,
+};
+
 pub use rebase::{ProjectCandidateRebase, PROJECT_CANDIDATE_REBASE_SCHEMA};
 pub use recovery::{
     MAX_PROJECT_CANDIDATE_RECOVERY_BYTES, PROJECT_CANDIDATE_RECOVERY_COMPATIBILITY,

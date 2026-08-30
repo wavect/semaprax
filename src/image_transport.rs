@@ -1,7 +1,9 @@
-//! Self-describing Image Agent Protocol: read-only v1 and candidate-only v2.
+//! Self-describing Image Agent Protocol with explicit host-selected profiles.
 //!
 //! The host binds one manifest and explicitly selects the session profile.
-//! Requests cannot name files, change capability, write source, or run targets.
+//! Requests cannot name files, change capability, or write source. Explicit v3
+//! host selection permits bounded interpreted Project tests only. V4 adds
+//! rejected-attempt diagnostics with independently optional host test authority.
 //! Opt-in v2 retains bounded in-memory candidates and ephemeral typed drafts;
 //! read-only v1 and existing Graph/Project method sets remain unchanged.
 
@@ -22,6 +24,8 @@ use crate::workspace_analysis::{
 
 mod candidates;
 pub use candidates::{CANDIDATE_PROTOCOL_SCHEMA, CANDIDATE_RESULT_SCHEMA};
+pub use candidates::{DIAGNOSTIC_PROTOCOL_SCHEMA, DIAGNOSTIC_RESULT_SCHEMA};
+pub use candidates::{TEST_PROTOCOL_SCHEMA, TEST_RESULT_SCHEMA};
 
 pub const PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v1";
 pub const RESULT_SCHEMA: &str = "semaprax.image-agent-result.v1";
@@ -35,6 +39,9 @@ const MAX_QUERY_BYTES: usize = 512 * 1024;
 pub enum ImageHostCapability {
     ReadOnly,
     CandidateOnly,
+    TestEnabled,
+    CandidateDiagnostics,
+    DiagnosticTests,
 }
 
 #[derive(Clone, Copy)]
@@ -265,6 +272,8 @@ pub struct ImageSession {
     image: Arc<ProjectSemanticImage>,
     terminal: bool,
     candidates: Option<candidates::Registry>,
+    test_policy: Option<crate::project::CandidateTestPolicy>,
+    diagnostic_profile: bool,
 }
 
 impl ImageSession {
@@ -277,9 +286,45 @@ impl ImageSession {
             snapshot,
             image: Arc::new(image),
             terminal: false,
-            candidates: (capability == ImageHostCapability::CandidateOnly)
+            candidates: (capability != ImageHostCapability::ReadOnly)
                 .then(candidates::Registry::default),
+            diagnostic_profile: matches!(
+                capability,
+                ImageHostCapability::CandidateDiagnostics | ImageHostCapability::DiagnosticTests
+            ),
+            test_policy: if matches!(
+                capability,
+                ImageHostCapability::TestEnabled | ImageHostCapability::DiagnosticTests
+            ) {
+                Some(crate::project::CandidateTestPolicy::new(
+                    100_000, 65_536, 262_144,
+                )?)
+            } else {
+                None
+            },
         })
+    }
+
+    /// The trusted host chooses fixed limits before requests are accepted.
+    /// No protocol method can alter these limits or grant another capability.
+    pub fn open_test_enabled(
+        manifest: &Path,
+        policy: crate::project::CandidateTestPolicy,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        let mut session = Self::open(manifest, ImageHostCapability::CandidateOnly)?;
+        session.test_policy = Some(policy);
+        Ok(session)
+    }
+
+    /// V4 diagnostics do not require test authority. An optional fixed policy
+    /// can be supplied only by the host before the first request.
+    pub fn open_diagnostics(
+        manifest: &Path,
+        policy: Option<crate::project::CandidateTestPolicy>,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        let mut session = Self::open(manifest, ImageHostCapability::CandidateDiagnostics)?;
+        session.test_policy = policy;
+        Ok(session)
     }
 
     pub fn image_revision(&self) -> &str {
@@ -323,10 +368,16 @@ impl ImageSession {
             return None;
         };
         if let Some(registry) = &mut self.candidates {
-            let response = candidates::handle(
+            let handler = if self.diagnostic_profile {
+                candidates::handle_diagnostics
+            } else {
+                candidates::handle
+            };
+            let response = handler(
                 &mut self.snapshot,
                 &self.image,
                 registry,
+                self.test_policy.as_ref(),
                 &id,
                 &request.method,
                 request.params.unwrap_or_default(),

@@ -60,6 +60,13 @@ neither the library nor CLI creates directories or writes a cache implicitly.
 The original base source must still exist exactly when restored. A capsule is
 not a replacement for source control or an incremental compiler cache.
 
+The additive [Candidate Archive v1](PROJECT-CANDIDATE-ARCHIVE-V1.md) packages
+that exact capsule with its canonical original source/manifest and rebuilds both
+independently. Its separately selected [immutable store](CANDIDATE-ARCHIVE-STORE-V1.md)
+and [startup recovery](IMAGE-WORKSPACE-ARCHIVE-RECOVERY-V1.md) permit recovery
+after original raw sources disappear or change. They do not alter this capsule
+schema, import trusted HIR, or restore source/approval authority.
+
 Image Candidate Protocol v2 adds `candidate/recovery-export` chunk queries and
 `candidate/recovery-restore` for structured capsules fitting its 64 KiB request
 frame. Existing candidate-registry and response-before-mutation bounds apply.

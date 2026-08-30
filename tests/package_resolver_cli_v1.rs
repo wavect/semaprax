@@ -41,7 +41,17 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     const NEW_LINE: &str = "semaprax package-resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]\n";
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert_eq!(stdout.matches(NEW_LINE).count(), 1);
-    let current = stdout.replacen(NEW_LINE, "", 1);
+    let mut current = stdout.replacen(NEW_LINE, "", 1);
+    const ARCHIVE_LINES: [&str; 2] = [
+        "semaprax project-candidate-persist <manifest> <capsule.json> <store-root>\n",
+        "semaprax project-candidate-load <store-root> <archive-digest> <candidate-digest>\n",
+    ];
+    let archive_lines = ARCHIVE_LINES.concat();
+    assert_eq!(current.matches(archive_lines.as_str()).count(), 1);
+    for line in ARCHIVE_LINES {
+        assert_eq!(current.matches(line).count(), 1);
+        current = current.replacen(line, "", 1);
+    }
     const GIT_PUBLISH_LINE: &str = "semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\n";
     const WORKSPACE_LINE: &str = "semaprax serve-workspace <manifest> <host-policy.json>\n";
     assert_eq!(current.len(), 5_825);

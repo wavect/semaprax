@@ -50,6 +50,15 @@ root, or measured speedup claim. See
 [Workspace Frontend Cache v1](IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md) for fresh
 snapshot authentication, transactional cache adoption, and actual work reports.
 
+Policy `semaprax.workspace-host-policy.v3` requires the v2 fields plus
+`candidate_archives`, a bounded array of explicit host-selected immutable store
+locators. Startup loads their complete source-backed candidates before frames
+and before opening a Git provider. V1/v2 reject this added field. Recovery
+retains historical candidates without replacing the live image, restoring
+approvals or publishing source; it requires the candidate grant and the same
+canonical manifest. See [Candidate Archive CLI v1](CANDIDATE-ARCHIVE-CLI-V1.md)
+for exact fields, limits and required explicit rebase.
+
 `git_commit` is null or a closed object containing `git_executable`, `repository`,
 `reference`, `base_commit`, `project_prefix`, `author_name`, `author_email`,
 `unix_seconds`, `message`, `max_commands`, `timeout_ms` and

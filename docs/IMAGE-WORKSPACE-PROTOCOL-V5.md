@@ -42,6 +42,12 @@ ordinary sequential NDJSON loop or grants new methods. See
 [Live Frontend Cache](IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md) and
 [Parallel Reads](IMAGE-PARALLEL-READS-V1.md) for their explicit host choices.
 
+Startup-only archive handoff can preload complete historical candidates from
+independently replayed source-backed archives. It retains the current image and
+fixed policy, requires the same canonical manifest, and grants no approvals or
+publication authority. No archive/store root is accepted through an RPC frame.
+See [Workspace Archive Recovery v1](IMAGE-WORKSPACE-ARCHIVE-RECOVERY-V1.md).
+
 Semantic conformance reads and target-admission projections are available
 independently of diagnostic permission. Candidate preparation adds current
 candidate, expression-hole, interface-discovery, and semantic-delta operations.

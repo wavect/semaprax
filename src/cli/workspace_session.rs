@@ -36,6 +36,12 @@ pub(crate) fn run(manifest: &Path, policy_path: &Path) -> Result<(), Vec<Diagnos
         build_enabled: boolean(&policy, "build_enabled")?,
         test_policy,
     };
+    let archives = policy.get("candidate_archives").and_then(Value::as_array);
+    if archives.is_some_and(|archives| !archives.is_empty()) && !capability.candidate_prepare {
+        return Err(invalid(
+            "startup candidate recovery requires candidate preparation",
+        ));
+    }
     let manifest: PathBuf = if manifest.is_absolute() {
         manifest.to_owned()
     } else {
@@ -48,6 +54,18 @@ pub(crate) fn run(manifest: &Path, policy_path: &Path) -> Result<(), Vec<Diagnos
     } else {
         VNextSession::open(&manifest, capability)?
     };
+    // Archives contain historical source and intentions, never host policy or
+    // approval. Load completely before opening any deadline-bound Git provider.
+    if let Some(archives) = archives {
+        for archive in archives {
+            let candidate = semaprax::candidate_archive_store::load(
+                Path::new(string(archive, "root")?),
+                string(archive, "archive_digest")?,
+                string(archive, "candidate_digest")?,
+            )?;
+            session.retain_archived_candidate(candidate, string(archive, "candidate_digest")?)?;
+        }
+    }
     if !policy["git_commit"].is_null() {
         if !capability.candidate_prepare {
             return Err(invalid(
@@ -131,6 +149,44 @@ fn frontend_cache_policy(value: &Value) -> Result<bool, Vec<Diagnostic>> {
             let mut keys = COMMON.to_vec();
             keys.push("frontend_cache");
             exact(value, &keys)?;
+            boolean(value, "frontend_cache")
+        }
+        Some("semaprax.workspace-host-policy.v3") => {
+            let mut keys = COMMON.to_vec();
+            keys.extend(["frontend_cache", "candidate_archives"]);
+            exact(value, &keys)?;
+            let archives = value["candidate_archives"]
+                .as_array()
+                .ok_or_else(|| invalid("startup candidate archives must be an array"))?;
+            if archives.len() > 16 {
+                return Err(invalid(
+                    "startup candidate archive inventory exceeds its bound",
+                ));
+            }
+            let mut selected = std::collections::BTreeSet::new();
+            for archive in archives {
+                exact(archive, &["root", "archive_digest", "candidate_digest"])?;
+                let root = string(archive, "root")?;
+                let digest = string(archive, "archive_digest")?;
+                let candidate = string(archive, "candidate_digest")?;
+                if !Path::new(root).is_absolute() || !selected.insert(candidate) {
+                    return Err(invalid(
+                        "startup archive roots must be absolute and candidates unique",
+                    ));
+                }
+                for digest in [digest, candidate] {
+                    if digest.len() != 71
+                        || !digest.starts_with("sha256:")
+                        || !digest.as_bytes()[7..]
+                            .iter()
+                            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
+                    {
+                        return Err(invalid(
+                            "startup archive selectors require canonical SHA256 digests",
+                        ));
+                    }
+                }
+            }
             boolean(value, "frontend_cache")
         }
         _ => Err(invalid("unknown workspace host policy schema")),

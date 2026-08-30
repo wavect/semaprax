@@ -918,7 +918,7 @@ fn prepare_candidate(
     }
 }
 
-fn retain_candidate(
+pub(super) fn retain_candidate(
     candidate: Arc<ProjectCandidate>,
 ) -> Result<(Value, Mutation), Vec<Diagnostic>> {
     Ok((

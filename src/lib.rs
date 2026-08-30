@@ -17,6 +17,7 @@ pub(crate) mod byte_data_capacity;
 pub(crate) mod byte_ops;
 pub mod c_header;
 pub(crate) mod call_index;
+pub mod candidate_archive_store;
 pub mod capability_manifest;
 pub mod cleanup;
 pub mod cleanup_plan;

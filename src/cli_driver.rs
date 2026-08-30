@@ -140,6 +140,33 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
+        "project-candidate-persist" | "project-candidate-load" => {
+            if args.len() != 4
+                || args[1..]
+                    .iter()
+                    .any(|argument| argument.is_empty() || argument.starts_with('-'))
+            {
+                let operands = if command == "project-candidate-persist" {
+                    "<manifest> <capsule.json> <store-root>"
+                } else {
+                    "<store-root> <archive-digest> <candidate-digest>"
+                };
+                eprintln!("{command} requires exactly {operands}");
+                return Err(2);
+            }
+            let output = if command == "project-candidate-persist" {
+                cli::candidate_archive::persist(
+                    Path::new(&args[1]),
+                    Path::new(&args[2]),
+                    Path::new(&args[3]),
+                )
+            } else {
+                cli::candidate_archive::load(Path::new(&args[1]), &args[2], &args[3])
+            }
+            .map_err(|errors| report(&errors, false))?;
+            print!("{output}");
+            Ok(())
+        }
         "project-image"
         | "project-image-store"
         | "project-image-load"
@@ -2407,6 +2434,8 @@ fn print_help() {
            semaprax project-candidate-preview <manifest> <change.json>\n\
            semaprax project-candidate-export <manifest> <change.json>\n\
            semaprax project-candidate-restore <manifest> <capsule.json>\n\
+           semaprax project-candidate-persist <manifest> <capsule.json> <store-root>\n\
+           semaprax project-candidate-load <store-root> <archive-digest> <candidate-digest>\n\
            semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\n\
            semaprax serve-workspace <manifest> <host-policy.json>\n\
            semaprax serve-image <manifest>\n\

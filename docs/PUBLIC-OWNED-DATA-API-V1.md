@@ -164,6 +164,19 @@ same facts from the same retained Project subject and reject truncation,
 insertion, deletion, reordering, duplication, unknown fields or tags, changed
 revisions, changed graph digest, or any byte mutation.
 
+The lower native package reader enforces parameter-identity uniqueness within
+each export, matching the compiler's descriptor parser. Correctly recomputing
+the digest does not authorize two parameter ordinals to share an identity.
+This shared v8/v10 rejection leaves canonical compiler-produced bytes and
+identifier grammars unchanged. It is a structural replay check, not independent
+proof of provider semantics. Authored, unrun regressions live in
+`tests/public_api_descriptor_v1/parameter_identity.rs` and
+`crates/semaprax-native-rust-owned-data-package/src/descriptor/tests.rs`:
+the root cases retain real HIR and exact canonical framing while reminting
+duplicate-ID mutations; lower cases cover both schemas and valid parameter
+boundaries as well as duplicates. Structural uniqueness is per export, not a
+new cross-export identity rule.
+
 This descriptor is the sole semantic API source for JavaScript bindings,
 TypeScript declarations, npm metadata, native provider descriptors, and the
 safe Rust SDK. A target may add authenticated target-layout facts, but it may

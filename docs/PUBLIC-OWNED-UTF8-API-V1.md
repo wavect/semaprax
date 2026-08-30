@@ -151,6 +151,29 @@ equivalence and native sanitizer evidence remain unrun gates before promotion.
 
 ## Authored evidence
 
+`tests/project_v10_recipe_consumer_v1.rs` uses a real four-source Project,
+with two imported owned-String helpers sharing a display name but retaining
+different stable identities, including source-escaped control characters. It
+replays the actual inline npm carrier and reopens all six published artifacts
+for exact equality. Its Node consumer uses the published bindings and Wasm,
+covering empty text, leading BOM, embedded NUL, multibyte text, raw malformed
+UTF-8 remaining `Bytes`, late-argument arithmetic failure and subsequent
+reuse. A helper display-only rename must preserve every descriptor fact except
+the three Project revision/graph bindings. Native coverage in this fixture
+stops at the compiler-replayed package passed to an intentionally rejecting
+publisher; it does not compile, publish, or consume a native SDK. No test was
+executed while authoring this fixture.
+
+```sh
+cargo test --locked -p semaprax --test project_v10_recipe_consumer_v1
+```
+
+The shared lower v8/v10 descriptor reader also rejects repeated parameter
+identities within one export, even under a freshly computed descriptor digest;
+see the [owned-data descriptor contract](PUBLIC-OWNED-DATA-API-V1.md#canonical-public-api-descriptor).
+This tightens malformed-input rejection only, without changing emitted package
+bytes, public signatures, or schema identities.
+
 Focused authored lifetime evidence is in
 `tests/project_owned_utf8_lifetimes_v1.rs` and its raw-arena/real-facade Node
 consumer. It derives and replays the real descriptor before target generation;

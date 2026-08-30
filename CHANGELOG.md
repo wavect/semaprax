@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Aligned native v8/v10 descriptor replay with the compiler's per-export
+  parameter-identity uniqueness rule, rejecting correctly rehashed duplicate
+  identities without changing canonical output or schemas. Added matching
+  root/lower regressions and a real multi-module v10 npm publication consumer
+  covering imported String helpers, control-bearing IDs, exact UTF-8 contents,
+  raw bytes, failure/reuse and display rename. Native evidence stops at a
+  rejecting publisher handoff. Tests/builds are unrun; nothing is promoted.
+
 - Authored published Project-v9 npm and native Rust consumer gates over one
   shared multi-module source fixture: colliding record display names, control
   and empty identities, opposite byte-field ordinals, checked failure and

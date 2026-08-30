@@ -7,6 +7,9 @@ use semaprax::project::{
 };
 use sha2::{Digest, Sha256};
 
+#[path = "public_api_descriptor_v1/parameter_identity.rs"]
+mod parameter_identity;
+
 const PROJECT_REVISION: &str =
     "sha256:1111111111111111111111111111111111111111111111111111111111111111";
 const WORKSPACE_REVISION: &str =
@@ -73,8 +76,12 @@ fn selected() -> Vec<String> {
 }
 
 fn remint_descriptor_digest(bytes: &[u8]) -> String {
+    remint_descriptor_digest_with_domain(b"semaprax.public-owned-data-api.digest.v1\0", bytes)
+}
+
+fn remint_descriptor_digest_with_domain(domain: &[u8], bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
-    hasher.update(b"semaprax.public-owned-data-api.digest.v1\0");
+    hasher.update(domain);
     hasher.update((bytes.len() as u64).to_le_bytes());
     hasher.update(bytes);
     let mut hex = String::with_capacity(64);

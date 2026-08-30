@@ -175,6 +175,7 @@ pub(crate) fn replay(
             .filter(|rows| rows.len() <= MAX_PARAMETERS)
             .ok_or_else(PackageError::descriptor)?;
         let mut parameters = Vec::with_capacity(parameter_rows.len());
+        let mut parameter_ids = BTreeSet::new();
         for (ordinal, parameter) in parameter_rows.iter().enumerate() {
             let parameter = exact_object(parameter, 4)?;
             let stable_id = string(parameter, "stable_id")?;
@@ -182,6 +183,7 @@ pub(crate) fn replay(
             if !valid_parameter_id(stable_id)
                 || !valid_source_name(source_name)
                 || parameter.get("ordinal").and_then(Value::as_u64) != Some(ordinal as u64)
+                || !parameter_ids.insert(stable_id)
             {
                 return Err(PackageError::descriptor());
             }
@@ -348,3 +350,6 @@ fn rust_method_name(stable_id: &str) -> Result<String, PackageError> {
 pub(crate) fn json_string(output: &mut String, value: &str) {
     output.push_str(&serde_json::to_string(value).expect("JSON string serialization cannot fail"));
 }
+
+#[cfg(test)]
+mod tests;

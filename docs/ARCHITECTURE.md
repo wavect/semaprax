@@ -410,6 +410,16 @@ the build-v1/v2 names, order, bytes, and failure selection. Evidence is authored
 but unrun and the surface is unpromoted. See [Offline Published Semantic Lock
 Snapshot v1](OFFLINE-PUBLISHED-SEMANTIC-LOCK-SNAPSHOT-V1.md).
 
+Additive `package_lock_v3` authenticates package dependency ranges in new
+Subject-v3 envelopes and binds each range to the selected coordinate in a new
+dependency-first Lock-v3 graph. `package_resolver_v2` intersects those root
+and transitive ranges during deterministic bounded search and exactly replays
+Lock v3. These modules are authored but locally unrun. They do not widen the
+v1/v2 subjects, locks, resolver, CLI, capsule, build, compatibility, or
+publication surfaces and gain no registry, network, acquisition, cache, build,
+execution, or publication authority. See [Lock v3](OFFLINE-SEMANTIC-PACKAGE-LOCK-V3.md)
+and [Resolver v2](OFFLINE-PACKAGE-RESOLVER-V2.md).
+
 Additive `package_source_capsule` consumes exact Resolver-v1 replay and two
 through four caller-owned canonical implementation sources. The ordinary
 semantic-workspace graph derives function imports over synthetic logical paths,

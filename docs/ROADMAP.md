@@ -191,6 +191,13 @@ replay, bound, and publication evidence is authored but unrun. This is not an
 updateable package lock workflow, registry/cache, trusted provenance, build,
 target execution, or sandbox, so 0.4 remains unpromoted.
 
+Additive Subject/Lock v3 and Resolver v2 are authored as the bounded
+package-authenticated dependency-range prerequisite. They add exact, tilde,
+and caret constraint intersection and bind every selected version back to its
+authenticated requirement. Their evidence is locally unrun and unpromoted;
+general compatibility negotiation, acquisition, registry/cache, supported
+publication, and trusted provenance remain later work.
+
 An additive Offline Effect-Free Scalar Core-Wasm Package Build v1 is authored
 above exact Resolver-v1 replay. Its intentionally narrow first slice accepts
 one dependency-free selected Subject v2, replays the embedded canonical source,

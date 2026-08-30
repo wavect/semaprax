@@ -13,6 +13,12 @@
   registry/cache, provenance, build, sandbox, target execution, support,
   completion, or promotion claim is made.
 
+- Authored additive Semantic Package Subject/Lock v3 and Offline Deterministic
+  Package Resolver v2 with authenticated exact/tilde/caret dependency ranges,
+  deterministic bounded backtracking, exact Lock-v3 replay, and hostile-input
+  evidence. The evidence is locally unrun, unpublished, and unpromoted; all
+  package v1/v2 bytes, APIs, diagnostics, and CLI routes remain unchanged.
+
 - Added the authored, unrun [Prepared Project Interpreter and Source Trace
   v1](docs/PROJECT-PREPARED-INTERPRETER-V1.md): one cached exact entry/test
   closure admission, one sequential long-lived fixed-stack worker, bounded

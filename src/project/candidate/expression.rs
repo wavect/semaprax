@@ -2,7 +2,7 @@
 //! HIR IDs select meaning; compiler-derived, uniquely joined AST paths select
 //! candidate nodes. Neither spans nor source text are accepted from callers.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{json, Value};
 
@@ -58,6 +58,7 @@ struct Subject<'a> {
 pub(super) struct AuthoredExpression<'a> {
     pub(super) owner: usize,
     pub(super) function_index: usize,
+    pub(super) phase: &'static str,
     pub(super) path: Vec<usize>,
     pub(super) expression: &'a ResolvedExpr,
     pub(super) scope: Vec<LexicalBinding<'a>>,
@@ -78,26 +79,88 @@ pub(super) fn authored_selection<'a>(
     target: &str,
     expression_id: &str,
 ) -> Result<AuthoredExpression<'a>> {
+    authored_region_selection(revision, programs, target, expression_id, false)
+}
+
+pub(super) fn authored_contract_selection<'a>(
+    revision: &'a ProjectRevision,
+    programs: &[ast::Program],
+    target: &str,
+    expression_id: &str,
+) -> Result<AuthoredExpression<'a>> {
+    authored_region_selection(revision, programs, target, expression_id, true)
+}
+
+/// Direct callees of the complete original predicate containing the selected
+/// subtree. HIR inventory bounds apply before this borrowed scan; stable
+/// template callees remain distinct from their revision-local instances.
+pub(super) fn contract_call_targets(
+    revision: &ProjectRevision,
+    target: &str,
+    expression_id: &str,
+) -> Result<BTreeSet<String>> {
+    let programs = parse_revision(revision)?;
+    let selected = authored_contract_selection(revision, &programs, target, expression_id)?;
+    let subject = subject(revision, target)?;
+    let ordinal = *selected
+        .path
+        .first()
+        .ok_or_else(|| invalid("contract selection has no predicate ordinal"))?;
+    let predicates = if selected.phase == "requires" {
+        &subject.function.requires
+    } else {
+        &subject.function.ensures
+    };
+    let root = predicates
+        .get(ordinal)
+        .ok_or_else(|| invalid("contract predicate is unavailable"))?;
+    let facts = hir_facts(subject.function)?;
+    let mut targets = BTreeSet::new();
+    for fact in facts {
+        if fact.phase == selected.phase
+            && fact.expression.span.start >= root.span.start
+            && fact.expression.span.end <= root.span.end
+        {
+            if let ResolvedExprKind::Call { callee, .. } = &fact.expression.kind {
+                targets.insert(callee.as_str().to_owned());
+            }
+        }
+    }
+    Ok(targets)
+}
+
+fn authored_region_selection<'a>(
+    revision: &'a ProjectRevision,
+    programs: &[ast::Program],
+    target: &str,
+    expression_id: &str,
+    contract: bool,
+) -> Result<AuthoredExpression<'a>> {
     let subject = subject(revision, target)?;
     let (owner, function_index) = source_function(programs, &subject, target)?;
     let facts = hir_facts(subject.function)?;
     let fact = selected(&facts, expression_id)?;
-    if fact.phase != "body" {
-        return Err(invalid(
-            "structural extraction requires an authored body expression",
-        ));
+    if !region_admitted(fact.phase, contract) {
+        return Err(invalid(if contract {
+            "contract selection requires an authored predicate expression"
+        } else {
+            "structural extraction requires an authored body expression"
+        }));
     }
     let ast = ast_facts(&programs[owner].functions[function_index])?;
     let spans = hir_span_counts(&facts);
     let joined = join(fact, &ast, &spans, subject.source.source())
         .ok_or_else(|| invalid("expression has no unique authenticated authored AST origin"))?;
-    reject_unsafe_ancestor(
-        &programs[owner].functions[function_index].body,
-        &joined.path,
-    )?;
+    if !contract {
+        reject_unsafe_ancestor(
+            &programs[owner].functions[function_index].body,
+            &joined.path,
+        )?;
+    }
     Ok(AuthoredExpression {
         owner,
         function_index,
+        phase: fact.phase,
         path: joined.path.clone(),
         expression: fact.expression,
         scope: fact
@@ -143,6 +206,9 @@ pub(super) fn authored_slot<'a>(
     programs: &'a mut [ast::Program],
     selection: &AuthoredExpression<'_>,
 ) -> Result<&'a mut Expr> {
+    if selection.phase != "body" {
+        return Err(invalid("structural extraction requires a body selection"));
+    }
     ast_at_mut(
         &mut programs[selection.owner].functions[selection.function_index].body,
         &selection.path,
@@ -153,6 +219,16 @@ impl ProjectCandidate {
     /// Authenticated HIR expression identities with lexical context. Visibility
     /// is not a proof that an owned binding remains live at the selected point.
     pub fn expression_catalog(&self, target: &str) -> Result<String> {
+        self.expression_region_catalog(target, false)
+    }
+
+    /// Existing predicate regions only; this does not widen the legacy body
+    /// expression catalogue or accept source paths supplied by callers.
+    pub fn contract_expression_catalog(&self, target: &str) -> Result<String> {
+        self.expression_region_catalog(target, true)
+    }
+
+    fn expression_region_catalog(&self, target: &str, contract: bool) -> Result<String> {
         let subject = subject(&self.revision, target)?;
         let programs = parse_revision(&self.revision)?;
         let (owner, function_index) = source_function(&programs, &subject, target)?;
@@ -162,9 +238,10 @@ impl ProjectCandidate {
         let spans = hir_span_counts(&facts);
         let expressions = facts
             .iter()
+            .filter(|fact| !contract || region_admitted(fact.phase, true))
             .map(|fact| {
                 let joined = join(fact, &ast, &spans, subject.source.source());
-                let reason = if fact.phase != "body" {
+                let reason = if !region_admitted(fact.phase, contract) {
                     "contract_region_is_read_only"
                 } else if joined.is_none() {
                     "no_unique_authored_ast_origin"
@@ -177,21 +254,21 @@ impl ProjectCandidate {
                     "expected_type":fact.expression.ty.identity_key(),
                     "ownership":ownership(fact.expression.ownership),
                     "source_span":span_json(fact.expression.span),
-                    "replaceable":fact.phase == "body" && joined.is_some(), "reason":reason,
+                    "replaceable":region_admitted(fact.phase, contract) && joined.is_some(), "reason":reason,
                     "scope":fact.scope.values().map(binding_json).collect::<Vec<_>>(),
                 })
             })
             .collect::<Vec<_>>();
         wire::render(
             json!({
-                "schema":SCHEMA, "candidate_digest":self.candidate_digest(),
+                "schema":if contract {"semaprax.project-contract-expression-catalog.v1"} else {SCHEMA}, "candidate_digest":self.candidate_digest(),
                 "project_revision":self.revision.project_revision(), "target":target,
                 "source":{"path":subject.source.path(),"module":subject.module,
                     "source_revision":subject.source.source_revision(),"source_digest":subject.source.source_digest()},
                 "declared_effect_budget":subject.function.effects,
                 "expressions":expressions,
                 "limits":{"max_expressions":MAX_EXPRESSIONS,"max_depth":MAX_DEPTH,"max_scope_facts":MAX_SCOPE_FACTS,"max_bytes":MAX_CATALOG_BYTES},
-                "nonclaims":["lexical_scope_is_not_owned_value_liveness","declared_effect_budget_is_not_expression_effect_inference","expression_ids_are_revision_scoped","no_contract_replacement","no_source_or_commit_authority"],
+                "nonclaims":["lexical_scope_is_not_owned_value_liveness","declared_effect_budget_is_not_expression_effect_inference","expression_ids_are_revision_scoped",if contract {"no_body_replacement_or_contract_truth_proof"} else {"no_contract_replacement"},"no_source_or_commit_authority"],
             }),
             MAX_CATALOG_BYTES,
         )
@@ -203,17 +280,36 @@ pub(super) fn apply(
     programs: &mut [ast::Program],
     request: &Value,
 ) -> Result<intent::IntentSummary> {
-    validate_request(request)?;
+    apply_region(revision, programs, request, false)
+}
+
+pub(super) fn apply_contract(
+    revision: &ProjectRevision,
+    programs: &mut [ast::Program],
+    request: &Value,
+) -> Result<intent::IntentSummary> {
+    apply_region(revision, programs, request, true)
+}
+
+fn apply_region(
+    revision: &ProjectRevision,
+    programs: &mut [ast::Program],
+    request: &Value,
+    contract: bool,
+) -> Result<intent::IntentSummary> {
+    validate_region_request(request, contract)?;
     let target = text(request, "target")?;
     let expression_id = text(request, "expression_id")?;
     let subject = subject(revision, target)?;
     let (owner, function_index) = source_function(programs, &subject, target)?;
     let facts = hir_facts(subject.function)?;
     let fact = selected(&facts, expression_id)?;
-    if fact.phase != "body" {
-        return Err(invalid(
-            "contract expressions are read-only in replace_expression",
-        ));
+    if !region_admitted(fact.phase, contract) {
+        return Err(invalid(if contract {
+            "contract replacement requires a requires or ensures expression"
+        } else {
+            "contract expressions are read-only in replace_expression"
+        }));
     }
     let ast = ast_facts(&programs[owner].functions[function_index])?;
     let spans = hir_span_counts(&facts);
@@ -227,7 +323,11 @@ pub(super) fn apply(
         &scope,
         &request["replacement"],
     )?;
-    let slot = ast_at_mut(&mut programs[owner].functions[function_index].body, &path)?;
+    let slot = region_at_mut(
+        &mut programs[owner].functions[function_index],
+        fact.phase,
+        &path,
+    )?;
     // Keep the required block category for function and branch bodies. The
     // typed constructors produce expressions, never caller-authored blocks.
     *slot = if matches!(slot.kind, ExprKind::Block { .. }) {
@@ -243,7 +343,12 @@ pub(super) fn apply(
     };
     Ok(intent::IntentSummary {
         target_id: target.to_owned(),
-        kind: "replace_expression".to_owned(),
+        kind: if contract {
+            "replace_contract_expression"
+        } else {
+            "replace_expression"
+        }
+        .to_owned(),
         migrated_calls: 0,
     })
 }
@@ -260,6 +365,38 @@ pub(super) fn validate_replacement(
     remapped_expression(before, after, request).map(|_| ())
 }
 
+pub(super) fn validate_contract_replacement(
+    before: &ProjectRevision,
+    after: &ProjectRevision,
+    request: &Value,
+) -> Result<()> {
+    validate_region_request(request, true)?;
+    remap_contract_selection(
+        before,
+        after,
+        text(request, "target")?,
+        text(request, "expression_id")?,
+    )?;
+    // Reconstruct the complete expected projection independently. Contract
+    // counts alone cannot prove that another predicate/body/signature survived.
+    let mut programs = parse_revision(before)?;
+    apply_contract(before, &mut programs, request)?;
+    let sources = super::materialize(&programs)?;
+    if sources.len() != after.sources().len()
+        || sources
+            .iter()
+            .zip(after.sources())
+            .any(|(expected, actual)| {
+                expected.path != actual.path() || expected.source != actual.source()
+            })
+    {
+        return Err(invalid(
+            "contract replacement changed source outside its authenticated subtree",
+        ));
+    }
+    Ok(())
+}
+
 /// Rebase calls this only after independently rejecting competing body edits.
 /// This helper authenticates the corresponding new selector, not merge safety.
 pub(super) fn rebase_intent(
@@ -270,6 +407,23 @@ pub(super) fn rebase_intent(
     let id = remapped_expression(before, after, request)?;
     let mut remapped = request.clone();
     remapped["expression_id"] = Value::String(id);
+    Ok(remapped)
+}
+
+pub(super) fn rebase_contract_intent(
+    before: &ProjectRevision,
+    after: &ProjectRevision,
+    request: &Value,
+) -> Result<Value> {
+    validate_region_request(request, true)?;
+    let id = remap_contract_selection(
+        before,
+        after,
+        text(request, "target")?,
+        text(request, "expression_id")?,
+    )?;
+    let mut remapped = request.clone();
+    remapped["expression_id"] = json!(id);
     Ok(remapped)
 }
 
@@ -291,14 +445,37 @@ pub(super) fn remap_selection(
     target: &str,
     expression_id: &str,
 ) -> Result<String> {
+    remap_region_selection(before, after, target, expression_id, false)
+}
+
+pub(super) fn remap_contract_selection(
+    before: &ProjectRevision,
+    after: &ProjectRevision,
+    target: &str,
+    expression_id: &str,
+) -> Result<String> {
+    remap_region_selection(before, after, target, expression_id, true)
+}
+
+fn remap_region_selection(
+    before: &ProjectRevision,
+    after: &ProjectRevision,
+    target: &str,
+    expression_id: &str,
+    contract: bool,
+) -> Result<String> {
     let old_subject = subject(before, target)?;
     let old_programs = parse_revision(before)?;
     let (owner, function_index) = source_function(&old_programs, &old_subject, target)?;
     let old_ast = ast_facts(&old_programs[owner].functions[function_index])?;
     let old_facts = hir_facts(old_subject.function)?;
     let selected = selected(&old_facts, expression_id)?;
-    if selected.phase != "body" {
-        return Err(invalid("contract expressions cannot be replaced"));
+    if !region_admitted(selected.phase, contract) {
+        return Err(invalid(if contract {
+            "contract selection cannot be remapped across source regions"
+        } else {
+            "contract expressions cannot be replaced"
+        }));
     }
     let old_spans = hir_span_counts(&old_facts);
     let old_node = join(selected, &old_ast, &old_spans, old_subject.source.source())
@@ -309,14 +486,14 @@ pub(super) fn remap_selection(
     let new_ast = ast_facts(&new_programs[owner].functions[function_index])?;
     let new_node = new_ast
         .iter()
-        .find(|node| node.phase == "body" && node.path == old_node.path)
+        .find(|node| node.phase == selected.phase && node.path == old_node.path)
         .ok_or_else(|| {
             invalid("replacement AST parent path did not survive canonical source projection")
         })?;
     let new_facts = hir_facts(new_subject.function)?;
     let new_spans = hir_span_counts(&new_facts);
     let mut matches = new_facts.iter().filter(|fact| {
-        fact.phase == "body"
+        fact.phase == selected.phase
             && fact.expression.span == new_node.expression.span
             && join(fact, &new_ast, &new_spans, new_subject.source.source()).is_some()
     });
@@ -936,7 +1113,41 @@ fn text<'a>(value: &'a Value, key: &str) -> Result<&'a str> {
         .and_then(Value::as_str)
         .ok_or_else(|| invalid("expression intention requires a text field"))
 }
+fn region_admitted(phase: &str, contract: bool) -> bool {
+    if contract {
+        matches!(phase, "requires" | "ensures")
+    } else {
+        phase == "body"
+    }
+}
+
+fn region_at_mut<'a>(
+    function: &'a mut ast::Function,
+    phase: &str,
+    path: &[usize],
+) -> Result<&'a mut Expr> {
+    if phase == "body" {
+        return ast_at_mut(&mut function.body, path);
+    }
+    let (ordinal, children) = path
+        .split_first()
+        .ok_or_else(|| invalid("contract expression has no predicate ordinal"))?;
+    let predicates = match phase {
+        "requires" => &mut function.requires,
+        "ensures" => &mut function.ensures,
+        _ => return Err(invalid("unknown authenticated expression region")),
+    };
+    let root = predicates
+        .get_mut(*ordinal)
+        .ok_or_else(|| invalid("contract predicate ordinal is unavailable"))?;
+    ast_at_mut(root, children)
+}
+
 fn validate_request(value: &Value) -> Result<()> {
+    validate_region_request(value, false)
+}
+
+fn validate_region_request(value: &Value, contract: bool) -> Result<()> {
     let object = value
         .as_object()
         .ok_or_else(|| invalid("expression intention must be an object"))?;
@@ -944,7 +1155,12 @@ fn validate_request(value: &Value) -> Result<()> {
         || ["kind", "target", "expression_id", "replacement"]
             .iter()
             .any(|key| !object.contains_key(*key))
-        || text(value, "kind")? != "replace_expression"
+        || text(value, "kind")?
+            != if contract {
+                "replace_contract_expression"
+            } else {
+                "replace_expression"
+            }
     {
         return Err(invalid(
             "expression intention has missing or unknown fields",

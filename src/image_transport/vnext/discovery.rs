@@ -83,6 +83,12 @@ pub(super) fn payload(
             .iter()
             .any(|method| method.name == "hole/recovery-export")
         {
+            if methods
+                .iter()
+                .any(|method| method.name == "hole/open-contract-expression")
+            {
+                instructions.push_str(" Use candidate/contract-expression-catalog for authenticated requires/ensures selections, then hole/open-contract-expression with candidate_revision, target, expression_id, hole_id and optional draft_revision. Phase and predicate ordinal are compiler-derived, never source spans or request paths. Existing hole/open-expression remains body-only. Use hole/query for the selected contract scope; result is available only in ensures. Fill through hole/fill, then complete only after every body and contract hole is resolved. Failed fills preserve the draft; selections are reauthenticated after successful fills. Context and catalogue reports remain explicitly unbundled and confer no validity, execution or publication authority.");
+            }
             instructions.push_str(" Use hole/recovery-export to save prior valid history and pending selectors. hole/recovery-restore requires the same exact original source base and returns only a draft; every remaining hole must still be filled before completion. Recovery does not restore approvals or implicitly rebase after source edits.");
         }
         if methods
@@ -139,7 +145,7 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         _ => method.payload_schema,
     };
     properties["payload"] = if method.name == "hole/query" {
-        json!({"oneOf":[{"$ref":"urn:semaprax.project-candidate-hole-context.v1"},{"$ref":"urn:semaprax.project-candidate-expression-hole-context.v1"}]})
+        json!({"oneOf":[{"$ref":"urn:semaprax.project-candidate-hole-context.v1"},{"$ref":"urn:semaprax.project-candidate-expression-hole-context.v1"},{"$ref":"urn:semaprax.project-candidate-contract-expression-hole-context.v1"}]})
     } else {
         json!({"$ref":format!("urn:{payload}")})
     };
@@ -151,6 +157,8 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         "candidate/interface-delta"
         | "candidate/contract-delta"
         | "candidate/ownership-delta"
+        | "candidate/contract-expression-catalog"
+        | "hole/open-contract-expression"
         | "hole/recovery-export"
         | "hole/recovery-restore" => "candidate_prepare",
         "candidate/commit" | "candidate/commit-report" | "source-commit/status" => "source_commit",
@@ -291,6 +299,12 @@ fn draft_recovery_schema() -> Value {
     ]);
     let expression = object(vec![
         ("kind", json!({"const":"expression"})),
+        ("hole_id", id.clone()),
+        ("target", target.clone()),
+        ("expression_id", target.clone()),
+    ]);
+    let contract = object(vec![
+        ("kind", json!({"const":"contract_expression"})),
         ("hole_id", id),
         ("target", target.clone()),
         ("expression_id", target),
@@ -317,7 +331,7 @@ fn draft_recovery_schema() -> Value {
             (
                 "holes",
                 json!({"type":"array","maxItems":crate::project::MAX_PROJECT_CANDIDATE_HOLES,
-            "items":{"oneOf":[body,expression]},"x-sorted-by":"hole_id","x-unique-hole-id":true}),
+            "items":{"oneOf":[body,expression,contract]},"x-sorted-by":"hole_id","x-unique-hole-id":true}),
             ),
             ("draft_digest", digest()),
             ("capsule_digest", digest()),
@@ -475,11 +489,19 @@ mod tests {
         let holes = &capsule["properties"]["holes"];
         assert_eq!(holes["maxItems"], 16);
         let kinds = holes["items"]["oneOf"].as_array().unwrap();
-        assert_eq!(kinds.len(), 2);
+        assert_eq!(kinds.len(), 3);
         assert_eq!(kinds[0]["required"], json!(["kind", "hole_id", "target"]));
         assert_eq!(
             kinds[1]["required"],
             json!(["kind", "hole_id", "target", "expression_id"])
+        );
+        assert_eq!(
+            kinds[2]["required"],
+            json!(["kind", "hole_id", "target", "expression_id"])
+        );
+        assert_eq!(
+            kinds[2]["properties"]["kind"]["const"],
+            "contract_expression"
         );
         for kind in kinds {
             assert_eq!(kind["additionalProperties"], false);
@@ -624,6 +646,8 @@ mod tests {
             assert!(source.contains("request_candidate_contract_delta"));
             assert!(source.contains("request_candidate_ownership_delta"));
             assert!(source.contains("request_candidate_artifact_delta"));
+            assert!(source.contains("request_candidate_contract_expression_catalog"));
+            assert!(source.contains("request_hole_open_contract_expression"));
             assert!(source.contains("request_candidate_symbol_diagnostics"));
             assert!(source.contains("expected_report_revision"));
             assert!(source.contains("decode_request_candidate_apply_intent"));
@@ -725,13 +749,14 @@ mod tests {
         let operations = catalog["properties"]["operations"]["items"]["oneOf"]
             .as_array()
             .unwrap();
-        assert_eq!(operations.len(), 11);
+        assert_eq!(operations.len(), 12);
         for kind in [
             "rename_declaration",
             "change_function_signature",
             "replace_function_body",
             "repair_diagnostic",
             "replace_expression",
+            "replace_contract_expression",
             "add_contract",
             "add_declaration",
             "extract_function",

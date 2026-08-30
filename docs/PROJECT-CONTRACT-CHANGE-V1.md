@@ -49,6 +49,11 @@ all other contract inventories, declared effects and module permits remain
 unchanged. The existing explicit identity and manifest/export guards still
 apply. Neither removing nor replacing an old predicate is supported here.
 
+A separate [Contract Expression Change](PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md)
+intention can replace a selected authored subtree in an existing predicate,
+with exact source reconstruction and expected-type/ownership checks. It does
+not change the append-only behavior of `add_contract`.
+
 Canonical source is generated in memory and reparsed. Complete Project
 rebuilding links callers and revalidates contracts, ownership, cleanup and
 the selected profile. Independent source replay must reproduce the exact

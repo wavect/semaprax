@@ -5,6 +5,7 @@ use crate::project_transport::codec::RequestId;
 use std::path::PathBuf;
 
 mod commit;
+mod contract_holes;
 mod dependencies;
 mod discovery;
 mod draft_recovery;
@@ -64,6 +65,8 @@ pub(super) enum Action {
     Targets,
     Build,
     ArtifactDelta,
+    ContractExpressionCatalog,
+    ContractHoleOpen,
     InterfaceDelta,
     ContractDelta,
     OwnershipDelta,
@@ -371,6 +374,9 @@ impl VNextSession {
                     symbol_diagnostics::prepare(params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(
+                    action @ (Action::ContractExpressionCatalog | Action::ContractHoleOpen),
+                ) => contract_holes::prepare(action, params, image, registry)?,
                 Operation::VNext(Action::Dependencies) => (
                     dependencies::prepare(params, image)?,
                     candidates::Mutation::None,
@@ -585,6 +591,7 @@ fn methods(policy: &VNextPolicy, commit_enabled: bool) -> Vec<&'static Method> {
     methods.extend(review_facets::methods(policy));
     if policy.candidate_prepare {
         methods.extend(draft_recovery::methods());
+        methods.extend(contract_holes::methods());
     }
     if commit_enabled {
         methods.extend(commit::methods());

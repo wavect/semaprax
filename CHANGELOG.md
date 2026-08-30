@@ -15,6 +15,12 @@
   requires an already controlled child; general-host bootstrap, tool execution
   and production profile admission remain unwired. No support promotion.
 
+- Added typed contract-expression changes and ephemeral pre/postcondition holes,
+  with exact source replay, type/ownership preservation, conservative semantic
+  rebase and selector-only draft recovery. V5 adds candidate-granted discovery
+  and hole opening; existing body-expression behavior is unchanged. Regression
+  cases are authored, unrun; no logical contract or runtime guarantee is claimed.
+
 - Added candidate artifact deltas over actual independently replayed Web/npm
   carriers, comparing file content, stable export identities and source/carrier
   bindings. V5 requires the existing build grant; no package installation,

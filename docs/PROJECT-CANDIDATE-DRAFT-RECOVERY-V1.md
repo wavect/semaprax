@@ -41,6 +41,12 @@ Each body selector is exactly
 reconstructed last-valid revision. After partial fills, export records the
 remaining selectors already remapped by the normal fill route.
 
+The additive [Contract Expression Holes](PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md)
+row is exactly `{kind:"contract_expression",hole_id,target,expression_id}`.
+Its phase, predicate ordinal, scope and structural path are rederived from the
+replayed source. It shares the same total sixteen-hole and selector bounds;
+body/expression-only capsule bytes remain unchanged.
+
 Object keys are sorted, array order is retained, and canonical bytes end with
 one LF. The digest uses SHA-256 over the domain
 `semaprax.project-candidate-draft-recovery.payload.v1\0`, the little-endian u64
@@ -50,7 +56,8 @@ This identifies content; it establishes neither provenance nor approval.
 Restore bounds input before allocating a JSON tree, checks closed shapes,
 compiler compatibility, exact canonical bytes, original base and content digest,
 then invokes ordinary `ProjectCandidate::restore` on the nested object. It opens
-a fresh draft and replays `with_body_hole` or `with_expression_hole` for each
+a fresh draft and replays `with_body_hole`, `with_expression_hole` or
+`with_contract_expression_hole` for each
 selector. Duplicate or overlapping holes, inaccessible targets and stale
 expression identities retain their ordinary failures. Final draft identity
 and the entire regenerated capsule must match exactly before returning.

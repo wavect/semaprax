@@ -1,4 +1,4 @@
-//! Typed body/expression holes. Pending intentions never enter source.
+//! Typed body/expression/contract holes. Pending intentions never enter source.
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -30,13 +30,14 @@ pub struct ProjectCandidateDraft {
     last_valid: Arc<ProjectCandidate>,
     holes: BTreeMap<String, String>,
     expression_holes: BTreeMap<String, (String, String)>,
+    contract_expression_holes: BTreeMap<String, (String, String)>,
     json: String,
     digest: String,
 }
 
 impl ProjectCandidateDraft {
     pub fn open(candidate: Arc<ProjectCandidate>) -> Result<Self, Vec<Diagnostic>> {
-        Self::finish(candidate, BTreeMap::new(), BTreeMap::new())
+        Self::finish(candidate, BTreeMap::new(), BTreeMap::new(), BTreeMap::new())
     }
 
     pub fn with_body_hole(
@@ -47,11 +48,12 @@ impl ProjectCandidateDraft {
     ) -> Result<Self, Vec<Diagnostic>> {
         self.require_digest(expected)?;
         validate_id(hole_id)?;
-        if self.holes.len() + self.expression_holes.len() >= MAX_PROJECT_CANDIDATE_HOLES {
+        if self.pending_count() >= MAX_PROJECT_CANDIDATE_HOLES {
             return Err(capacity("candidate draft has too many pending holes"));
         }
         if self.holes.contains_key(hole_id)
             || self.expression_holes.contains_key(hole_id)
+            || self.contract_expression_holes.contains_key(hole_id)
             || self.holes.values().any(|existing| existing == target)
             || self
                 .expression_holes
@@ -67,6 +69,7 @@ impl ProjectCandidateDraft {
             Arc::clone(&self.last_valid),
             holes,
             self.expression_holes.clone(),
+            self.contract_expression_holes.clone(),
         )
     }
 
@@ -81,11 +84,12 @@ impl ProjectCandidateDraft {
     ) -> Result<Self, Vec<Diagnostic>> {
         self.require_digest(expected)?;
         validate_id(hole_id)?;
-        if self.holes.len() + self.expression_holes.len() >= MAX_PROJECT_CANDIDATE_HOLES {
+        if self.pending_count() >= MAX_PROJECT_CANDIDATE_HOLES {
             return Err(capacity("candidate draft has too many pending holes"));
         }
         if self.holes.contains_key(hole_id)
             || self.expression_holes.contains_key(hole_id)
+            || self.contract_expression_holes.contains_key(hole_id)
             || self.holes.values().any(|existing| existing == target)
         {
             return Err(grammar(
@@ -122,15 +126,86 @@ impl ProjectCandidateDraft {
             hole_id.to_owned(),
             (target.to_owned(), expression_id.to_owned()),
         );
-        Self::finish(Arc::clone(&self.last_valid), self.holes.clone(), holes)
+        Self::finish(
+            Arc::clone(&self.last_valid),
+            self.holes.clone(),
+            holes,
+            self.contract_expression_holes.clone(),
+        )
+    }
+
+    /// Select a unique authored pre/postcondition subtree. Contract and body
+    /// regions are distinct; every selection still shares one bounded draft.
+    pub fn with_contract_expression_hole(
+        &self,
+        expected: &str,
+        target: &str,
+        expression_id: &str,
+        hole_id: &str,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        self.require_digest(expected)?;
+        validate_id(hole_id)?;
+        if self.pending_count() >= MAX_PROJECT_CANDIDATE_HOLES {
+            return Err(capacity("candidate draft has too many pending holes"));
+        }
+        if self.holes.contains_key(hole_id)
+            || self.expression_holes.contains_key(hole_id)
+            || self.contract_expression_holes.contains_key(hole_id)
+        {
+            return Err(grammar("candidate draft hole ID must be unique"));
+        }
+        self.contract_expression_fact(target, expression_id)?;
+        let programs = parse_revision(self.last_valid.revision())?;
+        let selection = expression::authored_contract_selection(
+            self.last_valid.revision(),
+            &programs,
+            target,
+            expression_id,
+        )?;
+        for (other_target, other_id) in self.contract_expression_holes.values() {
+            if other_target == target {
+                let other = expression::authored_contract_selection(
+                    self.last_valid.revision(),
+                    &programs,
+                    target,
+                    other_id,
+                )?;
+                if selection.phase == other.phase
+                    && (selection.path.starts_with(&other.path)
+                        || other.path.starts_with(&selection.path))
+                {
+                    return Err(grammar(
+                        "candidate contract holes must select disjoint authored subtrees",
+                    ));
+                }
+            }
+        }
+        let mut holes = self.contract_expression_holes.clone();
+        holes.insert(
+            hole_id.to_owned(),
+            (target.to_owned(), expression_id.to_owned()),
+        );
+        Self::finish(
+            Arc::clone(&self.last_valid),
+            self.holes.clone(),
+            self.expression_holes.clone(),
+            holes,
+        )
+    }
+
+    fn pending_count(&self) -> usize {
+        self.holes.len() + self.expression_holes.len() + self.contract_expression_holes.len()
     }
 
     /// Context describes declarations and the last valid body's proof facts,
     /// not a fabricated HIR body or proof that an unfilled hole is valid.
     pub fn hole_context(&self, expected: &str, hole_id: &str) -> Result<String, Vec<Diagnostic>> {
         self.require_digest(expected)?;
+        if let Some((target, expression_id)) = self.contract_expression_holes.get(hole_id) {
+            return self.expression_context_for(target, expression_id, hole_id, true);
+        }
         if let Some((target, expression_id)) = self.expression_holes.get(hole_id) {
-            return self.expression_context(target, expression_id, hole_id);
+            return self.expression_context_for(target, expression_id, hole_id, false);
         }
         let target = self.target(hole_id)?;
         let (module, function) = self.function(target)?;
@@ -204,7 +279,11 @@ impl ProjectCandidateDraft {
         self.require_digest(expected)?;
         wire::validate_value(expression)
             .map_err(|_| capacity("candidate hole expression exceeds its input bound"))?;
-        let intent = if let Some((target, expression_id)) = self.expression_holes.get(hole_id) {
+        let intent = if let Some((target, expression_id)) =
+            self.contract_expression_holes.get(hole_id)
+        {
+            json!({"kind":"replace_contract_expression", "target":target, "expression_id":expression_id, "replacement":expression})
+        } else if let Some((target, expression_id)) = self.expression_holes.get(hole_id) {
             json!({"kind":"replace_expression", "target":target, "expression_id":expression_id, "replacement":expression})
         } else {
             let target = self.target(hole_id)?;
@@ -226,14 +305,29 @@ impl ProjectCandidateDraft {
                 expression_id,
             )?;
         }
-        Self::finish(Arc::new(candidate), holes, expression_holes)
+        let mut contract_expression_holes = self.contract_expression_holes.clone();
+        contract_expression_holes.remove(hole_id);
+        for (target, expression_id) in contract_expression_holes.values_mut() {
+            *expression_id = expression::remap_contract_selection(
+                self.last_valid.revision(),
+                candidate.revision(),
+                target,
+                expression_id,
+            )?;
+        }
+        Self::finish(
+            Arc::new(candidate),
+            holes,
+            expression_holes,
+            contract_expression_holes,
+        )
     }
 
     /// The sole escape to a materializable candidate is fail-closed while any
     /// unresolved hole remains. This still grants no filesystem authority.
     pub fn complete(&self, expected: &str) -> Result<Arc<ProjectCandidate>, Vec<Diagnostic>> {
         self.require_digest(expected)?;
-        if !self.holes.is_empty() || !self.expression_holes.is_empty() {
+        if self.pending_count() != 0 {
             return Err(stale("candidate draft contains unresolved holes"));
         }
         Ok(Arc::clone(&self.last_valid))
@@ -260,11 +354,13 @@ impl ProjectCandidateDraft {
         candidate: Arc<ProjectCandidate>,
         holes: BTreeMap<String, String>,
         expression_holes: BTreeMap<String, (String, String)>,
+        contract_expression_holes: BTreeMap<String, (String, String)>,
     ) -> Result<Self, Vec<Diagnostic>> {
         let mut draft = Self {
             last_valid: candidate,
             holes,
             expression_holes,
+            contract_expression_holes,
             json: String::new(),
             digest: String::new(),
         };
@@ -281,13 +377,21 @@ impl ProjectCandidateDraft {
                 "kind":"expression", "state":"unresolved"}),
             );
         }
+        for (id, (target, expression_id)) in &draft.contract_expression_holes {
+            let (_, fact) = draft.contract_expression_fact(target, expression_id)?;
+            pending.push(
+                json!({"hole_id":id, "target":target, "expression_id":expression_id,
+                "expected_type_id":fact["expected_type"], "expected_ownership":fact["ownership"],
+                "phase":fact["phase"], "kind":"contract_expression", "state":"unresolved"}),
+            );
+        }
         pending.sort_by(|left, right| left["hole_id"].as_str().cmp(&right["hole_id"].as_str()));
         draft.json = render(json!({
             "schema":PROJECT_CANDIDATE_DRAFT_SCHEMA,
             "last_valid_revision":draft.last_valid.revision().project_revision(),
             "last_valid_candidate_digest":draft.last_valid.candidate_digest(),
             "unresolved_holes":pending,
-            "state":if draft.holes.is_empty() && draft.expression_holes.is_empty() {"ready_to_complete"} else {"incomplete"},
+            "state":if draft.pending_count() == 0 {"ready_to_complete"} else {"incomplete"},
             "materializable":false, "source_authority":false,
             "nonclaims":["last_valid_revision_is_not_the_incomplete_candidate", "no_placeholder_ast_or_source", "no_candidate_source_or_evidence_until_complete", "no_execution_or_commit_authority"],
         }))?;
@@ -309,12 +413,31 @@ impl ProjectCandidateDraft {
         target: &str,
         expression_id: &str,
     ) -> Result<(Value, Value), Vec<Diagnostic>> {
+        self.expression_fact_for(target, expression_id, false)
+    }
+    fn contract_expression_fact(
+        &self,
+        target: &str,
+        expression_id: &str,
+    ) -> Result<(Value, Value), Vec<Diagnostic>> {
+        self.expression_fact_for(target, expression_id, true)
+    }
+    fn expression_fact_for(
+        &self,
+        target: &str,
+        expression_id: &str,
+        contract: bool,
+    ) -> Result<(Value, Value), Vec<Diagnostic>> {
         if expression_id.is_empty() || expression_id.len() > 4096 || expression_id.contains('\0') {
             return Err(grammar(
                 "candidate expression hole requires a bounded HIR identity",
             ));
         }
-        let catalog = trusted_json(&self.last_valid.expression_catalog(target)?)?;
+        let catalog = trusted_json(&if contract {
+            self.last_valid.contract_expression_catalog(target)?
+        } else {
+            self.last_valid.expression_catalog(target)?
+        })?;
         let mut facts = catalog["expressions"]
             .as_array()
             .ok_or_else(|| grammar("candidate expression catalogue is unavailable"))?
@@ -324,20 +447,28 @@ impl ProjectCandidateDraft {
             .next()
             .ok_or_else(|| grammar("candidate expression hole selector is unavailable"))?
             .clone();
-        if facts.next().is_some() || fact["replaceable"] != true || fact["phase"] != "body" {
-            return Err(grammar(
-                "candidate expression hole requires a uniquely authored body selection",
-            ));
+        let phase_valid = if contract {
+            fact["phase"] == "requires" || fact["phase"] == "ensures"
+        } else {
+            fact["phase"] == "body"
+        };
+        if facts.next().is_some() || fact["replaceable"] != true || !phase_valid {
+            return Err(grammar(if contract {
+                "candidate contract hole requires a uniquely authored contract selection"
+            } else {
+                "candidate expression hole requires a uniquely authored body selection"
+            }));
         }
         Ok((catalog, fact))
     }
-    fn expression_context(
+    fn expression_context_for(
         &self,
         target: &str,
         expression_id: &str,
         hole_id: &str,
+        contract: bool,
     ) -> Result<String, Vec<Diagnostic>> {
-        let (catalog, fact) = self.expression_fact(target, expression_id)?;
+        let (catalog, fact) = self.expression_fact_for(target, expression_id, contract)?;
         let (module, function) = self.resolved_function(target)?;
         let (prior, overflow) = crate::bounded_output::with_limit(MAX_RENDER_BYTES, || {
             let mut contracts = Vec::new();
@@ -363,22 +494,74 @@ impl ProjectCandidateDraft {
                 "candidate expression hole proof context exceeds its render bound",
             ));
         }
-        let handle = wire::digest(b"semaprax.project-candidate-expression-hole-handle.v1\0",
+        let domain: &[u8] = if contract {
+            b"semaprax.project-candidate-contract-expression-hole-handle.v1\0"
+        } else {
+            b"semaprax.project-candidate-expression-hole-handle.v1\0"
+        };
+        let schema = if contract {
+            "semaprax.project-candidate-contract-expression-hole-context.v1"
+        } else {
+            "semaprax.project-candidate-expression-hole-context.v1"
+        };
+        let intent_kind = if contract {
+            "replace_contract_expression"
+        } else {
+            "replace_expression"
+        };
+        let effect_policy = if contract {
+            json!({"allowed":[],"forbidden":"all_effects_in_contract_predicates",
+                "enclosing_declared_effects":function.effects,"module_permits":module.permits()})
+        } else {
+            json!({"allowed":function.effects,"forbidden":"all_undeclared_effects","module_permits":module.permits()})
+        };
+        let contracts_obligation = if contract {
+            "preserve_unselected_contracts_and_predicate_order"
+        } else {
+            "preserve_declared_contracts"
+        };
+        let nonclaims = if contract {
+            json!([
+                "lexical_scope_is_not_owned_value_liveness",
+                "prior_body_proofs_are_not_hole_validity",
+                "no_placeholder_ast_or_source",
+                "no_execution_or_publication_authority",
+                "contract_replacement_may_change_valid_inputs_or_runtime_failures",
+                "no_logical_implication_satisfaction_or_compatibility_proof"
+            ])
+        } else {
+            json!([
+                "lexical_scope_is_not_owned_value_liveness",
+                "prior_body_proofs_are_not_hole_validity",
+                "no_placeholder_ast_or_source",
+                "no_execution_or_publication_authority"
+            ])
+        };
+        let mut calls = self.accessible_calls(module, function)?;
+        if contract {
+            for call in &mut calls {
+                // Lexical accessibility is unchanged; predicates have a pure
+                // budget even when their enclosing function declares effects.
+                let pure = call["effects"].as_array().is_some_and(Vec::is_empty);
+                call["within_effect_budget"] = json!(pure);
+            }
+        }
+        let handle = wire::digest(domain,
             render(json!({"draft":self.draft_digest(),"hole":hole_id,"target":target,"expression_id":expression_id}))?.as_bytes());
         render(
-            self.with_aggregate_context(module, json!({"schema":"semaprax.project-candidate-expression-hole-context.v1",
+            self.with_aggregate_context(module, json!({"schema":schema,
             "draft_digest":self.draft_digest(),"hole_id":hole_id,"hole_handle":handle,
             "target":target,"expression_id":expression_id,"source":catalog["source"],
             "last_valid_revision":self.last_valid.revision().project_revision(),
             "expected_type_id":fact["expected_type"],"expected_ownership":fact["ownership"],
             "scope":fact["scope"],"selected_expression":fact,
-            "effect_policy":{"allowed":function.effects,"forbidden":"all_undeclared_effects","module_permits":module.permits()},
-            "accessible_calls":self.accessible_calls(module,function)?,"prior_body_proof":prior?,
-            "obligations":["preserve_selected_type_and_ownership","preserve_declared_contracts","revalidate_whole_function_ownership_loans_cleanup","no_new_effects_or_capabilities","preserve_project_profile_and_previously_admitted_core_targets"],
-            "intent_kind":"replace_expression","constructor_owner":"semaprax.semantic-change.v1",
+            "effect_policy":effect_policy,
+            "accessible_calls":calls,"prior_body_proof":prior?,
+            "obligations":["preserve_selected_type_and_ownership",contracts_obligation,"revalidate_whole_function_ownership_loans_cleanup","no_new_effects_or_capabilities","preserve_project_profile_and_previously_admitted_core_targets"],
+            "intent_kind":intent_kind,"constructor_owner":"semaprax.semantic-change.v1",
             "constructor_kinds":["i64","i32","u8","usize","bool","place","call","unary","binary","if","let"],
             "validation":"pending_fill_full_source_replay","materializable":false,"source_authority":false,
-            "nonclaims":["lexical_scope_is_not_owned_value_liveness","prior_body_proofs_are_not_hole_validity","no_placeholder_ast_or_source","no_execution_or_publication_authority"]}))?,
+            "nonclaims":nonclaims}))?,
         )
     }
 

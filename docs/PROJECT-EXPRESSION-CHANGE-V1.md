@@ -41,6 +41,10 @@ arm bindings do not leak into siblings or enclosing scopes. Guard expressions
 see their own arm's bindings. Contract entries are read-only; postcondition
 entries additionally expose the authenticated result binding.
 
+The separate [Contract Expression Change and Holes](PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md)
+API offers contract-region discovery and replacement. It leaves this catalogue
+and `replace_expression` body-only, including their contract rejection behavior.
+
 ## Closed intention
 
 The intention has exactly `kind`, `target`, `expression_id`, and `replacement`:

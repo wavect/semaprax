@@ -348,6 +348,38 @@ impl Registry {
     pub(super) fn draft_value(&self, id: &str) -> Result<&ProjectCandidateDraft, Vec<Diagnostic>> {
         Ok(self.draft(id)?.draft.as_ref())
     }
+    /// V5-only selection; the legacy body/expression method tables are unchanged.
+    pub(super) fn open_contract_hole(
+        &self,
+        candidate_revision: &str,
+        draft_revision: Option<&str>,
+        target: &str,
+        expression_id: &str,
+        hole_id: &str,
+    ) -> Result<(Value, Mutation), Vec<Diagnostic>> {
+        let candidate = self.candidate(candidate_revision)?;
+        let draft = if let Some(id) = draft_revision {
+            let entry = self.draft(id)?;
+            if entry.source_candidate != candidate.candidate_digest() {
+                return Err(failure(
+                    "SPX-G232",
+                    "draft belongs to a different candidate",
+                ));
+            }
+            entry
+                .draft
+                .with_contract_expression_hole(id, target, expression_id, hole_id)?
+        } else {
+            let draft = ProjectCandidateDraft::open(Arc::clone(candidate))?;
+            draft.with_contract_expression_hole(
+                draft.draft_digest(),
+                target,
+                expression_id,
+                hole_id,
+            )?
+        };
+        retain_draft(draft, candidate.candidate_digest())
+    }
     pub(super) fn retain_recovered_draft(
         &self,
         draft: ProjectCandidateDraft,

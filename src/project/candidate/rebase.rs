@@ -137,6 +137,35 @@ fn apply_rebound(
     if change.intent["kind"] == "implement_interface" {
         return Err(super::interface::rebase_conflict());
     }
+    if change.intent["kind"] == "replace_contract_expression" {
+        let target = change.intent["target"]
+            .as_str()
+            .ok_or_else(|| grammar("contract replacement target is absent"))?;
+        let expression = change.intent["expression_id"]
+            .as_str()
+            .ok_or_else(|| grammar("contract replacement selector is absent"))?;
+        let mut dependencies =
+            super::expression::contract_call_targets(original_revision, target, expression)?;
+        dependencies.extend(called_intent_targets(&change.intent));
+        if !dependencies.is_empty() {
+            let before = fingerprints(original_revision)?;
+            let after = fingerprints(candidate.revision())?;
+            for dependency in dependencies {
+                let left = before.get(&dependency).ok_or_else(|| {
+                    conflict("contract call dependency lacks authenticated source facts")
+                })?;
+                let right = after
+                    .get(&dependency)
+                    .ok_or_else(|| conflict("contract call dependency was concurrently removed"))?;
+                if left.signature != right.signature
+                    || left.effects != right.effects
+                    || left.contracts != right.contracts
+                {
+                    return Err(conflict("contract call dependency signature, effects or contracts changed concurrently"));
+                }
+            }
+        }
+    }
     // Check each original/rebased intermediate revision, not only the two
     // history roots. Earlier intentions may legitimately change a shape that
     // a later aggregate constructor references.
@@ -181,6 +210,13 @@ fn apply_rebound(
     let mapped;
     let intent = if change.intent["kind"] == "replace_expression" {
         mapped = super::expression::rebase_intent(
+            original_revision,
+            candidate.revision(),
+            &change.intent,
+        )?;
+        &mapped
+    } else if change.intent["kind"] == "replace_contract_expression" {
+        mapped = super::expression::rebase_contract_intent(
             original_revision,
             candidate.revision(),
             &change.intent,
@@ -446,9 +482,10 @@ fn classify(
             "replace_function_body" | "replace_expression" | "extract_function" if signature_changed || body_changed || effects_changed => return Err(conflict("body replacement conflicts with concurrent target body, signature or effects")),
             "change_function_signature" if signature_changed || body_changed || effects_changed => return Err(conflict("signature evolution conflicts with concurrent target signature, body or effects")),
             "add_contract" if signature_changed || effects_changed => return Err(conflict("contract addition conflicts with concurrent target signature or effects")),
+            "replace_contract_expression" if signature_changed || contracts_changed || effects_changed => return Err(conflict("contract replacement conflicts with concurrent target signature, contracts or effects")),
             "add_declaration" if signature_changed || effects_changed => return Err(conflict("declaration addition conflicts with concurrent target signature or effects")),
             "move_declaration" if signature_changed || effects_changed => return Err(conflict("declaration move conflicts with concurrent target signature or effects")),
-            "rename_declaration" | "replace_function_body" | "replace_expression" | "change_function_signature" | "add_contract" | "add_declaration" | "extract_function" | "add_record_field" | "move_declaration" => {},
+            "rename_declaration" | "replace_function_body" | "replace_expression" | "replace_contract_expression" | "change_function_signature" | "add_contract" | "add_declaration" | "extract_function" | "add_record_field" | "move_declaration" => {},
             _ => return Err(grammar("candidate rebase does not admit this intention kind")),
         }
         if kind == "move_declaration" {

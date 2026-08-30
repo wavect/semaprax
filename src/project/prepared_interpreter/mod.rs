@@ -9,9 +9,9 @@ mod tests;
 mod trace;
 
 use std::collections::BTreeMap;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, SyncSender};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread::JoinHandle;
 
 use crate::diagnostic::Diagnostic;
@@ -32,6 +32,10 @@ pub const MAX_PROJECT_SOURCE_TRACE_BYTES: usize = 16 * 1024 * 1024;
 pub const MAX_PROJECT_SOURCE_TRACE_EVENTS: usize = 65_536;
 pub const DEFAULT_PROJECT_SOURCE_TRACE_BYTES: usize = 1024 * 1024;
 pub const DEFAULT_PROJECT_SOURCE_TRACE_EVENTS: usize = 4096;
+/// Process-wide ceiling for retained 64 MiB prepared-interpreter workers.
+pub(crate) const MAX_PREPARED_PROJECT_INTERPRETER_WORKERS: usize = 8;
+
+static ACTIVE_PREPARED_PROJECT_INTERPRETER_WORKERS: AtomicUsize = AtomicUsize::new(0);
 
 /// Monotonic cooperative cancellation for one prepared execution request.
 #[derive(Clone, Default)]
@@ -148,7 +152,7 @@ impl PreparedProjectExecution {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct FunctionOrigin {
     pub(super) path: String,
     pub(super) source_revision: String,
@@ -178,8 +182,10 @@ enum WorkerMessage {
 /// revision. Creating it owns exactly one local worker thread.
 pub struct PreparedProjectInterpreter {
     sender: SyncSender<WorkerMessage>,
-    worker: Mutex<Option<JoinHandle<()>>>,
+    worker: Option<JoinHandle<()>>,
     ceilings: PreparedProjectInterpreterOptions,
+    executing: AtomicBool,
+    _worker_permit: PreparedWorkerPermit,
 }
 
 impl PreparedProjectInterpreter {
@@ -189,6 +195,7 @@ impl PreparedProjectInterpreter {
         options: &PreparedProjectExecutionOptions,
         cancellation: &ProjectExecutionCancellation,
     ) -> Result<PreparedProjectExecution, Vec<Diagnostic>> {
+        let _admission = ExecutionAdmission::acquire(&self.executing)?;
         PreparedProjectExecutionOptions::new(
             options.max_steps,
             options.max_trace_bytes,
@@ -238,11 +245,67 @@ impl PreparedProjectInterpreter {
 impl Drop for PreparedProjectInterpreter {
     fn drop(&mut self) {
         let _ = self.sender.send(WorkerMessage::Shutdown);
-        if let Ok(slot) = self.worker.get_mut() {
-            if let Some(worker) = slot.take() {
-                let _ = worker.join();
+        if let Some(worker) = self.worker.take() {
+            let _ = worker.join();
+        }
+    }
+}
+
+#[derive(Debug)]
+struct ExecutionAdmission<'a> {
+    executing: &'a AtomicBool,
+}
+
+impl<'a> ExecutionAdmission<'a> {
+    fn acquire(executing: &'a AtomicBool) -> Result<Self, Vec<Diagnostic>> {
+        executing
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .map_err(|_| {
+                vec![worker_error(
+                    "prepared interpreter already has one outstanding execution",
+                )]
+            })?;
+        Ok(Self { executing })
+    }
+}
+
+impl Drop for ExecutionAdmission<'_> {
+    fn drop(&mut self) {
+        self.executing.store(false, Ordering::Release);
+    }
+}
+
+#[derive(Debug)]
+struct PreparedWorkerPermit {
+    active: &'static AtomicUsize,
+}
+
+impl PreparedWorkerPermit {
+    fn acquire(active: &'static AtomicUsize, limit: usize) -> Result<Self, Vec<Diagnostic>> {
+        let mut observed = active.load(Ordering::Acquire);
+        loop {
+            if observed >= limit {
+                return Err(vec![prepare_error(&format!(
+                    "process-wide prepared interpreter worker bound of {limit} exceeded"
+                ))]);
+            }
+            match active.compare_exchange_weak(
+                observed,
+                observed + 1,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => return Ok(Self { active }),
+                Err(current) => observed = current,
             }
         }
+    }
+}
+
+impl Drop for PreparedWorkerPermit {
+    fn drop(&mut self) {
+        let previous = self.active.fetch_sub(1, Ordering::AcqRel);
+        debug_assert!(previous != 0, "prepared worker accounting underflowed");
     }
 }
 
@@ -252,6 +315,10 @@ pub fn prepare_project_interpreter(
 ) -> Result<PreparedProjectInterpreter, Vec<Diagnostic>> {
     PreparedProjectInterpreterOptions::new(options.max_trace_bytes, options.max_trace_events)
         .map_err(|diagnostic| vec![diagnostic])?;
+    let worker_permit = PreparedWorkerPermit::acquire(
+        &ACTIVE_PREPARED_PROJECT_INTERPRETER_WORKERS,
+        MAX_PREPARED_PROJECT_INTERPRETER_WORKERS,
+    )?;
     let entry = interpreter::prepare_resolved_zero_arg_i64(
         revision.entry_program(),
         revision.entry_program().entrypoint.as_str(),
@@ -275,11 +342,8 @@ pub fn prepare_project_interpreter(
             "combined entry/test origin-node bound exceeded",
         )]);
     }
-    let mut origins = BTreeMap::new();
+    let mut origins: BTreeMap<String, FunctionOrigin> = BTreeMap::new();
     for id in entry.function_ids().chain(test.function_ids()) {
-        if origins.contains_key(id) {
-            continue;
-        }
         let semantic = revision.semantic.rename_function(id).ok_or_else(|| {
             vec![prepare_error(
                 "prepared function has no Phase-A source identity",
@@ -290,21 +354,13 @@ pub fn prepare_project_interpreter(
             .iter()
             .find(|source| source.path() == semantic.path)
             .ok_or_else(|| vec![prepare_error("prepared source path is absent")])?;
-        bytes = bytes
-            .checked_add(id.len())
-            .and_then(|value| value.checked_add(source.path().len()))
-            .and_then(|value| value.checked_add(source.source_revision().len()))
-            .and_then(|value| value.checked_add(source.source_digest().len()))
-            .ok_or_else(|| vec![prepare_error("prepared source index accounting overflowed")])?;
-        origins.insert(
-            id.to_owned(),
-            FunctionOrigin {
-                path: source.path().to_owned(),
-                source_revision: source.source_revision().to_owned(),
-                source_digest: source.source_digest().to_owned(),
-                source_bytes: source.source().len(),
-            },
-        );
+        let origin = FunctionOrigin {
+            path: source.path().to_owned(),
+            source_revision: source.source_revision().to_owned(),
+            source_digest: source.source_digest().to_owned(),
+            source_bytes: source.source().len(),
+        };
+        insert_origin(&mut origins, id, origin, &mut bytes)?;
     }
     if bytes > interpreter::MAX_PREPARED_INDEX_BYTES {
         return Err(vec![prepare_error(
@@ -318,7 +374,7 @@ pub fn prepare_project_interpreter(
         test,
         origins,
     };
-    let (sender, receiver) = mpsc::sync_channel(1);
+    let (sender, receiver) = mpsc::sync_channel(0);
     let worker_revision = Arc::clone(&revision);
     let worker = std::thread::Builder::new()
         .name("semaprax-project-prepared".to_owned())
@@ -331,9 +387,35 @@ pub fn prepare_project_interpreter(
         })?;
     Ok(PreparedProjectInterpreter {
         sender,
-        worker: Mutex::new(Some(worker)),
+        worker: Some(worker),
         ceilings: options,
+        executing: AtomicBool::new(false),
+        _worker_permit: worker_permit,
     })
+}
+
+fn insert_origin(
+    origins: &mut BTreeMap<String, FunctionOrigin>,
+    id: &str,
+    origin: FunctionOrigin,
+    bytes: &mut usize,
+) -> Result<(), Vec<Diagnostic>> {
+    if let Some(previous) = origins.get(id) {
+        if previous != &origin {
+            return Err(vec![prepare_error(
+                "duplicate prepared function source-origin facts disagree",
+            )]);
+        }
+        return Ok(());
+    }
+    *bytes = bytes
+        .checked_add(id.len())
+        .and_then(|value| value.checked_add(origin.path.len()))
+        .and_then(|value| value.checked_add(origin.source_revision.len()))
+        .and_then(|value| value.checked_add(origin.source_digest.len()))
+        .ok_or_else(|| vec![prepare_error("prepared source index accounting overflowed")])?;
+    origins.insert(id.to_owned(), origin);
+    Ok(())
 }
 
 fn validate_origin_spans(
@@ -435,7 +517,7 @@ fn execute_request(
     )
 }
 
-pub(super) fn finish_execution(
+fn finish_execution(
     revision: &ProjectRevision,
     role: ProjectExecutionRole,
     options: PreparedProjectExecutionOptions,

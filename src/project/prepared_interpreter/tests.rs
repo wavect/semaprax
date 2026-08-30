@@ -1,4 +1,6 @@
+use std::collections::BTreeMap;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use super::*;
 
@@ -93,5 +95,70 @@ fn options_and_resigned_origin_mutation_fail_closed() {
     assert_eq!(
         verify_project_source_trace(&hostile).unwrap_err().code,
         "SPX-F110"
+    );
+}
+
+#[test]
+fn worker_permit_is_bounded_and_released_exactly_once() {
+    static ACTIVE: AtomicUsize = AtomicUsize::new(0);
+    let first = PreparedWorkerPermit::acquire(&ACTIVE, 2).unwrap();
+    let second = PreparedWorkerPermit::acquire(&ACTIVE, 2).unwrap();
+    assert_eq!(
+        PreparedWorkerPermit::acquire(&ACTIVE, 2)
+            .unwrap_err()
+            .first()
+            .unwrap()
+            .code,
+        "SPX-F107"
+    );
+    drop(first);
+    let replacement = PreparedWorkerPermit::acquire(&ACTIVE, 2).unwrap();
+    drop(second);
+    drop(replacement);
+    assert_eq!(ACTIVE.load(Ordering::Acquire), 0);
+}
+
+#[test]
+fn execution_admission_rejects_concurrent_work_and_reopens_after_release() {
+    let executing = AtomicBool::new(false);
+    let first = ExecutionAdmission::acquire(&executing).unwrap();
+    assert_eq!(
+        ExecutionAdmission::acquire(&executing)
+            .unwrap_err()
+            .first()
+            .unwrap()
+            .code,
+        "SPX-F109"
+    );
+    drop(first);
+    drop(ExecutionAdmission::acquire(&executing).unwrap());
+}
+
+#[test]
+fn duplicate_function_origin_must_be_exact_and_is_counted_once() {
+    let origin = FunctionOrigin {
+        path: "src/app.spx".to_owned(),
+        source_revision: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            .to_owned(),
+        source_digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            .to_owned(),
+        source_bytes: 128,
+    };
+    let mut origins = BTreeMap::new();
+    let mut bytes = 0;
+    insert_origin(&mut origins, "app.main", origin.clone(), &mut bytes).unwrap();
+    let exact_bytes = bytes;
+    insert_origin(&mut origins, "app.main", origin.clone(), &mut bytes).unwrap();
+    assert_eq!(bytes, exact_bytes);
+
+    let mut drifted = origin;
+    drifted.source_bytes += 1;
+    assert_eq!(
+        insert_origin(&mut origins, "app.main", drifted, &mut bytes)
+            .unwrap_err()
+            .first()
+            .unwrap()
+            .code,
+        "SPX-F107"
     );
 }

@@ -650,6 +650,18 @@ a handle; their drop observes `free(NULL)` without a payload allocation. These
 authored O0/O2 checks remain unrun; test-only allocator instrumentation is not a public
 ABI, an OOM-recovery proof, or a sanitizer substitute.
 
+The provisioned [Owned Data Browser v1 fixture](../platform-tests/owned-data-browser-v1/README.md)
+now imports an actual generated direct-Bytes package in the existing three
+browser projects instead of trusting an injected global and skipping a missing
+URL. Its fixed Project and separate compiler-side carrier test bind the fixture
+signatures; the browser cases cover capacity, hostile inputs, copy independence,
+Wasm authentication before engine instantiation, and same-instance recovery
+after genuine pre/post-owned-staging failures. Required shared/resizable/transfer
+features fail closed when unavailable. These cases remain authored and unrun;
+host-provisioned package provenance, raw-carrier fault coverage and physical
+cleanup traces are separate obligations. No production artifact or schema
+changes follow from completing this evidence fixture.
+
 ## Nonclaims
 
 Public Owned Data API v1 does not claim public records or authored variants,

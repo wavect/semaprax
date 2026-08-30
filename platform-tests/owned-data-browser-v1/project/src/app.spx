@@ -1,0 +1,34 @@
+module owned_browser.app;
+
+@id("frame.fail-after")
+fn fail_after(input: borrow Slice<u8>, zero: i64) -> Bytes
+{
+    let staged = bytes_copy(input);
+    let ignored = 1 / zero;
+    staged
+}
+
+@id("frame.fail-before")
+fn fail_before(input: borrow Slice<u8>, zero: i64) -> Bytes
+{
+    let ignored = 1 / zero;
+    bytes_copy(input)
+}
+
+@id("frame.mixed")
+fn mixed(flag: bool, text: borrow str, input: borrow Slice<u8>) -> Bytes
+{
+    if flag { bytes_copy(input) } else { bytes_copy(str_as_bytes(text)) }
+}
+
+@id("frame.payload")
+fn payload(input: borrow Slice<u8>) -> Bytes
+{
+    bytes_copy(input)
+}
+
+@id("owned-browser.app.main")
+fn main() -> i64
+{
+    0
+}

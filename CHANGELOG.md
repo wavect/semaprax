@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Replaced the direct-Bytes browser placeholder with a fixed Project-v8 subject
+  and real generated-package boundary tests for all three existing browser
+  projects. The authored cases cover capacity, hostile buffers and getters,
+  copy independence, pre-instantiation Wasm authentication and genuine
+  pre/post-staging failure recovery; missing prerequisites fail rather than
+  skip. No tests were run and no runtime, schema, dependency, workflow or
+  support-status change is claimed.
+
 - Corrected Unix npm publication success binding: canonical path equality is
   now followed by a held/reopened parent identity comparison. Same-path parent
   or ancestor replacement reports failure while preserving the original

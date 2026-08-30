@@ -101,6 +101,12 @@ widening:
 5. record the exact commit and hosted run before describing the bounded API as
    promoted, supported, or released.
 
+The real-browser requirement includes the provisioned
+[direct-Bytes boundary fixture](../platform-tests/owned-data-browser-v1/README.md),
+not only the frame-format corpus. Its newly authored hostile-input, capacity,
+artifact-authentication and failure-recovery cases must run on each selected
+engine before promotion; a missing prerequisite is not a successful skip.
+
 The authored additive read-only [Project Agent Transport
 v5](PROJECT-AGENT-TRANSPORT-V5.md) exposes only the canonical API descriptor and
 bounded inline npm carrier. Promotion must still prove exact revision and typed

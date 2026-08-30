@@ -1,0 +1,8 @@
+schema = "semaprax.project.v8"
+name = "owned-data-browser"
+version = "0.1.0"
+profile = "owned-data-api.v1"
+entry = "owned_browser.app"
+sources = ["src/app.spx", "src/tests.spx"]
+web_exports = ["frame.fail-after", "frame.fail-before", "frame.mixed", "frame.payload"]
+tests = ["owned_browser.tests"]

@@ -652,6 +652,13 @@ Initialization rejection retains its existing error with no further provider
 operation in that invocation or its cleanup. A later explicit invocation may
 attempt initialization again; only success creates the close obligation.
 
+`platform-tests/owned-data-browser-v1/project` owns a separate fixed direct-Bytes
+browser subject. Its Rust fixture test authenticates the Project and inline
+carrier; its provisioned browser runner imports the actual generated package
+into a test-owned isolated document for hostile-input and lifecycle checks.
+It does not authenticate the host's source provenance or replace physical
+cleanup evidence. The existing three-engine gate remains authored and unrun.
+
 `examples/frame-payload-project`, `examples/frame-payload-web`,
 `examples/frame-payload-rust`, and `tests/frame_payload_product_v1.rs` form one
 authored validation product over an identical corpus. Its lanes cover the

@@ -648,6 +648,54 @@ impl NativeBytesPlan {
         ))
     }
 
+    pub(super) fn transfer_field_at(
+        &self,
+        at: &ExpressionId,
+        source_value: &str,
+        destination: &CleanupPlace,
+    ) -> Result<String, Diagnostic> {
+        let mut matches =
+            self.transitions.get(at).into_iter().flatten().filter_map(
+                |transition| match transition {
+                    CleanupTransition::Transfer {
+                        source,
+                        destination: target,
+                        ..
+                    } if target == destination => Some(source),
+                    _ => None,
+                },
+            );
+        let source = matches
+            .next()
+            .ok_or_else(|| error("owned Bytes field has no canonical initializer transfer"))?;
+        if matches.next().is_some() {
+            return Err(error("owned Bytes field initializer transfer is ambiguous"));
+        }
+        let source = self
+            .slots
+            .get(source)
+            .ok_or_else(|| error("owned Bytes field source is not indexed"))?;
+        let destination = self
+            .slots
+            .get(destination)
+            .ok_or_else(|| error("owned Bytes field destination is not indexed"))?;
+        // Calls and blocks may already have applied this exact transition.
+        // Places and branch values leave it to their consuming constructor.
+        if source_value == destination.value {
+            return Ok(String::new());
+        }
+        if source_value != source.value {
+            return Err(error(
+                "owned Bytes field value disagrees with its plan source",
+            ));
+        }
+        Ok(emit_transfer(
+            source,
+            destination,
+            "field initializer transfer",
+        ))
+    }
+
     pub(super) fn transfer_from_to(
         &self,
         source_value: &str,

@@ -7,14 +7,15 @@ const SOURCE: &str = r#"module result.app;
 @id("result.value")
 fn value(input: borrow Slice<u8>) -> Result<Bytes, i64> {
     let length = byte_len(input);
-    if length == 0usize { Result<Bytes, i64>::Err { error: 0 } }
-    else if length == 1usize { Result<Bytes, i64>::Err { error: 0 - 9223372036854775807 - 1 } }
-    else if length == 2usize { Result<Bytes, i64>::Err { error: 9223372036854775807 } }
-    else {
-        let owned = bytes_copy(input);
-        let divisor = if length == 4usize { 0 } else { 1 };
-        let checked = 1 / divisor;
-        Result<Bytes, i64>::Ok { value: owned }
+    if length == 0usize { Result<Bytes, i64>::Err { error: 0 } } else {
+        if length == 1usize { Result<Bytes, i64>::Err { error: 0 - 9223372036854775807 - 1 } } else {
+            if length == 2usize { Result<Bytes, i64>::Err { error: 9223372036854775807 } } else {
+                let owned = bytes_copy(input);
+                let divisor = if length == 4usize { 0 } else { 1 };
+                let checked = 1 / divisor;
+                Result<Bytes, i64>::Ok { value: owned }
+            }
+        }
     }
 }
 @id("result.main") fn main() -> i64 { 0 }

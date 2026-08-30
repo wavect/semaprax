@@ -130,10 +130,27 @@ fn compile_and_run(source: &str, probe: &str, optimization: &str) {
 
 #[test]
 fn flat_owned_byte_records_execute_and_settle_exactly_at_o0_and_o2() {
+    assert_native_record_corpus(SOURCE);
+}
+
+#[test]
+fn record_field_places_branches_and_blocks_follow_exact_cleanup_transfers() {
+    let original = "Packet { left: bytes_copy(left), marker: 9, right: bytes_copy(right) }";
+    assert_eq!(SOURCE.matches(original).count(), 1);
+    for replacement in [
+        "let first = bytes_copy(left); let second = bytes_copy(right); Packet { left: first, marker: 9, right: second }",
+        "Packet { left: if true { bytes_copy(left) } else { bytes_copy(left) }, marker: 9, right: if false { bytes_copy(right) } else { bytes_copy(right) } }",
+        "Packet { left: { let first = bytes_copy(left); first }, marker: 9, right: { let second = bytes_copy(right); second } }",
+    ] {
+        assert_native_record_corpus(&SOURCE.replace(original, replacement));
+    }
+}
+
+fn assert_native_record_corpus(source: &str) {
     if Command::new("clang").arg("--version").output().is_err() {
         return;
     }
-    let program = parse(SOURCE, Path::new("owned-byte-record-native-v1.spx")).unwrap();
+    let program = parse(source, Path::new("owned-byte-record-native-v1.spx")).unwrap();
     let generated = codegen::emit_c(&program).unwrap();
     assert_eq!(generated, codegen::emit_c(&program).unwrap());
     assert!(!generated.contains("memcpy(&"));

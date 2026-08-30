@@ -12,6 +12,9 @@ use sha2::{Digest, Sha256};
 #[path = "project_flat_owned_record_api_v1/admission.rs"]
 mod admission;
 
+#[path = "project_flat_owned_record_api_v1/semantic_replay.rs"]
+mod semantic_replay;
+
 const PROJECT_REVISION: &str =
     "sha256:1111111111111111111111111111111111111111111111111111111111111111";
 const WORKSPACE_REVISION: &str =

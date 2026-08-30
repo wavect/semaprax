@@ -157,6 +157,13 @@ equivalence and native sanitizer evidence remain unrun gates before promotion.
 
 ## Authored evidence
 
+The shared [descriptor cross-replay cases](PUBLIC-OWNED-DATA-API-V1.md#canonical-public-api-descriptor)
+include authentic v10 `Bytes` and owned-UTF8 counterparts under the same profile
+and synthetic subject facts. Self-replay succeeds; each correctly digested
+descriptor must reject against the other's retained HIR. This is signature
+binding evidence authored but unrun, not cross-schema rejection, source
+provenance, behavioral equivalence or target execution.
+
 `tests/project_v10_recipe_consumer_v1.rs` uses a real four-source Project,
 with two imported owned-String helpers sharing a display name but retaining
 different stable identities, including source-escaped control characters. It

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added authentic descriptor cross-replay regressions for v8/v10 and v9:
+  separately checked programs produce valid, correctly digested descriptors
+  that self-replay but reject against the other retained HIR. Explicit
+  signature/record-field deltas and body/function-name invariance controls
+  distinguish semantic binding from mere hash rejection. The new tests are
+  authored and unrun; production code, schemas and golden outputs are unchanged.
+
 - Replaced the direct-Bytes browser placeholder with a fixed Project-v8 subject
   and real generated-package boundary tests for all three existing browser
   projects. The authored cases cover capacity, hostile buffers and getters,

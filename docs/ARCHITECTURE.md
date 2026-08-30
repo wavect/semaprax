@@ -582,7 +582,10 @@ boundary and authored, unrun regression modules. Windows routes are unchanged.
 
 Project v8 adds one closed `owned-data-api.v1` route. `src/project/public_api.rs`
 derives and independently replays the sole semantic API descriptor from the
-authenticated linked-HIR subject. `src/project/npm/owned_data.rs` and the
+authenticated linked-HIR subject. Authentic cross-replay regressions distinguish
+its retained-signature checks from digest rejection; equal descriptors alone
+do not prove function-body equivalence or source provenance.
+`src/project/npm/owned_data.rs` and the
 owned-data Wasm lowering consume that descriptor for the npm package. The
 shared `src/project/npm/owned_data_input_v8.js` admits complete input tuples
 before snapshot allocation, using captured brand/buffer intrinsics. Its

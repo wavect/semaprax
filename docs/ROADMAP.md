@@ -91,7 +91,9 @@ The next outcomes are therefore validation and promotion, not another semantic
 widening:
 
 1. execute the descriptor, HIR-link, carrier, settlement, hostile-input, and
-   v1–v7 known-answer gates at one integration head;
+   v1–v7 known-answer gates at one integration head, including authentic
+   correctly digested descriptor cross-replay rather than only stale-digest
+   mutation rejection;
 2. execute the identical frame-payload corpus through interpreter, native
    C11 O0/O2, Core Wasm/Node, installed npm, and compiler-free Rust consumers;
 3. run strict TypeScript, real-browser, sanitizer, MSRV, and Linux/macOS/Windows

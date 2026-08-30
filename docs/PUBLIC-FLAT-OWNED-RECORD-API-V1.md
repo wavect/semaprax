@@ -207,6 +207,18 @@ adding dependencies or exposing a new public replay API. These tests remain
 unrun; the private descriptor-size model is only a byte-guard check, not a
 proof of semantic admission or peak allocation.
 
+`tests/project_flat_owned_record_api_v1/semantic_replay.rs` supplements those
+mutations with authentic descriptors derived from two valid HIR counterparts.
+Each descriptor first self-replays, then must fail against the other HIR with
+the exact retained-HIR diagnostic despite its correct digest. The cases bind
+record/field identities, field type and declaration order (including the sole
+owned-field ordinal), record/field presentation names and parameter type/name.
+Function-body and function-display-name controls preserve descriptor bytes;
+record and field names are included facts and therefore are negative cases.
+Synthetic revision facts are intentionally equal for this lower-level oracle,
+not evidence of unchanged real Project revisions or source provenance. The
+tests are authored and unrun, and change no descriptor, runtime or golden bytes.
+
 `tests/project_v9_recipe_identity_v1.rs` adds actual multi-module Project
 admission and npm replay for colliding display names, retained control-bearing
 identities, and display-only renames. Its native assertion reaches a deliberately

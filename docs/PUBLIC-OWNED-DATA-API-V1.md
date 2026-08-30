@@ -194,6 +194,25 @@ duplicate-ID mutations; lower cases cover both schemas and valid parameter
 boundaries as well as duplicates. Structural uniqueness is per export, not a
 new cross-export identity rule.
 
+The additional `tests/public_api_descriptor_v1/semantic_replay.rs` cases
+distinguish retained-HIR binding from framing and digest rejection. Each pair
+derives two authentic descriptors from separately checked source, first
+replays each against its own HIR, then cross-replays both directions using
+their correct digests and requires the exact retained-subject diagnostic.
+V8 and v10 cover parameter types, names, order and arity, scalar and owned
+result types; v10 additionally distinguishes `Bytes` from owned UTF-8. Explicit
+fact assertions keep these cases from degenerating into unrelated mutations.
+
+The fixture deliberately holds synthetic revision facts constant to isolate
+signature replay. It does not claim an edited real Project retains its revision,
+that a descriptor authenticates source provenance, or that equal descriptors
+prove equal function behavior. Body-only and function-display-name controls
+preserve descriptor bytes; parameter presentation names are included facts.
+Parameter IDs derive from function identity and ordinal, so no independent
+source-authored parameter-ID mutation is claimed. These added cases are
+authored and unrun; production code, schemas and existing golden bytes remain
+unchanged.
+
 This descriptor is the sole semantic API source for JavaScript bindings,
 TypeScript declarations, npm metadata, native provider descriptors, and the
 safe Rust SDK. A target may add authenticated target-layout facts, but it may

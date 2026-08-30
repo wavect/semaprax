@@ -191,7 +191,22 @@ impl ImageWorkspace {
     /// Opt in to an invocation-owned AST cache. Initial priming performs one
     /// complete source build and compares it with the retained image subject.
     pub fn with_frontend_cache(image: Arc<ProjectSemanticImage>) -> Result<Self> {
-        let mut frontend = super::ProjectFrontendCache::new();
+        Self::with_cache(image, super::ProjectFrontendCache::new())
+    }
+
+    /// Opt in to exact-input checked-module HIR reuse. Priming is still a cold
+    /// source build; this does not adopt HIR from a serialized image or store.
+    pub fn with_semantic_cache(image: Arc<ProjectSemanticImage>) -> Result<Self> {
+        Self::with_cache(
+            image,
+            super::ProjectFrontendCache::new_with_semantic_cache(),
+        )
+    }
+
+    fn with_cache(
+        image: Arc<ProjectSemanticImage>,
+        mut frontend: super::ProjectFrontendCache,
+    ) -> Result<Self> {
         let sources = super::incremental::sources_from_revision(image.revision())?;
         let built = frontend.build(image.revision().manifest(), &sources)?;
         if !same_revision(image.revision(), built.revision()) {
@@ -210,7 +225,8 @@ impl ImageWorkspace {
     }
 
     /// Reuse the old image Arc only for identical admitted revision facts.
-    /// Changed revisions undergo complete source rebuild before replacement.
+    /// Changed revisions undergo source admission before replacement; an
+    /// explicitly selected cache may reuse eligible compiler work.
     pub fn refresh(
         &mut self,
         revision: Arc<ProjectRevision>,
@@ -260,8 +276,8 @@ impl ImageWorkspace {
         self.finish_refresh(next, reused, None, None)
     }
 
-    /// Admit caller-owned canonical source bytes directly through cached
-    /// parsing and the full semantic/link/profile pipeline. No preliminary
+    /// Admit caller-owned canonical source bytes directly through the selected
+    /// cache and complete cross-file/link/profile pipeline. No preliminary
     /// cold ProjectRevision is required and no filesystem path is opened.
     pub fn refresh_owned_sources(
         &mut self,
@@ -393,14 +409,29 @@ impl ImageWorkspace {
             "image_arc_reused":reused,"compiler_work":if reused {"retained_image_arc_reused"} else {"complete_source_rebuild_and_image_derivation"},
             "nonclaims":["not_incremental_compilation","no_unchanged_module_HIR_reuse_claim","no_filesystem_freshness_or_publication_authority","no_persistent_HIR_deserialization"]});
         if let Some(work) = frontend_work {
+            let semantic = frontend
+                .as_ref()
+                .is_some_and(super::ProjectFrontendCache::is_semantic_cache_enabled);
             value["frontend_work"] = work;
-            value["compiler_work"] = json!("cached_parsing_full_semantic_link_and_profile_rebuild");
-            value["nonclaims"] = json!([
-                "not_incremental_semantic_verification",
-                "no_unchanged_module_HIR_reuse_claim",
-                "no_filesystem_freshness_or_publication_authority",
-                "no_persistent_HIR_deserialization"
-            ]);
+            if semantic {
+                value["compiler_work"] =
+                    json!("checked_module_reuse_full_cross_file_link_and_profile_rebuild");
+                value["nonclaims"] = json!([
+                    "not_function_level_incremental_verification",
+                    "no_filesystem_freshness_or_publication_authority",
+                    "no_persistent_HIR_deserialization",
+                    "no_measured_latency_or_memory_improvement"
+                ]);
+            } else {
+                value["compiler_work"] =
+                    json!("cached_parsing_full_semantic_link_and_profile_rebuild");
+                value["nonclaims"] = json!([
+                    "not_incremental_semantic_verification",
+                    "no_unchanged_module_HIR_reuse_claim",
+                    "no_filesystem_freshness_or_publication_authority",
+                    "no_persistent_HIR_deserialization"
+                ]);
+            }
         }
         let json = render(value, MAX_IMAGE_REFRESH_REPORT_BYTES)?;
         let report = ImageRefreshReport {

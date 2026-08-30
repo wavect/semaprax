@@ -42,7 +42,7 @@ compiler-created source ASTs for authenticated live refresh. V1 remains closed:
 adding `frontend_cache` to a v1 policy rejects rather than silently enabling it.
 Missing, null, string, or numeric cache selections in v2 also reject.
 
-This selection changes frontend work only. It grants no methods, paths, store,
+The v2 AST-cache selection changes frontend work only. It grants no methods, paths, store,
 process, or publication authority; no request can turn it on or off. Cache hits
 still require exact source bytes and complete semantic/link/profile admission.
 There is no serialized HIR loading, cross-process warm reuse, filesystem cache
@@ -58,6 +58,49 @@ retains historical candidates without replacing the live image, restoring
 approvals or publishing source; it requires the candidate grant and the same
 canonical manifest. See [Candidate Archive CLI v1](CANDIDATE-ARCHIVE-CLI-V1.md)
 for exact fields, limits and required explicit rebase.
+
+Policy `semaprax.workspace-host-policy.v4` requires every v3 field plus the
+required boolean `semantic_cache`. `true` requires `frontend_cache: true` and
+selects `VNextSession::open_with_semantic_cache` before the first request. A
+complete read-only example is:
+
+```json
+{
+  "schema": "semaprax.workspace-host-policy.v4",
+  "candidate_prepare": false,
+  "diagnostics": false,
+  "build_enabled": false,
+  "test_policy": null,
+  "git_commit": null,
+  "frontend_cache": true,
+  "candidate_archives": [],
+  "semantic_cache": true
+}
+```
+
+With both cache flags false the session remains cold. With only `frontend_cache`
+true it retains the unchanged AST-only cache behavior. Missing, null, numeric,
+string, or object `semantic_cache` values reject, as does enabling it while
+disabling `frontend_cache`. V1, v2, and v3 remain closed and reject this field
+even when false. Archive selectors retain all v3 validation and admission rules.
+
+This additional selection reuses only compiler-created checked module HIR under
+exact source, context, dependency, and complete synthetic-AST matching. It still
+requires fresh filesystem/source authentication, full cross-file checks,
+linking, and Project profile admission. It grants no methods, cache-root path,
+file writes, build/test authority, or source approval. Refresh forks cache state;
+preview and failure discard the fork, and only successfully rendered and finally
+authenticated refresh adopts it. Neither requests nor recovered archives can
+select the strategy. The existing Git startup-only approval guard is unchanged.
+
+Semantic-cache refresh work uses the separate
+`semaprax.project-semantic-cache-work.v1` schema with actual resolver-call and
+checked-HIR reuse counts. AST-only work keeps its old schema and constant zero
+checked-HIR hits; cold responses omit work accounting. Image identity and
+authority discovery are unchanged by the cache flags. See
+[Project Semantic Cache v1](PROJECT-SEMANTIC-CACHE-V1.md). This is not a
+serialized-HIR loader, cross-process cache, general incremental verification,
+backend shortcut, or measured performance claim.
 
 `git_commit` is null or a closed object containing `git_executable`, `repository`,
 `reference`, `base_commit`, `project_prefix`, `author_name`, `author_email`,
@@ -88,6 +131,11 @@ Source/approval/candidate errors do not create a new approval or widen policy.
 request-elevation rejection, and invalid closed-policy checks.
 CLI cache-policy regressions preserve v1 rejection, compare cold/cached discovery
 and image identities, and reject invalid v2 cache selections and RPC overrides.
+`tests/workspace_session_semantic_cache_cli_v1.rs` adds explicit v4 warm
+checked-module reuse, cold/AST/semantic identity and authority equivalence, older
+policy rejection, strict/dependent boolean selection, and RPC override rejection.
+It also authors direct semantic-session source-drift recovery and verifies that
+preview and failed expected-revision checks do not prime the retained cache.
 Existing complete CLI help preservation retains the additive command line in its explicit
 normalization list. No tests, client snippets, compiler gates or Git publication
 commands were run for this implementation.

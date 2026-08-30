@@ -1,5 +1,5 @@
-//! Invocation-owned exact-source parsing cache. Semantic checking remains cold.
-//! Cache entries are compiler-created ASTs, never submitted or serialized HIR.
+//! Invocation-owned exact-source frontend cache, with opt-in checked module reuse.
+//! AST/HIR cache entries are compiler-created, never submitted or deserialized.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -18,8 +18,11 @@ use super::{
 
 pub const PROJECT_FRONTEND_CACHE_SCHEMA: &str = "semaprax.project-frontend-cache-work.v1";
 pub const PROJECT_FRONTEND_CACHE_COMPATIBILITY: &str = "semaprax.project-frontend-canonical-ast.v1";
+pub const PROJECT_SEMANTIC_CACHE_SCHEMA: &str = "semaprax.project-semantic-cache-work.v1";
+pub const PROJECT_SEMANTIC_CACHE_COMPATIBILITY: &str = "semaprax.project-checked-module-hir.v1";
 pub const MAX_PROJECT_FRONTEND_CACHE_SOURCE_BYTES: usize = MAX_TOTAL_SOURCE_BYTES;
 pub const MAX_PROJECT_FRONTEND_CACHE_AST_BUDGET: usize = 16 * 1024 * 1024;
+pub const MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND: usize = 16 * 1024 * 1024;
 pub const MAX_PROJECT_FRONTEND_REPORT_BYTES: usize = 65_536;
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
@@ -53,11 +56,20 @@ struct CachedModule {
     program: Arc<Program>,
 }
 
+struct CheckedModule {
+    synthetic: Program,
+    resolved: crate::hir::ResolvedProgram,
+    resolver_bytes: usize,
+    retained_loan_bytes: usize,
+}
+
 /// A bounded in-memory cache belonging to its caller. It has no filesystem
 /// root, serde constructor, global singleton, or checked-HIR bypass.
 pub struct ProjectFrontendCache {
     context: String,
     entries: BTreeMap<String, Arc<CachedModule>>,
+    semantic: bool,
+    checked: BTreeMap<String, Arc<CheckedModule>>,
 }
 
 pub struct ProjectFrontendBuild {
@@ -86,10 +98,26 @@ impl ProjectFrontendCache {
         Self {
             context: String::new(),
             entries: BTreeMap::new(),
+            semantic: false,
+            checked: BTreeMap::new(),
         }
     }
 
-    /// Validate every source and completely resolve/link/admit the Project.
+    /// Reuse only compiler-created checked modules whose complete synthetic
+    /// AST (including imported stubs) remains exactly equal. No deserialization.
+    pub fn new_with_semantic_cache() -> Self {
+        Self {
+            semantic: true,
+            ..Self::new()
+        }
+    }
+
+    pub fn is_semantic_cache_enabled(&self) -> bool {
+        self.semantic
+    }
+
+    /// Validate exact source inputs and completely link/admit the Project.
+    /// Explicit semantic mode may reuse previously checked module resolution.
     /// Cache changes commit only after the entire result/report succeeds.
     pub fn build(
         &mut self,
@@ -121,7 +149,11 @@ impl ProjectFrontendCache {
             "{}\0{}\0{}\0{}",
             env!("CARGO_PKG_NAME"),
             env!("CARGO_PKG_VERSION"),
-            PROJECT_FRONTEND_CACHE_COMPATIBILITY,
+            if self.semantic {
+                PROJECT_SEMANTIC_CACHE_COMPATIBILITY
+            } else {
+                PROJECT_FRONTEND_CACHE_COMPATIBILITY
+            },
             manifest.to_canonical_toml()
         );
         let reset = context != self.context;
@@ -180,6 +212,15 @@ impl ProjectFrontendCache {
             resolved: 0,
             retained_source_bytes: 0,
             ast_budget: 0,
+            semantic: self.semantic,
+            checked: self
+                .checked
+                .iter()
+                .filter(|(path, _)| !reset && !invalidated.contains(*path))
+                .map(|(path, entry)| (path.clone(), Arc::clone(entry)))
+                .collect(),
+            next_checked: BTreeMap::new(),
+            checked_reused: 0,
         };
         let owned = sources
             .iter()
@@ -190,19 +231,20 @@ impl ProjectFrontendCache {
             .collect();
         let built = super::build::build_owned_with_frontend(manifest, owned, &mut pass)?;
         let revision = Arc::new(ProjectRevision::from_built(manifest.clone(), built));
-        let json=super::image::render(json!({"schema":PROJECT_FRONTEND_CACHE_SCHEMA,
-            "compiler":{"package":env!("CARGO_PKG_NAME"),"version":env!("CARGO_PKG_VERSION"),"compatibility":PROJECT_FRONTEND_CACHE_COMPATIBILITY,"binary_identity_claimed":false},
+        let json=super::image::render(json!({"schema":if self.semantic {PROJECT_SEMANTIC_CACHE_SCHEMA}else{PROJECT_FRONTEND_CACHE_SCHEMA},
+            "compiler":{"package":env!("CARGO_PKG_NAME"),"version":env!("CARGO_PKG_VERSION"),"compatibility":if self.semantic {PROJECT_SEMANTIC_CACHE_COMPATIBILITY}else{PROJECT_FRONTEND_CACHE_COMPATIBILITY},"binary_identity_claimed":false},
             "context_digest":context_digest(context.as_bytes()),"project_revision":revision.project_revision(),
             "manifest_context_reset":reset,"invalidated_sources":invalidated,
             "work":{"modules_parsed":pass.parsed,"modules_reused":pass.reused,"canonicalizer_calls":pass.canonicalizations,
                 "parsed_source_bytes":pass.parsed_bytes,"reused_source_bytes":pass.reused_bytes,"cached_AST_clones":pass.reused,
-                "modules_resolved":pass.resolved,"checked_HIR_reused":0,"full_cross_file_checks":true,"full_link_and_profile_admission":true},
+                "modules_resolved":pass.resolved,"checked_HIR_reused":pass.checked_reused,"full_cross_file_checks":true,"full_link_and_profile_admission":true},
             "retained":{"modules":pass.entries.len(),"source_bytes":pass.retained_source_bytes,"AST_construction_prebound":pass.ast_budget},
             "limits":{"modules":MAX_SOURCES,"source_bytes":MAX_PROJECT_FRONTEND_CACHE_SOURCE_BYTES,"AST_construction_prebound":MAX_PROJECT_FRONTEND_CACHE_AST_BUDGET},
-            "nonclaims":["not_incremental_semantic_verification","no_checked_HIR_reuse","no_persistent_or_cross_process_cache","not_allocator_or_RSS_accounting","no_source_or_execution_authority"]
+            "nonclaims":if self.semantic {vec!["not_general_incremental_semantic_verification","no_cross_file_check_or_profile_bypass","no_persistent_or_cross_process_cache","no_untrusted_HIR_deserialization","not_allocator_or_RSS_accounting","no_source_or_execution_authority"]}else{vec!["not_incremental_semantic_verification","no_checked_HIR_reuse","no_persistent_or_cross_process_cache","not_allocator_or_RSS_accounting","no_source_or_execution_authority"]}
         }),true,MAX_PROJECT_FRONTEND_REPORT_BYTES).map_err(|_|capacity("frontend work report exceeds its byte bound"))?;
         self.context = context;
         self.entries = pass.entries;
+        self.checked = pass.next_checked;
         Ok(ProjectFrontendBuild { revision, json })
     }
 
@@ -210,6 +252,8 @@ impl ProjectFrontendCache {
         Self {
             context: self.context.clone(),
             entries: self.entries.clone(),
+            semantic: self.semantic,
+            checked: self.checked.clone(),
         }
     }
 
@@ -243,8 +287,62 @@ pub(crate) struct FrontendPass {
     resolved: usize,
     retained_source_bytes: usize,
     ast_budget: usize,
+    semantic: bool,
+    checked: BTreeMap<String, Arc<CheckedModule>>,
+    next_checked: BTreeMap<String, Arc<CheckedModule>>,
+    checked_reused: usize,
 }
 impl FrontendPass {
+    pub(crate) fn checked_retention_prebound(&self, bytes: usize) -> Result<()> {
+        if self.semantic && bytes > MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND {
+            return Err(capacity(
+                "checked module cache exceeds its synthetic AST/HIR construction prebound",
+            ));
+        }
+        Ok(())
+    }
+    pub(crate) fn checked_module(
+        &mut self,
+        path: &str,
+        synthetic: &Program,
+    ) -> Option<(crate::hir::ResolvedProgram, usize, usize)> {
+        if !self.semantic {
+            return None;
+        }
+        let entry = self.checked.get(path)?;
+        if entry.synthetic != *synthetic {
+            return None;
+        }
+        self.checked_reused += 1;
+        self.next_checked.insert(path.to_owned(), Arc::clone(entry));
+        Some((
+            entry.resolved.clone(),
+            entry.resolver_bytes,
+            entry.retained_loan_bytes,
+        ))
+    }
+
+    pub(crate) fn resolved_module(
+        &mut self,
+        path: &str,
+        synthetic: Program,
+        resolved: &crate::hir::ResolvedProgram,
+        resolver_bytes: usize,
+        retained_loan_bytes: usize,
+    ) {
+        self.resolved += 1;
+        if self.semantic {
+            self.next_checked.insert(
+                path.to_owned(),
+                Arc::new(CheckedModule {
+                    synthetic,
+                    resolved: resolved.clone(),
+                    resolver_bytes,
+                    retained_loan_bytes,
+                }),
+            );
+        }
+    }
     pub(crate) fn lookup(&mut self, path: &str, source: &str) -> Option<Program> {
         let entry = self.entries.get(path)?;
         if entry.source != source || entry.program.path != path {
@@ -303,7 +401,13 @@ impl FrontendPass {
             };
             entries.insert(source.path.clone(), entry);
         }
-        self.resolved = entries.len();
+        if self.resolved + self.checked_reused != entries.len()
+            || (self.semantic && self.next_checked.len() != entries.len())
+        {
+            return Err(invalid(
+                "frontend checked module inventory disagrees with admitted modules",
+            ));
+        }
         self.entries = entries;
         self.retained_source_bytes = bytes;
         self.ast_budget = ast_budget;
@@ -339,4 +443,53 @@ fn invalid(message: &'static str) -> Vec<Diagnostic> {
 }
 fn capacity(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G256", message)]
+}
+
+#[cfg(test)]
+mod semantic_tests {
+    use super::*;
+
+    #[test]
+    fn retained_checked_entry_requires_exact_stub_and_span_equality() {
+        // Compiler-created synthetic shape: an imported provider stub has an
+        // ordinary checked function representation beside the local entry.
+        let source = "module local; @id(\"provider.stub\") fn helper(value: i64) -> i64 { value } @id(\"local.main\") fn main() -> i64 { helper(1) }";
+        let synthetic = crate::parse(source, "local.spx").unwrap();
+        let resolved = crate::hir::resolve(&synthetic).unwrap();
+        let checked = BTreeMap::from([(
+            "local.spx".to_owned(),
+            Arc::new(CheckedModule {
+                synthetic: synthetic.clone(),
+                resolved,
+                resolver_bytes: 0,
+                retained_loan_bytes: 0,
+            }),
+        )]);
+        let mut pass = FrontendPass {
+            entries: BTreeMap::new(),
+            parsed: 0,
+            reused: 0,
+            canonicalizations: 0,
+            parsed_bytes: 0,
+            reused_bytes: 0,
+            resolved: 0,
+            retained_source_bytes: 0,
+            ast_budget: 0,
+            semantic: true,
+            checked,
+            next_checked: BTreeMap::new(),
+            checked_reused: 0,
+        };
+        assert!(pass.checked_module("local.spx", &synthetic).is_some());
+        let mut signature = synthetic.clone();
+        signature.functions[0].params[0].ty = crate::ast::Type::I32;
+        assert!(pass.checked_module("local.spx", &signature).is_none());
+        let mut provenance = synthetic.clone();
+        provenance.functions[0].name_span.end += 1;
+        assert!(pass.checked_module("local.spx", &provenance).is_none());
+        let mut identity = synthetic.clone();
+        identity.functions[0].stable_id = "provider.other".to_owned();
+        assert!(pass.checked_module("local.spx", &identity).is_none());
+        assert_eq!(pass.checked_reused, 1);
+    }
 }

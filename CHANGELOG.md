@@ -32,6 +32,14 @@
   Native executables and published packages are reused; no source semantics,
   generated artifacts, or schemas change. All new checks remain unrun.
 
+- Added explicitly selected checked-module HIR reuse for exact synthetic AST
+  inputs, with conservative reverse-import invalidation and transactional
+  adoption after complete Project admission. ImageWorkspace and authenticated
+  v5 sessions can select it; closed host-policy v4 retains startup authority
+  boundaries. Separate semantic work schemas preserve AST-only reports and
+  expose actual resolver/reuse counts. Regression cases are authored, unrun;
+  persistent cross-process HIR and measured performance remain outstanding.
+
 - Closed Cargo instruction injection through CR/LF-bearing owned-data SDK
   package paths. V8/v9/v10 now share a private build-script renderer that
   validates the path before stdout while preserving target-error precedence

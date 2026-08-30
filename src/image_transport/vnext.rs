@@ -97,7 +97,7 @@ pub struct VNextSession {
 
 impl VNextSession {
     pub fn open(manifest: &Path, policy: VNextPolicy) -> Result<Self, Vec<Diagnostic>> {
-        Self::open_inner(manifest, policy, false)
+        Self::open_inner(manifest, policy, None)
     }
 
     /// Opt-in invocation-owned AST reuse. Every load still authenticates source
@@ -106,13 +106,27 @@ impl VNextSession {
         manifest: &Path,
         policy: VNextPolicy,
     ) -> Result<Self, Vec<Diagnostic>> {
-        Self::open_inner(manifest, policy, true)
+        Self::open_inner(manifest, policy, Some(ProjectFrontendCache::new()))
+    }
+
+    /// Opt-in invocation-owned checked-module reuse as well as frontend reuse.
+    /// Fresh source authority, invalidation, linking, and profile admission stay
+    /// mandatory; requests cannot select or seed this host-created cache.
+    pub fn open_with_semantic_cache(
+        manifest: &Path,
+        policy: VNextPolicy,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        Self::open_inner(
+            manifest,
+            policy,
+            Some(ProjectFrontendCache::new_with_semantic_cache()),
+        )
     }
 
     fn open_inner(
         manifest: &Path,
         policy: VNextPolicy,
-        cached: bool,
+        cache: Option<ProjectFrontendCache>,
     ) -> Result<Self, Vec<Diagnostic>> {
         if !manifest.is_absolute()
             || (!policy.candidate_prepare
@@ -120,9 +134,9 @@ impl VNextSession {
         {
             return Err(failure("SPX-G280", "v5 requires an absolute host manifest and candidate preparation for diagnostics, tests, or builds"));
         }
-        let (mut snapshot, frontend) = if cached {
+        let (mut snapshot, frontend) = if let Some(cache) = cache {
             let (snapshot, cache, _) =
-                crate::project::load_snapshot_with_frontend(manifest, ProjectFrontendCache::new())?;
+                crate::project::load_snapshot_with_frontend(manifest, cache)?;
             (snapshot, Some(cache))
         } else {
             (crate::project::load_snapshot(manifest)?, None)
@@ -331,8 +345,9 @@ impl VNextSession {
         // Do not touch/revive the old absorbing snapshot. Recovery independently
         // opens the one host-bound manifest and requires the expected new subject.
         let prepared = (|| {
-            // Fork only compiler-owned AST entries; newly held file handles and
-            // bytes are authenticated independently even for unchanged sources.
+            // Fork only compiler-owned AST/optional checked-module entries;
+            // newly held handles and bytes are authenticated independently even
+            // for unchanged sources. Preview and failures never adopt this fork.
             let (mut snapshot, frontend, frontend_work) = match &self.frontend {
                 Some(cache) => {
                     let (snapshot, cache, work) =

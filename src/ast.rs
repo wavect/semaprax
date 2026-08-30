@@ -157,7 +157,7 @@ impl ParamMode {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Program {
     pub path: String,
     pub module: String,
@@ -378,7 +378,7 @@ pub struct ModuleUse {
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TypeDeclaration {
     pub stable_id: String,
     pub explicit_id: bool,
@@ -398,7 +398,7 @@ pub struct TypeParameterDeclaration {
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TypeDeclarationKind {
     Resource {
         lifecycles: Vec<ResourceLifecycleDeclaration>,
@@ -415,7 +415,7 @@ pub enum TypeDeclarationKind {
     },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VariantCaseDeclaration {
     pub stable_id: String,
     pub explicit_id: bool,
@@ -425,20 +425,20 @@ pub struct VariantCaseDeclaration {
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResourceLifecycleDeclaration {
     pub stable_id: Option<String>,
     pub kind: ResourceLifecycleKind,
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ResourceLifecycleKind {
     Trivial,
     Imported { import_key: String },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InterfaceDeclaration {
     pub stable_id: String,
     pub explicit_id: bool,
@@ -452,7 +452,7 @@ pub struct InterfaceDeclaration {
 /// Protocol Projection v1: one `protocol` declaration — a named method set
 /// whose signatures are checked to resolve. Distinct from the host-import
 /// `interface` concept; protocols carry no imports, effects, or permits.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProtocolDeclaration {
     pub stable_id: String,
     pub explicit_id: bool,
@@ -465,7 +465,7 @@ pub struct ProtocolDeclaration {
 /// One body-less method signature inside a protocol. The first parameter is
 /// the receiver and must be typed `Self` or the protocol's own name; the
 /// canonical projection keeps it verbatim.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProtocolMethod {
     pub stable_id: String,
     pub explicit_id: bool,
@@ -477,7 +477,7 @@ pub struct ProtocolMethod {
 }
 
 /// Source-owned static binding from a protocol to ordinary local functions.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProtocolImplementation {
     pub stable_id: String,
     pub explicit_id: bool,
@@ -487,14 +487,14 @@ pub struct ProtocolImplementation {
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProtocolImplementationMember {
     pub method_id: String,
     pub function_id: String,
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ImportDeclaration {
     pub stable_id: String,
     pub explicit_id: bool,
@@ -533,7 +533,7 @@ pub enum ImportFailure {
     Status { domain_id: String },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FieldDeclaration {
     pub stable_id: String,
     pub explicit_id: bool,
@@ -543,7 +543,7 @@ pub struct FieldDeclaration {
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Function {
     pub stable_id: String,
     pub explicit_id: bool,
@@ -559,7 +559,7 @@ pub struct Function {
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Param {
     pub name: String,
     pub mode: ParamMode,
@@ -567,13 +567,13 @@ pub struct Param {
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Expr {
     pub kind: ExprKind,
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ExprKind {
     Int(i64),
     /// An `i32` literal stored as its exact value.
@@ -670,7 +670,7 @@ pub enum ExprKind {
     },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MatchArm {
     pub pattern: MatchPattern,
     /// Refutable Match v1: `pattern if guard => value`. The guard is an
@@ -681,7 +681,7 @@ pub struct MatchArm {
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum MatchPattern {
     Variant {
         type_name: String,
@@ -760,7 +760,7 @@ impl MatchPattern {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RecordMatchPatternField {
     pub name: String,
     pub name_span: Span,
@@ -768,7 +768,7 @@ pub struct RecordMatchPatternField {
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RecordMatchFieldPattern {
     Binding {
         name: String,
@@ -795,7 +795,7 @@ impl RecordMatchFieldPattern {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MatchPatternField {
     pub name: String,
     pub name_span: Span,
@@ -804,7 +804,7 @@ pub struct MatchPatternField {
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FieldInitializer {
     pub name: String,
     pub name_span: Span,
@@ -814,13 +814,13 @@ pub struct FieldInitializer {
 
 /// Field Mutation v1: the single-level field of a `<binding>.<field> = ...`
 /// assignment target. Nested place chains (`a.b.c = ...`) never parse.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FieldTarget {
     pub name: String,
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Statement {
     Let {
         name: String,

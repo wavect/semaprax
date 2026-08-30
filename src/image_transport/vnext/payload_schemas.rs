@@ -371,8 +371,10 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
         "urn:semaprax.image-workspace-refresh-preview.v1",
     ] {
         // Startup opt-in only; omitted in the unchanged cold response shape.
-        result.get_mut(id).expect("refresh schema")["properties"]["frontend_work"] =
-            json!({"$ref":"urn:semaprax.project-frontend-cache-work.v1"});
+        result.get_mut(id).expect("refresh schema")["properties"]["frontend_work"] = json!({"oneOf":[
+            {"$ref":"urn:semaprax.project-frontend-cache-work.v1"},
+            {"$ref":"urn:semaprax.project-semantic-cache-work.v1"}
+        ]});
     }
     result
 }

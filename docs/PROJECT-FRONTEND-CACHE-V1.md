@@ -16,6 +16,11 @@ the ordinary manifest-selected Project profile admission. There is **no checked
 HIR reuse**. This is incremental frontend reuse, not incremental semantic
 verification or a persistent compiler cache.
 
+This document continues to describe `new()` and the AST-only opt-in. The
+separate [Semantic Cache v1](PROJECT-SEMANTIC-CACHE-V1.md) constructor adds
+checked-module reuse and emits its own work schema; it does not change this
+report's zero-HIR contract or make the source-backed store warm.
+
 ## Host API
 
 ```rust

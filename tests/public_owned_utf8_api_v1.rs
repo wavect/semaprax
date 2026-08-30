@@ -94,6 +94,34 @@ fn v8_cannot_describe_or_replay_owned_utf8() {
 }
 
 #[test]
+fn utf8_provider_reuses_the_context_bound_issuer_without_descriptor_changes() {
+    let program = program();
+    let selected = vec!["utf8.greeting".to_owned()];
+    let subject = subject(PUBLIC_OWNED_UTF8_PROJECT_SCHEMA);
+    let descriptor = derive_public_api_descriptor(&program, &selected, subject).unwrap();
+    let bytes = descriptor.canonical_bytes();
+    let digest = descriptor.digest();
+    let provider = semaprax::codegen::emit_project_v10_native_owned_utf8_provider(
+        &program, &selected, subject, &bytes, &digest,
+    )
+    .unwrap();
+    assert_eq!(provider.descriptor(), bytes);
+    assert_eq!(provider.descriptor_digest(), digest);
+    assert!(provider
+        .source()
+        .contains("slot->issuance_serial == serial"));
+    assert!(provider.source().contains("handle & UINT64_C(0x1fff)"));
+    assert_eq!(
+        provider
+            .source()
+            .matches("atomic_compare_exchange_strong_explicit")
+            .count(),
+        1
+    );
+    assert_eq!(descriptor.canonical_bytes(), bytes);
+}
+
+#[test]
 fn v10_rejects_compiler_owned_string_intrinsics_before_backend_selection() {
     for (name, declarations, expression) in [
         ("concat", "", "string_concat(\"left\", \"right\")"),

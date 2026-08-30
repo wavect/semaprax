@@ -346,6 +346,9 @@ fn emit_provider_runtime_profile(output: &mut String, owned_utf8: bool) {
     writeln!(
         output,
         r#"
+#include <stdatomic.h>
+_Static_assert(sizeof(uint64_t) == 8 && __atomic_always_lock_free(sizeof(uint64_t), 0),
+    "owned-data handles require always-lock-free 64-bit atomics");
 #if defined(_WIN32)
 #define SPX_OWNED_DATA_EXPORT __declspec(dllexport)
 #else
@@ -389,7 +392,7 @@ static bool spx_owned_data_overlap_v1(const void *left, uintptr_t left_size, con
     uintptr_t a = (uintptr_t)left; uintptr_t b = (uintptr_t)right;
     return a <= b ? b - a < left_size : a - b < right_size;
 }}
-struct spx_owned_data_slot_v1 {{ spx_bytes_v1 bytes; uint64_t generation; bool live; }};
+struct spx_owned_data_slot_v1 {{ spx_bytes_v1 bytes; uint64_t issuance_serial; bool live; }};
 typedef struct spx_owned_data_context_v1 {{
     uint64_t marker;
     uint64_t invocation;
@@ -401,19 +404,31 @@ typedef struct spx_owned_data_context_v1 {{
     struct spx_owned_data_slot_v1 slots[{HANDLE_CAPACITY}];
 }} spx_context_v1;
 static const uint64_t SPX_OWNED_DATA_CONTEXT_MARKER = UINT64_C(0x5350584f44433131);
+/* One issuer belongs to this linked provider runtime, not to a context's
+ * reusable storage. No serial is recycled after drop or context disposal. */
+static _Atomic(uint64_t) spx_owned_data_next_serial_v1 = UINT64_C(1);
+static const uint64_t SPX_OWNED_DATA_MAX_SERIAL_V1 = UINT64_MAX >> UINT32_C(13);
+static bool spx_owned_data_reserve_serial_v1(uint64_t *serial_out) {{
+    uint64_t serial = atomic_load_explicit(&spx_owned_data_next_serial_v1, memory_order_relaxed);
+    if (serial == UINT64_C(0) || serial > SPX_OWNED_DATA_MAX_SERIAL_V1) return false;
+    /* A contended reservation rejects once. In particular, it neither spins
+     * nor wraps the permanent exhausted sentinel back into a valid serial. */
+    if (!atomic_compare_exchange_strong_explicit(&spx_owned_data_next_serial_v1,
+            &serial, serial + UINT64_C(1), memory_order_relaxed, memory_order_relaxed)) return false;
+    *serial_out = serial;
+    return true;
+}}
 static struct spx_owned_data_slot_v1 *spx_owned_data_find_v1(
     spx_context_v1 *context, spx_owned_bytes_handle_v1 handle
 ) {{
     if (context == NULL || context->marker != SPX_OWNED_DATA_CONTEXT_MARKER || handle == UINT64_C(0)) return NULL;
-    uint32_t encoded = (uint32_t)(handle & UINT64_C(0xfff));
-    uint64_t generation = handle >> UINT32_C(12);
-    if (encoded == UINT32_C(0) || generation == UINT64_C(0)) return NULL;
+    uint32_t encoded = (uint32_t)(handle & UINT64_C(0x1fff));
+    uint64_t serial = handle >> UINT32_C(13);
+    if (encoded == UINT32_C(0) || encoded > UINT32_C({HANDLE_CAPACITY}) || serial == UINT64_C(0)) return NULL;
     uint32_t wanted = encoded - UINT32_C(1);
-    for (uint32_t index = UINT32_C(0); index < context->next_slot; ++index) {{
-        struct spx_owned_data_slot_v1 *slot = &context->slots[index];
-        if (index == wanted) return slot->live && slot->generation == generation ? slot : NULL;
-    }}
-    return NULL;
+    if (wanted >= context->next_slot) return NULL;
+    struct spx_owned_data_slot_v1 *slot = &context->slots[wanted];
+    return slot->live && slot->issuance_serial == serial ? slot : NULL;
 }}
 static spx_owned_data_status_v1 spx_owned_data_attach_v1(
     spx_context_v1 *context, spx_bytes_v1 *bytes, spx_owned_bytes_handle_v1 *handle_out
@@ -425,14 +440,15 @@ static spx_owned_data_status_v1 spx_owned_data_attach_v1(
     uint32_t index = UINT32_C(0);
     while (index < context->next_slot && context->slots[index].live) ++index;
     if (index == UINT32_C({HANDLE_CAPACITY})) return SPX_OWNED_DATA_ADAPTER_FAILURE;
+    uint64_t serial = UINT64_C(0);
+    if (!spx_owned_data_reserve_serial_v1(&serial)) return SPX_OWNED_DATA_ADAPTER_FAILURE;
     if (index == context->next_slot) ++context->next_slot;
     struct spx_owned_data_slot_v1 *slot = &context->slots[index];
-    if (slot->generation == (UINT64_MAX >> UINT32_C(12))) return SPX_OWNED_DATA_ADAPTER_FAILURE;
-    ++slot->generation;
+    slot->issuance_serial = serial;
     slot->bytes = spx_bytes_move(bytes);
     slot->live = true;
     ++context->live_slots;
-    *handle_out = (slot->generation << UINT32_C(12)) | (uint64_t)(index + UINT32_C(1));
+    *handle_out = (serial << UINT32_C(13)) | (uint64_t)(index + UINT32_C(1));
     return SPX_OWNED_DATA_SUCCESS;
 }}
 SPX_OWNED_DATA_EXPORT uint64_t spx_owned_data_context_size_v1(void) {{ return (uint64_t)sizeof(spx_context_v1); }}

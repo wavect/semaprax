@@ -15,6 +15,9 @@ const SELECTED: [&str; 3] = [
 ];
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
+#[path = "public_native_rust_owned_data_sdk_v1/handle_identity.rs"]
+mod handle_identity;
+
 fn configured_tool(variable: &str, candidates: &[&str]) -> PathBuf {
     if let Some(configured) = std::env::var_os(variable)
         .map(PathBuf::from)

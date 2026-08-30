@@ -133,6 +133,38 @@ fn descriptor_binds_exact_record_fields_and_replays() {
 }
 
 #[test]
+fn flat_record_provider_reuses_the_context_bound_issuer_without_descriptor_changes() {
+    let program = resolve(SOURCE);
+    let selected = vec!["frame.info".to_owned()];
+    let descriptor =
+        derive_flat_owned_record_api_descriptor(&program, &selected, subject()).unwrap();
+    let bytes = descriptor.canonical_bytes();
+    let digest = descriptor.digest();
+    let provider = semaprax::codegen::emit_project_v9_native_flat_owned_record_provider(
+        &program,
+        &selected,
+        subject(),
+        &bytes,
+        &digest,
+    )
+    .unwrap();
+    assert_eq!(provider.descriptor(), bytes);
+    assert_eq!(provider.descriptor_digest(), digest);
+    assert!(provider
+        .source()
+        .contains("slot->issuance_serial == serial"));
+    assert!(provider.source().contains("handle & UINT64_C(0x1fff)"));
+    assert_eq!(
+        provider
+            .source()
+            .matches("atomic_compare_exchange_strong_explicit")
+            .count(),
+        1
+    );
+    assert_eq!(descriptor.canonical_bytes(), bytes);
+}
+
+#[test]
 fn descriptor_rejects_mutation_even_with_a_reminted_digest() {
     let program = resolve(SOURCE);
     let selected = vec!["frame.info".to_owned()];

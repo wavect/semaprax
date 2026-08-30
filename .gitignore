@@ -18,5 +18,8 @@ platform-tests/wasm-scalar-browser-v1/test-results/
 # Optional caller-persisted semantic image artifacts.
 **/.semaprax-images/
 
+# Host-private compiler cache, including its authentication key.
+**/.semaprax-semantic-cache/
+
 # Optional caller-persisted complete candidate recovery capsules.
 **/.semaprax-candidates/

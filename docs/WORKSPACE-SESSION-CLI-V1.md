@@ -102,6 +102,27 @@ authority discovery are unchanged by the cache flags. See
 serialized-HIR loader, cross-process cache, general incremental verification,
 backend shortcut, or measured performance claim.
 
+Policy `semaprax.workspace-host-policy.v5` adds the required
+`semantic_cache_entry` field to every v4 field. It is either null (the unchanged
+v4 strategy) or exactly `{"root":"/absolute/private/root","entry_digest":"sha256:..."}`.
+A selected entry requires both cache booleans true. V1–v4 reject this new field.
+The root must already have been initialized through `semantic-cache-init` and
+contain an entry written through `semantic-cache-persist`; neither startup nor
+an RPC creates keys or writes cache entries. The separate store verifies the
+MAC and current compiler-file binding before decoding, then the session opens
+the fixed live manifest through ordinary source authentication. Source changes
+invalidate affected restored entries. Bad keys, incompatible compiler files,
+corruption or invalid current sources fail startup without widening authority.
+There is no implicit fallback that labels a cold load as warm. Null entry or
+older policies remain available for an explicit cold rebuild.
+
+`VNextSession::retained_semantic_cache` is an embedding-host API for obtaining an
+opaque historical cache through the live source boundary. It does not itself
+write storage or change the startup-only Git approval guard. See
+[Persistent Cache v1](PERSISTENT-SEMANTIC-CACHE-V1.md) and
+[Cache Store v1](SEMANTIC-CACHE-STORE-V1.md) for the explicit trusted-host
+requirements; compiler-file hashing is not loaded-code attestation.
+
 `git_commit` is null or a closed object containing `git_executable`, `repository`,
 `reference`, `base_commit`, `project_prefix`, `author_name`, `author_email`,
 `unix_seconds`, `message`, `max_commands`, `timeout_ms` and

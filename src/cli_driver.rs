@@ -140,6 +140,31 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
+        "semantic-cache-init" | "semantic-cache-persist" | "semantic-cache-load" => {
+            let arity = if command == "semantic-cache-init" {
+                2
+            } else {
+                3
+            };
+            if args.len() != arity
+                || args[1..]
+                    .iter()
+                    .any(|argument| argument.is_empty() || argument.starts_with('-'))
+            {
+                eprintln!("{command} requires its exact positional operands; see --help");
+                return Err(2);
+            }
+            let output = match command {
+                "semantic-cache-init" => cli::semantic_cache::initialize(Path::new(&args[1])),
+                "semantic-cache-persist" => {
+                    cli::semantic_cache::persist(Path::new(&args[1]), Path::new(&args[2]))
+                }
+                _ => cli::semantic_cache::load(Path::new(&args[1]), &args[2]),
+            }
+            .map_err(|errors| report(&errors, false))?;
+            print!("{output}");
+            Ok(())
+        }
         "project-candidate-persist" | "project-candidate-load" => {
             if args.len() != 4
                 || args[1..]
@@ -2434,6 +2459,9 @@ fn print_help() {
            semaprax project-candidate-preview <manifest> <change.json>\n\
            semaprax project-candidate-export <manifest> <change.json>\n\
            semaprax project-candidate-restore <manifest> <capsule.json>\n\
+           semaprax semantic-cache-init <store-root>\n\
+           semaprax semantic-cache-persist <manifest> <store-root>\n\
+           semaprax semantic-cache-load <store-root> <entry-digest>\n\
            semaprax project-candidate-persist <manifest> <capsule.json> <store-root>\n\
            semaprax project-candidate-load <store-root> <archive-digest> <candidate-digest>\n\
            semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\n\

@@ -17,6 +17,17 @@
   unchanged. Literal-message and pathname regressions are authored but unrun;
   compiler behavior, generated packages and hosted workflows do not change.
 
+- Added host-selected authenticated persistence of complete checked-module HIR,
+  synthetic inputs and graph projections, with a private bounded binary codec.
+  MAC verification and compiler-file binding precede decoding; restored source
+  is reparsed and the ordinary warm Project pipeline checks exact synthetic
+  inputs and graph equality. Added explicit cache CLI commands and startup
+  host-policy v5 selection while cold stores remain unchanged. This relies on
+  protected host key custody and an immutable static compiler installation;
+  it is not compiler attestation or protection against a compromised host.
+  Cross-process and hostile regressions are authored, unrun; no performance or
+  full-programme completion claim follows.
+
 - Reject non-string owned npm export identities without formatting or invoking
   caller conversion hooks. This fixes Symbol error classification and prevents
   invalid-ID rejection from causing reentry and poisoning an idle instance.

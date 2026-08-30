@@ -83,6 +83,8 @@ Audience: all documentation readers.
 - [Project Candidate Expression Holes v1](PROJECT-CANDIDATE-EXPRESSION-HOLES-V1.md)
 - [Project Frontend Cache v1](PROJECT-FRONTEND-CACHE-V1.md)
 - [Project Semantic Cache v1](PROJECT-SEMANTIC-CACHE-V1.md)
+- [Persistent Semantic Cache v1](PERSISTENT-SEMANTIC-CACHE-V1.md)
+- [Semantic Cache Store v1](SEMANTIC-CACHE-STORE-V1.md)
 - [Candidate Git Publication v1](PROJECT-CANDIDATE-GIT-PUBLICATION-V1.md)
 - [Candidate Git Publication CLI v1](CANDIDATE-GIT-PUBLICATION-CLI-V1.md)
 - [Typed Diagnostic Change v1](PROJECT-DIAGNOSTIC-CHANGE-V1.md)

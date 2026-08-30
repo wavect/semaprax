@@ -42,6 +42,16 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert_eq!(stdout.matches(NEW_LINE).count(), 1);
     let mut current = stdout.replacen(NEW_LINE, "", 1);
+    const CACHE_LINES: [&str; 3] = [
+        "semaprax semantic-cache-init <store-root>\n",
+        "semaprax semantic-cache-persist <manifest> <store-root>\n",
+        "semaprax semantic-cache-load <store-root> <entry-digest>\n",
+    ];
+    assert_eq!(current.matches(CACHE_LINES.concat().as_str()).count(), 1);
+    for line in CACHE_LINES {
+        assert_eq!(current.matches(line).count(), 1);
+        current = current.replacen(line, "", 1);
+    }
     const ARCHIVE_LINES: [&str; 2] = [
         "semaprax project-candidate-persist <manifest> <capsule.json> <store-root>\n",
         "semaprax project-candidate-load <store-root> <archive-digest> <candidate-digest>\n",

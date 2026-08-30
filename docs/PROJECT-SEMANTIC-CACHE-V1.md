@@ -20,9 +20,11 @@ admitted immutable Project revision plus descriptive work counters.
 
 `ProjectFrontendCache::new()` and `Default` retain their existing AST-only
 behavior, frontend report schema, and zero checked-HIR reuse. No caller silently
-changes semantic admission mode. Both caches are invocation-owned; neither
-loads serialized HIR, adopts a disk cache, opens a filesystem root, or grants
-source, test, execution, or publication authority.
+changes semantic admission mode. Both constructors are invocation-owned and
+open no filesystem root or grant source, test, execution or publication
+authority. The separate [persistent cache](PERSISTENT-SEMANTIC-CACHE-V1.md)
+can now restore compiler-sealed HIR through a host-selected authenticated store;
+there is still no public untrusted HIR constructor or implicit cache discovery.
 
 `ImageWorkspace::with_semantic_cache(image)` independently primes a checked-module
 cache against an already admitted image. `refresh_owned_sources` then admits
@@ -36,6 +38,8 @@ separate adapters over this library behavior.
 The cache binds compiler package name/version, semantic-cache compatibility,
 and the entire canonical Project manifest. Any context change resets all
 entries. Compatibility is not a compiler binary fingerprint.
+The separate persistent-store envelope additionally binds the compiler
+executable bytes under its explicit trusted static-installation contract.
 
 Changed, added, and removed source paths seed the existing conservative reverse
 import invalidation. Every old transitive consumer of a changed provider is

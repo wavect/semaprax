@@ -1,0 +1,66 @@
+module sdk.internal_strings;
+
+@id("s.main") fn main() -> i64 { 0 }
+@id("s.local") fn local(input: borrow Slice<u8>, zero: i64) -> Bytes {
+    let kept = "kept"; let checked = 1 / zero; bytes_copy(input)
+}
+@id("s.three") fn three(first: string, checked: i64, last: string, input: borrow Slice<u8>) -> Bytes {
+    bytes_copy(input)
+}
+@id("s.late") fn late(input: borrow Slice<u8>, zero: i64) -> Bytes {
+    three("first", 1 / zero, "must-not-run", input)
+}
+@id("s.inner") fn inner(value: string, input: borrow Slice<u8>, zero: i64) -> Bytes {
+    let kept = "callee"; let checked = 1 / zero; bytes_copy(input)
+}
+@id("s.callee") fn callee(input: borrow Slice<u8>, zero: i64) -> Bytes {
+    inner("argument", input, zero)
+}
+@id("s.clone") fn cloned(input: borrow Slice<u8>) -> Bytes {
+    let original = "A\u{0}世界"; let cloned = original;
+    if cloned == "A\u{0}世界" && string_len(cloned) == 8 {
+        bytes_copy(input)
+    } else { let rejected = 1 / 0; bytes_copy(input) }
+}
+@id("s.concat") fn concatenated(input: borrow Slice<u8>) -> Bytes {
+    if string_concat("A\u{0}", "世界") == "A\u{0}世界" {
+        bytes_copy(input)
+    } else { let rejected = 1 / 0; bytes_copy(input) }
+}
+@id("s.nul") fn nul(input: borrow Slice<u8>) -> Bytes {
+    if string_len("é\u{0}世界") == 9 && string_len_chars("é\u{0}世界") == 4
+        && string_from_char('\u{0}') == "\u{0}" && "A\u{0}B" != "A\u{0}C" {
+        bytes_copy(input)
+    } else { let rejected = 1 / 0; bytes_copy(input) }
+}
+@id("s.empty") fn empty(input: borrow Slice<u8>) -> Bytes {
+    let text = ""; bytes_copy(input)
+}
+@id("s.step") fn step(index: i64, limit: i64) -> i64 {
+    let text = "step"; let checked = 1 / (limit - index); index + 1
+}
+@id("s.loop") fn looping(input: borrow Slice<u8>, limit: i64) -> Bytes {
+    let mut index = 0;
+    while index < 4 { index = step(index, limit); 0 }
+    bytes_copy(input)
+}
+@id("s.mixed") fn mixed(input: borrow Slice<u8>, zero: i64) -> Bytes {
+    let text = "mixed"; let bytes = bytes_copy(input); let checked = 1 / zero; bytes
+}
+@id("s.bytes-first") fn bytes_first(bytes: own Bytes, text: string, checked: i64) -> Bytes { bytes }
+@id("s.string-first") fn string_first(text: string, bytes: own Bytes, checked: i64) -> Bytes { bytes }
+@id("s.mixed-late") fn mixed_late(input: borrow Slice<u8>, zero: i64) -> Bytes {
+    bytes_first(bytes_copy(input), "argument", 1 / zero)
+}
+@id("s.mixed-reverse") fn mixed_reverse(input: borrow Slice<u8>, zero: i64) -> Bytes {
+    string_first("argument", bytes_copy(input), 1 / zero)
+}
+
+@id("s.record.type") record Payload {
+    @id("s.record.bytes") bytes: Bytes,
+    @id("s.record.count") count: i64,
+}
+@id("s.record") fn record_value(input: borrow Slice<u8>, zero: i64) -> Payload {
+    let text = "record"; let bytes = bytes_copy(input); let checked = 1 / zero;
+    Payload { bytes: bytes, count: 42 }
+}

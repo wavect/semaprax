@@ -665,7 +665,12 @@ transactional draft-only retention; it imports no registry or approval state.
 These additions and focused regression cases are authored, unrun.
 
 `candidate/movement.rs` moves eligible functions through stable-ID call/import
-bindings. `candidate/record_field.rs` appends a typed scalar field and migrates
+bindings. `candidate/movement_types.rs` checks retained Copy nominal value facts,
+plans authenticated type imports and remaps signature/local/aggregate/pattern
+type syntax through destination bindings. Rebuilt type identities supplement
+the existing call-inventory and exact source-reconstruction checks; source type
+imports remain unchanged and ordinary Project admission still rejects cycles.
+`candidate/record_field.rs` appends a typed scalar field and migrates
 constructors and exact patterns using retained type identities. Both reconstruct
 the expected canonical source independently after admission; identity guards
 permit only the planned function location or new owned field. Rebase compares

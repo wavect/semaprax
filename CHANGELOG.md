@@ -16,6 +16,12 @@
   report and no-execution regressions are unrun. The required `profile` report
   row is additive; this is not full no-network enforcement or WP-05 promotion.
 
+- Extended function movement to checked Copy record/variant values with
+  stable-ID type bindings, destination type imports and rewritten aggregate
+  syntax. Exact source replay and rebuilt semantic identities remain required;
+  ownership, export-origin, generic-import and unsafe boundaries stay closed.
+  Alias, replay and rejection regressions are authored, unrun.
+
 - Extended function extraction to checked Copy nominal values and immutable
   whole-root field captures. Body-value type facts share the existing bounded
   signature inventory; generated helper signatures and canonical source replay

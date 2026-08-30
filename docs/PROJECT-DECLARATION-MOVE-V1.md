@@ -37,16 +37,35 @@ effect, and have no conflicting declaration or import alias with the moved
 function's name. Importing this exact target is permitted: those imports become
 the local declaration. Neither module permits nor function effects are widened.
 
-This version admits value-mode `i64`, `i32`, `u8`, `usize`, and `bool`
-parameters/results. Bodies and contracts can contain those scalar literals,
-variables, unary/binary expressions, conditionals, scalar local bindings and
-assignments, loops, and explicit monomorphic function calls. Direct callees
-must themselves have explicit top-level scalar signatures. At most 64 distinct
-direct callable dependencies are admitted, including calls from contracts.
-Named/owned/borrowed types, generic instantiation, record/variant operations,
-matching, propagation, field mutation, methods, host or compiler-builtin calls,
-and audited unsafe boundaries fail closed. They are not silently rewritten or
-treated as module-independent syntax.
+This version admits value-mode `i64`, `i32`, `u8`, `usize`, and `bool`, plus
+authenticated record/variant types whose exact checked TypeFacts establish
+Sized Copy with neither resource content nor drop obligations. The same checks
+apply to parameters, results, body values and local/pattern bindings. A source
+type's spelling or field shape does not establish its eligibility.
+
+Bodies and contracts can contain admitted scalar expressions, local bindings,
+whole-binding assignments, loops, explicit monomorphic calls, Copy record and
+variant construction, field reads, record updates, and admitted plain Copy
+matching. Direct callees must themselves have explicit top-level monomorphic
+Copy signatures. At most 64 combined distinct direct callable and nominal type
+dependencies are admitted, including dependencies from contracts. Matching
+locals participate in alias hygiene.
+
+Nominal type planning and nominal source/pattern rewriting each have a
+4,096-node budget. Checked HIR traversal admits at most 1,048,576 visited items
+and depth 256. These bounds do not charge ordinary scalar annotations as new
+nominal syntax.
+
+Owned/borrowed values, field mutation, propagation, methods, host or
+compiler-builtin calls, and audited unsafe boundaries remain excluded. Generic
+function calls and generic source-type imports also remain closed. Fixed
+compiler-owned Option/Result instances keep their direct `i64`/`bool` argument
+rules. No type declaration moves with the function and no type argument is
+inferred or converted by relocation.
+Existing cross-module function-signature admission also remains unchanged:
+moving a prelude-typed signature can still reject if surviving callers would
+require a currently unsupported generic-signature import. A body-local prelude
+value does not itself require a synthetic type import.
 
 These restrictions do not restrict unrelated functions in the Project. Caller
 migration uses the existing bounded exhaustive AST walker, including contracts,
@@ -77,6 +96,25 @@ stable-ID order; pre-existing retained imports keep their relative order.
 Self-calls retain the moved stable identity. Real module cycles still reject
 through ordinary complete Project admission.
 
+Nominal dependencies bind their authenticated type owner and provider module.
+The destination reuses an unambiguous existing local/imported type binding or
+receives a deterministic type import from the actual provider. Newly selected
+aliases avoid destination declarations/imports and moved lexical bindings.
+Ambiguous or conflicting existing bindings reject rather than being silently
+retargeted. Source type imports remain unchanged, including ones that become
+unused; type-import pruning is not part of this operation.
+
+An inferred nominal result or projected value need not have a source type alias:
+its retained checked owner and complete declaration shape authenticate the
+provider. Any actual type spelling in the moved source still requires an exact
+authenticated source binding before it can be rewritten.
+
+The moved signature, explicit local annotations, constructors and type-qualified
+patterns use the destination binding for each stable type identity. Field and
+case labels, local names and type arguments remain unchanged. This includes type
+syntax inside contracts. A source-local type dependency can create a real
+module cycle after relocation; full Project admission rejects that candidate.
+
 The compiler-owned `DeclarationMove` fact contains only the moved ID and its
 original/new path and module. Parent candidate checks transfer exactly the
 existing function effect/contract inventory between those modules and permit
@@ -94,6 +132,9 @@ templates, with a 65,536-call bound. It ignores source paths and revision-scoped
 expression IDs that relocation necessarily changes; it does not infer runtime
 coverage or dynamic calls. Exact source reconstruction plus admitted HIR
 bindings prevents an accidental alias change from silently changing a callee.
+The moved function's checked nominal identities are also independently compared
+after rebuilding; a same-spelled destination type cannot replace the original
+owner. This is semantic identity preservation, not a runtime-equivalence claim.
 
 `destinations(revision, target)` supplies sorted structural anchor choices for
 constructor discovery. Unsupported targets produce no choices. Namespace and
@@ -120,7 +161,13 @@ hygienic alias collisions, contracts, exact replay without source writes,
 fixed-export/main/path rejection, cycles, unrelated rename/body merges,
 competing locations, and stale handles. None has been run in this change.
 
-General declaration kinds, named and owned type relocation, public-export
+Additional authored, unrun nominal cases are in
+`tests/project_candidate_nominal_movement_v1.rs`. They cover destination type
+bindings, aggregate syntax, replay, and rejected relocation shapes. Discovery
+advertises checked nominal identity and type-binding migration constraints;
+an advertised destination still requires full candidate admission.
+
+General declaration kinds, owned type relocation, public-export
 origin migration, audited boundary relocation, broader expression syntax,
 runtime equivalence evidence, and full graph-operational programme completion
 remain outside this bounded slice.

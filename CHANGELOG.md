@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added explicit-ID record and variant creation through `add_declaration`, with
+  closed scalar fields, complete owner/member identity inventories and exact
+  source reconstruction. Discovery and schemas expose the new forms; semantic
+  rebase rejects nested identity collisions and supports record creation followed
+  by field evolution and nominal use. Regressions are authored, unrun. Generic
+  type creation, owned fields and source/publication authority remain unchanged.
+
 - Added a private doctor pre-exec Linux seccomp/no-new-privileges layer on
   native64 little-endian x86-64/AArch64. Socket creation, including local socket
   pairs, and six related asynchronous-I/O/descriptor/process syscalls fail

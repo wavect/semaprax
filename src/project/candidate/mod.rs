@@ -32,6 +32,7 @@ mod record_field;
 mod recovery;
 mod schemas;
 mod testing;
+mod type_declaration;
 mod wire;
 
 pub use archive::{
@@ -211,6 +212,7 @@ impl ProjectCandidate {
         let mut field_addition = None;
         let mut movement = None;
         let mut implementation_addition = None;
+        let mut type_addition = None;
         let (summary, addition) = match change.intent.get("kind").and_then(Value::as_str) {
             Some("implement_interface") => {
                 let (summary, added) =
@@ -241,9 +243,16 @@ impl ProjectCandidate {
                 (summary, None)
             }
             Some("add_declaration") => {
-                let (summary, addition) =
-                    declaration::apply(&self.revision, &mut programs, &change.intent)?;
-                (summary, Some(addition))
+                if change.intent["declaration"].get("kind").is_some() {
+                    let (summary, added) =
+                        type_declaration::apply(&self.revision, &mut programs, &change.intent)?;
+                    type_addition = Some(added);
+                    (summary, None)
+                } else {
+                    let (summary, addition) =
+                        declaration::apply(&self.revision, &mut programs, &change.intent)?;
+                    (summary, Some(addition))
+                }
             }
             Some("extract_function") => {
                 let (summary, addition) =
@@ -351,9 +360,13 @@ impl ProjectCandidate {
             addition.as_ref(),
             field_addition.as_ref(),
             movement.as_ref(),
+            type_addition.as_ref(),
         )?;
         if let Some(addition) = addition.as_ref() {
             declaration::validate_added_signature(&candidate, addition)?;
+        }
+        if type_addition.is_some() {
+            type_declaration::validate(&self.revision, &candidate, &change.intent)?;
         }
         let rebuilt_programs = parse_revision(&candidate)?;
         interface::identities(&rebuilt_programs)?;
@@ -390,6 +403,10 @@ impl ProjectCandidate {
         });
         if let Some(addition) = addition {
             operation["new_declaration"] = json!({"id":addition.id,"name":addition.name,"path":addition.path,"module":addition.module});
+        }
+        if let Some(addition) = type_addition {
+            operation["new_declaration"] = json!({"id":addition.id,"name":addition.name,"kind":addition.kind,
+                "path":addition.path,"module":addition.module,"identities":addition.expected_identities});
         }
         if let Some(field) = field_addition {
             operation["new_declaration"] = json!({"id":field.id,"name":field.name,"owner":field.owner,"kind":"field","path":field.path,"module":field.module});
@@ -515,6 +532,17 @@ impl ProjectCandidate {
         let introduced = summaries
             .iter()
             .filter_map(|s| s["new_declaration"]["id"].as_str())
+            .chain(
+                summaries
+                    .iter()
+                    .flat_map(|summary| {
+                        summary["new_declaration"]["identities"]
+                            .as_array()
+                            .into_iter()
+                            .flatten()
+                    })
+                    .filter_map(|identity| identity["id"].as_str()),
+            )
             .collect::<BTreeSet<_>>();
         let selected = summaries
             .iter()
@@ -522,6 +550,10 @@ impl ProjectCandidate {
             .chain(introduced.iter().copied())
             .collect::<BTreeSet<_>>();
         let mut impacts = Vec::new();
+        let bound_member_impacts = summaries
+            .iter()
+            .any(|summary| summary["new_declaration"]["identities"].is_array());
+        let mut impact_bytes = 2usize;
         for id in selected {
             let options = WorkspaceImpactOptions::default();
             let before = if introduced.contains(id) && base.semantic.image_symbol(id).is_none() {
@@ -548,7 +580,18 @@ impl ProjectCandidate {
                     "candidate impact target is absent from runtime and source inventories",
                 ));
             };
-            impacts.push(json!({"target": id, "base": before, "candidate": after}));
+            let impact = json!({"target": id, "base": before, "candidate": after});
+            if bound_member_impacts {
+                impact_bytes = impact_bytes.saturating_add(
+                    wire::render(impact.clone(), MAX_PROJECT_CANDIDATE_BYTES)?.len(),
+                );
+                if impact_bytes > MAX_PROJECT_CANDIDATE_BYTES {
+                    return Err(capacity(
+                        "type member impact inventory exceeds the candidate report bound",
+                    ));
+                }
+            }
+            impacts.push(impact);
         }
         let change_values = changes
             .iter()
@@ -659,6 +702,7 @@ fn preserve_explicit_identities(
     addition: Option<&declaration::DeclarationAddition>,
     field: Option<&record_field::FieldAddition>,
     movement: Option<&movement::DeclarationMove>,
+    type_addition: Option<&type_declaration::TypeAddition>,
 ) -> Result<(), Vec<Diagnostic>> {
     fn identities(revision: &ProjectRevision) -> Result<BTreeMap<String, Value>, Vec<Diagnostic>> {
         let graph: Value = serde_json::from_str(revision.semantic_graph())
@@ -673,6 +717,18 @@ fn preserve_explicit_identities(
     }
     let mut before = identities(base)?;
     let mut after = identities(candidate)?;
+    if let Some(addition) = type_addition {
+        for expected in &addition.expected_identities {
+            let id = expected["id"]
+                .as_str()
+                .ok_or_else(|| invalid("planned type identity is invalid"))?;
+            if before.contains_key(id) || after.remove(id).as_ref() != Some(expected) {
+                return Err(invalid(
+                    "candidate does not contain exactly the planned type and member identities",
+                ));
+            }
+        }
+    }
     if let Some(addition) = addition {
         let expected = json!({"id":addition.id,"kind":"function","identity_origin":"explicit","owner":null,"path":addition.path,"module":addition.module});
         if before.contains_key(&addition.id)

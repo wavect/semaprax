@@ -265,7 +265,7 @@ pub(super) fn append_function(
     Ok(addition)
 }
 
-fn anchor(programs: &[Program], target: &str) -> Result<(usize, usize)> {
+pub(super) fn anchor(programs: &[Program], target: &str) -> Result<(usize, usize)> {
     if target.is_empty() || target.len() > intent::MAX_ID_BYTES {
         return Err(grammar("declaration anchor must be a bounded stable ID"));
     }
@@ -410,7 +410,7 @@ fn validate_return(ty: &Type) -> Result<()> {
     }
 }
 
-fn stable_id(id: &str) -> Result<&str> {
+pub(super) fn stable_id(id: &str) -> Result<&str> {
     if id.is_empty()
         || id.len() > MAX_IDENTIFIER_BYTES
         || !id.bytes().all(|b| {
@@ -424,7 +424,7 @@ fn stable_id(id: &str) -> Result<&str> {
     Ok(id)
 }
 
-fn identifier(name: &str) -> Result<&str> {
+pub(super) fn identifier(name: &str) -> Result<&str> {
     if name.is_empty()
         || name.len() > MAX_IDENTIFIER_BYTES
         || !name

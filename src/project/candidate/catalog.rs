@@ -170,6 +170,10 @@ impl ProjectCandidate {
                     "kind":"add_declaration", "required_fields":["kind","target","declaration"],
                     "anchor":target, "placement":"append_function_in_anchor_module",
                     "nominal_type_selector":"nominal_types",
+                    "type_declaration_forms":[
+                        {"kind":"record","placement":"append_record_in_anchor_module","max_fields":64,"max_combined_identities":4096,"requires_full_candidate_validation":true},
+                        {"kind":"variant","placement":"append_variant_in_anchor_module","min_cases":1,"max_cases":64,"max_fields_per_case":64,"max_combined_identities":4096,"requires_full_candidate_validation":true},
+                    ],
                     "constraints":["globally_new_explicit_identity", "non_main_monomorphic_function", "unambiguous_module_namespace", "effects_within_anchor_budget_and_module_permits", "preserve_all_existing_declarations_and_exports", "full_candidate_revalidation"],
                 }));
                 operations.push(json!({

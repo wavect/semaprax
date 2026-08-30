@@ -85,6 +85,14 @@ remain bound by the exact intention. Each intermediate revision must retain
 the same selected shape, and the rebuilt declaration must still pass its
 checked Copy-signature gate.
 
+Record and variant declaration creation contributes every planned owner, case
+and field ID to collision checks. Nested IDs cannot collide with declarations
+in the destination revision or earlier history steps. A record created earlier
+in the same history can subsequently receive an `add_record_field` intention;
+full admission checks its shape at that intermediate revision. Later nominal
+type use and aggregate construction retain the ordinary whole-owner dependency
+guards. No new type is considered present in the original source base.
+
 | Concurrent change | Decision for replayed intent |
 | --- | --- |
 | Body edit and unrelated display rename, including the same source file | Replay permitted, then full admission. |

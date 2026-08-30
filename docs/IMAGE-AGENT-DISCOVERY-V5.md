@@ -32,7 +32,11 @@ rebase/merge reconciliation, all current change-catalogue operation shapes,
 test relevance plans, the semantic-delta root catalogue, and v5 discovery
 results. Opted-in refresh/preview responses may include a concrete
 `frontend_work` report; that property is optional, never nullable, and absent
-from the unchanged cold response. Its work counters describe frontend reuse,
+from the unchanged cold response. A discriminated schema union admits the
+unchanged AST-only `semaprax.project-frontend-cache-work.v1` or explicitly
+selected `semaprax.project-semantic-cache-work.v1`; the latter counts checked
+module hits while the former still requires zero. Its work counters describe
+frontend or checked-module reuse,
 not incremental semantic verification. Fields that are required but
 nullable, including chunk continuation and optional candidate selectors in
 results, remain distinct from omitted fields.

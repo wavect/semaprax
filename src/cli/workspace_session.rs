@@ -15,7 +15,7 @@ pub(crate) fn run(manifest: &Path, policy_path: &Path) -> Result<(), Vec<Diagnos
         super::project_image::read_bounded(policy_path, 65536).map_err(|error| vec![error])?;
     let policy: Value = serde_json::from_slice(&bytes)
         .map_err(|_| invalid("workspace host policy must be bounded JSON"))?;
-    let frontend_cache = frontend_cache_policy(&policy)?;
+    let (frontend_cache, semantic_cache) = cache_policy(&policy)?;
     let test_policy = if policy["test_policy"].is_null() {
         None
     } else {
@@ -49,7 +49,9 @@ pub(crate) fn run(manifest: &Path, policy_path: &Path) -> Result<(), Vec<Diagnos
             .map_err(|_| invalid("cannot resolve host manifest working directory"))?
             .join(manifest)
     };
-    let mut session = if frontend_cache {
+    let mut session = if semantic_cache {
+        VNextSession::open_with_semantic_cache(&manifest, capability)?
+    } else if frontend_cache {
         VNextSession::open_with_frontend_cache(&manifest, capability)?
     } else {
         VNextSession::open(&manifest, capability)?
@@ -131,7 +133,7 @@ pub(crate) fn run(manifest: &Path, policy_path: &Path) -> Result<(), Vec<Diagnos
 }
 // Preserve the closed v1 startup contract. Cache selection belongs to a new
 // host policy, and never to a frame or a silently accepted extension field.
-fn frontend_cache_policy(value: &Value) -> Result<bool, Vec<Diagnostic>> {
+fn cache_policy(value: &Value) -> Result<(bool, bool), Vec<Diagnostic>> {
     const COMMON: &[&str] = &[
         "schema",
         "candidate_prepare",
@@ -143,17 +145,21 @@ fn frontend_cache_policy(value: &Value) -> Result<bool, Vec<Diagnostic>> {
     match value["schema"].as_str() {
         Some("semaprax.workspace-host-policy.v1") => {
             exact(value, COMMON)?;
-            Ok(false)
+            Ok((false, false))
         }
         Some("semaprax.workspace-host-policy.v2") => {
             let mut keys = COMMON.to_vec();
             keys.push("frontend_cache");
             exact(value, &keys)?;
-            boolean(value, "frontend_cache")
+            Ok((boolean(value, "frontend_cache")?, false))
         }
-        Some("semaprax.workspace-host-policy.v3") => {
+        Some("semaprax.workspace-host-policy.v3" | "semaprax.workspace-host-policy.v4") => {
+            let semantic_policy = value["schema"] == "semaprax.workspace-host-policy.v4";
             let mut keys = COMMON.to_vec();
             keys.extend(["frontend_cache", "candidate_archives"]);
+            if semantic_policy {
+                keys.push("semantic_cache");
+            }
             exact(value, &keys)?;
             let archives = value["candidate_archives"]
                 .as_array()
@@ -187,7 +193,18 @@ fn frontend_cache_policy(value: &Value) -> Result<bool, Vec<Diagnostic>> {
                     }
                 }
             }
-            boolean(value, "frontend_cache")
+            let frontend = boolean(value, "frontend_cache")?;
+            let semantic = if semantic_policy {
+                boolean(value, "semantic_cache")?
+            } else {
+                false
+            };
+            if semantic && !frontend {
+                return Err(invalid(
+                    "semantic cache requires the explicit frontend cache selection",
+                ));
+            }
+            Ok((frontend, semantic))
         }
         _ => Err(invalid("unknown workspace host policy schema")),
     }

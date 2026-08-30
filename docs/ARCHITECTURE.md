@@ -393,6 +393,13 @@ refresh installs the staged cache alongside the new snapshot/image. Host-policy
 v2 selects this strategy through a required boolean; v1 stays closed and cold.
 The optional work report records actual frontend calls, not elapsed speed.
 
+`open_with_semantic_cache` additionally retains compiler-created checked module
+HIR against exact synthetic AST inputs, including imported declaration stubs.
+Host-policy v4 selects this strategy explicitly. Source authentication, HIR
+validation, cross-file checks, linking and profile admission remain mandatory;
+only eligible resolver work is reused. The cache shares the existing staged
+refresh/preview lifecycle and grants no publication authority.
+
 `image_transport/vnext/read_batch.rs` adds an embedding-host batch API for up to
 sixteen immutable image/discovery requests on at most four scoped workers.
 Source authentication surrounds the complete joined batch, and rows remain in
@@ -436,7 +443,10 @@ is authored/unrun; no complete-workflow or current-head promotion follows.
 `project/incremental.rs` owns an opt-in, invocation-local cache of exact-source
 canonical ASTs. It can avoid parsing/canonicalization for eligible retained
 modules while the ordinary graph, linking and profile gates still revalidate
-semantics. It imports no serialized HIR. `candidate/draft.rs` now carries
+semantics. Its separate semantic-cache constructor also retains exact synthetic
+AST/HIR pairs and conservative reverse-import invalidation. Cache hits replay
+checked-HIR validation and preserve cold builder accounting, without calling
+the source resolver again. It imports no serialized HIR. `candidate/draft.rs` now carries
 disjoint expression holes as well as whole-body holes; completed fills pass
 ordinary candidate admission and reauthenticate surviving selections against
 the resulting canonical source. Neither cache nor draft owns source authority.
@@ -459,9 +469,10 @@ from a fresh rejected attempt before ordinary candidate admission records its
 typed history; no invalid image or submitted replacement becomes trusted state.
 
 `src/project/image_store.rs` binds semantic image receipts to secure persisted
-Project source inputs. Loading rebuilds and re-derives the image; refresh reports
-conservative reverse-module invalidation but does not incrementally compile or
-restore serialized HIR. `candidate/delta.rs` derives source-bound before/after
+Project source inputs. Loading rebuilds and re-derives the image. The separate
+`ImageWorkspace::with_semantic_cache` opt-in uses checked-module reuse for
+owned-source refresh; cold and AST-only constructors retain their behavior.
+No route restores serialized HIR. `candidate/delta.rs` derives source-bound before/after
 semantic facts with exact replay. Diagnostic protocol v4 retains bounded rejected
 attempts and verified repair proposals, with test authority selected only by the
 host. Store and managed publication remain separate from protocol authority.

@@ -412,7 +412,10 @@ mod tests {
                 .any(|name| name == "frontend_work"));
             assert_eq!(
                 schema["properties"]["frontend_work"],
-                json!({"$ref":"urn:semaprax.project-frontend-cache-work.v1"})
+                json!({"oneOf":[
+                    {"$ref":"urn:semaprax.project-frontend-cache-work.v1"},
+                    {"$ref":"urn:semaprax.project-semantic-cache-work.v1"}
+                ]})
             );
         }
         let frontend = documents
@@ -422,6 +425,22 @@ mod tests {
         assert_eq!(
             frontend["properties"]["invalidated_sources"]["type"],
             "array"
+        );
+        assert_eq!(
+            frontend["properties"]["work"]["properties"]["checked_HIR_reused"],
+            json!({"const":0})
+        );
+        let semantic = documents
+            .iter()
+            .find(|doc| doc["$id"] == "urn:semaprax.project-semantic-cache-work.v1")
+            .unwrap();
+        assert_eq!(
+            semantic["properties"]["schema"]["const"],
+            "semaprax.project-semantic-cache-work.v1"
+        );
+        assert_eq!(
+            semantic["properties"]["work"]["properties"]["checked_HIR_reused"],
+            json!({"type":"integer","minimum":0,"maximum":16})
         );
         let catalog = documents
             .iter()

@@ -243,6 +243,17 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
             ("nonclaims", strings()),
         ],
     );
+    // Keep the AST-only report's zero-HIR contract intact. The independently
+    // selected semantic cache reports actual hits under its own schema.
+    let mut semantic = docs["urn:semaprax.project-frontend-cache-work.v1"].clone();
+    semantic["$id"] = json!("urn:semaprax.project-semantic-cache-work.v1");
+    semantic["properties"]["schema"]["const"] = json!("semaprax.project-semantic-cache-work.v1");
+    semantic["properties"]["work"]["properties"]["checked_HIR_reused"] =
+        json!({"type":"integer","minimum":0,"maximum":16});
+    docs.insert(
+        "urn:semaprax.project-semantic-cache-work.v1".into(),
+        semantic,
+    );
     docs
 }
 

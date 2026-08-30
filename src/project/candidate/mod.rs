@@ -12,8 +12,15 @@ use crate::workspace_analysis::{WorkspaceAnalysisTargetKind, WorkspaceImpactOpti
 
 use super::{build, ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 
+mod catalog;
+mod draft;
 mod intent;
 mod wire;
+
+pub use draft::{
+    ProjectCandidateDraft, MAX_PROJECT_CANDIDATE_HOLES, PROJECT_CANDIDATE_DRAFT_SCHEMA,
+    PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA,
+};
 
 pub const SEMANTIC_CHANGE_SCHEMA: &str = "semaprax.semantic-change.v1";
 pub const PROJECT_CANDIDATE_SCHEMA: &str = "semaprax.project-candidate.v1";

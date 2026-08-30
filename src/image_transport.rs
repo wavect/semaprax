@@ -1,8 +1,9 @@
-//! Self-describing, read-only Image Agent Protocol v1.
+//! Self-describing Image Agent Protocol: read-only v1 and candidate-only v2.
 //!
-//! The host binds one manifest and explicitly selects read-only authority.
+//! The host binds one manifest and explicitly selects the session profile.
 //! Requests cannot name files, change capability, write source, or run targets.
-//! Existing Graph and Project transport method sets remain unchanged.
+//! Opt-in v2 retains bounded in-memory candidates and ephemeral typed drafts;
+//! read-only v1 and existing Graph/Project method sets remain unchanged.
 
 use std::io::{self, BufRead, Write};
 use std::path::Path;
@@ -19,6 +20,9 @@ use crate::workspace_analysis::{
     WorkspaceImpactOptions,
 };
 
+mod candidates;
+pub use candidates::{CANDIDATE_PROTOCOL_SCHEMA, CANDIDATE_RESULT_SCHEMA};
+
 pub const PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v1";
 pub const RESULT_SCHEMA: &str = "semaprax.image-agent-result.v1";
 pub const MAX_REQUEST_BYTES: usize = 64 * 1024;
@@ -30,6 +34,7 @@ const MAX_QUERY_BYTES: usize = 512 * 1024;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ImageHostCapability {
     ReadOnly,
+    CandidateOnly,
 }
 
 #[derive(Clone, Copy)]
@@ -38,6 +43,7 @@ enum ParameterKind {
     Digest,
     Choice(&'static [&'static str]),
     Integer(usize, usize),
+    Object(&'static str),
 }
 
 #[derive(Clone, Copy)]
@@ -92,6 +98,7 @@ enum Operation {
     Impact,
     FunctionSummary,
     Facet,
+    Candidate(candidates::Action),
 }
 
 struct Method {
@@ -255,11 +262,11 @@ pub struct ImageSession {
     snapshot: ProjectSnapshot,
     image: Arc<ProjectSemanticImage>,
     terminal: bool,
+    candidates: Option<candidates::Registry>,
 }
 
 impl ImageSession {
     pub fn open(manifest: &Path, capability: ImageHostCapability) -> Result<Self, Vec<Diagnostic>> {
-        let ImageHostCapability::ReadOnly = capability;
         let mut snapshot = crate::project::load_snapshot(manifest)?;
         let image = snapshot.with_authenticated_request(|snapshot| {
             ProjectSemanticImage::derive(snapshot.retain_revision(), snapshot.project_revision())
@@ -268,6 +275,8 @@ impl ImageSession {
             snapshot,
             image: Arc::new(image),
             terminal: false,
+            candidates: (capability == ImageHostCapability::CandidateOnly)
+                .then(candidates::Registry::default),
         })
     }
 
@@ -311,6 +320,19 @@ impl ImageSession {
         let RequestKind::Call(id) = request.kind else {
             return None;
         };
+        if let Some(registry) = &mut self.candidates {
+            let response = candidates::handle(
+                &mut self.snapshot,
+                &self.image,
+                registry,
+                &id,
+                &request.method,
+                request.params.unwrap_or_default(),
+            );
+            // Candidate failures never remove successful earlier registry
+            // entries. In particular a too-large query can be retried smaller.
+            return Some(response);
+        }
         let Some(method) = METHODS.iter().find(|method| method.name == request.method) else {
             return Some(codec::bounded_error_response(
                 Some(&id),
@@ -448,6 +470,7 @@ fn validate_parameters(method: &Method, params: &Map<String, Value>) -> Result<(
             ParameterKind::Integer(min, max) => value
                 .as_u64()
                 .is_some_and(|number| number >= min as u64 && number <= max as u64),
+            ParameterKind::Object(_) => value.is_object(),
         };
         if !valid {
             return Err(format!("invalid parameter {}", parameter.name));
@@ -561,6 +584,9 @@ fn dispatch(
             };
             return parse_payload(result);
         }
+        Operation::Candidate(_) => {
+            unreachable!("candidate operations use the isolated v2 dispatcher")
+        }
     };
     Ok(value)
 }
@@ -585,6 +611,7 @@ fn method_description(method: &Method) -> Value {
             ParameterKind::Digest => json!({"type":"string", "pattern":"^sha256:[0-9a-f]{64}$"}),
             ParameterKind::Choice(choices) => json!({"type":"string", "enum":choices}),
             ParameterKind::Integer(min, max) => json!({"type":"integer", "minimum":min, "maximum":max}),
+            ParameterKind::Object(schema) => json!({"type":"object", "$ref":format!("urn:{schema}")}),
         };
         (parameter.name.to_owned(), schema)
     }).collect::<Map<_, _>>();

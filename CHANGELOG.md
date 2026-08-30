@@ -77,6 +77,14 @@
   unchanged source/v10 admission. Tests/builds remain unrun; no ordinary-Wasm
   settlement or production promotion is claimed.
 
+- Added ephemeral typed body-hole drafts, ordered built-in Copy signature
+  mapping with hygienic left-to-right argument staging, and an opt-in
+  candidate-only image protocol with bounded registries, replay validation,
+  hole lifecycle, constructor discovery and report chunks. Unresolved drafts
+  cannot expose materializable source. No source, test or runtime authority
+  is added. Regression cases are authored, unrun by request; general changes,
+  semantic merge, persistence and separate source commit remain incomplete.
+
 - Added immutable Project candidate overlays with a closed Semantic Change IR,
   stable-ID function rename, scalar parameter append/caller migration, and typed
   body construction. Previews materialize canonical source in memory, reparse
@@ -85,7 +93,7 @@
   Added HIR-backed image facets with bounded references and pagination, plus a
   separate self-describing read-only image protocol and generated client
   helpers. Tests are authored but unrun by request; the full graph-operational
-  programme, runtime gates, incremental reuse, holes, merge, and source commit
+  programme, runtime gates, incremental reuse, general holes, merge, and source commit
   remain incomplete.
 
 - Authored the first Semantic Workspace Image v1 foundation: a bounded,

@@ -1,0 +1,119 @@
+//! Target-specific constructor discovery, never a validation receipt.
+
+use serde_json::{json, Value};
+
+use crate::ast::{ParamMode, Type};
+use crate::diagnostic::Diagnostic;
+
+use super::{capacity, invalid, parse_revision, wire, ProjectCandidate, MAX_CHANGES};
+
+impl ProjectCandidate {
+    /// Describes available intention constructors for this exact candidate.
+    /// Payload-dependent legality is decided only by `apply`; this read-only
+    /// catalogue does not claim that arbitrary payloads satisfy contracts or
+    /// target profiles and supplies no source or publication authority.
+    pub fn change_catalog(&self, target: &str) -> Result<String, Vec<Diagnostic>> {
+        if target.len() > 4096 {
+            return Err(capacity("change catalogue target exceeds its byte bound"));
+        }
+        if target.is_empty() || target.contains('\0') {
+            return Err(invalid("change catalogue requires a stable ID"));
+        }
+        let programs = parse_revision(&self.revision)?;
+        let selected = programs
+            .iter()
+            .flat_map(|program| &program.functions)
+            .find(|function| function.stable_id == target);
+        let mut operations = Vec::<Value>::new();
+        let mut parameters = Vec::<Value>::new();
+        let mut reason = "target_is_not_a_supported_top_level_function";
+        if let Some(function) = selected {
+            reason = "target_requires_explicit_identity_monomorphic_non_main_function";
+            if function.explicit_id
+                && function.type_parameters.is_empty()
+                && function.name != "main"
+            {
+                reason = "candidate_intention_limit_reached";
+                if self.changes.len() < MAX_CHANGES {
+                    reason = "constructor_available_payload_requires_full_candidate_admission";
+                    parameters = function
+                        .params
+                        .iter()
+                        .map(|param| {
+                            json!({
+                                "name":param.name,
+                                "type":param.ty.to_string(),
+                                "mode":match param.mode {
+                                    ParamMode::Value=>"value", ParamMode::Own=>"own",
+                                    ParamMode::Borrow=>"borrow", ParamMode::Shared=>"shared",
+                                },
+                            })
+                        })
+                        .collect();
+                    operations.push(json!({
+                        "kind":"rename_declaration", "required_fields":["kind","target","name"],
+                        "constraints":["new_identifier_max_128_bytes", "different_display_name", "no_call_binding_collision", "preserve_stable_identity"],
+                    }));
+                    let mut forms = vec![json!({
+                        "selector":"append_parameters", "minimum":1, "maximum":16,
+                        "item_fields":["name","type","argument"],
+                        "new_parameter_types":["i64","i32","u8","usize","bool"],
+                        "argument":"matching_typed_scalar_literal",
+                        "evaluation_order":"original_arguments_unchanged_then_pure_literals",
+                    })];
+                    if function.params.len() <= 4096
+                        && function.params.iter().all(|param| {
+                            param.mode == ParamMode::Value
+                                && matches!(
+                                    param.ty,
+                                    Type::I64
+                                        | Type::I32
+                                        | Type::Char
+                                        | Type::U8
+                                        | Type::Usize
+                                        | Type::ArrayU8(_)
+                                        | Type::F32
+                                        | Type::F64
+                                        | Type::Bool
+                                )
+                        })
+                    {
+                        forms.push(json!({
+                            "selector":"parameters", "minimum":0, "maximum":4096,
+                            "existing_parameter_fields":["from"],
+                            "new_parameter_fields":["name","type","argument"],
+                            "new_parameter_types":["i64","i32","u8","usize","bool"],
+                            "argument":"matching_typed_scalar_literal",
+                            "constraints":["existing_parameter_selected_at_most_once", "existing_name_type_mode_preserved", "new_name_distinct_from_all_old_names", "removed_parameters_must_not_remain_referenced"],
+                            "evaluation_order":"stage_every_original_argument_once_left_to_right_including_removed_arguments",
+                        }));
+                    }
+                    operations.push(json!({
+                        "kind":"change_function_signature", "required_fields":["kind","target"],
+                        "exactly_one_form":forms,
+                        "constraints":["all_authenticated_callers_migrated", "preserve_return_type", "full_project_profile_and_target_admission"],
+                    }));
+                    operations.push(json!({
+                        "kind":"replace_function_body", "required_fields":["kind","target","body"],
+                        "constructors":["i64","i32","u8","usize","bool","place","binary","unary","if","call"],
+                        "expression_nodes_maximum":4096, "expression_depth_maximum":64,
+                        "constraints":["place_selects_existing_parameter", "call_selects_accessible_stable_id", "expected_return_type", "declared_effect_budget", "contracts_ownership_cleanup_and_target_revalidation"],
+                    }));
+                }
+            }
+        }
+        wire::render(
+            json!({
+                "schema":"semaprax.project-change-catalog.v1",
+                "candidate_digest":self.candidate_digest(),
+                "project_revision":self.revision.project_revision(),
+                "target":target, "parameters":parameters, "operations":operations,
+                "reason":reason,
+                "admission":"constructor_discovery_only",
+                "requires_full_candidate_validation":true,
+                "source_authority":false,
+            }),
+            256 * 1024,
+        )
+    }
+}

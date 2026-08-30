@@ -78,6 +78,32 @@ fn append(revision: &ProjectRevision) -> SemanticChange {
     .unwrap()
 }
 
+#[test]
+fn change_catalog_is_revision_bound_and_omits_unsupported_targets() {
+    let fixture = Fixture::new();
+    let revision = fixture.revision();
+    let candidate =
+        ProjectCandidate::open(Arc::clone(&revision), revision.project_revision()).unwrap();
+    let report: Value =
+        serde_json::from_str(&candidate.change_catalog("calculator.add").unwrap()).unwrap();
+    assert_eq!(report["candidate_digest"], candidate.candidate_digest());
+    assert_eq!(report["requires_full_candidate_validation"], true);
+    assert_eq!(report["admission"], "constructor_discovery_only");
+    assert_eq!(report["operations"].as_array().unwrap().len(), 3);
+    assert_eq!(
+        report["operations"][1]["exactly_one_form"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+    let unknown: Value =
+        serde_json::from_str(&candidate.change_catalog("unknown.id").unwrap()).unwrap();
+    assert!(unknown["operations"].as_array().unwrap().is_empty());
+    assert_code(candidate.change_catalog(""), "SPX-G222");
+    assert_code(candidate.change_catalog(&"x".repeat(4097)), "SPX-G223");
+}
+
 fn assert_code<T>(result: Result<T, Vec<Diagnostic>>, code: &str) {
     match result {
         Ok(_) => panic!("expected {code}"),

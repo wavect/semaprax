@@ -109,7 +109,7 @@ fn internal_calls_match_native_o0_o2_and_raw_wasm_normalized_outcomes() {
 
     let generated = semaprax::codegen::emit_c(&ast).unwrap();
     assert_eq!(generated, semaprax::codegen::emit_c(&ast).unwrap());
-    let mut probe = format!("{}\n{generated}\n#undef malloc\n#undef free\nint main(void) {{\nstruct spx_status_entry entries[8]; struct spx_context context={{0}}; REQUIRE(spx_context_init(&context,19,entries,8,NULL,NULL,NULL));\n", include_str!("native_owned_utf8_settlement_v1/allocations.c"));
+    let mut probe = format!("{}\n{}\n{generated}\n#undef malloc\n#undef free\nint main(void) {{\nREQUIRE(fixture_binary_stdout());\nstruct spx_status_entry entries[8]; struct spx_context context={{0}}; REQUIRE(spx_context_init(&context,19,entries,8,NULL,NULL,NULL));\n", include_str!("support/native_fixture_stdio.c"), include_str!("native_owned_utf8_settlement_v1/allocations.c"));
     for (id, _, _) in CASES {
         let symbol = id
             .bytes()

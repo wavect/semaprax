@@ -36,6 +36,7 @@
 } while (0)
 
 int main(void) {
+    REQUIRE(fixture_binary_stdout());
     /* One appended status per failure; the arena intentionally persists across
      * all 32 rounds, so capacity covers the exact 13-failure matrix. */
     enum { repetitions = 32, failures_per_round = 13 };

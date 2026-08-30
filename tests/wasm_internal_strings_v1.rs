@@ -120,7 +120,7 @@ fn compiler_settlement_matches_native_and_interpreter_and_reuses_every_failure_s
     fixture.write("cases.json", serde_json::to_vec(CASES).unwrap());
 
     let generated = semaprax::codegen::emit_c(&ast).unwrap();
-    let mut probe = format!("{}\n{generated}\n#undef malloc\n#undef free\nint main(void) {{\nstruct spx_status_entry entries[32]; struct spx_context context={{0}}; REQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,NULL));\n", include_str!("native_owned_utf8_settlement_v1/allocations.c"));
+    let mut probe = format!("{}\n{}\n{generated}\n#undef malloc\n#undef free\nint main(void) {{\nREQUIRE(fixture_binary_stdout());\nstruct spx_status_entry entries[32]; struct spx_context context={{0}}; REQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,NULL));\n", include_str!("support/native_fixture_stdio.c"), include_str!("native_owned_utf8_settlement_v1/allocations.c"));
     for (id, _) in CASES {
         let symbol = id
             .bytes()

@@ -115,7 +115,8 @@ fn run(sanitized: bool) {
     fs::write(
         &source,
         format!(
-            "{}\n{provider}\n{private_symbols}\n{}",
+            "{}\n{}\n{provider}\n{private_symbols}\n{}",
+            include_str!("support/native_fixture_stdio.c"),
             include_str!("native_owned_utf8_settlement_v1/allocations.c"),
             include_str!("native_owned_utf8_settlement_v1/probe.c"),
         ),

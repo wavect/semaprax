@@ -117,6 +117,7 @@ static void private_emitted_functions(void) {
 }
 
 int main(void) {
+    REQUIRE(fixture_binary_stdout());
     spx_context_v1 storage;
     spx_context_v1 *context = &storage;
     REQUIRE(spx_owned_data_context_init_v1(context, sizeof(storage)) == 0);

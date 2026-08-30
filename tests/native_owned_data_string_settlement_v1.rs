@@ -49,7 +49,8 @@ fn run(sanitized: bool) {
         fs::write(
             &source,
             format!(
-                "{}\n{}\n#define FIXTURE_FLAT {}\n{}",
+                "{}\n{}\n{}\n#define FIXTURE_FLAT {}\n{}",
+                include_str!("support/native_fixture_stdio.c"),
                 include_str!("native_owned_utf8_settlement_v1/allocations.c"),
                 artifact.provider,
                 u8::from(flat),

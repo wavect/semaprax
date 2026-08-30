@@ -15,6 +15,7 @@ mod contents;
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 const SOURCE: &str = include_str!("native_string_settlement_v1/source.spx");
 const OBSERVER: &str = include_str!("native_owned_utf8_settlement_v1/allocations.c");
+const STDIO: &str = include_str!("support/native_fixture_stdio.c");
 const GENERIC: &str = r#"
 module native.generic_string_settlement;
 @id("s.generic")
@@ -105,7 +106,7 @@ fn ordinary() -> String {
         aliases.push_str(&format!("#define FIXTURE_{name} {}\n", symbol(id)));
     }
     format!(
-        "{OBSERVER}\n{generated}\n{aliases}\n{}",
+        "{STDIO}\n{OBSERVER}\n{generated}\n{aliases}\n{}",
         include_str!("native_string_settlement_v1/probe.c")
     )
 }
@@ -124,11 +125,13 @@ fn generic() -> String {
     assert!(generated.contains("spx_string_len_chars"));
     let root = symbol("s.generic-root");
     format!(
-        r#"{OBSERVER}
+        r#"{STDIO}
+{OBSERVER}
 {generated}
 #undef malloc
 #undef free
 int main(void) {{
+    REQUIRE(fixture_binary_stdout());
     struct spx_status_entry entries[32];
     struct spx_context context = {{0}};
     REQUIRE(spx_context_init(&context, 17, entries, 32, NULL, NULL, NULL));
@@ -180,11 +183,13 @@ fn stdout(empty_success: bool) -> String {
     // Failure settles the local before reaching that read.
     let allocations = if empty_success { 2 } else { 1 };
     format!(
-        r#"{OBSERVER}
+        r#"{STDIO}
+{OBSERVER}
 {generated}
 #undef malloc
 #undef free
 int main(void) {{
+    REQUIRE(fixture_binary_stdout());
     for (unsigned repetition = 0; repetition < 32; ++repetition) {{
         struct spx_stdout_transcript_result_v1 result;
         memset(&result, 0xa5, sizeof(result));

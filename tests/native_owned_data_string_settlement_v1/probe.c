@@ -1,11 +1,6 @@
 #undef malloc
 #undef free
 
-#if defined(_WIN32)
-#include <fcntl.h>
-#include <io.h>
-#endif
-
 static void begin(size_t *allocated, size_t *freed, spx_context_v1 *context) {
     REQUIRE(fixture_live == 0 && context->live_slots == 0);
     *allocated = fixture_allocations;
@@ -104,9 +99,7 @@ static void exercise(spx_context_v1 *context) {
 #endif
 
 int main(void) {
-#if defined(_WIN32)
-    REQUIRE(_setmode(_fileno(stdout), _O_BINARY) != -1);
-#endif
+    REQUIRE(fixture_binary_stdout());
     spx_context_v1 storage;
     REQUIRE(spx_owned_data_context_init_v1(&storage, sizeof(storage)) == 0);
     exercise(&storage); /* one physical native context across every call */

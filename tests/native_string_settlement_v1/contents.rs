@@ -4,7 +4,7 @@
 
 use super::{
     checked, codegen, compile_and_run, format, fs, symbol, Command, Ordering, Path, OBSERVER,
-    SERIAL,
+    SERIAL, STDIO,
 };
 
 const BASE: &str = r#"
@@ -97,7 +97,7 @@ module strings.nul_generic;
 @id("s.identity") fn identity<T>(marker: T, value: string) -> string { value }
 @id("s.bridge") fn bridge(value: string) -> string { identity<i64>(0, value) }
 @id("s.main") fn main() -> i64 {
-    if bridge("a\u{0}é") == "a\u{0}é" { 42 } else { 0 }
+    if bridge("a\u{0}é") == "a\u{0}é" && string_len(bridge("a\u{0}é")) == 4 { 42 } else { 0 }
 }
 "#;
 
@@ -108,11 +108,13 @@ fn native(source: &str) -> String {
     assert!(generated.contains("struct spx_string_v10"));
     let main = symbol("s.main");
     format!(
-        r#"{OBSERVER}
+        r#"{STDIO}
+{OBSERVER}
 {generated}
 #undef malloc
 #undef free
 int main(void) {{
+    REQUIRE(fixture_binary_stdout());
     struct spx_status_entry entries[1];
     struct spx_context context = {{0}};
     REQUIRE(spx_context_init(&context, 19, entries, 1, NULL, NULL, NULL));

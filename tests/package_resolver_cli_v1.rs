@@ -42,6 +42,10 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert_eq!(stdout.matches(NEW_LINE).count(), 1);
     let current = stdout.replacen(NEW_LINE, "", 1);
+    const GIT_PUBLISH_LINE: &str = "semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\n";
+    assert_eq!(current.len(), 5_770);
+    assert_eq!(fnv1a64(current.as_bytes()), 0xdb0a_53ee_5f16_ba3b);
+    assert_eq!(current.matches(GIT_PUBLISH_LINE).count(), 1);
     // The thirteen additive Project-image commands contribute exactly 642 bytes.
     // This pin was derived by data-only help-literal decoding, calibrated
     // against both historical whole-output pins below; no CLI was executed.
@@ -60,10 +64,19 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         "semaprax serve-diagnostics <manifest>\n",
         "semaprax serve-diagnostics-tested <manifest>\n",
     ];
+    // Preserve the complete upstream fourteen-command block before removing
+    // only its new line, then retain every earlier whole-output pin below.
+    let image_lines = PROJECT_IMAGE_LINES.concat();
+    let current_image_lines = image_lines.replacen(
+        PROJECT_IMAGE_LINES[7],
+        &format!("{}{GIT_PUBLISH_LINE}", PROJECT_IMAGE_LINES[7]),
+        1,
+    );
+    assert_eq!(current.matches(current_image_lines.as_str()).count(), 1);
+    let current = current.replacen(GIT_PUBLISH_LINE, "", 1);
     assert_eq!(current.len(), 5_658);
     assert_eq!(fnv1a64(current.as_bytes()), 0x582e_75e7_64c4_56c3);
     // Also retain upstream's exact contiguous-block assertion.
-    let image_lines = PROJECT_IMAGE_LINES.concat();
     assert_eq!(current.matches(image_lines.as_str()).count(), 1);
     let before_store_and_diagnostics = current
         .replacen(PROJECT_IMAGE_LINES[1], "", 1)

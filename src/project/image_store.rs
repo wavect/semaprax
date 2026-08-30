@@ -160,6 +160,7 @@ pub fn load_semantic_image(
 /// One retained in-memory image. Refresh owns no store or filesystem authority.
 pub struct ImageWorkspace {
     image: Arc<ProjectSemanticImage>,
+    frontend: Option<super::ProjectFrontendCache>,
 }
 
 pub struct ImageRefreshReport {
@@ -181,7 +182,28 @@ impl ImageRefreshReport {
 
 impl ImageWorkspace {
     pub fn new(image: Arc<ProjectSemanticImage>) -> Self {
-        Self { image }
+        Self {
+            image,
+            frontend: None,
+        }
+    }
+
+    /// Opt in to an invocation-owned AST cache. Initial priming performs one
+    /// complete source build and compares it with the retained image subject.
+    pub fn with_frontend_cache(image: Arc<ProjectSemanticImage>) -> Result<Self> {
+        let mut frontend = super::ProjectFrontendCache::new();
+        let sources = super::incremental::sources_from_revision(image.revision())?;
+        let built = frontend.build(image.revision().manifest(), &sources)?;
+        if !same_revision(image.revision(), built.revision()) {
+            return Err(vec![Diagnostic::io(
+                "SPX-G257",
+                "frontend cache priming disagrees with the retained image",
+            )]);
+        }
+        Ok(Self {
+            image,
+            frontend: Some(frontend),
+        })
     }
     pub fn image(&self) -> &Arc<ProjectSemanticImage> {
         &self.image
@@ -196,6 +218,15 @@ impl ImageWorkspace {
     ) -> Result<ImageRefreshReport> {
         require_image(&self.image, expected_old_image)?;
         let reused = revision.project_revision() == self.image.revision().project_revision();
+        if !reused && self.frontend.is_some() {
+            let sources = super::incremental::sources_from_revision(&revision)?;
+            return self.refresh_cached(
+                revision.manifest(),
+                &sources,
+                expected_old_image,
+                Some(&revision),
+            );
+        }
         let next = if reused {
             if !same_revision(self.image.revision(), &revision) {
                 return Err(stale(
@@ -226,6 +257,74 @@ impl ImageWorkspace {
                 revision.project_revision(),
             )?)
         };
+        self.finish_refresh(next, reused, None, None)
+    }
+
+    /// Admit caller-owned canonical source bytes directly through cached
+    /// parsing and the full semantic/link/profile pipeline. No preliminary
+    /// cold ProjectRevision is required and no filesystem path is opened.
+    pub fn refresh_owned_sources(
+        &mut self,
+        manifest: &super::ProjectManifest,
+        sources: &[super::ProjectFrontendSource],
+        expected_old_image: &str,
+    ) -> Result<ImageRefreshReport> {
+        self.refresh_cached(manifest, sources, expected_old_image, None)
+    }
+
+    fn refresh_cached(
+        &mut self,
+        manifest: &super::ProjectManifest,
+        sources: &[super::ProjectFrontendSource],
+        expected_old_image: &str,
+        admitted: Option<&ProjectRevision>,
+    ) -> Result<ImageRefreshReport> {
+        require_image(&self.image, expected_old_image)?;
+        let mut frontend = self
+            .frontend
+            .as_ref()
+            .ok_or_else(|| {
+                vec![Diagnostic::io(
+                    "SPX-G255",
+                    "owned-source refresh requires an explicitly enabled frontend cache",
+                )]
+            })?
+            .fork();
+        let build = frontend.build(manifest, sources)?;
+        if admitted.is_some_and(|revision| !same_revision(revision, build.revision())) {
+            return Err(vec![Diagnostic::io(
+                "SPX-G257",
+                "cached source build differs from the supplied admitted revision",
+            )]);
+        }
+        let work = super::incremental::work_value(&build)?;
+        let reused =
+            build.revision().project_revision() == self.image.revision().project_revision();
+        let next = if reused {
+            if !same_revision(self.image.revision(), build.revision()) {
+                return Err(vec![Diagnostic::io(
+                    "SPX-G257",
+                    "cached source build changed facts at the same revision",
+                )]);
+            }
+            Arc::clone(&self.image)
+        } else {
+            let expected = build.revision().project_revision().to_owned();
+            Arc::new(ProjectSemanticImage::derive(
+                build.into_revision(),
+                &expected,
+            )?)
+        };
+        self.finish_refresh(next, reused, Some(frontend), Some(work))
+    }
+
+    fn finish_refresh(
+        &mut self,
+        next: Arc<ProjectSemanticImage>,
+        reused: bool,
+        frontend: Option<super::ProjectFrontendCache>,
+        frontend_work: Option<Value>,
+    ) -> Result<ImageRefreshReport> {
         let before = self.image.revision();
         let after = next.revision();
         let old = before
@@ -285,7 +384,7 @@ impl ImageWorkspace {
             .filter(|path| !invalidated.contains(**path))
             .map(|path| (*path).to_owned())
             .collect::<Vec<_>>();
-        let value = json!({"schema":SEMANTIC_IMAGE_REFRESH_SCHEMA,
+        let mut value = json!({"schema":SEMANTIC_IMAGE_REFRESH_SCHEMA,
             "old_image_digest":self.image.image_digest(),"image_digest":next.image_digest(),
             "old_project_revision":before.project_revision(),"project_revision":after.project_revision(),
             "changed_sources":changed,"invalidated_sources":invalidated,"unchanged_source_facts":unchanged,
@@ -293,6 +392,16 @@ impl ImageWorkspace {
             "invalidation_basis":"changed_sources_and_union_of_old_new_reverse_module_imports",
             "image_arc_reused":reused,"compiler_work":if reused {"retained_image_arc_reused"} else {"complete_source_rebuild_and_image_derivation"},
             "nonclaims":["not_incremental_compilation","no_unchanged_module_HIR_reuse_claim","no_filesystem_freshness_or_publication_authority","no_persistent_HIR_deserialization"]});
+        if let Some(work) = frontend_work {
+            value["frontend_work"] = work;
+            value["compiler_work"] = json!("cached_parsing_full_semantic_link_and_profile_rebuild");
+            value["nonclaims"] = json!([
+                "not_incremental_semantic_verification",
+                "no_unchanged_module_HIR_reuse_claim",
+                "no_filesystem_freshness_or_publication_authority",
+                "no_persistent_HIR_deserialization"
+            ]);
+        }
         let json = render(value, MAX_IMAGE_REFRESH_REPORT_BYTES)?;
         let report = ImageRefreshReport {
             digest: hash(
@@ -303,6 +412,9 @@ impl ImageWorkspace {
             reused,
         };
         self.image = next;
+        if let Some(frontend) = frontend {
+            self.frontend = Some(frontend);
+        }
         Ok(report)
     }
 }

@@ -70,6 +70,11 @@ caller, but that object does not represent the incomplete draft.
 
 ## Typed context
 
+The additive [Expression Holes v1](PROJECT-CANDIDATE-EXPRESSION-HOLES-V1.md)
+extends the same draft with disjoint authored expression selections, including
+local lexical scope and selector remapping after fills. Body-only report bytes
+and context remain unchanged. The sixteen-hole bound is shared across both kinds.
+
 `hole_context` returns `semaprax.project-candidate-hole-context.v1` containing:
 
 - exact draft, hole, function, source revision/path/module and expected return

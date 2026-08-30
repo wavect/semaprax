@@ -15,10 +15,12 @@ use super::{build, ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 mod catalog;
 mod declaration;
 mod delta;
+mod diagnostic_intent;
 mod diagnostics;
 mod draft;
 mod expression;
 mod extraction;
+mod git_publication;
 mod intent;
 mod movement;
 mod publication;
@@ -48,6 +50,12 @@ pub use delta::{
 pub use draft::{
     ProjectCandidateDraft, MAX_PROJECT_CANDIDATE_HOLES, PROJECT_CANDIDATE_DRAFT_SCHEMA,
     PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA,
+};
+pub use git_publication::{
+    apply_candidate_git_publication, CandidateGitAuthority, CandidateGitCommitMetadata,
+    CandidateGitObject, CandidateGitObjectKind, CandidateGitProcessAuthority,
+    CandidateGitRefUpdate, CandidateGitRepository, CandidateGitTarget,
+    PROJECT_CANDIDATE_GIT_PUBLICATION_SCHEMA,
 };
 pub use publication::{
     apply_candidate_publication, prepare_candidate_publication, ProjectCandidatePublication,
@@ -184,6 +192,10 @@ impl ProjectCandidate {
         let mut field_addition = None;
         let mut movement = None;
         let (summary, addition) = match change.intent.get("kind").and_then(Value::as_str) {
+            Some("repair_diagnostic") => (
+                diagnostic_intent::apply(self, &mut programs, &change.intent)?,
+                None,
+            ),
             Some("add_record_field") => {
                 let (summary, field) =
                     record_field::apply(&self.revision, &mut programs, &change.intent)?;

@@ -1,10 +1,10 @@
-//! Ephemeral typed body holes. Pending intentions never enter canonical source.
+//! Ephemeral typed body/expression holes. Pending intentions never enter source.
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use serde_json::{json, Value};
 
-use super::{wire, ProjectCandidate, SemanticChange};
+use super::{expression, parse_revision, wire, ProjectCandidate, SemanticChange};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{IdentityOrigin, OwnershipMode, ResolvedFunction};
 use crate::workspace_graph::WorkspaceGraphProjectionModule;
@@ -22,13 +22,14 @@ const MAX_RENDER_BYTES: usize = 16 * 1024 * 1024;
 pub struct ProjectCandidateDraft {
     last_valid: Arc<ProjectCandidate>,
     holes: BTreeMap<String, String>,
+    expression_holes: BTreeMap<String, (String, String)>,
     json: String,
     digest: String,
 }
 
 impl ProjectCandidateDraft {
     pub fn open(candidate: Arc<ProjectCandidate>) -> Result<Self, Vec<Diagnostic>> {
-        Self::finish(candidate, BTreeMap::new())
+        Self::finish(candidate, BTreeMap::new(), BTreeMap::new())
     }
 
     pub fn with_body_hole(
@@ -39,24 +40,91 @@ impl ProjectCandidateDraft {
     ) -> Result<Self, Vec<Diagnostic>> {
         self.require_digest(expected)?;
         validate_id(hole_id)?;
-        if self.holes.len() >= MAX_PROJECT_CANDIDATE_HOLES {
+        if self.holes.len() + self.expression_holes.len() >= MAX_PROJECT_CANDIDATE_HOLES {
             return Err(capacity("candidate draft has too many pending holes"));
         }
         if self.holes.contains_key(hole_id)
+            || self.expression_holes.contains_key(hole_id)
             || self.holes.values().any(|existing| existing == target)
+            || self
+                .expression_holes
+                .values()
+                .any(|(existing, _)| existing == target)
         {
             return Err(grammar("candidate draft hole ID and target must be unique"));
         }
         self.function(target)?;
         let mut holes = self.holes.clone();
         holes.insert(hole_id.to_owned(), target.to_owned());
-        Self::finish(Arc::clone(&self.last_valid), holes)
+        Self::finish(
+            Arc::clone(&self.last_valid),
+            holes,
+            self.expression_holes.clone(),
+        )
+    }
+
+    /// Select an authored expression through its actual revision-scoped HIR ID.
+    /// Overlapping holes reject; no caller-provided AST path or source is trusted.
+    pub fn with_expression_hole(
+        &self,
+        expected: &str,
+        target: &str,
+        expression_id: &str,
+        hole_id: &str,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        self.require_digest(expected)?;
+        validate_id(hole_id)?;
+        if self.holes.len() + self.expression_holes.len() >= MAX_PROJECT_CANDIDATE_HOLES {
+            return Err(capacity("candidate draft has too many pending holes"));
+        }
+        if self.holes.contains_key(hole_id)
+            || self.expression_holes.contains_key(hole_id)
+            || self.holes.values().any(|existing| existing == target)
+        {
+            return Err(grammar(
+                "candidate expression hole duplicates or overlaps a pending hole",
+            ));
+        }
+        self.expression_fact(target, expression_id)?;
+        let programs = parse_revision(self.last_valid.revision())?;
+        let selection = expression::authored_selection(
+            self.last_valid.revision(),
+            &programs,
+            target,
+            expression_id,
+        )?;
+        for (other_target, other_id) in self.expression_holes.values() {
+            if other_target == target {
+                let other = expression::authored_selection(
+                    self.last_valid.revision(),
+                    &programs,
+                    target,
+                    other_id,
+                )?;
+                if selection.path.starts_with(&other.path)
+                    || other.path.starts_with(&selection.path)
+                {
+                    return Err(grammar(
+                        "candidate expression holes must select disjoint authored subtrees",
+                    ));
+                }
+            }
+        }
+        let mut holes = self.expression_holes.clone();
+        holes.insert(
+            hole_id.to_owned(),
+            (target.to_owned(), expression_id.to_owned()),
+        );
+        Self::finish(Arc::clone(&self.last_valid), self.holes.clone(), holes)
     }
 
     /// Context describes declarations and the last valid body's proof facts,
     /// not a fabricated HIR body or proof that an unfilled hole is valid.
     pub fn hole_context(&self, expected: &str, hole_id: &str) -> Result<String, Vec<Diagnostic>> {
         self.require_digest(expected)?;
+        if let Some((target, expression_id)) = self.expression_holes.get(hole_id) {
+            return self.expression_context(target, expression_id, hole_id);
+        }
         let target = self.target(hole_id)?;
         let (module, function) = self.function(target)?;
         let mut contracts = Vec::new();
@@ -127,26 +195,38 @@ impl ProjectCandidateDraft {
         expression: &Value,
     ) -> Result<Self, Vec<Diagnostic>> {
         self.require_digest(expected)?;
-        let target = self.target(hole_id)?;
         wire::validate_value(expression)
             .map_err(|_| capacity("candidate hole expression exceeds its input bound"))?;
-        let change = SemanticChange::new(
-            self.last_valid.revision().project_revision(),
-            &json!({"kind":"replace_function_body", "target":target, "body":expression}),
-        )?;
+        let intent = if let Some((target, expression_id)) = self.expression_holes.get(hole_id) {
+            json!({"kind":"replace_expression", "target":target, "expression_id":expression_id, "replacement":expression})
+        } else {
+            let target = self.target(hole_id)?;
+            json!({"kind":"replace_function_body", "target":target, "body":expression})
+        };
+        let change = SemanticChange::new(self.last_valid.revision().project_revision(), &intent)?;
         let candidate = self
             .last_valid
             .apply(self.last_valid.candidate_digest(), &change)?;
         let mut holes = self.holes.clone();
         holes.remove(hole_id);
-        Self::finish(Arc::new(candidate), holes)
+        let mut expression_holes = self.expression_holes.clone();
+        expression_holes.remove(hole_id);
+        for (target, expression_id) in expression_holes.values_mut() {
+            *expression_id = expression::remap_selection(
+                self.last_valid.revision(),
+                candidate.revision(),
+                target,
+                expression_id,
+            )?;
+        }
+        Self::finish(Arc::new(candidate), holes, expression_holes)
     }
 
     /// The sole escape to a materializable candidate is fail-closed while any
     /// unresolved hole remains. This still grants no filesystem authority.
     pub fn complete(&self, expected: &str) -> Result<Arc<ProjectCandidate>, Vec<Diagnostic>> {
         self.require_digest(expected)?;
-        if !self.holes.is_empty() {
+        if !self.holes.is_empty() || !self.expression_holes.is_empty() {
             return Err(stale("candidate draft contains unresolved holes"));
         }
         Ok(Arc::clone(&self.last_valid))
@@ -172,10 +252,12 @@ impl ProjectCandidateDraft {
     fn finish(
         candidate: Arc<ProjectCandidate>,
         holes: BTreeMap<String, String>,
+        expression_holes: BTreeMap<String, (String, String)>,
     ) -> Result<Self, Vec<Diagnostic>> {
         let mut draft = Self {
             last_valid: candidate,
             holes,
+            expression_holes,
             json: String::new(),
             digest: String::new(),
         };
@@ -184,12 +266,21 @@ impl ProjectCandidateDraft {
             let (_, function) = draft.function(target)?;
             pending.push(json!({"hole_id":id, "target":target, "expected_type_id":function.return_type.identity_key(), "kind":"function_body", "state":"unresolved"}));
         }
+        for (id, (target, expression_id)) in &draft.expression_holes {
+            let (_, fact) = draft.expression_fact(target, expression_id)?;
+            pending.push(
+                json!({"hole_id":id, "target":target, "expression_id":expression_id,
+                "expected_type_id":fact["expected_type"], "expected_ownership":fact["ownership"],
+                "kind":"expression", "state":"unresolved"}),
+            );
+        }
+        pending.sort_by(|left, right| left["hole_id"].as_str().cmp(&right["hole_id"].as_str()));
         draft.json = render(json!({
             "schema":PROJECT_CANDIDATE_DRAFT_SCHEMA,
             "last_valid_revision":draft.last_valid.revision().project_revision(),
             "last_valid_candidate_digest":draft.last_valid.candidate_digest(),
             "unresolved_holes":pending,
-            "state":if draft.holes.is_empty() {"ready_to_complete"} else {"incomplete"},
+            "state":if draft.holes.is_empty() && draft.expression_holes.is_empty() {"ready_to_complete"} else {"incomplete"},
             "materializable":false, "source_authority":false,
             "nonclaims":["last_valid_revision_is_not_the_incomplete_candidate", "no_placeholder_ast_or_source", "no_candidate_source_or_evidence_until_complete", "no_execution_or_commit_authority"],
         }))?;
@@ -205,6 +296,83 @@ impl ProjectCandidateDraft {
             .get(id)
             .map(String::as_str)
             .ok_or_else(|| grammar("candidate draft hole is unavailable"))
+    }
+    fn expression_fact(
+        &self,
+        target: &str,
+        expression_id: &str,
+    ) -> Result<(Value, Value), Vec<Diagnostic>> {
+        if expression_id.is_empty() || expression_id.len() > 4096 || expression_id.contains('\0') {
+            return Err(grammar(
+                "candidate expression hole requires a bounded HIR identity",
+            ));
+        }
+        let catalog = trusted_json(&self.last_valid.expression_catalog(target)?)?;
+        let mut facts = catalog["expressions"]
+            .as_array()
+            .ok_or_else(|| grammar("candidate expression catalogue is unavailable"))?
+            .iter()
+            .filter(|fact| fact["expression_id"] == expression_id);
+        let fact = facts
+            .next()
+            .ok_or_else(|| grammar("candidate expression hole selector is unavailable"))?
+            .clone();
+        if facts.next().is_some() || fact["replaceable"] != true || fact["phase"] != "body" {
+            return Err(grammar(
+                "candidate expression hole requires a uniquely authored body selection",
+            ));
+        }
+        Ok((catalog, fact))
+    }
+    fn expression_context(
+        &self,
+        target: &str,
+        expression_id: &str,
+        hole_id: &str,
+    ) -> Result<String, Vec<Diagnostic>> {
+        let (catalog, fact) = self.expression_fact(target, expression_id)?;
+        let (module, function) = self.resolved_function(target)?;
+        let (prior, overflow) = crate::bounded_output::with_limit(MAX_RENDER_BYTES, || {
+            let mut contracts = Vec::new();
+            for (phase, expressions) in [
+                ("requires", &function.requires),
+                ("ensures", &function.ensures),
+            ] {
+                for expression in expressions {
+                    let rendered = crate::graph::agent_contract_expr_json(expression)
+                        .map_err(|error| vec![error])?;
+                    contracts.push(json!({"phase":phase,"expression_id":expression.id.as_str(),"expression":trusted_json(&rendered)?}));
+                }
+            }
+            Ok::<_, Vec<Diagnostic>>(json!({
+                "basis":"last_valid_body_not_the_unfilled_hole",
+                "contracts":contracts,
+                "loan_plan":trusted_json(&crate::graph_loan::loan_plan_json(&function.loan_plan))?,
+                "cleanup_plan":trusted_json(&crate::graph_cleanup::cleanup_plan_json(&function.cleanup_plan))?
+            }))
+        });
+        if overflow {
+            return Err(capacity(
+                "candidate expression hole proof context exceeds its render bound",
+            ));
+        }
+        let handle = wire::digest(b"semaprax.project-candidate-expression-hole-handle.v1\0",
+            render(json!({"draft":self.draft_digest(),"hole":hole_id,"target":target,"expression_id":expression_id}))?.as_bytes());
+        render(
+            json!({"schema":"semaprax.project-candidate-expression-hole-context.v1",
+            "draft_digest":self.draft_digest(),"hole_id":hole_id,"hole_handle":handle,
+            "target":target,"expression_id":expression_id,"source":catalog["source"],
+            "last_valid_revision":self.last_valid.revision().project_revision(),
+            "expected_type_id":fact["expected_type"],"expected_ownership":fact["ownership"],
+            "scope":fact["scope"],"selected_expression":fact,
+            "effect_policy":{"allowed":function.effects,"forbidden":"all_undeclared_effects","module_permits":module.permits()},
+            "accessible_calls":self.accessible_calls(module,function)?,"prior_body_proof":prior?,
+            "obligations":["preserve_selected_type_and_ownership","preserve_declared_contracts","revalidate_whole_function_ownership_loans_cleanup","no_new_effects_or_capabilities","preserve_project_profile_and_previously_admitted_core_targets"],
+            "intent_kind":"replace_expression","constructor_owner":"semaprax.semantic-change.v1",
+            "constructor_kinds":["i64","i32","u8","usize","bool","place","call","unary","binary","if"],
+            "validation":"pending_fill_full_source_replay","materializable":false,"source_authority":false,
+            "nonclaims":["lexical_scope_is_not_owned_value_liveness","prior_body_proofs_are_not_hole_validity","no_placeholder_ast_or_source","no_execution_or_publication_authority"]}),
+        )
     }
     fn require_digest(&self, expected: &str) -> Result<(), Vec<Diagnostic>> {
         if expected.len() > 71 {
@@ -233,7 +401,15 @@ impl ProjectCandidateDraft {
                 "candidate body hole requires an explicit non-main function",
             ));
         }
-        semantic
+        self.resolved_function(target)
+    }
+    fn resolved_function(
+        &self,
+        target: &str,
+    ) -> Result<(&WorkspaceGraphProjectionModule, &ResolvedFunction), Vec<Diagnostic>> {
+        self.last_valid
+            .revision()
+            .semantic
             .image_modules()
             .iter()
             .find_map(|module| {

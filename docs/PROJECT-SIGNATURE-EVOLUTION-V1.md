@@ -34,12 +34,14 @@ Each element has exactly one of these shapes:
 | Shape | Meaning |
 | --- | --- |
 | `{"from":"old_name"}` | Retain one original parameter with its exact existing name, type, and mode at this position. |
+| `{"from":"old_name","name":"new_name"}` | Retain its exact type and mode and rename the original lexical parameter binding. |
 | `{"name":"new_name","type":"scalar","argument":literal}` | Add a fresh by-value scalar parameter and supply the explicit matching scalar literal at every migrated call. |
 
 A retained parameter can appear only once. Original parameters omitted from
 the array are removed from the declaration, but their caller argument
 expressions are still evaluated. An empty array therefore removes every
-parameter while preserving argument evaluation at existing calls.
+Copy parameter while preserving argument evaluation at existing calls. Every
+owning parameter must be retained exactly once; it cannot be removed or copied.
 
 New parameter names must be distinct from all original names, including names
 of removed parameters. They cannot reinterpret an existing body binding.
@@ -48,11 +50,11 @@ New types and literal kinds are the existing `i64`, `i32`, `u8`, `usize`, and
 `parameters`/`append_parameters`, inferred defaults, expressions as new default
 arguments, duplicate mappings, and unknown original names reject.
 
-Every original parameter must have value mode and a built-in Copy type:
-`i64`, `i32`, `char`, `u8`, `usize`, `[u8; N]`, `f32`, `f64`, or `bool`.
-Named records/variants, owned values, borrows, and shared modes are rejected
-before mutation even if a particular named type would be Copy. This layer has
-no authority to infer ownership, transfer, or settlement rules from AST names.
+Every original parameter must either have value mode and a built-in Copy type
+(`i64`, `i32`, `char`, `u8`, `usize`, `[u8; N]`, `f32`, `f64`, or `bool`) or be
+exactly `own Bytes`. Named records/variants, other owning types, borrows, and
+shared modes reject before mutation even if a named type happens to be Copy.
+No type or mode conversion and no new owning parameter is admitted.
 
 ## Evaluation and lexical hygiene
 
@@ -91,8 +93,28 @@ assignment targets, variable/call references, and nested match binders.
 Previously generated staging names are reserved as well. This prevents an
 introduced `let` from capturing references in a later original argument,
 including references to deliberately adversarial staging-like source names.
-No body parameter references are renamed. A mapping requesting parameter
-rename or type conversion is rejected instead of applying a lexical guess.
+Display renames are simultaneous: swapping two parameter names is supported.
+The substitution follows the original admitted AST's lexical scopes across
+requires/ensures, sequential let initializers, assignments, blocks, loop bodies,
+match binders and guards, and nested record patterns. A conflicting local or
+pattern binder receives a fresh `spx_sig_bind_N` name, and its references follow
+that binding. Field labels, call names, types, and persistent declaration IDs
+are not renamed. The postcondition `result` binding cannot become a parameter
+rename destination. A reference to a removed parameter cannot silently become
+a reference to a retained parameter renamed to that spelling. Unknown future
+binding-bearing or-pattern forms reject until their binding rules are supported.
+
+For direct `own Bytes`, each original expression moves into one owning local,
+in original argument order. The final ordinary call receives every retained
+owner once in mapped order; the real verifier and cleanup-plan builder own
+transfer and atomic CallCommit semantics. This changes the placement of moves:
+a later original argument borrowing an owner already moved into an earlier
+staging local may fail ordinary verification. Such candidates reject; this
+operation does not bypass loans or promise admission of every previously valid
+call shape. Other owning types remain unsupported because observable resource
+finalizers and general settlement order need additional treatment. No custom
+cleanup, physical finalization authority, or hidden settlement-model action is
+introduced here.
 
 Stable-ID provider bindings determine which direct calls migrate. Existing
 import aliases stay unchanged, and provider module identity is checked.
@@ -121,9 +143,13 @@ Semantic Change node/depth/byte limits and Project source/output limits also
 remain active. These are deterministic structural bounds, not a total heap
 memory limit or a performance guarantee.
 
-`SPX-G225` rejects unsupported mappings, old non-Copy/mode subjects, unknown or
+`SPX-G225` rejects unsupported mappings, unsupported type/mode subjects, unknown or
 duplicate parameter selections, inconsistent provider bindings, and name/type
-reinterpretation. `SPX-G226` rejects structural capacity excess. Real Project
+reinterpretation. `SPX-G226` rejects existing structural capacity excess.
+`SPX-G259` rejects unsafe binding substitutions, including contract-result
+capture and a still-referenced removed parameter during renaming. `SPX-G260`
+rejects omitted owners. `SPX-G261` bounds the additional substitution traversal
+and fresh-name allocation with the same depth/node ceilings. Real Project
 verification and candidate stale/replay checks retain their existing
 language and `SPX-G222`–`SPX-G224` diagnostics. Failed candidate construction
 never mutates a previously returned candidate or live source files.
@@ -136,7 +162,13 @@ is authored but unrun at the user's request. It covers reordered Copy results,
 retained first-failure selection after dropping or reordering arguments,
 parameter/local name capture attempts, imported and declared-effect call
 ordering, canonical source round trips, removal of a still-used parameter,
-and rejection of guessed rename/type changes and owned/borrowed modes.
+and rejection of type changes, omitted owners, and unsupported borrowed modes.
+Additional authored regressions cover simultaneous display renames, contract
+references, local mutation, match guard capture avoidance, and removed-binding
+capture. [`tests/project_candidate_signature_ownership_v1.rs`](../tests/project_candidate_signature_ownership_v1.rs)
+authors full Project candidate/replay checks for reordered and renamed owned
+byte arguments, exact original evaluation order, duplicate/removal rejection,
+and unchanged live source files. These tests have not been executed.
 The pure reference-interpreter probes are authored executable evidence; no
 interpreter, target, compiler check, or local test was run for this change.
 Declared-effect ordering is a structural regression, not hosted effect-runtime
@@ -144,6 +176,8 @@ evidence.
 
 Additional staging changes expression identities, local storage, generated
 code, and interpreter fuel consumption. This is not exact operational-cost
-equivalence, external consumer migration, a full semantic merge, general
-parameter renaming, type/return conversion, or owned-call settlement support.
+equivalence, external consumer migration, a full semantic merge, type/return
+conversion, arbitrary ownership-sensitive migration, or physical owned-call
+settlement support. Direct byte-owner staging can also change cleanup storage
+and internal trace labels; it does not claim identical runtime traces or costs.
 Those wider cases remain open in the graph-operational roadmap.

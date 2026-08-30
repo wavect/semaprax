@@ -1,8 +1,8 @@
-//! Ordered Copy-parameter evolution with left-to-right argument staging.
+//! Ordered Copy/Bytes-parameter evolution with left-to-right argument staging.
 //!
 //! Every old argument is evaluated once even when its parameter is removed.
-//! Parameter identity is selected by its old name; no lexical body renaming or
-//! implicit conversion is performed. Full Project source replay remains the
+//! Parameter identity is selected by its old name; display renaming follows
+//! lexical binding scopes. No implicit conversion is performed. Project replay is
 //! caller's responsibility.
 
 use super::{
@@ -15,6 +15,9 @@ use crate::ast::{
 };
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
+
+#[path = "signature_rename.rs"]
+mod rename;
 
 // This bounds internal declarations independently of narrower export-profile
 // limits. Public ABI parameter ceilings are rechecked by ordinary Project
@@ -37,18 +40,18 @@ pub(super) fn apply(
     let target = text(intent, "target")?;
     let function = &programs[owner].functions[function_index];
     let owner_module = programs[owner].module.clone();
-    let original_params = &function.params;
+    let original_params = function.params.clone();
     if original_params.len() > MAX_PARAMETERS {
         return Err(capacity(
             "signature evolution exceeds its original parameter limit",
         ));
     }
-    if original_params
-        .iter()
-        .any(|param| param.mode != ParamMode::Value || !copy_type(&param.ty))
-    {
+    if original_params.iter().any(|param| {
+        !((param.mode == ParamMode::Value && copy_type(&param.ty))
+            || (param.mode == ParamMode::Own && param.ty == Type::Bytes))
+    }) {
         return Err(grammar(
-            "ordered signature evolution requires by-value built-in Copy parameters",
+            "ordered signature evolution requires built-in Copy values or direct own Bytes",
         ));
     }
     let original = original_params
@@ -73,17 +76,34 @@ pub(super) fn apply(
     let mut arguments = Vec::with_capacity(requested.len());
     for mapping in requested {
         if mapping.get("from").is_some() {
-            object(mapping, &["from"])?;
+            if mapping.get("name").is_some() {
+                object(mapping, &["from", "name"])?;
+            } else {
+                object(mapping, &["from"])?;
+            }
             let name = text(mapping, "from")?;
             let index = *original
                 .get(name)
                 .ok_or_else(|| grammar("signature mapping names an unknown original parameter"))?;
-            if !selected.insert(index) || !names.insert(name.to_owned()) {
+            let destination = if mapping.get("name").is_some() {
+                let name = identifier(text(mapping, "name")?)?;
+                if name == "result" {
+                    return Err(rename::invalid(
+                        "parameter rename cannot capture the contract result binding",
+                    ));
+                }
+                name
+            } else {
+                name
+            };
+            if !selected.insert(index) || !names.insert(destination.to_owned()) {
                 return Err(grammar(
                     "signature mapping duplicates an original parameter",
                 ));
             }
-            params.push(original_params[index].clone());
+            let mut param = original_params[index].clone();
+            param.name = destination.to_owned();
+            params.push(param);
             arguments.push(Argument::Existing(index));
         } else {
             object(mapping, &["name", "type", "argument"])?;
@@ -110,12 +130,41 @@ pub(super) fn apply(
             });
         }
     }
+    if original_params
+        .iter()
+        .enumerate()
+        .any(|(index, param)| param.mode == ParamMode::Own && !selected.contains(&index))
+    {
+        return Err(vec![crate::diagnostic::Diagnostic::io(
+            "SPX-G260",
+            "signature evolution must retain every owning parameter exactly once",
+        )]);
+    }
     let old_arity = original_params.len();
-    let mut occupied = names;
+    let mut occupied = names.clone();
     // Reserve lexical names across the complete candidate, including unrelated
     // and shadowed binders. This conservative whole-program set avoids capture
-    // without trying to rename any original lexical reference.
+    // before any scope-aware substitution or staging introduces new names.
     reserve_names(programs, &mut occupied)?;
+    let renames = arguments
+        .iter()
+        .zip(&params)
+        .filter_map(|(argument, param)| match argument {
+            Argument::Existing(index) => {
+                Some((original_params[*index].name.clone(), param.name.clone()))
+            }
+            Argument::Literal(_) => None,
+        })
+        .collect::<BTreeMap<_, _>>();
+    if renames.iter().any(|(old, new)| old != new) {
+        rename::apply(
+            &mut programs[owner].functions[function_index],
+            &original_params,
+            &renames,
+            &names,
+            &mut occupied,
+        )?;
+    }
     let mut generated = 0usize;
     let mut nodes = 0usize;
     let mut added_nodes = 0usize;
@@ -490,7 +539,7 @@ permit { clock.read }
     }
 
     #[test]
-    fn removal_of_used_parameter_fails_real_verifier_and_rename_or_type_guesses_reject() {
+    fn removal_of_used_parameter_fails_real_verifier_and_type_guesses_reject() {
         let base = r#"module test.signature;
 @id("math.select") fn select(left: i64, right: i64) -> i64 { left + right }
 @id("app.main") fn main() -> i64 { select(2, 3) }
@@ -499,7 +548,6 @@ permit { clock.read }
         evolve(&mut used, json!([{"from":"right"}])).unwrap();
         assert!(hir::resolve(&program(&format::canonical(&used[0]))).is_err());
         for parameters in [
-            json!([{"from":"left","name":"renamed"},{"from":"right"}]),
             json!([{"from":"left","type":"bool"},{"from":"right"}]),
             json!([{"name":"left","type":"bool","argument":{"kind":"bool","value":true}}]),
             json!([{"from":"left"},{"from":"left"}]),
@@ -516,6 +564,76 @@ permit { clock.read }
     }
 
     #[test]
+    fn simultaneous_parameter_renames_preserve_contracts_and_avoid_local_capture() {
+        let mut programs = vec![program(
+            r#"module test.signature;
+@id("math.select") fn select(left: i64, right: i64) -> i64
+requires left >= 0
+ensures result >= right
+{
+    let mut renamed = right;
+    renamed = renamed + left;
+    match renamed { local if local > 0 => left + local, _ => right, }
+}
+@id("app.main") fn main() -> i64 { select(2, 3) }
+"#,
+        )];
+        let before = outcome(&programs[0]);
+        evolve(
+            &mut programs,
+            json!([{"from":"right","name":"left"},{"from":"left","name":"local"}]),
+        )
+        .unwrap();
+        assert_eq!(outcome(&programs[0]), before);
+        let canonical = format::canonical(&programs[0]);
+        assert!(canonical.contains("fn select(left: i64, local: i64)"));
+        assert!(canonical.contains("requires local >= 0"));
+        assert!(canonical.contains("ensures result >= left"));
+        assert!(canonical.contains("renamed = renamed + local"));
+        assert!(
+            canonical.contains("spx_sig_bind_0 if spx_sig_bind_0 > 0 => local + spx_sig_bind_0")
+        );
+    }
+
+    #[test]
+    fn local_initializer_and_assignment_follow_their_original_binding() {
+        let mut programs = vec![program(
+            r#"module test.signature;
+@id("math.select") fn select(left: i64, right: i64) -> i64 {
+    let mut renamed = left + right;
+    renamed = renamed + left;
+    renamed
+}
+@id("app.main") fn main() -> i64 { select(2, 3) }
+"#,
+        )];
+        let before = outcome(&programs[0]);
+        evolve(
+            &mut programs,
+            json!([{"from":"left","name":"renamed"},{"from":"right"}]),
+        )
+        .unwrap();
+        assert_eq!(outcome(&programs[0]), before);
+        let canonical = format::canonical(&programs[0]);
+        assert!(canonical.contains("let mut spx_sig_bind_0 = renamed + right"));
+        assert!(canonical.contains("spx_sig_bind_0 = spx_sig_bind_0 + renamed"));
+    }
+
+    #[test]
+    fn renaming_to_a_removed_parameter_name_cannot_capture_a_live_reference() {
+        let mut programs = vec![program(
+            r#"module test.signature;
+@id("math.select") fn select(left: i64, right: i64) -> i64 { right }
+"#,
+        )];
+        let errors = match evolve(&mut programs, json!([{"from":"left","name":"right"}])) {
+            Ok(_) => panic!("removed binding was captured"),
+            Err(errors) => errors,
+        };
+        assert!(errors.iter().any(|error| error.code == "SPX-G259"));
+    }
+
+    #[test]
     fn owned_and_borrowed_signature_migrations_reject_before_mutation() {
         for parameter in ["own Bytes", "borrow str", "shared Bytes", "string"] {
             let source = format!("module test.signature;\n@id(\"math.select\") fn select(value: {parameter}) -> i64 {{ 0 }}\n");
@@ -525,7 +643,12 @@ permit { clock.read }
                 Ok(_) => panic!("non-Copy signature mapping succeeded"),
                 Err(errors) => errors,
             };
-            assert!(errors.iter().any(|error| error.code == "SPX-G225"));
+            let expected = if parameter == "own Bytes" {
+                "SPX-G260"
+            } else {
+                "SPX-G225"
+            };
+            assert!(errors.iter().any(|error| error.code == expected));
             assert_eq!(format::canonical(&programs[0]), before);
         }
     }

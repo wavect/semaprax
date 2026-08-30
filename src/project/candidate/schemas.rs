@@ -170,12 +170,17 @@ fn intent_schema() -> Value {
     };
     // Existing parameter names come from the checked source; the ordinary
     // 128-byte constructor identifier restriction applies only to new names.
-    let mapped_parameter = json!({"oneOf":[closed(&[("from",json!({"type":"string","minLength":1}))]),new_parameter()]});
+    let mapped_parameter = json!({"oneOf":[
+        closed(&[("from",json!({"type":"string","minLength":1}))]),
+        closed(&[("from",json!({"type":"string","minLength":1})),("name",identifier())]),
+        new_parameter()
+    ]});
     json!({"oneOf":[
         base("rename_declaration",vec![("name",identifier())]),
         base("change_function_signature",vec![("append_parameters",json!({"type":"array","minItems":1,"maxItems":MAX_APPEND_PARAMETERS,"items":new_parameter()}))]),
         base("change_function_signature",vec![("parameters",json!({"type":"array","minItems":0,"maxItems":4096,"items":mapped_parameter}))]),
         base("replace_function_body",vec![("body",reference("expression"))]),
+        base("repair_diagnostic",vec![("rejected_intent",base("replace_function_body",vec![("body",json!({"oneOf":[literal("i64"),literal("i32"),literal("u8"),literal("usize")]}))])),("repair_id",digest_schema())]),
         base("replace_expression",vec![("expression_id",text(16_384)),("replacement",reference("expression"))]),
         base("add_contract",vec![("phase",json!({"enum":["requires","ensures"]})),("predicate",reference("expression"))]),
         base("add_declaration",vec![("declaration",declaration_schema())]),

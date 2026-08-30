@@ -131,6 +131,9 @@ fn apply_rebound(
     change: &SemanticChange,
     original_revision: &ProjectRevision,
 ) -> Result<ProjectCandidate, Vec<Diagnostic>> {
+    if change.intent["kind"] == "repair_diagnostic" {
+        return Err(super::diagnostic_intent::rebase_conflict());
+    }
     let mapped;
     let intent = if change.intent["kind"] == "replace_expression" {
         mapped = super::expression::rebase_intent(
@@ -357,6 +360,7 @@ fn classify(
                 ));
             };
         match kind {
+            "repair_diagnostic" => return Err(super::diagnostic_intent::rebase_conflict()),
             "rename_declaration" if display_changed => return Err(conflict("concurrent display renames target the same stable ID")),
             "replace_function_body" | "replace_expression" | "extract_function" if signature_changed || body_changed || effects_changed => return Err(conflict("body replacement conflicts with concurrent target body, signature or effects")),
             "change_function_signature" if signature_changed || body_changed || effects_changed => return Err(conflict("signature evolution conflicts with concurrent target signature, body or effects")),

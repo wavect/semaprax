@@ -26,6 +26,24 @@ pub(super) fn build_owned(
 ) -> Result<BuiltProject, Vec<Diagnostic>> {
     let path_set = semantic_workspace::render_path_set(manifest.sources())?;
     let preflight = semantic_workspace::preflight_owned(&path_set, sources)?;
+    finish_build(manifest, preflight)
+}
+
+pub(super) fn build_owned_with_frontend(
+    manifest: &ProjectManifest,
+    sources: Vec<SemanticWorkspaceSource>,
+    frontend: &mut super::incremental::FrontendPass,
+) -> Result<BuiltProject, Vec<Diagnostic>> {
+    let path_set = semantic_workspace::render_path_set(manifest.sources())?;
+    let preflight =
+        semantic_workspace::preflight_owned_with_frontend(&path_set, sources, frontend)?;
+    finish_build(manifest, preflight)
+}
+
+fn finish_build(
+    manifest: &ProjectManifest,
+    preflight: semantic_workspace::SemanticWorkspacePreflight,
+) -> Result<BuiltProject, Vec<Diagnostic>> {
     let (files, workspace_manifest, workspace_revision, graph) = preflight.into_snapshot_parts();
     let canonical_manifest = manifest.to_canonical_toml();
     let project_revision = project_revision(&canonical_manifest, &workspace_revision);

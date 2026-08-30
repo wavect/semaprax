@@ -63,6 +63,113 @@ fn code<T>(result: Result<T, Vec<Diagnostic>>, expected: &str) {
         ),
     }
 }
+
+fn wire_repair(base: &Arc<ProjectCandidate>) -> Value {
+    let attempt = rejected(
+        base,
+        &json!({"kind":"replace_function_body","target":"calculator.add","body":{"kind":"i32","value":42}}),
+    );
+    let catalog: Value =
+        serde_json::from_str(&attempt.repair_catalog(attempt.attempt_digest()).unwrap()).unwrap();
+    catalog["repairs"][0]["semantic_change_intent"].clone()
+}
+
+#[test]
+fn repair_wire_preserves_actual_intention_history_and_rederives_on_recovery() {
+    let fixture = Fixture::new();
+    let base = Arc::new(fixture.candidate());
+    let source_before = std::fs::read(fixture.0.join("src/core.spx")).unwrap();
+    let intent = wire_repair(&base);
+    let change = SemanticChange::new(base.revision().project_revision(), &intent).unwrap();
+    let repaired = base.apply(base.candidate_digest(), &change).unwrap();
+    let report: Value = serde_json::from_str(repaired.to_json()).unwrap();
+    assert_eq!(report["operations"][0]["kind"], "repair_diagnostic");
+    let capsule = repaired.recovery_capsule().unwrap();
+    let recovery: Value = serde_json::from_str(&capsule).unwrap();
+    assert_eq!(recovery["changes"][0]["intent"], intent);
+    let restored = ProjectCandidate::restore(
+        Arc::clone(base.base_revision()),
+        base.base_revision().project_revision(),
+        capsule.as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(restored.to_json(), repaired.to_json());
+    let replay = ProjectCandidate::replay(
+        Arc::clone(base.base_revision()),
+        base.base_revision().project_revision(),
+        &[change],
+        repaired.to_json().as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(replay.to_json(), repaired.to_json());
+    let ordinary = base.apply(base.candidate_digest(), &SemanticChange::new(base.revision().project_revision(), &json!({"kind":"replace_function_body","target":"calculator.add","body":{"kind":"i64","value":42}})).unwrap()).unwrap();
+    assert_eq!(
+        ordinary.revision().project_revision(),
+        repaired.revision().project_revision()
+    );
+    assert_ne!(ordinary.candidate_digest(), repaired.candidate_digest());
+    assert_eq!(
+        std::fs::read(fixture.0.join("src/core.spx")).unwrap(),
+        source_before
+    );
+}
+
+#[test]
+fn repair_wire_rejects_tampering_recursion_and_successful_attempts() {
+    let fixture = Fixture::new();
+    let base = Arc::new(fixture.candidate());
+    let intent = wire_repair(&base);
+    let mut changed_literal = intent.clone();
+    changed_literal["rejected_intent"]["body"]["value"] = json!(43);
+    let mut successful = intent.clone();
+    successful["rejected_intent"]["body"]["kind"] = json!("i64");
+    let mut mismatched_target = intent.clone();
+    mismatched_target["rejected_intent"]["target"] = json!("calculator.subtract");
+    let mut recursive = intent.clone();
+    recursive["rejected_intent"] = intent.clone();
+    let mut offered = intent.clone();
+    offered["replacement"] = json!({"kind":"i64","value":99});
+    let before = base.to_json().to_owned();
+    for (intent, expected) in [
+        (changed_literal, "SPX-G270"),
+        (successful, "SPX-G270"),
+        (mismatched_target, "SPX-G268"),
+        (recursive, "SPX-G268"),
+        (offered, "SPX-G268"),
+    ] {
+        let change = SemanticChange::new(base.revision().project_revision(), &intent).unwrap();
+        code(base.apply(base.candidate_digest(), &change), expected);
+        assert_eq!(base.to_json(), before);
+    }
+}
+
+#[test]
+fn repair_selector_is_exact_predecessor_bound_and_rebase_requires_rediscovery() {
+    let fixture = Fixture::new();
+    let base = Arc::new(fixture.candidate());
+    let intent = wire_repair(&base);
+    let repaired = base
+        .apply(
+            base.candidate_digest(),
+            &SemanticChange::new(base.revision().project_revision(), &intent).unwrap(),
+        )
+        .unwrap();
+    let renamed = base.apply(base.candidate_digest(), &SemanticChange::new(base.revision().project_revision(), &json!({"kind":"rename_declaration","target":"calculator.subtract","name":"difference"})).unwrap()).unwrap();
+    let stale_change = SemanticChange::new(renamed.revision().project_revision(), &intent).unwrap();
+    code(
+        renamed.apply(renamed.candidate_digest(), &stale_change),
+        "SPX-G270",
+    );
+    code(
+        repaired.rebase(
+            repaired.candidate_digest(),
+            Arc::clone(renamed.revision()),
+            renamed.revision().project_revision(),
+        ),
+        "SPX-G271",
+    );
+}
+
 #[test]
 fn rejected_attempt_retains_exact_diagnostics_and_one_fully_admitted_numeric_repair() {
     let fixture = Fixture::new();

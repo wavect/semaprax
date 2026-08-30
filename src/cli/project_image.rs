@@ -67,7 +67,7 @@ fn read_image(path: &Path) -> Result<Vec<u8>, Diagnostic> {
     read_bounded(path, MAX_SEMANTIC_IMAGE_BYTES)
 }
 
-fn read_bounded(path: &Path, limit: usize) -> Result<Vec<u8>, Diagnostic> {
+pub(super) fn read_bounded(path: &Path, limit: usize) -> Result<Vec<u8>, Diagnostic> {
     // Nonblocking, no-follow leaf opens avoid following a substituted symlink
     // or waiting on a FIFO before the held file's type can be checked.
     let file = open_image(path)?;

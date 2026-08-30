@@ -100,9 +100,11 @@ report bytes for future registry admission; it is not a total HIR-memory bound.
 `SPX-G243` stale or unavailable attempt/repair selectors. Ordinary digest/change
 and compiler diagnostics remain unchanged where delegated.
 
-This tranche is library-only. No Image Agent Protocol attempt registry,
-`repair_diagnostic` SemanticChange wire kind, CLI, rejected-attempt persistence,
-or automatic repair execution is added. Future hosts must apply source
+This original attempt API has no source authority. The additive
+[Project Diagnostic Change v1](PROJECT-DIAGNOSTIC-CHANGE-V1.md) now supplies a
+history-preserving `repair_diagnostic` SemanticChange kind for this same repair
+class; its catalogue object is `semantic_change_intent`. Rejected-attempt
+persistence and automatic repair execution remain absent. Hosts must apply source
 pre/post authentication, registry/response bounds, and explicit capability
 policy before exposing it. The API itself reads only retained compiler state;
 it does not acquire filesystem, build, test, process, network, or source-write

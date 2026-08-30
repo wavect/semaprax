@@ -276,12 +276,23 @@ fn remapped_expression(
 ) -> Result<String> {
     validate_request(request)?;
     let target = text(request, "target")?;
+    remap_selection(before, after, target, text(request, "expression_id")?)
+}
+
+/// Re-authenticate a surviving compiler-owned selection after a disjoint edit.
+/// Callers must separately prove the selected subtree was not overwritten.
+pub(super) fn remap_selection(
+    before: &ProjectRevision,
+    after: &ProjectRevision,
+    target: &str,
+    expression_id: &str,
+) -> Result<String> {
     let old_subject = subject(before, target)?;
     let old_programs = parse_revision(before)?;
     let (owner, function_index) = source_function(&old_programs, &old_subject, target)?;
     let old_ast = ast_facts(&old_programs[owner].functions[function_index])?;
     let old_facts = hir_facts(old_subject.function)?;
-    let selected = selected(&old_facts, text(request, "expression_id")?)?;
+    let selected = selected(&old_facts, expression_id)?;
     if selected.phase != "body" {
         return Err(invalid("contract expressions cannot be replaced"));
     }

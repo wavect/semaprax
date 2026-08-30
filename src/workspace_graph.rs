@@ -4121,6 +4121,35 @@ fn build_owned_retaining_sources_with_builder_limit(
     change_builder_limit: Option<usize>,
     retain_operation_programs: bool,
 ) -> Result<(WorkspaceGraphBuild, Vec<WorkspaceSource>), Vec<Diagnostic>> {
+    build_owned_retaining_sources_with_frontend_limit(
+        sources,
+        builder_limit,
+        change_builder_limit,
+        retain_operation_programs,
+        None,
+    )
+}
+
+pub(crate) fn build_owned_retaining_sources_with_frontend(
+    sources: Vec<WorkspaceSource>,
+    frontend: &mut crate::project::incremental::FrontendPass,
+) -> Result<(WorkspaceGraphBuild, Vec<WorkspaceSource>), Vec<Diagnostic>> {
+    build_owned_retaining_sources_with_frontend_limit(
+        sources,
+        MAX_BUILDER_BYTES,
+        None,
+        false,
+        Some(frontend),
+    )
+}
+
+fn build_owned_retaining_sources_with_frontend_limit(
+    sources: Vec<WorkspaceSource>,
+    builder_limit: usize,
+    change_builder_limit: Option<usize>,
+    retain_operation_programs: bool,
+    frontend: Option<&mut crate::project::incremental::FrontendPass>,
+) -> Result<(WorkspaceGraphBuild, Vec<WorkspaceSource>), Vec<Diagnostic>> {
     assert!(
         builder_limit <= MAX_BUILDER_BYTES,
         "private Workspace Semantic Graph builder limit cannot exceed the production maximum"
@@ -4133,7 +4162,12 @@ fn build_owned_retaining_sources_with_builder_limit(
     }
     let previous = ACTIVE_BUILDER_LIMIT.with(|active| active.replace(builder_limit));
     let restore = Restore(previous);
-    let result = build_owned_inner(sources, change_builder_limit, retain_operation_programs);
+    let result = build_owned_inner(
+        sources,
+        change_builder_limit,
+        retain_operation_programs,
+        frontend,
+    );
     drop(restore);
     result
 }
@@ -4146,6 +4180,7 @@ fn build_owned_inner(
     mut sources: Vec<WorkspaceSource>,
     change_builder_limit: Option<usize>,
     retain_operation_programs: bool,
+    mut frontend: Option<&mut crate::project::incremental::FrontendPass>,
 ) -> Result<(WorkspaceGraphBuild, Vec<WorkspaceSource>), Vec<Diagnostic>> {
     if sources.len() < 2 {
         return Err(vec![graph_error(
@@ -4190,8 +4225,20 @@ fn build_owned_inner(
     let mut uses = 0usize;
     let mut canonical_bytes = 0usize;
     for source in &sources {
-        let program =
-            parse(&source.source, Path::new(&source.path)).map_err(|error| vec![error])?;
+        let cached = frontend
+            .as_deref_mut()
+            .and_then(|cache| cache.lookup(&source.path, &source.source));
+        let reused = cached.is_some();
+        let program = if let Some(program) = cached {
+            program
+        } else {
+            let program =
+                parse(&source.source, Path::new(&source.path)).map_err(|error| vec![error])?;
+            if let Some(frontend) = frontend.as_deref_mut() {
+                frontend.parsed(source.source.len());
+            }
+            program
+        };
         if program
             .interfaces
             .iter()
@@ -4204,26 +4251,37 @@ fn build_owned_inner(
             )]);
         }
         let remaining = active_builder_limit().saturating_sub(canonical_bytes);
-        let (canonical, overflowed) =
-            crate::bounded_output::with_limit(remaining, || format::canonical(&program));
-        if overflowed {
-            return Err(vec![limit_error("builder_bytes", active_builder_limit())]);
-        }
+        // Cached entries originate only from exact canonical source and a
+        // successful complete Project build. Preserve cold byte accounting
+        // while actually avoiding this formatter invocation on a cache hit.
+        let canonical_len = if reused {
+            source.source.len()
+        } else {
+            let (canonical, overflowed) =
+                crate::bounded_output::with_limit(remaining, || format::canonical(&program));
+            if overflowed {
+                return Err(vec![limit_error("builder_bytes", active_builder_limit())]);
+            }
+            if canonical != source.source {
+                return Err(vec![graph_error(
+                    "SPX-G170",
+                    format!(
+                        "workspace semantic source `{}` is not canonical",
+                        source.path
+                    ),
+                )]);
+            }
+            if let Some(frontend) = frontend.as_deref_mut() {
+                frontend.canonicalized();
+            }
+            canonical.len()
+        };
         canonical_bytes = checked_usage(
             canonical_bytes,
-            canonical.len(),
+            canonical_len,
             "builder_bytes",
             active_builder_limit(),
         )?;
-        if canonical != source.source {
-            return Err(vec![graph_error(
-                "SPX-G170",
-                format!(
-                    "workspace semantic source `{}` is not canonical",
-                    source.path
-                ),
-            )]);
-        }
         declarations = checked_usage(
             declarations,
             declaration_count(&program)
@@ -4349,6 +4407,9 @@ fn build_owned_inner(
         operation_sidecar,
         operation_builder_bytes,
     };
+    if let Some(frontend) = frontend {
+        frontend.retain(&sources, programs, resolve_builder_bytes)?;
+    }
     Ok((build, sources))
 }
 

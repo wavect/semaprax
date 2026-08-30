@@ -79,7 +79,7 @@ pub(crate) fn restore(manifest: &Path, capsule_path: &Path) -> Result<String, Ve
     })
 }
 
-fn read_capsule(path: &Path) -> Result<Vec<u8>, Diagnostic> {
+pub(super) fn read_capsule(path: &Path) -> Result<Vec<u8>, Diagnostic> {
     let limit = project::MAX_PROJECT_CANDIDATE_RECOVERY_BYTES;
     let file = super::project_image::open_image(path)
         .map_err(|_| Diagnostic::io("SPX-G236", "cannot open recovery capsule input"))?;

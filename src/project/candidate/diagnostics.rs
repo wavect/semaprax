@@ -68,7 +68,7 @@ impl ProjectCandidateAttempt {
         self.require_digest(expected)?;
         let (proposal, reason) = self.repair()?;
         render(
-            json!({"schema":PROJECT_CANDIDATE_REPAIR_CATALOG_SCHEMA,"attempt_revision":self.digest,"base_candidate_revision":self.base.candidate_digest(),"base_project_revision":self.base.revision().project_revision(),"repairs":proposal.as_ref().map(|proposal|vec![proposal.description.clone()]).unwrap_or_default(),"availability_reason":reason,"legacy_identity_repair":"assign_function_id_is_a_breaking_identity_rebase_and_not_a_stable_identity_preserving_candidate_change","tests":"not_run","source_authority":false,"nonclaims":["not_general_diagnostic_repair","no_invalid_source_or_hir_admission","no_automatic_repair_selection","no_repair_diagnostic_semantic_change_wire_kind"]}),
+            json!({"schema":PROJECT_CANDIDATE_REPAIR_CATALOG_SCHEMA,"attempt_revision":self.digest,"base_candidate_revision":self.base.candidate_digest(),"base_project_revision":self.base.revision().project_revision(),"repairs":proposal.as_ref().map(|proposal|vec![proposal.description.clone()]).unwrap_or_default(),"availability_reason":reason,"legacy_identity_repair":"assign_function_id_is_a_breaking_identity_rebase_and_not_a_stable_identity_preserving_candidate_change","tests":"not_run","source_authority":false,"nonclaims":["not_general_diagnostic_repair","no_invalid_source_or_hir_admission","no_automatic_repair_selection"]}),
         )
     }
     /// A selector requests one exact compiler-derived proposal. Replay ordinary
@@ -90,6 +90,47 @@ impl ProjectCandidateAttempt {
             return Err(stale("typed repair selector is stale or unknown"));
         }
         Ok(proposal.candidate)
+    }
+
+    /// Private wire seam: preserve the predecessor's exact history/digest while
+    /// sharing its immutable admitted revisions. No rejected source/HIR exists.
+    pub(super) fn derive_wire_repair(
+        base: &ProjectCandidate,
+        rejected_intent: &Value,
+        repair_id: &str,
+    ) -> Result<SemanticChange, Vec<Diagnostic>> {
+        let change = SemanticChange::new(base.revision().project_revision(), rejected_intent)?;
+        let diagnostics = match base.apply(base.candidate_digest(), &change) {
+            Ok(_) => {
+                return Err(super::diagnostic_intent::stale(
+                    "repair intention requires an actually rejected predecessor attempt",
+                ))
+            }
+            Err(diagnostics) => diagnostics,
+        };
+        let retained = Arc::new(ProjectCandidate {
+            base: Arc::clone(&base.base),
+            revision: Arc::clone(&base.revision),
+            changes: base.changes.clone(),
+            summaries: base.summaries.clone(),
+            base_targets: Arc::clone(&base.base_targets),
+            targets: base.targets.clone(),
+            json: base.json.clone(),
+            digest: base.digest.clone(),
+        });
+        let attempt = Self::rejected(retained, change, diagnostics)?;
+        let (proposal, _) = attempt.repair()?;
+        let proposal = proposal.ok_or_else(|| {
+            super::diagnostic_intent::stale(
+                "no compiler-admitted integer-literal repair is available",
+            )
+        })?;
+        if proposal.id != repair_id {
+            return Err(super::diagnostic_intent::stale(
+                "repair intention selector does not match the regenerated rejected attempt",
+            ));
+        }
+        Ok(proposal.change)
     }
     fn rejected(
         base: Arc<ProjectCandidate>,
@@ -209,12 +250,13 @@ impl ProjectCandidateAttempt {
             json!({"attempt_revision":self.digest,"class":"retag_integer_literal_to_retained_return_type","change":serde_json::from_str::<Value>(change.to_json()).map_err(|_|grammar("derived repair change is invalid"))?}),
         )?;
         let id = wire::digest(REPAIR_DOMAIN, identity.as_bytes());
-        let description = json!({"repair_id":id,"class":"retag_integer_literal_to_retained_return_type","target":target,"from_type":from,"expected_type":expected,"preserved_integer_value":value,"change":serde_json::from_str::<Value>(change.to_json()).map_err(|_|grammar("derived repair change is invalid"))?,"validated_candidate_revision":candidate.candidate_digest(),"validation":"normal_full_candidate_apply","evidence_owner":"retained_target_return_type_and_full_candidate_admission","tests":"not_run","source_authority":false});
+        let description = json!({"repair_id":id,"class":"retag_integer_literal_to_retained_return_type","target":target,"from_type":from,"expected_type":expected,"preserved_integer_value":value,"change":serde_json::from_str::<Value>(change.to_json()).map_err(|_|grammar("derived repair change is invalid"))?,"semantic_change_intent":{"kind":"repair_diagnostic","target":target,"rejected_intent":intent,"repair_id":id},"validated_candidate_revision":candidate.candidate_digest(),"validation":"normal_full_candidate_apply","evidence_owner":"retained_target_return_type_and_full_candidate_admission","tests":"not_run","source_authority":false});
         Ok((
             Some(Proposal {
                 id,
                 description,
                 candidate,
+                change,
             }),
             "one_compiler_admitted_typed_repair",
         ))
@@ -224,6 +266,7 @@ struct Proposal {
     id: String,
     description: Value,
     candidate: Arc<ProjectCandidate>,
+    change: SemanticChange,
 }
 fn integer_fits(kind: &str, value: &Value) -> bool {
     match kind {

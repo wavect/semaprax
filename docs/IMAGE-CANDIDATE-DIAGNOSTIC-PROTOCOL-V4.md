@@ -52,6 +52,13 @@ rejected by the closed request validator.
 | `attempt/discard` | `attempt_revision` | Confirmation that only the named attempt was removed |
 | `candidate/semantic-delta` | `candidate_revision`, `target`; optional `offset`, `chunk_bytes` | Exact declaration-delta report chunks |
 | `candidate/semantic-delta-catalog` | `candidate_revision`; optional `offset`, `chunk_bytes` | Exact declaration-selection catalogue chunks |
+| `hole/open-expression` | `candidate_revision`, `target`, `expression_id`, `hole_id`; optional `draft_revision` | Immutable typed expression-hole draft |
+
+Expression holes use the existing fill/complete/discard lifecycle. V4 `hole/query`
+discovery admits either the body-hole or expression-hole context schema; the
+returned schema identifies which was selected. Opening an expression hole uses
+the already granted `candidate_prepare` authority, not test or source authority.
+See [Expression Holes v1](PROJECT-CANDIDATE-EXPRESSION-HOLES-V1.md).
 
 `candidate/apply-intent` keeps its existing fail-fast behavior, even in v4.
 Only `candidate/attempt` requests diagnostic retention. Its success payload is
@@ -71,8 +78,11 @@ locations. No invalid source or HIR is returned or persisted.
 Repair discovery offers only the library's bounded, fully admitted integer
 literal retagging class. Selection re-derives and fully validates the chosen
 repair. It returns a new ordinary candidate; the attempt and predecessor remain
-unchanged. No `repair_diagnostic` SemanticChange wire kind, guessed repair,
-automatic selection, or implicit execution is introduced.
+unchanged. The additive [Project Diagnostic Change v1](PROJECT-DIAGNOSTIC-CHANGE-V1.md)
+also exposes a `repair_diagnostic` SemanticChange through ordinary candidate
+application; it retains the selected repair in history and independently
+regenerates it. No guessed repair, automatic selection, or implicit execution
+is introduced.
 
 ## Registries and authentication
 

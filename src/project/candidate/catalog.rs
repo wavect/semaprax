@@ -63,7 +63,7 @@ impl ProjectCandidate {
                     })];
                     if function.params.len() <= 4096
                         && function.params.iter().all(|param| {
-                            param.mode == ParamMode::Value
+                            (param.mode == ParamMode::Value
                                 && matches!(
                                     param.ty,
                                     Type::I64
@@ -75,16 +75,18 @@ impl ProjectCandidate {
                                         | Type::F32
                                         | Type::F64
                                         | Type::Bool
-                                )
+                                ))
+                                || (param.mode == ParamMode::Own && param.ty == Type::Bytes)
                         })
                     {
                         forms.push(json!({
                             "selector":"parameters", "minimum":0, "maximum":4096,
                             "existing_parameter_fields":["from"],
+                            "existing_parameter_rename_fields":["from","name"],
                             "new_parameter_fields":["name","type","argument"],
                             "new_parameter_types":["i64","i32","u8","usize","bool"],
                             "argument":"matching_typed_scalar_literal",
-                            "constraints":["existing_parameter_selected_at_most_once", "existing_name_type_mode_preserved", "new_name_distinct_from_all_old_names", "removed_parameters_must_not_remain_referenced"],
+                            "constraints":["existing_parameter_selected_at_most_once", "existing_type_mode_preserved", "scope_preserving_display_rename", "own_bytes_retained_exactly_once", "new_name_distinct_from_all_old_names", "removed_parameters_must_not_remain_referenced", "ordinary_ownership_cleanup_admission"],
                             "evaluation_order":"stage_every_original_argument_once_left_to_right_including_removed_arguments",
                         }));
                     }
@@ -99,6 +101,18 @@ impl ProjectCandidate {
                         "expression_nodes_maximum":4096, "expression_depth_maximum":64,
                         "constraints":["place_selects_existing_parameter", "call_selects_accessible_stable_id", "expected_return_type", "declared_effect_budget", "contracts_ownership_cleanup_and_target_revalidation"],
                     }));
+                    if matches!(
+                        function.return_type,
+                        Type::I64 | Type::I32 | Type::U8 | Type::Usize
+                    ) {
+                        operations.push(json!({
+                            "kind":"repair_diagnostic", "required_fields":["kind","target","rejected_intent","repair_id"],
+                            "repair_class":"retag_integer_literal_to_retained_return_type",
+                            "selector_source":"candidate-attempt/repair-catalog",
+                            "rejected_kind":"replace_function_body",
+                            "constraints":["exact_rejected_target", "integer_literal_only", "fresh_rejected_attempt_and_repair_derivation", "exact_predecessor_bound_repair_id", "full_candidate_admission", "rebase_requires_rediscovery"],
+                        }));
+                    }
                     operations.push(json!({
                         "kind":"replace_expression", "required_fields":["kind","target","expression_id","replacement"],
                         "selector_source":"expression/catalog",

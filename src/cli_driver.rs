@@ -115,6 +115,25 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 Ok(())
             }
         }
+        "project-candidate-git-publish" => {
+            if args.len() != 5
+                || args[1..]
+                    .iter()
+                    .any(|argument| argument.is_empty() || argument.starts_with('-'))
+            {
+                eprintln!("project-candidate-git-publish requires exactly <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>");
+                return Err(2);
+            }
+            let output = cli::candidate_git::publish(
+                Path::new(&args[1]),
+                Path::new(&args[2]),
+                &args[3],
+                Path::new(&args[4]),
+            )
+            .map_err(|errors| report(&errors, false))?;
+            print!("{output}");
+            Ok(())
+        }
         "project-image"
         | "project-image-store"
         | "project-image-load"
@@ -2353,6 +2372,7 @@ fn print_help() {
            semaprax project-candidate-preview <manifest> <change.json>\n\
            semaprax project-candidate-export <manifest> <change.json>\n\
            semaprax project-candidate-restore <manifest> <capsule.json>\n\
+           semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\n\
            semaprax serve-image <manifest>\n\
            semaprax serve-candidates <manifest>\n\
            semaprax serve-test-candidates <manifest>\n\

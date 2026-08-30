@@ -198,6 +198,30 @@ successful SDK gate, and it was not executed in this batch:
 cargo test --locked -p semaprax-toolchain --test project_owned_utf8_sdk_v1 -- --ignored
 ```
 
+The separate `tests/support/owned_utf8_capacity.rs` subject isolates the String
+result boundary in a two-source Project. A single selected literal contains
+65,535 or 65,536 UTF-8 bytes, including repeated BOM, NUL, multibyte and astral
+characters. No other String literal consumes the shared 65,536-byte Wasm
+literal pool. The real npm and native Rust publication gates compare returned
+strings against independently spelled byte oracles, exercise repeated calls
+through two instances, and retain earlier host values. Native host values are
+also checked after SDK destruction. Package and source inputs remain exact.
+The native gate reuses the same test-only manifest consistency oracle as the
+multi-module SDK fixture; neither oracle establishes archive provenance.
+
+A separate 65,537-byte source must fail ordinary Project admission with
+`SPX-W110` (`owned UTF-8 literal table exceeds 65536 bytes`) before the Project
+callback or publication. This is a compile-time literal-pool boundary, not
+evidence of a native runtime over-limit rejection. These cases do not replace
+physical allocation accounting, failure-path settlement, or maximum input
+coverage. Both gates are authored but unrun; the native one is explicitly
+ignored and requires the same provisioned tools described above:
+
+```sh
+cargo test --locked -p semaprax --test project_owned_utf8_capacity_v1
+cargo test --locked -p semaprax-toolchain --test project_owned_utf8_capacity_v1 -- --ignored
+```
+
 The shared lower v8/v10 descriptor reader also rejects repeated parameter
 identities within one export, even under a freshly computed descriptor digest;
 see the [owned-data descriptor contract](PUBLIC-OWNED-DATA-API-V1.md#canonical-public-api-descriptor).

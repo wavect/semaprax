@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Authored actual npm and native Rust SDK consumers for 65,535- and 65,536-byte
+  owned String results, sharing one minimal Project fixture with independent
+  BOM/NUL/Unicode byte oracles. Added the separate capacity-plus-one Project
+  admission regression and reused the native manifest consistency helper.
+  Generators, schemas and literal limits remain unchanged. Tests/builds are
+  unrun; these fixtures do not establish allocation or production evidence.
+
 - Corrected admission/routing defects: native SDK descriptor digest
   discovery now enforces the existing byte bound before JSON parsing; `check`
   retains its parsed source path when `--json` precedes it; and extensionless

@@ -202,7 +202,8 @@ pub(super) enum NativeOutputProfile {
 }
 
 /// Representation and provider carrier support are separate decisions:
-/// ordinary Strings need length headers but no additional status/Bytes ABI.
+/// ordinary and owned-data-provider Strings need length headers but no
+/// additional status/Bytes ABI solely because Strings occur.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct StringRuntimeSelection {
     length_delimited: bool,
@@ -221,30 +222,34 @@ impl StringRuntimeSelection {
 impl NativeOutputProfile {
     const fn string_runtime(self) -> StringRuntimeSelection {
         match self {
-            Self::Legacy | Self::StdoutTranscript => StringRuntimeSelection {
-                length_delimited: true,
-                provider_carriers: false,
-                include_instances: true,
-            },
+            Self::Legacy | Self::StdoutTranscript | Self::OwnedDataProvider => {
+                StringRuntimeSelection {
+                    length_delimited: true,
+                    provider_carriers: false,
+                    include_instances: true,
+                }
+            }
             Self::OwnedUtf8Provider => StringRuntimeSelection {
                 length_delimited: true,
                 provider_carriers: true,
                 include_instances: false,
             },
-            Self::OwnedDataProvider
-            | Self::UsefulDataCommand
-            | Self::LanguageCommandIo
-            | Self::LineCommandIo => StringRuntimeSelection::FROZEN,
+            Self::UsefulDataCommand | Self::LanguageCommandIo | Self::LineCommandIo => {
+                StringRuntimeSelection::FROZEN
+            }
         }
     }
 
-    const fn corrects_ordinary_strings(self) -> bool {
-        matches!(self, Self::Legacy | Self::StdoutTranscript)
+    const fn tracks_present_strings(self) -> bool {
+        matches!(
+            self,
+            Self::Legacy | Self::StdoutTranscript | Self::OwnedDataProvider
+        )
     }
 
     fn tracks_strings(self, function: &ResolvedFunction) -> bool {
         self == Self::OwnedUtf8Provider
-            || (self.corrects_ordinary_strings() && function_uses_strings(function))
+            || (self.tracks_present_strings() && function_uses_strings(function))
     }
 
     const fn supports_stdout_transcript(self) -> bool {
@@ -1338,9 +1343,9 @@ static __attribute__((unused)) void spx_string_drop(char *spx_value) {
 }
 "#;
 
-// V10 and corrected ordinary/stdout functions reuse this private representation.
+// V10 and corrected ordinary/stdout/owned-data functions reuse this representation.
 // The complete translation unit uses one allocator/header/drop convention;
-// frozen command and v8/v9 provider profiles retain the terminated runtime.
+// Frozen command profiles and the private callable prelude retain the terminated runtime.
 // The trailing terminator is not a semantic length or equality boundary.
 const NATIVE_LENGTH_DELIMITED_STRING_RUNTIME_C: &str = r#"#include <stddef.h>
 #include <stdint.h>

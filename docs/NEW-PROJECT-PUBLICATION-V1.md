@@ -1,6 +1,6 @@
 # Calculator project publication v1
 
-Status: reviewed correction contract; new executable evidence remains unrun.
+Status: authored correction; all new executable evidence remains unrun.
 
 Audience: toolchain contributors, host integrators, and reviewers.
 
@@ -121,3 +121,17 @@ OS can reject directory replacement independently.
 No new tests, builds, Windows execution, or hosted gates have run in this
 correction batch. Static review and formatting cannot promote WP-06 or any
 completion-matrix row.
+
+Focused gates, to run on the required hosts before promotion:
+
+```sh
+cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib platform::publish_tests
+cargo test --locked -p semaprax-native-rust-owned-data-package --lib project_publication::tests
+cargo test --locked -p semaprax --test cli_new_project_v1
+```
+
+The first gate requires Windows; a zero-test result elsewhere is not evidence.
+Physical post-rename displacement and ancestor-alias fixtures are Unix-only.
+Common success, publication-latch unwind, residue and relative-path cases still
+require execution on every supported host. Existing full quality and Project
+gates remain independently required.

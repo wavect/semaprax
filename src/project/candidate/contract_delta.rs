@@ -35,7 +35,13 @@ struct Budget {
     walks: usize,
 }
 impl Budget {
-    fn fact<T: serde::Serialize + ?Sized>(&mut self, value: &T) -> Result<()> {
+    fn fact(&mut self, value: &Value) -> Result<()> {
+        self.serialized_fact(|writer| serde_json::to_writer(writer, value))
+    }
+    fn serialized_fact(
+        &mut self,
+        serialize: impl FnOnce(&mut dyn Write) -> serde_json::Result<()>,
+    ) -> Result<()> {
         struct Count(usize);
         impl Write for Count {
             fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
@@ -50,7 +56,7 @@ impl Budget {
             }
         }
         let mut count = Count(1);
-        serde_json::to_writer(&mut count, value).map_err(|_| capacity())?;
+        serialize(&mut count).map_err(|_| capacity())?;
         self.bytes = self.bytes.checked_add(count.0).ok_or_else(capacity)?;
         self.items = self.items.checked_add(1).ok_or_else(capacity)?;
         if self.bytes > MAX_FACT_BYTES || self.items > MAX_ITEMS {
@@ -250,7 +256,7 @@ fn inventory(revision: &ProjectRevision, budget: &mut Budget) -> Result<Inventor
                     if fragment.len() > MAX_PROJECT_CANDIDATE_CONTRACT_DELTA_BYTES {
                         return Err(capacity());
                     }
-                    budget.fact(fragment)?;
+                    budget.serialized_fact(|writer| serde_json::to_writer(writer, fragment))?;
                     let (projection, roots) = if let Some(resolved) = resolved {
                         let roots = preflight(resolved, budget)?;
                         let (projection, overflow) = crate::bounded_output::with_limit(

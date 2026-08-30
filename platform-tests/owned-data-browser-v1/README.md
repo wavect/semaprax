@@ -16,12 +16,17 @@ under review. It exports exactly `frame.fail-after`, `frame.fail-before`,
 argument before or after creating an owned byte value. They are real language
 functions, not substituted WebAssembly implementations.
 
-For example, from the repository root, with a prebuilt compiler and an existing
-host-owned parent (the `generated` destination must not exist):
+For example, from the repository root, with a prebuilt source-installed full
+toolchain and an existing host-owned parent (the `generated` destination must
+not exist; replace the example absolute path with that parent's path):
 
 ```sh
-semaprax build platform-tests/owned-data-browser-v1/project/semaprax.toml --target npm -o /absolute/host-owned/generated
+semaprax-full build platform-tests/owned-data-browser-v1/project/semaprax.toml --target npm -o /absolute/host-owned/generated
 ```
+
+Windows Project-v8 npm publication requires this full host; the standalone
+compiler rejects it with `SPX-W120`. Release archives expose the full CLI as
+`semaprax`, so use that name instead when provisioning from an archive.
 
 Serve that generated directory on loopback HTTP, with JavaScript modules served
 using a JavaScript MIME type. Its package inventory is exactly:

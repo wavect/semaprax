@@ -5,10 +5,15 @@ root, build the canonical Project-v8 manifest and execute the shared hostile
 corpus:
 
 ```sh
-cargo run --locked -- build --manifest-path examples/frame-payload-project/semaprax.toml --target npm -o examples/frame-payload-web/generated
+cargo run --locked -p semaprax-toolchain --bin semaprax-full -- build --manifest-path examples/frame-payload-project/semaprax.toml --target npm -o examples/frame-payload-web/generated
 cp examples/frame-payload-project/corpus.json examples/frame-payload-web/corpus.json
 node examples/frame-payload-web/consumer.mjs
 ```
+
+Use the unpublished full toolchain explicitly: Windows Project-v8 npm
+publication rejects the standalone compiler with `SPX-W120`. The checked-in
+`examples/frame-payload-web` parent already exists; `generated` must not exist.
+Release archives expose the full CLI under the `semaprax` name instead.
 
 The generated directory is evidence output and must not be committed. The
 TypeScript consumer pins stable-ID access through

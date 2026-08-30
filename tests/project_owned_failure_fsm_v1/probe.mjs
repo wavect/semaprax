@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import instantiate from './semaprax.bindings.js';
 import {exerciseValidator,faultValidator} from './utf8.mjs';
 import {exerciseIdentities,exerciseBusyIdentities} from './identity.mjs';
+import {exerciseResults} from './result.mjs';
 
 const config=JSON.parse(process.argv[2]);
 const wasm=Uint8Array.from(readFileSync('app.wasm'));
@@ -30,11 +31,11 @@ function assertSuccess(api){
   assert(value instanceof Uint8Array);assert.deepEqual([...value],[...input]);
   assert.notEqual(value.buffer,input.buffer);
 }
-function capture(action){let threw=false,value;try{action()}catch(error){threw=true;value=error}return{threw,value}}
+function capture(action){let threw=false,value;try{value=action()}catch(error){threw=true;value=error}return{threw,value}}
 
 async function fixture(fault={}){
-  let api,memory,entries=0,mints=0,drops=0,importsAfterReentry=0,blockedImport=false,primary,cleanupArmed=false,validatorReturned=0;
-  const counters=()=>({entries,mints,drops,importsAfterReentry,blockedImport,validatorReturned});
+  let api,memory,entries=0,mints=0,drops=0,importsAfterReentry=0,blockedImport=false,primary,cleanupArmed=false,validatorReturned=0,resultMutations=0;
+  const counters=()=>({entries,mints,drops,importsAfterReentry,blockedImport,validatorReturned,resultMutations});
   WebAssembly.instantiate=async(bytes,imports)=>{
     assert.deepEqual(new Uint8Array(bytes),wasm);
     const original=imports.env;
@@ -77,6 +78,7 @@ async function fixture(fault={}){
           assert.equal(status,4);
           assert(new Uint8Array(memory.buffer,RESULT,resultSize).every(byte=>byte===POISON));
         }
+        if(fault.resultHook?.({name,status,memory,env})===true)resultMutations++;
         if(fault.kind==='reenter-publication'){
           assert.equal(status,0);
           assert(capture(()=>api.call(Object.hasOwn(fault,'identity')?fault.identity:'case.copy',input,1n)).threw);
@@ -218,4 +220,5 @@ if(config.utf8){
   // Bytes on the same real package remain bytes, including invalid UTF-8.
   assertSuccess(baseline.api);
 }
+await exerciseResults({fixture,config,raw,input,RESULT,capture});
 console.log('owned-failure-fsm-ok');

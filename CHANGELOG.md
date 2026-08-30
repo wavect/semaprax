@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added real generated npm facade regressions for malformed result carriers,
+  Option/Result tags, inactive storage, bools, unsettled owners and corrupted
+  semantic-failure output across the existing seven v8/v9/v10 packages. Scoped
+  read/consume observations and same-arena stale tokens complement the preserved
+  lower-level fixtures; no production runtime or package bytes change. Evidence
+  is authored, unrun. Frame-product/browser instructions now explicitly select
+  the full toolchain required for Windows owned npm publication, with command
+  assertions in the existing product fixture.
+
 - Added a private doctor pre-exec Linux seccomp/no-new-privileges layer on
   native64 little-endian x86-64/AArch64. Socket creation, including local socket
   pairs, and six related asynchronous-I/O/descriptor/process syscalls fail

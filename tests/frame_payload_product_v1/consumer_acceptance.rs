@@ -1,6 +1,27 @@
 //! Explicit provisioned-tool acceptance; never downloads or silently skips.
 use super::*;
 
+#[test]
+fn documented_npm_publication_selects_the_full_toolchain() {
+    // Literal documentation evidence complements the actual full-host npm
+    // builds below and in the parent product test; it does not run Cargo.
+    let frame = include_str!("../../examples/frame-payload-web/README.md");
+    let commands = "```sh\ncargo run --locked -p semaprax-toolchain --bin semaprax-full -- build --manifest-path examples/frame-payload-project/semaprax.toml --target npm -o examples/frame-payload-web/generated\ncp examples/frame-payload-project/corpus.json examples/frame-payload-web/corpus.json\nnode examples/frame-payload-web/consumer.mjs\n```";
+    assert_eq!(frame.matches(commands).count(), 1);
+    assert!(!frame.contains("cargo run --locked -- build"));
+    assert!(Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("examples/frame-payload-web")
+        .is_dir());
+
+    let browser = include_str!("../../platform-tests/owned-data-browser-v1/README.md");
+    let command = "```sh\nsemaprax-full build platform-tests/owned-data-browser-v1/project/semaprax.toml --target npm -o /absolute/host-owned/generated\n```";
+    assert_eq!(browser.matches(command).count(), 1);
+    for documentation in [frame, browser] {
+        assert!(documentation.contains("SPX-W120"));
+        assert!(documentation.contains("Release archives expose the full CLI"));
+    }
+}
+
 pub(super) fn write_web_support(root: &Path) {
     for (path, bytes) in [
         ("corpus.json", CORPUS),

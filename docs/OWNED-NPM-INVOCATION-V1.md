@@ -173,6 +173,41 @@ capacity, settlement and nonreused tokens; exhaustion and unsettled entry use
 separate instances and must reject every later import, consume or settlement.
 No successful cleanup is inferred from their poisoned state.
 
+### Authentic malformed-result observations
+
+The companion `tests/project_owned_failure_fsm_v1/result.mjs` extends those
+same seven generated packages. It runs the real selected Wasm function and
+mutates its returned result storage at the test engine boundary, then lets the
+unchanged generated facade decode it. It does not replace the facade, copy its
+decoder, edit runtime source, or use a second arena implementation. Existing
+lower-level carrier fixtures remain separate evidence, not proof that the
+public wrapper reaches their checks.
+
+Healthy nonempty and empty owned results calibrate engine-entry, real mint,
+payload-read and successful owner-consumption observations. Negative cases
+cover untagged/zero-token, unissued and same-arena previously consumed tokens,
+wrong lengths, over-capacity lengths, and a carrier dropped through the real
+import before return. A second real minted owner tests that valid copy-out
+alone cannot establish complete arena settlement. Each case requires its
+specific production diagnostic, one observed fault injection, no outward
+value, and rejection of a later call before engine reentry.
+
+Variant cases send invalid Option and Result tags through the actual decoder
+and require zero payload reads or owner consumption. A genuine inactive None
+with garbage in unused payload storage must instead remain successful and
+reusable, without reading or consuming that storage. Changing a real active
+Ok to an inactive Err while retaining its owner must fail arena settlement.
+Scalar and record bool corruption must reject before publication; a real
+checked semantic failure with modified output must not take the recoverable
+status path. Scoped, pass-through DataView/Map observers are restored after
+each observation and never manufacture a decoder failure.
+
+These are authored, unrun JavaScript boundary regressions. Test-only engine
+substitution and trusted-realm observation do not prove an adversarial-JavaScript
+sandbox, compiler generation of malformed results, native behavior, or
+physical deallocation of owners retained by a poisoned instance. Production
+artifacts, package subjects, descriptors and existing known answers are unchanged.
+
 These fixtures, compiler checks and hosted release gates are unrun. No tests,
 builds, target probes or hosted workflows are authorized in this batch. No
 package publication, support promotion or overall production-readiness claim

@@ -548,6 +548,11 @@ projections and source-backed dependency facts, then independently replays the
 candidate before verifying exact report bytes. V5 exposes a candidate-granted
 chunk query; this read performs no target generation or execution and adds no
 publication authority.
+`candidate/ownership_delta.rs` compares checked source-function and retained
+instance ownership facts, complete structural inventories, and the existing
+ordered loan/cleanup projections. Exact report verification replays the full
+candidate first. The report neither changes a plan nor turns its actions into
+physical ownership authority; v5 exposes it through candidate-granted chunks.
 The [integrated workflow](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md) is authored,
 unrun and publishes managed generations only; canonical Git files stay unchanged.
 

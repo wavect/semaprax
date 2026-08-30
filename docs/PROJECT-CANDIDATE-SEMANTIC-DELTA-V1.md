@@ -47,6 +47,10 @@ compares ordered predicates and their static callable dependencies across the
 whole candidate, without emitting the target artifacts in this selected report.
 It preserves this report's schema and exact comparison rules.
 
+[Ownership Delta v1](PROJECT-CANDIDATE-OWNERSHIP-DELTA-V1.md) separately compares
+whole-candidate checked ownership inventories and ordered loan/cleanup plans.
+It performs no target projection and preserves this selected report's schema.
+
 ## Projections and comparison
 
 Every available declaration retains its existing typed identity/index facts and

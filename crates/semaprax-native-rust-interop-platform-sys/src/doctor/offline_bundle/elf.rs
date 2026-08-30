@@ -32,7 +32,7 @@ pub(super) fn validate(
     let offset = usize::try_from(u64_at(header, 32)?).map_err(|_| Error::Invalid)?;
     let table = range(bytes, offset, count.checked_mul(56).ok_or(Error::Invalid)?)?;
     let mut interpreter = None;
-    for entry in table.chunks_exact(56) {
+    for entry in table.as_chunks::<56>().0 {
         if u32_at(entry, 0)? != 3 {
             continue;
         }

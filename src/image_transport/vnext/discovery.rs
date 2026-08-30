@@ -69,6 +69,12 @@ pub(super) fn payload(
         }
         if methods
             .iter()
+            .any(|method| method.name == "candidate/ownership-delta")
+        {
+            instructions.push_str(" Use candidate/ownership-delta with candidate_revision to compare whole-candidate ownership, loan, and cleanup compiler facts against the candidate's original base. There is no target parameter. Reassemble UTF-8 chunks using offset and next_offset; chunk_bytes is 1024 through 65536 (default 16384), and the report is bounded to 8 MiB. Full compiler plan payloads remain explicitly unbundled. These descriptive facts do not establish runtime liveness, destruction traces, backend execution, or publication authority.");
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "hole/recovery-export")
         {
             instructions.push_str(" Use hole/recovery-export to save prior valid history and pending selectors. hole/recovery-restore requires the same exact original source base and returns only a draft; every remaining hole must still be filled before completion. Recovery does not restore approvals or implicitly rebase after source edits.");
@@ -138,6 +144,7 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         "candidate/build" => "candidate_build",
         "candidate/interface-delta"
         | "candidate/contract-delta"
+        | "candidate/ownership-delta"
         | "hole/recovery-export"
         | "hole/recovery-restore" => "candidate_prepare",
         "candidate/commit" | "candidate/commit-report" | "source-commit/status" => "source_commit",
@@ -224,6 +231,7 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
             "candidate/interface-catalog" => Some("semaprax.project-interface-change-catalog.v1"),
             "candidate/interface-delta" => Some("semaprax.project-candidate-interface-delta.v1"),
             "candidate/contract-delta" => Some("semaprax.project-candidate-contract-delta.v1"),
+            "candidate/ownership-delta" => Some("semaprax.project-candidate-ownership-delta.v1"),
             "candidate/symbol-diagnostics" => {
                 Some("semaprax.project-candidate-symbol-diagnostics.v1")
             }
@@ -607,6 +615,7 @@ mod tests {
             assert!(source.contains("request_workspace_refresh"));
             assert!(source.contains("request_candidate_interface_delta"));
             assert!(source.contains("request_candidate_contract_delta"));
+            assert!(source.contains("request_candidate_ownership_delta"));
             assert!(source.contains("request_candidate_symbol_diagnostics"));
             assert!(source.contains("expected_report_revision"));
             assert!(source.contains("decode_request_candidate_apply_intent"));

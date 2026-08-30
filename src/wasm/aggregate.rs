@@ -19,6 +19,7 @@ pub(super) fn owned_arena_capacity(
 
 use crate::aggregate_layout::{AggregateLayout, AggregateLayoutCache, AggregateTarget};
 use crate::ast::{BinaryOp, UnaryOp};
+use crate::cleanup_plan::StatusLane;
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     DeclarationId, ExpressionId, FunctionExecutionId, PlaceProjection, ResolvedExpr,
@@ -2512,7 +2513,7 @@ fn emit_function_profile(
         emitter.get_scalar(&condition);
         emitter.output.push(0x45);
         emitter.failure_expression = Some(contract.id.clone());
-        emitter.fail_if(STATUS_REQUIRES_FALSE)?;
+        emitter.fail_if_in_lane(STATUS_REQUIRES_FALSE, StatusLane::ContractFalse)?;
         emitter.failure_expression = None;
     }
     if plan.has_try {
@@ -2566,7 +2567,7 @@ fn emit_function_profile(
         emitter.get_scalar(&condition);
         emitter.output.push(0x45);
         emitter.failure_expression = Some(contract.id.clone());
-        emitter.fail_if(STATUS_ENSURES_FALSE)?;
+        emitter.fail_if_in_lane(STATUS_ENSURES_FALSE, StatusLane::ContractFalse)?;
         emitter.failure_expression = None;
     }
     emitter.emit_success_cleanup(&function.cleanup_plan)?;
@@ -2784,13 +2785,17 @@ impl Emitter<'_> {
         self.emit_cleanup_actions(&commit.finalize_in_order)
     }
 
-    fn emit_failure_cleanup(&mut self, expression: &ExpressionId) -> Result<(), Diagnostic> {
+    fn emit_failure_cleanup(
+        &mut self,
+        expression: &ExpressionId,
+        lane: StatusLane,
+    ) -> Result<(), Diagnostic> {
         let mut selected = None;
         for exit in &self.cleanup_plan.exits {
             if let crate::cleanup_plan::ExitContinuation::ReturnFailure { source } =
                 &exit.continuation
             {
-                if &source.expression == expression {
+                if &source.expression == expression && source.lane == lane {
                     if selected.is_some() {
                         return Err(error("CleanupPlan repeats one failure exit source"));
                     }
@@ -2800,7 +2805,7 @@ impl Emitter<'_> {
         }
         let actions = selected.ok_or_else(|| {
             error(format!(
-                "CleanupPlan has no exact failure exit for `{expression}`"
+                "CleanupPlan has no exact failure exit for `{expression}` in {lane:?}"
             ))
         })?;
         self.emit_cleanup_actions(&actions)
@@ -5083,7 +5088,7 @@ impl Emitter<'_> {
         );
         self.output.push(0x24);
         write_u32(self.output, super::line_command_io::OUTPUT_STATUS_GLOBAL);
-        self.emit_failure_cleanup(expression)?;
+        self.emit_failure_cleanup(expression, StatusLane::OperationFailure)?;
         self.output.push(0x0c);
         write_u32(
             self.output,
@@ -5421,7 +5426,7 @@ impl Emitter<'_> {
         self.output.push(0x20);
         write_u32(self.output, self.plan.status);
         self.output.extend([0x04, 0x40]);
-        self.emit_failure_cleanup(&expr.id)?;
+        self.emit_failure_cleanup(&expr.id, StatusLane::OperationFailure)?;
         self.output.push(0x0c);
         write_u32(
             self.output,
@@ -5631,7 +5636,7 @@ impl Emitter<'_> {
         self.output.push(0x22);
         write_u32(self.output, self.plan.status);
         self.output.extend([0x04, 0x40]);
-        self.emit_failure_cleanup(&expr.id)?;
+        self.emit_failure_cleanup(&expr.id, StatusLane::OperationFailure)?;
         self.output.push(0x0c);
         write_u32(
             self.output,
@@ -6106,7 +6111,7 @@ impl Emitter<'_> {
         write_i64(self.output, i64::from(code));
         self.output.push(0x21);
         write_u32(self.output, self.plan.status);
-        self.emit_failure_cleanup(expression)?;
+        self.emit_failure_cleanup(expression, StatusLane::OperationFailure)?;
         self.output.push(0x0c);
         write_u32(
             self.output,
@@ -7384,12 +7389,16 @@ impl Emitter<'_> {
     }
 
     fn fail_if(&mut self, status: i32) -> Result<(), Diagnostic> {
+        self.fail_if_in_lane(status, StatusLane::OperationFailure)
+    }
+
+    fn fail_if_in_lane(&mut self, status: i32, lane: StatusLane) -> Result<(), Diagnostic> {
         self.output.extend([0x04, 0x40, 0x41]);
         write_i64(self.output, i64::from(status));
         self.output.push(0x21);
         write_u32(self.output, self.plan.status);
         if let Some(expression) = self.failure_expression.clone() {
-            self.emit_failure_cleanup(&expression)?;
+            self.emit_failure_cleanup(&expression, lane)?;
         }
         self.output.push(0x0c);
         write_u32(

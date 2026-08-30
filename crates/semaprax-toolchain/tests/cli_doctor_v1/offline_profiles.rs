@@ -173,7 +173,10 @@ fn exact_selector_boundary_and_target_order_use_one_admitted_profile() {
             assert_eq!(rows[4]["id"], "profile");
             assert_eq!(rows[4]["status"], "ok");
             assert!(rows[4]["detail"].as_str().unwrap().contains(&selector));
-            assert_eq!(*host.acquired.borrow(), [selector.clone()]);
+            assert_eq!(
+                host.acquired.borrow().as_slice(),
+                std::slice::from_ref(&selector)
+            );
             let expected = tools
                 .into_iter()
                 .flat_map(|tool| [format!("resolve:{tool}"), version_call(tool)])

@@ -69,9 +69,9 @@ unbundled because they include heterogeneous HIR/impact facts. Source diffs are
 strings inside those owning candidate reports; no new standalone source-diff
 payload is invented. These limitations do not make their chunk envelope opaque.
 
-The candidate contract-delta, interface-delta and symbol-diagnostics queries
+The candidate ownership-delta, contract-delta, interface-delta and symbol-diagnostics queries
 likewise have concrete chunk envelopes and explicit owning report-schema listings.
-Contract and interface deltas require candidate preparation; symbol diagnostics
+Ownership, contract and interface deltas require candidate preparation; symbol diagnostics
 require the diagnostic grant. The latter's optional `expected_report_revision` parameter
 must be supplied for nonzero offsets; its conditional requirement is enforced
 by the handler and documented in the owning report contract. Client builders

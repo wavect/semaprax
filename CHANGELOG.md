@@ -16,6 +16,12 @@
   unavailable CLI route. This is not provenance, complete library closure,
   executable isolation or a production-readiness promotion.
 
+- Added whole-candidate ownership comparisons over checked signatures, complete
+  structural inventories and ordered loan/cleanup plans, including retained
+  generic instances. Exact replay verifies report bytes; v5 exposes bounded
+  candidate-granted chunks. No plan mutation or execution authority is added.
+  Regression evidence is authored, unrun.
+
 - Added whole-candidate contract comparisons with ordered checked predicates,
   source provenance and static callable-dependency facts. Exact candidate replay
   verifies report bytes; v5 exposes the read only under candidate preparation.

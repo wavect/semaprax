@@ -93,6 +93,70 @@ fn chunks(session: &mut ImageSession, method: &str, mut params: Value) -> String
     }
     report
 }
+
+#[test]
+fn expression_holes_are_discovered_filled_and_kept_out_of_legacy_profiles() {
+    let fixture = Fixture::new();
+    let mut legacy = fixture.session(ImageHostCapability::CandidateOnly);
+    assert_eq!(
+        call(&mut legacy, "hole/open-expression", json!({}))["error"]["code"],
+        -32601
+    );
+    let before = fixture.bytes();
+    let mut session = fixture.session(ImageHostCapability::CandidateDiagnostics);
+    let candidate = open(&mut session);
+    let image = session.image_revision().to_owned();
+    let catalog = payload(call(
+        &mut session,
+        "expression/catalog",
+        json!({"image_revision":image,"candidate_revision":candidate,"target":"calculator.add"}),
+    ));
+    let expression = catalog["expressions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|expression| {
+            expression["phase"] == "body"
+                && expression["kind"] == "binary"
+                && expression["replaceable"] == true
+        })
+        .unwrap()["expression_id"]
+        .clone();
+    let opened = payload(call(
+        &mut session,
+        "hole/open-expression",
+        json!({"image_revision":image,"candidate_revision":candidate,"target":"calculator.add","expression_id":expression,"hole_id":"sum"}),
+    ));
+    let draft = opened["draft_revision"].as_str().unwrap();
+    let context = payload(call(
+        &mut session,
+        "hole/query",
+        json!({"image_revision":image,"draft_revision":draft,"hole_id":"sum"}),
+    ));
+    assert_eq!(
+        context["schema"],
+        "semaprax.project-candidate-expression-hole-context.v1"
+    );
+    assert_eq!(context["expected_type_id"], "i64");
+    let rejected = call(
+        &mut session,
+        "hole/complete",
+        json!({"image_revision":image,"draft_revision":draft}),
+    );
+    assert!(rejected.get("error").is_some());
+    let filled = payload(call(
+        &mut session,
+        "hole/fill",
+        json!({"image_revision":image,"draft_revision":draft,"hole_id":"sum","expression":{"kind":"place","name":"left"}}),
+    ));
+    let completed = payload(call(
+        &mut session,
+        "hole/complete",
+        json!({"image_revision":image,"draft_revision":filled["draft_revision"]}),
+    ));
+    assert_ne!(completed["candidate_revision"], candidate);
+    assert_eq!(fixture.bytes(), before);
+}
 #[test]
 fn diagnostics_are_independent_of_tests_and_absent_from_legacy_profiles() {
     let fixture = Fixture::new();

@@ -14,6 +14,7 @@ mod flat_owned_record;
 mod image;
 mod image_facets;
 mod image_store;
+pub(crate) mod incremental;
 mod manifest;
 mod native_sdk;
 mod npm;
@@ -40,20 +41,24 @@ use authority::{authentication, DeclaredPathSelection, HeldDirectory, HeldFile};
 #[cfg(all(test, windows))]
 use authority::{declared_absolute_path, has_declared_alias_component};
 pub use candidate::{
-    apply_candidate_publication, prepare_candidate_publication, CandidateTestPolicy,
-    CandidateTestReport, ProjectCandidate, ProjectCandidateAttempt, ProjectCandidateAttemptOutcome,
-    ProjectCandidateDraft, ProjectCandidatePublication, ProjectCandidateRebase, SemanticChange,
-    MAX_CANDIDATE_TEST_STEPS, MAX_PROJECT_CANDIDATE_BYTES, MAX_PROJECT_CANDIDATE_HOLES,
+    apply_candidate_git_publication, apply_candidate_publication, prepare_candidate_publication,
+    CandidateGitAuthority, CandidateGitCommitMetadata, CandidateGitObject, CandidateGitObjectKind,
+    CandidateGitProcessAuthority, CandidateGitRefUpdate, CandidateGitRepository,
+    CandidateGitTarget, CandidateTestPolicy, CandidateTestReport, ProjectCandidate,
+    ProjectCandidateAttempt, ProjectCandidateAttemptOutcome, ProjectCandidateDraft,
+    ProjectCandidatePublication, ProjectCandidateRebase, SemanticChange, MAX_CANDIDATE_TEST_STEPS,
+    MAX_PROJECT_CANDIDATE_BYTES, MAX_PROJECT_CANDIDATE_HOLES,
     MAX_PROJECT_CANDIDATE_PUBLICATION_BYTES, MAX_PROJECT_CANDIDATE_RECOVERY_BYTES,
     MAX_PROJECT_CANDIDATE_SEMANTIC_DELTA_BYTES, MAX_PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_BYTES,
     MAX_PROJECT_CANDIDATE_TEST_PLAN_BYTES, MAX_PROJECT_CANDIDATE_TEST_REPORT_BYTES,
     MAX_SEMANTIC_CHANGE_BYTES, PROJECT_CANDIDATE_ATTEMPT_SCHEMA, PROJECT_CANDIDATE_DRAFT_SCHEMA,
-    PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA, PROJECT_CANDIDATE_PUBLICATION_SCHEMA,
-    PROJECT_CANDIDATE_REBASE_SCHEMA, PROJECT_CANDIDATE_RECOVERY_COMPATIBILITY,
-    PROJECT_CANDIDATE_RECOVERY_SCHEMA, PROJECT_CANDIDATE_REPAIR_CATALOG_SCHEMA,
-    PROJECT_CANDIDATE_SCHEMA, PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_SCHEMA,
-    PROJECT_CANDIDATE_SEMANTIC_DELTA_SCHEMA, PROJECT_CANDIDATE_TEST_PLAN_SCHEMA,
-    PROJECT_CANDIDATE_TEST_REPORT_SCHEMA, SEMANTIC_CHANGE_REQUIREMENTS, SEMANTIC_CHANGE_SCHEMA,
+    PROJECT_CANDIDATE_GIT_PUBLICATION_SCHEMA, PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA,
+    PROJECT_CANDIDATE_PUBLICATION_SCHEMA, PROJECT_CANDIDATE_REBASE_SCHEMA,
+    PROJECT_CANDIDATE_RECOVERY_COMPATIBILITY, PROJECT_CANDIDATE_RECOVERY_SCHEMA,
+    PROJECT_CANDIDATE_REPAIR_CATALOG_SCHEMA, PROJECT_CANDIDATE_SCHEMA,
+    PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_SCHEMA, PROJECT_CANDIDATE_SEMANTIC_DELTA_SCHEMA,
+    PROJECT_CANDIDATE_TEST_PLAN_SCHEMA, PROJECT_CANDIDATE_TEST_REPORT_SCHEMA,
+    SEMANTIC_CHANGE_REQUIREMENTS, SEMANTIC_CHANGE_SCHEMA,
 };
 pub use execution::{
     verify_execution_envelope, ProjectExecution, ProjectExecutionOptions, ProjectExecutionOutcome,
@@ -79,6 +84,12 @@ pub use image_store::{
     load_semantic_image, persist_semantic_image, ImageRefreshReport, ImageStoreReceipt,
     ImageWorkspace, MAX_IMAGE_REFRESH_REPORT_BYTES, MAX_SEMANTIC_IMAGE_STORE_RECEIPT_BYTES,
     SEMANTIC_IMAGE_REFRESH_SCHEMA, SEMANTIC_IMAGE_STORE_SCHEMA,
+};
+pub use incremental::{
+    ProjectFrontendBuild, ProjectFrontendCache, ProjectFrontendSource,
+    MAX_PROJECT_FRONTEND_CACHE_AST_BUDGET, MAX_PROJECT_FRONTEND_CACHE_SOURCE_BYTES,
+    MAX_PROJECT_FRONTEND_REPORT_BYTES, PROJECT_FRONTEND_CACHE_COMPATIBILITY,
+    PROJECT_FRONTEND_CACHE_SCHEMA,
 };
 use manifest::{capacity, grammar};
 pub use manifest::{

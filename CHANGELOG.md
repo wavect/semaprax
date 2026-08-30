@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added an opt-in source-exact frontend cache with real parse/format reuse,
+  disjoint expression holes with selector remapping, parameter renaming and
+  conservative owning-Bytes signature migration. Added a replayable diagnostic
+  repair intention and separate canonical Git-tree publication through an
+  explicitly selected Unix bare-SHA256 host adapter and CLI. Raw checkouts stay
+  unchanged; broader Git formats/hosts, general interfaces, warm HIR reuse and
+  benchmark evidence remain open. Regressions are authored, unrun by request.
+
 - Added source-backed semantic image persistence and explicit refresh reports,
   candidate semantic delta replay, and diagnostic protocol v4 with optional
   host-selected tests. Added explicit store/load and diagnostic CLI commands

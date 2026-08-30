@@ -51,6 +51,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         "semaprax project-candidate-preview <manifest> <change.json>\n",
         "semaprax project-candidate-export <manifest> <change.json>\n",
         "semaprax project-candidate-restore <manifest> <capsule.json>\n",
+        "semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\n",
         "semaprax serve-image <manifest>\n",
         "semaprax serve-candidates <manifest>\n",
         "semaprax serve-test-candidates <manifest>\n",

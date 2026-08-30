@@ -166,6 +166,14 @@ pub(crate) fn preflight_owned(
     preflight_owned_inner(path_set_source, sources, None)
 }
 
+pub(crate) fn preflight_owned_with_frontend(
+    path_set_source: &str,
+    sources: Vec<SemanticWorkspaceSource>,
+    frontend: &mut crate::project::incremental::FrontendPass,
+) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
+    preflight_owned_inner_mode(path_set_source, sources, None, false, None, Some(frontend))
+}
+
 pub(crate) fn preflight_owned_for_change(
     path_set_source: &str,
     sources: Vec<SemanticWorkspaceSource>,
@@ -190,6 +198,7 @@ pub(crate) fn preflight_owned_for_operations(
         Some(operations_builder_limit),
         true,
         Some(graph_builder_limit),
+        None,
     )
 }
 
@@ -198,7 +207,14 @@ fn preflight_owned_inner(
     sources: Vec<SemanticWorkspaceSource>,
     change_builder_limit: Option<usize>,
 ) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
-    preflight_owned_inner_mode(path_set_source, sources, change_builder_limit, false, None)
+    preflight_owned_inner_mode(
+        path_set_source,
+        sources,
+        change_builder_limit,
+        false,
+        None,
+        None,
+    )
 }
 
 fn preflight_owned_inner_mode(
@@ -207,6 +223,7 @@ fn preflight_owned_inner_mode(
     change_builder_limit: Option<usize>,
     retain_operations: bool,
     graph_builder_limit: Option<usize>,
+    frontend: Option<&mut crate::project::incremental::FrontendPass>,
 ) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
     let path_set = parse_path_set(path_set_source)?;
     if sources.len() != path_set.len() {
@@ -259,6 +276,8 @@ fn preflight_owned_inner_mode(
                 change_builder_limit,
             )?
         }
+    } else if let Some(frontend) = frontend {
+        workspace_graph::build_owned_retaining_sources_with_frontend(graph_sources, frontend)?
     } else {
         workspace_graph::build_owned_retaining_sources(graph_sources)?
     };

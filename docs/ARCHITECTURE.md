@@ -290,6 +290,24 @@ remain outside it. See [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1
 
 ### Project profile and daemon
 
+`project/incremental.rs` owns an opt-in, invocation-local cache of exact-source
+canonical ASTs. It can avoid parsing/canonicalization for eligible retained
+modules while the ordinary graph, linking and profile gates still revalidate
+semantics. It imports no serialized HIR. `candidate/draft.rs` now carries
+disjoint expression holes as well as whole-body holes; completed fills pass
+ordinary candidate admission and reauthenticate surviving selections against
+the resulting canonical source. Neither cache nor draft owns source authority.
+
+`candidate/git_publication.rs` authenticates Git object identities and original
+Project source before constructing canonical replacement blobs, trees and a
+commit. Its explicit host authority owns one expected-old Git ref update. The
+Unix process adapter selects a bounded bare SHA256 repository, executable and
+lease; it disables ambient config/hooks/network and never rewrites a checkout.
+This authority is separate from managed Workspace `ACTIVE` and all image
+protocol sessions. `candidate/diagnostic_intent.rs` rederives a selected repair
+from a fresh rejected attempt before ordinary candidate admission records its
+typed history; no invalid image or submitted replacement becomes trusted state.
+
 `src/project/image_store.rs` binds semantic image receipts to secure persisted
 Project source inputs. Loading rebuilds and re-derives the image; refresh reports
 conservative reverse-module invalidation but does not incrementally compile or

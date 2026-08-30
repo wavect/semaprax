@@ -138,6 +138,13 @@ Do not widen the existing literal/direct-call admission to make a fixture pass.
 
 ## Graph-operational development foundation
 
+Actual source-exact parse/format reuse, expression holes, owning-Bytes parameter
+mapping and typed diagnostic repair history now have authored implementations.
+Separate canonical Git publication has a bounded Unix bare-SHA256 route; extend
+ordinary Git/host interoperability without granting checkout or process authority
+to query sessions. Full incremental semantic checking, warm cross-process HIR,
+general interfaces and measured complete workflows remain exit conditions.
+
 Source-backed image storage/refresh, semantic delta replay and diagnostic
 protocol v4 now have authored, unrun implementations. The integrated signature
 workflow reaches separate managed `ACTIVE` publication only. Remaining exit

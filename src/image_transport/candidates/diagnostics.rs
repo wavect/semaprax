@@ -19,6 +19,7 @@ pub(in crate::image_transport) enum Action {
     Discard,
     Delta,
     DeltaCatalog,
+    ExpressionHoleOpen,
 }
 macro_rules! method {
     ($name:literal,$action:ident,$params:expr,$query:expr,$schema:literal) => {
@@ -32,6 +33,28 @@ macro_rules! method {
     };
 }
 const METHODS_V4: &[Method] = &[
+    method!(
+        "hole/open-expression",
+        ExpressionHoleOpen,
+        &[
+            REVISION,
+            CANDIDATE,
+            TARGET,
+            HOLE,
+            Parameter {
+                name: "expression_id",
+                kind: ParameterKind::Text(4096),
+                required: true
+            },
+            Parameter {
+                name: "draft_revision",
+                kind: ParameterKind::Digest,
+                required: false
+            }
+        ],
+        false,
+        "semaprax.image-draft-handle.v1"
+    ),
     method!(
         "candidate/attempt",
         Attempt,
@@ -145,6 +168,21 @@ fn descriptor(method: &Method, test_enabled: bool) -> Value {
     ) {
         result["capability"] = json!("candidate_diagnostics");
     }
+    if matches!(
+        method.operation,
+        Operation::Candidate(super::Action::Diagnostic(Action::ExpressionHoleOpen))
+    ) {
+        result["capability"] = json!("candidate_prepare");
+    }
+    if matches!(
+        method.operation,
+        Operation::Candidate(super::Action::HoleQuery)
+    ) {
+        result["success_response_schema"]["properties"]["result"]["properties"]["payload"] = json!({"oneOf":[
+            {"$ref":"urn:semaprax.project-candidate-hole-context.v1"},
+            {"$ref":"urn:semaprax.project-candidate-expression-hole-context.v1"}
+        ]});
+    }
     result
 }
 pub(super) fn handle(
@@ -239,7 +277,7 @@ fn prepare(
             json!({"schema":schema,"queries":methods(test_enabled).iter().filter(|method|method.query).map(|method|descriptor(method,test_enabled)).collect::<Vec<_>>()})
         }
         Operation::Instructions => {
-            json!({"schema":schema,"protocol":DIAGNOSTIC_PROTOCOL_SCHEMA,"instructions":"Use workspace/open for image_revision and candidate/open for candidate_revision. candidate/apply-intent remains the ordinary fail-fast operation. candidate/attempt additionally retains bounded rejected intentions as attempt_revision handles, never invalid checked images. Inspect attempt/summary and attempt/query chunks, discover only compiler-admitted proposals with attempt/repair-catalog, then explicitly select attempt/repair-apply. Repair returns a new valid candidate; previous candidates and attempts remain unchanged. candidate/semantic-delta-catalog and candidate/semantic-delta return exact report chunks comparing selected declarations against their original base. Runtime tests are available only if the host capability catalogue includes candidate_test; request parameters cannot enable tests or alter policy. Failures do not mutate registries. Source drift permanently invalidates the session. No source-write, filesystem-store, build, process, network or approval authority is granted."})
+            json!({"schema":schema,"protocol":DIAGNOSTIC_PROTOCOL_SCHEMA,"instructions":"Use workspace/open for image_revision and candidate/open for candidate_revision. candidate/apply-intent remains the ordinary fail-fast operation. candidate/attempt additionally retains bounded rejected intentions as attempt_revision handles, never invalid checked images. Inspect attempt/summary and attempt/query chunks, discover only compiler-admitted proposals with attempt/repair-catalog, then explicitly select attempt/repair-apply. Repair returns a new valid candidate; previous candidates and attempts remain unchanged. candidate/semantic-delta-catalog and candidate/semantic-delta return exact report chunks comparing selected declarations against their original base. Use expression/catalog for actual HIR selections, hole/open-expression to create a disjoint expression hole, then hole/query for current lexical context and hole/fill for typed construction. Surviving selections are reauthenticated after fills; no unresolved draft can complete. Runtime tests are available only if the host capability catalogue includes candidate_test; request parameters cannot enable tests or alter policy. Failures do not mutate registries. Source drift permanently invalidates the session. No source-write, filesystem-store, build, process, network or approval authority is granted."})
         }
         Operation::Client => {
             let old_names = serde_json::to_string(&method_names()).expect("compiler method list");
@@ -274,6 +312,33 @@ fn action_payload(
     registry: &Registry,
 ) -> Result<(Value, Mutation), Vec<Diagnostic>> {
     match action {
+        Action::ExpressionHoleOpen => {
+            let candidate = registry.candidate(text(params, "candidate_revision"))?;
+            let draft = if let Some(id) = params.get("draft_revision").and_then(Value::as_str) {
+                let entry = registry.draft(id)?;
+                if entry.source_candidate != candidate.candidate_digest() {
+                    return Err(failure(
+                        "SPX-G232",
+                        "draft belongs to a different candidate",
+                    ));
+                }
+                entry.draft.with_expression_hole(
+                    id,
+                    text(params, "target"),
+                    text(params, "expression_id"),
+                    text(params, "hole_id"),
+                )?
+            } else {
+                let draft = ProjectCandidateDraft::open(Arc::clone(candidate))?;
+                draft.with_expression_hole(
+                    draft.draft_digest(),
+                    text(params, "target"),
+                    text(params, "expression_id"),
+                    text(params, "hole_id"),
+                )?
+            };
+            retain_draft(draft, candidate.candidate_digest())
+        }
         Action::Attempt => {
             let base = registry.candidate(text(params, "candidate_revision"))?;
             match ProjectCandidateAttempt::apply(

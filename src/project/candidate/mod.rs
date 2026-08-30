@@ -13,10 +13,13 @@ use crate::workspace_analysis::{WorkspaceAnalysisTargetKind, WorkspaceImpactOpti
 use super::{build, ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 
 mod catalog;
+mod declaration;
 mod draft;
 mod expression;
+mod extraction;
 mod intent;
 mod rebase;
+mod recovery;
 mod schemas;
 mod wire;
 
@@ -25,6 +28,10 @@ pub use draft::{
     PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA,
 };
 pub use rebase::{ProjectCandidateRebase, PROJECT_CANDIDATE_REBASE_SCHEMA};
+pub use recovery::{
+    MAX_PROJECT_CANDIDATE_RECOVERY_BYTES, PROJECT_CANDIDATE_RECOVERY_COMPATIBILITY,
+    PROJECT_CANDIDATE_RECOVERY_SCHEMA,
+};
 
 pub const SEMANTIC_CHANGE_SCHEMA: &str = "semaprax.semantic-change.v1";
 pub const PROJECT_CANDIDATE_SCHEMA: &str = "semaprax.project-candidate.v1";
@@ -147,12 +154,35 @@ impl ProjectCandidate {
         }
         let mut programs = parse_revision(&self.revision)?;
         let mut before = invariant_facts(&programs);
-        let summary =
-            if change.intent.get("kind").and_then(Value::as_str) == Some("replace_expression") {
-                expression::apply(&self.revision, &mut programs, &change.intent)?
-            } else {
-                intent::apply(&mut programs, &change.intent)?
-            };
+        let (summary, addition) = match change.intent.get("kind").and_then(Value::as_str) {
+            Some("add_declaration") => {
+                let (summary, addition) =
+                    declaration::apply(&self.revision, &mut programs, &change.intent)?;
+                (summary, Some(addition))
+            }
+            Some("extract_function") => {
+                let (summary, addition) =
+                    extraction::apply(&self.revision, &mut programs, &change.intent)?;
+                (summary, Some(addition))
+            }
+            Some("replace_expression") => (
+                expression::apply(&self.revision, &mut programs, &change.intent)?,
+                None,
+            ),
+            _ => (intent::apply(&mut programs, &change.intent)?, None),
+        };
+        if let Some(addition) = &addition {
+            let functions = before[&addition.path]["functions"]
+                .as_object_mut()
+                .ok_or_else(|| {
+                    invalid("declaration owner is absent from the original source inventory")
+                })?;
+            if functions.insert(addition.id.clone(), json!({
+                "effects":addition.effects, "requires":addition.requires_count, "ensures":addition.ensures_count,
+            })).is_some() {
+                return Err(invalid("declaration addition replaced an existing identity"));
+            }
+        }
         if summary.kind == "add_contract" {
             // The exact validated intention permits one additive predicate,
             // while all prior predicates, effects and permits stay intact.
@@ -209,9 +239,12 @@ impl ProjectCandidate {
                 "candidate source replay disagrees with intended projection",
             ));
         }
-        preserve_explicit_identities(&self.revision, &candidate)?;
+        preserve_explicit_identities(&self.revision, &candidate, addition.as_ref())?;
         if summary.kind == "replace_expression" {
             expression::validate_replacement(&self.revision, &candidate, &change.intent)?;
+        }
+        if summary.kind == "extract_function" {
+            extraction::validate(&self.revision, &candidate, &change.intent)?;
         }
         if self.revision.manifest().to_canonical_toml() != candidate.manifest().to_canonical_toml()
         {
@@ -224,11 +257,15 @@ impl ProjectCandidate {
         let mut changes = self.changes.clone();
         changes.push(change.clone());
         let mut summaries = self.summaries.clone();
-        summaries.push(json!({
+        let mut operation = json!({
             "kind": summary.kind,
             "target": summary.target_id,
             "migrated_calls": summary.migrated_calls,
-        }));
+        });
+        if let Some(addition) = addition {
+            operation["new_declaration"] = json!({"id":addition.id,"name":addition.name,"path":addition.path,"module":addition.module});
+        }
+        summaries.push(operation);
         Self::finish(
             Arc::clone(&self.base),
             candidate,
@@ -339,18 +376,31 @@ impl ProjectCandidate {
                 "source_diff": diff,
             }));
         }
+        let introduced = summaries
+            .iter()
+            .filter_map(|s| s["new_declaration"]["id"].as_str())
+            .collect::<BTreeSet<_>>();
         let selected = summaries
             .iter()
             .filter_map(|s| s["target"].as_str())
+            .chain(introduced.iter().copied())
             .collect::<BTreeSet<_>>();
         let mut impacts = Vec::new();
         for id in selected {
             let options = WorkspaceImpactOptions::default();
-            let before =
-                base.semantic_impact(WorkspaceAnalysisTargetKind::Declaration, id, options)?;
+            let before = if introduced.contains(id) && base.semantic.image_symbol(id).is_none() {
+                Value::Null
+            } else {
+                serde_json::from_str::<Value>(&base.semantic_impact(
+                    WorkspaceAnalysisTargetKind::Declaration,
+                    id,
+                    options,
+                )?)
+                .map_err(|_| invalid("invalid base impact"))?
+            };
             let after =
                 revision.semantic_impact(WorkspaceAnalysisTargetKind::Declaration, id, options)?;
-            impacts.push(json!({"target": id, "base": serde_json::from_str::<Value>(&before).map_err(|_| invalid("invalid base impact"))?, "candidate": serde_json::from_str::<Value>(&after).map_err(|_| invalid("invalid candidate impact"))?}));
+            impacts.push(json!({"target": id, "base": before, "candidate": serde_json::from_str::<Value>(&after).map_err(|_| invalid("invalid candidate impact"))?}));
         }
         let change_values = changes
             .iter()
@@ -458,6 +508,7 @@ fn invariant_facts(programs: &[Program]) -> Value {
 fn preserve_explicit_identities(
     base: &ProjectRevision,
     candidate: &ProjectRevision,
+    addition: Option<&declaration::DeclarationAddition>,
 ) -> Result<(), Vec<Diagnostic>> {
     fn identities(revision: &ProjectRevision) -> Result<BTreeMap<String, Value>, Vec<Diagnostic>> {
         let graph: Value = serde_json::from_str(revision.semantic_graph())
@@ -470,7 +521,19 @@ fn preserve_explicit_identities(
             .map(|d| (d["id"].as_str().unwrap_or_default().to_owned(), d.clone()))
             .collect())
     }
-    if identities(base)? != identities(candidate)? {
+    let before = identities(base)?;
+    let mut after = identities(candidate)?;
+    if let Some(addition) = addition {
+        let expected = json!({"id":addition.id,"kind":"function","identity_origin":"explicit","owner":null,"path":addition.path,"module":addition.module});
+        if before.contains_key(&addition.id)
+            || after.remove(&addition.id).as_ref() != Some(&expected)
+        {
+            return Err(invalid(
+                "candidate does not contain exactly the planned added function identity",
+            ));
+        }
+    }
+    if before != after {
         return Err(invalid(
             "candidate changed explicit declaration identities or ownership",
         ));

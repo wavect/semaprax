@@ -42,28 +42,36 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert_eq!(stdout.matches(NEW_LINE).count(), 1);
     let current = stdout.replacen(NEW_LINE, "", 1);
-    // The six additive Project-image commands contribute exactly 264 bytes.
+    // The eight additive Project-image commands contribute exactly 384 bytes.
     // This pin was derived by data-only help-literal decoding, calibrated
     // against both historical whole-output pins below; no CLI was executed.
-    const PROJECT_IMAGE_LINES: [&str; 6] = [
+    const PROJECT_IMAGE_LINES: [&str; 8] = [
         "semaprax project-image <manifest>\n",
         "semaprax project-image-verify <manifest> <image.json>\n",
         "semaprax project-symbol <manifest> <stable-id>\n",
         "semaprax project-candidate-preview <manifest> <change.json>\n",
+        "semaprax project-candidate-export <manifest> <change.json>\n",
+        "semaprax project-candidate-restore <manifest> <capsule.json>\n",
         "semaprax serve-image <manifest>\n",
         "semaprax serve-candidates <manifest>\n",
     ];
-    assert_eq!(current.len(), 5_280);
-    assert_eq!(fnv1a64(current.as_bytes()), 0x312c_8a8b_3e20_4b28);
+    assert_eq!(current.len(), 5_400);
+    assert_eq!(fnv1a64(current.as_bytes()), 0xdefc_7bb0_649a_dded);
     // Also retain upstream's exact contiguous-block assertion.
     let image_lines = PROJECT_IMAGE_LINES.concat();
     assert_eq!(current.matches(image_lines.as_str()).count(), 1);
-    let before_holes = current.replacen(PROJECT_IMAGE_LINES[5], "", 1);
+    let before_recovery =
+        current
+            .replacen(PROJECT_IMAGE_LINES[4], "", 1)
+            .replacen(PROJECT_IMAGE_LINES[5], "", 1);
+    assert_eq!(before_recovery.len(), 5_280);
+    assert_eq!(fnv1a64(before_recovery.as_bytes()), 0x312c_8a8b_3e20_4b28);
+    let before_holes = before_recovery.replacen(PROJECT_IMAGE_LINES[7], "", 1);
     assert_eq!(before_holes.len(), 5_243);
     assert_eq!(fnv1a64(before_holes.as_bytes()), 0xfaf2_50ea_829e_bdf0);
     let before_candidates = before_holes
         .replacen(PROJECT_IMAGE_LINES[3], "", 1)
-        .replacen(PROJECT_IMAGE_LINES[4], "", 1);
+        .replacen(PROJECT_IMAGE_LINES[6], "", 1);
     assert_eq!(before_candidates.len(), 5_151);
     assert_eq!(fnv1a64(before_candidates.as_bytes()), 0x3606_80c0_4da0_b739);
     let mut legacy = current;

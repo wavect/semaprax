@@ -359,6 +359,17 @@ selection, and replays supported intentions over an admitted base. Same-root
 merge retains both histories and the original source-diff base. These APIs
 produce candidates and ancestry reports, never source publication authority.
 
+`candidate/declaration.rs` appends a typed function under a selected module
+anchor with globally fresh identity and checked namespace/effect budgets.
+`candidate/extraction.rs` derives immutable scalar captures from actual HIR
+ValueIds and replaces an authenticated expression in place, rejecting unsafe
+boundary relocation. Only the exact declared identity may extend invariant
+inventories. Rebase tracks newly introduced identities and rejects collisions.
+`candidate/recovery.rs` exports disposable complete histories and restores them
+only by replaying against an independently admitted exact source base. It
+imports neither serialized HIR nor authority and cannot materialize unresolved
+drafts. These additions and focused regression cases are authored, unrun.
+
 `src/project/manifest.rs` parses the bounded `semaprax.toml` profiles.
 `src/project/` owns held input authority, immutable revisions, semantic
 admission, linking, execution, builds, npm carriers, rename planning, and the

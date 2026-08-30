@@ -155,10 +155,15 @@ not verified completion. Extend those bounded forms into the requested general
 operations, ownership-sensitive signature migration and expression holes.
 Expression replacement, additive contracts and conservative stable-ID
 rebase/merge now have authored, unrun implementations; broaden these alongside
-declaration/record/interface operations and full semantic conflict coverage;
+general declaration/record/interface operations and full semantic conflict coverage;
 connect separately authorized test/build/source-commit capabilities; then
 establish incremental reuse, persistence, general semantic reconciliation, and representative
 task-level benchmarks without reducing the original goal.
+
+Typed function creation, immutable Copy-capture extraction and complete
+candidate recovery capsules are now authored, unrun. Extend their bounded
+forms without treating source-replayed recovery as warm HIR persistence or
+complete session/draft recovery.
 
 The first [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
 foundation is authored, unrun: immutable retained Project/HIR state, canonical

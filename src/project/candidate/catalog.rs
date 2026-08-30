@@ -130,6 +130,21 @@ impl ProjectCandidate {
                     "constraints":["exact_revision_scoped_hir_expression", "unambiguous_source_expression", "body_region_only", "preserve_expected_type", "authenticated_lexical_scope", "full_candidate_revalidation"],
                 }));
             }
+            if function.explicit_id
+                && function.type_parameters.is_empty()
+                && self.changes.len() < MAX_CHANGES
+            {
+                operations.push(json!({
+                    "kind":"add_declaration", "required_fields":["kind","target","declaration"],
+                    "anchor":target, "placement":"append_function_in_anchor_module",
+                    "constraints":["globally_new_explicit_identity", "non_main_monomorphic_function", "unambiguous_module_namespace", "effects_within_anchor_budget_and_module_permits", "preserve_all_existing_declarations_and_exports", "full_candidate_revalidation"],
+                }));
+                operations.push(json!({
+                    "kind":"extract_function", "required_fields":["kind","target","expression_id","new_id","new_name"],
+                    "selector_source":"expression/catalog",
+                    "constraints":["unique_authored_body_expression", "globally_new_explicit_identity", "compiler_derived_copy_captures", "preserve_original_lazy_position_and_evaluation_order", "no_mutable_or_escaping_owned_captures", "full_candidate_revalidation"],
+                }));
+            }
         }
         wire::render(
             json!({

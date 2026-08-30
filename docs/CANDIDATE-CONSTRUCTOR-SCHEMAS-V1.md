@@ -11,11 +11,12 @@ Audience: agent builders, compiler contributors, and reviewers.
 current `image_revision` and existing held-source authentication. It creates no
 candidate and changes no registry or filesystem state.
 
-The result carries three JSON Schema draft 2020-12 documents identified by:
+The result carries four JSON Schema draft 2020-12 documents identified by:
 
 - `urn:semaprax.typed-expression.v1`
 - `urn:semaprax.semantic-change-intent.v1`
 - `urn:semaprax.semantic-change.v1`
+- `urn:semaprax.project-candidate-recovery.v1`
 
 Each document is self-contained. Recursive expressions use local `$defs`
 references; validators need no network lookup. These IDs resolve the existing
@@ -33,6 +34,7 @@ the same closed expression alternatives.
 
 Intent alternatives cover declaration rename, both append and ordered-mapping
 signature forms, whole-body replacement, revision-scoped expression replacement,
+closed function declarations and compiler-derived function extraction,
 and added `requires`/`ensures` contracts. New signature parameters constrain
 their `argument` literal kind to match the selected scalar `type`. The complete
 change-envelope schema fixes the version and compiler-owned ordered requirement
@@ -56,3 +58,11 @@ context. The schema does not certify that contextual rule.
 
 These are constructor documents, not complete response/HIR schemas, installed
 SDK packages, source authority, or a behavioral-equivalence proof.
+
+The recovery document closes the complete capsule envelope and embeds the same
+change and expression definitions. Compiler compatibility is an exact constant;
+content hashes, canonical bytes, original-base agreement, and actual replay are
+checked by the recovery API, not JSON Schema. Addition schemas describe the
+bounded scalar/Bytes/str/Slice<u8> declaration grammar; extraction accepts only
+an expression identity and new declaration identity/name. Neither accepts raw
+source, HIR, source spans, or arbitrary filesystem paths.

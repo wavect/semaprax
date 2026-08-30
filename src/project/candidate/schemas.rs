@@ -43,11 +43,40 @@ impl SemanticChange {
         ]);
         change_document["$schema"] = json!("https://json-schema.org/draft/2020-12/schema");
         change_document["$id"] = json!(CHANGE_ID);
-        change_document["$defs"] = definitions;
+        change_document["$defs"] = definitions.clone();
+        let mut recovery_document = closed(&[
+            (
+                "schema",
+                json!({"const":super::PROJECT_CANDIDATE_RECOVERY_SCHEMA}),
+            ),
+            ("compiler", json!({"const":super::recovery::compiler()})),
+            ("base_revision", digest_schema()),
+            ("change_schema", json!({"const":SEMANTIC_CHANGE_SCHEMA})),
+            (
+                "candidate_schema",
+                json!({"const":super::PROJECT_CANDIDATE_SCHEMA}),
+            ),
+            (
+                "changes",
+                json!({"type":"array","maxItems":super::MAX_CHANGES,"items":reference("change")}),
+            ),
+            ("candidate_digest", digest_schema()),
+            ("candidate_project_revision", digest_schema()),
+            ("capsule_digest", digest_schema()),
+        ]);
+        let mut change_definition = change_document.clone();
+        for key in ["$schema", "$id", "$defs"] {
+            change_definition.as_object_mut().unwrap().remove(key);
+        }
+        let mut recovery_definitions = definitions;
+        recovery_definitions["change"] = change_definition;
+        recovery_document["$schema"] = json!("https://json-schema.org/draft/2020-12/schema");
+        recovery_document["$id"] = json!("urn:semaprax.project-candidate-recovery.v1");
+        recovery_document["$defs"] = recovery_definitions;
         wire::render(
             json!({
                 "schema":"semaprax.candidate-constructor-schemas.v1",
-                "documents":[expression_document,intent_document,change_document],
+                "documents":[expression_document,intent_document,change_document,recovery_document],
                 "admission":"closed_structural_grammar_only",
                 "requires_compiler_admission":true,
                 "limits":{"max_change_bytes":MAX_SEMANTIC_CHANGE_BYTES,"max_json_value_nodes":8192,"max_json_value_depth":64,"max_expression_nodes":MAX_EXPRESSION_NODES,"max_expression_depth":MAX_EXPRESSION_DEPTH},
@@ -149,5 +178,55 @@ fn intent_schema() -> Value {
         base("replace_function_body",vec![("body",reference("expression"))]),
         base("replace_expression",vec![("expression_id",text(16_384)),("replacement",reference("expression"))]),
         base("add_contract",vec![("phase",json!({"enum":["requires","ensures"]})),("predicate",reference("expression"))]),
+        base("add_declaration",vec![("declaration",declaration_schema())]),
+        base("extract_function",vec![("expression_id",text(16_384)),("new_id",stable_id()),("new_name",identifier())]),
     ]})
+}
+
+fn digest_schema() -> Value {
+    json!({"type":"string","pattern":"^sha256:[0-9a-f]{64}$"})
+}
+fn stable_id() -> Value {
+    json!({"type":"string","minLength":1,"maxLength":MAX_ID_BYTES,"pattern":"^[a-z0-9._-]+$"})
+}
+fn declaration_schema() -> Value {
+    let parameters = [
+        ("value", vec!["i64", "i32", "u8", "usize", "bool"]),
+        ("own", vec!["Bytes"]),
+        ("borrow", vec!["str", "Slice<u8>"]),
+    ]
+    .into_iter()
+    .map(|(mode, types)| {
+        closed(&[
+            ("name", identifier()),
+            ("type", json!({"enum":types})),
+            ("mode", json!({"const":mode})),
+        ])
+    })
+    .collect::<Vec<_>>();
+    closed(&[
+        ("id", stable_id()),
+        ("name", identifier()),
+        (
+            "parameters",
+            json!({"type":"array","maxItems":64,"items":{"oneOf":parameters}}),
+        ),
+        (
+            "return_type",
+            json!({"enum":["i64","i32","u8","usize","bool","Bytes"]}),
+        ),
+        (
+            "effects",
+            json!({"type":"array","maxItems":64,"uniqueItems":true,"items":text(128),"x-sorted":true}),
+        ),
+        (
+            "requires",
+            json!({"type":"array","maxItems":64,"items":reference("expression")}),
+        ),
+        (
+            "ensures",
+            json!({"type":"array","maxItems":64,"items":reference("expression")}),
+        ),
+        ("body", reference("expression")),
+    ])
 }

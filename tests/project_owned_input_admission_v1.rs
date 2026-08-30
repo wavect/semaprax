@@ -76,6 +76,20 @@ fn consume_package(build: &ProjectNpmBuild, label: &str, profile: serde_json::Va
         String::from_utf8_lossy(&output.stdout).trim(),
         "owned-input-admission-v8-ok"
     );
+    // Failed assertions retain evidence; successful fixtures remove only the
+    // exact files created above, never a recursively discovered inventory.
+    for path in [
+        "app.wasm",
+        "semaprax.js",
+        "semaprax.bindings.js",
+        "semaprax.bindings.d.ts",
+        "semaprax.api.json",
+        "package.json",
+        "admission.mjs",
+    ] {
+        fs::remove_file(directory.join(path)).unwrap();
+    }
+    fs::remove_dir(directory).unwrap();
 }
 
 #[test]
@@ -193,4 +207,9 @@ fn mixed(input: borrow Slice<u8>, text: borrow str, value: i64, flag: bool) -> P
         Ok(())
     })
     .unwrap();
+    for path in ["semaprax.toml", "src/app.spx", "src/tests.spx"] {
+        fs::remove_file(directory.join(path)).unwrap();
+    }
+    fs::remove_dir(directory.join("src")).unwrap();
+    fs::remove_dir(directory).unwrap();
 }

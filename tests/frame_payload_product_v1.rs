@@ -18,6 +18,9 @@ static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 const FRAME_SOURCE: &str = include_str!("../examples/frame-payload-project/src/frame.spx");
 const MANIFEST: &str = include_str!("../examples/frame-payload-project/semaprax.toml");
 const CORPUS: &[u8] = include_bytes!("../examples/frame-payload-project/corpus.json");
+
+#[path = "frame_payload_product_v1/consumer_acceptance.rs"]
+mod consumer_acceptance;
 const SELECTED: [&str; 3] = [
     "frame.payload",
     "frame.payload-maybe",
@@ -206,6 +209,7 @@ fn descriptor_npm_corpus_and_display_rename_replay_without_project_routing() {
         )
         .unwrap();
         fs::write(consumer.join("corpus.json"), CORPUS).unwrap();
+        consumer_acceptance::write_web_support(&consumer);
         run_node_consumer(&consumer);
     }
     fs::remove_dir_all(root).unwrap();
@@ -548,6 +552,7 @@ fn project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_r
         )
         .unwrap();
         fs::write(npm_consumer.join("corpus.json"), CORPUS).unwrap();
+        consumer_acceptance::write_web_support(&npm_consumer);
         build(
             binary,
             &project.join("semaprax.toml"),
@@ -570,9 +575,11 @@ fn project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_r
         )
         .unwrap();
         fs::write(rust_consumer.join("corpus.json"), CORPUS).unwrap();
+        let lock = include_bytes!("../examples/frame-payload-rust/Cargo.lock");
+        fs::write(rust_consumer.join("Cargo.lock"), lock).unwrap();
         build(binary, &project.join("semaprax.toml"), "rust", &rust_sdk);
         let result = Command::new("cargo")
-            .args(["run", "--quiet", "--offline", "--manifest-path"])
+            .args(["run", "--quiet", "--locked", "--offline", "--manifest-path"])
             .arg(rust_consumer.join("Cargo.toml"))
             .output()
             .unwrap();
@@ -585,6 +592,10 @@ fn project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_r
         assert_eq!(
             String::from_utf8_lossy(&result.stdout).trim(),
             "frame-payload-rust-v1-ok"
+        );
+        assert_eq!(
+            fs::read(rust_consumer.join("Cargo.lock")).unwrap(),
+            lock.as_slice()
         );
     }
 

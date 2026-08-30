@@ -1,6 +1,6 @@
 # Owned npm invocation failure state v1
 
-Status: authored correction in progress; executable evidence remains unrun.
+Status: authored correction; executable evidence remains unrun.
 
 Audience: compiler/runtime contributors, SDK integrators and reviewers.
 
@@ -114,6 +114,10 @@ SDKs and native providers do not change. Existing Project v1-v7 and historical
 unselected renderer fragments remain byte-identical. The fixed v8/v9
 16-owner policy and v10 selected-owner capacity are unchanged.
 
+Unknown export identity consistently reports `RangeError`; v9 previously used
+`TypeError` for that rejection. Argument count/type rejection remains
+`TypeError`. These preflight errors remain reusable and do not enter Wasm.
+
 The shared runtime state belongs in small private generator-owned JavaScript
 helpers, with explicit v8/v9/v10 selection in the existing owned-data and flat
 record renderers. Do not widen an earlier profile or edit generated package
@@ -124,6 +128,15 @@ not target execution and must not be described as behavioral evidence.
 
 ## Required authored evidence
 
+The authored entry point is
+[`tests/project_owned_failure_fsm_v1.rs`](../tests/project_owned_failure_fsm_v1.rs).
+Its companion `baseline.rs` freezes complete TypeScript, package JSON and API
+metadata formats independently of the current renderers. Supplied descriptor
+bytes are authenticated fixture inputs, not a historical descriptor known
+answer; comparison with direct current Wasm emission is consistency evidence,
+not historical byte-preservation proof. Unchanged compiler/descriptor paths and
+their existing known-answer gates remain separately required.
+
 Real generated six-artifact packages cover v8 direct Bytes, variants and mixed
 scalars; v9 flat records; and v10 direct, variant and mixed UTF-8 results.
 Test-only engine/import wrappers inject failures without runtime source
@@ -133,12 +146,19 @@ rewriting or production fault hooks. The matrix includes:
 - actual checked-status cleanup followed by successful reuse;
 - post-entry `TypeError`/`RangeError`, before mint and after initialized owners;
 - actual consume followed by invalid UTF-8 decoding failure;
+- exact leading-BOM output and imported scalar UTF-8 boundaries, distinguishing
+  malformed text from carrier, memory and unexpected host failures;
 - forged semantic markers and negative, fractional, NaN or unknown statuses;
 - every representative falsy thrown value;
 - caught reentry followed by attempted later import/consume/publication;
 - a cleanup failure after a primary failure, preserving exact error identity;
 - one engine entry only, with later invocations rejected after poison; and
 - exact unchanged non-runtime artifacts and historical renderer known answers.
+
+The existing v10 lifetime probe separately requires exact healthy arena
+capacity, settlement and nonreused tokens; exhaustion and unsettled entry use
+separate instances and must reject every later import, consume or settlement.
+No successful cleanup is inferred from their poisoned state.
 
 These fixtures, compiler checks and hosted release gates are unrun. No tests,
 builds, target probes or hosted workflows are authorized in this batch. No

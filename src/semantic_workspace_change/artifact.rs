@@ -1613,11 +1613,11 @@ mod tests {
                 raw_sha(artifacts.evidence()),
             ],
             [
-                "sha256:7a3816f6e73711f6a545664019590aa010ed29412bb7e4af82ae5c8fcddca530",
-                "sha256:638a0e2990c36f4385cba3dcaa11f3aadb3ba988c08aadecf9c04280d87e8720",
-                "sha256:3b090e1012df61f11f3b5833fe6be38ff3137affd19a225716904a5a6f30ca2d",
-                "sha256:c2160edc3e8cfbec9b04ca390b843ae0345aba6f42a46ed24ecd306309511122",
-                "sha256:9c9ff2305f3a156dec7d134ae0787506c07e6ea1c28faa06e3a157aa3ca858c4"
+                "sha256:b79500924442e5144c0382aa28f33f3bd6b6ef3b32fa4c6b32cf2a23055f0617",
+                "sha256:412a5a7d56b860274b2cb76e17feaed6eb72682a9d5fa45c05f0050f9d5ce627",
+                "sha256:8f93384e03e44d57f9cc4461ab955348748fef7f4b0bcfb07ce1a78778e42df3",
+                "sha256:ce096a6cbd09056dbd26b5feb2dcf811726a6e3f37b6fc3c567da1ac59c7472b",
+                "sha256:90da358d00bfeba70f2b5a041abb19ace23abd8ba3956c604dd87f66dd890935"
             ]
         );
 

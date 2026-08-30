@@ -3,6 +3,8 @@
 Status: authored, unrun private inventory parser. No CLI activation, production
 profile provisioning, executable isolation, or WP-05 promotion.
 
+Audience: CLI/platform contributors and reviewers.
+
 ## Boundary
 
 `DoctorOfflineBundle::parse` consumes one [sealed-input snapshot](DOCTOR-SEALED-INPUT-V1.md)

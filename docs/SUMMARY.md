@@ -11,6 +11,9 @@ Audience: all documentation readers.
 - [Calculator project publication](NEW-PROJECT-PUBLICATION-V1.md)
 - [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md)
 - [Doctor version-probe lifecycle](DOCTOR-PROBE-V1.md)
+- [Doctor sealed input](DOCTOR-SEALED-INPUT-V1.md)
+- [Doctor offline bundle](DOCTOR-OFFLINE-BUNDLE-V1.md)
+- [Doctor offline root materialization](DOCTOR-OFFLINE-ROOT-V1.md)
 - [Native compiler scratch](NATIVE-SCRATCH-V1.md)
 
 ## Language contract

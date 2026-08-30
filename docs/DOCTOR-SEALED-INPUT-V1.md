@@ -3,6 +3,8 @@
 Status: authored, unrun private input-boundary implementation. This primitive
 alone supplies no profile format, CLI activation, executable isolation, or WP-05 promotion.
 
+Audience: CLI/platform contributors and reviewers.
+
 ## Purpose and authority
 
 The future offline doctor backend needs to obtain bytes without discovering or

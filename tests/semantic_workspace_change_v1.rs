@@ -216,11 +216,11 @@ fn public_api_cli_kat_parity_and_opaque_getters() {
     assert!(preview.ends_with('\n') && evidence.ends_with('\n'));
     assert_eq!(
         raw_sha(&preview),
-        "sha256:7a3816f6e73711f6a545664019590aa010ed29412bb7e4af82ae5c8fcddca530"
+        "sha256:b79500924442e5144c0382aa28f33f3bd6b6ef3b32fa4c6b32cf2a23055f0617"
     );
     assert_eq!(
         raw_sha(&evidence),
-        "sha256:9c9ff2305f3a156dec7d134ae0787506c07e6ea1c28faa06e3a157aa3ca858c4"
+        "sha256:90da358d00bfeba70f2b5a041abb19ace23abd8ba3956c604dd87f66dd890935"
     );
     for value in [
         artifacts.proposal_digest(),

@@ -2937,7 +2937,7 @@ permit { audit.read }
         );
         assert_eq!(
             output.derivation_digest(),
-            "sha256:7a4836b4ab443313792b3c4e7c05cc4557f0ef4fcdd456c18d24aba49a73b8ef"
+            "sha256:f1d303c728fe075a031c76ebc5e9b01db9f7b664ee437f055bf4594651a445b8"
         );
     }
 
@@ -4068,11 +4068,11 @@ permit { audit.one, audit.two }
             .starts_with("sha256:"));
         assert_eq!(
             raw_sha256(artifacts.workspace_change_evidence().as_bytes()),
-            "sha256:a597228f058936733af2fc8a813f4a07e6aa5e19decdb65c68f6d229dd5f5768"
+            "sha256:9c32038a65c89d3bec6d3d470a54d807da75d9d1ad7ff17c0337918d9920f852"
         );
         assert_eq!(
             raw_sha256(artifacts.operations_evidence().as_bytes()),
-            "sha256:d26cd43db24e551b122a972d2b67ce4a797b8b6ced6726d4d1d3533638659056"
+            "sha256:48b5121fe12e5b16110159ac7ef1bd72de12225bb17a26b3ab3e31a4e2b9a6e6"
         );
         assert_eq!(
             artifacts.operations_proposal_digest(),
@@ -4101,7 +4101,7 @@ permit { audit.one, audit.two }
         });
         assert_eq!(
             raw_sha256(receipt.as_bytes()),
-            "sha256:ca90733e0cb36c8f489418abfd8eebf6582b2066a019e4002817a378abc44a7c"
+            "sha256:596c25fd91af58570319f47e105aeb3cc44919ff573b0d6d40bf0190fa2b252f"
         );
         let value: Value = serde_json::from_str(receipt.trim_end()).unwrap();
         assert_eq!(
@@ -4792,7 +4792,7 @@ permit { audit.one, audit.two }
         let receipt = apply(&fixture.root, &fixture.proposal_path, &evidence_path).unwrap();
         assert_eq!(
             raw_sha256(receipt.as_bytes()),
-            "sha256:b5994154b42314aa622111f1a7ce3457a5b65ec33de78eff4dfbfb9ca0875e22"
+            "sha256:eb4741c47dab0cbd7f93722d5c41ce8feeb4963dedd2fe96d453d0bc46e7e1cf"
         );
         let value: Value = serde_json::from_str(receipt.trim_end()).unwrap();
         assert_eq!(

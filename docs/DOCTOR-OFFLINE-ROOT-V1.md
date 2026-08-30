@@ -3,6 +3,8 @@
 Status: authored, unrun internal Linux component. No production launcher,
 profile provisioning, CLI activation, or WP-05 promotion.
 
+Audience: CLI/platform contributors and reviewers.
+
 ## Ownership and entry boundary
 
 The sys quarantine now owns the single [offline bundle parser](DOCTOR-OFFLINE-BUNDLE-V1.md).

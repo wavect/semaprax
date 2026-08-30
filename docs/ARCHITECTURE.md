@@ -296,7 +296,17 @@ owned-data Wasm lowering consume that descriptor for the npm package. The
 shared `src/project/npm/owned_data_input_v8.js` admits complete input tuples
 before snapshot allocation, using captured brand/buffer intrinsics. Its
 historical filename and helper bytes remain unchanged; v9/v10 explicitly
-select the same admission without altering v8 JavaScript. The
+select the same admission without altering v8 JavaScript for that extension.
+The subsequent shared [owned npm invocation state](OWNED-NPM-INVOCATION-V1.md)
+is composed by `src/project/npm/owned_invocation.rs` from small private arena,
+instantiation, invocation, result and facade templates under
+`src/project/npm/owned_invocation/`. It reserves busy before preflight,
+authenticates recoverable semantic failures by
+exact local error identity, and makes post-entry uncertainty and caught reentry
+absorbing poison. Arena imports and result publication observe that same state;
+guarded settlement/scratch cleanup preserves the first thrown value, including
+falsy values. This correction changes v8/v9/v10 runtime JavaScript and integrity
+bindings, not descriptors, Wasm or host signatures. Its regressions are unrun. The
 private `src/wasm/aggregate/owned_stack.rs` derives selected call-path frame
 extents from the shared HIR call index and actual lowering plans so raw outputs
 cannot overlap deeper helper frames. Native owned handles pair all 4,096 slots

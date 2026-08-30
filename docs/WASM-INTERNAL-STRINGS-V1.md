@@ -1,5 +1,7 @@
 # Standalone Wasm Internal String Settlement v1
 
+Audience: compiler contributors and runtime implementers.
+
 Status: authored implementation; all new executable evidence is unrun.
 This opt-in compiler/runtime profile does not promote a completion-matrix row.
 
@@ -38,7 +40,9 @@ descriptor and raw-wrapper ordinals use canonical stable-ID order independent
 of request order. Public functions have at most eight value parameters, each
 `i64` or `bool`, and an `i64` or `bool` result. The selected transitive closure
 contains at most 256 monomorphic, acyclic functions. Internal signatures also
-admit value `char` and owned-by-value String. Ordinary verified literals,
+admit value `char` and owned-by-value String. The latter has canonical HIR
+ownership `Own`, not `Value`; profile admission rejects forged ownership modes
+without widening the public scalar boundary. Ordinary verified literals,
 cloning reads, all seven String intrinsics, String equality/inequality,
 branches, lazy Boolean flow, scalar matching/guards, mutable scalar bindings,
 loops, internal calls, requires and ensures are covered. Loop bodies and

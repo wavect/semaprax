@@ -39,6 +39,11 @@ subprocess/descendant settlement fixtures before promotion. Doctor still needs
 the programme's no-network guarantee; filtering environment variables is not
 OS network isolation.
 
+The same promotion boundary includes the authored
+[owned npm invocation failure-state correction](OWNED-NPM-INVOCATION-V1.md).
+Its real-package poison, reentry, exact failure-identity and post-consumption
+UTF-8 cases must execute before treating v8/v9/v10 lifecycle handling as proven.
+
 Exit outcomes:
 
 1. Confirm the line-filter product on hosted native and WebAssembly lanes and

@@ -77,16 +77,41 @@ if(!Number.isInteger(capacity)||capacity<18||capacity>0x7fffffff)throw Error('de
 const quota=probeArena(); quota.bind(instance); quota.begin();
 const owners=[];
 for(let index=0;index<capacity;index++)owners.push(quota.imports.spx_bytes_copy(0n));
-let rejected=false;try{quota.imports.spx_bytes_copy(0n);}catch(error){rejected=error.message==='SEMAPRAX owned arena exhausted';}
-if(!rejected)throw Error('quota +1 admitted');
 for(const owner of owners)quota.imports.spx_bytes_drop(owner);
 quota.settle(); quota.begin();
 const replacement=quota.imports.spx_bytes_copy(0n);
 if(owners.includes(replacement))throw Error('token reused');
 quota.imports.spx_bytes_drop(replacement); quota.settle();
+
+// Exhaustion is unexpected host failure, not a checked language status. Keep
+// successful exact-capacity settlement above separate from absorbing poison.
+function assertPoisoned(arena,owner){
+  for(const action of [
+    ()=>arena.imports.spx_bytes_copy(0n),
+    ()=>arena.imports.spx_bytes_get(owner,0n),
+    ()=>arena.imports.spx_bytes_as_slice(owner),
+    ()=>arena.imports.spx_bytes_drop(owner),
+    ()=>arena.imports.spx_owned_utf8_validate_v1(0,0),
+    ()=>arena.consume(owner),
+    ()=>arena.settle(),
+    ()=>arena.begin(),
+  ]){
+    let blocked=false;try{action()}catch{blocked=true}
+    if(!blocked)throw Error('poison authorized later arena action');
+  }
+}
+const exhausted=probeArena(); exhausted.bind(instance); exhausted.begin();
+let first;
+for(let index=0;index<capacity;index++){
+  const owner=exhausted.imports.spx_bytes_copy(0n);
+  if(index===0)first=owner;
+}
+let rejected=false;try{exhausted.imports.spx_bytes_copy(0n);}catch(error){rejected=error.message==='SEMAPRAX owned arena exhausted';}
+if(!rejected)throw Error('quota +1 admitted');
+assertPoisoned(exhausted,first);
+
 const unsettled=probeArena(); unsettled.bind(instance);
 const retained=unsettled.imports.spx_bytes_copy(0n);
 let refused=false;try{unsettled.begin();}catch{refused=true;}
-unsettled.imports.spx_bytes_drop(retained);
-let sticky=false;try{unsettled.begin();}catch{sticky=true;}
-if(!refused||!sticky)throw Error('unsettled reentry was not sticky');
+if(!refused)throw Error('unsettled reentry admitted');
+assertPoisoned(unsettled,retained);

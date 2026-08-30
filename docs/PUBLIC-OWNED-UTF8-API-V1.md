@@ -101,6 +101,15 @@ Rust publication. Invalid UTF-8 cannot be returned as a host string, and a
 conversion failure cannot leave a live provider handle. Stale, foreign,
 wrong-length, repeated, or exhausted handles retain the v8 fail-closed rules.
 
+The [owned npm invocation correction](OWNED-NPM-INVOCATION-V1.md) makes a
+post-consumption JavaScript UTF-8 decoding failure poison the instance even
+when its arena is empty. Imported UTF-8 validation returns zero only for
+authenticated malformed text; memory/carrier faults and unexpected host
+exceptions cannot masquerade as malformed user bytes. The shared v8/v9/v10
+failure-state correction changes runtime JavaScript and dependent integrity
+bindings, not Wasm, descriptors or public signatures. Its regressions are
+authored but unrun.
+
 The authored shared Rust invocation guard additionally proves the complete
 provider context settled before any outward value or recoverable error,
 including a UTF-8 conversion failure. An inner owner guard precedes context

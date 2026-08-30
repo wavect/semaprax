@@ -75,7 +75,14 @@ pub(super) fn prepare(
         if !function.effects.is_empty()
             || !internal_type(&function.return_type)
             || function.params.iter().any(|parameter| {
-                parameter.ownership != OwnershipMode::Value || !internal_type(&parameter.ty)
+                // By-value String source parameters are implicitly Own in
+                // validated HIR; only the internal Copy scalars are Value.
+                let ownership = if parameter.ty == ResolvedType::String {
+                    OwnershipMode::Own
+                } else {
+                    OwnershipMode::Value
+                };
+                parameter.ownership != ownership || !internal_type(&parameter.ty)
             })
         {
             return Err(error(

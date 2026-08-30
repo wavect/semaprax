@@ -91,7 +91,16 @@ entry. The cumulative borrowed-input bound is 65,536 bytes; module input is
 bounded separately at 16 MiB before copy/hash. Record field ordering, scalar
 authentication, sole-handle settlement, and frozen-object publication are
 unchanged. Only v9 JavaScript and its dependent artifact bindings change;
-the existing v8 JavaScript helper and rendered bytes remain exact.
+the existing v8 JavaScript helper and rendered bytes remain exact for that
+input-admission extension.
+
+The subsequent [owned npm invocation correction](OWNED-NPM-INVOCATION-V1.md)
+changes v8/v9/v10 JavaScript failure handling. V9 preserves consume, settlement,
+then frozen-record construction, with guarded scratch cleanup before outward
+publication. Unexpected post-entry exceptions and caught reentry latch poison;
+cleanup cannot replace an earlier thrown value. Only authenticated checked
+statuses can recover after complete settlement. Wasm, descriptors and public
+types remain unchanged; the real-package failure regressions are unrun.
 
 The generated Rust invocation guard now closes the complete provider context
 after its owner guard settles but before any outward value or recoverable

@@ -293,6 +293,17 @@ unrun, not promotion evidence; their owner is
 [`tests/project_owned_input_admission_v1.rs`](../tests/project_owned_input_admission_v1.rs),
 alongside the preserved v8 renderer known answers.
 
+The subsequent [owned npm invocation correction](OWNED-NPM-INVOCATION-V1.md)
+reserves busy state before preflight and distinguishes reusable input rejection
+from post-entry uncertainty. Only a locally authenticated checked-status error
+may recover after settlement. Caught reentry, malformed output and unexpected
+host exceptions poison the instance even with an empty arena; the first thrown
+value is preserved without truthiness checks. This correction intentionally
+changes v8/v9/v10 JavaScript and its dependent integrity bindings, including
+the bounded-renderer known answers. Historical unselected renderers, Wasm,
+descriptors, declarations and v1-v7 artifacts remain unchanged. Its separate
+real-package failure matrix is authored but unrun.
+
 ## Generated artifacts and carriers
 
 The npm output inventory is exactly:

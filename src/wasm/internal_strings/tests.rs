@@ -25,6 +25,41 @@ fn program(source: &str) -> Program {
 }
 
 #[test]
+fn internal_string_parameters_require_canonical_owned_hir() {
+    let resolved = crate::hir::resolve(&program(SOURCE)).unwrap();
+    crate::hir::validate(&resolved).unwrap();
+    let helper = resolved
+        .functions
+        .iter()
+        .position(|function| function.id.as_str() == "s.keep")
+        .unwrap();
+    assert_eq!(
+        resolved.functions[helper].params[0].ownership,
+        crate::hir::OwnershipMode::Own
+    );
+    let selected = ["s.main".to_owned()];
+    assert!(admission::prepare(&resolved, &selected).is_ok());
+    for mode in [
+        crate::hir::OwnershipMode::Value,
+        crate::hir::OwnershipMode::Borrow,
+        crate::hir::OwnershipMode::Shared,
+    ] {
+        let mut malformed = resolved.clone();
+        malformed.functions[helper].params[0].ownership = mode;
+        // The shared call index validates HIR before profile signature checks;
+        // malformed ownership must remain that earlier diagnostic, not be
+        // repaired or admitted by this profile.
+        assert_eq!(
+            admission::prepare(&malformed, &selected)
+                .err()
+                .unwrap()
+                .code,
+            "SPX-H006"
+        );
+    }
+}
+
+#[test]
 fn canonical_selection_validates_guarded_module_and_exact_closed_inventory() {
     let source = program(SOURCE);
     let canonical = crate::format::canonical(&source);

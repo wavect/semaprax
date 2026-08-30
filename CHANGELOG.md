@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Authored a shared v8/v9/v10 npm invocation failure state: guarded preflight,
+  exact checked-error identity, sticky falsy failures, absorbing reentry/host
+  uncertainty, and settlement before publication. UTF-8 validation separates
+  malformed text from host faults; output decoding preserves leading BOM data.
+  Only runtime JavaScript and dependent integrity bindings change. Added
+  real-package fault and preservation fixtures and corrected old quota probes
+  to forbid post-poison reuse. Independent review also corrected standalone
+  String admission to consume canonical owned HIR. All new executable evidence
+  remains unrun; no support or production-readiness promotion is claimed.
+
 - Authored an explicit standalone Wasm internal-String compiler/runtime profile:
   compiler-directed scope/call/failure cleanup, checked allocation-capacity
   outcomes, fixed memory, bounded UTF-8 ownership and exact module binding.

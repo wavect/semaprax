@@ -4,6 +4,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 #[path = "support/native_rust_cargo.rs"]
 mod native_rust_cargo;
+#[path = "support/native_rust_target.rs"]
+mod native_rust_target;
 
 use semaprax::project::{
     derive_public_api_descriptor, PublicApiSubject, PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
@@ -325,6 +327,8 @@ fn published_safe_package_builds_offline_and_fail_stops_on_unsettled_handles() {
     let clang_path = configured_tool("CLANG", &["/usr/bin/clang"]);
     let fixture = Fixture::new("package");
     let generated = fixture.0.join("generated-sdk");
+    let setup_target = native_rust_target::CargoTarget::new();
+    let consumer_target = native_rust_target::CargoTarget::new();
     let setup_manifest =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/owned-data-rust/Cargo.toml");
     run(
@@ -335,7 +339,7 @@ fn published_safe_package_builds_offline_and_fail_stops_on_unsettled_handles() {
             .arg(&generated)
             .env("CLANG", &clang_path)
             .env("SEMAPRAX_ARCHIVER", &archiver)
-            .env("CARGO_TARGET_DIR", fixture.0.join("setup-target")),
+            .env("CARGO_TARGET_DIR", setup_target.path()),
         "publish owned-data SDK",
     );
 
@@ -388,14 +392,14 @@ fn published_safe_package_builds_offline_and_fail_stops_on_unsettled_handles() {
         native_rust_cargo::cargo_command()
             .args(["generate-lockfile", "--offline"])
             .current_dir(&consumer)
-            .env("CARGO_TARGET_DIR", fixture.0.join("consumer-target")),
+            .env("CARGO_TARGET_DIR", consumer_target.path()),
         "lock safe consumer",
     );
     let consumer_output = run(
         native_rust_cargo::cargo_command()
             .args(["run", "--locked", "--offline", "--quiet"])
             .current_dir(&consumer)
-            .env("CARGO_TARGET_DIR", fixture.0.join("consumer-target")),
+            .env("CARGO_TARGET_DIR", consumer_target.path()),
         "run safe consumer",
     );
     assert_eq!(consumer_output.stdout, b"42\n");

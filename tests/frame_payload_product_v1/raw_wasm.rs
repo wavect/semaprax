@@ -28,6 +28,7 @@ pub(super) fn run(package: &Path, descriptor: &PublicApiDescriptor) {
         ("app.wasm", wasm.as_slice()),
         ("descriptor.json", descriptor_bytes.as_slice()),
         ("corpus.json", CORPUS),
+        ("adversarial.json", super::adversarial::CORPUS),
         ("probe.mjs", include_bytes!("raw_wasm.mjs").as_slice()),
     ] {
         fs::write(root.join(path), bytes).unwrap();
@@ -50,6 +51,7 @@ pub(super) fn run(package: &Path, descriptor: &PublicApiDescriptor) {
         "app.wasm",
         "descriptor.json",
         "corpus.json",
+        "adversarial.json",
         "probe.mjs",
     ];
     let mut actual = fs::read_dir(&root)

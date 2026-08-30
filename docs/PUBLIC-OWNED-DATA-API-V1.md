@@ -579,6 +579,28 @@ or public ABI. These checks remain authored and unrun; successful handle-drop
 statuses alone are not physical deallocation evidence, and this lane does not
 replace sanitizers, OOM handling, or the separate generated Rust consumer.
 
+The separate frame-format supplement in
+`tests/frame_payload_product_v1/adversarial.json` retains the existing corpus
+schema without changing any of the three committed nine-case corpora. Its 72
+rows cover every bit of the four-byte declared length, valid power-of-two
+payload sizes, all incomplete header lengths with good and bad magic prefixes,
+complete-header magic/error precedence, and unsigned 32-bit declaration edges.
+Expected validity and errors are literal fixture facts, checked by a separate
+host-side inventory oracle rather than by the SEMAPRAX decoder. In particular,
+ignoring either upper length byte must no longer pass the conformance corpus.
+
+The original native/raw-Wasm checkpoints run before the supplement. The 72
+additional cases make 160 calls with 48 nonempty owned results, and reuse the
+existing native executables and raw-Wasm instance. Actual baseline and renamed
+Project subjects also use the same published npm/Rust packages and unchanged
+external consumer source. The additional Rust consumer has a fresh source/input
+path and shares only the compilation cache, avoiding reliance on timestamps
+for an in-place `include_str!` input change. The provisioned Chromium fixture
+passes the test-owned supplement to the unchanged same-origin corpus runner
+after checking the original host-served corpus; it does not require a changed
+host corpus or claim authentication of Project source derivation. All of these
+additional execution checks remain authored and unrun.
+
 The provisioned private toolchain gate `project_owned_tuple_sdk_v1` adds real
 published v8/v9 Rust consumers for one borrowed UTF-8 string plus two borrowed
 byte slices. It checks cumulative 65,535/65,536/65,537-byte tuples, Unicode byte

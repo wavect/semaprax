@@ -25,3 +25,10 @@ No existing hosted workflow selects this new fixture. Both directories and
 existing dependency/browser provisioning are host responsibilities. The gate
 compares received corpus bytes exactly and executes the shared Node/browser
 runner over every case in both packages; it is not multi-engine evidence.
+
+After the unchanged canonical checks, the fixture passes the repository's
+test-owned 72-case frame-format supplement into that same runner on a fresh
+runtime for each package. The supplement is supplied by the test, not fetched
+from the host: keep both served `corpus.json` files unchanged. The additional
+inputs check all declared-length bits, truncation and error precedence, and
+16 valid power-of-two payloads. This added browser evidence is also unrun.

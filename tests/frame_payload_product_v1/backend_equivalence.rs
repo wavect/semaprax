@@ -2,7 +2,7 @@
 use super::*;
 
 pub(super) fn assert_interpreter_corpus(program: &hir::ResolvedProgram) {
-    for (name, frame, valid, error) in corpus_frames() {
+    for (name, frame, valid, error) in corpus_frames().into_iter().chain(adversarial::frames()) {
         let expected = valid.then(|| frame[8..].to_vec());
         let maybe =
             evaluate_resolved_owned_data(program, "frame.payload-maybe", &frame, DEFAULT_MAX_STEPS)
@@ -156,12 +156,39 @@ int main(void){{
         valid_count * 3
     );
 
+    let mut extra_declarations = String::new();
+    let mut extra_cases = String::new();
+    for (index, (name, frame, valid, error)) in adversarial::frames().iter().enumerate() {
+        let pointer = if frame.is_empty() {
+            "NULL".to_owned()
+        } else {
+            writeln!(
+                extra_declarations,
+                "static const uint8_t extra_{index}[]={{ {} }};",
+                c_bytes(frame)
+            )
+            .unwrap();
+            format!("extra_{index}")
+        };
+        writeln!(
+            extra_cases,
+            "if(run_case(context,{pointer},UINT64_C({}),{},INT64_C({}))!=0)return 100; /* {} */",
+            frame.len(),
+            u8::from(*valid),
+            error,
+            name
+        )
+        .unwrap();
+    }
+    // Rename only the test main: its complete original body and checkpoints
+    // remain intact, followed by a second corpus in the same executable.
+    let plain = format!("{provider}\n#define main fixture_canonical_main\n{probe}\n#undef main\n{extra_declarations}\nint main(void){{\nif(fixture_canonical_main()!=0)return 101;\nspx_context_v1 storage;spx_context_v1 *context=&storage;\nif(spx_owned_data_context_init_v1(context,sizeof(storage))!=0)return 102;\n{extra_cases}\nif(drops!=UINT32_C(63)||context->live_slots!=0)return 103;\nif(spx_owned_data_context_drop_v1(context)!=0)return 104;return 0;}}\n");
     let root = temporary(label);
     fs::create_dir_all(&root).unwrap();
     for optimization in ["-O0", "-O2"] {
         let source = root.join(format!("provider-{optimization}.c"));
         let executable = root.join(format!("provider-{optimization}"));
-        fs::write(&source, format!("{provider}\n{probe}")).unwrap();
+        fs::write(&source, plain.as_bytes()).unwrap();
         let compile = Command::new("clang")
             .args(["-std=c11", optimization, "-Wall", "-Wextra", "-Werror"])
             .arg(&source)
@@ -183,7 +210,7 @@ int main(void){{
             String::from_utf8_lossy(&execute.stderr)
         );
     }
-    // Keep the plain-provider loop above unchanged. This additional lane
+    // Keep the original plain-provider checkpoints above. This additional lane
     // observes actual libc calls made by that same provider, rather than
     // treating successful handle drops alone as deallocation evidence.
     let instrumented = format!(
@@ -191,6 +218,7 @@ int main(void){{
         include_str!("../native_owned_tuple_admission_v1/allocations.c"),
         include_str!("native_settlement.c"),
     );
+    let instrumented = format!("#define main fixture_canonical_main\n{instrumented}\n#undef main\n{extra_declarations}\nint main(void){{if(fixture_canonical_main()!=0)return 101;\nspx_context_v1 *context=fixture_resume();\n{extra_cases}\nfixture_finish_adversarial(context);return 0;}}\n");
     for optimization in ["-O0", "-O2"] {
         let source = root.join(format!("settlement-{optimization}.c"));
         let executable = root.join(format!(

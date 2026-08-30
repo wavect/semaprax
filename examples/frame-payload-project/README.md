@@ -46,6 +46,16 @@ branches, and stale drops. It preserves the plain-provider runs and the same
 nine-case corpus for both Project subjects. The new checks are authored but
 unrun, and do not establish sanitizer or allocation-failure recovery evidence.
 
+The separate test-owned
+[72-case supplement](../../tests/frame_payload_product_v1/adversarial.json)
+covers all declared-length bits, valid power-of-two payloads, every incomplete
+header length, and magic-versus-length error precedence. The original nine
+cases and their checkpoints remain unchanged. Interpreter, native, raw Wasm,
+and the unchanged external npm/Rust consumers exercise the supplement against
+both retained Project subjects. The separately provisioned browser gate also
+passes these extra inputs to the same corpus runner. These are authored, unrun
+conformance checks, not a claim that a decoder defect was observed at runtime.
+
 Clang, Node, and the full native SDK toolchain must already be provisioned.
 Missing tools fail rather than skip. TypeScript and Chromium have separate
 explicitly selected provisioned gates documented by the web consumer.

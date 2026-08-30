@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 
 const canonical = readFileSync(new URL("../../../examples/frame-payload-project/corpus.json", import.meta.url), "utf8");
 const corpus = JSON.parse(canonical);
+const supplement = JSON.parse(readFileSync(new URL("../../../tests/frame_payload_product_v1/adversarial.json", import.meta.url), "utf8"));
+if (supplement.cases.length !== 72 || supplement.cases.filter(row => row.valid).length !== 16) throw new Error("supplement requires exactly 72 cases and 16 valid cases");
 const encoded = process.env.SEMAPRAX_FRAME_BROWSER_URLS;
 if (!encoded) throw new Error('SEMAPRAX_FRAME_BROWSER_URLS requires {"before":"http://127.0.0.1:PORT/","after":"http://127.0.0.1:PORT/"}');
 const urls = JSON.parse(encoded);
@@ -34,6 +36,20 @@ test("both display names execute the identical canonical corpus in Chromium", as
         schema: "semaprax.frame-payload-consumer.v1",
         cases: corpus.cases.length,
         directCalls: corpus.cases.filter(row => row.valid).length,
+      });
+      // Inject the local supplement without replacing the host's canonical corpus.
+      const supplementalResult = await page.evaluate(async ({ supplement, base }) => {
+        const { runCorpus } = await import(new URL("corpus-runner.mjs", base).href);
+        const { default: instantiate } = await import(new URL("generated/semaprax.bindings.js", base).href);
+        const response = await fetch(new URL("generated/app.wasm", base));
+        if (!response.ok) throw new Error("missing supplemental runtime Wasm");
+        const runtime = await instantiate(new Uint8Array(await response.arrayBuffer()));
+        return runCorpus(runtime, supplement);
+      }, { supplement, base });
+      expect(supplementalResult).toEqual({
+        schema: "semaprax.frame-payload-consumer.v1",
+        cases: 72,
+        directCalls: 16,
       });
       expect(errors).toEqual([]);
       const api = await page.evaluate(async () => {

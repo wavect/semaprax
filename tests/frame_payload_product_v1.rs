@@ -28,6 +28,10 @@ const FRAME_SOURCE: &str = include_str!("../examples/frame-payload-project/src/f
 const MANIFEST: &str = include_str!("../examples/frame-payload-project/semaprax.toml");
 const CORPUS: &[u8] = include_bytes!("../examples/frame-payload-project/corpus.json");
 
+#[path = "frame_payload_product_v1/adversarial.rs"]
+mod adversarial;
+#[path = "frame_payload_product_v1/adversarial_consumers.rs"]
+mod adversarial_consumers;
 #[path = "frame_payload_product_v1/backend_equivalence.rs"]
 mod backend_equivalence;
 #[path = "frame_payload_product_v1/consumer_acceptance.rs"]
@@ -396,6 +400,7 @@ fn project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_r
             &npm_consumer.join("generated"),
         );
         run_node_consumer(&npm_consumer);
+        adversarial_consumers::run_node(&npm_consumer);
 
         let rust_consumer = root.join(format!("{label}-rust"));
         let rust_sdk = root.join(format!("{label}-generated-sdk"));
@@ -440,6 +445,12 @@ fn project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_r
         assert_eq!(
             fs::read(rust_consumer.join("Cargo.lock")).unwrap(),
             lock.as_slice()
+        );
+        adversarial_consumers::run_rust(
+            &root.join(format!("{label}-rust-adversarial")),
+            &rust_manifest,
+            lock,
+            cargo_target.path(),
         );
     }
 

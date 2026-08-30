@@ -5,10 +5,14 @@ import {instantiateCore} from "./runtime.mjs";
 const wasm=new Uint8Array(readFileSync(new URL("./app.wasm",import.meta.url)));
 const descriptor=JSON.parse(readFileSync(new URL("./descriptor.json",import.meta.url),"utf8"));
 const corpus=JSON.parse(readFileSync(new URL("./corpus.json",import.meta.url),"utf8"));
+const adversarial=JSON.parse(readFileSync(new URL("./adversarial.json",import.meta.url),"utf8"));
 const ids=["frame.payload","frame.payload-maybe","frame.payload-result"];
 assert.deepEqual(descriptor.exports.map(row=>row.stable_id),ids);
 assert.equal(corpus.schema,"semaprax.frame-payload-corpus.v1");
 assert.equal(corpus.cases.length,9);
+assert.equal(adversarial.schema,"semaprax.frame-payload-corpus.v1");
+assert.equal(adversarial.cases.length,72);
+assert.equal(adversarial.cases.filter(row=>row.valid).length,16);
 const rawName=id=>"spx_owned_v1_"+Buffer.from(id,"utf8").toString("hex");
 const module=await WebAssembly.compile(wasm);
 const imported=["spx_add","spx_sub","spx_mul","spx_div","spx_rem","spx_neg","spx_contract_fail",
@@ -83,7 +87,8 @@ assert(bytes.slice(RESULT,RESULT+24).every(byte=>byte===POISON));
 settle();
 
 let calls=0,ownedCalls=0;
-for(const row of corpus.cases){
+function runRows(rows){
+for(const row of rows){
   const {frame,payload}=materialize(row);
   for(const id of ids){
     if(id==="frame.payload"&&!row.valid)continue;
@@ -107,7 +112,22 @@ for(const row of corpus.cases){
     calls++;if(row.valid)ownedCalls++;
   }
 }
+}
+runRows(corpus.cases);
 assert.equal(calls,23);assert.equal(ownedCalls,15);
 assert.equal(mints,15);assert.equal(consumes,15);assert.equal(drops,0);
 assert.equal(settlements,calls+1);
+// Preserve the original corpus checkpoint above, then exercise the separate
+// header-bit/precedence supplement on this same engine and real arena.
+const baseline={calls,ownedCalls,mints,consumes,drops,settlements};
+runRows(adversarial.cases);
+assert.equal(calls-baseline.calls,160);
+assert.equal(ownedCalls-baseline.ownedCalls,48);
+assert.equal(mints-baseline.mints,48);
+assert.equal(consumes-baseline.consumes,48);
+assert.equal(drops-baseline.drops,0);
+assert.equal(settlements-baseline.settlements,160);
+assert.equal(calls,183);assert.equal(ownedCalls,63);
+assert.equal(mints,63);assert.equal(consumes,63);assert.equal(drops,0);
+assert.equal(settlements,184);
 console.log("frame-payload-raw-wasm-v1-ok");

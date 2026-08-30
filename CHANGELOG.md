@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added a separate 72-case frame-format conformance supplement while retaining
+  the original nine-case product corpus and native/raw-Wasm checkpoints.
+  Baseline and renamed Project subjects share the extra length-bit, truncation,
+  valid-size and error-precedence cases across interpreter, native O0/O2,
+  raw Wasm, existing npm/Rust consumers, and the provisioned Chromium fixture.
+  Native executables and published packages are reused; no source semantics,
+  generated artifacts, or schemas change. All new checks remain unrun.
+
 - Closed Cargo instruction injection through CR/LF-bearing owned-data SDK
   package paths. V8/v9/v10 now share a private build-script renderer that
   validates the path before stdout while preserving target-error precedence

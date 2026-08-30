@@ -120,3 +120,27 @@ static void fixture_finish(spx_context_v1 *context) {
     REQUIRE(fixture_calloc_calls == initial_calloc);
     REQUIRE(fixture_free_calls == initial_free + 15 && fixture_live == 0);
 }
+
+/* The canonical checkpoint above has already closed its context. Continue
+ * cumulative observations without resetting counters or recalibrating. */
+static spx_context_v1 *fixture_resume(void) {
+    REQUIRE(calls == 23 && drops == 15 && fixture_live == 0);
+    REQUIRE(spx_owned_data_context_init_v1(&fixture_context, sizeof(fixture_context)) == 0);
+    REQUIRE(fixture_malloc_calls == initial_malloc + 12);
+    REQUIRE(fixture_calloc_calls == initial_calloc);
+    REQUIRE(fixture_free_calls == initial_free + 15);
+    return &fixture_context;
+}
+
+static void fixture_finish_adversarial(spx_context_v1 *context) {
+    REQUIRE(calls == 183 && drops == 63);
+    REQUIRE(fixture_malloc_calls == initial_malloc + 60);
+    REQUIRE(fixture_calloc_calls == initial_calloc);
+    REQUIRE(fixture_free_calls == initial_free + 63);
+    REQUIRE(fixture_live == 0 && context->live_slots == 0);
+    for (size_t index = 0; index < 512; ++index) REQUIRE(fixture_pointers[index] == NULL);
+    REQUIRE(spx_owned_data_context_drop_v1(context) == 0);
+    REQUIRE(fixture_malloc_calls == initial_malloc + 60);
+    REQUIRE(fixture_calloc_calls == initial_calloc);
+    REQUIRE(fixture_free_calls == initial_free + 63 && fixture_live == 0);
+}

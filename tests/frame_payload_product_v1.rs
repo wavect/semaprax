@@ -93,6 +93,10 @@ fn run_node_consumer(root: &Path) {
 
 #[test]
 fn canonical_product_corpus_and_manifest_are_exact() {
+    let typescript = include_str!("../examples/frame-payload-web/consumer.ts");
+    assert!(typescript.contains("new Uint8Array(await response.arrayBuffer())"));
+    assert!(typescript.contains("await instantiate(wasm)"));
+    assert!(!typescript.contains("instantiate(new URL("));
     assert_eq!(
         CORPUS,
         include_bytes!("../examples/frame-payload-web/corpus.json")

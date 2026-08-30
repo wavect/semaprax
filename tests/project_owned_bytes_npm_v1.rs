@@ -308,6 +308,80 @@ console.log('owned-data-contract-ok');
 }
 
 #[test]
+fn v8_admits_the_complete_input_tuple_before_payload_allocation() {
+    // This focused physical gate requires Node; absence is not passing evidence.
+    for (label, result, value, scalar) in [
+        ("direct", "Bytes", "bytes_copy(input)", false),
+        (
+            "option",
+            "Option<Bytes>",
+            "Option<Bytes>::Some { value: bytes_copy(input) }",
+            false,
+        ),
+        (
+            "result",
+            "Result<Bytes, i64>",
+            "Result<Bytes, i64>::Ok { value: bytes_copy(input) }",
+            false,
+        ),
+        ("mixed", "Bytes", "bytes_copy(input)", true),
+    ] {
+        let extra = if scalar {
+            "@id(\"probe.scalar\") fn scalar() -> i64 { 7 }"
+        } else {
+            ""
+        };
+        let source = format!("module probe.input;\n@id(\"probe.bytes\") fn copy(input: borrow Slice<u8>, text: borrow str, other: borrow Slice<u8>) -> {result} {{ {value} }}\n{extra}\n@id(\"probe.main\") fn main() -> i64 {{ 0 }}\n");
+        let program = hir::resolve(&semaprax::check(&source, "input.spx").unwrap()).unwrap();
+        let mut selected = vec!["probe.bytes".to_owned()];
+        if scalar {
+            selected.push("probe.scalar".to_owned());
+        }
+        let descriptor = derive_public_api_descriptor(&program, &selected, subject()).unwrap();
+        let build = prepare_owned_data_npm_build(
+            &program,
+            &descriptor,
+            "input-probe",
+            "0.1.0",
+            40 * 1024 * 1024,
+        )
+        .unwrap();
+        let directory = std::env::temp_dir().join(format!(
+            "semaprax-input-v8-{label}-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir(&directory).unwrap();
+        for (path, bytes) in artifacts(&build) {
+            fs::write(directory.join(path), bytes).unwrap();
+        }
+        fs::write(
+            directory.join("admission.mjs"),
+            include_str!("fixtures/owned_data_input_admission_v8.mjs"),
+        )
+        .unwrap();
+        let output = Command::new("node")
+            .arg("admission.mjs")
+            .current_dir(&directory)
+            .output()
+            .expect("Node is required by the explicit input-admission gate");
+        assert!(
+            output.status.success(),
+            "{label}: stdout={} stderr={}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(
+            String::from_utf8_lossy(&output.stdout).trim(),
+            "owned-input-admission-v8-ok"
+        );
+    }
+}
+
+#[test]
 fn option_result_package_is_exact_and_project_v8_stays_inactive() {
     assert!(
         semaprax::project::ProjectManifest::parse("schema = \"semaprax.project.v8\"\n").is_err()

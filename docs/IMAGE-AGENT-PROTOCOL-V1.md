@@ -1,5 +1,7 @@
 # Image Agent Protocol v1
 
+Audience: agent client authors, embedding-host authors, and compiler contributors.
+
 Status: additive implementation with authored regression coverage; local tests
 and quality gates were intentionally not run for this change. No hosted or
 cross-platform completion claim follows from the implementation.

@@ -1,5 +1,7 @@
 # Project Candidate Body Holes v1
 
+Audience: agent client authors and compiler contributors.
+
 Status: authored, unrun; a bounded addition to the
 [full graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md), not general
 incomplete-program compilation or completion of that programme.

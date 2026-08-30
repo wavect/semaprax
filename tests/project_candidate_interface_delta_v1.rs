@@ -66,14 +66,14 @@ use function @id("iface.evaluate") from iface.core as evaluate;
                 "src/tests.spx",
                 r#"module iface.tests;
 use function @id("iface.evaluate") from iface.core as evaluate;
-@id("iface.test") fn evaluates() -> bool { evaluate(42) == 42 }
+@id("iface.test") fn main() -> i64 { if evaluate(42) == 42 { 0 } else { 1 } }
 "#,
             ),
         ] {
             let program = semaprax::parse(source, path).unwrap();
             std::fs::write(root.join(path), semaprax::format::canonical(&program)).unwrap();
         }
-        Self(root)
+        Self(root.canonicalize().unwrap())
     }
     fn candidate(&self) -> ProjectCandidate {
         let revision = with_authenticated_project(&self.0.join("semaprax.toml"), |snapshot| {
@@ -221,6 +221,20 @@ fn added_binding_carries_complete_members_and_exact_independent_source_origins()
 #[test]
 fn bound_function_edits_change_conformance_facts_without_dropping_unchanged_siblings() {
     let fixture = Fixture::new();
+    let exported = fixture.candidate();
+    code(
+        apply(
+            &exported,
+            json!({"kind":"add_contract","target":"iface.read","phase":"ensures","predicate":{"kind":"bool","value":true}}),
+        ),
+        "SPX-J113",
+    );
+    let manifest = fixture.0.join("semaprax.toml");
+    let source = std::fs::read_to_string(&manifest).unwrap().replace(
+        "web_exports = [\"iface.evaluate\"]",
+        "web_exports = [\"other.identity\"]",
+    );
+    std::fs::write(manifest, source).unwrap();
     let untouched = fixture.sources();
     let added = apply(&fixture.candidate(), implementation()).unwrap();
     // Start from an already-conforming immutable revision, so the comparison

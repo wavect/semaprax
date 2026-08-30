@@ -178,6 +178,15 @@ fn binding(message: impl Into<String>) -> Vec<Diagnostic> {
 fn io(message: impl Into<String>) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-I360", message)]
 }
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 fn post_pivot(message: impl Into<String>) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-I361", message)]
 }

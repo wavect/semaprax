@@ -1,5 +1,7 @@
 # Semantic Image Facets v1
 
+Audience: agent client authors and compiler contributors.
+
 Status: authored, unrun. This additive read-only slice does not complete the
 full graph-operational programme.
 

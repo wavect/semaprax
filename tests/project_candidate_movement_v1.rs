@@ -17,9 +17,10 @@ impl Fixture {
         ));
         std::fs::create_dir_all(root.join("src")).unwrap();
         let fixture = Self(root.canonicalize().unwrap());
-        std::fs::write(fixture.0.join("semaprax.toml"), "schema = \"semaprax.project.v1\"\nname = \"mover\"\nentry = \"mover.app\"\nsources = [\"src/app.spx\", \"src/core.spx\", \"src/support.spx\", \"src/tests.spx\"]\nweb_exports = [\"move.export\"]\ntests = [\"mover.tests\"]\n").unwrap();
+        std::fs::write(fixture.0.join("semaprax.toml"), "schema = \"semaprax.project.v1\"\nname = \"mover\"\nentry = \"mover.entry\"\nsources = [\"src/app.spx\", \"src/core.spx\", \"src/entry.spx\", \"src/support.spx\", \"src/tests.spx\"]\nweb_exports = [\"move.export\"]\ntests = [\"mover.tests\"]\n").unwrap();
         fixture.write("core", "module mover.core; @id(\"move.export\") fn exported(value:i64)->i64 {value} @id(\"move.helper\") fn helper(value:i64)->i64 requires value>=0 ensures result>=0 {exported(value)}");
-        fixture.write("app", "module mover.app; use function @id(\"move.helper\") from mover.core as via_helper; @id(\"move.app.main\") fn main()->i64 {via_helper(1)}");
+        fixture.write("app", "module mover.app; use function @id(\"move.helper\") from mover.core as via_helper; @id(\"move.app.main\") fn run()->i64 {via_helper(1)}");
+        fixture.write("entry", "module mover.entry; use function @id(\"move.app.main\") from mover.app as run; @id(\"move.entry.main\") fn main()->i64 {run()}");
         fixture.write("support", "module mover.support; @id(\"move.support.identity\") fn identity(value:i64)->i64 {value}");
         fixture.write("tests", "module mover.tests; use function @id(\"move.helper\") from mover.core as helper_check; @id(\"move.tests.main\") fn main()->i64 {if helper_check(1)==1 {0} else {1}}");
         fixture
@@ -150,7 +151,7 @@ fn source_callers_gain_import_while_relocated_dependency_becomes_local() {
 #[test]
 fn conflicting_dependency_alias_is_hygienically_derived_and_replayed() {
     let fixture = Fixture::new();
-    fixture.write("app", "module mover.app; use function @id(\"move.helper\") from mover.core as via_helper; @id(\"move.app.main\") fn main()->i64 {via_helper(exported(1))} @id(\"move.app.exported\") fn exported(value:i64)->i64 {value} @id(\"move.app.reserved\") fn _spx_move_0(value:i64)->i64 {value}");
+    fixture.write("app", "module mover.app; use function @id(\"move.helper\") from mover.core as via_helper; @id(\"move.app.main\") fn run()->i64 {via_helper(exported(1))} @id(\"move.app.exported\") fn exported(value:i64)->i64 {value} @id(\"move.app.reserved\") fn _spx_move_0(value:i64)->i64 {value}");
     let root = fixture.candidate();
     let moved = apply(&root, movement("move.app.main")).unwrap();
     assert!(source(&moved, "app").contains("@id(\"move.export\") from mover.core as _spx_move_1;"));
@@ -166,7 +167,7 @@ fn fixed_exports_entry_identity_bad_destinations_and_cycle_attempts_leave_candid
     let before = root.to_json().to_owned();
     for request in [
         json!({"kind":"move_declaration","target":"move.export","destination":"move.app.main"}),
-        json!({"kind":"move_declaration","target":"move.app.main","destination":"move.support.identity"}),
+        json!({"kind":"move_declaration","target":"move.entry.main","destination":"move.support.identity"}),
         movement("move.export"),
         movement("unknown.anchor"),
         json!({"kind":"move_declaration","target":"move.helper","destination":"move.app.main","path":"src/app.spx"}),

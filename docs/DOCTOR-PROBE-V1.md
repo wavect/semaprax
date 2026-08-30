@@ -91,20 +91,32 @@ uses the existing failure/settlement path. The parent remains unfiltered.
 
 The filter authenticates the kernel-reported audit architecture before decoding
 syscall numbers; foreign architectures and x86 x32 invocations kill the process.
-It returns `EPERM` for `socket`, `socketpair`, `io_uring_setup`, `io_uring_enter`,
-`io_uring_register`, `pidfd_getfd`, `ptrace`, and `process_vm_writev`. Other
-syscalls remain admitted. This closes direct socket creation and the enumerated
-descriptor-acquisition/asynchronous-I/O/process-injection routes; it is not a
-default-deny executable sandbox. The restrictions survive fork and exec and
-cannot be relaxed by the tool. See the [Linux seccomp contract](https://docs.kernel.org/userspace-api/seccomp_filter.html).
+It returns `EPERM` for `socket`, `io_uring_setup`, `io_uring_enter`,
+`io_uring_register`, `pidfd_getfd`, `ptrace`, `process_vm_writev`, `connect`,
+`bind`, `listen`, `accept`, and `accept4`. `socketpair` is admitted only for
+`AF_UNIX`, protocol zero, and `SOCK_STREAM` or `SOCK_SEQPACKET`, optionally
+combined with `SOCK_CLOEXEC` and/or `SOCK_NONBLOCK`. Every other family, type,
+protocol or flag is rejected. Both 32-bit halves of each scalar argument are
+checked; nonzero upper halves are rejected even where the kernel would truncate
+them. The output-array pointer remains kernel-validated, not inspected by BPF.
 
-`socketpair` is denied even for anonymous local IPC. Tools requiring any denied
-call can fail a version probe; ABI admission is not a promise of compatibility
-with every tool or libc. In particular, some [Rust process-spawn paths](https://doc.rust-lang.org/src/std/sys/process/unix/unix.rs.html)
-use a local socket pair. Existing Command-based descendant fixtures remain
-required, independently of the controlled fork/exec filter-inheritance fixture.
-No compatibility failure may trigger an unsandboxed retry or be hidden by
-weakening those fixtures.
+These anonymous connected pairs support the real [Rust fork/exec handshake](https://doc.rust-lang.org/src/std/sys/process/unix/unix.rs.html)
+without permitting datagram pairs or named-peer selection. Linux rejects
+addressed sends on connected stream sockets and ignores the supplied address
+for connected seqpacket sends; see the [kernel Unix-socket implementation](https://raw.githubusercontent.com/torvalds/linux/master/net/unix/af_unix.c).
+`sendmsg`/`recvmsg` remain available for the handshake's descriptor transfer
+between the pair's endpoints. Existing inherited-descriptor exclusion remains
+required; this allowance does not grant socket creation or connection authority.
+
+Other syscalls remain admitted. This closes the enumerated socket-creation,
+named-endpoint, descriptor-acquisition, asynchronous-I/O and process-injection
+routes; it is not a default-deny executable sandbox. Restrictions survive fork
+and exec and cannot be relaxed by the tool. See the [Linux seccomp contract](https://docs.kernel.org/userspace-api/seccomp_filter.html).
+Tools requiring denied calls can still fail a version probe; ABI admission is
+not a promise of compatibility with every tool or libc. Existing Command-based
+descendant fixtures remain required, independently of the controlled fork/exec
+filter-inheritance fixture. No compatibility failure may trigger an unsandboxed
+retry or be hidden by weakening those fixtures.
 
 This layer does **not** complete WP-05's no-network requirement. Parent PATH
 discovery and metadata lookup happen before it; network-backed filesystem
@@ -130,6 +142,17 @@ state in a tool and exec descendant, and force real kernel filter-installation
 rejection to prove the executable-entry marker is never created. Unsupported
 Linux ABIs have an explicit pre-fork rejection case, not output/settlement
 support evidence. These new fixtures are also unrun.
+
+The anonymous-pair correction adds independent literal argument inventories and
+single-bit mutations across all 64 bits of each filtered scalar. Physical cases
+exchange bytes in both directions for all eight admitted type/flag combinations,
+reject invalid arguments without writing the descriptor array, and preserve
+the remaining syscall-denial controls. A no-op `pre_exec` callback forces the
+real Rust `Command` fork/exec fallback: both successful descendant execution and
+failed-exec error reporting must work while descendants retain the guard. The
+callback allocates nothing and performs no operation. Existing ordinary spawn,
+capture, descendant-settlement and filter-installation failure cases remain.
+These compatibility checks are authored and unrun, not a full no-network gate.
 
 ```sh
 cargo test --locked -p semaprax-native-rust-interop-platform-sys doctor::tests

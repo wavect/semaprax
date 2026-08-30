@@ -58,6 +58,7 @@ fn fixture(name: &str) -> PathBuf {
             "socket-control",
             "socket-guard",
             "socket-descendant",
+            "socket-command-descendant",
             "socket-setup-sentinel",
         ] {
             std::fs::hard_link(

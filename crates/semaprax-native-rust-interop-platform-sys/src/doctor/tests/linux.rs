@@ -34,6 +34,10 @@ fn socket_guard_denies_direct_and_exec_descendant_calls_without_restricting_host
             "socket-descendant",
             &b"socket-child-ok\nsocket-parent-ok\n"[..],
         ),
+        (
+            "socket-command-descendant",
+            &b"socket-command-parent-ok\n"[..],
+        ),
     ] {
         let prepared = prepare(&fixture(name)).unwrap();
         assert_eq!(run(&prepared).unwrap(), expected);

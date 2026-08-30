@@ -104,6 +104,17 @@ fn main() {
             linux_sockets::exec_child(&invoked);
             println!("socket-parent-ok");
         }
+        #[cfg(all(
+            target_os = "linux",
+            target_pointer_width = "64",
+            target_endian = "little",
+            any(target_arch = "x86_64", target_arch = "aarch64")
+        ))]
+        "socket-command-descendant" => {
+            linux_sockets::denied();
+            linux_sockets::command_child(&invoked);
+            println!("socket-command-parent-ok");
+        }
         #[cfg(target_os = "linux")]
         "socket-setup-sentinel" => {
             std::fs::OpenOptions::new()
@@ -141,10 +152,14 @@ mod linux_sockets {
     // Independent native syscall literals, not imported production policy.
     use std::ffi::{c_char, c_int, c_long, CString};
     use std::os::unix::ffi::OsStrExt as _;
+    use std::os::unix::process::CommandExt as _;
     use std::path::Path;
+    use std::process::Command;
     unsafe extern "C" {
         fn syscall(number: c_long, ...) -> c_long;
         fn close(fd: c_int) -> c_int;
+        fn read(fd: c_int, buffer: *mut u8, count: usize) -> isize;
+        fn write(fd: c_int, buffer: *const u8, count: usize) -> isize;
         fn prctl(option: c_int, ...) -> c_int;
         fn fork() -> c_int;
         fn execv(path: *const c_char, argv: *const *const c_char) -> c_int;
@@ -167,9 +182,69 @@ mod linux_sockets {
     const PROCESS_VM_WRITEV: c_long = 311;
     #[cfg(target_arch = "aarch64")]
     const PROCESS_VM_WRITEV: c_long = 271;
+    #[cfg(target_arch = "x86_64")]
+    const NAMED_OPERATIONS: [c_long; 5] = [42, 49, 50, 43, 288];
+    #[cfg(target_arch = "aarch64")]
+    const NAMED_OPERATIONS: [c_long; 5] = [203, 200, 201, 202, 242];
     const ZERO: c_long = 0;
     const ONE: c_long = 1;
     const NEGATIVE_ONE: c_long = -1;
+
+    pub fn command_child(path: &Path) {
+        // A pre_exec callback disables the posix_spawn fast path. The callback
+        // itself performs no allocation, locking, I/O or other operation.
+        let mut command = Command::new(path);
+        command.arg("--socket-child");
+        unsafe {
+            command.pre_exec(|| Ok(()));
+        }
+        let output = command.output().unwrap();
+        assert!(output.status.success());
+        assert_eq!(output.stdout, b"socket-child-ok\n");
+        assert!(output.stderr.is_empty());
+
+        // A failed exec must report ENOENT through the same real error channel,
+        // not succeed merely because the child's successful-exec pipe reached EOF.
+        let missing = path.with_extension("missing-child");
+        assert_eq!(
+            std::fs::symlink_metadata(&missing).unwrap_err().kind(),
+            std::io::ErrorKind::NotFound
+        );
+        let mut command = Command::new(missing);
+        command.arg("--socket-child");
+        unsafe {
+            command.pre_exec(|| Ok(()));
+        }
+        assert_eq!(
+            command.spawn().unwrap_err().kind(),
+            std::io::ErrorKind::NotFound
+        );
+    }
+
+    fn pairs() {
+        for kind in [ONE, 5] {
+            for flags in [ZERO, 0x800, 0x80000, 0x80800] {
+                let mut pair: [c_int; 2] = [-1; 2];
+                assert_eq!(
+                    unsafe { syscall(SOCKETPAIR, ONE, kind | flags, ZERO, pair.as_mut_ptr()) },
+                    0
+                );
+                assert!(pair[0] >= 0 && pair[1] >= 0 && pair[0] != pair[1]);
+                // Write before reading: the single byte fits even for NONBLOCK.
+                for (sender, receiver, byte) in
+                    [(pair[0], pair[1], 0x35_u8), (pair[1], pair[0], 0xa7_u8)]
+                {
+                    assert_eq!(unsafe { write(sender, &byte, 1) }, 1);
+                    let mut received = 0_u8;
+                    assert_eq!(unsafe { read(receiver, &mut received, 1) }, 1);
+                    assert_eq!(received, byte);
+                }
+                for fd in pair {
+                    assert_eq!(unsafe { close(fd) }, 0);
+                }
+            }
+        }
+    }
 
     pub fn exec_child(path: &Path) {
         // No Command fallback socketpair in this dedicated inheritance witness.
@@ -198,7 +273,8 @@ mod linux_sockets {
     }
 
     pub fn control() {
-        // Create and close only: no bind, connect, send, DNS or external peer.
+        // Network sockets are created/closed only. Pair traffic below remains
+        // between the two anonymous endpoints: no named or external peer.
         for family in [ONE, 2, 10] {
             let fd = unsafe { syscall(SOCKET, family, ONE, ZERO) };
             assert!(
@@ -208,14 +284,7 @@ mod linux_sockets {
             );
             assert_eq!(unsafe { close(c_int::try_from(fd).unwrap()) }, 0);
         }
-        let mut pair: [c_int; 2] = [-1; 2];
-        assert_eq!(
-            unsafe { syscall(SOCKETPAIR, ONE, ONE, ZERO, pair.as_mut_ptr()) },
-            0
-        );
-        for fd in pair {
-            assert_eq!(unsafe { close(fd) }, 0);
-        }
+        pairs();
     }
 
     fn eperm(result: c_long, operation: &str) {
@@ -230,12 +299,32 @@ mod linux_sockets {
         for family in [ONE, 2, 10, 16, 17] {
             eperm(unsafe { syscall(SOCKET, family, ONE, ZERO) }, "socket");
         }
-        let mut pair: [c_int; 2] = [-1; 2];
-        eperm(
-            unsafe { syscall(SOCKETPAIR, ONE, ONE, ZERO, pair.as_mut_ptr()) },
-            "socketpair",
-        );
-        assert_eq!(pair, [-1, -1]);
+        pairs();
+        for (family, kind, protocol) in [
+            (ONE, 2, ZERO), // DGRAM must not acquire named-message routing.
+            (2, ONE, ZERO),
+            (10, ONE, ZERO),
+            (ONE, ONE, ONE),
+            (ONE, ONE | 0x1000, ZERO),
+            (ONE | (ONE << 32), ONE, ZERO),
+            (ONE, ONE | (ONE << 32), ZERO),
+            (ONE, ONE, ONE << 32),
+        ] {
+            let mut pair: [c_int; 2] = [-1; 2];
+            eperm(
+                unsafe { syscall(SOCKETPAIR, family, kind, protocol, pair.as_mut_ptr()) },
+                "socketpair policy",
+            );
+            assert_eq!(pair, [-1, -1]);
+        }
+        // connect/bind/listen/accept/accept4 cannot turn an anonymous pair into
+        // a named endpoint. Invalid FDs/pointers cause no connection if allowed.
+        for operation in NAMED_OPERATIONS {
+            eperm(
+                unsafe { syscall(operation, NEGATIVE_ONE, ZERO, ZERO, ZERO) },
+                "named socket operation",
+            );
+        }
         // Invalid descriptors/PIDs and zero lengths avoid authority over any
         // real process even if a regression accidentally allows these calls.
         eperm(unsafe { syscall(425, ZERO, ZERO) }, "io_uring_setup");

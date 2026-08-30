@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Corrected the Linux doctor guard's rejection of Rust's fork/exec handshake:
+  only anonymous Unix stream/seqpacket pairs with exact scalar arguments and
+  known flags are admitted, while named socket operations are now denied.
+  Authored bit-boundary, real pair-exchange and forced Rust fallback regressions
+  remain unrun. Existing settlement checks stay required; this is compatibility
+  within partial isolation, not full cross-platform no-network enforcement.
+
 - Added authored, unrun same-source `Result::Err` zero/minimum/maximum gates
   across the reference interpreter, native O0/O2, actual npm/Wasm and an
   external locked/offline safe-Rust SDK consumer. Exact payload bits, successful

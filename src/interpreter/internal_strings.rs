@@ -72,7 +72,9 @@ pub(super) fn signature_is_admitted(
     declarations: &hir::DeclarationIndex,
 ) -> bool {
     function.params.iter().all(|parameter| {
-        (parameter.ty == ResolvedType::String && parameter.ownership == hir::OwnershipMode::Value)
+        // The resolver classifies an ordinary by-value String parameter as
+        // Own. Admission consumes validated HIR, not its source spelling.
+        (parameter.ty == ResolvedType::String && parameter.ownership == hir::OwnershipMode::Own)
             || super::resolved_data_parameter_is_admitted(
                 &parameter.ty,
                 parameter.ownership,

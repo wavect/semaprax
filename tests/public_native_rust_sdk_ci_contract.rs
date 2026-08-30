@@ -114,6 +114,7 @@ fn external_consumers_share_one_bounded_nested_cargo_linker_path_binder() {
     for (path, expected_commands) in [
         ("tests/frame_payload_product_v1.rs", 1),
         ("tests/public_native_rust_owned_data_sdk_v1.rs", 3),
+        ("tests/project_native_rust_owned_utf8_v1.rs", 1),
     ] {
         let consumer = read(path);
         assert!(consumer.contains("mod native_rust_cargo;"), "{path}");

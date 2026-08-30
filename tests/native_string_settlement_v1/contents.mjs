@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import assert from "node:assert/strict";
 
 const group = process.argv[3];
-assert.ok(["base", "v1", "v2", "owned"].includes(group));
+assert.ok(["base", "v1", "v2", "owned", "generic"].includes(group));
 const module = new WebAssembly.Module(await readFile(process.argv[2]));
 const scalar = ["spx_add", "spx_sub", "spx_mul", "spx_div", "spx_rem", "spx_neg", "spx_contract_fail"];
 const base = ["spx_string_new", "spx_string_eq", "spx_string_clone"];

@@ -5,6 +5,66 @@ use semaprax::hir::{self, DeclarationId, ResolvedExprKind, ResolvedType};
 use semaprax::{codegen, format, parse, semantic_trace, verify, wasm};
 use sha2::{Digest as _, Sha256};
 
+#[test]
+fn generic_string_templates_replay_owned_slots_and_reject_forged_intrinsics() {
+    let source = r#"
+module test.generic_strings;
+@id("test.text") fn text<T>(value: T, text: string) -> string { text }
+@id("test.measure") fn measure<T>(value: T) -> i64 {
+    let text = string_from_char('\0');
+    string_len_chars(text)
+}
+@id("app.main") fn main() -> i64 { measure<i64>(42) }
+"#;
+    let program = semaprax::check(source, "generic-strings.spx").unwrap();
+    let canonical = format::canonical(&program);
+    let reparsed = semaprax::check(&canonical, "generic-strings.spx").unwrap();
+    let resolved = hir::resolve(&program).unwrap();
+    assert_eq!(
+        graph::to_json(&program).unwrap(),
+        graph::to_json(&reparsed).unwrap()
+    );
+    assert_eq!(resolved.function_instances.len(), 1);
+    assert_eq!(
+        resolved.function_templates[0].params[1].ownership,
+        hir::OwnershipMode::Own
+    );
+    for forged in [hir::OwnershipMode::Value, hir::OwnershipMode::Borrow] {
+        let mut hostile = resolved.clone();
+        hostile.function_templates[0].params[1].ownership = forged;
+        assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
+        let mut hostile = resolved.clone();
+        hostile.function_templates[0].body.ownership = forged;
+        assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
+    }
+    let mut hostile = resolved.clone();
+    let ResolvedExprKind::Block { statements, .. } = &mut hostile.function_templates[1].body.kind
+    else {
+        panic!("expected template block");
+    };
+    let hir::ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+        panic!("expected String binding");
+    };
+    let ResolvedExprKind::Call { callee, .. } = &mut value.kind else {
+        panic!("expected intrinsic");
+    };
+    *callee = DeclarationId::new("core.string.forged");
+    assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
+    let mut hostile = resolved;
+    let ResolvedExprKind::Block { statements, .. } = &mut hostile.function_templates[1].body.kind
+    else {
+        panic!("expected template block");
+    };
+    let hir::ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+        panic!("expected String binding");
+    };
+    let ResolvedExprKind::Call { args, .. } = &mut value.kind else {
+        panic!("expected intrinsic");
+    };
+    args.clear();
+    assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
+}
+
 const SOURCE: &str = r#"
 module test.generic_functions;
 
@@ -532,6 +592,7 @@ module test.same_signature_instances;
     let first = preserve<i64>(true);
     if preserve<bool>(first) { 0 } else { 1 }
 }
+
 "#,
     );
     let same_json = graph::to_json(&same_signature).unwrap();

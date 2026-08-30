@@ -793,7 +793,9 @@ dependencies = [
  "renamore",
  "rustix",
  "same-file",
+ "semaprax-native-rust-interop-platform",
  "semaprax-native-rust-owned-data-package",
+ "semaprax-project-revision-store-windows-sys",
  "serde_json",
  "sha2 0.11.0",
  "wasmparser 0.256.0",
@@ -832,6 +834,13 @@ dependencies = [
  "semaprax",
  "sha2 0.11.0",
  "wasmtime",
+]
+
+[[package]]
+name = "semaprax-project-revision-store-windows-sys"
+version = "0.1.0"
+dependencies = [
+ "windows-sys",
 ]
 
 [[package]]

@@ -1889,9 +1889,9 @@ fn emit_function(
     if emitter.owned_strings.is_some() {
         for (index, param) in function.params.iter().enumerate() {
             if matches!(param.ty, ResolvedType::String) {
-                if param.ownership != hir::OwnershipMode::Value {
+                if param.ownership != hir::OwnershipMode::Own {
                     return Err(backend_error(
-                        "inline String parameter is not passed by value",
+                        "inline String parameter lacks validated owned classification",
                     ));
                 }
                 let name = format!("spx_param_{index}");

@@ -17,8 +17,8 @@ fn before(zero: i64) -> string {
 }
 @id("s.body")
 fn body(limit: i64) -> string {
-    integer({ let mut i = 0; while { let condition = "condition"; i < 4 } {
-        let iteration = "iteration"; let checked = 1 / (limit - i); i = i + 1; 0
+    integer({ let kept = "across-loop"; let mut i = 0; while i < 4 {
+        let checked = 1 / (limit - i); i = i + 1; 0
     } 0 })
 }
 @id("s.branch")
@@ -26,12 +26,21 @@ fn branch(flag: bool) -> string { sink(if flag { "left" } else { "right" }) }
 @id("s.callee")
 fn callee_failure(zero: i64) -> string { inner("caller-argument", zero) }
 @id("s.clone")
-fn clone_value() -> string { sink({ let a = "alpha\u{0}世界"; let b = a; a }) }
+fn clone_value() -> string { sink({ let a = "alpha\u{0}世界"; let b = a; b }) }
 @id("s.condition")
 fn condition(limit: i64) -> string {
-    integer({ let mut i = 0; while {
-        let condition = "condition"; let checked = 1 / (limit - i); i < 4
-    } { let iteration = "iteration"; i = i + 1; 0 } 0 })
+    integer({ let kept = "across-loop"; let mut i = 0;
+    while { let checked = 1 / (limit - i); i < 4 } {
+        i = i + 1; 0
+    } 0 })
+}
+@id("private.condition-step")
+fn condition_step(limit: i64, i: i64) -> bool {
+    let condition = "condition"; let checked = 1 / (limit - i); i < 4
+}
+@id("private.body-step")
+fn body_step(limit: i64, i: i64) -> i64 {
+    let iteration = "iteration"; let checked = 1 / (limit - i); i + 1
 }
 @id("s.empty")
 fn empty() -> string { "" }
@@ -61,6 +70,20 @@ fn text() -> string { "hello\u{0}世界" }
 
 // These functions are emitted, but deliberately absent from SELECTED. Their
 // raw internal calls below do not widen the public v10 descriptor contract.
+// Per-iteration String helper allocation is exercised only through this
+// private route; v10 scalar closure functions cannot stage String values.
+@id("private.loop-condition")
+fn loop_condition(limit: i64) -> i64 {
+    let mut i = 0;
+    while condition_step(limit, i) { i = body_step(10, i); 0 }
+    i
+}
+@id("private.loop-body")
+fn loop_body(limit: i64) -> i64 {
+    let mut i = 0;
+    while condition_step(10, i) { i = body_step(limit, i); 0 }
+    i
+}
 @id("private.post")
 fn post(flag: bool) -> string
     ensures flag
@@ -69,7 +92,7 @@ fn post(flag: bool) -> string
 fn cloned() -> string {
     let a = "alpha\u{0}世界";
     let b = a;
-    a
+    b
 }
 @id("private.match")
 fn matched(value: i64, flag: bool) -> string {

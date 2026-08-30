@@ -4064,19 +4064,26 @@ impl Resolver<'_> {
             .map(|(index, param)| {
                 let ty = self.resolve_function_type(function, &param.ty, param.span)?;
                 let id = ValueId::parameter(&function_scope, index);
+                // Type parameters range over Copy i64/bool; concrete String
+                // slots use the same implicit ownership as ordinary functions.
+                let ownership = if ty == ResolvedType::String {
+                    OwnershipMode::Own
+                } else {
+                    OwnershipMode::Value
+                };
                 bindings.insert(
                     param.name.clone(),
                     Binding {
                         id: id.clone(),
                         ty: ty.clone(),
-                        ownership: OwnershipMode::Value,
+                        ownership,
                         mutable: false,
                     },
                 );
                 Ok(ResolvedParam {
                     id,
                     name: param.name.clone(),
-                    ownership: OwnershipMode::Value,
+                    ownership,
                     ty,
                     span: param.span,
                 })
@@ -4105,7 +4112,11 @@ impl Resolver<'_> {
             Binding {
                 id: result_id.clone(),
                 ty: return_type.clone(),
-                ownership: OwnershipMode::Value,
+                ownership: if return_type == ResolvedType::String {
+                    OwnershipMode::Own
+                } else {
+                    OwnershipMode::Value
+                },
                 mutable: false,
             },
         );
@@ -8065,7 +8076,7 @@ impl Resolver<'_> {
                         results.push(ResolvedExpr {
                             id: ExpressionId::new(function, &path),
                             ty,
-                            ownership: OwnershipMode::Value,
+                            ownership: resolved[0].value.ownership,
                             kind: ResolvedExprKind::Match {
                                 mode,
                                 scrutinee: Box::new(scrutinee),
@@ -10163,7 +10174,7 @@ impl Resolver<'_> {
                     return Ok(ResolvedExpr {
                         id: ExpressionId::new(function, path),
                         ty: resolved_arms[0].value.ty.clone(),
-                        ownership: OwnershipMode::Value,
+                        ownership: resolved_arms[0].value.ownership,
                         kind: ResolvedExprKind::Match {
                             mode,
                             scrutinee: Box::new(scrutinee),

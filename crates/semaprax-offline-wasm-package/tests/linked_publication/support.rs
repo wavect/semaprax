@@ -164,8 +164,10 @@ fn main() -> i64 { 0 }
     pub fn verify(
         &self,
         build: &LinkedOfflinePackageBuild,
-    ) -> Result<package_build_v2::VerifiedLinkedOfflinePackageBuild, semaprax::diagnostic::Diagnostic>
-    {
+    ) -> Result<
+        package_build_v2::VerifiedLinkedOfflinePackageBuild,
+        Box<semaprax::diagnostic::Diagnostic>,
+    > {
         package_build_v2::verify(
             build,
             &self.capsule,
@@ -176,6 +178,7 @@ fn main() -> i64 { 0 }
             &self.capsule_options,
             &self.build_options,
         )
+        .map_err(Box::new)
     }
 }
 

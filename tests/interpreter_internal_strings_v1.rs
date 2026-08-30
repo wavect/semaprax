@@ -162,7 +162,18 @@ fn internal_calls_match_native_o0_o2_and_raw_wasm_normalized_outcomes() {
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    assert_eq!(String::from_utf8(output.stdout).unwrap(), expected);
+    // Exact contract codes are compared above for native and interpreter.
+    // The legacy raw-Wasm import carries only the contract-failure domain.
+    let wasm_expected = expected
+        .replace(
+            "|semaprax.contract.v1|1\n",
+            "|semaprax.contract.v1|unspecified\n",
+        )
+        .replace(
+            "|semaprax.contract.v1|2\n",
+            "|semaprax.contract.v1|unspecified\n",
+        );
+    assert_eq!(String::from_utf8(output.stdout).unwrap(), wasm_expected);
     assert!(output.stderr.is_empty());
     fixture.cleanup();
 }

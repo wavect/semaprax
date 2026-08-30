@@ -1,5 +1,8 @@
 use std::path::PathBuf;
 use std::process::Command;
+
+#[path = "support/native_rust_cargo.rs"]
+mod native_rust_cargo;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
@@ -278,7 +281,7 @@ fn main() {
 "#,
     )
     .unwrap();
-    let output = Command::new("cargo")
+    let output = native_rust_cargo::cargo_command()
         .current_dir(&consumer)
         .args(["run", "--quiet", "--locked", "--offline", "--manifest-path"])
         .arg(consumer.join("Cargo.toml"))

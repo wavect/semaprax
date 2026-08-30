@@ -2,6 +2,8 @@
 
 Status: **authored, locally unrun, unpublished, and unpromoted**.
 
+Audience: package-tool authors and compiler contributors.
+
 Resolver v2 deterministically selects Subject-v3 packages from a complete,
 caller-owned finite offline catalog. Roots and transitive dependencies use the
 same closed exact/tilde/caret range grammar. Search selects the byte-lowest

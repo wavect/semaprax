@@ -3,6 +3,8 @@
 Status: **authored, locally unrun, unpublished, and unpromoted**. This is a
 separately selected Windows authority, not a supported-platform declaration.
 
+Audience: project-tool authors and platform-host contributors.
+
 ## Additive API and bytes
 
 `project_revision_store::identify_windows`, `persist_windows`, and

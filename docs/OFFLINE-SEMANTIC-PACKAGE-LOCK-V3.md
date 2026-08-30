@@ -2,6 +2,8 @@
 
 Status: **authored, locally unrun, unpublished, and unpromoted**.
 
+Audience: package-tool authors and compiler contributors.
+
 Lock v3 is an additive authority-free proof over one to four caller-supplied
 Semantic Package Subject-v3 envelopes. A Subject v3 authenticates an exact
 Package Report-v2 envelope and a strictly package-sorted list of dependency

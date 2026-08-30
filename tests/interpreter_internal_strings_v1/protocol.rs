@@ -133,6 +133,7 @@ permit { process.stdout.write }
 @id("rust.host") interface RustHost permits {} {
     @id("rust.combine") import rust fn combine(value: i64) -> i64 effects {} failure infallible;
 }
+
 @id("app.main") fn main() -> i64 { combine(1) }
 "#,
             "import_call",
@@ -171,6 +172,36 @@ permit { unsafe }
         );
         fixture.cleanup();
     }
+}
+
+#[test]
+fn internal_string_profile_preserves_the_verifiers_scalar_loop_call_boundary() {
+    let source = r#"module guard.string_loop;
+@id("helper.identity") fn identity(value: string) -> string { value }
+@id("app.main") fn main() -> i64 {
+    let mut count = 0;
+    while count < 4 {
+        let text = identity("loop");
+        count = count + string_len(text);
+        count
+    }
+    count
+}"#;
+    let fixture = Fixture::new(source);
+    for interpret in [interpreter::interpret, internal_strings::interpret] {
+        let errors = interpret(
+            &fixture.source,
+            "app.main",
+            &[],
+            &InterpreterOptions::default(),
+        )
+        .unwrap_err();
+        assert!(
+            errors.iter().any(|error| error.code == "SPX-T252"),
+            "{errors:?}"
+        );
+    }
+    fixture.cleanup();
 }
 
 #[test]

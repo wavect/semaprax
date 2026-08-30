@@ -98,6 +98,17 @@ and empty successful output without retaining String allocations.
 The separately selected sanitizer case adds ASan/UBSan observations; neither
 it nor the ordinary fixture has been executed in this batch.
 
+Custom C fixture entry points bypass the generated entry wrapper's Windows
+stdout setup. The shared test-only `tests/support/native_fixture_stdio.c`
+therefore selects checked binary stdout before any fixture output or semantic
+call. It is included before allocator instrumentation, so CRT headers and
+transport setup are not instrumented provider code. Ordinary, generic,
+stdout-transcript, contents, v8/v9/v10 provider, and internal interpreter/Wasm
+native parity fixtures retain their exact LF byte assertions. No captured
+output is normalized, no allocation oracle changes, and the helper is not part
+of a generated artifact or production runtime. This portability correction is
+authored but unrun on all hosts.
+
 Focused emitter units cover String presence, generic-instance helper
 discovery, bounded output, String-free emission, and frozen profile selection.
 Existing String-operation diagnostics and value-conformance fixtures remain

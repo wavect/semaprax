@@ -80,6 +80,13 @@ U+0000. Native physical fixtures check explicit lengths and `memcmp`, exact
 allocation/free accounting, failure-slot poison, and reuse after failure.
 Terminator-based C assertions cannot establish the contents contract.
 
+The generic String-return fixture also checks the exact four-byte length of
+`a` + U+0000 + `é` after the generic bridge. Equality alone could let a
+terminator-based clone and comparison hide the same truncation. The additional
+length assertion preserves the existing success value and allocation-balance
+checks; it is authored but unrun, like the separate test-only binary-stdout
+setup described in the inline settlement contract.
+
 The value corpus compares interpreter, native O0/O2, and Core-Wasm/Node only
 where those existing profiles admit it. Owned user String signatures remain
 outside the interpreter profile. Node value equality is not physical Wasm

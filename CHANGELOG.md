@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Corrected authored native String fixtures to establish checked binary stdout
+  through one shared test-only helper, including the native sides of internal
+  interpreter/Wasm parity. Exact byte assertions, allocation counters, and
+  generated runtimes remain unchanged. Strengthened the generic NUL corpus
+  with an independent byte-length assertion. All affected tests remain unrun;
+  this is no platform or production promotion.
+
 - Authored standalone owned-data provider String settlement and exact-content
   correction: reuse the existing per-function owner ledger and length-header
   helpers without changing public admission or Bytes ABI. String-bearing full

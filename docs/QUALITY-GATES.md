@@ -21,6 +21,14 @@ A change is ready only when:
 A local green test can support a local claim. It cannot be promoted to hosted,
 public, cross-platform, or production evidence without the corresponding gate.
 
+An exact-byte native fixture that replaces the compiler's entry wrapper must
+establish its own stdout transport mode. String fixtures use the shared
+test-only binary-stdout setup before allocator instrumentation and check setup
+success before semantic execution; retain exact transcript/status bytes rather
+than normalizing away an unintended Windows CRT newline conversion. That setup
+is fixture plumbing, not evidence that the generated runtime or any target gate
+has executed.
+
 ## Standard entry point
 
 Use the routed script on Unix:

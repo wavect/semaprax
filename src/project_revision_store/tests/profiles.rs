@@ -30,6 +30,7 @@ fn authored_profile(label: &str, manifest: &str, sources: &[(&str, &str)]) -> (F
     for (path, source) in sources {
         let destination = root.join(path);
         std::fs::create_dir_all(destination.parent().unwrap()).unwrap();
+        let source = crate::format::canonical(&crate::parse(source, Path::new(path)).unwrap());
         std::fs::write(destination, source).unwrap();
     }
     std::fs::write(root.join("semaprax.toml"), manifest).unwrap();

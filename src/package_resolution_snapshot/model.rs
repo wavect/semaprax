@@ -2,6 +2,36 @@ use crate::diagnostic::Diagnostic;
 
 use super::{limit_error, MAX_SNAPSHOT_BYTES};
 
+pub(super) fn preflight_requirements(
+    requirements: &[crate::package_resolver::Requirement],
+) -> Result<(), Diagnostic> {
+    validate_requirement_count(requirements.len())?;
+    for requirement in requirements {
+        validate_range_length(requirement.range.len())?;
+    }
+    Ok(())
+}
+
+pub(super) fn validate_requirement_count(count: usize) -> Result<(), Diagnostic> {
+    if count == 0 || count > crate::package_resolver::MAX_REQUIREMENTS {
+        return Err(super::input_error(
+            "snapshot requirement count is outside bounds",
+        ));
+    }
+    Ok(())
+}
+
+pub(super) fn validate_range_length(bytes: usize) -> Result<(), Diagnostic> {
+    // Only borrowing length admission belongs here. The unchanged Resolver-v1
+    // remains responsible for the complete canonical range grammar.
+    if bytes > 33 {
+        return Err(super::input_error(
+            "snapshot requirement range exceeds its byte bound",
+        ));
+    }
+    Ok(())
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolutionSnapshot {
     pub input_json: String,

@@ -28,6 +28,7 @@ pub(super) fn render_input(
     input: &ResolutionInput,
     options: &ResolutionOptions,
 ) -> Result<String, Diagnostic> {
+    super::model::preflight_requirements(&input.requirements)?;
     ResolutionOptions::new(options.max_bytes)
         .map_err(|_| input_error("snapshot Resolver-v1 options are invalid"))?;
     if input.subjects.is_empty() || input.subjects.len() > crate::package_resolver::MAX_SUBJECTS {
@@ -177,15 +178,21 @@ pub(super) fn parse_input(wire: &str) -> Result<ParsedInput, Diagnostic> {
         ],
         "limits",
     )?;
-    let requirements = payload_value["requirements"]
+    let requirement_rows = payload_value["requirements"]
         .as_array()
-        .ok_or_else(|| wire_error("snapshot requirements must be an array"))?
+        .ok_or_else(|| wire_error("snapshot requirements must be an array"))?;
+    super::model::validate_requirement_count(requirement_rows.len())?;
+    let requirements = requirement_rows
         .iter()
         .map(|row| {
             require_keys(row, &["package", "range"], "requirement")?;
+            let range = row["range"]
+                .as_str()
+                .ok_or_else(|| wire_error("snapshot range must be a string"))?;
+            super::model::validate_range_length(range.len())?;
             Ok(Requirement {
                 package: required_string(row, "package")?,
-                range: required_string(row, "range")?,
+                range: range.to_owned(),
             })
         })
         .collect::<Result<Vec<_>, Diagnostic>>()?;

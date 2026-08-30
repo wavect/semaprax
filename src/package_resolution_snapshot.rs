@@ -41,6 +41,8 @@ pub fn generate(
     options: &ResolutionOptions,
     resolution_evidence: &str,
 ) -> Result<ResolutionSnapshot, Diagnostic> {
+    // Bound public caller-owned ranges before Resolver-v1 can retain them.
+    model::preflight_requirements(&input.requirements)?;
     let resolution = package_resolver::verify(resolution_evidence, input, options)
         .map_err(map_resolver_error)?;
     let input_json = wire::render_input(input, options)?;

@@ -1,4 +1,49 @@
 #[test]
+fn caller_requirement_lengths_reject_before_resolver_replay_or_rendering() {
+    use crate::package_resolver::{Requirement, ResolutionInput, ResolutionOptions};
+    let mut input = ResolutionInput {
+        requirements: vec![Requirement {
+            package: "fixture".to_owned(),
+            range: "=4294967295.4294967295.4294967295".to_owned(),
+        }],
+        subjects: vec![],
+        target: "native64".to_owned(),
+        allowed_capabilities: vec![],
+    };
+    assert_eq!(input.requirements[0].range.len(), 33);
+    super::model::preflight_requirements(&input.requirements).unwrap();
+    super::model::validate_requirement_count(4).unwrap();
+    for count in [0, 5] {
+        assert_eq!(
+            super::model::validate_requirement_count(count)
+                .unwrap_err()
+                .code,
+            "SPX-PK501"
+        );
+    }
+    for range in [
+        format!("{}0", input.requirements[0].range),
+        "=".to_owned() + &"1".repeat(1024 * 1024),
+    ] {
+        input.requirements[0].range = range;
+        // Invalid evidence would otherwise be rejected by Resolver-v1 wire
+        // admission; PK501 proves the borrowing input guard takes precedence.
+        assert_eq!(
+            super::generate(&input, &ResolutionOptions::default(), "not evidence")
+                .unwrap_err()
+                .code,
+            "SPX-PK501"
+        );
+        assert_eq!(
+            super::wire::render_input(&input, &ResolutionOptions::default())
+                .unwrap_err()
+                .code,
+            "SPX-PK501"
+        );
+    }
+}
+
+#[test]
 fn frozen_framing_derivation_is_exact() {
     assert_eq!(super::wire::fixed_framing_fixture_bytes(), 1_114);
     assert_eq!(super::MAX_REQUIREMENT_FRAMING_BYTES, 1_255);

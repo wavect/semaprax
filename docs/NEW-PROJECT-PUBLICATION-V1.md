@@ -50,6 +50,21 @@ Files are written create-new through retained directory authority. Source and
 root inventories are authenticated before descendant settlement and rename.
 No byte digest or pathname alone grants deletion or publication authority.
 
+Generated staging names must be distinct from the requested destination.
+The CLI skips an exact or ASCII-case-equivalent candidate within its existing
+32-attempt budget, before acquiring an authority that creates directories.
+The lower authority independently rejects that pair with `Invalid` before
+namespace creation; an already-existing output retains `Exists` precedence.
+This prevents `.semaprax-new-<pid>-<serial>` from becoming the final path while
+the calculator is still being staged. It does not reject that CLI destination:
+the next noncolliding staging candidate can still publish to it.
+
+The generated names are ASCII, and Windows already limits these child names
+to ASCII. The comparison conservatively excludes ASCII-case aliases on Unix
+too; it is not a general Unicode normalization or filesystem-name equivalence
+oracle. Arbitrary Unix names and unusual filesystem alias rules remain a
+separate authority boundary, not a guarantee supplied by this comparison.
+
 ## Publication and success binding
 
 Publication remains one same-parent no-replace directory rename. The shared
@@ -112,6 +127,13 @@ inputs; substitution after physical rename of the published directory and its
 parent; original ancestor-alias displacement; unchanged foreign sentinels and
 the displaced original inventory after error and drop; and partial/untracked
 stage residue that is not adopted for cleanup.
+
+Staging-name regressions must use invocation-local candidate selection rather
+than racing or resetting the process-global serial. Cover exact and ASCII-case
+collisions, the unchanged attempt ceiling, successful publication with exact
+template bytes, final-path absence during staging/writes and injected failure,
+and lower-level rejection without creating any child. Existing-output errors
+and foreign bytes must remain unchanged. These cases are authored but unrun.
 
 Windows-specific tests must force the extended-to-legacy transition and inspect
 the actual submitted replacement field. They also exercise native legacy

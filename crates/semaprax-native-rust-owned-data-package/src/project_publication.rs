@@ -52,7 +52,14 @@ impl NewProjectAuthority {
         if !platform::child_absent_prepared(&parent, &output).map_err(map_changed)? {
             return Err(NewProjectAuthorityError::Exists);
         }
-        let stage_name = platform::prepare_stage_name(stage_name).map_err(map_invalid)?;
+        let prepared_stage = platform::prepare_stage_name(stage_name).map_err(map_invalid)?;
+        if stage_name
+            .as_encoded_bytes()
+            .eq_ignore_ascii_case(output_name.as_encoded_bytes())
+        {
+            return Err(NewProjectAuthorityError::Invalid);
+        }
+        let stage_name = prepared_stage;
         let source_name = platform::prepare_stage_name(OsStr::new("src")).map_err(map_invalid)?;
         let empty = platform::prepare_discard_inventory([]).map_err(map_invalid)?;
         let root =

@@ -58,6 +58,8 @@ filesystem authority. See [development](DEVELOPMENT.md) for binary selection.
 
 The full toolchain's calculator generator checks exact owned template bytes
 before staging through `NewProjectAuthority` in the lower package crate.
+Staging selection excludes exact/ASCII-case-equivalent destination names before
+creation; the lower authority independently rejects the same collision.
 Publication latches before final held-byte and destination-path authentication;
 the CLI additionally rechecks the original requested parent spelling. Failure
 after that latch cannot regain cleanup authority. See [Calculator project
@@ -559,6 +561,7 @@ The subsequent shared [owned npm invocation state](OWNED-NPM-INVOCATION-V1.md)
 is composed by `src/project/npm/owned_invocation.rs` from small private arena,
 instantiation, invocation, result and facade templates under
 `src/project/npm/owned_invocation/`. It reserves busy before preflight,
+rejects non-string export identities without caller-controlled coercion,
 authenticates recoverable semantic failures by
 exact local error identity, and makes post-entry uncertainty and caught reentry
 absorbing poison. Arena imports and result publication observe that same state;

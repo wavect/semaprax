@@ -48,6 +48,10 @@ The same promotion boundary includes the authored
 [owned npm invocation failure-state correction](OWNED-NPM-INVOCATION-V1.md).
 Its real-package poison, reentry, exact failure-identity and post-consumption
 UTF-8 cases must execute before treating v8/v9/v10 lifecycle handling as proven.
+That gate includes inert export-identity rejection with same-instance recovery.
+The separate [calculator publication gate](NEW-PROJECT-PUBLICATION-V1.md) must
+also exercise staging/destination collisions before first-use publication can
+be treated as proven. Neither authored correction promotes support.
 
 Dependency integrations must preserve locked standalone consumers and exact
 validator-version evidence bindings. The wasmparser 0.258.0 and Android runner

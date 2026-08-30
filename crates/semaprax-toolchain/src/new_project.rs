@@ -88,6 +88,17 @@ pub(crate) fn create_with_hook(
     name: &str,
     hook: &dyn WriteHook,
 ) -> Result<PathBuf, NewProjectFailure> {
+    create_with_serial(destination, name, hook, &mut || {
+        STAGING_SERIAL.fetch_add(1, Ordering::Relaxed)
+    })
+}
+
+fn create_with_serial(
+    destination: &Path,
+    name: &str,
+    hook: &dyn WriteHook,
+    serial: &mut dyn FnMut() -> u64,
+) -> Result<PathBuf, NewProjectFailure> {
     // Capture the caller's spelling once; do not adopt a later alias target.
     let requested_destination = std::path::absolute(destination).map_err(|error| {
         NewProjectFailure::creation(format!("cannot resolve new project destination: {error}"))
@@ -131,7 +142,7 @@ pub(crate) fn create_with_hook(
             "new project parent identity changed during canonicalization",
         ));
     }
-    let (mut authority, staging) = create_staging_authority(&parent, file_name)?;
+    let (mut authority, staging) = create_staging_authority(&parent, file_name, serial)?;
     hook.after_stage_created().map_err(|error| {
         NewProjectFailure::creation(format!(
             "injected failure after staged project creation: {error}"
@@ -279,10 +290,19 @@ fn validate_name(name: &str) -> Result<(), String> {
 fn create_staging_authority(
     parent: &Path,
     output_name: &std::ffi::OsStr,
+    serial: &mut dyn FnMut() -> u64,
 ) -> Result<(NewProjectAuthority, PathBuf), NewProjectFailure> {
     for _ in 0..MAX_STAGING_ATTEMPTS {
-        let serial = STAGING_SERIAL.fetch_add(1, Ordering::Relaxed);
+        let serial = serial();
         let name = format!(".semaprax-new-{}-{serial}", std::process::id());
+        // The generated ASCII staging leaf must not be the final leaf. This
+        // conservative comparison is not Unicode filesystem normalization.
+        if name
+            .as_bytes()
+            .eq_ignore_ascii_case(output_name.as_encoded_bytes())
+        {
+            continue;
+        }
         match NewProjectAuthority::create(parent, output_name, std::ffi::OsStr::new(&name)) {
             Ok(authority) => return Ok((authority, parent.join(name))),
             Err(NewProjectAuthorityError::StageExists) => continue,

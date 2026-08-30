@@ -118,6 +118,17 @@ Unknown export identity consistently reports `RangeError`; v9 previously used
 `TypeError` for that rejection. Argument count/type rejection remains
 `TypeError`. These preflight errors remain reusable and do not enter Wasm.
 
+Export selection admits primitive strings only. A non-string identity is
+rejected with `RangeError("SEMAPRAX export identity must be a string")` before
+lookup or diagnostic formatting, without reading properties or invoking
+conversion hooks. Previously, interpolation of an unknown object could run
+caller code while busy and poison an otherwise reusable instance; a Symbol
+could instead throw `TypeError` during formatting. Unknown primitive strings
+retain their exact existing diagnostic. Poison and busy checks still precede
+identity admission: a genuinely nested call remains fail-stop regardless of
+the nested identity's type. This changes only selected runtime JavaScript and
+its dependent integrity bindings, not the string-keyed public API.
+
 The shared runtime state belongs in small private generator-owned JavaScript
 helpers, with explicit v8/v9/v10 selection in the existing owned-data and flat
 record renderers. Do not widen an earlier profile or edit generated package
@@ -143,6 +154,8 @@ Test-only engine/import wrappers inject failures without runtime source
 rewriting or production fault hooks. The matrix includes:
 
 - pre-entry rejection followed by successful reuse;
+- non-string and hostile export identities without property reads, coercion,
+  scratch mutation or engine entry, followed by same-instance reuse;
 - actual checked-status cleanup followed by successful reuse;
 - post-entry `TypeError`/`RangeError`, before mint and after initialized owners;
 - actual consume followed by invalid UTF-8 decoding failure;

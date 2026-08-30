@@ -9,6 +9,8 @@ function createOwnedInvocation(linked,facts,memoryBytes){
     function select(error){if(!hasPrimary){hasPrimary=true;primary=error}}
     busy=true;
     try{
+      // Reject without coercion: an unknown identity must not run caller hooks.
+      if(typeof id!=="string")throw new RangeError("SEMAPRAX export identity must be a string");
       const fact=facts.get(id);
       if(!fact)throw new RangeError(`unknown SEMAPRAX export: ${id}`);
       if(values.length!==fact.params.length)throw new TypeError("SEMAPRAX argument count disagrees");

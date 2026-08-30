@@ -118,6 +118,11 @@ fn consume(
         include_str!("project_owned_failure_fsm_v1/utf8.mjs"),
     )
     .unwrap();
+    fs::write(
+        directory.join("identity.mjs"),
+        include_str!("project_owned_failure_fsm_v1/identity.mjs"),
+    )
+    .unwrap();
     let output = Command::new("node")
         .arg("probe.mjs")
         .arg(config.to_string())
@@ -137,6 +142,7 @@ fn consume(
     let mut names = ARTIFACTS.to_vec();
     names.push("probe.mjs");
     names.push("utf8.mjs");
+    names.push("identity.mjs");
     remove_exact(&directory, &names);
 }
 

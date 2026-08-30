@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import instantiate from './semaprax.bindings.js';
 import {exerciseValidator,faultValidator} from './utf8.mjs';
+import {exerciseIdentities,exerciseBusyIdentities} from './identity.mjs';
 
 const config=JSON.parse(process.argv[2]);
 const wasm=Uint8Array.from(readFileSync('app.wasm'));
@@ -42,7 +43,7 @@ async function fixture(fault={}){
       const carrier=original.spx_bytes_copy(...args);mints++;
       if(fault.kind==='post-mint')throw fault.value;
       if(fault.kind==='reenter-import'){
-        assert(capture(()=>api.call('case.copy',input,1n)).threw);
+        assert(capture(()=>api.call(Object.hasOwn(fault,'identity')?fault.identity:'case.copy',input,1n)).threw);
         const attempted=capture(()=>{original.spx_bytes_copy(...args);importsAfterReentry++});
         blockedImport=attempted.threw;
       }
@@ -78,7 +79,7 @@ async function fixture(fault={}){
         }
         if(fault.kind==='reenter-publication'){
           assert.equal(status,0);
-          assert(capture(()=>api.call('case.copy',input,1n)).threw);
+          assert(capture(()=>api.call(Object.hasOwn(fault,'identity')?fault.identity:'case.copy',input,1n)).threw);
           // Simulate an engine wrapper swallowing the nested exception and
           // offering a genuinely initialized successful result to the facade.
         }
@@ -93,6 +94,7 @@ async function fixture(fault={}){
 
 const baseline=await fixture();
 assertSuccess(baseline.api);
+exerciseIdentities(baseline,assertSuccess,resultSize);
 const beforeInvalid=baseline.counters().entries;
 for(const action of [
   ()=>baseline.api.call('missing'),
@@ -162,6 +164,7 @@ await poisoned({kind:'throw',value:getterError});assert.equal(markerReads,0);
 for(const value of [-1,1.5,NaN,Infinity,11,99,'4',4n,undefined])await poisoned({kind:'status',value});
 await poisoned({kind:'reenter-import'});
 await poisoned({kind:'reenter-publication'});
+await exerciseBusyIdentities(poisoned);
 for(const kind of ['utf8-stale','utf8-extent','utf8-memory'])await poisoned({kind});
 await poisoned({kind:'utf8-read',value:new TypeError('authenticated UTF-8 read failed')});
 

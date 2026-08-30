@@ -1,6 +1,110 @@
 //! Namespace observations after publication; no runtime hook is exported.
 use super::*;
 
+struct BeforePublication {
+    destination: PathBuf,
+    fail_stage: bool,
+    fail_write: Option<usize>,
+    writes: std::cell::Cell<usize>,
+}
+
+impl WriteHook for BeforePublication {
+    fn after_stage_created(&self) -> Result<(), String> {
+        assert_eq!(
+            fs::symlink_metadata(&self.destination).unwrap_err().kind(),
+            std::io::ErrorKind::NotFound
+        );
+        if self.fail_stage {
+            Err("stage boundary".to_owned())
+        } else {
+            Ok(())
+        }
+    }
+
+    fn before_write(&self, index: usize, _path: &str) -> Result<(), String> {
+        assert_eq!(
+            fs::symlink_metadata(&self.destination).unwrap_err().kind(),
+            std::io::ErrorKind::NotFound
+        );
+        self.writes.set(self.writes.get() + 1);
+        if self.fail_write == Some(index) {
+            Err("write boundary".to_owned())
+        } else {
+            Ok(())
+        }
+    }
+}
+
+#[test]
+fn staging_collision_is_skipped_before_any_final_path_creation() {
+    for uppercase in [false, true] {
+        for failure in [None, Some(0), Some(1), Some(3)] {
+            let (root, _) = fixture(false);
+            let leaf = format!(".semaprax-new-{}-7", std::process::id());
+            let leaf = if uppercase {
+                leaf.to_ascii_uppercase()
+            } else {
+                leaf
+            };
+            let destination = root.join(&leaf);
+            let hook = BeforePublication {
+                destination: destination.clone(),
+                fail_stage: failure == Some(0),
+                fail_write: failure.filter(|value| *value != 0).map(|value| value - 1),
+                writes: std::cell::Cell::new(0),
+            };
+            let mut supplied = 0;
+            let result = create_with_serial(&destination, "calculator", &hook, &mut || {
+                supplied += 1;
+                match supplied {
+                    1 => 7,
+                    2 => 8,
+                    _ => panic!("unexpected staging attempt"),
+                }
+            });
+            assert_eq!(supplied, 2);
+            if let Some(expected_writes) = failure {
+                let error = result.unwrap_err();
+                assert_eq!(error.exit_code(), 1);
+                assert!(error.to_string().contains("injected"));
+                assert_eq!(hook.writes.get(), expected_writes);
+                assert_eq!(
+                    fs::symlink_metadata(&destination).unwrap_err().kind(),
+                    std::io::ErrorKind::NotFound
+                );
+                assert!(names(&root).is_empty());
+            } else {
+                assert_eq!(result.unwrap(), destination);
+                assert_eq!(hook.writes.get(), 4);
+                assert_eq!(names(&root), [leaf]);
+                remove_project(&destination);
+            }
+            assert!(names(&root).is_empty());
+            fs::remove_dir(root).unwrap();
+        }
+    }
+}
+
+#[test]
+fn skipped_collisions_consume_the_existing_attempt_budget() {
+    let (root, _) = fixture(false);
+    let destination = root.join(format!(".semaprax-new-{}-7", std::process::id()));
+    let mut supplied = 0;
+    let error = create_with_serial(&destination, "calculator", &NoopWriteHook, &mut || {
+        supplied += 1;
+        7
+    })
+    .unwrap_err();
+    assert_eq!(supplied, 32);
+    assert_eq!(error.exit_code(), 1);
+    assert_eq!(
+        error.to_string(),
+        "cannot allocate a fresh same-parent new project staging directory"
+    );
+    assert!(names(&root).is_empty());
+    fs::remove_dir(root).unwrap();
+}
+
 fn fixture(relative: bool) -> (PathBuf, PathBuf) {
     let name = format!(
         ".semaprax-new-cli-binding-{}-{}-{}",

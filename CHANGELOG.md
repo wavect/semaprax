@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Reject non-string owned npm export identities without formatting or invoking
+  caller conversion hooks. This fixes Symbol error classification and prevents
+  invalid-ID rejection from causing reentry and poisoning an idle instance.
+  Existing poison/busy precedence and unknown-string errors are preserved.
+  Only v8/v9/v10 runtime JavaScript and dependent integrity bindings change;
+  the seven-package regression matrix and historical-byte controls are unrun.
+
+- Exclude exact/ASCII-case-equivalent calculator staging/destination names
+  before creation, retaining the existing attempt limit and output-exists
+  precedence. A requested destination matching a generated staging name can
+  still succeed through another candidate, without exposing partial template
+  files there. Physical publication/failure regressions are authored but unrun;
+  templates and schemas stay unchanged, with no general Unicode filesystem
+  alias-equivalence claim.
+
 - Added a separate 72-case frame-format conformance supplement while retaining
   the original nine-case product corpus and native/raw-Wasm checkpoints.
   Baseline and renamed Project subjects share the extra length-bit, truncation,

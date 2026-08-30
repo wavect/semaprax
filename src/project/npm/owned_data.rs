@@ -660,7 +660,7 @@ mod hostile_source_tests {
         for (rendered, expected) in [
             (
                 render_runtime_prelude_with_admission("digest", true, 16),
-                "54984891e42a61f52b66a063a0c92b0ee200057710079a1f998276fd659b6e3f",
+                "8b2560ae6bca031f27b326e32fa5240821c7c52627fe2b8546980703578e264f",
             ),
             (
                 render_runtime_facade(&[], true),
@@ -677,6 +677,20 @@ mod hostile_source_tests {
         ] {
             assert_eq!(hex_sha256(rendered.as_bytes()), expected);
         }
+    }
+
+    #[test]
+    fn identity_guard_is_the_only_change_to_the_previous_bounded_prelude() {
+        let rendered = render_runtime_prelude_with_admission("digest", true, 16);
+        let guard = concat!(
+            "      // Reject without coercion: an unknown identity must not run caller hooks.\n",
+            "      if(typeof id!==\"string\")throw new RangeError(\"SEMAPRAX export identity must be a string\");\n",
+        );
+        assert_eq!(rendered.matches(guard).count(), 1);
+        assert_eq!(
+            hex_sha256(rendered.replacen(guard, "", 1).as_bytes()),
+            "54984891e42a61f52b66a063a0c92b0ee200057710079a1f998276fd659b6e3f"
+        );
     }
 
     #[test]

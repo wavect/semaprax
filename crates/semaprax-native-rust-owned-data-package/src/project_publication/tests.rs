@@ -11,6 +11,27 @@ const FILES: [(&str, &[u8]); 4] = [
     ("src/tests.spx", b"tests\n"),
 ];
 
+#[test]
+fn stage_and_output_collision_rejects_before_creating_children() {
+    for output in ["stage", "STAGE"] {
+        let root = fixture();
+        assert!(matches!(
+            NewProjectAuthority::create(&root, OsStr::new(output), OsStr::new("stage")),
+            Err(NewProjectAuthorityError::Invalid)
+        ));
+        assert!(names(&root).is_empty());
+        fs::create_dir(root.join(output)).unwrap();
+        assert!(matches!(
+            NewProjectAuthority::create(&root, OsStr::new(output), OsStr::new("stage")),
+            Err(NewProjectAuthorityError::Exists)
+        ));
+        assert_eq!(names(&root), [OsString::from(output)]);
+        assert!(names(&root.join(output)).is_empty());
+        fs::remove_dir(root.join(output)).unwrap();
+        fs::remove_dir(root).unwrap();
+    }
+}
+
 fn fixture() -> PathBuf {
     let path = std::env::temp_dir().join(format!(
         "semaprax-new-binding-{}-{}-{}",

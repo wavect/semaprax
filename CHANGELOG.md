@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added a private doctor pre-exec Linux seccomp/no-new-privileges layer on
+  native64 little-endian x86-64/AArch64. Socket creation, including local socket
+  pairs, and six related asynchronous-I/O/descriptor/process syscalls fail
+  closed; unsupported ABIs and setup failures never retry unfiltered. Authored
+  policy, inheritance, unfiltered-host and failed-install regressions are unrun.
+  This is partial isolation with explicit tool-compatibility limits, not full
+  no-network enforcement; discovery/filesystem/brokers and macOS/Windows remain
+  open. No dependency, root unsafe code, or authenticated build-runner change.
+
 - Moved Windows Project v8–v10 npm/Web publication to the private full toolchain
   with compiler-prepared six-file plans and existing held-handle filesystem
   authority. Standalone publication rejects before output effects; the private

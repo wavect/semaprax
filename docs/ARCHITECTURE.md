@@ -79,8 +79,13 @@ The full-toolchain CLI doctor routes fixed `--version` probes through the safe
 quarantine's separate `doctor/` module. That module owns bounded combined
 output, deadline observation, and private Unix-group or Windows-job settlement;
 it does not alter the authenticated build runner. The private CLI retains report
-policy and UTF-8/version parsing, with no unsafe code. Trusted installed tools
-remain outside a network sandbox; see the [doctor lifecycle
+policy and UTF-8/version parsing, with no unsafe code. Native64 little-endian
+Linux x86-64/AArch64 probes additionally install an inherited no-new-privileges
+and seccomp syscall-denial layer before exec; unsupported Linux ABIs and setup
+failures cannot fall back to unfiltered execution. This also denies local socket
+pairs and can reject tools relying on them. Trusted installed tools still
+lack complete no-network isolation, including discovery, filesystem and broker
+paths; macOS/Windows isolation is unchanged. See the [doctor lifecycle
 contract](DOCTOR-PROBE-V1.md).
 
 ### Canonical source

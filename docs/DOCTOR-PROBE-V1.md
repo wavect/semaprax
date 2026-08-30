@@ -62,7 +62,8 @@ exit observation and an independent bounded enumeration proving there are no
 other group members. A live or uninspectable group's denial remains fail-stop.
 
 Linux uses preallocated async-signal-safe child setup followed by `execve`,
-requiring `close_range` support to exclude unrelated inherited descriptors.
+requiring `close_range` support to exclude unrelated inherited descriptors and
+the inherited syscall guard below before executing the tool.
 macOS uses `posix_spawn` with `CLOEXEC_DEFAULT`, exact standard-handle actions,
 and a held working-directory action. Descriptor exclusion does not depend on
 the current soft file limit or a racy enumeration of inherited descriptors.
@@ -79,6 +80,39 @@ Environment filtering and disabling rustup auto-install do **not** enforce the
 programme's no-network requirement. That WP-05 gate remains open; tools may
 still read their own configuration and invoke OS facilities.
 
+## Linux inherited syscall guard (partial isolation)
+
+The Linux launch admits native 64-bit little-endian x86-64 and AArch64 only.
+Other Linux ABIs return `Unsupported` during launch preparation, before fork;
+there is no unfiltered fallback. After closing unrelated descriptors, the child
+sets `PR_SET_NO_NEW_PRIVS` and installs a classic-BPF seccomp filter before
+`execve`. Either setup failure exits the child without executing the tool and
+uses the existing failure/settlement path. The parent remains unfiltered.
+
+The filter authenticates the kernel-reported audit architecture before decoding
+syscall numbers; foreign architectures and x86 x32 invocations kill the process.
+It returns `EPERM` for `socket`, `socketpair`, `io_uring_setup`, `io_uring_enter`,
+`io_uring_register`, `pidfd_getfd`, `ptrace`, and `process_vm_writev`. Other
+syscalls remain admitted. This closes direct socket creation and the enumerated
+descriptor-acquisition/asynchronous-I/O/process-injection routes; it is not a
+default-deny executable sandbox. The restrictions survive fork and exec and
+cannot be relaxed by the tool. See the [Linux seccomp contract](https://docs.kernel.org/userspace-api/seccomp_filter.html).
+
+`socketpair` is denied even for anonymous local IPC. Tools requiring any denied
+call can fail a version probe; ABI admission is not a promise of compatibility
+with every tool or libc. In particular, some [Rust process-spawn paths](https://doc.rust-lang.org/src/std/sys/process/unix/unix.rs.html)
+use a local socket pair. Existing Command-based descendant fixtures remain
+required, independently of the controlled fork/exec filter-inheritance fixture.
+No compatibility failure may trigger an unsandboxed retry or be hidden by
+weakening those fixtures.
+
+This layer does **not** complete WP-05's no-network requirement. Parent PATH
+discovery and metadata lookup happen before it; network-backed filesystem
+access, tool/loader/configuration reads, and external filesystem/IPC brokers
+remain outside its guarantee. macOS and Windows do not gain this guard. Full
+cross-platform no-network admission requires a separately reviewed offline
+discovery/tool-input closure and enforceable OS boundary; it remains open.
+
 ## Authored evidence
 
 The sys `doctor::tests` fixtures cover fixed argv/basename, null stdin, exact
@@ -88,6 +122,14 @@ ordinary injected failures, and subprocess-only fail-stop uncertainty.
 Separate subprocess fixtures cover descriptor exclusion above a lowered macOS
 soft limit and rejection of incompatible Unix child-reaping dispositions.
 Existing CLI fake-host, version-token, PATH, and multicall tests remain required.
+Linux adds a pure interpreter of the actual BPF instruction vectors for both
+admitted ABIs, foreign-architecture/x32 rejection, and exact deny/allow decisions.
+Physical fixtures calibrate unguarded socket creation before and after guarded
+invocations, assert actual kernel denial and inherited no-new-privileges/filter
+state in a tool and exec descendant, and force real kernel filter-installation
+rejection to prove the executable-entry marker is never created. Unsupported
+Linux ABIs have an explicit pre-fork rejection case, not output/settlement
+support evidence. These new fixtures are also unrun.
 
 ```sh
 cargo test --locked -p semaprax-native-rust-interop-platform-sys doctor::tests

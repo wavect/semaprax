@@ -50,6 +50,7 @@ enum Fault {
     Spawn,
     Assign,
     Resume,
+    SocketGuard,
 }
 
 struct Prepared {

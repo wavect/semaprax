@@ -40,9 +40,12 @@ unrun, and not promotion evidence. The generated Rust facade now guards
 whole-context settlement before outward results, and the frame-payload product
 has locked/offline Rust plus explicitly provisioned TypeScript and Chromium
 fixtures. Execute these authored gates and the separate bounded doctor
-subprocess/descendant settlement fixtures before promotion. Doctor still needs
-the programme's no-network guarantee; filtering environment variables is not
-OS network isolation.
+subprocess/descendant settlement fixtures before promotion. Doctor now has an
+authored native64 Linux pre-exec inherited syscall guard, with explicit ABI and
+tool-compatibility limits and real filter-rejection/descendant fixtures. Execute
+those gates too. The programme's full no-network guarantee still needs offline
+discovery and tool-input closure plus filesystem/broker and macOS/Windows
+isolation; neither environment filtering nor the Linux denylist completes it.
 
 The same promotion boundary includes the authored
 [owned npm invocation failure-state correction](OWNED-NPM-INVOCATION-V1.md).

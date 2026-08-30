@@ -2,10 +2,11 @@
 use super::*;
 use std::process::Command;
 use std::sync::OnceLock;
-use std::time::Instant;
 
 #[cfg(target_os = "macos")]
 mod darwin;
+#[cfg(target_os = "linux")]
+mod linux;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 mod unix;
 
@@ -54,6 +55,10 @@ fn fixture(name: &str) -> PathBuf {
             "fault-settle-descendant",
             "fault-close-descendant",
             "closed-high-fd",
+            "socket-control",
+            "socket-guard",
+            "socket-descendant",
+            "socket-setup-sentinel",
         ] {
             std::fs::hard_link(
                 &binary,
@@ -149,7 +154,16 @@ fn environment_total_includes_forced_row_and_block_terminator() {
 }
 
 #[test]
-#[cfg(any(target_os = "linux", target_os = "macos", windows))]
+#[cfg(any(
+    target_os = "macos",
+    windows,
+    all(
+        target_os = "linux",
+        target_pointer_width = "64",
+        target_endian = "little",
+        any(target_arch = "x86_64", target_arch = "aarch64")
+    )
+))]
 fn physical_probe_bounds_output_and_settles_before_return() {
     for (name, expected) in [
         ("normal", Ok(b"rustc 1.88.0 (fixture)\n".to_vec())),
@@ -181,14 +195,23 @@ fn physical_probe_bounds_output_and_settles_before_return() {
     for name in ["sleep", "closed-sleep"] {
         let mut prepared = prepare(&fixture(name)).unwrap();
         prepared.limits.run = Duration::from_millis(100);
-        let start = Instant::now();
+        let start = std::time::Instant::now();
         assert_eq!(run(&prepared), Err(ProbeError::Timeout));
         assert!(start.elapsed() < Duration::from_secs(7));
     }
 }
 
 #[test]
-#[cfg(any(target_os = "linux", target_os = "macos", windows))]
+#[cfg(any(
+    target_os = "macos",
+    windows,
+    all(
+        target_os = "linux",
+        target_pointer_width = "64",
+        target_endian = "little",
+        any(target_arch = "x86_64", target_arch = "aarch64")
+    )
+))]
 fn physical_probe_faults_are_sticky_and_uncertainty_is_fail_stop() {
     for (fault, expected) in [
         (Fault::Spawn, ProbeError::Spawn),
@@ -248,7 +271,15 @@ fn settlement_fault_subprocess() {
     println!("probe-returned");
 }
 
-#[cfg(unix)]
+#[cfg(any(
+    target_os = "macos",
+    all(
+        target_os = "linux",
+        target_pointer_width = "64",
+        target_endian = "little",
+        any(target_arch = "x86_64", target_arch = "aarch64")
+    )
+))]
 fn assert_stopped(pid: u32) {
     assert!(pid > 0 && pid <= i32::MAX as u32);
     assert_eq!(

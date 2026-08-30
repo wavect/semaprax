@@ -6,15 +6,23 @@ use std::os::unix::ffi::OsStrExt as _;
 
 #[cfg(target_os = "macos")]
 mod darwin;
+#[cfg(target_os = "linux")]
+mod linux_socket_guard;
 
 pub(super) struct Launch {
     path: CString,
     cwd: CString,
     environment: Vec<CString>,
+    #[cfg(all(test, target_os = "linux"))]
+    reject_socket_guard: bool,
 }
 
 impl Launch {
     pub(super) fn prepare(probe: &Prepared) -> Result<Self, ProbeError> {
+        #[cfg(target_os = "linux")]
+        if !linux_socket_guard::supported() {
+            return Err(ProbeError::Unsupported);
+        }
         let path =
             CString::new(probe.path.as_os_str().as_bytes()).map_err(|_| ProbeError::Invalid)?;
         let cwd =
@@ -33,6 +41,8 @@ impl Launch {
             path,
             cwd,
             environment,
+            #[cfg(all(test, target_os = "linux"))]
+            reject_socket_guard: probe.injected(super::super::Fault::SocketGuard),
         })
     }
 
@@ -66,6 +76,12 @@ impl Launch {
                     libc::_exit(126);
                 }
                 if libc::syscall(libc::SYS_close_range, 3_u32, u32::MAX, 0_u32) != 0 {
+                    libc::_exit(126)
+                }
+                if !linux_socket_guard::install(
+                    #[cfg(test)]
+                    self.reject_socket_guard,
+                ) {
                     libc::_exit(126)
                 }
                 libc::execve(self.path.as_ptr(), argv.as_ptr(), environment.as_ptr());

@@ -629,7 +629,23 @@ fn collect_operation_type_occurrences(
     imports: &mut [WorkspaceOperationImport],
 ) -> Result<(), Vec<Diagnostic>> {
     let Type::Named { name, arguments } = source else {
-        return if matches!(resolved, hir::ResolvedType::I64 | hir::ResolvedType::Bool) {
+        use hir::ResolvedType as R;
+        return if matches!(
+            (source, resolved),
+            (Type::I64, R::I64)
+                | (Type::I32, R::I32)
+                | (Type::Char, R::Char)
+                | (Type::U8, R::U8)
+                | (Type::Usize, R::Usize)
+                | (Type::F32, R::F32)
+                | (Type::F64, R::F64)
+                | (Type::Bool, R::Bool)
+                | (Type::String, R::String)
+                | (Type::Bytes, R::Bytes)
+                | (Type::Str, R::Str)
+                | (Type::SliceU8, R::SliceU8)
+        ) || matches!((source,resolved),(Type::ArrayU8(a),R::ArrayU8(b)) if a==b)
+        {
             Ok(())
         } else {
             Err(operation_sidecar_disagreement())
@@ -698,6 +714,60 @@ fn collect_operation_expr_occurrences(
 ) -> Result<(), Vec<Diagnostic>> {
     use hir::ResolvedExprKind as R;
     match (&source.kind, &resolved.kind) {
+        (
+            ExprKind::Call {
+                name,
+                type_arguments,
+                args,
+            },
+            R::BorrowPlace { operation, place },
+        ) => {
+            if !type_arguments.is_empty()
+                || args.len() != 1
+                || crate::byte_ops::by_id(operation.as_str()).map(|op| op.name())
+                    != Some(name.as_str())
+                || !operation_source_place(&args[0], place)
+            {
+                return Err(operation_sidecar_disagreement());
+            }
+        }
+        (
+            ExprKind::Call {
+                name,
+                type_arguments,
+                args,
+            },
+            R::ByteRange {
+                operation,
+                source: base,
+                start,
+                end,
+            },
+        ) => {
+            if name != crate::byte_ops::RANGE_NAME
+                || operation.as_str() != crate::byte_ops::RANGE_ID
+                || !type_arguments.is_empty()
+                || args.len() != 3
+            {
+                return Err(operation_sidecar_disagreement());
+            }
+            for (source, resolved) in args
+                .iter()
+                .zip([base.as_ref(), start.as_ref(), end.as_ref()])
+            {
+                collect_operation_expr_occurrences(
+                    program,
+                    source,
+                    resolved,
+                    tokens,
+                    owner,
+                    declaration_index,
+                    import_index,
+                    declarations,
+                    imports,
+                )?;
+            }
+        }
         (
             ExprKind::Call {
                 name,
@@ -807,6 +877,31 @@ fn collect_operation_expr_occurrences(
                 return Err(operation_sidecar_disagreement());
             }
             for (statement, resolved_statement) in statements.iter().zip(resolved_statements) {
+                if let (
+                    crate::ast::Statement::Let {
+                        declared: Some(ty),
+                        name_span,
+                        value,
+                        ..
+                    },
+                    hir::ResolvedStatement::Let { binding, .. },
+                ) = (statement, resolved_statement)
+                {
+                    let mut cursor = name_span.end;
+                    collect_operation_type_occurrences(
+                        program,
+                        ty,
+                        &binding.ty,
+                        tokens,
+                        &mut cursor,
+                        value.span.start,
+                        Some(owner),
+                        declaration_index,
+                        import_index,
+                        declarations,
+                        imports,
+                    )?;
+                }
                 let same_kind = matches!(
                     (statement, resolved_statement),
                     (
@@ -1017,6 +1112,21 @@ fn collect_operation_expr_occurrences(
                 imports,
             )?;
             for (arm, resolved_arm) in arms.iter().zip(resolved_arms) {
+                match (&arm.guard, &resolved_arm.guard) {
+                    (None, None) => {}
+                    (Some(source), Some(resolved)) => collect_operation_expr_occurrences(
+                        program,
+                        source,
+                        resolved,
+                        tokens,
+                        owner,
+                        declaration_index,
+                        import_index,
+                        declarations,
+                        imports,
+                    )?,
+                    _ => return Err(operation_sidecar_disagreement()),
+                }
                 collect_operation_pattern_occurrences(
                     program,
                     &arm.pattern,
@@ -1089,10 +1199,19 @@ fn collect_operation_expr_occurrences(
             declarations,
             imports,
         )?,
-        (ExprKind::Project { .. }, R::Place(_))
-        | (ExprKind::Int(_), R::Int(_))
-        | (ExprKind::Bool(_), R::Bool(_))
-        | (ExprKind::Var(_), R::Place(_)) => {}
+        (ExprKind::Project { .. } | ExprKind::Var(_), R::Place(place))
+            if operation_source_place(source, place) => {}
+        (ExprKind::Int(_), R::Int(_))
+        | (ExprKind::Int32(_), R::Int32(_))
+        | (ExprKind::Char(_), R::Char(_))
+        | (ExprKind::Uint8(_), R::Uint8(_))
+        | (ExprKind::Usize(_), R::Usize(_))
+        | (ExprKind::ArrayU8(_), R::ArrayU8(_))
+        | (ExprKind::RepeatArrayU8 { .. }, R::RepeatArrayU8 { .. })
+        | (ExprKind::Float32(_), R::Float32(_))
+        | (ExprKind::Float64(_), R::Float64(_))
+        | (ExprKind::String(_), R::String(_))
+        | (ExprKind::Bool(_), R::Bool(_)) => {}
         _ => return Err(operation_sidecar_disagreement()),
     }
     Ok(())
@@ -1246,6 +1365,32 @@ fn collect_operation_pattern_occurrences(
             )?;
         }
         (crate::ast::MatchPattern::Wildcard { .. }, hir::ResolvedMatchPattern::Wildcard) => {}
+        (
+            crate::ast::MatchPattern::Binding { name, .. },
+            hir::ResolvedMatchPattern::Binding(binding),
+        ) if name == &binding.name => {}
+        (
+            crate::ast::MatchPattern::Literal { value, .. },
+            hir::ResolvedMatchPattern::Literal(actual),
+        ) if hir::PatternValue::from_ast(*value) == *actual => {}
+        (
+            crate::ast::MatchPattern::Or { alternatives, .. },
+            hir::ResolvedMatchPattern::Or(actual),
+        ) if alternatives.len() == actual.len() => {
+            for (source, resolved) in alternatives.iter().zip(actual) {
+                collect_operation_pattern_occurrences(
+                    program,
+                    source,
+                    resolved,
+                    tokens,
+                    owner,
+                    declaration_index,
+                    import_index,
+                    declarations,
+                    imports,
+                )?;
+            }
+        }
         _ => return Err(operation_sidecar_disagreement()),
     }
     Ok(())
@@ -1353,9 +1498,35 @@ fn push_bound_operation_occurrence(
     } else if let Some(index) = declaration_index.get(target_id).copied() {
         if declarations[index].path == program.path {
             declarations[index].occurrences.push(occurrence);
+        } else {
+            return Err(operation_sidecar_disagreement());
         }
+    } else if !(family == ModuleUseKind::Type
+        && matches!(
+            target_id,
+            crate::prelude::OPTION_ID | crate::prelude::RESULT_ID
+        )
+        || family == ModuleUseKind::Function
+            && (crate::byte_ops::by_id(target_id).is_some()
+                || crate::string_ops::by_id(target_id).is_some()
+                || crate::str_ops::by_id(target_id).is_some()
+                || crate::host_io_ops::by_id(target_id).is_some()))
+    {
+        return Err(operation_sidecar_disagreement());
     }
     Ok(())
+}
+
+// A resolved place contains no evaluated subtree. Only a lexical root and
+// field projections can correspond to it; never discard a constructor/call.
+fn operation_source_place(source: &Expr, place: &hir::Place) -> bool {
+    let mut source = source;
+    let mut fields = 0usize;
+    while let ExprKind::Project { base, .. } = &source.kind {
+        source = base;
+        fields += 1;
+    }
+    matches!(&source.kind, ExprKind::Var(_)) && fields == place.projections.len()
 }
 
 fn find_identifier_token(

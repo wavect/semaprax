@@ -23,6 +23,9 @@ use crate::{semantic_workspace, semantic_workspace_change, workspace, workspace_
 
 mod evidence_artifact;
 mod evidence_verification;
+mod nominal_rename;
+
+pub(crate) use nominal_rename::derive_nominal_rename;
 
 pub use evidence_artifact::SemanticWorkspaceOperationsEvidenceArtifacts;
 

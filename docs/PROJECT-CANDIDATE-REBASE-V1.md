@@ -47,6 +47,12 @@ from their resolved stable-ID bindings before body/contract fingerprinting.
 Those tokens exist only in the conflict calculation and are never materialized
 as source. There is no whole-file conflict rule.
 
+[Nominal declaration renames](PROJECT-NOMINAL-RENAME-V1.md) additionally use
+separate source record/variant display, shape and origin fingerprints. Competing
+renames or shape/origin drift reject; unrelated function edits can replay.
+Existing function/aggregate hashes retain their conservative source-spelling
+checks, so this does not normalize every merge across a type display rename.
+
 Typed record and variant intentions additionally bind their referenced checked
 aggregate shapes before each history step is replayed. The comparison uses that
 step's original and rebased intermediate revisions, so earlier successful

@@ -36,6 +36,7 @@ mod recovery;
 mod schemas;
 mod testing;
 mod type_declaration;
+mod type_rename;
 mod wire;
 
 pub use archive::{
@@ -229,7 +230,19 @@ impl ProjectCandidate {
         let mut movement = None;
         let mut implementation_addition = None;
         let mut type_addition = None;
+        let mut nominal_rename = None;
         let (summary, addition) = match change.intent.get("kind").and_then(Value::as_str) {
+            Some("rename_declaration")
+                if type_rename::eligible(
+                    &self.revision,
+                    change.intent["target"].as_str().unwrap_or(""),
+                )? =>
+            {
+                let (summary, rename) =
+                    type_rename::apply(&self.revision, &mut programs, &change.intent)?;
+                nominal_rename = Some(rename);
+                (summary, None)
+            }
             Some("implement_interface") => {
                 let (summary, added) =
                     interface::apply(&self.revision, &mut programs, &change.intent)?;
@@ -390,6 +403,9 @@ impl ProjectCandidate {
         }
         if type_addition.is_some() {
             type_declaration::validate(&self.revision, &candidate, &change.intent)?;
+        }
+        if let Some(rename) = &nominal_rename {
+            type_rename::validate(&candidate, rename)?;
         }
         let rebuilt_programs = parse_revision(&candidate)?;
         interface::identities(&rebuilt_programs)?;

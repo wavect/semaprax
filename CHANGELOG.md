@@ -8,6 +8,12 @@
   with unchanged foreign bytes. Regression evidence remains unrun; production
   path rules, generated projects and support claims are unchanged.
 
+- Added candidate record/variant display renames through the shared authenticated
+  Operations reference collector and exact source replay, preserving stable IDs
+  and consumer import aliases. Added nominal conflict checks, conservative test
+  relevance and discovery; public Operations proposal bounds stay unchanged.
+  Implementation and regression evidence are authored, unrun.
+
 - Moved the offline doctor inventory parser into its existing sys quarantine,
   preserving one validator and safe facade while correcting retained file-view
   lifetimes. Added authored, unrun bounded detached tmpfs materialization with

@@ -216,6 +216,16 @@ impl ProjectCandidate {
             }));
         }
         if self.changes.len() < MAX_CHANGES
+            && selected.is_none()
+            && super::type_rename::eligible(&self.revision, target)?
+        {
+            reason = "constructor_available_payload_requires_full_candidate_admission";
+            operations.push(json!({
+                "kind":"rename_declaration", "required_fields":["kind","target","name"],
+                "constraints":["source_record_or_variant_owner", "new_identifier_max_128_bytes", "different_display_name", "unambiguous_type_namespace", "preserve_stable_identity_and_member_identities", "preserve_import_aliases", "migrate_authenticated_type_occurrences", "full_candidate_revalidation"],
+            }));
+        }
+        if self.changes.len() < MAX_CHANGES
             && super::record_field::eligible(&self.revision, target)?
         {
             reason = "constructor_available_payload_requires_full_candidate_admission";

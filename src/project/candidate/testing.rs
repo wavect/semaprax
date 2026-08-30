@@ -98,6 +98,36 @@ impl ProjectCandidate {
         self.require_candidate(expected_candidate)?;
         let before = reachability(&self.base)?;
         let after = reachability(&self.revision)?;
+        let renamed_types = if self
+            .changes
+            .iter()
+            .any(|change| change.intent["kind"] == "rename_declaration")
+        {
+            let mut ids = BTreeSet::new();
+            for revision in [&self.base, &self.revision] {
+                for program in super::parse_revision(revision)? {
+                    for declaration in &program.types {
+                        if declaration.explicit_id
+                            && matches!(
+                                &declaration.kind,
+                                crate::ast::TypeDeclarationKind::Record { .. }
+                                    | crate::ast::TypeDeclarationKind::Variant { .. }
+                            )
+                        {
+                            if ids.len() >= MAX_CALLS && !ids.contains(&declaration.stable_id) {
+                                return Err(capacity(
+                                    "test nominal target inventory exceeds its bound",
+                                ));
+                            }
+                            ids.insert(declaration.stable_id.clone());
+                        }
+                    }
+                }
+            }
+            ids
+        } else {
+            BTreeSet::new()
+        };
         let mut targets = BTreeSet::new();
         let mut fallback = BTreeSet::new();
         for change in &self.changes {
@@ -114,6 +144,9 @@ impl ProjectCandidate {
                 }
             }
             match kind {
+                "rename_declaration" if renamed_types.contains(required_id(intent, "target")?) => {
+                    fallback.insert("non_callable_type_display_change");
+                }
                 "rename_declaration"
                 | "replace_function_body"
                 | "replace_expression"

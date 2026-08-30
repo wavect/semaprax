@@ -49,19 +49,22 @@ These have the bounded meanings below. They do not assert external consumer
 compatibility, general formal equivalence, runtime behavior, or every platform
 target in the mature language contract.
 
-Nine operation kinds have authored, unrun admission paths:
+The current intention catalogue has these authored, unrun admission paths:
 
 | Kind | Exact additional fields | Behavior |
 | --- | --- | --- |
-| `rename_declaration` | `target`, `name` | Rename an explicitly identified monomorphic top-level non-main function and its local call spellings. Imports continue to address its unchanged stable ID and retain aliases. |
+| `rename_declaration` | `target`, `name` | Rename an explicit monomorphic non-main function and local calls, or an explicit record/variant through authenticated type occurrences. Imports retain stable IDs and aliases. See [Nominal Rename v1](PROJECT-NOMINAL-RENAME-V1.md). |
 | `change_function_signature` | `target`, `append_parameters` | Append 1–16 by-value scalar parameters and append the supplied exact scalar literals to every authenticated local/import call. Existing parameter and argument order is unchanged. |
 | `replace_function_body` | `target`, `body` | Construct a new expression AST and admit the complete resulting Project through the real verifier. Existing contracts and declared effects remain. |
 | `replace_expression` | `target`, `expression_id`, `replacement` | Select an authenticated body expression through its current HIR ID and construct a replacement in its lexical scope; preserve the expected type and revalidate the complete Project. See [Expression Change v1](PROJECT-EXPRESSION-CHANGE-V1.md). |
+| `replace_contract_expression` | `target`, `expression_id`, `replacement` | Select an existing pre/postcondition subtree, preserve its type/ownership and independently reconstruct the requested source change. See [Contract Expression Holes v1](PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md). |
 | `add_contract` | `target`, `phase`, `predicate` | Append one typed pre/postcondition, preserving every existing predicate and all declared effects; see [Contract Change v1](PROJECT-CONTRACT-CHANGE-V1.md). |
 | `add_declaration` | `target`, `declaration` | Append an explicitly identified typed function in the anchor module; see [Declaration Change v1](PROJECT-DECLARATION-CHANGE-V1.md). |
 | `extract_function` | `target`, `expression_id`, `new_id`, `new_name` | Derive immutable Copy captures and replace an authenticated expression with a new helper call; see [Extraction v1](PROJECT-EXTRACTION-V1.md). |
 | `move_declaration` | `target`, `destination` | Move an eligible function to an existing anchor module, preserving identity and migrating call/import bindings; see [Declaration Move v1](PROJECT-DECLARATION-MOVE-V1.md). |
 | `add_record_field` | `target`, `field` | Append a scalar field and migrate authenticated record constructors and exact patterns; see [Record Field Change v1](PROJECT-RECORD-FIELD-CHANGE-V1.md). |
+| `implement_interface` | `target`, `protocol`, `id`, `members` | Bind an explicit source record to a source protocol with exact required-member coverage; see [Interface Change v1](PROJECT-INTERFACE-CHANGE-V1.md). |
+| `repair_diagnostic` | `target`, `rejected_intent`, `repair_id` | Independently rederive a supported typed repair against its rejected predecessor; see [Diagnostic Change v1](PROJECT-DIAGNOSTIC-CHANGE-V1.md). |
 
 An appended parameter has exactly `name`, `type`, and `argument`. Its type is
 `i64`, `i32`, `u8`, `usize`, or `bool`; its argument has matching `kind` and
@@ -136,7 +139,8 @@ the closed AST transformation. Module permits, per-function declared effects,
 and contract inventories must remain unchanged, except that `add_contract`
 permits exactly one count increment for its authenticated target and phase.
 That operation retains existing predicates in order. Other constructors preserve
-predicate ASTs except for the declared signature call-site migration; the
+predicate ASTs except for declared signature call-site migration, proven nominal
+display references, or the selected `replace_contract_expression` subtree; the
 inventory comparison alone is not a formal proof of predicate equivalence.
 
 The compiler canonically formats every source, reparses and checks canonical

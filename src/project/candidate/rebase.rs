@@ -78,9 +78,30 @@ impl ProjectCandidate {
         if other.changes.len().saturating_add(remaining.len()) > MAX_CHANGES {
             return Err(capacity("merged candidate exceeds its intention bound"));
         }
+        let renamed_targets = remaining
+            .iter()
+            .filter(|change| change.intent["kind"] == "rename_declaration")
+            .filter_map(|change| change.intent["target"].as_str())
+            .collect::<BTreeSet<_>>();
+        let renamed_types = if renamed_targets.is_empty() {
+            BTreeMap::new()
+        } else {
+            type_fingerprints(self.revision(), &renamed_targets)?
+        };
         // Net-zero histories must not conceal competing signature intentions.
         for left in remaining {
             for right in &other.changes[prefix..] {
+                if left.intent["target"] == right.intent["target"]
+                    && left.intent["kind"] == "rename_declaration"
+                    && right.intent["kind"] == "rename_declaration"
+                    && left.intent["target"]
+                        .as_str()
+                        .is_some_and(|target| renamed_types.contains_key(target))
+                {
+                    return Err(conflict(
+                        "competing type display rename intentions target the same stable ID",
+                    ));
+                }
                 if left.intent["target"] == right.intent["target"]
                     && left.intent["kind"] == "change_function_signature"
                     && right.intent["kind"] == "change_function_signature"
@@ -131,6 +152,17 @@ fn apply_rebound(
     change: &SemanticChange,
     original_revision: &ProjectRevision,
 ) -> Result<ProjectCandidate, Vec<Diagnostic>> {
+    if change.intent["kind"] == "rename_declaration" {
+        let target = change.intent["target"]
+            .as_str()
+            .ok_or_else(|| grammar("declaration rename lacks a target"))?;
+        let targets = BTreeSet::from([target]);
+        let before = type_fingerprints(original_revision, &targets)?;
+        if let Some(before) = before.get(target) {
+            let after = type_fingerprints(candidate.revision(), &targets)?;
+            compare_type_rename(before, after.get(target))?;
+        }
+    }
     if change.intent["kind"] == "repair_diagnostic" {
         return Err(super::diagnostic_intent::rebase_conflict());
     }
@@ -398,6 +430,112 @@ fn record_fingerprints(
     }
     Ok(result)
 }
+struct TypeFingerprint {
+    display: String,
+    kind: &'static str,
+    shape: String,
+    location: String,
+}
+
+// Separate from legacy callable hashes: these bounded source facts select
+// replay, not Copy eligibility, checked layout, or semantic compatibility.
+fn type_fingerprints(
+    revision: &ProjectRevision,
+    targets: &BTreeSet<&str>,
+) -> Result<BTreeMap<String, TypeFingerprint>, Vec<Diagnostic>> {
+    let mut result = BTreeMap::new();
+    let mut items = 0usize;
+    for program in parse_revision(revision)? {
+        for declaration in &program.types {
+            if !declaration.explicit_id || !targets.contains(declaration.stable_id.as_str()) {
+                continue;
+            }
+            let (kind, members) = match &declaration.kind {
+                crate::ast::TypeDeclarationKind::Record { fields } => ("record", fields.len()),
+                crate::ast::TypeDeclarationKind::Variant { cases } => (
+                    "variant",
+                    cases
+                        .iter()
+                        .try_fold(cases.len(), |count, case| {
+                            count.checked_add(case.fields.len())
+                        })
+                        .ok_or_else(|| capacity("type rename fingerprint inventory overflow"))?,
+                ),
+                _ => continue,
+            };
+            items = items
+                .checked_add(members)
+                .and_then(|count| count.checked_add(declaration.type_parameters.len()))
+                .and_then(|count| count.checked_add(program.types.len()))
+                .and_then(|count| count.checked_add(program.module_uses.len()))
+                .and_then(|count| count.checked_add(1))
+                .ok_or_else(|| capacity("type rename fingerprint inventory overflow"))?;
+            if items > 65_536 {
+                return Err(capacity(
+                    "type rename fingerprint inventory exceeds its bound",
+                ));
+            }
+            let (shape, overflow) = crate::bounded_output::with_limit(
+                MAX_FINGERPRINT_BYTES,
+                || {
+                    let fields = |fields: &[crate::ast::FieldDeclaration]| {
+                        fields.iter().map(|field| json!({
+                    "id":field.stable_id,"explicit":field.explicit_id,"name":field.name,"type":field.ty.to_string()
+                })).collect::<Vec<_>>()
+                    };
+                    let members = match &declaration.kind {
+                    crate::ast::TypeDeclarationKind::Record { fields: values } => json!(fields(values)),
+                    crate::ast::TypeDeclarationKind::Variant { cases } => json!(cases.iter().map(|case| json!({
+                        "id":case.stable_id,"explicit":case.explicit_id,"name":case.name,"fields":fields(&case.fields)
+                    })).collect::<Vec<_>>()),
+                    _ => unreachable!(),
+                };
+                    hash_value(json!({
+                        "kind":kind,"parameters":declaration.type_parameters.iter().map(|parameter| &parameter.name).collect::<Vec<_>>(),
+                        "members":members,
+                        "local_type_bindings":program.types.iter().map(|item| json!({"name":item.name,"id":item.stable_id})).collect::<Vec<_>>(),
+                        "imported_type_bindings":program.module_uses.iter().filter(|item| item.kind == crate::ast::ModuleUseKind::Type).map(|item| json!({"name":item.alias,"id":item.persistent_id,"module":item.target_module})).collect::<Vec<_>>()
+                    }))
+                },
+            );
+            if overflow {
+                return Err(capacity("type rename fingerprint render exceeds its bound"));
+            }
+            let fact = TypeFingerprint {
+                display: declaration.name.clone(),
+                kind,
+                shape: shape?,
+                location: hash_value(json!({"path":program.path,"module":program.module}))?,
+            };
+            if result.insert(declaration.stable_id.clone(), fact).is_some() {
+                return Err(grammar("type rename fingerprint identities are ambiguous"));
+            }
+        }
+    }
+    Ok(result)
+}
+
+fn compare_type_rename(
+    before: &TypeFingerprint,
+    after: Option<&TypeFingerprint>,
+) -> Result<(), Vec<Diagnostic>> {
+    let after = after.ok_or_else(|| {
+        conflict("type rename target was deleted or lost its source record or variant identity")
+    })?;
+    if before.display != after.display {
+        return Err(conflict(
+            "concurrent display renames target the same stable type ID",
+        ));
+    }
+    if before.kind != after.kind || before.shape != after.shape || before.location != after.location
+    {
+        return Err(conflict(
+            "type rename conflicts with concurrent type shape, binding or origin changes",
+        ));
+    }
+    Ok(())
+}
+
 fn classify(
     old: &ProjectRevision,
     new: &ProjectRevision,
@@ -405,6 +543,19 @@ fn classify(
 ) -> Result<Vec<Value>, Vec<Diagnostic>> {
     let old_facts = fingerprints(old)?;
     let new_facts = fingerprints(new)?;
+    let renamed_targets = changes
+        .iter()
+        .filter(|change| change.intent["kind"] == "rename_declaration")
+        .filter_map(|change| change.intent["target"].as_str())
+        .collect::<BTreeSet<_>>();
+    let (old_types, new_types) = if renamed_targets.is_empty() {
+        (BTreeMap::new(), BTreeMap::new())
+    } else {
+        (
+            type_fingerprints(old, &renamed_targets)?,
+            type_fingerprints(new, &renamed_targets)?,
+        )
+    };
     let has_record_changes = changes
         .iter()
         .any(|change| change.intent["kind"] == "add_record_field");
@@ -455,6 +606,9 @@ fn classify(
                         "record field addition conflicts with concurrent record shape changes",
                     ));
                 }
+                (false, false, false, false, false)
+            } else if kind == "rename_declaration" && old_types.contains_key(target) {
+                compare_type_rename(&old_types[target], new_types.get(target))?;
                 (false, false, false, false, false)
             } else if let Some(before) = old_facts.get(target) {
                 let after = new_facts.get(target).ok_or_else(|| {

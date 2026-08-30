@@ -57,6 +57,7 @@ Audience: all documentation readers.
 - [Typed Project Declaration Change v1](PROJECT-DECLARATION-CHANGE-V1.md)
 - [Typed Project Extraction v1](PROJECT-EXTRACTION-V1.md)
 - [Typed Project Declaration Move v1](PROJECT-DECLARATION-MOVE-V1.md)
+- [Project Nominal Declaration Rename v1](PROJECT-NOMINAL-RENAME-V1.md)
 - [Typed Project Record Field Change v1](PROJECT-RECORD-FIELD-CHANGE-V1.md)
 - [Static Protocol Conformance v1](STATIC-PROTOCOL-CONFORMANCE-V1.md)
 - [Typed Project Interface Change v1](PROJECT-INTERFACE-CHANGE-V1.md)

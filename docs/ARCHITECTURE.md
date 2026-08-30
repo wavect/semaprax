@@ -675,6 +675,18 @@ Its complete planned owner/case/field inventory is the only allowed graph
 identity extension; exact source reconstruction follows full Project replay.
 Rebase checks collisions for all new member IDs and preserves history order
 when a later operation evolves or uses the new type.
+
+`candidate/type_rename.rs` delegates source record/variant display changes to a
+private owned-source entry point in `semantic_workspace_operations`, reusing
+the shared `workspace_graph/operation_sidecar.rs` AST/HIR occurrence collector,
+namespace checks and exact normalized replay. The Candidate route reparses the
+result, performs ordinary full Project replay and checks its exact source plan.
+No new reference index, managed lock or publication authority is introduced;
+the public Operations proposal retains its multi-operation minima. Nominal
+rebase uses separate source shape/origin/binding facts and test planning falls
+back conservatively for non-callable type changes. See
+[Nominal Rename](PROJECT-NOMINAL-RENAME-V1.md).
+
 `candidate/aggregate_nominal.rs` authenticates existing record/variant type
 selectors and visible bindings, including direct-scalar generic instances and
 the fixed compiler prelude. Selection and catalogue templates are provisional;

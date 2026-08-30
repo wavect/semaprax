@@ -11,6 +11,12 @@ Evidence generation, and verification add no publication authority. The
 separate apply route may publish only after fresh exact Operations-intent and
 unchanged Change-v1 Evidence replay under one exclusive workspace lock.
 
+The source-only [Project Nominal Rename](PROJECT-NOMINAL-RENAME-V1.md) adapter
+reuses this implementation's occurrence collector and exact replay through a
+crate-private, single-declaration entry point. It accepts no managed path or
+publication authority. This public proposal's operation/path minima, schemas,
+evidence and lock/apply behavior remain unchanged.
+
 ## Proposal
 
 The schema is `semaprax.semantic-workspace-operations.v1`. The document is

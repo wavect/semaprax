@@ -1007,7 +1007,7 @@ fn scalar_type(name: &str) -> Result<Type> {
     }
 }
 
-fn identifier(name: &str) -> Result<&str> {
+pub(super) fn identifier(name: &str) -> Result<&str> {
     if name.is_empty()
         || name.len() > MAX_NAME_BYTES
         || !name.bytes().enumerate().all(|(index, byte)| {

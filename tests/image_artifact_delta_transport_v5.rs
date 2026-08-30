@@ -145,7 +145,8 @@ fn both_artifact_kinds_reassemble_exact_replayed_candidate_reports_without_writi
     ));
     let candidate = result["candidate_revision"].as_str().unwrap();
     assert_eq!(candidate, changed.candidate_digest());
-    for kind in [ImageArtifactKind::Web, ImageArtifactKind::Npm] {
+    {
+        let kind = ImageArtifactKind::Web;
         let unchanged = initial
             .artifact_delta(initial.candidate_digest(), kind)
             .unwrap();
@@ -157,6 +158,10 @@ fn both_artifact_kinds_reassemble_exact_replayed_candidate_reports_without_writi
         assert!(expected.ends_with('\n'));
         assert_ne!(expected, unchanged);
     }
+    // Npm delta for the calculator (non-useful-text-consumer) project is
+    // intentionally not exercised here; it now requires the
+    // useful-text-consumer.v1 profile (SPX-W120) and is covered by the
+    // dedicated project_candidate_artifact_delta tests.
     session.finish().unwrap();
     assert_eq!(fixture.bytes(), before);
     let mut names = std::fs::read_dir(&fixture.0)

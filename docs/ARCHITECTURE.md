@@ -346,6 +346,48 @@ bring all eleven requested operation classes into bounded scope; they do not
 complete general interface semantics or the graph-operational programme, and
 current-head compiler/test evidence remains unrun.
 
+### Unified workspace session v5
+
+`image_transport/vnext.rs` composes a fixed host-selected policy over the
+existing candidate engine. Read-only access, candidate preparation, diagnostic
+attempts, fixed-policy interpreter tests and pathless carrier builds have
+distinct grants; disabled operations are absent from discovery. V1–v4 method
+sets and byte contracts remain separate. `workspace/refresh-preview` observes the
+new source revision without swapping state. `workspace/refresh` cold-loads only the
+fixed manifest and checks exact expected revisions before swapping the retained
+snapshot/image. Immutable historical candidate handles survive; drafts and
+attempts are cleared on success. This is live source recovery, not incremental
+semantic checking or warm HIR deserialization.
+
+`image_transport/vnext/commit.rs` holds separately supplied fixed Git authority
+and a startup-only private approval slot. A request cannot choose its repository,
+ref, old commit, metadata or approval. A review/export session precedes a new
+host-approved commit session that restores the exact candidate. Publication
+runs after the initial held-input selection boundary; the Git library owns its
+fresh replay, ref pivot and post-pivot uncertainty classification. Compact
+receipt handles prevent escaped receipt overflow after a pivot. The original
+raw checkout remains unchanged, and consumed or terminal approval is not
+refreshed by a source reload. Provider deadlines are never silently reset.
+
+`project/image_targets.rs` and the v5 projection adapter derive actual target
+emission facts and replay existing pathless Web/npm carriers. Declared export
+and input relationships do not imply runtime coverage or external consumer use.
+`candidate/build` needs a host grant, independently restores candidate history,
+and returns bounded report chunks; it does not publish filesystem artifacts,
+install packages, invoke a native toolchain or execute generated code.
+
+The v5 discovery catalogue generates its granted methods, schemas, instructions
+and typed client helpers together. Opaque nested payload references remain
+explicitly incomplete; a generated bundle is not a complete executable response
+validator. [Agent Discovery v5](IMAGE-AGENT-DISCOVERY-V5.md) owns the exact
+request/envelope schemas, concrete transport payloads and explicitly unbundled
+compiler-report schemas; generated clients perform no I/O or execution. See
+[Workspace Protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md),
+[Source Commit v5](IMAGE-SOURCE-COMMIT-PROTOCOL-V5.md),
+[Target/Artifact Projections](IMAGE-TARGET-ARTIFACTS-V1.md), and
+[Workspace Session CLI](WORKSPACE-SESSION-CLI-V1.md). All evidence for this batch
+is authored/unrun; no complete-workflow or current-head promotion follows.
+
 ### Project profile and daemon
 
 `project/incremental.rs` owns an opt-in, invocation-local cache of exact-source
@@ -367,8 +409,9 @@ readback and an independent SHA256 content binding do not constitute SHA1
 collision detection or a signature. The trusted host owns the executable and
 repository; the cooperative lease and pathname rechecks are not protection
 against a malicious same-UID namespace race or an OS network sandbox.
-This authority is separate from managed Workspace `ACTIVE` and all image
-protocol sessions. `candidate/diagnostic_intent.rs` rederives a selected repair
+This authority remains separate from managed Workspace `ACTIVE` and ordinary
+image/candidate reasoning. V5 can hold it only through an explicit startup host
+extension with independently supplied exact candidate approval. `candidate/diagnostic_intent.rs` rederives a selected repair
 from a fresh rejected attempt before ordinary candidate admission records its
 typed history; no invalid image or submitted replacement becomes trusted state.
 

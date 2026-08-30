@@ -13,7 +13,7 @@ pub const CANDIDATE_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v2";
 pub const CANDIDATE_RESULT_SCHEMA: &str = "semaprax.image-agent-result.v2";
 pub const TEST_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v3";
 pub const TEST_RESULT_SCHEMA: &str = "semaprax.image-agent-result.v3";
-mod diagnostics;
+pub(super) mod diagnostics;
 pub use diagnostics::{DIAGNOSTIC_PROTOCOL_SCHEMA, DIAGNOSTIC_RESULT_SCHEMA};
 const MAX_ATTEMPTS: usize = 16;
 const MAX_CANDIDATES: usize = 16;
@@ -303,7 +303,7 @@ const CANDIDATE_METHODS: &[Method] = &[
     ),
 ];
 
-struct DraftEntry {
+pub(super) struct DraftEntry {
     draft: Arc<ProjectCandidateDraft>,
     source_candidate: String,
 }
@@ -315,7 +315,7 @@ pub(super) struct Registry {
     attempts: BTreeMap<String, Arc<crate::project::ProjectCandidateAttempt>>,
 }
 
-enum Mutation {
+pub(super) enum Mutation {
     None,
     Candidate(Arc<ProjectCandidate>),
     Draft(DraftEntry),
@@ -326,7 +326,7 @@ enum Mutation {
 }
 
 impl Registry {
-    fn candidate(&self, id: &str) -> Result<&Arc<ProjectCandidate>, Vec<Diagnostic>> {
+    pub(super) fn candidate(&self, id: &str) -> Result<&Arc<ProjectCandidate>, Vec<Diagnostic>> {
         self.candidates.get(id).ok_or_else(|| {
             failure(
                 "SPX-G224",
@@ -355,7 +355,7 @@ impl Registry {
             )
             .sum()
     }
-    fn admit(&self, mutation: &Mutation) -> Result<(), Vec<Diagnostic>> {
+    pub(super) fn admit(&self, mutation: &Mutation) -> Result<(), Vec<Diagnostic>> {
         let added = match mutation {
             Mutation::Attempt(attempt) if !self.attempts.contains_key(attempt.attempt_digest()) => {
                 if self.attempts.len() >= MAX_ATTEMPTS {
@@ -387,7 +387,7 @@ impl Registry {
         }
         Ok(())
     }
-    fn commit(&mut self, mutation: Mutation) {
+    pub(super) fn commit(&mut self, mutation: Mutation) {
         match mutation {
             Mutation::None => (),
             Mutation::Attempt(attempt) => {
@@ -415,6 +415,15 @@ impl Registry {
                 self.drafts.remove(&id);
             }
         }
+    }
+
+    pub(super) fn refresh_inventory(&self) -> Value {
+        json!({"retained_candidates":self.candidates.keys().collect::<Vec<_>>(),"cleared_drafts":self.drafts.len(),"cleared_attempts":self.attempts.len()})
+    }
+
+    pub(super) fn clear_transients(&mut self) {
+        self.drafts.clear();
+        self.attempts.clear();
     }
 }
 
@@ -488,7 +497,7 @@ pub(super) fn handle(
     }
 }
 
-fn methods(test_enabled: bool) -> Vec<&'static Method> {
+pub(super) fn methods(test_enabled: bool) -> Vec<&'static Method> {
     let mut methods = METHODS.iter().chain(CANDIDATE_METHODS).collect::<Vec<_>>();
     if test_enabled {
         methods.extend(TEST_METHODS);
@@ -562,7 +571,7 @@ fn profile_payload_schema(method: &Method, test_enabled: bool) -> String {
     }
 }
 
-fn prepare(
+pub(super) fn prepare(
     method: &Method,
     params: &Map<String, Value>,
     image: &ProjectSemanticImage,

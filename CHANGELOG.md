@@ -10,6 +10,18 @@
   unchanged. All new execution gates are authored but unrun; no completion
   or hosted status is promoted.
 
+- Added an explicit host-policy Image Agent Protocol v5 and `serve-workspace`
+  CLI with independently selected candidate, diagnostic, interpreter-test,
+  pathless-build and optional startup-approved Git source-commit grants. Cold
+  live refresh retains candidate handles and clears drafts/attempts on success.
+  Actual target emission and replayed Web/npm carriers produce bounded source,
+  export and artifact reports. Catalogue-driven typed clients/schema bundles
+  retain explicit opaque payload gaps. Git publication uses fixed authority,
+  consumes separate exact approval and preserves terminal uncertainty; review
+  and commit use separate sessions rather than later RPC approval. No raw
+  checkout or artifact filesystem publication is added. Tests, compiler/client
+  execution and benchmarks are unrun; the full programme remains Partial.
+
 - Authored real published v8/v9 Rust consumers for mixed UTF-8 and two-slice
   borrowed tuples at the cumulative 65,536-byte boundary, including unused
   inputs, inactive v8 variants, maximum `Some`/`Ok` outputs, rejection/reuse,

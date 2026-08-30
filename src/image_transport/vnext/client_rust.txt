@@ -1,0 +1,105 @@
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum RpcId { Number(u64), Text(String) }
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResultEnvelope {
+    pub schema: String, pub protocol: String, pub image_revision: String,
+    pub project_revision: String, pub payload: Value,
+}
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RpcError { pub code: i64, pub message: String }
+fn metadata() -> Result<Value,String> { serde_json::from_str(METADATA).map_err(|e|e.to_string()) }
+fn check(value:&Value, schema:&Value, meta:&Value, depth:usize)->Result<(),String> {
+    if depth>128 { return Err("shape depth exceeded".into()); }
+    if let Some(reference)=schema["$ref"].as_str() {
+        if let Some(document)=meta["documents"].get(reference) { return check(value,document,meta,depth+1); }
+        if meta["unbundled"].as_array().is_some_and(|items|items.iter().any(|item|item==reference)) && value["schema"]==reference.strip_prefix("urn:").unwrap_or(reference) { return Ok(()); }
+        return Err("unresolved or foreign payload schema".into());
+    }
+    for alternative in ["oneOf","anyOf"] {
+        if let Some(branches)=schema[alternative].as_array() {
+            let count=branches.iter().filter(|branch|check(value,branch,meta,depth+1).is_ok()).count();
+            if (alternative=="oneOf" && count!=1) || (alternative=="anyOf" && count==0) { return Err("shape alternatives mismatch".into()); }
+        }
+    }
+    if schema.get("const").is_some_and(|expected|value!=expected) { return Err("constant mismatch".into()); }
+    if schema["enum"].as_array().is_some_and(|values|!values.contains(value)) { return Err("choice mismatch".into()); }
+    match schema["type"].as_str() {
+        Some("null") if !value.is_null()=>return Err("null required".into()),
+        Some("boolean") if !value.is_boolean()=>return Err("boolean required".into()),
+        Some("integer")=>{
+            let n=value.as_i64().map(i128::from).or_else(||value.as_u64().map(i128::from)).ok_or("integer required")?;
+            let min=schema["minimum"].as_i64().map(i128::from).or_else(||schema["minimum"].as_u64().map(i128::from)).unwrap_or(i64::MIN as i128);
+            let max=schema["maximum"].as_u64().map(i128::from).or_else(||schema["maximum"].as_i64().map(i128::from)).unwrap_or(u64::MAX as i128);
+            if n<min || n>max { return Err("integer bound".into()); }
+        },
+        Some("string")=>{
+            let text=value.as_str().ok_or("string required")?;
+            let chars=text.chars().count() as u64;
+            if chars<schema["minLength"].as_u64().unwrap_or(0) || chars>schema["maxLength"].as_u64().unwrap_or(u64::MAX) || text.len() as u64>schema["x-max-utf8-bytes"].as_u64().unwrap_or(u64::MAX) { return Err("string bound".into()); }
+            if let Some(pattern)=schema["pattern"].as_str() {
+                if pattern=="^sha256:[0-9a-f]{64}$" {
+                    if text.len()!=71 || !text.starts_with("sha256:") || !text.as_bytes()[7..].iter().all(|c|c.is_ascii_digit() || (b'a'..=b'f').contains(c)) { return Err("digest format".into()); }
+                } else if pattern=="^[^\\u0000-\\u001f\\u007f-\\u009f]+$" {
+                    if text.is_empty() || text.chars().any(char::is_control) { return Err("control character".into()); }
+                } else { return Err("unsupported client pattern; use compiler schema validator".into()); }
+            }
+        },
+        Some("object")=>{
+            let object=value.as_object().ok_or("object required")?;
+            if schema["required"].as_array().is_some_and(|names|names.iter().any(|name|!object.contains_key(name.as_str().unwrap_or("")))) { return Err("missing field".into()); }
+            for(name,item)in object {
+                if let Some(field)=schema["properties"].get(name) { check(item,field,meta,depth+1)?; }
+                else if schema["additionalProperties"]==false { return Err(format!("unknown field {name}")); }
+            }
+        },
+        Some("array")=>{
+            let values=value.as_array().ok_or("array required")?;
+            if (values.len() as u64)<schema["minItems"].as_u64().unwrap_or(0) || (values.len() as u64)>schema["maxItems"].as_u64().unwrap_or(u64::MAX) { return Err("array bound".into()); }
+            if let Some(items)=schema.get("items") { for value in values { check(value,items,meta,depth+1)?; } }
+        }, _=>{},
+    }
+    Ok(())
+}
+fn id_check(id:&RpcId)->Result<(),String> {
+    if let RpcId::Text(text)=id {
+        if text.is_empty() || text.len()>128 || text.chars().any(char::is_control) { return Err("request id bound/format".into()); }
+    }
+    Ok(())
+}
+pub fn request(id:RpcId,method:&str,params:Value)->Result<String,String> {
+    id_check(&id)?;
+    let meta=metadata()?;
+    let entry=meta["methods"].get(method).ok_or("method unavailable")?;
+    let mut spec=entry["params"].clone();
+    for field in spec["properties"].as_object_mut().ok_or("invalid embedded parameter schema")?.values_mut() { field.as_object_mut().ok_or("invalid parameter")?.remove("$ref"); }
+    check(&params,&spec,&meta,0)?;
+    let line=json!({"jsonrpc":"2.0","id":id,"method":method,"params":params}).to_string();
+    if line.len()>65536 { return Err("request byte bound".into()); }
+    Ok(line+"\n")
+}
+pub fn decode(line:&str,method:&str,id:&RpcId)->Result<ResultEnvelope,String> {
+    id_check(id)?;
+    if line.len()>1048576 { return Err("response byte bound".into()); }
+    let meta=metadata()?;
+    let entry=meta["methods"].get(method).ok_or("method unavailable")?;
+    let value:Value=serde_json::from_str(line).map_err(|e|e.to_string())?;
+    if value["jsonrpc"]!="2.0" { return Err("response envelope".into()); }
+    let expected_id=serde_json::to_value(id).map_err(|e|e.to_string())?;
+    if let Some(error)=value.get("error") {
+        if value.as_object().is_none_or(|fields|fields.len()!=3 || !fields.contains_key("id")) { return Err("error envelope".into()); }
+        if !value["id"].is_null() && value["id"]!=expected_id { return Err("response id mismatch".into()); }
+        let error:RpcError=serde_json::from_value(error.clone()).map_err(|e|e.to_string())?;
+        return Err(format!("RPC {}: {}",error.code,error.message));
+    }
+    if value.as_object().is_none_or(|fields|fields.len()!=3 || !fields.contains_key("result")) || value["id"]!=expected_id { return Err("response id/envelope mismatch".into()); }
+    let result:ResultEnvelope=serde_json::from_value(value["result"].clone()).map_err(|e|e.to_string())?;
+    if result.schema!=RESULT_SCHEMA || result.protocol!=PROTOCOL { return Err("protocol mismatch".into()); }
+    let digest=json!({"type":"string","pattern":"^sha256:[0-9a-f]{64}$"});
+    check(&json!(result.image_revision),&digest,&meta,0)?;
+    check(&json!(result.project_revision),&digest,&meta,0)?;
+    check(&result.payload,&entry["payload"],&meta,0)?;
+    Ok(result)
+}

@@ -15,6 +15,7 @@ mod image;
 mod image_facets;
 mod image_protocols;
 mod image_store;
+mod image_targets;
 pub(crate) mod incremental;
 mod manifest;
 mod native_sdk;
@@ -88,6 +89,10 @@ pub use image_store::{
     load_semantic_image, persist_semantic_image, ImageRefreshReport, ImageStoreReceipt,
     ImageWorkspace, MAX_IMAGE_REFRESH_REPORT_BYTES, MAX_SEMANTIC_IMAGE_STORE_RECEIPT_BYTES,
     SEMANTIC_IMAGE_REFRESH_SCHEMA, SEMANTIC_IMAGE_STORE_SCHEMA,
+};
+pub use image_targets::{
+    ImageArtifactKind, IMAGE_ARTIFACT_PROJECTION_SCHEMA, IMAGE_TARGET_ADMISSION_SCHEMA,
+    MAX_IMAGE_ARTIFACT_BUILD_BYTES, MAX_IMAGE_ARTIFACT_REPORT_BYTES,
 };
 pub use incremental::{
     ProjectFrontendBuild, ProjectFrontendCache, ProjectFrontendSource,

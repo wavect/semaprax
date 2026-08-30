@@ -43,27 +43,54 @@ constrains nested values. Duplicate, missing, foreign-owner, or unknown field
 identities fail actual construction. Request field order is expression
 evaluation order; a schema never sorts or repairs that order.
 
-Only existing source-defined monomorphic record/variant declarations with one
-visible local or imported type binding are eligible. The compiler selects the
-source spelling through that binding; no raw type names, type arguments, source,
-field projection, or guessed conversions enter this new request grammar.
-Nominal identity and every field's expected type remain verifier obligations.
+Existing source-defined monomorphic and generic record/variant declarations
+require one visible local or imported type binding. The compiler also recognizes
+its own `Option` and `Result` declarations when their prelude bindings are
+available. The optional `type_arguments` field selects ordered direct `i64` or
+`bool` arguments; generic targets require their exact declared arity. This is
+explicit instantiation, not inference, a raw type-expression parser, or a
+conversion. Monomorphic constructors retain the form without type arguments.
+No source, field projection, or arbitrary nominal type argument enters this
+grammar. `type_arguments` may contain at most 4,095 entries, and each entry
+also consumes the shared expression-node budget. Omitting it is equivalent to
+an empty array: monomorphic targets accept either form; a generic target rejects
+missing, extra, or unsupported arguments. The schema describes the bounded
+array but cannot determine a selected declaration's arity. Exact nominal
+identity, substituted field types, ownership, and full
+Project admission remain verifier obligations.
 
 For a selected function's module, `change/catalog` and body/expression-hole
 contexts expose optional `aggregate_constructors` when the compiler finds
 eligible visible declarations. Each descriptor identifies kind, constructor
 target, owner type, source display name, unique visible binding, declaration
-path/module, `generic: false`, and declaration-ordered fields carrying stable
+path/module, a `generic` flag, and declaration-ordered fields carrying stable
 `target`, display `name`, `index`, and checked `type_identity`. Descriptors state
 `evidence_owner: retained_checked_hir` and
 `requires_full_candidate_validation: true`. Their field order describes the
 declaration; agents may choose a different request evaluation order. This
 module-wide inventory is not a claim that every constructor matches the
-selected hole or body's expected result type or ownership.
+selected hole or body's expected result type or ownership. A generic descriptor
+describes one template, not all concrete instances. Its `type_parameters` retain
+declaration order and identify the parameter name/index and allowed direct
+scalar types. Generic field `type_identity` values describe the template's
+owner/index-bound parameters; they are not already substituted concrete types.
+Each parameter descriptor is closed to `name`, `index`, and
+`allowed_types: ["i64", "bool"]`; no cartesian product of instances is returned.
+Existing monomorphic descriptor objects remain unchanged.
+
+Compiler-owned prelude cases use a distinct closed descriptor shape:
+`identity_origin: compiler_owned`, null `path` and `module`, and
+`compiler_prelude: {schema: "semaprax.prelude.v1", digest: ...}`. The digest binds
+the actual compiler prelude. These are compiler definitions, not invented
+filesystem declarations. Their field identities and generic parameter facts
+come from the checked prelude index.
 
 Available aggregate kinds are appended to the existing constructor-kind
-inventories. Empty aggregate inventories are omitted, preserving previous
-scalar-only catalogue/context bytes. The v5 bundled change-catalogue schema
+inventories. Empty aggregate inventories are omitted. The newly discoverable
+four `Option`/`Result` cases can make an otherwise scalar-only module's inventory
+nonempty, so complete catalogue/hole-context bytes intentionally change in this
+extension. Existing monomorphic entries, protocol envelopes, and authority do
+not change. The v5 bundled change-catalogue schema
 closes the optional descriptor objects; heterogeneous hole reports retain their
 previous explicit unbundled-schema status. Discovery grants no source, repair,
 test, build, or publication authority. Schema and end-to-end aggregate

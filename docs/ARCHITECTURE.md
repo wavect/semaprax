@@ -549,6 +549,12 @@ initializer order and delegates all semantic admission to the ordinary complete
 candidate rebuild. Discovery projects the same checked inventory; rebase binds
 referenced aggregate shapes for each original/rebased intermediate revision.
 No source spelling or new import authority comes from constructor requests.
+Generic construction retains checked template parameter identities and emits
+explicit direct-scalar type arguments through the same AST path. The separate
+prelude selection authenticates the fixed compiler-owned Option/Result
+declaration inventory against retained HIR; it does not relax authored explicit
+identity checks. Discovery reports templates and compiler provenance rather
+than claiming concrete instantiation admission.
 
 `candidate/declaration.rs` appends a typed function under a selected module
 anchor with globally fresh identity and checked namespace/effect budgets.

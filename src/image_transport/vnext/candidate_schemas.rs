@@ -49,7 +49,7 @@ fn aggregate_constructor() -> Value {
         ("type_identity", text()),
     ]));
     fields["maxItems"] = json!(4095);
-    object(vec![
+    let fields = vec![
         ("kind", json!({"enum":["record","variant"]})),
         ("target", text()),
         ("owner", text()),
@@ -61,7 +61,37 @@ fn aggregate_constructor() -> Value {
         ("fields", fields),
         ("evidence_owner", json!({"const":"retained_checked_hir"})),
         ("requires_full_candidate_validation", json!({"const":true})),
-    ])
+    ];
+    let monomorphic = object(fields.clone());
+    let mut generic_fields = fields;
+    generic_fields.retain(|(name, _)| *name != "generic");
+    generic_fields.extend([
+        ("generic", json!({"const":true})),
+        (
+            "type_parameters",
+            json!({"type":"array","minItems":1,"maxItems":4095,
+            "items":object(vec![
+                ("name",text()),("index",uint()),
+                ("allowed_types",json!({"const":["i64","bool"]})),
+            ])}),
+        ),
+    ]);
+    let generic = object(generic_fields.clone());
+    generic_fields.retain(|(name, _)| !matches!(*name, "kind" | "path" | "module"));
+    generic_fields.extend([
+        ("kind", json!({"const":"variant"})),
+        ("path", json!({"type":"null"})),
+        ("module", json!({"type":"null"})),
+        ("identity_origin", json!({"const":"compiler_owned"})),
+        (
+            "compiler_prelude",
+            object(vec![
+                ("schema", json!({"const":"semaprax.prelude.v1"})),
+                ("digest", digest()),
+            ]),
+        ),
+    ]);
+    json!({"oneOf":[monomorphic,generic,object(generic_fields)]})
 }
 
 pub(super) fn documents() -> BTreeMap<String, Value> {
@@ -439,5 +469,41 @@ mod signature_parameter_schema_tests {
         assert_eq!(provenance["properties"].as_object().unwrap().len(), 8);
         assert_eq!(provenance["properties"]["ownership"]["const"], "copy");
         assert_eq!(provenance["properties"]["needs_drop"]["const"], false);
+    }
+
+    #[test]
+    fn aggregate_template_and_prelude_provenance_are_separate_closed_shapes() {
+        let schema = aggregate_constructor();
+        let choices = schema["oneOf"].as_array().unwrap();
+        assert_eq!(choices.len(), 3);
+        for choice in choices {
+            assert_eq!(choice["additionalProperties"], false);
+        }
+        let mono = &choices[0];
+        assert_eq!(mono["properties"]["generic"]["const"], false);
+        assert!(mono["properties"].get("type_parameters").is_none());
+        assert_eq!(mono["properties"].as_object().unwrap().len(), 11);
+        for generic in &choices[1..] {
+            assert_eq!(generic["properties"]["generic"]["const"], true);
+            assert!(generic["required"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("type_parameters")));
+            let params = &generic["properties"]["type_parameters"];
+            assert_eq!(params["maxItems"], 4095);
+            assert_eq!(params["items"]["additionalProperties"], false);
+            assert_eq!(
+                params["items"]["properties"]["allowed_types"]["const"],
+                json!(["i64", "bool"])
+            );
+        }
+        assert_eq!(choices[1]["properties"]["path"]["type"], "string");
+        assert!(choices[1]["properties"].get("compiler_prelude").is_none());
+        let prelude = &choices[2]["properties"];
+        assert_eq!(prelude["kind"]["const"], "variant");
+        assert_eq!(prelude["path"]["type"], "null");
+        assert_eq!(prelude["module"]["type"], "null");
+        assert_eq!(prelude["identity_origin"]["const"], "compiler_owned");
+        assert_eq!(prelude["compiler_prelude"]["additionalProperties"], false);
     }
 }

@@ -265,6 +265,68 @@ fn same_target_body_and_display_rename_rebase_and_merge() {
 }
 
 #[test]
+fn generic_aggregate_rebase_binds_checked_template_field_types() {
+    let fixture = Fixture::new();
+    let manifest_path = fixture.0.join("semaprax.toml");
+    let manifest = std::fs::read_to_string(&manifest_path)
+        .unwrap()
+        .replace("semaprax.project.v1", "semaprax.project.v8")
+        .replace(
+            "name = \"calculator\"",
+            "name = \"calculator\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"",
+        )
+        .replace("\"calculator.divide\", ", "");
+    std::fs::write(manifest_path, manifest).unwrap();
+    let path = fixture.0.join("src/core.spx");
+    let text = std::fs::read_to_string(&path).unwrap()
+        + r#"
+@id("calculator.box") record Box<T> { @id("calculator.box.value") value: T, }
+@id("calculator.consume-box") fn consume_box(value: Box<i64>) -> i64 { 7 }
+@id("calculator.generic-user") fn generic_user() -> i64 { 7 }
+"#;
+    let canonical = semaprax::format::canonical(&semaprax::parse(&text, "src/core.spx").unwrap());
+    std::fs::write(&path, &canonical).unwrap();
+    let root = fixture.candidate();
+    let candidate = apply(
+        &root,
+        json!({"kind":"replace_function_body","target":"calculator.generic-user","body":{
+            "kind":"call","target":"calculator.consume-box","arguments":[{
+                "kind":"record","target":"calculator.box","type_arguments":["i64"],"fields":[{
+                    "target":"calculator.box.value","value":{"kind":"i64","value":7}
+                }]
+            }]
+        }}),
+    );
+    let independent = apply(&root, rename("calculator.subtract", "difference"));
+    let merged = candidate
+        .merge(
+            candidate.candidate_digest(),
+            &independent,
+            independent.candidate_digest(),
+        )
+        .unwrap();
+    assert!(source(merged.candidate()).contains("consume_box(Box<i64> { value: 7 })"));
+    assert!(source(merged.candidate()).contains("fn difference("));
+    let before = candidate.to_json().to_owned();
+    // The function and nominal instance identities stay the same. Only the
+    // checked template field changes, so the aggregate dependency must catch it.
+    let changed = canonical.replace("value: T", "value: bool");
+    assert_ne!(changed, canonical);
+    std::fs::write(&path, &changed).unwrap();
+    let new_base = fixture.revision();
+    code(
+        candidate.rebase(
+            candidate.candidate_digest(),
+            Arc::clone(&new_base),
+            new_base.project_revision(),
+        ),
+        "SPX-G235",
+    );
+    assert_eq!(candidate.to_json(), before);
+    assert_eq!(std::fs::read_to_string(path).unwrap(), changed);
+}
+
+#[test]
 fn callee_display_rename_does_not_create_a_false_body_conflict() {
     let fixture = Fixture::new();
     fixture.helper();

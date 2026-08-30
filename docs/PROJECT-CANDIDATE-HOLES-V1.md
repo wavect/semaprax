@@ -114,6 +114,14 @@ constructors, arbitrary declaration constructors or solver-backed completion
 is added. A context can describe a richer function while its chosen filling
 expression still must fit the bounded constructor and pass real admission.
 
+The additive [aggregate constructors](PROJECT-AGGREGATE-CONSTRUCTORS-V1.md)
+extend fills with stable-ID record and variant values, explicit direct-scalar
+generic arguments, and authenticated Option/Result cases. Contexts expose
+checked template parameter/field identities and compiler-prelude provenance;
+they do not infer generic arguments or claim that a template instance is valid
+for this hole. Existing monomorphic descriptor shapes are preserved, but whole
+context bytes change when the four compiler-prelude cases are added.
+
 ## Bounds, canonicality and diagnostics
 
 Canonical reports sort JSON object keys lexically, preserve array order and

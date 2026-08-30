@@ -29,7 +29,9 @@ mod aggregate;
 #[path = "signature.rs"]
 mod signature;
 
-pub(super) use aggregate::{aggregate_constructors, aggregate_dependency_fingerprint};
+pub(super) use aggregate::{
+    aggregate_constructors, aggregate_dependency_fingerprint, MAX_AGGREGATE_TYPE_ARGUMENTS,
+};
 pub(super) use signature::ordered_signature_parameters;
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
@@ -343,13 +345,36 @@ impl Constructor<'_> {
                 ExprKind::Var(name.to_owned())
             }
             "record" | "variant" => {
-                object(value, &["kind", "target", "fields"])?;
+                if value.get("type_arguments").is_some() {
+                    object(value, &["kind", "target", "fields", "type_arguments"])?;
+                } else {
+                    object(value, &["kind", "target", "fields"])?;
+                }
                 let kind = text(value, "kind")?;
                 let target = text(value, "target")?;
                 let revision = self.revision.ok_or_else(|| {
                     grammar("aggregate constructor requires a retained checked Project revision")
                 })?;
-                let plan = aggregate::plan(revision, self.program, kind, target)?;
+                if let Some(arguments) = value.get("type_arguments") {
+                    let arguments = arguments.as_array().ok_or_else(|| {
+                        grammar("aggregate type_arguments must be an explicit array")
+                    })?;
+                    if arguments.len() > MAX_AGGREGATE_TYPE_ARGUMENTS
+                        || arguments.len() > MAX_EXPRESSION_NODES.saturating_sub(self.nodes)
+                    {
+                        return Err(capacity(
+                            "aggregate type arguments exceed the remaining constructor node bound",
+                        ));
+                    }
+                    self.nodes += arguments.len();
+                }
+                let plan = aggregate::plan(
+                    revision,
+                    self.program,
+                    kind,
+                    target,
+                    value.get("type_arguments"),
+                )?;
                 let requested = array(value, "fields")?;
                 if requested.len() > MAX_EXPRESSION_NODES.saturating_sub(self.nodes) {
                     return Err(capacity(
@@ -385,7 +410,7 @@ impl Constructor<'_> {
                     ExprKind::ConstructVariant {
                         type_name: plan.type_name,
                         type_span: Span::default(),
-                        type_arguments: Vec::new(),
+                        type_arguments: plan.type_arguments,
                         case_name,
                         case_span: Span::default(),
                         fields,
@@ -394,7 +419,7 @@ impl Constructor<'_> {
                     ExprKind::ConstructRecord {
                         type_name: plan.type_name,
                         type_span: Span::default(),
-                        type_arguments: Vec::new(),
+                        type_arguments: plan.type_arguments,
                         fields,
                     }
                 }

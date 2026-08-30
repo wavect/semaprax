@@ -222,6 +222,38 @@ fn candidates_are_immutable_queryable_validated_and_discardable_without_disk_cha
     ));
     assert_eq!(catalogue["schema"], "semaprax.project-change-catalog.v1");
     assert_eq!(catalogue["requires_full_candidate_validation"], true);
+    let aggregates = catalogue["aggregate_constructors"].as_array().unwrap();
+    assert_eq!(
+        aggregates
+            .iter()
+            .map(|item| item["target"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        [
+            "core.option.none",
+            "core.option.some",
+            "core.result.err",
+            "core.result.ok"
+        ]
+    );
+    for descriptor in aggregates {
+        assert_eq!(descriptor["kind"], "variant");
+        assert_eq!(descriptor["generic"], true);
+        assert_eq!(descriptor["identity_origin"], "compiler_owned");
+        assert!(descriptor["path"].is_null());
+        assert!(descriptor["module"].is_null());
+        assert_eq!(
+            descriptor["compiler_prelude"]["schema"],
+            "semaprax.prelude.v1"
+        );
+        assert!(descriptor["compiler_prelude"]["digest"]
+            .as_str()
+            .unwrap()
+            .starts_with("sha256:"));
+        assert_eq!(descriptor["requires_full_candidate_validation"], true);
+        for parameter in descriptor["type_parameters"].as_array().unwrap() {
+            assert_eq!(parameter["allowed_types"], json!(["i64", "bool"]));
+        }
+    }
     payload(call(
         &mut session,
         "candidate/discard",

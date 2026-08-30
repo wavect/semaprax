@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Extended stable-ID aggregate constructors to explicit direct-scalar generic
+  arguments and authenticated compiler-owned Option/Result cases. Discovery
+  reports checked templates and prelude provenance; concrete admission remains
+  the ordinary full-source replay. Generic parameter inventories now bind
+  semantic rebase dependencies, including phantom parameters. Regression
+  cases are authored, unrun; no nested generic arguments, inference, runtime
+  evidence or source/publication authority is added.
+
 - Added typed record and variant expression constructors selected through
   stable type/case/field identities, with checked local/import bindings and
   exact member coverage. Initializers retain requested evaluation order;

@@ -512,7 +512,7 @@ fn wrong_duplicate_missing_foreign_and_mistyped_members_never_mutate_the_candida
 }
 
 #[test]
-fn generic_or_implicit_shapes_are_not_discovered_and_unbound_source_types_reject() {
+fn generic_arguments_remain_required_and_implicit_or_unbound_source_types_reject() {
     let fixture = Fixture::new();
     fixture.append(
         "src/core.spx",
@@ -534,11 +534,19 @@ fn generic_or_implicit_shapes_are_not_discovered_and_unbound_source_types_reject
     let catalog: Value =
         serde_json::from_str(&base.change_catalog("aggregate.make-pair").unwrap()).unwrap();
     let constructors = catalog["aggregate_constructors"].as_array().unwrap();
-    for unsupported in ["aggregate.box", "aggregate.implicit"] {
-        assert!(!constructors
-            .iter()
-            .any(|item| item["target"] == unsupported));
-    }
+    let generic = constructors
+        .iter()
+        .find(|item| item["target"] == "aggregate.box")
+        .unwrap();
+    assert_eq!(generic["generic"], true);
+    assert_eq!(generic["type_parameters"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        generic["type_parameters"][0]["allowed_types"],
+        json!(["i64", "bool"])
+    );
+    assert!(!constructors
+        .iter()
+        .any(|item| item["target"] == "aggregate.implicit"));
     let unavailable: Value =
         serde_json::from_str(&base.change_catalog("aggregate.unbound").unwrap()).unwrap();
     assert!(!unavailable

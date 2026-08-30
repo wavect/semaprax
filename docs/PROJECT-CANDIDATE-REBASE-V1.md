@@ -52,7 +52,9 @@ aggregate shapes before each history step is replayed. The comparison uses that
 step's original and rebased intermediate revisions, so earlier successful
 intentions remain part of the dependency context. Missing targets or changed
 ordered member identities/types reject with `SPX-G235`; names and source
-locations may also conservatively conflict. This protects aggregate operands
+locations may also conservatively conflict. Generic template fingerprints bind
+ordered parameter identities even for phantom parameters; prelude fingerprints
+also bind the compiler-owned schema/digest provenance. This protects aggregate operands
 even when the changed function has a scalar signature. It does not prove
 transitive shape or behavioral equivalence; see
 [Aggregate Constructors v1](PROJECT-AGGREGATE-CONSTRUCTORS-V1.md).

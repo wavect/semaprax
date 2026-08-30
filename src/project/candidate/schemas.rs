@@ -6,7 +6,8 @@ use serde_json::{json, Map, Value};
 use crate::diagnostic::Diagnostic;
 
 use super::intent::{
-    MAX_APPEND_PARAMETERS, MAX_EXPRESSION_DEPTH, MAX_EXPRESSION_NODES, MAX_ID_BYTES, MAX_NAME_BYTES,
+    MAX_AGGREGATE_TYPE_ARGUMENTS, MAX_APPEND_PARAMETERS, MAX_EXPRESSION_DEPTH,
+    MAX_EXPRESSION_NODES, MAX_ID_BYTES, MAX_NAME_BYTES,
 };
 use super::{
     wire, SemanticChange, MAX_SEMANTIC_CHANGE_BYTES, SEMANTIC_CHANGE_REQUIREMENTS,
@@ -133,7 +134,7 @@ fn expression_schema() -> Value {
     ]));
     variants.push(closed(&[("kind",json!({"const":"call"})),("target",text(MAX_ID_BYTES)),("arguments",json!({"type":"array","maxItems":MAX_EXPRESSION_NODES-1,"items":reference("expression")}))]));
     for kind in ["record", "variant"] {
-        variants.push(closed(&[
+        let mut aggregate = closed(&[
             ("kind", json!({"const":kind})),
             ("target", text(MAX_ID_BYTES)),
             (
@@ -143,7 +144,12 @@ fn expression_schema() -> Value {
                 "x-order":"caller_expression_evaluation_order",
                 "x-requires-exact-field-identity-coverage":true}),
             ),
-        ]));
+        ]);
+        aggregate["properties"]["type_arguments"] = json!({"type":"array",
+            "maxItems":MAX_AGGREGATE_TYPE_ARGUMENTS,"items":{"enum":["i64","bool"]},
+            "x-counts-toward-expression-node-budget":true,
+            "x-requires-exact-declared-arity":true});
+        variants.push(aggregate);
     }
     variants.push(closed(&[
         ("kind", json!({"const":"binary"})),
@@ -293,7 +299,7 @@ mod aggregate_expression_schema_tests {
                 .unwrap();
             assert_eq!(variant["additionalProperties"], false);
             assert_eq!(variant["required"], json!(["kind", "target", "fields"]));
-            assert_eq!(variant["properties"].as_object().unwrap().len(), 3);
+            assert_eq!(variant["properties"].as_object().unwrap().len(), 4);
             let fields = &variant["properties"]["fields"];
             assert_eq!(fields["maxItems"], MAX_EXPRESSION_NODES - 1);
             assert_eq!(fields["items"]["additionalProperties"], false);
@@ -302,7 +308,15 @@ mod aggregate_expression_schema_tests {
                 fields["items"]["properties"]["value"],
                 reference("expression")
             );
-            assert!(variant["properties"].get("type_arguments").is_none());
+            let arguments = &variant["properties"]["type_arguments"];
+            assert_eq!(arguments["type"], "array");
+            assert_eq!(arguments["maxItems"], MAX_AGGREGATE_TYPE_ARGUMENTS);
+            assert_eq!(arguments["items"]["enum"], json!(["i64", "bool"]));
+            assert!(arguments.get("minItems").is_none());
+            assert!(!variant["required"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("type_arguments")));
             assert!(variant["properties"].get("source").is_none());
         }
     }

@@ -95,8 +95,10 @@ Body constructors are closed objects: scalar `kind`/`value` literals;
 select existing local functions or explicit imports and cannot add an import.
 Constructors cannot submit source text, HIR, graph fields, or unresolved holes.
 The additive [aggregate constructors](PROJECT-AGGREGATE-CONSTRUCTORS-V1.md)
-construct monomorphic records and variant cases through retained checked
-type/case/field identities and a unique existing local/imported type binding.
+construct records and variant cases through retained checked type/case/field
+identities and a unique existing local/imported type binding. Generic templates
+require explicit direct `i64`/`bool` arguments; compiler-owned `Option`/`Result`
+cases use a separately authenticated prelude binding.
 Initializer arrays preserve the requested evaluation order. They are recursive
 expression operands, not aggregate defaults for fresh signature parameters.
 Types, effects, contracts, ownership, and cleanup are checked after canonical

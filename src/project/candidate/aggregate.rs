@@ -5,11 +5,16 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{json, Value};
 
 use super::{capacity, grammar, Result, MAX_EXPRESSION_NODES, MAX_ID_BYTES};
-use crate::ast::{ModuleUseKind, Program};
-use crate::hir::{ResolvedFieldDeclaration, ResolvedTypeDeclarationKind};
+use crate::ast::{ModuleUseKind, Program, Type};
+use crate::hir::{
+    DeclarationKind, IdentityOrigin, ResolvedFieldDeclaration, ResolvedType,
+    ResolvedTypeDeclarationKind, ResolvedTypeParameterDeclaration,
+};
 use crate::project::ProjectRevision;
 
 const MAX_FIELDS: usize = MAX_EXPRESSION_NODES - 1;
+pub(in crate::project::candidate) const MAX_AGGREGATE_TYPE_ARGUMENTS: usize =
+    MAX_EXPRESSION_NODES - 1;
 const MAX_ITEMS: usize = 65_536;
 const MAX_CATALOG_BYTES: usize = 1024 * 1024;
 
@@ -17,6 +22,7 @@ pub(super) struct Plan {
     pub(super) type_name: String,
     pub(super) case_name: Option<String>,
     pub(super) fields: BTreeMap<String, String>,
+    pub(super) type_arguments: Vec<Type>,
 }
 
 struct Subject<'a> {
@@ -28,6 +34,8 @@ struct Subject<'a> {
     module: &'a str,
     generic: bool,
     fields: &'a [ResolvedFieldDeclaration],
+    type_parameters: &'a [ResolvedTypeParameterDeclaration],
+    prelude_binding: Option<&'a str>,
 }
 
 pub(super) fn plan(
@@ -35,22 +43,50 @@ pub(super) fn plan(
     program: &Program,
     kind: &str,
     target: &str,
+    type_arguments: Option<&Value>,
 ) -> Result<Plan> {
     selector(target)?;
     let subject = subject(revision, target)?.ok_or_else(|| {
         grammar("aggregate constructor target is not a checked record or variant case")
     })?;
-    if subject.kind != kind || subject.generic {
+    if subject.kind != kind {
         return Err(grammar(
-            "aggregate constructor requires the exact monomorphic record or variant case kind",
+            "aggregate constructor requires the exact record or variant case kind",
         ));
     }
+    let arguments = match type_arguments {
+        Some(value) => value
+            .as_array()
+            .ok_or_else(|| grammar("aggregate type_arguments must be an explicit array"))?
+            .as_slice(),
+        None => &[],
+    };
+    if arguments.len() > MAX_AGGREGATE_TYPE_ARGUMENTS
+        || subject.type_parameters.len() > MAX_AGGREGATE_TYPE_ARGUMENTS
+    {
+        return Err(capacity(
+            "aggregate type argument inventory exceeds its constructor bound",
+        ));
+    }
+    if arguments.len() != subject.type_parameters.len() {
+        return Err(grammar("aggregate constructor requires exact explicit generic arity; no type inference is performed"));
+    }
+    let type_arguments = arguments
+        .iter()
+        .map(|value| match value.as_str() {
+            Some("i64") => Ok(Type::I64),
+            Some("bool") => Ok(Type::Bool),
+            _ => Err(grammar(
+                "aggregate type arguments admit only direct i64 or bool",
+            )),
+        })
+        .collect::<Result<Vec<_>>>()?;
     if subject.fields.len() > MAX_FIELDS {
         return Err(capacity(
             "aggregate constructor field inventory exceeds its node bound",
         ));
     }
-    let type_name = binding(program, subject.owner, subject.module)?.ok_or_else(|| {
+    let type_name = visible_binding(program, &subject)?.ok_or_else(|| {
         grammar("aggregate constructor type requires one existing local or imported binding")
     })?;
     let mut fields = BTreeMap::new();
@@ -66,6 +102,7 @@ pub(super) fn plan(
         type_name,
         case_name: (kind == "variant").then(|| subject.name.to_owned()),
         fields,
+        type_arguments,
     })
 }
 
@@ -89,7 +126,7 @@ pub(in crate::project::candidate) fn aggregate_constructors(
     let mut targets = BTreeSet::new();
     for module in revision.semantic.image_modules() {
         for ty in module.types() {
-            if !ty.type_parameters.is_empty()
+            if ty.type_parameters.len() > MAX_AGGREGATE_TYPE_ARGUMENTS
                 || binding(program, ty.id.as_str(), module.module())?.is_none()
             {
                 continue;
@@ -114,6 +151,21 @@ pub(in crate::project::candidate) fn aggregate_constructors(
             }
         }
     }
+    targets.extend(
+        [
+            crate::prelude::OPTION_NONE_ID,
+            crate::prelude::OPTION_SOME_ID,
+            crate::prelude::RESULT_OK_ID,
+            crate::prelude::RESULT_ERR_ID,
+        ]
+        .into_iter()
+        .map(str::to_owned),
+    );
+    if targets.len() > MAX_ITEMS {
+        return Err(capacity(
+            "aggregate constructor catalogue exceeds its item bound",
+        ));
+    }
     let mut result = Vec::new();
     let mut bytes = 2usize;
     let mut items = 0usize;
@@ -121,13 +173,13 @@ pub(in crate::project::candidate) fn aggregate_constructors(
         let Some(subject) = subject(revision, &target)? else {
             continue;
         };
-        items = items.saturating_add(1 + subject.fields.len());
+        items = items.saturating_add(1 + subject.fields.len() + subject.type_parameters.len());
         if items > MAX_ITEMS {
             return Err(capacity(
                 "aggregate constructor catalogue field inventory exceeds its bound",
             ));
         }
-        let visible = binding(program, subject.owner, subject.module)?
+        let visible = visible_binding(program, &subject)?
             .ok_or_else(|| grammar("aggregate catalogue binding disappeared"))?;
         let value = descriptor(&subject, Some(&visible))?;
         let encoded = super::super::wire::render(value.clone(), MAX_CATALOG_BYTES)?;
@@ -143,6 +195,9 @@ pub(in crate::project::candidate) fn aggregate_constructors(
 }
 
 fn subject<'a>(revision: &'a ProjectRevision, target: &str) -> Result<Option<Subject<'a>>> {
+    if let Some(subject) = prelude_subject(revision, target)? {
+        return Ok(Some(subject));
+    }
     let mut selected = None;
     for module in revision.semantic.image_modules() {
         for ty in module.types() {
@@ -157,6 +212,8 @@ fn subject<'a>(revision: &'a ProjectRevision, target: &str) -> Result<Option<Sub
                         module: module.module(),
                         generic: !ty.type_parameters.is_empty(),
                         fields,
+                        type_parameters: &ty.type_parameters,
+                        prelude_binding: None,
                     })
                 }
                 ResolvedTypeDeclarationKind::Variant { cases } => cases
@@ -171,6 +228,8 @@ fn subject<'a>(revision: &'a ProjectRevision, target: &str) -> Result<Option<Sub
                         module: module.module(),
                         generic: !ty.type_parameters.is_empty(),
                         fields: &case.fields,
+                        type_parameters: &ty.type_parameters,
+                        prelude_binding: None,
                     }),
                 _ => None,
             };
@@ -187,6 +246,162 @@ fn subject<'a>(revision: &'a ProjectRevision, target: &str) -> Result<Option<Sub
         }
     }
     Ok(selected)
+}
+
+/// This exception authenticates the exact compiler-owned algebraic inventory;
+/// it never weakens the explicit source identity checks for authored subjects.
+fn prelude_subject<'a>(revision: &'a ProjectRevision, target: &str) -> Result<Option<Subject<'a>>> {
+    use crate::prelude::*;
+    type Payload = (&'static str, &'static str, u32);
+    type Case = (&'static str, &'static str, Option<Payload>);
+    type PreludeShape = (
+        &'static str,
+        &'static str,
+        &'static [&'static str],
+        &'static [Case],
+    );
+    let (owner, name, parameter_names, cases): PreludeShape = match target {
+        OPTION_NONE_ID | OPTION_SOME_ID => (
+            OPTION_ID,
+            "Option",
+            &["T"],
+            &[
+                (OPTION_NONE_ID, "None", None),
+                (
+                    OPTION_SOME_ID,
+                    "Some",
+                    Some((OPTION_SOME_VALUE_ID, "value", 0)),
+                ),
+            ],
+        ),
+        RESULT_OK_ID | RESULT_ERR_ID => (
+            RESULT_ID,
+            "Result",
+            &["T", "E"],
+            &[
+                (RESULT_OK_ID, "Ok", Some((RESULT_OK_VALUE_ID, "value", 0))),
+                (
+                    RESULT_ERR_ID,
+                    "Err",
+                    Some((RESULT_ERR_ERROR_ID, "error", 1)),
+                ),
+            ],
+        ),
+        _ => return Ok(None),
+    };
+    let index = &revision.entry_program().declarations;
+    let id = index
+        .type_id(name)
+        .ok_or_else(|| grammar("checked compiler prelude type is absent"))?;
+    let declaration = index
+        .declaration(id)
+        .ok_or_else(|| grammar("checked compiler prelude declaration is absent"))?;
+    if id.as_str() != owner
+        || declaration.id != *id
+        || declaration.name != name
+        || declaration.kind != DeclarationKind::Variant
+        || declaration.identity_origin != IdentityOrigin::CompilerOwned
+        || declaration.owner.is_some()
+    {
+        return Err(grammar(
+            "compiler prelude type identity does not match its checked owner",
+        ));
+    }
+    let parameters = index
+        .type_parameters(id)
+        .ok_or_else(|| grammar("checked compiler prelude parameters are absent"))?;
+    if parameters.len() != parameter_names.len()
+        || parameters.iter().zip(parameter_names).enumerate().any(
+            |(position, (parameter, name))| {
+                parameter.name != *name || parameter.index as usize != position
+            },
+        )
+    {
+        return Err(grammar(
+            "compiler prelude parameter inventory does not match",
+        ));
+    }
+    let actual = index
+        .variant_cases(id)
+        .ok_or_else(|| grammar("checked compiler prelude cases are absent"))?;
+    if actual.len() != cases.len() {
+        return Err(grammar("compiler prelude case inventory does not match"));
+    }
+    for (position, (case, (expected_id, expected_name, payload))) in
+        actual.iter().zip(cases).enumerate()
+    {
+        let fact = index
+            .declaration(&case.id)
+            .ok_or_else(|| grammar("checked compiler prelude case identity is absent"))?;
+        if case.id.as_str() != *expected_id
+            || case.name != *expected_name
+            || case.index as usize != position
+            || fact.id != case.id
+            || fact.name != case.name
+            || fact.kind != DeclarationKind::VariantCase
+            || fact.identity_origin != IdentityOrigin::CompilerOwned
+            || fact.owner.as_ref() != Some(id)
+            || case.fields.len() != usize::from(payload.is_some())
+        {
+            return Err(grammar(
+                "compiler prelude case ownership or payload inventory does not match",
+            ));
+        }
+        if let Some((field_id, field_name, parameter_index)) = payload {
+            let field = &case.fields[0];
+            let fact = index
+                .declaration(&field.id)
+                .ok_or_else(|| grammar("checked compiler prelude payload identity is absent"))?;
+            if field.id.as_str() != *field_id
+                || field.name != *field_name
+                || field.index != 0
+                || fact.id != field.id
+                || fact.name != field.name
+                || fact.kind != DeclarationKind::CaseField
+                || fact.identity_origin != IdentityOrigin::CompilerOwned
+                || fact.owner.as_ref() != Some(&case.id)
+                || !matches!(&field.ty,ResolvedType::TypeParameter{owner,index} if owner==id && index==parameter_index)
+            {
+                return Err(grammar(
+                    "compiler prelude payload type or ownership does not match",
+                ));
+            }
+        }
+    }
+    let case = actual
+        .iter()
+        .find(|case| case.id.as_str() == target)
+        .ok_or_else(|| grammar("checked compiler prelude case is absent"))?;
+    Ok(Some(Subject {
+        kind: "variant",
+        target: case.id.as_str(),
+        owner: id.as_str(),
+        name: &case.name,
+        path: "",
+        module: "",
+        generic: true,
+        fields: &case.fields,
+        type_parameters: parameters,
+        prelude_binding: Some(&declaration.name),
+    }))
+}
+
+fn visible_binding(program: &Program, subject: &Subject<'_>) -> Result<Option<String>> {
+    if let Some(name) = subject.prelude_binding {
+        // The source checker reserves these two names. Keep this local join
+        // explicit rather than admitting a caller-supplied spelling or alias.
+        if program.types.iter().any(|ty| ty.name == name)
+            || program
+                .module_uses
+                .iter()
+                .any(|binding| binding.kind == ModuleUseKind::Type && binding.alias == name)
+        {
+            return Err(grammar("compiler prelude constructor binding is shadowed"));
+        }
+        Ok(Some(name.to_owned()))
+    } else {
+        binding(program, subject.owner, subject.module)
+    }
 }
 
 // These source-origin facts are independently joined during Project admission.
@@ -239,7 +454,9 @@ fn binding(program: &Program, owner: &str, provider: &str) -> Result<Option<Stri
 }
 
 fn descriptor(subject: &Subject<'_>, binding: Option<&str>) -> Result<Value> {
-    if subject.fields.len() > MAX_FIELDS {
+    if subject.fields.len() > MAX_FIELDS
+        || subject.type_parameters.len() > MAX_AGGREGATE_TYPE_ARGUMENTS
+    {
         return Err(capacity(
             "aggregate type fingerprint exceeds its field bound",
         ));
@@ -265,9 +482,33 @@ fn descriptor(subject: &Subject<'_>, binding: Option<&str>) -> Result<Value> {
         }
         fields.push(json!({"target":field.id.as_str(),"name":field.name,"index":field.index,"type_identity":identity}));
     }
+    let mut parameters = Vec::new();
+    for parameter in subject.type_parameters {
+        bytes = bytes
+            .saturating_add(parameter.name.len())
+            .saturating_add(256);
+        if bytes > MAX_CATALOG_BYTES / 6 {
+            return Err(capacity(
+                "aggregate template parameter descriptors exceed their construction bound",
+            ));
+        }
+        parameters.push(
+            json!({"name":parameter.name,"index":parameter.index,"allowed_types":["i64","bool"]}),
+        );
+    }
     let mut value = json!({"kind":subject.kind,"target":subject.target,"owner":subject.owner,"name":subject.name,
         "path":subject.path,"module":subject.module,"generic":subject.generic,"fields":fields,
         "evidence_owner":"retained_checked_hir","requires_full_candidate_validation":true});
+    if !parameters.is_empty() {
+        value["type_parameters"] = json!(parameters);
+    }
+    if subject.prelude_binding.is_some() {
+        value["path"] = Value::Null;
+        value["module"] = Value::Null;
+        value["identity_origin"] = json!("compiler_owned");
+        value["compiler_prelude"] =
+            json!({"schema":crate::prelude::SCHEMA_V1,"digest":crate::prelude::digest_text_v1()});
+    }
     if let Some(binding) = binding {
         value["binding"] = json!(binding);
     }

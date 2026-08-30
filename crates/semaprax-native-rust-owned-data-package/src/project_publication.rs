@@ -5,7 +5,10 @@
 //! without acquiring raw platform authority or introducing unsafe code.
 
 use std::ffi::{OsStr, OsString};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+#[cfg(test)]
+mod tests;
 
 use semaprax_native_rust_interop_platform as platform;
 
@@ -29,9 +32,13 @@ pub struct NewProjectAuthority {
     stage_name: platform::PreparedStageName,
     source_name: platform::PreparedStageName,
     output_name: OsString,
+    parent_path: PathBuf,
+    output_path: PathBuf,
     root: platform::PreparedDiscardInventory<2>,
     source_files: platform::PreparedDiscardInventory<2>,
     published: bool,
+    #[cfg(test)]
+    after_rename: Option<Box<dyn FnOnce()>>,
 }
 
 impl NewProjectAuthority {
@@ -52,6 +59,10 @@ impl NewProjectAuthority {
             platform::prepare_discard_inventory(ROOT_NAMES.map(OsStr::new)).map_err(map_invalid)?;
         let source_files = platform::prepare_discard_inventory(SOURCE_NAMES.map(OsStr::new))
             .map_err(map_invalid)?;
+        // Prepare expected namespace bindings before creating any directory.
+        let parent_path = parent_path.to_path_buf();
+        let output_path = parent_path.join(output_name);
+        let output_name = output_name.to_os_string();
         let stage = platform::create_directory_new_prepared(&parent, &stage_name, 0o700).map_err(
             |error| {
                 if error == platform::Error::Exists {
@@ -75,10 +86,14 @@ impl NewProjectAuthority {
             source: Some(source),
             stage_name,
             source_name,
-            output_name: output_name.to_os_string(),
+            output_name,
+            parent_path,
+            output_path,
             root,
             source_files,
             published: false,
+            #[cfg(test)]
+            after_rename: None,
         })
     }
 
@@ -184,13 +199,22 @@ impl NewProjectAuthority {
             &self.output_name,
         );
         if published.is_ok() {
+            // A successful rename irrevocably ends staging cleanup authority.
             self.published = true;
+            #[cfg(test)]
+            if let Some(hook) = self.after_rename.take() {
+                hook();
+            }
         }
         self.source = Some(
             platform::hold_child_directory(&self.stage, OsStr::new("src")).map_err(map_changed)?,
         );
         published.map_err(map_create)?;
-        self.authenticate_published(files)
+        self.authenticate_published(files)?;
+        if !self.ambient_paths_still_bind(&self.parent_path, &self.output_path)? {
+            return Err(NewProjectAuthorityError::Changed);
+        }
+        Ok(())
     }
 
     fn authenticate_published(

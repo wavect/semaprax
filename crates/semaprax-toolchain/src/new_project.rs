@@ -1,6 +1,10 @@
 #[path = "new_project/templates.rs"]
 mod templates;
 
+#[cfg(test)]
+#[path = "new_project/binding_tests.rs"]
+mod binding_tests;
+
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -59,6 +63,11 @@ pub(crate) trait WriteHook {
     }
 
     fn before_write(&self, index: usize, relative_path: &str) -> Result<(), String>;
+
+    #[cfg(test)]
+    fn after_publish(&self) -> Result<(), String> {
+        Ok(())
+    }
 }
 
 struct NoopWriteHook;
@@ -79,6 +88,10 @@ pub(crate) fn create_with_hook(
     name: &str,
     hook: &dyn WriteHook,
 ) -> Result<PathBuf, NewProjectFailure> {
+    // Capture the caller's spelling once; do not adopt a later alias target.
+    let requested_destination = std::path::absolute(destination).map_err(|error| {
+        NewProjectFailure::creation(format!("cannot resolve new project destination: {error}"))
+    })?;
     validate_name(name).map_err(NewProjectFailure::creation)?;
     let files = templates::render(name);
     let paths = files.iter().map(|file| file.path).collect::<Vec<_>>();
@@ -86,10 +99,10 @@ pub(crate) fn create_with_hook(
     let expected = expected_files(&files)?;
     validate_rendered_project(expected)?;
 
-    let file_name = destination.file_name().ok_or_else(|| {
+    let file_name = requested_destination.file_name().ok_or_else(|| {
         NewProjectFailure::creation("new project destination must name one directory")
     })?;
-    let requested_parent = destination
+    let requested_parent = requested_destination
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."));
@@ -124,7 +137,7 @@ pub(crate) fn create_with_hook(
             "injected failure after staged project creation: {error}"
         ))
     })?;
-    require_original_parent_identity(&parent, &parent_identity)?;
+    require_original_parent_identity(requested_parent, &parent_identity)?;
     require_ambient_binding(&authority, &parent, &staging)?;
     for (index, file) in files.iter().enumerate() {
         hook.before_write(index, file.path).map_err(|error| {
@@ -144,6 +157,14 @@ pub(crate) fn create_with_hook(
     authority
         .publish_and_verify(expected)
         .map_err(|error| authority_failure("publish and verify new project", error))?;
+    #[cfg(test)]
+    hook.after_publish().map_err(|error| {
+        NewProjectFailure::creation(format!(
+            "injected failure after project publication: {error}"
+        ))
+    })?;
+    require_original_parent_identity(requested_parent, &parent_identity)?;
+    require_ambient_binding(&authority, &parent, &parent.join(file_name))?;
     Ok(destination.to_path_buf())
 }
 
@@ -337,14 +358,17 @@ fn require_original_parent_identity(
     parent: &Path,
     expected: &Handle,
 ) -> Result<(), NewProjectFailure> {
-    if Handle::from_path(parent)
+    if fs::symlink_metadata(parent)
         .ok()
-        .is_some_and(|observed| observed == *expected)
+        .is_some_and(|metadata| is_plain_directory(&metadata))
+        && Handle::from_path(parent)
+            .ok()
+            .is_some_and(|observed| observed == *expected)
     {
         Ok(())
     } else {
         Err(NewProjectFailure::creation(
-            "new project parent identity changed before staged writes",
+            "new project parent identity changed",
         ))
     }
 }

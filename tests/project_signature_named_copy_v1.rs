@@ -26,7 +26,7 @@ version = "1.0.0"
 profile = "owned-data-api.v1"
 entry = "named.app"
 sources = ["src/app.spx", "src/bridge.spx", "src/core.spx", "src/tests.spx"]
-web_exports = ["named.evaluate"]
+web_exports = ["named.public"]
 tests = ["named.tests"]
 "#,
         )
@@ -48,13 +48,13 @@ tests = ["named.tests"]
     select(Pair { value: 8 / 2 }, Pair { value: 18 / 3 }, Tag::Number { value: 20 / 4 })
 }
 @id("named.variant") fn variant_pick(left: Tag, unused: Tag, ignored: Pair) -> i64 {
-    match left { Tag::Number { value: selected } => selected, Tag::None {} => 0 }
+    match left { Tag::Number { value: selected } => selected, Tag::None {} => 0, }
 }
 @id("named.variant-call") fn variant_call() -> i64 {
     variant_pick(Tag::Number { value: 10 / 2 }, Tag::Number { value: 1 / 0 }, Pair { value: 12 / 3 })
 }
 @id("named.option") fn option_pick(left: Option<i64>, right: Option<i64>) -> i64 {
-    match left { Option::Some { value } => value, Option::None {} => 0 }
+    match left { Option::Some { value } => value, Option::None {} => 0, }
 }
 @id("named.option-call") fn option_call() -> i64 {
     option_pick(Option<i64>::Some { value: 8 / 2 }, Option<i64>::Some { value: 1 / 0 })
@@ -62,6 +62,7 @@ tests = ["named.tests"]
 @id("named.evaluate") fn evaluate(input: i64) -> i64 {
     select(Pair { value: input }, Pair { value: 2 }, Tag::None {})
 }
+@id("named.public") fn public_value(input: i64) -> i64 { input + 2 }
 "#,
             ),
             (
@@ -92,11 +93,9 @@ use type @id("named.tag") from named.core as Choice;
 use function @id("bridge.select") from named.bridge as choose;
 use function @id("named.evaluate") from named.core as evaluate;
 use function @id("named.variant") from named.core as variant_pick;
-use function @id("named.option") from named.core as option_pick;
 @id("named.main") fn main() -> i64 {
     evaluate(40) + choose(Datum { value: 0 }, Datum { value: 0 }, Choice::None {})
         + variant_pick(Choice::None {}, Choice::None {}, Datum { value: 0 })
-        + option_pick(Option<i64>::None {}, Option<i64>::None {})
 }
 @id("named.app-call") fn app_call() -> i64 {
     choose(Datum { value: 15 / 3 }, Datum { value: 24 / 4 }, Choice::None {})
@@ -114,7 +113,7 @@ use function @id("named.evaluate") from named.core as evaluate;
             let program = semaprax::parse(source, path).unwrap();
             std::fs::write(root.join(path), semaprax::format::canonical(&program)).unwrap();
         }
-        Self(root)
+        Self(root.canonicalize().unwrap())
     }
     fn candidate(&self) -> ProjectCandidate {
         let revision = with_authenticated_project(&self.0.join("semaprax.toml"), |snapshot| {
@@ -318,14 +317,18 @@ fn imported_type_aliases_keep_nominal_identity_despite_same_display_name_elsewhe
     staging(&base, &candidate, "src/app.spx", "named.app-call", &[1, 0]);
     let projected = program(&candidate, "src/bridge.spx");
     let target = function(&projected, "bridge.select");
-    assert!(target
-        .params
-        .iter()
-        .all(|param| param.ty == Type::Named("Metric".to_owned(), vec![])
-            && param.mode == ParamMode::Value));
+    assert!(target.params.iter().all(|param| param.ty
+        == Type::Named {
+            name: "Metric".to_owned(),
+            arguments: vec![]
+        }
+        && param.mode == ParamMode::Value));
     assert_eq!(
         function(&projected, "bridge.same-name").params[0].ty,
-        Type::Named("Pair".to_owned(), vec![])
+        Type::Named {
+            name: "Pair".to_owned(),
+            arguments: vec![]
+        }
     );
     let delta: Value = serde_json::from_str(
         &candidate
@@ -375,7 +378,13 @@ fn copy_variant_removal_keeps_checked_failure_order_and_renames_match_scope() {
     let target = function(&projected, "named.variant");
     assert_eq!(target.params.len(), 1);
     assert_eq!(target.params[0].name, "selected");
-    assert_eq!(target.params[0].ty, Type::Named("Tag".to_owned(), vec![]));
+    assert_eq!(
+        target.params[0].ty,
+        Type::Named {
+            name: "Tag".to_owned(),
+            arguments: vec![]
+        }
+    );
     let caller = function(&projected, "named.variant-call");
     let ExprKind::Block { statements, .. } = &tail(&caller.body).kind else {
         panic!("staging missing")
@@ -424,6 +433,30 @@ fn concrete_copy_option_is_retained_without_generalizing_generic_target_function
     assert!(generic_errors.iter().any(|error| error.code == "SPX-G225"));
     replay(&base, &candidate, change);
     assert_eq!(fixture.bytes(), disk);
+}
+
+#[test]
+fn export_contracts_and_cross_module_option_signatures_remain_closed() {
+    let fixture = Fixture::new();
+    let manifest = fixture.0.join("semaprax.toml");
+    let original = std::fs::read_to_string(&manifest).unwrap();
+    std::fs::write(
+        &manifest,
+        original.replace("[\"named.public\"]", "[\"named.evaluate\"]"),
+    )
+    .unwrap();
+    let errors = with_authenticated_project(&manifest, |_| Ok(())).unwrap_err();
+    assert!(errors.iter().any(|error| error.code == "SPX-J113"));
+    std::fs::write(&manifest, original).unwrap();
+    let app = fixture.0.join("src/app.spx");
+    let source = std::fs::read_to_string(&app).unwrap().replace(
+        "module named.app;",
+        "module named.app;\nuse function @id(\"named.option\") from named.core as option_pick;",
+    );
+    let parsed = semaprax::parse(&source, "src/app.spx").unwrap();
+    std::fs::write(app, semaprax::format::canonical(&parsed)).unwrap();
+    let errors = with_authenticated_project(&manifest, |_| Ok(())).unwrap_err();
+    assert!(errors.iter().any(|error| error.code == "SPX-G172"));
 }
 
 #[test]

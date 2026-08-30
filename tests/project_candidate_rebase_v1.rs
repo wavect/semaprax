@@ -103,7 +103,8 @@ fn unchanged_type_spelling_cannot_hide_a_concurrent_nominal_identity_change() {
         .replace(
             "name = \"calculator\"",
             "name = \"calculator\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"",
-        );
+        )
+        .replace("\"calculator.divide\", ", "");
     std::fs::write(manifest_path, manifest).unwrap();
     let path = fixture.0.join("src/core.spx");
     let source = std::fs::read_to_string(&path).unwrap()

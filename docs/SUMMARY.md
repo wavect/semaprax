@@ -79,6 +79,7 @@ Audience: all documentation readers.
 - [Project Graph-operational Git Workflow v1](PROJECT-GRAPH-OPERATIONAL-GIT-WORKFLOW-V1.md)
 - [Project Contract Change v1](PROJECT-CONTRACT-CHANGE-V1.md)
 - [Project Signature Evolution v1](PROJECT-SIGNATURE-EVOLUTION-V1.md)
+- [Project Expression Change v1](PROJECT-EXPRESSION-CHANGE-V1.md)
 - [Graph-operational programme ledger](GRAPH-OPERATIONAL-PROGRAMME.md)
 - [Semantic Image Facets v1](SEMANTIC-IMAGE-FACETS-V1.md)
 - [Project Candidate Body Holes v1](PROJECT-CANDIDATE-HOLES-V1.md)

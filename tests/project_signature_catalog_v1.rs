@@ -61,9 +61,10 @@ use function @id("catalog.evaluate") from catalog.core as evaluate;
 "#,
             ),
         ] {
-            std::fs::write(root.join(path), source).unwrap();
+            let program = semaprax::parse(source, path).unwrap();
+            std::fs::write(root.join(path), semaprax::format::canonical(&program)).unwrap();
         }
-        Self(root)
+        Self(root.canonicalize().unwrap())
     }
     fn candidate(&self) -> ProjectCandidate {
         let revision = with_authenticated_project(&self.0.join("semaprax.toml"), |snapshot| {

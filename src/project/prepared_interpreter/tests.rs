@@ -10,16 +10,18 @@ use crate::{interpreter, project::ProjectRevision};
 
 use super::*;
 
+mod replacement;
+
 const TRACE_PAYLOAD_DOMAIN: &[u8] = b"semaprax.project-source-trace.payload.v1\0";
 static REAL_PREPARE_SERIAL: Mutex<()> = Mutex::new(());
 
-fn real_prepare_serial() -> MutexGuard<'static, ()> {
+pub(super) fn real_prepare_serial() -> MutexGuard<'static, ()> {
     REAL_PREPARE_SERIAL
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
-fn revision() -> Arc<ProjectRevision> {
+pub(super) fn revision() -> Arc<ProjectRevision> {
     let manifest =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/calculator-project/semaprax.toml");
     crate::project::load_snapshot(&manifest)

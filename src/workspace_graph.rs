@@ -550,7 +550,7 @@ impl WorkspaceGraphProjection {
 }
 
 impl WorkspaceGraphProjectionModule {
-    /// Compiler-checked facts for exact nominal parameters, including functions
+    /// Compiler-checked facts for exact nominal parameters and returns, including functions
     /// outside the entry/test closures. Never reconstructed from source labels.
     pub(crate) fn signature_type_facts(
         &self,
@@ -4658,11 +4658,16 @@ fn retained_signature_type_facts(
 ) -> Result<BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>, Vec<Diagnostic>> {
     let mut retained = BTreeMap::new();
     for function in functions {
-        for parameter in &function.params {
-            let hir::ResolvedType::Nominal { declaration, .. } = &parameter.ty else {
+        for ty in function
+            .params
+            .iter()
+            .map(|parameter| &parameter.ty)
+            .chain(std::iter::once(&function.return_type))
+        {
+            let hir::ResolvedType::Nominal { declaration, .. } = ty else {
                 continue;
             };
-            let key = parameter.ty.identity_key();
+            let key = ty.identity_key();
             if retained.contains_key(&key) {
                 continue;
             }
@@ -4678,7 +4683,7 @@ fn retained_signature_type_facts(
                     )]
                 })?
                 .kind;
-            let facts = declarations.type_facts(&parameter.ty).ok_or_else(|| {
+            let facts = declarations.type_facts(ty).ok_or_else(|| {
                 vec![graph_error(
                     "SPX-G173",
                     "checked signature type facts are absent",

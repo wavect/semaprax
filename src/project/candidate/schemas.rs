@@ -283,8 +283,20 @@ fn digest_schema() -> Value {
 fn stable_id() -> Value {
     json!({"type":"string","minLength":1,"maxLength":128,"pattern":"^[a-z0-9._-]+$"})
 }
+fn nominal_type_schema() -> Value {
+    closed(&[
+        ("kind", json!({"const":"nominal"})),
+        ("target", text(MAX_ID_BYTES)),
+        (
+            "type_arguments",
+            json!({"type":"array","maxItems":MAX_AGGREGATE_TYPE_ARGUMENTS,
+            "items":{"enum":["i64","bool"]},"x-requires-exact-declared-arity":true}),
+        ),
+    ])
+}
+
 fn declaration_schema() -> Value {
-    let parameters = [
+    let mut parameters = [
         ("value", vec!["i64", "i32", "u8", "usize", "bool"]),
         ("own", vec!["Bytes"]),
         ("borrow", vec!["str", "Slice<u8>"]),
@@ -298,6 +310,11 @@ fn declaration_schema() -> Value {
         ])
     })
     .collect::<Vec<_>>();
+    parameters.push(closed(&[
+        ("name", identifier()),
+        ("type", nominal_type_schema()),
+        ("mode", json!({"const":"value"})),
+    ]));
     closed(&[
         ("id", stable_id()),
         ("name", identifier()),
@@ -307,7 +324,7 @@ fn declaration_schema() -> Value {
         ),
         (
             "return_type",
-            json!({"enum":["i64","i32","u8","usize","bool","Bytes"]}),
+            json!({"oneOf":[{"enum":["i64","i32","u8","usize","bool","Bytes"]},nominal_type_schema()]}),
         ),
         (
             "effects",
@@ -328,6 +345,49 @@ fn declaration_schema() -> Value {
 #[cfg(test)]
 mod aggregate_expression_schema_tests {
     use super::*;
+
+    #[test]
+    fn declaration_nominal_types_are_closed_and_only_value_parameters() {
+        let declaration = declaration_schema();
+        let parameters = declaration["properties"]["parameters"]["items"]["oneOf"]
+            .as_array()
+            .unwrap();
+        assert_eq!(parameters.len(), 4);
+        assert_eq!(
+            parameters[0]["properties"]["type"]["enum"],
+            json!(SCALAR_KINDS)
+        );
+        assert_eq!(
+            parameters[1]["properties"]["type"]["enum"],
+            json!(["Bytes"])
+        );
+        assert_eq!(
+            parameters[2]["properties"]["type"]["enum"],
+            json!(["str", "Slice<u8>"])
+        );
+        assert_eq!(parameters[3]["properties"]["mode"]["const"], "value");
+        let nominal = &parameters[3]["properties"]["type"];
+        assert_eq!(nominal["additionalProperties"], false);
+        assert_eq!(
+            nominal["required"],
+            json!(["kind", "target", "type_arguments"])
+        );
+        assert_eq!(
+            nominal["properties"]["type_arguments"]["maxItems"],
+            MAX_AGGREGATE_TYPE_ARGUMENTS
+        );
+        assert_eq!(
+            nominal["properties"]["type_arguments"]["items"]["enum"],
+            json!(["i64", "bool"])
+        );
+        assert!(nominal["properties"]["type_arguments"]
+            .get("minItems")
+            .is_none());
+        assert_eq!(
+            &declaration["properties"]["return_type"]["oneOf"][1],
+            nominal
+        );
+    }
 
     #[test]
     fn aggregate_constructors_are_closed_recursive_identity_selected_shapes() {

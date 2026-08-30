@@ -527,6 +527,85 @@ fn record_update_rebase_binds_untouched_fields_as_well_as_requested_replacements
 }
 
 #[test]
+fn nominal_declaration_signature_rebase_binds_type_shapes_without_aggregate_body_operands() {
+    let fixture = Fixture::new();
+    let manifest_path = fixture.0.join("semaprax.toml");
+    let manifest = std::fs::read_to_string(&manifest_path)
+        .unwrap()
+        .replace("semaprax.project.v1", "semaprax.project.v8")
+        .replace(
+            "name = \"calculator\"",
+            "name = \"calculator\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"",
+        )
+        .replace("\"calculator.divide\", ", "");
+    std::fs::write(manifest_path, manifest).unwrap();
+    let path = fixture.0.join("src/core.spx");
+    let text = std::fs::read_to_string(&path).unwrap()
+        + r#"
+@id("calculator.nominal-box") record Box<T> { @id("calculator.nominal-box.value") value: T, }
+@id("calculator.nominal-choice") variant Choice<T> {
+    @id("calculator.nominal-choice.some") Some { @id("calculator.nominal-choice.some.value") value: T, },
+    @id("calculator.nominal-choice.none") None,
+}
+"#;
+    let canonical = semaprax::format::canonical(&semaprax::parse(&text, "src/core.spx").unwrap());
+    std::fs::write(&path, &canonical).unwrap();
+    let root = fixture.candidate();
+    let independent = apply(&root, rename("calculator.subtract", "difference"));
+    for (owner, new_id, name, member) in [
+        (
+            "calculator.nominal-box",
+            "calculator.keep-box",
+            "keep_box",
+            "calculator.nominal-box.value",
+        ),
+        (
+            "calculator.nominal-choice",
+            "calculator.keep-choice",
+            "keep_choice",
+            "calculator.nominal-choice.none",
+        ),
+    ] {
+        // The only references to the selected nominal type occur in type
+        // objects. Existing expression-constructor dependency checks alone
+        // cannot protect this identity-preserving body.
+        let ty = json!({"kind":"nominal","target":owner,"type_arguments":["i64"]});
+        let added = apply(
+            &root,
+            json!({"kind":"add_declaration","target":"calculator.add","declaration":{
+                "id":new_id,"name":name,"parameters":[{"name":"value","type":ty,"mode":"value"}],
+                "return_type":ty,"effects":[],"requires":[],"ensures":[],"body":{"kind":"place","name":"value"}
+            }}),
+        );
+        let merged = added
+            .merge(
+                added.candidate_digest(),
+                &independent,
+                independent.candidate_digest(),
+            )
+            .unwrap();
+        assert!(source(merged.candidate()).contains(&format!("fn {name}(")));
+        assert!(source(merged.candidate()).contains("fn difference("));
+        let unchanged = added.to_json().to_owned();
+        let changed = canonical.replace(member, &format!("{member}-new"));
+        assert_ne!(changed, canonical);
+        std::fs::write(&path, &changed).unwrap();
+        let new_base = fixture.revision();
+        code(
+            added.rebase(
+                added.candidate_digest(),
+                Arc::clone(&new_base),
+                new_base.project_revision(),
+            ),
+            "SPX-G235",
+        );
+        assert_eq!(added.to_json(), unchanged);
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), changed);
+        std::fs::write(&path, &canonical).unwrap();
+    }
+}
+
+#[test]
 fn callee_display_rename_does_not_create_a_false_body_conflict() {
     let fixture = Fixture::new();
     fixture.helper();

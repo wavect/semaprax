@@ -352,6 +352,9 @@ impl ProjectCandidate {
             field_addition.as_ref(),
             movement.as_ref(),
         )?;
+        if let Some(addition) = addition.as_ref() {
+            declaration::validate_added_signature(&candidate, addition)?;
+        }
         let rebuilt_programs = parse_revision(&candidate)?;
         interface::identities(&rebuilt_programs)?;
         if interface::inventory(&rebuilt_programs)? != before_implementations {

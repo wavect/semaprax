@@ -64,7 +64,7 @@ pub(super) fn apply(
                 "declaration parameters must be unique and may not shadow result",
             ));
         }
-        let ty = type_name(text(parameter, "type")?)?;
+        let ty = requested_type(revision, &programs[owner], &parameter["type"])?;
         let mode = match text(parameter, "mode")? {
             "value" => ParamMode::Value,
             "own" => ParamMode::Own,
@@ -79,7 +79,7 @@ pub(super) fn apply(
             span: Span::default(),
         });
     }
-    let return_type = type_name(text(declaration, "return_type")?)?;
+    let return_type = requested_type(revision, &programs[owner], &declaration["return_type"])?;
     validate_return(&return_type)?;
     let effects = array(declaration, "effects")?
         .iter()
@@ -181,6 +181,14 @@ pub(super) fn append_function(
     }
     validate_return(&function.return_type)?;
     let program = &programs[owner];
+    for ty in function
+        .params
+        .iter()
+        .map(|parameter| &parameter.ty)
+        .chain(std::iter::once(&function.return_type))
+    {
+        intent::validate_nominal_ast(revision, program, ty)?;
+    }
     if function.effects.windows(2).any(|pair| pair[0] >= pair[1])
         || function.effects.iter().any(|effect| {
             effect.is_empty()
@@ -294,6 +302,84 @@ fn type_name(name: &str) -> Result<Type> {
     }
 }
 
+fn requested_type(revision: &ProjectRevision, program: &Program, value: &Value) -> Result<Type> {
+    if let Some(name) = value.as_str() {
+        return type_name(name);
+    }
+    object(value, &["kind", "target", "type_arguments"])?;
+    if text(value, "kind")? != "nominal" {
+        return Err(grammar("declaration type object requires nominal kind"));
+    }
+    intent::nominal_type_plan(
+        revision,
+        program,
+        text(value, "target")?,
+        &value["type_arguments"],
+    )
+}
+
+/// Every addition, including compiler-derived extraction, passes this gate
+/// after full source rebuild. Nominal syntax alone never proves Copy safety.
+pub(super) fn validate_added_signature(
+    revision: &ProjectRevision,
+    addition: &DeclarationAddition,
+) -> Result<()> {
+    let mut selected = None;
+    for module in revision.semantic.image_modules() {
+        for function in module
+            .functions()
+            .iter()
+            .filter(|function| function.id.as_str() == addition.id)
+        {
+            if selected.replace((module, function)).is_some() {
+                return Err(grammar("added checked function identity is ambiguous"));
+            }
+        }
+    }
+    let (module, function) = selected.ok_or_else(|| grammar("added checked function is absent"))?;
+    if module.path() != addition.path
+        || module.module() != addition.module
+        || function.name != addition.name
+    {
+        return Err(grammar(
+            "added checked function disagrees with its source owner",
+        ));
+    }
+    for parameter in &function.params {
+        if matches!(&parameter.ty, crate::hir::ResolvedType::Nominal { .. })
+            && parameter.ownership != crate::hir::OwnershipMode::Value
+        {
+            return Err(grammar(
+                "added nominal parameters require checked value ownership",
+            ));
+        }
+    }
+    for ty in function
+        .params
+        .iter()
+        .map(|parameter| &parameter.ty)
+        .chain(std::iter::once(&function.return_type))
+    {
+        if !matches!(ty, crate::hir::ResolvedType::Nominal { .. }) {
+            continue;
+        }
+        let (kind, facts) = module
+            .signature_type_facts(ty)
+            .ok_or_else(|| grammar("added nominal signature has no retained checked type facts"))?;
+        if !matches!(
+            kind,
+            crate::hir::DeclarationKind::Record | crate::hir::DeclarationKind::Variant
+        ) || !facts.copy
+            || !facts.sized
+            || facts.needs_drop
+            || facts.contains_resource
+        {
+            return Err(grammar("added nominal signature requires a checked sized Copy record or variant without owned cleanup or resources"));
+        }
+    }
+    Ok(())
+}
+
 fn scalar(ty: &Type) -> bool {
     matches!(
         ty,
@@ -302,7 +388,7 @@ fn scalar(ty: &Type) -> bool {
 }
 
 fn validate_parameter(ty: &Type, mode: ParamMode) -> Result<()> {
-    if (scalar(ty) && mode == ParamMode::Value)
+    if ((scalar(ty) || matches!(ty, Type::Named { .. })) && mode == ParamMode::Value)
         || (*ty == Type::Bytes && mode == ParamMode::Own)
         || (matches!(ty, Type::Str | Type::SliceU8) && mode == ParamMode::Borrow)
     {
@@ -315,11 +401,11 @@ fn validate_parameter(ty: &Type, mode: ParamMode) -> Result<()> {
 }
 
 fn validate_return(ty: &Type) -> Result<()> {
-    if scalar(ty) || *ty == Type::Bytes {
+    if scalar(ty) || *ty == Type::Bytes || matches!(ty, Type::Named { .. }) {
         Ok(())
     } else {
         Err(grammar(
-            "declaration return type must be an admitted scalar or owned Bytes",
+            "declaration return type must be an admitted scalar, owned Bytes or checked Copy nominal type",
         ))
     }
 }

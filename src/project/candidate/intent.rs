@@ -34,6 +34,7 @@ pub(super) use aggregate::{
     aggregate_constructors, aggregate_dependency_fingerprint,
     aggregate_match_dependency_fingerprint, aggregate_matches,
     aggregate_projection_dependency_fingerprint, aggregate_projections, aggregate_updates,
+    nominal_type_dependency_fingerprint, nominal_type_plan, nominal_types, validate_nominal_ast,
     MAX_AGGREGATE_TYPE_ARGUMENTS,
 };
 pub(super) use signature::ordered_signature_parameters;

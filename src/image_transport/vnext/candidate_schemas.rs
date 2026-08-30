@@ -219,6 +219,63 @@ fn aggregate_match() -> Value {
     json!({"oneOf":[monomorphic,source_generic,object(generic)]})
 }
 
+fn nominal_type() -> Value {
+    let fields = vec![
+        ("kind", json!({"const":"nominal"})),
+        ("target", text()),
+        ("binding", text()),
+        ("generic", json!({"const":false})),
+        ("declaration_kind", json!({"enum":["record","variant"]})),
+        ("path", text()),
+        ("module", text()),
+        ("evidence_owner", json!({"const":"retained_checked_hir"})),
+        ("requires_full_candidate_validation", json!({"const":true})),
+        (
+            "copy_admission",
+            json!({"const":"checked_candidate_signature"}),
+        ),
+    ];
+    let monomorphic = object(fields.clone());
+    let mut generic = fields;
+    generic.retain(|(name, _)| *name != "generic");
+    generic.extend([
+        ("generic", json!({"const":true})),
+        (
+            "type_parameters",
+            json!({"type":"array","minItems":1,"maxItems":4095,
+            "items":object(vec![
+                ("name",text()),("index",uint()),
+                ("allowed_types",json!({"const":["i64","bool"]})),
+            ])}),
+        ),
+    ]);
+    let source_generic = object(generic.clone());
+    generic.retain(|(name, _)| {
+        !matches!(
+            *name,
+            "declaration_kind" | "path" | "module" | "evidence_owner"
+        )
+    });
+    generic.extend([
+        ("declaration_kind", json!({"const":"variant"})),
+        ("path", json!({"type":"null"})),
+        ("module", json!({"type":"null"})),
+        (
+            "evidence_owner",
+            json!({"const":"compiler_checked_prelude"}),
+        ),
+        ("identity_origin", json!({"const":"compiler_owned"})),
+        (
+            "compiler_prelude",
+            object(vec![
+                ("schema", json!({"const":"semaprax.prelude.v1"})),
+                ("digest", digest()),
+            ]),
+        ),
+    ]);
+    json!({"oneOf":[monomorphic,source_generic,object(generic)]})
+}
+
 pub(super) fn documents() -> BTreeMap<String, Value> {
     let mut docs = BTreeMap::new();
     let mut put = |id: &str, fields| {
@@ -462,6 +519,8 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
         .unwrap()["properties"]["aggregate_matches"] = array(aggregate_match());
     docs.get_mut("urn:semaprax.project-change-catalog.v1")
         .unwrap()["properties"]["aggregate_updates"] = array(aggregate_update());
+    docs.get_mut("urn:semaprax.project-change-catalog.v1")
+        .unwrap()["properties"]["nominal_types"] = array(nominal_type());
     docs
 }
 
@@ -511,6 +570,7 @@ fn operation() -> Value {
             "add_contract" => fields.push(("phases", json!({"const":["requires","ensures"]}))),
             "add_declaration" => fields.extend([
                 ("anchor", text()),
+                ("nominal_type_selector", json!({"const":"nominal_types"})),
                 (
                     "placement",
                     json!({"const":"append_function_in_anchor_module"}),
@@ -582,6 +642,72 @@ fn signature_form() -> Value {
 #[cfg(test)]
 mod signature_parameter_schema_tests {
     use super::*;
+
+    #[test]
+    fn nominal_type_templates_are_closed_and_do_not_claim_copy_admission() {
+        let schema = nominal_type();
+        let choices = schema["oneOf"].as_array().unwrap();
+        assert_eq!(choices.len(), 3);
+        for choice in choices {
+            assert_eq!(choice["additionalProperties"], false);
+            let properties = &choice["properties"];
+            assert_eq!(properties["kind"]["const"], "nominal");
+            assert_eq!(
+                properties["copy_admission"]["const"],
+                "checked_candidate_signature"
+            );
+            assert_eq!(
+                properties["requires_full_candidate_validation"]["const"],
+                true
+            );
+            assert!(properties.get("copy").is_none());
+            assert!(properties.get("fields").is_none());
+            assert!(properties.get("name").is_none());
+        }
+        assert_eq!(choices[0]["properties"]["generic"]["const"], false);
+        assert!(choices[0]["properties"].get("type_parameters").is_none());
+        for source in &choices[..2] {
+            assert_eq!(
+                source["properties"]["evidence_owner"]["const"],
+                "retained_checked_hir"
+            );
+            assert_eq!(source["properties"]["path"]["type"], "string");
+        }
+        for generic in &choices[1..] {
+            assert_eq!(generic["properties"]["generic"]["const"], true);
+            assert_eq!(
+                generic["properties"]["type_parameters"]["items"]["properties"]["allowed_types"]
+                    ["const"],
+                json!(["i64", "bool"])
+            );
+        }
+        let prelude = &choices[2]["properties"];
+        assert_eq!(
+            prelude["evidence_owner"]["const"],
+            "compiler_checked_prelude"
+        );
+        assert_eq!(prelude["declaration_kind"]["const"], "variant");
+        assert_eq!(prelude["path"]["type"], "null");
+        assert_eq!(prelude["module"]["type"], "null");
+        assert_eq!(prelude["compiler_prelude"]["additionalProperties"], false);
+        let docs = documents();
+        let catalog = &docs["urn:semaprax.project-change-catalog.v1"];
+        assert_eq!(catalog["properties"]["nominal_types"]["items"], schema);
+        assert!(!catalog["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("nominal_types")));
+        let operation = catalog["properties"]["operations"]["items"]["oneOf"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["properties"]["kind"]["const"] == "add_declaration")
+            .unwrap();
+        assert_eq!(
+            operation["properties"]["nominal_type_selector"]["const"],
+            "nominal_types"
+        );
+    }
 
     #[test]
     fn named_parameter_facts_are_a_closed_paired_extension() {

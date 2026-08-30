@@ -220,6 +220,33 @@ change-envelope schema fixes the version and compiler-owned ordered requirement
 list. Unknown fields, mixed signature forms, or extra constructor keys are not
 part of the described structural grammar.
 
+Function declarations preserve the existing scalar and boundary-type strings
+in parameter `type` and `return_type`. They additionally accept the closed
+object `{"kind":"nominal","target":type_owner_id,"type_arguments":["i64","bool"]}`.
+The argument array is required, including `[]` for monomorphic types; its
+maximum is 4,095 direct scalar arguments and actual arity must match the selected
+declaration. Nominal parameters require `mode: value`. Named parameter and
+return types must be Copy, sized, resource-free, and need no drop in the new
+function's checked signature after complete candidate rebuilding. Structural
+schema acceptance or a template's presence never establishes those facts.
+Existing `own Bytes` and borrowed string/slice parameter alternatives remain
+unchanged; nominal borrowing and owned resource signatures are not added.
+
+The change catalogue's optional `nominal_types` array supplies stable owner
+identities and unique visible bindings for source records/variants and the
+authenticated compiler-owned `Option`/`Result` owners. The `add_declaration`
+operation identifies that inventory with `nominal_type_selector: nominal_types`.
+Closed descriptors carry `kind`, `target`, `binding`, `generic`,
+`declaration_kind`, `path`, `module`, `evidence_owner`,
+`requires_full_candidate_validation: true`, and
+`copy_admission: checked_candidate_signature`. Generic templates add the same
+ordered `type_parameters` guidance used by aggregate constructors. Prelude
+rows use null source locations and the separately authenticated compiler
+provenance described above. These are candidate type selections, not a list
+of types already approved for a proposed signature. The v5 response schema
+closes all three source-monomorphic, source-generic, and prelude forms.
+Focused structural regressions are authored but unrun.
+
 Ordered signature mapping retains its existing closed `from` / optional `name`
 constructor. Selecting an existing named Copy record or variant does not add a
 type spelling, conversion, or aggregate literal to the request grammar. The

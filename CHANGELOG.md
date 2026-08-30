@@ -11,6 +11,14 @@
   no-network enforcement; discovery/filesystem/brokers and macOS/Windows remain
   open. No dependency, root unsafe code, or authenticated build-runner change.
 
+- Added stable-ID named Copy parameter and return types to function declaration
+  intentions, including fresh local generic instances, monomorphic aliases and
+  authenticated Option/Result. Discovery exposes provisional templates; every
+  addition passes an exact checked-signature gate after rebuilding. Return-only
+  facts retain existing table/byte limits, and rebase binds complete selected
+  type inventories. Regressions are authored, unrun; source/publication authority
+  and general declaration-kind support are unchanged.
+
 - Moved Windows Project v8–v10 npm/Web publication to the private full toolchain
   with compiler-prepared six-file plans and existing held-handle filesystem
   authority. Standalone publication rejects before output effects; the private

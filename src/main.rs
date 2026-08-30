@@ -2055,6 +2055,13 @@ fn required_path(args: &[String], index: usize) -> Result<PathBuf, u8> {
 }
 
 fn build_source(options: &cli::build::BuildOptions, input: &Path) -> Result<(), u8> {
+    if options.profile.as_deref() == Some("internal-strings-v1") {
+        let output = options.output.as_deref().expect("source output");
+        wasm::internal_strings::build_web_from_source(input, output, &options.exports)
+            .map_err(|errors| report(&errors, false))?;
+        println!("built internal String web package {}", output.display());
+        return Ok(());
+    }
     let program = checked(input)?;
     let output = options
         .output
@@ -2228,7 +2235,7 @@ fn print_help() {
             semaprax quality-plan <quick|changed|full> [exact-changed-path ...]\n\
             semaprax doctor [--target native|web|all] [--json]\n\
             semaprax new <destination> [--name project-name] [--template calculator]\n\
-           semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm] [--function stable-id] [--export stable-id ...] [-o path]\n\
+           semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]\n\
            semaprax run <file>\n\
            semaprax run [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n\
            semaprax test [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n\

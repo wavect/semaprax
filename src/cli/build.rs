@@ -12,6 +12,7 @@ pub(crate) struct BuildOptions {
     pub(crate) target: String,
     pub(crate) function: Option<String>,
     pub(crate) exports: Vec<String>,
+    pub(crate) profile: Option<String>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -275,6 +276,7 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
     let mut target = None::<String>;
     let mut function = None::<String>;
     let mut exports = Vec::<String>::new();
+    let mut profile = None::<String>;
     let mut index = 0;
     while index < args.len() {
         let argument = &args[index];
@@ -289,7 +291,13 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
         }
         if matches!(
             argument.as_str(),
-            "--target" | "--function" | "--export" | "--manifest-path" | "-o" | "--output"
+            "--target"
+                | "--function"
+                | "--export"
+                | "--profile"
+                | "--manifest-path"
+                | "-o"
+                | "--output"
         ) {
             let value = args
                 .get(index + 1)
@@ -300,6 +308,7 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
                             "--target"
                                 | "--function"
                                 | "--export"
+                                | "--profile"
                                 | "--manifest-path"
                                 | "-o"
                                 | "--output"
@@ -312,6 +321,7 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
                 })?;
             match argument.as_str() {
                 "--target" if target.is_none() => target = Some(value.clone()),
+                "--profile" if profile.is_none() => profile = Some(value.clone()),
                 "--function" if function.is_none() => function = Some(value.clone()),
                 "--export" => exports.push(value.clone()),
                 "--manifest-path" if manifest_path.is_none() => {
@@ -355,6 +365,16 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
         }
     });
     let project_rust = matches!(&input, BuildInput::Project(_)) && target == "rust";
+    if let Some(profile) = &profile {
+        if profile != "internal-strings-v1"
+            || !matches!(&input, BuildInput::Source(_))
+            || !matches!(target.as_str(), "web" | "wasm")
+            || !(1..=32).contains(&exports.len())
+        {
+            eprintln!("--profile internal-strings-v1 requires a source file, --target web or wasm, and 1..=32 --export selections");
+            return Err(2);
+        }
+    }
     if !project_rust
         && !matches!(
             target.as_str(),
@@ -411,12 +431,86 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
         target,
         function,
         exports,
+        profile,
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn internal_strings_profile_is_explicit_and_source_only() {
+        let options = parse(&strings(&[
+            "app.spx",
+            "--target",
+            "web",
+            "--profile",
+            "internal-strings-v1",
+            "--export=--profile",
+        ]))
+        .unwrap();
+        assert_eq!(options.profile.as_deref(), Some("internal-strings-v1"));
+        assert_eq!(options.exports, strings(&["--profile"]));
+        for arguments in [
+            strings(&[
+                "app.spx",
+                "--target",
+                "web",
+                "--profile",
+                "internal-strings-v1",
+            ]),
+            strings(&[
+                "app.spx",
+                "--profile",
+                "internal-strings-v1",
+                "--export",
+                "main",
+            ]),
+            strings(&[
+                "--target",
+                "web",
+                "--profile",
+                "internal-strings-v1",
+                "--export",
+                "main",
+            ]),
+            strings(&[
+                "app.spx",
+                "--target",
+                "web",
+                "--profile",
+                "unknown",
+                "--export",
+                "main",
+            ]),
+            strings(&[
+                "app.spx",
+                "--target",
+                "web",
+                "--profile",
+                "internal-strings-v1",
+                "--profile",
+                "internal-strings-v1",
+                "--export",
+                "main",
+            ]),
+            strings(&[
+                "app.spx",
+                "--target",
+                "web",
+                "--export",
+                "--profile",
+                "internal-strings-v1",
+            ]),
+        ] {
+            assert!(parse(&arguments).is_err());
+        }
+        assert!(parse(&strings(&["app.spx", "--target", "web"]))
+            .unwrap()
+            .profile
+            .is_none());
+    }
 
     fn strings(values: &[&str]) -> Vec<String> {
         values.iter().map(|value| (*value).to_owned()).collect()

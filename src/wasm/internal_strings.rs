@@ -1,8 +1,11 @@
-//! Explicit standalone internal-String compilation; no existing target route
-//! selects this profile. Returned artifacts confer no execution authority.
+//! Explicit standalone internal-String compilation and opt-in source Web
+//! packaging. Legacy targets never select this profile implicitly. Returned
+//! artifacts confer no execution authority.
 
 mod admission;
 mod runtime;
+mod web;
+pub use web::build_web_from_source;
 #[cfg(test)]
 mod tests;
 

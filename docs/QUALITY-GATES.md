@@ -154,6 +154,7 @@ Select every row touched by the change; these categories are cumulative.
 | Calculator project publication | [Owning contract](NEW-PROJECT-PUBLICATION-V1.md): unchanged template bytes and ordinary Project validation, relative/parent-relative success, post-rename held-parent/output and original-alias displacement, preserved original/foreign inventories after failure and drop, partial-stage residue rejection; forced Windows extended-to-legacy call with actual zero replacement field plus native success and collision preservation; all new physical gates remain unrun |
 | Semantic Workspace Image | Execute the authored, unrun [Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md) exact replay, typed-index, stale/drift, capacity, deterministic cross-root, CLI and zero-write evidence before promotion |
 | Public API or generated SDK | External consumer with no source/workspace dependency, locked offline build, inventory and compatibility checks |
+| Shared full-toolchain test launcher | Exact Cargo artifact selection, stale guessed-path rejection, unique manifest-bound binary and successful build completion; [development](DEVELOPMENT.md#verification) owns the helper boundary and authored/unrun regression entry point |
 
 The owning specification lists exact focused tests. If it does not, add the
 missing evidence section there instead of growing this document into a second

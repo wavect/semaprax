@@ -3,6 +3,9 @@ use std::sync::OnceLock;
 
 use super::native_rust_cargo;
 
+#[path = "full_toolchain/artifact.rs"]
+mod artifact;
+
 /// Build the explicitly unpublished CLI offline; never substitute the registry CLI.
 pub fn binary() -> &'static Path {
     static BINARY: OnceLock<PathBuf> = OnceLock::new();
@@ -17,6 +20,7 @@ pub fn binary() -> &'static Path {
                     "build",
                     "--locked",
                     "--offline",
+                    "--message-format=json,json-render-diagnostics",
                     "-p",
                     "semaprax-toolchain",
                     "--bin",
@@ -31,11 +35,14 @@ pub fn binary() -> &'static Path {
                 "full-toolchain build failed:\n{}",
                 String::from_utf8_lossy(&output.stderr)
             );
-            let binary = target
-                .join("debug")
-                .join(format!("semaprax-full{}", std::env::consts::EXE_SUFFIX));
-            assert!(binary.is_file(), "full-toolchain binary is missing");
-            binary
+            let manifest =
+                Path::new(env!("CARGO_MANIFEST_DIR")).join("crates/semaprax-toolchain/Cargo.toml");
+            artifact::select_artifact(&output.stdout, &manifest).unwrap_or_else(|error| {
+                panic!(
+                    "cannot select the built full-toolchain CLI: {error}\n{}",
+                    String::from_utf8_lossy(&output.stderr)
+                )
+            })
         })
         .as_path()
 }

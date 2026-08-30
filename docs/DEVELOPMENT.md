@@ -105,6 +105,25 @@ private toolchain package, whose path dependencies retain exact version pins.
 The package gate must verify the actual archive; disabling verification is not
 a packaging fix.
 
+The quickstart, frame-payload product, and root owned-data/UTF-8 SDK tests
+share `tests/support/full_toolchain.rs` to build the unpublished CLI locked
+and offline. The helper selects the unique `semaprax-full` binary from
+[Cargo's artifact messages](https://doc.rust-lang.org/cargo/reference/external-tools.html#artifact-messages),
+bound to the expected toolchain manifest and a non-test binary target. It
+requires successful Cargo exit and `build-finished`, then uses the reported
+absolute executable path rather than guessing `target/debug`. A configured
+Cargo target must not cause a stale binary at the guessed path to substitute
+for the reported output. Up-to-date (`fresh: true`) output remains valid under
+Cargo's own freshness decision; this is not independent artifact attestation
+or cross-compilation support.
+
+`tests/full_toolchain_artifact_v1.rs` authors literal-message regressions with
+real pathname witnesses for configured-target output, stale guessed paths,
+duplicate/missing/foreign artifacts, malformed streams and unsuccessful or
+missing completion. These checks remain unrun; they neither compile nor
+execute a toolchain when eventually selected. The existing product tests
+separately own actual Cargo and CLI execution.
+
 On Unix, run the complete gate with:
 
 ```sh

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Fixed the shared full-toolchain test launcher to use Cargo's uniquely
+  reported, manifest-bound executable instead of guessing `target/debug`.
+  Configured target output can no longer silently select a stale CLI at the
+  guessed path. Locked/offline builds and valid cached artifacts remain
+  unchanged. Literal-message and pathname regressions are authored but unrun;
+  compiler behavior, generated packages and hosted workflows do not change.
+
 - Reject non-string owned npm export identities without formatting or invoking
   caller conversion hooks. This fixes Symbol error classification and prevents
   invalid-ID rejection from causing reentry and poisoning an idle instance.

@@ -6,7 +6,8 @@
 
 use std::collections::BTreeMap;
 
-use crate::diagnostic::{quote_json, Diagnostic};
+use crate::diagnostic::Diagnostic;
+use crate::format::canonical_string;
 use crate::hir::{
     DeclarationId, Place, PlaceProjection, ResolvedExpr, ResolvedExprKind, ResolvedMatchPattern,
     ResolvedRecordMatchFieldPattern, ResolvedStatement, ResolvedType, ResolvedTypeDeclaration,
@@ -18,11 +19,14 @@ use super::package_error;
 const MAX_RECIPE_BYTES: usize = 1024 * 1024;
 const MAX_FUNCTIONS: usize = 256;
 
+mod type_names;
+
 struct Names {
     functions: BTreeMap<String, String>,
     types: BTreeMap<String, String>,
     cases: BTreeMap<String, String>,
     fields: BTreeMap<String, String>,
+    type_header: String,
 }
 
 impl Names {
@@ -53,7 +57,7 @@ impl Names {
         let mut types = BTreeMap::new();
         let mut cases = BTreeMap::new();
         let mut fields = BTreeMap::new();
-        for declaration in authored {
+        for declaration in &authored {
             if types
                 .insert(declaration.id.as_str().to_owned(), declaration.name.clone())
                 .is_some()
@@ -109,11 +113,13 @@ impl Names {
                 }
             }
         }
+        let type_header = type_names::apply_aliases(&authored, &mut types)?;
         Ok(Self {
             functions,
             types,
             cases,
             fields,
+            type_header,
         })
     }
 
@@ -169,7 +175,9 @@ pub(super) fn render(program: &crate::hir::ResolvedProgram) -> Result<String, Di
         ));
     }
     let names = Names::derive(program)?;
-    let mut output = String::from("module semaprax_npm_recipe;\n\n");
+    let mut output = names.type_header.clone();
+    output.push_str("module semaprax_npm_recipe;\n\n");
+    ensure_bound(&output)?;
     render_types(program, &names, &mut output)?;
     for function in &program.functions {
         if !function.effects.is_empty()
@@ -220,7 +228,7 @@ pub(super) fn render(program: &crate::hir::ResolvedProgram) -> Result<String, Di
             .ok_or_else(|| package_error("owned-data semantic recipe function is unavailable"))?;
         output.push_str(&format!(
             "@id({})\nfn {name}({parameters}) -> {}\n",
-            quote_json(function.id.as_str()),
+            canonical_string(function.id.as_str()),
             recipe_type(&function.return_type, &names, None)?,
         ));
         let mut local_index = 0_usize;
@@ -269,6 +277,7 @@ pub(super) fn replay(recipe: &str) -> Result<crate::hir::ResolvedProgram, Diagno
             "owned-data semantic recipe is outside its byte bound",
         ));
     }
+    let (type_names, body) = type_names::read_header(recipe)?;
     let ast = crate::parse(
         recipe,
         std::path::Path::new("semaprax-owned-data-recipe.spx"),
@@ -283,6 +292,17 @@ pub(super) fn replay(recipe: &str) -> Result<crate::hir::ResolvedProgram, Diagno
             "owned-data semantic recipe does not resolve: {detail}"
         ))
     })?;
+    let replayed = if let Some(type_names) = type_names {
+        // Authenticate the complete aliased source before rebuilding its
+        // presentation names. In particular no authority, declarations, or
+        // noncanonical source may disappear through the linker projection.
+        if render(&replayed)? != body {
+            return Err(package_error("owned-data aliased recipe is not canonical"));
+        }
+        type_names::restore(replayed, type_names)?
+    } else {
+        replayed
+    };
     if render(&replayed)? != recipe {
         return Err(package_error("owned-data semantic recipe is not canonical"));
     }
@@ -365,12 +385,12 @@ fn render_type(
         ResolvedTypeDeclarationKind::Record { fields } => {
             output.push_str(&format!(
                 "@id({})\nrecord {type_name}{parameters} {{\n",
-                quote_json(declaration.id.as_str())
+                canonical_string(declaration.id.as_str())
             ));
             for field in fields {
                 output.push_str(&format!(
                     "    @id({})\n    {}: {},\n",
-                    quote_json(field.id.as_str()),
+                    canonical_string(field.id.as_str()),
                     names.field_name(&field.id)?,
                     recipe_type(&field.ty, names, Some(&declaration.id))?,
                 ));
@@ -380,12 +400,12 @@ fn render_type(
         ResolvedTypeDeclarationKind::Variant { cases } => {
             output.push_str(&format!(
                 "@id({})\nvariant {type_name}{parameters} {{\n",
-                quote_json(declaration.id.as_str())
+                canonical_string(declaration.id.as_str())
             ));
             for case in cases {
                 output.push_str(&format!(
                     "    @id({})\n    {}",
-                    quote_json(case.id.as_str()),
+                    canonical_string(case.id.as_str()),
                     names.case_name(&case.id)?,
                 ));
                 if case.fields.is_empty() {
@@ -395,7 +415,7 @@ fn render_type(
                     for field in &case.fields {
                         output.push_str(&format!(
                             "        @id({})\n        {}: {},\n",
-                            quote_json(field.id.as_str()),
+                            canonical_string(field.id.as_str()),
                             names.field_name(&field.id)?,
                             recipe_type(&field.ty, names, Some(&declaration.id))?,
                         ));
@@ -967,3 +987,6 @@ module recipe.names;
         assert_eq!(fields[1].name, "kind");
     }
 }
+
+#[cfg(test)]
+mod source_literals_tests;

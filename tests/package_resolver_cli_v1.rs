@@ -57,9 +57,10 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     // Also retain upstream's exact contiguous-block assertion.
     let image_lines = PROJECT_IMAGE_LINES.concat();
     assert_eq!(current.matches(image_lines.as_str()).count(), 1);
-    let before_candidates = current
-        .replacen(PROJECT_IMAGE_LINES[3], "", 1)
-        .replacen(PROJECT_IMAGE_LINES[4], "", 1);
+    let before_candidates =
+        current
+            .replacen(PROJECT_IMAGE_LINES[3], "", 1)
+            .replacen(PROJECT_IMAGE_LINES[4], "", 1);
     assert_eq!(before_candidates.len(), 5_151);
     assert_eq!(fnv1a64(before_candidates.as_bytes()), 0x3606_80c0_4da0_b739);
     let mut legacy = current;

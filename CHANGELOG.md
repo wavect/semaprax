@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Corrected owned-data package semantic replay for distinct linked types with
+  identical display names and for retained control-bearing identities. A private
+  collision-only alias projection preserves original descriptor names and
+  rebuilds checked HIR; source annotations now use SEMAPRAX string escaping.
+  Added real Project/npm and rejecting-native-handoff regressions plus hostile
+  recipe checks. Previously replayable recipe bytes and descriptor schemas stay
+  unchanged. Tests and builds are unrun; no publication or promotion is claimed.
+
 - Aligned the additive v9 native descriptor reader with the compiler's retained
   identities and presentation names, including exact control-character JSON
   escapes. Preserved exported-method restrictions and same-identity consistency,

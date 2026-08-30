@@ -77,6 +77,32 @@ that is not a peak-memory or exact rendering-work bound. The inherited
 complete linked-function inventory limit of 256 is checked before indexing,
 including functions outside the selected export closure.
 
+### Identity-preserving semantic recipe
+
+The shared owned-data package recipe is a compiler-private replay projection,
+not a second source module or a new public descriptor. Linked declarations may
+have identical display names in different source modules. When such a collision
+exists, the recipe assigns every authored type a deterministic alias in sorted
+stable-ID order and retains the exact original names in a canonical, bounded
+header. This avoids collapsing nominal identity while flattening the source.
+Collision-free recipes retain their previous spelling and have no header.
+
+Independent replay checks the complete alias inventory, original identifier
+spellings, and the existence of a genuine collision. It restores names only by
+the resolved stable identities, rebuilds the declaration index, type facts,
+provenance, and cleanup through the existing owned-data linker, and requires
+exact canonical re-rendering. Descriptor and target replay consume that checked
+result; neither substitutes aliases for descriptor presentation facts nor
+ignores display-name differences. Header bytes share the existing 1 MiB recipe
+limit and existing carrier digest binding. No capsule gains publication authority.
+
+All source `@id` literals use the canonical SEMAPRAX string formatter, not JSON
+quoting. JSON descriptor escaping stays unchanged. Previously replayable
+collision-free recipes remain byte-identical; control-bearing identities that
+previously produced invalid source and colliding names that previously failed
+resolution now have replayable projections. This correction does not widen
+language, Project-profile, descriptor, or target admission.
+
 | SEMAPRAX field | TypeScript | Rust |
 | --- | --- | --- |
 | `i64` | `bigint` | `i64` |
@@ -173,6 +199,14 @@ connects actual compiler derivation/replay with lower native replay without
 adding dependencies or exposing a new public replay API. These tests remain
 unrun; the private descriptor-size model is only a byte-guard check, not a
 proof of semantic admission or peak allocation.
+
+`tests/project_v9_recipe_identity_v1.rs` adds actual multi-module Project
+admission and npm replay for colliding display names, retained control-bearing
+identities, and display-only renames. Its native assertion reaches a deliberately
+rejecting injected publisher only: it proves semantic replay reaches the package
+handoff, not compilation, successful publication, or physical consumer behavior.
+Private recipe tests cover exact historical source bytes and hostile restoration
+headers. All of this additional evidence is authored and unrun.
 
 No test, target consumer, hosted job, registry publication, or release
 promotion is claimed by the authored source state. The upstream baseline at

@@ -459,6 +459,14 @@ not authenticate provider semantics; root HIR/codegen replay alone owns that
 proof. No route exposes a target aggregate layout. See [Public Flat Owned
 Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md).
 
+The compiler-private `src/project/npm/semantic_recipe_v8.rs` is shared by
+owned-data npm and Project Rust replay. Its collision-only type-name projection
+retains original presentation facts, then reconstructs the resolved declaration
+index through the existing owned-data linker before descriptor or target replay.
+It does not grant publication authority or replace the descriptor's identity
+contract. Source identity literals use the source formatter, independently of
+the canonical JSON descriptor writer.
+
 Project v10 adds the distinct `owned-utf8-api.v1` descriptor without treating
 text as raw `Bytes`. The root Wasm and native adapters retain the exact byte
 length, validate UTF-8 before host publication, and preserve the opaque

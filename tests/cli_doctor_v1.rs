@@ -253,3 +253,137 @@ fn malformed_invocations_and_internal_invariants_are_status_two_conditions() {
     assert!(doctor::inspect(&invalid, DoctorTarget::All, true, false).is_err());
     assert!(invalid.calls.borrow().is_empty());
 }
+
+#[test]
+fn complete_version_tokens_reject_partial_numbers_and_malformed_suffixes() {
+    for token in [
+        "22",
+        "22.1",
+        "22.garbage",
+        "22.1.garbage",
+        "22.1.0.1",
+        "+22.1.0",
+        "022.1.0",
+        "22.01.0",
+        "22.1.00",
+        "22.1.0-",
+        "22.1.0+",
+        "22.1.0-alpha..1",
+        "22.1.0-alpha.01",
+        "22.1.0+a+b",
+        "22.1.0-β",
+        "18446744073709551616.0.0",
+    ] {
+        for (tool, target, text) in [
+            ("node", DoctorTarget::Web, format!("v{token}")),
+            (
+                "rustc",
+                DoctorTarget::Contributor,
+                format!("rustc {token} (fixture)"),
+            ),
+        ] {
+            let mut host = FakeHost::healthy();
+            host.versions.insert(tool_path(tool), Ok(text));
+            let outcome = doctor::inspect(&host, target, true, false).unwrap();
+            assert_eq!(outcome.exit_code, 1, "{tool}: {token}");
+            assert!(outcome.output.contains("unrecognized"));
+        }
+    }
+}
+
+#[test]
+fn complete_version_tokens_preserve_numeric_threshold_and_channel_policy() {
+    for token in [
+        "22.0.0",
+        "22.1.0-rc.1",
+        "22.1.0+build.01",
+        "22.1.0-nightly+build",
+    ] {
+        let mut host = FakeHost::healthy();
+        host.versions
+            .insert(tool_path("node"), Ok(format!("v{token}")));
+        assert_eq!(
+            doctor::inspect(&host, DoctorTarget::Web, true, false)
+                .unwrap()
+                .exit_code,
+            0
+        );
+    }
+    for token in [
+        "1.88.0",
+        "1.88.0-nightly",
+        "1.88.0-beta.1",
+        "1.88.0-dev+local.01",
+    ] {
+        let mut host = FakeHost::healthy();
+        host.versions
+            .insert(tool_path("rustc"), Ok(format!("rustc {token} (fixture)")));
+        assert_eq!(
+            doctor::inspect(&host, DoctorTarget::Contributor, true, false)
+                .unwrap()
+                .exit_code,
+            0
+        );
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn real_path_resolution_preserves_multicall_name_and_skips_unusable_candidates() {
+    use std::os::unix::fs::{symlink, PermissionsExt};
+    let root =
+        std::env::temp_dir().join(format!("semaprax-doctor-resolution-{}", std::process::id()));
+    std::fs::create_dir(&root).unwrap();
+    for directory in ["broken", "shadow", "tools"] {
+        std::fs::create_dir(root.join(directory)).unwrap();
+    }
+    symlink("absent", root.join("broken/rustc")).unwrap();
+    std::fs::write(root.join("shadow/rustc"), b"not executable").unwrap();
+    std::fs::set_permissions(
+        root.join("shadow/rustc"),
+        std::fs::Permissions::from_mode(0o600),
+    )
+    .unwrap();
+    let implementation = root.join("tools/multicall");
+    std::fs::write(&implementation, b"#!/bin/sh\ncase \"${0##*/}\" in\nrustc) printf 'rustc 1.88.0 (fixture)\\n' ;;\n*) printf 'multicall 0.1.0\\n' ;;\nesac\n").unwrap();
+    std::fs::set_permissions(&implementation, std::fs::Permissions::from_mode(0o700)).unwrap();
+    symlink("multicall", root.join("tools/rustc")).unwrap();
+    let run = |path: std::ffi::OsString| {
+        Command::new(env!("CARGO_BIN_EXE_semaprax"))
+            .args(["doctor", "--json"])
+            .current_dir(&root)
+            .env("PATH", path)
+            .output()
+            .unwrap()
+    };
+    let path = std::env::join_paths(["broken", "shadow", "tools"]).unwrap();
+    let output = run(path.clone());
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&output.stdout)
+    );
+    assert!(String::from_utf8_lossy(&output.stdout).contains("rustc 1.88.0 (fixture)"));
+    assert!(output.stderr.is_empty());
+    // A found executable that fails is not silently replaced by another tool.
+    std::fs::write(&implementation, b"#!/bin/sh\nexit 7\n").unwrap();
+    let failed = run(path);
+    assert_eq!(failed.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&failed.stdout).contains("--version exited unsuccessfully"));
+    let missing = run(std::env::join_paths(["broken", "shadow"]).unwrap());
+    assert_eq!(missing.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&missing.stdout).contains("was not found on PATH"));
+    for file in [
+        "broken/rustc",
+        "shadow/rustc",
+        "tools/rustc",
+        "tools/multicall",
+    ] {
+        std::fs::remove_file(root.join(file)).unwrap();
+    }
+    for directory in ["broken", "shadow", "tools"] {
+        std::fs::remove_dir(root.join(directory)).unwrap();
+    }
+    std::fs::remove_dir(root).unwrap();
+}

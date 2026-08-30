@@ -4,6 +4,9 @@ use std::process::Command;
 
 use semaprax::diagnostic::quote_json;
 
+#[path = "doctor/version_token.rs"]
+mod version_token;
+
 const SCHEMA: &str = "semaprax.doctor.v1";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const MIN_NODE_MAJOR: u64 = 22;
@@ -271,22 +274,12 @@ fn normalized_version(version: Result<String, DoctorError>) -> Result<String, Do
 }
 
 fn node_major(version: &str) -> Option<u64> {
-    version
-        .strip_prefix('v')
-        .unwrap_or(version)
-        .split('.')
-        .next()?
-        .parse()
-        .ok()
+    version_token::parse(version.strip_prefix('v').unwrap_or(version)).map(|value| value.0)
 }
 
 fn rust_version(version: &str) -> Option<(u64, u64)> {
-    let mut pieces = version
-        .strip_prefix("rustc ")?
-        .split_whitespace()
-        .next()?
-        .split('.');
-    Some((pieces.next()?.parse().ok()?, pieces.next()?.parse().ok()?))
+    let token = version.strip_prefix("rustc ")?.split_whitespace().next()?;
+    version_token::parse(token).map(|(major, minor, _)| (major, minor))
 }
 
 fn render_human(target: DoctorTarget, checks: &[Check]) -> String {
@@ -344,10 +337,12 @@ impl DoctorHost for RealDoctorHost {
         for directory in std::env::split_paths(&path) {
             for executable in executable_names(name) {
                 let candidate = directory.join(executable);
-                let Ok(candidate) = std::fs::canonicalize(candidate) else {
+                // Preserve the invoked basename: multicall tools (including rustup)
+                // select their operation from argv[0], not the resolved inode name.
+                let Ok(candidate) = std::path::absolute(candidate) else {
                     continue;
                 };
-                if candidate.is_absolute() && candidate.is_file() {
+                if candidate.is_absolute() && executable_file(&candidate) {
                     return Ok(candidate);
                 }
             }
@@ -373,6 +368,26 @@ impl DoctorHost for RealDoctorHost {
         }
         String::from_utf8(output.stdout)
             .map_err(|_| DoctorError::new(format!("{} returned non-UTF-8 output", path.display())))
+    }
+}
+
+fn executable_file(path: &Path) -> bool {
+    let Ok(metadata) = std::fs::metadata(path) else {
+        return false;
+    };
+    if !metadata.is_file() {
+        return false;
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        // This is a PATH candidate filter, not an effective-user access proof.
+        // Execution still owns ACL, mount, and identity-related failure reporting.
+        metadata.permissions().mode() & 0o111 != 0
+    }
+    #[cfg(not(unix))]
+    {
+        true
     }
 }
 

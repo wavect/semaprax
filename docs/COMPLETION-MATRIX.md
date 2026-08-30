@@ -164,7 +164,7 @@ row.
 | Regions and arenas | Partial | [Region Report v1](REGION-REPORT-V1.md) | Region inference and runtime placement are implemented and verified; the report alone is insufficient. |
 | Shared immutable ARC and managed zones | Partial | [ARC Zone Model v1](ARC-ZONES-V1.md) | Language, runtime, cycle, escape, and concurrency semantics execute on supported targets. |
 | Restricted `unsafe` and raw memory | Partial | [Unsafe Boundaries v1](UNSAFE-BOUNDARIES-V1.md) | Raw memory operations, review policy, capability rules, and target conformance are implemented and verified. |
-| Checked, wrapping, and saturating arithmetic | Partial | [RFC 0001](RFC-0001.md) | All numeric widths and named arithmetic modes have complete cross-backend semantics and tests. |
+| Checked, wrapping, and saturating arithmetic | Partial | [RFC 0001](RFC-0001.md), [checked `usize` multiplication correction](PORTABLE-INDEXED-BYTE-DATA-V1.md#checked-multiplication-correction) | Execute the authored ordinary/aggregate Wasm zero-multiplier and owned-cleanup regressions; all numeric widths and named arithmetic modes still require complete cross-backend semantics and tests. |
 | Effects and capabilities | Partial | [Capability Manifest v1](CAPABILITY-MANIFEST-V1.md) | Declared effects and build/runtime capabilities are enforced end to end, including dependencies and hosts. |
 | Contracts and progressive verification | Partial | [RFC 0001](RFC-0001.md) | Static discharge, bounded proof, runtime obligations, counterexamples, and repair evidence are integrated. |
 | Structured concurrency | Partial | [Scoped Task Model v1](SCOPED-TASKS-V1.md) | Language syntax, checking, runtime scheduling, cancellation, cleanup, and target execution are verified. |

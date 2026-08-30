@@ -3848,6 +3848,7 @@ fn emit_expr(
                         write_u32(output, right_scratch);
                         output.push(0x50); // i64.eqz
                         output.push(0x45); // i32.eqz => right != 0
+                        output.extend([0x04, 0x40]); // if right != 0
                         output.push(0x20);
                         write_u32(output, left_scratch);
                         output.push(0x42);
@@ -3856,8 +3857,8 @@ fn emit_expr(
                         write_u32(output, right_scratch);
                         output.push(0x80); // i64.div_u
                         output.push(0x56); // i64.gt_u
-                        output.push(0x71); // i32.and
                         emit_failure_trap(output);
+                        output.push(0x0b); // end overflow check
                         output.push(0x20);
                         write_u32(output, left_scratch);
                         output.push(0x20);

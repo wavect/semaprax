@@ -470,6 +470,13 @@ nested-helper, settlement, and re-entry regressions are authored but unrun.
 
 ## Compatibility
 
+The shared [checked `usize` multiplication correction](PORTABLE-INDEXED-BYTE-DATA-V1.md#checked-multiplication-correction)
+is an explicit correctness exception to the artifact-byte preservation below:
+Wasm modules emitting this operation and their derived integrity bindings change
+across affected profiles, not just v8. It restores multiplication by zero and
+preserves genuine overflow cleanup; schemas, source semantics, descriptors and
+native code are unchanged. Its cross-target regressions are authored and unrun.
+
 Project v8 and every protocol above are additive. Project v1–v7 parsing,
 diagnostic selection, canonical manifest bytes, linked meaning, generated
 artifacts, npm carrier schemas and bytes, Rust SDK v1 schemas and bytes, scalar

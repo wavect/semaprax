@@ -7029,14 +7029,17 @@ impl Emitter<'_> {
                 self.get_scalar(right);
                 self.output.push(0x50);
                 self.output.push(0x45);
+                self.output.extend([0x04, 0x40]); // if right != 0
+                self.control_depth += 1;
                 self.get_scalar(left);
                 self.output.push(0x42);
                 write_i64(self.output, -1);
                 self.get_scalar(right);
                 self.output.push(0x80);
                 self.output.push(0x56);
-                self.output.push(0x71);
                 self.fail_if(STATUS_MUL_OVERFLOW)?;
+                self.control_depth -= 1;
+                self.output.push(0x0b);
                 self.get_scalar(left);
                 self.get_scalar(right);
                 self.output.push(0x7e);
@@ -7783,6 +7786,10 @@ fn usize_add(left: usize, right: usize) -> usize { left + right }
 fn usize_sub(left: usize, right: usize) -> usize { left - right }
 @id("usize.mul.failure")
 fn usize_mul(left: usize, right: usize) -> usize { left * right }
+@id("usize.mul.nested")
+fn usize_mul_nested(left: usize, right: usize) -> usize {
+    if right == 0usize { left * right } else { left * right }
+}
 @id("usize.div.failure")
 fn usize_div(left: usize, right: usize) -> usize { left / right }
 @id("usize.rem.failure")
@@ -7835,6 +7842,7 @@ const rangeAt = instance.exports["{range_at}"];
 const usizeAdd = instance.exports["{usize_add}"];
 const usizeSub = instance.exports["{usize_sub}"];
 const usizeMul = instance.exports["{usize_mul}"];
+const usizeMulNested = instance.exports["{usize_mul_nested}"];
 const usizeDiv = instance.exports["{usize_div}"];
 const usizeRem = instance.exports["{usize_rem}"];
 if (forward(pack(0, 32768), pack(32768, 32768), output) !== 0) throw new Error("valid boundary status");
@@ -7850,6 +7858,27 @@ if (mixed(pack(20, 32768), pack(32768, 32768), output) !== 0 || view.getBigUint6
 if (usizeAdd(-1n, 1n, output) !== 1) throw new Error("usize add overflow status");
 if (usizeSub(0n, 1n, output) !== 2) throw new Error("usize sub overflow status");
 if (usizeMul(-1n, 2n, output) !== 3) throw new Error("usize mul overflow status");
+const maximum = 18446744073709551615n;
+const productCases = [
+  [0n, 0n, 0n], [maximum, 0n, 0n], [0n, maximum, 0n],
+  [maximum, 1n, maximum], [1n, maximum, maximum],
+  [maximum / 2n, 2n, maximum - 1n], [maximum / 3n, 3n, maximum],
+];
+const resultBytes = new Uint8Array(view.buffer, output, 16);
+for (const multiply of [usizeMul, usizeMulNested]) {{
+  for (const [left, right, expected] of productCases) {{
+    resultBytes.fill(0xa5);
+    if (multiply(left, right, output) !== 0) throw new Error("usize product success status");
+    if (view.getBigUint64(output, true) !== expected) throw new Error("usize product value");
+    if (!resultBytes.subarray(8).every(byte => byte === 0xa5)) throw new Error("usize product output extent");
+  }}
+  for (const [left, right] of [[maximum, 2n], [maximum / 2n + 1n, 2n], [2n, maximum]]) {{
+    resultBytes.fill(0xa5);
+    if (multiply(left, right, output) !== 3) throw new Error("usize product checked overflow");
+    if (!resultBytes.every(byte => byte === 0xa5)) throw new Error("usize overflow modified output");
+    if (multiply(maximum, 0n, output) !== 0 || view.getBigUint64(output, true) !== 0n) throw new Error("usize zero recovery");
+  }}
+}}
 if (usizeDiv(1n, 0n, output) !== 4) throw new Error("usize division by zero status");
 if (usizeRem(1n, 0n, output) !== 6) throw new Error("usize remainder by zero status");
 let invalidRange = false;
@@ -7870,6 +7899,7 @@ if (!mixedCumulative) throw new Error("mixed external roots were admitted");
             usize_add = export("usize.add.failure"),
             usize_sub = export("usize.sub.failure"),
             usize_mul = export("usize.mul.failure"),
+            usize_mul_nested = export("usize.mul.nested"),
             usize_div = export("usize.div.failure"),
             usize_rem = export("usize.rem.failure")
         );

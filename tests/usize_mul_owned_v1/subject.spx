@@ -1,0 +1,45 @@
+module mul.app;
+
+@id("mul.forward")
+fn forward(input: borrow Slice<u8>) -> Bytes {
+    let payload = [7u8, 0u8, 255u8];
+    let staged = bytes_copy(array_as_slice(payload));
+    let length = byte_len(input);
+    let value = if length < 3usize {
+        if length == 0usize { 18446744073709551615usize * length }
+        else { 18446744073709551615usize * length }
+    } else { 17usize };
+    let expected = if length == 0usize { 0usize } else {
+        if length == 1usize { 18446744073709551615usize } else { 17usize }
+    };
+    let checked = 1 / (if value == expected { 1 } else { 0 });
+    staged
+}
+
+@id("mul.reverse")
+fn reverse(input: borrow Slice<u8>) -> Bytes {
+    let payload = [7u8, 0u8, 255u8];
+    let staged = bytes_copy(array_as_slice(payload));
+    let length = byte_len(input);
+    let value = if length < 3usize {
+        if length == 0usize { length * 18446744073709551615usize }
+        else { length * 18446744073709551615usize }
+    } else { 17usize };
+    let expected = if length == 0usize { 0usize } else {
+        if length == 1usize { 18446744073709551615usize } else { 17usize }
+    };
+    let checked = 1 / (if value == expected { 1 } else { 0 });
+    staged
+}
+
+@id("mul.precedence")
+fn precedence(input: borrow Slice<u8>) -> Bytes {
+    let payload = [7u8, 0u8, 255u8];
+    let staged = bytes_copy(array_as_slice(payload));
+    let empty: [u8; 0] = [];
+    let value = (18446744073709551615usize + byte_len(input)) * byte_len(array_as_slice(empty));
+    let checked = 1 / (if value == 0usize { 1 } else { 0 });
+    staged
+}
+
+@id("mul.main") fn main() -> i64 { 0 }

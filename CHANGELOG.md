@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Corrected both Wasm `usize` multiplication lowerings: the overflow division
+  now executes only for a nonzero multiplier. Zero products retain ordinary
+  success, while genuine overflow still reaches aggregate cleanup with status
+  3. Authored regressions cover both routes, boundary products, operand-failure
+  precedence and staged Bytes across interpreter/native O0/O2/npm. Affected
+  Wasm and derived integrity bytes intentionally change, including earlier
+  profiles; source semantics, schemas, descriptors and native code do not.
+  Tests remain unrun and no known-answer values were replaced.
+
 - Added real generated npm facade regressions for malformed result carriers,
   Option/Result tags, inactive storage, bools, unsettled owners and corrupted
   semantic-failure output across the existing seven v8/v9/v10 packages. Scoped

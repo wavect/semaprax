@@ -350,6 +350,46 @@ before backend emission and are stable across targets and optimization levels.
 
 ## Legacy preservation
 
+### Checked multiplication correction
+
+The ordinary Core-Wasm emitter and aggregate/status emitter previously lowered
+the unsigned multiplication overflow predicate with an eager integer `and`.
+Although it included `right != 0`, the `UINT64_MAX / right` operand executed
+first, so multiplication by a zero right operand trapped. This contradicted
+the existing checked-u64 source contract, the interpreter's `checked_mul`, and
+the native helper's short-circuit guard. Zero is a valid multiplier, including
+when the other operand is `usize` maximum.
+
+Both Wasm emitters now put the division-based overflow check inside a real
+`if right != 0` block. Already evaluated operands are retained and multiplication
+still executes afterward. This does not skip operand evaluation: a failure
+while computing the left operand must still win even when the multiplier would
+be zero. The aggregate emitter includes the new block in its failure-branch
+depth, so genuine nonzero overflow still selects multiplication status 3 and
+reaches the ordinary cleanup/status epilogue rather than continuing with a
+wrapped product. The ordinary Core-Wasm lane retains its existing trap channel
+for genuine overflow.
+
+This is an explicit correctness exception to prior blanket artifact-byte
+preservation statements: modules that emit `usize` multiplication intentionally
+change Wasm bytes, including earlier Project profiles, and their derived npm
+and target-evidence integrity bindings change accordingly. It is not a
+profile-only workaround. Source meaning, admission, canonical source/HIR/Graph,
+CleanupPlan, native code, descriptor schemas and public signatures are unchanged.
+Modules that do not emit this operation are outside the correction. No existing
+known-answer values are rewritten in this batch.
+
+The authored regression gates cover both Wasm routes; zero on either side,
+maximum and exact/overflowing products; nested failure branches; and the same
+owned-result source through the interpreter, native O0/O2 and generated npm.
+The owned fixture stages real Bytes before multiplication, observes success
+consumption or failure cleanup, checks preserved failure output and same-instance
+reuse, and checks earlier-addition failure before multiplication by zero.
+Native provider failures retain their existing normalized semantic-failure
+status; this does not claim a newly exposed native arithmetic-status ABI.
+All new fixtures remain unrun. Formatting and static review do not prove target
+execution or promote byte-data or checked-arithmetic support.
+
 The feature is additive and must be reachability-gated. When no new type or
 operation is reachable:
 

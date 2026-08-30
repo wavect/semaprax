@@ -21,6 +21,7 @@ members = [
     "crates/semaprax-native-rust-interop-platform-sys",
     "crates/semaprax-native-rust-owned-data-package",
     "crates/semaprax-native-rust-interop-builder",
+    "crates/semaprax-project-revision-store-windows-sys",
 ]
 default-members = ["."]
 resolver = "2"
@@ -56,6 +57,7 @@ rustix = { version = "=1.1.4", default-features = false, features = ["fs", "proc
 [target.'cfg(windows)'.dependencies]
 renamore = { version = "=0.3.2", default-features = false, features = ["always-supported"] }
 winapi-util = "=0.1.11"
+semaprax-project-revision-store-windows-sys = { version = "=0.1.0", path = "crates/semaprax-project-revision-store-windows-sys" }
 
 [[bin]]
 name = "semaprax"

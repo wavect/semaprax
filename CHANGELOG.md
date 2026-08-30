@@ -19,6 +19,16 @@
   evidence. The evidence is locally unrun, unpublished, and unpromoted; all
   package v1/v2 bytes, APIs, diagnostics, and CLI routes remain unchanged.
 
+- Added an authored, unrun Windows-entry-v1 authority for Project Revision
+  Store via explicit `identify_windows`, `persist_windows`, and `load_windows`
+  APIs. A new unpublished unsafe quarantine admits only drive-absolute fixed
+  local NTFS roots with exact effective-SID/protected-DACL, reparse/ADS/8.3/link
+  and stable-identity checks, a validated root-identity mutex, create-new held
+  staging, and one no-replace non-POSIX handle-relative rename. A distinct
+  Windows schema/domain preserves every ordinary Unix-v1 entry byte and digest;
+  profiles cannot be silently adopted or migrated. Evidence is unrun; no hosted,
+  cross-platform, public-cache, recovery, or production claim is made.
+
 - Added the authored, unrun [Prepared Project Interpreter and Source Trace
   v1](docs/PROJECT-PREPARED-INTERPRETER-V1.md): one cached exact entry/test
   closure admission, one sequential long-lived fixed-stack worker, bounded

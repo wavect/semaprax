@@ -7,26 +7,32 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 
 use crate::diagnostic::{quote_json, Diagnostic};
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
 use crate::project::ProjectManifest;
@@ -43,7 +49,12 @@ use crate::project::{ProjectRevision, ProjectSource};
 ))]
 mod unix;
 
+#[cfg(windows)]
+mod windows;
+
 pub const PROJECT_REVISION_STORE_ENTRY_SCHEMA: &str = "semaprax.project-revision-store-entry.v1";
+pub const PROJECT_REVISION_STORE_WINDOWS_ENTRY_SCHEMA: &str =
+    "semaprax.project-revision-store-windows-entry.v1";
 pub const MAX_STORE_ENTRIES: usize = 32;
 pub const MAX_STORE_MANIFEST_BYTES: usize = crate::project::MAX_MANIFEST_BYTES;
 pub const MAX_STORE_WORKSPACE_MANIFEST_BYTES: usize = 1_048_576;
@@ -56,6 +67,8 @@ pub const MAX_STORE_INVENTORY_ENTRIES: usize = 290;
 pub const MAX_STORE_JSON_DEPTH: usize = 8;
 
 const ENTRY_DIGEST_DOMAIN: &[u8] = b"semaprax.project-revision-store.entry-digest.v1\0";
+const WINDOWS_ENTRY_DIGEST_DOMAIN: &[u8] =
+    b"semaprax.project-revision-store-windows.entry-digest.v1\0";
 const MANIFEST_DIGEST_DOMAIN: &[u8] = b"semaprax.project-revision-store.manifest-digest.v1\0";
 const WORKSPACE_MANIFEST_DIGEST_DOMAIN: &[u8] =
     b"semaprax.project-revision-store.workspace-manifest-digest.v1\0";
@@ -79,6 +92,38 @@ const NONCLAIMS: &[&str] = &[
     "no_windows_store_support",
     "no_external_consumer_compatibility_or_release_promotion",
 ];
+
+#[derive(Clone, Copy)]
+enum EntryProfile {
+    Legacy,
+    Windows,
+}
+
+impl EntryProfile {
+    fn schema(self) -> &'static str {
+        match self {
+            Self::Legacy => PROJECT_REVISION_STORE_ENTRY_SCHEMA,
+            Self::Windows => PROJECT_REVISION_STORE_WINDOWS_ENTRY_SCHEMA,
+        }
+    }
+    fn domain(self) -> &'static [u8] {
+        match self {
+            Self::Legacy => ENTRY_DIGEST_DOMAIN,
+            Self::Windows => WINDOWS_ENTRY_DIGEST_DOMAIN,
+        }
+    }
+    fn nonclaim(self, claim: &'static str) -> &'static str {
+        match (self, claim) {
+            (Self::Windows, "no_windows_store_support") => {
+                "no_windows_network_remote_or_non_ntfs_store_support"
+            }
+            (Self::Windows, "requires_trusted_exclusive_current_euid_root") => {
+                "requires_trusted_exclusive_effective_sid_root"
+            }
+            _ => claim,
+        }
+    }
+}
 
 /// A publication result without path, handle, or reusable authority.
 #[derive(Debug)]
@@ -151,6 +196,62 @@ pub fn identify(
     Ok(PreparedEntry::from_revision(revision, expected_project_revision)?.locator())
 }
 
+/// Identify the additive Windows-entry-v1 subject without accessing a root.
+pub fn identify_windows(
+    revision: &ProjectRevision,
+    expected_project_revision: &str,
+) -> Result<ProjectRevisionStoreLocator, Vec<Diagnostic>> {
+    Ok(PreparedEntry::from_windows_revision(revision, expected_project_revision)?.locator())
+}
+
+/// Publish through the explicitly selected, fixed-local-NTFS Windows route.
+pub fn persist_windows(
+    root: &Path,
+    revision: &ProjectRevision,
+    expected_project_revision: &str,
+) -> Result<ProjectRevisionStoreReceipt, Vec<Diagnostic>> {
+    let prepared = PreparedEntry::from_windows_revision(revision, expected_project_revision)?;
+    #[cfg(windows)]
+    {
+        windows::persist(root, &prepared)?;
+        Ok(prepared.receipt())
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (root, prepared);
+        Err(io(
+            "Windows Project Revision Store requires a Windows fixed-local-NTFS host",
+        ))
+    }
+}
+
+/// Load and independently replay only the additive Windows-entry-v1 schema.
+pub fn load_windows(
+    root: &Path,
+    entry_digest: &str,
+    expected_project_revision: &str,
+) -> Result<ProjectRevision, Vec<Diagnostic>> {
+    require_digest(entry_digest, "entry_digest")?;
+    require_digest(expected_project_revision, "expected_project_revision")?;
+    #[cfg(windows)]
+    {
+        let stored = windows::load(root, entry_digest)?;
+        replay_stored_for_profile(
+            stored,
+            entry_digest,
+            expected_project_revision,
+            EntryProfile::Windows,
+        )
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = root;
+        Err(io(
+            "Windows Project Revision Store requires a Windows fixed-local-NTFS host",
+        ))
+    }
+}
+
 /// Persist one exact immutable revision through an injected store root.
 pub fn persist(
     root: &Path,
@@ -171,13 +272,23 @@ pub fn persist(
         unix::persist(root, &prepared)?;
         Ok(prepared.receipt())
     }
-    #[cfg(not(all(
-        unix,
-        any(
-            target_os = "linux",
-            target_os = "android",
-            target_vendor = "apple",
-            target_os = "redox"
+    #[cfg(windows)]
+    {
+        let _ = (root, prepared);
+        Err(io(
+            "Project Revision Store requires safe handle-relative Unix publication",
+        ))
+    }
+    #[cfg(not(any(
+        windows,
+        all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
         )
     )))]
     {
@@ -209,13 +320,23 @@ pub fn load(
         let stored = unix::load(root, entry_digest)?;
         replay_stored(stored, entry_digest, expected_project_revision)
     }
-    #[cfg(not(all(
-        unix,
-        any(
-            target_os = "linux",
-            target_os = "android",
-            target_vendor = "apple",
-            target_os = "redox"
+    #[cfg(windows)]
+    {
+        let _ = root;
+        Err(io(
+            "Project Revision Store requires safe handle-relative Unix reads",
+        ))
+    }
+    #[cfg(not(any(
+        windows,
+        all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
         )
     )))]
     {
@@ -237,6 +358,7 @@ struct StoredSource {
 }
 
 struct PreparedEntry {
+    profile: EntryProfile,
     project_schema: String,
     project_revision: String,
     workspace_revision: String,
@@ -251,13 +373,16 @@ struct PreparedEntry {
     entry_digest: String,
 }
 
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
 pub(super) struct StoredEntry {
@@ -302,6 +427,7 @@ impl PreparedEntry {
         require_digest(revision.semantic_graph_digest(), "project_graph_digest")?;
         let inventory_entries = inventory_entries(&sources)?;
         let mut prepared = Self {
+            profile: EntryProfile::Legacy,
             project_schema: revision.manifest().schema().to_owned(),
             project_revision,
             workspace_revision,
@@ -323,13 +449,27 @@ impl PreparedEntry {
         Ok(prepared)
     }
 
-    #[cfg(all(
-        unix,
-        any(
-            target_os = "linux",
-            target_os = "android",
-            target_vendor = "apple",
-            target_os = "redox"
+    fn from_windows_revision(
+        revision: &ProjectRevision,
+        expected: &str,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        let mut prepared = Self::from_revision(revision, expected)?;
+        prepared.profile = EntryProfile::Windows;
+        prepared.entry_json = render_entry_fixed_point(&prepared)?;
+        prepared.entry_digest = framed_digest(prepared.profile.domain(), &prepared.entry_json);
+        Ok(prepared)
+    }
+
+    #[cfg(any(
+        windows,
+        all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
         )
     ))]
     fn receipt(&self) -> ProjectRevisionStoreReceipt {
@@ -350,13 +490,16 @@ impl PreparedEntry {
         }
     }
 
-    #[cfg(all(
-        unix,
-        any(
-            target_os = "linux",
-            target_os = "android",
-            target_vendor = "apple",
-            target_os = "redox"
+    #[cfg(any(
+        windows,
+        all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
         )
     ))]
     fn entry_hex(&self) -> &str {
@@ -437,7 +580,7 @@ fn render_entry_fixed_point(prepared: &PreparedEntry) -> Result<Vec<u8>, Vec<Dia
 fn render_entry(prepared: &PreparedEntry, entry_json_bytes: usize) -> String {
     format!(
         "{{\"schema\":{},\"project_schema\":{},\"project_revision\":{},\"workspace_manifest_schema\":{},\"workspace_revision\":{},\"project_graph_digest\":{},\"manifest\":{{\"digest\":{},\"bytes\":{}}},\"workspace_manifest\":{{\"digest\":{},\"bytes\":{}}},\"sources\":[{}],\"limits\":{{\"max_retained_entries\":32,\"max_stage_entries\":1,\"max_manifest_bytes\":65536,\"max_workspace_manifest_bytes\":1048576,\"max_sources\":16,\"max_total_source_bytes\":16777216,\"max_source_path_bytes\":240,\"max_source_path_depth\":16,\"max_entry_json_bytes\":1048576,\"max_inventory_entries\":290,\"max_json_depth\":8,\"max_unexpected_inventory_entries\":0}},\"budget\":{{\"used_retained_entries\":1,\"used_stage_entries\":0,\"used_manifest_bytes\":{},\"used_workspace_manifest_bytes\":{},\"used_sources\":{},\"used_total_source_bytes\":{},\"used_source_path_bytes\":{},\"used_source_path_depth\":{},\"used_entry_json_bytes\":{},\"used_inventory_entries\":{},\"used_json_depth\":4,\"used_unexpected_inventory_entries\":0}},\"nonclaims\":[{}]}}\n",
-        quote_json(PROJECT_REVISION_STORE_ENTRY_SCHEMA),
+        quote_json(prepared.profile.schema()),
         quote_json(&prepared.project_schema),
         quote_json(&prepared.project_revision),
         quote_json(crate::semantic_workspace::MANIFEST_SCHEMA),
@@ -480,27 +623,57 @@ fn render_entry(prepared: &PreparedEntry, entry_json_bytes: usize) -> String {
         prepared.inventory_entries,
         NONCLAIMS
             .iter()
-            .map(|value| quote_json(value))
+            .map(|value| quote_json(prepared.profile.nonclaim(value)))
             .collect::<Vec<_>>()
             .join(","),
     )
 }
 
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
+#[cfg(not(windows))]
 fn replay_stored(
     stored: StoredEntry,
     entry_digest: &str,
     expected_project_revision: &str,
 ) -> Result<ProjectRevision, Vec<Diagnostic>> {
-    let header = parse_entry_header(&stored.entry_json)?;
+    replay_stored_for_profile(
+        stored,
+        entry_digest,
+        expected_project_revision,
+        EntryProfile::Legacy,
+    )
+}
+
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    )
+))]
+fn replay_stored_for_profile(
+    stored: StoredEntry,
+    entry_digest: &str,
+    expected_project_revision: &str,
+    profile: EntryProfile,
+) -> Result<ProjectRevision, Vec<Diagnostic>> {
+    let header = parse_entry_header_for_profile(&stored.entry_json, profile)?;
     if header.project_revision != expected_project_revision {
         return Err(replay("stored Project revision is stale or foreign"));
     }
@@ -560,6 +733,7 @@ fn replay_stored(
         return Err(replay("stored Project revision binding disagrees"));
     }
     let prepared = PreparedEntry {
+        profile,
         project_schema: header.project_schema.clone(),
         project_revision: header.project_revision.clone(),
         workspace_revision: header.workspace_revision.clone(),
@@ -575,7 +749,7 @@ fn replay_stored(
     };
     let canonical_entry = render_entry_fixed_point(&prepared)?;
     if canonical_entry != stored.entry_json
-        || framed_digest(ENTRY_DIGEST_DOMAIN, &canonical_entry) != entry_digest
+        || framed_digest(profile.domain(), &canonical_entry) != entry_digest
     {
         return Err(replay(
             "stored entry differs from canonical content-addressed replay",
@@ -605,13 +779,16 @@ fn replay_stored(
     Ok(revision)
 }
 
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
 #[derive(Clone)]
@@ -627,13 +804,16 @@ struct EntryHeader {
     sources: Vec<StoredSourceHeader>,
 }
 
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
 #[derive(Clone)]
@@ -645,16 +825,39 @@ struct StoredSourceHeader {
     bytes: usize,
 }
 
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
+#[cfg(not(windows))]
 fn parse_entry_header(bytes: &[u8]) -> Result<EntryHeader, Vec<Diagnostic>> {
+    parse_entry_header_for_profile(bytes, EntryProfile::Legacy)
+}
+
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    )
+))]
+fn parse_entry_header_for_profile(
+    bytes: &[u8],
+    profile: EntryProfile,
+) -> Result<EntryHeader, Vec<Diagnostic>> {
     if bytes.len() > MAX_STORE_ENTRY_JSON_BYTES {
         return Err(limit("entry_json_bytes", MAX_STORE_ENTRY_JSON_BYTES));
     }
@@ -695,7 +898,7 @@ fn parse_entry_header(bytes: &[u8]) -> Result<EntryHeader, Vec<Diagnostic>> {
             "nonclaims",
         ],
     )?;
-    if string(object, "schema")? != PROJECT_REVISION_STORE_ENTRY_SCHEMA
+    if string(object, "schema")? != profile.schema()
         || string(object, "workspace_manifest_schema")?
             != crate::semantic_workspace::MANIFEST_SCHEMA
     {
@@ -779,15 +982,19 @@ fn parse_entry_header(bytes: &[u8]) -> Result<EntryHeader, Vec<Diagnostic>> {
     })
 }
 
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
+#[cfg(not(windows))]
 pub(super) fn source_inventory(bytes: &[u8]) -> Result<Vec<(String, usize)>, Vec<Diagnostic>> {
     Ok(parse_entry_header(bytes)?
         .sources
@@ -796,13 +1003,16 @@ pub(super) fn source_inventory(bytes: &[u8]) -> Result<Vec<(String, usize)>, Vec
         .collect())
 }
 
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
 fn child<'a>(
@@ -818,13 +1028,16 @@ fn child<'a>(
     Ok(child)
 }
 
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
 fn exact_keys(object: &Map<String, Value>, keys: &[&str]) -> Result<(), Vec<Diagnostic>> {
@@ -836,13 +1049,16 @@ fn exact_keys(object: &Map<String, Value>, keys: &[&str]) -> Result<(), Vec<Diag
     Ok(())
 }
 
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
 fn string<'a>(object: &'a Map<String, Value>, key: &str) -> Result<&'a str, Vec<Diagnostic>> {
@@ -852,13 +1068,16 @@ fn string<'a>(object: &'a Map<String, Value>, key: &str) -> Result<&'a str, Vec<
         .ok_or_else(|| grammar(format!("Project Revision Store `{key}` must be a string")))
 }
 
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
 fn digest_field(object: &Map<String, Value>, key: &str) -> Result<String, Vec<Diagnostic>> {
@@ -867,13 +1086,16 @@ fn digest_field(object: &Map<String, Value>, key: &str) -> Result<String, Vec<Di
     Ok(value.to_owned())
 }
 
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
 fn number(object: &Map<String, Value>, key: &str) -> Result<usize, Vec<Diagnostic>> {
@@ -884,13 +1106,16 @@ fn number(object: &Map<String, Value>, key: &str) -> Result<usize, Vec<Diagnosti
     usize::try_from(value).map_err(|_| limit(key, usize::MAX))
 }
 
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
 fn json_depth(value: &Value) -> usize {
@@ -1005,13 +1230,16 @@ fn replay(message: impl Into<String>) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G192", message)]
 }
 
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
 pub(super) fn authentication(message: impl Into<String>) -> Vec<Diagnostic> {
@@ -1022,13 +1250,16 @@ pub(super) fn io(message: impl Into<String>) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-I215", message)]
 }
 
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
     )
 ))]
 pub(super) fn post_pivot(message: impl Into<String>) -> Vec<Diagnostic> {

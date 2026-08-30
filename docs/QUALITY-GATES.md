@@ -94,6 +94,7 @@ Select every row touched by the change; these categories are cumulative.
 | Workspace transaction | Held-input rechecks, replay before candidate/staging, one publication pivot, old-or-new process termination evidence |
 | Project manifest or carrier | Exact source-set authentication, Phase-A reuse, closure/admission checks, carrier replay, post-publication drift behavior |
 | Project profile admission | Exhaustive v1-v10 schema/profile dispatch, descriptor derive/replay equality, ordinary v9 load and Revision Store round trip, v9/v10 execution-envelope replay, exact earlier-profile bytes and diagnostics |
+| Windows Project Revision Store | Explicit Windows-entry-v1 APIs/schema, unchanged ordinary v1 bytes, protected effective-SID/LocalSystem DACL and mutex authority, fixed-local-NTFS/alias/ADS/reparse/link admission, bounded held reads/inventory, exact retained-parent publication and settlement, provisioned-host physical fixtures, all admitted Project profile round trips, and no support promotion from skipped or unrun gates |
 | Project agent transport | Closed method/parameter schemas, exact revision binding, pre/post held-input authentication, response framing boundaries, zero-write inventory, hostile replay, and byte-preserved earlier protocols |
 | Native backend or ABI | C11 compilation at required optimization levels, descriptor/header agreement, runtime status and cleanup conformance |
 | Wasm or JavaScript boundary | Structural Wasm validation, generated binding checks, Node execution, and browser/multi-engine evidence when claimed |

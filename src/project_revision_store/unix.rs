@@ -583,6 +583,7 @@ fn authenticate_retained_entry(
         })
         .collect::<Vec<_>>();
     let prepared = PreparedEntry {
+        profile: super::EntryProfile::Legacy,
         project_schema: header.project_schema.clone(),
         project_revision: header.project_revision.clone(),
         workspace_revision: header.workspace_revision.clone(),

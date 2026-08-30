@@ -341,8 +341,16 @@ resolve post-pivot ambiguity only through ordinary full load replay. Neither
 surface adopts, deletes, repairs, or authorizes the stage. Darwin callers also
 own the explicit host precondition excluding ancestor and ACL-granted mutation
 authority that owner/mode checks cannot prove.
-Non-Unix hosts fail before an
-entry effect. No store handle, receipt, daemon integration, build authority,
+The separately selected [Windows-entry-v1 route](PROJECT-REVISION-STORE-WINDOWS-V1.md)
+uses additive APIs and a distinct schema/domain; ordinary v1 stays Unix-only
+with unchanged bytes. Its Windows orchestration and unpublished
+`semaprax-project-revision-store-windows-sys` quarantine accept only drive-absolute fixed local NTFS,
+opens every component relative to retained handles, authenticates exact token
+SID/protected-DACL/identity/link/stream/short-name facts, serializes by a
+validated root-identity mutex, and performs one no-replace non-POSIX
+handle-relative rename. Unsafe Windows calls remain quarantined behind opaque
+safe handles and facts; raw handles and unsafe FFI do not enter the compiler crate. Other
+hosts fail before an entry effect. No store handle, receipt, daemon integration, build authority,
 cleanup, recovery, eviction, or garbage collection is exposed.
 
 `src/project_transport/` and `src/bin/semapraxd.rs` retain one authenticated

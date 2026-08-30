@@ -611,3 +611,47 @@ fn legacy_project_and_transport_sources_gain_no_store_dependency() {
         assert!(!transport_source.contains("project_revision_store"));
     }
 }
+
+#[test]
+fn windows_entry_profile_is_additive_and_cross_schema_replay_is_rejected() {
+    let revision = revision();
+    let legacy = prepared(&revision);
+    let windows =
+        PreparedEntry::from_windows_revision(&revision, revision.project_revision()).unwrap();
+    let legacy_json = std::str::from_utf8(&legacy.entry_json).unwrap();
+    let windows_json = std::str::from_utf8(&windows.entry_json).unwrap();
+    assert!(legacy_json.contains("\"schema\":\"semaprax.project-revision-store-entry.v1\""));
+    assert!(legacy_json.contains("\"no_windows_store_support\""));
+    assert!(!legacy_json.contains("no_windows_network_remote_or_non_ntfs_store_support"));
+    assert!(
+        windows_json.contains("\"schema\":\"semaprax.project-revision-store-windows-entry.v1\"")
+    );
+    assert!(windows_json.contains("\"no_windows_network_remote_or_non_ntfs_store_support\""));
+    assert_ne!(legacy.entry_digest, windows.entry_digest);
+    assert_eq!(
+        identify(&revision, revision.project_revision())
+            .unwrap()
+            .entry_digest(),
+        legacy.entry_digest
+    );
+    assert_eq!(
+        identify_windows(&revision, revision.project_revision())
+            .unwrap()
+            .entry_digest(),
+        windows.entry_digest
+    );
+    assert_eq!(
+        parse_entry_header_for_profile(&windows.entry_json, EntryProfile::Legacy)
+            .err()
+            .unwrap()[0]
+            .code,
+        "SPX-G190"
+    );
+    assert_eq!(
+        parse_entry_header_for_profile(&legacy.entry_json, EntryProfile::Windows)
+            .err()
+            .unwrap()[0]
+            .code,
+        "SPX-G190"
+    );
+}

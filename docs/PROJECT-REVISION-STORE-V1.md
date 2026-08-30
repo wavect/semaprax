@@ -71,6 +71,10 @@ The safe implementation is admitted only on Unix hosts with the existing
 Other hosts reject before opening an entry or creating a stage. This is not a
 Windows store-support claim.
 
+The separately selected [Windows-entry v1 route](PROJECT-REVISION-STORE-WINDOWS-V1.md)
+uses additive APIs and a distinct schema/domain. It does not change these
+ordinary v1 APIs, canonical bytes, digests, nonclaims, or replay rules.
+
 ## Immutable entry
 
 One published entry has this exact relative tree, where `<entry-hex>` is the

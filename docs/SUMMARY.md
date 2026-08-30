@@ -40,6 +40,7 @@ Audience: all documentation readers.
 - [Project Manifest v4](PROJECT-MANIFEST-V4.md)
 - [Project Manifest v5](PROJECT-MANIFEST-V5.md)
 - [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md)
+- [Project Revision Store Windows-entry v1](PROJECT-REVISION-STORE-WINDOWS-V1.md)
 - [Project Profile Admission v1](PROJECT-PROFILE-ADMISSION-V1.md)
 - [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md)
 - [Public Flat Owned Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md)

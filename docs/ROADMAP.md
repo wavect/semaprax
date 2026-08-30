@@ -143,7 +143,12 @@ ABIs prematurely.
   same-principal, ancestor, and Darwin-ACL mutation precondition; its authored
   hardening keeps persistence fail-closed while allowing unrelated reads past
   one untraversed inert stage identity and exposes only an authority-neutral
-  locator for full-replay ambiguity resolution. It deliberately remains
+  locator for full-replay ambiguity resolution. An additive authored-unrun
+  [Windows-entry-v1 authority](PROJECT-REVISION-STORE-WINDOWS-V1.md) preserves
+  ordinary Unix-v1 bytes through a separate schema and explicit APIs. It
+  accepts only fixed local NTFS under exact effective-SID and
+  protected-DACL admission, relative held handles, a validated identity mutex,
+  and one non-replacing handle-relative publication pivot. It deliberately remains
   neither an ambient cache nor a verifier bypass;
 - broaden context and impact edges beyond the current bounded call and
   workspace families;

@@ -87,6 +87,14 @@ image-only batch or grants repair application, execution, or publication. Their
 report contracts are [Interface Delta](PROJECT-CANDIDATE-INTERFACE-DELTA-V1.md)
 and [Symbol Diagnostics](PROJECT-CANDIDATE-SYMBOL-DIAGNOSTICS-V1.md).
 
+Candidate preparation also grants `candidate/contract-delta`, the additive
+[Contract Delta](PROJECT-CANDIDATE-CONTRACT-DELTA-V1.md) read. It compares all
+contract-bearing functions against the candidate's original base, including
+static helper dependencies behind unchanged predicates. It takes no target
+selector and returns immutable bounded UTF-8 chunks under exact image/candidate
+expectations. It performs no target projection or execution, grants no additional
+authority, and stays outside the parallel image-only batch.
+
 All available method names, closed request parameters, payload schema references,
 capabilities, and generated clients come from the selected catalogue. Optional
 parameters are omitted; null is accepted only where the declared schema permits

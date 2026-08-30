@@ -529,6 +529,12 @@ no runtime dispatch facts or graph authority are introduced. V5's
 target match exactly, derives available repairs through ordinary candidate
 admission, and binds chunk continuations to the exact report digest. Rejected
 attempts never become checked images or trusted source spans.
+`candidate/contract_delta.rs` separately compares whole-candidate ordered
+predicates and their static callable dependencies. It derives checked predicate
+projections and source-backed dependency facts, then independently replays the
+candidate before verifying exact report bytes. V5 exposes a candidate-granted
+chunk query; this read performs no target generation or execution and adds no
+publication authority.
 The [integrated workflow](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md) is authored,
 unrun and publishes managed generations only; canonical Git files stay unchanged.
 

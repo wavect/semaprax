@@ -14,6 +14,7 @@ use super::{build, ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 
 mod archive;
 mod catalog;
+mod contract_delta;
 mod declaration;
 mod delta;
 mod diagnostic_intent;
@@ -37,6 +38,10 @@ mod wire;
 
 pub use archive::{
     ProjectCandidateArchive, MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES, PROJECT_CANDIDATE_ARCHIVE_SCHEMA,
+};
+pub use contract_delta::{
+    MAX_PROJECT_CANDIDATE_CONTRACT_DELTA_BYTES, PROJECT_CANDIDATE_CONTRACT_DELTA_SCHEMA,
+    PROJECT_CANDIDATE_CONTRACT_DELTA_VERIFICATION_SCHEMA,
 };
 
 pub use testing::{

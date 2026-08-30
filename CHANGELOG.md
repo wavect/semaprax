@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added whole-candidate contract comparisons with ordered checked predicates,
+  source provenance and static callable-dependency facts. Exact candidate replay
+  verifies report bytes; v5 exposes the read only under candidate preparation.
+  No target execution, logical contract proof or publication authority is added.
+  Regression evidence is authored, unrun.
+
 - Authored a bounded borrowed-file doctor input primitive in the existing OS
   quarantine and unsafe-free facade. Linux checks immutable memory-file seals
   before metadata/read access and never duplicates or closes an untrusted

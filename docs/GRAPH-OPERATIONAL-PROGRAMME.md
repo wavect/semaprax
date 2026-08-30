@@ -53,6 +53,7 @@ outstanding without requiring another permission request now.
 | Managed publication | [publication bridge](../src/project/candidate/publication.rs), [Candidate Publication v1](PROJECT-CANDIDATE-PUBLICATION-V1.md) |
 | Image lifecycle | [image_store.rs](../src/project/image_store.rs), [Image Store v1](SEMANTIC-IMAGE-STORE-V1.md) |
 | Semantic deltas | [delta.rs](../src/project/candidate/delta.rs), [Semantic Delta v1](PROJECT-CANDIDATE-SEMANTIC-DELTA-V1.md) |
+| Contract deltas | [Contract Delta v1](PROJECT-CANDIDATE-CONTRACT-DELTA-V1.md); whole-candidate predicate and static callable-dependency comparisons, exact replay and v5 chunks, authored/unrun |
 | Diagnostic protocol | [Diagnostic Protocol v4](IMAGE-CANDIDATE-DIAGNOSTIC-PROTOCOL-V4.md) |
 | Integrated managed workflow | [Workflow v1](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md), [authored scenario](../tests/project_graph_operational_workflow_v1.rs) |
 | Frontend reuse | [Frontend Cache v1](PROJECT-FRONTEND-CACHE-V1.md), [incremental.rs](../src/project/incremental.rs) |
@@ -137,7 +138,7 @@ synthesis, not an implementation of the missing change operations.
 
 | Required facet family | Present evidence and remaining work |
 | --- | --- |
-| Contracts | Facets exposes actual pre/postcondition expressions. Missing independently verified dependency edges to invariants and candidate contract deltas. |
+| Contracts | Partial, authored/unrun. Facets expose actual pre/postcondition expressions. Whole-candidate Contract Delta compares ordered predicates and their static callable dependencies with exact candidate replay and source provenance, including helper changes behind unchanged predicates. General invariant dependency graphs, logical implication/satisfaction, runtime behavior and executed evidence remain missing. |
 | Ownership | Facets exposes parameter modes and structural slots. Missing general creation/transfer/settlement relationships and candidate ownership deltas. |
 | Cleanup | Facets reuses complete ordered CleanupPlan projection. Missing generalized reverse expression/field-to-obligation queries and candidate cleanup deltas. |
 | Data access | Partial, authored/unrun. Function facets expose actual ValueId reads/writes, field projections and consumption-context facts with provenance. A shared lazy index supports bounded reverse field/type/case queries and candidate relationship deltas. Whole-value leaf expansion, general alias analysis, runtime liveness and executed evidence remain missing. |

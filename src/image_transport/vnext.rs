@@ -64,6 +64,7 @@ pub(super) enum Action {
     Targets,
     Build,
     InterfaceDelta,
+    ContractDelta,
     SymbolDiagnostics,
     DraftRecoveryExport,
     DraftRecoveryRestore,
@@ -352,6 +353,10 @@ impl VNextSession {
                 ),
                 Operation::VNext(Action::InterfaceDelta) => (
                     review_facets::interface_delta(params, image, registry)?,
+                    candidates::Mutation::None,
+                ),
+                Operation::VNext(Action::ContractDelta) => (
+                    review_facets::contract_delta(params, image, registry)?,
                     candidates::Mutation::None,
                 ),
                 Operation::VNext(Action::SymbolDiagnostics) => (

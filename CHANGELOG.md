@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Authored an explicit standalone Wasm internal-String compiler/runtime profile:
+  compiler-directed scope/call/failure cleanup, checked allocation-capacity
+  outcomes, fixed memory, bounded UTF-8 ownership and exact module binding.
+  Added independent raw-arena, generated-host, native O0/O2 and interpreter
+  regression fixtures. Existing target and package paths remain separate.
+  Adversarial review also corrected earlier unrun loop fixtures to respect
+  unchanged source/v10 admission. Tests/builds remain unrun; no ordinary-Wasm
+  settlement or production promotion is claimed.
+
 - Authored explicit expected-revision replacement for the prepared Project
   interpreter. Both candidate closures and source origins are admitted before
   one same-worker handoff; stale or ordinary preparation failures preserve

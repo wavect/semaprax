@@ -142,7 +142,11 @@ equivalence and native sanitizer evidence remain unrun gates before promotion.
 Focused authored lifetime evidence is in
 `tests/project_owned_utf8_lifetimes_v1.rs` and its raw-arena/real-facade Node
 consumer. It derives and replays the real descriptor before target generation;
-locals and loops occur inside admitted direct-call arguments. Negative cases
+locals and Copy-only loops occur inside admitted direct-call arguments. The
+loop case retains one String before the loop and settles it on exit; it does
+not allocate Strings per iteration. Direct String loop storage remains
+`SPX-T252`, and an otherwise legal scalar helper staging Strings remains
+outside the selected v10 closure (`SPX-J113`). Negative cases
 preserve the rejected outer-body String forms. The native O0/O2 fixture is
 success-value evidence only, not native failure-path allocation evidence.
 

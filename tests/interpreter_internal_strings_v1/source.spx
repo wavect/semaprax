@@ -37,10 +37,14 @@ fn branch() -> i64 { if identity(pick(false)) == "tail\u{0}" { 42 } else { 0 } }
 fn looped() -> i64 {
     let mut count = 0;
     while count < 4 {
-        let text = identity("loop\u{0}");
-        if string_len(text) == 5 { count = count + 1; 0 } else { count = 10; 0 }
+        if loop_step() == 5 { count = count + 1; 0 } else { count = 10; 0 }
     }
     if count == 4 { 42 } else { 0 }
+}
+@id("helper.loop-step")
+fn loop_step() -> i64 {
+    let text = identity("loop\u{0}");
+    string_len(text)
 }
 @id("case.recover")
 fn recover() -> i64 { if ensured(required("ok\u{0}", true), true) == "ok\u{0}" { 42 } else { 0 } }

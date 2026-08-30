@@ -90,6 +90,11 @@ which preserves embedded NUL through all ordinary/native stdout operations.
 Both corrections remain unrun; ordinary Wasm String drop remains open, and
 the value fixtures below are not physical settlement evidence.
 
+The explicit [Standalone Wasm Internal String Settlement v1](WASM-INTERNAL-STRINGS-V1.md)
+adds authored, unrun compiler/host ownership evidence without changing
+ordinary Wasm imports or package admission. Its bounded capacity outcomes
+and absorbing unexpected-failure state are separate from language failures.
+
 `tests/string_ops_v1.rs` proves canonical round-trip, deterministic graph JSON
 with pinned fragments, HIR binding to the reserved identities, stable
 diagnostics (type error, arity, shadowing, use-after-move), borrowed-read

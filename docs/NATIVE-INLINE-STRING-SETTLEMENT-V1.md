@@ -77,6 +77,12 @@ admitted-closure renderer and is not redirected through this correction.
 
 ## Authored evidence and remaining gaps
 
+Loop fixtures retain existing Copy-only loop admission. Ordinary native
+condition/body cases use scalar-signature helpers that allocate and settle
+one String inside each call; direct String storage in a loop remains
+`SPX-T252`. These fixture corrections are authored and unrun, not a language
+or backend admission extension.
+
 `tests/native_string_settlement_v1.rs` generates ordinary production C and
 observes its actual allocations/frees with the existing fixed-table test
 allocator. It checks normalized statuses, poisoned out-slot preservation,

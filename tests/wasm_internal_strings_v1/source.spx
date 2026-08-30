@@ -1,0 +1,50 @@
+@id("case.guarded")
+fn guarded_match() -> i64 {
+    let value = match 0 {
+        0 if { let held = "guard\u{0}"; string_len(held) == 0 } => "wrong",
+        _ => "fallback\u{0}",
+    };
+    if value == "fallback\u{0}" { 42 } else { 0 }
+}
+@id("case.lazy")
+fn lazy() -> i64 {
+    let retained = "retained";
+    if false && string_len(required("must-not-run", false)) == 0 {
+        0
+    } else {
+        if true || string_len(required("must-not-run", false)) == 0 { 42 } else { 0 }
+    }
+}
+@id("case.assign-failure")
+fn assignment_failure() -> i64 {
+    let retained = "retained\u{0}";
+    let mut value = 1;
+    value = value / 0;
+    value
+}
+@id("case.condition-failure")
+fn condition_failure() -> i64 {
+    let retained = "caller";
+    let mut count = 0;
+    while condition_step(count) { count = count + 1; 0 }
+    count
+}
+@id("helper.condition-step")
+fn condition_step(count: i64) -> bool {
+    let retained = "condition\u{0}";
+    let checked = 1 / (2 - count);
+    count < 4
+}
+@id("case.bool")
+fn boolean_result(flag: bool) -> bool {
+    let text = identity("hé\u{0}");
+    flag && string_len(text) == 4 && string_len_chars(text) == 3
+}
+@id("quota.literal")
+fn quota_literal() -> i64 { string_len("abcd") }
+@id("quota.clone")
+fn quota_clone() -> i64 { let value = "x"; string_len(value) }
+@id("quota.concat")
+fn quota_concat() -> i64 { string_len(string_concat("ab", "cd")) }
+@id("quota.char")
+fn quota_char() -> i64 { string_len(string_from_char('界')) }

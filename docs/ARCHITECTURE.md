@@ -219,6 +219,19 @@ path uses active-case field moves and hard traps for malformed carriers; legacy
 Copy-variant status behavior remains unchanged. The default product
 is not a general WebAssembly Component Model runtime.
 
+The separately selected `wasm::internal_strings` API authors a standalone
+String-settling profile. `internal_strings/admission.rs` owns selection and
+static work limits; `aggregate/internal_strings.rs` owns the new ten-import
+module and checked mint lowering, reusing the private String owner cells and
+common status epilogue. The existing aggregate entry points explicitly leave
+that mode off. Generated modules pass structural validation before return.
+`internal_strings/runtime/` separates exact input/artifact admission, bounded
+UTF-8 arena ownership, and a scalar-only poisoned-on-uncertainty facade.
+Capacity refusals run generated cleanup; unexpected traps do not promise
+settlement or permit reuse. See [Standalone Wasm Internal String Settlement
+v1](WASM-INTERNAL-STRINGS-V1.md). Evidence is authored and unrun; ordinary Wasm
+imports, Project v1-v10 and Target Evidence do not select this profile.
+
 `src/wit_component.rs` and `src/wit_component/` provide default-off private
 boundary evidence. They cannot be cited as public Component Model execution.
 

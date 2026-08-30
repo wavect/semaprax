@@ -53,6 +53,7 @@ pub(super) fn payload(
     };
     if method.name == "protocol/instructions" {
         let mut instructions = result["instructions"].as_str().unwrap_or("").to_owned();
+        instructions.push_str(" Use image/dependencies with the current image_revision and a stable declaration target to inspect bounded compiler-derived reverse dependency facts. It is read-only and grants no candidate or execution authority. Read UTF8 chunks from offset zero using next_offset; chunk_bytes is 1024 through 65536 (default 16384), and the complete report is bounded to 8 MiB. The heterogeneous dependency report remains explicitly unbundled; its closed chunk envelope does not prove transitive runtime effects.");
         if methods
             .iter()
             .any(|method| method.name == "candidate/interface-delta")
@@ -203,6 +204,7 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
         let report = match descriptor["method"].as_str().unwrap_or("") {
             "candidate/query" => Some("semaprax.project-candidate.v1"),
             "candidate/recovery-export" => Some("semaprax.project-candidate-recovery.v1"),
+            "image/dependencies" => Some(crate::project::IMAGE_DECLARATION_DEPENDENCIES_SCHEMA),
             "hole/recovery-export" => Some(crate::project::PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA),
             "attempt/query" => Some("semaprax.project-candidate-attempt.v1"),
             "candidate/semantic-delta" => Some("semaprax.project-candidate-semantic-delta.v1"),
@@ -348,6 +350,45 @@ mod tests {
             &capabilities,
         )
         .unwrap()
+    }
+    #[test]
+    fn dependency_query_is_read_only_with_closed_chunks_and_opaque_facts() {
+        let bundle = selected(VNextPolicy::default());
+        let method = bundle["methods"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|method| method["method"] == "image/dependencies")
+            .unwrap();
+        assert_eq!(method["capability"], "semantic_read");
+        assert_eq!(method["query"], true);
+        let params = &method["request_schema"]["properties"]["params"];
+        assert_eq!(params["additionalProperties"], false);
+        assert_eq!(params["properties"]["offset"]["maximum"], 8 * 1024 * 1024);
+        assert_eq!(params["properties"]["chunk_bytes"]["minimum"], 1024);
+        assert_eq!(params["properties"]["chunk_bytes"]["maximum"], 65536);
+        let chunk = bundle["documents"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|document| {
+                document["$id"] == "urn:semaprax.image-declaration-dependencies-chunk.v1"
+            })
+            .unwrap();
+        assert_eq!(chunk["additionalProperties"], false);
+        assert_eq!(chunk["properties"]["source_authority"]["const"], false);
+        assert!(chunk["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("target")));
+        assert!(chunk["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("image_revision")));
+        assert!(bundle["unbundled_payload_schemas"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("urn:semaprax.image-declaration-dependencies.v1")));
     }
     #[test]
     fn draft_recovery_is_v5_candidate_only_with_closed_replay_schema() {

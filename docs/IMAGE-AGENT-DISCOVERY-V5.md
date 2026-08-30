@@ -24,6 +24,11 @@ compiler constructor documents, and concrete transport payload documents. All
 external references in selected request schemas resolve within this bundle;
 constructor-local `$defs` references keep their original document scope.
 
+Read-only `image/dependencies` adds a closed dependency-chunk wrapper and typed
+request builders. Its heterogeneous source-HIR report is explicitly listed as
+unbundled, so the wrapper schema does not claim to validate every relationship
+interior. See [Declaration Dependencies](SEMANTIC-IMAGE-DEPENDENCIES-V1.md).
+
 Host-selected draft recovery adds closed capsule and chunk-envelope schemas plus
 `hole/recovery-export` / `hole/recovery-restore` builders to v5 clients. Capsule
 shape validation does not replace nested candidate replay, source-base checks,

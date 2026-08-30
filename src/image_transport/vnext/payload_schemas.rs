@@ -224,6 +224,22 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
         ],
     );
     put(
+        "semaprax.image-declaration-dependencies-chunk.v1",
+        vec![
+            (
+                "report_schema",
+                json!({"const":crate::project::IMAGE_DECLARATION_DEPENDENCIES_SCHEMA}),
+            ),
+            ("image_revision", digest()),
+            ("target", text()),
+            ("offset", uint()),
+            ("total_bytes", uint()),
+            ("chunk", text()),
+            ("next_offset", nullable(uint())),
+            ("source_authority", json!({"const":false})),
+        ],
+    );
+    put(
         "semaprax.image-interface-delta-chunk.v1",
         vec![
             (

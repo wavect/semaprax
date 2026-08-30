@@ -36,6 +36,7 @@ pub struct ProjectSemanticImage {
     revision: Arc<ProjectRevision>,
     json: String,
     digest: String,
+    pub(super) dependencies: super::image_dependencies::DependencyCell,
 }
 
 impl ProjectSemanticImage {
@@ -101,6 +102,7 @@ impl ProjectSemanticImage {
             revision,
             json,
             digest,
+            dependencies: Default::default(),
         })
     }
 

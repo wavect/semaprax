@@ -23,6 +23,11 @@ and `runtime_execution` is false.
 
 ## Data access
 
+Reverse declaration queries are separately exposed by
+[Declaration Dependencies v1](SEMANTIC-IMAGE-DEPENDENCIES-V1.md). That immutable
+index shares the candidate-delta collector; it does not change these function
+facet payloads or infer ownership from an unclassified field use.
+
 | Edge kind | Exact structural fact |
 | --- | --- |
 | `place_read` | HIR Place references its actual root ValueId and ordered field/case projection path. Ownership and use context remain explicit; this is not a claim that an unclassified use cannot consume. |

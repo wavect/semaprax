@@ -42,6 +42,12 @@ ordinary sequential NDJSON loop or grants new methods. See
 [Live Frontend Cache](IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md) and
 [Parallel Reads](IMAGE-PARALLEL-READS-V1.md) for their explicit host choices.
 
+The default read-only method set also includes `image/dependencies`: exact-image,
+stable-ID declaration dependency reports delivered in bounded UTF-8 chunks.
+It shares the immutable image index with candidate deltas and the host parallel
+read path; no candidate grant or publication authority is needed or acquired.
+See [Declaration Dependencies](SEMANTIC-IMAGE-DEPENDENCIES-V1.md).
+
 Startup-only archive handoff can preload complete historical candidates from
 independently replayed source-backed archives. It retains the current image and
 fixed policy, requires the same canonical manifest, and grants no approvals or

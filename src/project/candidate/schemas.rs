@@ -177,6 +177,17 @@ fn intent_schema() -> Value {
         closed(&[("from",json!({"type":"string","minLength":1})),("name",identifier())]),
         new_parameter()
     ]});
+    let record_fields = ["i64", "bool"]
+        .into_iter()
+        .map(|kind| {
+            closed(&[
+                ("id", stable_id()),
+                ("name", identifier()),
+                ("type", json!({"const": kind})),
+                ("default", literal(kind)),
+            ])
+        })
+        .collect::<Vec<_>>();
     json!({"oneOf":[
         base("rename_declaration",vec![("name",identifier())]),
         base("change_function_signature",vec![("append_parameters",json!({"type":"array","minItems":1,"maxItems":MAX_APPEND_PARAMETERS,"items":new_parameter()}))]),
@@ -189,7 +200,7 @@ fn intent_schema() -> Value {
         base("add_declaration",vec![("declaration",declaration_schema())]),
         base("extract_function",vec![("expression_id",text(16_384)),("new_id",stable_id()),("new_name",identifier())]),
         base("move_declaration",vec![("destination",text(MAX_ID_BYTES))]),
-        base("add_record_field",vec![("field",json!({"oneOf":["i64","bool"].into_iter().map(|kind| closed(&[("id",stable_id()),("name",identifier()),("type",json!({"const":kind})),("default",literal(kind))])).collect::<Vec<_>>()}))]),
+        base("add_record_field",vec![("field",json!({"oneOf":record_fields}))]),
     ]})
 }
 

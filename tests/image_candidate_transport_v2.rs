@@ -586,14 +586,33 @@ fn constructor_schemas_are_closed_and_resolve_recursion_locally() {
             "change_function_signature",
             "change_function_signature",
             "replace_function_body",
+            "repair_diagnostic",
             "replace_expression",
             "add_contract",
+            "implement_interface",
             "add_declaration",
             "extract_function",
             "move_declaration",
             "add_record_field"
         ]
     );
+    let record = intent["$defs"]["intent"]["oneOf"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|schema| schema["properties"]["kind"]["const"] == "add_record_field")
+        .unwrap();
+    let fields = record["properties"]["field"]["oneOf"].as_array().unwrap();
+    assert_eq!(fields.len(), 2);
+    for (field, kind) in fields.iter().zip(["i64", "bool"]) {
+        assert_eq!(field["required"], json!(["id", "name", "type", "default"]));
+        assert_eq!(field["additionalProperties"], false);
+        assert_eq!(field["properties"]["type"]["const"], kind);
+        assert_eq!(
+            field["properties"]["default"]["properties"]["kind"]["const"],
+            kind
+        );
+    }
 }
 
 #[test]

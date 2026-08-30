@@ -76,7 +76,13 @@ fn remint(mut value: Value) -> (String, String) {
     hash.update(b"semaprax.project-candidate-archive.payload.v1\0");
     hash.update((bytes.len() as u64).to_le_bytes());
     hash.update(bytes.as_bytes());
-    let digest = format!("sha256:{:x}", hash.finalize());
+    let digest = format!(
+        "sha256:{}",
+        hash.finalize()
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
+    );
     value["archive_digest"] = json!(digest);
     (canonical(value), digest)
 }

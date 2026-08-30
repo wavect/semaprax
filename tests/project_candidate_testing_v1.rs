@@ -127,6 +127,24 @@ fn explicit_execution_replays_candidate_and_binds_sources_diffs_policy_and_exact
         result.execution().envelope()
     );
     assert_eq!(report["source_diffs"].as_array().unwrap().len(), 1);
+    let mut diff_inventory = report["source_diffs"].clone();
+    diff_inventory.sort_all_objects();
+    let diff_bytes = format!("{}\n", serde_json::to_string(&diff_inventory).unwrap());
+    let mut diff_hash = Sha256::new();
+    diff_hash.update(b"semaprax.candidate-test.diffs.v1\0");
+    diff_hash.update((diff_bytes.len() as u64).to_le_bytes());
+    diff_hash.update(diff_bytes.as_bytes());
+    assert_eq!(
+        report["source_diff_inventory_digest"],
+        format!(
+            "sha256:{}",
+            diff_hash
+                .finalize()
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>()
+        )
+    );
     assert_eq!(report["test_origin"]["path"], "src/tests.spx");
     let mut hash = Sha256::new();
     hash.update(b"semaprax.candidate-test.report.v1\0");

@@ -190,7 +190,7 @@ impl ProjectCandidate {
         let options_bytes = render(options.clone(), policy.max_report_bytes)?;
         let origins = json!({"base":source_inventory(&replay.base),"candidate":source_inventory(&replay.revision)});
         let origin_bytes = render(origins.clone(), policy.max_report_bytes)?;
-        let diffs = diff_inventory(&replay)?;
+        let diffs = Value::Array(diff_inventory(&replay)?);
         let diff_bytes = render(diffs.clone(), policy.max_report_bytes)?;
         let mut report = json!({
             "schema":PROJECT_CANDIDATE_TEST_REPORT_SCHEMA,

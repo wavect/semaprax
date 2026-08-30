@@ -1,4 +1,4 @@
-# Doctor version-probe lifecycle v1
+# Doctor offline-profile admission and retained version-probe lifecycle v1
 
 Status: authored, unrun private implementation contract; WP-05 is unpromoted.
 
@@ -6,22 +6,67 @@ Audience: CLI/platform contributors and reviewers.
 
 ## Scope
 
-The unpublished `semaprax-full doctor` host invokes one trusted installed executable with exactly
-`--version`. The injected `DoctorHost`, check order, and
-`semaprax.doctor.v1` report schema are unchanged. The lexical absolute path is
-preserved, including its basename for multicall tools; this is not executable
-identity attestation or authenticated build-tool authority.
+The unpublished `semaprax-full doctor` now requires an explicitly selected
+offline tool profile instead of ambient PATH/home discovery. Selection is not
+authority: a platform backend must admit the complete offline execution/input
+closure before any tool lookup or version probe. **No production profile
+backend or provisioning route is implemented yet.** Consequently, the real CLI
+currently reports unavailable required checks (exit 1), even for a syntactically
+valid selector. It never falls back to the retained installed-tool probe.
 
 The standalone crates.io CLI rejects `doctor` without invoking tools. Report
-policy and version parsing live in `crates/semaprax-toolchain`; the full CLI
-continues to use the existing safe platform facade and sys quarantine.
+policy and version parsing live in `crates/semaprax-toolchain`. The retained safe
+platform facade/sys quarantine probe is described below, but is no longer
+connected to the real CLI. Its partial isolation is not profile admission.
 
 The safe platform facade owns no policy for general commands. Its existing
 platform-sys quarantine owns the Linux/macOS and Windows OS operations. No
 unsafe code enters the root compiler, no external dependency is added, and
 the authenticated build runner is unchanged.
 
-## Invocation bounds
+## Offline profile selection
+
+```text
+semaprax-full doctor [--profile <id>] [--target native|web|all] [--json]
+```
+
+An ID is 1–64 ASCII bytes matching `[a-z][a-z0-9-]{0,63}`. It selects one
+profile; it is not a pathname, environment variable, JSON document, or permission
+to read a registry. No on-disk profile format is admitted by this contract.
+The default target remains contributor (Rust >=1.88); native requests Clang,
+web requests Node >=22, and all requests Clang, Node, then Rust.
+
+- All options and selector syntax are validated before any host callback.
+  Malformed or duplicate options are CLI errors (exit 2, no report).
+- A missing selector emits failed required profile/tool checks without acquiring
+  a profile. A valid selector makes exactly one acquisition attempt for the
+  entire report. Unavailability emits failed required checks (exit 1), without
+  tool lookup or execution.
+- An admitted host is scoped to that report. Its returned selector and OS/arch
+  must match the requested selector and outer host facts before tool callbacks;
+  disagreement is an internal CLI error (exit 2). A tool failure cannot acquire
+  another profile or consult ambient tools.
+- Checks describe only the admitted profile, never general build readiness.
+  The common version/OS/arch/release rows remain first, followed by the required
+  `profile` row and the requested tool rows. The `semaprax.doctor.v1` object
+  shape is retained, but real CLI report bytes intentionally change with the
+  added row. Exit 0 requires all required checks to pass.
+
+The production acquisition currently returns unavailable using compile-time
+platform facts only: no PATH, HOME, cwd, filesystem, registry or tool access.
+This fail-closed gate does not claim an implemented executable sandbox, profile
+provenance, or protection of process startup before doctor dispatch. Future
+backends require independent review of offline provisioning/bootstrap, immutable
+tool/loader/configuration inputs, OS filesystem/IPC/network boundaries, and
+owned descendant settlement before returning an admitted host. An identifier,
+digest, or declared “local” path alone cannot establish those properties.
+
+## Retained lower-level probe invocation bounds
+
+The separate trusted-installed-tool probe invokes exactly `--version`, preserving
+the lexical absolute path and basename for multicall tools. This is not identity
+attestation or authenticated build-tool authority. These bounds remain the
+lower-level contract, not the current CLI route or a complete offline backend:
 
 - Capture the current directory and pass null standard input.
 - Clear the child environment. Retain only `HOME`, `CARGO_HOME`, `RUSTUP_HOME`,
@@ -118,8 +163,8 @@ descendant fixtures remain required, independently of the controlled fork/exec
 filter-inheritance fixture. No compatibility failure may trigger an unsandboxed
 retry or be hidden by weakening those fixtures.
 
-This layer does **not** complete WP-05's no-network requirement. Parent PATH
-discovery and metadata lookup happen before it; network-backed filesystem
+This layer does **not** complete WP-05's no-network requirement. The former CLI's
+PATH discovery and metadata lookup happened before it; network-backed filesystem
 access, tool/loader/configuration reads, and external filesystem/IPC brokers
 remain outside its guarantee. macOS and Windows do not gain this guard. Full
 cross-platform no-network admission requires a separately reviewed offline
@@ -133,7 +178,15 @@ timeouts with open or closed pipes, descendants with open or closed pipes,
 ordinary injected failures, and subprocess-only fail-stop uncertainty.
 Separate subprocess fixtures cover descriptor exclusion above a lowered macOS
 soft limit and rejection of incompatible Unix child-reaping dispositions.
-Existing CLI fake-host, version-token, PATH, and multicall tests remain required.
+Existing CLI fake-host and version-token tests remain required. The obsolete
+real PATH-success test is replaced by calibrated healthy multicall fixtures
+which the real CLI must never launch, under different PATH/home environments,
+with missing/unavailable profiles. Exact canonical failure reports, malformed
+selectors, untouched marker/sentinel inventory, one scoped acquisition, selected
+version separation, and mismatched admission rejection are authored regressions.
+Legacy injected `inspect` fixtures retain their old exact report bytes; new
+profile fixtures exercise the added row. These checks are unrun and fake hosts
+prove sequencing only, not physical isolation.
 Linux adds a pure interpreter of the actual BPF instruction vectors for both
 admitted ABIs, foreign-architecture/x32 rejection, and exact deny/allow decisions.
 Physical fixtures calibrate unguarded socket creation before and after guarded

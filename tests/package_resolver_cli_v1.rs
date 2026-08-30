@@ -64,6 +64,16 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     }
     const GIT_PUBLISH_LINE: &str = "semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\n";
     const WORKSPACE_LINE: &str = "semaprax serve-workspace <manifest> <host-policy.json>\n";
+    const PROFILE_DOCTOR_LINE: &str =
+        "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n";
+    const LEGACY_DOCTOR_LINE: &str = "semaprax doctor [--target native|web|all] [--json]\n";
+    // Data-only literal decoding, calibrated against the retained old pin below.
+    // Restore only this intentional usage change before all historical witnesses.
+    assert_eq!(current.len(), 5_842);
+    assert_eq!(fnv1a64(current.as_bytes()), 0xfb3e_0c07_9eca_4b7b);
+    assert_eq!(current.matches(PROFILE_DOCTOR_LINE).count(), 1);
+    assert_eq!(current.matches(LEGACY_DOCTOR_LINE).count(), 0);
+    let current = current.replacen(PROFILE_DOCTOR_LINE, LEGACY_DOCTOR_LINE, 1);
     assert_eq!(current.len(), 5_825);
     assert_eq!(fnv1a64(current.as_bytes()), 0x484f_8dd0_f2a6_dee9);
     assert_eq!(current.matches(WORKSPACE_LINE).count(), 1);

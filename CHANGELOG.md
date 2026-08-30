@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Replaced real doctor ambient PATH/home discovery with explicit bounded
+  offline-profile selection and one scoped admission per report. Production
+  admission is not yet implemented: missing/unavailable profiles fail required
+  checks without tool access or fallback. Authored selector, identity, canonical
+  report and no-execution regressions are unrun. The required `profile` report
+  row is additive; this is not full no-network enforcement or WP-05 promotion.
+
 - Corrected the Linux doctor guard's rejection of Rust's fork/exec handshake:
   only anonymous Unix stream/seqpacket pairs with exact scalar arguments and
   known flags are admitted, while named socket operations are now denied.

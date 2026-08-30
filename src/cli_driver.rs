@@ -2495,7 +2495,7 @@ fn print_help() {
             semaprax context-benchmark <manifest>\n\
             semaprax serve <file> [--max-request-bytes N]\n\
             semaprax quality-plan <quick|changed|full> [exact-changed-path ...]\n\
-            semaprax doctor [--target native|web|all] [--json]\n\
+            semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n\
             semaprax new <destination> [--name project-name] [--template calculator]\n\
            semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]\n\
            semaprax run <file>\n\

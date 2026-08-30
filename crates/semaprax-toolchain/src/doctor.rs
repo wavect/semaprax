@@ -4,8 +4,16 @@ use std::path::{Path, PathBuf};
 
 use semaprax::diagnostic::quote_json;
 
+#[path = "doctor/offline_profile.rs"]
+mod offline_profile;
 #[path = "doctor/version_token.rs"]
 mod version_token;
+
+#[cfg(test)]
+// Used by the path-included integration harness, not the binary test target.
+#[allow(unused_imports)]
+pub(crate) use offline_profile::{inspect_profile, AdmittedProfile};
+pub(crate) use offline_profile::{run_with_profile_host, OfflineProfileHost};
 
 const SCHEMA: &str = "semaprax.doctor.v1";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -62,6 +70,7 @@ impl DoctorTarget {
 struct DoctorOptions {
     target: DoctorTarget,
     json: bool,
+    profile: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -98,30 +107,36 @@ pub(crate) struct DoctorOutcome {
 }
 
 pub(crate) fn run(arguments: &[String]) -> Result<DoctorOutcome, DoctorError> {
-    let options = parse(arguments)?;
-    inspect(
-        &RealDoctorHost,
-        options.target,
-        options.json,
-        !cfg!(debug_assertions),
-    )
+    let host: &dyn OfflineProfileHost = &offline_profile::RealOfflineProfileHost;
+    run_with_profile_host(arguments, host)
 }
 
+#[cfg(test)]
+// Preserves the legacy injected-harness view; the binary test target uses profiles.
+#[allow(dead_code)]
 pub(crate) fn inspect(
     host: &dyn DoctorHost,
     target: DoctorTarget,
     json: bool,
     release_build: bool,
 ) -> Result<DoctorOutcome, DoctorError> {
-    validate_host_fact("operating system", host.os())?;
-    validate_host_fact("architecture", host.arch())?;
+    let mut checks = base_checks(host.os(), host.arch(), release_build)?;
+    append_tool_checks(&mut checks, host, target);
+    Ok(report(target, json, &checks))
+}
 
-    let mut checks = vec![
+fn base_checks(os: &str, arch: &str, release_build: bool) -> Result<Vec<Check>, DoctorError> {
+    validate_host_fact("operating system", os)?;
+    validate_host_fact("architecture", arch)?;
+    Ok(vec![
         Check::ok("semaprax", VERSION),
-        Check::ok("os", host.os()),
-        Check::ok("arch", host.arch()),
+        Check::ok("os", os),
+        Check::ok("arch", arch),
         Check::ok("release", if release_build { "release" } else { "debug" }),
-    ];
+    ])
+}
+
+fn append_tool_checks(checks: &mut Vec<Check>, host: &dyn DoctorHost, target: DoctorTarget) {
     if matches!(target, DoctorTarget::Native | DoctorTarget::All) {
         checks.push(check_clang(host));
     }
@@ -131,26 +146,42 @@ pub(crate) fn inspect(
     if matches!(target, DoctorTarget::Contributor | DoctorTarget::All) {
         checks.push(check_rust(host));
     }
+}
 
+fn report(target: DoctorTarget, json: bool, checks: &[Check]) -> DoctorOutcome {
     let passed = checks.iter().all(|check| !check.required || check.passed);
     let output = if json {
-        render_json(target, &checks)
+        render_json(target, checks)
     } else {
-        render_human(target, &checks)
+        render_human(target, checks)
     };
-    Ok(DoctorOutcome {
+    DoctorOutcome {
         output,
         exit_code: if passed { 0 } else { 1 },
-    })
+    }
 }
 
 fn parse(arguments: &[String]) -> Result<DoctorOptions, DoctorError> {
     let mut target = DoctorTarget::Contributor;
     let mut target_seen = false;
     let mut json = false;
+    let mut profile = None;
     let mut index = 0usize;
     while index < arguments.len() {
         match arguments[index].as_str() {
+            "--profile" => {
+                if profile.is_some() {
+                    return Err(DoctorError::new("duplicate doctor option `--profile`"));
+                }
+                let value = arguments.get(index + 1).ok_or_else(|| {
+                    DoctorError::new(
+                        "doctor option `--profile` requires an offline profile identifier",
+                    )
+                })?;
+                offline_profile::validate_selector(value)?;
+                profile = Some(value.clone());
+                index += 2;
+            }
             "--json" => {
                 if json {
                     return Err(DoctorError::new("duplicate doctor option `--json`"));
@@ -185,7 +216,11 @@ fn parse(arguments: &[String]) -> Result<DoctorOptions, DoctorError> {
             }
         }
     }
-    Ok(DoctorOptions { target, json })
+    Ok(DoctorOptions {
+        target,
+        json,
+        profile,
+    })
 }
 
 fn validate_host_fact(name: &str, value: &str) -> Result<(), DoctorError> {
@@ -318,100 +353,4 @@ fn render_json(target: DoctorTarget, checks: &[Check]) -> String {
 
 fn escape_human(value: &str) -> String {
     value.chars().flat_map(char::escape_default).collect()
-}
-
-struct RealDoctorHost;
-
-impl DoctorHost for RealDoctorHost {
-    fn os(&self) -> &str {
-        std::env::consts::OS
-    }
-
-    fn arch(&self) -> &str {
-        std::env::consts::ARCH
-    }
-
-    fn resolve_tool(&self, name: &str) -> Result<PathBuf, DoctorError> {
-        let path = std::env::var_os("PATH")
-            .ok_or_else(|| DoctorError::new(format!("tool `{name}` was not found on PATH")))?;
-        for directory in std::env::split_paths(&path) {
-            for executable in executable_names(name) {
-                let candidate = directory.join(executable);
-                // Preserve the invoked basename: multicall tools (including rustup)
-                // select their operation from argv[0], not the resolved inode name.
-                let Ok(candidate) = std::path::absolute(candidate) else {
-                    continue;
-                };
-                if candidate.is_absolute() && executable_file(&candidate) {
-                    return Ok(candidate);
-                }
-            }
-        }
-        Err(DoctorError::new(format!(
-            "tool `{name}` was not found on PATH"
-        )))
-    }
-
-    fn run_version(&self, path: &Path) -> Result<String, DoctorError> {
-        if !path.is_absolute() {
-            return Err(DoctorError::new("tool path is not absolute"));
-        }
-        let output = version_probe(path)?;
-        String::from_utf8(output)
-            .map_err(|_| DoctorError::new(format!("{} returned non-UTF-8 output", path.display())))
-    }
-}
-
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
-fn version_probe(path: &Path) -> Result<Vec<u8>, DoctorError> {
-    use semaprax_native_rust_interop_platform::{doctor_version_probe, DoctorProbeError};
-    doctor_version_probe(path).map_err(|error| {
-        let reason = match error {
-            DoctorProbeError::Invalid => "has an invalid probe path or environment",
-            DoctorProbeError::Unsupported => "cannot be probed on this host",
-            DoctorProbeError::Spawn => "could not be started",
-            DoctorProbeError::Exit => "exited unsuccessfully",
-            DoctorProbeError::OutputLimit => "exceeded the 65536-byte output limit",
-            DoctorProbeError::Timeout => "exceeded the 10-second execution deadline",
-            DoctorProbeError::Io => "failed during bounded output collection",
-        };
-        DoctorError::new(format!("{} --version {reason}", path.display()))
-    })
-}
-
-#[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
-fn version_probe(_: &Path) -> Result<Vec<u8>, DoctorError> {
-    Err(DoctorError::new(
-        "bounded version probes are unsupported on this host",
-    ))
-}
-
-fn executable_file(path: &Path) -> bool {
-    let Ok(metadata) = std::fs::metadata(path) else {
-        return false;
-    };
-    if !metadata.is_file() {
-        return false;
-    }
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        // This is a PATH candidate filter, not an effective-user access proof.
-        // Execution still owns ACL, mount, and identity-related failure reporting.
-        metadata.permissions().mode() & 0o111 != 0
-    }
-    #[cfg(not(unix))]
-    {
-        true
-    }
-}
-
-#[cfg(windows)]
-fn executable_names(name: &str) -> Vec<String> {
-    vec![format!("{name}.exe"), name.to_owned()]
-}
-
-#[cfg(not(windows))]
-fn executable_names(name: &str) -> Vec<String> {
-    vec![name.to_owned()]
 }

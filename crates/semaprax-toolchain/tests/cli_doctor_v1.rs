@@ -6,6 +6,9 @@ use std::process::{Command, Output};
 #[path = "../src/doctor.rs"]
 mod doctor;
 
+#[path = "cli_doctor_v1/offline_profiles.rs"]
+mod offline_profiles;
+
 use doctor::{DoctorError, DoctorHost, DoctorTarget};
 
 struct FakeHost {
@@ -328,63 +331,182 @@ fn complete_version_tokens_preserve_numeric_threshold_and_channel_policy() {
 }
 
 #[cfg(unix)]
+fn assert_offline_profile_failure(stdout: &[u8], selector: Option<&str>) {
+    let detail = match selector {
+        None => "an explicit offline profile is required; use --profile <id>",
+        Some("fixture-v1") => "offline profile `fixture-v1` is unavailable on this host",
+        Some(_) => panic!("unexpected fixture selector"),
+    };
+    let version = env!("CARGO_PKG_VERSION");
+    let os = std::env::consts::OS;
+    let arch = std::env::consts::ARCH;
+    let release = if cfg!(debug_assertions) {
+        "debug"
+    } else {
+        "release"
+    };
+    let expected = format!(
+        "{{\"schema\":\"semaprax.doctor.v1\",\"target\":\"all\",\"checks\":[\
+{{\"id\":\"semaprax\",\"required\":true,\"status\":\"ok\",\"detail\":\"{version}\"}},\
+{{\"id\":\"os\",\"required\":true,\"status\":\"ok\",\"detail\":\"{os}\"}},\
+{{\"id\":\"arch\",\"required\":true,\"status\":\"ok\",\"detail\":\"{arch}\"}},\
+{{\"id\":\"release\",\"required\":true,\"status\":\"ok\",\"detail\":\"{release}\"}},\
+{{\"id\":\"profile\",\"required\":true,\"status\":\"failed\",\"detail\":\"{detail}\"}},\
+{{\"id\":\"clang\",\"required\":true,\"status\":\"failed\",\"detail\":\"not probed: no admitted offline profile\"}},\
+{{\"id\":\"node\",\"required\":true,\"status\":\"failed\",\"detail\":\"not probed: no admitted offline profile\"}},\
+{{\"id\":\"rust\",\"required\":true,\"status\":\"failed\",\"detail\":\"not probed: no admitted offline profile\"}}]}}\n"
+    );
+    assert_eq!(stdout, expected.as_bytes());
+}
+
 #[test]
-fn real_path_resolution_preserves_multicall_name_and_skips_unusable_candidates() {
-    use std::os::unix::fs::{symlink, PermissionsExt};
-    let root =
-        std::env::temp_dir().join(format!("semaprax-doctor-resolution-{}", std::process::id()));
+fn malformed_offline_profile_selectors_are_cli_errors() {
+    for selector in ["", "Fixture-v1", "../fixture-v1", "fixture_v1", "a/b"] {
+        let output = cli(&["doctor", "--profile", selector, "--json"]);
+        assert_eq!(output.status.code(), Some(2), "{selector:?}");
+        assert!(output.stdout.is_empty(), "{selector:?}");
+        assert_eq!(
+            output.stderr,
+            b"doctor: invalid doctor profile identifier; expected [a-z][a-z0-9-]{0,63}\n"
+        );
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn real_cli_requires_offline_profile_without_path_or_home_fallback() {
+    use std::os::unix::fs::{symlink, MetadataExt, PermissionsExt};
+    const IMPLEMENTATION: &[u8] = b"#!/bin/sh\n[ \"$#\" = 1 ] && [ \"$1\" = --version ] || exit 91\nprintf '%s\\n' \"${0##*/}\" >> probe-marker\ncase \"${0##*/}\" in\nrustc) printf 'rustc 1.88.0 (fixture)\\n' ;;\nnode) printf 'v22.14.0\\n' ;;\nclang) printf 'clang version 18.1.0\\n' ;;\n*) exit 92 ;;\nesac\n";
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-doctor-no-fallback-{}",
+        std::process::id()
+    ));
     std::fs::create_dir(&root).unwrap();
-    for directory in ["broken", "shadow", "tools"] {
+    let root_identity = std::fs::symlink_metadata(&root).unwrap();
+    for directory in ["control", "probe", "tools", "home-a", "home-b"] {
         std::fs::create_dir(root.join(directory)).unwrap();
     }
-    symlink("absent", root.join("broken/rustc")).unwrap();
-    std::fs::write(root.join("shadow/rustc"), b"not executable").unwrap();
-    std::fs::set_permissions(
-        root.join("shadow/rustc"),
-        std::fs::Permissions::from_mode(0o600),
-    )
-    .unwrap();
     let implementation = root.join("tools/multicall");
-    std::fs::write(&implementation, b"#!/bin/sh\ncase \"${0##*/}\" in\nrustc) printf 'rustc 1.88.0 (fixture)\\n' ;;\n*) printf 'multicall 0.1.0\\n' ;;\nesac\n").unwrap();
+    std::fs::write(&implementation, IMPLEMENTATION).unwrap();
     std::fs::set_permissions(&implementation, std::fs::Permissions::from_mode(0o700)).unwrap();
-    symlink("multicall", root.join("tools/rustc")).unwrap();
-    let run = |path: std::ffi::OsString| {
-        Command::new(env!("CARGO_BIN_EXE_semaprax-full"))
-            .args(["doctor", "--json"])
-            .current_dir(&root)
-            .env("PATH", path)
+    let implementation_identity = std::fs::symlink_metadata(&implementation).unwrap();
+    for tool in ["rustc", "node", "clang"] {
+        symlink("multicall", root.join("tools").join(tool)).unwrap();
+    }
+    // Calibrate actual execution and healthy version bytes independently of doctor.
+    // Its separate CWD retains the marker; the doctor CWD must remain empty.
+    for (tool, expected) in [
+        ("rustc", "rustc 1.88.0 (fixture)\n"),
+        ("node", "v22.14.0\n"),
+        ("clang", "clang version 18.1.0\n"),
+    ] {
+        let control = Command::new(root.join("tools").join(tool))
+            .arg("--version")
+            .current_dir(root.join("control"))
             .output()
-            .unwrap()
-    };
-    let path = std::env::join_paths(["broken", "shadow", "tools"]).unwrap();
-    let output = run(path.clone());
+            .unwrap();
+        assert!(control.status.success());
+        assert_eq!(control.stdout, expected.as_bytes());
+        assert!(control.stderr.is_empty());
+    }
     assert_eq!(
-        output.status.code(),
-        Some(0),
-        "status={:?}\nstdout={}\nstderr={}",
-        output.status,
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
+        std::fs::read(root.join("control/probe-marker")).unwrap(),
+        b"rustc\nnode\nclang\n"
     );
-    assert!(String::from_utf8_lossy(&output.stdout).contains("rustc 1.88.0 (fixture)"));
-    assert!(output.stderr.is_empty());
-    // A found executable that fails is not silently replaced by another tool.
-    std::fs::write(&implementation, b"#!/bin/sh\nexit 7\n").unwrap();
-    let failed = run(path);
-    assert_eq!(failed.status.code(), Some(1));
-    assert!(String::from_utf8_lossy(&failed.stdout).contains("--version exited unsuccessfully"));
-    let missing = run(std::env::join_paths(["broken", "shadow"]).unwrap());
-    assert_eq!(missing.status.code(), Some(1));
-    assert!(String::from_utf8_lossy(&missing.stdout).contains("was not found on PATH"));
+
+    for (path, home) in [
+        (root.join("tools"), "home-a"),
+        (PathBuf::from("../tools"), "home-b"),
+    ] {
+        for selector in [None, Some("fixture-v1")] {
+            let mut command = Command::new(env!("CARGO_BIN_EXE_semaprax-full"));
+            command.args(["doctor", "--target", "all", "--json"]);
+            if let Some(selector) = selector {
+                command.args(["--profile", selector]);
+            }
+            command.current_dir(root.join("probe")).env("PATH", &path);
+            for key in ["HOME", "CARGO_HOME", "RUSTUP_HOME", "USERPROFILE"] {
+                command.env(key, root.join(home));
+            }
+            command
+                .env("RUSTUP_TOOLCHAIN", home)
+                .env("RUSTUP_AUTO_INSTALL", "1");
+            let output = command.output().unwrap();
+            assert_eq!(output.status.code(), Some(1));
+            assert!(output.stderr.is_empty());
+            assert_offline_profile_failure(&output.stdout, selector);
+            assert!(std::fs::read_dir(root.join("probe"))
+                .unwrap()
+                .next()
+                .is_none());
+            let current = std::fs::symlink_metadata(&implementation).unwrap();
+            assert!(current.is_file() && !current.file_type().is_symlink());
+            assert_eq!(
+                (current.dev(), current.ino()),
+                (implementation_identity.dev(), implementation_identity.ino())
+            );
+            assert_eq!(std::fs::read(&implementation).unwrap(), IMPLEMENTATION);
+        }
+    }
+
+    // Preflight the complete fixed inventory before any cleanup; failures retain it.
+    let names = |directory: &Path| {
+        let mut names = std::fs::read_dir(directory)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect::<Vec<_>>();
+        names.sort();
+        names
+    };
+    assert_eq!(
+        names(&root),
+        ["control", "home-a", "home-b", "probe", "tools"].map(std::ffi::OsString::from)
+    );
+    let current_root = std::fs::symlink_metadata(&root).unwrap();
+    assert!(current_root.is_dir() && !current_root.file_type().is_symlink());
+    assert_eq!(
+        (current_root.dev(), current_root.ino()),
+        (root_identity.dev(), root_identity.ino())
+    );
+    for directory in ["control", "probe", "tools", "home-a", "home-b"] {
+        let metadata = std::fs::symlink_metadata(root.join(directory)).unwrap();
+        assert!(metadata.is_dir() && !metadata.file_type().is_symlink());
+    }
+    assert_eq!(
+        names(&root.join("control")),
+        [std::ffi::OsString::from("probe-marker")]
+    );
+    let marker = std::fs::symlink_metadata(root.join("control/probe-marker")).unwrap();
+    assert!(marker.is_file() && !marker.file_type().is_symlink());
+    assert_eq!(
+        std::fs::read(root.join("control/probe-marker")).unwrap(),
+        b"rustc\nnode\nclang\n"
+    );
+    for directory in ["probe", "home-a", "home-b"] {
+        assert!(names(&root.join(directory)).is_empty());
+    }
+    assert_eq!(
+        names(&root.join("tools")),
+        ["clang", "multicall", "node", "rustc"].map(std::ffi::OsString::from)
+    );
+    for tool in ["rustc", "node", "clang"] {
+        let link = root.join("tools").join(tool);
+        assert!(std::fs::symlink_metadata(&link)
+            .unwrap()
+            .file_type()
+            .is_symlink());
+        assert_eq!(std::fs::read_link(link).unwrap(), Path::new("multicall"));
+    }
     for file in [
-        "broken/rustc",
-        "shadow/rustc",
+        "control/probe-marker",
         "tools/rustc",
+        "tools/node",
+        "tools/clang",
         "tools/multicall",
     ] {
         std::fs::remove_file(root.join(file)).unwrap();
     }
-    for directory in ["broken", "shadow", "tools"] {
+    for directory in ["control", "probe", "tools", "home-a", "home-b"] {
         std::fs::remove_dir(root.join(directory)).unwrap();
     }
     std::fs::remove_dir(root).unwrap();

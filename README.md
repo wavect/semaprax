@@ -180,7 +180,7 @@ publication authority.
 | Command | Purpose |
 | --- | --- |
 | `semaprax --version` / `version --json` | Report deterministic package and injected commit identity. |
-| `semaprax-full doctor [--target …] [--json]` | Private full-toolchain local tool probes; not a network sandbox. |
+| `semaprax-full doctor [--profile <id>] [--target …] [--json]` | Private offline-profile checks; production profiles currently unavailable, with no ambient-tool fallback. |
 | `semaprax-full new <destination>` | Private full-toolchain creation and validation of a Project v1 calculator. |
 | `semaprax check …` | Parse, resolve, type-check, and verify a file or project manifest. |
 | `semaprax fmt <file> [--check]` | Write or check canonical formatting. |

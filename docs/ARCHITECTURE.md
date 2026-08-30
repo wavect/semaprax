@@ -74,9 +74,17 @@ the CLI additionally rechecks the original requested parent spelling. Failure
 after that latch cannot regain cleanup authority. See [Calculator project
 publication v1](NEW-PROJECT-PUBLICATION-V1.md) for the correction and unrun gates.
 
-The full-toolchain CLI doctor routes fixed `--version` probes through the safe
-`semaprax-native-rust-interop-platform` facade and the existing platform-sys
-quarantine's separate `doctor/` module. That module owns bounded combined
+The full-toolchain CLI doctor owns strict bounded `--profile` selection and one
+scoped offline-profile admission per report. Missing/unavailable profiles fail
+required checks without ambient discovery or tool execution; returned selector
+and platform facts are checked before tool callbacks. No production admission
+backend is implemented, so the real CLI currently reports unavailable rather
+than invoking installed tools. Reports describe selected tools, not ambient
+build readiness. No root unsafe code or dependency is added.
+
+The retained safe `semaprax-native-rust-interop-platform` facade and platform-sys
+quarantine's separate `doctor/` module are no longer connected to that CLI route.
+This lower-level fixed `--version` probe owns bounded combined
 output, deadline observation, and private Unix-group or Windows-job settlement;
 it does not alter the authenticated build runner. The private CLI retains report
 policy and UTF-8/version parsing, with no unsafe code. Native64 little-endian
@@ -85,7 +93,7 @@ and seccomp syscall-denial layer before exec; unsupported Linux ABIs and setup
 failures cannot fall back to unfiltered execution. Its argument-filtered Unix
 stream/seqpacket pairs preserve the Rust fork/exec handshake; datagram pairs,
 socket creation and named connection/listen/accept operations remain denied.
-Trusted installed tools still
+Its trusted installed tools still
 lack complete no-network isolation, including discovery, filesystem and broker
 paths; macOS/Windows isolation is unchanged. See the [doctor lifecycle
 contract](DOCTOR-PROBE-V1.md).

@@ -32,7 +32,7 @@ intentional Rust publication, final tagged-artifact execution, and release
 notes.
 
 The current implementation batch hardens existing developer-preview contracts:
-doctor preserves multicall invocation names and admits complete version tokens;
+doctor admits complete version tokens under injected profile-bound hosts;
 v8/v9/v10 JavaScript bounds input before copying; native owned handles reject live
 foreign-context aliases across the full slot capacity; raw Wasm excludes every
 reachable private frame from result storage. Regression evidence is authored,
@@ -46,6 +46,11 @@ tool-compatibility limits and real filter-rejection/descendant fixtures. Execute
 those gates too. The programme's full no-network guarantee still needs offline
 discovery and tool-input closure plus filesystem/broker and macOS/Windows
 isolation; neither environment filtering nor the Linux denylist completes it.
+The real CLI now uses explicit bounded offline-profile selection with no ambient
+fallback; production acquisition is deliberately unavailable. Next implement
+reviewed offline provisioning and platform admission before reconnecting any
+tool execution. Keep the retained lower-level probe fixtures separate from
+claims about that future profile boundary.
 
 The same promotion boundary includes the authored
 [owned npm invocation failure-state correction](OWNED-NPM-INVOCATION-V1.md).

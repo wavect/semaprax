@@ -201,3 +201,7 @@ Audience: all documentation readers.
 - [Native adapter descriptor](NATIVE-ADAPTER-DESCRIPTOR-V1.md)
 
 - [Complete candidate recovery](PROJECT-CANDIDATE-RECOVERY-V1.md)
+- [Candidate Archive v1](PROJECT-CANDIDATE-ARCHIVE-V1.md)
+- [Candidate Archive Store v1](CANDIDATE-ARCHIVE-STORE-V1.md)
+- [Candidate Archive CLI v1](CANDIDATE-ARCHIVE-CLI-V1.md)
+- [Workspace Archive Recovery v1](IMAGE-WORKSPACE-ARCHIVE-RECOVERY-V1.md)

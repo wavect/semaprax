@@ -354,6 +354,24 @@ current-head compiler/test evidence remains unrun.
 
 ### Unified workspace session v5
 
+`project/candidate/archive.rs` packages canonical original source/manifest and
+the existing complete-history recovery capsule into an independently replayed
+archive. `candidate_archive_store` owns a separate explicit immutable file store:
+private host root, held no-follow directory chain, bounded exact inventory,
+exclusive create-new stage and no-replace pivot. Load recompiles archived source
+and history under the held store input; no serialized HIR is trusted and raw
+source is not reconstructed on disk. Post-pivot uncertainty never regains
+cleanup or retry authority. This is candidate persistence, not warm HIR reuse.
+
+`image_transport/vnext/recovery.rs` admits independently recovered candidates
+only through startup host APIs, under live snapshot authentication and ordinary
+registry bounds. Canonical manifest equality permits historical source revisions
+without making them current. CLI host-policy v3 supplies at most sixteen explicit
+store selections; earlier policy versions stay closed. Git authority opens only
+after these loads and remains separately approved. [Candidate Archive](PROJECT-CANDIDATE-ARCHIVE-V1.md),
+[Archive Store](CANDIDATE-ARCHIVE-STORE-V1.md), [Recovery](IMAGE-WORKSPACE-ARCHIVE-RECOVERY-V1.md)
+and [CLI](CANDIDATE-ARCHIVE-CLI-V1.md) own authored/unrun cases and exact bounds.
+
 `image_transport/vnext.rs` composes a fixed host-selected policy over the
 existing candidate engine. Read-only access, candidate preparation, diagnostic
 attempts, fixed-policy interpreter tests and pathless carrier builds have

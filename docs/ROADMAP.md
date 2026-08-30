@@ -147,6 +147,15 @@ Do not widen the existing literal/direct-call admission to make a fixture pass.
 
 ## Graph-operational development foundation
 
+Source-backed [candidate archives](PROJECT-CANDIDATE-ARCHIVE-V1.md) and their
+explicit [immutable store](CANDIDATE-ARCHIVE-STORE-V1.md) now author recovery
+without the original raw checkout. Execute source/capsule remint rejection,
+private-root/no-clobber/stage/post-pivot cases, and startup historical-candidate
+rebase before promoting persistence. Host-policy v3 selects existing archives
+before frames without restoring approval or making old source current.
+Automatic durable registry checkpoints, incomplete drafts, warm HIR loading,
+eviction/GC and measured recovery cost remain future work.
+
 The additive [workspace protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md) now composes
 host-selected semantic, candidate, diagnostic, test, pathless-build and optional
 startup-approved Git publication slices. Execute the capability-denial matrix,

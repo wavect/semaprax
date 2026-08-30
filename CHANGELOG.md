@@ -16,6 +16,15 @@
   display-renamed Project subjects. Production generators remain unchanged;
   the regression fixtures are authored but unrun and promote no status.
 
+- Added source-backed candidate archives and an explicitly selected immutable
+  Unix store, allowing complete histories to be independently rebuilt after
+  original source files change or disappear. Added CLI persist/load and strict
+  startup host-policy v3 archive selection; recovered candidates remain
+  historical until explicit rebase and gain no approval or publication authority.
+  The store preserves failed stages and reports post-pivot uncertainty without
+  adoption, overwrite or automatic cleanup. Tests and compiler execution remain
+  unrun; no warm HIR, complete session recovery or durability promotion is claimed.
+
 - Replaced predictable native C/executable temporary paths with exclusively
   created scratch directories, create-new C files, and identity/inventory-checked
   nonrecursive cleanup. Source `run` checks and emits before reserving scratch;

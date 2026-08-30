@@ -62,6 +62,9 @@ pub use candidate::{
     PROJECT_CANDIDATE_TEST_PLAN_SCHEMA, PROJECT_CANDIDATE_TEST_REPORT_SCHEMA,
     SEMANTIC_CHANGE_REQUIREMENTS, SEMANTIC_CHANGE_SCHEMA,
 };
+pub use candidate::{
+    ProjectCandidateArchive, MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES, PROJECT_CANDIDATE_ARCHIVE_SCHEMA,
+};
 pub use execution::{
     verify_execution_envelope, ProjectExecution, ProjectExecutionOptions, ProjectExecutionOutcome,
     ProjectExecutionRole, PROJECT_EXECUTION_SCHEMA,

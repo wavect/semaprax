@@ -12,6 +12,7 @@ use crate::workspace_analysis::{WorkspaceAnalysisTargetKind, WorkspaceImpactOpti
 
 use super::{build, ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 
+mod archive;
 mod catalog;
 mod declaration;
 mod delta;
@@ -31,6 +32,10 @@ mod recovery;
 mod schemas;
 mod testing;
 mod wire;
+
+pub use archive::{
+    ProjectCandidateArchive, MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES, PROJECT_CANDIDATE_ARCHIVE_SCHEMA,
+};
 
 pub use testing::{
     CandidateTestPolicy, CandidateTestReport, MAX_CANDIDATE_TEST_STEPS,

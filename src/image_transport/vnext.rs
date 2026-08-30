@@ -8,6 +8,7 @@ mod commit;
 mod discovery;
 mod projections;
 mod read_batch;
+mod recovery;
 pub use commit::GitCommitHost;
 
 pub const VNEXT_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v5";

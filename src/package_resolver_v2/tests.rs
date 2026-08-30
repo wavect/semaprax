@@ -209,6 +209,28 @@ fn nested_report_bounds_and_authentication_keep_distinct_resolver_codes() {
 }
 
 #[test]
+fn root_range_admission_precedes_retained_text_clone_and_work_charge() {
+    let mut input = input(vec![], "=4294967295.4294967295.4294967295");
+    assert_eq!(input.requirements[0].range.len(), 33);
+    let mut work = 0;
+    let parsed = model::validate_input(&input, &mut work).unwrap();
+    assert_eq!(parsed[0].text, input.requirements[0].range);
+    assert_eq!(work, 1);
+    for range in [
+        format!("{}0", input.requirements[0].range),
+        "=".to_owned() + &"1".repeat(1024 * 1024),
+    ] {
+        input.requirements[0].range = range;
+        let mut work = 0;
+        assert_eq!(
+            model::validate_input(&input, &mut work).err().unwrap().code,
+            "SPX-PR601"
+        );
+        assert_eq!(work, 0);
+    }
+}
+
+#[test]
 fn first_feasible_backtracking_and_catalog_permutation_are_exact() {
     let meaning = report("examples/meaning.spx");
     let missing = package_lock_v3::Coordinate {

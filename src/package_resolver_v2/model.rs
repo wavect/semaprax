@@ -53,10 +53,13 @@ pub(super) fn validate_input(
             ));
         }
         previous = Some(&requirement.package);
+        // Public input owns an unbounded String. Admit the closed <=33-byte
+        // range before cloning any of it into retained resolver state.
+        let range = semver::parse_range(&requirement.range)?;
         parsed.push(ParsedRequirement {
             package: requirement.package.clone(),
             text: requirement.range.clone(),
-            range: semver::parse_range(&requirement.range)?,
+            range,
             row,
         });
         wire::charge(work, 1)?;

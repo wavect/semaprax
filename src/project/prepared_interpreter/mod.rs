@@ -25,11 +25,11 @@ pub use trace::{
 pub use worker::{prepare_project_interpreter, PreparedProjectInterpreter};
 
 pub(super) use origin::FunctionOrigin;
-pub(crate) use worker::MAX_PREPARED_PROJECT_INTERPRETER_WORKERS;
 
 #[cfg(test)]
 use origin::insert_origin;
 #[cfg(test)]
 use worker::{
     ExecutionAdmission, PreparedWorkerPermit, ACTIVE_PREPARED_PROJECT_INTERPRETER_WORKERS,
+    MAX_PREPARED_PROJECT_INTERPRETER_WORKERS,
 };

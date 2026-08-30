@@ -148,6 +148,12 @@ to retained HIR and authenticated source facts. It does not independently
 re-execute the dynamic path and grants no debugger, target, I/O, build, or
 publication authority.
 
+Within the retained Project lane, `model.rs` owns the public prepared options,
+outcomes, cancellation handle, and worker-slot model; `origin.rs` owns exact
+entry/test source-origin indexing and duplicate-fact disagreement checks; and
+`worker.rs` owns fail-fast execution admission, the bounded fixed-stack worker
+lifecycle, evaluation/cancellation dispatch, and trace assembly.
+
 Within that lane, `trace/model.rs` owns the closed wire vocabulary, digest
 domain, normalized status parsing, and trace data model; `trace/render.rs` owns
 bounded prefix selection and canonical rendering; and `trace/verify.rs` owns

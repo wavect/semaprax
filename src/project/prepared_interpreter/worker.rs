@@ -14,8 +14,8 @@ use super::model::{
 };
 use super::origin::{prepare_closures, FunctionOrigin, PreparedClosures};
 
-pub(crate) const MAX_PREPARED_PROJECT_INTERPRETER_WORKERS: usize = 8;
-pub(crate) static ACTIVE_PREPARED_PROJECT_INTERPRETER_WORKERS: AtomicUsize = AtomicUsize::new(0);
+pub(super) const MAX_PREPARED_PROJECT_INTERPRETER_WORKERS: usize = 8;
+pub(super) static ACTIVE_PREPARED_PROJECT_INTERPRETER_WORKERS: AtomicUsize = AtomicUsize::new(0);
 
 struct ExecutionRequest {
     role: ProjectExecutionRole,
@@ -101,11 +101,11 @@ impl Drop for PreparedProjectInterpreter {
 }
 
 #[derive(Debug)]
-pub(crate) struct ExecutionAdmission<'a> {
+pub(super) struct ExecutionAdmission<'a> {
     executing: &'a AtomicBool,
 }
 impl<'a> ExecutionAdmission<'a> {
-    pub(crate) fn acquire(executing: &'a AtomicBool) -> Result<Self, Vec<Diagnostic>> {
+    pub(super) fn acquire(executing: &'a AtomicBool) -> Result<Self, Vec<Diagnostic>> {
         executing
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .map_err(|_| {
@@ -123,11 +123,11 @@ impl Drop for ExecutionAdmission<'_> {
 }
 
 #[derive(Debug)]
-pub(crate) struct PreparedWorkerPermit {
+pub(super) struct PreparedWorkerPermit {
     active: &'static AtomicUsize,
 }
 impl PreparedWorkerPermit {
-    pub(crate) fn acquire(
+    pub(super) fn acquire(
         active: &'static AtomicUsize,
         limit: usize,
     ) -> Result<Self, Vec<Diagnostic>> {

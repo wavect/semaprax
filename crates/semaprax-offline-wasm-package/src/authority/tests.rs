@@ -404,8 +404,8 @@ fn lock_snapshot_rejects_every_pre_effect_write_and_settle_mutation() {
 
 #[test]
 fn lock_snapshot_publish_and_post_publish_uncertainty_fail_stop() {
-    let root = root("lock-snapshot-publish-race");
-    let output = root.join("snapshot");
+    let race_root = root("lock-snapshot-publish-race");
+    let output = race_root.join("snapshot");
     let snapshot = ResolutionSnapshot {
         input_json: "input".to_owned(),
         resolution_evidence_json: "resolution".to_owned(),

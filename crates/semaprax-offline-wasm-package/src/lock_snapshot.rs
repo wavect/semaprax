@@ -40,7 +40,7 @@ pub fn publish_lock_snapshot(
     }
     #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
     {
-        let _ = (output, snapshot, verifier, verified);
+        let _ = (output, verified);
         Err(PublicationError::plain(
             crate::PP_INVALID,
             "offline lock snapshot publication is unsupported on this platform",

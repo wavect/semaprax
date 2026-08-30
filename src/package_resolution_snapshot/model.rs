@@ -10,18 +10,54 @@ pub struct ResolutionSnapshot {
 }
 
 pub(super) fn validate_cumulative(snapshot: &ResolutionSnapshot) -> Result<(), Diagnostic> {
-    let bytes = snapshot
-        .input_json
-        .len()
-        .checked_add(snapshot.resolution_evidence_json.len())
-        .and_then(|value| value.checked_add(snapshot.lock_json.len()))
+    validate_lengths(
+        snapshot.input_json.len(),
+        snapshot.resolution_evidence_json.len(),
+        snapshot.lock_json.len(),
+    )
+}
+
+pub(super) fn validate_lengths(
+    input_bytes: usize,
+    evidence_bytes: usize,
+    lock_bytes: usize,
+) -> Result<(), Diagnostic> {
+    let bytes = input_bytes
+        .checked_add(evidence_bytes)
+        .and_then(|value| value.checked_add(lock_bytes))
         .ok_or_else(|| limit_error("snapshot cumulative byte accounting overflowed"))?;
-    if snapshot.input_json.len() > super::MAX_INPUT_BYTES
-        || snapshot.resolution_evidence_json.len() > crate::package_resolver::MAX_OUTPUT_BYTES
-        || snapshot.lock_json.len() > crate::package_lock_v2::MAX_OUTPUT_BYTES
+    if input_bytes > super::MAX_INPUT_BYTES
+        || evidence_bytes > crate::package_resolver::MAX_OUTPUT_BYTES
+        || lock_bytes > crate::package_lock_v2::MAX_OUTPUT_BYTES
         || bytes > MAX_SNAPSHOT_BYTES
     {
         return Err(limit_error("snapshot cumulative byte bound exceeded"));
     }
     Ok(())
+}
+
+pub(super) fn admit_subject_slot(existing: usize) -> Result<(), Diagnostic> {
+    if existing >= crate::package_resolver::MAX_SUBJECTS {
+        return Err(limit_error(
+            "snapshot subject count exceeds Resolver-v1 bound",
+        ));
+    }
+    Ok(())
+}
+
+pub(super) fn add_subject_bytes(total: usize, next: usize) -> Result<usize, Diagnostic> {
+    if next > crate::package_resolver::MAX_SUBJECT_BYTES {
+        return Err(limit_error(
+            "snapshot raw subject exceeds Resolver-v1 bound",
+        ));
+    }
+    let total = total
+        .checked_add(next)
+        .ok_or_else(|| limit_error("snapshot raw subject bytes overflowed"))?;
+    if total > crate::package_resolver::MAX_TOTAL_SUBJECT_BYTES {
+        return Err(limit_error(
+            "snapshot raw subject total exceeds Resolver-v1 bound",
+        ));
+    }
+    Ok(total)
 }

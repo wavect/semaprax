@@ -237,28 +237,12 @@ fn exact_subjects(payload: &str) -> Result<(Vec<String>, usize, usize), Diagnost
         if bytes.get(offset) != Some(&b'{') {
             return Err(wire_error("snapshot subject must be a raw JSON object"));
         }
-        if values.len() == crate::package_resolver::MAX_SUBJECTS {
-            return Err(limit_error(
-                "snapshot subject count exceeds Resolver-v1 bound",
-            ));
-        }
+        super::model::admit_subject_slot(values.len())?;
         let value_end = object_end(bytes, offset, payload.len())?;
         let value_bytes = value_end
             .checked_sub(offset)
             .ok_or_else(|| wire_error("snapshot subject boundary underflowed"))?;
-        if value_bytes > crate::package_resolver::MAX_SUBJECT_BYTES {
-            return Err(limit_error(
-                "snapshot raw subject exceeds Resolver-v1 bound",
-            ));
-        }
-        subject_bytes = subject_bytes
-            .checked_add(value_bytes)
-            .ok_or_else(|| limit_error("snapshot raw subject bytes overflowed"))?;
-        if subject_bytes > crate::package_resolver::MAX_TOTAL_SUBJECT_BYTES {
-            return Err(limit_error(
-                "snapshot raw subject total exceeds Resolver-v1 bound",
-            ));
-        }
+        subject_bytes = super::model::add_subject_bytes(subject_bytes, value_bytes)?;
         values.push(payload[offset..value_end].to_owned());
         offset = value_end;
         if bytes.get(offset) == Some(&b',') {

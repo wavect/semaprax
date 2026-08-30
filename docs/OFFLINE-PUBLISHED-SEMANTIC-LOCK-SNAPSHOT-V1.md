@@ -141,9 +141,13 @@ Capsule v1, Build v1/v2, Project, Graph, or Cleanup contracts.
 
 Authored focused evidence covers catalog permutation, exact replay, mutation,
 truncation, insertion, cross-pairing, reminting, raw-subject parsing, exact and
-plus-one bounds, exact inventory, existing output, staged substitution,
+plus-one component/cumulative length and preallocation-count guards, exact
+framing derivation, public component-plus-one rejection, exact inventory,
+existing output, staged substitution,
 pre-effect races, foreign-byte preservation, replay disagreement, cleanup,
 uncertainty, platform preconditions, and build-v1/v2 preservation.
+The length-guard tests avoid allocating maximum-size capsules; they do not
+claim a successful maximum-size valid-catalog replay or measured memory use.
 
 The focused commands are:
 

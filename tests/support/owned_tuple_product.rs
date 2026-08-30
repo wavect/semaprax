@@ -18,7 +18,7 @@ fn maybe(text: borrow str, left: borrow Slice<u8>, right: borrow Slice<u8>, pres
     else { Option<Bytes>::None {} }
 }
 @id("tuple.result")
-fn result(text: borrow str, left: borrow Slice<u8>, right: borrow Slice<u8>, ok: bool) -> Result<Bytes, i64> {
+fn outcome(text: borrow str, left: borrow Slice<u8>, right: borrow Slice<u8>, ok: bool) -> Result<Bytes, i64> {
     if ok { Result<Bytes, i64>::Ok { value: bytes_copy(left) } }
     else { Result<Bytes, i64>::Err { error: -7 } }
 }

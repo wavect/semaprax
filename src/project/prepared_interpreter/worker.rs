@@ -14,6 +14,12 @@ use super::model::{
 };
 use super::origin::{prepare_closures, FunctionOrigin, PreparedClosures};
 
+mod replacement;
+#[cfg(test)]
+mod tests;
+
+use replacement::{ReplacementRequest, WorkerState};
+
 pub(super) const MAX_PREPARED_PROJECT_INTERPRETER_WORKERS: usize = 8;
 pub(super) static ACTIVE_PREPARED_PROJECT_INTERPRETER_WORKERS: AtomicUsize = AtomicUsize::new(0);
 
@@ -26,6 +32,7 @@ struct ExecutionRequest {
 
 enum WorkerMessage {
     Execute(ExecutionRequest),
+    Replace(ReplacementRequest),
     Shutdown,
 }
 
@@ -37,9 +44,44 @@ pub struct PreparedProjectInterpreter {
     ceilings: PreparedProjectInterpreterOptions,
     executing: AtomicBool,
     _worker_permit: PreparedWorkerPermit,
+    #[cfg(test)]
+    replacement_hook: std::sync::Mutex<Option<replacement::TestHook>>,
 }
 
 impl PreparedProjectInterpreter {
+    /// Replace the retained subject on this worker after exact stale-base
+    /// comparison and complete candidate preparation. Ordinary admission
+    /// rejection preserves the old state; a terminal worker error does not
+    /// promise rollback of a possibly committed handoff.
+    pub fn replace_revision(
+        &self,
+        expected_project_revision: &str,
+        revision: Arc<ProjectRevision>,
+    ) -> Result<(), Vec<Diagnostic>> {
+        let _admission = ExecutionAdmission::acquire(&self.executing)?;
+        replacement::validate_expected_revision(expected_project_revision)?;
+        let (reply, response) = mpsc::sync_channel(0);
+        let request = ReplacementRequest {
+            expected: expected_project_revision.to_owned(),
+            revision,
+            reply,
+            #[cfg(test)]
+            hook: self
+                .replacement_hook
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .take(),
+        };
+        self.sender
+            .send(WorkerMessage::Replace(request))
+            .map_err(|_| vec![worker_error("prepared interpreter worker is closed")])?;
+        response.recv().map_err(|_| {
+            vec![worker_error(
+                "prepared interpreter worker terminated without a replacement response",
+            )]
+        })?
+    }
+
     pub fn execute(
         &self,
         role: ProjectExecutionRole,
@@ -185,6 +227,8 @@ pub fn prepare_project_interpreter(
         ceilings: options,
         executing: AtomicBool::new(false),
         _worker_permit: worker_permit,
+        #[cfg(test)]
+        replacement_hook: std::sync::Mutex::new(None),
     })
 }
 
@@ -193,12 +237,20 @@ fn worker_loop(
     closures: PreparedClosures,
     receiver: Receiver<WorkerMessage>,
 ) {
+    let mut state = WorkerState { revision, closures };
     while let Ok(message) = receiver.recv() {
-        let WorkerMessage::Execute(request) = message else {
-            break;
+        let request = match message {
+            WorkerMessage::Execute(request) => request,
+            WorkerMessage::Replace(request) => {
+                if !replacement::process(&mut state, request) {
+                    break;
+                }
+                continue;
+            }
+            WorkerMessage::Shutdown => break,
         };
         let evaluated = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            execute_request(&revision, &closures, &request)
+            execute_request(&state.revision, &state.closures, &request)
         }));
         match evaluated {
             Ok(result) => {

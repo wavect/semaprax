@@ -18,6 +18,8 @@ use crate::project::ProjectRevision;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
+#[path = "signature_arguments.rs"]
+mod computed;
 #[path = "signature_rename.rs"]
 mod rename;
 
@@ -30,6 +32,7 @@ const MAX_PARAMETERS: usize = 4096;
 enum Argument {
     Existing(usize),
     Literal(Expr),
+    Computed(Value),
 }
 
 pub(super) fn apply(
@@ -81,6 +84,7 @@ pub(super) fn apply(
     let mut names = BTreeSet::new();
     let mut params = Vec::with_capacity(requested.len());
     let mut arguments = Vec::with_capacity(requested.len());
+    let mut template_nodes = 0usize;
     for mapping in requested {
         if mapping.get("from").is_some() {
             if mapping.get("name").is_some() {
@@ -113,7 +117,12 @@ pub(super) fn apply(
             params.push(param);
             arguments.push(Argument::Existing(index));
         } else {
-            object(mapping, &["name", "type", "argument"])?;
+            let is_computed = mapping.get("argument_expression").is_some();
+            if is_computed {
+                object(mapping, &["name", "type", "argument_expression"])?;
+            } else {
+                object(mapping, &["name", "type", "argument"])?;
+            }
             let name = identifier(text(mapping, "name")?)?;
             if original.contains_key(name) || !names.insert(name.to_owned()) {
                 return Err(grammar(
@@ -122,13 +131,28 @@ pub(super) fn apply(
             }
             let type_name = text(mapping, "type")?;
             let ty = scalar_type(type_name)?;
-            let argument = member(mapping, "argument")?;
-            if text(argument, "kind")? != type_name {
-                return Err(grammar(
-                    "new signature argument must be an exact typed scalar literal",
-                ));
+            if is_computed {
+                let template = member(mapping, "argument_expression")?;
+                // Preflight even when no source call instantiates this default.
+                // Only instantiated callers receive ordinary semantic checks.
+                computed::prepare(
+                    revision,
+                    &programs[owner],
+                    &original_params,
+                    template,
+                    &mut BTreeSet::new(),
+                    &mut template_nodes,
+                )?;
+                arguments.push(Argument::Computed(template.clone()));
+            } else {
+                let argument = member(mapping, "argument")?;
+                if text(argument, "kind")? != type_name {
+                    return Err(grammar(
+                        "new signature argument must be an exact typed scalar literal",
+                    ));
+                }
+                arguments.push(Argument::Literal(literal(argument)?));
             }
-            arguments.push(Argument::Literal(literal(argument)?));
             params.push(Param {
                 name: name.to_owned(),
                 mode: ParamMode::Value,
@@ -160,7 +184,7 @@ pub(super) fn apply(
             Argument::Existing(index) => {
                 Some((original_params[*index].name.clone(), param.name.clone()))
             }
-            Argument::Literal(_) => None,
+            Argument::Literal(_) | Argument::Computed(_) => None,
         })
         .collect::<BTreeMap<_, _>>();
     if renames.iter().any(|(old, new)| old != new) {
@@ -176,6 +200,9 @@ pub(super) fn apply(
     let mut nodes = 0usize;
     let mut added_nodes = 0usize;
     let mut migrated_calls = 0usize;
+    let has_computed = arguments
+        .iter()
+        .any(|argument| matches!(argument, Argument::Computed(_)));
     for program in programs.iter_mut() {
         for import in &program.module_uses {
             if import.kind == ModuleUseKind::Function
@@ -188,6 +215,9 @@ pub(super) fn apply(
             }
         }
         let bindings = call_bindings(program)?;
+        // Constructor binding lookup must see the immutable caller context,
+        // not partially rewritten argument or parameter subtrees.
+        let caller_context = has_computed.then(|| program.clone());
         walk_program(program, &mut nodes, &mut |expression| {
             let ExprKind::Call {
                 name,
@@ -218,27 +248,65 @@ pub(super) fn apply(
             }
             let call_name = name.clone();
             let span = expression.span;
+            let mut templates = Vec::with_capacity(arguments.len());
+            for argument in &arguments {
+                templates.push(if let Argument::Computed(template) = argument {
+                    Some(computed::prepare(
+                        revision,
+                        caller_context.as_ref().expect("computed context retained"),
+                        &original_params,
+                        template,
+                        &mut occupied,
+                        &mut template_nodes,
+                    )?)
+                } else {
+                    None
+                });
+            }
+            if has_computed {
+                computed::charge(&mut added_nodes, old_arity)?;
+            }
             let mut stages = Vec::with_capacity(old_arity);
             for _ in 0..old_arity {
                 stages.push(fresh_name(&mut occupied, &mut generated)?);
             }
-            let mapped = arguments
-                .iter()
-                .map(|argument| match argument {
+            let mut defaults = Vec::new();
+            let mut mapped = Vec::with_capacity(arguments.len());
+            for ((argument, parameter), template) in arguments.iter().zip(&params).zip(templates) {
+                mapped.push(match argument {
                     Argument::Existing(index) => Expr {
                         kind: ExprKind::Var(stages[*index].clone()),
                         span,
                     },
                     Argument::Literal(expression) => expression.clone(),
-                })
-                .collect::<Vec<_>>();
+                    Argument::Computed(_) => {
+                        let (body, body_nodes) = template.expect("computed template prepared");
+                        computed::charge(&mut added_nodes, body_nodes + 1)?;
+                        let body =
+                            computed::substitute(body, &original_params, &stages, &mut occupied)?;
+                        let name = fresh_name(&mut occupied, &mut generated)?;
+                        defaults.push(Statement::Let {
+                            name: name.clone(),
+                            name_span: span,
+                            mutable: false,
+                            declared: Some(parameter.ty.clone()),
+                            value: body,
+                            span,
+                        });
+                        Expr {
+                            kind: ExprKind::Var(name),
+                            span,
+                        }
+                    }
+                });
+            }
             // Move, never duplicate or omit, every original argument subtree.
             let ExprKind::Call { args, .. } =
                 std::mem::replace(&mut expression.kind, ExprKind::Int(0))
             else {
                 unreachable!("call inspected immediately before replacement");
             };
-            let statements = args
+            let mut statements = args
                 .into_iter()
                 .zip(stages)
                 .map(|(value, name)| Statement::Let {
@@ -249,7 +317,8 @@ pub(super) fn apply(
                     value,
                     span,
                 })
-                .collect();
+                .collect::<Vec<_>>();
+            statements.extend(defaults);
             expression.kind = ExprKind::Block {
                 statements,
                 tail: Box::new(Expr {

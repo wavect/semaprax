@@ -21,6 +21,12 @@
   both existing corpora, and strict TypeScript positive/negative consumers.
   No production artifact, schema, dependency, or completion status changes.
 
+- Added explicit computed scalar arguments to ordered signature migration.
+  Original arguments retain their staging order; typed computed locals follow,
+  using original parameter references and existing caller bindings. Literal and
+  append routes stay unchanged. Schema/discovery, scope, ownership, replay and
+  rebase regressions are authored, unrun; no publication authority changes.
+
 - Added immutable scoped `let` expressions to typed candidate constructors,
   with initializer-before-body lowering, lexical isolation, hygienic names and
   unchanged compiler admission. Schemas and hole/change discovery expose the

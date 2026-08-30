@@ -5,6 +5,7 @@
 
 use std::collections::HashMap;
 
+pub(super) mod internal_strings;
 mod owned_stack;
 mod owned_strings;
 
@@ -2311,6 +2312,29 @@ fn emit_function(
     range_bindings: Option<&RangeBindings>,
     owned_utf8_literals: Option<&mut OwnedUtf8Literals>,
 ) -> Result<Vec<u8>, Diagnostic> {
+    emit_function_profile(
+        program,
+        function,
+        function_indexes,
+        variant_layouts,
+        host_output,
+        range_bindings,
+        owned_utf8_literals,
+        false,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn emit_function_profile(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    function_indexes: &HashMap<FunctionExecutionId, u32>,
+    variant_layouts: &VariantLayoutCache,
+    host_output: Option<super::host_output::Globals>,
+    range_bindings: Option<&RangeBindings>,
+    owned_utf8_literals: Option<&mut OwnedUtf8Literals>,
+    standalone_strings: bool,
+) -> Result<Vec<u8>, Diagnostic> {
     let owned_string_profile = owned_utf8_literals.is_some();
     let plan = FunctionPlan::build(program, function, variant_layouts)?;
     let mut body = Vec::new();
@@ -2468,6 +2492,7 @@ fn emit_function(
         host_output,
         range_bindings,
         owned_utf8_literals,
+        standalone_strings,
     };
     for contract in &function.requires {
         let condition = emitter.emit_expr(contract)?;
@@ -2698,6 +2723,7 @@ struct Emitter<'a> {
     host_output: Option<super::host_output::Globals>,
     range_bindings: Option<&'a RangeBindings>,
     owned_utf8_literals: Option<&'a mut OwnedUtf8Literals>,
+    standalone_strings: bool,
 }
 
 impl Emitter<'_> {
@@ -3757,6 +3783,20 @@ impl Emitter<'_> {
                 let carrier = (u64::from(offset) << 32) | u64::from(length);
                 let destination = self.plan.expr_scalar(expr)?;
                 owned_strings::emit_empty_guard(self.output, destination);
+                if self.standalone_strings {
+                    self.output.push(0x41);
+                    write_i64(self.output, i64::from(offset));
+                    self.output.push(0x41);
+                    write_i64(self.output, i64::from(length));
+                    self.output
+                        .extend([0x10, internal_strings::LITERAL_IMPORT as u8, 0x21]);
+                    write_u32(self.output, destination);
+                    self.string_capacity_guard(destination)?;
+                    return Ok(Value::Scalar {
+                        local: destination,
+                        ty: ResolvedType::String,
+                    });
+                }
                 self.output.push(0x42);
                 write_i64(self.output, carrier as i64);
                 self.output.push(0x10);
@@ -3775,9 +3815,19 @@ impl Emitter<'_> {
                     owned_strings::emit_empty_guard(self.output, local);
                     self.get_scalar(&value);
                     self.output.push(0x10);
-                    write_u32(self.output, BYTE_COPY_IMPORT);
+                    write_u32(
+                        self.output,
+                        if self.standalone_strings {
+                            internal_strings::CLONE_IMPORT
+                        } else {
+                            BYTE_COPY_IMPORT
+                        },
+                    );
                     self.output.push(0x21);
                     write_u32(self.output, local);
+                    if self.standalone_strings {
+                        self.string_capacity_guard(local)?;
+                    }
                     return Ok(Value::Scalar {
                         local,
                         ty: ResolvedType::String,
@@ -4710,6 +4760,9 @@ impl Emitter<'_> {
                 // depth zero because selection has not happened yet.
                 let flag = self.emit_expr(guard)?;
                 require_type(value_type(&flag), &ResolvedType::Bool, "match guard")?;
+                if self.standalone_strings {
+                    self.get_scalar(&flag);
+                }
                 self.output.push(0x45); // i32.eqz
                 self.output.extend([0x0d, 0x00]); // br_if 0 -> next arm
             }
@@ -5380,6 +5433,11 @@ impl Emitter<'_> {
         instance: Option<&crate::hir::FunctionInstanceId>,
         args: &[ResolvedExpr],
     ) -> Result<Value, Diagnostic> {
+        if self.standalone_strings && instance.is_none() {
+            if let Some(operation) = crate::string_ops::by_id(callee.as_str()) {
+                return self.emit_internal_string_operation(expr, operation, args);
+            }
+        }
         if instance.is_none() {
             if crate::host_io_ops::by_id(callee.as_str()).is_some() {
                 if self.host_output.is_none() {
@@ -6317,6 +6375,25 @@ impl Emitter<'_> {
         }
 
         let right = self.emit_expr(right)?;
+        if self.standalone_strings && value_type(&left) == &ResolvedType::String {
+            if !matches!(op, BinaryOp::Eq | BinaryOp::Ne) {
+                return Err(error("standalone String binary operation is not equality"));
+            }
+            require_type(value_type(&right), &ResolvedType::String, "String equality")?;
+            self.get_scalar(&left);
+            self.get_scalar(&right);
+            self.output
+                .extend([0x10, internal_strings::EQ_IMPORT as u8]);
+            if op == BinaryOp::Ne {
+                self.output.push(0x45);
+            }
+            self.output.push(0x21);
+            write_u32(self.output, destination);
+            return Ok(Value::Scalar {
+                local: destination,
+                ty: ResolvedType::Bool,
+            });
+        }
         if matches!(value_type(&left), ResolvedType::F32 | ResolvedType::F64)
             && matches!(
                 op,

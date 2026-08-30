@@ -15,6 +15,24 @@ pub(super) struct Cells {
 }
 
 impl Cells {
+    pub(super) fn bounded_emission_work(&self) -> Result<usize, Diagnostic> {
+        let mut work = self
+            .owners
+            .len()
+            .checked_mul(2)
+            .ok_or_else(|| error("String drop work overflows"))?;
+        for range in self.scopes.values() {
+            for _ in self.owners.range(range.clone()) {
+                work = work
+                    .checked_add(1)
+                    .filter(|value| *value <= 262_144)
+                    .ok_or_else(|| {
+                        error("standalone String cleanup emission exceeds its work bound")
+                    })?;
+            }
+        }
+        Ok(work)
+    }
     pub(super) fn insert(&mut self, local: u32) -> Result<(), Diagnostic> {
         if !self.owners.insert(local) {
             return Err(error("owned String local inventory repeats a cell"));
@@ -74,7 +92,7 @@ pub(super) fn emit_empty_guard(output: &mut Vec<u8>, local: u32) {
 
 /// Clear physical ownership before calling the finalizer. A host exception is
 /// still a poisoned-instance fail-stop, never a recoverable cleanup promise.
-fn emit_drop(output: &mut Vec<u8>, local: u32) {
+pub(super) fn emit_drop(output: &mut Vec<u8>, local: u32) {
     output.push(0x20);
     write_u32(output, local);
     output.extend([0x50, 0x45, 0x04, 0x40, 0x20]); // i64.eqz; i32.eqz; if; get

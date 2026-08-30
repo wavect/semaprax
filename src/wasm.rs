@@ -24,6 +24,7 @@ mod generic_function_component_v9;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod generic_record_component_v7;
 mod host_output;
+pub mod internal_strings;
 mod line_command_io;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod nested_record_component_v6;

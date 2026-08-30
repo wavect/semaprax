@@ -106,7 +106,7 @@ fn derive_weighted(
     longest_paths(&frames, &selected_calls)
 }
 
-fn longest_paths(
+pub(super) fn longest_paths(
     frames: &BTreeMap<DeclarationId, u32>,
     calls: &BTreeMap<DeclarationId, BTreeSet<DeclarationId>>,
 ) -> Result<BTreeMap<DeclarationId, u32>, Diagnostic> {

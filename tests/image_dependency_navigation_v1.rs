@@ -121,7 +121,7 @@ fn summary(image: &ProjectSemanticImage, target: &str) -> Value {
     )
     .unwrap()
 }
-fn facet<'a>(summary: &'a Value, view: ImageDependencyView) -> &'a Value {
+fn facet(summary: &Value, view: ImageDependencyView) -> &Value {
     summary["facets"]
         .as_array()
         .unwrap()

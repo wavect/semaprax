@@ -80,6 +80,7 @@ pub mod runtime_status;
 pub mod scoped_tasks;
 pub mod semantic_trace;
 pub mod simd_report;
+pub mod static_protocol;
 pub(crate) mod str_ops;
 pub(crate) mod string_ops;
 pub mod target_evidence;

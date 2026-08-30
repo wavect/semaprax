@@ -165,6 +165,18 @@
   unchanged source/v10 admission. Tests/builds remain unrun; no ordinary-Wasm
   settlement or production promotion is claimed.
 
+- Added source-owned static protocol implementation mappings, compiler-derived
+  member discovery, the bounded `implement_interface` intention, and additive
+  v4 conformance/interface-catalogue queries over source-bound sidecar facts.
+  Runtime Graph contracts and earlier protocol method sets stay unchanged; no
+  runtime interface witnesses or dynamic dispatch are introduced. All eleven
+  requested graph-operational operation classes now have bounded authored
+  slices, not general implementations or verified completion. Extended the
+  separate Unix bare-Git publication route to ordinary SHA1 alongside SHA256,
+  with exact SHA1 staged-object readback and a SHA256 content binding; SHA1 is
+  compatibility only, without collision-detection claims. Tests/compiler gates
+  were not run for this batch, and no current-head status is promoted.
+
 - Added an opt-in source-exact frontend cache with real parse/format reuse,
   disjoint expression holes with selector remapping, parameter renaming and
   conservative owning-Bytes signature migration. Added a replayable diagnostic

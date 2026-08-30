@@ -4,9 +4,9 @@ use crate::ast::{
     BinaryOp, Expr, ExprKind, FieldDeclaration, FieldInitializer, FieldTarget, Function,
     ImportDeclaration, ImportFailure, ImportResult, InterfaceDeclaration, MatchArm, MatchPattern,
     MatchPatternField, ModuleUse, ModuleUseKind, Param, ParamMode, PatternLiteral, Program,
-    ProtocolDeclaration, ProtocolMethod, ResourceLifecycleDeclaration, ResourceLifecycleKind, Span,
-    Statement, Type, TypeDeclaration, TypeDeclarationKind, TypeParameterDeclaration, UnaryOp,
-    VariantCaseDeclaration,
+    ProtocolDeclaration, ProtocolImplementation, ProtocolImplementationMember, ProtocolMethod,
+    ResourceLifecycleDeclaration, ResourceLifecycleKind, Span, Statement, Type, TypeDeclaration,
+    TypeDeclarationKind, TypeParameterDeclaration, UnaryOp, VariantCaseDeclaration,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{lex, Token, TokenKind};
@@ -47,6 +47,7 @@ impl Parser {
         let mut types = Vec::new();
         let mut interfaces = Vec::new();
         let mut protocols = Vec::new();
+        let mut implementations = Vec::new();
         let mut functions = Vec::new();
         while !self.at(&TokenKind::Eof) {
             if self.at_keyword("use") {
@@ -67,7 +68,19 @@ impl Parser {
             } else if self.at_keyword("interface") {
                 interfaces.push(self.interface(&module, stable_id)?);
             } else if self.at_keyword("protocol") {
+                if protocols.len() >= crate::static_protocol::MAX_IMPLEMENTATIONS {
+                    return Err(
+                        self.error_here("SPX-Q109", "too many static protocol declarations")
+                    );
+                }
                 protocols.push(self.protocol(&module, stable_id)?);
+            } else if self.at_keyword("impl") {
+                if implementations.len() >= crate::static_protocol::MAX_IMPLEMENTATIONS {
+                    return Err(
+                        self.error_here("SPX-Q109", "too many static protocol implementations")
+                    );
+                }
+                implementations.push(self.protocol_implementation(stable_id)?);
             } else {
                 functions.push(self.function(&module, stable_id)?);
             }
@@ -84,6 +97,7 @@ impl Parser {
             types,
             interfaces,
             protocols,
+            implementations,
             functions,
         })
     }
@@ -450,10 +464,60 @@ impl Parser {
         })
     }
 
-    /// Protocol Projection v1: `@id("...")? protocol Name { method... }`.
-    /// Each method is a body-less signature `@id("...")? fn name(params) ->
-    /// Type ;`. Signature resolution is checked later by the read-only
-    /// protocol projection; parsing only rejects structural duplicates.
+    /// Explicit source-owned static method bindings by persistent identity.
+    fn protocol_implementation(
+        &mut self,
+        stable_id: Option<String>,
+    ) -> Result<ProtocolImplementation, Diagnostic> {
+        let start = self.keyword("impl")?.span;
+        let stable_id = stable_id.ok_or_else(|| {
+            self.error_previous("SPX-Q106", "static protocol impl requires an explicit @id")
+        })?;
+        let protocol_id = self.protocol_binding_id()?;
+        self.keyword("for")?;
+        let receiver_id = self.protocol_binding_id()?;
+        self.expect(&TokenKind::LBrace, "`{` before static protocol bindings")?;
+        let mut members = Vec::new();
+        while !self.at(&TokenKind::RBrace) {
+            if members.len() >= crate::static_protocol::MAX_IMPLEMENTATION_MEMBERS {
+                return Err(self.error_here("SPX-Q109", "too many static protocol member bindings"));
+            }
+            let member_start = self.current().span;
+            let method_id = self.protocol_binding_id()?;
+            self.expect(&TokenKind::Eq, "`=` between static protocol member IDs")?;
+            let function_id = self.protocol_binding_id()?;
+            let end = self
+                .expect(&TokenKind::Semicolon, "`;` after static protocol binding")?
+                .span;
+            members.push(ProtocolImplementationMember {
+                method_id,
+                function_id,
+                span: member_start.merge(end),
+            });
+        }
+        let end = self
+            .expect(&TokenKind::RBrace, "`}` after static protocol bindings")?
+            .span;
+        Ok(ProtocolImplementation {
+            stable_id,
+            explicit_id: true,
+            protocol_id,
+            receiver_id,
+            members,
+            span: start.merge(end),
+        })
+    }
+
+    fn protocol_binding_id(&mut self) -> Result<String, Diagnostic> {
+        match &self.bump().kind {
+            TokenKind::String(value) => Ok(value.clone()),
+            _ => Err(self.error_previous(
+                "SPX-Q106",
+                "static protocol binding requires a stable-ID string",
+            )),
+        }
+    }
+
     fn protocol(
         &mut self,
         module: &str,
@@ -466,6 +530,9 @@ impl Parser {
         self.expect(&TokenKind::LBrace, "`{` before protocol methods")?;
         let mut methods = Vec::new();
         while !self.at(&TokenKind::RBrace) {
+            if methods.len() >= crate::static_protocol::MAX_IMPLEMENTATION_MEMBERS {
+                return Err(self.error_here("SPX-Q109", "too many protocol requirements"));
+            }
             if self.at(&TokenKind::Eof) {
                 return Err(self.error_here("SPX-P106", "expected `}` after protocol methods"));
             }
@@ -477,6 +544,11 @@ impl Parser {
             if !self.at(&TokenKind::RParen) {
                 loop {
                     let (param_name, span) = self.ident("protocol method parameter name")?;
+                    if params.len() >= crate::static_protocol::MAX_METHOD_PARAMETERS {
+                        return Err(
+                            self.error_here("SPX-Q109", "too many protocol method parameters")
+                        );
+                    }
                     self.reject_mut_parameter(&param_name, span)?;
                     self.expect(&TokenKind::Colon, "`:` after parameter name")?;
                     let mode = if self.at_keyword("own") {

@@ -51,6 +51,9 @@ outstanding without requiring another permission request now.
 | Frontend reuse | [Frontend Cache v1](PROJECT-FRONTEND-CACHE-V1.md), [incremental.rs](../src/project/incremental.rs) |
 | Expression holes | [Expression Holes v1](PROJECT-CANDIDATE-EXPRESSION-HOLES-V1.md) |
 | Typed repair change | [Diagnostic Change v1](PROJECT-DIAGNOSTIC-CHANGE-V1.md) |
+| Static protocol conformance | [Static Protocol Conformance v1](STATIC-PROTOCOL-CONFORMANCE-V1.md), [static_protocol.rs](../src/static_protocol.rs) |
+| Interface implementation | [Interface Change v1](PROJECT-INTERFACE-CHANGE-V1.md), [interface.rs](../src/project/candidate/interface.rs) |
+| Conformance discovery | [Image Protocol Conformance v1](IMAGE-PROTOCOL-CONFORMANCE-V1.md); source-bound sidecar and v4 query/catalogue integration |
 | Canonical Git publication | [Git Publication v1](PROJECT-CANDIDATE-GIT-PUBLICATION-V1.md), [explicit host CLI](CANDIDATE-GIT-PUBLICATION-CLI-V1.md) |
 | Store | [project_revision_store.rs](../src/project_revision_store.rs), [Store v1](PROJECT-REVISION-STORE-V1.md), [Windows-entry v1](PROJECT-REVISION-STORE-WINDOWS-V1.md), [store evidence](../src/project_revision_store/tests.rs) |
 | Analysis | [workspace_analysis.rs](../src/workspace_analysis.rs), [Workspace Analysis v1](WORKSPACE-ANALYSIS-V1.md); retained six-family typed indexes and existing Context/Impact/Review |
@@ -80,13 +83,18 @@ working implementation alongside the prior Image foundation.
 | Requirement | Status and remaining evidence |
 | --- | --- |
 | Immutable overlays against one immutable base, branching and discard | Candidate authored/unrun. Applying returns a new value; siblings retain their base, dropping discards. Candidate-only v2 retains bounded candidate/draft registries and exposes discard. No durable registry or recovered branch lifecycle. |
-| Versioned Semantic Change IR and mandatory constraints | Partial, Candidate authored/unrun for ten closed intention kinds, including replayed diagnostic repair. Base revision, exact identity additions/relocations, exports, effects, permits, exact contract inventory changes and profile/core-target preservation are checked in that slice. Interface implementation, general constraints and complete semantic-delta proof remain open. |
+| Versioned Semantic Change IR and mandatory constraints | Partial, Candidate authored/unrun for all eleven requested operation classes, including replayed diagnostic repair and static protocol implementation. Base revision, exact identity additions/relocations, exports, effects, permits, exact contract inventory changes and profile/core-target preservation are checked in that slice. General interface behavior, broader constraints and complete semantic-delta proof remain open. |
 | Typed expression/declaration constructors | Partial. Candidate constructors cover bounded scalar/parameter/operator/call expressions and monomorphic function declarations with limited ownership modes. General expressions/declarations and expected-type/effect/ownership-guided discovery remain missing. |
 | Ephemeral typed holes | Partial, authored/unrun. Body holes and disjoint authored expression holes expose checked lexical context, expected type/ownership and prior-body facts. Filling performs complete candidate admission and remaps surviving selections; unresolved drafts cannot materialize. Contract-region holes, recursive incomplete declarations and complete next-expression liveness guidance remain open. |
 | Candidate ID, base/candidate revisions, semantic/source-diff digests, validation/diagnostics/gates | Partial, Candidate authored/unrun. Complete candidates carry digests, diffs, validation facts and gates. V4 adds bounded rejected-attempt lifecycle and repair discovery without invalid source/image access. General incomplete-state diagnostics remain missing. |
 | Candidate comparison, targeted validation and exact semantic replay | Partial. Candidate comparison is descriptive target overlap; source is formatted, reparsed and rebuilt with complete Project admission. Need semantic compatibility decisions, intended-delta verification across general transformations and selective invalidation/validation. |
 
 ## Phase 3: all eleven requested operations
+
+All eleven requested classes now have bounded **authored/unrun** slices. This
+counts represented operation classes, not completed general operations, runtime
+interface support, passing tests or completion-matrix promotions. Each row keeps
+its broader requirement open.
 
 | Operation | Present scope and remaining requirement |
 | --- | --- |
@@ -97,7 +105,7 @@ working implementation alongside the prior Image foundation.
 | `extract_function` | Partial, authored/unrun. Actual HIR expression selection, immutable built-in Copy capture derivation, fresh caller-selected function identity, in-place call substitution and exact source replay. Owned/mutable captures, unsafe-boundary relocation and general control/data forms remain excluded. |
 | `add_declaration` | Partial, authored/unrun. Typed monomorphic function append in an anchor's module with global identity/namespace/effect checks and exact invariant extension. General declaration kinds, named types, recursive construction and placement remain open. |
 | `move_declaration` | Partial, authored/unrun. Explicit monomorphic scalar function relocation between existing modules preserves identity, migrates stable-ID call/import bindings and replays exact source. Fixed exports, general named/owned types and audit-bearing relocation remain excluded. |
-| `implement_interface` | Missing required-member discovery, typed implementation construction and contract/dispatch replay. |
+| `implement_interface` | Partial, authored/unrun. Compiler-derived required-member discovery and a typed mapping bind an explicit local monomorphic record to a same-module protocol and eligible existing functions. Exact member coverage/signature matching and canonical source replay are checked. General interface contracts, cross-module implementations, generic/owned receiver forms, runtime witnesses and dynamic dispatch remain missing. |
 | `add_record_field` | Partial, authored/unrun. Appends one i64/bool field to an eligible monomorphic Copy record, migrates constructors and exact nested patterns, preserves existing projections and revalidates complete Project/layout/target admission. Owned/generic/class/variant fields and broader evolution remain open. |
 | `add_contract` | Partial, authored/unrun. Append one typed requires/ensures predicate to an explicit monomorphic non-main function, preserving prior predicates and exact other invariants with full Project admission. General declaration contracts, proof of runtime satisfaction and external compatibility remain open. |
 | `repair_diagnostic` | Partial. Existing ID repair remains separate. Candidate Diagnostics and v4 retain rejected attempts; the new typed wire rederives the exact compiler-admitted integer-literal repair and preserves it in replayable history. Its selector binds the exact predecessor and rejects rebase/reminting. General repair classes remain missing. |
@@ -117,7 +125,7 @@ synthesis, not an implementation of the missing change operations.
 | Ownership | Facets exposes parameter modes and structural slots. Missing general creation/transfer/settlement relationships and candidate ownership deltas. |
 | Cleanup | Facets reuses complete ordered CleanupPlan projection. Missing generalized reverse expression/field-to-obligation queries and candidate cleanup deltas. |
 | Data access | Partial, authored/unrun HIR Relationships. Bounded function facets expose actual ValueId reads/writes, field projections and consumption-context facts with provenance. General reverse field indexes and candidate deltas remain missing. |
-| Interfaces | Missing workspace implementation/requirement/dispatch facet and candidate deltas. |
+| Interfaces | Partial, authored/unrun source-sidecar conformance facts and v4 `protocol/conformance` / `candidate/interface-catalog` discovery. Facts bind source revisions and stable receiver/protocol/member/function identities; they do not add dispatch edges to the runtime Graph. General interface dependency facets, candidate deltas and dispatch remain missing. |
 | Tests | Partial, authored/unrun Candidate Tests selects relevance from exact transitive test-root HIR calls with conservative fallback for non-call facts; explicit execution runs the full declared interpreter test closure. Dynamic coverage, multi-root selection and native/Wasm evidence remain missing. |
 | Targets | Facets reports existing Project profile admission only. Candidate derives C11/structurally validated Wasm facts; no execution. Missing generalized per-declaration admission/rejection reasons and package-profile coverage. |
 | Artifacts | Facets identifies manifest-selected Web exports. Existing Native Rust/target evidence is separate. Missing unified npm/Rust/C/OpenAPI/Web stable-ID-to-artifact relationship and change-impact inventory. |
@@ -145,8 +153,10 @@ commit authority is **Partial** in existing A0/managed Workspace routes and
 bridge. It replays under the existing lock before `ACTIVE` publication and leaves
 original raw Git paths unchanged. A separate authored/unrun host route now
 constructs canonical Git objects and publishes a branch by expected-old ref
-update in an explicitly selected Unix bare SHA256 repository. Broader Git
-formats/hosts and checkout integration remain missing; a capsule cannot publish
+update in an explicitly selected Unix bare SHA1 or SHA256 repository. SHA1
+adds exact staged-object readback and a SHA256 observed/prepared-content binding,
+without collision-detection or modern SHA1 integrity claims. Broader hosts and
+checkout integration remain missing; a capsule cannot publish
 itself or select that authority.
 
 ## Protocol, generated integrations and candidate lifecycle
@@ -155,6 +165,7 @@ itself or select that authority.
 | --- | --- |
 | `protocol/capabilities`, `protocol/schemas` | Authored/unrun Protocol. Host-selected capabilities and catalogue-driven request/success/error envelopes. Additive `protocol/constructor-schemas` supplies self-contained closed typed-expression/intent/change schemas. Complete bundled response schemas and executed client/schema compatibility remain missing. |
 | `workspace/open`, `workspace/status`, `query/catalog` | Authored/unrun Protocol. Host binds the manifest; open returns the retained image handle and cannot select a new path. |
+| `protocol/conformance`, `candidate/interface-catalog` | Authored/unrun additive v4 read-only source-sidecar queries and candidate-bound static required-member discovery. Existing v1–v3 method sets and runtime Graph contracts remain unchanged; no runtime interface or publication authority is granted. |
 | `change/catalog`, `validation/catalog` | Authored/unrun candidate-only v2. Target-specific constructor discovery and independent candidate replay are available; arbitrary payload validity requires apply. General legal-transition discovery and execution routes remain open. |
 | Read-only, candidate-only, source-commit, build-enabled, test-enabled, artifact-materialization-enabled sessions | Explicit read-only v1, candidate-only v2 and bounded interpreter-test v3 authored/unrun. Source-commit, build and artifact profiles remain missing; no agent authority elevation is implied. |
 | Version-matched agent instructions | Authored/unrun `protocol/instructions` for supported read-only and candidate-only methods. Instructions for remaining authority profiles remain open. |
@@ -165,7 +176,7 @@ itself or select that authority.
 | `candidate/query`, `candidate/validate`, `candidate/impact` | Authored/unrun v2 methods: bounded report chunks, complete independent replay and six-family impact. General incomplete-candidate validation and generalized impact remain open. |
 | `candidate/test` | Authored/unrun library and explicitly host-selected v3 route: exact candidate replay precedes fixed-policy execution of the full declared interpreter test closure. Static relevance is not coverage; native/Wasm and policy-selected full gates remain separate. No tests were run in this implementation work. |
 | `candidate/compare`, `candidate/discard` | Descriptive library and v2 lifecycle methods authored/unrun. Semantic compatibility proof remains missing. |
-| `candidate/commit` | Partial separate host bridges to managed `ACTIVE` and canonical Git branch publication, each with exact candidate approval/replay. The Git adapter is Unix bare SHA256 only and never rewrites raw checkouts. Protocol commit methods, ordinary checkout integration and broader Git interoperability remain missing. |
+| `candidate/commit` | Partial separate host bridges to managed `ACTIVE` and canonical Git branch publication, each with exact candidate approval/replay. The Git adapter admits Unix bare SHA1/SHA256 repositories and never rewrites raw checkouts. Protocol commit methods, ordinary checkout integration and broader Git interoperability remain missing. |
 
 ## Phase 5: multi-agent operation
 
@@ -193,7 +204,7 @@ itself or select that authority.
 | 9. Verify native/Wasm admission | Candidate C11/structural Wasm projection authored; runtime conformance and broader package targets remain open. |
 | 10. Return semantic impact and human source diff | Paired Impact, digest-bound source diff and selected source-bound semantic delta replay are authored/unrun; complete generalized facet families remain open. |
 | 11. Reject or semantically rebase concurrent source change | Retained-base stale rejection and bounded source-replayed semantic rebase are authored/unrun; live candidate publication race evidence and general conflict reconciliation remain open. |
-| 12. Commit only through separate authority | Authored/unrun bridges support managed Workspace and a Unix bare-SHA256 Git ref authority. The latter publishes canonical source in Git objects without touching checkouts. Fully integrated executed source-commit/hostile evidence and broader Git support remain incomplete. |
+| 12. Commit only through separate authority | Authored/unrun bridges support managed Workspace and a Unix bare-SHA1/SHA256 Git ref authority. The latter publishes canonical source in Git objects without touching checkouts. Fully integrated executed source-commit/hostile evidence and broader Git support remain incomplete. |
 
 An integrated managed-generation precursor is now authored in
 `tests/project_graph_operational_workflow_v1.rs`: it combines signature migration,

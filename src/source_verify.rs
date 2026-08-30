@@ -870,6 +870,10 @@ fn owned_byte_prelude_instance_is_admitted(name: &str, arguments: &[Type]) -> bo
 
 pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
+    if let Err(diagnostic) = crate::static_protocol::validate(program) {
+        diagnostics.push(diagnostic.at_path(&program.path));
+        return diagnostics;
+    }
     if !program.module_uses.is_empty() {
         diagnostics.push(
             Diagnostic::io(

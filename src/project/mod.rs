@@ -13,6 +13,7 @@ mod execution;
 mod flat_owned_record;
 mod image;
 mod image_facets;
+mod image_protocols;
 mod image_store;
 pub(crate) mod incremental;
 mod manifest;
@@ -44,10 +45,10 @@ pub use candidate::{
     apply_candidate_git_publication, apply_candidate_publication, prepare_candidate_publication,
     CandidateGitAuthority, CandidateGitCommitMetadata, CandidateGitObject, CandidateGitObjectKind,
     CandidateGitProcessAuthority, CandidateGitRefUpdate, CandidateGitRepository,
-    CandidateGitTarget, CandidateTestPolicy, CandidateTestReport, ProjectCandidate,
-    ProjectCandidateAttempt, ProjectCandidateAttemptOutcome, ProjectCandidateDraft,
-    ProjectCandidatePublication, ProjectCandidateRebase, SemanticChange, MAX_CANDIDATE_TEST_STEPS,
-    MAX_PROJECT_CANDIDATE_BYTES, MAX_PROJECT_CANDIDATE_HOLES,
+    CandidateGitTarget, CandidateTestPolicy, CandidateTestReport, GitObjectFormat,
+    ProjectCandidate, ProjectCandidateAttempt, ProjectCandidateAttemptOutcome,
+    ProjectCandidateDraft, ProjectCandidatePublication, ProjectCandidateRebase, SemanticChange,
+    MAX_CANDIDATE_TEST_STEPS, MAX_PROJECT_CANDIDATE_BYTES, MAX_PROJECT_CANDIDATE_HOLES,
     MAX_PROJECT_CANDIDATE_PUBLICATION_BYTES, MAX_PROJECT_CANDIDATE_RECOVERY_BYTES,
     MAX_PROJECT_CANDIDATE_SEMANTIC_DELTA_BYTES, MAX_PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_BYTES,
     MAX_PROJECT_CANDIDATE_TEST_PLAN_BYTES, MAX_PROJECT_CANDIDATE_TEST_REPORT_BYTES,
@@ -79,6 +80,9 @@ pub use image::{
 };
 pub use image_facets::{
     ImageFacet, ImageFacetOptions, IMAGE_FACET_SCHEMA, IMAGE_FUNCTION_SUMMARY_SCHEMA,
+};
+pub use image_protocols::{
+    IMAGE_PROTOCOL_CONFORMANCE_SCHEMA, MAX_IMAGE_PROTOCOL_CONFORMANCE_BYTES,
 };
 pub use image_store::{
     load_semantic_image, persist_semantic_image, ImageRefreshReport, ImageStoreReceipt,

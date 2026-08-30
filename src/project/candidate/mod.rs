@@ -22,6 +22,7 @@ mod expression;
 mod extraction;
 mod git_publication;
 mod intent;
+mod interface;
 mod movement;
 mod publication;
 mod rebase;
@@ -54,7 +55,7 @@ pub use draft::{
 pub use git_publication::{
     apply_candidate_git_publication, CandidateGitAuthority, CandidateGitCommitMetadata,
     CandidateGitObject, CandidateGitObjectKind, CandidateGitProcessAuthority,
-    CandidateGitRefUpdate, CandidateGitRepository, CandidateGitTarget,
+    CandidateGitRefUpdate, CandidateGitRepository, CandidateGitTarget, GitObjectFormat,
     PROJECT_CANDIDATE_GIT_PUBLICATION_SCHEMA,
 };
 pub use publication::{
@@ -188,10 +189,24 @@ impl ProjectCandidate {
             return Err(capacity("candidate intention count exceeds 32"));
         }
         let mut programs = parse_revision(&self.revision)?;
+        let mut before_implementations = interface::inventory(&programs)?;
         let mut before = invariant_facts(&programs);
         let mut field_addition = None;
         let mut movement = None;
+        let mut implementation_addition = None;
         let (summary, addition) = match change.intent.get("kind").and_then(Value::as_str) {
+            Some("implement_interface") => {
+                let (summary, added) =
+                    interface::apply(&self.revision, &mut programs, &change.intent)?;
+                if before_implementations
+                    .insert(added.id.clone(), added.fact.clone())
+                    .is_some()
+                {
+                    return Err(interface::mismatch());
+                }
+                implementation_addition = Some(added);
+                (summary, None)
+            }
             Some("repair_diagnostic") => (
                 diagnostic_intent::apply(self, &mut programs, &change.intent)?,
                 None,
@@ -271,6 +286,10 @@ impl ProjectCandidate {
             before[&owner.path]["functions"][&summary.target_id][phase] = json!(count + 1);
         }
         let after = invariant_facts(&programs);
+        interface::identities(&programs)?;
+        if interface::inventory(&programs)? != before_implementations {
+            return Err(interface::mismatch());
+        }
         if before != after {
             return Err(invalid(
                 "intent changed permits, effects, or contract inventory",
@@ -313,6 +332,11 @@ impl ProjectCandidate {
             field_addition.as_ref(),
             movement.as_ref(),
         )?;
+        let rebuilt_programs = parse_revision(&candidate)?;
+        interface::identities(&rebuilt_programs)?;
+        if interface::inventory(&rebuilt_programs)? != before_implementations {
+            return Err(interface::mismatch());
+        }
         if summary.kind == "replace_expression" {
             expression::validate_replacement(&self.revision, &candidate, &change.intent)?;
         }
@@ -349,6 +373,10 @@ impl ProjectCandidate {
         }
         if let Some(moved) = movement {
             operation["relocation"] = json!({"id":moved.id,"source_path":moved.source_path,"source_module":moved.source_module,"destination_path":moved.destination_path,"destination_module":moved.destination_module});
+        }
+        if let Some(added) = implementation_addition {
+            operation["new_declaration"] = json!({"id":added.id,"owner":added.owner,"kind":"protocol_implementation","path":added.path,"module":added.module,"runtime_graph_declaration":false});
+            operation["source_conformance"] = added.fact;
         }
         summaries.push(operation);
         Self::finish(
@@ -483,9 +511,21 @@ impl ProjectCandidate {
                 )?)
                 .map_err(|_| invalid("invalid base impact"))?
             };
-            let after =
-                revision.semantic_impact(WorkspaceAnalysisTargetKind::Declaration, id, options)?;
-            impacts.push(json!({"target": id, "base": before, "candidate": serde_json::from_str::<Value>(&after).map_err(|_| invalid("invalid candidate impact"))?}));
+            let after = if revision.semantic.image_symbol(id).is_some() {
+                serde_json::from_str::<Value>(&revision.semantic_impact(
+                    WorkspaceAnalysisTargetKind::Declaration,
+                    id,
+                    options,
+                )?)
+                .map_err(|_| invalid("invalid candidate impact"))?
+            } else if let Some(binding) = interface::binding(&revision, id)? {
+                json!({"availability":"source_static_conformance_only","binding":binding,"cross_file_impact_available":false})
+            } else {
+                return Err(invalid(
+                    "candidate impact target is absent from runtime and source inventories",
+                ));
+            };
+            impacts.push(json!({"target": id, "base": before, "candidate": after}));
         }
         let change_values = changes
             .iter()

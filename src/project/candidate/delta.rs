@@ -35,8 +35,12 @@ impl ProjectCandidate {
     pub fn semantic_delta(&self, expected_candidate: &str, target: &str) -> Result<String> {
         self.require_candidate(expected_candidate)?;
         target_id(target)?;
+        let before_authored = authored(&self.base)?;
+        let after_authored = authored(&self.revision)?;
         if self.base.semantic.image_symbol(target).is_none()
             && self.revision.semantic.image_symbol(target).is_none()
+            && !before_authored.contains_key(target)
+            && !after_authored.contains_key(target)
         {
             return Err(invalid(
                 "semantic delta target is absent from both revisions",
@@ -48,8 +52,6 @@ impl ProjectCandidate {
             Arc::clone(&self.revision),
             self.revision.project_revision(),
         )?;
-        let before_authored = authored(&self.base)?;
-        let after_authored = authored(&self.revision)?;
         let before = target_facts(&before_image, target, before_authored.get(target))?;
         let after = target_facts(&after_image, target, after_authored.get(target))?;
         let names = before
@@ -75,8 +77,8 @@ impl ProjectCandidate {
             "base_project_revision":self.base.project_revision(),"project_revision":self.revision.project_revision(),
             "base_workspace_revision":self.base.workspace_revision(),"workspace_revision":self.revision.workspace_revision(),
             "base_image_digest":before_image.image_digest(),"image_digest":after_image.image_digest(),
-            "presence":presence(self.base.semantic.image_symbol(target).is_some(),self.revision.semantic.image_symbol(target).is_some()),
-            "source_bindings":{"base":source_binding(&self.base,target),"candidate":source_binding(&self.revision,target)},
+            "presence":presence(self.base.semantic.image_symbol(target).is_some() || before_authored.contains_key(target),self.revision.semantic.image_symbol(target).is_some() || after_authored.contains_key(target)),
+            "source_bindings":{"base":source_binding(&self.base,target,before_authored.get(target)),"candidate":source_binding(&self.revision,target,after_authored.get(target))},
             "facets":facets,"target_artifacts":artifacts,
             "test_plan":serde_json::from_str::<Value>(&self.test_plan(self.candidate_digest())?).map_err(|_|invalid("retained test plan is invalid"))?,
             "evidence_class":"descriptive_recomputable_compiler_projection",
@@ -165,9 +167,23 @@ fn target_facts(
 ) -> Result<BTreeMap<String, Value>> {
     let revision = image.revision();
     let mut facts = BTreeMap::new();
-    let Some(symbol) = revision.semantic.image_symbol(target) else {
+    let symbol = revision.semantic.image_symbol(target);
+    if symbol.is_none() && authored.is_none() {
         return Ok(facts);
-    };
+    }
+    let conformance = super::interface::related(revision, target)?;
+    if !conformance.is_empty() {
+        facts.insert("source_static_conformance".to_owned(), json!(conformance));
+    }
+    if symbol.is_none() {
+        facts.insert(
+            "authored_declaration".to_owned(),
+            authored.cloned().unwrap_or(Value::Null),
+        );
+        facts.insert("runtime_graph_applicability".to_owned(), json!({"available":false,"reason":"source_declaration_not_projected_into_runtime_graph"}));
+        return Ok(facts);
+    }
+    let symbol = symbol.unwrap();
     facts.insert("declaration_identity".to_owned(), symbol);
     facts.insert(
         "authored_declaration".to_owned(),
@@ -353,17 +369,27 @@ fn authored(revision: &ProjectRevision) -> Result<BTreeMap<String, Value>> {
                 )?;
             }
         }
+        for implementation in &program.implementations {
+            put(
+                &implementation.stable_id,
+                "impl",
+                "protocol_implementation",
+                implementation.span,
+            )?;
+        }
     }
     Ok(output)
 }
 fn compact_authored(value: &Value) -> Value {
     json!({"id":value["id"],"name":value["name"],"kind":value["kind"],"path":value["path"],"module":value["module"],"fragment_digest":value["fragment_digest"]})
 }
-fn source_binding(revision: &ProjectRevision, target: &str) -> Value {
-    let Some(symbol) = revision.semantic.image_symbol(target) else {
-        return Value::Null;
-    };
-    let Some(path) = symbol["path"].as_str() else {
+fn source_binding(revision: &ProjectRevision, target: &str, authored: Option<&Value>) -> Value {
+    let symbol = revision.semantic.image_symbol(target);
+    let Some(path) = symbol
+        .as_ref()
+        .and_then(|symbol| symbol["path"].as_str())
+        .or_else(|| authored.and_then(|fact| fact["path"].as_str()))
+    else {
         return Value::Null;
     };
     revision.sources().iter().find(|source|source.path()==path).map(|source|json!({"path":path,"source_graph_schema":source.source_graph_schema(),"source_revision":source.source_revision(),"source_digest":source.source_digest()})).unwrap_or(Value::Null)

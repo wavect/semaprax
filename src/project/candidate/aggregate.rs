@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 use super::{capacity, grammar, Result, MAX_EXPRESSION_NODES, MAX_ID_BYTES};
 use crate::ast::{ModuleUseKind, Program, Type};
 use crate::hir::{
-    DeclarationKind, IdentityOrigin, ResolvedFieldDeclaration, ResolvedType,
+    DeclarationIndex, DeclarationKind, IdentityOrigin, ResolvedFieldDeclaration, ResolvedType,
     ResolvedTypeDeclarationKind, ResolvedTypeParameterDeclaration,
 };
 use crate::project::ProjectRevision;
@@ -378,6 +378,23 @@ fn subject<'a>(revision: &'a ProjectRevision, target: &str) -> Result<Option<Sub
 
 /// This exception authenticates the exact compiler-owned algebraic inventory;
 /// it never weakens the explicit source identity checks for authored subjects.
+fn prelude_index<'a>(
+    revision: &'a ProjectRevision,
+    name: &str,
+) -> Result<Cow<'a, DeclarationIndex>> {
+    // Scalar-only linked closures intentionally omit unused algebraic types.
+    // Reuse the fixed compiler builder without changing the linked closure or
+    // caching a failure that could depend on an invocation's output budget.
+    let retained = &revision.entry_program().declarations;
+    if retained.type_id(name).is_some() {
+        Ok(Cow::Borrowed(retained))
+    } else {
+        crate::hir::compiler_prelude_declarations()
+            .map(Cow::Owned)
+            .map_err(|error| vec![error])
+    }
+}
+
 fn prelude_subject<'a>(revision: &'a ProjectRevision, target: &str) -> Result<Option<Subject<'a>>> {
     use crate::prelude::*;
     type Payload = (&'static str, &'static str, u32);
@@ -417,18 +434,7 @@ fn prelude_subject<'a>(revision: &'a ProjectRevision, target: &str) -> Result<Op
         ),
         _ => return Ok(None),
     };
-    // Scalar-only linked closures intentionally omit unused algebraic types.
-    // Use the same fixed, checked prelude builder as the workspace linker when
-    // no selected prelude type is retained. Do not synthesize caller-owned HIR
-    // or cache a failure that could depend on an invocation's output budget.
-    let retained = &revision.entry_program().declarations;
-    let fallback;
-    let index = if retained.type_id(name).is_some() {
-        retained
-    } else {
-        fallback = crate::hir::compiler_prelude_declarations().map_err(|error| vec![error])?;
-        &fallback
-    };
+    let index = prelude_index(revision, name)?;
     let id = index
         .type_id(name)
         .ok_or_else(|| grammar("checked compiler prelude type is absent"))?;

@@ -63,11 +63,13 @@ tests = ["matching.tests"]
             (
                 "src/bridge.spx",
                 r#"module matching.bridge;
-use type @id("matching.choice") from matching.core as Signal;
+use type @id("matching.switch") from matching.core as Toggle;
+@id("bridge.signal") variant Signal<T> { @id("bridge.signal.some") Some { @id("bridge.signal.some.value") value: T, @id("bridge.signal.some.flag") flag: bool, }, @id("bridge.signal.none") None, }
 @id("bridge.choice") variant Choice<T> { @id("bridge.choice.some") Some { @id("bridge.choice.some.value") value: T, @id("bridge.choice.some.flag") flag: bool, }, @id("bridge.choice.none") None, }
 @id("bridge.read") fn read(item: Signal<i64>) -> i64 { match item { Signal::Some { value, flag } => value + if flag { 1 } else { 0 }, Signal::None {} => 0, } }
 @id("bridge.wrong") fn wrong(item: Choice<i64>) -> i64 { match item { Choice::Some { value, flag } => value + if flag { 1 } else { 0 }, Choice::None {} => 0, } }
-@id("bridge.evaluate") fn evaluate() -> i64 { read(Signal<i64>::None {}) + wrong(Choice<i64>::None {}) }
+@id("bridge.switch-read") fn read_switch(item: Toggle) -> i64 { match item { Toggle::On { value } => value, Toggle::Off {} => 0, } }
+@id("bridge.evaluate") fn evaluate() -> i64 { read(Signal<i64>::None {}) + wrong(Choice<i64>::None {}) + read_switch(Toggle::Off {}) }
 "#,
             ),
             (
@@ -193,17 +195,20 @@ fn matching(target: &str, value: Value, args: &[&str], arms: Vec<Value>) -> Valu
     json!({"kind":"match","target":target,"value":value,"type_arguments":args,"arms":arms})
 }
 fn choice(value: Value) -> Value {
+    choice_for("matching.choice", value)
+}
+fn choice_for(owner: &str, value: Value) -> Value {
     matching(
-        "matching.choice",
+        owner,
         value,
         &["i64"],
         vec![
-            arm("matching.choice.none", &[], integer(0)),
+            arm(&format!("{owner}.none"), &[], integer(0)),
             arm(
-                "matching.choice.some",
+                &format!("{owner}.some"),
                 &[
-                    ("matching.choice.some.flag", "seen_flag"),
-                    ("matching.choice.some.value", "captured"),
+                    (&format!("{owner}.some.flag"), "seen_flag"),
+                    (&format!("{owner}.some.value"), "captured"),
                 ],
                 json!({"kind":"binary","op":"+","left":place("captured"),"right":{"kind":"if","condition":place("seen_flag"),"then":integer(1),"else":integer(0)}}),
             ),
@@ -240,7 +245,7 @@ fn grammar<T>(result: Result<T, Vec<Diagnostic>>) {
 }
 
 #[test]
-fn local_imported_and_call_scrutinees_stage_once_and_preserve_requested_arm_and_payload_order() {
+fn module_local_and_call_scrutinees_stage_once_and_preserve_requested_arm_and_payload_order() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
     let base = fixture.candidate();
@@ -254,7 +259,12 @@ fn local_imported_and_call_scrutinees_stage_once_and_preserve_requested_arm_and_
             json!({"kind":"call","target":"matching.make","arguments":[place("value")]}),
         ),
     ] {
-        let (candidate, change) = apply(&base, target, choice(value)).unwrap();
+        let owner = if target == "bridge.read" {
+            "bridge.signal"
+        } else {
+            "matching.choice"
+        };
+        let (candidate, change) = apply(&base, target, choice_for(owner, value)).unwrap();
         let program = program(&candidate, path);
         let (initializer, arms) = lowered(body(&program, target), binding, &[Type::I64]);
         if target == "matching.call" {
@@ -298,7 +308,7 @@ fn local_imported_and_call_scrutinees_stage_once_and_preserve_requested_arm_and_
 }
 
 #[test]
-fn monomorphic_and_compiler_prelude_matches_use_complete_exact_case_tables() {
+fn imported_monomorphic_and_compiler_prelude_matches_use_complete_exact_case_tables() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
     let base = fixture.candidate();
@@ -366,6 +376,29 @@ fn monomorphic_and_compiler_prelude_matches_use_complete_exact_case_tables() {
         // The two Result arms deliberately reuse a binder name in disjoint scopes.
         replay(&base, &candidate, change);
     }
+    let (candidate, change) = apply(
+        &base,
+        "bridge.switch-read",
+        matching(
+            "matching.switch",
+            place("item"),
+            &[],
+            vec![
+                arm("matching.switch.off", &[], integer(0)),
+                arm(
+                    "matching.switch.on",
+                    &[("matching.switch.on.value", "captured")],
+                    place("captured"),
+                ),
+            ],
+        ),
+    )
+    .unwrap();
+    let rendered = program(&candidate, "src/bridge.spx");
+    let (value, arms) = lowered(body(&rendered, "bridge.switch-read"), "Toggle", &[]);
+    assert_eq!(value.kind, ExprKind::Var("item".to_owned()));
+    assert_eq!(arms.len(), 2);
+    replay(&base, &candidate, change);
     assert_eq!(fixture.bytes(), disk);
 }
 
@@ -411,7 +444,12 @@ fn coverage_binder_scope_nominal_types_and_constructor_bounds_fail_closed() {
     let mut body_type = valid.clone();
     body_type["arms"][0]["body"] = json!({"kind":"bool","value":true});
     assert!(apply(&base, "matching.read", body_type).is_err());
-    assert!(apply(&base, "bridge.wrong", valid.clone()).is_err());
+    assert!(apply(
+        &base,
+        "bridge.wrong",
+        choice_for("bridge.signal", place("item"))
+    )
+    .is_err());
     let phantom = matching(
         "matching.phantom",
         place("item"),
@@ -436,13 +474,21 @@ fn coverage_binder_scope_nominal_types_and_constructor_bounds_fail_closed() {
     let mut omitted = valid.clone();
     omitted.as_object_mut().unwrap().remove("type_arguments");
     grammar(apply(&base, "matching.read", omitted));
-    let mut oversized = valid.clone();
-    oversized["arms"] = Value::Array(vec![valid["arms"][0].clone(); 4096]);
-    let errors = apply(&base, "matching.read", oversized).err().unwrap();
-    assert!(
-        errors.iter().any(|error| error.code == "SPX-G226"),
-        "{errors:?}"
-    );
+    for (arm_value, expected) in [
+        // Complete arm objects hit the outer JSON node budget first.
+        (valid["arms"][0].clone(), "SPX-G223"),
+        // Compact entries reach the constructor's count check, which must
+        // reject before examining any arm's shape or allocating patterns.
+        (Value::Null, "SPX-G226"),
+    ] {
+        let mut oversized = valid.clone();
+        oversized["arms"] = Value::Array(vec![arm_value; 4096]);
+        let errors = apply(&base, "matching.read", oversized).err().unwrap();
+        assert!(
+            errors.iter().any(|error| error.code == expected),
+            "{errors:?}"
+        );
+    }
     let (candidate, change) = apply(&base, "matching.read", valid).unwrap();
     assert!(candidate.apply(base.candidate_digest(), &change).is_err());
     assert_eq!(base.to_json(), before);
@@ -543,22 +589,25 @@ fn body_and_expression_holes_discover_exhaustive_matches_and_recover_exactly() {
     let draft = draft
         .with_expression_hole(draft.draft_digest(), "bridge.read", &selected, "expression")
         .unwrap();
-    for (hole, binding) in [("body", "Choice"), ("expression", "Signal")] {
+    for (hole, binding, owner) in [
+        ("body", "Choice", "matching.choice"),
+        ("expression", "Signal", "bridge.signal"),
+    ] {
         let context: Value =
             serde_json::from_str(&draft.hole_context(draft.draft_digest(), hole).unwrap()).unwrap();
         let row = context["aggregate_matches"]
             .as_array()
             .unwrap()
             .iter()
-            .find(|row| row["target"] == "matching.choice")
+            .find(|row| row["target"] == owner)
             .unwrap();
         assert_eq!(row["binding"], binding);
         assert_eq!(row["generic"], true);
         assert_eq!(row["cases"].as_array().unwrap().len(), 2);
-        assert_eq!(row["cases"][0]["target"], "matching.choice.some");
+        assert_eq!(row["cases"][0]["target"], format!("{owner}.some"));
         assert_eq!(
             row["cases"][0]["fields"][0]["target"],
-            "matching.choice.some.value"
+            format!("{owner}.some.value")
         );
         assert_eq!(context["source_authority"], false);
         assert_eq!(context["materializable"], false);
@@ -586,7 +635,11 @@ fn body_and_expression_holes_discover_exhaustive_matches_and_recover_exactly() {
         .unwrap();
     assert!(first.complete(first.draft_digest()).is_err());
     let done = first
-        .fill_hole(first.draft_digest(), "expression", &choice(place("item")))
+        .fill_hole(
+            first.draft_digest(),
+            "expression",
+            &choice_for("bridge.signal", place("item")),
+        )
         .unwrap();
     let candidate = done.complete(done.draft_digest()).unwrap();
     let capsule = candidate.recovery_capsule().unwrap();

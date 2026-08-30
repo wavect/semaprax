@@ -16,7 +16,7 @@ pub(in crate::project::candidate::intent) struct MatchPlan {
 struct VariantSubject<'a> {
     first: Subject<'a>,
     name: &'a str,
-    cases: &'a [ResolvedVariantCaseDeclaration],
+    cases: Cow<'a, [ResolvedVariantCaseDeclaration]>,
 }
 
 fn variant_subject<'a>(
@@ -35,14 +35,18 @@ fn variant_subject<'a>(
         let name = first
             .prelude_binding
             .ok_or_else(|| grammar("checked match prelude binding is absent"))?;
-        let index = &revision.entry_program().declarations;
+        let index = prelude_index(revision, name)?;
         let id = index
             .type_id(name)
             .ok_or_else(|| grammar("checked match prelude owner is absent"))?;
         let cases = index
             .variant_cases(id)
             .ok_or_else(|| grammar("checked match prelude cases are absent"))?;
-        return Ok(Some(VariantSubject { first, name, cases }));
+        return Ok(Some(VariantSubject {
+            first,
+            name,
+            cases: Cow::Owned(cases.to_vec()),
+        }));
     }
     let mut selected = None;
     for module in revision.semantic.image_modules() {
@@ -64,8 +68,8 @@ fn variant_subject<'a>(
                 path: module.path(),
                 module: module.module(),
                 generic: !ty.type_parameters.is_empty(),
-                fields: &case.fields,
-                type_parameters: &ty.type_parameters,
+                fields: Cow::Borrowed(&case.fields),
+                type_parameters: Cow::Borrowed(&ty.type_parameters),
                 prelude_binding: None,
             };
             if !cases
@@ -78,7 +82,7 @@ fn variant_subject<'a>(
                 .replace(VariantSubject {
                     first: make(first_case),
                     name: &ty.name,
-                    cases,
+                    cases: Cow::Borrowed(cases),
                 })
                 .is_some()
             {
@@ -94,7 +98,7 @@ fn inventory(subject: &VariantSubject<'_>) -> Result<usize> {
         .cases
         .len()
         .saturating_add(subject.first.type_parameters.len());
-    for case in subject.cases {
+    for case in subject.cases.iter() {
         items = items.saturating_add(case.fields.len());
     }
     if subject.cases.is_empty() || items > MAX_FIELDS {
@@ -122,7 +126,7 @@ pub(in crate::project::candidate::intent) fn match_plan(
         arguments,
     )?;
     let mut cases = BTreeMap::new();
-    for case in subject.cases {
+    for case in subject.cases.iter() {
         let mut fields = BTreeMap::new();
         for field in &case.fields {
             if fields
@@ -172,7 +176,7 @@ fn match_descriptor(subject: &VariantSubject<'_>, binding: Option<&str>) -> Resu
     );
     let mut cases = Vec::new();
     let mut bytes = 0usize;
-    for case in subject.cases {
+    for case in subject.cases.iter() {
         bytes = bytes
             .saturating_add(case.id.as_str().len())
             .saturating_add(case.name.len())

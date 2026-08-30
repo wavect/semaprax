@@ -276,7 +276,7 @@ fn candidates_are_immutable_queryable_validated_and_discardable_without_disk_cha
             descriptor["compiler_prelude"],
             aggregates[0]["compiler_prelude"]
         );
-        assert_eq!(descriptor["evidence_owner"], "retained_checked_hir");
+        assert_eq!(descriptor["evidence_owner"], "compiler_checked_prelude");
         assert_eq!(descriptor["requires_full_candidate_validation"], true);
         assert_eq!(
             descriptor["base_evaluation"],

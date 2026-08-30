@@ -224,8 +224,9 @@ unchanged; projects with no eligible record fields gain no projection property.
 An optional nonempty `aggregate_matches` inventory describes each visible
 variant owner and its complete declaration-ordered case/payload inventory.
 Descriptors carry existing bindings, template field types, optional generic
-parameters, retained-HIR evidence ownership, and once-only typed value staging.
-Prelude owners carry the existing compiler-owned schema/digest provenance and
+parameters, retained-HIR evidence ownership for source subjects, and once-only
+typed value staging. Prelude owners carry compiler-checked prelude evidence
+ownership, the existing compiler-owned schema/digest provenance and
 null source path/module. The `match` constructor kind appears when this
 inventory is nonempty. The two prelude families may make it nonempty even for
 a source project without its own variants. These are available shapes, not

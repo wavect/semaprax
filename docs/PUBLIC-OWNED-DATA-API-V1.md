@@ -249,6 +249,26 @@ internal guard, disarms the guard, and only then returns `Vec<u8>`. A panic may
 not cross the FFI boundary. No allocator pointer is converted directly into a
 `Vec<u8>`.
 
+The authored native correction uses a 13-bit one-based slot (`1..=4096`)
+and a nonreused 51-bit issuance serial within one statically linked provider
+runtime. One private atomic strong compare-exchange reserves a serial without
+retry. Contention or permanent exhaustion rejects before owner or output
+publication; the caller settles its unpublished result. The issuer survives
+context disposal and storage reinitialization. It does not establish uniqueness
+across separate provider images or reloads, pointer secrecy, shared-context
+thread safety, or guaranteed successful progress under contention. The same
+private runtime correction applies to v9/v10; generated C/object/archive bytes
+and integrity bindings intentionally change, not public signatures or schemas.
+
+The authored v8 JavaScript correction admits the entire argument tuple,
+including exact bounded UTF-8 lengths, before payload snapshot allocation.
+Captured intrinsic view checks reject detached/shared/resizable and wrong-brand
+inputs without invoking caller constructor/species hooks. All snapshots still
+precede Wasm scratch writes and arena entry. Module-byte inputs have their
+separate 16 MiB admission bound before copy/hash. V9/v10 retain their previous
+JavaScript input renderers and require a separately reviewed equivalent
+hardening; this correction does not promote their input boundary.
+
 ## Generated artifacts and carriers
 
 The npm output inventory is exactly:
@@ -286,6 +306,18 @@ The adapter validates alignment and the complete result-out range before
 semantic execution. It writes one authenticated carrier only after semantic
 success and cleanup-plan result publication. Status and out-of-band adapter
 failure remain distinct from a successful language `Result::Err`.
+
+The authored raw-Wasm correction excludes the complete reachable private
+shadow-stack interval, not merely the wrapper's temporary output. The shared
+validated-HIR call index and the actual lowerer's frame sizes derive the
+maximum simultaneous call-path extent for selected exports only. Missing,
+cyclic, overflowing, or over-capacity selected extents reject; unrelated
+declarations do not change this admission. Full and partial overlap guards run
+before UTF-8 imports or semantic execution and preserve the fixed borrowed and
+public-result scratch reservation. This shared v8/v9/v10 correction intentionally
+changes their Wasm bytes and dependent artifact bindings, without changing
+descriptors, public call signatures, or v1-v7 artifacts. Its real-engine poison,
+nested-helper, settlement, and re-entry regressions are authored but unrun.
 
 ## Compatibility
 

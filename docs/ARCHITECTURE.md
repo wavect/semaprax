@@ -242,6 +242,14 @@ Project v8 adds one closed `owned-data-api.v1` route. `src/project/public_api.rs
 derives and independently replays the sole semantic API descriptor from the
 authenticated linked-HIR subject. `src/project/npm/owned_data.rs` and the
 owned-data Wasm lowering consume that descriptor for the npm package. The
+v8-only `src/project/npm/owned_data_input_v8.js` admits complete input tuples
+before snapshot allocation, using captured brand/buffer intrinsics. The
+private `src/wasm/aggregate/owned_stack.rs` derives selected call-path frame
+extents from the shared HIR call index and actual lowering plans so raw outputs
+cannot overlap deeper helper frames. Native owned handles pair all 4,096 slots
+with nonreused atomic issuance serials within one linked provider runtime;
+contexts remain thread-confined. These corrections have authored, unrun
+evidence and do not promote any profile. The
 reference-interpreter entry in `src/interpreter.rs` returns a normalized
 scalar/owned/variant value and one explicit copy-out-and-settle boundary event;
 it does not grant target or publication authority.

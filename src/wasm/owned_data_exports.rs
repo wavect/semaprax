@@ -104,6 +104,7 @@ impl OwnedDataExportPlan {
         target_index: u32,
         utf8_validate_index: u32,
         bytes_drop_index: u32,
+        frame_extent: u32,
     ) -> Result<Vec<u8>, Diagnostic> {
         let raw_count = u32::try_from(self.raw_params().len())
             .map_err(|_| error("owned-data wrapper parameter count overflows"))?;
@@ -123,6 +124,7 @@ impl OwnedDataExportPlan {
 
         let private_size = self.result.private_size();
         let public_size = self.result.public_size();
+        let (footprint, minimum_stack) = stack_bounds(private_size, public_size, frame_extent)?;
 
         // Authenticate alignment and the complete fixed-memory range before
         // evaluating or calling any semantic function.
@@ -133,6 +135,33 @@ impl OwnedDataExportPlan {
         local_get(&mut body, result_out);
         i32_const(&mut body, 131_072 - public_size as i32);
         body.push(0x4b); // i32.gt_u
+        boundary_return(&mut body);
+
+        // Authenticate the entire reachable private frame interval before any
+        // semantic or UTF-8 import call. A helper can write its call-out slot
+        // and then fail; excluding only this wrapper's temporary is unsound.
+        body.push(0x23);
+        write_u32(&mut body, 0);
+        local_set(&mut body, old_stack);
+        local_get(&mut body, old_stack);
+        i32_const(&mut body, minimum_stack as i32);
+        body.push(0x49); // i32.lt_u
+        boundary_return(&mut body);
+        local_get(&mut body, old_stack);
+        i32_const(&mut body, 131_072);
+        body.push(0x4b); // i32.gt_u
+        boundary_return(&mut body);
+        local_get(&mut body, result_out);
+        local_get(&mut body, old_stack);
+        body.push(0x49); // public_start < private_end
+        local_get(&mut body, old_stack);
+        i32_const(&mut body, footprint as i32);
+        body.push(0x6b);
+        local_get(&mut body, result_out);
+        i32_const(&mut body, public_size as i32);
+        body.push(0x6a);
+        body.push(0x49); // private_start < public_end
+        body.push(0x71);
         boundary_return(&mut body);
 
         i32_const(&mut body, 0);
@@ -374,6 +403,38 @@ impl OwnedDataExportPlan {
         i32_const(&mut body, 0);
         body.push(0x0b);
         Ok(body)
+    }
+}
+
+fn stack_bounds(
+    private_size: u32,
+    public_size: u32,
+    frame_extent: u32,
+) -> Result<(u32, u32), Diagnostic> {
+    let footprint = private_size
+        .checked_add(frame_extent)
+        .ok_or_else(|| error("owned-data private stack footprint overflows"))?;
+    let minimum_stack = 65_536_u32
+        .checked_add(public_size)
+        .and_then(|reserved| reserved.checked_add(footprint))
+        .filter(|minimum| *minimum <= 131_072)
+        .ok_or_else(|| error("owned-data private stack exceeds fixed scratch capacity"))?;
+    Ok((footprint, minimum_stack))
+}
+
+#[cfg(test)]
+mod stack_bound_tests {
+    use super::stack_bounds;
+
+    #[test]
+    fn exact_capacity_reserves_borrowed_bytes_public_carrier_and_wrapper_once() {
+        assert_eq!(stack_bounds(8, 8, 65_520).unwrap(), (65_528, 131_072));
+        assert!(stack_bounds(8, 8, 65_521).is_err());
+        // Public flat-record carrier can be wider than its private layout.
+        assert_eq!(stack_bounds(16, 32, 65_488).unwrap(), (65_504, 131_072));
+        assert!(stack_bounds(16, 32, 65_489).is_err());
+        assert!(stack_bounds(8, 8, u32::MAX).is_err());
+        assert!(stack_bounds(8, u32::MAX, 0).is_err());
     }
 }
 

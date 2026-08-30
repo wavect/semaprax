@@ -5,6 +5,8 @@
 
 use std::collections::HashMap;
 
+mod owned_stack;
+
 use crate::aggregate_layout::{AggregateLayout, AggregateLayoutCache, AggregateTarget};
 use crate::ast::{BinaryOp, UnaryOp};
 use crate::diagnostic::Diagnostic;
@@ -1842,13 +1844,27 @@ fn emit_byte_exports_profile(
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
     }
+    let owned_stack_extents = if owned_plans.is_empty() {
+        None
+    } else {
+        let roots = owned_plans
+            .iter()
+            .map(|plan| plan.function_id.clone())
+            .collect::<Vec<_>>();
+        Some(owned_stack::derive(program, &variant_layouts, &roots)?)
+    };
     for plan in owned_plans {
         let target = function_indexes
             .get(&FunctionExecutionId::Monomorphic(plan.function_id.clone()))
             .copied()
             .ok_or_else(|| error("selected owned-data export target is not indexed"))?;
         let utf8_index = SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT + command_import_count;
-        let body = plan.emit_wrapper_body(target, utf8_index, BYTE_DROP_IMPORT)?;
+        let frame_extent = owned_stack_extents
+            .as_ref()
+            .and_then(|extents| extents.get(&plan.function_id))
+            .copied()
+            .ok_or_else(|| error("selected owned-data stack extent is absent"))?;
+        let body = plan.emit_wrapper_body(target, utf8_index, BYTE_DROP_IMPORT, frame_extent)?;
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
     }

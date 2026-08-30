@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Authored developer-preview boundary corrections: doctor preserves multicall
+  executable names, skips non-executable Unix PATH shadows, and checks complete
+  version tokens; v8 JavaScript admits complete bounded input tuples before
+  payload snapshots and avoids constructor/species hooks; native opaque handles
+  use all 4,096 slots with nonreused serials across live contexts and storage
+  reincarnation; raw owned-data Wasm excludes complete selected helper-frame
+  extents from result storage. Fixed the TypeScript consumer to pass explicit
+  fetched bytes. Independent static review and regression fixtures accompany
+  the changes; tests/builds were not run and no hosted/support status is
+  promoted. Owned v8-v10 native/Wasm artifacts intentionally change; older
+  public profiles and descriptor/signature schemas remain unchanged. V9/v10
+  JavaScript input hardening and doctor subprocess bounds remain open.
+
 - Authored Offline Published Semantic Lock Snapshot v1: an authority-free exact
   Resolver-v1 input capsule plus unchanged resolution-evidence and Lock-v2
   bytes, with independent full replay and checked cumulative bounds. The safe

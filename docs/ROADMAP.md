@@ -26,6 +26,14 @@ The release exit remains open on line-filter browser/runtime breadth,
 intentional Rust publication, final tagged-artifact execution, and release
 notes.
 
+The current implementation batch hardens existing developer-preview contracts:
+doctor preserves multicall invocation names and admits complete version tokens;
+v8 JavaScript bounds input before copying; native owned handles reject live
+foreign-context aliases across the full slot capacity; raw Wasm excludes every
+reachable private frame from result storage. Regression evidence is authored,
+unrun, and not promotion evidence. Equivalent v9/v10 JavaScript input hardening
+and bounded doctor subprocess settlement remain separate open work.
+
 Exit outcomes:
 
 1. Confirm the line-filter product on hosted native and WebAssembly lanes and

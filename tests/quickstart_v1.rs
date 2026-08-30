@@ -1,3 +1,8 @@
+#[path = "support/full_toolchain.rs"]
+mod full_toolchain;
+#[path = "support/native_rust_cargo.rs"]
+mod native_rust_cargo;
+
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -21,7 +26,7 @@ mod build_cli;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
-const QUICKSTART_COMMANDS: &str = "semaprax new first-semaprax\n\
+const QUICKSTART_COMMANDS: &str = "semaprax-full new first-semaprax\n\
 cd first-semaprax\n\
 semaprax check semaprax.toml\n\
 semaprax test semaprax.toml\n\
@@ -54,7 +59,12 @@ impl Drop for Fixture {
 }
 
 fn cli(root: &Path, arguments: &[&str]) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_semaprax"))
+    let binary = if arguments.first() == Some(&"new") {
+        full_toolchain::binary()
+    } else {
+        Path::new(env!("CARGO_BIN_EXE_semaprax"))
+    };
+    Command::new(binary)
         .args(arguments)
         .current_dir(root)
         .output()

@@ -253,19 +253,10 @@ dependencies = [
  "same-file",
  "semaprax-native-rust-interop-platform",
  "semaprax-native-rust-owned-data-package",
- "semaprax-project-revision-store-windows-sys",
  "serde_json",
  "sha2",
  "wasmparser",
  "winapi-util",
-]
-
-[[package]]
-name = "semaprax-offline-wasm-package"
-version = "0.1.0"
-dependencies = [
- "semaprax",
- "semaprax-native-rust-interop-platform",
 ]
 
 [[package]]
@@ -323,10 +314,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "semaprax-offline-wasm-package"
+version = "0.1.0"
+dependencies = [
+ "semaprax",
+ "semaprax-native-rust-interop-platform",
+]
+
+[[package]]
 name = "semaprax-project-revision-store-windows-sys"
 version = "0.1.0"
 dependencies = [
  "windows-sys",
+]
+
+[[package]]
+name = "semaprax-toolchain"
+version = "0.2.0"
+dependencies = [
+ "rustix",
+ "same-file",
+ "semaprax",
+ "semaprax-native-rust-interop-platform",
+ "semaprax-native-rust-owned-data-package",
+ "semaprax-project-revision-store-windows-sys",
+ "serde_json",
+ "winapi-util",
 ]
 
 [[package]]

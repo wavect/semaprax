@@ -47,11 +47,20 @@ graph projection or backend.
 
 ## Representations
 
-The real CLI doctor routes fixed `--version` probes through the safe
+The registry compiler and unpublished full toolchain share one compiler library
+and `src/cli_driver.rs`. The standalone binary supplies no private-host hooks.
+`crates/semaprax-toolchain` owns the `new` and `doctor` implementations,
+Project Native Rust package publication adapter, and safe Windows revision-store
+host. No private crate is a normal or optional dependency of the registry
+package. Compiler-owned SDK replay and Windows carrier preparation/replay remain
+before/around explicit injected host calls; opaque prepared facts are not
+filesystem authority. See [development](DEVELOPMENT.md) for binary selection.
+
+The full-toolchain CLI doctor routes fixed `--version` probes through the safe
 `semaprax-native-rust-interop-platform` facade and the existing platform-sys
 quarantine's separate `doctor/` module. That module owns bounded combined
 output, deadline observation, and private Unix-group or Windows-job settlement;
-it does not alter the authenticated build runner. The root CLI retains report
+it does not alter the authenticated build runner. The private CLI retains report
 policy and UTF-8/version parsing, with no unsafe code. Trusted installed tools
 remain outside a network sandbox; see the [doctor lifecycle
 contract](DOCTOR-PROBE-V1.md).

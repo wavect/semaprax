@@ -37,9 +37,9 @@ foreach ($path in @($packageRoot, $archive, $smokeRoot)) {
 [System.IO.Directory]::CreateDirectory($smokeRoot) | Out-Null
 
 $env:SEMAPRAX_BUILD_COMMIT = $Commit
-cargo build --locked --release --target $Target --bin semaprax --bin semapraxd
+cargo build --locked --release --target $Target -p semaprax -p semaprax-toolchain --bin semaprax-full --bin semapraxd
 if ($LASTEXITCODE -ne 0) { Reject 'cargo build failed' }
-Copy-Item -LiteralPath "target/$Target/release/semaprax.exe" -Destination (Join-Path $packageRoot 'semaprax.exe')
+Copy-Item -LiteralPath "target/$Target/release/semaprax-full.exe" -Destination (Join-Path $packageRoot 'semaprax.exe')
 Copy-Item -LiteralPath "target/$Target/release/semapraxd.exe" -Destination (Join-Path $packageRoot 'semapraxd.exe')
 Copy-Item -LiteralPath 'LICENSE' -Destination $packageRoot
 Copy-Item -LiteralPath 'README.md' -Destination $packageRoot

@@ -182,14 +182,63 @@ impl<'a> ProjectNativeSdkSubject<'a> {
     }
 }
 
+/// Compiler-replayed data lent to an explicitly injected private publisher.
+/// This object owns no tool, filesystem handle, or publication authority.
+pub struct ProjectNativeRustPackage {
+    descriptor: Vec<u8>,
+    descriptor_digest: String,
+    selected: Vec<String>,
+    provider: Vec<u8>,
+    mode: ProjectNativeRustPackageMode,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProjectNativeRustPackageMode {
+    OwnedData,
+    FlatOwnedRecord,
+    OwnedUtf8,
+}
+
+impl ProjectNativeRustPackage {
+    pub fn descriptor(&self) -> &[u8] {
+        &self.descriptor
+    }
+    pub fn descriptor_digest(&self) -> &str {
+        &self.descriptor_digest
+    }
+    pub fn selected(&self) -> &[String] {
+        &self.selected
+    }
+    pub fn provider(&self) -> &[u8] {
+        &self.provider
+    }
+    pub fn mode(&self) -> ProjectNativeRustPackageMode {
+        self.mode
+    }
+}
+
 impl ProjectSnapshot {
+    /// Standalone compiler builds have no private package publication host.
+    pub fn build_rust(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
+        self.build_rust_with(output, |_, _| {
+            Err(vec![Diagnostic::io(
+                "SPX-J114",
+                "the rust target requires the unpublished semaprax-toolchain host",
+            )])
+        })
+    }
+
     /// Build the exact profile-selected Project-v8/v9/v10 closure as a safe
     /// Rust package. Descriptor and semantic-recipe replay are completed
     /// before the lower held-tool/publication layer receives any bytes.
     #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
-    pub fn build_rust(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
+    pub fn build_rust_with(
+        &mut self,
+        output: &Path,
+        publish: impl FnOnce(ProjectNativeRustPackage, &Path) -> Result<(), Vec<Diagnostic>>,
+    ) -> Result<(), Vec<Diagnostic>> {
         if self.manifest().is_v9() {
-            return self.build_flat_owned_record_rust(output);
+            return self.build_flat_owned_record_rust(output, publish);
         }
         if !self.manifest().is_v8() && !self.manifest().is_v10() {
             return Err(vec![Diagnostic::io(
@@ -276,20 +325,18 @@ impl ProjectSnapshot {
 
         self.recheck()?;
         let provider_bytes = provider.source().as_bytes().to_vec();
-        let plan = semaprax_native_rust_owned_data_package::PackagePlan::new(
-            descriptor_bytes,
+        let plan = ProjectNativeRustPackage {
+            descriptor: descriptor_bytes,
             descriptor_digest,
             selected,
-            provider_bytes.clone(),
-            semaprax_native_rust_owned_data_package::provider_sha256(&provider_bytes),
-            if project_v10 {
-                semaprax_native_rust_owned_data_package::PackageMode::ProjectV10OwnedUtf8
+            provider: provider_bytes,
+            mode: if project_v10 {
+                ProjectNativeRustPackageMode::OwnedUtf8
             } else {
-                semaprax_native_rust_owned_data_package::PackageMode::ProjectV8
+                ProjectNativeRustPackageMode::OwnedData
             },
-        );
-        semaprax_native_rust_owned_data_package::build_and_publish(plan, output)
-            .map_err(|failure| vec![lower_build_error(failure, version)])?;
+        };
+        publish(plan, output)?;
         self.published_subject = Some(if project_v10 {
             RUST_OWNED_UTF8_PUBLICATION_SUBJECT
         } else {
@@ -300,7 +347,11 @@ impl ProjectSnapshot {
     }
 
     #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
-    fn build_flat_owned_record_rust(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
+    fn build_flat_owned_record_rust(
+        &mut self,
+        output: &Path,
+        publish: impl FnOnce(ProjectNativeRustPackage, &Path) -> Result<(), Vec<Diagnostic>>,
+    ) -> Result<(), Vec<Diagnostic>> {
         let selected = self.manifest().web_exports().to_vec();
         let subject = super::PublicApiSubject {
             project_schema: self.manifest().schema(),
@@ -373,23 +424,25 @@ impl ProjectSnapshot {
         }
         self.recheck()?;
         let provider_bytes = provider.source().as_bytes().to_vec();
-        let plan = semaprax_native_rust_owned_data_package::PackagePlan::new(
-            bytes,
-            digest,
+        let plan = ProjectNativeRustPackage {
+            descriptor: bytes,
+            descriptor_digest: digest,
             selected,
-            provider_bytes.clone(),
-            semaprax_native_rust_owned_data_package::provider_sha256(&provider_bytes),
-            semaprax_native_rust_owned_data_package::PackageMode::ProjectV9FlatRecord,
-        );
-        semaprax_native_rust_owned_data_package::build_flat_record_and_publish(plan, output)
-            .map_err(|failure| vec![lower_flat_record_build_error(failure)])?;
+            provider: provider_bytes,
+            mode: ProjectNativeRustPackageMode::FlatOwnedRecord,
+        };
+        publish(plan, output)?;
         self.published_subject = Some(RUST_FLAT_OWNED_RECORD_PUBLICATION_SUBJECT);
         self.recheck()
             .map_err(|drift| self.publication_uncertainty(drift))
     }
 
     #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
-    pub fn build_rust(&mut self, _output: &Path) -> Result<(), Vec<Diagnostic>> {
+    pub fn build_rust_with(
+        &mut self,
+        _output: &Path,
+        _publish: impl FnOnce(ProjectNativeRustPackage, &Path) -> Result<(), Vec<Diagnostic>>,
+    ) -> Result<(), Vec<Diagnostic>> {
         Err(vec![Diagnostic::io(
             "SPX-J114",
             "the rust target is available only on Linux, macOS, and Windows hosts",
@@ -427,48 +480,6 @@ impl ProjectSnapshot {
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 fn rust_build_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-B114", message)
-}
-
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
-fn lower_build_error(
-    failure: semaprax_native_rust_owned_data_package::PackageError,
-    version: &str,
-) -> Diagnostic {
-    use semaprax_native_rust_owned_data_package::PackageErrorKind;
-
-    match failure.kind() {
-        PackageErrorKind::Descriptor | PackageErrorKind::Provider => {
-            rust_build_error(format!("Project {version} Native Rust package replay failed"))
-        }
-        PackageErrorKind::ToolConfiguration => Diagnostic::io(
-            "SPX-I234",
-            format!("Project {version} Native Rust package requires explicit absolute CLANG and archiver tools"),
-        ),
-        PackageErrorKind::Publication => Diagnostic::io(
-            "SPX-I234",
-            format!("Project {version} Native Rust package publication failed"),
-        ),
-    }
-}
-
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
-fn lower_flat_record_build_error(
-    failure: semaprax_native_rust_owned_data_package::PackageError,
-) -> Diagnostic {
-    use semaprax_native_rust_owned_data_package::PackageErrorKind;
-    match failure.kind() {
-        PackageErrorKind::Descriptor | PackageErrorKind::Provider => {
-            rust_build_error("Project v9 Native Rust package replay failed")
-        }
-        PackageErrorKind::ToolConfiguration => Diagnostic::io(
-            "SPX-I234",
-            "Project v9 Native Rust package requires explicit absolute CLANG and archiver tools",
-        ),
-        PackageErrorKind::Publication => Diagnostic::io(
-            "SPX-I234",
-            "Project v9 Native Rust package publication failed",
-        ),
-    }
 }
 
 fn subject_error(message: &str) -> Vec<Diagnostic> {

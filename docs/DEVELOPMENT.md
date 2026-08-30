@@ -92,6 +92,18 @@ of duplicating that map.
 
 ## Verification
 
+The standalone `semaprax` registry package has no private-host dependency.
+The unpublished `crates/semaprax-toolchain` package builds `semaprax-full`
+using the same compiler and CLI driver. Use it for `new`, `doctor`, and
+`build --target rust`; Windows revision-store persistence/loading live in
+its library. Source installs retain the distinct binary name. Tag archives
+package that binary as `semaprax`, alongside `semapraxd`.
+
+Do not add private crates to the root package's normal or optional dependency
+closure. Path-only dev dependencies support in-repository tests and are omitted
+from Cargo's normalized registry manifest. The package gate must verify the
+actual archive; disabling verification is not a packaging fix.
+
 On Unix, run the complete gate with:
 
 ```sh

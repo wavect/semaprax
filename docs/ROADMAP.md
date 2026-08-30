@@ -15,6 +15,11 @@ priority over broad syntax or generated artifact volume.
 
 ## Current priority: close exact-head promotion gates
 
+The approved distribution split keeps the standalone registry compiler free of
+private-host dependencies and retains those operations in an unpublished full
+toolchain. Exact-head packaging and hosted runtime evidence remain required;
+this product decision alone promotes no completion row.
+
 The current codebase has a bounded multi-file calculator, Project agent
 workflow, stable-ID JavaScript/TypeScript and unpublished Rust consumers, and a
 multi-file line-filter product. The upstream baseline blocking matrix is green

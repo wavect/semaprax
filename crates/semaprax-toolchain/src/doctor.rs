@@ -1,3 +1,4 @@
+//! Private-host tool probes, intentionally absent from the registry CLI.
 use std::fmt;
 use std::path::{Path, PathBuf};
 

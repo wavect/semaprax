@@ -123,6 +123,8 @@ fn both_packagers_bind_version_commit_manifest_inventory_and_smoke() {
             " check ",
             " run ",
             "cargo build --locked --release",
+            "-p semaprax-toolchain",
+            "--bin semaprax-full",
         ] {
             assert!(source.contains(exact), "{name} packager lost: {exact}");
         }

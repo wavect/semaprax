@@ -42,6 +42,75 @@ fn revision() -> std::sync::Arc<ProjectRevision> {
         .retain_revision()
 }
 
+#[test]
+fn private_windows_host_receives_checked_bytes_and_cannot_skip_load_replay() {
+    let revision = revision();
+    let expected = revision.project_revision();
+    let root = Path::new("/never-opened-by-compiler");
+    let mut captured = None;
+    let receipt = windows_host::persist(root, &revision, expected, |selected, prepared| {
+        assert_eq!(selected, root);
+        let metadata = windows_host::inspect(prepared.entry_json(), Some(prepared.entry_hex()))?;
+        assert_eq!(metadata.manifest_bytes, prepared.manifest().len());
+        assert_eq!(metadata.sources.len(), prepared.sources().len());
+        captured = Some(StoredEntry {
+            entry_json: prepared.entry_json().to_vec(),
+            manifest: prepared.manifest().to_vec(),
+            workspace_manifest: prepared.workspace_manifest().to_vec(),
+            sources: prepared
+                .sources()
+                .iter()
+                .map(|s| (s.path().to_owned(), s.source().to_vec()))
+                .collect(),
+        });
+        Ok(())
+    })
+    .unwrap();
+    let mut stored = captured.unwrap();
+    let replayed = windows_host::load(root, receipt.entry_digest(), expected, |_, _| {
+        Ok(StoredEntry {
+            entry_json: stored.entry_json.clone(),
+            manifest: stored.manifest.clone(),
+            workspace_manifest: stored.workspace_manifest.clone(),
+            sources: stored.sources.clone(),
+        })
+    })
+    .unwrap();
+    assert_eq!(replayed.project_revision(), expected);
+    stored.sources[0].1.push(b' ');
+    assert_eq!(
+        windows_host::load(root, receipt.entry_digest(), expected, |_, _| Ok(stored))
+            .err()
+            .unwrap()[0]
+            .code,
+        "SPX-G192"
+    );
+    let stale = format!("sha256:{}", "0".repeat(64));
+    assert_eq!(
+        windows_host::persist(root, &revision, &stale, |_, _| panic!(
+            "stale subject reached private host"
+        ))
+        .unwrap_err()[0]
+            .code,
+        "SPX-G192"
+    );
+    assert!(windows_host::load(root, "invalid", expected, |_, _| panic!(
+        "invalid digest reached private host"
+    ))
+    .is_err());
+    assert_eq!(
+        persist_windows(root, &revision, expected).unwrap_err()[0].code,
+        "SPX-I215"
+    );
+    assert_eq!(
+        load_windows(root, receipt.entry_digest(), expected)
+            .err()
+            .unwrap()[0]
+            .code,
+        "SPX-I215"
+    );
+}
+
 fn prepared(revision: &ProjectRevision) -> PreparedEntry {
     PreparedEntry::from_revision(revision, revision.project_revision()).unwrap()
 }

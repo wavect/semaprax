@@ -223,12 +223,18 @@ fn quality_gate_and_example_are_promotion_evidence_not_a_private_claim() {
 #[test]
 fn root_package_does_not_create_a_dependency_cycle_to_the_builder() {
     let root_manifest = read("Cargo.toml");
-    let dependencies = root_manifest
-        .split("[dependencies]")
-        .nth(1)
-        .and_then(|tail| tail.split("[features]").next())
-        .unwrap();
-    assert!(!dependencies.contains("semaprax-native-rust-interop"));
+    let mut normal_dependencies = false;
+    for line in root_manifest.lines() {
+        let line = line.trim();
+        if line.starts_with('[') {
+            normal_dependencies = line == "[dependencies]" || line.ends_with(".dependencies]");
+        } else if normal_dependencies {
+            assert!(
+                !line.starts_with("semaprax-"),
+                "private normal dependency: {line}"
+            );
+        }
+    }
     let builder_manifest = read("crates/semaprax-native-rust-interop-builder/Cargo.toml");
     assert!(builder_manifest.contains("semaprax = {"));
 }

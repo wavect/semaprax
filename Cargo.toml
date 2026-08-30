@@ -22,6 +22,7 @@ members = [
     "crates/semaprax-native-rust-owned-data-package",
     "crates/semaprax-native-rust-interop-builder",
     "crates/semaprax-project-revision-store-windows-sys",
+    "crates/semaprax-toolchain",
 ]
 default-members = ["."]
 resolver = "2"
@@ -38,6 +39,8 @@ sha2 = "=0.11.0"
 wasmparser = { version = "=0.256.0", default-features = false, features = ["component-model", "features", "validate"] }
 
 [dev-dependencies]
+semaprax-native-rust-interop-platform = { path = "crates/semaprax-native-rust-interop-platform" }
+semaprax-native-rust-owned-data-package = { path = "crates/semaprax-native-rust-owned-data-package" }
 
 [features]
 default = []
@@ -48,17 +51,12 @@ unstable-wit-component-harness = []
 fs2 = "=0.4.3"
 getrandom = "=0.4.3"
 
-[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
-semaprax-native-rust-interop-platform = { version = "=0.1.0", path = "crates/semaprax-native-rust-interop-platform" }
-semaprax-native-rust-owned-data-package = { version = "=0.1.0", path = "crates/semaprax-native-rust-owned-data-package" }
-
 [target.'cfg(unix)'.dependencies]
 rustix = { version = "=1.1.4", default-features = false, features = ["fs", "process", "std", "stdio"] }
 
 [target.'cfg(windows)'.dependencies]
 renamore = { version = "=0.3.2", default-features = false, features = ["always-supported"] }
 winapi-util = "=0.1.11"
-semaprax-project-revision-store-windows-sys = { version = "=0.1.0", path = "crates/semaprax-project-revision-store-windows-sys" }
 
 [[bin]]
 name = "semaprax"

@@ -30,6 +30,14 @@
   unchanged source/v10 admission. Tests/builds remain unrun; no ordinary-Wasm
   settlement or production promotion is claimed.
 
+- Split private-host operations into the unpublished `semaprax-toolchain`
+  package and `semaprax-full` CLI. The standalone registry compiler rejects
+  `new`, `doctor`, Native Rust package publication, and Windows revision-store
+  host operations. Compiler replay and held-host authority boundaries remain
+  explicit; tag archives select the full CLI. Added package-boundary regressions
+  and repaired Darwin zombie-only doctor settlement and Windows-only lints.
+  Hosted promotion remains gated on the complete exact-head CI result.
+
 - Authored explicit expected-revision replacement for the prepared Project
   interpreter. Both candidate closures and source origins are admitted before
   one same-worker handoff; stale or ordinary preparation failures preserve

@@ -64,9 +64,9 @@ mod tests {
 
     #[test]
     fn file_view_accessors_preserve_retained_bundle_lifetime() {
-        let _: for<'a, 'view> fn(&'view DoctorOfflineBundleFile<'a>) -> &'a str =
-            DoctorOfflineBundleFile::path;
-        let _: for<'a, 'view> fn(&'view DoctorOfflineBundleFile<'a>) -> &'a [u8] =
-            DoctorOfflineBundleFile::bytes;
+        fn check_path<'a>(_f: fn(&DoctorOfflineBundleFile<'a>) -> &'a str) {}
+        check_path(DoctorOfflineBundleFile::path);
+        fn check_bytes<'a>(_f: fn(&DoctorOfflineBundleFile<'a>) -> &'a [u8]) {}
+        check_bytes(DoctorOfflineBundleFile::bytes);
     }
 }

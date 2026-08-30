@@ -589,6 +589,12 @@ binds that inventory even for fields omitted from the replacement subset.
 
 `candidate/declaration.rs` appends a typed function under a selected module
 anchor with globally fresh identity and checked namespace/effect budgets.
+`candidate/type_declaration.rs` appends explicit monomorphic record/variant
+declarations with direct scalar fields under the same function-anchor rule.
+Its complete planned owner/case/field inventory is the only allowed graph
+identity extension; exact source reconstruction follows full Project replay.
+Rebase checks collisions for all new member IDs and preserves history order
+when a later operation evolves or uses the new type.
 `candidate/aggregate_nominal.rs` authenticates existing record/variant type
 selectors and visible bindings, including direct-scalar generic instances and
 the fixed compiler prelude. Selection and catalogue templates are provisional;

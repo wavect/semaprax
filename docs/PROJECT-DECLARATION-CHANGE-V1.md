@@ -6,15 +6,17 @@ Status: authored, unrun implementation and regression evidence. Local compiler,
 test, and long quality gates were deliberately skipped at the user's request;
 this document makes no verified completion or target-execution claim.
 
-The additive `add_declaration` intention creates one explicit, monomorphic,
-non-`main` top-level function in an existing Project module. It travels through
+The additive `add_declaration` intention creates one explicit, monomorphic
+function, record, or variant in an existing Project module. Functions cannot
+be named `main`; record/variant fields use the closed direct-scalar vocabulary
+below. The intention travels through
 the existing [Semantic Change and Candidate](PROJECT-CANDIDATES-V1.md) envelope,
 revision checks, full source reconstruction, verifier, Project profile admission,
 target projection, and exact replay. It does not edit canonical Git source or
 change the Project manifest, imports, exports, capabilities, or module permits.
 Existing intentions and image-v1 serialization are unchanged.
 
-## Closed constructor
+## Function constructor
 
 Every illustrated object key is required. There are no implicit parameters,
 contracts, effects, source paths, or source-text defaults.
@@ -121,10 +123,81 @@ all prior effect/contract inventory facts, module permits, and the manifest
 must remain unchanged. Failed construction exposes no candidate and leaves
 both the original candidate and source files unchanged.
 
+## Record and variant constructors
+
+The function object above retains its original wire representation without a
+`kind` field. Two additive closed declaration objects create types:
+
+```json
+{
+  "kind": "add_declaration",
+  "target": "calculator.add",
+  "declaration": {
+    "kind": "record",
+    "id": "calculator.configuration",
+    "name": "Configuration",
+    "fields": [
+      {"id":"calculator.configuration.amount","name":"amount","type":"i64"},
+      {"id":"calculator.configuration.enabled","name":"enabled","type":"bool"}
+    ]
+  }
+}
+```
+
+```json
+{
+  "kind": "add_declaration",
+  "target": "calculator.add",
+  "declaration": {
+    "kind": "variant",
+    "id": "calculator.decision",
+    "name": "Decision",
+    "cases": [
+      {"id":"calculator.decision.accept","name":"Accept","fields":[
+        {"id":"calculator.decision.accept.value","name":"value","type":"i64"}
+      ]},
+      {"id":"calculator.decision.reject","name":"Reject","fields":[]}
+    ]
+  }
+}
+```
+
+All keys are required. The anchor remains one existing explicit monomorphic
+function, including `main`; the new type appends to that module's type list.
+The type, each case, and every field require their own globally fresh explicit
+IDs under the same ID grammar as new functions. This includes conflicts with
+existing functions, types, members, import bindings and source-only interface
+identities. Type display names must not collide in the module namespace; case
+names are unique within a variant and field names within their record or case.
+Array order determines canonical field/case order and is never sorted away.
+
+Field types are exactly `i64` or `bool`. Empty records and payload-free cases
+are allowed subject to ordinary Project admission; variants require at least
+one case. Each record/case has at most 64 fields, a variant has at most 64
+cases, and the complete planned identity inventory has at most 4,096 entries,
+including its owner. Existing JSON, source, graph and candidate limits still
+apply and can reject smaller requests. Generic parameters, named/owned fields,
+methods, custom layout, imports and manifest exports are not constructor fields.
+
+The compiler constructs source AST declarations, renders canonical source, and
+performs full Project rebuilding and replay. Identity admission permits only
+the exact planned owner/member facts, including declaration kind, explicit
+origin, owner, source path and module. All prior explicit identities must remain
+unchanged. A separate reconstruction pass derives the same append from the
+original revision and compares every resulting canonical source. Neither the
+request nor the identity inventory can inject graph-only meaning.
+
+Subsequent intentions can construct values of the new type, use it through a
+stable-ID nominal function signature, or extend a new record through the
+existing field-change route. Every step re-enters ordinary source admission.
+The catalogue's additive `type_declaration_forms` describes the two placements
+and bounds; existing function placement metadata remains unchanged.
+
 ## Reports, composition, and remaining boundaries
 
 Only new-operation summaries add `new_declaration` with `id`, `name`, `path`,
-and `module`. Impact includes the new identity with a null base-side report;
+and `module`. Type additions also carry `kind` and a complete `identities`
+inventory of exact owner/member facts. Impact includes new identities with a null base-side report;
 null denotes absence from the original source revision, not missing proof for
 an existing function. Later candidate intentions can address this stable ID.
 Semantic rebase and merge replay creation and subsequent changes in order,
@@ -132,6 +205,12 @@ check collisions on the new base, and retain the original comparison base and
 parent bindings. Exact candidate replay reconstructs the declarations from
 the retained source base and typed intentions; serialized AST/HIR never gains
 admission authority.
+
+Type creation contributes every nested member ID to semantic rebase collision
+checks. An independently created function occupying a new case or field ID is
+a conflict before replay, even when the new type owner itself is unused.
+Records introduced by an earlier history step can be extended later in that
+history; their shape is checked through intermediate candidate admission.
 
 Nominal type objects additionally bind the complete checked owner inventory
 at each original/rebased intermediate revision. Reidentifying an untouched
@@ -163,7 +242,14 @@ for unused generic instances, return-only records/variants, monomorphic aliases,
 Option/Result, malformed selectors, non-Copy signatures, recovery and no writes.
 `tests/project_candidate_rebase_v1.rs` adds type-only dependency conflicts.
 
-This is function creation only. Creating types, records, variants, interfaces,
+`candidate/type_declaration.rs` owns record/variant construction, exact planned
+identity inventories and independent source reconstruction.
+`tests/project_candidate_type_declarations_v1.rs` adds authored, unrun type
+creation, downstream use, identity rejection, bounds and recovery cases. Rebase
+regressions cover creation followed by record evolution and nominal use, plus
+nested identity collisions against independently admitted candidates.
+
+Creating generic types, classes, resources, interfaces,
 protocols, methods, generic functions, modules, public exports, new imports,
 arbitrary structured types, or package entries remains outside this slice.
 General recursive creation, new authority, independently verified target

@@ -397,31 +397,17 @@ fn classify(
         if kind == "implement_interface" {
             return Err(super::interface::rebase_conflict());
         }
-        let addition = match kind {
-            "add_declaration" => Some(
-                change.intent["declaration"]["id"]
-                    .as_str()
-                    .ok_or_else(|| grammar("declaration addition lacks its identity"))?,
-            ),
-            "extract_function" => Some(
-                change.intent["new_id"]
-                    .as_str()
-                    .ok_or_else(|| grammar("extraction lacks its new identity"))?,
-            ),
-            "add_record_field" => Some(
-                change.intent["field"]["id"]
-                    .as_str()
-                    .ok_or_else(|| grammar("record field addition lacks its identity"))?,
-            ),
-            _ => None,
-        };
-        if addition.is_some_and(|id| new_ids.contains(id) || introduced.contains(id)) {
+        let additions = added_intent_ids(&change.intent)?;
+        if additions
+            .iter()
+            .any(|id| new_ids.contains(id) || introduced.contains(id))
+        {
             return Err(conflict(
                 "candidate addition identity exists in the destination or another intention",
             ));
         }
         let (signature_changed, body_changed, contracts_changed, display_changed, effects_changed) =
-            if kind == "add_record_field" {
+            if kind == "add_record_field" && !introduced.contains(target) {
                 let before = old_records.get(target).ok_or_else(|| {
                     conflict("record addition target is absent from its original base")
                 })?;
@@ -499,11 +485,60 @@ fn classify(
             }
         }
         report.push(json!({"target":target,"intent":kind,"concurrent_display_change":display_changed,"concurrent_signature_change":signature_changed,"concurrent_body_change":body_changed,"concurrent_contract_change":contracts_changed,"concurrent_effect_change":effects_changed,"decision":"replay_required"}));
-        if let Some(id) = addition {
-            introduced.insert(id);
-        }
+        introduced.extend(additions);
     }
     Ok(report)
+}
+/// Complete planned identity inventory, including nested type members. These
+/// are already admitted history intentions; this pass adds conflict selection,
+/// while each intermediate candidate still replays the full constructor.
+fn added_intent_ids<'a>(request: &'a Value) -> Result<BTreeSet<&'a str>, Vec<Diagnostic>> {
+    let mut ids = BTreeSet::new();
+    let mut add = |value: &'a Value| -> Result<(), Vec<Diagnostic>> {
+        let id = value
+            .as_str()
+            .ok_or_else(|| grammar("candidate addition lacks a planned identity"))?;
+        if !ids.insert(id) {
+            return Err(grammar("candidate addition repeats a planned identity"));
+        }
+        Ok(())
+    };
+    match request["kind"].as_str() {
+        Some("add_declaration") => {
+            let declaration = &request["declaration"];
+            add(&declaration["id"])?;
+            match declaration["kind"].as_str() {
+                None => {}
+                Some("record") => {
+                    for field in declaration["fields"]
+                        .as_array()
+                        .ok_or_else(|| grammar("record addition lacks fields"))?
+                    {
+                        add(&field["id"])?;
+                    }
+                }
+                Some("variant") => {
+                    for case in declaration["cases"]
+                        .as_array()
+                        .ok_or_else(|| grammar("variant addition lacks cases"))?
+                    {
+                        add(&case["id"])?;
+                        for field in case["fields"]
+                            .as_array()
+                            .ok_or_else(|| grammar("variant case addition lacks fields"))?
+                        {
+                            add(&field["id"])?;
+                        }
+                    }
+                }
+                _ => return Err(grammar("unsupported declaration addition kind")),
+            }
+        }
+        Some("extract_function") => add(&request["new_id"])?,
+        Some("add_record_field") => add(&request["field"]["id"])?,
+        _ => {}
+    }
+    Ok(ids)
 }
 fn called_intent_targets(value: &Value) -> BTreeSet<String> {
     let mut stack = vec![value];

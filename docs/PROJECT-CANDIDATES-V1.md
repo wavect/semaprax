@@ -119,6 +119,10 @@ record/variant selectors and explicit direct-scalar arguments are provisional
 until the rebuilt function's exact checked signature establishes Copy admission.
 Catalogue templates grant neither new type/import creation nor owned nominal
 parameter modes; legacy built-in type strings are unchanged.
+Two further closed declaration forms append explicit monomorphic records and
+variants with `i64`/`bool` fields. Every owner/case/field identity must be fresh;
+exact source reconstruction and identity replay govern the complete addition.
+Later intentions may evolve or construct the new type without writing source.
 
 ## Validation and replay
 

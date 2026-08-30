@@ -605,6 +605,108 @@ fn nominal_declaration_signature_rebase_binds_type_shapes_without_aggregate_body
     }
 }
 
+fn type_creation_fixture() -> Fixture {
+    let fixture = Fixture::new();
+    let path = fixture.0.join("semaprax.toml");
+    let manifest = std::fs::read_to_string(&path)
+        .unwrap()
+        .replace("semaprax.project.v1", "semaprax.project.v8")
+        .replace(
+            "name = \"calculator\"",
+            "name = \"calculator\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"",
+        )
+        .replace("\"calculator.divide\", ", "");
+    std::fs::write(path, manifest).unwrap();
+    fixture
+}
+
+#[test]
+fn created_record_field_evolution_and_nominal_use_replay_in_history_order() {
+    let fixture = type_creation_fixture();
+    let root = fixture.candidate();
+    let path = fixture.0.join("src/core.spx");
+    let disk = std::fs::read(&path).unwrap();
+    let created = apply(
+        &root,
+        json!({"kind":"add_declaration","target":"calculator.add",
+        "declaration":{"kind":"record","id":"calculator.created-record","name":"CreatedRecord",
+            "fields":[{"id":"calculator.created-record.value","name":"value","type":"i64"}]}}),
+    );
+    let extended = apply(
+        &created,
+        json!({"kind":"add_record_field","target":"calculator.created-record",
+        "field":{"id":"calculator.created-record.flag","name":"flag","type":"bool","default":{"kind":"bool","value":false}}}),
+    );
+    let used = apply(
+        &extended,
+        json!({"kind":"add_declaration","target":"calculator.add",
+        "declaration":{"id":"calculator.make-created","name":"make_created","parameters":[],
+            "return_type":{"kind":"nominal","target":"calculator.created-record","type_arguments":[]},
+            "effects":[],"requires":[],"ensures":[],"body":{"kind":"record","target":"calculator.created-record","fields":[
+                {"target":"calculator.created-record.value","value":{"kind":"i64","value":7}},
+                {"target":"calculator.created-record.flag","value":{"kind":"bool","value":true}}]}}}),
+    );
+    let other = apply(&root, rename("calculator.subtract", "difference"));
+    let merged = used
+        .merge(used.candidate_digest(), &other, other.candidate_digest())
+        .unwrap();
+    let text = source(merged.candidate());
+    assert!(text.contains("record CreatedRecord"));
+    assert!(text.contains("calculator.created-record.flag"));
+    assert!(text.contains("fn make_created("));
+    assert!(text.contains("fn difference("));
+    assert_eq!(
+        merged.candidate().base_revision().project_revision(),
+        root.base_revision().project_revision()
+    );
+    assert_eq!(std::fs::read(path).unwrap(), disk);
+}
+
+#[test]
+fn nested_type_member_id_collisions_are_semantic_conflicts_before_replay() {
+    let fixture = type_creation_fixture();
+    let root = fixture.candidate();
+    let path = fixture.0.join("src/core.spx");
+    let disk = std::fs::read(&path).unwrap();
+    for (declaration, collision) in [
+        (
+            json!({"kind":"record","id":"calculator.created-record","name":"CreatedRecord","fields":[
+            {"id":"calculator.created-record.value","name":"value","type":"i64"}]}),
+            "calculator.created-record.value",
+        ),
+        (
+            json!({"kind":"variant","id":"calculator.created-choice","name":"CreatedChoice","cases":[
+            {"id":"calculator.created-choice.some","name":"Some","fields":[
+                {"id":"calculator.created-choice.some.value","name":"value","type":"i64"}]}]}),
+            "calculator.created-choice.some",
+        ),
+        (
+            json!({"kind":"variant","id":"calculator.created-choice","name":"CreatedChoice","cases":[
+            {"id":"calculator.created-choice.some","name":"Some","fields":[
+                {"id":"calculator.created-choice.some.value","name":"value","type":"i64"}]}]}),
+            "calculator.created-choice.some.value",
+        ),
+    ] {
+        let created = apply(
+            &root,
+            json!({"kind":"add_declaration","target":"calculator.add","declaration":declaration}),
+        );
+        let other = apply(
+            &root,
+            json!({"kind":"add_declaration","target":"calculator.add",
+            "declaration":{"id":collision,"name":"collision","parameters":[],"return_type":"i64",
+                "effects":[],"requires":[],"ensures":[],"body":{"kind":"i64","value":0}}}),
+        );
+        let original = created.to_json().to_owned();
+        code(
+            created.merge(created.candidate_digest(), &other, other.candidate_digest()),
+            "SPX-G235",
+        );
+        assert_eq!(created.to_json(), original);
+        assert_eq!(std::fs::read(&path).unwrap(), disk);
+    }
+}
+
 #[test]
 fn callee_display_rename_does_not_create_a_false_body_conflict() {
     let fixture = Fixture::new();

@@ -596,7 +596,14 @@ fn operation() -> Value {
             ]),
             _ => {}
         }
-        choices.push(object(fields));
+        let mut shape = object(fields);
+        if kind == "add_declaration" {
+            shape["properties"]["type_declaration_forms"] = json!({"const":[
+                {"kind":"record","placement":"append_record_in_anchor_module","max_fields":64,"max_combined_identities":4096,"requires_full_candidate_validation":true},
+                {"kind":"variant","placement":"append_variant_in_anchor_module","min_cases":1,"max_cases":64,"max_fields_per_case":64,"max_combined_identities":4096,"requires_full_candidate_validation":true},
+            ]});
+        }
+        choices.push(shape);
     }
     json!({"oneOf":choices})
 }
@@ -642,6 +649,33 @@ fn signature_form() -> Value {
 #[cfg(test)]
 mod signature_parameter_schema_tests {
     use super::*;
+
+    #[test]
+    fn declaration_discovery_adds_exact_type_forms_without_changing_function_placement() {
+        let schema = operation();
+        let operation = schema["oneOf"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|entry| entry["properties"]["kind"]["const"] == "add_declaration")
+            .unwrap();
+        assert_eq!(operation["additionalProperties"], false);
+        assert_eq!(
+            operation["properties"]["placement"]["const"],
+            "append_function_in_anchor_module"
+        );
+        assert!(!operation["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("type_declaration_forms")));
+        assert_eq!(
+            operation["properties"]["type_declaration_forms"]["const"],
+            json!([
+                {"kind":"record","placement":"append_record_in_anchor_module","max_fields":64,"max_combined_identities":4096,"requires_full_candidate_validation":true},
+                {"kind":"variant","placement":"append_variant_in_anchor_module","min_cases":1,"max_cases":64,"max_fields_per_case":64,"max_combined_identities":4096,"requires_full_candidate_validation":true},
+            ])
+        );
+    }
 
     #[test]
     fn nominal_type_templates_are_closed_and_do_not_claim_copy_admission() {

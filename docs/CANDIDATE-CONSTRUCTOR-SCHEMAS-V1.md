@@ -247,6 +247,36 @@ of types already approved for a proposed signature. The v5 response schema
 closes all three source-monomorphic, source-generic, and prelude forms.
 Focused structural regressions are authored but unrun.
 
+The `add_declaration` payload also accepts two closed type-declaration forms:
+`{"kind":"record","id":owner_id,"name":name,"fields":[field]}` and
+`{"kind":"variant","id":owner_id,"name":name,"cases":[case]}`.
+A field is exactly `{"id":field_id,"name":name,"type":"i64"}` or the
+same shape with `type: bool`; a case is exactly
+`{"id":case_id,"name":name,"fields":[field]}`. Records and cases may have
+zero fields. Variants require at least one case. Each field list and case list
+is bounded to 64 entries, with at most 4,096 combined owner, case, and field
+identities. The ordinary change JSON byte, node, and depth limits still apply.
+`x-max-combined-identities` describes the compiler-enforced aggregate bound;
+standard JSON Schema validation alone does not count this cross-list total.
+New type declarations have no generic parameters, methods, effects, defaults,
+or nominal/resource fields. Their names and all identities must pass ordinary
+freshness and namespace admission; structural acceptance is not that proof.
+
+An existing explicit monomorphic function, including `main`, selects the module.
+Record and variant declarations append to its source type inventory; canonical
+formatting still groups types before functions. The existing function payload
+is the unchanged first declaration alternative, with no `kind` field added.
+Its discovery `placement: append_function_in_anchor_module` and function
+constraints retain their prior meaning. The additive `type_declaration_forms`
+inventory describes record and variant placement separately and supplies the
+corresponding list/identity bounds plus
+`requires_full_candidate_validation: true`. The v5 descriptor schema accepts
+that exact optional inventory. Newly admitted types become ordinary stable-ID
+nominal and aggregate discovery subjects after full candidate rebuilding;
+discovery itself creates no source or publication authority. Structural
+regressions for the declaration alternatives and discovery forms are authored
+but unrun.
+
 Ordered signature mapping retains its existing closed `from` / optional `name`
 constructor. Selecting an existing named Copy record or variant does not add a
 type spelling, conversion, or aggregate literal to the request grammar. The

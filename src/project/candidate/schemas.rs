@@ -296,6 +296,32 @@ fn nominal_type_schema() -> Value {
 }
 
 fn declaration_schema() -> Value {
+    let fields = json!({"type":"array","maxItems":64,"items":closed(&[
+        ("id",stable_id()),("name",identifier()),("type",json!({"enum":["i64","bool"]})),
+    ])});
+    let mut record = closed(&[
+        ("kind", json!({"const":"record"})),
+        ("id", stable_id()),
+        ("name", identifier()),
+        ("fields", fields.clone()),
+    ]);
+    record["x-max-combined-identities"] = json!(4096);
+    let mut variant = closed(&[
+        ("kind", json!({"const":"variant"})),
+        ("id", stable_id()),
+        ("name", identifier()),
+        (
+            "cases",
+            json!({"type":"array","minItems":1,"maxItems":64,"items":closed(&[
+                ("id",stable_id()),("name",identifier()),("fields",fields),
+            ])}),
+        ),
+    ]);
+    variant["x-max-combined-identities"] = json!(4096);
+    json!({"oneOf":[function_declaration_schema(),record,variant]})
+}
+
+fn function_declaration_schema() -> Value {
     let mut parameters = [
         ("value", vec!["i64", "i32", "u8", "usize", "bool"]),
         ("own", vec!["Bytes"]),
@@ -348,7 +374,7 @@ mod aggregate_expression_schema_tests {
 
     #[test]
     fn declaration_nominal_types_are_closed_and_only_value_parameters() {
-        let declaration = declaration_schema();
+        let declaration = function_declaration_schema();
         let parameters = declaration["properties"]["parameters"]["items"]["oneOf"]
             .as_array()
             .unwrap();
@@ -387,6 +413,43 @@ mod aggregate_expression_schema_tests {
             &declaration["properties"]["return_type"]["oneOf"][1],
             nominal
         );
+    }
+
+    #[test]
+    fn type_declarations_close_members_and_preserve_function_shape() {
+        let schema = declaration_schema();
+        let forms = schema["oneOf"].as_array().unwrap();
+        assert_eq!(forms.len(), 3);
+        assert_eq!(forms[0], function_declaration_schema());
+        assert!(forms[0]["properties"].get("kind").is_none());
+        assert_eq!(
+            forms[1]["required"],
+            json!(["kind", "id", "name", "fields"])
+        );
+        assert_eq!(forms[2]["required"], json!(["kind", "id", "name", "cases"]));
+        for form in &forms[1..] {
+            assert_eq!(form["additionalProperties"], false);
+            assert_eq!(form["x-max-combined-identities"], 4096);
+            assert!(form["properties"].get("type_parameters").is_none());
+        }
+        let cases = &forms[2]["properties"]["cases"];
+        assert_eq!(cases["minItems"], 1);
+        assert_eq!(cases["maxItems"], 64);
+        assert_eq!(cases["items"]["additionalProperties"], false);
+        assert_eq!(cases["items"]["required"], json!(["id", "name", "fields"]));
+        for fields in [
+            &forms[1]["properties"]["fields"],
+            &cases["items"]["properties"]["fields"],
+        ] {
+            assert_eq!(fields["maxItems"], 64);
+            assert!(fields.get("minItems").is_none());
+            assert_eq!(fields["items"]["additionalProperties"], false);
+            assert_eq!(fields["items"]["required"], json!(["id", "name", "type"]));
+            assert_eq!(
+                fields["items"]["properties"]["type"]["enum"],
+                json!(["i64", "bool"])
+            );
+        }
     }
 
     #[test]

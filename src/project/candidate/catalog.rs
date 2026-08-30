@@ -24,7 +24,7 @@ impl ProjectCandidate {
             .iter()
             .flat_map(|program| &program.functions)
             .find(|function| function.stable_id == target);
-        let (aggregates, projections, matches, updates) = match selected {
+        let (aggregates, projections, matches, updates, nominal_types) = match selected {
             Some(function) if function.explicit_id && function.type_parameters.is_empty() => {
                 let program = programs
                     .iter()
@@ -40,9 +40,10 @@ impl ProjectCandidate {
                     super::intent::aggregate_projections(&self.revision, program)?,
                     super::intent::aggregate_matches(&self.revision, program)?,
                     super::intent::aggregate_updates(&self.revision, program)?,
+                    super::intent::nominal_types(&self.revision, program)?,
                 )
             }
-            _ => (Vec::new(), Vec::new(), Vec::new(), Vec::new()),
+            _ => (Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new()),
         };
         let mut operations = Vec::<Value>::new();
         let mut parameters = Vec::<Value>::new();
@@ -168,6 +169,7 @@ impl ProjectCandidate {
                 operations.push(json!({
                     "kind":"add_declaration", "required_fields":["kind","target","declaration"],
                     "anchor":target, "placement":"append_function_in_anchor_module",
+                    "nominal_type_selector":"nominal_types",
                     "constraints":["globally_new_explicit_identity", "non_main_monomorphic_function", "unambiguous_module_namespace", "effects_within_anchor_budget_and_module_permits", "preserve_all_existing_declarations_and_exports", "full_candidate_revalidation"],
                 }));
                 operations.push(json!({
@@ -255,6 +257,9 @@ impl ProjectCandidate {
         }
         if !updates.is_empty() {
             report["aggregate_updates"] = json!(updates);
+        }
+        if !nominal_types.is_empty() {
+            report["nominal_types"] = json!(nominal_types);
         }
         wire::render(report, 256 * 1024)
     }

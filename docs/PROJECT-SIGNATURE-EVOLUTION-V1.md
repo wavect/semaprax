@@ -57,7 +57,7 @@ exactly `own Bytes`. Named admission uses the retained checked HIR parameter
 identity and compiler TypeFacts: `copy` and `sized` must be true, while
 `contains_resource` and `needs_drop` must be false. Display names and source
 field shapes do not establish those properties. The compiler retains exact
-nominal parameter facts for admitted modules even when a function is absent
+nominal parameter and return facts for admitted modules even when a function is absent
 from the entry/test closure. Concrete generic instances, including admitted
 compiler-owned variants, use their complete ordered type-argument identity;
 generic target functions remain excluded.
@@ -163,7 +163,7 @@ remain active. These are deterministic structural bounds, not a total heap
 memory limit or a performance guarantee.
 
 Retained nominal signature facts additionally allow at most 4,096 distinct
-concrete parameter-type identities per module, under the existing builder-byte
+concrete parameter/return-type identities per module, under the existing builder-byte
 budget. This counts concrete instances, not only source declarations. Removing
 that extra cap was rejected by automatic security review as weakening a resource
 boundary; it remains enforced and can reject a larger otherwise admitted type

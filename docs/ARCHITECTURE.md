@@ -538,7 +538,7 @@ materialization until all holes are filled through full candidate admission.
 original argument once, left-to-right, before retaining, reordering or removing
 Copy parameters; admitted direct byte owners must all be retained once.
 Workspace module projections privately retain compiler-checked nominal
-parameter TypeFacts, including types outside entry/test reachability. The
+parameter and return TypeFacts, including types outside entry/test reachability. The
 candidate admission and catalogue share those exact facts for concrete Copy
 record/variant eligibility; they do not infer ownership from source spelling.
 These facts add no graph wire fields or source authority. These additions are
@@ -589,6 +589,14 @@ binds that inventory even for fields omitted from the replacement subset.
 
 `candidate/declaration.rs` appends a typed function under a selected module
 anchor with globally fresh identity and checked namespace/effect budgets.
+`candidate/aggregate_nominal.rs` authenticates existing record/variant type
+selectors and visible bindings, including direct-scalar generic instances and
+the fixed compiler prelude. Selection and catalogue templates are provisional;
+after rebuilding, every function addition passes `declaration.rs`'s checked
+nominal-signature gate for value parameters and sized Copy record/variant
+parameters and returns without resources or owned cleanup. Return-only facts
+share the existing 4,096-entry per-module signature table and builder-byte
+budget. Rebase binds complete selected type inventories before each replay.
 `candidate/extraction.rs` derives immutable scalar captures from actual HIR
 ValueIds and replaces an authenticated expression in place, rejecting unsafe
 boundary relocation. Only the exact declared identity may extend invariant

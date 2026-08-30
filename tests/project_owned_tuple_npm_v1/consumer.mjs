@@ -139,8 +139,11 @@ try {
     assert.equal(descriptor.limits.max_borrowed_input_bytes, 65536);
     assert.equal(descriptor.limits.max_owned_output_bytes, 65536);
     const wasm = Uint8Array.from(readFileSync(new URL('app.wasm', directory)));
-    assert.equal(metadata.wasm_sha256, 'sha256:'+createHash('sha256').update(wasm).digest('hex'));
-    assert.equal(bindings.wasmSha256, metadata.wasm_sha256.slice(7));
+    const wasmDigest = createHash('sha256').update(wasm).digest('hex');
+    assert.equal(metadata.schema, flat?'semaprax.flat-owned-record-api.v1':'semaprax.owned-data-api.v1');
+    if (flat) assert.equal(metadata.wasm_sha256, 'sha256:'+wasmDigest);
+    else assert.deepEqual(metadata.wasm, {path:'app.wasm',sha256:wasmDigest});
+    assert.equal(bindings.wasmSha256, wasmDigest);
     const before = wrapperCounts.length;
     const first = await bindings.instantiate(wasm), second = await bindings.instantiate(wasm);
     assert.deepEqual(wrapperCounts.slice(before), [ids.length,ids.length]);

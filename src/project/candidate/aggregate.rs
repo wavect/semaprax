@@ -15,9 +15,14 @@ use crate::project::ProjectRevision;
 
 #[path = "aggregate_match.rs"]
 mod matching;
+#[path = "aggregate_nominal.rs"]
+mod nominal;
 pub(super) use matching::match_plan;
 pub(in crate::project::candidate) use matching::{
     aggregate_match_dependency_fingerprint, aggregate_matches,
+};
+pub(in crate::project::candidate) use nominal::{
+    nominal_type_dependency_fingerprint, nominal_type_plan, nominal_types, validate_nominal_ast,
 };
 
 const MAX_FIELDS: usize = MAX_EXPRESSION_NODES - 1;

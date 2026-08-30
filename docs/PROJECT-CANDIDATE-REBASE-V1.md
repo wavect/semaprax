@@ -76,6 +76,15 @@ not mentioned by the request. A concurrent change to an untouched field's
 identity, type or order conflicts with `SPX-G235`. Subset and empty updates
 follow this same guard and complete candidate replay.
 
+Declaration `nominal` type objects bind the whole checked record or variant
+owner, including ordered member and generic parameter inventories and prelude
+provenance. This guard runs even when the added function body merely forwards
+a parameter and contains no aggregate expression operand. A changed field or
+unit-case identity rejects with `SPX-G235` before replay; concrete type arguments
+remain bound by the exact intention. Each intermediate revision must retain
+the same selected shape, and the rebuilt declaration must still pass its
+checked Copy-signature gate.
+
 | Concurrent change | Decision for replayed intent |
 | --- | --- |
 | Body edit and unrelated display rename, including the same source file | Replay permitted, then full admission. |

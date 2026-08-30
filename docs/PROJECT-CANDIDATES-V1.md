@@ -113,6 +113,13 @@ expression operands, not aggregate defaults for fresh signature parameters.
 Types, effects, contracts, ownership, and cleanup are checked after canonical
 source materialization. An invalid constructor never becomes a public candidate.
 
+[Declaration creation](PROJECT-DECLARATION-CHANGE-V1.md) additionally accepts
+closed stable-ID `nominal` objects for parameter and return types. Existing
+record/variant selectors and explicit direct-scalar arguments are provisional
+until the rebuilt function's exact checked signature establishes Copy admission.
+Catalogue templates grant neither new type/import creation nor owned nominal
+parameter modes; legacy built-in type strings are unchanged.
+
 ## Validation and replay
 
 Application parses only the admitted revision's canonical sources and invokes

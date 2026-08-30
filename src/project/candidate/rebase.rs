@@ -169,6 +169,15 @@ fn apply_rebound(
             ));
         }
     }
+    for target in constructor_intent_targets(&change.intent, &["nominal"]) {
+        let before = intent::nominal_type_dependency_fingerprint(original_revision, &target)?;
+        let after = intent::nominal_type_dependency_fingerprint(candidate.revision(), &target)?;
+        if before.is_none() || before != after {
+            return Err(conflict(
+                "candidate nominal declaration type or checked member inventory changed concurrently",
+            ));
+        }
+    }
     let mapped;
     let intent = if change.intent["kind"] == "replace_expression" {
         mapped = super::expression::rebase_intent(

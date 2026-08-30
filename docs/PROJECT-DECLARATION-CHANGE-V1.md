@@ -56,6 +56,42 @@ type, interface, protocol, or imported alias in the destination module.
 | `i64`, `i32`, `u8`, `usize`, `bool` | `value` | Yes |
 | `Bytes` | `own` | Yes |
 | `str`, `Slice<u8>` | `borrow` | No |
+| Stable-ID nominal object for a checked Copy record/variant | `value` | Yes |
+
+Existing string types retain their wire representation. A named parameter or
+return type uses the closed object below, selecting a type owner rather than a
+case, field, source spelling, or new declaration:
+
+```json
+{"kind":"nominal","target":"calculator.box","type_arguments":["i64"]}
+```
+
+All three keys are required. Monomorphic types use `type_arguments: []`;
+generic instances require exact declared arity and only direct `i64` or `bool`
+arguments, with at most 4,095 arguments. Source types require an explicit owner
+and complete explicit field/case/payload identities plus one existing visible
+local or imported binding. Generic source types remain module-local; this
+change does not admit generic type imports. Compiler-owned Option/Result use
+the separately authenticated fixed prelude inventory. Nested type arguments,
+classes, resources, inferred arguments and newly introduced imports are closed.
+
+Selection is provisional. After full candidate rebuilding and identity replay,
+every added function, including compiler-derived extraction, passes an exact
+checked-signature gate before a candidate is exposed. Every nominal parameter
+must have value ownership; every nominal parameter and return must resolve to
+a record or variant whose compiler TypeFacts establish `copy` and `sized`,
+with neither `needs_drop` nor `contains_resource`. Template shapes never prove
+those properties. The retained facts now include return-only instances and
+share the existing per-module limit of 4,096 distinct nominal signature types
+and builder-byte budget. Fresh generic instances need not have appeared in an
+earlier function signature, but must pass this rebuilt admission.
+
+Catalogue `nominal_types` rows describe available selectors and provenance,
+with `copy_admission: "checked_candidate_signature"` and
+`requires_full_candidate_validation: true`. They do not claim every selected
+template or concrete argument combination is Copy. The inventory is bounded
+to 65,536 entries/parameter items and 1 MiB before the enclosing 256 KiB
+catalogue limit.
 
 Parameters must have distinct names and cannot be named `result`. There are at
 most 64 parameters, 64 effects, 64 preconditions, and 64 postconditions. Effects
@@ -67,7 +103,8 @@ they are not a claim that arbitrary HIR memory is bounded by report size.
 
 Bodies and contracts use the existing closed typed expression constructors:
 bounded scalar literals, parameter places, stable-ID calls, unary/binary
-operators, and conditionals. Requires predicates see parameters; ensures
+operators, conditionals, and the admitted
+[aggregate constructors](PROJECT-AGGREGATE-CONSTRUCTORS-V1.md). Requires predicates see parameters; ensures
 predicates additionally see `result`. Calls resolve only through the
 destination module's admitted local and imported function bindings. Initial
 construction cannot call the function being created, and cannot introduce a
@@ -96,6 +133,12 @@ parent bindings. Exact candidate replay reconstructs the declarations from
 the retained source base and typed intentions; serialized AST/HIR never gains
 admission authority.
 
+Nominal type objects additionally bind the complete checked owner inventory
+at each original/rebased intermediate revision. Reidentifying an untouched
+field or unit case conflicts even when the added body only forwards a parameter
+and contains no aggregate expression constructor. This is conservative shape
+dependency checking, not transitive semantic equivalence.
+
 `SPX-G225` reports malformed or unsupported declaration constructors, ID/name
 collisions, inaccessible scope, and disallowed effect/mode requests.
 `SPX-G226` reports constructor list capacity. Full source verification and
@@ -112,6 +155,13 @@ placement anchor with existing imports, ID/name collisions, unauthorized
 effects, invalid ownership modes, result scope, raw-source fields, malformed
 bodies, list bounds, and borrowed-byte forwarding to an owned-byte result.
 These regressions have not been run.
+
+`candidate/aggregate_nominal.rs` owns nominal selector authentication and
+template discovery; `declaration.rs` owns the post-build Copy gate.
+`tests/project_candidate_nominal_declarations_v1.rs` adds authored, unrun cases
+for unused generic instances, return-only records/variants, monomorphic aliases,
+Option/Result, malformed selectors, non-Copy signatures, recovery and no writes.
+`tests/project_candidate_rebase_v1.rs` adds type-only dependency conflicts.
 
 This is function creation only. Creating types, records, variants, interfaces,
 protocols, methods, generic functions, modules, public exports, new imports,

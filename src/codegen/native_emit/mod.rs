@@ -28,6 +28,7 @@ use super::{
 };
 
 mod expression;
+mod owned_strings;
 
 pub(super) fn emit_hir_c_with_labels(
     program: &ResolvedProgram,
@@ -1806,14 +1807,44 @@ fn emit_function(
             }
         }
     }
+    let mut function_body = if emission.output_profile == NativeOutputProfile::OwnedUtf8Provider {
+        owned_strings::FunctionOutput::Staged(crate::bounded_output::CappedString::new())
+    } else {
+        owned_strings::FunctionOutput::Direct(&mut *output)
+    };
     let mut emitter = CEmitter::new(
-        output,
+        &mut function_body,
         variables,
         &function.return_type,
         emission,
         bytes_plan.as_ref(),
         borrowed_aggregate_bytes,
     );
+    if emitter.owned_strings.is_some() {
+        for (index, param) in function.params.iter().enumerate() {
+            if matches!(param.ty, ResolvedType::String) {
+                if param.ownership != hir::OwnershipMode::Value {
+                    return Err(backend_error(
+                        "inline String parameter is not passed by value",
+                    ));
+                }
+                let name = format!("spx_param_{index}");
+                emitter
+                    .owned_strings
+                    .as_mut()
+                    .unwrap()
+                    .register(&name, false)?;
+                emitter.string_initialize(&name);
+            }
+        }
+        if matches!(function.return_type, ResolvedType::String) {
+            emitter
+                .owned_strings
+                .as_mut()
+                .unwrap()
+                .register("spx_result", false)?;
+        }
+    }
     emitter.line("spx_status_token spx_status = SPX_STATUS_SUCCESS;");
     if has_try {
         emitter.line("bool spx_result_staged = false;");
@@ -1888,7 +1919,9 @@ fn emit_function(
     let body = emitter.emit_expr(&function.body)?;
     emitter.try_target_enabled = false;
     emitter.require_type(&body.ty, &function.return_type, "function body")?;
-    if !matches!(body.ty, ResolvedType::Bytes) {
+    if matches!(body.ty, ResolvedType::String) && emitter.owned_strings.is_some() {
+        emitter.string_move("spx_result", &body.code);
+    } else if !matches!(body.ty, ResolvedType::Bytes) {
         emitter.line(&format!("spx_result = {};", body.code));
     }
     if has_try {
@@ -1927,7 +1960,14 @@ fn emit_function(
         emitter.line("}");
     }
     emitter.line("goto spx_epilogue;");
+    let string_cells = emitter.owned_strings.take();
     drop(emitter);
+    if let owned_strings::FunctionOutput::Staged(body) = function_body {
+        if let Some(cells) = &string_cells {
+            output.push_str(&cells.declarations());
+        }
+        output.push_str(&body.into_string());
+    }
     output.push_str("spx_epilogue:\n");
     if !borrowed_params.is_empty() || !borrowed_byte_params.is_empty() {
         output.push_str("    if (spx_ctx->borrowed_str_depth == UINT32_C(0)) spx_runtime_invariant_failure(\"borrowed str call depth underflow\");\n");
@@ -1936,9 +1976,20 @@ fn emit_function(
     // Callee-owned parameters free their storage on every exit path; a moved
     // Bytes carrier is normalized by `spx_bytes_move`, making this exact-once.
     // the staged result is handed to the caller instead.
-    for (index, param) in function.params.iter().enumerate() {
-        if matches!(param.ty, ResolvedType::String) {
-            output.push_str(&format!("    spx_string_drop(spx_param_{index});\n"));
+    if let Some(cells) = &string_cells {
+        for name in cells.names() {
+            let guard = if name == "spx_result" {
+                "spx_status != SPX_STATUS_SUCCESS && "
+            } else {
+                ""
+            };
+            output.push_str(&format!("    if ({guard}{name}_live) {{ {name}_live = false; spx_string_drop({name}); {name} = NULL; }}\n"));
+        }
+    } else {
+        for (index, param) in function.params.iter().enumerate() {
+            if matches!(param.ty, ResolvedType::String) {
+                output.push_str(&format!("    spx_string_drop(spx_param_{index});\n"));
+            }
         }
     }
     if let Some(plan) = &bytes_plan {
@@ -1982,7 +2033,13 @@ fn emit_function(
                 .collect::<String>(),
         );
     } else {
+        if string_cells.is_some() && matches!(function.return_type, ResolvedType::String) {
+            output.push_str("    if (!spx_result_live) spx_runtime_invariant_failure(\"dead String result\");\n");
+        }
         output.push_str("    *spx_result_out = spx_result;\n");
+        if string_cells.is_some() && matches!(function.return_type, ResolvedType::String) {
+            output.push_str("    spx_result_live = false;\n");
+        }
     }
     output.push_str("    return SPX_STATUS_SUCCESS;\n");
     output.push_str("}\n\n");
@@ -2212,6 +2269,7 @@ struct CEmitter<'a, O: COutput> {
     bytes_plan: Option<&'a native_bytes::NativeBytesPlan>,
     borrowed_aggregate_bytes: HashMap<(ValueId, Vec<DeclarationId>), String>,
     output_profile: NativeOutputProfile,
+    owned_strings: Option<owned_strings::OwnedStrings>,
     try_target_enabled: bool,
     next_local: usize,
     indent: usize,
@@ -2238,6 +2296,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             bytes_plan,
             borrowed_aggregate_bytes,
             output_profile: emission.output_profile,
+            owned_strings: (emission.output_profile == NativeOutputProfile::OwnedUtf8Provider)
+                .then(owned_strings::OwnedStrings::default),
             try_target_enabled: false,
             next_local: 0,
             indent: 1,
@@ -2261,6 +2321,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         }
         let name = format!("spx_internal_{}", self.next_local);
         self.next_local += 1;
+        if matches!(ty, ResolvedType::String) {
+            if let Some(cells) = &mut self.owned_strings {
+                cells.register(&name, true)?;
+                self.string_require_dead(&name);
+                return Ok(name);
+            }
+        }
         self.line(&format!(
             "{} {name};",
             c_value_type(self.program, self.resource_abi, ty)?

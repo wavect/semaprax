@@ -129,6 +129,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     for line in transitions.lines() {
                         self.line(line);
                     }
+                } else if matches!(value.ty, ResolvedType::String) && self.owned_strings.is_some() {
+                    self.string_move(&result, &value.code);
                 } else {
                     self.line(&format!("{result} = {};", value.code));
                 }
@@ -146,6 +148,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     for line in transitions.lines() {
                         self.line(line);
                     }
+                } else if matches!(value.ty, ResolvedType::String) && self.owned_strings.is_some() {
+                    self.string_move(&result, &value.code);
                 } else {
                     self.line(&format!("{result} = {};", value.code));
                 }
@@ -188,12 +192,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             crate::string_ops::StringOp::Len => {
                 let input = &arguments[0].code;
                 self.line(&format!("{temporary} = spx_string_len({input});"));
-                self.line(&format!("spx_string_drop({input});"));
+                self.string_drop(input);
             }
             crate::string_ops::StringOp::IsEmpty => {
                 let input = &arguments[0].code;
                 self.line(&format!("{temporary} = spx_string_is_empty({input});"));
-                self.line(&format!("spx_string_drop({input});"));
+                self.string_drop(input);
             }
             crate::string_ops::StringOp::Concat => {
                 let left = &arguments[0].code;
@@ -201,8 +205,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 self.line(&format!(
                     "{temporary} = spx_string_concat({left}, {right});"
                 ));
-                self.line(&format!("spx_string_drop({left});"));
-                self.line(&format!("spx_string_drop({right});"));
+                self.string_drop(left);
+                self.string_drop(right);
             }
             crate::string_ops::StringOp::StartsWith => {
                 let value = &arguments[0].code;
@@ -210,8 +214,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 self.line(&format!(
                     "{temporary} = spx_string_starts_with({value}, {prefix});"
                 ));
-                self.line(&format!("spx_string_drop({value});"));
-                self.line(&format!("spx_string_drop({prefix});"));
+                self.string_drop(value);
+                self.string_drop(prefix);
             }
             crate::string_ops::StringOp::Contains => {
                 let value = &arguments[0].code;
@@ -219,18 +223,21 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 self.line(&format!(
                     "{temporary} = spx_string_contains({value}, {needle});"
                 ));
-                self.line(&format!("spx_string_drop({value});"));
-                self.line(&format!("spx_string_drop({needle});"));
+                self.string_drop(value);
+                self.string_drop(needle);
             }
             crate::string_ops::StringOp::LenChars => {
                 let input = &arguments[0].code;
                 self.line(&format!("{temporary} = spx_string_len_chars({input});"));
-                self.line(&format!("spx_string_drop({input});"));
+                self.string_drop(input);
             }
             crate::string_ops::StringOp::FromChar => {
                 let scalar = &arguments[0].code;
                 self.line(&format!("{temporary} = spx_string_from_char({scalar});"));
             }
+        }
+        if matches!(op.return_type(), ResolvedType::String) {
+            self.string_initialize(&temporary);
         }
         Ok(CValue {
             code: temporary,
@@ -521,6 +528,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     c_string(value),
                     value.len()
                 ));
+                self.string_initialize(&temporary);
                 CValue {
                     code: temporary,
                     ty: ResolvedType::String,
@@ -534,6 +542,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 if matches!(value.ty, ResolvedType::String) {
                     let temporary = self.temporary(&ResolvedType::String)?;
                     self.line(&format!("{temporary} = spx_string_clone({});", value.code));
+                    self.string_initialize(&temporary);
                     return Ok(CValue {
                         code: temporary,
                         ty: value.ty,
@@ -1039,43 +1048,55 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         values: Vec<CValue>,
     ) -> Result<CValue, Diagnostic> {
         let mut arguments = Vec::with_capacity(args.len());
+        let mut string_arguments = Vec::new();
         for (index, ((arg, expected), argument)) in
             args.iter().zip(&target.params).zip(values).enumerate()
         {
             self.require_type(&argument.ty, expected, &format!("call argument {index}"))?;
-            arguments.push(if matches!(expected, ResolvedType::Bytes) {
-                let plan = self.bytes_plan.ok_or_else(|| {
-                    backend_error("owned Bytes call has no canonical cleanup plan")
-                })?;
-                let transitions = plan.apply_at(&arg.id)?;
-                for line in transitions.lines() {
-                    self.line(line);
-                }
-                let parameter_index = u32::try_from(index)
-                    .map_err(|_| backend_error("native call has too many parameters"))?;
-                let (value, _) = plan.call_argument(&expr.id, parameter_index)?;
-                format!("spx_bytes_move(&{value})")
-            } else if is_aggregate_type(self.program, expected)? {
-                if target.param_ownerships[index] == hir::OwnershipMode::Own {
-                    if let Some(plan) = self.bytes_plan {
-                        let parameter_index = u32::try_from(index)
-                            .map_err(|_| backend_error("native call has too many parameters"))?;
-                        let storage = plan.call_argument_storage(&expr.id, parameter_index)?;
-                        let materialize = if plan.has_variant_leaves(&storage) {
-                            let layout = self.variant_layout(expected)?;
-                            plan.materialize_variant_carrier(&storage, &argument.code, &layout)?
-                        } else {
-                            plan.materialize_record_carrier(&storage, &argument.code)?
-                        };
-                        for line in materialize.lines() {
-                            self.line(line);
+            arguments.push(
+                if matches!(expected, ResolvedType::String) && self.owned_strings.is_some() {
+                    // Aliases carry values only across the non-failing commit;
+                    // the caller cells remain the sole owners until all staging ends.
+                    let alias = format!("spx_string_argument_{}", self.next_local);
+                    self.next_local += 1;
+                    self.line(&format!("char *{alias} = {};", argument.code));
+                    string_arguments.push(argument.code);
+                    alias
+                } else if matches!(expected, ResolvedType::Bytes) {
+                    let plan = self.bytes_plan.ok_or_else(|| {
+                        backend_error("owned Bytes call has no canonical cleanup plan")
+                    })?;
+                    let transitions = plan.apply_at(&arg.id)?;
+                    for line in transitions.lines() {
+                        self.line(line);
+                    }
+                    let parameter_index = u32::try_from(index)
+                        .map_err(|_| backend_error("native call has too many parameters"))?;
+                    let (value, _) = plan.call_argument(&expr.id, parameter_index)?;
+                    format!("spx_bytes_move(&{value})")
+                } else if is_aggregate_type(self.program, expected)? {
+                    if target.param_ownerships[index] == hir::OwnershipMode::Own {
+                        if let Some(plan) = self.bytes_plan {
+                            let parameter_index = u32::try_from(index).map_err(|_| {
+                                backend_error("native call has too many parameters")
+                            })?;
+                            let storage = plan.call_argument_storage(&expr.id, parameter_index)?;
+                            let materialize = if plan.has_variant_leaves(&storage) {
+                                let layout = self.variant_layout(expected)?;
+                                plan.materialize_variant_carrier(&storage, &argument.code, &layout)?
+                            } else {
+                                plan.materialize_record_carrier(&storage, &argument.code)?
+                            };
+                            for line in materialize.lines() {
+                                self.line(line);
+                            }
                         }
                     }
-                }
-                format!("&({})", argument.code)
-            } else {
-                argument.code
-            });
+                    format!("&({})", argument.code)
+                } else {
+                    argument.code
+                },
+            );
             if is_aggregate_type(self.program, expected)?
                 && target.param_ownerships[index] == hir::OwnershipMode::Borrow
             {
@@ -1129,6 +1150,15 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         } else {
             self.call_result_temporary(&target.return_type)?
         };
+        for source in &string_arguments {
+            self.line(&format!(
+                "if (!{source}_live) spx_runtime_invariant_failure(\"dead String argument\");"
+            ));
+        }
+        for source in string_arguments {
+            self.line(&format!("{source}_live = false;"));
+            self.line(&format!("{source} = NULL;"));
+        }
         self.line(&format!(
             "spx_status = {}(spx_ctx{}{}, &{temporary});",
             target.symbol,
@@ -1148,6 +1178,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             }
         }
         self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+        if matches!(target.return_type, ResolvedType::String) {
+            self.string_initialize(&temporary);
+        }
         if is_aggregate_type(self.program, &target.return_type)? {
             if let Some(plan) = self.bytes_plan {
                 let storage = crate::cleanup_plan::StorageId::Temporary(expr.id.clone());
@@ -1207,6 +1240,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                     }
                                 }
                                 expected
+                            } else if matches!(binding.ty, ResolvedType::String)
+                                && self.owned_strings.is_some()
+                            {
+                                let local = self.temporary(&ResolvedType::String)?;
+                                self.string_move(&local, &value.code);
+                                local
                             } else if matches!(binding.ty, ResolvedType::ArrayU8(0)) {
                                 // The expression has already been evaluated;
                                 // its zero-sized Copy value has no C storage.
@@ -1371,7 +1410,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     .collect();
                 introduced_strings.sort();
                 for name in introduced_strings {
-                    self.line(&format!("spx_string_drop({name});"));
+                    self.string_drop(&name);
                 }
                 if matches!(tail.ty, ResolvedType::Bytes) {
                     let plan = self.bytes_plan.ok_or_else(|| {
@@ -1593,6 +1632,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 }
             }
             self.line(&format!("{temporary} = {};", value.code));
+        } else if matches!(expr.ty, ResolvedType::String) && self.owned_strings.is_some() {
+            self.string_move(temporary, &value.code);
         } else if !matches!(expr.ty, ResolvedType::ArrayU8(0)) {
             self.line(&format!("{temporary} = {};", value.code));
         }
@@ -2019,6 +2060,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         for line in transitions.lines() {
                             self.line(line);
                         }
+                    } else if matches!(value.ty, ResolvedType::String)
+                        && self.owned_strings.is_some()
+                    {
+                        self.string_move(&result, &value.code);
                     } else {
                         self.line(&format!("{result} = {};", value.code));
                     }
@@ -2638,8 +2683,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 format!("!spx_string_eq({}, {})", left.code, right.code)
             };
             self.line(&format!("{temporary} = {comparison};"));
-            self.line(&format!("spx_string_drop({});", left.code));
-            self.line(&format!("spx_string_drop({});", right.code));
+            self.string_drop(&left.code);
+            self.string_drop(&right.code);
             return Ok(CValue {
                 code: temporary,
                 ty: ResolvedType::Bool,

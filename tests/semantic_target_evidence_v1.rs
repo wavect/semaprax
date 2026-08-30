@@ -306,6 +306,86 @@ fn exact_candidate_artifacts_are_digest_bound_before_hosted_execution() {
 }
 
 #[test]
+fn string_cleanup_evidence_binds_current_production_c_and_rejects_foreign_binding() {
+    // This is compiler-artifact replay evidence, not native or Wasm execution.
+    // The String-bearing function must use current production cleanup, never
+    // an older alternate emitter selected to retain a historical digest.
+    let source = "module target.string_cleanup;\n@id(\"target.helper\") fn helper()->i64{41}\n@id(\"app.main\") fn main()->i64{let text=\"ordinary\";string_len(text)+helper()}\n";
+    let patch = format!(
+        "schema semaprax.semantic-patch.v2\nbase {}\nrename target.helper to answer\nrequire no-new-effects\n",
+        graph::revision(&parse(source, "string-cleanup.spx").unwrap())
+    );
+    let fixture = Fixture::new("string-cleanup-binding", source, &patch);
+    let before = std::fs::read(&fixture.source).unwrap();
+    let report = target_evidence::preview(&fixture.source, &fixture.patch).unwrap();
+    let value: serde_json::Value = serde_json::from_str(&report).unwrap();
+    let native = codegen::emit_c(&parse(source, &fixture.source).unwrap()).unwrap();
+    assert!(native.contains("live String overwritten"));
+    assert!(native.contains("invalid String transfer"));
+    assert!(!native.contains("struct spx_string_v10"));
+    assert_eq!(value["targets"][0]["base_bytes"], native.len());
+    assert_eq!(
+        value["targets"][0]["base_digest"],
+        domain_digest(
+            b"semaprax.semantic-target-evidence.native-c11-source-digest.v1\0",
+            native.as_bytes(),
+        )
+    );
+
+    let capsule = semaprax::patch_evidence::generate_v2(&fixture.source, &fixture.patch).unwrap();
+    let capsule_value: serde_json::Value = serde_json::from_str(&capsule).unwrap();
+    let target_digest = domain_digest(
+        b"semaprax.semantic-target-evidence.report-digest.v1\0",
+        report.as_bytes(),
+    );
+    assert_eq!(capsule_value["target_evidence"]["digest"], target_digest);
+    assert_eq!(
+        capsule_value["budget"]["used_base_native_c11_bytes"],
+        native.len()
+    );
+    let evidence_path = fixture.directory.join("string-evidence.json");
+    std::fs::write(&evidence_path, &capsule).unwrap();
+    semaprax::patch_evidence::verify_v2(&fixture.source, &fixture.patch, &evidence_path).unwrap();
+
+    // Preserve canonical shape and length, but bind a different target report.
+    // This is a hostile binding, not a fabricated previous-compiler capsule.
+    let mut foreign_digest = target_digest.clone();
+    let changed = if foreign_digest.ends_with('0') {
+        "1"
+    } else {
+        "0"
+    };
+    foreign_digest.replace_range(foreign_digest.len() - 1.., changed);
+    std::fs::write(
+        &evidence_path,
+        capsule.replacen(&target_digest, &foreign_digest, 1),
+    )
+    .unwrap();
+    let rejected =
+        semaprax::patch_evidence::verify_v2(&fixture.source, &fixture.patch, &evidence_path)
+            .unwrap_err();
+    assert_eq!(rejected[0].code, "SPX-G132");
+    assert_eq!(std::fs::read(&fixture.source).unwrap(), before);
+
+    patch::apply(&fixture.source, &fixture.patch).unwrap();
+    let candidate = parse(
+        &std::fs::read_to_string(&fixture.source).unwrap(),
+        &fixture.source,
+    )
+    .unwrap();
+    let native = codegen::emit_c(&candidate).unwrap();
+    assert!(native.contains("invalid String transfer"));
+    assert_eq!(value["targets"][0]["candidate_bytes"], native.len());
+    assert_eq!(
+        value["targets"][0]["candidate_digest"],
+        domain_digest(
+            b"semaprax.semantic-target-evidence.native-c11-source-digest.v1\0",
+            native.as_bytes(),
+        )
+    );
+}
+
+#[test]
 fn absolute_paths_remain_regular_fixture_paths() {
     let fixture = Fixture::rename("paths");
     assert!(Path::new(&fixture.source).is_absolute());

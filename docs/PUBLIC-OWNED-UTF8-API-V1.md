@@ -128,10 +128,11 @@ String intrinsics and contracts in unselected functions; this does not admit
 them in the public v10 closure. Allocation failure remains fail-stop. These
 rules add no unwind, signal, or `longjmp` recovery guarantee.
 
-Only v10 native provider C and its dependent integrity bindings intentionally
-change. Ordinary native C and earlier provider profiles retain their previous
-bytes and limitations. Their separate inline String failure-cleanup gap is
-not closed by this correction. Context-handle closure alone is not proof that
+The v10 correction changes only v10 native provider C and its dependent
+integrity bindings. The subsequent [ordinary native String correction](NATIVE-INLINE-STRING-SETTLEMENT-V1.md)
+reuses the ledger under a separate selection and leaves v10 provider bytes
+unchanged. Frozen earlier provider and command projections retain their
+unselected-String cleanup limitation. Context-handle closure alone is not proof that
 pre-handle String allocations were freed. Cross-backend failure-settlement
 equivalence and native sanitizer evidence remain unrun gates before promotion.
 

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Authored ordinary/stdout native String failure settlement using the existing
+  per-function owner ledger, plus runtime-helper discovery in materialized
+  generic instances. Only String-bearing ordinary functions change; frozen
+  command/provider outputs and String-free emission/budget paths are retained.
+  Added physical allocation/status/poison regressions and current-compiler
+  target-evidence binding coverage. All new tests and sanitizers remain unrun.
+  Ordinary embedded-NUL semantics and Wasm String settlement remain separate
+  open defects; no hosted, cross-backend, or production promotion is claimed.
+
 - Authored v10 native-provider inline String ownership settlement: initialized
   function-lifetime cells, explicit binding/branch/call/result transfers,
   normal scope cleanup, and sticky failure cleanup before result publication.

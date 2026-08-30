@@ -10,6 +10,13 @@ Target Evidence v1 report. It remains a bounded single-file proof carrier:
 exact replay proves only the frozen capsule bindings, not execution, safety,
 compatibility, provenance, approval, or authority.
 
+The authored [ordinary native String cleanup correction](NATIVE-INLINE-STRING-SETTLEMENT-V1.md)
+changes native target bindings for String-bearing subjects. A capsule binding
+older compiler output does not silently migrate: it must match complete
+current replay or reject with `SPX-G132`. Schema, digest domains, Evidence v1,
+and String-free known answers are unchanged. This is not evidence that the new
+native runtime or its regressions have executed.
+
 ## Commands, API, and apply order
 
 ```text

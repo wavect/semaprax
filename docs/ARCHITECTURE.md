@@ -181,6 +181,14 @@ The public executable lane emits C11 and invokes an explicitly admitted Clang.
 Private callable and resource lanes are narrower host-integration evidence;
 they do not establish a stable general native ABI.
 
+`native_emit/owned_strings.rs` also owns the authored ordinary/stdout inline
+String ledger. Only String-bearing functions stage bounded output for hoisted
+owner cells; String-free functions retain direct emission. Ordinary String
+helper discovery includes materialized generic instances as well as
+monomorphic functions. Dedicated provider and versioned command projections
+retain their separate selection. See [Native Inline String Settlement
+v1](NATIVE-INLINE-STRING-SETTLEMENT-V1.md) for exact compatibility and open gaps.
+
 ### WebAssembly backend
 
 `src/wasm.rs` and `src/wasm/` emit Core WebAssembly and generated host
@@ -367,10 +375,11 @@ String ledger. Bounded staged emission hoists initialized owner cells before
 failure branches; expression lowering moves ownership at binding, branch,
 call, and result boundaries. Normal scope cleanup and the common epilogue
 settle those cells without reinterpreting resource CleanupPlan liveness.
-Neither ledger confers provider-handle or publication authority. Ordinary
-native and earlier provider profiles retain their existing bytes and separate
-String failure-cleanup limitation; Wasm accounting and context-handle closure
-alone do not prove native allocation settlement.
+Neither ledger confers provider-handle or publication authority. The separate
+ordinary/stdout correction reuses the native ledger without changing v10
+provider bytes. Frozen earlier provider and command profiles retain their
+existing unselected-String cleanup limitation; Wasm accounting and
+context-handle closure alone do not prove native allocation settlement.
 
 `src/project_revision_store.rs` and `src/project_revision_store/unix.rs` own
 the additive [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md). The

@@ -94,6 +94,11 @@ Body constructors are closed objects: scalar `kind`/`value` literals;
 `target` and `arguments`. Places select existing function parameters. Calls
 select existing local functions or explicit imports and cannot add an import.
 Constructors cannot submit source text, HIR, graph fields, or unresolved holes.
+The [scoped `let` constructor](PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md) binds
+one initializer for reuse in its body, with ordinary inferred typing and
+ownership verification. Places may also select active constructor-local or
+match-arm bindings. A new local is unavailable in its own initializer and does
+not escape into sibling scopes.
 The additive [aggregate constructors](PROJECT-AGGREGATE-CONSTRUCTORS-V1.md)
 construct records and variant cases through retained checked type/case/field
 identities and a unique existing local/imported type binding. Generic templates

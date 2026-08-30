@@ -132,6 +132,27 @@ fn expression_schema() -> Value {
         ("kind", json!({"const":"place"})),
         ("name", identifier()),
     ]));
+    let mut binding_name = identifier();
+    binding_name["not"]["enum"].as_array_mut().unwrap().extend(
+        [
+            "_", "record", "variant", "class", "resource", "type", "protocol", "impl", "for",
+            "extends", "Option", "Result",
+        ]
+        .into_iter()
+        .map(|name| json!(name)),
+    );
+    let mut binding = closed(&[
+        ("kind", json!({"const":"let"})),
+        ("name", binding_name),
+        ("value", reference("expression")),
+        ("body", reference("expression")),
+    ]);
+    binding["x-implicit-let-nodes"] = json!(1);
+    binding["x-value-and-body-depth-increment"] = json!(1);
+    binding["x-initializer-scope"] = json!("outside_new_binding");
+    binding["x-body-scope"] = json!("immutable_local_binding");
+    binding["x-evaluation-order"] = json!("value_then_body");
+    variants.push(binding);
     variants.push(closed(&[("kind",json!({"const":"call"})),("target",text(MAX_ID_BYTES)),("arguments",json!({"type":"array","maxItems":MAX_EXPRESSION_NODES-1,"items":reference("expression")}))]));
     for kind in ["record", "variant"] {
         let mut aggregate = closed(&[
@@ -373,6 +394,43 @@ mod aggregate_expression_schema_tests {
     use super::*;
 
     #[test]
+    fn lexical_binding_closes_scope_and_recursive_children_without_type_authority() {
+        let schema = expression_schema();
+        let binding = schema["oneOf"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|variant| variant["properties"]["kind"]["const"] == "let")
+            .unwrap();
+        assert_eq!(binding["additionalProperties"], false);
+        assert_eq!(
+            binding["required"],
+            json!(["kind", "name", "value", "body"])
+        );
+        assert_eq!(binding["properties"].as_object().unwrap().len(), 4);
+        assert_eq!(binding["properties"]["value"], reference("expression"));
+        assert_eq!(binding["properties"]["body"], reference("expression"));
+        let name = &binding["properties"]["name"];
+        assert_eq!(name["maxLength"], MAX_NAME_BYTES);
+        assert_eq!(name["pattern"], "^[A-Za-z_][A-Za-z0-9_]*$");
+        let reserved = name["not"]["enum"].as_array().unwrap();
+        for token in [
+            "let", "mut", "_", "record", "variant", "class", "resource", "type", "protocol",
+            "impl", "for", "extends", "Option", "Result",
+        ] {
+            assert!(reserved.contains(&json!(token)));
+        }
+        assert_eq!(binding["x-implicit-let-nodes"], 1);
+        assert_eq!(binding["x-value-and-body-depth-increment"], 1);
+        assert_eq!(binding["x-initializer-scope"], "outside_new_binding");
+        assert_eq!(binding["x-body-scope"], "immutable_local_binding");
+        assert_eq!(binding["x-evaluation-order"], "value_then_body");
+        for field in ["type", "mutable", "source", "declared_type"] {
+            assert!(binding["properties"].get(field).is_none());
+        }
+    }
+
+    #[test]
     fn declaration_nominal_types_are_closed_and_only_value_parameters() {
         let declaration = function_declaration_schema();
         let parameters = declaration["properties"]["parameters"]["items"]["oneOf"]
@@ -464,7 +522,7 @@ mod aggregate_expression_schema_tests {
             kinds,
             [
                 "i64", "i32", "u8", "usize", "bool", "place", "call", "binary", "unary", "if",
-                "record", "variant", "project", "match", "update"
+                "record", "variant", "project", "match", "update", "let"
             ]
             .into_iter()
             .collect()

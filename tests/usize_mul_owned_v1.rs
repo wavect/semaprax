@@ -111,7 +111,8 @@ fn usize_multiplication_zero_overflow_and_cleanup_match_across_targets() {
     );
     fs::write(root.join("src/app.spx"), &canonical).unwrap();
     let tests = "module mul.tests; @id(\"mul.tests.main\") fn main() -> i64 { 0 }\n";
-    fs::write(root.join("src/tests.spx"), tests).unwrap();
+    let tests = semaprax::format::canonical(&semaprax::check(tests, "tests.spx").unwrap());
+    fs::write(root.join("src/tests.spx"), &tests).unwrap();
     let manifest_text = "schema = \"semaprax.project.v8\"\nname = \"usize-owned\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"\nentry = \"mul.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"mul.forward\", \"mul.precedence\", \"mul.reverse\"]\ntests = [\"mul.tests\"]\n";
     let manifest = root.join("semaprax.toml");
     fs::write(&manifest, manifest_text).unwrap();

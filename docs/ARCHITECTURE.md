@@ -142,6 +142,11 @@ verified representations.
 A graph, report, review, or evidence capsule is descriptive data. It is not a
 capability, signature, approval, or commit token.
 
+Target Evidence reports the pinned wasmparser 0.258.0 validator. Validator
+version facts participate in report hashes and Evidence v2 replay; dependency
+updates require capsule regeneration without granting target execution or
+publication authority. See [Target Evidence v1](SEMANTIC-TARGET-EVIDENCE-V1.md).
+
 ## Compiler and execution lanes
 
 ### Interpreter

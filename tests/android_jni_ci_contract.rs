@@ -379,7 +379,7 @@ fn private_android_jni_hosted_gate_is_mandatory_and_fail_closed() {
         "test -r /dev/kvm",
         "test -w /dev/kvm",
         "Build offline and run the private JNI/Kotlin instrumentation APK",
-        "ReactiveCircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0",
+        "ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0",
         "api-level: 35",
         "ndk: 27.2.12479018",
         "script: scripts/android-jni-app-v3.sh",

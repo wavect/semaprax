@@ -18,6 +18,12 @@ current replay or reject with `SPX-G132`. Schema, digest domains, Evidence v1,
 and String-free known answers are unchanged. This is not evidence that the new
 native runtime or its regressions have executed.
 
+The wasmparser 0.258.0 update changes the validator-version fact in Target
+Evidence v1, so current capsule and receipt hashes change even for String-free
+subjects. Old capsules must be regenerated; an old report binding fails with
+`SPX-G132` before staging. This changes neither Evidence v1 nor schemas, digest
+domains, emitted target bytes, or commit authority.
+
 ## Commands, API, and apply order
 
 ```text
@@ -158,6 +164,20 @@ snapshot, and A0 families remain in force, including `SPX-I202` for patch
 input and `SPX-I207` for source/final-check failures.
 
 ## KATs and evidence
+
+Current wasmparser 0.258.0 SHA-256 known answers are:
+
+| Patch schema | Capsule SHA-256 | Receipt SHA-256 |
+| --- | --- | --- |
+| v1 | `b88cba43cca79797900a50fdb853395409ad9745abbd938c6b175b06f5d483b7` | `a47578997ea60a9a486df3e805af3d70f253615e7adbbc94ce635db3b461a9f6` |
+| v2 | `e9338ec4b58aa8d91e055afa7461c64a2e8f13fd9a8123755cfee977c42d736d` | `e741b379eea42325a7beb086c676fcd9c98b3857a76e3b82499f0178e3db927e` |
+| v3 | `36421c08c02575cf58f59e3ec77e05e2382b803dde45ae8fd214865a69ef4efd` | `9b75e62b3abc00ffe53eb75f834ca701878d0af48476020672ed5e4ac44eacca` |
+
+The regressions reconstruct the previous validator binding and retain its
+exact hashes, demonstrating that only validator metadata and its derived
+bindings changed. Old Evidence v2 capsules fail with `SPX-G132` before source
+changes or staging. The following hashes and hosted results are historical
+evidence, not validation of this dependency update.
 
 Raw whole-artifact SHA-256 KATs are:
 

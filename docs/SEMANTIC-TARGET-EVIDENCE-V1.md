@@ -19,6 +19,13 @@ native digests and byte counts for those subjects. The schema and digest
 domains do not change. String-free known answers remain frozen; this
 work does not refresh or establish execution of historical KATs.
 
+The wasmparser 0.258.0 dependency update changes `validator_version` from
+0.256.0 to 0.258.0. This intentionally changes whole-report hashes and the
+Evidence v2 bindings that include them, including String-free subjects; emitted
+Graph, capability, native, and Wasm bytes are unchanged by this metadata update.
+Schemas, digest domains, limits, and authority remain unchanged. Regenerate
+capsules with the current compiler; old validator bindings fail exact replay.
+
 ## Command and public API
 
 ```text
@@ -86,7 +93,7 @@ The native values are `native_c11_source` and
 `semaprax.native-c11.bootstrap.v1`. These bytes are production compiler-emitted
 C11 source, not compiled objects, machine code, ABI evidence, or toolchain
 attestation. The Wasm values are `wasm_core_module`, `semaprax.wasm-core.v1`,
-`wasmparser_structural`, `0.256.0`, and `all`. Structural validation is not
+`wasmparser_structural`, `0.258.0`, and `all`. Structural validation is not
 runtime execution or multi-engine conformance.
 
 ## Graph and capability facts
@@ -146,6 +153,20 @@ private final-check hook failure used by executable race evidence, not a new
 public evidence-file input.
 
 ## KATs and executable evidence
+
+Current wasmparser 0.258.0 SHA-256 known answers are:
+
+| Patch schema | SHA-256 |
+| --- | --- |
+| v1 | `f20d8e66029bb7671af569847f154d562f3668cbe12c6f9b45686569c658b787` |
+| v2 | `079d397e4dfabfec4dcf4d3914c76d3babc7ca56a9a948ae7114274898f4c3ae` |
+| v3 | `470108d68d4364a49de36df7522c7bc3306112ba6b5af3a83a8788541e2ea393` |
+
+The regressions reconstruct the previous validator binding and retain its
+exact hashes, demonstrating that only validator metadata and its derived
+bindings changed. Old Evidence v2 capsules fail with `SPX-G132` before source
+changes or staging. The following hashes and hosted results are historical
+evidence, not validation of this dependency update.
 
 Raw whole-report SHA-256 KATs, computed over the API report bytes without a
 wire prefix or terminal LF, are:

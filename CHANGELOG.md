@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Integrated Dependabot PRs #13 and #14: pinned Android emulator runner 2.38.0
+  and wasmparser 0.258.0, including standalone Rust and Component lockfiles and
+  exact CI pin contracts. Target Evidence now names the actual validator;
+  current report/capsule/receipt known answers retain explicit old-binding
+  preservation and `SPX-G132` rejection before staging. Regenerate Evidence v2
+  capsules after upgrading; emitted target bytes and Evidence v1 are unchanged.
+  Local workspace checking, strict workspace Clippy, and 53 focused tests
+  passed (the target suite ran serially after a disk-space failure). All four
+  affected lockfiles resolve offline with `--locked`. Full `scripts/quality.sh` could not
+  complete because the linker ran out of disk space; no hosted or completion
+  status is promoted.
+
 - Kept the strict wildcard dependency ban while moving private-host CLI tests
   into the unpublished toolchain and pinning its local dependencies. Restricted
   a now-Unix-only publication helper accordingly and reduced Windows dev/test

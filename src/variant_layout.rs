@@ -230,6 +230,16 @@ pub(crate) struct VariantLayoutCache {
 }
 
 impl VariantLayoutCache {
+    /// A selected backend profile that has already rejected every nominal
+    /// type needs no whole-program layout discovery. Any accidental nominal
+    /// lookup still fails through the ordinary missing-layout check.
+    pub(crate) fn for_scalar_only(target: VariantTarget) -> Self {
+        Self {
+            target,
+            layouts: BTreeMap::new(),
+        }
+    }
+
     pub(crate) fn build(
         program: &ResolvedProgram,
         target: VariantTarget,

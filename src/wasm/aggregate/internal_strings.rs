@@ -20,7 +20,9 @@ pub(in crate::wasm) fn emit(
     closure: &BTreeSet<DeclarationId>,
     owner_limit: Option<u32>,
 ) -> Result<(Vec<u8>, u32, u32), Diagnostic> {
-    let layouts = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
+    // Admission proves every selected type scalar/String. Unselected nominal
+    // declarations must not be scanned or affect this closure's artifacts.
+    let layouts = VariantLayoutCache::for_scalar_only(VariantTarget::Wasm32);
     let functions = closure
         .iter()
         .map(|id| {
@@ -42,7 +44,7 @@ pub(in crate::wasm) fn emit(
     let mut owners = BTreeMap::new();
     let mut drop_work = 0usize;
     for function in &functions {
-        let plan = FunctionPlan::build(program, function, &layouts)?;
+        let plan = FunctionPlan::build_profile(program, function, &layouts, true)?;
         if !function.cleanup_plan.slots.is_empty() {
             return Err(error(
                 "standalone String profile cannot finalize resource cleanup slots",

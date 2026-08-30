@@ -197,3 +197,75 @@ fn string_mutation_and_direct_string_loop_storage_keep_source_rejections() {
         .is_err());
     }
 }
+
+#[test]
+fn unrelated_declarations_cannot_change_selected_artifacts_or_planning() {
+    let baseline = emit_module(
+        &program(SOURCE),
+        &["s.main".into()],
+        InternalStringOptions::default(),
+    )
+    .unwrap();
+    let additions = r#"
+@id("unused.record") record Unused { value: i64, }
+@id("unused.record_value") fn record_value() -> Unused { Unused { value: 3 } }
+@id("unused.generic") fn generic<T>(value: T) -> T { value }
+@id("unused.instance") fn instance() -> i64 { generic<i64>(9) }
+@id("unused.recursive") fn recursive() -> i64 { recursive() }
+@id("unused.arguments") fn arguments() -> i64 uses { process.args.read } {
+    if args_len() == 0usize { 0 } else { 1 }
+}
+@id("unused.range") fn range(input: borrow Slice<u8>) -> bool {
+    let view = byte_range(input, 0usize, byte_len(input));
+    byte_len(view) == 0usize
+}
+@id("unused.host") interface UnusedHost permits {} {
+    @id("unused.host.echo")
+    import rust fn unused_echo(value: i64) -> unit effects {} failure infallible;
+}
+"#;
+    let augmented = format!(
+        "{}\n{additions}",
+        SOURCE.replace(
+            "module test.standalone_strings;",
+            "module test.standalone_strings;\npermit { process.args.read }",
+        )
+    );
+    let augmented = program(&augmented);
+    let resolved = crate::hir::resolve(&augmented).unwrap();
+    assert!(!resolved.types.is_empty());
+    assert!(!resolved.interfaces.is_empty());
+    assert!(!resolved.function_templates.is_empty());
+    assert!(!resolved.function_instances.is_empty());
+    assert!(!resolved.permits.is_empty());
+    assert!(resolved.functions.iter().any(
+        |function| function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V4
+    ));
+    let isolated = emit_module(
+        &augmented,
+        &["s.main".into()],
+        InternalStringOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(baseline.wasm_bytes(), isolated.wasm_bytes());
+    assert_eq!(baseline.descriptor(), isolated.descriptor());
+    assert_eq!(baseline.runtime_source(), isolated.runtime_source());
+    for forbidden in [
+        "unused.record_value",
+        "unused.instance",
+        "unused.arguments",
+        "unused.range",
+        "unused.recursive",
+    ] {
+        assert_eq!(
+            emit_module(
+                &augmented,
+                &[forbidden.into()],
+                InternalStringOptions::default()
+            )
+            .unwrap_err()
+            .code,
+            "SPX-W111"
+        );
+    }
+}

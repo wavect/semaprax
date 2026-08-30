@@ -260,6 +260,15 @@ impl FunctionPlan {
         function: &ResolvedFunction,
         variant_layouts: &VariantLayoutCache,
     ) -> Result<Self, Diagnostic> {
+        Self::build_profile(program, function, variant_layouts, false)
+    }
+
+    fn build_profile(
+        program: &ResolvedProgram,
+        function: &ResolvedFunction,
+        variant_layouts: &VariantLayoutCache,
+        standalone_strings: bool,
+    ) -> Result<Self, Diagnostic> {
         let parameter_count = u32::try_from(function.params.len())
             .map_err(|_| error("aggregate function has too many parameters"))?;
         let result_out = parameter_count;
@@ -276,19 +285,20 @@ impl FunctionPlan {
         let old_stack = add_local(I32)?;
         let frame_base = add_local(I32)?;
         let status = add_local(I32)?;
-        let command_byte = program
-            .permits
-            .iter()
-            .any(|effect| effect == crate::command_io_ops::ARGS_READ_EFFECT)
-            .then(|| add_local(I32))
-            .transpose()?;
+        let command_byte = (!standalone_strings
+            && program
+                .permits
+                .iter()
+                .any(|effect| effect == crate::command_io_ops::ARGS_READ_EFFECT))
+        .then(|| add_local(I32))
+        .transpose()?;
         let external_root_bytes = function
             .params
             .iter()
             .any(|param| matches!(param.ty, ResolvedType::SliceU8 | ResolvedType::Str))
             .then(|| add_local(I64))
             .transpose()?;
-        let range_scratch = program_uses_byte_range(program)
+        let range_scratch = (!standalone_strings && program_uses_byte_range(program))
             .then(|| {
                 Ok::<_, Diagnostic>(RangeScratch {
                     descriptor: add_local(I32)?,
@@ -2336,7 +2346,7 @@ fn emit_function_profile(
     standalone_strings: bool,
 ) -> Result<Vec<u8>, Diagnostic> {
     let owned_string_profile = owned_utf8_literals.is_some();
-    let plan = FunctionPlan::build(program, function, variant_layouts)?;
+    let plan = FunctionPlan::build_profile(program, function, variant_layouts, standalone_strings)?;
     let mut body = Vec::new();
     write_u32(&mut body, plan.local_types.len() as u32);
     for ty in &plan.local_types {

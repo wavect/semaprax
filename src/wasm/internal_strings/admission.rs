@@ -15,14 +15,6 @@ pub(super) fn prepare(
     if !(1..=32).contains(&ids.len()) {
         return Err(error("standalone String selection requires 1..=32 exports"));
     }
-    if !program.types.is_empty()
-        || !program.interfaces.is_empty()
-        || !program.function_templates.is_empty()
-        || !program.function_instances.is_empty()
-        || !program.permits.is_empty()
-    {
-        return Err(error("standalone String profile excludes nominal types, interfaces, generics and capabilities"));
-    }
     let mut roots = BTreeSet::new();
     for id in ids {
         if !roots.insert(DeclarationId::new(id.clone())) {

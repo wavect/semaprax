@@ -1,5 +1,8 @@
 //! Windows held-handle filesystem, process, and archive authority.
 use super::*;
+#[cfg(test)]
+#[path = "windows/publish_tests.rs"]
+mod publish_tests;
 use sha2::{Digest as _, Sha256};
 use std::io::{Read as _, Seek as _, SeekFrom};
 use std::os::windows::ffi::OsStrExt as _;
@@ -666,6 +669,12 @@ pub struct PreparedPublishDirectory {
     name_units: usize,
     exact_capacity: usize,
     remaining: u8,
+    #[cfg(test)]
+    force_extended_rejection: bool,
+    #[cfg(test)]
+    observed_extended_flags: Option<u32>,
+    #[cfg(test)]
+    observed_legacy_flags: Option<(u32, u8)>,
     #[cfg(debug_assertions)]
     fail_before_open: bool,
     #[cfg(debug_assertions)]
@@ -829,6 +838,12 @@ pub fn prepare_publish_directory(name: &OsStr) -> Result<PreparedPublishDirector
         name_units,
         exact_capacity,
         remaining: 1,
+        #[cfg(test)]
+        force_extended_rejection: false,
+        #[cfg(test)]
+        observed_extended_flags: None,
+        #[cfg(test)]
+        observed_legacy_flags: None,
         #[cfg(debug_assertions)]
         fail_before_open: false,
         #[cfg(debug_assertions)]
@@ -2582,7 +2597,7 @@ pub fn publish_directory_new_prepared(
                 (*information).flags =
                     windows_sys::Win32::System::WindowsProgramming::FILE_RENAME_FLAG_POSIX_SEMANTICS;
             }
-            let status = unsafe {
+            let mut extended = || unsafe {
                 NtSetInformationFile(
                     rename_handle,
                     &mut io,
@@ -2591,6 +2606,17 @@ pub fn publish_directory_new_prepared(
                     FileRenameInformationEx,
                 )
             };
+            #[cfg(test)]
+            let status = if prepared.force_extended_rejection {
+                prepared.observed_extended_flags = Some(unsafe { (*information).flags });
+                // STATUS_INVALID_INFO_CLASS: deterministically select the
+                // real native legacy call without changing process-global state.
+                0xc000_0003_u32 as i32
+            } else {
+                extended()
+            };
+            #[cfg(not(test))]
+            let status = extended();
             #[cfg(test)]
             {
                 attempted_statuses[attempt] = status;
@@ -2610,6 +2636,15 @@ pub fn publish_directory_new_prepared(
             std::thread::sleep(std::time::Duration::from_millis(backoff_millis));
         }
         let status = unsafe {
+            // The legacy class interprets this union as BOOLEAN
+            // ReplaceIfExists, not ULONG Flags. POSIX_SEMANTICS is nonzero:
+            // clear the entire field before reusing the buffer for legacy.
+            (*information).flags = 0;
+            #[cfg(test)]
+            {
+                prepared.observed_legacy_flags =
+                    Some(((*information).flags, information.cast::<u8>().read()));
+            }
             NtSetInformationFile(
                 rename_handle.cast(),
                 &mut io,

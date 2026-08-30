@@ -9,6 +9,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 #[path = "support/native_rust_cargo.rs"]
 mod native_rust_cargo;
 
+#[path = "support/native_rust_target.rs"]
+mod native_rust_target;
+
 use semaprax::hir;
 use semaprax::interpreter::{
     evaluate_resolved_owned_data, OwnedDataCleanupEvent, OwnedDataEvaluationOutcome,
@@ -416,10 +419,12 @@ fn project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_r
             &npm_consumer.join("generated"),
             &rust_sdk,
         ));
+        let cargo_target = native_rust_target::CargoTarget::new();
         let result = native_rust_cargo::cargo_command()
             .args(["run", "--quiet", "--locked", "--offline", "--manifest-path"])
             .arg(rust_consumer.join("Cargo.toml"))
             .current_dir(&rust_consumer)
+            .env("CARGO_TARGET_DIR", cargo_target.path())
             .output()
             .unwrap();
         assert!(

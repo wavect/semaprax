@@ -118,6 +118,12 @@ fn external_consumers_share_one_bounded_nested_cargo_linker_path_binder() {
     ] {
         let consumer = read(path);
         assert!(consumer.contains("mod native_rust_cargo;"), "{path}");
+        assert!(consumer.contains("mod native_rust_target;"), "{path}");
+        assert_eq!(
+            consumer.matches(".env(\"CARGO_TARGET_DIR\",").count(),
+            expected_commands,
+            "{path} must keep every nested Cargo target inside its short isolated directory"
+        );
         assert_eq!(
             consumer
                 .matches("native_rust_cargo::cargo_command()")
@@ -129,6 +135,21 @@ fn external_consumers_share_one_bounded_nested_cargo_linker_path_binder() {
         assert!(
             !consumer.contains("Command::new(env!(\"CARGO\"))"),
             "{path}"
+        );
+    }
+
+    let target = read("tests/support/native_rust_target.rs");
+    for required in [
+        "semaprax-generated-native-rust-owned-data-sdk-0000000000000000",
+        "encode_wide().count()",
+        "checked_add(OBJECT_SUFFIX.encode_utf16().count())",
+        "units < 260",
+        "std::fs::create_dir(&path)",
+        "std::io::ErrorKind::AlreadyExists",
+    ] {
+        assert!(
+            target.contains(required),
+            "Cargo target guard lost `{required}`"
         );
     }
 

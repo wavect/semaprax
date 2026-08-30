@@ -52,6 +52,9 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     ];
     assert_eq!(current.len(), 5_151);
     assert_eq!(fnv1a64(current.as_bytes()), 0x3606_80c0_4da0_b739);
+    // Also retain upstream's exact contiguous-block assertion.
+    let image_lines = PROJECT_IMAGE_LINES.concat();
+    assert_eq!(current.matches(image_lines.as_str()).count(), 1);
     let mut legacy = current;
     for line in PROJECT_IMAGE_LINES {
         assert_eq!(legacy.matches(line).count(), 1);

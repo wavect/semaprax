@@ -78,6 +78,13 @@
   or new commit authority. Regression evidence is authored, unrun at the user's
   request; no local, hosted, or completion status is promoted.
 
+- Kept owned-data generated-consumer build outputs in fresh short Cargo target
+  directories, including frame-payload, standalone SDK, and v10 UTF-8 consumers.
+  Added exact Windows UTF-16 object-path budget and isolation regressions; no
+  consumer, corpus, or fail-fast gate was removed.
+  Preserved the legacy help known answer while explicitly binding the three
+  additive semantic-image command lines from the concurrent main update.
+
 - Integrated Dependabot PRs #13 and #14: pinned Android emulator runner 2.38.0
   and wasmparser 0.258.0, including standalone Rust and Component lockfiles and
   exact CI pin contracts. Target Evidence now names the actual validator;

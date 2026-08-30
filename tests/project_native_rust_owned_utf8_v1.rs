@@ -6,6 +6,8 @@ use std::process::Command;
 
 #[path = "support/native_rust_cargo.rs"]
 mod native_rust_cargo;
+#[path = "support/native_rust_target.rs"]
+mod native_rust_target;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
@@ -284,12 +286,12 @@ fn main() {
 "#,
     )
     .unwrap();
+    let cargo_target = native_rust_target::CargoTarget::new();
     let output = native_rust_cargo::cargo_command()
         .current_dir(&consumer)
         .args(["run", "--quiet", "--locked", "--offline", "--manifest-path"])
         .arg(consumer.join("Cargo.toml"))
-        .arg("--target-dir")
-        .arg(root.join("cargo-target"))
+        .env("CARGO_TARGET_DIR", cargo_target.path())
         .output()
         .unwrap();
     assert!(

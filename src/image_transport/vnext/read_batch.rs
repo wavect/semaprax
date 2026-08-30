@@ -78,6 +78,9 @@ impl VNextSession {
                         Operation::VNext(Action::Dependencies) => {
                             dependencies::prepare(params, image)
                         }
+                        Operation::VNext(
+                            action @ (Action::DependencySummary | Action::DependencyPage),
+                        ) => dependencies::prepare_navigation(action, params, image),
                         _ => dispatch(method, params, image),
                     };
                     Some(match payload {
@@ -116,6 +119,7 @@ fn parallel_read(operation: Operation) -> bool {
             | Operation::FunctionSummary
             | Operation::Facet
             | Operation::VNext(Action::Dependencies)
+            | Operation::VNext(Action::DependencySummary | Action::DependencyPage)
     )
 }
 
@@ -225,6 +229,8 @@ mod tests {
     #[test]
     fn dependency_query_extends_only_the_immutable_batch_subset() {
         assert!(parallel_read(Operation::VNext(Action::Dependencies)));
+        assert!(parallel_read(Operation::VNext(Action::DependencySummary)));
+        assert!(parallel_read(Operation::VNext(Action::DependencyPage)));
         for action in [
             Action::Build,
             Action::Commit,

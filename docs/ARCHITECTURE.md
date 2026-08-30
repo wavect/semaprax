@@ -536,6 +536,12 @@ evidence. Initialization, including failure, is shared across immutable reads;
 no index is serialized into Image v1 or given publication authority. See
 [Declaration Dependencies](SEMANTIC-IMAGE-DEPENDENCIES-V1.md).
 
+Its `image_dependencies/navigation.rs` child exposes compact summaries and
+opaque-reference detail pages over the same retained index. Selection works on
+IDs and row ordinals; only requested page rows are projected. It adds no HIR
+walker, mutable cursor registry or source authority. See
+[Dependency Navigation](SEMANTIC-IMAGE-DEPENDENCY-NAVIGATION-V1.md).
+
 The additive [candidate-only protocol](IMAGE-CANDIDATE-PROTOCOL-V2.md) selects
 ephemeral candidate/draft registry authority at host startup; it cannot grant
 source writes, runtime tests or builds. Responses are bounded and held source

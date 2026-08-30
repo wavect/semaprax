@@ -61,6 +61,7 @@ Audience: all documentation readers.
 - [Image Protocol Conformance v1](IMAGE-PROTOCOL-CONFORMANCE-V1.md)
 - [Semantic Image HIR Relationships v1](SEMANTIC-IMAGE-HIR-RELATIONSHIPS-V1.md)
 - [Semantic Image Declaration Dependencies v1](SEMANTIC-IMAGE-DEPENDENCIES-V1.md)
+- [Semantic Image Dependency Navigation v1](SEMANTIC-IMAGE-DEPENDENCY-NAVIGATION-V1.md)
 - [Candidate Tests v1](PROJECT-CANDIDATE-TESTS-V1.md)
 - [Candidate Test Protocol v3](IMAGE-CANDIDATE-TEST-PROTOCOL-V3.md)
 - [Candidate Diagnostics v1](PROJECT-CANDIDATE-DIAGNOSTICS-V1.md)

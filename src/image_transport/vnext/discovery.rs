@@ -54,6 +54,7 @@ pub(super) fn payload(
     if method.name == "protocol/instructions" {
         let mut instructions = result["instructions"].as_str().unwrap_or("").to_owned();
         instructions.push_str(" Use image/dependencies with the current image_revision and a stable declaration target to inspect bounded compiler-derived reverse dependency facts. It is read-only and grants no candidate or execution authority. Read UTF8 chunks from offset zero using next_offset; chunk_bytes is 1024 through 65536 (default 16384), and the complete report is bounded to 8 MiB. The heterogeneous dependency report remains explicitly unbundled; its closed chunk envelope does not prove transitive runtime effects.");
+        instructions.push_str(" For compact navigation, first call image/dependency-summary, then pass the selected sites, callers, calls or members facet handle to image/dependency-page. Keep image_revision, target, view, page_size and max_bytes fixed while following next_cursor; omit cursor on the first page. Page size is 1 through 128 (default 32), and max_bytes is 1024 through 1048576 (default 65536). Handles and cursors are bound compiler references, not authority; do not synthesize or reuse them with another target or image. Page wrappers are closed, but heterogeneous item facts remain explicitly unbundled.");
         if methods
             .iter()
             .any(|method| method.name == "candidate/interface-delta")

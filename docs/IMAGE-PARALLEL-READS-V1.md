@@ -40,6 +40,10 @@ mutable cache, or test interpreter is sent to a worker. The shared image may
 initialize its bounded source-derived dependency index once; that memoization
 does not change image identity or authority.
 
+The same allowlist includes compact dependency summaries and reference-bound
+detail pages. Their deterministic selectors remain image-local values, not
+shared mutable session cursors or permission to widen the worker's authority.
+
 Every accepted semantic batch rechecks its one held source snapshot before
 starting workers and after all workers join and render bounded results. An
 observed drift discards all rows, including otherwise successful rows, and

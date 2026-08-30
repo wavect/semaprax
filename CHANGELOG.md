@@ -20,6 +20,12 @@
   accepted artifacts and other profile routes are unchanged. Authored boundary,
   digest-work and failure-precedence regressions remain unrun.
 
+- Added compact declaration-dependency summaries and revision-bound detail pages
+  over the existing immutable image index, with read-only v5 discovery, client
+  builders and host parallel reads. References bind selection and page options;
+  no source authority or runtime coverage is inferred. Regression cases are
+  authored, unrun; full dependency reports and earlier profiles are unchanged.
+
 - Corrected both Wasm `usize` multiplication lowerings: the overflow division
   now executes only for a nonzero multiplier. Zero products retain ordinary
   success, while genuine overflow still reaches aggregate cleanup with status

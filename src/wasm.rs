@@ -3848,7 +3848,7 @@ fn emit_expr(
                         write_u32(output, right_scratch);
                         output.push(0x50); // i64.eqz
                         output.push(0x45); // i32.eqz => right != 0
-                        output.extend([0x04, 0x40]); // if right != 0
+                        output.extend_bytes(&[0x04, 0x40]); // if right != 0
                         output.push(0x20);
                         write_u32(output, left_scratch);
                         output.push(0x42);

@@ -156,8 +156,10 @@ mod tests {
         assert!(!older.contains("live String overwritten"));
         assert!(ordinary.contains("spx_result_live"));
         assert!(ordinary.contains("invalid String transfer"));
-        assert!(ordinary.contains("strlen(spx_source)"));
-        assert!(!ordinary.contains("struct spx_string_v10"));
+        assert!(!ordinary.contains("strlen(spx_source)"));
+        assert!(ordinary.contains("struct spx_string_v10"));
+        assert!(older.contains("strlen(spx_source)"));
+        assert!(!older.contains("struct spx_string_v10"));
         let current = crate::codegen::emit_hir_c_for_owned_utf8_provider(&program).unwrap();
         assert!(current.contains("char *spx_internal_0 = NULL;"));
         assert!(current.contains("bool spx_internal_0_live = false;"));
@@ -245,5 +247,64 @@ mod tests {
         };
         // These profiles shared the exact scalar projection before correction.
         assert_eq!(emit(Profile::Legacy), emit(Profile::OwnedDataProvider));
+    }
+
+    #[test]
+    fn length_aware_runtime_groups_do_not_grant_provider_carriers() {
+        use super::super::{NativeOutputProfile as Profile, StringRuntimeSelection};
+        let program = resolved(
+            r#"module test.length_runtime;
+@id("main") fn main() -> i64 { string_len_chars("a\u{0}b") }
+"#,
+        );
+        let abi = super::super::native_resource::build_resource_abi(&program).unwrap();
+        let render = |selection| {
+            crate::bounded_output::with_limit_usage(1_000_000, || {
+                let mut text = crate::bounded_output::CappedString::new();
+                super::super::emit_native_prelude_profile(&mut text, &abi, &program, selection);
+                text.into_string()
+            })
+        };
+        for profile in [Profile::Legacy, Profile::StdoutTranscript] {
+            let (text, overflowed, _) = render(profile.string_runtime());
+            assert!(!overflowed);
+            assert!(text.contains(super::super::NATIVE_LENGTH_DELIMITED_STRING_RUNTIME_C));
+            assert!(text.contains(super::super::NATIVE_LENGTH_DELIMITED_STRING_OPS_RUNTIME_C));
+            assert!(text.contains(super::super::NATIVE_LENGTH_DELIMITED_STRING_OPS_V2_RUNTIME_C));
+            assert!(!text.contains("borrowed_str_depth"));
+            assert!(!text.contains("} spx_bytes_v1;"));
+        }
+        let v10 = render(Profile::OwnedUtf8Provider.string_runtime());
+        // The frozen V10 representation and carrier decisions remain identical.
+        assert_eq!(
+            v10,
+            render(StringRuntimeSelection {
+                length_delimited: true,
+                provider_carriers: true,
+                include_instances: false,
+            })
+        );
+        assert!(v10.0.contains("borrowed_str_depth"));
+        assert!(v10.0.contains("} spx_bytes_v1;"));
+        for profile in [
+            Profile::OwnedDataProvider,
+            Profile::UsefulDataCommand,
+            Profile::LanguageCommandIo,
+            Profile::LineCommandIo,
+        ] {
+            assert_eq!(profile.string_runtime(), StringRuntimeSelection::FROZEN);
+        }
+        let frozen = render(Profile::OwnedDataProvider.string_runtime());
+        assert!(frozen.0.contains(super::super::NATIVE_STRING_RUNTIME_C));
+        assert!(frozen.0.contains(super::super::NATIVE_STRING_OPS_RUNTIME_C));
+        assert!(frozen
+            .0
+            .contains(super::super::NATIVE_STRING_OPS_V2_RUNTIME_C));
+        let callable = crate::bounded_output::with_limit_usage(1_000_000, || {
+            let mut text = crate::bounded_output::CappedString::new();
+            super::super::emit_native_prelude(&mut text, &abi, &program);
+            text.into_string()
+        });
+        assert_eq!(frozen, callable);
     }
 }

@@ -68,8 +68,7 @@ pub(super) fn emit_hir_c_with_labels(
             &mut output,
             &resource_abi,
             program,
-            output_profile == NativeOutputProfile::OwnedUtf8Provider,
-            output_profile.corrects_ordinary_strings(),
+            output_profile.string_runtime(),
         );
     }
     if output_profile == NativeOutputProfile::LineCommandIo {
@@ -202,7 +201,43 @@ pub(super) enum NativeOutputProfile {
     LineCommandIo,
 }
 
+/// Representation and provider carrier support are separate decisions:
+/// ordinary Strings need length headers but no additional status/Bytes ABI.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct StringRuntimeSelection {
+    length_delimited: bool,
+    provider_carriers: bool,
+    include_instances: bool,
+}
+
+impl StringRuntimeSelection {
+    const FROZEN: Self = Self {
+        length_delimited: false,
+        provider_carriers: false,
+        include_instances: false,
+    };
+}
+
 impl NativeOutputProfile {
+    const fn string_runtime(self) -> StringRuntimeSelection {
+        match self {
+            Self::Legacy | Self::StdoutTranscript => StringRuntimeSelection {
+                length_delimited: true,
+                provider_carriers: false,
+                include_instances: true,
+            },
+            Self::OwnedUtf8Provider => StringRuntimeSelection {
+                length_delimited: true,
+                provider_carriers: true,
+                include_instances: false,
+            },
+            Self::OwnedDataProvider
+            | Self::UsefulDataCommand
+            | Self::LanguageCommandIo
+            | Self::LineCommandIo => StringRuntimeSelection::FROZEN,
+        }
+    }
+
     const fn corrects_ordinary_strings(self) -> bool {
         matches!(self, Self::Legacy | Self::StdoutTranscript)
     }
@@ -316,25 +351,23 @@ pub(super) fn emit_native_prelude(
     resource_abi: &native_resource::NativeResourceAbi,
     program: &ResolvedProgram,
 ) {
-    emit_native_prelude_inner(output, resource_abi, program, false, false, false, false);
-}
-
-fn emit_native_prelude_profile(
-    output: &mut impl COutput,
-    resource_abi: &native_resource::NativeResourceAbi,
-    program: &ResolvedProgram,
-    length_delimited_strings: bool,
-    include_string_instances: bool,
-) {
     emit_native_prelude_inner(
         output,
         resource_abi,
         program,
         false,
         false,
-        length_delimited_strings,
-        include_string_instances,
+        StringRuntimeSelection::FROZEN,
     );
+}
+
+fn emit_native_prelude_profile(
+    output: &mut impl COutput,
+    resource_abi: &native_resource::NativeResourceAbi,
+    program: &ResolvedProgram,
+    strings: StringRuntimeSelection,
+) {
+    emit_native_prelude_inner(output, resource_abi, program, false, false, strings);
 }
 
 fn emit_native_prelude_without_public_failure(
@@ -349,8 +382,7 @@ fn emit_native_prelude_without_public_failure(
         program,
         true,
         command_carriers,
-        false,
-        false,
+        StringRuntimeSelection::FROZEN,
     );
 }
 
@@ -360,11 +392,10 @@ fn emit_native_prelude_inner(
     program: &ResolvedProgram,
     omit_public_failure: bool,
     command_carriers: bool,
-    length_delimited_strings: bool,
-    include_string_instances: bool,
+    strings: StringRuntimeSelection,
 ) {
     let needs_borrowed_str = command_carriers || program_uses_borrowed_str(program);
-    if needs_borrowed_str || program_uses_byte_data(program) || length_delimited_strings {
+    if needs_borrowed_str || program_uses_byte_data(program) || strings.provider_carriers {
         native_runtime::emit_status_runtime_with_borrowed_str(output);
     } else {
         native_runtime::emit_status_runtime(output);
@@ -391,26 +422,26 @@ fn emit_native_prelude_inner(
         // reachability-gated so programs without usize preserve exact bytes.
         output.push_str(NATIVE_USIZE_RUNTIME_C);
     }
-    if program_uses_strings(program, include_string_instances) {
-        output.push_str(if length_delimited_strings {
+    if program_uses_strings(program, strings.include_instances) {
+        output.push_str(if strings.length_delimited {
             NATIVE_LENGTH_DELIMITED_STRING_RUNTIME_C
         } else {
             NATIVE_STRING_RUNTIME_C
         });
     }
-    if program_uses_string_ops(program, include_string_instances) {
+    if program_uses_string_ops(program, strings.include_instances) {
         // String operation helpers stay out of programs that cannot reach
         // them, so existing projections keep their exact committed bytes.
-        output.push_str(if length_delimited_strings {
+        output.push_str(if strings.length_delimited {
             NATIVE_LENGTH_DELIMITED_STRING_OPS_RUNTIME_C
         } else {
             NATIVE_STRING_OPS_RUNTIME_C
         });
     }
-    if program_uses_string_ops_v2(program, include_string_instances) {
+    if program_uses_string_ops_v2(program, strings.include_instances) {
         // Breadth-v2 string operation helpers gate as their own group so
         // first-wave programs keep their exact committed bytes.
-        output.push_str(if length_delimited_strings {
+        output.push_str(if strings.length_delimited {
             NATIVE_LENGTH_DELIMITED_STRING_OPS_V2_RUNTIME_C
         } else {
             NATIVE_STRING_OPS_V2_RUNTIME_C
@@ -421,7 +452,7 @@ fn emit_native_prelude_inner(
         // reachability gate so every pre-text native projection is byte exact.
         output.push_str(NATIVE_BORROWED_STR_RUNTIME_C);
     }
-    if program_uses_byte_data(program) || length_delimited_strings {
+    if program_uses_byte_data(program) || strings.provider_carriers {
         native_byte_data::emit_runtime(output);
     }
 }
@@ -1307,10 +1338,10 @@ static __attribute__((unused)) void spx_string_drop(char *spx_value) {
 }
 "#;
 
-// Project v10 uses this private provider-only representation. It is selected
-// by a distinct output profile, so legacy native C bytes and behavior do not
-// change. The public boundary obtains the exact length from the allocation
-// header and never searches for a terminator.
+// V10 and corrected ordinary/stdout functions reuse this private representation.
+// The complete translation unit uses one allocator/header/drop convention;
+// frozen command and v8/v9 provider profiles retain the terminated runtime.
+// The trailing terminator is not a semantic length or equality boundary.
 const NATIVE_LENGTH_DELIMITED_STRING_RUNTIME_C: &str = r#"#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>

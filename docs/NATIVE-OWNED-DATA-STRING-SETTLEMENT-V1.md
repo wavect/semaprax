@@ -70,16 +70,60 @@ and unchanged v10, command, and private callable selectors. Contracts and
 generic-instance discovery are whole-emitter evidence, not selected SDK closure
 admission.
 
-The physical regression suite derives and replays the real standalone
+`tests/native_owned_data_string_settlement_v1.rs` derives and replays the real standalone
 descriptor, generates the real provider, and instruments its allocations with
 the existing fixed-table test allocator. Context-close success alone is not
 the oracle. Required cases include checked failure before and after String
 argument commit, local and mixed Bytes ownership, exact NUL/Unicode values,
 legal scalar-loop helpers, poisoned failure outputs, and same-context reuse.
-The safe external Rust consumer must use the actual generated package locked
-and offline without repository source dependencies. O0/O2 and explicitly
-provisioned sanitizer execution remain required, not inferred from static
-inspection.
+The C fixture keeps one native context across 32 rounds for each descriptor
+route, checks the v9 scalar carrier as well as its byte handle, and requires
+exact allocation/free balance after every call. The clone case checks length
+as well as equality so terminated clone/equality cannot jointly hide truncation.
+The separate negative fixture retains `SPX-W110` for the existing v8/v9 Wasm
+String-literal exclusion.
+The separate private-toolchain test
+`crates/semaprax-toolchain/tests/native_owned_data_string_sdk_v1.rs` supplies the
+replayed descriptor and real emitted provider to the actual lower
+`build_and_publish` authority in `StandaloneEvidence` mode, then consumes the
+generated package locked and offline without repository source dependencies.
+This exercises the renderer/tool/publication path used by the standalone
+builder, not its convenience wrapper itself. It adds no private dependency to
+the registry compiler. The package authority compiles its archive at O2; the
+separate instrumented C fixture covers both O0 and O2. Neither consumer success
+nor context close substitutes for physical allocation accounting.
+The consumer reuses one safe SDK object, whose context is closed and
+reinitialized between calls; this is distinct from the C fixture's reuse of one
+initialized native context.
+
+Focused future execution gates (not run in this batch):
+
+```sh
+cargo test --locked -p semaprax --lib codegen::native_emit::owned_strings::tests
+cargo test --locked -p semaprax --test native_owned_data_string_settlement_v1
+cargo test --locked -p semaprax-toolchain --test native_owned_data_string_sdk_v1 provisioned_standalone_owned_data_string_sdk_consumer -- --ignored --exact
+```
+
+The C fixture requires `CLANG` or `clang` and does not silently skip when it is
+absent. The explicitly ignored SDK gate must be deliberately selected after
+provisioning absolute `CLANG` and `SEMAPRAX_ARCHIVER` paths admitted by the
+existing held-tool rules. Windows additionally needs `SEMAPRAX_VCTOOLS`,
+`SEMAPRAX_LINKER`, `INCLUDE`, and `LIB` for the existing MSVC toolchain contract.
+These are invocation prerequisites, not newly granted tool authority. A default
+run that leaves the SDK gate ignored does not establish consumer evidence.
+Explicit sanitizer execution remains independently required; static inspection
+does not substitute for either gate.
+
+For the ignored sanitizer gate, provision an absolute
+`SEMAPRAX_STRING_SANITIZER_CLANG` with ASan/UBSan runtimes and run:
+
+```sh
+cargo test --locked -p semaprax --test native_owned_data_string_settlement_v1 provisioned_owned_data_strings_asan_ubsan -- --ignored --exact
+```
+
+The fixed allocation table supplies the leak oracle even where LeakSanitizer is
+unavailable. ASan/UBSan are additional memory/undefined-behavior checks, not a
+claim of LeakSanitizer coverage.
 
 All new executable evidence remains unrun. Existing SDK, Project v8/v9/v10,
 frame-payload, and artifact known answers remain required alongside the new

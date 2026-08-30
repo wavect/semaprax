@@ -141,8 +141,11 @@ rules add no unwind, signal, or `longjmp` recovery guarantee.
 The v10 correction changes only v10 native provider C and its dependent
 integrity bindings. The subsequent [ordinary native String correction](NATIVE-INLINE-STRING-SETTLEMENT-V1.md)
 reuses the ledger under a separate selection and leaves v10 provider bytes
-unchanged. Frozen earlier provider and command projections retain their
-unselected-String cleanup limitation. Context-handle closure alone is not proof that
+unchanged. The separately amended [owned-data provider correction](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md)
+also reuses that ledger and length-header representation for v8/v9 emitted
+Strings, without changing v10 output or widening selected closure admission.
+Frozen command/callable projections retain their separate String limitations.
+Context-handle closure alone is not proof that
 pre-handle String allocations were freed. Cross-backend failure-settlement
 equivalence and native sanitizer evidence remain unrun gates before promotion.
 

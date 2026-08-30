@@ -111,6 +111,15 @@ types, descriptors, or manifest schemas. The private invocation counter resets
 on reinitialization; the linked provider's handle issuer does not. These
 corrections and their hostile-consumer evidence are authored but unrun.
 
+The subsequent [owned-data internal String correction](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md)
+applies to the shared v8/v9 native emitter. Its length-header helpers and inline
+owner ledger cover the full emitted function inventory, including unselected
+Strings; native artifacts and dependent bindings intentionally change for those
+subjects. Direct descriptor/provider evidence is not activated Project-v9
+admission, which keeps its existing Wasm restrictions. Public record/field
+types, carrier layout, descriptors, and String-free output remain unchanged.
+The new physical allocation evidence is authored but unrun.
+
 ## Evidence boundary
 
 The authored physical npm/Core-Wasm and native-provider/safe-Rust routes are

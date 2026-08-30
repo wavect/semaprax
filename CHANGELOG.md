@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Extended function extraction to checked Copy nominal values and immutable
+  whole-root field captures. Body-value type facts share the existing bounded
+  signature inventory; generated helper signatures and canonical source replay
+  remain mandatory. Owned/borrowed captures and unsafe relocation stay closed.
+  Charged retention can change graph budget bytes and derived image digests.
+  Regression cases are authored, unrun; no source authority changes.
+
 - Corrected the Linux doctor guard's rejection of Rust's fork/exec handshake:
   only anonymous Unix stream/seqpacket pairs with exact scalar arguments and
   known flags are admitted, while named socket operations are now denied.

@@ -190,7 +190,7 @@ impl ProjectCandidate {
                 operations.push(json!({
                     "kind":"extract_function", "required_fields":["kind","target","expression_id","new_id","new_name"],
                     "selector_source":"expression/catalog",
-                    "constraints":["unique_authored_body_expression", "globally_new_explicit_identity", "compiler_derived_copy_captures", "preserve_original_lazy_position_and_evaluation_order", "no_mutable_or_escaping_owned_captures", "full_candidate_revalidation"],
+                    "constraints":["unique_authored_body_expression", "globally_new_explicit_identity", "compiler_derived_copy_captures", "checked_sized_copy_scalar_or_nominal_values", "field_reads_capture_immutable_copy_root", "preserve_original_lazy_position_and_evaluation_order", "no_mutable_or_escaping_owned_captures", "no_borrowed_or_resource_values", "full_candidate_revalidation"],
                 }));
                 let destinations = super::movement::destinations(&self.revision, target)?;
                 if !destinations.is_empty() {

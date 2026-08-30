@@ -167,9 +167,10 @@ Semantic Change node/depth/byte limits and Project source/output limits also
 remain active. These are deterministic structural bounds, not a total heap
 memory limit or a performance guarantee.
 
-Retained nominal signature facts additionally allow at most 4,096 distinct
-concrete parameter/return-type identities per module, under the existing builder-byte
-budget. This counts concrete instances, not only source declarations. Removing
+Retained nominal facts additionally allow at most 4,096 distinct
+concrete parameter/return and checked body-value type identities per module,
+under the existing builder-byte budget. Extraction shares this inventory with
+signature admission. This counts concrete instances, not only source declarations. Removing
 that extra cap was rejected by automatic security review as weakening a resource
 boundary; it remains enforced and can reject a larger otherwise admitted type
 inventory. This limit is not evidence of general unbounded signature support.

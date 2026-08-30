@@ -558,6 +558,15 @@ impl WorkspaceGraphProjectionModule {
     ) -> Option<&(hir::DeclarationKind, hir::TypeFacts)> {
         self.signature_types.get(&ty.identity_key())
     }
+    /// Exact checked nominal value facts, including body/contract expressions,
+    /// local bindings and nested patterns. This is the same bounded inventory
+    /// as signature facts; a missing entry never implies Copy eligibility.
+    pub(crate) fn value_type_facts(
+        &self,
+        ty: &hir::ResolvedType,
+    ) -> Option<&(hir::DeclarationKind, hir::TypeFacts)> {
+        self.signature_type_facts(ty)
+    }
     pub(crate) fn path(&self) -> &str {
         &self.path
     }
@@ -4657,6 +4666,12 @@ fn retained_signature_type_facts(
     declarations: &hir::DeclarationIndex,
 ) -> Result<BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>, Vec<Diagnostic>> {
     let mut retained = BTreeMap::new();
+    let mut visits = 0usize;
+    if !functions.is_empty() {
+        reserve_builder_structure(std::mem::size_of::<
+            [Option<(CheckedValueNode<'_>, usize)>; MAX_CHECKED_VALUE_DEPTH + 1],
+        >())?;
+    }
     for function in functions {
         for ty in function
             .params
@@ -4664,49 +4679,273 @@ fn retained_signature_type_facts(
             .map(|parameter| &parameter.ty)
             .chain(std::iter::once(&function.return_type))
         {
-            let hir::ResolvedType::Nominal { declaration, .. } = ty else {
-                continue;
-            };
-            let key = ty.identity_key();
-            if retained.contains_key(&key) {
-                continue;
-            }
-            if retained.len() >= MAX_DECLARATIONS {
-                return Err(vec![limit_error("declarations", MAX_DECLARATIONS)]);
-            }
-            let kind = declarations
-                .declaration(declaration)
-                .ok_or_else(|| {
-                    vec![graph_error(
-                        "SPX-G173",
-                        "checked signature nominal declaration is absent",
-                    )]
-                })?
-                .kind;
-            let facts = declarations.type_facts(ty).ok_or_else(|| {
-                vec![graph_error(
-                    "SPX-G173",
-                    "checked signature type facts are absent",
-                )]
-            })?;
-            let base = if retained.is_empty() {
-                std::mem::size_of::<BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>>()
-            } else {
-                0
-            };
-            let bytes = base
-                .checked_add(
-                    std::mem::size_of::<(String, hir::DeclarationKind, hir::TypeFacts)>()
-                        + 8 * std::mem::size_of::<usize>(),
-                )
-                .and_then(|bytes| bytes.checked_add(key.capacity()))
-                .and_then(|bytes| bytes.checked_add(facts.layout_key.capacity()))
-                .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
-            reserve_builder_structure(bytes)?;
-            retained.insert(key, (kind, facts));
+            retain_checked_value_types(
+                CheckedValueNode::Type(ty),
+                declarations,
+                &mut retained,
+                &mut visits,
+            )?;
+        }
+        for expression in function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+        {
+            retain_checked_value_types(
+                CheckedValueNode::Expression(expression),
+                declarations,
+                &mut retained,
+                &mut visits,
+            )?;
         }
     }
     Ok(retained)
+}
+
+const MAX_CHECKED_VALUE_VISITS: usize = 1_048_576;
+const MAX_CHECKED_VALUE_DEPTH: usize = 256;
+
+#[derive(Clone, Copy)]
+enum CheckedValueNode<'a> {
+    Type(&'a hir::ResolvedType),
+    Expression(&'a hir::ResolvedExpr),
+    Statement(&'a hir::ResolvedStatement),
+    Binding(&'a hir::ResolvedBinding),
+    Field(&'a hir::ResolvedFieldInitializer),
+    Arm(&'a hir::ResolvedMatchArm),
+    Pattern(&'a hir::ResolvedMatchPattern),
+    RecordField(&'a hir::ResolvedRecordMatchPatternField),
+}
+
+impl<'a> CheckedValueNode<'a> {
+    fn ty(self) -> Option<&'a hir::ResolvedType> {
+        match self {
+            Self::Type(ty) => Some(ty),
+            Self::Expression(expression) => Some(&expression.ty),
+            Self::Binding(binding) => Some(&binding.ty),
+            Self::Pattern(hir::ResolvedMatchPattern::Record { instance, .. }) => Some(instance),
+            Self::RecordField(hir::ResolvedRecordMatchPatternField {
+                pattern: hir::ResolvedRecordMatchFieldPattern::Record { instance, .. },
+                ..
+            }) => Some(instance),
+            _ => None,
+        }
+    }
+
+    fn child(self, index: usize) -> Option<Self> {
+        use hir::ResolvedExprKind as E;
+        use hir::ResolvedMatchPattern as P;
+        use hir::ResolvedRecordMatchFieldPattern as F;
+        use hir::ResolvedStatement as S;
+        match self {
+            Self::Type(_) | Self::Binding(_) => None,
+            Self::Field(field) => (index == 0).then_some(Self::Expression(&field.value)),
+            Self::Statement(statement) => match statement {
+                S::Let { binding, value, .. } | S::Assign { binding, value, .. } => {
+                    [Self::Binding(binding), Self::Expression(value)]
+                        .get(index)
+                        .copied()
+                }
+                S::Unsafe { .. } | S::While { .. } => statement.child(index).map(Self::Expression),
+            },
+            Self::Arm(arm) => match index {
+                0 => Some(Self::Pattern(&arm.pattern)),
+                1 => Some(Self::Expression(arm.guard.as_deref().unwrap_or(&arm.value))),
+                2 if arm.guard.is_some() => Some(Self::Expression(&arm.value)),
+                _ => None,
+            },
+            Self::Pattern(pattern) => match pattern {
+                P::Variant { fields, .. } => {
+                    fields.get(index).map(|field| Self::Binding(&field.binding))
+                }
+                P::Record { fields, .. } => fields.get(index).map(Self::RecordField),
+                P::Binding(binding) => (index == 0).then_some(Self::Binding(binding)),
+                P::Or(alternatives) => alternatives.get(index).map(Self::Pattern),
+                P::Wildcard | P::Literal(_) => None,
+            },
+            Self::RecordField(field) => match &field.pattern {
+                F::Binding(binding) => (index == 0).then_some(Self::Binding(binding)),
+                F::Record { fields, .. } => fields.get(index).map(Self::RecordField),
+                F::Wildcard => None,
+            },
+            Self::Expression(expression) => match &expression.kind {
+                E::ByteRange {
+                    source, start, end, ..
+                } => [source.as_ref(), start.as_ref(), end.as_ref()]
+                    .get(index)
+                    .copied()
+                    .map(Self::Expression),
+                E::Call { args, .. } => args.get(index).map(Self::Expression),
+                E::NativeRustImportCall(call) => call.args.get(index).map(Self::Expression),
+                E::HostCommandCall(call) => call.args.get(index).map(Self::Expression),
+                E::Unary { value, .. }
+                | E::Project { base: value, .. }
+                | E::Upcast { source: value } => (index == 0).then_some(Self::Expression(value)),
+                E::Try {
+                    operand,
+                    residual_type,
+                    ..
+                }
+                | E::TryOption {
+                    operand,
+                    residual_type,
+                    ..
+                } => [Self::Expression(operand), Self::Type(residual_type)]
+                    .get(index)
+                    .copied(),
+                E::Binary { left, right, .. } => [left.as_ref(), right.as_ref()]
+                    .get(index)
+                    .copied()
+                    .map(Self::Expression),
+                E::Block { statements, tail } => {
+                    if index < statements.len() {
+                        statements.get(index).map(Self::Statement)
+                    } else {
+                        (index == statements.len()).then_some(Self::Expression(tail))
+                    }
+                }
+                E::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => [
+                    condition.as_ref(),
+                    then_branch.as_ref(),
+                    else_branch.as_ref(),
+                ]
+                .get(index)
+                .copied()
+                .map(Self::Expression),
+                E::ConstructRecord { fields, .. } | E::ConstructVariant { fields, .. } => {
+                    fields.get(index).map(Self::Field)
+                }
+                E::Match {
+                    scrutinee, arms, ..
+                } => {
+                    if index == 0 {
+                        Some(Self::Expression(scrutinee))
+                    } else {
+                        arms.get(index - 1).map(Self::Arm)
+                    }
+                }
+                E::UpdateRecord { base, fields, .. } => {
+                    if index == 0 {
+                        Some(Self::Expression(base))
+                    } else {
+                        fields.get(index - 1).map(Self::Field)
+                    }
+                }
+                E::Int(_)
+                | E::Int32(_)
+                | E::Char(_)
+                | E::Uint8(_)
+                | E::Usize(_)
+                | E::Float32(_)
+                | E::Float64(_)
+                | E::Bool(_)
+                | E::String(_)
+                | E::ArrayU8(_)
+                | E::RepeatArrayU8 { .. }
+                | E::BorrowPlace { .. }
+                | E::Place(_) => None,
+            },
+        }
+    }
+}
+
+fn retain_checked_value_types(
+    root: CheckedValueNode<'_>,
+    declarations: &hir::DeclarationIndex,
+    retained: &mut BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
+    visits: &mut usize,
+) -> Result<(), Vec<Diagnostic>> {
+    // One cursor per active ancestor: wide statement/pattern lists cannot
+    // allocate an unbounded sibling queue. This fixed scratch stack is not
+    // retained; its peak storage is charged once by the inventory entry point.
+    let mut stack = [None; MAX_CHECKED_VALUE_DEPTH + 1];
+    stack[0] = Some((root, 0usize));
+    let mut depth = 0usize;
+    loop {
+        let (node, next) = stack[depth].expect("active checked value cursor");
+        if next == 0 {
+            if *visits >= MAX_CHECKED_VALUE_VISITS {
+                return Err(vec![limit_error(
+                    "checked_value_visits",
+                    MAX_CHECKED_VALUE_VISITS,
+                )]);
+            }
+            *visits += 1;
+            if let Some(ty) = node.ty() {
+                retain_checked_nominal_type(ty, declarations, retained)?;
+            }
+        }
+        if let Some(child) = node.child(next) {
+            if depth == MAX_CHECKED_VALUE_DEPTH {
+                return Err(vec![limit_error(
+                    "checked_value_depth",
+                    MAX_CHECKED_VALUE_DEPTH,
+                )]);
+            }
+            stack[depth] = Some((node, next + 1));
+            depth += 1;
+            stack[depth] = Some((child, 0));
+        } else if depth == 0 {
+            break;
+        } else {
+            stack[depth] = None;
+            depth -= 1;
+        }
+    }
+    Ok(())
+}
+
+fn retain_checked_nominal_type(
+    ty: &hir::ResolvedType,
+    declarations: &hir::DeclarationIndex,
+    retained: &mut BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
+) -> Result<(), Vec<Diagnostic>> {
+    let hir::ResolvedType::Nominal { declaration, .. } = ty else {
+        return Ok(());
+    };
+    let key = ty.identity_key();
+    if retained.contains_key(&key) {
+        return Ok(());
+    }
+    if retained.len() >= MAX_DECLARATIONS {
+        return Err(vec![limit_error("declarations", MAX_DECLARATIONS)]);
+    }
+    let kind = declarations
+        .declaration(declaration)
+        .ok_or_else(|| {
+            vec![graph_error(
+                "SPX-G173",
+                "checked value nominal declaration is absent",
+            )]
+        })?
+        .kind;
+    let facts = declarations.type_facts(ty).ok_or_else(|| {
+        vec![graph_error(
+            "SPX-G173",
+            "checked value type facts are absent",
+        )]
+    })?;
+    let base = if retained.is_empty() {
+        std::mem::size_of::<BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>>()
+    } else {
+        0
+    };
+    let bytes = base
+        .checked_add(
+            std::mem::size_of::<(String, hir::DeclarationKind, hir::TypeFacts)>()
+                + 8 * std::mem::size_of::<usize>(),
+        )
+        .and_then(|bytes| bytes.checked_add(key.capacity()))
+        .and_then(|bytes| bytes.checked_add(facts.layout_key.capacity()))
+        .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+    reserve_builder_structure(bytes)?;
+    retained.insert(key, (kind, facts));
+    Ok(())
 }
 
 fn filter_owned_vec<T>(
@@ -6523,6 +6762,134 @@ fn limit_error(field: &'static str, maximum: usize) -> Diagnostic {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn checked_value_fixture() -> hir::ResolvedProgram {
+        let program = parse(r#"module values;
+@id("values.config") record Config { @id("values.config.value") value: i64, }
+@id("values.envelope") record Envelope { @id("values.envelope.item") item: Config, }
+@id("values.choice") variant Choice { @id("values.choice.some") Some { @id("values.choice.item") item: i64, }, @id("values.choice.none") None, }
+@id("values.disconnected") fn disconnected() -> i64
+    requires (Config { value: 1 }).value == 1
+    ensures result >= 0
+{
+    let envelope = Envelope { item: Config { value: 42 } };
+    match envelope { Envelope { item: Config { value: selected } } => selected, }
+}
+@id("values.variant") fn variant_value() -> i64 {
+    let choice = Choice::Some { item: 42 };
+    match choice { Choice::Some { item: selected } => selected, Choice::None {} => 0, }
+}
+@id("values.main") fn main() -> i64 { 0 }
+"#, Path::new("values.spx")).unwrap();
+        hir::resolve(&program).unwrap()
+    }
+
+    #[test]
+    fn nominal_values_outside_signatures_retain_exact_checked_type_facts() {
+        let resolved = checked_value_fixture();
+        assert!(resolved
+            .functions
+            .iter()
+            .all(|function| function.params.is_empty()
+                && function.return_type == hir::ResolvedType::I64));
+        let retained =
+            retained_signature_type_facts(&resolved.functions, &resolved.declarations).unwrap();
+        assert_eq!(retained.len(), 3);
+        for (id, kind) in [
+            ("values.config", hir::DeclarationKind::Record),
+            ("values.envelope", hir::DeclarationKind::Record),
+            ("values.choice", hir::DeclarationKind::Variant),
+        ] {
+            let ty = hir::ResolvedType::Nominal {
+                declaration: hir::DeclarationId::new(id.to_owned()),
+                arguments: Vec::new(),
+            };
+            assert_eq!(
+                retained.get(&ty.identity_key()),
+                Some(&(kind, resolved.declarations.type_facts(&ty).unwrap()))
+            );
+        }
+    }
+
+    #[test]
+    fn retained_value_facts_keep_the_4096_cap_and_reject_missing_checked_facts() {
+        let resolved = checked_value_fixture();
+        let ty = hir::ResolvedType::Nominal {
+            declaration: hir::DeclarationId::new("values.config".to_owned()),
+            arguments: Vec::new(),
+        };
+        let facts = resolved.declarations.type_facts(&ty).unwrap();
+        let mut retained = (0..MAX_DECLARATIONS)
+            .map(|index| {
+                (
+                    format!("occupied.{index}"),
+                    (hir::DeclarationKind::Record, facts.clone()),
+                )
+            })
+            .collect();
+        let error =
+            retain_checked_nominal_type(&ty, &resolved.declarations, &mut retained).unwrap_err();
+        assert!(is_named_limit(&error, "declarations"));
+        assert_eq!(retained.len(), MAX_DECLARATIONS);
+        let absent = hir::ResolvedType::Nominal {
+            declaration: hir::DeclarationId::new("values.absent".to_owned()),
+            arguments: Vec::new(),
+        };
+        let error =
+            retain_checked_nominal_type(&absent, &resolved.declarations, &mut BTreeMap::new())
+                .unwrap_err();
+        assert!(error.iter().any(|error| error.code == "SPX-G173"));
+    }
+
+    #[test]
+    fn checked_value_cursor_traversal_enforces_visit_and_depth_limits() {
+        let resolved = checked_value_fixture();
+        let mut visits = MAX_CHECKED_VALUE_VISITS - 1;
+        let mut retained = BTreeMap::new();
+        retain_checked_value_types(
+            CheckedValueNode::Type(&hir::ResolvedType::I64),
+            &resolved.declarations,
+            &mut retained,
+            &mut visits,
+        )
+        .unwrap();
+        assert_eq!(visits, MAX_CHECKED_VALUE_VISITS);
+        let error = retain_checked_value_types(
+            CheckedValueNode::Type(&hir::ResolvedType::I64),
+            &resolved.declarations,
+            &mut retained,
+            &mut visits,
+        )
+        .unwrap_err();
+        assert!(is_named_limit(&error, "checked_value_visits"));
+        let mut expression = resolved
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "values.main")
+            .unwrap()
+            .body
+            .clone();
+        for index in 0..=MAX_CHECKED_VALUE_DEPTH {
+            expression = hir::ResolvedExpr {
+                id: hir::ExpressionId::new(format!("depth.{index}")),
+                ty: hir::ResolvedType::I64,
+                ownership: hir::OwnershipMode::Value,
+                kind: hir::ResolvedExprKind::Block {
+                    statements: Vec::new(),
+                    tail: Box::new(expression),
+                },
+                span: Span::default(),
+            };
+        }
+        let error = retain_checked_value_types(
+            CheckedValueNode::Expression(&expression),
+            &resolved.declarations,
+            &mut retained,
+            &mut 0,
+        )
+        .unwrap_err();
+        assert!(is_named_limit(&error, "checked_value_depth"));
+    }
 
     fn source(path: &str, source: &str) -> WorkspaceSource {
         WorkspaceSource {

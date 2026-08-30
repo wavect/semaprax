@@ -42,14 +42,32 @@ External captures are resolved HIR ValueIds from the actual lexical scope,
 including preceding local lets and match bindings. Definitions inside the
 selected subtree remain internal; matching names do not turn these definitions
 into captures. Capture order follows first authored use, and each ValueId occurs
-once in the helper parameter list. Every capture must be immutable, by-value,
-and directly `i64`, `i32`, `u8`, `usize`, or `bool`.
+once in the helper parameter list. Every capture must be immutable and by-value.
+Types may be direct `i64`, `i32`, `u8`, `usize`, or `bool`, or an authenticated
+record/variant whose exact checked TypeFacts establish Sized Copy with no drop
+or resource content. Nominal captures and results retain the exact stable owner
+and ordered type arguments; same-shaped declarations are not interchangeable.
 
-Every visited expression value and internal binding must also be a directly
-supported Copy scalar. Owned values, borrowed values, field projections,
-propagation, and compiler ownership lowering are rejected. External mutable
-captures and writes to enclosing bindings are rejected. Mutable locals and writes
-wholly inside the moved subtree remain inside it and are allowed. Unsafe
+Every visited expression value and internal binding must also be an admitted
+Copy value. Nominal helper types resolve through the selected source module's
+existing binding, including monomorphic import aliases. Local generic and fixed
+compiler-prelude instances support direct `i64`/`bool` arguments; nested type
+arguments, new imports and generic target functions remain excluded. Body-only
+nominal instances need not already occur in a function signature: their facts
+are retained from checked HIR values and bindings, not inferred from AST shape.
+
+A field read captures its entire immutable root by its authenticated ValueId,
+using the root's actual type and name. Multiple projections of one root create
+one parameter; the original field expressions stay inside the moved subtree.
+This preserves first-use capture order without converting source field labels
+into new parameters. Internal nominal locals and pattern bindings remain in the
+helper body and are checked by the same Copy rules.
+
+Owned values, borrowed values, propagation, and compiler ownership lowering
+are rejected. External mutable
+captures and writes to enclosing bindings are rejected. Mutable locals and whole-binding
+writes wholly inside the moved subtree remain inside it and are allowed; field
+assignments remain excluded, even for internal roots. Unsafe
 statements inside the subtree, and selections nested under an unsafe statement,
 are rejected so that extraction cannot relocate an audit boundary or its owner.
 
@@ -85,9 +103,27 @@ does not grant merge or publication authority.
 
 Expression traversal is bounded to 4,096 nodes and depth 256; binding-pattern
 traversal has the same bounds. At most 64 captures are accepted. Existing
+nominal type selectors admit at most 4,095 direct scalar arguments. Extraction
+separately bounds distinct checked nominal type nodes and generated annotation
+type nodes to 4,096 each, charging each owner and direct argument before cloning
+or constructing its annotation. Existing
 candidate/source byte bounds, declaration limits, and Project admission bounds
 also apply. Unsupported requests use `SPX-G225`; operation capacity failures use
 `SPX-G226`. Existing candidate stale/replay diagnostics remain unchanged.
+
+The checked nominal inventory shares the existing per-module 4,096 distinct
+type-identity ceiling and builder-byte charges with signature facts. Body,
+contract, local-binding and pattern types now count in that same inventory;
+the limit is not raised or replaced. Retention visits at most 1,048,576 combined
+type/expression/statement/binding/pattern items per module at depth at most 256.
+A fixed ancestor-cursor stack bounds scratch storage independently of sibling
+list width. Its bounded HIR traversal and retained
+facts do not change source meaning or give caches source authority. Graph schemas
+remain unchanged, but newly retained facts and traversal storage are charged;
+reported builder usage and consequently derived Graph/image bytes and digests
+can change. Old evidence is not silently relabelled as evidence for a new image.
+Previously admitted projects exceeding the expanded inventory can reject at
+this resource boundary. This is not general unbounded nominal extraction.
 
 These operations retain immutable in-memory candidates. They do not write
 source, cache an image, publish a workspace generation, or commit Git changes.
@@ -101,7 +137,12 @@ stale changes, rebase after unrelated source movement, and unchanged disk bytes.
 No local tests, compiler checks, or long quality gates were run, at the user's
 request; these cases are not passing completion evidence.
 
-Owned or borrowed extraction, mutable capture copy-back, aggregate captures,
+`tests/project_candidate_nominal_extraction_v1.rs` adds authored, unrun coverage
+for nominal captures/results, whole-root field reads, body-only generic values,
+rejection cases and exact candidate recovery. Discovery advertises the checked
+Copy and whole-root constraints without claiming each expression is extractable.
+
+Owned or borrowed extraction, mutable capture copy-back, broader nominal types,
 generic functions, contract extraction, propagation across function boundaries,
 unsafe audit relocation, minimal effect inference, arbitrary extraction regions,
 and runtime resource equivalence remain outside this version. The broader

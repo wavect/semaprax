@@ -84,8 +84,8 @@ must have value ownership; every nominal parameter and return must resolve to
 a record or variant whose compiler TypeFacts establish `copy` and `sized`,
 with neither `needs_drop` nor `contains_resource`. Template shapes never prove
 those properties. The retained facts now include return-only instances and
-share the existing per-module limit of 4,096 distinct nominal signature types
-and builder-byte budget. Fresh generic instances need not have appeared in an
+share the existing per-module limit of 4,096 distinct nominal types and
+builder-byte budget with checked body-value facts used by extraction. Fresh generic instances need not have appeared in an
 earlier function signature, but must pass this rebuilt admission.
 
 Catalogue `nominal_types` rows describe available selectors and provenance,

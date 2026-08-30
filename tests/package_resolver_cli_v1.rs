@@ -51,6 +51,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         "semaprax project-candidate-restore <manifest> <capsule.json>\n",
         "semaprax serve-image <manifest>\n",
         "semaprax serve-candidates <manifest>\n",
+        "semaprax serve-test-candidates <manifest>\n",
     );
     assert_eq!(current.matches(IMAGE_LINES).count(), 1);
     // Remove only the exact contiguous additive image commands, retaining the

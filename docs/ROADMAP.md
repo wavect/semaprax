@@ -162,6 +162,12 @@ integration and ownership-sensitive changes. New data-access and audit HIR
 facets still need reverse dependency indexes and candidate deltas; current
 Project unsafe admission is unchanged.
 
+Candidate test relevance/execution, rejected-attempt diagnostics and the bounded
+managed-publication bridge are authored, unrun. Complete raw-source commit,
+general repair/interface operations and the integrated signature-evolution
+demonstration before claiming the agent workflow complete. Interpreter reports
+must not substitute for native/Wasm conformance or hosted full gates.
+
 The first [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
 foundation is authored, unrun: immutable retained Project/HIR state, canonical
 rebuildable image bytes, typed stable-ID lookup, and bounded existing analysis.

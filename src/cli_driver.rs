@@ -188,7 +188,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{context}");
             Ok(())
         }
-        "serve-image" | "serve-candidates" => {
+        "serve-image" | "serve-candidates" | "serve-test-candidates" => {
             if args.len() != 2 || args[1].is_empty() || args[1].starts_with('-') {
                 eprintln!("{command} requires exactly <manifest>");
                 return Err(2);
@@ -197,7 +197,9 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 std::io::stdin().lock(),
                 std::io::stdout().lock(),
                 Path::new(&args[1]),
-                if command == "serve-candidates" {
+                if command == "serve-test-candidates" {
+                    semaprax::image_transport::ImageHostCapability::TestEnabled
+                } else if command == "serve-candidates" {
                     semaprax::image_transport::ImageHostCapability::CandidateOnly
                 } else {
                     semaprax::image_transport::ImageHostCapability::ReadOnly
@@ -2319,6 +2321,7 @@ fn print_help() {
            semaprax project-candidate-restore <manifest> <capsule.json>\n\
            semaprax serve-image <manifest>\n\
            semaprax serve-candidates <manifest>\n\
+           semaprax serve-test-candidates <manifest>\n\
            semaprax context <file> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n\
             semaprax context-benchmark <manifest>\n\
             semaprax serve <file> [--max-request-bytes N]\n\

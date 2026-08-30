@@ -344,6 +344,19 @@ added. `image_facets/relationships.rs` projects bounded data-access and audit
 facts from retained HIR with source, expression and evidence provenance; the
 existing Project admission remains responsible for excluding unsafe sources.
 
+`candidate/testing.rs` derives test relevance from retained HIR and explicitly
+executes the declared interpreter test closure only after exact candidate replay.
+Image protocol v3 selects this bounded authority at host startup; policy cannot
+be changed by requests. `candidate/diagnostics.rs` retains failed intentions and
+diagnostics without exposing invalid source as a checked image, and routes its
+bounded repair class through ordinary complete candidate admission.
+
+`candidate/publication.rs` is a separate host invocation over an existing managed
+Workspace. Its in-memory Change-v1 seam acquires existing shared/exclusive
+authority before candidate replay, authenticates Project and managed base sources,
+and delegates the sole `ACTIVE` publication to the existing Workspace engine.
+It grants neither a reusable authority token nor raw Git-source writes.
+
 `src/project/manifest.rs` parses the bounded `semaprax.toml` profiles.
 `src/project/` owns held input authority, immutable revisions, semantic
 admission, linking, execution, builds, npm carriers, rename planning, and the

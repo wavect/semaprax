@@ -234,6 +234,113 @@ pub(crate) fn apply_authenticated_with_hook(
     )
 }
 
+/// In-memory Project bridge: shared authority is acquired before replaying the
+/// caller's candidate history. It has no publication path and creates no files.
+pub(crate) fn with_project_candidate_change<T>(
+    root: &Path,
+    derive: impl FnOnce(
+        &str,
+        &[workspace::WorkspaceSemanticSource],
+    ) -> Result<SemanticWorkspaceChangeSet, Vec<Diagnostic>>,
+    review: impl FnOnce(
+        &SemanticWorkspacePreparedChange,
+        &SemanticWorkspaceChangeArtifacts,
+    ) -> Result<T, Vec<Diagnostic>>,
+) -> Result<T, Vec<Diagnostic>> {
+    let locked = workspace::acquire_semantic_change_lock(root)?;
+    let (authority, ()) = locked.authenticate(Ok(()))?;
+    let (authority, prepared) = prepare_project_candidate_change(authority, derive)?;
+    let result =
+        artifact::render_artifacts(&prepared).and_then(|artifacts| review(&prepared, &artifacts));
+    authority.finish(result)
+}
+
+/// The bridge contributes an exact submitted Change-v1 evidence document plus
+/// its outer receipt. Existing evidence replay and the sole Workspace publisher
+/// remain mandatory; no reusable authority leaves this invocation.
+pub(crate) fn apply_project_candidate_change(
+    root: &Path,
+    derive: impl FnOnce(
+        &str,
+        &[workspace::WorkspaceSemanticSource],
+    ) -> Result<SemanticWorkspaceChangeSet, Vec<Diagnostic>>,
+    verify: impl FnOnce(
+        &SemanticWorkspacePreparedChange,
+        &SemanticWorkspaceChangeArtifacts,
+    ) -> Result<(String, String), Vec<Diagnostic>>,
+    hook: impl FnMut(
+        workspace::SemanticChangeApplyPoint,
+        &Path,
+        Option<&Path>,
+        Option<&Path>,
+    ) -> std::io::Result<()>,
+) -> Result<String, Vec<Diagnostic>> {
+    let locked = workspace::acquire_semantic_change_apply_lock(root)?;
+    let (authority, ()) = locked.authenticate(Ok(()))?;
+    let (authority, prepared) = prepare_project_candidate_change(authority, derive)?;
+    let replayed = (|| {
+        let artifacts = artifact::render_artifacts(&prepared)?;
+        let (submitted_source, receipt) = verify(&prepared, &artifacts)?;
+        let submitted = verification::parse_evidence(&submitted_source)?;
+        verification::verify_replay(&submitted, &submitted_source, &artifacts)?;
+        Ok(receipt)
+    })();
+    let receipt = match replayed {
+        Ok(receipt) => receipt,
+        Err(diagnostics) => return authority.finish(Err(diagnostics)),
+    };
+    let (candidate_files, candidate_manifest, candidate_revision) =
+        prepared.into_candidate_generation_parts();
+    workspace::commit_semantic_change_authority_with_hook(
+        SemanticWorkspaceChangeCommitAuthority {
+            authority,
+            candidate_files,
+            candidate_manifest,
+            candidate_revision,
+            receipt,
+        },
+        hook,
+    )
+}
+
+fn prepare_project_candidate_change(
+    mut authority: workspace::WorkspaceSemanticReadAuthority,
+    derive: impl FnOnce(
+        &str,
+        &[workspace::WorkspaceSemanticSource],
+    ) -> Result<SemanticWorkspaceChangeSet, Vec<Diagnostic>>,
+) -> Result<
+    (
+        workspace::WorkspaceSemanticReadAuthority,
+        SemanticWorkspacePreparedChange,
+    ),
+    Vec<Diagnostic>,
+> {
+    let base_revision = authority.workspace_revision().to_owned();
+    let storage = (
+        authority.manifest_bytes(),
+        authority.retained_generations(),
+        authority.staging_attempts(),
+    );
+    let result = (|| {
+        let graph = authority.take_graph()?;
+        let sources = authority.take_sources();
+        // The source inventory remains authenticated by the held authority and
+        // is compared with the independently admitted Project base by derive.
+        let changes = derive(&base_revision, &sources)?;
+        prepare_owned(base_revision, sources, graph, storage, changes)
+    })();
+    match result {
+        Ok(prepared) => Ok((authority, prepared)),
+        Err(diagnostics) => match authority.finish::<()>(Err(diagnostics)) {
+            Err(diagnostics) => Err(diagnostics),
+            Ok(()) => Err(replay(
+                "Project publication preparation failed without diagnostics",
+            )),
+        },
+    }
+}
+
 fn proposal_io_hook(label: &'static str, error: std::io::Error) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-I211", format!("{label}: {error}"))]
 }

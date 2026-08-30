@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added candidate-bound static test relevance and explicitly host-selected
+  interpreter-test execution with fixed limits and replay-bound reports.
+  Rejected attempts now retain bounded diagnostics and can offer one fully
+  admitted integer literal repair. Added a separate candidate publication
+  bridge through existing locked managed Workspace evidence and `ACTIVE`
+  authority; original Git files remain unchanged. Test-enabled protocol v3
+  grants no source/build/native/Wasm authority. All new regressions are authored,
+  unrun by request; the full graph-operational programme remains incomplete.
+
 - Added typed cross-file scalar function moves and Copy record-field additions,
   including stable-ID import/call migration, constructor/pattern migration,
   exact identity allowances, source replay, discovery and semantic conflict

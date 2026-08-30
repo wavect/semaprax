@@ -1,7 +1,8 @@
 //! Self-describing Image Agent Protocol: read-only v1 and candidate-only v2.
 //!
 //! The host binds one manifest and explicitly selects the session profile.
-//! Requests cannot name files, change capability, write source, or run targets.
+//! Requests cannot name files, change capability, or write source. Explicit v3
+//! host selection permits bounded interpreted Project tests only.
 //! Opt-in v2 retains bounded in-memory candidates and ephemeral typed drafts;
 //! read-only v1 and existing Graph/Project method sets remain unchanged.
 
@@ -22,6 +23,7 @@ use crate::workspace_analysis::{
 
 mod candidates;
 pub use candidates::{CANDIDATE_PROTOCOL_SCHEMA, CANDIDATE_RESULT_SCHEMA};
+pub use candidates::{TEST_PROTOCOL_SCHEMA, TEST_RESULT_SCHEMA};
 
 pub const PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v1";
 pub const RESULT_SCHEMA: &str = "semaprax.image-agent-result.v1";
@@ -35,6 +37,7 @@ const MAX_QUERY_BYTES: usize = 512 * 1024;
 pub enum ImageHostCapability {
     ReadOnly,
     CandidateOnly,
+    TestEnabled,
 }
 
 #[derive(Clone, Copy)]
@@ -265,6 +268,7 @@ pub struct ImageSession {
     image: Arc<ProjectSemanticImage>,
     terminal: bool,
     candidates: Option<candidates::Registry>,
+    test_policy: Option<crate::project::CandidateTestPolicy>,
 }
 
 impl ImageSession {
@@ -277,9 +281,27 @@ impl ImageSession {
             snapshot,
             image: Arc::new(image),
             terminal: false,
-            candidates: (capability == ImageHostCapability::CandidateOnly)
+            candidates: (capability != ImageHostCapability::ReadOnly)
                 .then(candidates::Registry::default),
+            test_policy: if capability == ImageHostCapability::TestEnabled {
+                Some(crate::project::CandidateTestPolicy::new(
+                    100_000, 65_536, 262_144,
+                )?)
+            } else {
+                None
+            },
         })
+    }
+
+    /// The trusted host chooses fixed limits before requests are accepted.
+    /// No protocol method can alter these limits or grant another capability.
+    pub fn open_test_enabled(
+        manifest: &Path,
+        policy: crate::project::CandidateTestPolicy,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        let mut session = Self::open(manifest, ImageHostCapability::CandidateOnly)?;
+        session.test_policy = Some(policy);
+        Ok(session)
     }
 
     pub fn image_revision(&self) -> &str {
@@ -327,6 +349,7 @@ impl ImageSession {
                 &mut self.snapshot,
                 &self.image,
                 registry,
+                self.test_policy.as_ref(),
                 &id,
                 &request.method,
                 request.params.unwrap_or_default(),

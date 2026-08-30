@@ -30,6 +30,13 @@ const CONTRACT_DELTA: Method = Method {
     query: true,
     payload_schema: "semaprax.image-contract-delta-chunk.v1",
 };
+const OWNERSHIP_DELTA: Method = Method {
+    name: "candidate/ownership-delta",
+    operation: Operation::VNext(Action::OwnershipDelta),
+    parameters: &[REVISION, CANDIDATE_REVISION, OFFSET, CHUNK],
+    query: true,
+    payload_schema: "semaprax.image-ownership-delta-chunk.v1",
+};
 const SYMBOL_DIAGNOSTICS: Method = Method {
     name: "candidate/symbol-diagnostics",
     operation: Operation::VNext(Action::SymbolDiagnostics),
@@ -54,11 +61,49 @@ pub(super) fn methods(policy: &VNextPolicy) -> Vec<&'static Method> {
     if policy.candidate_prepare {
         result.push(&INTERFACE_DELTA);
         result.push(&CONTRACT_DELTA);
+        result.push(&OWNERSHIP_DELTA);
     }
     if policy.diagnostics {
         result.push(&SYMBOL_DIAGNOSTICS);
     }
     result
+}
+
+pub(super) fn ownership_delta(
+    params: &Map<String, Value>,
+    image: &ProjectSemanticImage,
+    registry: &candidates::Registry,
+) -> Result<Value, Vec<Diagnostic>> {
+    if text(params, "image_revision") != image.image_digest() {
+        return Err(failure(
+            "SPX-G221",
+            "ownership delta image revision is stale",
+        ));
+    }
+    let candidate = registry.candidate(text(params, "candidate_revision"))?;
+    let report = candidate.ownership_delta(candidate.candidate_digest())?;
+    let offset = number(params, "offset", 0);
+    if offset > report.len() || !report.is_char_boundary(offset) {
+        return Err(failure(
+            "SPX-G328",
+            "ownership delta offset is outside its UTF-8 report",
+        ));
+    }
+    let mut end = offset
+        .saturating_add(number(params, "chunk_bytes", 16384))
+        .min(report.len());
+    while !report.is_char_boundary(end) {
+        end -= 1;
+    }
+    Ok(json!({
+        "schema":"semaprax.image-ownership-delta-chunk.v1",
+        "report_schema":"semaprax.project-candidate-ownership-delta.v1",
+        "image_revision":image.image_digest(),
+        "candidate_revision":candidate.candidate_digest(),
+        "offset":offset,"total_bytes":report.len(),"chunk":&report[offset..end],
+        "next_offset":(end<report.len()).then_some(end),
+        "source_authority":false
+    }))
 }
 
 pub(super) fn contract_delta(

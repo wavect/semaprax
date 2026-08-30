@@ -95,6 +95,12 @@ selector and returns immutable bounded UTF-8 chunks under exact image/candidate
 expectations. It performs no target projection or execution, grants no additional
 authority, and stays outside the parallel image-only batch.
 
+`candidate/ownership-delta` uses the same candidate-preparation grant and bounded
+chunk parameters for [Ownership Delta](PROJECT-CANDIDATE-OWNERSHIP-DELTA-V1.md).
+It compares checked signatures, structural inventories and complete ordered
+loan/cleanup plans across the candidate. It takes no target and gains no target
+execution, plan mutation or physical ownership authority.
+
 All available method names, closed request parameters, payload schema references,
 capabilities, and generated clients come from the selected catalogue. Optional
 parameters are omitted; null is accepted only where the declared schema permits

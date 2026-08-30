@@ -27,6 +27,7 @@ mod intent;
 mod interface;
 mod interface_delta;
 mod movement;
+mod ownership_delta;
 mod publication;
 mod rebase;
 mod record_field;
@@ -42,6 +43,10 @@ pub use archive::{
 pub use contract_delta::{
     MAX_PROJECT_CANDIDATE_CONTRACT_DELTA_BYTES, PROJECT_CANDIDATE_CONTRACT_DELTA_SCHEMA,
     PROJECT_CANDIDATE_CONTRACT_DELTA_VERIFICATION_SCHEMA,
+};
+pub use ownership_delta::{
+    MAX_PROJECT_CANDIDATE_OWNERSHIP_DELTA_BYTES, PROJECT_CANDIDATE_OWNERSHIP_DELTA_SCHEMA,
+    PROJECT_CANDIDATE_OWNERSHIP_DELTA_VERIFICATION_SCHEMA,
 };
 
 pub use testing::{

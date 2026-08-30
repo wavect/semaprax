@@ -21,20 +21,25 @@ use super::{
 #[cfg(all(test, unix))]
 type TestHook = Box<dyn FnOnce() + Send + 'static>;
 #[cfg(all(test, unix))]
-static TEST_AFTER_CREATE: std::sync::Mutex<Option<TestHook>> = std::sync::Mutex::new(None);
+std::thread_local! {
+    static TEST_AFTER_CREATE: std::cell::RefCell<Option<TestHook>> = const { std::cell::RefCell::new(None) };
+}
+
+#[cfg(all(test, unix))]
+mod tests;
+
+#[cfg(all(test, unix))]
+mod hook_tests;
 
 #[cfg(all(test, unix))]
 pub(super) fn set_test_after_create(hook: TestHook) {
-    *TEST_AFTER_CREATE.lock().expect("publication hook lock") = Some(hook);
+    TEST_AFTER_CREATE.with(|slot| *slot.borrow_mut() = Some(hook));
 }
 
 #[cfg(all(test, unix))]
 fn run_test_after_create() {
-    if let Some(hook) = TEST_AFTER_CREATE
-        .lock()
-        .expect("publication hook lock")
-        .take()
-    {
+    let hook = TEST_AFTER_CREATE.with(|slot| slot.borrow_mut().take());
+    if let Some(hook) = hook {
         hook();
     }
 }
@@ -189,6 +194,14 @@ mod unix {
             package_error(format!("cannot rebind npm package output parent: {error}"))
         })?;
         if rebound_parent != canonical_parent {
+            return Err(package_error(
+                "npm package parent identity changed during publication",
+            ));
+        }
+        // The spelling can be unchanged after an ancestor or parent is moved
+        // aside and replaced. Success must still name the held parent inode.
+        let reopened_parent = open_absolute_directory(&rebound_parent)?;
+        if identity(&reopened_parent)? != identity(&parent)? {
             return Err(package_error(
                 "npm package parent identity changed during publication",
             ));

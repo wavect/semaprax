@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Corrected Unix npm publication success binding: canonical path equality is
+  now followed by a held/reopened parent identity comparison. Same-path parent
+  or ancestor replacement reports failure while preserving the original
+  artifacts and foreign bytes. Test hooks are thread-local so parallel
+  publishers cannot steal each other's substitutions. Real-carrier and hook
+  regressions are authored but unrun; artifact bytes, Windows routes and the
+  existing non-atomic publication contract remain unchanged.
+
 - Fixed the shared full-toolchain test launcher to use Cargo's uniquely
   reported, manifest-bound executable instead of guessing `target/debug`.
   Configured target output can no longer silently select a stale CLI at the

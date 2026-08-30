@@ -363,6 +363,13 @@ the retained Project subject plus the exact ordered artifacts, bytes, digests,
 and payload digest. Inspection or replay proves consistency only; neither the
 metadata nor carrier grants build or publication authority.
 
+Filesystem materialization uses the shared
+[Unix npm publication boundary](PROJECT-MANIFEST-V2.md): final parent binding
+compares held/reopened filesystem identities as well as canonical path text.
+Same-path parent replacement must not turn a package retained in a displaced
+directory into reported success. The added physical regressions are unrun;
+no Windows routing change or atomic-publication claim follows.
+
 The owned-data Rust package uses manifest
 `semaprax.native-rust-owned-data-sdk.v1`. It binds the same canonical API
 descriptor and exact generated package/provider inventories. It is distinct

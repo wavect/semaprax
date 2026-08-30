@@ -44,6 +44,25 @@ v2 `web` and `npm` requests to the same pathless text carrier. The legacy
 v2 library callers use `build_npm_inline` rather than confusing the two carrier
 schemas.
 
+The shared Unix npm publisher writes create-new artifacts relative to held
+directories. Before reporting success it also reopens the requested parent's
+canonical path without following newly substituted components and compares its
+filesystem identity with the retained parent. Canonical pathname equality alone
+is insufficient: a parent or ancestor can be moved aside and replaced while
+the held writes correctly continue into the displaced tree. Such replacement
+must report the existing parent-identity error, not success at a different
+directory. Pre-existing parent aliases remain admitted when they still bind
+the same canonical path and identity.
+
+This final check is an observation, not a permanent pathname lock or atomic
+publication guarantee. Failures preserve the completed artifacts or partial
+prefix under the held destination, and leave foreign replacement bytes alone;
+there is no new cleanup or rollback. The correction changes no artifact,
+carrier, descriptor, or Windows route. Real-carrier Unix regression cases in
+`src/project/npm/publication/tests.rs` and thread-local test-hook isolation
+cases in `hook_tests.rs` are authored but unrun. The hooks exist only in Unix
+test builds and do not add production concurrency authority.
+
 Local evidence builds the real config-validator fixture, preserves exports by
 stable ID across a display rename, performs offline `npm pack`, installs the
 result into a compiler-free consumer with scripts disabled, type-checks its

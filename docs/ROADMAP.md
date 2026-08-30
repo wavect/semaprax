@@ -53,6 +53,11 @@ The separate [calculator publication gate](NEW-PROJECT-PUBLICATION-V1.md) must
 also exercise staging/destination collisions before first-use publication can
 be treated as proven. Neither authored correction promotes support.
 
+The shared [Unix npm publication boundary](PROJECT-MANIFEST-V2.md) also requires
+execution of its authored parent/ancestor substitution, retained-inventory,
+healthy-alias and test-hook isolation regressions. The final parent identity
+check does not establish atomic publication or change Windows support.
+
 Dependency integrations must preserve locked standalone consumers and exact
 validator-version evidence bindings. The wasmparser 0.258.0 and Android runner
 2.38.0 updates require current-head hosted checks before release promotion;

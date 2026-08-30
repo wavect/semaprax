@@ -560,6 +560,13 @@ replay descriptor bytes against retained HIR. This closes the ordinary v9
 Project route without modifying an earlier profile or target schema. See
 [Project Profile Admission v1](PROJECT-PROFILE-ADMISSION-V1.md).
 
+The shared Unix npm publisher in `src/project/npm/publication.rs` writes through
+held directories and compares the final reopened parent identity, not only its
+canonical pathname, before reporting success. This detects same-path parent
+replacement without cleanup or rollback; it is an observation, not atomic
+publication. See [Project Manifest v2](PROJECT-MANIFEST-V2.md) for the shared
+boundary and authored, unrun regression modules. Windows routes are unchanged.
+
 Project v8 adds one closed `owned-data-api.v1` route. `src/project/public_api.rs`
 derives and independently replays the sole semantic API descriptor from the
 authenticated linked-HIR subject. `src/project/npm/owned_data.rs` and the

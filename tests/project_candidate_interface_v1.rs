@@ -58,7 +58,7 @@ use function @id("iface.evaluate") from iface.core as evaluate;
                 "src/tests.spx",
                 r#"module iface.tests;
 use function @id("iface.evaluate") from iface.core as evaluate;
-@id("iface.test") fn evaluates() -> bool { evaluate(42) == 42 }
+@id("iface.test") fn main() -> i64 { if evaluate(42) == 42 { 0 } else { 1 } }
 "#,
             ),
         ] {

@@ -49,6 +49,24 @@ impl Drop for Fixture {
 #[test]
 fn conformance_binds_exact_source_and_image_without_runtime_graph_nodes() {
     let fixture = Fixture::new();
+    let manifest = fixture.0.join("semaprax.toml");
+    let source = std::fs::read_to_string(&manifest)
+        .unwrap()
+        .replace(
+            "schema = \"semaprax.project.v1\"\nname = \"calculator\"",
+            "schema = \"semaprax.project.v8\"\nname = \"calculator\"\nversion = \"1.0.0\"\nprofile = \"owned-data-api.v1\"",
+        )
+        .lines()
+        .map(|line| {
+            if line.starts_with("web_exports = ") {
+                "web_exports = [\"calculator.add\"]"
+            } else {
+                line
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n") + "\n";
+    std::fs::write(&manifest, source).unwrap();
     let empty = fixture.image();
     let empty_report: Value =
         serde_json::from_str(&empty.protocol_conformance(empty.image_digest()).unwrap()).unwrap();
@@ -111,6 +129,23 @@ fn conformance_binds_exact_source_and_image_without_runtime_graph_nodes() {
             .code,
         "SPX-G221"
     );
+}
+
+#[test]
+fn scalar_project_still_rejects_record_conformance_subjects() {
+    let fixture = Fixture::new();
+    fixture.append(
+        "src/core.spx",
+        r#"
+@id("shape.point") record Point { @id("shape.point.x") x: i64, }
+@id("shape.point.area") fn point_area(self: Point) -> i64 { self.x }
+"#,
+    );
+    let result = with_authenticated_project(&fixture.0.join("semaprax.toml"), |_| Ok(()));
+    assert!(result
+        .unwrap_err()
+        .iter()
+        .any(|diagnostic| diagnostic.code == "SPX-G172"));
 }
 
 #[test]

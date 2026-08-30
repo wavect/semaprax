@@ -273,8 +273,23 @@ fn contract_and_forged_selectors_are_rejected_while_main_expressions_are_availab
 #[test]
 fn match_binding_is_visible_only_in_its_guard_and_arm() {
     let fixture = Fixture::new(
-        "    let subtotal = left + right;\n    match subtotal { n if n >= 0 => n, _ => subtotal }",
+        "    let subtotal = left + right;\n    match subtotal { n if n >= 0 => n, _ => subtotal, }",
     );
+    let manifest = fixture.0.join("semaprax.toml");
+    assert_code(
+        with_authenticated_project(&manifest, |_| Ok(())),
+        "SPX-W115",
+    );
+    // The owned-data profile admits scalar matches; the legacy scalar profile does not.
+    let source = std::fs::read_to_string(&manifest)
+        .unwrap()
+        .replace("semaprax.project.v1", "semaprax.project.v8")
+        .replace(
+            "name = \"calculator\"",
+            "name = \"calculator\"\nversion = \"1.0.0\"\nprofile = \"owned-data-api.v1\"",
+        )
+        .replace("\"calculator.divide\", ", "");
+    std::fs::write(manifest, source).unwrap();
     let revision = fixture.revision();
     let candidate = root(&revision);
     let catalogue = catalog(&candidate, "calculator.add");

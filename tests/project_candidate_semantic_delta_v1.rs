@@ -46,7 +46,8 @@ impl Fixture {
                 .replace(
                     "name = \"calculator\"",
                     "name = \"calculator\"\nversion = \"1.0.0\"\nprofile = \"owned-data-api.v1\"",
-                ),
+                )
+                .replace("\"calculator.divide\", ", ""),
         )
         .unwrap();
         let core = fixture.0.join("src/core.spx");
@@ -56,7 +57,7 @@ impl Fixture {
 @id("delta.record-value") fn record_value(input: i64) -> i64 {{
     let mut pair = Pair {{ value: input }};
     pair.value = pair.value + 1;
-    match pair {{ Pair {{ value: picked }} => picked }}
+    match pair {{ Pair {{ value: picked }} => picked, }}
 }}
 "#,
             std::fs::read_to_string(&core).unwrap()
@@ -254,16 +255,41 @@ fn field_and_record_deltas_include_real_reads_writes_patterns_and_test_callers()
 #[test]
 fn moved_identity_keeps_before_and_after_source_origins() {
     let fixture = Fixture::new();
+    let exported = fixture.open();
+    let intent = json!({"kind":"move_declaration","target":"calculator.add","destination":"calculator.app.main"});
+    let change = SemanticChange::new(exported.revision().project_revision(), &intent).unwrap();
+    let errors = exported
+        .apply(exported.candidate_digest(), &change)
+        .err()
+        .unwrap();
+    assert!(errors.iter().any(|error| error.code == "SPX-G225"));
+    let manifest = fixture.0.join("semaprax.toml");
+    let source = std::fs::read_to_string(&manifest)
+        .unwrap()
+        .replace("\"calculator.add\", ", "")
+        .replace(
+            "\"src/tests.spx\"]",
+            "\"src/support.spx\", \"src/tests.spx\"]",
+        );
+    std::fs::write(manifest, source).unwrap();
+    std::fs::write(
+        fixture.0.join("src/support.spx"),
+        semaprax::format::canonical(&semaprax::parse(
+            "module calculator.support;\n@id(\"calculator.support.anchor\") fn anchor() -> i64 { 0 }\n",
+            "src/support.spx",
+        ).unwrap()),
+    )
+    .unwrap();
     let root = fixture.open();
     let candidate = apply(
         &root,
-        json!({"kind":"move_declaration","target":"calculator.add","destination":"calculator.app.main"}),
+        json!({"kind":"move_declaration","target":"calculator.add","destination":"calculator.support.anchor"}),
     );
     let report = delta(&candidate, "calculator.add");
     assert_eq!(report["source_bindings"]["base"]["path"], "src/core.spx");
     assert_eq!(
         report["source_bindings"]["candidate"]["path"],
-        "src/app.spx"
+        "src/support.spx"
     );
     let catalog: Value = serde_json::from_str(
         &candidate

@@ -36,7 +36,8 @@ impl Fixture {
 }
 "#,
         );
-        std::fs::write(&path, source).unwrap();
+        let program = semaprax::parse(&source, &path).unwrap();
+        std::fs::write(&path, semaprax::format::canonical(&program)).unwrap();
         Self(root.canonicalize().unwrap())
     }
     fn candidate(&self) -> ProjectCandidate {

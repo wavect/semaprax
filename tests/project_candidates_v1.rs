@@ -89,12 +89,24 @@ fn change_catalog_is_revision_bound_and_omits_unsupported_targets() {
     assert_eq!(report["candidate_digest"], candidate.candidate_digest());
     assert_eq!(report["requires_full_candidate_validation"], true);
     assert_eq!(report["admission"], "constructor_discovery_only");
-    assert_eq!(report["operations"].as_array().unwrap().len(), 9);
-    assert!(report["operations"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|operation| operation["kind"] == "repair_diagnostic"));
+    assert_eq!(
+        report["operations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|operation| operation["kind"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        [
+            "rename_declaration",
+            "change_function_signature",
+            "replace_function_body",
+            "repair_diagnostic",
+            "replace_expression",
+            "add_contract",
+            "add_declaration",
+            "extract_function",
+        ]
+    );
     assert_eq!(
         report["operations"][1]["exactly_one_form"]
             .as_array()

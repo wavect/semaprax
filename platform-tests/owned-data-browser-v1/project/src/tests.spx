@@ -1,10 +1,8 @@
 module owned_browser.tests;
-use function @id("frame.payload") from owned_browser.app as payload;
+use function @id("owned-browser.payload-check") from owned_browser.app as payload_check;
 
 @id("owned-browser.tests.main")
 fn main() -> i64
 {
-    let input = [65u8, 0u8, 255u8];
-    let output = payload(array_as_slice(input));
-    if byte_len(bytes_as_slice(output)) == 3usize { 0 } else { 1 }
+    payload_check()
 }

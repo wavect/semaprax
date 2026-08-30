@@ -199,9 +199,16 @@ fn extracted_failing_expression_stays_inside_its_original_lazy_branch() {
 fn internal_let_and_match_value_id_bindings_are_not_external_captures() {
     for (body,snippet,signature) in [
         ("    let subtotal = left + right;\n    { let doubled = subtotal + subtotal; doubled - subtotal }","{ let doubled = subtotal + subtotal; doubled - subtotal }","fn selected_core(subtotal: i64) -> i64"),
-        ("    match left { n if n >= 0 => n + right, _ => left + right }","match left { n if n >= 0 => n + right, _ => left + right }","fn selected_core(left: i64, right: i64) -> i64"),
+        ("    match left { n if n >= 0 => n + right, _ => left + right, }","match left { n if n >= 0 => n + right, _ => left + right, }","fn selected_core(left: i64, right: i64) -> i64"),
     ] {
-        let fixture=Fixture::new(body);let revision=fixture.revision();let root=open(&revision);
+        let fixture = Fixture::new(body);
+        let manifest = fixture.0.join("semaprax.toml");
+        let source = std::fs::read_to_string(&manifest).unwrap()
+            .replace("semaprax.project.v1", "semaprax.project.v8")
+            .replace("name = \"calculator\"", "name = \"calculator\"\nversion = \"1.0.0\"\nprofile = \"owned-data-api.v1\"")
+            .replace("\"calculator.divide\", ", "");
+        std::fs::write(manifest, source).unwrap();
+        let revision=fixture.revision();let root=open(&revision);
         let selected=expression(&root,"calculator.add",snippet);
         let change=request(&root,"calculator.add",&selected,"calculator.selected-core","selected_core");
         let candidate=root.apply(root.candidate_digest(),&change).unwrap();

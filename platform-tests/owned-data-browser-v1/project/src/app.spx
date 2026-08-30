@@ -32,3 +32,11 @@ fn main() -> i64
 {
     0
 }
+
+@id("owned-browser.payload-check")
+fn payload_check() -> i64
+{
+    let input = [65u8, 0u8, 255u8];
+    let output = payload(array_as_slice(input));
+    if byte_len(bytes_as_slice(output)) == 3usize { 0 } else { 1 }
+}

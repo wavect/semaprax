@@ -10,6 +10,10 @@ use semaprax::project::{
 };
 use serde_json::{json, Value};
 
+#[allow(dead_code)]
+#[path = "support/project_product.rs"]
+mod support;
+
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 struct Fixture(PathBuf);
 impl Fixture {
@@ -28,7 +32,7 @@ version = "1.0.0"
 profile = "owned-data-api.v1"
 entry = "field.app"
 sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
-web_exports = ["field.evaluate"]
+web_exports = ["field.unrelated"]
 tests = ["field.tests"]
 "#,
         )
@@ -51,7 +55,7 @@ tests = ["field.tests"]
     let pair = Pair { right: 10, left: input };
     let updated = pair with { left: pair.left + 1 };
     let outer = Envelope { pair: updated, marker: true };
-    match outer { Envelope { pair: Pair { left: picked, right: other }, marker: _ } => picked + other }
+    match outer { Envelope { pair: Pair { left: picked, right: other }, marker: _ } => picked + other, }
 }
 @id("field.unrelated") fn unrelated() -> i64 { 7 }
 "#,
@@ -63,7 +67,7 @@ use type @id("field.pair") from field.core as Metric;
 use function @id("field.evaluate") from field.core as evaluate;
 @id("field.app.main") fn main() -> i64 {
     let item = Metric { right: 3, left: 2 };
-    let selected = match item { Metric { left: picked, right: _ } => picked };
+    let selected = match item { Metric { left: picked, right: _ } => picked, };
     evaluate(selected)
 }
 "#,
@@ -134,10 +138,18 @@ fn diagnostic<T>(result: Result<T, Vec<Diagnostic>>, code: &str) {
 }
 fn same_outcome(before: &ProjectCandidate, after: &ProjectCandidate) {
     let options = ProjectExecutionOptions::default();
-    assert_eq!(
-        before.revision().execute_entry(&options).unwrap().outcome(),
-        after.revision().execute_entry(&options).unwrap().outcome()
-    );
+    for (label, candidate) in [
+        ("record-field-before", before),
+        ("record-field-after", after),
+    ] {
+        // Copy-record construction/update is outside the interpreter's closed profile.
+        diagnostic(candidate.revision().execute_entry(&options), "SPX-F102");
+        let program = candidate.revision().entry_program();
+        let native = semaprax::codegen::emit_hir_c(program).unwrap();
+        support::run_native_c(&native, label, "13", &["-O0", "-O2"]);
+        let wasm = semaprax::wasm::emit_resolved_module(program).unwrap();
+        support::run_core_wasm(&wasm, label, "13");
+    }
 }
 
 #[test]

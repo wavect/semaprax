@@ -44,6 +44,11 @@ subprocess/descendant settlement fixtures before promotion. Doctor still needs
 the programme's no-network guarantee; filtering environment variables is not
 OS network isolation.
 
+Dependency integrations must preserve locked standalone consumers and exact
+validator-version evidence bindings. The wasmparser 0.258.0 and Android runner
+2.38.0 updates require current-head hosted checks before release promotion;
+they do not close a completion-matrix row.
+
 Exit outcomes:
 
 1. Confirm the line-filter product on hosted native and WebAssembly lanes and

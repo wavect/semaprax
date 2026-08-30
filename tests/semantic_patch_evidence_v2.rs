@@ -492,6 +492,8 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
     ];
     let mut capsule_hashes = Vec::new();
     let mut receipt_hashes = Vec::new();
+    let mut previous_capsule_hashes = Vec::new();
+    let mut previous_receipt_hashes = Vec::new();
     for fixture in &fixtures {
         let capsule = patch_evidence::generate_v2(&fixture.source, &fixture.patch).unwrap();
         std::fs::write(&fixture.evidence, &capsule).unwrap();
@@ -499,9 +501,49 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
             patch_evidence::verify_v2(&fixture.source, &fixture.patch, &fixture.evidence).unwrap();
         capsule_hashes.push(sha256(&capsule));
         receipt_hashes.push(sha256(&receipt));
+
+        // Reconstruct the prior binding to prove that only validator metadata
+        // changed; old capsules must still fail replay before source writes.
+        let report = target_evidence::preview(&fixture.source, &fixture.patch).unwrap();
+        let previous_report = report.replace("0.258.0", "0.256.0");
+        let report_domain = b"semaprax.semantic-target-evidence.report-digest.v1\0";
+        let artifact_domain = b"semaprax.semantic-patch-evidence.artifact-digest.v2\0";
+        let report_digest = domain_digest(report_domain, report.as_bytes());
+        let previous_report_digest = domain_digest(report_domain, previous_report.as_bytes());
+        let previous_capsule = capsule.replace(&report_digest, &previous_report_digest);
+        let previous_receipt = receipt
+            .replace(&report_digest, &previous_report_digest)
+            .replace(
+                &domain_digest(artifact_domain, capsule.as_bytes()),
+                &domain_digest(artifact_domain, previous_capsule.as_bytes()),
+            );
+        previous_capsule_hashes.push(sha256(&previous_capsule));
+        previous_receipt_hashes.push(sha256(&previous_receipt));
+        let before = std::fs::read(&fixture.source).unwrap();
+        std::fs::write(&fixture.evidence, &previous_capsule).unwrap();
+        assert_eq!(
+            patch_evidence::verify_v2(&fixture.source, &fixture.patch, &fixture.evidence)
+                .unwrap_err()[0]
+                .code,
+            "SPX-G132"
+        );
+        assert_eq!(
+            patch_evidence::apply_v2(&fixture.source, &fixture.patch, &fixture.evidence)
+                .unwrap_err()[0]
+                .code,
+            "SPX-G132"
+        );
+        assert_eq!(std::fs::read(&fixture.source).unwrap(), before);
+        assert!(std::fs::read_dir(&fixture.directory).unwrap().all(|entry| {
+            !entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .contains("semaprax-stage")
+        }));
     }
     assert_eq!(
-        capsule_hashes,
+        previous_capsule_hashes,
         [
             "22ac9213336058223e698d0fc4fe004bcd4ca62e0a52182701b697ebe08083a3",
             "8e3b28ffda72085caeb434c14c1363cf793f0d6d09c882491de16419390992ca",
@@ -509,11 +551,27 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
         ]
     );
     assert_eq!(
-        receipt_hashes,
+        previous_receipt_hashes,
         [
             "7d344b4366791770f9f04df5c99d98372efe0c4806a3fc623361f8884cc4c828",
             "ca280d8e5889014a64a282f9ac483bbbae9c7dd92516f6b08f05030da47f456c",
             "30edf74263a59c0018bee9858327e8ee40cbb281025b023ea3673c8f0a62e5ae",
+        ]
+    );
+    assert_eq!(
+        capsule_hashes,
+        [
+            "b88cba43cca79797900a50fdb853395409ad9745abbd938c6b175b06f5d483b7",
+            "e9338ec4b58aa8d91e055afa7461c64a2e8f13fd9a8123755cfee977c42d736d",
+            "36421c08c02575cf58f59e3ec77e05e2382b803dde45ae8fd214865a69ef4efd",
+        ]
+    );
+    assert_eq!(
+        receipt_hashes,
+        [
+            "a47578997ea60a9a486df3e805af3d70f253615e7adbbc94ce635db3b461a9f6",
+            "e741b379eea42325a7beb086c676fcd9c98b3857a76e3b82499f0178e3db927e",
+            "9b75e62b3abc00ffe53eb75f834ca701878d0af48476020672ed5e4ac44eacca",
         ]
     );
 }

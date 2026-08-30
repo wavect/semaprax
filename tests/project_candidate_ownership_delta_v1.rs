@@ -476,16 +476,10 @@ fn generic_template_plans_remain_unavailable_while_actual_instance_plans_are_ret
 "#;
     let parsed = semaprax::parse(&core, "src/core.spx").unwrap();
     std::fs::write(path, semaprax::format::canonical(&parsed)).unwrap();
-    let path = fixture.0.join("src/app.spx");
-    let app = std::fs::read_to_string(&path)
-        .unwrap()
-        .replace(
-            "module ownership.app;",
-            "module ownership.app;\nuse function @id(\"ownership.generic-call\") from ownership.core as generic_call;",
-        )
-        .replace("evaluate()", "evaluate() + generic_call(0)");
-    let parsed = semaprax::parse(&app, "src/app.spx").unwrap();
-    std::fs::write(path, semaprax::format::canonical(&parsed)).unwrap();
+    // Phase A retains the checked instance from this unselected source
+    // function. Project-v8's executable owned-data closure does not admit
+    // generic calls, so keep the entry/export roots unchanged; this test
+    // checks report retention, not an expansion of target admission.
     let disk = fixture.bytes();
     let base = fixture.candidate();
     let candidate = apply(
@@ -516,7 +510,10 @@ fn generic_template_plans_remain_unavailable_while_actual_instance_plans_are_ret
     assert_eq!(instance["signature"]["parameters"][0]["type_id"], "i64");
     assert_eq!(instance["cleanup_inventory"]["slots"], json!([]));
     assert_eq!(instance["loan_plan"]["loans"], json!([]));
-    assert!(instance["cleanup_plan"]["blocks"].as_array().unwrap().len() > 0);
+    assert!(!instance["cleanup_plan"]["blocks"]
+        .as_array()
+        .unwrap()
+        .is_empty());
     assert_eq!(template["candidate"]["instances"], json!([]));
     assert_eq!(
         value["inventory"]["base_instances"].as_u64().unwrap(),

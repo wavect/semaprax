@@ -56,7 +56,16 @@ impl Budget {
         }
         Ok(())
     }
-    fn fact<T: serde::Serialize + ?Sized>(&mut self, value: &T) -> Result<()> {
+    fn fact(&mut self, value: &Value) -> Result<()> {
+        self.serialized_fact(|writer| serde_json::to_writer(writer, value))
+    }
+    fn string_fact(&mut self, value: &str) -> Result<()> {
+        self.serialized_fact(|writer| serde_json::to_writer(writer, value))
+    }
+    fn serialized_fact(
+        &mut self,
+        serialize: impl FnOnce(&mut dyn Write) -> serde_json::Result<()>,
+    ) -> Result<()> {
         struct Counter(usize);
         impl Write for Counter {
             fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
@@ -72,7 +81,7 @@ impl Budget {
             }
         }
         let mut count = Counter(1);
-        serde_json::to_writer(&mut count, value).map_err(|_| capacity())?;
+        serialize(&mut count).map_err(|_| capacity())?;
         self.bytes(count.0)
     }
     fn copy(&mut self, value: &Value) -> Result<Value> {
@@ -184,8 +193,8 @@ fn inventory(revision: &ProjectRevision, budget: &mut Budget) -> Result<Inventor
                 .source()
                 .get(function.span.start..function.span.end)
                 .ok_or_else(invalid)?;
-            budget.fact(function.stable_id.as_str())?;
-            budget.fact(function.name.as_str())?;
+            budget.string_fact(function.stable_id.as_str())?;
+            budget.string_fact(function.name.as_str())?;
             let row = json!({"id":function.stable_id,"name":function.name,
                 "provenance":{"path":source.path(),"module":program.module,"source_revision":source.source_revision(),
                     "source_digest":source.source_digest(),"span":{"start":function.span.start,"end":function.span.end}},
@@ -283,8 +292,8 @@ fn signature(
     budget.items(params.len())?;
     let mut parameters = Vec::new();
     for (index, param) in params.iter().enumerate() {
-        budget.fact(param.id.as_str())?;
-        budget.fact(param.name.as_str())?;
+        budget.string_fact(param.id.as_str())?;
+        budget.string_fact(param.name.as_str())?;
         parameters.push(
             json!({"index":index,"id":param.id.as_str(),"name":param.name,
             "type_id":type_key(&param.ty,budget)?,"ownership":ownership(param.ownership)}),
@@ -355,7 +364,7 @@ fn attach_function(
 fn type_key(ty: &ResolvedType, budget: &mut Budget) -> Result<String> {
     preflight_type(ty, budget, 0)?;
     let key = ty.identity_key();
-    budget.fact(&key)?;
+    budget.string_fact(&key)?;
     Ok(key)
 }
 fn preflight_type(ty: &ResolvedType, budget: &mut Budget, depth: usize) -> Result<()> {
@@ -365,7 +374,7 @@ fn preflight_type(ty: &ResolvedType, budget: &mut Budget, depth: usize) -> Resul
         arguments,
     } = ty
     {
-        budget.fact(declaration.as_str())?;
+        budget.string_fact(declaration.as_str())?;
         for arg in arguments {
             preflight_type(arg, budget, depth + 1)?;
         }

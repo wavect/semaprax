@@ -8,6 +8,7 @@ Audience: all documentation readers.
 
 - [Documentation overview](index.md)
 - [Quickstart](QUICKSTART.md)
+- [Doctor version-probe lifecycle](DOCTOR-PROBE-V1.md)
 
 ## Language contract
 

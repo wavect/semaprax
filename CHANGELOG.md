@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- Authored bounded doctor subprocess lifetime in the existing OS quarantine:
+  fixed lexical `--version`, restricted environment, combined output bounds,
+  execution/settlement deadlines, and Unix-group/Windows-job fail-stop cleanup.
+  The root CLI remains safe and report schemas are unchanged. Physical hostile
+  fixtures are authored but unrun; no-network enforcement remains an open
+  requirement, not a claim made by environment filtering.
+
+- Corrected v10 Wasm inline String ownership for admitted direct-call argument
+  expressions and owned parameters: cloned place reads, cleared temporary and
+  call transfers, scope/failure cleanup, and a checked selected-call-path arena
+  bound. Earlier profile bytes and the existing String admission remain frozen.
+  V10 Wasm/JavaScript integrity bindings intentionally change. Native inline
+  String failure cleanup remains a separate known gap; new regressions are
+  authored but unrun and no support/promotion is claimed.
+
+- Added real offline linked-publication/reopened-replay fixtures, an explicitly
+  provisioned Node consumer of the published package, and semantic-lock
+  snapshot component mutation/cross-pair evidence using only reopened files.
+  No production API/schema/artifact changes or hosted workflow edits accompany
+  these acceptance fixtures. Tests/builds were not run.
+
 - Extended the existing bounded JavaScript input admission explicitly to v9/v10
   while preserving v8 helper/rendered bytes. Added a shared generated Rust
   invocation guard that proves whole-context settlement before returning any

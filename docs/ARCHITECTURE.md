@@ -47,6 +47,15 @@ graph projection or backend.
 
 ## Representations
 
+The real CLI doctor routes fixed `--version` probes through the safe
+`semaprax-native-rust-interop-platform` facade and the existing platform-sys
+quarantine's separate `doctor/` module. That module owns bounded combined
+output, deadline observation, and private Unix-group or Windows-job settlement;
+it does not alter the authenticated build runner. The root CLI retains report
+policy and UTF-8/version parsing, with no unsafe code. Trusted installed tools
+remain outside a network sandbox; see the [doctor lifecycle
+contract](DOCTOR-PROBE-V1.md).
+
 ### Canonical source
 
 `src/lexer.rs`, `src/parser.rs`, and `src/ast.rs` parse human-readable source.
@@ -346,6 +355,14 @@ invalid UTF-8 therefore cannot escape or retain provider ownership. It receives
 no HIR and cannot independently prove provider semantics; root HIR/codegen
 replay alone owns that proof. V8/v9 renderer and carrier identities remain
 separate. See [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md).
+
+For v10 Wasm, `src/wasm/aggregate/owned_strings.rs` owns inline String cell
+settlement derived from validated HIR and exact emitter locals, separately
+from resource CleanupPlan liveness. Place reads clone; temporary moves clear;
+scope and failure exits sweep nonescaping owners. `owned_stack.rs` derives a
+checked selected-call-path arena bound from these cells plus Bytes cleanup
+leaves. Native inline String failure cleanup remains a separate known gap;
+Wasm cell accounting does not prove native allocation settlement.
 
 `src/project_revision_store.rs` and `src/project_revision_store/unix.rs` own
 the additive [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md). The

@@ -94,6 +94,31 @@ Package Source Capsule diagnostics `PS501..PS507` map monotonically to the
 corresponding `PB601..PB607` family without copying nested diagnostic text;
 unknown nested codes fail closed as `PB602`.
 
+## Publication and consumer evidence
+
+`crates/semaprax-offline-wasm-package/tests/linked_publication.rs` constructs
+real Reports, Subjects, Resolver evidence, a two-package source capsule, and
+Build-v2 artifacts before calling the public linked publisher. It reopens the
+exact three-file inventory and independently replays it; stale/cross-paired
+inputs must reject before filesystem authority, and an existing destination
+must remain unchanged.
+
+The explicitly selected Node fixture consumes the reopened module/manifest,
+checks exact imports and root-only exports, and executes root-to-provider
+integer/boolean calls, invalid raw booleans, checked overflow, and subsequent
+calls after failure.
+It requires a provisioned absolute Node path and installs/downloads nothing:
+
+```sh
+cargo test --locked -p semaprax-offline-wasm-package --test linked_publication
+SEMAPRAX_OFFLINE_PACKAGE_NODE=/absolute/provisioned/node cargo test --locked -p semaprax-offline-wasm-package --test linked_publication provisioned_node_executes_reopened_linked_scalar_package -- --ignored --exact
+```
+
+The Node case is not selected by the default test command. Once explicitly
+selected, a missing tool fails rather than skipping. All new evidence is
+authored but unrun; an environment-cleared local consumer is not an OS sandbox.
+No production API, artifact bytes, schema, or diagnostic changed for this gate.
+
 ## Nonclaims
 
 V2 does not claim target execution or conformance, Component Model, WASI,

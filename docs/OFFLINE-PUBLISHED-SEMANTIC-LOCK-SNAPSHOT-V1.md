@@ -149,6 +149,12 @@ uncertainty, platform preconditions, and build-v1/v2 preservation.
 The length-guard tests avoid allocating maximum-size capsules; they do not
 claim a successful maximum-size valid-catalog replay or measured memory use.
 
+The public publication fixture also reconstructs a snapshot solely from the
+three reopened files and independently verifies it without caller catalogs or
+the publisher's receipt. Each reopened component has mutation and cross-pair
+rejection evidence, with both published inventories remaining byte-unchanged.
+These additional fixtures are authored but unrun.
+
 The focused commands are:
 
 ```sh

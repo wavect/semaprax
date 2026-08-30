@@ -34,8 +34,10 @@ reachable private frame from result storage. Regression evidence is authored,
 unrun, and not promotion evidence. The generated Rust facade now guards
 whole-context settlement before outward results, and the frame-payload product
 has locked/offline Rust plus explicitly provisioned TypeScript and Chromium
-fixtures. Execute these authored gates before promotion; bounded doctor
-subprocess settlement remains separate open work.
+fixtures. Execute these authored gates and the separate bounded doctor
+subprocess/descendant settlement fixtures before promotion. Doctor still needs
+the programme's no-network guarantee; filtering environment variables is not
+OS network isolation.
 
 Exit outcomes:
 
@@ -114,6 +116,11 @@ strictly validated host strings. Its implementation and executable evidence
 are likewise authored but unrun and unpublished. Neither tranche is promoted,
 and authored generator/provider evidence is not a hosted result or a
 completion-matrix status change.
+
+Before string promotion, execute the v10 inline Wasm ownership and derived
+arena-capacity regressions, close the separate native inline String
+failure-cleanup gap, and establish physical cross-backend settlement evidence.
+Do not widen the existing literal/direct-call admission to make a fixture pass.
 
 ## 0.3: ownership and fast development
 

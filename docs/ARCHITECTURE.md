@@ -56,6 +56,13 @@ package. Compiler-owned SDK replay and Windows carrier preparation/replay remain
 before/around explicit injected host calls; opaque prepared facts are not
 filesystem authority. See [development](DEVELOPMENT.md) for binary selection.
 
+The full toolchain's calculator generator checks exact owned template bytes
+before staging through `NewProjectAuthority` in the lower package crate.
+Publication latches before final held-byte and destination-path authentication;
+the CLI additionally rechecks the original requested parent spelling. Failure
+after that latch cannot regain cleanup authority. See [Calculator project
+publication v1](NEW-PROJECT-PUBLICATION-V1.md) for the correction and unrun gates.
+
 The full-toolchain CLI doctor routes fixed `--version` probes through the safe
 `semaprax-native-rust-interop-platform` facade and the existing platform-sys
 quarantine's separate `doctor/` module. That module owns bounded combined

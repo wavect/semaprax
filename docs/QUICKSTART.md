@@ -11,6 +11,11 @@ to exercise it. Install the private CLI with
 The generator does not access a network, initialize Git, or install dependencies.
 Tag archives expose the full CLI under the `semaprax` name instead.
 
+The generator requires a fresh destination beneath an existing parent.
+Its [publication contract](NEW-PROJECT-PUBLICATION-V1.md) keeps a published
+project intact if final verification fails; do not automatically delete a
+reported failure's output or staging residue.
+
 From a directory where `first-semaprax` does not already exist, run:
 
 ```sh

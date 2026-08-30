@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Authored publication corrections without changing generated package bytes:
+  the shared Windows rename fallback explicitly clears legacy replacement
+  authority, and calculator generation verifies final held-parent/output and
+  original requested-parent bindings before reporting success. Once renamed,
+  failure preserves the published tree and foreign replacements rather than
+  attempting rollback. Added forced-fallback, substitution and residue evidence;
+  new executable gates remain unrun and no support claim is promoted.
+
 - Authored an explicit source-only internal-String Web package selector with
   bounded source snapshots, pre-publication drift checks, exact compiler/runtime
   artifacts, a separate integrity manifest and a local scalar-call console.

@@ -177,6 +177,14 @@ recovery. Exact success/failure-path settlement evidence remains a promotion
 gate. The safe facade and system quarantine expose no generic or recursive
 path-delete operation.
 
+The shared Windows directory publisher's legacy rename fallback now explicitly
+zeros its replacement-policy field when switching from the extended flags
+layout. Retries, result mapping, prepared capacity and close behavior stay
+unchanged. Forced-fallback field inspection and native collision fixtures are
+authored but unrun; this correction is not covered by the historical hosted
+runs above. See the [publication correction contract](NEW-PROJECT-PUBLICATION-V1.md)
+for the exact API-layout distinction and nonclaims.
+
 Windows promotion additionally requires executable tests for zero and small
 stdout at normal EOF, silent deadline expiry, descendant-held stdout without
 overflow, one-character/reserved-DOS/case-folded names, and injected image,

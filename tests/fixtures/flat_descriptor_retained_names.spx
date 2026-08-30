@@ -1,0 +1,9 @@
+module descriptor.fixture;
+@id("R\nλ\u{8}\u{c}\u{7f}\u{85}") record PresentationPresentationPresentationPresentationPresentationPresentationPresentationPresentationPresentationPresentationPresentationPresentation {
+    @id("") bytes: Bytes,
+}
+@id("api.value") fn value() -> PresentationPresentationPresentationPresentationPresentationPresentationPresentationPresentationPresentationPresentationPresentationPresentation {
+    let data = [1u8]; let view = array_as_slice(data);
+    PresentationPresentationPresentationPresentationPresentationPresentationPresentationPresentationPresentationPresentationPresentationPresentation { bytes: bytes_copy(view) }
+}
+@id("app.main") fn main() -> i64 { 0 }

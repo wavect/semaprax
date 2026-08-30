@@ -1,6 +1,142 @@
 use super::*;
 
 #[test]
+fn retained_root_names_replay_the_same_hand_authored_canonical_oracle() {
+    let bytes = include_bytes!("../../../../tests/fixtures/flat_descriptor_retained_names.json");
+    let value = replay(
+        bytes,
+        &flat_descriptor_digest(bytes),
+        &["api.value".to_owned()],
+    )
+    .unwrap();
+    assert!(value.exports[0].record_source_name.len() > 128);
+    assert_eq!(value.exports[0].record_id, "R\nλ\u{8}\u{c}\u{7f}\u{85}");
+    assert_eq!(value.exports[0].fields[0].stable_id, "");
+    assert_eq!(render::canonical(&value), bytes.as_slice());
+    let canonical = std::str::from_utf8(bytes).unwrap();
+    for (exact, alternate) in [
+        ("\\u0008", "\\b"),
+        ("\\u000c", "\\f"),
+        ("\\u007f", "\u{7f}"),
+        ("\\u0085", "\u{85}"),
+    ] {
+        assert!(canonical.contains(exact));
+        let alternate = canonical.replacen(exact, alternate, 1);
+        assert!(replay(
+            alternate.as_bytes(),
+            &flat_descriptor_digest(alternate.as_bytes()),
+            &["api.value".to_owned()]
+        )
+        .is_err());
+    }
+}
+
+#[test]
+fn retained_identities_are_nul_free_not_method_identifiers() {
+    for id in ["", "Upper", "λ\n", &"x".repeat(129)] {
+        let value = descriptor(vec![export(
+            "api.first",
+            id,
+            &"Name".repeat(40),
+            vec![field(
+                "FIELD\tλ",
+                &"field".repeat(40),
+                FieldKind::OwnedBytes,
+                0,
+            )],
+        )]);
+        let bytes = render::canonical(&value);
+        replay(
+            &bytes,
+            &flat_descriptor_digest(&bytes),
+            &["api.first".to_owned()],
+        )
+        .unwrap();
+    }
+    let value = descriptor(vec![export(
+        "api.first",
+        "bad\0id",
+        "Packet",
+        vec![field("field", "bytes", FieldKind::OwnedBytes, 0)],
+    )]);
+    let bytes = render::canonical(&value);
+    assert!(replay(
+        &bytes,
+        &flat_descriptor_digest(&bytes),
+        &["api.first".to_owned()]
+    )
+    .is_err());
+}
+
+#[test]
+fn retained_display_name_uses_the_exact_global_descriptor_bound() {
+    let mut value = descriptor(vec![export(
+        "api.first",
+        "record",
+        "P",
+        vec![field("field", "bytes", FieldKind::OwnedBytes, 0)],
+    )]);
+    let overhead = render::canonical(&value).len();
+    value.exports[0]
+        .record_source_name
+        .push_str(&"x".repeat(MAX_DESCRIPTOR_BYTES - overhead));
+    let exact = render::canonical(&value);
+    assert_eq!(exact.len(), MAX_DESCRIPTOR_BYTES);
+    replay(
+        &exact,
+        &flat_descriptor_digest(&exact),
+        &["api.first".to_owned()],
+    )
+    .unwrap();
+    value.exports[0].record_source_name.push('x');
+    let oversized = render::canonical(&value);
+    assert_eq!(oversized.len(), MAX_DESCRIPTOR_BYTES + 1);
+    assert!(replay(
+        &oversized,
+        &flat_descriptor_digest(&oversized),
+        &["api.first".to_owned()]
+    )
+    .is_err());
+}
+
+#[test]
+fn parameter_and_field_presentation_names_are_not_host_identifiers() {
+    let mut value = descriptor(vec![export(
+        "api.first",
+        "record",
+        "Packet",
+        vec![field(
+            "field",
+            &"field".repeat(30),
+            FieldKind::OwnedBytes,
+            0,
+        )],
+    )]);
+    value.exports[0]
+        .parameters
+        .push(crate::descriptor::Parameter {
+            stable_id: "retained:parameter#0".to_owned(),
+            source_name: "parameter".repeat(20),
+            kind: crate::ParameterKind::I64,
+        });
+    let bytes = render::canonical(&value);
+    replay(
+        &bytes,
+        &flat_descriptor_digest(&bytes),
+        &["api.first".to_owned()],
+    )
+    .unwrap();
+    value.exports[0].parameters[0].stable_id.push('\0');
+    let bytes = render::canonical(&value);
+    assert!(replay(
+        &bytes,
+        &flat_descriptor_digest(&bytes),
+        &["api.first".to_owned()]
+    )
+    .is_err());
+}
+
+#[test]
 fn generated_flat_record_sdk_closes_before_publication() {
     let descriptor = descriptor(vec![export(
         "fixture.value",
@@ -81,7 +217,7 @@ fn replay_requires_exact_canonical_bytes_even_with_a_reminted_digest() {
 
 #[test]
 fn replay_rejects_cross_export_record_identity_disagreement() {
-    let host_collision = descriptor(vec![
+    let same_display_name = descriptor(vec![
         export(
             "api.first",
             "record.first",
@@ -95,13 +231,13 @@ fn replay_rejects_cross_export_record_identity_disagreement() {
             vec![field("field.second", "bytes", FieldKind::OwnedBytes, 0)],
         ),
     ]);
-    let bytes = super::render::canonical(&host_collision);
-    assert!(replay(
+    let bytes = super::render::canonical(&same_display_name);
+    replay(
         &bytes,
         &flat_descriptor_digest(&bytes),
         &["api.first".to_owned(), "api.second".to_owned()],
     )
-    .is_err());
+    .unwrap();
 
     let inconsistent = descriptor(vec![
         export(

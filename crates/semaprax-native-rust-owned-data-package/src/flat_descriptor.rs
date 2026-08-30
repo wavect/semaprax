@@ -115,10 +115,7 @@ pub(crate) fn replay(
         let record_id = string(result, "record_id")?;
         let source_name = string(result, "record_source_name")?;
         let record_host_name = string(result, "record_host_name")?;
-        if !valid_stable_id(record_id)
-            || !valid_source_name(source_name)
-            || record_host_name != host_record_name(record_id)
-        {
+        if !valid_retained_identity(record_id) || record_host_name != host_record_name(record_id) {
             return Err(PackageError::descriptor());
         }
         let field_rows = result
@@ -134,8 +131,7 @@ pub(crate) fn replay(
             let field_id = string(field, "stable_id")?;
             let field_source = string(field, "source_name")?;
             let host_name = string(field, "host_name")?;
-            if !valid_stable_id(field_id)
-                || !valid_source_name(field_source)
+            if !valid_retained_identity(field_id)
                 || host_name != host_field_name(field_id)
                 || field.get("ordinal").and_then(Value::as_u64) != Some(ordinal as u64)
                 || !field_ids.insert(field_id)
@@ -173,14 +169,7 @@ pub(crate) fn replay(
     }
     let mut records = std::collections::BTreeMap::<&str, (&str, &str, &Vec<Field>)>::new();
     let mut host_records = std::collections::BTreeMap::<&str, &str>::new();
-    let mut source_records = std::collections::BTreeMap::<&str, &str>::new();
     for export in &exports {
-        if let Some(previous) = source_records.insert(&export.record_source_name, &export.record_id)
-        {
-            if previous != export.record_id {
-                return Err(PackageError::descriptor());
-            }
-        }
         if let Some(previous) = host_records.insert(&export.record_host_name, &export.record_id) {
             if previous != export.record_id {
                 return Err(PackageError::descriptor());
@@ -228,8 +217,7 @@ fn parse_parameters(
             let row = exact_object(value, 4)?;
             let stable_id = string(row, "stable_id")?;
             let source_name = string(row, "source_name")?;
-            if !valid_parameter_id(stable_id)
-                || !valid_source_name(source_name)
+            if !valid_retained_identity(stable_id)
                 || row.get("ordinal").and_then(Value::as_u64) != Some(ordinal as u64)
                 || !stable_ids.insert(stable_id)
             {
@@ -316,16 +304,11 @@ fn valid_stable_id(value: &str) -> bool {
         })
 }
 
-fn valid_parameter_id(value: &str) -> bool {
-    !value.is_empty()
-        && value.len() <= 512
-        && value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'.' | b'-' | b':' | b'#')
-        })
-}
-
-fn valid_source_name(value: &str) -> bool {
-    !value.is_empty() && value.len() <= 128 && !value.chars().any(char::is_control)
+// Record/field/value identities are retained HIR facts, not exported method
+// names. Hex-derived host names safely represent every NUL-free UTF-8 byte.
+// The complete canonical descriptor has already passed its 1 MiB bound.
+fn valid_retained_identity(value: &str) -> bool {
+    !value.contains('\0')
 }
 
 fn rust_method_name(stable_id: &str) -> Result<String, PackageError> {

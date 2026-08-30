@@ -55,6 +55,28 @@ every persistent-ID byte, an injective mapping independent of source display
 names. Display-only renames therefore do not change callable or member
 identity.
 
+Record, field, and parameter identities are retained validated-HIR facts,
+not exported method names. The lower native descriptor reader must preserve
+their NUL-free UTF-8 bytes, including empty, uppercase, non-ASCII, and escaped
+control-bearing identities admitted by the compiler. Display names are JSON
+presentation strings; they neither supply Rust identifiers nor need to be
+unique across distinct record identities. Repeated descriptions of the same
+record identity must still agree exactly. Export identities retain their
+existing portable spelling and bound.
+
+The authored replay-alignment correction removes native-only 128-byte name
+and record/field restrictions and the display-name uniqueness check. It does
+not expand source/HIR admission, change hex-derived host names, or change any
+previously accepted canonical descriptor bytes. The existing 1 MiB canonical
+descriptor bound remains authoritative. Native canonical replay uses the
+compiler's exact control-character escape spelling, not an interchangeable
+JSON serializer's spelling; semantic JSON equality alone is insufficient.
+Root derivation additionally charges
+a conservative lower bound on repeated string/hex content before cloning;
+that is not a peak-memory or exact rendering-work bound. The inherited
+complete linked-function inventory limit of 256 is checked before indexing,
+including functions outside the selected export closure.
+
 | SEMAPRAX field | TypeScript | Rust |
 | --- | --- | --- |
 | `i64` | `bigint` | `i64` |
@@ -143,6 +165,14 @@ settle and publish-after-settle traces, capacity boundaries, and v1-v8 known
 answers. This implementation tranche has not run those target consumers or
 equivalence gates. Hosted promotion requires one exact blocking
 Linux/macOS/Windows head.
+
+The replay-alignment regressions are authored in
+`tests/project_flat_owned_record_api_v1.rs` and the lower package's
+`flat_descriptor::tests`. A shared hand-authored source/canonical-byte oracle
+connects actual compiler derivation/replay with lower native replay without
+adding dependencies or exposing a new public replay API. These tests remain
+unrun; the private descriptor-size model is only a byte-guard check, not a
+proof of semantic admission or peak allocation.
 
 No test, target consumer, hosted job, registry publication, or release
 promotion is claimed by the authored source state. The upstream baseline at

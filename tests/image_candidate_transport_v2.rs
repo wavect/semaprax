@@ -254,6 +254,53 @@ fn candidates_are_immutable_queryable_validated_and_discardable_without_disk_cha
             assert_eq!(parameter["allowed_types"], json!(["i64", "bool"]));
         }
     }
+    let matches = catalogue["aggregate_matches"].as_array().unwrap();
+    assert_eq!(
+        matches
+            .iter()
+            .map(|item| item["target"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        ["core.option", "core.result"]
+    );
+    for (descriptor, expected_cases) in matches.iter().zip([
+        ["core.option.none", "core.option.some"],
+        ["core.result.ok", "core.result.err"],
+    ]) {
+        assert_eq!(descriptor["kind"], "match");
+        assert_eq!(descriptor["generic"], true);
+        assert_eq!(descriptor["identity_origin"], "compiler_owned");
+        assert!(descriptor["path"].is_null());
+        assert!(descriptor["module"].is_null());
+        assert_eq!(
+            descriptor["compiler_prelude"],
+            aggregates[0]["compiler_prelude"]
+        );
+        assert_eq!(descriptor["evidence_owner"], "retained_checked_hir");
+        assert_eq!(descriptor["requires_full_candidate_validation"], true);
+        assert_eq!(
+            descriptor["base_evaluation"],
+            "once_into_typed_value_binding"
+        );
+        assert_eq!(
+            descriptor["cases"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|case| case["target"].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            expected_cases
+        );
+    }
+    let body = catalogue["operations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|operation| operation["kind"] == "replace_function_body")
+        .unwrap();
+    assert!(body["constructors"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("match")));
     payload(call(
         &mut session,
         "candidate/discard",

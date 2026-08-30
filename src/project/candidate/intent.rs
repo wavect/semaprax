@@ -11,8 +11,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{Map, Value};
 
 use crate::ast::{
-    BinaryOp, Expr, ExprKind, FieldInitializer, Function, ModuleUseKind, Param, ParamMode, Program,
-    Span, Statement, Type, TypeDeclarationKind, UnaryOp,
+    BinaryOp, Expr, ExprKind, FieldInitializer, Function, MatchArm, MatchMode, MatchPattern,
+    MatchPatternField, ModuleUseKind, Param, ParamMode, Program, Span, Statement, Type,
+    TypeDeclarationKind, UnaryOp,
 };
 use crate::diagnostic::Diagnostic;
 
@@ -31,6 +32,7 @@ mod signature;
 
 pub(super) use aggregate::{
     aggregate_constructors, aggregate_dependency_fingerprint,
+    aggregate_match_dependency_fingerprint, aggregate_matches,
     aggregate_projection_dependency_fingerprint, aggregate_projections,
     MAX_AGGREGATE_TYPE_ARGUMENTS,
 };
@@ -213,6 +215,9 @@ fn apply_inner(
                 params: &params,
                 nodes: 0,
                 next_projection: 0,
+                arm_bindings: BTreeSet::new(),
+                reserved_bindings: BTreeSet::new(),
+                generated_bindings: BTreeSet::new(),
                 revision,
                 program: &programs[owner],
             };
@@ -293,6 +298,9 @@ fn construct_expression_inner(
         params: &params,
         nodes: 0,
         next_projection: 0,
+        arm_bindings: BTreeSet::new(),
+        reserved_bindings: BTreeSet::new(),
+        generated_bindings: BTreeSet::new(),
         revision,
         program,
     }
@@ -325,26 +333,230 @@ struct Constructor<'a> {
     params: &'a BTreeSet<&'a str>,
     nodes: usize,
     next_projection: usize,
+    arm_bindings: BTreeSet<String>,
+    reserved_bindings: BTreeSet<String>,
+    generated_bindings: BTreeSet<String>,
     revision: Option<&'a crate::project::ProjectRevision>,
     program: &'a Program,
 }
 
+struct PreparedMatchArm<'a> {
+    case_name: String,
+    fields: Vec<MatchPatternField>,
+    bindings: Vec<String>,
+    body: &'a Value,
+}
+
 impl Constructor<'_> {
+    fn match_binder(&self, name: &str) -> Result<()> {
+        identifier(name)?;
+        if matches!(
+            name,
+            "_" | "record"
+                | "variant"
+                | "class"
+                | "resource"
+                | "type"
+                | "protocol"
+                | "impl"
+                | "for"
+                | "extends"
+        ) || self.params.contains(name)
+            || self.arm_bindings.contains(name)
+            || self.generated_bindings.contains(name)
+            || self.bindings.contains_key(name)
+            || self
+                .program
+                .module_uses
+                .iter()
+                .any(|binding| binding.alias == name)
+            || self.program.types.iter().any(|ty| ty.name == name)
+            || matches!(name, "Option" | "Result")
+        {
+            return Err(grammar("match payload binder is reserved or collides with an existing lexical, call, type or generated binding"));
+        }
+        Ok(())
+    }
+
+    fn match_expression(&mut self, value: &Value, depth: usize) -> Result<Expr> {
+        if value.get("type_arguments").is_some() {
+            object(
+                value,
+                &["kind", "target", "value", "arms", "type_arguments"],
+            )?;
+        } else {
+            object(value, &["kind", "target", "value", "arms"])?;
+        }
+        // The already charged root becomes a block; count its generated let,
+        // match and scrutinee variable as additional AST nodes.
+        self.nodes += 3;
+        if self.nodes > MAX_EXPRESSION_NODES || depth + 2 > MAX_EXPRESSION_DEPTH {
+            return Err(capacity("match lowering exceeds its node or depth bound"));
+        }
+        if let Some(arguments) = value.get("type_arguments") {
+            let arguments = arguments
+                .as_array()
+                .ok_or_else(|| grammar("aggregate type_arguments must be an explicit array"))?;
+            if arguments.len() > MAX_AGGREGATE_TYPE_ARGUMENTS
+                || arguments.len() > MAX_EXPRESSION_NODES.saturating_sub(self.nodes)
+            {
+                return Err(capacity(
+                    "match type arguments exceed the remaining node bound",
+                ));
+            }
+            self.nodes += arguments.len();
+        }
+        let revision = self
+            .revision
+            .ok_or_else(|| grammar("match requires a retained checked Project revision"))?;
+        let plan = aggregate::match_plan(
+            revision,
+            self.program,
+            text(value, "target")?,
+            value.get("type_arguments"),
+        )?;
+        let requested = array(value, "arms")?;
+        if requested.len() > MAX_EXPRESSION_NODES.saturating_sub(self.nodes) {
+            return Err(capacity("match arms exceed the remaining node bound"));
+        }
+        if requested.len() != plan.cases.len() {
+            return Err(grammar("match must cover every exact variant case once"));
+        }
+        let mut seen = BTreeSet::new();
+        let mut prepared = Vec::new();
+        for arm in requested {
+            object(arm, &["target", "fields", "body"])?;
+            let target = text(arm, "target")?;
+            let case = plan
+                .cases
+                .get(target)
+                .ok_or_else(|| grammar("match selects a foreign variant case"))?;
+            if !seen.insert(target) {
+                return Err(grammar("match repeats a variant case"));
+            }
+            let requested_fields = array(arm, "fields")?;
+            let charge = 1usize.saturating_add(requested_fields.len());
+            if charge > MAX_EXPRESSION_NODES.saturating_sub(self.nodes) {
+                return Err(capacity(
+                    "match patterns and payload bindings exceed the node bound",
+                ));
+            }
+            self.nodes += charge;
+            if requested_fields.len() != case.fields.len() {
+                return Err(grammar(
+                    "match must bind every exact case payload field once",
+                ));
+            }
+            let mut field_ids = BTreeSet::new();
+            let mut names = BTreeSet::new();
+            let mut fields = Vec::new();
+            let mut bindings = Vec::new();
+            for field in requested_fields {
+                object(field, &["target", "name"])?;
+                let target = text(field, "target")?;
+                let field_name = case
+                    .fields
+                    .get(target)
+                    .ok_or_else(|| grammar("match selects a foreign case payload field"))?;
+                if !field_ids.insert(target) {
+                    return Err(grammar("match repeats a case payload field"));
+                }
+                let name = text(field, "name")?;
+                self.match_binder(name)?;
+                if !names.insert(name) {
+                    return Err(grammar(
+                        "match payload binders must be unique within their arm",
+                    ));
+                }
+                bindings.push(name.to_owned());
+                fields.push(MatchPatternField {
+                    name: field_name.clone(),
+                    name_span: Span::default(),
+                    binding: name.to_owned(),
+                    binding_span: Span::default(),
+                    span: Span::default(),
+                });
+            }
+            // Reservation affects generated names only, never place lookup.
+            // Thus sibling-arm binders cannot become visible to expressions.
+            self.reserved_bindings.extend(bindings.iter().cloned());
+            prepared.push(PreparedMatchArm {
+                case_name: case.name.clone(),
+                fields,
+                bindings,
+                body: member(arm, "body")?,
+            });
+        }
+        let name = self.projection_name()?;
+        // No arm names are active while the original scrutinee is constructed.
+        let scrutinee = self.expression(member(value, "value")?, depth + 2)?;
+        let mut arms = Vec::new();
+        for arm in prepared {
+            for binding in &arm.bindings {
+                self.arm_bindings.insert(binding.clone());
+            }
+            let body = self.expression(arm.body, depth + 2);
+            for binding in &arm.bindings {
+                self.arm_bindings.remove(binding);
+            }
+            arms.push(MatchArm {
+                pattern: MatchPattern::Variant {
+                    type_name: plan.type_name.clone(),
+                    type_span: Span::default(),
+                    case_name: arm.case_name,
+                    case_span: Span::default(),
+                    fields: arm.fields,
+                    span: Span::default(),
+                },
+                guard: None,
+                value: body?,
+                span: Span::default(),
+            });
+        }
+        Ok(Expr {
+            kind: ExprKind::Block {
+                statements: vec![Statement::Let {
+                    name: name.clone(),
+                    name_span: Span::default(),
+                    mutable: false,
+                    declared: Some(plan.owner_type),
+                    value: scrutinee,
+                    span: Span::default(),
+                }],
+                tail: Box::new(Expr {
+                    kind: ExprKind::Match {
+                        mode: MatchMode::Value,
+                        scrutinee: Box::new(Expr {
+                            kind: ExprKind::Var(name),
+                            span: Span::default(),
+                        }),
+                        arms,
+                    },
+                    span: Span::default(),
+                }),
+            },
+            span: Span::default(),
+        })
+    }
+
     fn projection_name(&mut self) -> Result<String> {
-        // Every attempt either consumes one occupied source name or selects a
-        // new monotonically increasing generated name. No request can supply
-        // bindings, so nested constructors cannot capture this local.
+        // Every attempt either consumes one occupied source/reserved payload
+        // name or selects a new monotonically increasing generated name.
+        // Match payload names are reserved before allocating their staging
+        // local; nested constructors cannot capture active payload bindings.
         let limit = self
             .params
             .len()
             .saturating_add(self.bindings.len())
             .saturating_add(self.program.module_uses.len())
             .saturating_add(self.program.types.len())
+            .saturating_add(self.reserved_bindings.len())
             .saturating_add(MAX_EXPRESSION_NODES);
         while self.next_projection <= limit {
             let name = format!("spx_project_{}", self.next_projection);
             self.next_projection += 1;
             if !self.params.contains(name.as_str())
+                && !self.reserved_bindings.contains(&name)
                 && !self.bindings.contains_key(&name)
                 && !self
                     .program
@@ -353,6 +565,7 @@ impl Constructor<'_> {
                     .any(|binding| binding.alias == name)
                 && !self.program.types.iter().any(|ty| ty.name == name)
             {
+                self.generated_bindings.insert(name.clone());
                 return Ok(name);
             }
         }
@@ -373,13 +586,14 @@ impl Constructor<'_> {
             "place" => {
                 object(value, &["kind", "name"])?;
                 let name = identifier(text(value, "name")?)?;
-                if !self.params.contains(name) {
+                if !self.params.contains(name) && !self.arm_bindings.contains(name) {
                     return Err(grammar(
                         "candidate place must identify an existing parameter",
                     ));
                 }
                 ExprKind::Var(name.to_owned())
             }
+            "match" => return self.match_expression(value, depth),
             "project" => {
                 if value.get("type_arguments").is_some() {
                     object(value, &["kind", "target", "base", "type_arguments"])?;

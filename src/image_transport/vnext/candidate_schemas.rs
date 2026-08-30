@@ -130,6 +130,68 @@ fn aggregate_projection() -> Value {
     json!({"oneOf":[monomorphic,object(generic)]})
 }
 
+fn aggregate_match() -> Value {
+    let mut payloads = array(object(vec![
+        ("target", text()),
+        ("name", text()),
+        ("index", uint()),
+        ("type_identity", text()),
+    ]));
+    payloads["maxItems"] = json!(4095);
+    let mut cases = array(object(vec![
+        ("target", text()),
+        ("name", text()),
+        ("index", uint()),
+        ("fields", payloads),
+    ]));
+    cases["maxItems"] = json!(4095);
+    let fields = vec![
+        ("kind", json!({"const":"match"})),
+        ("target", text()),
+        ("name", text()),
+        ("path", text()),
+        ("module", text()),
+        ("generic", json!({"const":false})),
+        ("binding", text()),
+        ("evidence_owner", json!({"const":"retained_checked_hir"})),
+        ("requires_full_candidate_validation", json!({"const":true})),
+        (
+            "base_evaluation",
+            json!({"const":"once_into_typed_value_binding"}),
+        ),
+        ("cases", cases),
+    ];
+    let monomorphic = object(fields.clone());
+    let mut generic = fields;
+    generic.retain(|(name, _)| *name != "generic");
+    generic.extend([
+        ("generic", json!({"const":true})),
+        (
+            "type_parameters",
+            json!({"type":"array","minItems":1,"maxItems":4095,
+            "items":object(vec![
+                ("name",text()),("index",uint()),
+                ("allowed_types",json!({"const":["i64","bool"]})),
+            ])}),
+        ),
+    ]);
+    let source_generic = object(generic.clone());
+    generic.retain(|(name, _)| !matches!(*name, "path" | "module"));
+    generic.extend([
+        ("path", json!({"type":"null"})),
+        ("module", json!({"type":"null"})),
+        ("identity_origin", json!({"const":"compiler_owned"})),
+        (
+            "compiler_prelude",
+            object(vec![
+                ("schema", json!({"const":"semaprax.prelude.v1"})),
+                ("digest", digest()),
+            ]),
+        ),
+    ]);
+    json!({"oneOf":[monomorphic,source_generic,object(generic)]})
+}
+
 pub(super) fn documents() -> BTreeMap<String, Value> {
     let mut docs = BTreeMap::new();
     let mut put = |id: &str, fields| {
@@ -369,6 +431,8 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
         .unwrap()["properties"]["aggregate_constructors"] = array(aggregate_constructor());
     docs.get_mut("urn:semaprax.project-change-catalog.v1")
         .unwrap()["properties"]["aggregate_projections"] = array(aggregate_projection());
+    docs.get_mut("urn:semaprax.project-change-catalog.v1")
+        .unwrap()["properties"]["aggregate_matches"] = array(aggregate_match());
     docs
 }
 
@@ -579,5 +643,40 @@ mod signature_parameter_schema_tests {
             .as_array()
             .unwrap()
             .contains(&json!("type_parameters")));
+    }
+
+    #[test]
+    fn match_catalogue_exposes_exact_cases_and_keeps_prelude_provenance_distinct() {
+        let schema = aggregate_match();
+        let choices = schema["oneOf"].as_array().unwrap();
+        assert_eq!(choices.len(), 3);
+        for choice in choices {
+            assert_eq!(choice["additionalProperties"], false);
+            assert_eq!(choice["properties"]["kind"]["const"], "match");
+            let case = &choice["properties"]["cases"]["items"];
+            assert_eq!(case["additionalProperties"], false);
+            assert_eq!(case["properties"].as_object().unwrap().len(), 4);
+            assert_eq!(
+                case["properties"]["fields"]["items"]["additionalProperties"],
+                false
+            );
+            assert!(case["properties"]["fields"]["items"]["properties"]
+                .get("type_identity")
+                .is_some());
+        }
+        assert_eq!(choices[0]["properties"]["generic"]["const"], false);
+        assert!(choices[0]["properties"].get("type_parameters").is_none());
+        assert_eq!(choices[1]["properties"]["generic"]["const"], true);
+        assert_eq!(choices[1]["properties"]["path"]["type"], "string");
+        assert_eq!(choices[2]["properties"]["path"]["type"], "null");
+        assert_eq!(choices[2]["properties"]["module"]["type"], "null");
+        assert_eq!(
+            choices[2]["properties"]["identity_origin"]["const"],
+            "compiler_owned"
+        );
+        assert_eq!(
+            choices[2]["properties"]["compiler_prelude"]["additionalProperties"],
+            false
+        );
     }
 }

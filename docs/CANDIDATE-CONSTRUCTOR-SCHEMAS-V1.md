@@ -26,7 +26,8 @@ required fields and `additionalProperties: false`.
 
 Expression alternatives cover typed `i64`, `i32`, `u8`, `usize`, and `bool`
 literals; places; calls; binary and unary operators; conditional expressions;
-identity-selected record/variant construction, and stable-ID record-field projection.
+identity-selected record/variant construction, stable-ID record-field projection,
+and exhaustive stable-ID variant matching.
 Literal bounds use the corresponding Rust integer limits, including the
 target-neutral unsigned 64-bit input range for `usize`; target admission can
 still reject a value. New names use the same bounded ordinary identifier shape
@@ -131,6 +132,48 @@ ordered `type_parameters`; their field identity is a template fact, not a
 substituted type. Existing aggregate constructor entries are unchanged. Schema
 regressions and `tests/project_candidate_record_projection_v1.rs` are authored
 and unrun; discovery does not validate an arbitrary proposed base expression.
+
+Exhaustive matching uses `{"kind":"match","target":variant_owner_id,
+"value":expression,"arms":[{"target":case_id,"fields":[{"target":payload_id,
+"name":"binder"}],"body":expression}]}` with the same optional direct-scalar
+`type_arguments`. The target selects a variant owner rather than one case.
+Every case and each case's payload field must appear exactly once. Guards,
+wildcards, omitted payloads, record/class patterns, and borrowing-match modes
+have no constructor fields and remain unsupported. Exact owner/arity and full
+candidate admission remain compiler checks, not JSON Schema acceptance.
+
+The value is evaluated once into a fresh typed binding before matching, at the
+original expression position. The schema charges three generated nodes for
+the let statement, match, and place; each arm pattern and payload binder also
+consumes the shared 4,096-node budget. Scrutinee and arm bodies use a two-level
+depth increment under the shared depth limit. Arm and per-arm field arrays are
+individually bounded to 4,095 entries, with at most 4,095 payload binders across
+the whole match before the tighter shared node budget applies. No case-product
+enumeration or implicit default arm is synthesized.
+
+Binder names use the existing bounded identifier grammar. They are unique in
+each arm and may not capture the outer lexical scope, callable/type/import
+bindings, or generated staging names. A binder is available only to its own
+arm body; a sibling arm has an independent scope. Constructed matching is an
+ordinary value operation: staging may copy or transfer the base, and the full
+verifier still owns payload ownership, cleanup, effects, result typing, and
+exhaustiveness. Discovery is not evidence of borrow preservation or runtime
+execution.
+
+The optional `aggregate_matches` inventory in change catalogues and both hole
+contexts identifies visible source variant owners and authenticated `Option`
+and `Result` owners. The `match` constructor kind appears only with a nonempty
+inventory. Each descriptor includes the owner `target`, name, binding,
+path/module, generic flag, checked evidence owner, full-validation requirement,
+`base_evaluation: once_into_typed_value_binding`, and declaration-ordered
+`cases`. Cases carry target/name/index and payload fields with
+target/name/index/type_identity. Generic templates retain the same ordered
+type-parameter guidance. Prelude entries use null path/module, compiler-owned
+identity origin, and the exact prelude schema/digest object used by constructor
+discovery. Earlier constructor/projection descriptor entries stay unchanged.
+The closed response schema describes the source monomorphic, source generic,
+and compiler-prelude alternatives separately. Matching schema regressions are
+authored and unrun.
 
 Intent alternatives cover declaration rename, both append and ordered-mapping
 signature forms, whole-body replacement, revision-scoped expression replacement,

@@ -570,6 +570,12 @@ forces nominal owner equality through existing source admission, and the base
 is evaluated once under normal value-binding ownership/cleanup rules. Rebase
 binds the selected field and complete owner descriptor before replay; discovery
 does not treat field spelling or a matching result type as owner evidence.
+`candidate/aggregate_match.rs` derives whole-variant matching plans and
+discovery from the same checked source/prelude identities. The expression
+constructor stages the exact nominal scrutinee once and emits ordinary
+exhaustive value-match patterns with arm-local payload bindings. Rebase binds
+the complete case and payload inventory; ordinary candidate source admission
+retains all matching, ownership, cleanup and target checks.
 
 `candidate/declaration.rs` appends a typed function under a selected module
 anchor with globally fresh identity and checked namespace/effect budgets.

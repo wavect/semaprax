@@ -160,6 +160,15 @@ fn apply_rebound(
             ));
         }
     }
+    for target in constructor_intent_targets(&change.intent, &["match"]) {
+        let before = intent::aggregate_match_dependency_fingerprint(original_revision, &target)?;
+        let after = intent::aggregate_match_dependency_fingerprint(candidate.revision(), &target)?;
+        if before.is_none() || before != after {
+            return Err(conflict(
+                "candidate match target or checked case inventory changed concurrently",
+            ));
+        }
+    }
     let mapped;
     let intent = if change.intent["kind"] == "replace_expression" {
         mapped = super::expression::rebase_intent(

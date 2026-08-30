@@ -24,7 +24,7 @@ impl ProjectCandidate {
             .iter()
             .flat_map(|program| &program.functions)
             .find(|function| function.stable_id == target);
-        let (aggregates, projections) = match selected {
+        let (aggregates, projections, matches) = match selected {
             Some(function) if function.explicit_id && function.type_parameters.is_empty() => {
                 let program = programs
                     .iter()
@@ -38,9 +38,10 @@ impl ProjectCandidate {
                 (
                     super::intent::aggregate_constructors(&self.revision, program)?,
                     super::intent::aggregate_projections(&self.revision, program)?,
+                    super::intent::aggregate_matches(&self.revision, program)?,
                 )
             }
-            _ => (Vec::new(), Vec::new()),
+            _ => (Vec::new(), Vec::new(), Vec::new()),
         };
         let mut operations = Vec::<Value>::new();
         let mut parameters = Vec::<Value>::new();
@@ -207,7 +208,7 @@ impl ProjectCandidate {
                 reason = "constructor_available_payload_requires_full_candidate_admission";
             }
         }
-        if !aggregates.is_empty() || !projections.is_empty() {
+        if !aggregates.is_empty() || !projections.is_empty() || !matches.is_empty() {
             for operation in &mut operations {
                 if operation["kind"] == "replace_function_body" {
                     let constructors = operation["constructors"].as_array_mut().unwrap();
@@ -218,6 +219,9 @@ impl ProjectCandidate {
                     }
                     if !projections.is_empty() {
                         constructors.push(json!("project"));
+                    }
+                    if !matches.is_empty() {
+                        constructors.push(json!("match"));
                     }
                 }
             }
@@ -237,6 +241,9 @@ impl ProjectCandidate {
         }
         if !projections.is_empty() {
             report["aggregate_projections"] = json!(projections);
+        }
+        if !matches.is_empty() {
+            report["aggregate_matches"] = json!(matches);
         }
         wire::render(report, 256 * 1024)
     }

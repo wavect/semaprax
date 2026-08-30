@@ -386,6 +386,82 @@ fn field_projection_rebase_rejects_reidentified_member_with_unchanged_owner_type
 }
 
 #[test]
+fn match_rebase_binds_all_cases_and_payload_ids_even_when_the_owner_identity_is_unchanged() {
+    let fixture = Fixture::new();
+    let manifest_path = fixture.0.join("semaprax.toml");
+    let manifest = std::fs::read_to_string(&manifest_path)
+        .unwrap()
+        .replace("semaprax.project.v1", "semaprax.project.v8")
+        .replace(
+            "name = \"calculator\"",
+            "name = \"calculator\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"",
+        )
+        .replace("\"calculator.divide\", ", "");
+    std::fs::write(manifest_path, manifest).unwrap();
+    let path = fixture.0.join("src/core.spx");
+    let text = std::fs::read_to_string(&path).unwrap()
+        + r#"
+@id("calculator.envelope") variant Envelope<T> {
+    @id("calculator.envelope.some") Some { @id("calculator.envelope.some.value") value: T, },
+    @id("calculator.envelope.empty") Empty,
+}
+@id("calculator.match-envelope") fn match_envelope(value: Envelope<i64>) -> i64 { 0 }
+"#;
+    let canonical = semaprax::format::canonical(&semaprax::parse(&text, "src/core.spx").unwrap());
+    std::fs::write(&path, &canonical).unwrap();
+    let root = fixture.candidate();
+    let matched = apply(
+        &root,
+        json!({"kind":"replace_function_body","target":"calculator.match-envelope","body":{
+            "kind":"match","target":"calculator.envelope","type_arguments":["i64"],
+            "value":{"kind":"place","name":"value"},"arms":[
+                {"target":"calculator.envelope.empty","fields":[],"body":{"kind":"i64","value":0}},
+                {"target":"calculator.envelope.some","fields":[{"target":"calculator.envelope.some.value","name":"payload"}],
+                 "body":{"kind":"place","name":"payload"}}
+            ]
+        }}),
+    );
+    let independent = apply(&root, rename("calculator.subtract", "difference"));
+    let merged = matched
+        .merge(
+            matched.candidate_digest(),
+            &independent,
+            independent.candidate_digest(),
+        )
+        .unwrap();
+    assert!(source(merged.candidate()).contains(": Envelope<i64> = value;"));
+    assert!(source(merged.candidate()).contains("fn difference("));
+    let unchanged = matched.to_json().to_owned();
+    // The function signature, nominal owner, case/field spellings and field
+    // types remain unchanged. Only a member's persistent identity changes.
+    for (old, new) in [
+        (
+            "\"calculator.envelope.empty\"",
+            "\"calculator.envelope.new-empty\"",
+        ),
+        (
+            "\"calculator.envelope.some.value\"",
+            "\"calculator.envelope.some.new-value\"",
+        ),
+    ] {
+        let changed = canonical.replace(old, new);
+        assert_ne!(changed, canonical);
+        std::fs::write(&path, &changed).unwrap();
+        let new_base = fixture.revision();
+        code(
+            matched.rebase(
+                matched.candidate_digest(),
+                Arc::clone(&new_base),
+                new_base.project_revision(),
+            ),
+            "SPX-G235",
+        );
+        assert_eq!(matched.to_json(), unchanged);
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), changed);
+    }
+}
+
+#[test]
 fn callee_display_rename_does_not_create_a_false_body_conflict() {
     let fixture = Fixture::new();
     fixture.helper();

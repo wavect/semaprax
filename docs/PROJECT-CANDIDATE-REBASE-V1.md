@@ -65,6 +65,12 @@ be recovered by matching its old name. These dependency comparisons also use
 each step's original and rebased intermediate revisions; surviving projections
 still reparse and check the generated exact-owner value binding.
 
+`match` operands bind the whole checked variant owner and its ordered complete
+case/payload inventory, including generic parameter and compiler-prelude facts.
+Reidentifying a unit case or payload field conflicts even if names, source
+types and the owning variant identity are unchanged. These guards run for
+recursive match operands at each intermediate revision before ordinary replay.
+
 | Concurrent change | Decision for replayed intent |
 | --- | --- |
 | Body edit and unrelated display rename, including the same source file | Replay permitted, then full admission. |

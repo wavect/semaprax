@@ -70,6 +70,12 @@ replacement source/source diff/candidate evidence. An empty draft says
 The previously supplied valid candidate may remain independently held by its
 caller, but that object does not represent the incomplete draft.
 
+The additive [Draft Recovery v1](PROJECT-CANDIDATE-DRAFT-RECOVERY-V1.md) exports
+prior valid history and pending selectors for explicit restart recovery. It
+does not export the incomplete state as checked source or candidate evidence.
+Restore independently replays that history and recreates each hole; completion
+still rejects unresolved drafts. Context is regenerated, not persisted as proof.
+
 ## Typed context
 
 The additive [Expression Holes v1](PROJECT-CANDIDATE-EXPRESSION-HOLES-V1.md)

@@ -1,4 +1,4 @@
-//! Ephemeral typed body/expression holes. Pending intentions never enter source.
+//! Typed body/expression holes. Pending intentions never enter source.
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -9,6 +9,13 @@ use crate::diagnostic::Diagnostic;
 use crate::hir::{IdentityOrigin, OwnershipMode, ResolvedFunction};
 use crate::workspace_graph::WorkspaceGraphProjectionModule;
 
+#[path = "draft_recovery.rs"]
+mod recovery;
+pub use recovery::{
+    MAX_PROJECT_CANDIDATE_DRAFT_RECOVERY_BYTES, PROJECT_CANDIDATE_DRAFT_RECOVERY_COMPATIBILITY,
+    PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA,
+};
+
 pub const PROJECT_CANDIDATE_DRAFT_SCHEMA: &str = "semaprax.project-candidate-draft.v1";
 pub const PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA: &str =
     "semaprax.project-candidate-hole-context.v1";
@@ -16,7 +23,7 @@ pub const MAX_PROJECT_CANDIDATE_HOLES: usize = 16;
 const MAX_REPORT_BYTES: usize = 1024 * 1024;
 const MAX_RENDER_BYTES: usize = 16 * 1024 * 1024;
 
-/// Immutable pending body holes over the last completely valid candidate.
+/// Immutable pending body/expression holes over the last completely valid candidate.
 /// There is deliberately no candidate/revision/source accessor. Only complete
 /// may release the valid candidate after every pending hole has been filled.
 pub struct ProjectCandidateDraft {

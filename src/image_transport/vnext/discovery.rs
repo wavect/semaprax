@@ -61,6 +61,12 @@ pub(super) fn payload(
         }
         if methods
             .iter()
+            .any(|method| method.name == "hole/recovery-export")
+        {
+            instructions.push_str(" Use hole/recovery-export to save prior valid history and pending selectors. hole/recovery-restore requires the same exact original source base and returns only a draft; every remaining hole must still be filled before completion. Recovery does not restore approvals or implicitly rebase after source edits.");
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "candidate/symbol-diagnostics")
         {
             instructions.push_str(" Use candidate/symbol-diagnostics for retained rejected intentions matching an exact candidate and target. Start at offset zero, then pass expected_report_revision from that first chunk for every nonzero offset. If that report revision becomes stale, restart at zero. Empty results do not mean the candidate has no diagnostics; rejected spans are not verified candidate locations.");
@@ -122,7 +128,8 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         "workspace/refresh" | "workspace/refresh-preview" => "workspace_refresh",
         "candidate/test" => "candidate_test",
         "candidate/build" => "candidate_build",
-        "candidate/interface-delta" => "candidate_prepare",
+        "candidate/interface-delta" | "hole/recovery-export" | "hole/recovery-restore" =>
+            "candidate_prepare",
         "candidate/commit" | "candidate/commit-report" | "source-commit/status" => "source_commit",
         name if name == "candidate/attempt"
             || name == "candidate/symbol-diagnostics"
@@ -151,6 +158,21 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
     }
     for (id, document) in payload_schemas::documents(capabilities) {
         documents.insert(id, document);
+    }
+    if descriptors.iter().any(|descriptor| {
+        matches!(
+            descriptor["method"].as_str(),
+            Some("hole/recovery-export" | "hole/recovery-restore")
+        )
+    }) {
+        let schema = draft_recovery_schema();
+        documents.insert(
+            format!(
+                "urn:{}",
+                crate::project::PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA
+            ),
+            schema,
+        );
     }
     for descriptor in descriptors {
         let method = descriptor["method"]
@@ -181,6 +203,7 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
         let report = match descriptor["method"].as_str().unwrap_or("") {
             "candidate/query" => Some("semaprax.project-candidate.v1"),
             "candidate/recovery-export" => Some("semaprax.project-candidate-recovery.v1"),
+            "hole/recovery-export" => Some(crate::project::PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA),
             "attempt/query" => Some("semaprax.project-candidate-attempt.v1"),
             "candidate/semantic-delta" => Some("semaprax.project-candidate-semantic-delta.v1"),
             "candidate/semantic-delta-catalog" => {
@@ -227,6 +250,51 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
         "unbundled_payload_schemas":unresolved,"request_schemas_complete":true,
         "payload_completeness":"only_bundled_documents_are_structurally_described; unbundled_payloads_require_owning_specification",
         "wire_rules":{"unknown_parameters":"reject","optional_parameters":"omit; null_rejected_unless_explicitly_nullable","strings":"UTF-8-byte_limits_and_control_character_rejection","request_ids":"unsigned_u64_or_nonempty_bounded_string; notifications_do_not_execute","integer_bounds":"exact_descriptor_minimum_and_maximum","max_request_bytes":MAX_REQUEST_BYTES,"max_response_bytes":MAX_RESPONSE_BYTES}}),
+    )
+}
+
+fn draft_recovery_schema() -> Value {
+    use payload_schemas::{digest, document, object};
+    let id = json!({"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9_.-]+$"});
+    let target = json!({"type":"string","minLength":1,"maxLength":4096,"x-max-utf8-bytes":4096});
+    let body = object(vec![
+        ("kind", json!({"const":"function_body"})),
+        ("hole_id", id.clone()),
+        ("target", target.clone()),
+    ]);
+    let expression = object(vec![
+        ("kind", json!({"const":"expression"})),
+        ("hole_id", id),
+        ("target", target.clone()),
+        ("expression_id", target),
+    ]);
+    document(
+        crate::project::PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA,
+        vec![
+            (
+                "compiler",
+                json!({"const":{
+                    "package":env!("CARGO_PKG_NAME"),"version":env!("CARGO_PKG_VERSION"),
+                    "compatibility":crate::project::PROJECT_CANDIDATE_DRAFT_RECOVERY_COMPATIBILITY,
+                }}),
+            ),
+            ("base_revision", digest()),
+            (
+                "draft_schema",
+                json!({"const":crate::project::PROJECT_CANDIDATE_DRAFT_SCHEMA}),
+            ),
+            (
+                "candidate_recovery",
+                json!({"$ref":"urn:semaprax.project-candidate-recovery.v1"}),
+            ),
+            (
+                "holes",
+                json!({"type":"array","maxItems":crate::project::MAX_PROJECT_CANDIDATE_HOLES,
+            "items":{"oneOf":[body,expression]},"x-sorted-by":"hole_id","x-unique-hole-id":true}),
+            ),
+            ("draft_digest", digest()),
+            ("capsule_digest", digest()),
+        ],
     )
 }
 
@@ -280,6 +348,85 @@ mod tests {
             &capabilities,
         )
         .unwrap()
+    }
+    #[test]
+    fn draft_recovery_is_v5_candidate_only_with_closed_replay_schema() {
+        let readonly = selected(VNextPolicy::default());
+        assert!(!readonly["methods"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|method| method["method"]
+                .as_str()
+                .unwrap()
+                .starts_with("hole/recovery-")));
+        let bundle = selected(VNextPolicy {
+            candidate_prepare: true,
+            ..VNextPolicy::default()
+        });
+        for name in ["hole/recovery-export", "hole/recovery-restore"] {
+            let descriptor = bundle["methods"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|method| method["method"] == name)
+                .unwrap();
+            assert_eq!(descriptor["capability"], "candidate_prepare");
+            assert_eq!(descriptor["query"], name == "hole/recovery-export");
+        }
+        let capsule_id = format!(
+            "urn:{}",
+            crate::project::PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA
+        );
+        let capsule = bundle["documents"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|document| document["$id"] == capsule_id)
+            .unwrap();
+        assert_eq!(capsule["additionalProperties"], false);
+        assert_eq!(
+            capsule["properties"]["compiler"]["const"]["compatibility"],
+            crate::project::PROJECT_CANDIDATE_DRAFT_RECOVERY_COMPATIBILITY
+        );
+        assert_eq!(
+            capsule["required"],
+            json!([
+                "schema",
+                "compiler",
+                "base_revision",
+                "draft_schema",
+                "candidate_recovery",
+                "holes",
+                "draft_digest",
+                "capsule_digest"
+            ])
+        );
+        assert_eq!(
+            capsule["properties"]["candidate_recovery"]["$ref"],
+            "urn:semaprax.project-candidate-recovery.v1"
+        );
+        let holes = &capsule["properties"]["holes"];
+        assert_eq!(holes["maxItems"], 16);
+        let kinds = holes["items"]["oneOf"].as_array().unwrap();
+        assert_eq!(kinds.len(), 2);
+        assert_eq!(kinds[0]["required"], json!(["kind", "hole_id", "target"]));
+        assert_eq!(
+            kinds[1]["required"],
+            json!(["kind", "hole_id", "target", "expression_id"])
+        );
+        for kind in kinds {
+            assert_eq!(kind["additionalProperties"], false);
+        }
+        assert!(!bundle["unbundled_payload_schemas"]
+            .as_array()
+            .unwrap()
+            .contains(&json!(capsule_id)));
+        for test_enabled in [false, true] {
+            assert!(!crate::image_transport::candidates::methods(test_enabled)
+                .iter()
+                .any(|method| method.name.starts_with("hole/recovery-")));
+        }
     }
     #[test]
     fn selected_bundle_resolves_constructor_requests_and_marks_opaque_reports() {

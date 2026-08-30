@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 mod commit;
 mod discovery;
+mod draft_recovery;
 mod projections;
 mod read_batch;
 mod recovery;
@@ -63,6 +64,8 @@ pub(super) enum Action {
     Build,
     InterfaceDelta,
     SymbolDiagnostics,
+    DraftRecoveryExport,
+    DraftRecoveryRestore,
 }
 
 const REFRESH: Method = Method {
@@ -351,6 +354,9 @@ impl VNextSession {
                     symbol_diagnostics::prepare(params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(
+                    action @ (Action::DraftRecoveryExport | Action::DraftRecoveryRestore),
+                ) => draft_recovery::prepare(action, params, image, registry)?,
                 Operation::Candidate(candidates::Action::Diagnostic(_)) => {
                     candidates::diagnostics::prepare(
                         method,
@@ -548,6 +554,9 @@ fn methods(policy: &VNextPolicy, commit_enabled: bool) -> Vec<&'static Method> {
     methods.push(&REFRESH_PREVIEW);
     methods.extend(projections::methods(policy.build_enabled));
     methods.extend(review_facets::methods(policy));
+    if policy.candidate_prepare {
+        methods.extend(draft_recovery::methods());
+    }
     if commit_enabled {
         methods.extend(commit::methods());
     }

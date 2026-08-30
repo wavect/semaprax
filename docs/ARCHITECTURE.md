@@ -610,7 +610,12 @@ inventories. Rebase tracks newly introduced identities and rejects collisions.
 `candidate/recovery.rs` exports disposable complete histories and restores them
 only by replaying against an independently admitted exact source base. It
 imports neither serialized HIR nor authority and cannot materialize unresolved
-drafts. These additions and focused regression cases are authored, unrun.
+drafts. `candidate/draft_recovery.rs` wraps that valid history with bounded
+pending selectors, independently restores the history, and re-creates holes
+through ordinary draft APIs before comparing exact draft/capsule identities.
+`image_transport/vnext/draft_recovery.rs` exposes host-selected chunk export and
+transactional draft-only retention; it imports no registry or approval state.
+These additions and focused regression cases are authored, unrun.
 
 `candidate/movement.rs` moves eligible functions through stable-ID call/import
 bindings. `candidate/record_field.rs` appends a typed scalar field and migrates

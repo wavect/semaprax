@@ -24,6 +24,12 @@ compiler constructor documents, and concrete transport payload documents. All
 external references in selected request schemas resolve within this bundle;
 constructor-local `$defs` references keep their original document scope.
 
+Host-selected draft recovery adds closed capsule and chunk-envelope schemas plus
+`hole/recovery-export` / `hole/recovery-restore` builders to v5 clients. Capsule
+shape validation does not replace nested candidate replay, source-base checks,
+hole overlap checks or final reconstructed draft identity. Both methods require
+candidate preparation; the same clients and schemas cannot enable that grant.
+
 Bundled payloads include ordinary workspace state, refresh preview and refresh,
 candidate/draft handles, attempt outcomes and summaries, validation receipts,
 discard outcomes, common report chunks, target/artifact chunks, source-commit

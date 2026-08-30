@@ -48,6 +48,14 @@ fixed policy, requires the same canonical manifest, and grants no approvals or
 publication authority. No archive/store root is accepted through an RPC frame.
 See [Workspace Archive Recovery v1](IMAGE-WORKSPACE-ARCHIVE-RECOVERY-V1.md).
 
+Candidate preparation also selects `hole/recovery-export` and
+`hole/recovery-restore` for [Typed-Hole Draft Recovery](PROJECT-CANDIDATE-DRAFT-RECOVERY-V1.md).
+These methods recover pending selectors over source-replayed valid history,
+retaining only a draft and no authority. Unresolved holes still block completion.
+Restore requires the current exact original base and the existing request-frame
+limit; it cannot silently rebase a draft after source changes. Refresh continues
+to clear drafts, and v1–v4 gain no recovery methods for unfinished work.
+
 Semantic conformance reads and target-admission projections are available
 independently of diagnostic permission. Candidate preparation adds current
 candidate, expression-hole, interface-discovery, and semantic-delta operations.

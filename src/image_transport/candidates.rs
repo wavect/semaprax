@@ -345,6 +345,21 @@ impl Registry {
             .get(id)
             .ok_or_else(|| failure("SPX-G232", "draft handle is stale, discarded, or unknown"))
     }
+    pub(super) fn draft_value(&self, id: &str) -> Result<&ProjectCandidateDraft, Vec<Diagnostic>> {
+        Ok(self.draft(id)?.draft.as_ref())
+    }
+    pub(super) fn retain_recovered_draft(
+        &self,
+        draft: ProjectCandidateDraft,
+        source_candidate: &str,
+    ) -> Result<(Value, Mutation), Vec<Diagnostic>> {
+        let source_candidate = self
+            .drafts
+            .get(draft.draft_digest())
+            .map(|entry| entry.source_candidate.as_str())
+            .unwrap_or(source_candidate);
+        retain_draft(draft, source_candidate)
+    }
     fn report_bytes(&self) -> usize {
         self.candidates
             .values()

@@ -11,6 +11,13 @@
   the full toolchain required for Windows owned npm publication, with command
   assertions in the existing product fixture.
 
+- Added typed-hole draft recovery capsules and host-selected v5 export/restore
+  methods. Recovery independently replays prior valid history, re-creates every
+  pending selector and checks exact draft identity; unresolved holes still block
+  completion. Schema/client discovery and restart, partial-fill, stale-source and
+  hostile-capsule regressions are authored, unrun. Existing protocol profiles,
+  source publication and approval authority are unchanged.
+
 - Added explicit-ID record and variant creation through `add_declaration`, with
   closed scalar fields, complete owner/member identity inventories and exact
   source reconstruction. Discovery and schemas expose the new forms; semantic

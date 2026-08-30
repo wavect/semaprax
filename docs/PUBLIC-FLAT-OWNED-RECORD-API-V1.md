@@ -208,6 +208,39 @@ handoff, not compilation, successful publication, or physical consumer behavior.
 Private recipe tests cover exact historical source bytes and hostile restoration
 headers. All of this additional evidence is authored and unrun.
 
+The follow-on published-product fixtures share one four-source subject in
+`tests/support/flat_record_product.rs`. Two `Payload` records have distinct
+identities, including a control-bearing record identity and one empty field
+identity. The byte field is first in one declaration and last in the other;
+division by zero therefore exercises failure after and before byte creation.
+`tests/project_v9_recipe_consumer_v1.rs` publishes and reopens all six npm
+artifacts against the exact inline carrier before consuming the real bindings
+and Wasm under Node. It also checks the complete TypeScript declaration text
+against a source-derived oracle; this is not TypeScript compiler execution.
+
+The private toolchain's `project_flat_record_sdk_v1` gate invokes the actual
+Project-to-Rust host, reopens the seven-file SDK, checks its exact manifest and
+source-derived provider binding, rejects repeat publication without clobbering,
+and runs an external dependency-free Rust consumer with a literal lockfile and
+isolated short Cargo target directory. Both targets exercise the same binary
+payload/divisor corpus, both field orders, exact scalars, 65,536/+1 input bounds,
+independent outputs, checked failure followed by SDK/runtime-object reuse, and
+unchanged consumers after display-only renames. Context reinitialization is not
+persistent-context reuse, and observed recovery is not an allocator-count or
+complete destruction-trace measurement.
+
+The native gate is explicitly selected after tool provisioning; it remains
+ignored in an ordinary test run. These commands are documented, not executed:
+
+```sh
+cargo test --locked -p semaprax --test project_v9_recipe_consumer_v1
+cargo test --locked -p semaprax-toolchain --test project_flat_record_sdk_v1 -- --ignored
+```
+
+Neither fixture is a new public archive verifier. All new physical-consumer
+evidence remains authored and unrun; no hosted release blocker or promotion is
+established by adding it.
+
 No test, target consumer, hosted job, registry publication, or release
 promotion is claimed by the authored source state. The upstream baseline at
 `4cc03820c86e70527cb65c4b10ee3841c7af167d` predates Project v9.

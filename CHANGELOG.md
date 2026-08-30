@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Authored published Project-v9 npm and native Rust consumer gates over one
+  shared multi-module source fixture: colliding record display names, control
+  and empty identities, opposite byte-field ordinals, checked failure and
+  recovery, binary/capacity cases, output independence, exact package bindings,
+  and display-only rename preservation. Native consumption uses the real private
+  host and an isolated locked/offline Cargo workspace. Production generators
+  and existing compatibility pins are unchanged; new tests remain unrun.
+
 - Corrected owned-data package semantic replay for distinct linked types with
   identical display names and for retained control-bearing identities. A private
   collision-only alias projection preserves original descriptor names and

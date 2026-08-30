@@ -203,6 +203,19 @@ impl ProjectCandidate {
             }
         }
         if self.changes.len() < MAX_CHANGES
+            && selected.is_some_and(|function| {
+                function.explicit_id
+                    && function.type_parameters.is_empty()
+                    && (!function.requires.is_empty() || !function.ensures.is_empty())
+            })
+        {
+            operations.push(json!({
+                "kind":"replace_contract_expression", "required_fields":["kind","target","expression_id","replacement"],
+                "selector_source":"candidate/contract-expression-catalog", "phases":["requires","ensures"],
+                "constraints":["exact_revision_scoped_hir_expression", "unambiguous_source_expression", "existing_contract_region_only", "preserve_expected_type_and_ownership", "authenticated_lexical_scope", "preserve_all_other_source", "full_candidate_revalidation"],
+            }));
+        }
+        if self.changes.len() < MAX_CHANGES
             && super::record_field::eligible(&self.revision, target)?
         {
             reason = "constructor_available_payload_requires_full_candidate_admission";

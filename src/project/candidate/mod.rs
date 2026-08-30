@@ -279,6 +279,10 @@ impl ProjectCandidate {
                 expression::apply(&self.revision, &mut programs, &change.intent)?,
                 None,
             ),
+            Some("replace_contract_expression") => (
+                expression::apply_contract(&self.revision, &mut programs, &change.intent)?,
+                None,
+            ),
             _ => (
                 intent::apply_with_revision(&self.revision, &mut programs, &change.intent)?,
                 None,
@@ -394,6 +398,9 @@ impl ProjectCandidate {
         }
         if summary.kind == "replace_expression" {
             expression::validate_replacement(&self.revision, &candidate, &change.intent)?;
+        }
+        if summary.kind == "replace_contract_expression" {
+            expression::validate_contract_replacement(&self.revision, &candidate, &change.intent)?;
         }
         if summary.kind == "extract_function" {
             extraction::validate(&self.revision, &candidate, &change.intent)?;

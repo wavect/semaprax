@@ -625,6 +625,16 @@ replays supported intentions over an admitted base. Same-root
 merge retains both histories and the original source-diff base. These APIs
 produce candidates and ancestry reports, never source publication authority.
 
+The additive contract-expression route in `candidate/expression.rs` reuses exact
+HIR/AST joins for existing pre/postcondition subtrees while leaving body-only
+APIs unchanged. Its post-admission gate reconstructs the complete requested
+canonical source and checks phase/path/type/ownership again. `candidate/draft.rs`
+keeps contract holes separate from body regions under one shared budget and
+remaps survivors after fills; draft recovery stores only selectors over replayed
+valid history. V5 adds candidate-granted discovery and hole opening, with no
+build or publication authority. See
+[Contract Expression Holes](PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md).
+
 `candidate/aggregate.rs` resolves typed record/case/field constructors through
 retained checked module declarations and existing local/imported type bindings.
 The revision-aware expression constructor shares this path across bodies,

@@ -67,6 +67,13 @@ Restore requires the current exact original base and the existing request-frame
 limit; it cannot silently rebase a draft after source changes. Refresh continues
 to clear drafts, and v1–v4 gain no recovery methods for unfinished work.
 
+Candidate preparation also selects `candidate/contract-expression-catalog` and
+`hole/open-contract-expression`. These expose existing pre/postcondition
+subtrees and open [Contract Expression Holes](PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md)
+over exact candidate/draft revisions. Existing fill, query, completion and
+recovery routes handle these drafts; unresolved contract holes block completion
+alongside body holes. Older body-expression methods remain body-only.
+
 Semantic conformance reads and target-admission projections are available
 independently of diagnostic permission. Candidate preparation adds current
 candidate, expression-hole, interface-discovery, and semantic-delta operations.

@@ -117,6 +117,7 @@ impl ProjectCandidate {
                 "rename_declaration"
                 | "replace_function_body"
                 | "replace_expression"
+                | "replace_contract_expression"
                 | "change_function_signature"
                 | "add_contract"
                 | "add_declaration"

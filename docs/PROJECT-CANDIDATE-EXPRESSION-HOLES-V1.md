@@ -18,6 +18,12 @@ Body and expression holes cannot overlap the same function. Multiple disjoint
 expression holes can coexist within one function, alongside body holes in other
 functions. All holes share the existing limit of sixteen and unique hole IDs.
 
+The separate [Contract Expression Holes](PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md)
+route selects existing pre/postcondition subtrees without widening this API.
+Those disjoint regions can coexist with a body hole in the same function and
+share the same sixteen-hole budget. This body-expression route still rejects
+contract selections.
+
 ## Context and validation
 
 `hole_context` returns the existing body schema for body holes and

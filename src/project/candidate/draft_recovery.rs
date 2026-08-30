@@ -27,6 +27,9 @@ impl ProjectCandidateDraft {
         for (hole_id, (target, expression_id)) in &self.expression_holes {
             holes.push(json!({"kind":"expression","hole_id":hole_id,"target":target,"expression_id":expression_id}));
         }
+        for (hole_id, (target, expression_id)) in &self.contract_expression_holes {
+            holes.push(json!({"kind":"contract_expression","hole_id":hole_id,"target":target,"expression_id":expression_id}));
+        }
         holes.sort_by(|left, right| left["hole_id"].as_str().cmp(&right["hole_id"].as_str()));
         let mut payload = json!({"schema":PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA,
             "compiler":compiler(),"base_revision":self.last_valid.base_revision().project_revision(),
@@ -98,7 +101,7 @@ impl ProjectCandidateDraft {
         for hole in holes {
             match text(hole, "kind")? {
                 "function_body" => object(hole, &["kind", "hole_id", "target"])?,
-                "expression" => {
+                "expression" | "contract_expression" => {
                     object(hole, &["kind", "hole_id", "target", "expression_id"])?;
                     selector(text(hole, "expression_id")?)?;
                 }
@@ -141,6 +144,12 @@ impl ProjectCandidateDraft {
                     text(hole, "hole_id")?,
                 )?,
                 "expression" => draft.with_expression_hole(
+                    &expected,
+                    text(hole, "target")?,
+                    text(hole, "expression_id")?,
+                    text(hole, "hole_id")?,
+                )?,
+                "contract_expression" => draft.with_contract_expression_hole(
                     &expected,
                     text(hole, "target")?,
                     text(hole, "expression_id")?,

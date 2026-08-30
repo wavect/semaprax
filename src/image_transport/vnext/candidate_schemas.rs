@@ -532,6 +532,7 @@ fn operation() -> Value {
         "replace_function_body",
         "repair_diagnostic",
         "replace_expression",
+        "replace_contract_expression",
         "add_contract",
         "add_declaration",
         "extract_function",
@@ -567,6 +568,13 @@ fn operation() -> Value {
             "replace_expression" | "extract_function" => {
                 fields.push(("selector_source", json!({"const":"expression/catalog"})))
             }
+            "replace_contract_expression" => fields.extend([
+                (
+                    "selector_source",
+                    json!({"const":"candidate/contract-expression-catalog"}),
+                ),
+                ("phases", json!({"const":["requires","ensures"]})),
+            ]),
             "add_contract" => fields.push(("phases", json!({"const":["requires","ensures"]}))),
             "add_declaration" => fields.extend([
                 ("anchor", text()),

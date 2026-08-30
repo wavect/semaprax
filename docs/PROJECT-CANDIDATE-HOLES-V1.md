@@ -83,6 +83,11 @@ extends the same draft with disjoint authored expression selections, including
 local lexical scope and selector remapping after fills. Body-only report bytes
 and context remain unchanged. The sixteen-hole bound is shared across both kinds.
 
+[Contract Expression Holes](PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md) adds a third
+kind for existing pre/postcondition subtrees under that same total bound.
+Contract regions do not overlap a body hole for the same target; all hole IDs
+remain globally unique and completion requires every kind to be filled.
+
 `hole_context` returns `semaprax.project-candidate-hole-context.v1` containing:
 
 - exact draft, hole, function, source revision/path/module and expected return

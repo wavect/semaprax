@@ -41,6 +41,14 @@ shape validation does not replace nested candidate replay, source-base checks,
 hole overlap checks or final reconstructed draft identity. Both methods require
 candidate preparation; the same clients and schemas cannot enable that grant.
 
+Candidate preparation also selects contract-expression catalogue and hole-open
+methods. Their request schemas and generated helpers bind candidate, target and
+actual HIR expression identities; no phase, source span or AST path is accepted.
+Recovery describes the closed `contract_expression` selector row. Contract
+catalogue/context interiors remain explicitly unbundled; schema shape alone
+cannot establish predicate purity, type/ownership or exact source replay. See
+[Contract Expression Holes](PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md).
+
 Bundled payloads include ordinary workspace state, refresh preview and refresh,
 candidate/draft handles, attempt outcomes and summaries, validation receipts,
 discard outcomes, common report chunks, target/artifact chunks, source-commit

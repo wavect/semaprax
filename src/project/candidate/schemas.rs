@@ -301,6 +301,7 @@ fn intent_schema() -> Value {
         base("replace_function_body",vec![("body",reference("expression"))]),
         base("repair_diagnostic",vec![("rejected_intent",base("replace_function_body",vec![("body",json!({"oneOf":[literal("i64"),literal("i32"),literal("u8"),literal("usize")]}))])),("repair_id",digest_schema())]),
         base("replace_expression",vec![("expression_id",text(16_384)),("replacement",reference("expression"))]),
+        base("replace_contract_expression",vec![("expression_id",text(16_384)),("replacement",reference("expression"))]),
         base("add_contract",vec![("phase",json!({"enum":["requires","ensures"]})),("predicate",reference("expression"))]),
         closed(&[("kind",json!({"const":"implement_interface"})),("target",protocol_binding()),("protocol",protocol_binding()),("id",protocol_binding()),("members",json!({"type":"array","minItems":1,"maxItems":64,"items":closed(&[("method",protocol_binding()),("implementation",protocol_binding())])}))]),
         base("add_declaration",vec![("declaration",declaration_schema())]),
@@ -404,6 +405,28 @@ fn function_declaration_schema() -> Value {
 #[cfg(test)]
 mod aggregate_expression_schema_tests {
     use super::*;
+
+    #[test]
+    fn contract_replacement_is_a_distinct_closed_typed_intention() {
+        let schema = intent_schema();
+        for kind in ["replace_expression", "replace_contract_expression"] {
+            let form = schema["oneOf"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|form| form["properties"]["kind"]["const"] == kind)
+                .unwrap();
+            assert_eq!(
+                form["required"],
+                json!(["kind", "target", "expression_id", "replacement"])
+            );
+            assert_eq!(form["additionalProperties"], false);
+            assert_eq!(form["properties"]["replacement"], reference("expression"));
+            assert_eq!(form["properties"].as_object().unwrap().len(), 4);
+            assert!(form["properties"].get("phase").is_none());
+            assert!(form["properties"].get("path").is_none());
+        }
+    }
 
     #[test]
     fn computed_signature_arguments_are_a_separate_recursive_mapping_only_form() {

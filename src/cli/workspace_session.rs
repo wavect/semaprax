@@ -49,7 +49,16 @@ pub(crate) fn run(manifest: &Path, policy_path: &Path) -> Result<(), Vec<Diagnos
             .map_err(|_| invalid("cannot resolve host manifest working directory"))?
             .join(manifest)
     };
-    let mut session = if semantic_cache {
+    let restored = policy
+        .get("semantic_cache_entry")
+        .filter(|entry| !entry.is_null());
+    let mut session = if let Some(entry) = restored {
+        let cache = semaprax::semantic_cache_store::load(
+            Path::new(string(entry, "root")?),
+            string(entry, "entry_digest")?,
+        )?;
+        VNextSession::open_with_retained_semantic_cache(&manifest, capability, cache)?
+    } else if semantic_cache {
         VNextSession::open_with_semantic_cache(&manifest, capability)?
     } else if frontend_cache {
         VNextSession::open_with_frontend_cache(&manifest, capability)?
@@ -153,12 +162,21 @@ fn cache_policy(value: &Value) -> Result<(bool, bool), Vec<Diagnostic>> {
             exact(value, &keys)?;
             Ok((boolean(value, "frontend_cache")?, false))
         }
-        Some("semaprax.workspace-host-policy.v3" | "semaprax.workspace-host-policy.v4") => {
-            let semantic_policy = value["schema"] == "semaprax.workspace-host-policy.v4";
+        Some(
+            "semaprax.workspace-host-policy.v3"
+            | "semaprax.workspace-host-policy.v4"
+            | "semaprax.workspace-host-policy.v5",
+        ) => {
+            let persistent_policy = value["schema"] == "semaprax.workspace-host-policy.v5";
+            let semantic_policy =
+                persistent_policy || value["schema"] == "semaprax.workspace-host-policy.v4";
             let mut keys = COMMON.to_vec();
             keys.extend(["frontend_cache", "candidate_archives"]);
             if semantic_policy {
                 keys.push("semantic_cache");
+            }
+            if persistent_policy {
+                keys.push("semantic_cache_entry");
             }
             exact(value, &keys)?;
             let archives = value["candidate_archives"]
@@ -203,6 +221,21 @@ fn cache_policy(value: &Value) -> Result<(bool, bool), Vec<Diagnostic>> {
                 return Err(invalid(
                     "semantic cache requires the explicit frontend cache selection",
                 ));
+            }
+            if persistent_policy && !value["semantic_cache_entry"].is_null() {
+                let entry = &value["semantic_cache_entry"];
+                exact(entry, &["root", "entry_digest"])?;
+                let digest = string(entry, "entry_digest")?;
+                if !semantic
+                    || !Path::new(string(entry, "root")?).is_absolute()
+                    || digest.len() != 71
+                    || !digest.starts_with("sha256:")
+                    || !digest.as_bytes()[7..]
+                        .iter()
+                        .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
+                {
+                    return Err(invalid("persistent semantic cache requires semantic mode, an absolute root and canonical SHA256 selector"));
+                }
             }
             Ok((frontend, semantic))
         }

@@ -78,6 +78,12 @@ v3 fields. It requires `frontend_cache: true` when enabled. Older policy version
 reject the new field rather than silently accepting it. This is a host startup
 selection; there is no cache toggle in the protocol or change to the Git
 startup-only attachment/approval guard.
+
+A separate [persistent cache](PERSISTENT-SEMANTIC-CACHE-V1.md) now supplies
+`open_with_retained_semantic_cache` through authenticated host-policy v5 entry
+selection. The constructors described above still create in-process caches;
+none implicitly opens a root or trusts submitted HIR. The persistent route
+has its own key-custody and compiler-installation trust contract.
 `tests/workspace_session_semantic_cache_cli_v1.rs` additionally authors unchanged
 refresh checked-HIR reuse, cold/AST/semantic image and discovery equivalence,
 old-version rejection, strict boolean/dependent selection, and RPC override

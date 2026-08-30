@@ -16,6 +16,19 @@ pub(crate) mod bounded_output;
 pub(crate) mod byte_data_capacity;
 pub(crate) mod byte_ops;
 pub mod c_header;
+#[cfg(any(
+    test,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    )
+))]
+pub(crate) mod cache_codec;
 pub(crate) mod call_index;
 pub mod candidate_archive_store;
 pub mod capability_manifest;
@@ -79,6 +92,7 @@ pub mod repair;
 pub mod review;
 pub mod runtime_status;
 pub mod scoped_tasks;
+pub mod semantic_cache_store;
 pub mod semantic_trace;
 pub mod simd_report;
 pub mod static_protocol;

@@ -1,5 +1,6 @@
 //! Invocation-owned exact-source frontend cache, with opt-in checked module reuse.
-//! AST/HIR cache entries are compiler-created, never submitted or deserialized.
+//! AST/HIR entries are compiler-created or restored through the separate
+//! authenticated store; no public raw-HIR constructor exists.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -15,6 +16,27 @@ use crate::workspace_graph::WorkspaceSource;
 use super::{
     ProjectManifest, ProjectRevision, MAX_PATH_BYTES, MAX_SOURCES, MAX_TOTAL_SOURCE_BYTES,
 };
+
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
+mod snapshot;
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
+pub(crate) use snapshot::{decode_snapshot, encode_snapshot};
 
 pub const PROJECT_FRONTEND_CACHE_SCHEMA: &str = "semaprax.project-frontend-cache-work.v1";
 pub const PROJECT_FRONTEND_CACHE_COMPATIBILITY: &str = "semaprax.project-frontend-canonical-ast.v1";
@@ -70,6 +92,7 @@ pub struct ProjectFrontendCache {
     entries: BTreeMap<String, Arc<CachedModule>>,
     semantic: bool,
     checked: BTreeMap<String, Arc<CheckedModule>>,
+    restore_work: Option<String>,
 }
 
 pub struct ProjectFrontendBuild {
@@ -100,6 +123,7 @@ impl ProjectFrontendCache {
             entries: BTreeMap::new(),
             semantic: false,
             checked: BTreeMap::new(),
+            restore_work: None,
         }
     }
 
@@ -114,6 +138,12 @@ impl ProjectFrontendCache {
 
     pub fn is_semantic_cache_enabled(&self) -> bool {
         self.semantic
+    }
+
+    /// Actual full Project replay work from the last authenticated persistent
+    /// load. A subsequent successful build clears this historical report.
+    pub fn restored_work(&self) -> Option<&str> {
+        self.restore_work.as_deref()
     }
 
     /// Validate exact source inputs and completely link/admit the Project.
@@ -240,11 +270,12 @@ impl ProjectFrontendCache {
                 "modules_resolved":pass.resolved,"checked_HIR_reused":pass.checked_reused,"full_cross_file_checks":true,"full_link_and_profile_admission":true},
             "retained":{"modules":pass.entries.len(),"source_bytes":pass.retained_source_bytes,"AST_construction_prebound":pass.ast_budget},
             "limits":{"modules":MAX_SOURCES,"source_bytes":MAX_PROJECT_FRONTEND_CACHE_SOURCE_BYTES,"AST_construction_prebound":MAX_PROJECT_FRONTEND_CACHE_AST_BUDGET},
-            "nonclaims":if self.semantic {vec!["not_general_incremental_semantic_verification","no_cross_file_check_or_profile_bypass","no_persistent_or_cross_process_cache","no_untrusted_HIR_deserialization","not_allocator_or_RSS_accounting","no_source_or_execution_authority"]}else{vec!["not_incremental_semantic_verification","no_checked_HIR_reuse","no_persistent_or_cross_process_cache","not_allocator_or_RSS_accounting","no_source_or_execution_authority"]}
+            "nonclaims":if self.semantic {vec!["not_general_incremental_semantic_verification","no_cross_file_check_or_profile_bypass","no_implicit_persistence_or_ambient_cache","no_untrusted_HIR_deserialization","not_allocator_or_RSS_accounting","no_source_or_execution_authority"]}else{vec!["not_incremental_semantic_verification","no_checked_HIR_reuse","no_persistent_or_cross_process_cache","not_allocator_or_RSS_accounting","no_source_or_execution_authority"]}
         }),true,MAX_PROJECT_FRONTEND_REPORT_BYTES).map_err(|_|capacity("frontend work report exceeds its byte bound"))?;
         self.context = context;
         self.entries = pass.entries;
         self.checked = pass.next_checked;
+        self.restore_work = None;
         Ok(ProjectFrontendBuild { revision, json })
     }
 
@@ -254,6 +285,7 @@ impl ProjectFrontendCache {
             entries: self.entries.clone(),
             semantic: self.semantic,
             checked: self.checked.clone(),
+            restore_work: self.restore_work.clone(),
         }
     }
 

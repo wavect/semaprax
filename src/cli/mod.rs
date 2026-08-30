@@ -7,5 +7,6 @@ pub(crate) mod package_resolver;
 pub(crate) mod project;
 pub(crate) mod project_candidate;
 pub(crate) mod project_image;
+pub(crate) mod semantic_cache;
 pub(crate) mod version;
 pub(crate) mod workspace_session;

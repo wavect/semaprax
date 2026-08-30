@@ -123,6 +123,40 @@ impl VNextSession {
         )
     }
 
+    /// Reuse opaque compiler-created or store-authenticated cache state. Live
+    /// source authentication and exact-input admission still occur on opening.
+    pub fn open_with_retained_semantic_cache(
+        manifest: &Path,
+        policy: VNextPolicy,
+        cache: ProjectFrontendCache,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        if !cache.is_semantic_cache_enabled() {
+            return Err(failure(
+                "SPX-G280",
+                "retained semantic cache requires explicit checked-module mode",
+            ));
+        }
+        Self::open_inner(manifest, policy, Some(cache))
+    }
+
+    /// Retain a historical compiler cache through the live source boundary.
+    /// This host API does not write storage, grant approval or publish source.
+    pub fn retained_semantic_cache(&mut self) -> Result<ProjectFrontendCache, Vec<Diagnostic>> {
+        if self.terminal {
+            return Err(failure(
+                "SPX-G280",
+                "terminal sessions cannot export a semantic cache",
+            ));
+        }
+        let cache = self
+            .frontend
+            .as_ref()
+            .filter(|cache| cache.is_semantic_cache_enabled())
+            .ok_or_else(|| failure("SPX-G280", "semantic cache export requires its host opt-in"))?;
+        self.snapshot
+            .with_authenticated_request(|_| Ok(cache.fork()))
+    }
+
     fn open_inner(
         manifest: &Path,
         policy: VNextPolicy,

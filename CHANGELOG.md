@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added a separate allocator-observed native O0/O2 lane for the frame-payload
+  product, preserving its plain-provider runs and exact nine-case corpus.
+  Per-call pointer and allocator accounting checks actual payload release,
+  empty ownership, inactive branches, and stale drops across the baseline and
+  display-renamed Project subjects. Production generators remain unchanged;
+  the regression fixtures are authored but unrun and promote no status.
+
 - Replaced predictable native C/executable temporary paths with exclusively
   created scratch directories, create-new C files, and identity/inventory-checked
   nonrecursive cleanup. Source `run` checks and emits before reserving scratch;

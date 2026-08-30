@@ -532,6 +532,19 @@ alignment rejection before imports with preserved poisoned output. It is an
 independent consumer, not an independent arena implementation or a complete
 internal destruction trace. All these new fixtures remain unrun.
 
+The frame-payload native corpus additionally has a separate allocator-observed
+O0/O2 lane, alongside the unchanged plain-provider lane. The test wraps the
+exact generated provider with the existing calibrated allocator observer and
+checks each call: nonempty payload allocation and release, empty-owner
+`free(NULL)`, allocation-free inactive `None`/`Err`, exact copy-out, and stale
+drop rejection without another free. Both live-pointer and provider-slot
+inventories must be empty between calls. Existing callers select the isolated
+module and both authenticated baseline/display-renamed Project subjects.
+The observer and its static context are private fixtures, not generated hooks
+or public ABI. These checks remain authored and unrun; successful handle-drop
+statuses alone are not physical deallocation evidence, and this lane does not
+replace sanitizers, OOM handling, or the separate generated Rust consumer.
+
 The provisioned private toolchain gate `project_owned_tuple_sdk_v1` adds real
 published v8/v9 Rust consumers for one borrowed UTF-8 string plus two borrowed
 byte slices. It checks cumulative 65,535/65,536/65,537-byte tuples, Unicode byte

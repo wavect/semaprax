@@ -39,6 +39,13 @@ rejection. It reuses the unchanged production arena/input/core templates; it
 is not an independent arena implementation or a full internal destruction
 trace. The generated npm and Rust consumers remain separate executions.
 
+An additional native O0/O2 lane wraps the exact provider with a calibrated
+allocator observer. It checks physical payload allocation/free calls and live
+pointers as well as handle settlement, including empty owners, inactive variant
+branches, and stale drops. It preserves the plain-provider runs and the same
+nine-case corpus for both Project subjects. The new checks are authored but
+unrun, and do not establish sanitizer or allocation-failure recovery evidence.
+
 Clang, Node, and the full native SDK toolchain must already be provisioned.
 Missing tools fail rather than skip. TypeScript and Chromium have separate
 explicitly selected provisioned gates documented by the web consumer.

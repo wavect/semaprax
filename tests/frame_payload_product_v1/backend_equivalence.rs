@@ -183,5 +183,43 @@ int main(void){{
             String::from_utf8_lossy(&execute.stderr)
         );
     }
+    // Keep the plain-provider loop above unchanged. This additional lane
+    // observes actual libc calls made by that same provider, rather than
+    // treating successful handle drops alone as deallocation evidence.
+    let instrumented = format!(
+        "{}\n{provider}\n{}\n{declarations}\nint main(void){{spx_context_v1 *context=fixture_begin();\n{cases}\nfixture_finish(context);return 0;}}\n",
+        include_str!("../native_owned_tuple_admission_v1/allocations.c"),
+        include_str!("native_settlement.c"),
+    );
+    for optimization in ["-O0", "-O2"] {
+        let source = root.join(format!("settlement-{optimization}.c"));
+        let executable = root.join(format!(
+            "settlement-{optimization}{}",
+            std::env::consts::EXE_SUFFIX
+        ));
+        fs::write(&source, instrumented.as_bytes()).unwrap();
+        let compile = Command::new("clang")
+            .args(["-std=c11", optimization, "-Wall", "-Wextra", "-Werror"])
+            .arg(&source)
+            .arg("-o")
+            .arg(&executable)
+            .output()
+            .unwrap();
+        assert!(
+            compile.status.success(),
+            "{optimization} settlement compile stderr={}",
+            String::from_utf8_lossy(&compile.stderr)
+        );
+        let execute = Command::new(&executable).output().unwrap();
+        assert!(
+            execute.status.success(),
+            "{optimization} settlement status={:?} stdout={} stderr={}",
+            execute.status.code(),
+            String::from_utf8_lossy(&execute.stdout),
+            String::from_utf8_lossy(&execute.stderr)
+        );
+        assert!(execute.stdout.is_empty());
+        assert!(execute.stderr.is_empty());
+    }
     fs::remove_dir_all(root).unwrap();
 }

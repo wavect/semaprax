@@ -52,26 +52,26 @@ tests = ["generic.tests"]
 @id("generic.make-option") fn make_option(value: i64) -> Option<i64> { Option<i64>::Some { value: value } }
 @id("generic.make-result") fn make_result(value: i64) -> Result<i64, bool> { Result<i64, bool>::Ok { value: value } }
 @id("generic.public") fn public_value(value: i64) -> i64 { value }
-@id("generic.evaluate") fn evaluate(value: i64) -> i64 {
-    let boxed = make_box(value);
+@id("generic.evaluate") fn evaluate(input: i64) -> i64 {
+    let boxed = make_box(input);
     let duo = make_duo(0, false);
     let phantom = make_phantom();
     let choice = make_choice(0);
     let optional = make_option(0);
-    let result = make_result(0);
+    let outcome = make_result(0);
     boxed.value + duo.left + if duo.right || phantom.marker { 1 } else { 0 }
         + match choice { Choice::Value { value } => value, Choice::Empty {} => 0, }
         + match optional { Option::Some { value } => value, Option::None {} => 0, }
-        + match result { Result::Ok { value } => value, Result::Err { error } => if error { 1 } else { 0 }, }
+        + match outcome { Result::Ok { value } => value, Result::Err { error } => if error { 1 } else { 0 }, }
 }
 "#,
             ),
             (
                 "src/bridge.spx",
                 r#"module generic.bridge;
-use type @id("generic.box") from generic.core as Wrapped;
-use type @id("generic.duo") from generic.core as Envelope;
-use type @id("generic.choice") from generic.core as Signal;
+@id("bridge.box") record Wrapped<T> { @id("bridge.box.value") value: T, }
+@id("bridge.duo") record Envelope<T, U> { @id("bridge.duo.left") left: T, @id("bridge.duo.right") right: U, }
+@id("bridge.choice") variant Signal<T> { @id("bridge.choice.value") Value { @id("bridge.choice.value.value") value: T, }, @id("bridge.choice.empty") Empty, }
 @id("bridge.make-box") fn make_box(value: i64) -> Wrapped<i64> { Wrapped<i64> { value: value } }
 @id("bridge.make-duo") fn make_duo(flag: bool, number: i64) -> Envelope<bool, i64> { Envelope<bool, i64> { left: flag, right: number } }
 @id("bridge.make-choice") fn make_choice(flag: bool) -> Signal<bool> { Signal<bool>::Value { value: flag } }
@@ -225,15 +225,46 @@ fn grammar<T>(result: Result<T, Vec<Diagnostic>>) {
 }
 
 #[test]
-fn local_and_imported_generic_records_preserve_type_argument_and_field_order() {
+fn generic_type_imports_remain_rejected_without_source_changes() {
+    for target in ["generic.box", "generic.duo", "generic.choice"] {
+        let fixture = Fixture::new();
+        let path = fixture.0.join("src/bridge.spx");
+        let source = std::fs::read_to_string(&path).unwrap().replacen(
+            "module generic.bridge;",
+            &format!(
+                "module generic.bridge;\nuse type @id(\"{target}\") from generic.core as Imported;"
+            ),
+            1,
+        );
+        let program = semaprax::parse(&source, "src/bridge.spx").unwrap();
+        std::fs::write(path, semaprax::format::canonical(&program)).unwrap();
+        let before = fixture.bytes();
+        let errors = with_authenticated_project(&fixture.0.join("semaprax.toml"), |_| Ok(()))
+            .expect_err("generic cross-file imports must retain the linker boundary");
+        assert!(
+            errors.iter().any(|error| error.code == "SPX-G172"),
+            "{errors:?}"
+        );
+        assert_eq!(fixture.bytes(), before);
+    }
+}
+
+#[test]
+fn module_local_generic_records_preserve_type_argument_and_field_order() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
     let base = fixture.candidate();
-    for (target, path, binding) in [
-        ("generic.make-box", "src/core.spx", "Box"),
-        ("bridge.make-box", "src/bridge.spx", "Wrapped"),
+    for (target, path, binding, owner) in [
+        ("generic.make-box", "src/core.spx", "Box", "generic.box"),
+        ("bridge.make-box", "src/bridge.spx", "Wrapped", "bridge.box"),
     ] {
-        let (candidate, change) = apply(&base, target, boxed()).unwrap();
+        let body = aggregate(
+            "record",
+            owner,
+            &["i64"],
+            &[(&format!("{owner}.value"), place("value"))],
+        );
+        let (candidate, change) = apply(&base, target, body).unwrap();
         let projected = program(&candidate, path);
         let ExprKind::ConstructRecord {
             type_name,
@@ -250,11 +281,12 @@ fn local_and_imported_generic_records_preserve_type_argument_and_field_order() {
         assert_eq!(fields[0].value.kind, ExprKind::Var("value".to_owned()));
         replay(&base, &candidate, change);
     }
-    for (target, path, binding, args, expected) in [
+    for (target, path, binding, owner, args, expected) in [
         (
             "generic.make-duo",
             "src/core.spx",
             "Duo",
+            "generic.duo",
             ["i64", "bool"],
             vec![Type::I64, Type::Bool],
         ),
@@ -262,6 +294,7 @@ fn local_and_imported_generic_records_preserve_type_argument_and_field_order() {
             "bridge.make-duo",
             "src/bridge.spx",
             "Envelope",
+            "bridge.duo",
             ["bool", "i64"],
             vec![Type::Bool, Type::I64],
         ),
@@ -278,9 +311,12 @@ fn local_and_imported_generic_records_preserve_type_argument_and_field_order() {
         };
         let body = aggregate(
             "record",
-            "generic.duo",
+            owner,
             &args,
-            &[("generic.duo.right", second), ("generic.duo.left", first)],
+            &[
+                (&format!("{owner}.right"), second),
+                (&format!("{owner}.left"), first),
+            ],
         );
         let (candidate, change) = apply(&base, target, body).unwrap();
         let projected = program(&candidate, path);
@@ -349,11 +385,12 @@ fn generic_variant_and_compiler_owned_option_result_cases_have_exact_arguments()
     let fixture = Fixture::new();
     let disk = fixture.bytes();
     let base = fixture.candidate();
-    for (target, path, binding, args, value, expected) in [
+    for (target, path, binding, owner, args, value, expected) in [
         (
             "generic.make-choice",
             "src/core.spx",
             "Choice",
+            "generic.choice",
             ["i64"],
             integer(7),
             Type::I64,
@@ -362,6 +399,7 @@ fn generic_variant_and_compiler_owned_option_result_cases_have_exact_arguments()
             "bridge.make-choice",
             "src/bridge.spx",
             "Signal",
+            "bridge.choice",
             ["bool"],
             boolean(true),
             Type::Bool,
@@ -369,9 +407,9 @@ fn generic_variant_and_compiler_owned_option_result_cases_have_exact_arguments()
     ] {
         let body = aggregate(
             "variant",
-            "generic.choice.value",
+            &format!("{owner}.value"),
             &args,
-            &[("generic.choice.value.value", value)],
+            &[(&format!("{owner}.value.value"), value)],
         );
         let (candidate, change) = apply(&base, target, body).unwrap();
         let projected = program(&candidate, path);
@@ -393,7 +431,7 @@ fn generic_variant_and_compiler_owned_option_result_cases_have_exact_arguments()
         let (empty, change) = apply(
             &base,
             target,
-            aggregate("variant", "generic.choice.empty", &args, &[]),
+            aggregate("variant", &format!("{owner}.empty"), &args, &[]),
         )
         .unwrap();
         assert!(source(&empty, path).contains(&format!("{binding}<{}>::Empty {{}}", args[0])));
@@ -494,7 +532,7 @@ fn generic_body_and_expression_holes_recover_only_after_complete_typed_fill() {
         .as_array()
         .unwrap()
         .iter()
-        .find(|item| item["target"] == "generic.duo")
+        .find(|item| item["target"] == "bridge.duo")
         .unwrap();
     assert_eq!(descriptor["generic"], true);
     assert_eq!(descriptor["binding"], "Envelope");
@@ -535,11 +573,11 @@ fn generic_body_and_expression_holes_recover_only_after_complete_typed_fill() {
     assert_eq!(draft.to_json(), before);
     let duo = aggregate(
         "record",
-        "generic.duo",
+        "bridge.duo",
         &["bool", "i64"],
         &[
-            ("generic.duo.right", place("number")),
-            ("generic.duo.left", place("flag")),
+            ("bridge.duo.right", place("number")),
+            ("bridge.duo.left", place("flag")),
         ],
     );
     let first = draft.fill_hole(draft.draft_digest(), "duo", &duo).unwrap();

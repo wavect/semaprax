@@ -66,7 +66,7 @@ tests = ["projection.tests"]
                 "src/bridge.spx",
                 r#"module projection.bridge;
 use type @id("projection.pair") from projection.core as Metric;
-use type @id("projection.box") from projection.core as Wrapped;
+@id("bridge.box") record Wrapped<T> { @id("bridge.box.value") value: T, }
 @id("bridge.pair") record Pair { @id("bridge.pair.value") value: i64, @id("bridge.pair.flag") flag: bool, }
 @id("bridge.read") fn read(pair: Metric) -> i64 { pair.value }
 @id("bridge.wrong") fn wrong(pair: Pair) -> i64 { pair.value }
@@ -356,7 +356,7 @@ fn generic_owner_arguments_and_nominal_identity_are_checked_even_when_field_type
             "bridge.read-box",
             "src/bridge.spx",
             "Wrapped",
-            "projection.box.value",
+            "bridge.box.value",
             "boxed",
             vec!["i64"],
             vec![Type::I64],
@@ -425,7 +425,7 @@ fn body_and_expression_holes_discover_projections_and_recover_only_after_typed_c
         .as_array()
         .unwrap()
         .iter()
-        .find(|row| row["target"] == "projection.box.value")
+        .find(|row| row["target"] == "bridge.box.value")
         .unwrap();
     assert_eq!(generic["binding"], "Wrapped");
     assert_eq!(generic["generic"], true);

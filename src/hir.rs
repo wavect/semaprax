@@ -78,6 +78,7 @@ mod projected_byte_field_provenance_tests;
 mod type_reachability;
 mod validation;
 mod workspace_link;
+pub(crate) use workspace_link::compiler_prelude_declarations;
 
 /// Validate resolved HIR and independently replay its canonical shared-loan
 /// proof attachment before any semantic consumer may trust it.

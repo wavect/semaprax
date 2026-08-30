@@ -37,6 +37,9 @@ type. Order determines the concrete nominal identity, including parameters
 unused by any field. The compiler does not infer arguments from field values,
 and matching field layouts do not make two nominal instances interchangeable.
 Monomorphic requests may omit `type_arguments` or supply an empty array.
+Generic source types must have a module-local binding: the existing linker
+still rejects cross-file generic type imports with `SPX-G172`. Imported
+monomorphic recursive Copy types retain their existing admission rules.
 
 ```json
 {"kind":"record","target":"payments.box","type_arguments":["i64"],"fields":[{"target":"payments.box.value","value":{"kind":"i64","value":7}}]}
@@ -158,7 +161,10 @@ in scope. Ambiguous aliases reject rather than being selected arbitrarily.
 
 The prelude route separately authenticates the selected compiler-owned family's
 fixed declaration/case/field identities, their kinds and owners, reserved names,
-parameter arity and payload parameter slots against retained checked HIR.
+parameter arity and payload parameter slots against checked compiler HIR.
+Scalar-only linked closures can omit unused prelude types; discovery then uses
+the same fixed prelude declaration builder as the workspace linker, without
+inserting those types into the linked closure or widening backend admission.
 It does not weaken the explicit-ID requirement for authored subjects. Prelude
 names are compiler bindings rather than invented imports; their definitions
 remain part of the existing compiler prelude contract, not hidden candidate
@@ -182,7 +188,7 @@ Change catalogues and hole contexts expose an optional nonempty
 `aggregate_constructors` inventory for visible eligible types. Each descriptor
 binds the kind, target, owner identity, checked name, source path/module, unique
 local binding, and ordered field identities with checked type identities.
-`evidence_owner` identifies retained checked HIR; full candidate validation is
+`evidence_owner` identifies retained checked HIR for source subjects; full candidate validation is
 still required. These are available lexical constructors, not expected-type
 filtering or a guarantee that arbitrary field values are legal.
 
@@ -194,7 +200,8 @@ The compiler avoids enumerating all possible argument combinations. Replaying
 an actual typed request remains responsible for concrete admission.
 
 Prelude descriptors have null source path/module, `identity_origin` equal to
-`compiler_owned`, and a `compiler_prelude` schema/digest binding. They do not
+`compiler_owned`, `evidence_owner` equal to `compiler_checked_prelude`, and a
+`compiler_prelude` schema/digest binding. They do not
 invent source provenance. Existing monomorphic source descriptors retain their
 shape. Eligible catalogues and hole contexts now include the four prelude cases,
 so whole-report bytes can change even for a scalar-only source project.
@@ -285,7 +292,7 @@ round-trip, graph, target and runtime evidence remains required before a
 completion claim.
 
 [Generic constructor regressions](../tests/project_candidate_generic_aggregate_expressions_v1.rs)
-cover ordered arguments, imported bindings, phantom nominal identity, named
+cover ordered arguments, module-local bindings, rejected generic imports, phantom nominal identity, named
 generic variants, all four prelude cases, typed hole recovery, malformed inputs
 and capacity rejection. [Rebase regressions](../tests/project_candidate_rebase_v1.rs)
 include a checked generic field-type change while the nominal instance and

@@ -587,8 +587,7 @@ pub(crate) fn owned_data_api_workspace_return_admitted(ty: &ResolvedType) -> boo
         )
 }
 
-fn workspace_compiler_prelude(
-) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
+pub(crate) fn compiler_prelude_declarations() -> Result<DeclarationIndex, Diagnostic> {
     let prelude_only = Program {
         path: "<workspace-linker>".to_owned(),
         module: "compiler.prelude".to_owned(),
@@ -600,7 +599,12 @@ fn workspace_compiler_prelude(
         implementations: Vec::new(),
         functions: Vec::new(),
     };
-    let declarations = DeclarationIndex::from_verified(&prelude_only)?;
+    DeclarationIndex::from_verified(&prelude_only)
+}
+
+fn workspace_compiler_prelude(
+) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
+    let declarations = compiler_prelude_declarations()?;
     let compiler_types = crate::prelude::declarations()
         .iter()
         .map(|declaration| {

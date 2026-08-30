@@ -239,6 +239,7 @@ fn candidates_are_immutable_queryable_validated_and_discardable_without_disk_cha
         assert_eq!(descriptor["kind"], "variant");
         assert_eq!(descriptor["generic"], true);
         assert_eq!(descriptor["identity_origin"], "compiler_owned");
+        assert_eq!(descriptor["evidence_owner"], "compiler_checked_prelude");
         assert!(descriptor["path"].is_null());
         assert!(descriptor["module"].is_null());
         assert_eq!(

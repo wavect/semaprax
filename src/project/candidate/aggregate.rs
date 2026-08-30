@@ -1,5 +1,6 @@
 //! Stable-ID aggregate construction over retained checked type declarations.
 //! Source bindings choose spellings; neither spellings nor HIR come from requests.
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{json, Value};
@@ -160,8 +161,8 @@ struct Subject<'a> {
     path: &'a str,
     module: &'a str,
     generic: bool,
-    fields: &'a [ResolvedFieldDeclaration],
-    type_parameters: &'a [ResolvedTypeParameterDeclaration],
+    fields: Cow<'a, [ResolvedFieldDeclaration]>,
+    type_parameters: Cow<'a, [ResolvedTypeParameterDeclaration]>,
     prelude_binding: Option<&'a str>,
 }
 
@@ -217,7 +218,7 @@ pub(super) fn plan(
         grammar("aggregate constructor type requires one existing local or imported binding")
     })?;
     let mut fields = BTreeMap::new();
-    for field in subject.fields {
+    for field in subject.fields.iter() {
         if fields
             .insert(field.id.as_str().to_owned(), field.name.clone())
             .is_some()
@@ -338,8 +339,8 @@ fn subject<'a>(revision: &'a ProjectRevision, target: &str) -> Result<Option<Sub
                         path: module.path(),
                         module: module.module(),
                         generic: !ty.type_parameters.is_empty(),
-                        fields,
-                        type_parameters: &ty.type_parameters,
+                        fields: Cow::Borrowed(fields),
+                        type_parameters: Cow::Borrowed(&ty.type_parameters),
                         prelude_binding: None,
                     })
                 }
@@ -354,8 +355,8 @@ fn subject<'a>(revision: &'a ProjectRevision, target: &str) -> Result<Option<Sub
                         path: module.path(),
                         module: module.module(),
                         generic: !ty.type_parameters.is_empty(),
-                        fields: &case.fields,
-                        type_parameters: &ty.type_parameters,
+                        fields: Cow::Borrowed(&case.fields),
+                        type_parameters: Cow::Borrowed(&ty.type_parameters),
                         prelude_binding: None,
                     }),
                 _ => None,
@@ -416,7 +417,18 @@ fn prelude_subject<'a>(revision: &'a ProjectRevision, target: &str) -> Result<Op
         ),
         _ => return Ok(None),
     };
-    let index = &revision.entry_program().declarations;
+    // Scalar-only linked closures intentionally omit unused algebraic types.
+    // Use the same fixed, checked prelude builder as the workspace linker when
+    // no selected prelude type is retained. Do not synthesize caller-owned HIR
+    // or cache a failure that could depend on an invocation's output budget.
+    let retained = &revision.entry_program().declarations;
+    let fallback;
+    let index = if retained.type_id(name).is_some() {
+        retained
+    } else {
+        fallback = crate::hir::compiler_prelude_declarations().map_err(|error| vec![error])?;
+        &fallback
+    };
     let id = index
         .type_id(name)
         .ok_or_else(|| grammar("checked compiler prelude type is absent"))?;
@@ -499,17 +511,21 @@ fn prelude_subject<'a>(revision: &'a ProjectRevision, target: &str) -> Result<Op
         .iter()
         .find(|case| case.id.as_str() == target)
         .ok_or_else(|| grammar("checked compiler prelude case is absent"))?;
+    let (target, case_name, _) = cases
+        .iter()
+        .find(|(id, _, _)| *id == target)
+        .ok_or_else(|| grammar("checked compiler prelude case is absent"))?;
     Ok(Some(Subject {
         kind: "variant",
-        target: case.id.as_str(),
-        owner: id.as_str(),
-        name: &case.name,
+        target,
+        owner,
+        name: case_name,
         path: "",
         module: "",
         generic: true,
-        fields: &case.fields,
-        type_parameters: parameters,
-        prelude_binding: Some(&declaration.name),
+        fields: Cow::Owned(case.fields.clone()),
+        type_parameters: Cow::Owned(parameters.to_vec()),
+        prelude_binding: Some(name),
     }))
 }
 
@@ -595,7 +611,7 @@ fn descriptor(subject: &Subject<'_>, binding: Option<&str>) -> Result<Value> {
         + subject.path.len()
         + subject.module.len()
         + 512;
-    for field in subject.fields {
+    for field in subject.fields.iter() {
         let identity = field.ty.identity_key();
         bytes = bytes
             .saturating_add(field.id.as_str().len())
@@ -610,7 +626,7 @@ fn descriptor(subject: &Subject<'_>, binding: Option<&str>) -> Result<Value> {
         fields.push(json!({"target":field.id.as_str(),"name":field.name,"index":field.index,"type_identity":identity}));
     }
     let mut parameters = Vec::new();
-    for parameter in subject.type_parameters {
+    for parameter in subject.type_parameters.iter() {
         bytes = bytes
             .saturating_add(parameter.name.len())
             .saturating_add(256);
@@ -630,6 +646,7 @@ fn descriptor(subject: &Subject<'_>, binding: Option<&str>) -> Result<Value> {
         value["type_parameters"] = json!(parameters);
     }
     if subject.prelude_binding.is_some() {
+        value["evidence_owner"] = json!("compiler_checked_prelude");
         value["path"] = Value::Null;
         value["module"] = Value::Null;
         value["identity_origin"] = json!("compiler_owned");

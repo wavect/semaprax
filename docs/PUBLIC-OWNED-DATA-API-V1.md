@@ -244,10 +244,28 @@ be proven, the invocation fails closed and publishes no language value.
 The Wasm wrapper never exposes its raw carrier. It clears or poisons temporary
 result storage after settlement and requires an empty arena before success.
 The native provider uses an opaque, provider-owned handle only inside the
-private FFI sibling; safe Rust queries length, copies, settles through an
-internal guard, disarms the guard, and only then returns `Vec<u8>`. A panic may
-not cross the FFI boundary. No allocator pointer is converted directly into a
-`Vec<u8>`.
+private FFI sibling; safe Rust queries length, copies, and settles through an
+internal owner guard. A separate invocation guard then proves the entire
+context settled through the existing context-close operation before returning
+any value or recoverable error, including scalars, `None`, and language `Err`.
+On Rust unwind the owner guard runs before the invocation guard. Uncertain
+owner or context settlement retains the existing fail-stop policy; no retry or
+later provider effect is permitted. Unknown tags or forged inactive handles
+never authorize length, copy, or drop operations. A panic may not cross the
+FFI boundary. No allocator pointer is converted directly into a `Vec<u8>`.
+
+The authored v8/v9/v10 Rust correction reinitializes a proven-closed context
+only on the next invocation. This resets its private invocation counter, not
+the linked provider's nonreused handle issuer. No live result or provider
+obligation may cross that reset. A rejected initialization preserves its
+existing error and permits no further provider operation in that invocation
+or its cleanup; a later explicit invocation may attempt initialization again.
+Only a successfully initialized invocation owns a context-close obligation.
+Public Rust signatures, provider C and ABI,
+descriptors, and manifest schemas stay unchanged; generated safe/private Rust and
+its integrity bindings intentionally change. Hostile-provider protocol tests
+are authored but unrun; this is not a safety claim against arbitrary malicious
+native machine code.
 
 The authored native correction uses a 13-bit one-based slot (`1..=4096`)
 and a nonreused 51-bit issuance serial within one statically linked provider
@@ -260,14 +278,20 @@ thread safety, or guaranteed successful progress under contention. The same
 private runtime correction applies to v9/v10; generated C/object/archive bytes
 and integrity bindings intentionally change, not public signatures or schemas.
 
-The authored v8 JavaScript correction admits the entire argument tuple,
+The authored v8/v9/v10 JavaScript correction admits the entire argument tuple,
 including exact bounded UTF-8 lengths, before payload snapshot allocation.
 Captured intrinsic view checks reject detached/shared/resizable and wrong-brand
 inputs without invoking caller constructor/species hooks. All snapshots still
 precede Wasm scratch writes and arena entry. Module-byte inputs have their
-separate 16 MiB admission bound before copy/hash. V9/v10 retain their previous
-JavaScript input renderers and require a separately reviewed equivalent
-hardening; this correction does not promote their input boundary.
+separate 16 MiB admission bound before copy/hash. Explicit v9/v10 routing now
+reuses the byte-identical v8 input helper; v8 JavaScript remains unchanged by
+that extension. V9/v10 JavaScript and dependent artifact bindings intentionally
+change, not descriptors, Wasm, or TypeScript declarations. Their record-field
+authentication, scalar validation, and consume-before-UTF-8-decoding rules
+remain in force. Real-package hostile-input regressions are authored but
+unrun, not promotion evidence; their owner is
+[`tests/project_owned_input_admission_v1.rs`](../tests/project_owned_input_admission_v1.rs),
+alongside the preserved v8 renderer known answers.
 
 ## Generated artifacts and carriers
 

@@ -242,8 +242,10 @@ Project v8 adds one closed `owned-data-api.v1` route. `src/project/public_api.rs
 derives and independently replays the sole semantic API descriptor from the
 authenticated linked-HIR subject. `src/project/npm/owned_data.rs` and the
 owned-data Wasm lowering consume that descriptor for the npm package. The
-v8-only `src/project/npm/owned_data_input_v8.js` admits complete input tuples
-before snapshot allocation, using captured brand/buffer intrinsics. The
+shared `src/project/npm/owned_data_input_v8.js` admits complete input tuples
+before snapshot allocation, using captured brand/buffer intrinsics. Its
+historical filename and helper bytes remain unchanged; v9/v10 explicitly
+select the same admission without altering v8 JavaScript. The
 private `src/wasm/aggregate/owned_stack.rs` derives selected call-path frame
 extents from the shared HIR call index and actual lowering plans so raw outputs
 cannot overlap deeper helper frames. Native owned handles pair all 4,096 slots
@@ -291,13 +293,33 @@ unsafe code; the private generated FFI sibling remains the quarantine for
 opaque provider handles. Neither layer transfers provider allocation into a
 host allocator.
 
+The generated owned-data Rust invocation guard proves whole-context settlement
+through the existing context-close ABI before any outward value or recoverable
+error. Inner owner guards settle before context closure, including on unwind.
+Only a proven-closed context may be reinitialized on the next invocation;
+uncertain settlement is fail-stop. This resets a private invocation counter,
+not the linked provider's nonreused handle serial. Unknown tags or forged
+inactive handles grant no payload-operation authority. The correction changes
+generated safe/private Rust and integrity bindings, not provider C/ABI or public
+types, and does not establish safety against arbitrary hostile native code.
+Initialization rejection retains its existing error with no further provider
+operation in that invocation or its cleanup. A later explicit invocation may
+attempt initialization again; only success creates the close obligation.
+
 `examples/frame-payload-project`, `examples/frame-payload-web`,
 `examples/frame-payload-rust`, and `tests/frame_payload_product_v1.rs` form one
 authored validation product over an identical corpus. Its lanes cover the
 reference interpreter, native C11 O0/O2, Core Wasm/Node, generated npm, and
 generated Rust package, including stable-ID display rename and settlement
-facts. Those repository gates were not executed by the documentation audit and
-do not establish exact-head hosted promotion.
+facts. The external Rust fixture has a committed standalone lock and uses
+`--locked --offline`; strict TypeScript 5.8.3 and Chromium/Playwright 1.62.0
+fixtures require explicit local provisioning and download nothing. Node and
+browser entry points share one corpus runner. The browser gate consumes
+host-provisioned before/after artifacts rather than authenticating their source
+derivation; the Project test owns that rename proof. These gates are authored
+but unrun and do not establish exact-head hosted promotion. Gate selection is
+documented in the [web consumer](../examples/frame-payload-web/README.md) and
+[browser fixture](../platform-tests/frame-payload-browser-v1/README.md).
 
 `src/project/flat_owned_record.rs` is the authority-free additive Project-v9
 description layer. It authenticates the exact one-direct-`Bytes` flat record

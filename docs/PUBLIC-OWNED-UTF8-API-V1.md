@@ -26,6 +26,13 @@ cannot replay as v8, and a v8 descriptor cannot contain `owned-utf8`.
 The v10 profile admits all v8 result types and adds a SEMAPRAX `string` result.
 Borrowed input mappings are unchanged.
 
+The authored v10 input correction explicitly reuses the existing v8
+captured-intrinsic whole-tuple preflight. It checks the cumulative 65,536-byte
+borrowed-input bound, including exact UTF-8 lengths, before payload snapshots;
+module bytes have a separate 16 MiB pre-copy/hash bound. V10 JavaScript and
+dependent artifact bindings intentionally change, not descriptor, Wasm,
+TypeScript, or v8 JavaScript bytes. Raw `Bytes` are still never decoded as text.
+
 ## Physical boundary
 
 The physical value is `(opaque provider handle, exact byte length)`. Neither
@@ -57,6 +64,16 @@ Every successful string result is copied and settled before JavaScript or safe
 Rust publication. Invalid UTF-8 cannot be returned as a host string, and a
 conversion failure cannot leave a live provider handle. Stale, foreign,
 wrong-length, repeated, or exhausted handles retain the v8 fail-closed rules.
+
+The authored shared Rust invocation guard additionally proves the complete
+provider context settled before any outward value or recoverable error,
+including a UTF-8 conversion failure. An inner owner guard precedes context
+closure on Rust unwind; uncertain settlement remains fail-stop. Only a
+proven-closed context may be reinitialized on a later call. Its private
+invocation counter resets while the linked provider's handle issuer remains
+nonreused. Generated safe/private Rust and integrity bindings intentionally change,
+not provider C/ABI, public signatures, descriptor or manifest schemas. These
+regressions are authored but unrun.
 
 ## Non-claims
 

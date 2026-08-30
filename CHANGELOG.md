@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Extended the existing bounded JavaScript input admission explicitly to v9/v10
+  while preserving v8 helper/rendered bytes. Added a shared generated Rust
+  invocation guard that proves whole-context settlement before returning any
+  owned/scalar/variant result or recoverable error, and prevents malformed
+  discriminants from authorizing inactive-payload operations. Authored hostile
+  provider and real-package input regressions. Added a committed standalone
+  frame-payload consumer lock, `--locked --offline` execution, strict provisioned
+  TypeScript positive/negative fixtures, and a shared Node/Chromium corpus
+  runner with a separate explicitly provisioned browser gate. No tests/builds
+  were run and no hosted workflow changed. V9/v10 JavaScript and v8-v10 safe/private
+  Rust bytes and integrity bindings intentionally change; public signatures,
+  descriptors, provider C/ABI, and older profiles remain unchanged. All affected
+  completion rows remain authored/unrun, unpublished, and unpromoted.
+
 - Authored developer-preview boundary corrections: doctor preserves multicall
   executable names, skips non-executable Unix PATH shadows, and checks complete
   version tokens; v8 JavaScript admits complete bounded input tuples before

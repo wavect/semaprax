@@ -7,8 +7,11 @@ Audience: compiler contributors, generated-package integrators, and promotion
 reviewers.
 
 Project v9 widens the public owned-data result vocabulary by exactly one
-authored aggregate shape. It preserves Project v1-v8 and all v8 descriptor,
-npm, Wasm, and Rust SDK bytes.
+authored aggregate shape. Its initial additive tranche preserves Project
+v1-v8 and their artifacts. Separately reviewed shared boundary corrections
+described below and in Public Owned Data API v1 intentionally change v8-v10
+Wasm/native-provider or Rust artifacts; selecting v9 never reinterprets a v8
+descriptor or selects a different profile's renderer.
 
 ## Fixed identifiers
 
@@ -81,6 +84,23 @@ before settlement. Invalid field order/type, stale or foreign handles,
 copy/drop failure, and settlement uncertainty fail closed. No allocator
 pointer, arena token, provider handle, struct offset, padding, alignment, or
 aggregate ABI reaches application code.
+
+The authored input correction explicitly selects the same captured-intrinsic
+whole-tuple preflight as v8, before payload snapshots, scratch writes, or arena
+entry. The cumulative borrowed-input bound is 65,536 bytes; module input is
+bounded separately at 16 MiB before copy/hash. Record field ordering, scalar
+authentication, sole-handle settlement, and frozen-object publication are
+unchanged. Only v9 JavaScript and its dependent artifact bindings change;
+the existing v8 JavaScript helper and rendered bytes remain exact.
+
+The generated Rust invocation guard now closes the complete provider context
+after its owner guard settles but before any outward value or recoverable
+error. It reinitializes only a proven-closed context on a later invocation;
+uncertain settlement is fail-stop. This shared v8/v9/v10 correction changes
+generated safe/private Rust and integrity bindings, not provider C/ABI, public
+types, descriptors, or manifest schemas. The private invocation counter resets
+on reinitialization; the linked provider's handle issuer does not. These
+corrections and their hostile-consumer evidence are authored but unrun.
 
 ## Evidence boundary
 

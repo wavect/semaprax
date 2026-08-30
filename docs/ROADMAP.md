@@ -28,11 +28,14 @@ notes.
 
 The current implementation batch hardens existing developer-preview contracts:
 doctor preserves multicall invocation names and admits complete version tokens;
-v8 JavaScript bounds input before copying; native owned handles reject live
+v8/v9/v10 JavaScript bounds input before copying; native owned handles reject live
 foreign-context aliases across the full slot capacity; raw Wasm excludes every
 reachable private frame from result storage. Regression evidence is authored,
-unrun, and not promotion evidence. Equivalent v9/v10 JavaScript input hardening
-and bounded doctor subprocess settlement remain separate open work.
+unrun, and not promotion evidence. The generated Rust facade now guards
+whole-context settlement before outward results, and the frame-payload product
+has locked/offline Rust plus explicitly provisioned TypeScript and Chromium
+fixtures. Execute these authored gates before promotion; bounded doctor
+subprocess settlement remains separate open work.
 
 Exit outcomes:
 

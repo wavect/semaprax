@@ -1,0 +1,22 @@
+module case.app;
+__DECLARATIONS__
+@id("case.before")
+fn before(input: borrow Slice<u8>, zero: i64) -> __RESULT__ {
+    let ignored = 1 / zero;
+    let staged = bytes_copy(input);
+    __VALUE__
+}
+@id("case.copy")
+fn copy(input: borrow Slice<u8>, zero: i64) -> __RESULT__ {
+    let staged = bytes_copy(input);
+    let ignored = 1 / zero;
+    __VALUE__
+}
+__EXTRA__
+@id("case.utf8")
+fn utf8(text: borrow str) -> __RESULT__ {
+    let input = str_as_bytes(text);
+    let staged = bytes_copy(input);
+    __VALUE__
+}
+@id("case.main") fn main() -> i64 { 0 }

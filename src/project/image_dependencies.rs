@@ -15,12 +15,25 @@ use std::sync::OnceLock;
 pub const IMAGE_DECLARATION_DEPENDENCIES_SCHEMA: &str =
     "semaprax.image-declaration-dependencies.v1";
 pub const MAX_IMAGE_DECLARATION_DEPENDENCIES_BYTES: usize = 8 * 1024 * 1024;
+mod navigation;
+pub use navigation::{
+    ImageDependencyPageOptions, ImageDependencyView, IMAGE_DEPENDENCY_PAGE_SCHEMA,
+    IMAGE_DEPENDENCY_SUMMARY_SCHEMA,
+};
 const MAX_ITEMS: usize = 65_536;
 const MAX_VISITS: usize = 1_048_576;
 const MAX_DEPTH: usize = 256;
 const MAX_RETAINED_BYTES: usize = 16 * 1024 * 1024;
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 pub(super) type DependencyCell = OnceLock<Result<DependencyIndex>>;
+
+struct DependencySelection {
+    selected: BTreeSet<String>,
+    ordinals: BTreeSet<usize>,
+    users: BTreeSet<String>,
+    closure: BTreeSet<String>,
+    calls: Vec<usize>,
+}
 
 #[derive(Default)]
 pub(super) struct DependencyIndex {
@@ -285,14 +298,10 @@ impl DependencyIndex {
         revision: &ProjectRevision,
         target: &str,
     ) -> Result<Value> {
-        self.relationships(revision, target, false)
+        let selection = self.selection(target, false)?;
+        Ok(self.relationships(revision, &selection, false))
     }
-    fn relationships(
-        &self,
-        revision: &ProjectRevision,
-        target: &str,
-        complete: bool,
-    ) -> Result<Value> {
+    fn selection(&self, target: &str, complete: bool) -> Result<DependencySelection> {
         let selected = self.selected(target, complete);
         let mut ordinals = BTreeSet::new();
         for id in &selected {
@@ -301,16 +310,14 @@ impl DependencyIndex {
             }
         }
         let mut users = BTreeSet::new();
-        let mut rows = Vec::new();
-        for ordinal in ordinals {
-            let row = &self.rows[ordinal];
+        for ordinal in &ordinals {
+            let row = &self.rows[*ordinal];
             users.insert(
                 row["function_id"]
                     .as_str()
                     .expect("compiler site has owner")
                     .to_owned(),
             );
-            rows.push(if complete {row.clone()} else {json!({"field_or_type_id":row["field_or_type_id"],"function_id":row["function_id"],"path":row["path"],"phase":row["phase"],"expression_id":row["expression_id"],"access":row["access"]})});
         }
         let mut closure = users.clone();
         if self.functions.contains(target) {
@@ -329,13 +336,41 @@ impl DependencyIndex {
                 return Err(capacity("dependency caller closure exceeds its bound"));
             }
         }
+        let calls = self
+            .call_sites
+            .iter()
+            .enumerate()
+            .filter_map(|(ordinal, site)| {
+                (closure.contains(site["function_id"].as_str().unwrap_or(""))
+                    && closure.contains(site["callee_id"].as_str().unwrap_or("")))
+                .then_some(ordinal)
+            })
+            .collect();
+        Ok(DependencySelection {
+            selected,
+            ordinals,
+            users,
+            closure,
+            calls,
+        })
+    }
+    fn relationships(
+        &self,
+        revision: &ProjectRevision,
+        selection: &DependencySelection,
+        complete: bool,
+    ) -> Value {
+        let rows = selection.ordinals.iter().map(|ordinal| {
+            let row = &self.rows[*ordinal];
+            if complete {row.clone()} else {json!({"field_or_type_id":row["field_or_type_id"],"function_id":row["function_id"],"path":row["path"],"phase":row["phase"],"expression_id":row["expression_id"],"access":row["access"]})}
+        }).collect::<Vec<_>>();
+        let users = &selection.users;
+        let closure = &selection.closure;
         let test_root = revision.test_program().entrypoint.as_str();
-        Ok(
-            json!({"direct_field_sites":rows,"direct_field_user_functions":users,
+        json!({"direct_field_sites":rows,"direct_field_user_functions":users,
             "reverse_callable_closure":closure,"declared_test_root":test_root,"test_reachable":closure.contains(test_root),
             "basis":"retained_HIR_field_ID_accesses_and_local_or_imported_direct_calls","coverage":"not_inferred","executed":false,
-            "limitations":["no_external_or_dynamic_callers","aggregate_whole_value_reads_not_expanded_to_every_leaf","no_runtime_liveness_or_path_feasibility"]}),
-        )
+            "limitations":["no_external_or_dynamic_callers","aggregate_whole_value_reads_not_expanded_to_every_leaf","no_runtime_liveness_or_path_feasibility"]})
     }
 }
 
@@ -368,21 +403,12 @@ impl ProjectSemanticImage {
             .find(|source| source.path() == path)
             .ok_or_else(|| invalid("dependency source binding is absent"))?;
         let index = self.dependency_index()?;
-        let relationships = index.relationships(revision, target, true)?;
-        let closure = relationships["reverse_callable_closure"]
-            .as_array()
-            .expect("compiler closure array")
+        let selection = index.selection(target, true)?;
+        let relationships = index.relationships(revision, &selection, true);
+        let calls = selection
+            .calls
             .iter()
-            .filter_map(Value::as_str)
-            .collect::<BTreeSet<_>>();
-        let calls = index
-            .call_sites
-            .iter()
-            .filter(|site| {
-                closure.contains(site["function_id"].as_str().unwrap_or(""))
-                    && closure.contains(site["callee_id"].as_str().unwrap_or(""))
-            })
-            .cloned()
+            .map(|ordinal| index.call_sites[*ordinal].clone())
             .collect::<Vec<_>>();
         let report = json!({"schema":IMAGE_DECLARATION_DEPENDENCIES_SCHEMA,"image_digest":self.image_digest(),
             "project_revision":revision.project_revision(),"workspace_revision":revision.workspace_revision(),"target":target,

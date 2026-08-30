@@ -239,6 +239,66 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
             ("source_authority", json!({"const":false})),
         ],
     );
+    let dependency_source = object(vec![
+        ("path", text()),
+        ("module", text()),
+        ("source_revision", digest()),
+        ("source_digest", digest()),
+    ]);
+    let dependency_views = json!({"enum":["sites","callers","calls","members"]});
+    put(
+        "semaprax.image-dependency-summary.v1",
+        vec![
+            ("image_digest", digest()),
+            ("project_revision", digest()),
+            ("workspace_revision", digest()),
+            ("target", text()),
+            ("name", nullable(text())),
+            ("kind", text()),
+            ("source_binding", dependency_source.clone()),
+            (
+                "facets",
+                json!({"type":"array","minItems":4,"maxItems":4,"items":object(vec![
+                    ("view",dependency_views.clone()),("handle",digest()),("total_items",uint()),
+                ])}),
+            ),
+            ("declared_test_root", text()),
+            ("test_reachable", json!({"type":"boolean"})),
+            ("source_authority", json!({"const":false})),
+            ("evidence_owner", json!({"const":"retained_checked_hir"})),
+            ("nonclaims", array(text())),
+        ],
+    );
+    put(
+        "semaprax.image-dependency-page.v1",
+        vec![
+            ("image_digest", digest()),
+            ("project_revision", digest()),
+            ("workspace_revision", digest()),
+            ("target", text()),
+            ("source_binding", dependency_source),
+            ("view", dependency_views),
+            ("handle", digest()),
+            ("cursor", nullable(text())),
+            ("offset", uint()),
+            ("total_items", uint()),
+            (
+                "page_size",
+                json!({"type":"integer","minimum":1,"maximum":128}),
+            ),
+            (
+                "max_bytes",
+                json!({"type":"integer","minimum":1024,"maximum":1048576}),
+            ),
+            ("next_cursor", nullable(text())),
+            (
+                "items",
+                json!({"type":"array","maxItems":128,"items":{"$ref":"urn:semaprax.image-dependency-item.v1"}}),
+            ),
+            ("source_authority", json!({"const":false})),
+            ("evidence_owner", json!({"const":"retained_checked_hir"})),
+        ],
+    );
     put(
         "semaprax.image-interface-delta-chunk.v1",
         vec![

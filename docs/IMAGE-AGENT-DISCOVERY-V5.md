@@ -29,6 +29,12 @@ request builders. Its heterogeneous source-HIR report is explicitly listed as
 unbundled, so the wrapper schema does not claim to validate every relationship
 interior. See [Declaration Dependencies](SEMANTIC-IMAGE-DEPENDENCIES-V1.md).
 
+Compact `image/dependency-summary` and `image/dependency-page` methods add
+structured summary/page wrappers and typed view/reference/page-option requests.
+The heterogeneous dependency-item schema remains explicitly unbundled. These
+selectors grant no authority and remain bound to their exact immutable image.
+See [Dependency Navigation](SEMANTIC-IMAGE-DEPENDENCY-NAVIGATION-V1.md).
+
 Host-selected draft recovery adds closed capsule and chunk-envelope schemas plus
 `hole/recovery-export` / `hole/recovery-restore` builders to v5 clients. Capsule
 shape validation does not replace nested candidate replay, source-base checks,

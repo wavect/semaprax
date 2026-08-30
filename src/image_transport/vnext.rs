@@ -68,6 +68,8 @@ pub(super) enum Action {
     DraftRecoveryExport,
     DraftRecoveryRestore,
     Dependencies,
+    DependencySummary,
+    DependencyPage,
 }
 
 const REFRESH: Method = Method {
@@ -360,6 +362,12 @@ impl VNextSession {
                     dependencies::prepare(params, image)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(action @ (Action::DependencySummary | Action::DependencyPage)) => {
+                    (
+                        dependencies::prepare_navigation(action, params, image)?,
+                        candidates::Mutation::None,
+                    )
+                }
                 Operation::VNext(
                     action @ (Action::DraftRecoveryExport | Action::DraftRecoveryRestore),
                 ) => draft_recovery::prepare(action, params, image, registry)?,
@@ -559,6 +567,7 @@ fn methods(policy: &VNextPolicy, commit_enabled: bool) -> Vec<&'static Method> {
     methods.push(&REFRESH);
     methods.push(&REFRESH_PREVIEW);
     methods.push(dependencies::method());
+    methods.extend(dependencies::navigation_methods());
     methods.extend(projections::methods(policy.build_enabled));
     methods.extend(review_facets::methods(policy));
     if policy.candidate_prepare {

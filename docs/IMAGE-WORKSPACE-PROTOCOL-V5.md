@@ -48,6 +48,11 @@ It shares the immutable image index with candidate deltas and the host parallel
 read path; no candidate grant or publication authority is needed or acquired.
 See [Declaration Dependencies](SEMANTIC-IMAGE-DEPENDENCIES-V1.md).
 
+Agents can instead request `image/dependency-summary` and expand selected
+`image/dependency-page` handles. These structured read-only methods expose
+counts and bounded sites/callers/calls/members pages without transferring the
+complete report. See [Dependency Navigation](SEMANTIC-IMAGE-DEPENDENCY-NAVIGATION-V1.md).
+
 Startup-only archive handoff can preload complete historical candidates from
 independently replayed source-backed archives. It retains the current image and
 fixed policy, requires the same canonical manifest, and grants no approvals or

@@ -56,6 +56,10 @@ The embedding-host [parallel read API](IMAGE-PARALLEL-READS-V1.md) admits this
 immutable query. Its existing before/after source checks and join-before-return
 boundary still apply. The stdio transport remains sequential.
 
+[Dependency Navigation](SEMANTIC-IMAGE-DEPENDENCY-NAVIGATION-V1.md) adds compact
+summaries and revision-bound detail pages over this same index. The full report
+and chunk query remain available with unchanged payloads.
+
 Authored evidence lives in `tests/image_declaration_dependencies_v1.rs` and
 `tests/image_declaration_dependencies_transport_v5.rs`. General package and
 artifact consumers, runtime obligations, and measured index benefits remain

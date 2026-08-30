@@ -668,6 +668,7 @@ fn constructor_schemas_are_closed_and_resolve_recursion_locally() {
             "replace_function_body",
             "repair_diagnostic",
             "replace_expression",
+            "replace_contract_expression",
             "add_contract",
             "implement_interface",
             "add_declaration",

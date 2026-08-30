@@ -1,0 +1,38 @@
+module string_web.product;
+
+@id("")
+fn empty_identity() -> i64 { 17 }
+@id("internal.identity")
+fn identity(value: string) -> string { value }
+@id("web.content")
+fn content() -> i64 {
+    let text = identity("A\u{0}λ🙂");
+    if string_len(text) == 8 && string_len_chars(text) == 4
+        && text == "A\u{0}λ🙂" && string_is_empty(identity("")) {
+        42
+    } else { 0 }
+}
+@id("web.bool")
+fn boolean(flag: bool) -> bool { let text = "yes"; flag && string_len(text) == 3 }
+@id("web.divide")
+fn divide(denominator: i64) -> i64 { let held = "failure\u{0}"; 42 / denominator }
+@id("web.required")
+fn required(flag: bool) -> i64 requires flag { string_len("ok") }
+@id("internal.capacity-step")
+fn capacity_step() -> i64 { string_len("__CAPACITY_TEXT__") }
+@id("web.capacity")
+fn capacity(count: i64) -> i64 {
+    let mut index = 0;
+    while index < count {
+        let size = capacity_step();
+        index = index + 1;
+        0
+    }
+    index
+}
+@id("__proto__")
+fn prototype_identity() -> i64 { 11 }
+@id("web.\"</script>λ")
+fn markup_identity() -> i64 { 13 }
+@id("entry.main")
+fn main() -> i64 { 0 }

@@ -116,10 +116,12 @@ int main(void) {
         SUCCESS(CALL1(nested, 1), 5, "done", 4);
         FAILURE(CALL1(callee, 0), 2);
         SUCCESS(CALL1(callee, 1), 4, "done", 4);
-        FAILURE(CALL1(condition, 3), 7);
-        SUCCESS(CALL1(condition, 10), 11, "done", 4);
-        FAILURE(CALL1(body, 2), 6);
-        SUCCESS(CALL1(body, 10), 11, "done", 4);
+        /* One String is retained across the Copy-only loop. Success also
+         * allocates the returned String and the provider's owned byte copy. */
+        FAILURE(CALL1(condition, 3), 1);
+        SUCCESS(CALL1(condition, 10), 3, "done", 4);
+        FAILURE(CALL1(body, 2), 1);
+        SUCCESS(CALL1(body, 10), 3, "done", 4);
         FAILURE(MIXED(0), 2);
         SUCCESS(MIXED(1), 4, "done", 4);
         SUCCESS(CALL0(clone), 5, "done", 4);

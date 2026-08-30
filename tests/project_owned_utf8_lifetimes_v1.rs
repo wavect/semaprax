@@ -1,6 +1,8 @@
 //! Authored physical V10 evidence. No tool absence is treated as success.
 //! The descriptor gate runs before generation: argument blocks are already
 //! admitted inside a direct String-returning call; outer String blocks are not.
+//! Loop evidence retains one owner across a Copy-only loop; it does not claim
+//! direct String expressions or per-iteration allocation inside public v10 loops.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -35,8 +37,8 @@ fn source() -> String {
 @id("s.clone") fn clone_value() -> string { sink({ let a = "alpha"; let b = a; a }) }
 @id("s.branch") fn branch(flag: bool) -> string { sink(if flag { "left" } else { "right" }) }
 @id("s.loop") fn repeated(count: i64) -> string {
-    integer({ let mut i = 0; while { let condition = "condition"; i < count } {
-        let iteration = "iteration"; i = i + 1; 0
+    integer({ let retained = "retained"; let mut i = 0; while i < count {
+        i = i + 1; 0
     } 0 })
 }
 @id("s.late") fn late(zero: i64) -> string { two("argument", 1 / zero) }
@@ -180,6 +182,40 @@ fn closed_descriptor_shape_and_value_string_parameter_modes_are_not_widened() {
         .unwrap_err()
         .iter()
         .any(|error| error.code == "SPX-O002"));
+}
+
+#[test]
+fn loop_string_admission_and_v10_scalar_helper_rejection_remain_closed() {
+    let direct = r#"module rejected.string_loop;
+@id("s.main") fn main() -> i64 {
+    let mut i = 0;
+    while i < 2 { let text = "iteration"; i = i + 1; 0 }
+    i
+}
+"#;
+    assert!(semaprax::check(direct, "direct-string-loop.spx")
+        .unwrap_err()
+        .iter()
+        .any(|error| error.code == "SPX-T252"));
+
+    // A scalar helper can allocate String internally in ordinary verified
+    // source. It cannot widen the separate public-v10 closure shape.
+    let helper = r#"module rejected.v10_loop_helper;
+@id("s.helper") fn next(i: i64) -> i64 { let text = "iteration"; i + 1 }
+@id("s.integer") fn integer(value: i64) -> string { "done" }
+@id("s.selected") fn selected() -> string {
+    integer({ let mut i = 0; while i < 2 { i = next(i); 0 } i })
+}
+@id("s.main") fn main() -> i64 { 0 }
+"#;
+    let program =
+        semaprax::hir::resolve(&semaprax::check(helper, "scalar-string-helper.spx").unwrap())
+            .unwrap();
+    semaprax::hir::validate(&program).unwrap();
+    let error =
+        derive_public_api_descriptor(&program, &["s.selected".to_owned()], subject()).unwrap_err();
+    assert_eq!(error.code, "SPX-J113");
+    assert!(error.message.contains("may not stage a non-result string"));
 }
 
 #[test]

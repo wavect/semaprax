@@ -285,7 +285,10 @@ fn render_package(
 }
 
 fn render_runtime(wasm_sha256: &str, exports: &[OwnedExport], project_schema: &str) -> String {
-    let bounded = project_schema == PUBLIC_OWNED_DATA_PROJECT_SCHEMA;
+    let bounded = matches!(
+        project_schema,
+        PUBLIC_OWNED_DATA_PROJECT_SCHEMA | PUBLIC_OWNED_UTF8_PROJECT_SCHEMA
+    );
     let mut runtime = render_runtime_prelude_with_admission(wasm_sha256, bounded);
     let facade = if exports.iter().any(|export| {
         matches!(
@@ -309,12 +312,13 @@ fn render_runtime(wasm_sha256: &str, exports: &[OwnedExport], project_schema: &s
     runtime
 }
 
-pub(super) fn render_runtime_prelude(wasm_sha256: &str) -> String {
+#[cfg(test)]
+fn render_runtime_prelude(wasm_sha256: &str) -> String {
     render_runtime_prelude_with_admission(wasm_sha256, false)
 }
 
-// V9 and V10 retain the exact previous renderer; schema selection is explicit.
-fn render_runtime_prelude_with_admission(wasm_sha256: &str, bounded: bool) -> String {
+// The original v8 helper bytes stay exact; v9/v10 now select the same admission.
+pub(super) fn render_runtime_prelude_with_admission(wasm_sha256: &str, bounded: bool) -> String {
     let input_prelude = if bounded {
         include_str!("owned_data_input_v8.js")
     } else {
@@ -571,9 +575,35 @@ mod hostile_source_tests {
     use super::*;
 
     #[test]
+    fn v8_bounded_renderer_fragments_keep_their_prechange_bytes() {
+        // Pinned by static expansion/hash of the baseline literal templates,
+        // not by generating or executing a replacement package.
+        for (rendered, expected) in [
+            (
+                render_runtime_prelude_with_admission("digest", true),
+                "9f031e17da0d1c125d0fd8ebf54171e69d44a44b24931d8e2a945048577a7e1b",
+            ),
+            (
+                render_runtime_facade(&[], true),
+                "758225ba0a123e21c391ab1da56fbb23d4c1870d7b5387fbba8ffa6bc390d716",
+            ),
+            (
+                render_variant_runtime_facade(&[], true),
+                "1e5eeb39071283bcdcdd0c90ccef2cfc075c89f81b310a9b783cad089850a4fb",
+            ),
+            (
+                render_mixed_runtime_facade(&[], true),
+                "a64b98625048e72fea3891b6d199e89a6cc628575b285585e3efd257dd8a9f20",
+            ),
+        ] {
+            assert_eq!(hex_sha256(rendered.as_bytes()), expected);
+        }
+    }
+
+    #[test]
     fn unmodified_profile_renderer_fragments_keep_their_prechange_bytes() {
         // Pinned from the baseline literal templates, without executing a build.
-        // V9 uses this prelude; V10 uses it and these non-v8 facade branches.
+        // These historical private fragments are no longer selected by v9/v10.
         for (rendered, expected) in [
             (
                 render_runtime_prelude("digest"),
@@ -597,11 +627,11 @@ mod hostile_source_tests {
     }
 
     #[test]
-    fn v8_input_admission_is_explicit_and_precedes_scratch_and_arena() {
+    fn v8_and_v10_input_admission_is_explicit_and_precedes_scratch_and_arena() {
         let v8 = render_runtime("digest", &[], PUBLIC_OWNED_DATA_PROJECT_SCHEMA);
         let v10 = render_runtime("digest", &[], PUBLIC_OWNED_UTF8_PROJECT_SCHEMA);
         assert!(v8.contains("function snapshotArguments("));
-        assert!(!v10.contains("function snapshotArguments("));
+        assert!(v10.contains("function snapshotArguments("));
         assert!(!render_runtime_prelude_with_admission("digest", true).contains("arrayBufferSlice"));
         for source in [
             render_runtime_facade(&[], true),

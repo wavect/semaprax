@@ -789,10 +789,15 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             println!("{envelope}");
             Ok(())
         }
-        "interpret" => {
+        "interpret" | "interpret-strings" => {
             let path = required_path(&args, 1)?;
             let (function, arguments, options) = interpret_options(&args)?;
-            let interpretation = interpreter::interpret(&path, &function, &arguments, &options)
+            let interpret = if args[0] == "interpret-strings" {
+                interpreter::internal_strings::interpret
+            } else {
+                interpreter::interpret
+            };
+            let interpretation = interpret(&path, &function, &arguments, &options)
                 .map_err(|errors| report(&errors, false))?;
             println!("{}", interpretation.envelope);
             if interpretation.returned {
@@ -2270,6 +2275,7 @@ fn print_help() {
              semaprax simd-report <file> [--max-bytes N]\n\
             semaprax protocol-check <file> [--max-bytes N]\n\
             semaprax interpret <file> --function <name|stable-id> [--arg <scalar literal>]... [--max-bytes N]\n\
+            semaprax interpret-strings <file> --function <name|stable-id> [--arg <scalar literal>]... [--max-bytes N]\n\
              semaprax ui-schema <file> [--max-bytes N]\n\
            semaprax plugin-manifest <file> [--max-bytes N]\n\
             semaprax cxx-shim <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-fragment]\n\

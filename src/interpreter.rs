@@ -58,6 +58,7 @@
 //! persistence, no hot reload, no debugger mapping, executes no target, and
 //! changes no source.
 
+pub mod internal_strings;
 mod prepared;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -939,6 +940,48 @@ pub fn interpret(
     arguments: &[String],
     options: &InterpreterOptions,
 ) -> Result<Interpretation, Vec<Diagnostic>> {
+    interpret_with_profile(
+        source_path,
+        function_token,
+        arguments,
+        options,
+        SourceProfile::Legacy,
+    )
+}
+
+#[derive(Clone, Copy)]
+enum SourceProfile {
+    Legacy,
+    InternalStrings,
+}
+
+impl SourceProfile {
+    fn schema(self) -> &'static str {
+        match self {
+            Self::Legacy => SCHEMA,
+            Self::InternalStrings => internal_strings::SCHEMA,
+        }
+    }
+
+    fn payload_domain(self) -> &'static [u8] {
+        match self {
+            Self::Legacy => PAYLOAD_DIGEST_DOMAIN,
+            Self::InternalStrings => internal_strings::PAYLOAD_DIGEST_DOMAIN,
+        }
+    }
+}
+
+fn interpret_with_profile(
+    source_path: &Path,
+    function_token: &str,
+    arguments: &[String],
+    options: &InterpreterOptions,
+    profile: SourceProfile,
+) -> Result<Interpretation, Vec<Diagnostic>> {
+    if matches!(profile, SourceProfile::InternalStrings) {
+        InterpreterOptions::new(options.max_bytes, options.max_steps)
+            .map_err(|error| vec![error])?;
+    }
     let options_owned = *options;
     // Evaluation recurses per SPX call frame; a dedicated thread with a fixed
     // generous stack keeps the call-depth ceiling reachable without native
@@ -950,7 +993,13 @@ pub fn interpret(
         .name("semaprax-interpret".to_owned())
         .stack_size(EVALUATION_STACK_BYTES)
         .spawn(move || {
-            interpret_on_current_thread(&source_path, &function_token, &arguments, &options_owned)
+            interpret_on_current_thread(
+                &source_path,
+                &function_token,
+                &arguments,
+                &options_owned,
+                profile,
+            )
         })
         .map_err(|error| {
             vec![Diagnostic::io(
@@ -971,9 +1020,17 @@ fn interpret_on_current_thread(
     function_token: &str,
     arguments: &[String],
     options: &InterpreterOptions,
+    profile: SourceProfile,
 ) -> Result<Interpretation, Vec<Diagnostic>> {
     let canonical_source_path = patch::canonical_source_path(source_path)?;
-    let snapshot = patch::read_source_snapshot(&canonical_source_path)?;
+    let snapshot = match profile {
+        SourceProfile::Legacy => patch::read_source_snapshot(&canonical_source_path)?,
+        SourceProfile::InternalStrings => patch::read_source_snapshot_bounded(
+            &canonical_source_path,
+            internal_strings::MAX_SOURCE_BYTES,
+            "SPX-F104",
+        )?,
+    };
     let program = parse(snapshot.source(), source_path).map_err(|error| vec![error])?;
     let diagnostics = verify::verify(&program);
     if diagnostics.iter().any(|item| item.severity.is_error()) {
@@ -1010,7 +1067,7 @@ fn interpret_on_current_thread(
     // these gates separate prevents owned buffers or fixed arrays from
     // silently becoming CLI values merely because the evaluator can execute
     // them internally.
-    let admitted = admitted_resolved_functions(&resolved);
+    let admitted = admitted_resolved_functions_with_profile(&resolved, profile);
 
     scan_closure(entry.id.as_str(), &admitted, &resolved.declarations)?;
 
@@ -1054,27 +1111,67 @@ fn interpret_on_current_thread(
         .collect::<Vec<_>>();
     let exhausted = outcome.kind == OUTCOME_FUEL_EXHAUSTED;
 
-    let (envelope, overflowed) = with_limit(options.max_bytes, || {
-        render(&RenderFacts {
-            path_text: &path_text,
-            revision: &revision,
-            digest: &digest,
-            function: entry,
-            arguments_json: &arguments_json,
-            max_bytes: options.max_bytes,
-            max_steps: options.max_steps,
-            steps_used,
-            exhausted,
-            outcome_json: &outcome.json,
-        })
+    // New-profile rendering charges component quotes/joining, then payload,
+    // then wrapper. Components plus wrapper digest are disjoint output parts:
+    // cumulative work is at most P + 2E <= 3E. Legacy charging stays frozen.
+    let render_limit = match profile {
+        SourceProfile::Legacy => options.max_bytes,
+        SourceProfile::InternalStrings => options.max_bytes.checked_mul(3).ok_or_else(|| {
+            vec![option_error(
+                "interpret render budget overflowed".to_owned(),
+            )]
+        })?,
+    };
+    let (envelope, overflowed) = with_limit(render_limit, || {
+        render_with_profile(
+            &RenderFacts {
+                path_text: &path_text,
+                revision: &revision,
+                digest: &digest,
+                function: entry,
+                arguments_json: &arguments_json,
+                max_bytes: options.max_bytes,
+                max_steps: options.max_steps,
+                steps_used,
+                exhausted,
+                outcome_json: &outcome.json,
+            },
+            profile,
+        )
     });
-    if overflowed {
+    if overflowed
+        || (matches!(profile, SourceProfile::InternalStrings) && envelope.len() > options.max_bytes)
+    {
         return Err(vec![Diagnostic::io(
             "SPX-F104",
             "interpret output exceeds the max-bytes budget; refusing to truncate".to_owned(),
         )]);
     }
-    patch::validate_source_unchanged(&canonical_source_path, source_path, &snapshot, &revision)?;
+    match profile {
+        SourceProfile::Legacy => patch::validate_source_unchanged(
+            &canonical_source_path,
+            source_path,
+            &snapshot,
+            &revision,
+        )?,
+        SourceProfile::InternalStrings => {
+            // Preserve F104 for observable capacity growth. The subsequent
+            // identity/revision recheck remains bounded and fail-closed if
+            // the source changes again between these two reads.
+            patch::read_source_snapshot_bounded(
+                &canonical_source_path,
+                internal_strings::MAX_SOURCE_BYTES,
+                "SPX-F104",
+            )?;
+            patch::validate_source_unchanged_bounded(
+                &canonical_source_path,
+                source_path,
+                &snapshot,
+                &revision,
+                internal_strings::MAX_SOURCE_BYTES,
+            )?;
+        }
+    }
     Ok(Interpretation {
         returned: outcome.kind == OUTCOME_RETURNED,
         envelope,
@@ -1669,6 +1766,13 @@ fn scan_closure(
 fn admitted_resolved_functions(
     program: &hir::ResolvedProgram,
 ) -> BTreeMap<&str, &ResolvedFunction> {
+    admitted_resolved_functions_with_profile(program, SourceProfile::Legacy)
+}
+
+fn admitted_resolved_functions_with_profile(
+    program: &hir::ResolvedProgram,
+    profile: SourceProfile,
+) -> BTreeMap<&str, &ResolvedFunction> {
     program
         .functions
         .iter()
@@ -1680,7 +1784,15 @@ fn admitted_resolved_functions(
                     declaration.identity_origin == hir::IdentityOrigin::Explicit
                 })
         })
-        .filter(|function| resolved_signature_is_admitted(function, &program.declarations))
+        .filter(|function| match profile {
+            SourceProfile::Legacy => {
+                resolved_signature_is_admitted(function, &program.declarations)
+            }
+            SourceProfile::InternalStrings => {
+                function.effects.is_empty()
+                    && internal_strings::signature_is_admitted(function, &program.declarations)
+            }
+        })
         .map(|function| (function.id.as_str(), function))
         .collect()
 }
@@ -1696,35 +1808,45 @@ fn resolved_data_signature_is_admitted(
     function: &ResolvedFunction,
     declarations: &hir::DeclarationIndex,
 ) -> bool {
-    function
-        .params
-        .iter()
-        .all(|parameter| match (&parameter.ty, parameter.ownership) {
-            (ty, hir::OwnershipMode::Value)
-                if is_admitted_resolved_scalar(ty) || matches!(ty, ResolvedType::ArrayU8(_)) =>
-            {
-                true
-            }
-            (ResolvedType::Bytes, hir::OwnershipMode::Own)
-            | (ResolvedType::Bytes, hir::OwnershipMode::Borrow)
-            | (ResolvedType::Str, hir::OwnershipMode::Borrow)
-            | (ResolvedType::SliceU8, hir::OwnershipMode::Borrow)
-            | (ResolvedType::ArrayU8(_), hir::OwnershipMode::Borrow) => true,
-            (ty, hir::OwnershipMode::Own | hir::OwnershipMode::Borrow)
-                if is_admitted_owned_byte_record(declarations, ty)
-                    || is_admitted_owned_byte_variant(declarations, ty) =>
-            {
-                true
-            }
-            _ => false,
-        })
-        && (is_admitted_resolved_scalar(&function.return_type)
-            || matches!(
-                function.return_type,
-                ResolvedType::ArrayU8(_) | ResolvedType::Bytes
-            )
-            || is_admitted_owned_byte_record(declarations, &function.return_type)
-            || is_admitted_owned_byte_variant(declarations, &function.return_type))
+    function.params.iter().all(|parameter| {
+        resolved_data_parameter_is_admitted(&parameter.ty, parameter.ownership, declarations)
+    }) && resolved_data_result_is_admitted(&function.return_type, declarations)
+}
+
+fn resolved_data_parameter_is_admitted(
+    ty: &ResolvedType,
+    ownership: hir::OwnershipMode,
+    declarations: &hir::DeclarationIndex,
+) -> bool {
+    match (ty, ownership) {
+        (ty, hir::OwnershipMode::Value)
+            if is_admitted_resolved_scalar(ty) || matches!(ty, ResolvedType::ArrayU8(_)) =>
+        {
+            true
+        }
+        (ResolvedType::Bytes, hir::OwnershipMode::Own)
+        | (ResolvedType::Bytes, hir::OwnershipMode::Borrow)
+        | (ResolvedType::Str, hir::OwnershipMode::Borrow)
+        | (ResolvedType::SliceU8, hir::OwnershipMode::Borrow)
+        | (ResolvedType::ArrayU8(_), hir::OwnershipMode::Borrow) => true,
+        (ty, hir::OwnershipMode::Own | hir::OwnershipMode::Borrow)
+            if is_admitted_owned_byte_record(declarations, ty)
+                || is_admitted_owned_byte_variant(declarations, ty) =>
+        {
+            true
+        }
+        _ => false,
+    }
+}
+
+fn resolved_data_result_is_admitted(
+    ty: &ResolvedType,
+    declarations: &hir::DeclarationIndex,
+) -> bool {
+    is_admitted_resolved_scalar(ty)
+        || matches!(ty, ResolvedType::ArrayU8(_) | ResolvedType::Bytes)
+        || is_admitted_owned_byte_record(declarations, ty)
+        || is_admitted_owned_byte_variant(declarations, ty)
 }
 
 pub(crate) fn evaluate_resolved_stdout_transcript(
@@ -3877,7 +3999,7 @@ struct RenderFacts<'a> {
     outcome_json: &'a str,
 }
 
-fn render(facts: &RenderFacts<'_>) -> String {
+fn render_with_profile(facts: &RenderFacts<'_>, profile: SourceProfile) -> String {
     let payload = bformat!(
         "{{\"schema\":\"{}\",\"source\":{{\"path\":{},\"revision\":{},\"sha256\":{}}},\
 \"function\":{{\"stable_id\":{},\"name\":{}}},\
@@ -3885,7 +4007,7 @@ fn render(facts: &RenderFacts<'_>) -> String {
 \"limits\":{{\"max_bytes\":{},\"max_steps\":{}}},\
 \"fuel\":{{\"steps_used\":{},\"budget\":{},\"exhausted\":{}}},\
 \"outcome\":{},\"nonclaims\":[{}]}}",
-        SCHEMA,
+        profile.schema(),
         quote_json(facts.path_text),
         quote_json(facts.revision),
         quote_json(facts.digest),
@@ -3902,8 +4024,8 @@ fn render(facts: &RenderFacts<'_>) -> String {
     );
     bformat!(
         "{{\"schema\":\"{}\",\"digest\":{},\"bytes\":{},\"payload\":{}}}",
-        SCHEMA,
-        quote_json(&domain_digest(PAYLOAD_DIGEST_DOMAIN, payload.as_bytes())),
+        profile.schema(),
+        quote_json(&domain_digest(profile.payload_domain(), payload.as_bytes())),
         payload.len(),
         payload,
     )
@@ -3933,6 +4055,11 @@ fn domain_digest(domain: &[u8], bytes: &[u8]) -> String {
 /// `steps_used == budget`), canonical literal grammars, and exact
 /// compiler-owned normalized-status reconstruction for failed outcomes.
 pub fn verify_envelope(envelope: &str) -> Result<(), Diagnostic> {
+    verify_envelope_with_profile(envelope, SourceProfile::Legacy)
+}
+
+fn verify_envelope_with_profile(envelope: &str, profile: SourceProfile) -> Result<(), Diagnostic> {
+    let schema = profile.schema();
     let value: serde_json::Value = serde_json::from_str(envelope)
         .map_err(|error| consistency_error(format!("envelope is not valid JSON: {error}")))?;
     let Some(object) = value.as_object() else {
@@ -3946,9 +4073,9 @@ pub fn verify_envelope(envelope: &str) -> Result<(), Diagnostic> {
             "envelope keys must be exactly [bytes, digest, payload, schema], found {keys:?}"
         )));
     }
-    if object["schema"].as_str() != Some(SCHEMA) {
+    if object["schema"].as_str() != Some(schema) {
         return Err(consistency_error(format!(
-            "envelope schema must be {SCHEMA}"
+            "envelope schema must be {schema}"
         )));
     }
     let Some(envelope_digest) = object["digest"].as_str() else {
@@ -3982,7 +4109,7 @@ pub fn verify_envelope(envelope: &str) -> Result<(), Diagnostic> {
             payload.len()
         )));
     }
-    if envelope_digest != domain_digest(PAYLOAD_DIGEST_DOMAIN, payload.as_bytes()) {
+    if envelope_digest != domain_digest(profile.payload_domain(), payload.as_bytes()) {
         return Err(consistency_error(
             "envelope digest does not match the exact payload bytes".to_owned(),
         ));
@@ -4013,9 +4140,9 @@ pub fn verify_envelope(envelope: &str) -> Result<(), Diagnostic> {
             "payload keys must be exactly [arguments, function, fuel, limits, nonclaims, outcome, schema, source], found {payload_keys:?}"
         )));
     }
-    if payload_object["schema"].as_str() != Some(SCHEMA) {
+    if payload_object["schema"].as_str() != Some(schema) {
         return Err(consistency_error(format!(
-            "payload schema must be {SCHEMA}"
+            "payload schema must be {schema}"
         )));
     }
 
@@ -4260,6 +4387,9 @@ pub fn verify_envelope(envelope: &str) -> Result<(), Diagnostic> {
         return Err(consistency_error(
             "payload nonclaims must equal the fixed closed list".to_owned(),
         ));
+    }
+    if matches!(profile, SourceProfile::InternalStrings) {
+        internal_strings::verify_canonical(envelope, &value, max_bytes)?;
     }
     Ok(())
 }

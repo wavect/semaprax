@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added real v8/v9 npm mixed-borrow consumers and raw native admission
+  fixtures alongside the published Rust corpus. npm checks exact six-file
+  publication and calibrated selected-Wasm-export entry counts; the native
+  fixture observes post-validation invocation, allocator calls, output
+  preservation, and recovery on the same physical context. Generators remain
+  unchanged. All new execution gates are authored but unrun; no completion
+  or hosted status is promoted.
+
 - Authored real published v8/v9 Rust consumers for mixed UTF-8 and two-slice
   borrowed tuples at the cumulative 65,536-byte boundary, including unused
   inputs, inactive v8 variants, maximum `Some`/`Ok` outputs, rejection/reuse,

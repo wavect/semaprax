@@ -249,6 +249,23 @@ object reuse. It shares its corpus with v8 while retaining distinct descriptor
 and package manifest oracles. This gate is also authored, unrun, and opt-in;
 it does not prove allocation counts or persistent-context reuse.
 
+The companion `tests/project_owned_tuple_npm_v1.rs` reopens the six real npm
+artifacts against their verified inline carrier and exercises the same mixed
+tuple boundaries under Node. It checks the frozen null-prototype record,
+stable-ID field names, exact `BigInt` lengths, and independent byte copies.
+Calibrated selected-Wasm-export entry counts distinguish successful calls from
+whole-tuple JavaScript rejection; they do not measure allocation or internal
+Wasm semantic entry. This companion is also authored and unrun.
+
+The separate native `native_owned_tuple_admission_v1` fixture generates the
+real v9 provider from the retained Project subject. All four output carrier
+slots start at the ABI-required sentinel. Rejected tuples must preserve the
+carrier and physical context, with no post-validation invocation increment,
+owner issuance, or instrumented allocator call. Successful controls check
+every scalar, exact copied bytes, handle settlement, and same-context recovery.
+This authored O0/O2 fixture remains unrun and does not expose those private
+observations as a public aggregate ABI or establish sanitizer coverage.
+
 No test, target consumer, hosted job, registry publication, or release
 promotion is claimed by the authored source state. The upstream baseline at
 `4cc03820c86e70527cb65c4b10ee3841c7af167d` predates Project v9.

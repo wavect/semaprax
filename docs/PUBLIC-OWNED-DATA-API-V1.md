@@ -551,6 +551,29 @@ This is consumer-level capacity and ownership evidence, not an invocation-entry
 counter, allocation trace, or proof of persistent native-context reuse. It does
 not replace the separate sanitizer, browser, or exact-head promotion gates.
 
+The npm counterpart `tests/project_owned_tuple_npm_v1.rs` derives both real
+Project subjects and reopens each six-file publication against its verified
+inline carrier and descriptor. Its Node consumer spells the same tuple corpus
+independently, checks exact variant/record results, and retains independent
+copies across two runtime objects. A test-only wrapper counts entry into the
+actual selected Wasm exports: accepted calls calibrate one entry, and rejected
+tuples must leave the count unchanged before a successful recovery call. This
+observes JavaScript preflight before selected-export entry, not Wasm-internal
+allocation, native-context lifetime, browser execution, or TypeScript checking.
+The fixture remains authored and unrun.
+
+`tests/native_owned_tuple_admission_v1.rs` uses the same authenticated Project
+subjects to generate the actual native v8/v9 providers. Its separate C fixture
+observes the provider's existing post-validation invocation counter, owner
+slots, issuance serial, and instrumented `malloc`/`calloc`/`free` call counts.
+Successful calls calibrate entry and allocation observations; oversized tuples
+and malformed UTF-8 must preserve output sentinels and context bytes without
+entry, allocation calls, or ownership changes, including inactive v8 branches.
+Recovery uses the same physical context. Empty active `Bytes` results still own
+a handle; their drop observes `free(NULL)` without a payload allocation. These
+authored O0/O2 checks remain unrun; test-only allocator instrumentation is not a public
+ABI, an OOM-recovery proof, or a sanitizer substitute.
+
 ## Nonclaims
 
 Public Owned Data API v1 does not claim public records or authored variants,

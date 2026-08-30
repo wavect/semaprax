@@ -2,6 +2,9 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+#[path = "support/native_rust_cargo.rs"]
+mod native_rust_cargo;
+
 use semaprax::project::{
     derive_public_api_descriptor, PublicApiSubject, PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
 };
@@ -325,7 +328,7 @@ fn published_safe_package_builds_offline_and_fail_stops_on_unsettled_handles() {
     let setup_manifest =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/owned-data-rust/Cargo.toml");
     run(
-        Command::new(env!("CARGO"))
+        native_rust_cargo::cargo_command()
             .args(["run", "--locked", "--offline", "--quiet", "--manifest-path"])
             .arg(&setup_manifest)
             .arg("--")
@@ -382,14 +385,14 @@ fn published_safe_package_builds_offline_and_fail_stops_on_unsettled_handles() {
     )
     .unwrap();
     run(
-        Command::new(env!("CARGO"))
+        native_rust_cargo::cargo_command()
             .args(["generate-lockfile", "--offline"])
             .current_dir(&consumer)
             .env("CARGO_TARGET_DIR", fixture.0.join("consumer-target")),
         "lock safe consumer",
     );
     let consumer_output = run(
-        Command::new(env!("CARGO"))
+        native_rust_cargo::cargo_command()
             .args(["run", "--locked", "--offline", "--quiet"])
             .current_dir(&consumer)
             .env("CARGO_TARGET_DIR", fixture.0.join("consumer-target")),

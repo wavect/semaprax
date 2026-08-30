@@ -385,6 +385,9 @@ jobs:
           echo SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS%>>"%GITHUB_ENV%"
           echo SEMAPRAX_LINKER=%SEMAPRAX_LINKER%>>"%GITHUB_ENV%"
           echo SEMAPRAX_ARCHIVER=%SEMAPRAX_ARCHIVER%>>"%GITHUB_ENV%"
+          echo CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=%SEMAPRAX_LINKER%>>"%GITHUB_ENV%"
+          echo LINK=>>"%GITHUB_ENV%"
+          echo _LINK_=>>"%GITHUB_ENV%"
       - name: Resolve the held Clang image (Windows)
         if: runner.os == 'Windows'
         shell: pwsh

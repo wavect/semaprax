@@ -394,6 +394,7 @@ fn descriptor_digest_for_schema(schema: &str, bytes: &[u8]) -> Option<String> {
 }
 
 fn descriptor_digest_for_bytes(bytes: &[u8]) -> Option<String> {
+    descriptor::validate_input(bytes).ok()?;
     let value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
     descriptor_digest_for_schema(value.get("schema")?.as_str()?, bytes)
 }
@@ -434,11 +435,17 @@ fn provider_binds_descriptor(provider: &[u8], descriptor_digest: &str) -> bool {
     let Ok(provider) = std::str::from_utf8(provider) else {
         return false;
     };
-    let binding = format!("#define SPX_OWNED_DATA_DESCRIPTOR_DIGEST_V1 \"{descriptor_digest}\"");
-    provider
-        .lines()
-        .filter(|line| line.starts_with("#define SPX_OWNED_DATA_DESCRIPTOR_DIGEST_V1 "))
-        .eq([binding.as_str()])
+    const PREFIX: &str = "#define SPX_OWNED_DATA_DESCRIPTOR_DIGEST_V1 ";
+    let mut bindings = provider.lines().filter(|line| line.starts_with(PREFIX));
+    let Some(binding) = bindings.next() else {
+        return false;
+    };
+    bindings.next().is_none()
+        && binding
+            .strip_prefix(PREFIX)
+            .and_then(|value| value.strip_prefix('"'))
+            .and_then(|value| value.strip_suffix('"'))
+            == Some(descriptor_digest)
 }
 
 struct LowerHex<T>(T);
@@ -454,3 +461,6 @@ impl<T: AsRef<[u8]>> std::fmt::LowerHex for LowerHex<T> {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod descriptor_input_tests;

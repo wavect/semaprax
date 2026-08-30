@@ -3,12 +3,18 @@ use std::path::{Path, PathBuf};
 pub(crate) const DEFAULT_MANIFEST: &str = "semaprax.toml";
 
 #[derive(Debug, Eq, PartialEq)]
+pub(crate) enum CheckInput {
+    Source(PathBuf),
+    Project(PathBuf),
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub(crate) struct CheckOptions {
-    pub(crate) manifest_path: PathBuf,
+    pub(crate) input: CheckInput,
     pub(crate) json: bool,
 }
 
-pub(crate) fn parse_check_options(args: &[String]) -> Result<Option<CheckOptions>, u8> {
+pub(crate) fn parse_check_options(args: &[String]) -> Result<CheckOptions, u8> {
     let mut positional = None::<PathBuf>;
     let mut manifest = None::<PathBuf>;
     let mut json = false;
@@ -56,22 +62,14 @@ pub(crate) fn parse_check_options(args: &[String]) -> Result<Option<CheckOptions
         eprintln!("check cannot combine an input file with --manifest-path");
         return Err(2);
     }
-    match (positional, manifest) {
-        (None, None) => Ok(Some(CheckOptions {
-            manifest_path: PathBuf::from(DEFAULT_MANIFEST),
-            json,
-        })),
-        (None, Some(path)) => Ok(Some(CheckOptions {
-            manifest_path: path,
-            json,
-        })),
-        (Some(path), None) if is_project_manifest(&path) => Ok(Some(CheckOptions {
-            manifest_path: path,
-            json,
-        })),
-        (Some(_), None) => Ok(None),
+    let input = match (positional, manifest) {
+        (None, None) => CheckInput::Project(PathBuf::from(DEFAULT_MANIFEST)),
+        (None, Some(path)) => CheckInput::Project(path),
+        (Some(path), None) if is_project_manifest(&path) => CheckInput::Project(path),
+        (Some(path), None) => CheckInput::Source(path),
         (Some(_), Some(_)) => unreachable!("ambiguity rejected above"),
-    }
+    };
+    Ok(CheckOptions { input, json })
 }
 
 pub(crate) fn is_project_manifest(path: &Path) -> bool {
@@ -90,10 +88,10 @@ mod tests {
     fn project_check_selectors_preserve_legacy_source_detection() {
         assert_eq!(
             parse_check_options(&[]).unwrap(),
-            Some(CheckOptions {
-                manifest_path: PathBuf::from(DEFAULT_MANIFEST),
+            CheckOptions {
+                input: CheckInput::Project(PathBuf::from(DEFAULT_MANIFEST)),
                 json: false,
-            })
+            }
         );
         assert_eq!(
             parse_check_options(&strings(&[
@@ -102,10 +100,10 @@ mod tests {
                 "--json",
             ]))
             .unwrap(),
-            Some(CheckOptions {
-                manifest_path: PathBuf::from("fixtures/semaprax.toml"),
+            CheckOptions {
+                input: CheckInput::Project(PathBuf::from("fixtures/semaprax.toml")),
                 json: true,
-            })
+            }
         );
         assert_eq!(
             parse_check_options(&strings(&[
@@ -114,21 +112,35 @@ mod tests {
                 "fixtures/semaprax.toml",
             ]))
             .unwrap(),
-            Some(CheckOptions {
-                manifest_path: PathBuf::from("fixtures/semaprax.toml"),
+            CheckOptions {
+                input: CheckInput::Project(PathBuf::from("fixtures/semaprax.toml")),
                 json: true,
-            })
+            }
         );
         assert_eq!(
             parse_check_options(&strings(&["--json"])).unwrap(),
-            Some(CheckOptions {
-                manifest_path: PathBuf::from(DEFAULT_MANIFEST),
+            CheckOptions {
+                input: CheckInput::Project(PathBuf::from(DEFAULT_MANIFEST)),
                 json: true,
-            })
+            }
         );
         assert_eq!(
             parse_check_options(&strings(&["legacy.spx", "--json"])).unwrap(),
-            None
+            CheckOptions {
+                input: CheckInput::Source(PathBuf::from("legacy.spx")),
+                json: true,
+            }
+        );
+        assert_eq!(
+            parse_check_options(&strings(&["--json", "legacy.spx"])).unwrap(),
+            parse_check_options(&strings(&["legacy.spx", "--json"])).unwrap()
+        );
+        assert_eq!(
+            parse_check_options(&strings(&["legacy.spx"])).unwrap(),
+            CheckOptions {
+                input: CheckInput::Source(PathBuf::from("legacy.spx")),
+                json: false,
+            }
         );
         assert!(parse_check_options(&strings(&[
             "legacy.spx",

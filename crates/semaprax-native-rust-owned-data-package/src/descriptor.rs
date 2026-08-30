@@ -109,11 +109,7 @@ impl Descriptor {
     }
 }
 
-pub(crate) fn replay(
-    bytes: &[u8],
-    digest: &str,
-    selected: &[String],
-) -> Result<Descriptor, PackageError> {
+pub(crate) fn validate_input(bytes: &[u8]) -> Result<(), PackageError> {
     if bytes.is_empty()
         || bytes.len() > MAX_DESCRIPTOR_BYTES
         || !bytes.ends_with(b"\n")
@@ -121,6 +117,15 @@ pub(crate) fn replay(
     {
         return Err(PackageError::descriptor());
     }
+    Ok(())
+}
+
+pub(crate) fn replay(
+    bytes: &[u8],
+    digest: &str,
+    selected: &[String],
+) -> Result<Descriptor, PackageError> {
+    validate_input(bytes)?;
     let value: Value = serde_json::from_slice(bytes).map_err(|_| PackageError::descriptor())?;
     let root = exact_object(&value, 7)?;
     let (schema, project_schema) = match (string(root, "schema")?, string(root, "project_schema")?)

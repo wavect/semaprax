@@ -76,25 +76,26 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
     };
     match command {
         "check" => {
-            if let Some(options) = cli::project::parse_check_options(&args[1..])? {
-                let manifest_path = options.manifest_path;
-                let json = options.json;
-                let (name, revision) =
-                    project::with_authenticated_project(&manifest_path, |snapshot| {
-                        snapshot.check()?;
-                        Ok((
-                            snapshot.manifest().name().to_owned(),
-                            snapshot.project_revision().to_owned(),
-                        ))
-                    })
-                    .map_err(|errors| report(&errors, json))?;
-                if !json {
-                    println!("verified project {name} ({revision})");
+            let options = cli::project::parse_check_options(&args[1..])?;
+            let json = options.json;
+            let path = match options.input {
+                cli::project::CheckInput::Source(path) => path,
+                cli::project::CheckInput::Project(manifest_path) => {
+                    let (name, revision) =
+                        project::with_authenticated_project(&manifest_path, |snapshot| {
+                            snapshot.check()?;
+                            Ok((
+                                snapshot.manifest().name().to_owned(),
+                                snapshot.project_revision().to_owned(),
+                            ))
+                        })
+                        .map_err(|errors| report(&errors, json))?;
+                    if !json {
+                        println!("verified project {name} ({revision})");
+                    }
+                    return Ok(());
                 }
-                return Ok(());
-            }
-            let path = required_path(&args, 1)?;
-            let json = args.iter().any(|arg| arg == "--json");
+            };
             let program = load(&path).map_err(|errors| report(&errors, json))?;
             let diagnostics = verify::verify(&program);
             let failed = diagnostics
@@ -1136,12 +1137,16 @@ fn serve_options(args: &[String]) -> Result<agent_transport::TransportLimits, u8
 }
 
 fn with_native_executable_suffix(path: PathBuf) -> PathBuf {
-    let suffix = std::env::consts::EXE_SUFFIX;
-    if suffix.is_empty() || path.extension().is_some() {
+    let extension = std::env::consts::EXE_EXTENSION;
+    if extension.is_empty() || path.extension().is_some() {
         return path;
     }
-    path.with_extension(suffix)
+    path.with_extension(extension)
 }
+
+#[cfg(test)]
+#[path = "cli/native_output_tests.rs"]
+mod native_output_tests;
 
 /// Exit status of a child that was terminated by a signal. Shell convention
 /// reports `128 + signal`; platforms without signal exit statuses fall back

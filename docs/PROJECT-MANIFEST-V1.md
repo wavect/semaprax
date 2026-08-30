@@ -90,6 +90,15 @@ manifest. Project builds publish two explicit targets:
 - `--target native` publishes one linked entry-closure executable compiled by
   the same held Clang C11 pipeline as the single-file native lane.
 
+`check` retains its parsed source or Project selector through dispatch.
+For a single source, `check --json file.spx` and `check file.spx --json`
+select the same file and diagnostic mode; the option token is never reparsed
+as a source path. Project selection and its default manifest remain unchanged.
+On Windows, an extensionless Project-native output receives exactly one `.exe`
+extension. Explicit existing extensions are retained; Unix names are unchanged.
+The routing and naming regressions in `tests/cli_check_routing_v1.rs` and
+`src/cli/native_output_tests.rs` are authored but unrun.
+
 `run` and `test` execute in process from the already authenticated linked HIR.
 They do not emit C or Wasm, create a temporary executable, spawn a process,
 reparse sources, relink declarations, or create project state. `run` evaluates

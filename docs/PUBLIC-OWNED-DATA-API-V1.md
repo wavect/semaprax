@@ -164,6 +164,23 @@ same facts from the same retained Project subject and reject truncation,
 insertion, deletion, reordering, duplication, unknown fields or tags, changed
 revisions, changed graph digest, or any byte mutation.
 
+The lower native package applies its existing nonempty, 1 MiB, terminal-LF
+and NUL-free byte guard before JSON parsing, including the preliminary schema
+lookup that selects the v8/v10 digest domain. Digest discovery and full replay
+share that guard; reaching the exact byte limit does not establish canonical
+or semantic validity. Provider-validation precedence and accepted descriptor
+bytes remain unchanged. The focused regressions in
+`crates/semaprax-native-rust-owned-data-package/src/descriptor_input_tests.rs`
+cover exact/plus-one input framing, canonical replay, domain separation and
+early rejection through the public builder. They are authored but unrun.
+
+The shared native provider-binding check also compares borrowed text rather
+than formatting a copy of the caller-supplied digest. It retains the exact
+single-binding-line predicate, including rejection of duplicate or malformed
+lines, without imposing a new digest grammar or changing error precedence.
+The same unrun regression module compares the old and new predicates on
+hostile line/digest combinations and an oversized digest mismatch.
+
 The lower native package reader enforces parameter-identity uniqueness within
 each export, matching the compiler's descriptor parser. Correctly recomputing
 the digest does not authorize two parameter ordinals to share an identity.

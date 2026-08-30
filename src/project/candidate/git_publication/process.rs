@@ -30,6 +30,16 @@ impl CandidateGitProcessAuthority {
             Err(invalid("Git process publication is supported only on Unix"))
         }
     }
+    pub fn object_format(&self) -> GitObjectFormat {
+        #[cfg(unix)]
+        {
+            self.inner.format
+        }
+        #[cfg(not(unix))]
+        {
+            GitObjectFormat::Sha256
+        }
+    }
     pub fn repository_identity(&self) -> &str {
         &self.identity
     }
@@ -44,7 +54,7 @@ impl CandidateGitAuthority for CandidateGitProcessAuthority {
         Ok(CandidateGitRepository {
             identity: self.identity.clone(),
             bare: true,
-            sha256: true,
+            sha256: self.object_format() == GitObjectFormat::Sha256,
         })
     }
     fn read_ref(&mut self, reference: &str) -> io::Result<Option<String>> {
@@ -61,7 +71,7 @@ impl CandidateGitAuthority for CandidateGitProcessAuthority {
     fn read_object(&mut self, oid: &str, max_bytes: usize) -> io::Result<CandidateGitObject> {
         #[cfg(unix)]
         {
-            checked_oid(oid)?;
+            checked_oid(oid, self.inner.format)?;
             let kind = self.inner.success(&["cat-file", "-t", oid], &[], 32)?;
             let kind = match kind.as_slice() {
                 b"blob\n" => CandidateGitObjectKind::Blob,
@@ -100,8 +110,11 @@ impl CandidateGitAuthority for CandidateGitProcessAuthority {
     ) -> io::Result<()> {
         #[cfg(unix)]
         {
-            checked_oid(expected_oid)?;
-            if object_oid(kind, bytes) != expected_oid {
+            checked_oid(expected_oid, self.inner.format)?;
+            if bytes.len() > MAX_OBJECT {
+                return Err(io::Error::other("Git object exceeds host byte bound"));
+            }
+            if object_oid(self.inner.format, kind, bytes) != expected_oid {
                 return Err(io::Error::other("invalid expected Git object digest"));
             }
             let result = self.inner.success(
@@ -135,8 +148,8 @@ impl CandidateGitAuthority for CandidateGitProcessAuthority {
     ) -> io::Result<CandidateGitRefUpdate> {
         #[cfg(unix)]
         {
-            checked_oid(expected_old)?;
-            checked_oid(new_commit)?;
+            checked_oid(expected_old, self.inner.format)?;
+            checked_oid(new_commit, self.inner.format)?;
             if self.inner.read_ref(reference)?.as_deref() != Some(expected_old) {
                 return Ok(CandidateGitRefUpdate::NotMatched);
             }
@@ -162,8 +175,13 @@ impl CandidateGitAuthority for CandidateGitProcessAuthority {
     }
 }
 #[cfg(unix)]
-fn checked_oid(oid: &str) -> io::Result<()> {
-    valid_oid(oid).map_err(|_| io::Error::other("invalid Git OID"))
+fn checked_oid(oid: &str, format: GitObjectFormat) -> io::Result<()> {
+    if valid_oid(oid).map_err(|_| io::Error::other("invalid Git OID"))? != format {
+        return Err(io::Error::other(
+            "Git OID differs from configured repository format",
+        ));
+    }
+    Ok(())
 }
 
 #[cfg(unix)]
@@ -177,6 +195,7 @@ mod unix {
     use std::sync::mpsc;
     pub(super) struct Host {
         pub(super) repo: PathBuf,
+        pub(super) format: GitObjectFormat,
         executable: PathBuf,
         repo_file: File,
         executable_file: File,
@@ -240,9 +259,10 @@ mod unix {
                 .map_err(|_| host("cannot hold Git config"))?;
             let config = read_bounded(&config_file, 65_536)
                 .map_err(|_| host("cannot read bounded Git config"))?;
-            validate_config(&config)?;
+            let format = validate_config(&config)?;
             let value = Self {
                 repo,
+                format,
                 executable,
                 repo_file,
                 executable_file,
@@ -325,7 +345,7 @@ mod unix {
                 .ok()
                 .and_then(|s| s.strip_suffix('\n'))
                 .ok_or_else(|| io::Error::other("invalid Git ref output"))?;
-            checked_oid(oid)?;
+            checked_oid(oid, self.format)?;
             Ok(Some(oid.to_owned()))
         }
         pub(super) fn success(
@@ -549,7 +569,7 @@ mod unix {
         bytes.truncate(size);
         Ok(bytes)
     }
-    fn validate_config(bytes: &[u8]) -> Result<()> {
+    fn validate_config(bytes: &[u8]) -> Result<GitObjectFormat> {
         let text = std::str::from_utf8(bytes).map_err(|_| invalid("Git config must be UTF8"))?;
         let mut section = "";
         let mut values = BTreeMap::new();
@@ -575,10 +595,10 @@ mod unix {
             let key = key.trim().to_ascii_lowercase();
             let value = value.trim();
             let allowed = match (section, key.as_str()) {
-                ("core", "repositoryformatversion") => value == "1",
+                ("core", "repositoryformatversion") => matches!(value, "0" | "1"),
                 ("core", "bare") => value == "true",
                 ("core", "filemode" | "logallrefupdates") => matches!(value, "true" | "false"),
-                ("extensions", "objectformat") => value == "sha256",
+                ("extensions", "objectformat") => matches!(value, "sha1" | "sha256"),
                 _ => false,
             };
             if !allowed || values.insert((section, key), value).is_some() {
@@ -587,17 +607,17 @@ mod unix {
                 ));
             }
         }
-        for (section, key, value) in [
-            ("core", "bare", "true"),
-            ("core", "repositoryformatversion", "1"),
-            ("extensions", "objectformat", "sha256"),
-        ] {
-            if values.get(&(section, key.to_owned())).copied() != Some(value) {
-                return Err(invalid(
-                    "Git publication requires a bare SHA256 format-1 repository",
-                ));
-            }
+        let get = |section: &str, key: &str| values.get(&(section, key.to_owned())).copied();
+        if get("core", "bare") != Some("true") {
+            return Err(invalid("Git publication requires a bare repository"));
         }
-        Ok(())
+        match (
+            get("core", "repositoryformatversion"),
+            get("extensions", "objectformat"),
+        ) {
+            (Some("0"), None) | (Some("1"), None | Some("sha1")) => Ok(GitObjectFormat::Sha1),
+            (Some("1"), Some("sha256")) => Ok(GitObjectFormat::Sha256),
+            _ => Err(invalid("Git repository version and object format disagree")),
+        }
     }
 }

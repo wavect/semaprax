@@ -95,6 +95,39 @@ fn chunks(session: &mut ImageSession, method: &str, mut params: Value) -> String
 }
 
 #[test]
+fn protocol_conformance_is_read_only_chunked_and_excluded_from_legacy_profiles() {
+    let fixture = Fixture::new();
+    let before = fixture.bytes();
+    let mut legacy = fixture.session(ImageHostCapability::CandidateOnly);
+    assert_eq!(
+        call(&mut legacy, "protocol/conformance", json!({}))["error"]["code"],
+        -32601
+    );
+    let mut session = fixture.session(ImageHostCapability::CandidateDiagnostics);
+    let image = session.image_revision().to_owned();
+    let report = chunks(
+        &mut session,
+        "protocol/conformance",
+        json!({"image_revision":image}),
+    );
+    let value: Value = serde_json::from_str(&report).unwrap();
+    assert_eq!(
+        value["schema"],
+        semaprax::project::IMAGE_PROTOCOL_CONFORMANCE_SCHEMA
+    );
+    assert_eq!(value["image_revision"], image);
+    assert_eq!(value["modules"], json!([]));
+    let candidate = open(&mut session);
+    let candidate_report = chunks(
+        &mut session,
+        "protocol/conformance",
+        json!({"image_revision":image,"candidate_revision":candidate}),
+    );
+    assert_eq!(candidate_report, report);
+    assert_eq!(fixture.bytes(), before);
+}
+
+#[test]
 fn expression_holes_are_discovered_filled_and_kept_out_of_legacy_profiles() {
     let fixture = Fixture::new();
     let mut legacy = fixture.session(ImageHostCapability::CandidateOnly);

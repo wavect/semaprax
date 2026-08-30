@@ -1,7 +1,7 @@
 # Project Candidate Git Publication v1
 
 Audience: host integrators and compiler contributors.
-Status: authored bounded Unix/bare-SHA256 source-publication route; focused
+Status: authored bounded Unix/bare-SHA1-or-SHA256 source-publication route; focused
 regressions are authored and **not executed locally**. No passing platform or
 completion-gate evidence is claimed.
 
@@ -16,16 +16,17 @@ reports, test results, and the managed publication bridge.
 ## Explicit host interface
 
 `CandidateGitProcessAuthority::open(executable, repository, max_commands,
-timeout_ms)` admits a host-controlled bare SHA256 repository on Unix. Both paths
+timeout_ms)` admits a host-controlled bare SHA1 or SHA256 repository on Unix. Both paths
 must be absolute; the repository path must already be canonical. The explicitly
 trusted Git executable may be a symlink, resolved to a held regular executable.
 No executable, repository, branch, author, timestamp or message comes from the
 candidate or recovery capsule. Windows and other non-Unix process hosts fail
-closed. SHA1 repositories are outside this first version.
+closed. Ordinary SHA1 repositories are supported for Git compatibility; they do not gain
+a collision-resistance or collision-detection claim.
 
 `CandidateGitTarget::new(repository_identity, reference, expected_base_commit,
 project_prefix)` binds the exact adapter identity, a bounded `refs/heads/` name,
-a 64-lowercase-hex Git SHA256 object ID, and an optional relative Project prefix.
+a 40-lowercase-hex SHA1 or 64-lowercase-hex SHA256 object ID, and an optional relative Project prefix.
 The prefix cannot contain dot, parent, `.git`, empty, control or backslash
 components. `CandidateGitCommitMetadata::new(name, email, unix_seconds, message)`
 requires explicit author/committer identity and UTC time, and a bounded message
@@ -64,9 +65,9 @@ there is no automatic push or original-checkout update.
    or gitlinks. A candidate with no changed source is rejected.
 3. Preserve every unrelated tree entry, object identity, mode and name. Replace
    changed canonical source blobs only, preserving their regular-file modes.
-   Build binary SHA256 trees and one explicit commit with the selected original
+   Build binary repository-format trees and one explicit commit with the selected original
    commit as its sole parent. Unrelated histories and signatures are not copied
-   into the new commit. Git tree SHA256 object names occupy 32 binary bytes.
+   into the new commit. Git tree object names occupy 20 binary bytes for SHA1 and 32 for SHA256.
    [Git object-format transition](https://git-scm.com/docs/hash-function-transition/2.52.0.html).
 4. Bound and render the complete receipt before writing objects. Recheck held
    Project inputs, write content-addressed immutable objects, recheck inputs and
@@ -95,10 +96,11 @@ lease nor repeated pathname checks protects against a malicious same-UID process
 racing namespace/content mutations between checks. Such adversarial shared
 storage is outside this adapter's authority model.
 
-Admission accepts only a minimal format-1 bare SHA256 config: required
-`core.repositoryformatversion=1`, `core.bare=true`,
-`extensions.objectformat=sha256`, plus optional boolean `core.filemode` and
-`core.logallrefupdates`. Unknown/duplicate settings, includes, alternate object
+Admission accepts only a minimal bare config: `core.bare=true`, version 0
+without extensions for ordinary SHA1, or version 1 with absent/explicit `sha1`
+object format or explicit `extensions.objectformat=sha256`. Optional boolean
+`core.filemode` and `core.logallrefupdates` remain accepted. Version 0 with an
+object-format extension is rejected rather than guessing whether Git ignores it. Unknown/duplicate settings, includes, alternate object
 stores, common-directory indirection, attached worktrees, shallow history and
 grafts are rejected. Before each process call, held repository/config/executable
 identities are checked, config bytes are compared, and a bounded recursive scan
@@ -149,3 +151,47 @@ object-store symlink rejection. `SEMAPRAX_TEST_GIT` can select the trusted fixtu
 binary; otherwise the Unix fixture selects `/usr/bin/git`. These tests have not
 been run in this development batch. No compiler, test suite or Git adapter process
 was executed as local validation.
+
+## Additive legacy SHA1 compatibility
+
+The old public constructors and `CandidateGitRepository` fields remain source
+compatible. `GitObjectFormat::{Sha1,Sha256}` names the admitted algorithms;
+`repository.object_format()` maps its existing `sha256` flag, with false now
+explicitly meaning SHA1. The process adapter also exposes `object_format()`.
+Target OID width is checked against the held host format before object reads.
+Tree parsing, hashing, staged writes and CAS all use that same format. Existing
+SHA256 success receipts retain their previous field set and exact serialization.
+
+A small private streaming SHA1 implementation hashes Git's exact object framing
+for compatibility; no dependency download or SHA1 collision-detection library is
+introduced. It is never used for semantic revision identity or approval digests.
+Original Project blobs still require exact byte equality against independently
+admitted canonical sources. Every staged SHA1 object is reread before the ref
+pivot and compared byte-for-byte with its prepared body, rejecting an existing
+object that has the same SHA1 name but different bytes (`SPX-G276`). The usual
+read/output/object/fuel bounds apply to these additional reads.
+
+SHA1 receipts additionally contain `sha256_object_content_binding`: a SHA256
+binding over the exact sequence of authenticated read objects followed by staged
+objects. The first domain is `semaprax.git-publication.read-objects.v1` plus NUL;
+the second segment starts with `semaprax.git-publication.staged-objects.v1` plus
+NUL. Each object contributes its OID text length as big-endian u64, OID text,
+Git's `kind length` header plus NUL, then exact body bytes. Traversal/staging order
+is deterministic. Post-write rereads are excluded from the receipt binding. This
+binds observed and prepared content, not a signature, a proof that the whole Git
+history is collision-free, or authentication of unrelated untraversed objects.
+The existing candidate/Project SHA256 identities remain separate bindings.
+
+`sha1_security` explicitly reports
+`legacy_git_compatibility_no_collision_detection_or_collision_resistance_claim`.
+The adapter does not implement SHA1DC, promise rejection of every known collision
+family, or promote SHA1 to a modern integrity primitive. A Git executable's own
+collision defenses remain its responsibility. Host-controlled storage and the
+previous cooperative-race limits still apply. SHA256 is the format for hosts that
+require Git object naming with the stronger hash.
+
+Authored, unrun regressions add actual SHA1 bare publication and byte comparison,
+format/width mismatch rejection, strict version/extension config admission,
+standard SHA1 known answers (empty, `abc`, the 56-byte vector and one million
+`a` bytes), split-update padding checks, and known Git empty blob/tree OIDs. No
+compiler, tests, or Git adapter execution was run for this extension.

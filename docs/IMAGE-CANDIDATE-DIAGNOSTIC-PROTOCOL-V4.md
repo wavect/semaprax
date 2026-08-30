@@ -53,6 +53,13 @@ rejected by the closed request validator.
 | `candidate/semantic-delta` | `candidate_revision`, `target`; optional `offset`, `chunk_bytes` | Exact declaration-delta report chunks |
 | `candidate/semantic-delta-catalog` | `candidate_revision`; optional `offset`, `chunk_bytes` | Exact declaration-selection catalogue chunks |
 | `hole/open-expression` | `candidate_revision`, `target`, `expression_id`, `hole_id`; optional `draft_revision` | Immutable typed expression-hole draft |
+| `protocol/conformance` | Optional `candidate_revision`, `offset`, `chunk_bytes` | Source-backed static protocol conformance chunks for the base image or a retained candidate |
+| `candidate/interface-catalog` | `candidate_revision`, `target`; optional `offset`, `chunk_bytes` | Required local protocol members and eligible implementation functions |
+
+The two conformance queries use existing `semantic_read` authority. They expose
+source-derived declaration tables over admitted images without adding dynamic
+dispatch or protocol nodes to the runtime Graph. See
+[Image Protocol Conformance v1](IMAGE-PROTOCOL-CONFORMANCE-V1.md).
 
 Expression holes use the existing fill/complete/discard lifecycle. V4 `hole/query`
 discovery admits either the body-hole or expression-hole context schema; the

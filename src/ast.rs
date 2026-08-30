@@ -165,10 +165,9 @@ pub struct Program {
     pub permits: Vec<String>,
     pub types: Vec<TypeDeclaration>,
     pub interfaces: Vec<InterfaceDeclaration>,
-    /// Protocol Projection v1: method-set declarations over the eventual
-    /// class receiver. Read-only in this tranche; records stand in as the
-    /// future conformance carriers and no backend consumes protocols yet.
+    /// Static method requirements; no runtime dispatch representation.
     pub protocols: Vec<ProtocolDeclaration>,
+    pub implementations: Vec<ProtocolImplementation>,
     pub functions: Vec<Function>,
 }
 
@@ -474,6 +473,24 @@ pub struct ProtocolMethod {
     pub name_span: Span,
     pub params: Vec<Param>,
     pub return_type: Type,
+    pub span: Span,
+}
+
+/// Source-owned static binding from a protocol to ordinary local functions.
+#[derive(Clone, Debug)]
+pub struct ProtocolImplementation {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub protocol_id: String,
+    pub receiver_id: String,
+    pub members: Vec<ProtocolImplementationMember>,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct ProtocolImplementationMember {
+    pub method_id: String,
+    pub function_id: String,
     pub span: Span,
 }
 

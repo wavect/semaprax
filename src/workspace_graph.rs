@@ -4239,6 +4239,10 @@ fn build_owned_inner(
             }
             program
         };
+        // Check source-local conformance before imported declarations become
+        // synthetic stubs. A stub must never acquire local implementation
+        // authority merely because it has an authenticated imported identity.
+        crate::static_protocol::validate(&program).map_err(|error| vec![error])?;
         if program
             .interfaces
             .iter()
@@ -4305,6 +4309,7 @@ fn build_owned_inner(
         programs.push(program);
     }
 
+    crate::static_protocol::validate_workspace(&programs).map_err(|error| vec![error])?;
     let module_paths = index_modules(&programs)?;
     let authored = index_authored(&programs)?;
     validate_synthetic_main_id_collisions(&programs, &authored)?;

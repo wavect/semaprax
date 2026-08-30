@@ -178,6 +178,20 @@ impl ProjectCandidate {
                 "constraints":["globally_new_explicit_field_identity", "unique_field_name", "monomorphic_copy_record", "matching_pure_literal_default", "migrate_all_authenticated_constructors_and_exact_patterns", "preserve_existing_field_identities_and_projection_meaning", "revalidate_layout_ownership_and_targets"],
             }));
         }
+        if self.changes.len() < MAX_CHANGES {
+            let protocols = super::interface::discover(&self.revision, target)?;
+            if protocols
+                .iter()
+                .any(|protocol| protocol["complete_mapping_available"] == true)
+            {
+                operations.push(json!({
+                    "kind":"implement_interface","required_fields":["kind","target","protocol","id","members"],
+                    "member_fields":["method","implementation"],"discovery":"ProjectCandidate::interface_catalog",
+                    "constraints":["explicit_local_monomorphic_record","explicit_local_protocol_and_members","exact_complete_member_coverage","existing_local_matching_functions","fresh_explicit_implementation_identity","source_static_conformance_validation","full_candidate_revalidation"]
+                }));
+                reason = "constructor_available_payload_requires_full_candidate_admission";
+            }
+        }
         wire::render(
             json!({
                 "schema":"semaprax.project-change-catalog.v1",

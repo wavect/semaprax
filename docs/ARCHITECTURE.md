@@ -324,6 +324,28 @@ a binary fingerprint. This foundation and its regressions are authored, unrun;
 incremental rechecking, general graph mutation, and persistent daemon caches
 remain outside it. See [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md).
 
+### Source-owned static protocol conformance
+
+`src/static_protocol.rs` checks persistent, source-owned static implementation
+mappings from local protocol requirements to ordinary existing functions.
+`candidate/interface.rs` derives eligible member discovery and admits a closed
+`implement_interface` intention for the bounded monomorphic local-record slice.
+Required members must be covered exactly and signatures must match; canonical
+source is reparsed and complete Project admission runs before a candidate is
+retained. These mappings do not introduce runtime witnesses, virtual calls,
+dynamic dispatch or an unchecked graph-only implementation.
+
+[Static Protocol Conformance v1](STATIC-PROTOCOL-CONFORMANCE-V1.md) and
+[Interface Change v1](PROJECT-INTERFACE-CHANGE-V1.md) own the exact subset.
+[Image Protocol Conformance v1](IMAGE-PROTOCOL-CONFORMANCE-V1.md) carries
+source-bound conformance as a separate derived projection and exposes additive
+v4 `protocol/conformance` and `candidate/interface-catalog` queries. The runtime
+Graph and earlier protocol method sets retain their existing contracts. Discovery
+facts grant neither execution nor publication authority. These authored slices
+bring all eleven requested operation classes into bounded scope; they do not
+complete general interface semantics or the graph-operational programme, and
+current-head compiler/test evidence remains unrun.
+
 ### Project profile and daemon
 
 `project/incremental.rs` owns an opt-in, invocation-local cache of exact-source
@@ -337,8 +359,14 @@ the resulting canonical source. Neither cache nor draft owns source authority.
 `candidate/git_publication.rs` authenticates Git object identities and original
 Project source before constructing canonical replacement blobs, trees and a
 commit. Its explicit host authority owns one expected-old Git ref update. The
-Unix process adapter selects a bounded bare SHA256 repository, executable and
-lease; it disables ambient config/hooks/network and never rewrites a checkout.
+Unix process adapter selects a bounded bare SHA1 or SHA256 repository, executable
+and lease; it disables inherited config, hooks and Git transports and never
+rewrites a checkout. Target OID width must match the held repository format.
+SHA1 is legacy Git compatibility: exact original-source comparisons, staged-object
+readback and an independent SHA256 content binding do not constitute SHA1
+collision detection or a signature. The trusted host owns the executable and
+repository; the cooperative lease and pathname rechecks are not protection
+against a malicious same-UID namespace race or an OS network sandbox.
 This authority is separate from managed Workspace `ACTIVE` and all image
 protocol sessions. `candidate/diagnostic_intent.rs` rederives a selected repair
 from a fresh rejected attempt before ordinary candidate admission records its

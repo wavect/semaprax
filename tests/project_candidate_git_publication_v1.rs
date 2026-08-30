@@ -2,7 +2,8 @@
 #![cfg(unix)]
 use semaprax::project::{
     apply_candidate_git_publication, with_authenticated_project, CandidateGitCommitMetadata,
-    CandidateGitProcessAuthority, CandidateGitTarget, ProjectCandidate, SemanticChange,
+    CandidateGitProcessAuthority, CandidateGitTarget, GitObjectFormat, ProjectCandidate,
+    SemanticChange,
 };
 use serde_json::{json, Value};
 use std::fs;
@@ -22,6 +23,9 @@ struct Fixture {
 }
 impl Fixture {
     fn new(corrupt_base: bool) -> Self {
+        Self::with_format(corrupt_base, "sha256")
+    }
+    fn with_format(corrupt_base: bool, format: &str) -> Self {
         let root = std::env::temp_dir().join(format!(
             "spx-git-publication-{}-{}",
             std::process::id(),
@@ -71,7 +75,7 @@ impl Fixture {
                 "init.templateDir=",
                 "init",
                 "--bare",
-                "--object-format=sha256",
+                &format!("--object-format={format}"),
             ])
             .arg(&repo);
         assert!(init.output().unwrap().status.success());
@@ -139,7 +143,7 @@ impl Fixture {
         let mut bytes = Vec::new();
         for (mode, name, oid) in entries {
             bytes.extend_from_slice(format!("{mode} {name}\0").as_bytes());
-            for index in (0..64).step_by(2) {
+            for index in (0..oid.len()).step_by(2) {
                 bytes.push(u8::from_str_radix(&oid[index..index + 2], 16).unwrap());
             }
         }
@@ -225,6 +229,8 @@ fn actual_ref_publication_preserves_unrelated_tree_and_raw_project_and_disables_
     );
     assert_eq!(fs::read(fixture.root.join("src/core.spx")).unwrap(), before);
     assert_eq!(receipt["working_tree_rewritten"], false);
+    assert!(receipt.get("sha256_object_content_binding").is_none());
+    assert!(receipt.get("sha1_security").is_none());
 }
 #[test]
 fn stale_ref_and_original_blob_mismatch_never_pivot() {
@@ -255,4 +261,64 @@ fn unsafe_config_and_nested_storage_redirection_are_rejected() {
     .unwrap();
     assert!(CandidateGitProcessAuthority::open(&fixture.git, &fixture.repo, 100, 60_000).is_err());
     assert_eq!(fixture.current(), fixture.base);
+}
+
+#[test]
+fn sha1_bare_publication_binds_exact_object_bytes_with_sha256() {
+    let fixture = Fixture::with_format(false, "sha1");
+    assert_eq!(fixture.base.len(), 40);
+    assert_eq!(fixture.authority().object_format(), GitObjectFormat::Sha1);
+    let receipt: Value = serde_json::from_str(&fixture.publish(&fixture.base).unwrap()).unwrap();
+    assert_eq!(receipt["git_object_format"], "sha1");
+    assert_eq!(receipt["published_commit"].as_str().unwrap().len(), 40);
+    assert_eq!(receipt["published_commit"], fixture.current());
+    assert_eq!(
+        receipt["sha256_object_content_binding"]
+            .as_str()
+            .unwrap()
+            .len(),
+        71
+    );
+    assert_eq!(
+        receipt["sha1_security"],
+        "legacy_git_compatibility_no_collision_detection_or_collision_resistance_claim"
+    );
+    let expected = fixture
+        .candidate
+        .revision()
+        .sources()
+        .iter()
+        .find(|source| source.path() == "src/core.spx")
+        .unwrap();
+    assert_eq!(
+        fixture.run(&["show", "refs/heads/review:src/core.spx"], &[]),
+        expected.source().as_bytes()
+    );
+    assert_eq!(
+        fixture.run(&["show", "refs/heads/review:keep.sh"], &[]),
+        b"unrelated existing entry\n"
+    );
+}
+#[test]
+fn sha1_host_rejects_sha256_target_and_accepts_explicit_format_one_sha1() {
+    let fixture = Fixture::with_format(false, "sha1");
+    assert!(fixture
+        .publish(&"0".repeat(64))
+        .unwrap_err()
+        .iter()
+        .any(|error| error.code == "SPX-G263"));
+    assert_eq!(fixture.current(), fixture.base);
+    let config = fixture.repo.join("config");
+    fs::write(
+        &config,
+        "[core]\nrepositoryformatversion = 1\nbare = true\n[extensions]\nobjectformat = sha1\n",
+    )
+    .unwrap();
+    assert_eq!(fixture.authority().object_format(), GitObjectFormat::Sha1);
+    fs::write(
+        &config,
+        "[core]\nrepositoryformatversion = 0\nbare = true\n[extensions]\nobjectformat = sha256\n",
+    )
+    .unwrap();
+    assert!(CandidateGitProcessAuthority::open(&fixture.git, &fixture.repo, 100, 60_000).is_err());
 }

@@ -886,6 +886,7 @@ fn formatted_digest(module: &str, artifact: &GeneratedArtifact) -> String {
         types: vec![],
         interfaces: vec![],
         protocols: vec![],
+        implementations: vec![],
         functions: vec![artifact.function.clone()],
     };
     let text = format::canonical(&single);

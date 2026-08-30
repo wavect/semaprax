@@ -504,6 +504,55 @@ pub(crate) fn write_canonical(program: &Program, output: &mut impl std::fmt::Wri
         }
         writeln!(output, "}}").unwrap();
     }
+    for protocol in &program.protocols {
+        writeln!(output).unwrap();
+        if protocol.explicit_id {
+            write!(output, "@id(\"").unwrap();
+            write_escaped(output, &protocol.stable_id);
+            writeln!(output, "\")").unwrap();
+        }
+        writeln!(output, "protocol {} {{", protocol.name).unwrap();
+        for method in &protocol.methods {
+            if method.explicit_id {
+                write!(output, "    @id(\"").unwrap();
+                write_escaped(output, &method.stable_id);
+                writeln!(output, "\")").unwrap();
+            }
+            write!(output, "    fn {}(", method.name).unwrap();
+            for (index, param) in method.params.iter().enumerate() {
+                if index > 0 {
+                    output.write_str(", ").unwrap();
+                }
+                write!(output, "{}: {}", param.name, param.mode.source_prefix()).unwrap();
+                write_type(output, &param.ty);
+            }
+            output.write_str(") -> ").unwrap();
+            write_type(output, &method.return_type);
+            writeln!(output, ";").unwrap();
+        }
+        writeln!(output, "}}").unwrap();
+    }
+    for implementation in &program.implementations {
+        writeln!(output).unwrap();
+        if implementation.explicit_id {
+            write!(output, "@id(\"").unwrap();
+            write_escaped(output, &implementation.stable_id);
+            writeln!(output, "\")").unwrap();
+        }
+        write!(output, "impl \"").unwrap();
+        write_escaped(output, &implementation.protocol_id);
+        write!(output, "\" for \"").unwrap();
+        write_escaped(output, &implementation.receiver_id);
+        writeln!(output, "\" {{").unwrap();
+        for member in &implementation.members {
+            write!(output, "    \"").unwrap();
+            write_escaped(output, &member.method_id);
+            write!(output, "\" = \"").unwrap();
+            write_escaped(output, &member.function_id);
+            writeln!(output, "\";").unwrap();
+        }
+        writeln!(output, "}}").unwrap();
+    }
     for function in &program.functions {
         writeln!(output).unwrap();
         if function.explicit_id {
@@ -631,6 +680,29 @@ fn legacy_string_join_bytes(values: &[String]) -> usize {
 
 fn legacy_canonical_temporary_bytes(program: &Program) -> usize {
     let mut total = 0usize;
+    for protocol in &program.protocols {
+        if protocol.explicit_id {
+            total = total.saturating_add(escaped_len(&protocol.stable_id));
+        }
+        for method in &protocol.methods {
+            if method.explicit_id {
+                total = total.saturating_add(escaped_len(&method.stable_id));
+            }
+        }
+    }
+    for implementation in &program.implementations {
+        if implementation.explicit_id {
+            total = total.saturating_add(escaped_len(&implementation.stable_id));
+        }
+        total = total
+            .saturating_add(escaped_len(&implementation.protocol_id))
+            .saturating_add(escaped_len(&implementation.receiver_id));
+        for member in &implementation.members {
+            total = total
+                .saturating_add(escaped_len(&member.method_id))
+                .saturating_add(escaped_len(&member.function_id));
+        }
+    }
     for module_use in &program.module_uses {
         total = total.saturating_add(escaped_len(&module_use.persistent_id));
     }

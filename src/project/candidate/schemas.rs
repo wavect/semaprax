@@ -160,6 +160,8 @@ fn new_parameter() -> Value {
 }
 
 fn intent_schema() -> Value {
+    let protocol_binding =
+        || json!({"type":"string","minLength":1,"maxLength":240,"pattern":"^[A-Za-z0-9_.:-]+$"});
     let base = |kind: &str, extra: Vec<(&str, Value)>| {
         let mut fields = vec![
             ("kind", json!({"const":kind})),
@@ -183,6 +185,7 @@ fn intent_schema() -> Value {
         base("repair_diagnostic",vec![("rejected_intent",base("replace_function_body",vec![("body",json!({"oneOf":[literal("i64"),literal("i32"),literal("u8"),literal("usize")]}))])),("repair_id",digest_schema())]),
         base("replace_expression",vec![("expression_id",text(16_384)),("replacement",reference("expression"))]),
         base("add_contract",vec![("phase",json!({"enum":["requires","ensures"]})),("predicate",reference("expression"))]),
+        closed(&[("kind",json!({"const":"implement_interface"})),("target",protocol_binding()),("protocol",protocol_binding()),("id",protocol_binding()),("members",json!({"type":"array","minItems":1,"maxItems":64,"items":closed(&[("method",protocol_binding()),("implementation",protocol_binding())])}))]),
         base("add_declaration",vec![("declaration",declaration_schema())]),
         base("extract_function",vec![("expression_id",text(16_384)),("new_id",stable_id()),("new_name",identifier())]),
         base("move_declaration",vec![("destination",text(MAX_ID_BYTES))]),

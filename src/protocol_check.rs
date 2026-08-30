@@ -34,6 +34,10 @@
 //!
 //! This tranche emits no dispatch code, lowers nothing to any backend,
 //! executes no target, and changes no source.
+//!
+//! Static Protocol Conformance v1 subsequently added source `impl` declarations.
+//! This frozen projection rejects such inputs with SPX-Q110; its empty legacy
+//! conformance table is never emitted for a program containing real impls.
 
 use std::path::Path;
 
@@ -196,6 +200,9 @@ pub fn generate(
     let canonical_source_path = patch::canonical_source_path(source_path)?;
     let snapshot = patch::read_source_snapshot(&canonical_source_path)?;
     let program = parse(snapshot.source(), source_path).map_err(|error| vec![error])?;
+    if !program.implementations.is_empty() {
+        return Err(vec![Diagnostic::io("SPX-Q110", "Protocol Projection v1 cannot represent static impl declarations; use static protocol conformance facts")]);
+    }
     let diagnostics = verify::verify(&program);
     if diagnostics.iter().any(|item| item.severity.is_error()) {
         return Err(diagnostics);

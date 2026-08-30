@@ -20,6 +20,8 @@ pub(in crate::image_transport) enum Action {
     Delta,
     DeltaCatalog,
     ExpressionHoleOpen,
+    ProtocolConformance,
+    InterfaceCatalog,
 }
 macro_rules! method {
     ($name:literal,$action:ident,$params:expr,$query:expr,$schema:literal) => {
@@ -33,6 +35,29 @@ macro_rules! method {
     };
 }
 const METHODS_V4: &[Method] = &[
+    method!(
+        "protocol/conformance",
+        ProtocolConformance,
+        &[
+            REVISION,
+            Parameter {
+                name: "candidate_revision",
+                kind: ParameterKind::Digest,
+                required: false
+            },
+            OFFSET,
+            CHUNK
+        ],
+        true,
+        "semaprax.image-protocol-conformance-chunk.v1"
+    ),
+    method!(
+        "candidate/interface-catalog",
+        InterfaceCatalog,
+        &[REVISION, CANDIDATE, TARGET, OFFSET, CHUNK],
+        true,
+        "semaprax.image-interface-catalog-chunk.v1"
+    ),
     method!(
         "hole/open-expression",
         ExpressionHoleOpen,
@@ -176,6 +201,14 @@ fn descriptor(method: &Method, test_enabled: bool) -> Value {
     }
     if matches!(
         method.operation,
+        Operation::Candidate(super::Action::Diagnostic(
+            Action::ProtocolConformance | Action::InterfaceCatalog
+        ))
+    ) {
+        result["capability"] = json!("semantic_read");
+    }
+    if matches!(
+        method.operation,
         Operation::Candidate(super::Action::HoleQuery)
     ) {
         result["success_response_schema"]["properties"]["result"]["properties"]["payload"] = json!({"oneOf":[
@@ -252,7 +285,7 @@ fn prepare(
                     "diagnostics protocol image revision is stale",
                 ));
             }
-            return action_payload(action, params, registry);
+            return action_payload(action, params, image, registry);
         }
         Operation::Capabilities => {
             let (mut value, _) = super::prepare(method, params, image, registry, policy)?;
@@ -268,6 +301,12 @@ fn prepare(
                 .push(json!("candidate_diagnostics"));
             value["max_attempts"] = json!(MAX_ATTEMPTS);
             value["diagnostic_execution"] = json!("compiler_admission_only");
+            value["protocol_conformance"] = json!({
+                "method": "protocol/conformance", "candidate_selection": "optional",
+                "evidence": "source_backed_static_signature_conformance",
+                "implementation_discovery": "candidate/interface-catalog",
+                "dynamic_dispatch": false,
+            });
             value
         }
         Operation::Schemas => {
@@ -309,9 +348,75 @@ fn attempt<'a>(
 fn action_payload(
     action: Action,
     params: &Map<String, Value>,
+    image: &ProjectSemanticImage,
     registry: &Registry,
 ) -> Result<(Value, Mutation), Vec<Diagnostic>> {
     match action {
+        Action::ProtocolConformance | Action::InterfaceCatalog => {
+            let candidate = params
+                .get("candidate_revision")
+                .and_then(Value::as_str)
+                .map(|id| registry.candidate(id))
+                .transpose()?;
+            let (schema, report_schema, report) = if matches!(action, Action::InterfaceCatalog) {
+                let candidate = candidate
+                    .ok_or_else(|| failure("SPX-G241", "interface catalog requires a candidate"))?;
+                (
+                    "semaprax.image-interface-catalog-chunk.v1",
+                    "semaprax.project-interface-change-catalog.v1",
+                    candidate
+                        .interface_catalog(candidate.candidate_digest(), text(params, "target"))?,
+                )
+            } else {
+                let selected = if let Some(candidate) = candidate {
+                    ProjectSemanticImage::derive(
+                        Arc::clone(candidate.revision()),
+                        candidate.revision().project_revision(),
+                    )?
+                } else {
+                    ProjectSemanticImage::derive(
+                        Arc::clone(image.revision()),
+                        image.revision().project_revision(),
+                    )?
+                };
+                (
+                    "semaprax.image-protocol-conformance-chunk.v1",
+                    crate::project::IMAGE_PROTOCOL_CONFORMANCE_SCHEMA,
+                    selected.protocol_conformance(selected.image_digest())?,
+                )
+            };
+            let offset = number(params, "offset", 0);
+            if offset > report.len() || !report.is_char_boundary(offset) {
+                return Err(failure(
+                    "SPX-G241",
+                    "protocol report offset is outside canonical UTF-8 report",
+                ));
+            }
+            let mut end = offset
+                .saturating_add(number(params, "chunk_bytes", 16_384))
+                .min(report.len());
+            while !report.is_char_boundary(end) {
+                end -= 1;
+            }
+            if end == offset && offset < report.len() {
+                return Err(failure(
+                    "SPX-G241",
+                    "chunk_bytes cannot hold the next UTF-8 character",
+                ));
+            }
+            Ok((
+                json!({
+                    "schema": schema, "report_schema": report_schema,
+                    "image_revision": image.image_digest(),
+                    "candidate_revision": params.get("candidate_revision"),
+                    "target": params.get("target"),
+                    "offset": offset, "total_bytes": report.len(),
+                    "chunk": &report[offset..end], "next_offset": (end < report.len()).then_some(end),
+                    "source_authority": false,
+                }),
+                Mutation::None,
+            ))
+        }
         Action::ExpressionHoleOpen => {
             let candidate = registry.candidate(text(params, "candidate_revision"))?;
             let draft = if let Some(id) = params.get("draft_revision").and_then(Value::as_str) {

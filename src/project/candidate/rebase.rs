@@ -134,6 +134,9 @@ fn apply_rebound(
     if change.intent["kind"] == "repair_diagnostic" {
         return Err(super::diagnostic_intent::rebase_conflict());
     }
+    if change.intent["kind"] == "implement_interface" {
+        return Err(super::interface::rebase_conflict());
+    }
     let mapped;
     let intent = if change.intent["kind"] == "replace_expression" {
         mapped = super::expression::rebase_intent(
@@ -302,6 +305,9 @@ fn classify(
         let kind = change.intent["kind"]
             .as_str()
             .ok_or_else(|| grammar("candidate rebase intent lacks a kind"))?;
+        if kind == "implement_interface" {
+            return Err(super::interface::rebase_conflict());
+        }
         let addition = match kind {
             "add_declaration" => Some(
                 change.intent["declaration"]["id"]

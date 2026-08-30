@@ -149,24 +149,35 @@ Do not widen the existing literal/direct-call admission to make a fixture pass.
 
 Actual source-exact parse/format reuse, expression holes, owning-Bytes parameter
 mapping and typed diagnostic repair history now have authored implementations.
-Separate canonical Git publication has a bounded Unix bare-SHA256 route; extend
-ordinary Git/host interoperability without granting checkout or process authority
-to query sessions. Full incremental semantic checking, warm cross-process HIR,
+Separate canonical Git publication now has bounded Unix bare SHA1/SHA256 routes;
+validate both formats, exact readback/content bindings and ref-race failures
+before promotion, then extend host/checkout interoperability without granting
+process or publication authority to query sessions. Full incremental semantic checking, warm cross-process HIR,
 general interfaces and measured complete workflows remain exit conditions.
+
+All eleven requested operation classes now have bounded authored slices. The new
+[static conformance](STATIC-PROTOCOL-CONFORMANCE-V1.md),
+[interface intention](PROJECT-INTERFACE-CHANGE-V1.md) and
+[source-sidecar queries](IMAGE-PROTOCOL-CONFORMANCE-V1.md) need executed
+source round-trip, missing-member/signature rejection, candidate replay and
+frozen runtime-Graph/protocol compatibility evidence. Their static local mappings
+do not establish runtime interfaces or dynamic dispatch. Broaden ownership,
+contracts and cross-module conformance only after that bounded evidence exists;
+operation count does not reduce the full-goal acceptance criteria.
 
 Source-backed image storage/refresh, semantic delta replay and diagnostic
 protocol v4 now have authored, unrun implementations. The integrated signature
 workflow reaches separate managed `ACTIVE` publication only. Remaining exit
 conditions include warm/incremental compiler reuse, general interface operations,
-canonical source publication and measured task-level evidence; these additions
+executed canonical-source publication evidence and measured task-level evidence; these additions
 do not change the programme's Partial status.
 
 The complete requirement ledger is the
 [graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md). Image facets,
 read-only/candidate-only protocol discovery, immutable typed candidate previews,
 body-hole drafts and ordered Copy signature mapping are now authored additions,
-not verified completion. Extend those bounded forms into the requested general
-operations, ownership-sensitive signature migration and expression holes.
+not verified completion. Extend those bounded forms into general operations,
+broader ownership-sensitive signature migration and incomplete-expression states.
 Expression replacement, additive contracts and conservative stable-ID
 rebase/merge now have authored, unrun implementations; broaden these alongside
 general declaration/record/interface operations and full semantic conflict coverage;
@@ -180,14 +191,15 @@ forms without treating source-replayed recovery as warm HIR persistence or
 complete session/draft recovery.
 
 Cross-file scalar function moves and Copy record-field migration now have
-authored, unrun paths. Continue with interface implementation, diagnostic repair
-integration and ownership-sensitive changes. New data-access and audit HIR
+authored, unrun paths. Continue beyond the now-authored static interface and
+replayable diagnostic repair slices into general conformance, repair classes
+and ownership-sensitive changes. New data-access and audit HIR
 facets still need reverse dependency indexes and candidate deltas; current
 Project unsafe admission is unchanged.
 
 Candidate test relevance/execution, rejected-attempt diagnostics and the bounded
-managed-publication bridge are authored, unrun. Complete raw-source commit,
-general repair/interface operations and the integrated signature-evolution
+managed-publication bridge are authored, unrun. Execute the separate canonical
+Git publication scenarios, then broaden general repair/interface operations and the integrated signature-evolution
 demonstration before claiming the agent workflow complete. Interpreter reports
 must not substitute for native/Wasm conformance or hosted full gates.
 

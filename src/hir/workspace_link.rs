@@ -597,6 +597,7 @@ fn workspace_compiler_prelude(
         types: Vec::new(),
         interfaces: Vec::new(),
         protocols: Vec::new(),
+        implementations: Vec::new(),
         functions: Vec::new(),
     };
     let declarations = DeclarationIndex::from_verified(&prelude_only)?;

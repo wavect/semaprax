@@ -9,6 +9,8 @@ use std::io;
 use std::path::Path;
 use std::time::{Duration, Instant};
 
+mod hash;
+use hash::object_oid;
 mod process;
 pub use process::CandidateGitProcessAuthority;
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
@@ -20,6 +22,25 @@ const MAX_TOTAL: usize = 256 * 1024 * 1024;
 const MAX_OBJECTS: usize = 4096;
 const MAX_ENTRIES: usize = 65_536;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum GitObjectFormat {
+    Sha1,
+    Sha256,
+}
+impl GitObjectFormat {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Sha1 => "sha1",
+            Self::Sha256 => "sha256",
+        }
+    }
+    fn oid_bytes(self) -> usize {
+        match self {
+            Self::Sha1 => 20,
+            Self::Sha256 => 32,
+        }
+    }
+}
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CandidateGitObjectKind {
     Blob,
@@ -51,7 +72,18 @@ pub enum CandidateGitRefUpdate {
     NotMatched,
 }
 
-/// Separate trusted host authority. Providers must bind one local bare SHA256
+impl CandidateGitRepository {
+    /// The existing flag remains source compatible: false selects legacy SHA1.
+    pub fn object_format(&self) -> GitObjectFormat {
+        if self.sha256 {
+            GitObjectFormat::Sha256
+        } else {
+            GitObjectFormat::Sha1
+        }
+    }
+}
+
+/// Separate trusted host authority. Providers must bind one local bare SHA1 or SHA256
 /// repository with no attached worktrees, enforce bounded local I/O/deadlines,
 /// and implement atomic expected-old ref update. Errors after attempting CAS
 /// may mean publication happened. These methods never receive evidence as an
@@ -199,15 +231,24 @@ pub fn apply_candidate_git_publication<A: CandidateGitAuthority>(
     let repository = authority
         .repository()
         .map_err(|_| host("cannot authenticate host Git repository"))?;
-    if repository.identity != target.repository || !repository.bare || !repository.sha256 {
-        return Err(invalid("Git publication requires the exact host-selected bare SHA256 repository without worktrees"));
+    let format = valid_oid(&target.base_commit)?;
+    if repository.identity != target.repository
+        || !repository.bare
+        || repository.object_format() != format
+    {
+        return Err(invalid("Git publication requires the exact host-selected bare repository and matching Git object format without worktrees"));
     }
     let mut budget = Budget {
+        format,
+        binding: Sha256::new(),
         objects: 0,
         bytes: 0,
         entries: 0,
         start: Instant::now(),
     };
+    budget
+        .binding
+        .update(b"semaprax.git-publication.read-objects.v1\0");
     if authority
         .read_ref(&target.reference)
         .map_err(|_| host("cannot read host-selected Git ref"))?
@@ -237,7 +278,7 @@ pub fn apply_candidate_git_publication<A: CandidateGitAuthority>(
         1024 * 1024,
         &mut budget,
     )?;
-    let root = commit_tree(&original)?;
+    let root = commit_tree(&original, format)?;
     let manifest = snapshot.manifest().to_canonical_toml();
     let mut changes = vec![Change {
         path: target.path("semaprax.toml")?,
@@ -294,18 +335,30 @@ pub fn apply_candidate_git_publication<A: CandidateGitAuthority>(
         &mut budget,
     )?;
     let commit_bytes = metadata.commit(&tree, &target.base_commit);
-    let commit = object_oid(CandidateGitObjectKind::Commit, &commit_bytes);
+    let commit = object_oid(format, CandidateGitObjectKind::Commit, &commit_bytes);
     stage(
         &mut objects,
         &mut written_bytes,
         CandidateGitObjectKind::Commit,
         commit_bytes,
+        format,
     )?;
     // Render the complete successful receipt before any publication opportunity.
-    let receipt = wire::render(
-        json!({"schema":PROJECT_CANDIDATE_GIT_PUBLICATION_SCHEMA,"repository":target.repository,"reference":target.reference,"previous_commit":target.base_commit,"published_commit":commit,"tree":tree,"approved_candidate_digest":approved_candidate_digest,"base_project_revision":candidate.base.project_revision(),"candidate_project_revision":replay.revision.project_revision(),"updated_source_paths":changed_paths,"publication":"git_branch_ref_compare_and_swap","git_object_format":"sha256","working_tree_rewritten":false,"project_manifest_changed":false,"managed_active_changed":false,"source_authority":"explicit_host_git_ref_authority","tests":"not_run","nonclaims":["no_atomic_raw_working_tree_rewrite","no_network_push_or_remote_publication","no_signature_or_approval_service","unreachable_objects_may_remain_after_failure"]}),
-        1024 * 1024,
-    )?;
+    let mut receipt_value = json!({"schema":PROJECT_CANDIDATE_GIT_PUBLICATION_SCHEMA,"repository":target.repository,"reference":target.reference,"previous_commit":target.base_commit,"published_commit":commit,"tree":tree,"approved_candidate_digest":approved_candidate_digest,"base_project_revision":candidate.base.project_revision(),"candidate_project_revision":replay.revision.project_revision(),"updated_source_paths":changed_paths,"publication":"git_branch_ref_compare_and_swap","git_object_format":format.name(),"working_tree_rewritten":false,"project_manifest_changed":false,"managed_active_changed":false,"source_authority":"explicit_host_git_ref_authority","tests":"not_run","nonclaims":["no_atomic_raw_working_tree_rewrite","no_network_push_or_remote_publication","no_signature_or_approval_service","unreachable_objects_may_remain_after_failure"]});
+    if format == GitObjectFormat::Sha1 {
+        let mut binding = budget.binding.clone();
+        binding.update(b"semaprax.git-publication.staged-objects.v1\0");
+        for object in &objects {
+            bind_object(&mut binding, &object.oid, object.kind, &object.bytes);
+        }
+        receipt_value["sha256_object_content_binding"] = json!(format!(
+            "sha256:{:x}",
+            crate::digest_hex::LowerHex(binding.finalize())
+        ));
+        receipt_value["sha1_security"] =
+            json!("legacy_git_compatibility_no_collision_detection_or_collision_resistance_claim");
+    }
+    let receipt = wire::render(receipt_value, 1024 * 1024)?;
     snapshot.recheck()?;
     for object in &objects {
         budget.fuel()?;
@@ -314,6 +367,21 @@ pub fn apply_candidate_git_publication<A: CandidateGitAuthority>(
             .map_err(|_| {
                 host("Git immutable object write failed; no ref pivot has been requested")
             })?;
+        if format == GitObjectFormat::Sha1 {
+            let stored = read(
+                authority,
+                &object.oid,
+                object.kind,
+                object.bytes.len(),
+                &mut budget,
+            )?;
+            if stored != object.bytes {
+                return Err(vec![Diagnostic::io(
+                    "SPX-G276",
+                    "stored SHA1 object differs from prepared exact bytes; no ref pivot requested",
+                )]);
+            }
+        }
     }
     snapshot.recheck()?;
     if authority
@@ -373,6 +441,8 @@ struct Staged {
     bytes: Vec<u8>,
 }
 struct Budget {
+    format: GitObjectFormat,
+    binding: Sha256,
     objects: usize,
     bytes: usize,
     entries: usize,
@@ -400,7 +470,9 @@ fn read<A: CandidateGitAuthority>(
     limit: usize,
     budget: &mut Budget,
 ) -> Result<Vec<u8>> {
-    valid_oid(oid)?;
+    if valid_oid(oid)? != budget.format {
+        return Err(invalid("Git object ID format differs from repository"));
+    }
     budget.objects += 1;
     budget.fuel()?;
     let object = authority
@@ -411,10 +483,13 @@ fn read<A: CandidateGitAuthority>(
     }
     budget.bytes = budget.bytes.saturating_add(object.bytes.len());
     budget.fuel()?;
-    if object.kind != kind || object_oid(kind, &object.bytes) != oid {
+    if object.kind != kind || object_oid(budget.format, kind, &object.bytes) != oid {
         return Err(stale(
-            "Git object type or SHA256 content identity disagrees",
+            "Git object type or repository-format content identity disagrees",
         ));
+    }
+    if budget.format == GitObjectFormat::Sha1 {
+        bind_object(&mut budget.binding, oid, kind, &object.bytes);
     }
     Ok(object.bytes)
 }
@@ -423,12 +498,13 @@ fn stage(
     total: &mut usize,
     kind: CandidateGitObjectKind,
     bytes: Vec<u8>,
+    format: GitObjectFormat,
 ) -> Result<String> {
     *total = total.saturating_add(bytes.len());
     if bytes.len() > MAX_OBJECT || *total > MAX_TOTAL || objects.len() >= MAX_OBJECTS {
         return Err(capacity("Git staged immutable objects exceed their bound"));
     }
-    let oid = object_oid(kind, &bytes);
+    let oid = object_oid(format, kind, &bytes);
     objects.push(Staged {
         kind,
         oid: oid.clone(),
@@ -436,13 +512,13 @@ fn stage(
     });
     Ok(oid)
 }
-fn object_oid(kind: CandidateGitObjectKind, bytes: &[u8]) -> String {
-    let mut hash = Sha256::new();
+fn bind_object(hash: &mut Sha256, oid: &str, kind: CandidateGitObjectKind, bytes: &[u8]) {
+    hash.update((oid.len() as u64).to_be_bytes());
+    hash.update(oid.as_bytes());
     hash.update(format!("{} {}\0", kind.name(), bytes.len()).as_bytes());
     hash.update(bytes);
-    format!("{:x}", crate::digest_hex::LowerHex(hash.finalize()))
 }
-fn commit_tree(bytes: &[u8]) -> Result<String> {
+fn commit_tree(bytes: &[u8], format: GitObjectFormat) -> Result<String> {
     let end = bytes
         .iter()
         .position(|byte| *byte == b'\n')
@@ -452,7 +528,9 @@ fn commit_tree(bytes: &[u8]) -> Result<String> {
     let tree = line
         .strip_prefix("tree ")
         .ok_or_else(|| invalid("Git commit must start with its root tree header"))?;
-    valid_oid(tree)?;
+    if valid_oid(tree)? != format {
+        return Err(invalid("Git commit tree uses a different object format"));
+    }
     Ok(tree.to_owned())
 }
 struct Entry {
@@ -502,9 +580,9 @@ fn parse_tree(bytes: &[u8], budget: &mut Budget) -> Result<Vec<Entry>> {
             return Err(invalid("Git tree name is invalid or duplicated"));
         }
         let end = nul
-            .checked_add(33)
+            .checked_add(1 + budget.format.oid_bytes())
             .filter(|end| *end <= bytes.len())
-            .ok_or_else(|| invalid("Git SHA256 tree entry is truncated"))?;
+            .ok_or_else(|| invalid("Git repository-format tree entry is truncated"))?;
         let oid = bytes[nul + 1..end]
             .iter()
             .map(|byte| format!("{byte:02x}"))
@@ -529,14 +607,17 @@ fn parse_tree(bytes: &[u8], budget: &mut Budget) -> Result<Vec<Entry>> {
     }
     Ok(entries)
 }
-fn encode_tree(entries: &[Entry]) -> Result<Vec<u8>> {
+fn encode_tree(entries: &[Entry], format: GitObjectFormat) -> Result<Vec<u8>> {
     let mut bytes = Vec::new();
     for entry in entries {
         bytes.extend_from_slice(entry.mode.as_bytes());
         bytes.push(b' ');
         bytes.extend_from_slice(&entry.name);
         bytes.push(0);
-        for offset in (0..64).step_by(2) {
+        if valid_oid(&entry.oid)? != format {
+            return Err(invalid("Git tree entry uses a different object format"));
+        }
+        for offset in (0..format.oid_bytes() * 2).step_by(2) {
             bytes.push(
                 u8::from_str_radix(&entry.oid[offset..offset + 2], 16)
                     .map_err(|_| invalid("Git staged object ID is invalid"))?,
@@ -609,6 +690,7 @@ fn update_tree<A: CandidateGitAuthority>(
                     written,
                     CandidateGitObjectKind::Blob,
                     after.to_vec(),
+                    budget.format,
                 )?;
             }
         } else {
@@ -634,24 +716,34 @@ fn update_tree<A: CandidateGitAuthority>(
             )?;
         }
     }
-    let after = encode_tree(&entries)?;
+    let after = encode_tree(&entries, budget.format)?;
     if after == bytes {
         Ok(oid.to_owned())
     } else {
-        stage(objects, written, CandidateGitObjectKind::Tree, after)
+        stage(
+            objects,
+            written,
+            CandidateGitObjectKind::Tree,
+            after,
+            budget.format,
+        )
     }
 }
-fn valid_oid(oid: &str) -> Result<()> {
-    if oid.len() != 64
+fn valid_oid(oid: &str) -> Result<GitObjectFormat> {
+    if !matches!(oid.len(), 40 | 64)
         || !oid
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
     {
         Err(invalid(
-            "Git publication requires canonical 64-hex SHA256 object IDs",
+            "Git publication requires canonical 40-hex SHA1 or 64-hex SHA256 object IDs",
         ))
     } else {
-        Ok(())
+        Ok(if oid.len() == 40 {
+            GitObjectFormat::Sha1
+        } else {
+            GitObjectFormat::Sha256
+        })
     }
 }
 fn valid_ref(reference: &str) -> Result<()> {

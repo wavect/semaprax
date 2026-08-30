@@ -118,8 +118,10 @@ and authored generator/provider evidence is not a hosted result or a
 completion-matrix status change.
 
 Before string promotion, execute the v10 inline Wasm ownership and derived
-arena-capacity regressions, close the separate native inline String
-failure-cleanup gap, and establish physical cross-backend settlement evidence.
+arena-capacity regressions together with the native provider's physical
+allocation-settlement and sanitizer regressions, and establish cross-backend
+settlement evidence. Close the ordinary native and earlier-profile String
+failure-cleanup gap separately; the v10-only correction does not cover it.
 Do not widen the existing literal/direct-call admission to make a fixture pass.
 
 ## 0.3: ownership and fast development

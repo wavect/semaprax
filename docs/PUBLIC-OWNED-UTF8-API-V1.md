@@ -110,11 +110,30 @@ nonreused. Generated safe/private Rust and integrity bindings intentionally chan
 not provider C/ABI, public signatures, descriptor or manifest schemas. These
 regressions are authored but unrun.
 
-Known separate gap: native C11 failure exits can bypass inline cleanup of
-String locals and provisional results. The Wasm correction does not fix that
-native physical-allocation gap, and context-handle closure alone is not proof
-that those allocations were freed. Cross-backend failure-settlement equivalence
-and native sanitizer evidence remain open before promotion.
+The native correction is confined to the existing v10 owned-UTF8 provider
+projection. Its per-function physical String owner cells are declared and
+initialized before any recoverable failure branch. Emission records the exact
+cells in bounded staged output; no heap-allocated runtime registry or resource
+CleanupPlan change is introduced. Temporary-to-binding, branch, call, and
+provisional-result handoffs transfer ownership rather than creating a second
+cleanup owner. Every argument is evaluated before the complete String argument
+group transfers to the callee. Normal scope exit settles nonescaping live
+owners before loop reuse; the common failure exit settles every remaining
+owner and preserves the primary status and caller result storage. Success settles non-result
+owners before publication and relinquishes the result only after its store.
+
+Native generation still emits the supplied program, not only the selected
+public closure. The same physical bookkeeping must therefore cover emitted
+String intrinsics and contracts in unselected functions; this does not admit
+them in the public v10 closure. Allocation failure remains fail-stop. These
+rules add no unwind, signal, or `longjmp` recovery guarantee.
+
+Only v10 native provider C and its dependent integrity bindings intentionally
+change. Ordinary native C and earlier provider profiles retain their previous
+bytes and limitations. Their separate inline String failure-cleanup gap is
+not closed by this correction. Context-handle closure alone is not proof that
+pre-handle String allocations were freed. Cross-backend failure-settlement
+equivalence and native sanitizer evidence remain unrun gates before promotion.
 
 ## Authored evidence
 
@@ -128,6 +147,35 @@ success-value evidence only, not native failure-path allocation evidence.
 ```sh
 cargo test --locked -p semaprax --test project_owned_utf8_lifetimes_v1
 ```
+
+`tests/native_owned_utf8_settlement_v1.rs` independently derives/replays the
+descriptor and emits the actual v10 length-header native provider. Its fixed
+test-only allocation table observes provider allocations and frees at O0/O2:
+local, late-argument, nested-call, callee, and loop failures must leave no
+allocation live and must preserve poisoned result fields. Subsequent calls
+reuse the same context. Success covers clones, branches, mixed Bytes/String,
+more than sixteen owners, empty text, embedded NUL, and multibyte UTF-8.
+Separately labeled raw semantic calls exercise emitted-but-unselected String
+intrinsics, equality, guarded matching, and failed postconditions without
+widening admission.
+The generated Rust package consumer exercises safe API reuse after failure;
+it is not a substitute for the physical allocation counter.
+
+```sh
+cargo test --locked -p semaprax --test native_owned_utf8_settlement_v1
+cargo test --locked -p semaprax --test project_native_rust_owned_utf8_v1
+```
+
+The separate sanitizer gate requires an installed absolute
+`SEMAPRAX_STRING_SANITIZER_CLANG` path with ASan/UBSan support:
+
+```sh
+cargo test --locked -p semaprax --test native_owned_utf8_settlement_v1 provisioned_native_string_provider_asan_ubsan -- --ignored --exact
+```
+
+Allocation counters establish the leak assertion even on hosts without
+LeakSanitizer; ASan/UBSan are additional memory/undefined-behavior checks, not a
+claim of LeakSanitizer coverage. None of these new gates was run in this batch.
 
 ## Non-claims
 

@@ -361,8 +361,16 @@ settlement derived from validated HIR and exact emitter locals, separately
 from resource CleanupPlan liveness. Place reads clone; temporary moves clear;
 scope and failure exits sweep nonescaping owners. `owned_stack.rs` derives a
 checked selected-call-path arena bound from these cells plus Bytes cleanup
-leaves. Native inline String failure cleanup remains a separate known gap;
-Wasm cell accounting does not prove native allocation settlement.
+leaves. For the v10 native provider only,
+`src/codegen/native_emit/owned_strings.rs` owns a separate per-function physical
+String ledger. Bounded staged emission hoists initialized owner cells before
+failure branches; expression lowering moves ownership at binding, branch,
+call, and result boundaries. Normal scope cleanup and the common epilogue
+settle those cells without reinterpreting resource CleanupPlan liveness.
+Neither ledger confers provider-handle or publication authority. Ordinary
+native and earlier provider profiles retain their existing bytes and separate
+String failure-cleanup limitation; Wasm accounting and context-handle closure
+alone do not prove native allocation settlement.
 
 `src/project_revision_store.rs` and `src/project_revision_store/unix.rs` own
 the additive [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md). The

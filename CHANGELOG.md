@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Authored v10 native-provider inline String ownership settlement: initialized
+  function-lifetime cells, explicit binding/branch/call/result transfers,
+  normal scope cleanup, and sticky failure cleanup before result publication.
+  Added physical allocation-accounting and consumer regressions; these are
+  authored but unrun. Only v10 native C and dependent integrity bindings
+  intentionally change. Ordinary native and earlier provider bytes, public
+  admission, ABI/schema identities, and resource CleanupPlan semantics remain
+  unchanged; their separate String failure-cleanup limitation remains open.
+  No tests/builds or hosted workflows were run or changed, and no promotion is
+  claimed.
+
 - Authored bounded doctor subprocess lifetime in the existing OS quarantine:
   fixed lexical `--version`, restricted environment, combined output bounds,
   execution/settlement deadlines, and Unix-group/Windows-job fail-stop cleanup.

@@ -253,6 +253,14 @@ fn new_parameter() -> Value {
     json!({"oneOf":SCALAR_KINDS.iter().map(|kind|closed(&[("name",identifier()),("type",json!({"const":kind})),("argument",literal(kind))])).collect::<Vec<_>>()})
 }
 
+fn computed_parameter() -> Value {
+    closed(&[
+        ("name", identifier()),
+        ("type", json!({"enum":SCALAR_KINDS})),
+        ("argument_expression", reference("expression")),
+    ])
+}
+
 fn intent_schema() -> Value {
     let protocol_binding =
         || json!({"type":"string","minLength":1,"maxLength":240,"pattern":"^[A-Za-z0-9_.:-]+$"});
@@ -269,7 +277,8 @@ fn intent_schema() -> Value {
     let mapped_parameter = json!({"oneOf":[
         closed(&[("from",json!({"type":"string","minLength":1}))]),
         closed(&[("from",json!({"type":"string","minLength":1})),("name",identifier())]),
-        new_parameter()
+        new_parameter(),
+        computed_parameter()
     ]});
     let record_fields = ["i64", "bool"]
         .into_iter()
@@ -392,6 +401,55 @@ fn function_declaration_schema() -> Value {
 #[cfg(test)]
 mod aggregate_expression_schema_tests {
     use super::*;
+
+    #[test]
+    fn computed_signature_arguments_are_a_separate_recursive_mapping_only_form() {
+        let schema = intent_schema();
+        let forms = schema["oneOf"].as_array().unwrap();
+        let append = forms
+            .iter()
+            .find(|form| form["properties"].get("append_parameters").is_some())
+            .unwrap();
+        let literal_items = append["properties"]["append_parameters"]["items"]["oneOf"]
+            .as_array()
+            .unwrap();
+        assert_eq!(literal_items.len(), 5);
+        for literal in literal_items {
+            assert_eq!(literal["additionalProperties"], false);
+            assert_eq!(literal["required"], json!(["name", "type", "argument"]));
+            assert!(literal["properties"].get("argument_expression").is_none());
+            assert_eq!(
+                literal["properties"]["type"]["const"],
+                literal["properties"]["argument"]["properties"]["kind"]["const"]
+            );
+        }
+        let mapped = forms
+            .iter()
+            .find(|form| form["properties"].get("parameters").is_some())
+            .unwrap();
+        let choices = mapped["properties"]["parameters"]["items"]["oneOf"]
+            .as_array()
+            .unwrap();
+        assert_eq!(choices.len(), 4);
+        assert_eq!(choices[0]["required"], json!(["from"]));
+        assert_eq!(choices[1]["required"], json!(["from", "name"]));
+        assert_eq!(choices[2]["oneOf"].as_array().unwrap(), literal_items);
+        let computed = &choices[3];
+        assert_eq!(computed["additionalProperties"], false);
+        assert_eq!(
+            computed["required"],
+            json!(["name", "type", "argument_expression"])
+        );
+        assert_eq!(computed["properties"].as_object().unwrap().len(), 3);
+        assert_eq!(computed["properties"]["type"]["enum"], json!(SCALAR_KINDS));
+        assert_eq!(
+            computed["properties"]["argument_expression"],
+            reference("expression")
+        );
+        for excluded in ["from", "argument", "source", "mode"] {
+            assert!(computed["properties"].get(excluded).is_none());
+        }
+    }
 
     #[test]
     fn lexical_binding_closes_scope_and_recursive_children_without_type_authority() {

@@ -124,6 +124,12 @@ callee signature or grant permission to reuse a stale selection. Source replay
 and recovery reconstruct the canonical block and binding through the shared
 constructor. See [Lexical Binding Constructor](PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md).
 
+The same nested-dependency checks apply to explicit signature
+`argument_expression` templates. A callee display rename can be rebound through
+its stable identity; a changed callee signature remains a conflict before
+computed-argument reconstruction. See
+[Signature Argument Expressions](PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md).
+
 Conflict selection only decides whether to attempt replay. Every surviving
 intention is reconstructed against the exact current destination revision and
 passed to ordinary `ProjectCandidate::apply`. Canonical source is reformatted,

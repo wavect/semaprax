@@ -551,6 +551,12 @@ materialization until all holes are filled through full candidate admission.
 [Ordered signature mapping](PROJECT-SIGNATURE-EVOLUTION-V1.md) stages every
 original argument once, left-to-right, before retaining, reordering or removing
 Copy parameters; admitted direct byte owners must all be retained once.
+`candidate/signature_arguments.rs` constructs explicit computed-argument
+templates against each caller's bindings and reuses scope-aware substitution
+to select staged original values. The signature engine appends typed computed
+locals after all original stages; full candidate replay owns semantic admission.
+Provider preflight without callers is structural only. See
+[Argument Expressions](PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md).
 Workspace module projections privately retain compiler-checked nominal
 parameter and return TypeFacts, including types outside entry/test reachability. The
 candidate admission and catalogue share those exact facts for concrete Copy

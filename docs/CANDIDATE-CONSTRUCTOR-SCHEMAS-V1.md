@@ -40,6 +40,13 @@ Its initializer cannot see the introduced name; only its body can. Normal
 compiler admission checks scope, inferred type, ownership and context legality.
 See [Lexical Binding Constructor](PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md).
 
+Ordered signature mappings additionally admit the closed
+`{name, type, argument_expression}` form, with the existing five scalar type
+choices and recursive expression definition. It is a separate alternative to
+`{name, type, argument}` and retained `from` mappings; append remains literal-only.
+Original-parameter scope and actual per-caller admission belong to
+[Signature Argument Expressions](PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md).
+
 Aggregate expressions use exactly `{"kind":"record","target":record_id,
 "fields":[{"target":field_id,"value":expression}]}` or the same shape with
 `kind: variant` and a case identity as the target. Each field value recurses

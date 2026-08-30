@@ -641,7 +641,19 @@ fn signature_form() -> Value {
                 ("constraints", strings()),
             ]);
         }
-        choices.push(object(fields));
+        let mut shape = object(fields);
+        if !append {
+            shape["properties"]["computed_parameter_fields"] =
+                json!({"const":["name","type","argument_expression"]});
+            shape["properties"]["computed_argument"] = json!({"const":{
+                "constructor_schema":"semaprax.typed-expression.v1",
+                "place_scope":"original_target_parameter_names",
+                "evaluation_order":"after_all_original_arguments_in_computed_mapping_order",
+                "caller_bindings":"every_affected_caller_existing_bindings",
+                "admission":"full_candidate_revalidation",
+            }});
+        }
+        choices.push(shape);
     }
     json!({"oneOf":choices})
 }
@@ -649,6 +661,49 @@ fn signature_form() -> Value {
 #[cfg(test)]
 mod signature_parameter_schema_tests {
     use super::*;
+
+    #[test]
+    fn computed_argument_discovery_is_optional_on_mapping_and_absent_on_append() {
+        let schema = signature_form();
+        let forms = schema["oneOf"].as_array().unwrap();
+        assert_eq!(forms.len(), 2);
+        assert_eq!(
+            forms[0]["properties"]["selector"]["const"],
+            "append_parameters"
+        );
+        assert!(forms[0]["properties"].get("computed_argument").is_none());
+        assert!(forms[0]["properties"]
+            .get("computed_parameter_fields")
+            .is_none());
+        let mapping = &forms[1];
+        assert_eq!(mapping["additionalProperties"], false);
+        assert_eq!(
+            mapping["properties"]["new_parameter_fields"]["const"],
+            json!(["name", "type", "argument"])
+        );
+        assert_eq!(
+            mapping["properties"]["computed_parameter_fields"]["const"],
+            json!(["name", "type", "argument_expression"])
+        );
+        assert!(!mapping["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("computed_argument")));
+        assert!(!mapping["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("computed_parameter_fields")));
+        assert_eq!(
+            mapping["properties"]["computed_argument"]["const"],
+            json!({
+                "constructor_schema":"semaprax.typed-expression.v1",
+                "place_scope":"original_target_parameter_names",
+                "evaluation_order":"after_all_original_arguments_in_computed_mapping_order",
+                "caller_bindings":"every_affected_caller_existing_bindings",
+                "admission":"full_candidate_revalidation",
+            })
+        );
+    }
 
     #[test]
     fn declaration_discovery_adds_exact_type_forms_without_changing_function_placement() {

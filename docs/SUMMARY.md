@@ -53,6 +53,7 @@ Audience: all documentation readers.
 - [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
 - [Project Candidates and Semantic Change IR v1](PROJECT-CANDIDATES-V1.md)
 - [Project Lexical Binding Constructor v1](PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md)
+- [Project Signature Argument Expressions v1](PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md)
 - [Typed Project Declaration Change v1](PROJECT-DECLARATION-CHANGE-V1.md)
 - [Typed Project Extraction v1](PROJECT-EXTRACTION-V1.md)
 - [Typed Project Declaration Move v1](PROJECT-DECLARATION-MOVE-V1.md)

@@ -32,6 +32,7 @@ outstanding without requiring another permission request now.
 | Candidate protocol | [candidate transport](../src/image_transport/candidates.rs), [Candidate Protocol v2](IMAGE-CANDIDATE-PROTOCOL-V2.md), [protocol evidence](../tests/image_candidate_transport_v2.rs) |
 | Holes | [draft module](../src/project/candidate/draft.rs), [Typed Holes v1](PROJECT-CANDIDATE-HOLES-V1.md), [hole evidence](../tests/project_candidate_holes_v1.rs) |
 | Signature mapping | [signature engine](../src/project/candidate/signature.rs), [Signature Evolution v1](PROJECT-SIGNATURE-EVOLUTION-V1.md) |
+| Computed signature arguments | [Argument Expressions v1](PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md); explicit scalar computations over staged original parameters with caller-local admission, authored/unrun |
 | Expression changes | [expression module](../src/project/candidate/expression.rs), [Expression Change v1](PROJECT-EXPRESSION-CHANGE-V1.md), [expression evidence](../tests/project_candidate_expression_v1.rs) |
 | Immutable lexical bindings | [Lexical Binding Constructor v1](PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md); scoped initializer reuse through ordinary candidate admission, authored/unrun |
 | Contract changes | [intent module](../src/project/candidate/intent.rs), [Contract Change v1](PROJECT-CONTRACT-CHANGE-V1.md), [candidate evidence](../tests/project_candidates_v1.rs) |

@@ -1028,6 +1028,11 @@ fn interpret_on_current_thread(
             Flow::Failure(status) => failed_outcome(&status.to_json()),
             Flow::Exhausted => capacity_outcome(OUTCOME_FUEL_EXHAUSTED),
             Flow::DepthExceeded => capacity_outcome(OUTCOME_CALL_DEPTH_EXCEEDED),
+            Flow::Cancelled { .. } => {
+                return Err(vec![guard_error(
+                    "unexpected cancellation in legacy source evaluation",
+                )]);
+            }
             Flow::Guard(detail) => return Err(vec![guard_error(detail)]),
         },
     };

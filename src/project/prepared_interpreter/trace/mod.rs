@@ -4,6 +4,7 @@ mod model;
 mod render;
 mod verify;
 
+#[cfg(test)]
 pub(super) use model::parse_status;
 pub use model::{
     ProjectPreparedExecutionOutcome, ProjectSourceTrace, ProjectSourceTraceEvent,

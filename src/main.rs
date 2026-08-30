@@ -2196,36 +2196,6 @@ fn project_build_success(
     format!("built {product} {}", output.display())
 }
 
-#[cfg(test)]
-mod project_build_success_tests {
-    use super::*;
-
-    #[test]
-    fn profile_selected_success_labels_are_exact() {
-        let output = std::path::Path::new("dist");
-        assert_eq!(
-            project_build_success(
-                "rust",
-                project::ProjectProfile::FlatOwnedRecordApiV1,
-                output,
-            ),
-            "built Project v9 Native Rust flat owned-record package dist"
-        );
-        assert_eq!(
-            project_build_success("npm", project::ProjectProfile::FlatOwnedRecordApiV1, output,),
-            "built Project v9 npm package dist"
-        );
-        assert_eq!(
-            project_build_success("rust", project::ProjectProfile::OwnedDataApiV1, output),
-            "built Project v8 Native Rust owned-data package dist"
-        );
-        assert_eq!(
-            project_build_success("npm", project::ProjectProfile::OwnedUtf8ApiV1, output),
-            "built Project v10 npm package dist"
-        );
-    }
-}
-
 fn report(errors: &[Diagnostic], json: bool) -> u8 {
     report_all(errors, json);
     1
@@ -2316,4 +2286,34 @@ fn print_help() {
            semaprax version [--json]\n\
            semaprax --version"
     );
+}
+
+#[cfg(test)]
+mod project_build_success_tests {
+    use super::*;
+
+    #[test]
+    fn profile_selected_success_labels_are_exact() {
+        let output = std::path::Path::new("dist");
+        assert_eq!(
+            project_build_success(
+                "rust",
+                project::ProjectProfile::FlatOwnedRecordApiV1,
+                output,
+            ),
+            "built Project v9 Native Rust flat owned-record package dist"
+        );
+        assert_eq!(
+            project_build_success("npm", project::ProjectProfile::FlatOwnedRecordApiV1, output,),
+            "built Project v9 npm package dist"
+        );
+        assert_eq!(
+            project_build_success("rust", project::ProjectProfile::OwnedDataApiV1, output),
+            "built Project v8 Native Rust owned-data package dist"
+        );
+        assert_eq!(
+            project_build_success("npm", project::ProjectProfile::OwnedUtf8ApiV1, output),
+            "built Project v10 npm package dist"
+        );
+    }
 }

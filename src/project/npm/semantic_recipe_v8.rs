@@ -53,9 +53,9 @@ impl Names {
         let mut types = BTreeMap::new();
         let mut cases = BTreeMap::new();
         let mut fields = BTreeMap::new();
-        for (type_index, declaration) in authored.into_iter().enumerate() {
+        for declaration in authored {
             if types
-                .insert(declaration.id.as_str().to_owned(), format!("T{type_index}"))
+                .insert(declaration.id.as_str().to_owned(), declaration.name.clone())
                 .is_some()
             {
                 return Err(package_error(
@@ -68,10 +68,7 @@ impl Names {
                 } => {
                     for field in declaration_fields {
                         if fields
-                            .insert(
-                                field.id.as_str().to_owned(),
-                                format!("field{}", field.index),
-                            )
+                            .insert(field.id.as_str().to_owned(), field.name.clone())
                             .is_some()
                         {
                             return Err(package_error(
@@ -85,7 +82,7 @@ impl Names {
                 } => {
                     for case in declaration_cases {
                         if cases
-                            .insert(case.id.as_str().to_owned(), format!("Case{}", case.index))
+                            .insert(case.id.as_str().to_owned(), case.name.clone())
                             .is_some()
                         {
                             return Err(package_error(
@@ -94,10 +91,7 @@ impl Names {
                         }
                         for field in &case.fields {
                             if fields
-                                .insert(
-                                    field.id.as_str().to_owned(),
-                                    format!("field{}", field.index),
-                                )
+                                .insert(field.id.as_str().to_owned(), field.name.clone())
                                 .is_some()
                             {
                                 return Err(package_error(
@@ -241,8 +235,10 @@ pub(super) fn render(program: &crate::hir::ResolvedProgram) -> Result<String, Di
 
 /// Independently parse, resolve, and re-render one v8 recipe, then require its
 /// stable declaration inventory and canonical semantic projection to equal
-/// the exact linked HIR that produced it. Display names and source spans are
-/// intentionally not compared; they are nonsemantic and canonicalized here.
+/// the exact linked HIR that produced it. Function and local display names and
+/// source spans are intentionally not compared. Aggregate display names are
+/// retained because the Project-v9 descriptor exposes them as source-consumer
+/// facts.
 pub(super) fn replay_against(
     linked: &crate::hir::ResolvedProgram,
     recipe: &str,
@@ -928,5 +924,36 @@ module recipe.variant;
         .unwrap();
         assert_ne!(render(&replayed).unwrap(), recipe);
         assert!(replay_against(&program, &drifted).is_err());
+    }
+
+    #[test]
+    fn replay_retains_authenticated_aggregate_display_names() {
+        let source = r#"
+module recipe.names;
+@id("recipe.frame") record FrameInfo {
+    @id("recipe.frame.payload") payload: Bytes,
+    @id("recipe.frame.kind") kind: i64,
+}
+@id("recipe.main") fn main() -> i64 { 0 }
+"#;
+        let program = crate::hir::resolve(
+            &crate::parse(source, std::path::Path::new("recipe-names.spx")).unwrap(),
+        )
+        .unwrap();
+        let recipe = render(&program).unwrap();
+        assert!(recipe.contains("record FrameInfo"));
+        assert!(recipe.contains("payload: Bytes"));
+        let replayed = replay_against(&program, &recipe).unwrap();
+        let declaration = replayed
+            .types
+            .iter()
+            .find(|declaration| declaration.id.as_str() == "recipe.frame")
+            .unwrap();
+        assert_eq!(declaration.name, "FrameInfo");
+        let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind else {
+            panic!("fixture must remain a record")
+        };
+        assert_eq!(fields[0].name, "payload");
+        assert_eq!(fields[1].name, "kind");
     }
 }

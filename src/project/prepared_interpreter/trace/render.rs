@@ -5,9 +5,8 @@ use crate::interpreter::{
     PreparedResolvedEvaluation, PreparedResolvedEvaluationOutcome, ResolvedTraceEvent,
 };
 
-use super::super::{
-    FunctionOrigin, PreparedProjectExecutionOptions, ProjectExecutionRole, ProjectRevision,
-};
+use super::super::super::{ProjectExecutionRole, ProjectRevision};
+use super::super::{FunctionOrigin, PreparedProjectExecutionOptions};
 use super::model::{
     domain_digest, ProjectPreparedExecutionOutcome, ProjectSourceTrace, ProjectSourceTraceEvent,
     NONCLAIMS, PAYLOAD_DIGEST_DOMAIN, PROJECT_SOURCE_TRACE_SCHEMA,

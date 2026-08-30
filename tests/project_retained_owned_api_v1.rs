@@ -23,12 +23,13 @@ fn fixture(label: &str, manifest: &str, app: &str) -> Fixture {
     ));
     std::fs::create_dir_all(root.join("src")).unwrap();
     std::fs::write(root.join("semaprax.toml"), manifest).unwrap();
+    let app = semaprax::format::canonical(&semaprax::parse(app, Path::new("src/app.spx")).unwrap());
+    let tests =
+        format!("module {label}.tests;\n\n@id(\"{label}.tests.main\")\nfn main() -> i64 {{ 0 }}\n");
+    let tests =
+        semaprax::format::canonical(&semaprax::parse(&tests, Path::new("src/tests.spx")).unwrap());
     std::fs::write(root.join("src/app.spx"), app).unwrap();
-    std::fs::write(
-        root.join("src/tests.spx"),
-        format!("module {label}.tests;\n\n@id(\"{label}.tests.main\")\nfn main() -> i64 {{ 0 }}\n"),
-    )
-    .unwrap();
+    std::fs::write(root.join("src/tests.spx"), tests).unwrap();
     Fixture(root.canonicalize().unwrap())
 }
 

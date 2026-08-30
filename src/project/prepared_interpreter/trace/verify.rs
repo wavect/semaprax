@@ -4,14 +4,12 @@ use crate::diagnostic::Diagnostic;
 use crate::interpreter::ResolvedTracePhase;
 
 use super::super::super::{
-    MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES, MAX_STABLE_ID_BYTES, PROJECT_SCHEMA,
-    PROJECT_SCHEMA_V10, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5,
-    PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
+    ProjectExecutionRole, ProjectRevision, MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES,
+    MAX_STABLE_ID_BYTES, PROJECT_SCHEMA, PROJECT_SCHEMA_V10, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3,
+    PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8,
+    PROJECT_SCHEMA_V9,
 };
-use super::super::{
-    PreparedProjectExecutionOptions, ProjectExecutionRole, ProjectRevision,
-    MAX_PROJECT_SOURCE_TRACE_BYTES,
-};
+use super::super::{PreparedProjectExecutionOptions, MAX_PROJECT_SOURCE_TRACE_BYTES};
 use super::model::{
     digest, domain_digest, keys, object, parse_status, text, text_eq, usize_value,
     verification_error, ProjectPreparedExecutionOutcome, ProjectSourceTraceEvent, NONCLAIMS,

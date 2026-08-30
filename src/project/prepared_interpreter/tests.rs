@@ -2,9 +2,11 @@ use std::collections::BTreeMap;
 use std::ops::Range;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use sha2::{Digest as _, Sha256};
+
+use crate::{interpreter, project::ProjectRevision};
 
 use super::*;
 
@@ -37,7 +39,10 @@ fn remint_payload(envelope: &str, mutate: impl FnOnce(&str) -> String) -> String
     hasher.update(TRACE_PAYLOAD_DOMAIN);
     hasher.update((payload.len() as u64).to_le_bytes());
     hasher.update(payload.as_bytes());
-    let digest = format!("sha256:{:x}", hasher.finalize());
+    let digest = format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    );
     format!(
         "{{\"schema\":{},\"digest\":{},\"bytes\":{},\"payload\":{}}}",
         crate::diagnostic::quote_json(PROJECT_SOURCE_TRACE_SCHEMA),

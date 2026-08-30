@@ -496,6 +496,17 @@ inventory and descriptor/provider-source bindings from reopened bytes. This
 is a test-specific manifest observation, not a newly exposed package verifier
 or an independent proof of the archive's machine-code semantics.
 
+The lower native package builder preserves the safe platform facade's
+[archive settlement state](NATIVE-RUST-INTEROP-V1.md) before projecting its
+existing publication error. An `Uncertain` failure stops before owned-stage
+discard, later authority rechecks, or outer package publication. The inert
+stage remains for reconciliation; ordinary held handles are still released.
+Settled failures retain exact-inventory cleanup and sticky primary-error
+precedence. This shared boundary also serves the additive v9/v10 packages.
+Private regressions inject closed archive failures and exercise real held-stage
+inventory preservation, including foreign bytes. They remain unrun and do not
+prove physical archiver settlement or process quiescence.
+
 The same retained HIR supplies the interpreter and native O0/O2 corpus checks.
 A separate raw-Wasm ABI observer uses the unchanged production arena/core
 templates, observes actual mint/drop/copy-out and empty settlement, and checks

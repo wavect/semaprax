@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Preserved uncertain archive settlement in the lower native owned-data
+  package builder instead of discarding that state and attempting cleanup.
+  Uncertain failures now retain the inert stage and stop before rechecks or
+  publication; settled cleanup and sticky primary errors remain unchanged.
+  Authored shared-boundary and held-inventory regressions, including foreign
+  bytes. Tests remain unrun; injected failures are not physical archiver or
+  quiescence evidence, and no completion status is promoted.
+
 - Authored actual npm and native Rust SDK consumers for 65,535- and 65,536-byte
   owned String results, sharing one minimal Project fixture with independent
   BOM/NUL/Unicode byte oracles. Added the separate capacity-plus-one Project

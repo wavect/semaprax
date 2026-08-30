@@ -143,6 +143,7 @@ pub(crate) fn build_archive(
     let directory = platform::create_directory_new_prepared(&authority.parent, &prepared, 0o700)
         .map_err(|_| PackageError::publication())?;
     let mut inventory = inventory;
+    let mut archive_settlement_uncertain = false;
     let result = (|| {
         if !platform::same_directory_path(&directory, &path)
             .map_err(|_| PackageError::publication())?
@@ -215,7 +216,7 @@ pub(crate) fn build_archive(
             invocation,
             &mut arena,
         )
-        .map_err(|_| PackageError::publication())?;
+        .map_err(|failure| archive_failure(failure, &mut archive_settlement_uncertain))?;
         inventory
             .attach(internal_archive_name, archive)
             .map_err(|_| PackageError::publication())?;
@@ -227,15 +228,47 @@ pub(crate) fn build_archive(
         )
         .map_err(|_| PackageError::publication())
     })();
-    let cleanup = platform::discard_owned_stage_prepared(
-        &authority.parent,
-        &directory,
-        &prepared,
-        &inventory,
+    finish_archive_stage(
+        result,
+        archive_settlement_uncertain,
+        || {
+            platform::discard_owned_stage_prepared(
+                &authority.parent,
+                &directory,
+                &prepared,
+                &inventory,
+            )
+        },
+        || authority.recheck(),
+    )
+}
+
+fn archive_failure(
+    failure: platform::ArchiveToolFailure,
+    settlement_uncertain: &mut bool,
+) -> PackageError {
+    *settlement_uncertain |= matches!(
+        failure.settlement,
+        platform::ArchiveToolSettlement::Uncertain
     );
-    match (result, cleanup) {
+    PackageError::publication()
+}
+
+fn finish_archive_stage(
+    result: Result<Vec<u8>, PackageError>,
+    settlement_uncertain: bool,
+    cleanup: impl FnOnce() -> Result<(), platform::Error>,
+    recheck: impl FnOnce() -> Result<(), PackageError>,
+) -> Result<Vec<u8>, PackageError> {
+    if settlement_uncertain {
+        // No authenticated archive was returned. Do not even attempt exact
+        // inventory discard: an uncertain archive effect leaves its stage for
+        // caller reconciliation. Dropping held handles grants no later action.
+        return Err(result.err().unwrap_or_else(PackageError::publication));
+    }
+    match (result, cleanup()) {
         (Ok(bytes), Ok(())) => {
-            authority.recheck()?;
+            recheck()?;
             Ok(bytes)
         }
         (Err(error), _) => Err(error),
@@ -361,3 +394,6 @@ fn hold_matching(
     platform::recheck_regular_file(&file).map_err(|_| PackageError::publication())?;
     Ok(file)
 }
+
+#[cfg(test)]
+mod tests;

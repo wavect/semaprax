@@ -77,7 +77,7 @@ fn read_image(path: &Path) -> Result<Vec<u8>, Diagnostic> {
 }
 
 #[cfg(unix)]
-fn open_image(path: &Path) -> Result<std::fs::File, Diagnostic> {
+pub(super) fn open_image(path: &Path) -> Result<std::fs::File, Diagnostic> {
     use rustix::fs::{open, Mode, OFlags};
     open(
         path,
@@ -89,7 +89,7 @@ fn open_image(path: &Path) -> Result<std::fs::File, Diagnostic> {
 }
 
 #[cfg(windows)]
-fn open_image(path: &Path) -> Result<std::fs::File, Diagnostic> {
+pub(super) fn open_image(path: &Path) -> Result<std::fs::File, Diagnostic> {
     use std::os::windows::fs::OpenOptionsExt as _;
     const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
     std::fs::OpenOptions::new()
@@ -100,7 +100,7 @@ fn open_image(path: &Path) -> Result<std::fs::File, Diagnostic> {
 }
 
 #[cfg(not(any(unix, windows)))]
-fn open_image(_path: &Path) -> Result<std::fs::File, Diagnostic> {
+pub(super) fn open_image(_path: &Path) -> Result<std::fs::File, Diagnostic> {
     Err(input_error(
         "semantic image input is unsupported on this host",
     ))

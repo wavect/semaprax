@@ -42,19 +42,26 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert_eq!(stdout.matches(NEW_LINE).count(), 1);
     let current = stdout.replacen(NEW_LINE, "", 1);
-    // The three additive Project-image commands contribute exactly 135 bytes.
+    // The five additive Project-image commands contribute exactly 227 bytes.
     // This pin was derived by data-only help-literal decoding, calibrated
     // against both historical whole-output pins below; no CLI was executed.
-    const PROJECT_IMAGE_LINES: [&str; 3] = [
+    const PROJECT_IMAGE_LINES: [&str; 5] = [
         "semaprax project-image <manifest>\n",
         "semaprax project-image-verify <manifest> <image.json>\n",
         "semaprax project-symbol <manifest> <stable-id>\n",
+        "semaprax project-candidate-preview <manifest> <change.json>\n",
+        "semaprax serve-image <manifest>\n",
     ];
-    assert_eq!(current.len(), 5_151);
-    assert_eq!(fnv1a64(current.as_bytes()), 0x3606_80c0_4da0_b739);
+    assert_eq!(current.len(), 5_243);
+    assert_eq!(fnv1a64(current.as_bytes()), 0xfaf2_50ea_829e_bdf0);
     // Also retain upstream's exact contiguous-block assertion.
     let image_lines = PROJECT_IMAGE_LINES.concat();
     assert_eq!(current.matches(image_lines.as_str()).count(), 1);
+    let before_candidates = current
+        .replacen(PROJECT_IMAGE_LINES[3], "", 1)
+        .replacen(PROJECT_IMAGE_LINES[4], "", 1);
+    assert_eq!(before_candidates.len(), 5_151);
+    assert_eq!(fnv1a64(before_candidates.as_bytes()), 0x3606_80c0_4da0_b739);
     let mut legacy = current;
     for line in PROJECT_IMAGE_LINES {
         assert_eq!(legacy.matches(line).count(), 1);

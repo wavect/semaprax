@@ -188,7 +188,7 @@ impl ProjectSemanticImage {
         self.revision.semantic_impact(target_kind, target, options)
     }
 
-    fn require_digest(&self, expected: &str) -> Result<(), Vec<Diagnostic>> {
+    pub(super) fn require_digest(&self, expected: &str) -> Result<(), Vec<Diagnostic>> {
         validate_digest(expected)?;
         if expected != self.image_digest() {
             return Err(stale("semantic image digest is stale"));
@@ -234,7 +234,7 @@ impl Write for BoundedWriter {
     }
 }
 
-fn render(
+pub(super) fn render(
     mut value: Value,
     terminal_lf: bool,
     max_bytes: usize,

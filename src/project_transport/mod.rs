@@ -4,9 +4,9 @@
 //! cannot redirect that authority to another path. Graph Agent Transport v1
 //! remains a separate, unchanged protocol.
 
-mod codec;
+pub(crate) mod codec;
 mod config;
-mod framing;
+pub(crate) mod framing;
 mod session;
 
 use std::ffi::OsString;

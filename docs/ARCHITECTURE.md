@@ -326,6 +326,19 @@ remain outside it. See [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1
 
 ### Project profile and daemon
 
+`src/project/candidate/` owns immutable source-derived candidate overlays and
+closed typed intentions. The engine mutates invocation-local ASTs; canonical
+source then re-enters complete Project admission and a second source replay.
+Candidates retain reviewable replacements/diffs and target projection facts,
+never filesystem or publication authority. `src/project/image_facets.rs`
+projects actual retained HIR into revision-bound paginated facets without
+changing the original image wire. `src/image_transport.rs` exposes these
+queries through a separately selected read-only protocol whose one method
+catalog also generates discovery/schema/client material. Existing transports
+keep their method sets. See [Candidates](PROJECT-CANDIDATES-V1.md),
+[facets](SEMANTIC-IMAGE-FACETS-V1.md), and
+[Image Agent Protocol](IMAGE-AGENT-PROTOCOL-V1.md).
+
 `src/project/manifest.rs` parses the bounded `semaprax.toml` profiles.
 `src/project/` owns held input authority, immutable revisions, semantic
 admission, linking, execution, builds, npm carriers, rename planning, and the

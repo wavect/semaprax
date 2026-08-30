@@ -94,6 +94,10 @@ impl ProjectSemanticState {
         self.analysis.image_indexes()
     }
 
+    pub(super) fn image_modules(&self) -> &[workspace_graph::WorkspaceGraphProjectionModule] {
+        self.analysis.modules()
+    }
+
     pub(super) fn image_symbol(&self, id: &str) -> Option<serde_json::Value> {
         let mut symbol = self.analysis.image_symbol(id)?;
         if let Some(function) = self.rename_functions.get(id) {

@@ -108,6 +108,7 @@ Select every row touched by the change; these categories are cumulative.
 | Ownership or cleanup | Structural inventory, canonical plan build, independent replay, hostile mutation, success/failure settlement |
 | Graph schema | Exact new projection, legacy byte preservation, context projection, invalid/tampered rejection |
 | Semantic patch or repair | Preview, stale/drift rejection, no-write failures, independent replay, atomic A0 application |
+| Project candidates and typed intentions | Exact canonical change admission, complete caller migration/evaluation order, AST/source round-trip and complete Project replay, unchanged explicit identities/effects/contracts, core target admission preservation, stale/tampered evidence rejection and no writes; [Candidate v1](PROJECT-CANDIDATES-V1.md) owns the focused unrun evidence |
 | Workspace transaction | Held-input rechecks, replay before candidate/staging, one publication pivot, old-or-new process termination evidence |
 | Project manifest or carrier | Exact source-set authentication, Phase-A reuse, closure/admission checks, carrier replay, post-publication drift behavior |
 | Project profile admission | Exhaustive v1-v10 schema/profile dispatch, descriptor derive/replay equality, ordinary v9 load and Revision Store round trip, v9/v10 execution-envelope replay, exact earlier-profile bytes and diagnostics |

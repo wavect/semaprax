@@ -10,6 +10,7 @@ mod authority;
 mod build;
 mod execution;
 mod flat_owned_record;
+mod image;
 mod manifest;
 mod native_sdk;
 mod npm;
@@ -47,6 +48,10 @@ pub use flat_owned_record::{
     FlatOwnedRecordField, FlatOwnedRecordFieldType, FlatOwnedRecordSettlement,
     FLAT_OWNED_RECORD_API_SCHEMA, FLAT_OWNED_RECORD_METADATA_SCHEMA,
     FLAT_OWNED_RECORD_NPM_BUILD_SCHEMA, FLAT_OWNED_RECORD_PROJECT_SCHEMA,
+};
+pub use image::{
+    ProjectSemanticImage, MAX_SEMANTIC_IMAGE_BYTES, PROJECT_SEMANTIC_IMAGE_COMPATIBILITY,
+    PROJECT_SEMANTIC_IMAGE_SCHEMA, PROJECT_SEMANTIC_IMAGE_SYMBOL_SCHEMA,
 };
 use manifest::{capacity, grammar};
 pub use manifest::{

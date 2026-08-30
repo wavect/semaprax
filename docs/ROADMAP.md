@@ -136,6 +136,18 @@ String settlement. Frozen earlier-profile unselected String cleanup
 requires a separate compatibility decision.
 Do not widen the existing literal/direct-call admission to make a fixture pass.
 
+## Graph-operational development foundation
+
+The first [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
+foundation is authored, unrun: immutable retained Project/HIR state, canonical
+rebuildable image bytes, typed stable-ID lookup, and bounded existing analysis.
+Canonical `.spx` remains the Git and human-review authority. Execute the
+replay, drift, capacity, compatibility, and zero-write evidence before
+promotion. Then separately specify incremental invalidation/rechecking,
+revision-bound edit operations and deltas, typed holes, and representative
+performance/token measurements. No persistent cache or general graph mutation
+is implied by the first image, and the full programme remains Partial.
+
 ## 0.3: ownership and fast development
 
 Goal: make the language safer and faster to iterate on without widening public

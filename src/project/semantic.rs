@@ -90,6 +90,18 @@ impl ProjectSemanticState {
         &self.graph_digest
     }
 
+    pub(super) fn image_indexes(&self) -> serde_json::Value {
+        self.analysis.image_indexes()
+    }
+
+    pub(super) fn image_symbol(&self, id: &str) -> Option<serde_json::Value> {
+        let mut symbol = self.analysis.image_symbol(id)?;
+        if let Some(function) = self.rename_functions.get(id) {
+            symbol["name"] = serde_json::Value::String(function.name.clone());
+        }
+        Some(symbol)
+    }
+
     pub(super) fn rename_function(&self, stable_id: &str) -> Option<&ProjectRenameFunction> {
         self.rename_functions.get(stable_id)
     }

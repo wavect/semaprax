@@ -274,6 +274,20 @@ change are separate, bounded derivation layers in
 Only the live workspace invocation owns the final publication pivot. Evidence
 capsules never carry reusable authority.
 
+### Operational semantic images
+
+`src/project/image.rs` derives an immutable, bounded Semantic Workspace
+Image from one already admitted `Arc<ProjectRevision>`. It retains validated
+HIR in memory and projects the complete Project graph plus existing typed
+stable-ID and adjacency indexes. Canonical `.spx` remains the Git authority;
+image bytes are optional caller-persisted data, never trusted serialized HIR.
+Replay freshly derives and exact-compares the complete canonical image before
+returning it. Digest-bound symbol, Context, and Impact queries grant no file,
+cache, execution, or commit authority. Compiler package version binding is not
+a binary fingerprint. This foundation and its regressions are authored, unrun;
+incremental rechecking, general graph mutation, and persistent daemon caches
+remain outside it. See [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md).
+
 ### Project profile and daemon
 
 `src/project/manifest.rs` parses the bounded `semaprax.toml` profiles.

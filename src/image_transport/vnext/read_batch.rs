@@ -1,0 +1,267 @@
+//! Host-invoked parallel image reads; no registry, source handles or Git host
+//! enter worker threads. The ordinary NDJSON server remains sequential.
+use super::*;
+
+const MAX_FRAMES: usize = 16;
+const MAX_WORKERS: usize = 4;
+
+enum Read {
+    Immediate(Option<Vec<u8>>),
+    Query {
+        id: RequestId,
+        method: &'static Method,
+        params: Map<String, Value>,
+    },
+}
+
+impl VNextSession {
+    /// The host chooses concurrency; frames cannot request worker count or
+    /// widen the closed immutable-read subset. Results retain input order.
+    /// No result escapes until all workers join and live source rechecks pass.
+    pub fn handle_read_batch(
+        &mut self,
+        frames: &[&[u8]],
+        workers: usize,
+    ) -> Result<Vec<Option<Vec<u8>>>, Vec<Diagnostic>> {
+        if frames.is_empty() || frames.len() > MAX_FRAMES || !(1..=MAX_WORKERS).contains(&workers) {
+            return Err(failure(
+                "SPX-G294",
+                "parallel read batch exceeds its frame or worker bounds",
+            ));
+        }
+        if self.terminal {
+            return Err(failure(
+                "SPX-G294",
+                "parallel reads require an open v5 session",
+            ));
+        }
+        if frames.iter().any(|frame| !frame.is_empty()) {
+            self.started = true;
+        }
+        // Check every length before copying or parsing any request. Unlike the
+        // stream loop, this host API reports a batch error with no partial rows.
+        if frames.iter().any(|frame| frame.len() > MAX_REQUEST_BYTES) {
+            return Err(failure(
+                "SPX-G294",
+                "parallel read frame exceeds its byte bound",
+            ));
+        }
+        let available = methods(&self.policy, self.commit.is_some());
+        let reads = frames
+            .iter()
+            .map(|frame| prepare_read(frame, &available, &self.image))
+            .collect::<Vec<_>>();
+        if reads.iter().all(|read| matches!(read, Read::Immediate(_))) {
+            return Ok(reads
+                .into_iter()
+                .map(|read| match read {
+                    Read::Immediate(response) => response,
+                    Read::Query { .. } => unreachable!("read inventory checked"),
+                })
+                .collect());
+        }
+        let image = &self.image;
+        let policy = self.policy;
+        let commit_enabled = self.commit.is_some();
+        self.snapshot.with_authenticated_request(|_| {
+            parallel_map(&reads, workers, &|read| match read {
+                Read::Immediate(response) => response.clone(),
+                Read::Query { id, method, params } => {
+                    let payload = match method.operation {
+                        Operation::Capabilities
+                        | Operation::Schemas
+                        | Operation::Instructions
+                        | Operation::Client
+                        | Operation::Catalog => {
+                            discovery::payload(method, params, &available, &policy, commit_enabled)
+                        }
+                        _ => dispatch(method, params, image),
+                    };
+                    Some(match payload {
+                        Ok(payload) => response(id, image, payload),
+                        Err(errors) => error_response(id, &errors),
+                    })
+                }
+            })
+        })
+    }
+
+    /// Discover the host batch API's fixed read subset without doing source
+    /// work. This does not add a JSON-RPC batching method or an authority grant.
+    pub fn parallel_read_methods(&self) -> Vec<&'static str> {
+        methods(&self.policy, self.commit.is_some())
+            .into_iter()
+            .filter(|method| parallel_read(method.operation))
+            .map(|method| method.name)
+            .collect()
+    }
+}
+
+fn parallel_read(operation: Operation) -> bool {
+    matches!(
+        operation,
+        Operation::Capabilities
+            | Operation::Schemas
+            | Operation::Instructions
+            | Operation::Client
+            | Operation::Catalog
+            | Operation::Open
+            | Operation::Status
+            | Operation::Symbol
+            | Operation::Context
+            | Operation::Impact
+            | Operation::FunctionSummary
+            | Operation::Facet
+    )
+}
+
+fn prepare_read(frame: &[u8], available: &[&'static Method], image: &ProjectSemanticImage) -> Read {
+    if frame.is_empty() {
+        return Read::Immediate(None);
+    }
+    let request = match codec::decode_request(frame) {
+        Ok(request) => request,
+        Err(error) => {
+            return Read::Immediate((!error.suppress_response).then(|| {
+                codec::bounded_error_response(
+                    error.response_id.as_ref(),
+                    error.code,
+                    &error.message,
+                    MAX_RESPONSE_BYTES,
+                )
+            }))
+        }
+    };
+    let RequestKind::Call(id) = request.kind else {
+        return Read::Immediate(None);
+    };
+    let Some(method) = available
+        .iter()
+        .copied()
+        .find(|method| method.name == request.method && parallel_read(method.operation))
+    else {
+        return Read::Immediate(Some(codec::bounded_error_response(
+            Some(&id),
+            -32601,
+            "method is unavailable in the host parallel immutable-read subset",
+            MAX_RESPONSE_BYTES,
+        )));
+    };
+    let params = request.params.unwrap_or_default();
+    if let Err(message) = validate_parameters(method, &params) {
+        return Read::Immediate(Some(codec::bounded_error_response(
+            Some(&id),
+            codec::INVALID_PARAMS,
+            &message,
+            MAX_RESPONSE_BYTES,
+        )));
+    }
+    if params
+        .get("image_revision")
+        .is_some_and(|expected| expected.as_str() != Some(image.image_digest()))
+    {
+        return Read::Immediate(Some(error_response(
+            &id,
+            &failure("SPX-G282", "v5 expected image revision is stale"),
+        )));
+    }
+    Read::Query { id, method, params }
+}
+
+// Scoped workers borrow only immutable inputs. Every successfully spawned
+// worker is explicitly joined even after another spawn or worker fails.
+fn parallel_map<T: Sync, R: Send>(
+    items: &[T],
+    workers: usize,
+    operation: &(impl Fn(&T) -> R + Sync),
+) -> Result<Vec<R>, Vec<Diagnostic>> {
+    std::thread::scope(|scope| {
+        let count = workers.min(items.len());
+        let mut handles = Vec::with_capacity(count);
+        let mut failed = false;
+        for worker in 0..count {
+            match std::thread::Builder::new()
+                .name(format!("spx-image-read-{worker}"))
+                .spawn_scoped(scope, move || {
+                    (worker..items.len())
+                        .step_by(count)
+                        .map(|index| (index, operation(&items[index])))
+                        .collect::<Vec<_>>()
+                }) {
+                Ok(handle) => handles.push(handle),
+                Err(_) => {
+                    failed = true;
+                    break;
+                }
+            }
+        }
+        let mut rows = Vec::with_capacity(items.len());
+        for handle in handles {
+            match handle.join() {
+                Ok(mut result) => rows.append(&mut result),
+                Err(_) => failed = true,
+            }
+        }
+        if failed {
+            return Err(failure(
+                "SPX-G295",
+                "parallel read worker failed; no batch results are released",
+            ));
+        }
+        rows.sort_by_key(|(index, _)| *index);
+        Ok(rows.into_iter().map(|(_, value)| value).collect())
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    #[test]
+    fn scoped_workers_overlap_and_restore_input_order() {
+        let arrivals = (std::sync::Mutex::new(0), std::sync::Condvar::new());
+        let active = AtomicUsize::new(0);
+        let high = AtomicUsize::new(0);
+        let rows = parallel_map(&(0..12).collect::<Vec<_>>(), 4, &|index| {
+            if *index < 4 {
+                let current = active.fetch_add(1, Ordering::SeqCst) + 1;
+                high.fetch_max(current, Ordering::SeqCst);
+                let mut count = arrivals.0.lock().unwrap();
+                *count += 1;
+                arrivals.1.notify_all();
+                let (count, _) = arrivals
+                    .1
+                    .wait_timeout_while(count, std::time::Duration::from_secs(5), |count| {
+                        *count < 4
+                    })
+                    .unwrap();
+                assert_eq!(
+                    *count, 4,
+                    "all read workers must start before the finite deadline"
+                );
+                drop(count);
+                active.fetch_sub(1, Ordering::SeqCst);
+            }
+            index * 3
+        })
+        .unwrap();
+        assert_eq!(rows, (0..12).map(|value| value * 3).collect::<Vec<_>>());
+        assert_eq!(high.load(Ordering::SeqCst), 4);
+        assert_eq!(active.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn worker_panic_discards_results_and_joins_other_workers() {
+        let completed = AtomicUsize::new(0);
+        let result = parallel_map(&[0, 1, 2, 3], 4, &|value| {
+            if *value == 1 {
+                panic!("synthetic pure read failure");
+            }
+            completed.fetch_add(1, Ordering::SeqCst);
+            *value
+        });
+        assert_eq!(result.unwrap_err()[0].code, "SPX-G295");
+        assert_eq!(completed.load(Ordering::SeqCst), 3);
+    }
+}

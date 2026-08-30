@@ -27,7 +27,11 @@ function check(v: any, s: any, depth = 0): void {
   if (s.type==='boolean' && typeof v!=='boolean') throw Error('boolean required');
   if (s.type==='integer' && (!Number.isSafeInteger(v) || v<(s.minimum??-Number.MAX_SAFE_INTEGER) || v>(s.maximum??Number.MAX_SAFE_INTEGER))) throw Error('integer bound');
   if (s.type==='string') {
-    if (typeof v!=='string' || [...v].length<(s.minLength??0) || [...v].length>(s.maxLength??Infinity) || new TextEncoder().encode(v).length>(s['x-max-utf8-bytes']??Infinity) || (s.pattern && !new RegExp(s.pattern,'u').test(v))) throw Error('string bound/format');
+    if (typeof v!=='string' || [...v].length<(s.minLength??0) || [...v].length>(s.maxLength??Infinity) || new TextEncoder().encode(v).length>(s['x-max-utf8-bytes']??Infinity)) throw Error('string bound/format');
+    if (s.pattern) {
+      const match=new RegExp(s.pattern,'u').exec(v);
+      if (!match || match.index!==0 || match[0].length!==v.length) throw Error('string format');
+    }
   }
   if (s.type==='object') {
     if (!object(v)) throw Error('object required');

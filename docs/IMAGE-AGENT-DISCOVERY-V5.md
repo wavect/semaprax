@@ -27,7 +27,13 @@ constructor-local `$defs` references keep their original document scope.
 Bundled payloads include ordinary workspace state, refresh preview and refresh,
 candidate/draft handles, attempt outcomes and summaries, validation receipts,
 discard outcomes, common report chunks, target/artifact chunks, source-commit
-status/handle/chunks, and v5 discovery results. Fields that are required but
+status/handle/chunks, validation catalogues v1/v2, candidate comparisons,
+rebase/merge reconciliation, all current change-catalogue operation shapes,
+test relevance plans, the semantic-delta root catalogue, and v5 discovery
+results. Opted-in refresh/preview responses may include a concrete
+`frontend_work` report; that property is optional, never nullable, and absent
+from the unchanged cold response. Its work counters describe frontend reuse,
+not incremental semantic verification. Fields that are required but
 nullable, including chunk continuation and optional candidate selectors in
 results, remain distinct from omitted fields.
 
@@ -37,6 +43,10 @@ strings, not only unresolved JSON Schema `$ref` values. A fully described chunk
 envelope does not describe its encoded semantic report. Consumers must use the
 owning specification or a separate supplied schema for those payloads. The
 bundle does not substitute permissive empty schemas and claim full coverage.
+Selected semantic-delta facets and candidate query report interiors remain
+unbundled because they include heterogeneous HIR/impact facts. Source diffs are
+strings inside those owning candidate reports; no new standalone source-diff
+payload is invented. These limitations do not make their chunk envelope opaque.
 
 ## Generated clients
 
@@ -53,8 +63,17 @@ integer and UTF-8 bounds, control characters, and request byte limits. Nested
 constructor objects remain JSON objects and are checked by the compiler; their
 full schemas are available in `protocol/schemas`. These helpers are not general
 JSON Schema validators and do not duplicate semantic admission. Constructor-only
-schema documents are omitted from generated runtime metadata to keep clients
-bounded while remaining available in the complete schema bundle.
+schema documents and unrelated inner reports are omitted from generated runtime
+metadata: only the transitive documents reached by the selected response payloads
+are embedded. All documents remain available in the complete schema bundle.
+
+Client generation audits every consumed schema against the common implemented
+subset: closed objects, typed scalar bounds, arrays, constants/enums, alternatives,
+absolute document references, and the exact digest/control patterns. Unsupported
+keywords, local references, reference siblings requiring additional assertions,
+schema-valued additional properties, or assertions without their matching type
+fail generation with `SPX-G288`. They are never silently discarded. This is a
+deliberately bounded validator, not a general Draft 2020-12 implementation.
 
 Decoders match request IDs, protocol/result version, exact envelope fields,
 digest fields, and bundled transport payload shapes. Unbundled results remain
@@ -88,7 +107,9 @@ remain unchanged.
 Focused module regressions author selected-profile method exclusions, resolved
 constructor references, explicit opaque-report listings, optional/null shape
 differences, digest/control patterns, typed builder names, integer checks,
-literal LF source escapes, and bounded generated source. They were not run.
+literal LF source escapes, concrete candidate schemas, optional frontend work,
+unsupported-assertion rejection, transitive metadata selection, and bounded
+generated source. They were not run.
 No compiler, interpreter, generated client, target, or local quality gate was
 executed for this change. Full SDK conformance and exhaustive report schemas
 remain open work.

@@ -34,6 +34,14 @@ the host's existing fixed `CandidateTestPolicy`. No request changes these
 booleans or limits. `serve_vnext(input, output, session)` accepts host-provided
 streams and the already configured session; it discovers no paths or authority.
 
+An additive `open_with_frontend_cache` constructor keeps the same policy and
+image identity while reusing source-exact compiler ASTs during authenticated
+live refresh. The separate embedding-host `handle_read_batch` API runs only
+immutable image/discovery reads on bounded scoped workers. Neither changes the
+ordinary sequential NDJSON loop or grants new methods. See
+[Live Frontend Cache](IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md) and
+[Parallel Reads](IMAGE-PARALLEL-READS-V1.md) for their explicit host choices.
+
 Semantic conformance reads and target-admission projections are available
 independently of diagnostic permission. Candidate preparation adds current
 candidate, expression-hole, interface-discovery, and semantic-delta operations.
@@ -101,8 +109,12 @@ an unchanged-image refresh. It never silently remaps expression selections or
 repairs rejected intentions. The report lists retained candidate handles and
 exact cleared counts. An identical freshly derived image retains the old image
 `Arc` after byte equality checking, but the source snapshot is still replaced.
-This route performs a complete fresh Project load and does not claim frontend
-cache reuse, incremental verification, or warm cross-process compilation.
+The default constructor performs a complete cold Project load. The opt-in
+frontend constructor instead stages source-exact AST reuse through the same
+filesystem authentication and full semantic/link/profile rebuild. It adds an
+optional `frontend_work` report to preview/refresh only; failed preparation and
+preview do not install it. Neither route claims incremental semantic checking
+or warm cross-process compilation.
 
 The payload schema `semaprax.image-workspace-refresh.v1` contains old/new image
 and Project revisions, the new Workspace revision, `image_arc_reused`, sorted

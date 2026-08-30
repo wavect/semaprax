@@ -103,3 +103,58 @@ fn startup_policy_rejects_unknown_fields_and_dependent_capabilities() {
         assert!(output.stdout.is_empty());
     }
 }
+
+#[test]
+fn cached_host_policy_preserves_v1_and_cannot_be_selected_by_request() {
+    let fixture = Fixture::new();
+    let input = concat!(
+        "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"protocol/capabilities\",\"params\":{}}\n",
+        "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"workspace/open\",\"params\":{\"frontend_cache\":true}}\n"
+    );
+    let cold = fixture.run(&policy(), input);
+    assert!(cold.status.success());
+    for enabled in [false, true] {
+        let mut selected = policy();
+        selected["schema"] = json!("semaprax.workspace-host-policy.v2");
+        selected["frontend_cache"] = json!(enabled);
+        let output = fixture.run(&selected, input);
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        // This performance selection grants no methods and changes no image
+        // identity. A request cannot toggle it even in the cached session.
+        assert_eq!(output.stdout, cold.stdout);
+        let rows = String::from_utf8(output.stdout).unwrap();
+        let rejected: Value = serde_json::from_str(rows.lines().nth(1).unwrap()).unwrap();
+        assert_eq!(rejected["error"]["code"], -32602);
+    }
+}
+
+#[test]
+fn cache_policy_is_versioned_closed_and_strictly_boolean() {
+    let fixture = Fixture::new();
+    let mut v1_extension = policy();
+    v1_extension["frontend_cache"] = json!(true);
+    let mut missing = policy();
+    missing["schema"] = json!("semaprax.workspace-host-policy.v2");
+    let mut values = vec![v1_extension, missing.clone()];
+    for invalid in [Value::Null, json!(1), json!("true"), json!({})] {
+        let mut value = missing.clone();
+        value["frontend_cache"] = invalid;
+        values.push(value);
+    }
+    let mut unknown = missing;
+    unknown["frontend_cache"] = json!(true);
+    unknown["cache_root"] = json!("/tmp/agent-selected");
+    values.push(unknown);
+    for value in values {
+        let output = fixture.run(&value, "");
+        assert!(!output.status.success());
+        assert!(output.stdout.is_empty());
+        assert!(String::from_utf8(output.stderr)
+            .unwrap()
+            .contains("SPX-G280"));
+    }
+}

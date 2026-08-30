@@ -163,7 +163,21 @@ startup authority boundary; provider deadlines are not reset. Broader interactiv
 approval lifecycle, long-lived publication authority and raw-checkout integration
 remain future work requiring explicit contract decisions.
 
-Live refresh currently performs a cold source rebuild, and candidate builds
+The [integrated Git workflow](PROJECT-GRAPH-OPERATIONAL-GIT-WORKFLOW-V1.md) now
+authors signature migration, sibling merge/conflict, source/semantic review,
+explicit interpreter test requests and separate v5 commit sessions using real
+bare SHA1/SHA256 Git providers. Execute both formats and stale-ref/approval
+cases before treating this as the requested demonstrated vertical slice. Its
+Copy/scalar fixture and target projection assertions do not establish general
+owned-resource, external ABI, native/Wasm runtime, or physical race coverage.
+
+Live refresh now has an opt-in source-authenticated frontend-cache route; it
+avoids repeated parsing/formatting for unaffected modules while rebuilding all
+checked HIR and linked semantics. An embedding-host API also batches immutable
+image/discovery reads on bounded scoped workers with ordered results and final
+source authentication; the CLI stream remains sequential. Execute cold/cached
+equivalence, rollback, physical-source hostility and parallel-order/drift cases
+before promoting either mechanism. Candidate builds
 produce bounded Web/npm artifact reports through actual existing carrier
 construction/replay. Warm checked-HIR reuse, filesystem artifact materialization,
 general package-consumer relationships and measured task-level cost improvements

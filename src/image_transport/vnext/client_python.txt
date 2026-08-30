@@ -41,7 +41,7 @@ def _check(value: Any, schema: dict[str, Any], depth: int = 0) -> None:
                 raise ValueError('shape alternatives mismatch')
     if 'const' in schema and not _same(value, schema['const']):
         raise ValueError('constant mismatch')
-    if 'enum' in schema and value not in schema['enum']:
+    if 'enum' in schema and not any(_same(value, item) for item in schema['enum']):
         raise ValueError('choice mismatch')
     kind = schema.get('type')
     if kind == 'null' and value is not None:
@@ -51,7 +51,7 @@ def _check(value: Any, schema: dict[str, Any], depth: int = 0) -> None:
     if kind == 'integer' and (type(value) is not int or value < schema.get('minimum', -(2**63)) or value > schema.get('maximum', 2**64-1)):
         raise ValueError('integer bound')
     if kind == 'string':
-        if not isinstance(value, str) or len(value) < schema.get('minLength', 0) or len(value) > schema.get('maxLength', 2**64) or len(value.encode('utf-8')) > schema.get('x-max-utf8-bytes', 2**64) or ('pattern' in schema and re.search(schema['pattern'], value) is None):
+        if not isinstance(value, str) or len(value) < schema.get('minLength', 0) or len(value) > schema.get('maxLength', 2**64) or len(value.encode('utf-8')) > schema.get('x-max-utf8-bytes', 2**64) or ('pattern' in schema and re.fullmatch(schema['pattern'], value) is None):
             raise ValueError('string bound/format')
     if kind == 'object':
         if not isinstance(value, dict):

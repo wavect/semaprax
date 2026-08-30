@@ -10,6 +10,16 @@
   compiler flags, or package schemas. Tests remain unrun; this is not process
   sandboxing or hosted promotion.
 
+- Connected opt-in frontend AST reuse to authenticated v5 live refresh without
+  a preliminary cold parse, retaining full semantic/link/profile rebuilding
+  and staged cache rollback. Added strict host-policy v2 selection while v1
+  remains closed/cold, plus bounded embedding-host parallel image reads with
+  ordered results and whole-batch source rechecks. Expanded concrete candidate
+  response schemas and fail-closed generated client validation. Authored an
+  integrated signature-review-to-real-bare-Git workflow for SHA1/SHA256 and
+  stale-ref rejection. Tests, compiler/client execution and benchmarks remain
+  unrun; warm persistent HIR and full-programme completion are not claimed.
+
 - Added real v8/v9 npm mixed-borrow consumers and raw native admission
   fixtures alongside the published Rust corpus. npm checks exact six-file
   publication and calibrated selected-Wasm-export entry counts; the native

@@ -82,6 +82,9 @@ The value corpus compares interpreter, native O0/O2, and Core-Wasm/Node only
 where those existing profiles admit it. Owned user String signatures remain
 outside the interpreter profile. Node value equality is not physical Wasm
 String settlement; its ordinary host API still lacks a drop operation.
+The separate [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md)
+adds an authored, unrun opt-in route for String helpers, without changing this
+corpus's ordinary-interpreter rejection or adding external String values.
 Frozen earlier-profile emitted-but-unselected String functions retain their
 separate representation and cleanup limitations.
 

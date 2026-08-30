@@ -142,6 +142,14 @@ fuel and normalized runtime statuses. `src/hosted_interpreter.rs` adds the
 bounded host-facing execution used by Project profiles. The interpreter is a
 development and conformance lane, not a target backend or proof engine.
 
+`src/interpreter/internal_strings.rs` owns the additive `interpret-strings`
+facade and strict report boundary. A private profile selects internal String
+callee admission and a distinct report schema/domain through the existing
+source evaluator and renderer. External scalar/borrowed inputs and scalar
+results stay unchanged; ordinary, Project, prepared, and effectful evaluators
+retain their prior admission. This route adds no second execution engine or
+target runtime. See [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md).
+
 `src/interpreter/prepared.rs` owns the additive cached closure/index types,
 cooperative cancellation seam, prepared evaluation entry, and expression-trace
 traversal hook. The root interpreter retains the shared evaluator and only the

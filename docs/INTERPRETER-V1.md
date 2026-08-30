@@ -38,6 +38,10 @@ semaprax interpret <file> --function name|stable-id [--arg literal]... [--max-by
 
 ## Admission model
 
+The separate opt-in [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md)
+adds `interpret-strings` with a distinct report identity. It does not change
+this command's admission, output, or replay rules.
+
 The selected function — and every callee transitively reachable from it —
 must have an explicit stable identity, be monomorphic, declare no effects,
 take only by-value direct parameters of the admitted scalar types, and return

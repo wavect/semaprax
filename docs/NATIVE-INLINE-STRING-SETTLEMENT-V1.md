@@ -115,9 +115,12 @@ This cleanup correction does not itself determine String representation. The
 subsequent [native String contents correction](NATIVE-STRING-CONTENTS-V1.md)
 selects the existing length-header runtime for ordinary/stdout generation and
 adds authored, unrun embedded-NUL value evidence. Ordinary Wasm's String host API
-still lacks physical drop settlement, and the reference interpreter still
+still lacks physical drop settlement, and the ordinary reference interpreter still
 rejects user functions with String-valued signatures. Native allocation
 evidence therefore is not full cross-backend String settlement evidence.
+The distinct [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md)
+is an authored, unrun opt-in conformance route, not an implicit change to that
+ordinary profile or a target-allocation proof.
 Frozen provider/command projections retain their separate unselected-String
 cleanup limitation. These gaps and executed platform/sanitizer evidence remain
 necessary before broad production-readiness claims.

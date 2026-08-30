@@ -153,6 +153,10 @@ ABIs prematurely.
 
 ### Development-loop outcomes
 
+- execute the additive [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md)
+  conformance route and its strict report replay gates; broader interpreter
+  entry values and Project integration require their own explicit admission
+  decision rather than silently widening older profiles;
 - execute and promote the authored retained
   [Prepared Project Interpreter and Source Trace v1](PROJECT-PREPARED-INTERPRETER-V1.md),
   then evolve it into incremental refresh without weakening revision binding;

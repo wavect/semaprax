@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Authored opt-in `interpret-strings` and a distinct internal-String report
+  schema/domain. The shared interpreter evaluates String helpers behind the
+  unchanged external scalar/borrowed boundary; ordinary and Project routes
+  retain their prior admission. Added bounded canonical replay, profile and
+  source binding, hostile-wire and call/failure conformance fixtures. Tests
+  are unrun; fuel limits are not heap-memory limits, and no target settlement
+  or production promotion is claimed.
+
 - Authored ordinary/stdout native String contents correction: construction,
   clone, equality, length, concatenation, prefix/substring operations, scalar
   count, and drop now share the existing length-header runtime. Embedded NUL

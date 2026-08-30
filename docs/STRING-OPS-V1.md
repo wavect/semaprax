@@ -74,6 +74,11 @@ Consumption mirrors existing String move-checking exactly:
   same byte semantics; user functions taking strings remain outside the
   profile exactly as before.
 
+The separately selected [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md)
+adds authored, unrun internal String-call evidence behind unchanged external
+scalar/borrowed inputs and scalar results. Its distinct command/report does
+not widen ordinary `interpret` or any Project execution profile.
+
 ## Evidence
 
 The later [native inline String settlement correction](NATIVE-INLINE-STRING-SETTLEMENT-V1.md)

@@ -14,6 +14,10 @@ use semaprax_offline_wasm_package::{
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
 fn snapshot() -> package_resolution_snapshot::ResolutionSnapshot {
+    snapshot_with_value(41)
+}
+
+fn snapshot_with_value(value: i64) -> package_resolution_snapshot::ResolutionSnapshot {
     let root = std::env::temp_dir().join(format!(
         "semaprax-lock-snapshot-source-{}-{}",
         std::process::id(),
@@ -21,7 +25,7 @@ fn snapshot() -> package_resolution_snapshot::ResolutionSnapshot {
     ));
     fs::write(
         &root,
-        "module app.main;\n@id(\"app.main.main\")\nfn main() -> i64 { 41 }\n",
+        format!("module app.main;\n@id(\"app.main.main\")\nfn main() -> i64 {{ {value} }}\n"),
     )
     .unwrap();
     let report = package_report_v2::generate(&root, &PackageReportV2Options::default()).unwrap();
@@ -65,6 +69,36 @@ fn private_root() -> std::path::PathBuf {
     root
 }
 
+fn reopen(output: &std::path::Path) -> package_resolution_snapshot::ResolutionSnapshot {
+    package_resolution_snapshot::ResolutionSnapshot {
+        input_json: fs::read_to_string(output.join(INPUT_FILE)).expect("reopen resolution inputs"),
+        resolution_evidence_json: fs::read_to_string(output.join(RESOLUTION_FILE))
+            .expect("reopen resolver evidence"),
+        lock_json: fs::read_to_string(output.join(LOCK_FILE)).expect("reopen semantic lock"),
+    }
+}
+
+fn cleanup_snapshot(output: &std::path::Path) {
+    let mut names = fs::read_dir(output)
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name())
+        .collect::<Vec<_>>();
+    names.sort();
+    let mut expected = [INPUT_FILE, RESOLUTION_FILE, LOCK_FILE].map(std::ffi::OsString::from);
+    expected.sort();
+    assert_eq!(names, expected);
+    for name in [INPUT_FILE, RESOLUTION_FILE, LOCK_FILE] {
+        assert!(fs::symlink_metadata(output.join(name))
+            .unwrap()
+            .file_type()
+            .is_file());
+    }
+    for name in [INPUT_FILE, RESOLUTION_FILE, LOCK_FILE] {
+        fs::remove_file(output.join(name)).expect("remove exact successful snapshot file");
+    }
+    fs::remove_dir(output).expect("remove empty snapshot directory");
+}
+
 #[test]
 fn public_facade_publishes_exact_snapshot_inventory_without_extras() {
     let snapshot = snapshot();
@@ -94,6 +128,66 @@ fn public_facade_publishes_exact_snapshot_inventory_without_extras() {
         .to_vec();
     expected.sort();
     assert_eq!(names, expected);
+    let reopened = reopen(&output);
+    assert_eq!(reopened, snapshot);
+    // No caller catalog, options, source files, or publisher receipt is passed
+    // to this independent replay: its complete input is the reopened inventory.
+    let replayed =
+        package_resolution_snapshot::verify(&reopened).expect("replay reopened snapshot alone");
+    assert_eq!(replayed, published.verified);
+    cleanup_snapshot(&output);
+    fs::remove_dir(root).expect("remove empty successful fixture");
+}
+
+#[test]
+fn reopened_snapshots_reject_component_mutations_and_cross_pairs() {
+    let root = private_root();
+    let first_path = root.join("first");
+    let second_path = root.join("second");
+    publish_lock_snapshot(&first_path, snapshot_with_value(41)).expect("publish first snapshot");
+    publish_lock_snapshot(&second_path, snapshot_with_value(42)).expect("publish second snapshot");
+    let first = reopen(&first_path);
+    let second = reopen(&second_path);
+    package_resolution_snapshot::verify(&first).expect("replay first reopened snapshot");
+    package_resolution_snapshot::verify(&second).expect("replay second reopened snapshot");
+    assert_ne!(first, second);
+    for component in 0..3 {
+        let mut changed = first.clone();
+        let text = match component {
+            0 => &mut changed.input_json,
+            1 => &mut changed.resolution_evidence_json,
+            _ => &mut changed.lock_json,
+        };
+        text.push('\n');
+        assert_eq!(
+            package_resolution_snapshot::verify(&changed)
+                .unwrap_err()
+                .code,
+            if component == 2 {
+                "SPX-PK505"
+            } else {
+                "SPX-PK504"
+            }
+        );
+        let mut crossed = first.clone();
+        match component {
+            0 => crossed.input_json = second.input_json.clone(),
+            1 => crossed.resolution_evidence_json = second.resolution_evidence_json.clone(),
+            _ => crossed.lock_json = second.lock_json.clone(),
+        }
+        assert_eq!(
+            package_resolution_snapshot::verify(&crossed)
+                .unwrap_err()
+                .code,
+            "SPX-PK505"
+        );
+    }
+    // Read-only replay does not repair or rewrite either published inventory.
+    assert_eq!(reopen(&first_path), first);
+    assert_eq!(reopen(&second_path), second);
+    cleanup_snapshot(&first_path);
+    cleanup_snapshot(&second_path);
+    fs::remove_dir(root).expect("remove empty successful fixture");
 }
 
 #[test]
@@ -105,6 +199,9 @@ fn existing_destination_is_never_replaced() {
     let error = publish_lock_snapshot(&output, snapshot()).unwrap_err();
     assert_eq!(error.code, "SPX-PP503");
     assert_eq!(fs::read(output.join("sentinel")).unwrap(), b"foreign");
+    fs::remove_file(output.join("sentinel")).unwrap();
+    fs::remove_dir(output).unwrap();
+    fs::remove_dir(root).unwrap();
 }
 
 #[test]
@@ -116,7 +213,8 @@ fn invalid_snapshot_is_rejected_before_filesystem_authority() {
     let error = publish_lock_snapshot(&output, candidate).unwrap_err();
     assert_eq!(error.code, "SPX-PP502");
     assert_eq!(error.compiler_code, Some("SPX-PK505"));
-    assert_eq!(fs::read_dir(root).unwrap().count(), 0);
+    assert_eq!(fs::read_dir(&root).unwrap().count(), 0);
+    fs::remove_dir(root).unwrap();
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -128,5 +226,6 @@ fn unix_snapshot_publication_requires_exact_private_parent_mode() {
     fs::set_permissions(&root, fs::Permissions::from_mode(0o755)).unwrap();
     let error = publish_lock_snapshot(&root.join("lock"), snapshot()).unwrap_err();
     assert_eq!(error.code, "SPX-PP501");
-    assert_eq!(fs::read_dir(root).unwrap().count(), 0);
+    assert_eq!(fs::read_dir(&root).unwrap().count(), 0);
+    fs::remove_dir(root).unwrap();
 }

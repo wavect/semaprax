@@ -1,6 +1,39 @@
 use std::fs;
 use std::path::Path;
 
+use sha2::{Digest, Sha256};
+
+fn assert_only_checked_value_cursor_budget_changed(graph: &str, previous_digest: &str) {
+    let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();
+    let digest_field = format!(",\"graph_digest\":{}", parsed["graph_digest"]);
+    assert_eq!(graph.matches(&digest_field).count(), 1);
+    let payload = graph.replacen(&digest_field, "", 1);
+    let hash = |payload: &str| {
+        let mut hasher = Sha256::new();
+        hasher.update(b"semaprax.project-semantic-graph.artifact-digest.v1\0");
+        hasher.update((payload.len() as u64).to_le_bytes());
+        hasher.update(payload.as_bytes());
+        let hex: String = hasher
+            .finalize()
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
+        format!("sha256:{hex}")
+    };
+    assert_eq!(hash(&payload), parsed["graph_digest"]);
+    // Three checked modules each reserve a 257-entry cursor stack. On the
+    // supported 64-bit hosts its tagged reference plus index occupy 24 bytes.
+    // Replaying the historical whole payload after removing only that debit
+    // proves the source, declarations, edges and other budgets stayed frozen.
+    let current = parsed["budget"]["used_builder_bytes"].as_u64().unwrap();
+    let previous = current.checked_sub(3 * 257 * 24).unwrap();
+    let field = format!("\"used_builder_bytes\":{current}");
+    assert_eq!(payload.matches(&field).count(), 1);
+    let previous_payload =
+        payload.replacen(&field, &format!("\"used_builder_bytes\":{previous}"), 1);
+    assert_eq!(hash(&previous_payload), previous_digest);
+}
+
 fn read(root: &Path, relative: &str) -> String {
     fs::read_to_string(root.join(relative)).unwrap_or_else(|error| {
         panic!("cannot read {relative}: {error}");
@@ -66,6 +99,13 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
             &fixture_root.join("semaprax.toml"),
             |snapshot| {
                 let revision = snapshot.retain_revision();
+                assert_only_checked_value_cursor_budget_changed(
+                    revision.semantic_graph(),
+                    [
+                        "sha256:4427bce376eee8d4b27c4df1d7090e58dbf19fca3ab3691644a1fd8f9dd36e04",
+                        "sha256:ce68020f8cf6b47e2f81686c4708641dfdc27ab7d8f91d02de00c8799717c70a",
+                    ][index],
+                );
                 let actual = [
                     revision.project_revision(),
                     revision.workspace_revision(),

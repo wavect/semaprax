@@ -47,7 +47,8 @@ tests = ["extract.tests"]
 @id("extract.mutable") fn mutable_root(value: i64) -> i64 { let mut pair = Config { amount: value }; pair.amount + pair.amount }
 @id("extract.owned") fn owned_value(bytes: own Bytes) -> Bytes { bytes }
 @id("extract.borrowed") fn borrowed_value(bytes: borrow Slice<u8>) -> usize { byte_len(bytes) }
-@id("extract.public") fn public_value(value: i64) -> i64 requires value >= 0 { value }
+@id("extract.contracted") fn contracted_value(value: i64) -> i64 requires value >= 0 { value }
+@id("extract.public") fn public_value(value: i64) -> i64 { value }
 "#,
             ),
             (
@@ -271,7 +272,8 @@ fn body_only_generic_instance_and_internal_match_binders_are_not_external_captur
         // Exact canonical moved body, independently rebuilt by apply/replay.
         let mut old = original.clone();
         old.body = helper.body.clone();
-        let mut projection = semaprax::parse("module temporary;", "temporary.spx").unwrap();
+        let mut projection =
+            semaprax::parse(source(&base, "src/core.spx"), "src/core.spx").unwrap();
         projection.functions = vec![old];
         let old_body = semaprax::format::canonical(&projection);
         projection.functions = vec![original];
@@ -292,7 +294,7 @@ fn mutable_nominal_roots_owned_values_borrows_and_contract_regions_remain_closed
         ("extract.mutable", "pair.amount + pair.amount"),
         ("extract.owned", "bytes"),
         ("extract.borrowed", "byte_len(bytes)"),
-        ("extract.public", "value >= 0"),
+        ("extract.contracted", "value >= 0"),
     ] {
         grammar(extract(&base, target, Some(snippet)));
     }

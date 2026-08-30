@@ -6862,16 +6862,16 @@ mod tests {
         )
         .unwrap_err();
         assert!(is_named_limit(&error, "checked_value_visits"));
-        let mut expression = resolved
+        let function = resolved
             .functions
             .iter()
             .find(|function| function.id.as_str() == "values.main")
-            .unwrap()
-            .body
-            .clone();
+            .unwrap();
+        let owner = hir::FunctionExecutionId::Monomorphic(function.id.clone());
+        let mut expression = function.body.clone();
         for index in 0..=MAX_CHECKED_VALUE_DEPTH {
             expression = hir::ResolvedExpr {
-                id: hir::ExpressionId::new(format!("depth.{index}")),
+                id: hir::ExpressionId::new(&owner, &format!("depth.{index}")),
                 ty: hir::ResolvedType::I64,
                 ownership: hir::OwnershipMode::Value,
                 kind: hir::ResolvedExprKind::Block {

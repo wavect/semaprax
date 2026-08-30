@@ -36,6 +36,7 @@ tests = ["movement.tests"]
         fixture.write("types",r#"module movement.types;
 @id("movement.pair") record Pair { @id("movement.pair.amount") amount: i64, }
 @id("movement.tag") variant Tag { @id("movement.tag.number") Number { @id("movement.tag.number.value") value: i64, }, @id("movement.tag.none") None, }
+@id("movement.types-anchor") fn types_anchor() -> i64 { 0 }
 "#);
         fixture.write("core",r#"module movement.core;
 use type @id("movement.pair") from movement.types as SourcePair;

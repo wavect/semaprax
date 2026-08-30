@@ -431,7 +431,7 @@ fn native_breadth_v2_operations_execute_identically_at_o0_o2() {
     // first-wave helpers appear alone and no v2 symbol is reachable.
     let v1_only = parse(V1_ONLY, Path::new("v1-only-native.spx")).unwrap();
     let v1_only_c = codegen::emit_c(&v1_only).unwrap();
-    assert!(v1_only_c.contains("spx_string_len"));
+    assert!(v1_only_c.contains("spx_string_len("));
     assert!(v1_only_c.contains("spx_string_concat"));
     assert!(v1_only_c.contains("spx_string_is_empty"));
     for name in V2_HELPER_NAMES {
@@ -447,7 +447,7 @@ fn native_breadth_v2_operations_execute_identically_at_o0_o2() {
         .chain(V2_HELPER_NAMES)
     {
         assert!(
-            !plain_c.contains(name),
+            !plain_c.contains(&format!("{name}(")),
             "plain programs must not emit operation helper {name}"
         );
     }

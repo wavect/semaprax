@@ -1,35 +1,35 @@
 module native.ordinary_string_settlement;
 
 @id("s.sink")
-fn sink(value: string) -> string { "done" }
+fn sink(value: string) -> string { "done\u{0}tail" }
 @id("s.three")
-fn three(first: string, number: i64, last: string) -> string { "done" }
+fn three(first: string, number: i64, last: string) -> string { "done\u{0}tail" }
 @id("s.inner")
 fn inner(value: string, zero: i64) -> string {
-    let kept = "callee-local";
+    let kept = "callee\u{0}local";
     let divided = 1 / zero;
-    "done"
+    "done\u{0}tail"
 }
 @id("s.requires")
 fn guarded(value: string, flag: bool) -> string
     requires flag
-{ "body" }
+{ "body\u{0}" }
 @id("s.pre")
-fn pre(flag: bool) -> string { guarded("argument", flag) }
+fn pre(flag: bool) -> string { guarded("\u{0}argument", flag) }
 @id("s.post")
 fn post(flag: bool) -> string
     ensures flag
-{ "provisional" }
+{ "provisional\u{0}tail" }
 @id("s.before")
-fn before(zero: i64) -> string { let divided = 1 / zero; "late" }
+fn before(zero: i64) -> string { let divided = 1 / zero; "\u{0}late" }
 @id("s.local")
-fn local(zero: i64) -> i64 { let kept = "kept"; 1 / zero }
+fn local(zero: i64) -> i64 { let kept = "kept\u{0}tail"; 1 / zero }
 @id("s.late")
-fn late(zero: i64) -> string { three("first", 1 / zero, "must-not-run") }
+fn late(zero: i64) -> string { three("first\u{0}tail", 1 / zero, "must-not-run") }
 @id("s.nested")
-fn nested(zero: i64) -> string { three(sink("inner"), 1 / zero, "must-not-run") }
+fn nested(zero: i64) -> string { three(sink("inner\u{0}tail"), 1 / zero, "must-not-run") }
 @id("s.callee")
-fn callee(zero: i64) -> string { inner("argument", zero) }
+fn callee(zero: i64) -> string { inner("argument\u{0}tail", zero) }
 @id("s.condition")
 fn condition(limit: i64) -> i64 {
     let mut i = 0;
@@ -48,17 +48,17 @@ fn body(limit: i64) -> i64 {
 }
 @id("s.mixed")
 fn mixed(input: borrow Slice<u8>, zero: i64) -> i64 {
-    let text = "mixed"; let bytes = bytes_copy(input); 1 / zero
+    let text = "mixed\u{0}tail"; let bytes = bytes_copy(input); 1 / zero
 }
 @id("s.clone")
-fn cloned() -> string { let a = "alpha世界"; let b = a; a }
+fn cloned() -> string { let a = "alpha\u{0}世界"; let b = a; a }
 @id("s.branch")
-fn branch(flag: bool) -> string { if flag { "left" } else { "right" } }
+fn branch(flag: bool) -> string { if flag { "left\u{0}tail" } else { "\u{0}right" } }
 @id("s.match")
 fn matched(value: i64, flag: bool) -> string {
     match value {
-        0 if { let guard = "guard"; flag } => "yes",
-        _ => "fallback",
+        0 if { let guard = "guard\u{0}tail"; flag } => "yes\u{0}tail",
+        _ => "fallback\u{0}",
     }
 }
 @id("s.pressure")
@@ -74,7 +74,7 @@ fn pressure() -> string {
 fn empty() -> string { "" }
 @id("s.ops")
 fn ops(zero: i64) -> i64 {
-    let kept = string_concat("left", "right");
+    let kept = string_concat("left\u{0}", "right");
     let length = string_len(kept);
     let divided = 1 / zero;
     length

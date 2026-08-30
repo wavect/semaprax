@@ -20,7 +20,8 @@
     REQUIRE(fixture_live == 0); \
     size_t allocated = fixture_allocations, freed = fixture_frees; \
     REQUIRE((call) == 0 && value != &poison); \
-    REQUIRE(strcmp(value, (content)) == 0 && fixture_live == 1); \
+    REQUIRE(spx_string_length_v10(value) == sizeof(content) - 1u); \
+    REQUIRE(memcmp(value, (content), sizeof(content) - 1u) == 0 && fixture_live == 1); \
     REQUIRE(fixture_allocations - allocated == (expected)); \
     spx_string_drop(value); value = &poison; \
     REQUIRE(fixture_frees - freed == (expected) && fixture_live == 0); \
@@ -49,15 +50,15 @@ int main(void) {
     spx_slice_u8_v1 input = {.ptr = bytes, .len = sizeof(bytes)};
     for (unsigned repetition = 0; repetition < repetitions; ++repetition) {
         ARITHMETIC(FIXTURE_BEFORE(&context, 0, &value), 0, value == &poison);
-        STRING_SUCCESS(FIXTURE_BEFORE(&context, 1, &value), 1, "late");
+        STRING_SUCCESS(FIXTURE_BEFORE(&context, 1, &value), 1, "\0late");
         ARITHMETIC(FIXTURE_LOCAL(&context, 0, &number), 1, number == INT64_MIN);
         NUMBER_SUCCESS(FIXTURE_LOCAL(&context, 1, &number), 1, 1);
         ARITHMETIC(FIXTURE_LATE(&context, 0, &value), 1, value == &poison);
-        STRING_SUCCESS(FIXTURE_LATE(&context, 1, &value), 3, "done");
+        STRING_SUCCESS(FIXTURE_LATE(&context, 1, &value), 3, "done\0tail");
         ARITHMETIC(FIXTURE_NESTED(&context, 0, &value), 2, value == &poison);
-        STRING_SUCCESS(FIXTURE_NESTED(&context, 1, &value), 4, "done");
+        STRING_SUCCESS(FIXTURE_NESTED(&context, 1, &value), 4, "done\0tail");
         ARITHMETIC(FIXTURE_CALLEE(&context, 0, &value), 2, value == &poison);
-        STRING_SUCCESS(FIXTURE_CALLEE(&context, 1, &value), 3, "done");
+        STRING_SUCCESS(FIXTURE_CALLEE(&context, 1, &value), 3, "done\0tail");
         ARITHMETIC(FIXTURE_CONDITION(&context, 3, &number), 7, number == INT64_MIN);
         NUMBER_SUCCESS(FIXTURE_CONDITION(&context, 10, &number), 9, 4);
         ARITHMETIC(FIXTURE_BODY(&context, 2, &number), 6, number == INT64_MIN);
@@ -66,20 +67,20 @@ int main(void) {
         NUMBER_SUCCESS(FIXTURE_MIXED(&context, input, 1, &number), 2, 1);
         FAILURE(FIXTURE_PRE(&context, false, &value), 1,
                 "semaprax.contract.v1", 1, value == &poison);
-        STRING_SUCCESS(FIXTURE_PRE(&context, true, &value), 2, "body");
+        STRING_SUCCESS(FIXTURE_PRE(&context, true, &value), 2, "body\0");
         FAILURE(FIXTURE_POST(&context, false, &value), 1,
                 "semaprax.contract.v1", 2, value == &poison);
-        STRING_SUCCESS(FIXTURE_POST(&context, true, &value), 1, "provisional");
-        STRING_SUCCESS(FIXTURE_CLONE(&context, &value), 3, "alpha\xe4\xb8\x96\xe7\x95\x8c");
-        STRING_SUCCESS(FIXTURE_BRANCH(&context, true, &value), 1, "left");
-        STRING_SUCCESS(FIXTURE_BRANCH(&context, false, &value), 1, "right");
-        STRING_SUCCESS(FIXTURE_MATCH(&context, 0, true, &value), 2, "yes");
-        STRING_SUCCESS(FIXTURE_MATCH(&context, 0, false, &value), 2, "fallback");
-        STRING_SUCCESS(FIXTURE_MATCH(&context, 1, false, &value), 1, "fallback");
+        STRING_SUCCESS(FIXTURE_POST(&context, true, &value), 1, "provisional\0tail");
+        STRING_SUCCESS(FIXTURE_CLONE(&context, &value), 3, "alpha\0\xe4\xb8\x96\xe7\x95\x8c");
+        STRING_SUCCESS(FIXTURE_BRANCH(&context, true, &value), 1, "left\0tail");
+        STRING_SUCCESS(FIXTURE_BRANCH(&context, false, &value), 1, "\0right");
+        STRING_SUCCESS(FIXTURE_MATCH(&context, 0, true, &value), 2, "yes\0tail");
+        STRING_SUCCESS(FIXTURE_MATCH(&context, 0, false, &value), 2, "fallback\0");
+        STRING_SUCCESS(FIXTURE_MATCH(&context, 1, false, &value), 1, "fallback\0");
         STRING_SUCCESS(FIXTURE_PRESSURE(&context, &value), 18, "payload");
         STRING_SUCCESS(FIXTURE_EMPTY(&context, &value), 1, "");
-        ARITHMETIC(FIXTURE_OPS(&context, 0, &number), 4, number == INT64_MIN);
-        NUMBER_SUCCESS(FIXTURE_OPS(&context, 1, &number), 4, 9);
+        ARITHMETIC(FIXTURE_OPS(&context, 0, &number), 5, number == INT64_MIN);
+        NUMBER_SUCCESS(FIXTURE_OPS(&context, 1, &number), 5, 10);
         ARITHMETIC(FIXTURE_FROM_CHAR(&context, 0, &number), 2, number == INT64_MIN);
         NUMBER_SUCCESS(FIXTURE_FROM_CHAR(&context, 1, &number), 2, 1);
         ARITHMETIC(FIXTURE_EQUALITY(&context, 0, &boolean), 3, !boolean);

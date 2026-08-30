@@ -1,4 +1,4 @@
-//! Physical ordinary-C evidence, not the distinct v10 length-header provider.
+//! Physical ordinary-C evidence, not the distinct v10 provider boundary.
 //! The unchanged allocator observer wraps only the generated C translation unit.
 //! No interpreter String-signature or ordinary-Wasm drop parity is claimed.
 
@@ -9,6 +9,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::{codegen, format, graph, hir};
 
+#[path = "native_string_settlement_v1/contents.rs"]
+mod contents;
+
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 const SOURCE: &str = include_str!("native_string_settlement_v1/source.spx");
 const OBSERVER: &str = include_str!("native_owned_utf8_settlement_v1/allocations.c");
@@ -16,7 +19,7 @@ const GENERIC: &str = r#"
 module native.generic_string_settlement;
 @id("s.generic")
 fn generic<T>(value: T, zero: i64) -> i64 {
-    let text = string_from_char('λ');
+    let text = string_from_char('\0');
     let length = string_len_chars(text);
     let checked = 1 / zero;
     length
@@ -31,12 +34,12 @@ module native.stdout_string_settlement;
 permit { process.stdout.write }
 @id("s.main")
 fn main() -> i64 uses { process.stdout.write } {
-    let text = "kept-through-output";
+    let text = "\u{0}kept-through-output\u{0}世界";
     let data = [65u8, 0u8, 66u8];
     let view = array_as_slice(data);
     let written = stdout_write(view);
     let checked = 1 / 0;
-    7
+    if string_len(text) == 27 { 7 } else { 0 }
 }
 "#;
 
@@ -76,7 +79,8 @@ fn ordinary() -> String {
     }
     let generated = codegen::emit_c(&program).unwrap();
     assert_eq!(generated, codegen::emit_c(&program).unwrap());
-    assert!(!generated.contains("struct spx_string_v10"));
+    assert!(generated.contains("struct spx_string_v10"));
+    assert!(!generated.contains("strlen(spx_source)"));
     let mut aliases = String::new();
     for (name, id) in [
         ("BEFORE", "s.before"),
@@ -172,6 +176,9 @@ fn stdout(empty_success: bool) -> String {
     );
     let success = u8::from(empty_success);
     let expected = if empty_success { 7 } else { 0 };
+    // Success additionally clones the retained text for its byte-length read.
+    // Failure settles the local before reaching that read.
+    let allocations = if empty_success { 2 } else { 1 };
     format!(
         r#"{OBSERVER}
 {generated}
@@ -185,7 +192,7 @@ int main(void) {{
         REQUIRE(spx_stdout_transcript_run_v1(&result) == {success});
         REQUIRE(result.value == {expected} && result.transcript_length == 0);
         for (size_t i = 0; i < sizeof(result.transcript); ++i) REQUIRE(result.transcript[i] == 0);
-        REQUIRE(fixture_allocations - before == 1 && fixture_frees - freed == 1);
+        REQUIRE(fixture_allocations - before == {allocations} && fixture_frees - freed == {allocations});
         REQUIRE(fixture_live == 0 && fixture_allocations == fixture_frees);
     }}
     (void)puts("native-ordinary-strings-settled");

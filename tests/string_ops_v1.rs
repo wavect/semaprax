@@ -320,14 +320,14 @@ fn native_string_operations_execute_identically_at_o0_o2() {
     assert_eq!(generated, codegen::emit_c(&program).unwrap());
     // The dedicated helpers are emitted only when the operations are reached.
     assert!(generated.contains("spx_string_from_literal"));
-    assert!(generated.contains("spx_string_len"));
+    assert!(generated.contains("spx_string_len("));
     assert!(generated.contains("spx_string_concat"));
     assert!(generated.contains("spx_string_is_empty"));
 
     let plain = parse(PLAIN_STRINGS, Path::new("plain-strings.spx")).unwrap();
     let plain_c = codegen::emit_c(&plain).unwrap();
     assert!(plain_c.contains("spx_string_from_literal"));
-    assert!(!plain_c.contains("spx_string_len"));
+    assert!(!plain_c.contains("spx_string_len("));
     assert!(!plain_c.contains("spx_string_concat"));
 
     let symbol = |id: &str| format!("spx_decl_{}", hex_identity(id));

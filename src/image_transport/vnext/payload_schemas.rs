@@ -300,6 +300,22 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
         ],
     );
     put(
+        "semaprax.image-contract-delta-chunk.v1",
+        vec![
+            (
+                "report_schema",
+                json!({"const":"semaprax.project-candidate-contract-delta.v1"}),
+            ),
+            ("image_revision", digest()),
+            ("candidate_revision", digest()),
+            ("offset", uint()),
+            ("total_bytes", uint()),
+            ("chunk", text()),
+            ("next_offset", nullable(uint())),
+            ("source_authority", json!({"const":false})),
+        ],
+    );
+    put(
         "semaprax.image-interface-delta-chunk.v1",
         vec![
             (

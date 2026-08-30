@@ -35,6 +35,23 @@ struct Inventory {
     function_digests: BTreeMap<String, String>,
 }
 
+/// Shared compiler-derived callable facts and adjacency. Consumers may derive
+/// other reports, but must preserve their own bounded output/work accounting.
+pub(super) struct CallableFacts {
+    pub(super) functions: BTreeMap<String, Value>,
+    pub(super) calls: BTreeMap<String, BTreeSet<String>>,
+    pub(super) digests: BTreeMap<String, String>,
+}
+
+pub(super) fn callable_facts(revision: &ProjectRevision) -> Result<CallableFacts> {
+    let inventory = inventory(revision, &mut Budget::default())?;
+    Ok(CallableFacts {
+        functions: inventory.functions,
+        calls: inventory.calls,
+        digests: inventory.function_digests,
+    })
+}
+
 // Charges serialized retained facts before cloning them into repeated rows.
 // This is a logical work/storage bound, not an allocator or RSS assertion.
 #[derive(Default)]

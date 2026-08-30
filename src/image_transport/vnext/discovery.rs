@@ -63,6 +63,12 @@ pub(super) fn payload(
         }
         if methods
             .iter()
+            .any(|method| method.name == "candidate/contract-delta")
+        {
+            instructions.push_str(" Use candidate/contract-delta with candidate_revision to review whole-candidate contract changes and changed functions used by predicates against the candidate's original base. There is no target parameter. Reassemble the exact UTF-8 report using offset and next_offset; chunk_bytes is 1024 through 65536 (default 16384), and the report is bounded to 8 MiB. Its heterogeneous compiler report remains explicitly unbundled. Descriptive changes do not prove predicate implication, behavioral equivalence, or execution and grant no source authority.");
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "hole/recovery-export")
         {
             instructions.push_str(" Use hole/recovery-export to save prior valid history and pending selectors. hole/recovery-restore requires the same exact original source base and returns only a draft; every remaining hole must still be filled before completion. Recovery does not restore approvals or implicitly rebase after source edits.");
@@ -130,8 +136,10 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         "workspace/refresh" | "workspace/refresh-preview" => "workspace_refresh",
         "candidate/test" => "candidate_test",
         "candidate/build" => "candidate_build",
-        "candidate/interface-delta" | "hole/recovery-export" | "hole/recovery-restore" =>
-            "candidate_prepare",
+        "candidate/interface-delta"
+        | "candidate/contract-delta"
+        | "hole/recovery-export"
+        | "hole/recovery-restore" => "candidate_prepare",
         "candidate/commit" | "candidate/commit-report" | "source-commit/status" => "source_commit",
         name if name == "candidate/attempt"
             || name == "candidate/symbol-diagnostics"
@@ -215,6 +223,7 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
             "protocol/conformance" => Some(crate::project::IMAGE_PROTOCOL_CONFORMANCE_SCHEMA),
             "candidate/interface-catalog" => Some("semaprax.project-interface-change-catalog.v1"),
             "candidate/interface-delta" => Some("semaprax.project-candidate-interface-delta.v1"),
+            "candidate/contract-delta" => Some("semaprax.project-candidate-contract-delta.v1"),
             "candidate/symbol-diagnostics" => {
                 Some("semaprax.project-candidate-symbol-diagnostics.v1")
             }
@@ -597,6 +606,7 @@ mod tests {
             assert!(source.contains("WorkspaceRefreshParams"));
             assert!(source.contains("request_workspace_refresh"));
             assert!(source.contains("request_candidate_interface_delta"));
+            assert!(source.contains("request_candidate_contract_delta"));
             assert!(source.contains("request_candidate_symbol_diagnostics"));
             assert!(source.contains("expected_report_revision"));
             assert!(source.contains("decode_request_candidate_apply_intent"));

@@ -42,6 +42,11 @@ member-function dependencies. It preserves this selected-delta schema and its
 bytes; the existing mapping-only `source_static_conformance` facet does not
 substitute for that broader report.
 
+The additive [Contract Delta v1](PROJECT-CANDIDATE-CONTRACT-DELTA-V1.md)
+compares ordered predicates and their static callable dependencies across the
+whole candidate, without emitting the target artifacts in this selected report.
+It preserves this report's schema and exact comparison rules.
+
 ## Projections and comparison
 
 Every available declaration retains its existing typed identity/index facts and

@@ -9,6 +9,12 @@
   unavailable CLI route. This is not provenance, complete library closure,
   executable isolation or a production-readiness promotion.
 
+- Added whole-candidate contract comparisons with ordered checked predicates,
+  source provenance and static callable-dependency facts. Exact candidate replay
+  verifies report bytes; v5 exposes the read only under candidate preparation.
+  No target execution, logical contract proof or publication authority is added.
+  Regression evidence is authored, unrun.
+
 - Authored a bounded borrowed-file doctor input primitive in the existing OS
   quarantine and unsafe-free facade. Linux checks immutable memory-file seals
   before metadata/read access and never duplicates or closes an untrusted
@@ -22,6 +28,12 @@
   checks without tool access or fallback. Authored selector, identity, canonical
   report and no-execution regressions are unrun. The required `profile` report
   row is additive; this is not full no-network enforcement or WP-05 promotion.
+
+- Extended function movement to checked Copy record/variant values with
+  stable-ID type bindings, destination type imports and rewritten aggregate
+  syntax. Exact source replay and rebuilt semantic identities remain required;
+  ownership, export-origin, generic-import and unsafe boundaries stay closed.
+  Alias, replay and rejection regressions are authored, unrun.
 
 - Extended function extraction to checked Copy nominal values and immutable
   whole-root field captures. Body-value type facts share the existing bounded

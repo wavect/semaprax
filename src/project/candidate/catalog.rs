@@ -197,7 +197,7 @@ impl ProjectCandidate {
                     operations.push(json!({
                         "kind":"move_declaration", "required_fields":["kind","target","destination"],
                         "destination_anchors":destinations,
-                        "constraints":["distinct_existing_module", "preserve_exact_stable_identity", "migrate_authenticated_call_bindings_and_import_origins", "preserve_manifest_exports_and_effect_budgets", "full_candidate_revalidation"],
+                        "constraints":["distinct_existing_module", "preserve_exact_stable_identity", "migrate_authenticated_call_bindings_and_import_origins", "preserve_checked_nominal_type_identities", "migrate_authenticated_type_bindings", "copy_values_only", "preserve_manifest_exports_and_effect_budgets", "full_candidate_revalidation"],
                     }));
                 }
             }

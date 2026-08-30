@@ -1,17 +1,18 @@
-//! Relocate one checked scalar declaration and reconstruct its lexical bindings.
+//! Relocate one checked Copy declaration and reconstruct its lexical bindings.
 //! No HIR is mutated or deserialized; full Project admission remains mandatory.
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::Value;
 
-use crate::ast::{
-    ExprKind, Function, ModuleUse, ModuleUseKind, ParamMode, Program, Span, Statement, Type,
-};
+use crate::ast::{ExprKind, MatchMode, ModuleUse, ModuleUseKind, Program, Span, Statement};
 use crate::diagnostic::Diagnostic;
 use crate::project::{ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 
 use super::{intent, parse_revision};
+
+#[path = "movement_types.rs"]
+mod types;
 
 const MAX_DEPENDENCIES: usize = 64;
 const MAX_ALIASES: usize = 65_536;
@@ -31,6 +32,7 @@ struct Plan {
     calls: BTreeMap<String, String>,
     dependencies: BTreeMap<String, String>,
     local_names: BTreeSet<String>,
+    types: types::TypeMovePlan,
 }
 
 pub(super) fn apply(
@@ -166,6 +168,8 @@ pub(super) fn apply(
         }
         Ok(())
     })?;
+    plan.types
+        .relocate(&mut programs[destination], &mut function, &mut occupied)?;
     programs[destination].functions.push(function);
     Ok((
         intent::IntentSummary {
@@ -214,6 +218,7 @@ pub(super) fn validate(
             "movement changed admitted caller, phase, or callee identity counts",
         ));
     }
+    types::validate(before, after, text(request, "target")?)?;
     Ok(())
 }
 
@@ -295,7 +300,7 @@ fn plan(revision: &ProjectRevision, programs: &[Program], target: &str) -> Resul
     let function = &programs[source].functions[index];
     if !function.explicit_id
         || function.name == "main"
-        || !scalar_signature(function)
+        || !function.type_parameters.is_empty()
         || revision
             .manifest()
             .web_exports()
@@ -303,9 +308,10 @@ fn plan(revision: &ProjectRevision, programs: &[Program], target: &str) -> Resul
             .any(|id| id == target)
     {
         return Err(invalid(
-            "movement requires an explicit non-exported monomorphic scalar function",
+            "movement requires an explicit non-exported monomorphic Copy function",
         ));
     }
+    let types = types::plan(revision, &programs[source], function)?;
     let bindings = intent::call_bindings(&programs[source])?;
     let mut calls = BTreeMap::new();
     let mut dependencies = BTreeMap::new();
@@ -314,6 +320,7 @@ fn plan(revision: &ProjectRevision, programs: &[Program], target: &str) -> Resul
         .iter()
         .map(|p| p.name.clone())
         .collect::<BTreeSet<_>>();
+    local_names.extend(types.local_names().iter().cloned());
     let mut inspected = function.clone();
     let mut nodes = 0;
     intent::walk_function(&mut inspected, &mut nodes, &mut |expression| {
@@ -326,16 +333,19 @@ fn plan(revision: &ProjectRevision, programs: &[Program], target: &str) -> Resul
             | ExprKind::Var(_)
             | ExprKind::Unary { .. }
             | ExprKind::Binary { .. }
-            | ExprKind::If { .. } => {}
+            | ExprKind::If { .. }
+            | ExprKind::ConstructRecord { .. }
+            | ExprKind::ConstructVariant { .. }
+            | ExprKind::Project { .. }
+            | ExprKind::UpdateRecord { .. }
+            | ExprKind::Match {
+                mode: MatchMode::Value,
+                ..
+            } => {}
             ExprKind::Block { statements, .. } => {
                 for statement in statements {
                     match statement {
-                        Statement::Let { name, declared, .. } => {
-                            if declared.as_ref().is_some_and(|ty| !scalar(ty)) {
-                                return Err(invalid(
-                                    "movement does not relocate named or owned local types",
-                                ));
-                            }
+                        Statement::Let { name, .. } => {
                             local_names.insert(name.clone());
                         }
                         Statement::Assign { field: None, .. } | Statement::While { .. } => {}
@@ -360,17 +370,26 @@ fn plan(revision: &ProjectRevision, programs: &[Program], target: &str) -> Resul
                 })?;
                 let (provider, function) = locate(programs, id)?;
                 if !programs[provider].functions[function].explicit_id
-                    || !scalar_signature(&programs[provider].functions[function])
+                    || !programs[provider].functions[function]
+                        .type_parameters
+                        .is_empty()
                 {
                     return Err(invalid(
-                        "movement dependency requires an explicit monomorphic scalar signature",
+                        "movement dependency requires an explicit monomorphic Copy signature",
                     ));
+                }
+                if !dependencies.contains_key(id) {
+                    types::validate_signature(
+                        revision,
+                        &programs[provider],
+                        &programs[provider].functions[function],
+                    )?;
                 }
                 calls.insert(name.clone(), id.clone());
                 dependencies.insert(id.clone(), programs[provider].module.clone());
-                if dependencies.len() > MAX_DEPENDENCIES {
+                if dependencies.len().saturating_add(types.dependency_count()) > MAX_DEPENDENCIES {
                     return Err(limit(
-                        "movement exceeds sixty-four direct callable dependencies",
+                        "movement exceeds sixty-four combined callable and nominal type dependencies",
                     ));
                 }
             }
@@ -382,12 +401,18 @@ fn plan(revision: &ProjectRevision, programs: &[Program], target: &str) -> Resul
         }
         Ok(())
     })?;
+    if dependencies.len().saturating_add(types.dependency_count()) > MAX_DEPENDENCIES {
+        return Err(limit(
+            "movement exceeds sixty-four combined callable and nominal type dependencies",
+        ));
+    }
     Ok(Plan {
         source,
         function: index,
         calls,
         dependencies,
         local_names,
+        types,
     })
 }
 
@@ -441,22 +466,6 @@ fn choose_alias(preferred: &str, occupied: &mut BTreeSet<String>) -> Result<Stri
     Err(limit(
         "movement cannot allocate a bounded destination call alias",
     ))
-}
-
-fn scalar_signature(function: &Function) -> bool {
-    function.type_parameters.is_empty()
-        && scalar(&function.return_type)
-        && function
-            .params
-            .iter()
-            .all(|p| p.mode == ParamMode::Value && scalar(&p.ty))
-}
-
-fn scalar(ty: &Type) -> bool {
-    matches!(
-        ty,
-        Type::I64 | Type::I32 | Type::U8 | Type::Usize | Type::Bool
-    )
 }
 
 fn locate(programs: &[Program], id: &str) -> Result<(usize, usize)> {

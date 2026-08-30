@@ -695,6 +695,37 @@ host-provisioned package provenance, raw-carrier fault coverage and physical
 cleanup traces are separate obligations. No production artifact or schema
 changes follow from completing this evidence fixture.
 
+### Authored offline installed-package gate
+
+`tests/frame_payload_product_v1/npm_installation.rs` adds an explicitly
+provisioned v8 gate for both baseline and display-renamed frame projects. It
+publishes the real six-file package, checks it against the retained verified
+inline carrier, and runs offline `npm pack`. An independent SHA-512 of the
+actual tarball must match both the pack report and the local dependency's
+integrity in a closed, two-package-row lockfile before offline `npm ci`.
+The lockfile must remain unchanged and all six installed files must equal the
+retained compiler artifacts.
+
+The consumer imports the installed package by name, resolves its exported Wasm
+and metadata assets, and runs the unchanged nine-case corpus and 72-case
+supplement. Strict TypeScript accepts the same package-name import and rejects
+wrong argument types and unguarded Result access. Provision `NODE` as an
+absolute Node executable, `NPM_CLI` as an absolute `npm-cli.js`, and `TSC_CLI`
+as an absolute TypeScript 5.8.3 `tsc.js`; invoking both JavaScript tools through
+Node avoids platform-specific command shims. The existing full-toolchain build
+prerequisites also apply, including Windows native Cargo/linker provisioning.
+
+```sh
+cargo test --locked -p semaprax --test frame_payload_product_v1 npm_installation::installed_owned_npm_package_resolves_and_runs_without_compiler -- --ignored --exact
+```
+
+Missing tools fail this selected gate instead of skipping it. Installation and
+consumption follow package generation without invoking SEMAPRAX or a native
+compiler; TypeScript is used separately for declaration checking. Offline npm
+flags, disabled lifecycle scripts, private cache and cleared npm configuration
+are not OS-level network confinement. This gate is authored and unrun, covers
+v8 only, and does not establish registry publication or hosted promotion.
+
 ## Nonclaims
 
 Public Owned Data API v1 does not claim public records or authored variants,

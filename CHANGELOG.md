@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added an authored, unrun v8 installed npm consumer gate for baseline and
+  renamed frame projects: real offline pack/locked install, independently
+  checked tarball integrity, exact installed bytes, package-name Node imports,
+  both existing corpora, and strict TypeScript positive/negative consumers.
+  No production artifact, schema, dependency, or completion status changes.
+
 - Bound v9 native-package descriptor framing before hashing, reusing the
   existing replay guard. Invalid framing now consistently reports a descriptor
   error after provider validation, including when the digest is also wrong;

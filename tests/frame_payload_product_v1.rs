@@ -36,6 +36,8 @@ mod adversarial_consumers;
 mod backend_equivalence;
 #[path = "frame_payload_product_v1/consumer_acceptance.rs"]
 mod consumer_acceptance;
+#[path = "frame_payload_product_v1/npm_installation.rs"]
+mod npm_installation;
 #[path = "frame_payload_product_v1/raw_wasm.rs"]
 mod raw_wasm;
 #[path = "frame_payload_product_v1/subject_binding.rs"]

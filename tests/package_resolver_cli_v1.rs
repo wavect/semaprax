@@ -41,7 +41,16 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     const NEW_LINE: &str = "semaprax package-resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]\n";
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert_eq!(stdout.matches(NEW_LINE).count(), 1);
-    let legacy = stdout.replacen(NEW_LINE, "", 1);
+    let current = stdout.replacen(NEW_LINE, "", 1);
+    const IMAGE_LINES: &str = concat!(
+        "semaprax project-image <manifest>\n",
+        "semaprax project-image-verify <manifest> <image.json>\n",
+        "semaprax project-symbol <manifest> <stable-id>\n",
+    );
+    assert_eq!(current.matches(IMAGE_LINES).count(), 1);
+    // Remove only the exact contiguous additive image commands, retaining the
+    // previous whole-output known answer for every other byte.
+    let legacy = current.replacen(IMAGE_LINES, "", 1);
     // The additive interpret-strings command contributes exactly 106 bytes.
     // Keep a whole-output known answer; do not relax unrelated help preservation.
     const STRINGS_LINE: &str = "semaprax interpret-strings <file> --function <name|stable-id> [--arg <scalar literal>]... [--max-bytes N]\n";

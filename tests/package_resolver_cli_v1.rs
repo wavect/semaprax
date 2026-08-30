@@ -43,8 +43,10 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     assert_eq!(stdout.matches(NEW_LINE).count(), 1);
     let current = stdout.replacen(NEW_LINE, "", 1);
     const GIT_PUBLISH_LINE: &str = "semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\n";
-    assert_eq!(current.len(), 5_770);
-    assert_eq!(fnv1a64(current.as_bytes()), 0xdb0a_53ee_5f16_ba3b);
+    const WORKSPACE_LINE: &str = "semaprax serve-workspace <manifest> <host-policy.json>\n";
+    assert_eq!(current.len(), 5_825);
+    assert_eq!(fnv1a64(current.as_bytes()), 0x484f_8dd0_f2a6_dee9);
+    assert_eq!(current.matches(WORKSPACE_LINE).count(), 1);
     assert_eq!(current.matches(GIT_PUBLISH_LINE).count(), 1);
     // The thirteen additive Project-image commands contribute exactly 642 bytes.
     // This pin was derived by data-only help-literal decoding, calibrated
@@ -64,14 +66,23 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         "semaprax serve-diagnostics <manifest>\n",
         "semaprax serve-diagnostics-tested <manifest>\n",
     ];
-    // Preserve the complete upstream fourteen-command block before removing
-    // only its new line, then retain every earlier whole-output pin below.
+    // Preserve both additive blocks before removing their respective new lines,
+    // then retain every earlier whole-output pin below.
     let image_lines = PROJECT_IMAGE_LINES.concat();
     let current_image_lines = image_lines.replacen(
         PROJECT_IMAGE_LINES[7],
         &format!("{}{GIT_PUBLISH_LINE}", PROJECT_IMAGE_LINES[7]),
         1,
     );
+    let workspace_image_lines = current_image_lines.replacen(
+        GIT_PUBLISH_LINE,
+        &format!("{GIT_PUBLISH_LINE}{WORKSPACE_LINE}"),
+        1,
+    );
+    assert_eq!(current.matches(workspace_image_lines.as_str()).count(), 1);
+    let current = current.replacen(WORKSPACE_LINE, "", 1);
+    assert_eq!(current.len(), 5_770);
+    assert_eq!(fnv1a64(current.as_bytes()), 0xdb0a_53ee_5f16_ba3b);
     assert_eq!(current.matches(current_image_lines.as_str()).count(), 1);
     let current = current.replacen(GIT_PUBLISH_LINE, "", 1);
     assert_eq!(current.len(), 5_658);

@@ -161,6 +161,12 @@ pub struct ProjectCandidate {
     digest: String,
 }
 
+pub(super) fn target_projection_facts(
+    revision: &ProjectRevision,
+) -> Result<Value, Vec<Diagnostic>> {
+    wire::target_facts(revision)
+}
+
 impl ProjectCandidate {
     pub fn open(
         base: Arc<ProjectRevision>,

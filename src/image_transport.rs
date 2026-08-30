@@ -23,9 +23,14 @@ use crate::workspace_analysis::{
 };
 
 mod candidates;
+mod vnext;
 pub use candidates::{CANDIDATE_PROTOCOL_SCHEMA, CANDIDATE_RESULT_SCHEMA};
 pub use candidates::{DIAGNOSTIC_PROTOCOL_SCHEMA, DIAGNOSTIC_RESULT_SCHEMA};
 pub use candidates::{TEST_PROTOCOL_SCHEMA, TEST_RESULT_SCHEMA};
+pub use vnext::{
+    serve_vnext, GitCommitHost, VNextPolicy, VNextSession, VNextSessionFailure,
+    VNEXT_PROTOCOL_SCHEMA, VNEXT_RESULT_SCHEMA,
+};
 
 pub const PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v1";
 pub const RESULT_SCHEMA: &str = "semaprax.image-agent-result.v1";
@@ -106,6 +111,7 @@ enum Operation {
     FunctionSummary,
     Facet,
     Candidate(candidates::Action),
+    VNext(vnext::Action),
 }
 
 struct Method {
@@ -639,6 +645,12 @@ fn dispatch(
         }
         Operation::Candidate(_) => {
             unreachable!("candidate operations use the isolated v2 dispatcher")
+        }
+        Operation::VNext(_) => {
+            return Err(vec![Diagnostic::io(
+                "SPX-G280",
+                "v5 operations require an explicitly selected v5 session",
+            )]);
         }
     };
     Ok(value)

@@ -1,0 +1,73 @@
+export type RpcId = number | string;
+export type Digest = `sha256:${string}`;
+export type JsonObject = { [key: string]: unknown };
+export interface ResultEnvelope { schema: string; protocol: string; image_revision: Digest; project_revision: Digest; payload: unknown; }
+export interface RpcError { code: number; message: string; }
+const object = (v: unknown): v is JsonObject => v !== null && typeof v === 'object' && !Array.isArray(v);
+function same(a: any, b: any): boolean {
+  if (a === b) return true;
+  if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((v,i)=>same(v,b[i]));
+  return object(a) && object(b) && Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(k=>Object.hasOwn(b,k) && same(a[k],b[k]));
+}
+function check(v: any, s: any, depth = 0): void {
+  if (depth > 128) throw Error('shape depth exceeded');
+  if (s.$ref) {
+    const doc = META.documents[s.$ref];
+    if (doc) return check(v, doc, depth+1);
+    if (META.unbundled.includes(s.$ref) && object(v) && v.schema === s.$ref.slice(4)) return;
+    throw Error('unresolved or foreign payload schema');
+  }
+  for (const kind of ['oneOf','anyOf']) if (s[kind]) {
+    const count=s[kind].filter((branch:any)=>{try {check(v,branch,depth+1);return true;}catch{return false;}}).length;
+    if (kind==='oneOf' ? count!==1 : count===0) throw Error('shape alternatives mismatch');
+  }
+  if (Object.hasOwn(s,'const') && !same(v,s.const)) throw Error('constant mismatch');
+  if (s.enum && !s.enum.some((x:any)=>same(x,v))) throw Error('choice mismatch');
+  if (s.type==='null' && v!==null) throw Error('null required');
+  if (s.type==='boolean' && typeof v!=='boolean') throw Error('boolean required');
+  if (s.type==='integer' && (!Number.isSafeInteger(v) || v<(s.minimum??-Number.MAX_SAFE_INTEGER) || v>(s.maximum??Number.MAX_SAFE_INTEGER))) throw Error('integer bound');
+  if (s.type==='string') {
+    if (typeof v!=='string' || [...v].length<(s.minLength??0) || [...v].length>(s.maxLength??Infinity) || new TextEncoder().encode(v).length>(s['x-max-utf8-bytes']??Infinity) || (s.pattern && !new RegExp(s.pattern,'u').test(v))) throw Error('string bound/format');
+  }
+  if (s.type==='object') {
+    if (!object(v)) throw Error('object required');
+    for (const key of s.required??[]) if (!Object.hasOwn(v,key)) throw Error('missing field '+key);
+    for (const key of Object.keys(v)) {
+      if (s.properties && Object.hasOwn(s.properties,key)) check(v[key],s.properties[key],depth+1);
+      else if (s.additionalProperties===false) throw Error('unknown field '+key);
+    }
+  }
+  if (s.type==='array') {
+    if (!Array.isArray(v) || v.length<(s.minItems??0) || v.length>(s.maxItems??Infinity)) throw Error('array bound');
+    if (s.items) for (const item of v) check(item,s.items,depth+1);
+  }
+}
+function idCheck(id: RpcId): void {
+  if (typeof id==='number') { if (!Number.isSafeInteger(id) || id<0) throw Error('unsafe request id; use string'); }
+  else check(id,{type:'string',minLength:1,'x-max-utf8-bytes':128,pattern:'^[^\u0000-\u001f\u007f-\u009f]+$'});
+}
+export function request(id: RpcId, method: string, params: object): string {
+  idCheck(id);
+  if (!Object.hasOwn(META.methods,method)) throw Error('method unavailable');
+  // Nested constructor schemas are bundled for tools; only the outer object
+  // type is checked here. Compiler admission owns nested semantic construction.
+  const spec=structuredClone(META.methods[method].params);
+  for (const field of Object.values(spec.properties) as any[]) delete field.$ref;
+  check(params,spec);
+  const line=JSON.stringify({jsonrpc:'2.0',id,method,params});
+  if (new TextEncoder().encode(line).length>65536) throw Error('request byte bound');
+  return line+'\n';
+}
+export function decode(line: string, method: string, expectedId: RpcId): ResultEnvelope {
+  idCheck(expectedId);
+  if (!Object.hasOwn(META.methods,method) || new TextEncoder().encode(line).length>1048576) throw Error('response bound/method');
+  const value=JSON.parse(line,(_key,v)=>{if(typeof v==='number' && Number.isInteger(v) && !Number.isSafeInteger(v)) throw Error('unsafe response integer');return v;});
+  if (!object(value) || value.jsonrpc!=='2.0') throw Error('response envelope');
+  if (Object.hasOwn(value,'error')) {
+    check(value,{type:'object',required:['jsonrpc','id','error'],additionalProperties:false,properties:{jsonrpc:{const:'2.0'},id:{},error:{type:'object',required:['code','message'],additionalProperties:false,properties:{code:{type:'integer'},message:{type:'string'}}}}});
+    if(value.id!==null && value.id!==expectedId) throw Error('response id mismatch');
+    throw Error(JSON.stringify(value.error));
+  }
+  check(value,{type:'object',required:['jsonrpc','id','result'],additionalProperties:false,properties:{jsonrpc:{const:'2.0'},id:{const:expectedId},result:{type:'object',required:['schema','protocol','image_revision','project_revision','payload'],additionalProperties:false,properties:{schema:{const:RESULT_SCHEMA},protocol:{const:PROTOCOL},image_revision:{type:'string',pattern:'^sha256:[0-9a-f]{64}$'},project_revision:{type:'string',pattern:'^sha256:[0-9a-f]{64}$'},payload:META.methods[method].payload}}}});
+  return value.result as unknown as ResultEnvelope;
+}

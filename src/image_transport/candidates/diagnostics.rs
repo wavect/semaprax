@@ -153,7 +153,7 @@ const METHODS_V4: &[Method] = &[
         "semaprax.image-semantic-delta-chunk.v1"
     ),
 ];
-fn methods(test_enabled: bool) -> Vec<&'static Method> {
+pub(in crate::image_transport) fn methods(test_enabled: bool) -> Vec<&'static Method> {
     let mut methods = super::methods(test_enabled);
     methods.extend(METHODS_V4);
     methods.sort_by_key(|method| method.name);
@@ -268,7 +268,7 @@ pub(super) fn handle(
         ),
     }
 }
-fn prepare(
+pub(in crate::image_transport) fn prepare(
     method: &Method,
     params: &Map<String, Value>,
     image: &ProjectSemanticImage,

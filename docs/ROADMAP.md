@@ -147,6 +147,29 @@ Do not widen the existing literal/direct-call admission to make a fixture pass.
 
 ## Graph-operational development foundation
 
+The additive [workspace protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md) now composes
+host-selected semantic, candidate, diagnostic, test, pathless-build and optional
+startup-approved Git publication slices. Execute the capability-denial matrix,
+legacy-preservation cases, cold refresh failures, retained-candidate/cleared-draft
+lifecycle, carrier replay and publication uncertainty cases before promotion.
+The [typed clients and schema bundle](IMAGE-AGENT-DISCOVERY-V5.md) still need
+executed cross-language checks and completion of explicitly opaque payload
+references; outer parameter typing is not complete semantic-report validation.
+
+For source publication, preserve the supported two-session workflow: review and
+export first, then use a new independently host-approved commit session to restore
+and publish the exact candidate. No request or later approval may relax the
+startup authority boundary; provider deadlines are not reset. Broader interactive
+approval lifecycle, long-lived publication authority and raw-checkout integration
+remain future work requiring explicit contract decisions.
+
+Live refresh currently performs a cold source rebuild, and candidate builds
+produce bounded Web/npm artifact reports through actual existing carrier
+construction/replay. Warm checked-HIR reuse, filesystem artifact materialization,
+general package-consumer relationships and measured task-level cost improvements
+remain open. No compiler, test, client snippet, benchmark or hosted gate was run
+for this v5 batch; the full programme stays Partial.
+
 Actual source-exact parse/format reuse, expression holes, owning-Bytes parameter
 mapping and typed diagnostic repair history now have authored implementations.
 Separate canonical Git publication now has bounded Unix bare SHA1/SHA256 routes;
@@ -181,7 +204,7 @@ broader ownership-sensitive signature migration and incomplete-expression states
 Expression replacement, additive contracts and conservative stable-ID
 rebase/merge now have authored, unrun implementations; broaden these alongside
 general declaration/record/interface operations and full semantic conflict coverage;
-connect separately authorized test/build/source-commit capabilities; then
+broaden and validate the separately authorized test/build/source-commit slices; then
 establish incremental reuse, persistence, general semantic reconciliation, and representative
 task-level benchmarks without reducing the original goal.
 

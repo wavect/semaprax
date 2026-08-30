@@ -1,0 +1,117 @@
+RpcId: TypeAlias = int | str
+class ResultEnvelope(TypedDict):
+    schema: str
+    protocol: str
+    image_revision: str
+    project_revision: str
+    payload: Any
+class RpcError(TypedDict):
+    code: int
+    message: str
+
+def _same(left: Any, right: Any) -> bool:
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, dict):
+        return left.keys() == right.keys() and all(_same(left[key], right[key]) for key in left)
+    if isinstance(left, list):
+        return len(left) == len(right) and all(_same(a, b) for a, b in zip(left, right))
+    return left == right
+
+def _check(value: Any, schema: dict[str, Any], depth: int = 0) -> None:
+    if depth > 128:
+        raise ValueError('shape depth exceeded')
+    if '$ref' in schema:
+        reference = schema['$ref']
+        if reference in META['documents']:
+            return _check(value, META['documents'][reference], depth + 1)
+        if reference in META['unbundled'] and isinstance(value, dict) and value.get('schema') == reference[4:]:
+            return
+        raise ValueError('unresolved or foreign payload schema')
+    for alternative in ('oneOf', 'anyOf'):
+        if alternative in schema:
+            count = 0
+            for branch in schema[alternative]:
+                try:
+                    _check(value, branch, depth + 1)
+                    count += 1
+                except ValueError:
+                    pass
+            if (count != 1 if alternative == 'oneOf' else count == 0):
+                raise ValueError('shape alternatives mismatch')
+    if 'const' in schema and not _same(value, schema['const']):
+        raise ValueError('constant mismatch')
+    if 'enum' in schema and value not in schema['enum']:
+        raise ValueError('choice mismatch')
+    kind = schema.get('type')
+    if kind == 'null' and value is not None:
+        raise ValueError('null required')
+    if kind == 'boolean' and type(value) is not bool:
+        raise ValueError('boolean required')
+    if kind == 'integer' and (type(value) is not int or value < schema.get('minimum', -(2**63)) or value > schema.get('maximum', 2**64-1)):
+        raise ValueError('integer bound')
+    if kind == 'string':
+        if not isinstance(value, str) or len(value) < schema.get('minLength', 0) or len(value) > schema.get('maxLength', 2**64) or len(value.encode('utf-8')) > schema.get('x-max-utf8-bytes', 2**64) or ('pattern' in schema and re.search(schema['pattern'], value) is None):
+            raise ValueError('string bound/format')
+    if kind == 'object':
+        if not isinstance(value, dict):
+            raise ValueError('object required')
+        if any(key not in value for key in schema.get('required', [])):
+            raise ValueError('missing field')
+        for key, item in value.items():
+            if key in schema.get('properties', {}):
+                _check(item, schema['properties'][key], depth + 1)
+            elif schema.get('additionalProperties') is False:
+                raise ValueError('unknown field: ' + key)
+    if kind == 'array':
+        if not isinstance(value, list) or len(value) < schema.get('minItems', 0) or len(value) > schema.get('maxItems', 2**64):
+            raise ValueError('array bound')
+        if 'items' in schema:
+            for item in value:
+                _check(item, schema['items'], depth + 1)
+
+def _id(request_id: RpcId) -> None:
+    if type(request_id) is int:
+        if request_id < 0 or request_id > 2**64-1:
+            raise ValueError('request id bound')
+    else:
+        _check(request_id, {'type':'string', 'minLength':1, 'x-max-utf8-bytes':128, 'pattern':r'^[^\u0000-\u001f\u007f-\u009f]+$'})
+
+def request(request_id: RpcId, method: str, params: dict[str, Any]) -> str:
+    _id(request_id)
+    if method not in META['methods']:
+        raise ValueError('method unavailable')
+    spec = json.loads(json.dumps(META['methods'][method]['params']))
+    for field in spec['properties'].values():
+        field.pop('$ref', None)  # Nested semantic constructors remain compiler-admitted.
+    _check(params, spec)
+    line = json.dumps(dict(jsonrpc='2.0', id=request_id, method=method, params=params), ensure_ascii=False, allow_nan=False, separators=(',', ':'))
+    if len(line.encode('utf-8')) > 65536:
+        raise ValueError('request byte bound')
+    return line + '\n'
+
+def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('duplicate response key')
+        result[key] = value
+    return result
+
+def decode(line: str, method: str, request_id: RpcId) -> ResultEnvelope:
+    _id(request_id)
+    if method not in META['methods'] or len(line.encode('utf-8')) > 1048576:
+        raise ValueError('response bound/method')
+    def invalid_number(value: str) -> Any:
+        raise ValueError('non-JSON number: ' + value)
+    value = json.loads(line, object_pairs_hook=_pairs, parse_constant=invalid_number)
+    if not isinstance(value, dict) or value.get('jsonrpc') != '2.0':
+        raise ValueError('response envelope')
+    if 'error' in value:
+        _check(value, {'type':'object','required':['jsonrpc','id','error'],'additionalProperties':False,'properties':{'jsonrpc':{'const':'2.0'},'id':{},'error':{'type':'object','required':['code','message'],'additionalProperties':False,'properties':{'code':{'type':'integer'},'message':{'type':'string'}}}}})
+        if value['id'] is not None and (value['id'] != request_id or type(value['id']) is not type(request_id)):
+            raise ValueError('response id mismatch')
+        raise ValueError(value['error'])
+    digest = {'type':'string','pattern':r'^sha256:[0-9a-f]{64}$'}
+    _check(value, {'type':'object','required':['jsonrpc','id','result'],'additionalProperties':False,'properties':{'jsonrpc':{'const':'2.0'},'id':{'const':request_id},'result':{'type':'object','required':['schema','protocol','image_revision','project_revision','payload'],'additionalProperties':False,'properties':{'schema':{'const':RESULT_SCHEMA},'protocol':{'const':PROTOCOL},'image_revision':digest,'project_revision':digest,'payload':META['methods'][method]['payload']}}}})
+    return value['result']

@@ -122,6 +122,17 @@ CLI grammar, pre-write parent/stage substitution, inventory rejection, and
 fresh-output tests in
 `crates/semaprax-toolchain/tests/cli_new_project_v1.rs`.
 
+The new-project destination and quickstart output-parent rejection fixtures
+must create a real directory link before exercising rejection. They share one
+test-only helper: Unix uses a symbolic link; Windows uses a directory junction
+and verifies its reparse attribute and exact fixture-owned target. Creation
+failure fails the test instead of silently omitting the hostile case when
+Windows symbolic-link privilege is unavailable. The rejection assertions are
+unconditional and retain the link, foreign sentinel bytes and exact target
+inventory before explicit link cleanup. This is Windows junction evidence,
+not evidence that privileged Windows symbolic-link creation was exercised.
+Production path admission and successful template bytes are unchanged.
+
 New regression evidence must cover successful relative and parent-relative
 inputs; substitution after physical rename of the published directory and its
 parent; original ancestor-alias displacement; unchanged foreign sentinels and

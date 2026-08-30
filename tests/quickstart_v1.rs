@@ -2,6 +2,8 @@
 mod full_toolchain;
 #[path = "support/native_rust_cargo.rs"]
 mod native_rust_cargo;
+#[path = "support/project_directory_link.rs"]
+mod project_directory_link;
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -182,13 +184,19 @@ fn failed_build_parent_cleanup_preserves_foreign_bytes_and_rejects_bad_parents()
     assert!(build_cli::ProjectOutputParent::prepare(&file_parent.join("web")).is_err());
     assert_eq!(std::fs::read(&file_parent).unwrap(), b"not a directory\n");
 
-    let target = fixture.root.join("symlink-target");
-    std::fs::create_dir(&target).unwrap();
-    let linked = fixture.root.join("linked");
-    if create_directory_symlink(&target, &linked) {
-        assert!(build_cli::ProjectOutputParent::prepare(&linked.join("web")).is_err());
-        assert!(target.read_dir().unwrap().next().is_none());
-    }
+    let linked = project_directory_link::create(&fixture.root);
+    let inventory = project_directory_link::entries(&fixture.root);
+    let rejected = build_cli::ProjectOutputParent::prepare(&linked.join("web"))
+        .err()
+        .expect("a directory link must not be admitted as the Project output parent");
+    assert_eq!(rejected.code, "SPX-I301");
+    assert_eq!(
+        rejected.message,
+        "explicit Project output parent must be a real non-reparse directory"
+    );
+    project_directory_link::assert_intact(&fixture.root);
+    assert_eq!(project_directory_link::entries(&fixture.root), inventory);
+    project_directory_link::remove_link(&fixture.root);
 }
 
 struct SubstituteGrandparent {
@@ -242,19 +250,4 @@ fn post_publication_parent_substitution_rejects_retain_and_preserves_both_trees(
         std::fs::read(parent.join("foreign-byte")).unwrap(),
         b"foreign\n"
     );
-}
-
-#[cfg(unix)]
-fn create_directory_symlink(target: &Path, link: &Path) -> bool {
-    std::os::unix::fs::symlink(target, link).unwrap();
-    true
-}
-
-#[cfg(windows)]
-fn create_directory_symlink(target: &Path, link: &Path) -> bool {
-    match std::os::windows::fs::symlink_dir(target, link) {
-        Ok(()) => true,
-        Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => false,
-        Err(error) => panic!("cannot create test directory symlink: {error}"),
-    }
 }

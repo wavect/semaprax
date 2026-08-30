@@ -8,6 +8,9 @@ use std::sync::Mutex;
 #[path = "../src/new_project.rs"]
 mod new_project;
 
+#[path = "../../../tests/support/project_directory_link.rs"]
+mod project_directory_link;
+
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
 struct Fixture {
@@ -166,7 +169,7 @@ fn generated_project_passes_check_test_and_web_build() {
 }
 
 #[test]
-fn existing_invalid_and_symlink_destinations_are_rejected() {
+fn existing_invalid_and_directory_link_destinations_are_rejected() {
     let fixture = Fixture::new("destinations");
     std::fs::create_dir(fixture.root.join("existing")).unwrap();
     let existing = cli(&fixture.root, &["new", "existing"]);
@@ -176,30 +179,19 @@ fn existing_invalid_and_symlink_destinations_are_rejected() {
     assert_eq!(invalid.status.code(), Some(2));
     assert!(!fixture.root.join("Bad_Name").exists());
 
-    let target = fixture.root.join("symlink-target");
-    std::fs::create_dir(&target).unwrap();
-    let destination = fixture.root.join("linked");
-    if create_directory_symlink(&target, &destination) {
-        let linked = cli(&fixture.root, &["new", "linked"]);
-        assert_eq!(linked.status.code(), Some(1));
-        assert!(destination.is_symlink());
-        assert!(read_tree(&target).is_empty());
-    }
-}
-
-#[cfg(unix)]
-fn create_directory_symlink(target: &Path, link: &Path) -> bool {
-    std::os::unix::fs::symlink(target, link).unwrap();
-    true
-}
-
-#[cfg(windows)]
-fn create_directory_symlink(target: &Path, link: &Path) -> bool {
-    match std::os::windows::fs::symlink_dir(target, link) {
-        Ok(()) => true,
-        Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => false,
-        Err(error) => panic!("cannot create test directory symlink: {error}"),
-    }
+    let destination = project_directory_link::create(&fixture.root);
+    assert_eq!(destination, fixture.root.join("linked"));
+    let inventory = project_directory_link::entries(&fixture.root);
+    let linked = cli(&fixture.root, &["new", "linked"]);
+    assert_eq!(linked.status.code(), Some(1));
+    assert!(linked.stdout.is_empty());
+    assert_eq!(
+        String::from_utf8(linked.stderr).unwrap(),
+        "new: cannot create staged project: a no-clobber entry already exists\n"
+    );
+    project_directory_link::assert_intact(&fixture.root);
+    assert_eq!(project_directory_link::entries(&fixture.root), inventory);
+    project_directory_link::remove_link(&fixture.root);
 }
 
 struct FailBeforeWrite(usize);

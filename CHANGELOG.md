@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Removed silent Windows hostile-path fixture omissions from the new-project
+  and quickstart checks. A shared test helper requires an actual Unix symlink
+  or Windows junction, authenticates the fixture target, and exercises rejection
+  with unchanged foreign bytes. Regression evidence remains unrun; production
+  path rules, generated projects and support claims are unchanged.
+
 - Moved the offline doctor inventory parser into its existing sys quarantine,
   preserving one validator and safe facade while correcting retained file-view
   lifetimes. Added authored, unrun bounded detached tmpfs materialization with

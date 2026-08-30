@@ -17,3 +17,6 @@ platform-tests/wasm-scalar-browser-v1/test-results/
 
 # Optional caller-persisted semantic image artifacts.
 **/.semaprax-images/
+
+# Optional caller-persisted complete candidate recovery capsules.
+**/.semaprax-candidates/

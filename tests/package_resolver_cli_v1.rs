@@ -47,6 +47,8 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         "semaprax project-image-verify <manifest> <image.json>\n",
         "semaprax project-symbol <manifest> <stable-id>\n",
         "semaprax project-candidate-preview <manifest> <change.json>\n",
+        "semaprax project-candidate-export <manifest> <change.json>\n",
+        "semaprax project-candidate-restore <manifest> <capsule.json>\n",
         "semaprax serve-image <manifest>\n",
         "semaprax serve-candidates <manifest>\n",
     );

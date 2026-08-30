@@ -131,6 +131,13 @@ fn apply_rebound(
             &change.intent,
         )?;
         &mapped
+    } else if change.intent["kind"] == "extract_function" {
+        mapped = super::extraction::rebase_intent(
+            original_revision,
+            candidate.revision(),
+            &change.intent,
+        )?;
+        &mapped
     } else {
         &change.intent
     };
@@ -227,6 +234,15 @@ fn classify(
 ) -> Result<Vec<Value>, Vec<Diagnostic>> {
     let old_facts = fingerprints(old)?;
     let new_facts = fingerprints(new)?;
+    let new_graph: Value = serde_json::from_str(new.semantic_graph())
+        .map_err(|_| grammar("candidate rebase graph is invalid"))?;
+    let new_ids = new_graph["declarations"]
+        .as_array()
+        .ok_or_else(|| grammar("candidate rebase graph lacks declarations"))?
+        .iter()
+        .filter_map(|declaration| declaration["id"].as_str())
+        .collect::<BTreeSet<_>>();
+    let mut introduced = BTreeSet::new();
     let mut report = Vec::new();
     for change in changes {
         let target = change.intent["target"]
@@ -235,23 +251,52 @@ fn classify(
         let kind = change.intent["kind"]
             .as_str()
             .ok_or_else(|| grammar("candidate rebase intent lacks a kind"))?;
-        let before = old_facts
-            .get(target)
-            .ok_or_else(|| conflict("candidate rebase target is absent from its original base"))?;
-        let after = new_facts.get(target).ok_or_else(|| {
-            conflict("candidate rebase target was deleted or lost explicit identity")
-        })?;
-        let signature_changed = before.signature != after.signature;
-        let body_changed = before.body != after.body;
-        let contracts_changed = before.contracts != after.contracts;
-        let display_changed = before.display != after.display;
-        let effects_changed = before.effects != after.effects;
+        let addition = match kind {
+            "add_declaration" => Some(
+                change.intent["declaration"]["id"]
+                    .as_str()
+                    .ok_or_else(|| grammar("declaration addition lacks its identity"))?,
+            ),
+            "extract_function" => Some(
+                change.intent["new_id"]
+                    .as_str()
+                    .ok_or_else(|| grammar("extraction lacks its new identity"))?,
+            ),
+            _ => None,
+        };
+        if addition.is_some_and(|id| new_ids.contains(id) || introduced.contains(id)) {
+            return Err(conflict(
+                "candidate addition identity exists in the destination or another intention",
+            ));
+        }
+        let (signature_changed, body_changed, contracts_changed, display_changed, effects_changed) =
+            if let Some(before) = old_facts.get(target) {
+                let after = new_facts.get(target).ok_or_else(|| {
+                    conflict("candidate rebase target was deleted or lost explicit identity")
+                })?;
+                (
+                    before.signature != after.signature,
+                    before.body != after.body,
+                    before.contracts != after.contracts,
+                    before.display != after.display,
+                    before.effects != after.effects,
+                )
+            } else if introduced.contains(target) {
+                // Earlier replay in this exact history creates the target.
+                // Destination-ID collisions were rejected before that replay.
+                (false, false, false, false, false)
+            } else {
+                return Err(conflict(
+                    "candidate rebase target is absent from its original base",
+                ));
+            };
         match kind {
             "rename_declaration" if display_changed => return Err(conflict("concurrent display renames target the same stable ID")),
-            "replace_function_body" | "replace_expression" if signature_changed || body_changed || effects_changed => return Err(conflict("body replacement conflicts with concurrent target body, signature or effects")),
+            "replace_function_body" | "replace_expression" | "extract_function" if signature_changed || body_changed || effects_changed => return Err(conflict("body replacement conflicts with concurrent target body, signature or effects")),
             "change_function_signature" if signature_changed || body_changed || effects_changed => return Err(conflict("signature evolution conflicts with concurrent target signature, body or effects")),
             "add_contract" if signature_changed || effects_changed => return Err(conflict("contract addition conflicts with concurrent target signature or effects")),
-            "rename_declaration" | "replace_function_body" | "replace_expression" | "change_function_signature" | "add_contract" => {},
+            "add_declaration" if signature_changed || effects_changed => return Err(conflict("declaration addition conflicts with concurrent target signature or effects")),
+            "rename_declaration" | "replace_function_body" | "replace_expression" | "change_function_signature" | "add_contract" | "add_declaration" | "extract_function" => {},
             _ => return Err(grammar("candidate rebase does not admit this intention kind")),
         }
         for dependency in called_intent_targets(&change.intent) {
@@ -267,6 +312,9 @@ fn classify(
             }
         }
         report.push(json!({"target":target,"intent":kind,"concurrent_display_change":display_changed,"concurrent_signature_change":signature_changed,"concurrent_body_change":body_changed,"concurrent_contract_change":contracts_changed,"concurrent_effect_change":effects_changed,"decision":"replay_required"}));
+        if let Some(id) = addition {
+            introduced.insert(id);
+        }
     }
     Ok(report)
 }

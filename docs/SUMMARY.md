@@ -46,6 +46,8 @@ Audience: all documentation readers.
 - [Project Manifest v5](PROJECT-MANIFEST-V5.md)
 - [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
 - [Project Candidates and Semantic Change IR v1](PROJECT-CANDIDATES-V1.md)
+- [Typed Project Declaration Change v1](PROJECT-DECLARATION-CHANGE-V1.md)
+- [Typed Project Extraction v1](PROJECT-EXTRACTION-V1.md)
 - [Project Contract Change v1](PROJECT-CONTRACT-CHANGE-V1.md)
 - [Project Signature Evolution v1](PROJECT-SIGNATURE-EVOLUTION-V1.md)
 - [Graph-operational programme ledger](GRAPH-OPERATIONAL-PROGRAMME.md)
@@ -164,3 +166,5 @@ Audience: all documentation readers.
 - [Android JNI ownership](ANDROID-JNI-OWNERSHIP-V1.md)
 - [Host ownership transactions](HOST-OWNERSHIP-TRANSACTIONS-V1.md)
 - [Native adapter descriptor](NATIVE-ADAPTER-DESCRIPTOR-V1.md)
+
+- [Complete candidate recovery](PROJECT-CANDIDATE-RECOVERY-V1.md)

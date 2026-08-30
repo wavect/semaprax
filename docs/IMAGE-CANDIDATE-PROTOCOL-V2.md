@@ -42,7 +42,7 @@ drafts that retain their own private candidate remain usable.
 ## Methods
 
 All new methods require the exact startup `image_revision`. Candidate methods
-also require `candidate_revision` except initial open and validation catalog.
+also require `candidate_revision` except initial open, recovery restore, and validation catalog.
 Draft methods require `draft_revision` except initial hole creation. These are
 content digests, not filesystem paths or authority credentials.
 
@@ -51,6 +51,8 @@ content digests, not filesystem paths or authority credentials.
 | `candidate/open` | none | Compact unchanged candidate handle |
 | `candidate/apply-intent` | `candidate_revision`, structured `intent` | New independently source-validated candidate handle |
 | `candidate/query` | `candidate_revision`; optional `offset`, `chunk_bytes` | Bounded UTF-8 chunk of exact canonical candidate report |
+| `candidate/recovery-export` | `candidate_revision`; optional `offset`, `chunk_bytes` | Exact canonical complete-candidate capsule UTF-8 chunks |
+| `candidate/recovery-restore` | structured `capsule` | Replayed candidate handle from this session's admitted original base |
 | `candidate/validate` | `candidate_revision` | Independent replay of retained changes from base, tests not run |
 | `candidate/impact` | `candidate_revision`, `target`; optional `depth`, `max_bytes`, `max_nodes` | Candidate-bound Project semantic impact |
 | `candidate/compare` | `candidate_revision`, `other_candidate_revision` | Existing descriptive same-base comparison |
@@ -128,3 +130,21 @@ chunks, replay validation, invalid-intent atomicity, stale handles, hole
 completion boundaries, candidate/draft capacity, retained draft lifetime after
 candidate discard, absorbing Unix source drift, retained-base merge/rebase,
 closed constructor documents, and expression discovery. None were executed here.
+
+## Caller-managed recovery
+
+[Complete candidate recovery capsules](PROJECT-CANDIDATE-RECOVERY-V1.md) are
+content-addressed replay inputs. `candidate/recovery-export` derives the whole
+bounded capsule before slicing; chunk size is an output bound, not a work bound.
+`candidate/recovery-restore` canonicalizes its structured object and independently
+replays it against this session's startup Project revision. The existing strict
+64 KiB request limit applies, including the JSON-RPC envelope; use the CLI for
+larger capsules. Restore does not accept another retained candidate as a base.
+A capsule originally based on a derived/rebased revision needs that exact source
+revision independently admitted by a new host session.
+
+Restore prepares a complete typed candidate and bounded response before registry
+mutation and final held-source authentication. Malformed/stale/full-registry
+failures leave existing handles untouched. A source-drift failure permanently
+invalidates the session as before. No method persists or restores drafts,
+unresolved holes, approvals, capabilities, session state, or warm HIR.

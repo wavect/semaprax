@@ -89,7 +89,7 @@ fn change_catalog_is_revision_bound_and_omits_unsupported_targets() {
     assert_eq!(report["candidate_digest"], candidate.candidate_digest());
     assert_eq!(report["requires_full_candidate_validation"], true);
     assert_eq!(report["admission"], "constructor_discovery_only");
-    assert_eq!(report["operations"].as_array().unwrap().len(), 5);
+    assert_eq!(report["operations"].as_array().unwrap().len(), 7);
     assert_eq!(
         report["operations"][1]["exactly_one_form"]
             .as_array()

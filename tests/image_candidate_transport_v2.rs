@@ -565,7 +565,7 @@ fn constructor_schemas_are_closed_and_resolve_recursion_locally() {
         }
     }
     let documents = schemas["documents"].as_array().unwrap();
-    assert_eq!(documents.len(), 3);
+    assert_eq!(documents.len(), 4);
     for document in documents {
         inspect(document, document);
     }
@@ -587,7 +587,9 @@ fn constructor_schemas_are_closed_and_resolve_recursion_locally() {
             "change_function_signature",
             "replace_function_body",
             "replace_expression",
-            "add_contract"
+            "add_contract",
+            "add_declaration",
+            "extract_function"
         ]
     );
 }
@@ -631,4 +633,60 @@ fn expression_discovery_selects_replacement_and_added_contract_uses_typed_predic
     .unwrap();
     assert_eq!(report["operations"].as_array().unwrap().len(), 2);
     assert_eq!(report["validation"]["tests"], "not_run");
+}
+
+#[test]
+fn recovery_export_restores_in_fresh_session_and_failure_preserves_handles() {
+    let fixture = Fixture::new();
+    let before = fixture.inventory();
+    let mut session = fixture.session(ImageHostCapability::CandidateOnly);
+    let root = opened(&mut session);
+    let changed = payload(renamed(&mut session, &root, "sum"))["candidate_revision"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let original_report = report(&mut session, &changed);
+    let mut bytes = String::new();
+    let mut offset = 0;
+    loop {
+        let part = payload(call(
+            &mut session,
+            "candidate/recovery-export",
+            json!({"candidate_revision":changed,"offset":offset,"chunk_bytes":1024}),
+        ));
+        bytes.push_str(part["chunk"].as_str().unwrap());
+        match part["next_offset"].as_u64() {
+            Some(next) => offset = next as usize,
+            None => break,
+        }
+    }
+    let capsule: Value = serde_json::from_str(&bytes).unwrap();
+    drop(session);
+    let mut fresh = fixture.session(ImageHostCapability::CandidateOnly);
+    let restored = payload(call(
+        &mut fresh,
+        "candidate/recovery-restore",
+        json!({"capsule":capsule}),
+    ));
+    assert_eq!(restored["candidate_revision"], changed);
+    assert_eq!(report(&mut fresh, &changed), original_report);
+    let mut invalid = capsule.clone();
+    invalid["compiler"]["compatibility"] = json!("unknown");
+    assert!(call(
+        &mut fresh,
+        "candidate/recovery-restore",
+        json!({"capsule":invalid})
+    )
+    .get("error")
+    .is_some());
+    assert_eq!(report(&mut fresh, &changed), original_report);
+    let mut read_only = fixture.session(ImageHostCapability::ReadOnly);
+    assert!(call(
+        &mut read_only,
+        "candidate/recovery-restore",
+        json!({"capsule":capsule})
+    )
+    .get("error")
+    .is_some());
+    assert_eq!(fixture.inventory(), before);
 }

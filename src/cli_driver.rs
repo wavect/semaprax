@@ -117,7 +117,9 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
         "project-image"
         | "project-image-verify"
         | "project-symbol"
-        | "project-candidate-preview" => {
+        | "project-candidate-preview"
+        | "project-candidate-export"
+        | "project-candidate-restore" => {
             let arity = if command == "project-image" { 2 } else { 3 };
             if args.len() != arity
                 || args[1..]
@@ -127,7 +129,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 let operands = match command {
                     "project-image" => "<manifest>",
                     "project-image-verify" => "<manifest> <image.json>",
-                    "project-candidate-preview" => "<manifest> <change.json>",
+                    "project-candidate-preview" | "project-candidate-export" => {
+                        "<manifest> <change.json>"
+                    }
+                    "project-candidate-restore" => "<manifest> <capsule.json>",
                     _ => "<manifest> <stable-id>",
                 };
                 eprintln!("{command} requires exactly {operands}");
@@ -139,6 +144,12 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 "project-image-verify" => cli::project_image::verify(manifest, Path::new(&args[2])),
                 "project-candidate-preview" => {
                     cli::project_candidate::preview(manifest, Path::new(&args[2]))
+                }
+                "project-candidate-export" => {
+                    cli::project_candidate::export(manifest, Path::new(&args[2]))
+                }
+                "project-candidate-restore" => {
+                    cli::project_candidate::restore(manifest, Path::new(&args[2]))
                 }
                 _ => cli::project_image::symbol(manifest, &args[2]),
             }
@@ -2304,6 +2315,8 @@ fn print_help() {
            semaprax project-image-verify <manifest> <image.json>\n\
            semaprax project-symbol <manifest> <stable-id>\n\
            semaprax project-candidate-preview <manifest> <change.json>\n\
+           semaprax project-candidate-export <manifest> <change.json>\n\
+           semaprax project-candidate-restore <manifest> <capsule.json>\n\
            semaprax serve-image <manifest>\n\
            semaprax serve-candidates <manifest>\n\
            semaprax context <file> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n\

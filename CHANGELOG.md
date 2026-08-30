@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added typed function declaration creation and bounded Copy-expression
+  extraction, with exact new-identity inventories, namespace/effect checks,
+  authenticated captures, unsafe-boundary rejection and source replay.
+  Complete candidate histories can now be exported and restored through
+  disposable recovery capsules, CLI commands and candidate-only protocol
+  methods. Recovery revalidates the admitted source base and grants no source
+  authority; incomplete drafts and persistent HIR remain outside this slice.
+  Focused regression cases are authored but unrun by request.
+
 - Added typed body-expression replacement through current HIR identities,
   additive pre/postconditions, conservative stable-ID candidate rebase/merge,
   candidate protocol reconciliation and expression discovery, and closed

@@ -44,6 +44,8 @@ pub(super) enum Action {
     Open,
     Apply,
     Query,
+    RecoveryExport,
+    RecoveryRestore,
     Validate,
     Impact,
     Compare,
@@ -161,6 +163,27 @@ const CANDIDATE_METHODS: &[Method] = &[
         &[REVISION, CANDIDATE, OFFSET, CHUNK],
         true,
         "semaprax.image-candidate-report-chunk.v1"
+    ),
+    method!(
+        "candidate/recovery-export",
+        RecoveryExport,
+        &[REVISION, CANDIDATE, OFFSET, CHUNK],
+        true,
+        "semaprax.image-candidate-recovery-chunk.v1"
+    ),
+    method!(
+        "candidate/recovery-restore",
+        RecoveryRestore,
+        &[
+            REVISION,
+            Parameter {
+                name: "capsule",
+                kind: ParameterKind::Object("semaprax.project-candidate-recovery.v1"),
+                required: true
+            }
+        ],
+        false,
+        "semaprax.image-candidate-handle.v1"
     ),
     method!(
         "candidate/validate",
@@ -523,6 +546,37 @@ fn prepare_candidate(
                 json!({"schema":"semaprax.image-candidate-report-chunk.v1","candidate_revision":candidate.candidate_digest(),"report_schema":crate::project::PROJECT_CANDIDATE_SCHEMA,"offset":offset,"total_bytes":report.len(),"chunk":&report[offset..end],"next_offset":(end<report.len()).then_some(end),"source_authority":false}),
                 Mutation::None,
             ))
+        }
+        Action::RecoveryExport => {
+            let candidate = registry.candidate(text(params, "candidate_revision"))?;
+            let capsule = candidate.recovery_capsule()?;
+            let offset = number(params, "offset", 0);
+            if offset > capsule.len() || !capsule.is_char_boundary(offset) {
+                return Err(failure(
+                    "SPX-G236",
+                    "recovery offset is outside canonical UTF-8 capsule",
+                ));
+            }
+            let mut end = offset
+                .saturating_add(number(params, "chunk_bytes", 16_384))
+                .min(capsule.len());
+            while !capsule.is_char_boundary(end) {
+                end -= 1;
+            }
+            Ok((
+                json!({"schema":"semaprax.image-candidate-recovery-chunk.v1","candidate_revision":candidate.candidate_digest(),"capsule_schema":crate::project::PROJECT_CANDIDATE_RECOVERY_SCHEMA,"offset":offset,"total_bytes":capsule.len(),"chunk":&capsule[offset..end],"next_offset":(end<capsule.len()).then_some(end),"source_authority":false}),
+                Mutation::None,
+            ))
+        }
+        Action::RecoveryRestore => {
+            let mut capsule = params["capsule"].clone();
+            capsule.sort_all_objects();
+            let bytes = format!("{capsule}\n");
+            retain_candidate(Arc::new(ProjectCandidate::restore(
+                Arc::clone(image.revision()),
+                image.revision().project_revision(),
+                bytes.as_bytes(),
+            )?))
         }
         Action::Validate => {
             let candidate = registry.candidate(text(params, "candidate_revision"))?;

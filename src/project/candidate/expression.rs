@@ -53,6 +53,102 @@ struct Subject<'a> {
     function: &'a ResolvedFunction,
 }
 
+/// A narrow authenticated handoff for compiler-owned structural operations.
+/// The body path and lexical binding identities are derived, never user input.
+pub(super) struct AuthoredExpression<'a> {
+    pub(super) owner: usize,
+    pub(super) function_index: usize,
+    pub(super) path: Vec<usize>,
+    pub(super) expression: &'a ResolvedExpr,
+    pub(super) scope: Vec<LexicalBinding<'a>>,
+    pub(super) effects: &'a [String],
+}
+
+pub(super) struct LexicalBinding<'a> {
+    pub(super) name: &'a str,
+    pub(super) id: &'a str,
+    pub(super) ty: &'a hir::ResolvedType,
+    pub(super) ownership: OwnershipMode,
+    pub(super) mutable: bool,
+}
+
+pub(super) fn authored_selection<'a>(
+    revision: &'a ProjectRevision,
+    programs: &[ast::Program],
+    target: &str,
+    expression_id: &str,
+) -> Result<AuthoredExpression<'a>> {
+    let subject = subject(revision, target)?;
+    let (owner, function_index) = source_function(programs, &subject, target)?;
+    let facts = hir_facts(subject.function)?;
+    let fact = selected(&facts, expression_id)?;
+    if fact.phase != "body" {
+        return Err(invalid(
+            "structural extraction requires an authored body expression",
+        ));
+    }
+    let ast = ast_facts(&programs[owner].functions[function_index])?;
+    let spans = hir_span_counts(&facts);
+    let joined = join(fact, &ast, &spans, subject.source.source())
+        .ok_or_else(|| invalid("expression has no unique authenticated authored AST origin"))?;
+    reject_unsafe_ancestor(
+        &programs[owner].functions[function_index].body,
+        &joined.path,
+    )?;
+    Ok(AuthoredExpression {
+        owner,
+        function_index,
+        path: joined.path.clone(),
+        expression: fact.expression,
+        scope: fact
+            .scope
+            .values()
+            .map(|binding| LexicalBinding {
+                name: binding.name,
+                id: binding.id,
+                ty: binding.ty,
+                ownership: binding.ownership,
+                mutable: binding.mutable,
+            })
+            .collect(),
+        effects: &subject.function.effects,
+    })
+}
+
+// Extraction cannot move a nested expression out of its original audit owner.
+fn reject_unsafe_ancestor(mut node: &Expr, path: &[usize]) -> Result<()> {
+    for index in path {
+        if let ExprKind::Block { statements, .. } = &node.kind {
+            let mut offset = 0;
+            for statement in statements {
+                let end = offset + statement.child_count();
+                if *index >= offset
+                    && *index < end
+                    && matches!(statement, ast::Statement::Unsafe { .. })
+                {
+                    return Err(invalid("extraction cannot cross an unsafe audit boundary"));
+                }
+                offset = end;
+            }
+        }
+        node = ast_children(node)
+            .get(*index)
+            .copied()
+            .ok_or_else(|| invalid("authenticated extraction path is unavailable"))?;
+    }
+    Ok(())
+}
+
+pub(super) fn authored_slot<'a>(
+    programs: &'a mut [ast::Program],
+    selection: &AuthoredExpression<'_>,
+) -> Result<&'a mut Expr> {
+    ast_at_mut(
+        &mut programs[selection.owner].functions[selection.function_index].body,
+        &selection.path,
+    )
+}
+
 impl ProjectCandidate {
     /// Authenticated HIR expression identities with lexical context. Visibility
     /// is not a proof that an owned binding remains live at the selected point.
@@ -846,4 +942,41 @@ fn invalid(message: &'static str) -> Vec<Diagnostic> {
 }
 fn limit(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G226", message)]
+}
+
+#[cfg(test)]
+mod extraction_audit_tests {
+    use super::*;
+
+    #[test]
+    fn extraction_does_not_escape_an_enclosing_unsafe_statement() {
+        let source = r#"module audit.test;
+permit { unsafe }
+@id("audit.function")
+fn audited(value: i64) -> i64 {
+    @audit("keep this audit owner") unsafe { value + 1 }
+    value
+}
+"#;
+        let program = crate::parse(source, std::path::Path::new("audit.spx")).unwrap();
+        let function = &program.functions[0];
+        let facts = ast_facts(function).unwrap();
+        let inside = facts
+            .iter()
+            .find(|fact| {
+                source.get(fact.expression.span.start..fact.expression.span.end)
+                    == Some("value + 1")
+            })
+            .unwrap();
+        let errors = reject_unsafe_ancestor(&function.body, &inside.path).unwrap_err();
+        assert!(errors.iter().any(|error| error.code == "SPX-G225"));
+        let tail = facts
+            .iter()
+            .find(|fact| {
+                source.get(fact.expression.span.start..fact.expression.span.end) == Some("value")
+                    && fact.expression.span.start > inside.expression.span.end
+            })
+            .unwrap();
+        reject_unsafe_ancestor(&function.body, &tail.path).unwrap();
+    }
 }

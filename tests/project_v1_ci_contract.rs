@@ -10,6 +10,23 @@ fn attributes() -> String {
     fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(".gitattributes")).unwrap()
 }
 
+#[test]
+fn embedded_javascript_preserves_canonical_bytes_on_windows_checkouts() {
+    assert!(
+        attributes().lines().any(|line| line == "*.js text eol=lf"),
+        "embedded JavaScript must remain LF even with core.autocrlf=true"
+    );
+    let prelude = fs::read(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("src/project/npm/owned_data_input_v8.js"),
+    )
+    .unwrap();
+    assert!(prelude.contains(&b'\n'));
+    assert!(
+        !prelude.contains(&b'\r'),
+        "checkout line endings must not alter the frozen generated runtime"
+    );
+}
+
 fn project_job(workflow: &str) -> &str {
     let (_, after_job) = workflow
         .split_once("  project-v1:\n")

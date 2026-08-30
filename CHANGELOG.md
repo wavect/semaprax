@@ -14,6 +14,10 @@
   complete because the linker ran out of disk space; no hosted or completion
   status is promoted.
 
+- Pinned embedded JavaScript to LF on every Git checkout. Windows CRLF
+  conversion changed the owned-data runtime's authenticated bytes; the existing
+  known-answer digest remains unchanged and a checkout regression guards it.
+
 - Kept the strict wildcard dependency ban while moving private-host CLI tests
   into the unpublished toolchain and pinning its local dependencies. Restricted
   a now-Unix-only publication helper accordingly and reduced Windows dev/test

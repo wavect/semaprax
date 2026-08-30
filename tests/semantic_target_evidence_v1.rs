@@ -310,7 +310,7 @@ fn string_cleanup_evidence_binds_current_production_c_and_rejects_foreign_bindin
     // This is compiler-artifact replay evidence, not native or Wasm execution.
     // The String-bearing function must use current production cleanup, never
     // an older alternate emitter selected to retain a historical digest.
-    let source = "module target.string_cleanup;\n@id(\"target.helper\") fn helper()->i64{41}\n@id(\"app.main\") fn main()->i64{let text=\"ordinary\";string_len(text)+helper()}\n";
+    let source = "module target.string_cleanup;\n@id(\"target.helper\") fn helper()->i64{41}\n@id(\"app.main\") fn main()->i64{let text=\"ordinary\\u{0}suffix\";string_len(text)+helper()}\n";
     let patch = format!(
         "schema semaprax.semantic-patch.v2\nbase {}\nrename target.helper to answer\nrequire no-new-effects\n",
         graph::revision(&parse(source, "string-cleanup.spx").unwrap())
@@ -322,7 +322,9 @@ fn string_cleanup_evidence_binds_current_production_c_and_rejects_foreign_bindin
     let native = codegen::emit_c(&parse(source, &fixture.source).unwrap()).unwrap();
     assert!(native.contains("live String overwritten"));
     assert!(native.contains("invalid String transfer"));
-    assert!(!native.contains("struct spx_string_v10"));
+    assert!(native.contains("struct spx_string_v10"));
+    assert!(native.contains("spx_string_length_v10(spx_source)"));
+    assert!(!native.contains("strlen(spx_source)"));
     assert_eq!(value["targets"][0]["base_bytes"], native.len());
     assert_eq!(
         value["targets"][0]["base_digest"],

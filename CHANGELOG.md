@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Authored ordinary/stdout native String contents correction: construction,
+  clone, equality, length, concatenation, prefix/substring operations, scalar
+  count, and drop now share the existing length-header runtime. Embedded NUL
+  is data throughout; no escaping workaround or source rejection is added.
+  Frozen providers/commands and String-free output remain unchanged. Added
+  exact-content and allocation evidence with cross-backend value cases and
+  updated current-compiler target bindings. Tests/sanitizers remain unrun;
+  ordinary Wasm settlement and production promotion remain open.
+
 - Authored ordinary/stdout native String failure settlement using the existing
   per-function owner ledger, plus runtime-helper discovery in materialized
   generic instances. Only String-bearing ordinary functions change; frozen

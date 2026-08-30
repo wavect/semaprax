@@ -188,6 +188,11 @@ helper discovery includes materialized generic instances as well as
 monomorphic functions. Dedicated provider and versioned command projections
 retain their separate selection. See [Native Inline String Settlement
 v1](NATIVE-INLINE-STRING-SETTLEMENT-V1.md) for exact compatibility and open gaps.
+The ordinary/stdout runtime selector also reuses the existing length-header
+String helpers to preserve embedded NUL. Representation selection is separate
+from v10 provider carrier support, so this does not add byte-carrier machinery
+to ordinary String-only output. See [Native String Contents
+v1](NATIVE-STRING-CONTENTS-V1.md).
 
 ### WebAssembly backend
 

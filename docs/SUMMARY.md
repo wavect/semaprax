@@ -24,6 +24,7 @@ Audience: all documentation readers.
 - [Refutable match](REFUTABLE-MATCH-V1.md)
 - [String operations](STRING-OPS-V1.md)
 - [Native inline String settlement](NATIVE-INLINE-STRING-SETTLEMENT-V1.md)
+- [Native String contents](NATIVE-STRING-CONTENTS-V1.md)
 - [Class inheritance](CLASS-INHERITANCE-V1.md)
 - [Portable indexed byte data](PORTABLE-INDEXED-BYTE-DATA-V1.md)
 - [Owned Byte Record Algebra](OWNED-BYTE-RECORD-ALGEBRA-V1.md)

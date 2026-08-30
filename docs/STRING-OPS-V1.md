@@ -80,8 +80,10 @@ The later [native inline String settlement correction](NATIVE-INLINE-STRING-SETT
 adds authored, unrun failure-path allocation evidence for ordinary C11 and
 stdout-transcript execution. It intentionally changes String-bearing native
 function bodies while preserving intrinsic signatures and diagnostics. It
-does not fix the separate ordinary embedded-NUL representation or Wasm String
-drop gaps; the value fixtures below are not physical settlement evidence.
+is complemented by the authored [native String contents correction](NATIVE-STRING-CONTENTS-V1.md),
+which preserves embedded NUL through all ordinary/native stdout operations.
+Both corrections remain unrun; ordinary Wasm String drop remains open, and
+the value fixtures below are not physical settlement evidence.
 
 `tests/string_ops_v1.rs` proves canonical round-trip, deterministic graph JSON
 with pinned fragments, HIR binding to the reserved identities, stable

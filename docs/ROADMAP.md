@@ -121,8 +121,8 @@ Before string promotion, execute the v10 inline Wasm ownership and derived
 arena-capacity regressions together with the native provider's physical
 allocation-settlement and sanitizer regressions, and establish cross-backend
 settlement evidence. Execute the separate authored ordinary/stdout native
-cleanup correction, then resolve ordinary embedded-NUL value semantics and
-Wasm String settlement. Frozen earlier-profile unselected String cleanup
+cleanup and embedded-NUL contents corrections, then resolve ordinary Wasm
+String settlement. Frozen earlier-profile unselected String cleanup
 requires a separate compatibility decision.
 Do not widen the existing literal/direct-call admission to make a fixture pass.
 

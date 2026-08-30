@@ -111,9 +111,10 @@ ASan/UBSan runtimes provisioned, then run:
 cargo test --test native_string_settlement_v1 provisioned_ordinary_native_string_asan_ubsan -- --ignored --exact
 ```
 
-This correction does **not** change the ordinary NUL-terminated String
-representation. Embedded-NUL value divergence remains an open defect, unlike
-the distinct length-delimited v10 provider. Ordinary Wasm's String host API
+This cleanup correction does not itself determine String representation. The
+subsequent [native String contents correction](NATIVE-STRING-CONTENTS-V1.md)
+selects the existing length-header runtime for ordinary/stdout generation and
+adds authored, unrun embedded-NUL value evidence. Ordinary Wasm's String host API
 still lacks physical drop settlement, and the reference interpreter still
 rejects user functions with String-valued signatures. Native allocation
 evidence therefore is not full cross-backend String settlement evidence.

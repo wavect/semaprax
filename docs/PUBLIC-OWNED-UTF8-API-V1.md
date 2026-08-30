@@ -39,8 +39,9 @@ The physical value is `(opaque provider handle, exact byte length)`. Neither
 the provider nor a target adapter searches for a NUL terminator. Embedded NUL
 bytes are data. The fixed maximum result length is 65,536 bytes.
 
-The native provider uses a v10-only allocation representation with an explicit
-length header. Before it attaches an opaque handle or publishes result fields,
+The native provider uses an allocation representation with an explicit length
+header, also reused by the later ordinary [String contents correction](NATIVE-STRING-CONTENTS-V1.md)
+without changing v10 output. Before it attaches an opaque handle or publishes result fields,
 it validates the exact bytes as Unicode scalar-value UTF-8. An invalid value
 returns the adapter-failure status and publishes no result.
 

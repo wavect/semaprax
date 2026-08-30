@@ -12,11 +12,12 @@ structurally validated production Wasm core module. It reports digests, lengths,
 and closed classifications; it does not execute a target or discover project
 tests, and it grants no authority.
 
-The authored [ordinary native String cleanup correction](NATIVE-INLINE-STRING-SETTLEMENT-V1.md)
-intentionally changes String-bearing production C, and thus this report's
+The authored ordinary native [String cleanup](NATIVE-INLINE-STRING-SETTLEMENT-V1.md)
+and [String contents corrections](NATIVE-STRING-CONTENTS-V1.md)
+intentionally change String-bearing production C, and thus this report's
 native digests and byte counts for those subjects. The schema and digest
 domains do not change. String-free known answers remain frozen; this
-correction does not refresh or establish execution of historical KATs.
+work does not refresh or establish execution of historical KATs.
 
 ## Command and public API
 

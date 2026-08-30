@@ -104,7 +104,8 @@ current paths externally.
 
 Preserve existing deterministic templates, Project check/test/Web behavior,
 CLI grammar, pre-write parent/stage substitution, inventory rejection, and
-fresh-output tests in `tests/cli_new_project_v1.rs`.
+fresh-output tests in
+`crates/semaprax-toolchain/tests/cli_new_project_v1.rs`.
 
 New regression evidence must cover successful relative and parent-relative
 inputs; substitution after physical rename of the published directory and its
@@ -127,7 +128,7 @@ Focused gates, to run on the required hosts before promotion:
 ```sh
 cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib platform::publish_tests
 cargo test --locked -p semaprax-native-rust-owned-data-package --lib project_publication::tests
-cargo test --locked -p semaprax --test cli_new_project_v1
+cargo test --locked -p semaprax-toolchain --test cli_new_project_v1
 ```
 
 The first gate requires Windows; a zero-test result elsewhere is not evidence.

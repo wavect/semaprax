@@ -42,12 +42,19 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert_eq!(stdout.matches(NEW_LINE).count(), 1);
     let legacy = stdout.replacen(NEW_LINE, "", 1);
-    // The additive interpret-strings command contributes exactly 106 bytes.
+    // The additive interpret-strings command contributes exactly 106 bytes;
+    // the explicit internal-String Web profile contributes another 32 bytes.
     // Keep a whole-output known answer; do not relax unrelated help preservation.
     const STRINGS_LINE: &str = "semaprax interpret-strings <file> --function <name|stable-id> [--arg <scalar literal>]... [--max-bytes N]\n";
     assert_eq!(legacy.matches(STRINGS_LINE).count(), 1);
-    assert_eq!(legacy.len(), 4_984);
-    assert_eq!(fnv1a64(legacy.as_bytes()), 0x5d28_008d_32a9_33ac);
+    const WEB_PROFILE: &str = " [--profile internal-strings-v1]";
+    assert_eq!(legacy.matches(WEB_PROFILE).count(), 1);
+    assert_eq!(legacy.len(), 5_016);
+    assert_eq!(fnv1a64(legacy.as_bytes()), 0x9b9d_2017_826d_61b5);
+    // Preserve the historical whole-output pin as an independent control too.
+    let previous = legacy.replacen(WEB_PROFILE, "", 1);
+    assert_eq!(previous.len(), 4_984);
+    assert_eq!(fnv1a64(previous.as_bytes()), 0x5d28_008d_32a9_33ac);
 }
 
 fn fnv1a64(bytes: &[u8]) -> u64 {

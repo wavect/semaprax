@@ -47,8 +47,10 @@ bytes and therefore change their corresponding digests and lengths. They do
 not use an older emitter to retain stale artifact bindings.
 
 The existing v10 provider runtime constants and outputs remain unchanged.
-Earlier owned-data providers, all three versioned command profiles, and the
-private callable prelude remain on their existing paths. String-free native
+The subsequent [owned-data internal String correction](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md)
+explicitly adopts this representation for v8/v9 providers, including unselected
+String functions. All three versioned command profiles and the private callable
+prelude remain on their existing paths. String-free native
 output and its budget accounting remain unchanged. Source, Graph, HIR,
 CleanupPlan, diagnostic, manifest, descriptor, and evidence schemas do not
 change. Wasm output, host imports, and interpreter admission do not change.
@@ -85,8 +87,9 @@ String settlement; its ordinary host API still lacks a drop operation.
 The separate [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md)
 adds an authored, unrun opt-in route for String helpers, without changing this
 corpus's ordinary-interpreter rejection or adding external String values.
-Frozen earlier-profile emitted-but-unselected String functions retain their
-separate representation and cleanup limitations.
+Frozen command/callable emitted-but-unselected String functions retain their
+separate representation and cleanup limitations; the owned-data provider
+correction has separately authored, unrun evidence.
 
 The focused gates (not run for this batch) are:
 

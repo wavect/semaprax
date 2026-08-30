@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Authored standalone owned-data provider String settlement and exact-content
+  correction: reuse the existing per-function owner ledger and length-header
+  helpers without changing public admission or Bytes ABI. String-bearing full
+  provider translation units and dependent artifact bindings intentionally
+  change, including unselected functions; String-free output, v10, commands,
+  and private callable selection remain unchanged. Real-provider allocation
+  and external-consumer evidence is authored but unrun; no promotion.
+
 - Authored publication corrections without changing generated package bytes:
   the shared Windows rename fallback explicitly clears legacy replacement
   authority, and calculator generation verifies final held-parent/output and

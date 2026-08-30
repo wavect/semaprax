@@ -217,8 +217,12 @@ they do not establish a stable general native ABI.
 String ledger. Only String-bearing functions stage bounded output for hoisted
 owner cells; String-free functions retain direct emission. Ordinary String
 helper discovery includes materialized generic instances as well as
-monomorphic functions. Dedicated provider and versioned command projections
-retain their separate selection. See [Native Inline String Settlement
+monomorphic functions. The authored [owned-data provider correction](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md)
+extends the same ledger, length-header runtime, and instance discovery to v8/v9
+provider emission without widening public or Project admission. Full provider
+translation units with Strings intentionally change; String-free output,
+v10 selection and versioned command projections remain unchanged.
+See [Native Inline String Settlement
 v1](NATIVE-INLINE-STRING-SETTLEMENT-V1.md) for exact compatibility and open gaps.
 The ordinary/stdout runtime selector also reuses the existing length-header
 String helpers to preserve embedded NUL. Representation selection is separate

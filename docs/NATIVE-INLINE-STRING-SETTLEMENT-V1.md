@@ -68,8 +68,11 @@ dependent Semantic Patch Evidence v2 native bindings when their subject uses
 Strings. Source, HIR, Graph, CleanupPlan, status, report, and manifest schemas
 do not change. Existing String-free known answers remain unchanged.
 
-The dedicated v8/v9 owned-data provider and existing v10 provider retain their
-previous output and budget selection. The three versioned command profiles
+The subsequent [owned-data internal String correction](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md)
+explicitly extends this ledger and instance discovery to the v8/v9 provider,
+including emitted but unselected String functions; its String-bearing output
+intentionally changes. String-free output/budgets and the existing v10 provider
+selection remain unchanged. The three versioned command profiles
 (Useful Data Command, Language Command I/O, and Line Command I/O) remain
 unchanged, including emitted but unselected functions. Their selected closures
 do not admit owned Strings. The scalar Native Rust SDK uses its separate
@@ -127,6 +130,7 @@ evidence therefore is not full cross-backend String settlement evidence.
 The distinct [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md)
 is an authored, unrun opt-in conformance route, not an implicit change to that
 ordinary profile or a target-allocation proof.
-Frozen provider/command projections retain their separate unselected-String
-cleanup limitation. These gaps and executed platform/sanitizer evidence remain
+Frozen command/callable projections retain their separate unselected-String
+limitations. The owned-data provider correction is separately authored and
+unrun. These gaps and executed platform/sanitizer evidence remain
 necessary before broad production-readiness claims.

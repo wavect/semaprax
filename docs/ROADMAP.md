@@ -132,8 +132,12 @@ arena-capacity regressions together with the native provider's physical
 allocation-settlement and sanitizer regressions, and establish cross-backend
 settlement evidence. Execute the separate authored ordinary/stdout native
 cleanup and embedded-NUL contents corrections, then resolve ordinary Wasm
-String settlement. Frozen earlier-profile unselected String cleanup
-requires a separate compatibility decision.
+String settlement. The explicitly amended
+[owned-data provider correction](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md)
+extends native cleanup/contents to already admitted standalone SDK internal
+Strings, including emitted unselected functions; execute its physical and
+external-consumer gates without inferring wider Project admission. Frozen
+command/callable String limitations remain separate.
 Do not widen the existing literal/direct-call admission to make a fixture pass.
 
 ## 0.3: ownership and fast development

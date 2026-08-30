@@ -267,6 +267,16 @@ its integrity bindings intentionally change. Hostile-provider protocol tests
 are authored but unrun; this is not a safety claim against arbitrary malicious
 native machine code.
 
+The subsequent [native internal String correction](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md)
+settles String allocations that the standalone descriptor already admits inside
+function bodies. Provider context close cannot observe those inline allocations
+and is not their cleanup proof. V8/v9 provider emission now shares ordinary
+length-header helpers and a per-function String ledger. Full translation units
+with Strings, including unselected functions, intentionally change native C and
+dependent artifact bindings; String-free output remains exact. Public types,
+descriptors, schemas, v10 output, and activated Project admission are unchanged.
+Physical allocator and external-consumer evidence is authored but unrun.
+
 The authored native correction uses a 13-bit one-based slot (`1..=4096`)
 and a nonreused 51-bit issuance serial within one statically linked provider
 runtime. One private atomic strong compare-exchange reserves a serial without

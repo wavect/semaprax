@@ -16,8 +16,8 @@ const moduleBytes=new OriginalUint8(fs.readFileSync(new URL('./app.wasm',import.
 const api=await instantiate(moduleBytes),call=api.functions['probe.bytes'];
 const reset=()=>{allocations=0;copies=0;encodings=0};
 const empty=new OriginalUint8();
-function rejected(args,kind=RangeError){
-  reset();assert.throws(()=>call(...args),kind);
+function rejected(args,kind=RangeError,invoke=call){
+  reset();assert.throws(()=>invoke(...args),kind);
   assert.deepEqual([allocations,copies,encodings],[0,0,0],'reject before any payload snapshot');
 }
 function bytes(value){
@@ -45,6 +45,11 @@ rejected([empty,new String('text'),empty],TypeError);
 for(const value of [new Uint16Array(1),new DataView(new ArrayBuffer(1)),new Proxy(empty,{}),new (class extends OriginalUint8 {})(1)]){
   rejected([value,'',empty],TypeError);
 }
+for(const value of [new Uint16Array([65535]),new Int8Array([-1])]){
+  Object.setPrototypeOf(value,OriginalUint8.prototype);
+  Object.defineProperty(value,Symbol.toStringTag,{get(){throw Error('caller tag getter')}});
+  rejected([value,'',empty],TypeError);
+}
 const detached=new OriginalUint8([1]);structuredClone(detached.buffer,{transfer:[detached.buffer]});
 rejected([detached,'',empty],TypeError);
 const detachedEmpty=new OriginalUint8();structuredClone(detachedEmpty.buffer,{transfer:[detachedEmpty.buffer]});
@@ -63,9 +68,18 @@ Object.defineProperty(species.buffer,'constructor',{value:{get [Symbol.species](
 rejected([species,'',empty],TypeError);assert.equal(hooks,0);
 // Overshadowed length/buffer accessors are never consulted by intrinsic checks.
 const shadowed=new OriginalUint8([3]);
-for(const key of ['byteLength','byteOffset','buffer'])Object.defineProperty(shadowed,key,{get(){hooks++;throw Error('caller getter')}});
+for(const key of ['byteLength','byteOffset','buffer',Symbol.toStringTag])Object.defineProperty(shadowed,key,{get(){hooks++;throw Error('caller getter')}});
 assert.deepEqual(bytes(call(shadowed,'',empty)),new OriginalUint8([3]));assert.equal(hooks,0);
 assert.deepEqual(bytes(call(new OriginalUint8([7]),'',empty)),new OriginalUint8([7]),'rejection must not poison later calls');
+const mixed=api.functions['probe.mixed'];
+if(mixed){
+  const full=new OriginalUint8(65536);
+  for(const invalid of [0,'0',null,{},-(1n<<63n)-1n,1n<<63n])rejected([full,'',invalid,true],TypeError,mixed);
+  for(const invalid of [0,1,'true',null,{}])rejected([full,'',0n,invalid],TypeError,mixed);
+  rejected([empty,'x'.repeat(65536),0n,{}],TypeError,mixed);
+  for(const endpoint of [-(1n<<63n),(1n<<63n)-1n])assert.equal(bytes(mixed(full,'',endpoint,true)).length,65536);
+  assert.deepEqual(bytes(mixed(empty,'scalar recovery',0n,false)),new TextEncoder().encode('scalar recovery'));
+}
 const oversizedModule=new OriginalUint8(16777217);
 reset();await assert.rejects(instantiate(oversizedModule),RangeError);
 assert.deepEqual([allocations,copies,encodings],[0,0,0],'module bound before copy/hash');

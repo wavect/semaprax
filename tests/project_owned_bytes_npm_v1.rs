@@ -327,7 +327,7 @@ fn v8_admits_the_complete_input_tuple_before_payload_allocation() {
         ("mixed", "Bytes", "bytes_copy(input)", true),
     ] {
         let extra = if scalar {
-            "@id(\"probe.scalar\") fn scalar() -> i64 { 7 }"
+            "@id(\"probe.scalar\") fn scalar() -> i64 { 7 }\n@id(\"probe.mixed\") fn mixed(input: borrow Slice<u8>, text: borrow str, value: i64, flag: bool) -> Bytes { if flag { bytes_copy(input) } else { bytes_from_str(text) } }"
         } else {
             ""
         };
@@ -336,6 +336,7 @@ fn v8_admits_the_complete_input_tuple_before_payload_allocation() {
         let mut selected = vec!["probe.bytes".to_owned()];
         if scalar {
             selected.push("probe.scalar".to_owned());
+            selected.push("probe.mixed".to_owned());
         }
         let descriptor = derive_public_api_descriptor(&program, &selected, subject()).unwrap();
         let build = prepare_owned_data_npm_build(

@@ -3,7 +3,7 @@ const InputUint8Array=Uint8Array,InputDataView=DataView;
 const inputArrayPrototype=Uint8Array.prototype,inputBufferPrototype=ArrayBuffer.prototype;
 const TypedArrayPrototype=Object.getPrototypeOf(inputArrayPrototype);
 const reflectApply=Reflect.apply,objectGetPrototypeOf=Object.getPrototypeOf,inputDescriptor=Object.getOwnPropertyDescriptor;
-const typedSet=TypedArrayPrototype.set,typedBuffer=inputDescriptor(TypedArrayPrototype,"buffer").get,typedOffset=inputDescriptor(TypedArrayPrototype,"byteOffset").get,typedLength=inputDescriptor(TypedArrayPrototype,"byteLength").get;
+const typedSet=TypedArrayPrototype.set,typedTag=inputDescriptor(TypedArrayPrototype,Symbol.toStringTag).get,typedBuffer=inputDescriptor(TypedArrayPrototype,"buffer").get,typedOffset=inputDescriptor(TypedArrayPrototype,"byteOffset").get,typedLength=inputDescriptor(TypedArrayPrototype,"byteLength").get;
 const inputBufferLength=inputDescriptor(inputBufferPrototype,"byteLength").get,inputResizable=inputDescriptor(inputBufferPrototype,"resizable")?.get,inputCharCode=String.prototype.charCodeAt;
 const inputEncoder=new TextEncoder(),inputEncode=TextEncoder.prototype.encode;
 function inputCapacity(){throw new RangeError("SEMAPRAX borrowed input capacity exceeded")}
@@ -11,7 +11,7 @@ function admitUint8(value,label,remaining){
   let buffer,offset,length;
   try{
     buffer=reflectApply(typedBuffer,value,[]);
-    if(objectGetPrototypeOf(value)!==inputArrayPrototype||objectGetPrototypeOf(buffer)!==inputBufferPrototype)throw 0;
+    if(objectGetPrototypeOf(value)!==inputArrayPrototype||reflectApply(typedTag,value,[])!=="Uint8Array"||objectGetPrototypeOf(buffer)!==inputBufferPrototype)throw 0;
     // Inspect descriptors without invoking caller getters or species constructors.
     if(inputDescriptor(buffer,"constructor")!==undefined||inputDescriptor(value,"constructor")!==undefined)throw 0;
     reflectApply(inputBufferLength,buffer,[]);

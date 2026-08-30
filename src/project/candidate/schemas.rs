@@ -188,6 +188,23 @@ fn expression_schema() -> Value {
     matching["x-total-payload-binders-maximum"] = json!(MAX_EXPRESSION_NODES - 1);
     matching["x-value-and-body-depth-increment"] = json!(2);
     variants.push(matching);
+    let mut update = closed(&[
+        ("kind", json!({"const":"update"})),
+        ("target", text(MAX_ID_BYTES)),
+        ("base", reference("expression")),
+        (
+            "fields",
+            json!({"type":"array","maxItems":MAX_EXPRESSION_NODES-1,
+            "items":closed(&[("target",text(MAX_ID_BYTES)),("value",reference("expression"))]),
+            "x-field-coverage":"unique_existing_subset","x-order":"replacement_expression_evaluation_order"}),
+        ),
+    ]);
+    update["properties"]["type_arguments"] = json!({"type":"array",
+        "maxItems":MAX_AGGREGATE_TYPE_ARGUMENTS,"items":{"enum":["i64","bool"]},
+        "x-counts-toward-expression-node-budget":true,"x-requires-exact-declared-arity":true});
+    update["x-implicit-update-nodes"] = json!(3);
+    update["x-base-and-fields-depth-increment"] = json!(2);
+    variants.push(update);
     variants.push(closed(&[
         ("kind", json!({"const":"binary"})),
         (
@@ -324,7 +341,7 @@ mod aggregate_expression_schema_tests {
             kinds,
             [
                 "i64", "i32", "u8", "usize", "bool", "place", "call", "binary", "unary", "if",
-                "record", "variant", "project", "match"
+                "record", "variant", "project", "match", "update"
             ]
             .into_iter()
             .collect()
@@ -418,5 +435,36 @@ mod aggregate_expression_schema_tests {
             .as_array()
             .unwrap()
             .contains(&json!("type_arguments")));
+    }
+
+    #[test]
+    fn record_update_schema_closes_ordered_field_subset_and_recursive_base() {
+        let schema = expression_schema();
+        let update = schema["oneOf"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["properties"]["kind"]["const"] == "update")
+            .unwrap();
+        assert_eq!(update["additionalProperties"], false);
+        assert_eq!(
+            update["required"],
+            json!(["kind", "target", "base", "fields"])
+        );
+        assert_eq!(update["properties"].as_object().unwrap().len(), 5);
+        assert_eq!(update["properties"]["base"], reference("expression"));
+        let fields = &update["properties"]["fields"];
+        assert_eq!(fields["maxItems"], MAX_EXPRESSION_NODES - 1);
+        assert!(fields.get("minItems").is_none());
+        assert_eq!(fields["items"]["additionalProperties"], false);
+        assert_eq!(fields["items"]["required"], json!(["target", "value"]));
+        assert_eq!(
+            fields["items"]["properties"]["value"],
+            reference("expression")
+        );
+        assert_eq!(update["x-implicit-update-nodes"], 3);
+        assert_eq!(update["x-base-and-fields-depth-increment"], 2);
+        assert!(update["properties"].get("owner").is_none());
+        assert!(update["properties"].get("name").is_none());
     }
 }

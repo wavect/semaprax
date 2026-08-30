@@ -105,6 +105,9 @@ binding rather than granting a borrow-preserving field view.
 The `match` expression selects a variant owner and supplies its exact complete
 case/payload identity inventory with arm-local binders. It stages the exact
 nominal scrutinee once and uses the existing value-match admission rules.
+The `update` expression selects a record owner and a subset of stable field
+identities. Exact-owner staging evaluates the base once before the requested
+replacement order; ordinary record update semantics handle untouched fields.
 Initializer arrays preserve the requested evaluation order. They are recursive
 expression operands, not aggregate defaults for fresh signature parameters.
 Types, effects, contracts, ownership, and cleanup are checked after canonical

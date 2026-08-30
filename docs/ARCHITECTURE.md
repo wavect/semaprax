@@ -581,6 +581,11 @@ constructor stages the exact nominal scrutinee once and emits ordinary
 exhaustive value-match patterns with arm-local payload bindings. Rebase binds
 the complete case and payload inventory; ordinary candidate source admission
 retains all matching, ownership, cleanup and target checks.
+Record updates reuse `candidate/aggregate.rs` owner/member resolution and lower
+to the existing update AST after exact-owner staging. The base is evaluated
+once before requested replacements, with untouched fields left to ordinary
+update semantics. Discovery exposes the complete owner inventory and rebase
+binds that inventory even for fields omitted from the replacement subset.
 
 `candidate/declaration.rs` appends a typed function under a selected module
 anchor with globally fresh identity and checked namespace/effect budgets.

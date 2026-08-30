@@ -140,7 +140,7 @@ fn apply_rebound(
     // Check each original/rebased intermediate revision, not only the two
     // history roots. Earlier intentions may legitimately change a shape that
     // a later aggregate constructor references.
-    for target in constructor_intent_targets(&change.intent, &["record", "variant"]) {
+    for target in constructor_intent_targets(&change.intent, &["record", "variant", "update"]) {
         let before = intent::aggregate_dependency_fingerprint(original_revision, &target)?;
         let after = intent::aggregate_dependency_fingerprint(candidate.revision(), &target)?;
         if before.is_none() || before != after {

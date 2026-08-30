@@ -71,6 +71,11 @@ Reidentifying a unit case or payload field conflicts even if names, source
 types and the owning variant identity are unchanged. These guards run for
 recursive match operands at each intermediate revision before ordinary replay.
 
+`update` operands bind the complete checked record descriptor, including fields
+not mentioned by the request. A concurrent change to an untouched field's
+identity, type or order conflicts with `SPX-G235`. Subset and empty updates
+follow this same guard and complete candidate replay.
+
 | Concurrent change | Decision for replayed intent |
 | --- | --- |
 | Body edit and unrelated display rename, including the same source file | Replay permitted, then full admission. |

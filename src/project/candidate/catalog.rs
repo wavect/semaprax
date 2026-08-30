@@ -24,7 +24,7 @@ impl ProjectCandidate {
             .iter()
             .flat_map(|program| &program.functions)
             .find(|function| function.stable_id == target);
-        let (aggregates, projections, matches) = match selected {
+        let (aggregates, projections, matches, updates) = match selected {
             Some(function) if function.explicit_id && function.type_parameters.is_empty() => {
                 let program = programs
                     .iter()
@@ -39,9 +39,10 @@ impl ProjectCandidate {
                     super::intent::aggregate_constructors(&self.revision, program)?,
                     super::intent::aggregate_projections(&self.revision, program)?,
                     super::intent::aggregate_matches(&self.revision, program)?,
+                    super::intent::aggregate_updates(&self.revision, program)?,
                 )
             }
-            _ => (Vec::new(), Vec::new(), Vec::new()),
+            _ => (Vec::new(), Vec::new(), Vec::new(), Vec::new()),
         };
         let mut operations = Vec::<Value>::new();
         let mut parameters = Vec::<Value>::new();
@@ -208,7 +209,11 @@ impl ProjectCandidate {
                 reason = "constructor_available_payload_requires_full_candidate_admission";
             }
         }
-        if !aggregates.is_empty() || !projections.is_empty() || !matches.is_empty() {
+        if !aggregates.is_empty()
+            || !projections.is_empty()
+            || !matches.is_empty()
+            || !updates.is_empty()
+        {
             for operation in &mut operations {
                 if operation["kind"] == "replace_function_body" {
                     let constructors = operation["constructors"].as_array_mut().unwrap();
@@ -222,6 +227,9 @@ impl ProjectCandidate {
                     }
                     if !matches.is_empty() {
                         constructors.push(json!("match"));
+                    }
+                    if !updates.is_empty() {
+                        constructors.push(json!("update"));
                     }
                 }
             }
@@ -244,6 +252,9 @@ impl ProjectCandidate {
         }
         if !matches.is_empty() {
             report["aggregate_matches"] = json!(matches);
+        }
+        if !updates.is_empty() {
+            report["aggregate_updates"] = json!(updates);
         }
         wire::render(report, 256 * 1024)
     }

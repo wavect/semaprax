@@ -19,6 +19,13 @@
   mandatory. Regressions are authored, unrun; generated artifacts, Unix behavior,
   dependencies and unsafe-code boundaries are unchanged.
 
+- Added stable-ID record update intentions with exact nominal base staging,
+  subset field replacement and preserved base-first/requested evaluation order.
+  Catalogue and hole discovery expose checked record inventories; semantic
+  rebase binds untouched fields as well as selected replacements. Regression
+  fixtures are authored, unrun. Runtime evidence, backend admission and
+  source/publication authority are unchanged.
+
 - Added stable-ID exhaustive variant match intentions for source variants and
   authenticated Option/Result, with exact nominal scrutinee staging and scoped
   payload bindings. Discovery and recursive schemas expose complete case/field

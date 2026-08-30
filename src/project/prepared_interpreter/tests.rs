@@ -2,12 +2,20 @@ use std::collections::BTreeMap;
 use std::ops::Range;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{Mutex, MutexGuard};
 
 use sha2::{Digest as _, Sha256};
 
 use super::*;
 
 const TRACE_PAYLOAD_DOMAIN: &[u8] = b"semaprax.project-source-trace.payload.v1\0";
+static REAL_PREPARE_SERIAL: Mutex<()> = Mutex::new(());
+
+fn real_prepare_serial() -> MutexGuard<'static, ()> {
+    REAL_PREPARE_SERIAL
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
 
 fn revision() -> Arc<ProjectRevision> {
     let manifest =
@@ -75,6 +83,7 @@ fn first_event_range(payload: &str) -> Range<usize> {
 
 #[test]
 fn one_prepared_worker_repeats_exact_entry_and_test_with_replayable_origins() {
+    let _serial = real_prepare_serial();
     let revision = revision();
     let prepared = revision
         .prepare_interpreter(PreparedProjectInterpreterOptions::default())
@@ -101,6 +110,7 @@ fn one_prepared_worker_repeats_exact_entry_and_test_with_replayable_origins() {
 
 #[test]
 fn cancellation_is_a_replayable_zero_step_outcome_and_trace_saturation_is_explicit() {
+    let _serial = real_prepare_serial();
     let revision = revision();
     let prepared = revision
         .prepare_interpreter(PreparedProjectInterpreterOptions::default())
@@ -133,6 +143,7 @@ fn cancellation_is_a_replayable_zero_step_outcome_and_trace_saturation_is_explic
 
 #[test]
 fn options_and_resigned_origin_mutation_fail_closed() {
+    let _serial = real_prepare_serial();
     assert_eq!(
         PreparedProjectExecutionOptions::new(0, MIN_PROJECT_SOURCE_TRACE_BYTES, 1)
             .unwrap_err()
@@ -177,6 +188,55 @@ fn worker_permit_is_bounded_and_released_exactly_once() {
     drop(second);
     drop(replacement);
     assert_eq!(ACTIVE.load(Ordering::Acquire), 0);
+}
+
+#[test]
+fn production_worker_bound_is_exact_and_real_workers_release_their_permits() {
+    let _serial = real_prepare_serial();
+    assert_eq!(
+        ACTIVE_PREPARED_PROJECT_INTERPRETER_WORKERS.load(Ordering::Acquire),
+        0
+    );
+    let revision = revision();
+    let mut workers = Vec::new();
+    for _ in 0..MAX_PREPARED_PROJECT_INTERPRETER_WORKERS {
+        workers.push(
+            prepare_project_interpreter(
+                Arc::clone(&revision),
+                PreparedProjectInterpreterOptions::default(),
+            )
+            .unwrap(),
+        );
+    }
+    assert_eq!(
+        ACTIVE_PREPARED_PROJECT_INTERPRETER_WORKERS.load(Ordering::Acquire),
+        MAX_PREPARED_PROJECT_INTERPRETER_WORKERS
+    );
+    let refusal = match prepare_project_interpreter(
+        Arc::clone(&revision),
+        PreparedProjectInterpreterOptions::default(),
+    ) {
+        Ok(worker) => {
+            drop(worker);
+            panic!("the ninth prepared worker must be rejected")
+        }
+        Err(diagnostics) => diagnostics,
+    };
+    assert_eq!(refusal.first().unwrap().code, "SPX-F107");
+
+    drop(workers);
+    assert_eq!(
+        ACTIVE_PREPARED_PROJECT_INTERPRETER_WORKERS.load(Ordering::Acquire),
+        0
+    );
+    let replacement =
+        prepare_project_interpreter(revision, PreparedProjectInterpreterOptions::default())
+            .unwrap();
+    drop(replacement);
+    assert_eq!(
+        ACTIVE_PREPARED_PROJECT_INTERPRETER_WORKERS.load(Ordering::Acquire),
+        0
+    );
 }
 
 #[test]
@@ -226,6 +286,7 @@ fn duplicate_function_origin_must_be_exact_and_is_counted_once() {
 
 #[test]
 fn canonical_remints_cannot_change_structural_phase_or_escape_the_exact_closure() {
+    let _serial = real_prepare_serial();
     let revision = revision();
     let prepared = revision
         .prepare_interpreter(PreparedProjectInterpreterOptions::default())
@@ -300,6 +361,7 @@ fn canonical_remints_cannot_change_structural_phase_or_escape_the_exact_closure(
 
 #[test]
 fn canonical_remints_reject_impossible_cancellation_and_drop_accounting() {
+    let _serial = real_prepare_serial();
     let revision = revision();
     let prepared = revision
         .prepare_interpreter(PreparedProjectInterpreterOptions::default())

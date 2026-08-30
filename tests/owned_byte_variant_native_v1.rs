@@ -94,10 +94,27 @@ fn compile_and_expect_failure(source: &str, probe: &str, optimization: &str) {
 
 #[test]
 fn owned_byte_variants_move_and_settle_exactly_at_o0_and_o2() {
+    assert_native_variant_corpus(SOURCE);
+}
+
+#[test]
+fn variant_field_places_branches_and_blocks_follow_exact_cleanup_transfers() {
+    let original = "Choice::Data { payload: bytes_copy(data), marker: 20 }";
+    assert_eq!(SOURCE.matches(original).count(), 1);
+    for replacement in [
+        "let staged = bytes_copy(data); Choice::Data { payload: staged, marker: 20 }",
+        "Choice::Data { payload: if true { bytes_copy(data) } else { bytes_copy(data) }, marker: 20 }",
+        "Choice::Data { payload: { let staged = bytes_copy(data); staged }, marker: 20 }",
+    ] {
+        assert_native_variant_corpus(&SOURCE.replace(original, replacement));
+    }
+}
+
+fn assert_native_variant_corpus(source: &str) {
     if Command::new("clang").arg("--version").output().is_err() {
         return;
     }
-    let program = parse(SOURCE, Path::new("owned-byte-variant-native-v1.spx")).unwrap();
+    let program = parse(source, Path::new("owned-byte-variant-native-v1.spx")).unwrap();
     let generated = codegen::emit_c(&program).unwrap();
     assert_eq!(generated, codegen::emit_c(&program).unwrap());
     assert!(generated.contains("spx_bytes_move"));

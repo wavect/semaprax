@@ -37,7 +37,7 @@ pub(super) use aggregate::{
     nominal_type_dependency_fingerprint, nominal_type_plan, nominal_types, validate_nominal_ast,
     MAX_AGGREGATE_TYPE_ARGUMENTS,
 };
-pub(super) use signature::ordered_signature_parameters;
+pub(super) use signature::{ordered_signature_parameters, validate_computed_signature};
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 

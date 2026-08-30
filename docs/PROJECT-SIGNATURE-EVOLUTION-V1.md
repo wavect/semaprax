@@ -36,7 +36,7 @@ Each element has exactly one of these shapes:
 | `{"from":"old_name"}` | Retain one original parameter with its exact existing name, type, and mode at this position. |
 | `{"from":"old_name","name":"new_name"}` | Retain its exact type and mode and rename the original lexical parameter binding. |
 | `{"name":"new_name","type":"scalar","argument":literal}` | Add a fresh by-value scalar parameter and supply the explicit matching scalar literal at every migrated call. |
-| `{"name":"new_name","type":"scalar","argument_expression":expression}` | Compute a new scalar argument from the original staged parameters after all original arguments, then fully revalidate each migrated caller. See [Argument Expressions v1](PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md). |
+| `{"name":"new_name","type":type_selector,"argument_expression":expression}` | Compute a new scalar or checked Copy nominal argument from the original staged parameters after all original arguments, then fully revalidate each migrated caller. See [Argument Expressions v1](PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md). |
 
 A retained parameter can appear only once. Original parameters omitted from
 the array are removed from the declaration, but their caller argument
@@ -46,11 +46,14 @@ owning parameter must be retained exactly once; it cannot be removed or copied.
 
 New parameter names must be distinct from all original names, including names
 of removed parameters. They cannot reinterpret an existing body binding.
-New types and literal kinds are the existing `i64`, `i32`, `u8`, `usize`, and
+New scalar types and literal kinds are the existing `i64`, `i32`, `u8`, `usize`, and
 `bool` vocabulary with exact numeric bounds. Unknown fields, combined
 `parameters`/`append_parameters`, inferred defaults, nonliteral `argument`
 values, duplicate mappings, and unknown original names reject. Computed values
 require the separate explicit `argument_expression` form above.
+Only that computed form additionally admits stable-ID nominal type objects;
+provider and caller bindings are resolved independently and rebuilt checked
+signature facts must prove exact-identity Sized Copy admission.
 
 Every original parameter must have value mode and a built-in Copy type
 (`i64`, `i32`, `char`, `u8`, `usize`, `[u8; N]`, `f32`, `f64`, or `bool`),
@@ -65,7 +68,7 @@ compiler-owned variants, use their complete ordered type-argument identity;
 generic target functions remain excluded.
 
 The mapping keeps the original source type spelling, type arguments and mode.
-It does not convert a record to another record, introduce aggregate defaults,
+Retained mappings do not convert a record to another record,
 alter fields, widen a target profile or add an owning parameter. Named non-Copy
 types, classes/resources, borrows and shared modes remain excluded. Full
 candidate admission still rejects a removed parameter referenced by the body

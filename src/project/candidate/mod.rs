@@ -366,6 +366,9 @@ impl ProjectCandidate {
         if let Some(addition) = addition.as_ref() {
             declaration::validate_added_signature(&candidate, addition)?;
         }
+        if summary.kind == "change_function_signature" {
+            intent::validate_computed_signature(&candidate, &change.intent)?;
+        }
         if type_addition.is_some() {
             type_declaration::validate(&self.revision, &candidate, &change.intent)?;
         }

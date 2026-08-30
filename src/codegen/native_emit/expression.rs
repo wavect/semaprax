@@ -1669,6 +1669,22 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     })?;
                     let value = self.emit_expr(&initializer.value)?;
                     self.require_type(&value.ty, &field.ty, "record field initializer")?;
+                    if matches!(field.ty, ResolvedType::Bytes) {
+                        let plan = self.bytes_plan.ok_or_else(|| {
+                            backend_error("owned Bytes record field has no cleanup plan")
+                        })?;
+                        let transitions = plan.transfer_field_at(
+                            &initializer.value.id,
+                            &value.code,
+                            &crate::cleanup_plan::CleanupPlace {
+                                storage: crate::cleanup_plan::StorageId::Temporary(expr.id.clone()),
+                                projections: vec![field.field.clone()],
+                            },
+                        )?;
+                        for line in transitions.lines() {
+                            self.line(line);
+                        }
+                    }
                     if field.size != 0 && !matches!(field.ty, ResolvedType::Bytes) {
                         self.line(&format!(
                             "{temporary}.{} = {};",
@@ -1725,6 +1741,22 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             })?;
                     let value = self.emit_expr(&initializer.value)?;
                     self.require_type(&value.ty, &field.ty, "variant field initializer")?;
+                    if matches!(field.ty, ResolvedType::Bytes) {
+                        let plan = self.bytes_plan.ok_or_else(|| {
+                            backend_error("owned Bytes variant field has no cleanup plan")
+                        })?;
+                        let transitions = plan.transfer_field_at(
+                            &initializer.value.id,
+                            &value.code,
+                            &crate::cleanup_plan::CleanupPlace {
+                                storage: crate::cleanup_plan::StorageId::Temporary(expr.id.clone()),
+                                projections: vec![case.clone(), field.field.clone()],
+                            },
+                        )?;
+                        for line in transitions.lines() {
+                            self.line(line);
+                        }
+                    }
                     values.push((field, value));
                 }
                 let temporary = self.temporary(&expr.ty)?;

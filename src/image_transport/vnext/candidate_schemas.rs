@@ -650,6 +650,9 @@ fn signature_form() -> Value {
                 "place_scope":"original_target_parameter_names",
                 "evaluation_order":"after_all_original_arguments_in_computed_mapping_order",
                 "caller_bindings":"every_affected_caller_existing_bindings",
+                "nominal_type_selector":"nominal_types",
+                "type_bindings":"provider_and_every_affected_caller_existing_bindings",
+                "nominal_admission":"rebuilt_copy_sized_resource_free_no_drop_signature",
                 "admission":"full_candidate_revalidation",
             }});
         }
@@ -700,6 +703,9 @@ mod signature_parameter_schema_tests {
                 "place_scope":"original_target_parameter_names",
                 "evaluation_order":"after_all_original_arguments_in_computed_mapping_order",
                 "caller_bindings":"every_affected_caller_existing_bindings",
+                "nominal_type_selector":"nominal_types",
+                "type_bindings":"provider_and_every_affected_caller_existing_bindings",
+                "nominal_admission":"rebuilt_copy_sized_resource_free_no_drop_signature",
                 "admission":"full_candidate_revalidation",
             })
         );

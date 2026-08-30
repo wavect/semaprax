@@ -1,0 +1,96 @@
+module native.string_settlement;
+
+@id("private.sink")
+fn sink(value: string) -> string { "done" }
+@id("private.integer")
+fn integer(value: i64) -> string { "done" }
+@id("private.three")
+fn three(first: string, number: i64, last: string) -> string { "done" }
+@id("private.inner")
+fn inner(value: string, zero: i64) -> string {
+    integer({ let kept = "callee-local"; let divided = 1 / zero; 0 })
+}
+
+@id("s.before")
+fn before(zero: i64) -> string {
+    sink({ let divided = 1 / zero; let value = "late"; value })
+}
+@id("s.body")
+fn body(limit: i64) -> string {
+    integer({ let mut i = 0; while { let condition = "condition"; i < 4 } {
+        let iteration = "iteration"; let checked = 1 / (limit - i); i = i + 1; 0
+    } 0 })
+}
+@id("s.branch")
+fn branch(flag: bool) -> string { sink(if flag { "left" } else { "right" }) }
+@id("s.callee")
+fn callee_failure(zero: i64) -> string { inner("caller-argument", zero) }
+@id("s.clone")
+fn clone_value() -> string { sink({ let a = "alpha\u{0}世界"; let b = a; a }) }
+@id("s.condition")
+fn condition(limit: i64) -> string {
+    integer({ let mut i = 0; while {
+        let condition = "condition"; let checked = 1 / (limit - i); i < 4
+    } { let iteration = "iteration"; i = i + 1; 0 } 0 })
+}
+@id("s.empty")
+fn empty() -> string { "" }
+@id("s.late")
+fn late(zero: i64) -> string { three("first", 1 / zero, "must-not-run-on-failure") }
+@id("s.local")
+fn local(zero: i64) -> string {
+    integer({ let kept = "kept"; let divided = 1 / zero; 0 })
+}
+@id("s.mixed")
+fn mixed(input: borrow Slice<u8>, zero: i64) -> string {
+    integer({ let text = "mixed"; let bytes = bytes_copy(input); let divided = 1 / zero; 0 })
+}
+@id("s.nested")
+fn nested(zero: i64) -> string { three(sink("inner-argument"), 1 / zero, "must-not-run-on-failure") }
+@id("s.pressure")
+fn pressure() -> string { sink({
+    let a0 = "payload"; let a1 = "payload"; let a2 = "payload";
+    let a3 = "payload"; let a4 = "payload"; let a5 = "payload";
+    let a6 = "payload"; let a7 = "payload"; let a8 = "payload";
+    let a9 = "payload"; let a10 = "payload"; let a11 = "payload";
+    let a12 = "payload"; let a13 = "payload"; let a14 = "payload";
+    let a15 = "payload"; let a16 = "payload"; a16
+}) }
+@id("s.text")
+fn text() -> string { "hello\u{0}世界" }
+
+// These functions are emitted, but deliberately absent from SELECTED. Their
+// raw internal calls below do not widen the public v10 descriptor contract.
+@id("private.post")
+fn post(flag: bool) -> string
+    ensures flag
+{ "post" }
+@id("private.clone")
+fn cloned() -> string {
+    let a = "alpha\u{0}世界";
+    let b = a;
+    a
+}
+@id("private.match")
+fn matched(value: i64, flag: bool) -> string {
+    match value {
+        0 if { let guard = "guard"; flag } => "yes",
+        _ => "fallback",
+    }
+}
+@id("private.intrinsic")
+fn intrinsic(zero: i64) -> i64 {
+    let kept = string_concat("left", "right");
+    let length = string_len(kept);
+    let divided = 1 / zero;
+    length
+}
+@id("private.equality")
+fn equality(zero: i64) -> bool {
+    let equal = "same" == "same";
+    let kept = "kept";
+    let divided = 1 / zero;
+    equal
+}
+@id("s.main")
+fn main() -> i64 { 0 }

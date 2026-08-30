@@ -14,13 +14,17 @@ use super::{build, ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 
 mod catalog;
 mod draft;
+mod expression;
 mod intent;
+mod rebase;
+mod schemas;
 mod wire;
 
 pub use draft::{
     ProjectCandidateDraft, MAX_PROJECT_CANDIDATE_HOLES, PROJECT_CANDIDATE_DRAFT_SCHEMA,
     PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA,
 };
+pub use rebase::{ProjectCandidateRebase, PROJECT_CANDIDATE_REBASE_SCHEMA};
 
 pub const SEMANTIC_CHANGE_SCHEMA: &str = "semaprax.semantic-change.v1";
 pub const PROJECT_CANDIDATE_SCHEMA: &str = "semaprax.project-candidate.v1";
@@ -142,8 +146,33 @@ impl ProjectCandidate {
             return Err(capacity("candidate intention count exceeds 32"));
         }
         let mut programs = parse_revision(&self.revision)?;
-        let before = invariant_facts(&programs);
-        let summary = intent::apply(&mut programs, &change.intent)?;
+        let mut before = invariant_facts(&programs);
+        let summary =
+            if change.intent.get("kind").and_then(Value::as_str) == Some("replace_expression") {
+                expression::apply(&self.revision, &mut programs, &change.intent)?
+            } else {
+                intent::apply(&mut programs, &change.intent)?
+            };
+        if summary.kind == "add_contract" {
+            // The exact validated intention permits one additive predicate,
+            // while all prior predicates, effects and permits stay intact.
+            let phase = change.intent["phase"]
+                .as_str()
+                .ok_or_else(|| invalid("contract phase is missing"))?;
+            let owner = programs
+                .iter()
+                .find(|program| {
+                    program
+                        .functions
+                        .iter()
+                        .any(|function| function.stable_id == summary.target_id)
+                })
+                .ok_or_else(|| invalid("contract owner is missing"))?;
+            let count = before[&owner.path]["functions"][&summary.target_id][phase]
+                .as_u64()
+                .ok_or_else(|| invalid("contract baseline inventory is missing"))?;
+            before[&owner.path]["functions"][&summary.target_id][phase] = json!(count + 1);
+        }
         let after = invariant_facts(&programs);
         if before != after {
             return Err(invalid(
@@ -181,6 +210,9 @@ impl ProjectCandidate {
             ));
         }
         preserve_explicit_identities(&self.revision, &candidate)?;
+        if summary.kind == "replace_expression" {
+            expression::validate_replacement(&self.revision, &candidate, &change.intent)?;
+        }
         if self.revision.manifest().to_canonical_toml() != candidate.manifest().to_canonical_toml()
         {
             return Err(invalid(

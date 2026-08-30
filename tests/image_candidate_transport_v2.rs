@@ -60,7 +60,13 @@ impl Drop for Fixture {
 fn call(session: &mut ImageSession, method: &str, mut params: Value) -> Value {
     if method.starts_with("candidate/")
         || method.starts_with("hole/")
-        || matches!(method, "change/catalog" | "validation/catalog")
+        || matches!(
+            method,
+            "change/catalog"
+                | "validation/catalog"
+                | "expression/catalog"
+                | "protocol/constructor-schemas"
+        )
     {
         params["image_revision"] = json!(session.image_revision());
     }
@@ -452,4 +458,177 @@ fn source_drift_absorbs_all_candidate_and_draft_registry_access() {
         call(&mut session, "workspace/open", json!({}))["error"]["code"],
         -32000
     );
+}
+
+#[test]
+fn semantic_merge_and_rebase_select_retained_candidates_without_writing_source() {
+    let fixture = Fixture::new();
+    let before = fixture.inventory();
+    let mut session = fixture.session(ImageHostCapability::CandidateOnly);
+    let root = opened(&mut session);
+    let left = payload(renamed(&mut session, &root, "sum"))["candidate_revision"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let right_payload = payload(call(
+        &mut session,
+        "candidate/apply-intent",
+        json!({"candidate_revision":root,"intent":{"kind":"replace_function_body","target":"calculator.subtract","body":{"kind":"i64","value":7}}}),
+    ));
+    let right = right_payload["candidate_revision"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let merged = payload(call(
+        &mut session,
+        "candidate/merge",
+        json!({"candidate_revision":left,"other_candidate_revision":right}),
+    ));
+    assert_eq!(merged["kind"], "merge");
+    assert_eq!(
+        merged["report"]["schema"],
+        "semaprax.project-candidate-rebase.v1"
+    );
+    let merged_report: Value = serde_json::from_str(&report(
+        &mut session,
+        merged["candidate"]["candidate_revision"].as_str().unwrap(),
+    ))
+    .unwrap();
+    let root_report: Value = serde_json::from_str(&report(&mut session, &root)).unwrap();
+    assert_eq!(merged_report["base_revision"], root_report["base_revision"]);
+    assert_eq!(merged_report["operations"].as_array().unwrap().len(), 2);
+    let rebased = payload(call(
+        &mut session,
+        "candidate/rebase",
+        json!({"candidate_revision":left,"new_base_candidate_revision":right}),
+    ));
+    assert_eq!(rebased["kind"], "rebase");
+    let rebased_report: Value = serde_json::from_str(&report(
+        &mut session,
+        rebased["candidate"]["candidate_revision"].as_str().unwrap(),
+    ))
+    .unwrap();
+    assert_eq!(
+        rebased_report["base_revision"],
+        right_payload["project_revision"]
+    );
+    let original = report(&mut session, &left);
+    let conflict = payload(renamed(&mut session, &root, "addition"))["candidate_revision"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let failure = call(
+        &mut session,
+        "candidate/merge",
+        json!({"candidate_revision":left,"other_candidate_revision":conflict}),
+    );
+    assert!(failure.get("error").is_some());
+    assert_eq!(report(&mut session, &left), original);
+    assert_eq!(fixture.inventory(), before);
+}
+
+#[test]
+fn constructor_schemas_are_closed_and_resolve_recursion_locally() {
+    let fixture = Fixture::new();
+    let mut session = fixture.session(ImageHostCapability::CandidateOnly);
+    let schemas = payload(call(
+        &mut session,
+        "protocol/constructor-schemas",
+        json!({}),
+    ));
+    assert_eq!(
+        schemas["schema"],
+        "semaprax.candidate-constructor-schemas.v1"
+    );
+    assert_eq!(schemas["requires_compiler_admission"], true);
+    fn inspect(node: &Value, root: &Value) {
+        match node {
+            Value::Object(object) => {
+                if let Some(reference) = object.get("$ref") {
+                    let reference = reference.as_str().unwrap();
+                    assert!(reference.starts_with("#/"), "{reference}");
+                    assert!(root.pointer(&reference[1..]).is_some(), "{reference}");
+                }
+                if object.contains_key("properties") {
+                    assert_eq!(object.get("additionalProperties"), Some(&json!(false)));
+                }
+                for value in object.values() {
+                    inspect(value, root);
+                }
+            }
+            Value::Array(values) => {
+                for value in values {
+                    inspect(value, root);
+                }
+            }
+            _ => (),
+        }
+    }
+    let documents = schemas["documents"].as_array().unwrap();
+    assert_eq!(documents.len(), 3);
+    for document in documents {
+        inspect(document, document);
+    }
+    let intent = documents
+        .iter()
+        .find(|document| document["$id"] == "urn:semaprax.semantic-change-intent.v1")
+        .unwrap();
+    let kinds = intent["$defs"]["intent"]["oneOf"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|schema| schema["properties"]["kind"]["const"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        kinds,
+        vec![
+            "rename_declaration",
+            "change_function_signature",
+            "change_function_signature",
+            "replace_function_body",
+            "replace_expression",
+            "add_contract"
+        ]
+    );
+}
+
+#[test]
+fn expression_discovery_selects_replacement_and_added_contract_uses_typed_predicate() {
+    let fixture = Fixture::new();
+    let mut session = fixture.session(ImageHostCapability::CandidateOnly);
+    let root = opened(&mut session);
+    let catalogue = payload(call(
+        &mut session,
+        "expression/catalog",
+        json!({"candidate_revision":root,"target":"calculator.add"}),
+    ));
+    assert_eq!(
+        catalogue["schema"],
+        "semaprax.project-expression-catalog.v1"
+    );
+    let expression = catalogue["expressions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|expression| {
+            expression["replaceable"] == true && expression["expected_type"] == "i64"
+        })
+        .unwrap();
+    let replacement = payload(call(
+        &mut session,
+        "candidate/apply-intent",
+        json!({"candidate_revision":root,"intent":{"kind":"replace_expression","target":"calculator.add","expression_id":expression["expression_id"],"replacement":{"kind":"i64","value":7}}}),
+    ));
+    let contracted = payload(call(
+        &mut session,
+        "candidate/apply-intent",
+        json!({"candidate_revision":replacement["candidate_revision"],"intent":{"kind":"add_contract","target":"calculator.add","phase":"ensures","predicate":{"kind":"bool","value":true}}}),
+    ));
+    let report: Value = serde_json::from_str(&report(
+        &mut session,
+        contracted["candidate_revision"].as_str().unwrap(),
+    ))
+    .unwrap();
+    assert_eq!(report["operations"].as_array().unwrap().len(), 2);
+    assert_eq!(report["validation"]["tests"], "not_run");
 }

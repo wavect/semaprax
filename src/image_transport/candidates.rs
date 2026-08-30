@@ -47,8 +47,12 @@ pub(super) enum Action {
     Validate,
     Impact,
     Compare,
+    Merge,
+    Rebase,
     Discard,
     ChangeCatalog,
+    ExpressionCatalog,
+    ConstructorSchemas,
     ValidationCatalog,
     HoleOpen,
     HoleQuery,
@@ -115,6 +119,36 @@ const CANDIDATE_METHODS: &[Method] = &[
         "semaprax.image-candidate-impact.v1"
     ),
     method!(
+        "candidate/merge",
+        Merge,
+        &[
+            REVISION,
+            CANDIDATE,
+            Parameter {
+                name: "other_candidate_revision",
+                kind: ParameterKind::Digest,
+                required: true
+            }
+        ],
+        false,
+        "semaprax.image-candidate-reconciliation.v1"
+    ),
+    method!(
+        "candidate/rebase",
+        Rebase,
+        &[
+            REVISION,
+            CANDIDATE,
+            Parameter {
+                name: "new_base_candidate_revision",
+                kind: ParameterKind::Digest,
+                required: true
+            }
+        ],
+        false,
+        "semaprax.image-candidate-reconciliation.v1"
+    ),
+    method!(
         "candidate/open",
         Open,
         &[REVISION],
@@ -141,6 +175,20 @@ const CANDIDATE_METHODS: &[Method] = &[
         &[REVISION, CANDIDATE, TARGET],
         true,
         "semaprax.project-change-catalog.v1"
+    ),
+    method!(
+        "expression/catalog",
+        ExpressionCatalog,
+        &[REVISION, CANDIDATE, TARGET],
+        true,
+        "semaprax.project-expression-catalog.v1"
+    ),
+    method!(
+        "protocol/constructor-schemas",
+        ConstructorSchemas,
+        &[REVISION],
+        true,
+        "semaprax.candidate-constructor-schemas.v1"
     ),
     method!(
         "hole/complete",
@@ -526,6 +574,44 @@ fn prepare_candidate(
             let right = registry.candidate(text(params, "other_candidate_revision"))?;
             Ok((parse_payload(left.compare(right)?)?, Mutation::None))
         }
+        Action::Merge | Action::Rebase => {
+            let candidate = registry.candidate(text(params, "candidate_revision"))?;
+            let prepared = if matches!(action, Action::Merge) {
+                let other = registry.candidate(text(params, "other_candidate_revision"))?;
+                candidate.merge(
+                    candidate.candidate_digest(),
+                    other,
+                    other.candidate_digest(),
+                )?
+            } else {
+                let new_base = registry.candidate(text(params, "new_base_candidate_revision"))?;
+                candidate.rebase(
+                    candidate.candidate_digest(),
+                    Arc::clone(new_base.revision()),
+                    new_base.revision().project_revision(),
+                )?
+            };
+            if prepared.to_json().len() > 65_536 {
+                return Err(failure(
+                    "SPX-G234",
+                    "candidate reconciliation report exceeds transport report bound",
+                ));
+            }
+            let report = parse_payload(prepared.to_json().to_owned())?;
+            let (handle, mutation) = retain_candidate(Arc::new(prepared.into_candidate()))?;
+            let selected_candidate = text(
+                params,
+                if matches!(action, Action::Merge) {
+                    "other_candidate_revision"
+                } else {
+                    "new_base_candidate_revision"
+                },
+            );
+            Ok((
+                json!({"schema":"semaprax.image-candidate-reconciliation.v1","kind":if matches!(action,Action::Merge){"merge"}else{"rebase"},"selected_candidate_revision":selected_candidate,"candidate":handle,"report":report}),
+                mutation,
+            ))
+        }
         Action::Discard => {
             let candidate = registry.candidate(text(params, "candidate_revision"))?;
             Ok((
@@ -540,6 +626,17 @@ fn prepare_candidate(
                 Mutation::None,
             ))
         }
+        Action::ExpressionCatalog => {
+            let candidate = registry.candidate(text(params, "candidate_revision"))?;
+            Ok((
+                parse_payload(candidate.expression_catalog(text(params, "target"))?)?,
+                Mutation::None,
+            ))
+        }
+        Action::ConstructorSchemas => Ok((
+            parse_payload(SemanticChange::constructor_schemas()?)?,
+            Mutation::None,
+        )),
         Action::ValidationCatalog => Ok((
             json!({"schema":"semaprax.image-validation-catalog.v1","available":[{"method":"candidate/validate","kind":"independent_source_and_target_projection_replay","runtime_execution":false}],"required_external_gates":["affected_project_tests","native_and_wasm_runtime_conformance","full_quality_profile"],"tests":"not_run","source_authority":false}),
             Mutation::None,

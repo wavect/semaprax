@@ -99,7 +99,36 @@ impl ProjectCandidate {
                         "expression_nodes_maximum":4096, "expression_depth_maximum":64,
                         "constraints":["place_selects_existing_parameter", "call_selects_accessible_stable_id", "expected_return_type", "declared_effect_budget", "contracts_ownership_cleanup_and_target_revalidation"],
                     }));
+                    operations.push(json!({
+                        "kind":"replace_expression", "required_fields":["kind","target","expression_id","replacement"],
+                        "selector_source":"expression/catalog",
+                        "constraints":["exact_revision_scoped_hir_expression", "unambiguous_source_expression", "body_region_only", "preserve_expected_type", "authenticated_lexical_scope", "full_candidate_revalidation"],
+                    }));
+                    if function
+                        .requires
+                        .len()
+                        .saturating_add(function.ensures.len())
+                        < 1024
+                    {
+                        operations.push(json!({
+                            "kind":"add_contract", "required_fields":["kind","target","phase","predicate"],
+                            "phases":["requires","ensures"],
+                            "constraints":["append_one_predicate", "preserve_existing_predicate_order_and_content", "pure_boolean_predicate", "parameters_in_scope", "result_only_in_ensures", "full_candidate_revalidation"],
+                        }));
+                    }
                 }
+            }
+            if function.explicit_id
+                && function.type_parameters.is_empty()
+                && function.name == "main"
+                && self.changes.len() < MAX_CHANGES
+            {
+                reason = "constructor_available_payload_requires_full_candidate_admission";
+                operations.push(json!({
+                    "kind":"replace_expression", "required_fields":["kind","target","expression_id","replacement"],
+                    "selector_source":"expression/catalog",
+                    "constraints":["exact_revision_scoped_hir_expression", "unambiguous_source_expression", "body_region_only", "preserve_expected_type", "authenticated_lexical_scope", "full_candidate_revalidation"],
+                }));
             }
         }
         wire::render(

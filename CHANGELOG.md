@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added typed body-expression replacement through current HIR identities,
+  additive pre/postconditions, conservative stable-ID candidate rebase/merge,
+  candidate protocol reconciliation and expression discovery, and closed
+  constructor JSON Schemas. Candidates still re-enter complete canonical
+  source admission; reconciliation reports carry no publication authority.
+  Regression cases are authored but unrun by request. General operations,
+  incremental/persistent reuse, complete schemas and source-commit integration
+  remain incomplete.
+
 - Added ephemeral typed body-hole drafts, ordered built-in Copy signature
   mapping with hygienic left-to-right argument staging, and an opt-in
   candidate-only image protocol with bounded registries, replay validation,

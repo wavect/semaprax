@@ -313,6 +313,16 @@ materialization until all holes are filled through full candidate admission.
 original built-in Copy argument once, left-to-right, before retaining,
 reordering or removing parameters. These additions are authored, unrun.
 
+`candidate/expression.rs` joins retained HIR identities to canonical AST
+provenance for typed body-expression replacement, preserving the selected
+expression's expected type through complete Project rebuilding. Contract
+insertion permits exactly one additional predicate while retaining prior
+contracts and all other invariant inventories. `candidate/rebase.rs` compares
+stable-ID target/dependency facts, normalizes call display names for conflict
+selection, and replays supported intentions over an admitted base. Same-root
+merge retains both histories and the original source-diff base. These APIs
+produce candidates and ancestry reports, never source publication authority.
+
 `src/project/manifest.rs` parses the bounded `semaprax.toml` profiles.
 `src/project/` owns held input authority, immutable revisions, semantic
 admission, linking, execution, builds, npm carriers, rename planning, and the

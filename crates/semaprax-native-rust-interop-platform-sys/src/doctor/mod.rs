@@ -3,6 +3,11 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+mod offline_input;
+pub use offline_input::{
+    DoctorOfflineInput, DoctorOfflineInputError, DOCTOR_OFFLINE_INPUT_MAX_BYTES,
+};
+
 #[cfg(test)]
 mod tests;
 #[cfg(any(target_os = "linux", target_os = "macos"))]

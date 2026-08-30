@@ -4,6 +4,11 @@
 
 mod doctor;
 pub use doctor::{doctor_version_probe, DoctorProbeError};
+mod doctor_offline_input;
+#[doc(hidden)]
+pub use doctor_offline_input::{
+    DoctorOfflineInput, DoctorOfflineInputError, DOCTOR_OFFLINE_INPUT_MAX_BYTES,
+};
 mod host_target;
 #[doc(hidden)]
 pub use host_target::{current_native_host_target, NativeHostTarget};

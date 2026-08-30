@@ -61,6 +61,11 @@ tool/loader/configuration inputs, OS filesystem/IPC/network boundaries, and
 owned descendant settlement before returning an admitted host. An identifier,
 digest, or declared “local” path alone cannot establish those properties.
 
+The separate [sealed input primitive](DOCTOR-SEALED-INPUT-V1.md) now authors the
+Linux borrowed-file acquisition boundary: seals before metadata/read, no
+duplication or close, and bounded immutable output bytes. It is not a profile
+parser or production admission backend, and is not connected to this CLI.
+
 ## Retained lower-level probe invocation bounds
 
 The separate trusted-installed-tool probe invokes exactly `--version`, preserving

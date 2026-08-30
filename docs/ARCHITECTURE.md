@@ -82,6 +82,13 @@ backend is implemented, so the real CLI currently reports unavailable rather
 than invoking installed tools. Reports describe selected tools, not ambient
 build readiness. No root unsafe code or dependency is added.
 
+The separate safe `DoctorOfflineInput` facade delegates only borrowed-file
+sealed-memory acquisition to the existing sys quarantine. Native64 Linux checks
+seals before metadata or positional reads and never duplicates/closes the
+caller's descriptor. It returns bounded immutable untrusted bytes, not profile
+or execution authority; unsupported hosts reject. This input primitive is not
+connected to the CLI. See [Doctor sealed input v1](DOCTOR-SEALED-INPUT-V1.md).
+
 The retained safe `semaprax-native-rust-interop-platform` facade and platform-sys
 quarantine's separate `doctor/` module are no longer connected to that CLI route.
 This lower-level fixed `--version` probe owns bounded combined

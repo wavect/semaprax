@@ -7,6 +7,7 @@
 
 mod doctor;
 pub use doctor::{probe_version as doctor_version_probe, ProbeError as DoctorProbeError};
+pub use doctor::{DoctorOfflineInput, DoctorOfflineInputError, DOCTOR_OFFLINE_INPUT_MAX_BYTES};
 
 #[cfg(unix)]
 use std::ffi::CString;

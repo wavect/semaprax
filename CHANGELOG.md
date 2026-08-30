@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Authored a bounded borrowed-file doctor input primitive in the existing OS
+  quarantine and unsafe-free facade. Linux checks immutable memory-file seals
+  before metadata/read access and never duplicates or closes an untrusted
+  descriptor; exact positional reads return only complete immutable bytes.
+  Hostile input/failure regressions are unrun. This supplies no profile format,
+  provenance or execution authority; real doctor profiles remain unavailable.
+
 - Replaced real doctor ambient PATH/home discovery with explicit bounded
   offline-profile selection and one scoped admission per report. Production
   admission is not yet implemented: missing/unavailable profiles fail required

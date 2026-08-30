@@ -1,0 +1,50 @@
+module interpreter.internal_strings;
+
+@id("helper.identity")
+fn identity(value: string) -> string { let cloned = value; cloned }
+@id("helper.required")
+fn required(value: string, flag: bool) -> string requires flag { value }
+@id("helper.ensured")
+fn ensured(value: string, flag: bool) -> string ensures flag { value }
+@id("helper.take")
+fn take(first: string, number: i64, last: string) -> string { first }
+@id("helper.pick")
+fn pick(flag: bool) -> string { if flag { "\u{0}é\u{0}世界" } else { "tail\u{0}" } }
+
+@id("case.content")
+fn content() -> i64 {
+    let text = identity(pick(true));
+    let zero = identity(string_from_char('\0'));
+    if string_len(text) == 10 && string_len_chars(text) == 5
+        && string_is_empty(identity(""))
+        && text == "\u{0}é\u{0}世界" && zero == "\u{0}" && string_is_empty(zero) == false
+        && string_concat(identity("a\u{0}"), identity("b")) == "a\u{0}b"
+        && string_starts_with(text, "\u{0}é") && string_contains(text, "\u{0}世") { 42 } else { 0 }
+}
+@id("case.requires")
+fn requires_failure() -> i64 { string_len(required("first\u{0}", false)) }
+@id("case.ensures")
+fn ensures_failure() -> i64 { string_len(ensured("provisional\u{0}", false)) }
+@id("case.late")
+fn late_failure() -> i64 { string_len(take(identity("first\u{0}"), 1 / 0, "last")) }
+@id("case.first")
+fn first_failure() -> i64 { string_len(take(required("first", false), 1 / 0, "last")) }
+@id("case.nested")
+fn nested_failure() -> i64 { string_len(identity(ensured("nested\u{0}", false))) }
+@id("case.branch")
+fn branch() -> i64 { if identity(pick(false)) == "tail\u{0}" { 42 } else { 0 } }
+@id("case.loop")
+fn looped() -> i64 {
+    let mut count = 0;
+    while count < 4 {
+        let text = identity("loop\u{0}");
+        if string_len(text) == 5 { count = count + 1; 0 } else { count = 10; 0 }
+    }
+    if count == 4 { 42 } else { 0 }
+}
+@id("case.recover")
+fn recover() -> i64 { if ensured(required("ok\u{0}", true), true) == "ok\u{0}" { 42 } else { 0 } }
+@id("case.scalar")
+fn scalar(value: i64) -> i64 { value + 1 }
+@id("app.main")
+fn main() -> i64 { content() }

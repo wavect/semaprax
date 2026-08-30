@@ -145,11 +145,9 @@ fn drift_before_handoff_skips_host_and_drift_after_success_is_uncertain() {
 fn scalar_project_is_rejected_before_host_handoff() {
     let root = fixture(8);
     std::fs::write(root.join("semaprax.toml"), "schema = \"semaprax.project.v1\"\nname = \"handoff\"\nentry = \"handoff.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"app.main\"]\ntests = [\"handoff.tests\"]\n").unwrap();
-    std::fs::write(
-        root.join("src/app.spx"),
-        "module handoff.app;\n@id(\"app.main\") fn main() -> i64 { 0 }\n",
-    )
-    .unwrap();
+    let source = "module handoff.app;\n@id(\"app.main\") fn main() -> i64 { 0 }\n";
+    let program = crate::parse(source, root.join("src/app.spx")).unwrap();
+    std::fs::write(root.join("src/app.spx"), crate::format::canonical(&program)).unwrap();
     with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         let errors = snapshot
             .build_owned_npm_with(&root.join("package"), |_, _| {

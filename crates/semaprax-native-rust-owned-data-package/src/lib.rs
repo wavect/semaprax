@@ -16,6 +16,7 @@ use sha2::{Digest, Sha256};
 mod descriptor;
 mod flat_descriptor;
 mod flat_render;
+mod owned_ffi_runtime;
 mod project_publication;
 mod publication;
 mod render;

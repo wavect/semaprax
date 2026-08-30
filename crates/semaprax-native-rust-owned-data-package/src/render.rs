@@ -50,13 +50,13 @@ fn render_lib(descriptor: &Descriptor) -> String {
         }
         write!(
             output,
-            ")->Result<{},CallError>{{",
+            ")->Result<{},CallError>{{self.context.invoke(|context|{{",
             rust_result(export.result)
         )
         .unwrap();
         match export.result {
             ResultKind::I64 | ResultKind::Bool | ResultKind::Usize => {
-                write!(output, "self.context.call_{}(", export.rust_method_name).unwrap();
+                write!(output, "context.call_{}(", export.rust_method_name).unwrap();
                 render_arguments(&mut output, export.parameters.len());
                 output.push_str(").map_err(Self::map_failure)");
             }
@@ -64,24 +64,19 @@ fn render_lib(descriptor: &Descriptor) -> String {
             | ResultKind::OptionOwnedBytes
             | ResultKind::ResultOwnedBytesI64
             | ResultKind::OwnedUtf8 => {
-                write!(
-                    output,
-                    "let raw=self.context.call_{}(",
-                    export.rust_method_name
-                )
-                .unwrap();
+                write!(output, "let raw=context.call_{}(", export.rust_method_name).unwrap();
                 render_arguments(&mut output, export.parameters.len());
                 output.push_str(").map_err(Self::map_failure)?;");
                 match export.result {
-                    ResultKind::OwnedBytes => output.push_str("if raw.tag!=0||raw.handle==0{if raw.handle!=0{self.context.discard(raw.handle).map_err(map_failure)?}return Err(CallError::AdapterRejected)}self.context.copy_and_settle(raw.handle).map_err(map_failure)"),
-                    ResultKind::OptionOwnedBytes => output.push_str("match(raw.tag,raw.handle){(0,0)=>Ok(None),(1,handle)if handle!=0=>self.context.copy_and_settle(handle).map(Some).map_err(map_failure),(_,handle)=>{if handle!=0{self.context.discard(handle).map_err(map_failure)?}Err(CallError::AdapterRejected)}}"),
-                    ResultKind::ResultOwnedBytesI64 => output.push_str("match(raw.tag,raw.handle){(0,handle)if handle!=0=>self.context.copy_and_settle(handle).map(Ok).map_err(map_failure),(1,0)=>Ok(Err(raw.error)),(_,handle)=>{if handle!=0{self.context.discard(handle).map_err(map_failure)?}Err(CallError::AdapterRejected)}}"),
-                    ResultKind::OwnedUtf8 => output.push_str("if raw.tag!=0||raw.handle==0{if raw.handle!=0{self.context.discard(raw.handle).map_err(map_failure)?}return Err(CallError::AdapterRejected)}let bytes=self.context.copy_and_settle(raw.handle).map_err(map_failure)?;String::from_utf8(bytes).map_err(|_|CallError::AdapterRejected)"),
+                    ResultKind::OwnedBytes => output.push_str("context.copy_and_settle(raw.handle).map_err(map_failure)"),
+                    ResultKind::OptionOwnedBytes => output.push_str("if raw.tag==0{Ok(None)}else{context.copy_and_settle(raw.handle).map(Some).map_err(map_failure)}"),
+                    ResultKind::ResultOwnedBytesI64 => output.push_str("if raw.tag==1{Ok(Err(raw.error))}else{context.copy_and_settle(raw.handle).map(Ok).map_err(map_failure)}"),
+                    ResultKind::OwnedUtf8 => output.push_str("let bytes=context.copy_and_settle(raw.handle).map_err(map_failure)?;String::from_utf8(bytes).map_err(|_|CallError::AdapterRejected)"),
                     _ => unreachable!("owned result branch"),
                 }
             }
         }
-        output.push_str("}\n");
+        output.push_str("}).map_err(Self::map_failure)?}\n");
     }
     output.push_str("}\n}\npub use safe_api::*;\n");
     output.replace("map_err(map_failure)", "map_err(Self::map_failure)")
@@ -121,7 +116,8 @@ fn render_ffi(descriptor: &Descriptor, mode: PackageMode) -> String {
             }
         }
     }
-    output.push_str("}\n#[derive(Clone,Copy)]pub(super)enum Failure{Semantic,Adapter,Host}\npub(super)struct RawCall{pub tag:u32,pub handle:Handle,pub error:i64}\npub(super)struct Context{storage:Vec<u64>,raw:NonNull<RawContext>,_thread:PhantomData<Rc<()>>}\nimpl Context{pub fn new()->Result<Self,Failure>{unsafe{let size=spx_owned_data_context_size_v1();let align=spx_owned_data_context_align_v1();if size==0||align==0||align>core::mem::align_of::<u64>()as u64{return Err(Failure::Adapter)}let rounded=size.checked_add(7).ok_or(Failure::Adapter)?;let words=usize::try_from(rounded/8).map_err(|_|Failure::Adapter)?;let mut storage=vec![0u64;words];let raw:NonNull<RawContext>=NonNull::new(storage.as_mut_ptr().cast()).ok_or(Failure::Host)?;if spx_owned_data_context_init_v1(raw.as_ptr().cast(),size)!=0{return Err(Failure::Adapter)}Ok(Self{storage,raw,_thread:PhantomData})}}\n");
+    output.push_str("}\n#[derive(Clone,Copy)]pub(super)enum Failure{Semantic,Adapter,Host}\npub(super)struct RawCall{pub tag:u32,pub handle:Handle,pub error:i64}\n");
+    output.push_str(super::owned_ffi_runtime::CONTEXT);
     for export in &descriptor.exports {
         write!(output, "pub fn call_{}(&mut self", export.rust_method_name).unwrap();
         for (index, parameter) in export.parameters.iter().enumerate() {
@@ -141,7 +137,9 @@ fn render_ffi(descriptor: &Descriptor, mode: PackageMode) -> String {
                 output.push_str(",&mut value)};match status{0=>");
                 match export.result {
                     ResultKind::I64 => output.push_str("Ok(value)"),
-                    ResultKind::Bool => output.push_str("if value<=1{Ok(value!=0)}else{Err(Failure::Adapter)}"),
+                    ResultKind::Bool => {
+                        output.push_str("if value<=1{Ok(value!=0)}else{Err(Failure::Adapter)}")
+                    }
                     ResultKind::Usize => output.push_str("Ok(value)"),
                     _ => unreachable!("scalar result branch"),
                 }
@@ -150,14 +148,22 @@ fn render_ffi(descriptor: &Descriptor, mode: PackageMode) -> String {
             ResultKind::OwnedBytes
             | ResultKind::OptionOwnedBytes
             | ResultKind::ResultOwnedBytesI64
-            | ResultKind::OwnedUtf8 => output.push_str(",&mut value.tag,&mut value.handle,&mut value.error)};if status!=0&&value.handle!=0{self.discard(value.handle)?}match status{0=>Ok(value),1=>Err(Failure::Semantic),2..=5=>Err(Failure::Adapter),_=>Err(Failure::Host)}}\n"),
+            | ResultKind::OwnedUtf8 => {
+                output.push_str(",&mut value.tag,&mut value.handle,&mut value.error)};if status!=0{if value.tag!=u32::MAX||value.handle!=0||value.error!=0{std::process::abort()}return match status{1=>Err(Failure::Semantic),2..=5=>Err(Failure::Adapter),_=>Err(Failure::Host)}}");
+                match export.result {
+                    ResultKind::OwnedBytes | ResultKind::OwnedUtf8 => output.push_str("if value.tag!=0{std::process::abort()}if value.handle==0{return Err(Failure::Adapter)}if value.error!=0{self.discard(value.handle)?;return Err(Failure::Adapter)}"),
+                    ResultKind::OptionOwnedBytes => output.push_str("if value.tag>1||(value.tag==0&&value.handle!=0){std::process::abort()}if value.tag==1&&value.handle==0{return Err(Failure::Adapter)}if value.error!=0{if value.tag==1{self.discard(value.handle)?}return Err(Failure::Adapter)}"),
+                    ResultKind::ResultOwnedBytesI64 => output.push_str("if value.tag>1||(value.tag==1&&value.handle!=0){std::process::abort()}if value.tag==0{if value.handle==0{return Err(Failure::Adapter)}if value.error!=0{self.discard(value.handle)?;return Err(Failure::Adapter)}}"),
+                    _ => unreachable!("owned result branch"),
+                }
+                output.push_str("Ok(value)}\n");
+            }
         }
     }
-    output.push_str("pub fn copy_and_settle(&mut self,handle:Handle)->Result<Vec<u8>,Failure>{let mut guard=Guard{context:self,handle,armed:true};let mut length=0u64;if unsafe{spx_owned_bytes_len_v1(guard.context.raw.as_ptr(),handle,&mut length)}!=0{return Err(Failure::Adapter)}if length>65536{return Err(Failure::Adapter)}let length=usize::try_from(length).map_err(|_|Failure::Adapter)?;let mut bytes=vec![0u8;length];");
-    if mode == PackageMode::StandaloneEvidence {
-        output.push_str("if bytes.capacity()!=length{return Err(Failure::Host)}");
-    }
-    output.push_str("let pointer=if length==0{core::ptr::null_mut()}else{bytes.as_mut_ptr()};if unsafe{spx_owned_bytes_copy_v1(guard.context.raw.as_ptr(),handle,pointer,length as u64)}!=0{return Err(Failure::Adapter)}if unsafe{spx_owned_bytes_drop_v1(guard.context.raw.as_ptr(),handle)}!=0{std::process::abort()}guard.armed=false;Ok(bytes)}pub fn discard(&mut self,handle:Handle)->Result<(),Failure>{if unsafe{spx_owned_bytes_drop_v1(self.raw.as_ptr(),handle)}!=0{std::process::abort()}Ok(())}}\nstruct Guard<'a>{context:&'a mut Context,handle:Handle,armed:bool}impl Drop for Guard<'_>{fn drop(&mut self){if self.armed&&unsafe{spx_owned_bytes_drop_v1(self.context.raw.as_ptr(),self.handle)}!=0{std::process::abort()}}}\nimpl Drop for Context{fn drop(&mut self){let _=self.storage.len();if unsafe{spx_owned_data_context_drop_v1(self.raw.as_ptr())}!=0{std::process::abort()}}}\n");
+    super::owned_ffi_runtime::append_owner_operations(
+        &mut output,
+        mode == PackageMode::StandaloneEvidence,
+    );
     output
 }
 

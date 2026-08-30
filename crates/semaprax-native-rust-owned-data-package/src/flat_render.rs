@@ -59,7 +59,7 @@ fn render_lib(descriptor: &Descriptor) -> String {
         }
         write!(
             output,
-            ")->Result<{},CallError>{{let raw=self.context.call_{}(",
+            ")->Result<{},CallError>{{self.context.invoke(|context|{{let raw=context.call_{}(",
             export.record_host_name, export.rust_method_name
         )
         .unwrap();
@@ -70,7 +70,12 @@ fn render_lib(descriptor: &Descriptor) -> String {
             .iter()
             .find(|field| field.kind == FieldKind::OwnedBytes)
             .expect("descriptor replay proves one owned field");
-        write!(output, "let owned=self.context.copy_and_settle(raw.slots[{}]).map_err(Self::map_failure)?;Ok({}{{", owned.ordinal, export.record_host_name).unwrap();
+        write!(
+            output,
+            "let owned=context.copy_and_settle(raw.slots[{}]).map_err(Self::map_failure)?;Ok({}{{",
+            owned.ordinal, export.record_host_name
+        )
+        .unwrap();
         for field in &export.fields {
             write!(output, "{}:", field.host_name).unwrap();
             match field.kind {
@@ -91,7 +96,7 @@ fn render_lib(descriptor: &Descriptor) -> String {
             }
             output.push(',');
         }
-        output.push_str("})}\n");
+        output.push_str("})}).map_err(Self::map_failure)?}\n");
     }
     output.push_str("}\n}\npub use safe_api::*;\n");
     output
@@ -128,7 +133,7 @@ fn render_ffi(descriptor: &Descriptor) -> String {
         )
         .unwrap();
     }
-    output.push_str("pub(super)struct Context{storage:Vec<u64>,raw:NonNull<RawContext>,_thread:PhantomData<Rc<()>>}\nimpl Context{pub fn new()->Result<Self,Failure>{unsafe{let size=spx_owned_data_context_size_v1();let align=spx_owned_data_context_align_v1();if size==0||align==0||align>core::mem::align_of::<u64>()as u64{return Err(Failure::Adapter)}let words=usize::try_from(size.checked_add(7).ok_or(Failure::Adapter)?/8).map_err(|_|Failure::Adapter)?;let mut storage=vec![0u64;words];let raw=NonNull::new(storage.as_mut_ptr().cast()).ok_or(Failure::Host)?;if spx_owned_data_context_init_v1(raw.as_ptr().cast(),size)!=0{return Err(Failure::Adapter)}Ok(Self{storage,raw,_thread:PhantomData})}}\n");
+    output.push_str(super::owned_ffi_runtime::CONTEXT);
     for export in &descriptor.exports {
         write!(output, "pub fn call_{}(&mut self", export.rust_method_name).unwrap();
         for (index, parameter) in export.parameters.iter().enumerate() {
@@ -142,7 +147,9 @@ fn render_ffi(descriptor: &Descriptor) -> String {
             .iter()
             .find(|field| field.kind == FieldKind::OwnedBytes)
             .expect("descriptor replay proves one owned field");
-        write!(output, "if status!=0&&value.slots[{}]!=0&&value.slots[{}]!=u64::MAX{{self.discard(value.slots[{}])?}}", owned.ordinal, owned.ordinal, owned.ordinal).unwrap();
+        output.push_str(
+            "if status!=0&&value.slots.iter().any(|slot|*slot!=u64::MAX){std::process::abort()}",
+        );
         write!(output, "if status==0&&(value.slots[{}]==0||value.slots[{}]==u64::MAX){{return Err(Failure::Adapter)}}", owned.ordinal, owned.ordinal).unwrap();
         for field in export
             .fields
@@ -153,7 +160,7 @@ fn render_ffi(descriptor: &Descriptor) -> String {
         }
         output.push_str("if status==0{Ok(value)}else{match status{1=>Err(Failure::Semantic),2..=5=>Err(Failure::Adapter),_=>Err(Failure::Host)}}}\n");
     }
-    output.push_str("pub fn copy_and_settle(&mut self,handle:Handle)->Result<Vec<u8>,Failure>{let mut guard=Guard{context:self,handle,armed:true};let mut length=0u64;if unsafe{spx_owned_bytes_len_v1(guard.context.raw.as_ptr(),handle,&mut length)}!=0{return Err(Failure::Adapter)}if length>65536{return Err(Failure::Adapter)}let length=usize::try_from(length).map_err(|_|Failure::Adapter)?;let mut bytes=vec![0u8;length];let pointer=if length==0{core::ptr::null_mut()}else{bytes.as_mut_ptr()};if unsafe{spx_owned_bytes_copy_v1(guard.context.raw.as_ptr(),handle,pointer,length as u64)}!=0{return Err(Failure::Adapter)}if unsafe{spx_owned_bytes_drop_v1(guard.context.raw.as_ptr(),handle)}!=0{std::process::abort()}guard.armed=false;Ok(bytes)}pub fn discard(&mut self,handle:Handle)->Result<(),Failure>{if unsafe{spx_owned_bytes_drop_v1(self.raw.as_ptr(),handle)}!=0{std::process::abort()}Ok(())}}\nstruct Guard<'a>{context:&'a mut Context,handle:Handle,armed:bool}impl Drop for Guard<'_>{fn drop(&mut self){if self.armed&&unsafe{spx_owned_bytes_drop_v1(self.context.raw.as_ptr(),self.handle)}!=0{std::process::abort()}}}\nimpl Drop for Context{fn drop(&mut self){let _=self.storage.len();if unsafe{spx_owned_data_context_drop_v1(self.raw.as_ptr())}!=0{std::process::abort()}}}\n");
+    super::owned_ffi_runtime::append_owner_operations(&mut output, false);
     output
 }
 

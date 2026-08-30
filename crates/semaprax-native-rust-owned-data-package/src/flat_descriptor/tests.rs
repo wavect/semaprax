@@ -1,5 +1,27 @@
 use super::*;
 
+#[test]
+fn generated_flat_record_sdk_closes_before_publication() {
+    let descriptor = descriptor(vec![export(
+        "fixture.value",
+        "record.packet",
+        "Packet",
+        vec![
+            field("field.count", "count", FieldKind::I64, 0),
+            field("field.bytes", "bytes", FieldKind::OwnedBytes, 1),
+            field("field.flag", "flag", FieldKind::Bool, 2),
+        ],
+    )]);
+    let sources =
+        crate::flat_render::render_sources(&descriptor, crate::HostTarget::current().unwrap());
+    crate::tests::ffi_boundaries::run_boundary_fixture(
+        7,
+        &sources.lib_rs,
+        &sources.ffi_rs,
+        "spx_fixture_dot_value",
+    );
+}
+
 fn field(id: &str, source: &str, kind: FieldKind, ordinal: usize) -> Field {
     Field {
         stable_id: id.to_owned(),

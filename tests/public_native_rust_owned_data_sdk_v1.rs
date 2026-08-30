@@ -438,11 +438,11 @@ fn published_safe_package_builds_offline_and_fail_stops_on_unsettled_handles() {
         }
         let test_ffi = ffi
             .replace("fn spx_owned_bytes_drop_v1(context:*mut RawContext,handle:Handle)->Status;", "fn spx_owned_bytes_drop_v1(context:*mut RawContext,handle:Handle)->Status;fn spx_owned_data_test_fault_v1(context:*mut RawContext,fault:u32);")
-            .replace("}\nstruct Guard<'a>", "pub(super) fn inject_fault(&mut self,fault:u32){unsafe{spx_owned_data_test_fault_v1(self.raw.as_ptr(),fault)}}}\nstruct Guard<'a>");
+            .replace("\nstruct Guard<'a>", "\nimpl Context{pub(super) fn inject_fault(&mut self,fault:u32){unsafe{spx_owned_data_test_fault_v1(self.raw.as_ptr(),fault)}}}\nstruct Guard<'a>");
         let test_ffi_path = fixture.0.join("testing_ffi.rs");
         std::fs::write(&test_ffi_path, test_ffi).unwrap();
         let harness = fixture.0.join("settlement.rs");
-        std::fs::write(&harness, format!("#[path={:?}]mod ffi;fn main(){{let mode=std::env::args().nth(1).unwrap();let mut context=match ffi::Context::new(){{Ok(v)=>v,Err(_)=>std::process::exit(10)}};let raw=match context.call_spx_frame_dot_payload(b\"abc\"){{Ok(v)=>v,Err(_)=>std::process::exit(11)}};context.inject_fault(if mode==\"copy\"{{1}}else{{2}});let result=context.copy_and_settle(raw.handle);if mode==\"copy\"{{if result.is_ok(){{std::process::exit(12)}}println!(\"copy-settled\")}}else{{println!(\"value-published\")}}}}", test_ffi_path.display().to_string())).unwrap();
+        std::fs::write(&harness, format!("#[path={:?}]mod ffi;fn main(){{let mode=std::env::args().nth(1).unwrap();let mut context=match ffi::Context::new(){{Ok(v)=>v,Err(_)=>std::process::exit(10)}};let result=context.invoke(|context|{{let raw=match context.call_spx_frame_dot_payload(b\"abc\"){{Ok(v)=>v,Err(_)=>std::process::exit(11)}};context.inject_fault(if mode==\"copy\"{{1}}else{{2}});context.copy_and_settle(raw.handle)}});if mode==\"copy\"{{if !matches!(result,Ok(Err(_))){{std::process::exit(12)}}println!(\"copy-settled\")}}else{{println!(\"value-published\")}}}}", test_ffi_path.display().to_string())).unwrap();
         let executable = fixture.0.join("settlement");
         run(
             Command::new("rustc")

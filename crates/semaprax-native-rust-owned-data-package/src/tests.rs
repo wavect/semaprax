@@ -3,6 +3,8 @@ use sha2::Sha256;
 
 use super::*;
 
+pub(crate) mod ffi_boundaries;
+
 fn descriptor_bytes(result: &str) -> Vec<u8> {
     format!(
         "{{\"schema\":\"semaprax.public-owned-data-api.v1\",\"project_schema\":\"semaprax.project.v8\",\"project_revision\":\"sha256:{}\",\"workspace_revision\":\"sha256:{}\",\"project_graph_digest\":\"sha256:{}\",\"exports\":[{{\"stable_id\":\"fixture.value\",\"typescript_name\":\"fixture.value\",\"rust_method_name\":\"spx_fixture_dot_value\",\"parameters\":[],\"result\":\"{result}\"}}],\"limits\":{{\"max_exports\":32,\"max_parameters\":8,\"max_closure_functions\":256,\"max_borrowed_input_bytes\":65536,\"max_owned_output_bytes\":65536,\"max_descriptor_bytes\":1048576}}}}\n",

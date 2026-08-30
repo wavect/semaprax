@@ -12,6 +12,12 @@ admission, or allocate another evaluator thread for each request. Existing
 `ProjectRevision::execute_*`, `semaprax.project-execution.v1`, Interpreter v1,
 and Project Agent Transport v1-v5 APIs and bytes are unchanged.
 
+The explicit [Prepared Project Revision Replacement v1](PROJECT-PREPARED-REVISION-REPLACEMENT-V1.md)
+operation can subsequently replace that worker's subject without replacing
+the worker. It requires an exact expected current revision, prepares both new
+closures before the handoff, and preserves the old subject on ordinary
+rejection. It does not change this lane's evaluation or trace protocol.
+
 Preparation independently validates both retained HIR programs, replays the
 explicit-entry/signature/profile closure gate, and creates an owned stable-ID
 to function-index map for the exact transitive closures. The combined cache is

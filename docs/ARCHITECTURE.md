@@ -171,6 +171,14 @@ entry/test source-origin indexing and duplicate-fact disagreement checks; and
 `worker.rs` owns fail-fast execution admission, the bounded fixed-stack worker
 lifecycle, evaluation/cancellation dispatch, and trace assembly.
 
+`worker/replacement.rs` owns the additive expected-revision check and complete
+prepared-state handoff. Execution and replacement share fail-fast admission;
+the existing worker prepares both candidate closures and origin facts before
+swapping them together with their immutable revision. Ordinary rejection
+preserves the old state; a panic or lost replacement acknowledgement makes
+the worker terminal. This adds no filesystem refresh or incremental compiler
+cache. See [Prepared Project Revision Replacement v1](PROJECT-PREPARED-REVISION-REPLACEMENT-V1.md).
+
 Within that lane, `trace/model.rs` owns the closed wire vocabulary, digest
 domain, normalized status parsing, and trace data model; `trace/render.rs` owns
 bounded prefix selection and canonical rendering; and `trace/verify.rs` owns

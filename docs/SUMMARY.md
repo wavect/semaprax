@@ -35,6 +35,7 @@ Audience: all documentation readers.
 - [Reference interpreter](INTERPRETER-V1.md)
 - [Internal String interpreter](INTERPRETER-INTERNAL-STRINGS-V1.md)
 - [Prepared Project Interpreter and Source Trace v1](PROJECT-PREPARED-INTERPRETER-V1.md)
+- [Prepared Project Revision Replacement v1](PROJECT-PREPARED-REVISION-REPLACEMENT-V1.md)
 
 ## Projects and generated consumers
 

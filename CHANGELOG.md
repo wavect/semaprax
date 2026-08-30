@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Authored explicit expected-revision replacement for the prepared Project
+  interpreter. Both candidate closures and source origins are admitted before
+  one same-worker handoff; stale or ordinary preparation failures preserve
+  prior execution, while panic or lost acknowledgement closes the worker.
+  Existing trace schemas, evaluation, cancellation, and worker ceilings stay
+  unchanged. Regression evidence is unrun; this is not incremental compilation
+  or a production-promotion claim.
+
 - Authored opt-in `interpret-strings` and a distinct internal-String report
   schema/domain. The shared interpreter evaluates String helpers behind the
   unchanged external scalar/borrowed boundary; ordinary and Project routes

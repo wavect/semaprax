@@ -160,6 +160,10 @@ ABIs prematurely.
 - execute and promote the authored retained
   [Prepared Project Interpreter and Source Trace v1](PROJECT-PREPARED-INTERPRETER-V1.md),
   then evolve it into incremental refresh without weakening revision binding;
+- execute the additive [same-worker revision replacement](PROJECT-PREPARED-REVISION-REPLACEMENT-V1.md)
+  stale-base, failure-preservation, and worker-lifecycle evidence before using
+  it as an editor integration boundary; incremental parsing/linking and
+  dependency-aware cache reuse remain separate work;
 - extend its expression-origin trace into source-level debugger and diagnostic
   mapping across target runtimes;
 - execute and mature the authored

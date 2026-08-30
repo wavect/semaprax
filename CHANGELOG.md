@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Moved the offline doctor inventory parser into its existing sys quarantine,
+  preserving one validator and safe facade while correcting retained file-view
+  lifetimes. Added authored, unrun bounded detached tmpfs materialization with
+  exact page/inode accounting and read-only closure. This internal component
+  requires an already controlled child; general-host bootstrap, tool execution
+  and production profile admission remain unwired. No support promotion.
+
 - Added an authored, unrun offline doctor bundle parser over sealed input:
   exact selector/platform binding, bounded canonical file/tool inventory,
   zero-copy views, minimum ELF headers and in-inventory interpreter checks.

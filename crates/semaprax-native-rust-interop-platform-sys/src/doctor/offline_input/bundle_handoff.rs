@@ -1,10 +1,8 @@
-//! Real sealed-input handoff into the exact source-included parser body.
-//! This is not cross-crate runtime linkage or a runnable tool fixture.
-#[path = "../../../../semaprax-native-rust-interop-platform/src/doctor_offline_bundle.rs"]
-mod bundle;
+//! Real sealed-input handoff into the production quarantined parser.
+//! This is not a runnable tool or process-isolation fixture.
 
 use super::DoctorOfflineInput;
-use bundle::{
+use crate::{
     DoctorOfflineArchitecture, DoctorOfflineBundle, DoctorOfflineBundleError, DoctorOfflineTool,
 };
 use std::fs::File;

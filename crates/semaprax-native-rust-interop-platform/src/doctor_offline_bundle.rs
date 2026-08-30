@@ -1,141 +1,72 @@
-//! Bounded offline tool inventory, not executable provenance or launch authority.
-use crate::{DoctorOfflineInput, DOCTOR_OFFLINE_INPUT_MAX_BYTES};
+//! Safe ownership facade over the single quarantined offline inventory parser.
+use crate::DoctorOfflineInput;
+use semaprax_native_rust_interop_platform_sys as sys;
 
-#[path = "doctor_offline_bundle/elf.rs"]
-mod elf;
-#[path = "doctor_offline_bundle/wire.rs"]
-mod wire;
+pub use sys::{
+    DoctorOfflineArchitecture, DoctorOfflineBundleError, DoctorOfflineBundleFile, DoctorOfflineTool,
+};
 
-#[cfg(test)]
-#[path = "doctor_offline_bundle/tests.rs"]
-mod tests;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DoctorOfflineArchitecture {
-    LinuxX86_64,
-    LinuxAarch64,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DoctorOfflineTool {
-    Clang,
-    Node,
-    Rustc,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DoctorOfflineBundleError {
-    Invalid,
-    Limit,
-    SelectorMismatch,
-    ArchitectureMismatch,
-    Unsupported,
-    Allocation,
-}
-
-/// An immutable inventory over one retained sealed-input snapshot. Parsing
-/// neither publishes these files nor grants permission to execute any of them.
-pub struct DoctorOfflineBundle {
-    input: DoctorOfflineInput,
-    index: wire::Index,
-}
+/// An immutable structurally admitted inventory, not executable provenance or
+/// permission to publish files or launch a process.
+pub struct DoctorOfflineBundle(sys::DoctorOfflineBundle);
 
 impl std::fmt::Debug for DoctorOfflineBundle {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("DoctorOfflineBundle")
-            .field("selector", &self.selector())
-            .field("architecture", &self.architecture())
-            .field("file_count", &self.index.files.len())
-            .finish_non_exhaustive()
-    }
-}
-
-/// A borrowed file view. Its lifetime cannot outlive the retained bundle.
-#[derive(Clone, Copy, Debug)]
-pub struct DoctorOfflineBundleFile<'a> {
-    path: &'a str,
-    bytes: &'a [u8],
-    executable: bool,
-}
-
-impl DoctorOfflineBundleFile<'_> {
-    pub fn path(&self) -> &str {
-        self.path
-    }
-
-    pub fn bytes(&self) -> &[u8] {
-        self.bytes
-    }
-
-    pub fn is_executable(&self) -> bool {
-        self.executable
+        std::fmt::Debug::fmt(&self.0, formatter)
     }
 }
 
 impl DoctorOfflineBundle {
-    /// Bind a canonical inventory to an explicit selector and the compiled
-    /// native Linux architecture. There is no ambient lookup or fallback.
+    /// Consume one sealed snapshot and bind its inventory to the explicit
+    /// selector and compiled native Linux architecture, without ambient lookup.
     pub fn parse(
         input: DoctorOfflineInput,
         selector: &str,
     ) -> Result<Self, DoctorOfflineBundleError> {
-        if !wire::valid_selector(selector) {
-            return Err(DoctorOfflineBundleError::Invalid);
-        }
-        let architecture = current_architecture().ok_or(DoctorOfflineBundleError::Unsupported)?;
-        let index = wire::parse(input.bytes(), selector, architecture)?;
-        Ok(Self { input, index })
+        sys::DoctorOfflineBundle::parse(input.into_inner(), selector).map(Self)
     }
 
     pub fn selector(&self) -> &str {
-        // The private wire decoder admitted this exact ASCII range.
-        std::str::from_utf8(&self.input.bytes()[self.index.selector.clone()])
-            .expect("validated offline selector")
+        self.0.selector()
     }
 
     pub fn architecture(&self) -> DoctorOfflineArchitecture {
-        self.index.architecture
+        self.0.architecture()
     }
 
     pub fn files(&self) -> impl ExactSizeIterator<Item = DoctorOfflineBundleFile<'_>> {
-        self.index.files.iter().map(|file| self.file_view(file))
+        self.0.files()
     }
 
     pub fn tool(&self, tool: DoctorOfflineTool) -> Option<DoctorOfflineBundleFile<'_>> {
-        let ordinal = match tool {
-            DoctorOfflineTool::Clang => 0,
-            DoctorOfflineTool::Node => 1,
-            DoctorOfflineTool::Rustc => 2,
-        };
-        self.index.tools[ordinal].map(|index| self.file_view(&self.index.files[index]))
-    }
-
-    fn file_view<'a>(&'a self, file: &wire::FileIndex) -> DoctorOfflineBundleFile<'a> {
-        DoctorOfflineBundleFile {
-            path: file.path(self.input.bytes()),
-            bytes: &self.input.bytes()[file.content.clone()],
-            executable: file.executable,
-        }
+        self.0.tool(tool)
     }
 }
 
-fn current_architecture() -> Option<DoctorOfflineArchitecture> {
-    if cfg!(all(
-        target_os = "linux",
-        target_arch = "x86_64",
-        target_pointer_width = "64",
-        target_endian = "little"
-    )) {
-        Some(DoctorOfflineArchitecture::LinuxX86_64)
-    } else if cfg!(all(
-        target_os = "linux",
-        target_arch = "aarch64",
-        target_pointer_width = "64",
-        target_endian = "little"
-    )) {
-        Some(DoctorOfflineArchitecture::LinuxAarch64)
-    } else {
-        None
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn public_surface_requires_owned_sealed_input_and_exposes_read_only_views() {
+        let _: fn(
+            DoctorOfflineInput,
+            &str,
+        ) -> Result<DoctorOfflineBundle, DoctorOfflineBundleError> = DoctorOfflineBundle::parse;
+        let _: fn(&DoctorOfflineBundle) -> &str = DoctorOfflineBundle::selector;
+        let _: fn(&DoctorOfflineBundle) -> DoctorOfflineArchitecture =
+            DoctorOfflineBundle::architecture;
+        let _: for<'a> fn(
+            &'a DoctorOfflineBundle,
+            DoctorOfflineTool,
+        ) -> Option<DoctorOfflineBundleFile<'a>> = DoctorOfflineBundle::tool;
+    }
+
+    #[test]
+    fn file_view_accessors_preserve_retained_bundle_lifetime() {
+        let _: for<'a, 'view> fn(&'view DoctorOfflineBundleFile<'a>) -> &'a str =
+            DoctorOfflineBundleFile::path;
+        let _: for<'a, 'view> fn(&'view DoctorOfflineBundleFile<'a>) -> &'a [u8] =
+            DoctorOfflineBundleFile::bytes;
     }
 }

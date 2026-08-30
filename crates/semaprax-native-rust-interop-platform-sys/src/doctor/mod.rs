@@ -3,7 +3,22 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+mod offline_bundle;
 mod offline_input;
+// Physical root preparation is deliberately not a public launcher. Integration
+// awaits an independently admitted clean-descriptor child bootstrap.
+#[allow(dead_code)]
+#[cfg(all(
+    target_os = "linux",
+    target_pointer_width = "64",
+    target_endian = "little",
+    any(target_arch = "x86_64", target_arch = "aarch64")
+))]
+mod offline_root;
+pub use offline_bundle::{
+    DoctorOfflineArchitecture, DoctorOfflineBundle, DoctorOfflineBundleError,
+    DoctorOfflineBundleFile, DoctorOfflineTool,
+};
 pub use offline_input::{
     DoctorOfflineInput, DoctorOfflineInputError, DOCTOR_OFFLINE_INPUT_MAX_BYTES,
 };

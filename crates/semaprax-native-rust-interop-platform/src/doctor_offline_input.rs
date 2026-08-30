@@ -33,6 +33,12 @@ impl DoctorOfflineInput {
     pub fn bytes(&self) -> &[u8] {
         self.0.bytes()
     }
+
+    pub(super) fn into_inner(
+        self,
+    ) -> semaprax_native_rust_interop_platform_sys::DoctorOfflineInput {
+        self.0
+    }
 }
 
 #[cfg(test)]

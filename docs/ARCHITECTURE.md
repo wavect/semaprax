@@ -88,11 +88,19 @@ seals before metadata or positional reads and never duplicates/closes the
 caller's descriptor. It returns bounded immutable untrusted bytes, not profile
 or execution authority; unsupported hosts reject. This input primitive is not
 connected to the CLI. See [Doctor sealed input v1](DOCTOR-SEALED-INPUT-V1.md).
-The safe facade's separate `DoctorOfflineBundle` parser consumes that snapshot
-into a closed selector/architecture-bound inventory with zero-copy file views,
-bounded canonical paths/roles and minimum ELF/inventory interpreter checks.
+The sys quarantine's unsafe-free `DoctorOfflineBundle` parser consumes that
+snapshot into a closed selector/architecture-bound inventory with zero-copy file
+views, bounded paths/roles and minimum ELF/interpreter checks. The safe facade
+delegates to this single validator; no public constructor bypasses admission.
 It owns no OS effects and does not establish full ELF validity, library closure
 or execution authority. See [Doctor offline bundle v1](DOCTOR-OFFLINE-BUNDLE-V1.md).
+The separate private `doctor/offline_root` component preallocates a bounded plan
+from that opaque bundle and materializes a detached read-only tmpfs inside an
+already controlled child context. It owns only newly created descriptors and
+does not perform namespace bootstrap, inherited-handle cleanup, root entry or
+tool execution. The general-host launch route remains deliberately unwired;
+inherited descriptor closure can itself dispatch foreign filesystem flushes.
+See [Doctor offline root materialization v1](DOCTOR-OFFLINE-ROOT-V1.md).
 
 The retained safe `semaprax-native-rust-interop-platform` facade and platform-sys
 quarantine's separate `doctor/` module are no longer connected to that CLI route.

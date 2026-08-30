@@ -10,7 +10,11 @@ and an explicit profile selector. It binds the encoded selector to that argument
 and the encoded architecture to the compiled native Linux host. The returned
 opaque bundle owns the input and bounded range indexes. Read-only file/tool views
 borrow path and payload slices from that retained input; they cannot outlive it.
-No second payload copy or serialized HIR is involved.
+No second payload copy or serialized HIR is involved. The unsafe-free parser
+module lives in the sys quarantine so internal root preparation consumes its
+opaque result directly; the safe platform facade delegates through a wrapper.
+There is one validator, not separately compiled production copies. File-view
+accessors retain the bundle borrow even after the temporary view is dropped.
 
 This is structural admission of untrusted content, not trusted provenance or
 permission to execute. The parser performs no filesystem access, process launch,
@@ -130,12 +134,16 @@ ELF fixtures independently exercise both version fields, type/machine/header
 and program-table bounds, truncation/overflow, and interpreter framing. These
 are structural byte samples, not runnable distributions.
 
-A sys-crate fixture passes real sealed memory-file snapshots into the exact
-source-included public parser body, checks zero-copy view addresses and retained
-bytes after dropping the original file, and rejects wrong selector/architecture
-bindings. This is a source-included parser handoff, not cross-crate runtime
-linkage. Separate safe-facade type checks cover the actual exported API. No
-test-only public input constructor or new dependency is introduced.
+A sys-crate fixture passes real sealed memory-file snapshots into the production
+parser, checks zero-copy view addresses and retained bytes after dropping the
+original file, and rejects wrong selector/architecture bindings. The former
+cross-crate source include is removed. Separate safe-facade type checks cover
+the exported API and file-view lifetimes. No test-only public input constructor
+or new dependency is introduced.
+
+The separate internal [detached root materializer](DOCTOR-OFFLINE-ROOT-V1.md)
+consumes this opaque inventory inside an already controlled child context.
+It remains unconnected to production launch or profile admission.
 
 All fixtures remain unrun. Existing sealed-input, CLI report, profile-selection
 and lower-level probe fixtures remain unchanged and required. Completion still

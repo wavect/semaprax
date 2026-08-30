@@ -69,6 +69,7 @@ pub(super) fn emit_hir_c_with_labels(
             &resource_abi,
             program,
             output_profile == NativeOutputProfile::OwnedUtf8Provider,
+            output_profile.corrects_ordinary_strings(),
         );
     }
     if output_profile == NativeOutputProfile::LineCommandIo {
@@ -202,6 +203,15 @@ pub(super) enum NativeOutputProfile {
 }
 
 impl NativeOutputProfile {
+    const fn corrects_ordinary_strings(self) -> bool {
+        matches!(self, Self::Legacy | Self::StdoutTranscript)
+    }
+
+    fn tracks_strings(self, function: &ResolvedFunction) -> bool {
+        self == Self::OwnedUtf8Provider
+            || (self.corrects_ordinary_strings() && function_uses_strings(function))
+    }
+
     const fn supports_stdout_transcript(self) -> bool {
         matches!(
             self,
@@ -306,7 +316,7 @@ pub(super) fn emit_native_prelude(
     resource_abi: &native_resource::NativeResourceAbi,
     program: &ResolvedProgram,
 ) {
-    emit_native_prelude_inner(output, resource_abi, program, false, false, false);
+    emit_native_prelude_inner(output, resource_abi, program, false, false, false, false);
 }
 
 fn emit_native_prelude_profile(
@@ -314,6 +324,7 @@ fn emit_native_prelude_profile(
     resource_abi: &native_resource::NativeResourceAbi,
     program: &ResolvedProgram,
     length_delimited_strings: bool,
+    include_string_instances: bool,
 ) {
     emit_native_prelude_inner(
         output,
@@ -322,6 +333,7 @@ fn emit_native_prelude_profile(
         false,
         false,
         length_delimited_strings,
+        include_string_instances,
     );
 }
 
@@ -331,7 +343,15 @@ fn emit_native_prelude_without_public_failure(
     program: &ResolvedProgram,
     command_carriers: bool,
 ) {
-    emit_native_prelude_inner(output, resource_abi, program, true, command_carriers, false);
+    emit_native_prelude_inner(
+        output,
+        resource_abi,
+        program,
+        true,
+        command_carriers,
+        false,
+        false,
+    );
 }
 
 fn emit_native_prelude_inner(
@@ -341,6 +361,7 @@ fn emit_native_prelude_inner(
     omit_public_failure: bool,
     command_carriers: bool,
     length_delimited_strings: bool,
+    include_string_instances: bool,
 ) {
     let needs_borrowed_str = command_carriers || program_uses_borrowed_str(program);
     if needs_borrowed_str || program_uses_byte_data(program) || length_delimited_strings {
@@ -370,14 +391,14 @@ fn emit_native_prelude_inner(
         // reachability-gated so programs without usize preserve exact bytes.
         output.push_str(NATIVE_USIZE_RUNTIME_C);
     }
-    if program_uses_strings(program) {
+    if program_uses_strings(program, include_string_instances) {
         output.push_str(if length_delimited_strings {
             NATIVE_LENGTH_DELIMITED_STRING_RUNTIME_C
         } else {
             NATIVE_STRING_RUNTIME_C
         });
     }
-    if program_uses_string_ops(program) {
+    if program_uses_string_ops(program, include_string_instances) {
         // String operation helpers stay out of programs that cannot reach
         // them, so existing projections keep their exact committed bytes.
         output.push_str(if length_delimited_strings {
@@ -386,7 +407,7 @@ fn emit_native_prelude_inner(
             NATIVE_STRING_OPS_RUNTIME_C
         });
     }
-    if program_uses_string_ops_v2(program) {
+    if program_uses_string_ops_v2(program, include_string_instances) {
         // Breadth-v2 string operation helpers gate as their own group so
         // first-wave programs keep their exact committed bytes.
         output.push_str(if length_delimited_strings {
@@ -441,22 +462,34 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
 
 /// Whether any resolved signature, body, or contract admits an owned string
 /// value that lowers through the string runtime helpers.
-fn program_uses_strings(program: &ResolvedProgram) -> bool {
-    let mut pending: Vec<&ResolvedExpr> = Vec::new();
-    for function in &program.functions {
-        if matches!(function.return_type, ResolvedType::String)
-            || function
-                .params
-                .iter()
-                .any(|param| matches!(param.ty, ResolvedType::String))
-        {
-            return true;
-        }
-        pending.push(&function.body);
-        for contract in function.requires.iter().chain(&function.ensures) {
-            pending.push(contract);
-        }
+fn program_uses_strings(program: &ResolvedProgram, include_instances: bool) -> bool {
+    string_runtime_functions(program, include_instances).any(function_uses_strings)
+}
+
+fn string_runtime_functions(
+    program: &ResolvedProgram,
+    include_instances: bool,
+) -> impl Iterator<Item = &ResolvedFunction> {
+    program.functions.iter().chain(
+        program
+            .function_instances
+            .iter()
+            .filter(move |_| include_instances)
+            .map(|instance| &instance.function),
+    )
+}
+
+fn function_uses_strings(function: &ResolvedFunction) -> bool {
+    if matches!(function.return_type, ResolvedType::String)
+        || function
+            .params
+            .iter()
+            .any(|param| matches!(param.ty, ResolvedType::String))
+    {
+        return true;
     }
+    let mut pending = vec![&function.body];
+    pending.extend(function.requires.iter().chain(&function.ensures));
     while let Some(expression) = pending.pop() {
         if matches!(expression.ty, ResolvedType::String)
             || matches!(expression.kind, ResolvedExprKind::String(_))
@@ -470,9 +503,9 @@ fn program_uses_strings(program: &ResolvedProgram) -> bool {
 
 /// Whether any resolved function body or contract calls a compiler-owned
 /// string operation intrinsic.
-fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
+fn program_uses_string_ops(program: &ResolvedProgram, include_instances: bool) -> bool {
     let mut pending: Vec<&ResolvedExpr> = Vec::new();
-    for function in &program.functions {
+    for function in string_runtime_functions(program, include_instances) {
         pending.push(&function.body);
         for contract in function.requires.iter().chain(&function.ensures) {
             pending.push(contract);
@@ -491,9 +524,9 @@ fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
 
 /// Whether any resolved function body or contract calls a breadth-v2
 /// compiler-owned string operation intrinsic.
-fn program_uses_string_ops_v2(program: &ResolvedProgram) -> bool {
+fn program_uses_string_ops_v2(program: &ResolvedProgram, include_instances: bool) -> bool {
     let mut pending: Vec<&ResolvedExpr> = Vec::new();
-    for function in &program.functions {
+    for function in string_runtime_functions(program, include_instances) {
         pending.push(&function.body);
         for contract in function.requires.iter().chain(&function.ensures) {
             pending.push(contract);
@@ -1807,7 +1840,8 @@ fn emit_function(
             }
         }
     }
-    let mut function_body = if emission.output_profile == NativeOutputProfile::OwnedUtf8Provider {
+    let track_strings = emission.output_profile.tracks_strings(function);
+    let mut function_body = if track_strings {
         owned_strings::FunctionOutput::Staged(crate::bounded_output::CappedString::new())
     } else {
         owned_strings::FunctionOutput::Direct(&mut *output)
@@ -1819,6 +1853,7 @@ fn emit_function(
         emission,
         bytes_plan.as_ref(),
         borrowed_aggregate_bytes,
+        track_strings,
     );
     if emitter.owned_strings.is_some() {
         for (index, param) in function.params.iter().enumerate() {
@@ -2283,6 +2318,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         emission: &'a NativeEmissionContext<'a>,
         bytes_plan: Option<&'a native_bytes::NativeBytesPlan>,
         borrowed_aggregate_bytes: HashMap<(ValueId, Vec<DeclarationId>), String>,
+        track_strings: bool,
     ) -> Self {
         Self {
             output,
@@ -2296,8 +2332,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             bytes_plan,
             borrowed_aggregate_bytes,
             output_profile: emission.output_profile,
-            owned_strings: (emission.output_profile == NativeOutputProfile::OwnedUtf8Provider)
-                .then(owned_strings::OwnedStrings::default),
+            owned_strings: track_strings.then(owned_strings::OwnedStrings::default),
             try_target_enabled: false,
             next_local: 0,
             indent: 1,

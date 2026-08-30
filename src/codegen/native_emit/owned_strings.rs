@@ -1,5 +1,6 @@
 //! Physical inline String ownership, deliberately separate from CleanupPlan.
-//! Only the length-delimited V10 provider enables this bookkeeping.
+//! Ordinary/stream-transcript String functions and the length-delimited V10
+//! provider enable this bookkeeping; frozen command/provider routes do not.
 
 use std::collections::BTreeMap;
 
@@ -142,7 +143,7 @@ mod tests {
     }
 
     #[test]
-    fn inline_owner_cells_are_exclusive_to_v10_provider() {
+    fn inline_owner_cells_preserve_frozen_provider_and_cover_ordinary_native() {
         let checked = crate::check(
             "module test.inline; @id(\"word\") fn word() -> string { \"value\" } @id(\"main\") fn main() -> i64 { 0 }",
             "inline.spx",
@@ -150,11 +151,13 @@ mod tests {
         let program = crate::hir::resolve(&checked).unwrap();
         let ordinary = crate::codegen::emit_hir_c(&program).unwrap();
         let older = crate::codegen::emit_hir_c_for_owned_data_provider(&program).unwrap();
-        for source in [&ordinary, &older] {
-            assert!(!source.contains("spx_result_live"));
-            assert!(!source.contains("invalid String transfer"));
-            assert!(!source.contains("live String overwritten"));
-        }
+        assert!(!older.contains("spx_result_live"));
+        assert!(!older.contains("invalid String transfer"));
+        assert!(!older.contains("live String overwritten"));
+        assert!(ordinary.contains("spx_result_live"));
+        assert!(ordinary.contains("invalid String transfer"));
+        assert!(ordinary.contains("strlen(spx_source)"));
+        assert!(!ordinary.contains("struct spx_string_v10"));
         let current = crate::codegen::emit_hir_c_for_owned_utf8_provider(&program).unwrap();
         assert!(current.contains("char *spx_internal_0 = NULL;"));
         assert!(current.contains("bool spx_internal_0_live = false;"));
@@ -164,5 +167,83 @@ mod tests {
             .find("*spx_result_out = spx_result;\n    spx_result_live = false;")
             .unwrap();
         assert!(publish > current.find("if (!spx_result_live)").unwrap());
+    }
+
+    fn resolved(source: &str) -> crate::hir::ResolvedProgram {
+        crate::hir::resolve(&crate::check(source, "inline-presence.spx").unwrap()).unwrap()
+    }
+
+    #[test]
+    fn presence_checks_signature_body_and_both_contract_phases() {
+        use super::super::NativeOutputProfile as Profile;
+        let program = resolved(
+            r#"module test.presence;
+@id("param") fn parameter(text: string) -> i64 { 1 }
+@id("result") fn result_text() -> string { "result" }
+@id("body") fn body() -> i64 { let text = "body"; 1 }
+@id("requires") fn before() -> i64 requires string_is_empty("") { 1 }
+@id("ensures") fn after() -> i64 ensures string_is_empty("") { 1 }
+@id("main") fn main() -> i64 { 0 }
+"#,
+        );
+        for function in &program.functions {
+            let has_strings = function.id.as_str() != "main";
+            assert_eq!(super::super::function_uses_strings(function), has_strings);
+            for profile in [Profile::Legacy, Profile::StdoutTranscript] {
+                assert_eq!(profile.tracks_strings(function), has_strings);
+            }
+            // V10 deliberately retains its previous always-on selection,
+            // including zero-String functions, while all frozen profiles stay off.
+            assert!(Profile::OwnedUtf8Provider.tracks_strings(function));
+            for profile in [
+                Profile::OwnedDataProvider,
+                Profile::UsefulDataCommand,
+                Profile::LanguageCommandIo,
+                Profile::LineCommandIo,
+            ] {
+                assert!(!profile.tracks_strings(function));
+                assert!(!profile.corrects_ordinary_strings());
+            }
+        }
+    }
+
+    #[test]
+    fn ordinary_discovery_includes_instantiated_string_runtime_groups_only_when_selected() {
+        let program = resolved(
+            r#"module test.instance_strings;
+@id("measure") fn measure<T>(value: T) -> i64 { string_len_chars("hé") }
+@id("main") fn main() -> i64 { measure<i64>(1) }
+"#,
+        );
+        assert_eq!(program.function_instances.len(), 1);
+        assert!(!super::super::program_uses_strings(&program, false));
+        assert!(!super::super::program_uses_string_ops(&program, false));
+        assert!(!super::super::program_uses_string_ops_v2(&program, false));
+        assert!(super::super::program_uses_strings(&program, true));
+        assert!(super::super::program_uses_string_ops(&program, true));
+        assert!(super::super::program_uses_string_ops_v2(&program, true));
+        let native = crate::codegen::emit_hir_c(&program).unwrap();
+        assert!(native.contains("static __attribute__((unused)) char *spx_string_from_literal("));
+        assert!(native.contains("spx_string_len_chars(const char *"));
+        assert!(native.contains("live String overwritten"));
+    }
+
+    #[test]
+    fn string_free_function_emission_matches_frozen_route_bytes_and_budget() {
+        use super::super::NativeOutputProfile as Profile;
+        let program = resolved("module test.scalar; @id(\"main\") fn main() -> i64 { 40 + 2 }");
+        let emit = |profile| {
+            crate::bounded_output::with_limit_usage(1_000_000, || {
+                super::super::emit_hir_c_with_labels(
+                    &program,
+                    &std::collections::HashMap::new(),
+                    profile,
+                    None,
+                )
+                .unwrap()
+            })
+        };
+        // These profiles shared the exact scalar projection before correction.
+        assert_eq!(emit(Profile::Legacy), emit(Profile::OwnedDataProvider));
     }
 }

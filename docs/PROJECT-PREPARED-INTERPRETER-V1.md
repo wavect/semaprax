@@ -63,10 +63,12 @@ claiming allocator-specific heap-byte equality.
 
 `semaprax.project-source-trace.v1` uses the exact outer wrapper
 `schema,digest,bytes,payload`; the digest domain is
-`semaprax.project-source-trace.payload.v1\0`. The payload binds Project schema,
-Project/Workspace revisions, Project graph digest, closed entry/test role,
-module and stable entry identity, limits/fuel/outcome, ordered events,
-truncation, and fixed nonclaims.
+`semaprax.project-source-trace.payload.v1\0`. Normatively, the digest is
+`SHA-256(domain || little_endian_u64(payload_byte_length) || exact_payload_bytes)`.
+Its wire form is the lowercase text `sha256:` followed by exactly 64 lowercase
+hexadecimal digits. The payload binds Project schema, Project/Workspace
+revisions, Project graph digest, closed entry/test role, module and stable entry
+identity, limits/fuel/outcome, ordered events, truncation, and fixed nonclaims.
 
 Each event records event index, charged fuel step, call depth, phase
 (`requires`, `body`, or `ensures`), persistent function ID, revision-scoped

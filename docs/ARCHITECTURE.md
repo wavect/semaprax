@@ -133,6 +133,11 @@ fuel and normalized runtime statuses. `src/hosted_interpreter.rs` adds the
 bounded host-facing execution used by Project profiles. The interpreter is a
 development and conformance lane, not a target backend or proof engine.
 
+`src/interpreter/prepared.rs` owns the additive cached closure/index types,
+cooperative cancellation seam, prepared evaluation entry, and expression-trace
+traversal hook. The root interpreter retains the shared evaluator and only the
+minimal crate-private reexports needed by the Project lane.
+
 `src/project/prepared_interpreter/` adds an authority-neutral retained Project
 lane over the same evaluator. It caches the exact admitted entry/test closure
 indexes once, owns one sequential fixed-stack worker, observes monotonic
@@ -142,6 +147,13 @@ closed canonical wire; revision-bound replay additionally matches every event
 to retained HIR and authenticated source facts. It does not independently
 re-execute the dynamic path and grants no debugger, target, I/O, build, or
 publication authority.
+
+Within that lane, `trace/model.rs` owns the closed wire vocabulary, digest
+domain, normalized status parsing, and trace data model; `trace/render.rs` owns
+bounded prefix selection and canonical rendering; and `trace/verify.rs` owns
+closed-wire replay plus revision-bound closure/source checks. This split and
+its focused evidence are authored but unpromoted; the completion matrix remains
+the sole status authority.
 
 ### Native bootstrap backend
 
@@ -501,7 +513,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Project, public descriptor, and daemon | `src/project/`, `src/project/public_api.rs`, `src/project_transport/`, `src/bin/semapraxd.rs` |
 | Immutable Project revision inputs | `src/project_revision_store.rs`, `src/project_revision_store/unix.rs` |
 | Generated Rust package authority | `src/project/native_sdk.rs`, `crates/semaprax-native-rust-owned-data-package/`, `crates/semaprax-native-rust-interop-builder/` |
-| Interpreter | `src/interpreter.rs`, `src/hosted_interpreter.rs` |
+| Interpreter | `src/interpreter.rs`, `src/interpreter/prepared.rs`, `src/hosted_interpreter.rs`, `src/project/prepared_interpreter/`, `src/project/prepared_interpreter/trace/` |
 | Native backend | `src/codegen.rs`, `src/codegen/native_*` |
 | WebAssembly backend | `src/wasm.rs`, `src/wasm/` |
 | Reports and offline package graph | the focused `*_report`, `package_lock`, schema, manifest, header, and shim modules |

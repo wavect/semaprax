@@ -241,6 +241,14 @@ Neither fixture is a new public archive verifier. All new physical-consumer
 evidence remains authored and unrun; no hosted release blocker or promotion is
 established by adding it.
 
+The additional [mixed-borrow Rust consumer gate](PUBLIC-OWNED-DATA-API-V1.md)
+publishes a real v9 record package whose two exports accept a UTF-8 string and
+two byte slices. The consumer checks exact copied bytes and all three reported
+byte lengths at cumulative input boundaries, with rejection followed by SDK
+object reuse. It shares its corpus with v8 while retaining distinct descriptor
+and package manifest oracles. This gate is also authored, unrun, and opt-in;
+it does not prove allocation counts or persistent-context reuse.
+
 No test, target consumer, hosted job, registry publication, or release
 promotion is claimed by the authored source state. The upstream baseline at
 `4cc03820c86e70527cb65c4b10ee3841c7af167d` predates Project v9.

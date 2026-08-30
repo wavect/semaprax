@@ -532,6 +532,25 @@ alignment rejection before imports with preserved poisoned output. It is an
 independent consumer, not an independent arena implementation or a complete
 internal destruction trace. All these new fixtures remain unrun.
 
+The provisioned private toolchain gate `project_owned_tuple_sdk_v1` adds real
+published v8/v9 Rust consumers for one borrowed UTF-8 string plus two borrowed
+byte slices. It checks cumulative 65,535/65,536/65,537-byte tuples, Unicode byte
+length rather than character count, unused arguments, and v8 inactive
+`None`/`Err` branches. Accepted cases include maximum `Some`/`Ok` outputs;
+rejections are followed by successful calls on the same SDK object. Separate
+objects, input/output mutation, and retained outputs after object drop check
+host-owned copies. Each seven-file package is reopened against its canonical
+descriptor and regenerated provider binding before the locked/offline consumer
+runs. The gate is authored but unrun and ignored until tools are provisioned:
+
+```sh
+cargo test --locked -p semaprax-toolchain --test project_owned_tuple_sdk_v1 -- --ignored
+```
+
+This is consumer-level capacity and ownership evidence, not an invocation-entry
+counter, allocation trace, or proof of persistent native-context reuse. It does
+not replace the separate sanitizer, browser, or exact-head promotion gates.
+
 ## Nonclaims
 
 Public Owned Data API v1 does not claim public records or authored variants,

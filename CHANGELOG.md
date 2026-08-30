@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Authored real published v8/v9 Rust consumers for mixed UTF-8 and two-slice
+  borrowed tuples at the cumulative 65,536-byte boundary, including unused
+  inputs, inactive v8 variants, maximum `Some`/`Ok` outputs, rejection/reuse,
+  and independent retained copies. The gate reopens exact seven-file packages
+  and uses locked/offline external consumers. Generators remain unchanged;
+  tests are unrun and do not establish allocation or invocation-entry evidence.
+
 - Made lower owned-data SDK package publication one-way: preparation failures
   can discard their exact inventory, but settlement, rename and post-publication
   failures cannot regain cleanup authority. This prevents deletion of an

@@ -98,6 +98,10 @@ impl ProjectSemanticState {
         self.analysis.modules()
     }
 
+    pub(super) fn image_edges(&self) -> &[workspace_graph::WorkspaceEdge] {
+        self.analysis.edges()
+    }
+
     pub(super) fn image_symbol(&self, id: &str) -> Option<serde_json::Value> {
         let mut symbol = self.analysis.image_symbol(id)?;
         if let Some(function) = self.rename_functions.get(id) {

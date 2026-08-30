@@ -71,9 +71,13 @@ An appended parameter has exactly `name`, `type`, and `argument`. Its type is
 }
 ```
 
-This is an initial signature-evolution operation, not arbitrary parameter
-reordering, renaming, removal, conversion, or return-type migration. It does
-not silently guess defaults. Literal append keeps existing effects and owned
+The append form does not reorder or remove parameters. The additive
+[ordered signature evolution form](PROJECT-SIGNATURE-EVOLUTION-V1.md) supports
+retaining, reordering, or removing existing by-value built-in Copy parameters
+and adding explicit scalar literals, while staging every original argument in
+its original order. Parameter renaming, conversion, return-type migration and
+ownership-sensitive mapping remain unsupported. Neither form guesses defaults.
+Literal append keeps existing effects and owned
 argument evaluation in left-to-right order. Authenticated caller migration
 visits contracts, ordinary and generic bodies, class bodies, loops, match
 guards, and nested expressions; it does not discover external consumers.
@@ -112,6 +116,19 @@ that is not a fallback or a claim that a command/package-specific lane failed.
 The manifest's profile-specific admission is separately replayed in every case.
 No native compiler, Node process, interpreter execution, or target runtime is
 invoked. Tests remain `not_run` in the preview.
+
+`change_catalog(target)` returns a bounded, candidate-digest-bound catalogue
+of the supported constructor classes and target parameter facts. Unsupported
+targets and exhausted intention histories expose no operations. Ordered
+mapping is listed only for eligible by-value built-in Copy signatures.
+This is constructor discovery, not proof that an arbitrary supplied payload
+is legal: full `apply` admission still decides namespace, type, contract,
+ownership and target constraints. Fully proven transition discovery remains
+part of the wider programme.
+
+[Typed body holes](PROJECT-CANDIDATE-HOLES-V1.md) add an immutable draft wrapper.
+Unfilled holes have context but no materializable source or candidate evidence;
+filling a hole uses the same complete body-replacement admission path.
 
 `ProjectCandidate::replay(base, expected_base, changes, evidence_bytes)` starts
 from the base, reapplies the complete ordered history, and exact-compares the

@@ -140,9 +140,10 @@ Do not widen the existing literal/direct-call admission to make a fixture pass.
 
 The complete requirement ledger is the
 [graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md). Image facets,
-read-only protocol discovery, and immutable typed candidate previews are now
-authored additions, not verified completion. Extend the initial scalar-append
-signature migration into the requested general operations and typed holes;
+read-only/candidate-only protocol discovery, immutable typed candidate previews,
+body-hole drafts and ordered Copy signature mapping are now authored additions,
+not verified completion. Extend those bounded forms into the requested general
+operations, ownership-sensitive signature migration and expression holes;
 connect separately authorized test/build/source-commit capabilities; then
 establish incremental reuse, persistence, semantic rebase, and representative
 task-level benchmarks without reducing the original goal.

@@ -303,6 +303,16 @@ keep their method sets. See [Candidates](PROJECT-CANDIDATES-V1.md),
 [facets](SEMANTIC-IMAGE-FACETS-V1.md), and
 [Image Agent Protocol](IMAGE-AGENT-PROTOCOL-V1.md).
 
+The additive [candidate-only protocol](IMAGE-CANDIDATE-PROTOCOL-V2.md) selects
+ephemeral candidate/draft registry authority at host startup; it cannot grant
+source writes, runtime tests or builds. Responses are bounded and held source
+inputs are reauthenticated before registry mutations become visible. Typed
+[body-hole drafts](PROJECT-CANDIDATE-HOLES-V1.md) expose context while blocking
+materialization until all holes are filled through full candidate admission.
+[Ordered signature mapping](PROJECT-SIGNATURE-EVOLUTION-V1.md) stages every
+original built-in Copy argument once, left-to-right, before retaining,
+reordering or removing parameters. These additions are authored, unrun.
+
 `src/project/manifest.rs` parses the bounded `semaprax.toml` profiles.
 `src/project/` owns held input authority, immutable revisions, semantic
 admission, linking, execution, builds, npm carriers, rename planning, and the

@@ -39,8 +39,10 @@ use authority::{authentication, DeclaredPathSelection, HeldDirectory, HeldFile};
 #[cfg(all(test, windows))]
 use authority::{declared_absolute_path, has_declared_alias_component};
 pub use candidate::{
-    ProjectCandidate, SemanticChange, MAX_PROJECT_CANDIDATE_BYTES, MAX_SEMANTIC_CHANGE_BYTES,
-    PROJECT_CANDIDATE_SCHEMA, SEMANTIC_CHANGE_REQUIREMENTS, SEMANTIC_CHANGE_SCHEMA,
+    ProjectCandidate, ProjectCandidateDraft, SemanticChange, MAX_PROJECT_CANDIDATE_BYTES,
+    MAX_PROJECT_CANDIDATE_HOLES, MAX_SEMANTIC_CHANGE_BYTES, PROJECT_CANDIDATE_DRAFT_SCHEMA,
+    PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA, PROJECT_CANDIDATE_SCHEMA, SEMANTIC_CHANGE_REQUIREMENTS,
+    SEMANTIC_CHANGE_SCHEMA,
 };
 pub use execution::{
     verify_execution_envelope, ProjectExecution, ProjectExecutionOptions, ProjectExecutionOutcome,

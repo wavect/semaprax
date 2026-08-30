@@ -2,9 +2,9 @@
 //!
 //! This is candidate construction, never admission: the caller must format,
 //! reparse, rebuild and verify the complete Project before exposing a result.
-//! Call migration preserves each existing argument in place and only appends
-//! effect-free scalar literals. No signature reorder/type-conversion guess is
-//! performed, and display names are resolved through explicit stable IDs.
+//! Legacy append migration preserves each existing argument in place. Ordered
+//! Copy-parameter mapping stages every original argument left-to-right. No
+//! type-conversion guess is performed; names resolve through stable IDs.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -23,6 +23,9 @@ const MAX_EXPRESSION_DEPTH: usize = 64;
 const MAX_EXPRESSION_NODES: usize = 4096;
 const MAX_WALK_DEPTH: usize = 256;
 const MAX_WALK_NODES: usize = 1_048_576;
+
+#[path = "signature.rs"]
+mod signature;
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
@@ -89,6 +92,9 @@ pub(super) fn apply(programs: &mut [Program], intent: &Value) -> Result<IntentSu
                 Ok(())
             })?;
             programs[owner].functions[function_index].name = name.to_owned();
+        }
+        "change_function_signature" if intent.get("parameters").is_some() => {
+            migrated_calls = signature::apply(programs, intent, owner, function_index)?;
         }
         "change_function_signature" => {
             object(intent, &["kind", "target", "append_parameters"])?;

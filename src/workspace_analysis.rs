@@ -505,6 +505,81 @@ pub(crate) struct ProjectAnalysisSubject<'a> {
 }
 
 impl WorkspaceAnalysis {
+    /// Project image indexes are projections of the already validated typed
+    /// index, never an independently inferred repository graph. Edge ordinals
+    /// address the unchanged complete Project graph's `edges` array.
+    pub(crate) fn image_indexes(&self) -> serde_json::Value {
+        use serde_json::json;
+
+        fn adjacency(
+            index: &BTreeMap<WorkspaceAnalysisNode, Vec<usize>>,
+        ) -> Vec<serde_json::Value> {
+            index
+                .iter()
+                .map(|(node, edges)| {
+                    let node = match node {
+                        WorkspaceAnalysisNode::Module { path, module } => {
+                            json!({"kind": "module", "path": path, "module": module})
+                        }
+                        WorkspaceAnalysisNode::Declaration(id) => {
+                            json!({"kind": "declaration", "id": id})
+                        }
+                        WorkspaceAnalysisNode::Capability(id) => {
+                            json!({"kind": "capability", "id": id})
+                        }
+                    };
+                    json!({"node": node, "edges": edges})
+                })
+                .collect()
+        }
+
+        let stable_ids = self
+            .projection
+            .declarations()
+            .iter()
+            .enumerate()
+            .map(|(ordinal, declaration)| {
+                json!({"id": declaration.id(), "graph_declaration": ordinal})
+            })
+            .collect::<Vec<_>>();
+        json!({
+            "stable_ids": stable_ids,
+            "forward": adjacency(&self.forward),
+            "reverse": adjacency(&self.reverse),
+        })
+    }
+
+    /// A compact read-only declaration lookup. Module and capability names
+    /// occupy separate namespaces even when their spelling equals this ID.
+    pub(crate) fn image_symbol(&self, id: &str) -> Option<serde_json::Value> {
+        let fact = self.declarations.get(id)?;
+        if fact.origin == IdentityOrigin::CompilerOwned {
+            return None;
+        }
+        let node = WorkspaceAnalysisNode::Declaration(id.to_owned());
+        let incoming = self.reverse.get(&node).map_or(&[][..], Vec::as_slice);
+        let outgoing = self.forward.get(&node).map_or(&[][..], Vec::as_slice);
+        let direct_cross_file_callers = incoming
+            .iter()
+            .map(|index| &self.typed_edges[*index])
+            .filter(|edge| edge.family == WorkspaceAnalysisEdgeFamily::Call)
+            .map(|edge| &edge.source)
+            .collect::<BTreeSet<_>>()
+            .len();
+        Some(serde_json::json!({
+            "id": id,
+            "kind": declaration_kind_text(fact.kind),
+            "identity_origin": fact.origin.text(),
+            "owner": fact.owner,
+            "path": fact.path,
+            "module": fact.module,
+            "incoming_edges": incoming.len(),
+            "outgoing_edges": outgoing.len(),
+            "direct_cross_file_callers": direct_cross_file_callers,
+            "edge_scope": "six_cross_file_families",
+        }))
+    }
+
     pub(crate) fn build(projection: WorkspaceGraphProjection) -> Result<Self, Vec<Diagnostic>> {
         let (workspace_graph_digest, workspace_graph_output_bytes) =
             crate::workspace_graph::projection_graph_binding(&projection)?;

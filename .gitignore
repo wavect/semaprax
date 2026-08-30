@@ -14,3 +14,6 @@ platform-tests/wasm-scalar-browser-v1/test-results/
 
 /audit-output/
 /tmpwork/
+
+# Optional caller-persisted semantic image artifacts.
+**/.semaprax-images/

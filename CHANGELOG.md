@@ -53,6 +53,15 @@
   unchanged source/v10 admission. Tests/builds remain unrun; no ordinary-Wasm
   settlement or production promotion is claimed.
 
+- Authored the first Semantic Workspace Image v1 foundation: a bounded,
+  deterministic projection over retained Project revisions, complete graph and
+  typed indexes, exact fresh replay, and digest-bound symbol/context/impact
+  queries. Added explicit read-only image/replay/symbol CLI routes and an ignore
+  convention for caller-persisted images. Canonical source remains authoritative;
+  there is no trusted HIR deserialization, implicit cache, incremental compiler,
+  or new commit authority. Regression evidence is authored, unrun at the user's
+  request; no local, hosted, or completion status is promoted.
+
 - Integrated Dependabot PRs #13 and #14: pinned Android emulator runner 2.38.0
   and wasmparser 0.258.0, including standalone Rust and Component lockfiles and
   exact CI pin contracts. Target Evidence now names the actual validator;

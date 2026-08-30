@@ -114,6 +114,31 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 Ok(())
             }
         }
+        "project-image" | "project-image-verify" | "project-symbol" => {
+            let arity = if command == "project-image" { 2 } else { 3 };
+            if args.len() != arity
+                || args[1..]
+                    .iter()
+                    .any(|argument| argument.is_empty() || argument.starts_with('-'))
+            {
+                let operands = match command {
+                    "project-image" => "<manifest>",
+                    "project-image-verify" => "<manifest> <image.json>",
+                    _ => "<manifest> <stable-id>",
+                };
+                eprintln!("{command} requires exactly {operands}");
+                return Err(2);
+            }
+            let manifest = Path::new(&args[1]);
+            let output = match command {
+                "project-image" => cli::project_image::derive(manifest),
+                "project-image-verify" => cli::project_image::verify(manifest, Path::new(&args[2])),
+                _ => cli::project_image::symbol(manifest, &args[2]),
+            }
+            .map_err(|errors| report(&errors, false))?;
+            print!("{output}");
+            Ok(())
+        }
         "graph" => {
             let path = required_path(&args, 1)?;
             let program = checked(&path)?;
@@ -2255,6 +2280,9 @@ fn print_help() {
          Usage:\n\
            semaprax check [<file>|semaprax.toml|--manifest-path path] [--json]\n\
            semaprax graph <file>\n\
+           semaprax project-image <manifest>\n\
+           semaprax project-image-verify <manifest> <image.json>\n\
+           semaprax project-symbol <manifest> <stable-id>\n\
            semaprax context <file> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n\
             semaprax context-benchmark <manifest>\n\
             semaprax serve <file> [--max-request-bytes N]\n\

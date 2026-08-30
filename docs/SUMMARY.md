@@ -48,6 +48,7 @@ Audience: all documentation readers.
 - [Project Manifest v3](PROJECT-MANIFEST-V3.md)
 - [Project Manifest v4](PROJECT-MANIFEST-V4.md)
 - [Project Manifest v5](PROJECT-MANIFEST-V5.md)
+- [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
 - [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md)
 - [Project Revision Store Windows-entry v1](PROJECT-REVISION-STORE-WINDOWS-V1.md)
 - [Project Profile Admission v1](PROJECT-PROFILE-ADMISSION-V1.md)

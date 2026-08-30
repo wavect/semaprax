@@ -145,7 +145,7 @@ row.
 
 | Requirement | Status | Evidence owner | Complete when |
 | --- | --- | --- | --- |
-| Agent-native semantic program | Partial | [RFC 0001](RFC-0001.md), [Agent Context v2](AGENT-CONTEXT-V2.md), [Project Agent Transport v5](PROJECT-AGENT-TRANSPORT-V5.md), [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md) | The complete program graph is persistent, queryable, schema-versioned, and validated on representative repositories. |
+| Agent-native semantic program | Partial | [RFC 0001](RFC-0001.md), [Agent Context v2](AGENT-CONTEXT-V2.md), [Project Agent Transport v5](PROJECT-AGENT-TRANSPORT-V5.md), [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md), [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md) (authored, unrun) | Execute first-image replay/query/drift evidence; the complete program graph is persistent, queryable, schema-versioned, and validated on representative repositories. |
 | Human-readable program | Partial | [RFC 0001](RFC-0001.md) | Canonical source round-trips every stable language feature with migrations and reviewable diffs. |
 | Verified source semantics | Partial | [Architecture](ARCHITECTURE.md) | All admitted language features reach validated HIR only after complete type, effect, contract, and ownership checks. |
 | Cross-backend semantic equivalence | Partial | [Conformance Trace v1](CONFORMANCE-TRACE-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md), [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md), [Native Inline String Settlement v1](NATIVE-INLINE-STRING-SETTLEMENT-V1.md), [Native String Contents v1](NATIVE-STRING-CONTENTS-V1.md), [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md), [Standalone Wasm String Settlement v1](WASM-INTERNAL-STRINGS-V1.md) | Every supported backend passes the same complete behavior, failure, cleanup, and contract corpus; ordinary Wasm String settlement and execution of the authored native corrections, opt-in interpreter parity and separate standalone Wasm ownership/capacity corpus remain open. |
@@ -212,8 +212,8 @@ row.
 
 | Requirement | Status | Evidence owner | Complete when |
 | --- | --- | --- | --- |
-| Token-budgeted semantic context | Partial | [Agent Context v2](AGENT-CONTEXT-V2.md), [Economics v1](AGENT-ECONOMICS-V1.md) | Exact model-token budgets, broader semantic edges, persistent indexing, and representative measured savings are verified. |
-| Impact analysis before modification | Partial | [Semantic Impact v1](SEMANTIC-IMPACT-V1.md) | Repository-wide call/type/contract/test/schema/target/capability consumers are complete and incremental. |
+| Token-budgeted semantic context | Partial | [Agent Context v2](AGENT-CONTEXT-V2.md), [Economics v1](AGENT-ECONOMICS-V1.md), [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md) (authored, unrun) | Exact model-token budgets, broader semantic edges, persistent indexing, and representative measured savings are verified. |
+| Impact analysis before modification | Partial | [Semantic Impact v1](SEMANTIC-IMPACT-V1.md), [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md) (authored, unrun) | Repository-wide call/type/contract/test/schema/target/capability consumers are complete and incremental. |
 | Typed holes and compiler-generated repairs | Partial | [Diagnostic Repair v1](DIAGNOSTIC-REPAIR-V1.md) | General obligations and composable sound repairs are generated, ranked, reviewed, and replay-verified. |
 | Proof-carrying patches | Partial | [Patch Evidence v2](SEMANTIC-PATCH-EVIDENCE-V2.md) | General semantic claims, tests, targets, capability deltas, provenance, and compatibility are independently verified before commit. |
 | Semantic human review | Partial | [Semantic Review v1](SEMANTIC-REVIEW-V1.md) | Complete repository-wide behavioral, API, security, memory, target, migration, and unsafe summaries are evidence-backed. |

@@ -77,12 +77,17 @@ fn aggregate_constructor() -> Value {
         ),
     ]);
     let generic = object(generic_fields.clone());
-    generic_fields.retain(|(name, _)| !matches!(*name, "kind" | "path" | "module"));
+    generic_fields
+        .retain(|(name, _)| !matches!(*name, "kind" | "path" | "module" | "evidence_owner"));
     generic_fields.extend([
         ("kind", json!({"const":"variant"})),
         ("path", json!({"type":"null"})),
         ("module", json!({"type":"null"})),
         ("identity_origin", json!({"const":"compiler_owned"})),
+        (
+            "evidence_owner",
+            json!({"const":"compiler_checked_prelude"}),
+        ),
         (
             "compiler_prelude",
             object(vec![
@@ -128,6 +133,24 @@ fn aggregate_projection() -> Value {
         ),
     ]);
     json!({"oneOf":[monomorphic,object(generic)]})
+}
+
+fn aggregate_update() -> Value {
+    // Update discovery carries the same complete source-record field inventory
+    // as construction. Prelude and variant alternatives are not update owners.
+    let constructors = aggregate_constructor();
+    let mut alternatives = constructors["oneOf"].as_array().unwrap()[..2].to_vec();
+    for alternative in &mut alternatives {
+        alternative["properties"]["kind"] = json!({"const":"update"});
+        alternative["properties"]["base_evaluation"] =
+            json!({"const":"once_into_typed_value_binding"});
+        alternative["properties"]["field_coverage"] = json!({"const":"subset"});
+        alternative["required"]
+            .as_array_mut()
+            .unwrap()
+            .extend([json!("base_evaluation"), json!("field_coverage")]);
+    }
+    json!({"oneOf":alternatives})
 }
 
 fn aggregate_match() -> Value {
@@ -176,11 +199,15 @@ fn aggregate_match() -> Value {
         ),
     ]);
     let source_generic = object(generic.clone());
-    generic.retain(|(name, _)| !matches!(*name, "path" | "module"));
+    generic.retain(|(name, _)| !matches!(*name, "path" | "module" | "evidence_owner"));
     generic.extend([
         ("path", json!({"type":"null"})),
         ("module", json!({"type":"null"})),
         ("identity_origin", json!({"const":"compiler_owned"})),
+        (
+            "evidence_owner",
+            json!({"const":"compiler_checked_prelude"}),
+        ),
         (
             "compiler_prelude",
             object(vec![
@@ -433,6 +460,8 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
         .unwrap()["properties"]["aggregate_projections"] = array(aggregate_projection());
     docs.get_mut("urn:semaprax.project-change-catalog.v1")
         .unwrap()["properties"]["aggregate_matches"] = array(aggregate_match());
+    docs.get_mut("urn:semaprax.project-change-catalog.v1")
+        .unwrap()["properties"]["aggregate_updates"] = array(aggregate_update());
     docs
 }
 
@@ -606,6 +635,10 @@ mod signature_parameter_schema_tests {
         assert_eq!(prelude["path"]["type"], "null");
         assert_eq!(prelude["module"]["type"], "null");
         assert_eq!(prelude["identity_origin"]["const"], "compiler_owned");
+        assert_eq!(
+            prelude["evidence_owner"]["const"],
+            "compiler_checked_prelude"
+        );
         assert_eq!(prelude["compiler_prelude"]["additionalProperties"], false);
     }
 
@@ -675,8 +708,49 @@ mod signature_parameter_schema_tests {
             "compiler_owned"
         );
         assert_eq!(
+            choices[2]["properties"]["evidence_owner"]["const"],
+            "compiler_checked_prelude"
+        );
+        assert_eq!(
             choices[2]["properties"]["compiler_prelude"]["additionalProperties"],
             false
         );
+    }
+
+    #[test]
+    fn update_descriptor_has_only_closed_source_record_forms_and_subset_policy() {
+        let schema = aggregate_update();
+        let choices = schema["oneOf"].as_array().unwrap();
+        assert_eq!(choices.len(), 2);
+        for choice in choices {
+            assert_eq!(choice["additionalProperties"], false);
+            assert_eq!(choice["properties"]["kind"]["const"], "update");
+            assert_eq!(choice["properties"]["field_coverage"]["const"], "subset");
+            assert_eq!(
+                choice["properties"]["base_evaluation"]["const"],
+                "once_into_typed_value_binding"
+            );
+            assert_eq!(choice["properties"]["path"]["type"], "string");
+            assert!(choice["properties"].get("compiler_prelude").is_none());
+            for required in [
+                "target",
+                "owner",
+                "fields",
+                "field_coverage",
+                "base_evaluation",
+            ] {
+                assert!(choice["required"]
+                    .as_array()
+                    .unwrap()
+                    .contains(&json!(required)));
+            }
+        }
+        assert_eq!(choices[0]["properties"]["generic"]["const"], false);
+        assert!(choices[0]["properties"].get("type_parameters").is_none());
+        assert_eq!(choices[1]["properties"]["generic"]["const"], true);
+        assert!(choices[1]["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("type_parameters")));
     }
 }

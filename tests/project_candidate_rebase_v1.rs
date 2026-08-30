@@ -462,6 +462,71 @@ fn match_rebase_binds_all_cases_and_payload_ids_even_when_the_owner_identity_is_
 }
 
 #[test]
+fn record_update_rebase_binds_untouched_fields_as_well_as_requested_replacements() {
+    let fixture = Fixture::new();
+    let manifest_path = fixture.0.join("semaprax.toml");
+    let manifest = std::fs::read_to_string(&manifest_path)
+        .unwrap()
+        .replace("semaprax.project.v1", "semaprax.project.v8")
+        .replace(
+            "name = \"calculator\"",
+            "name = \"calculator\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"",
+        )
+        .replace("\"calculator.divide\", ", "");
+    std::fs::write(manifest_path, manifest).unwrap();
+    let path = fixture.0.join("src/core.spx");
+    let text = std::fs::read_to_string(&path).unwrap()
+        + r#"
+@id("calculator.update-money") record Money {
+    @id("calculator.update-money.amount") amount: i64,
+    @id("calculator.update-money.flag") flag: bool,
+}
+@id("calculator.refresh-money") fn refresh_money(value: Money) -> Money { value }
+"#;
+    let canonical = semaprax::format::canonical(&semaprax::parse(&text, "src/core.spx").unwrap());
+    std::fs::write(&path, &canonical).unwrap();
+    let root = fixture.candidate();
+    let updated = apply(
+        &root,
+        json!({"kind":"replace_function_body","target":"calculator.refresh-money","body":{
+            "kind":"update","target":"calculator.update-money","base":{"kind":"place","name":"value"},
+            "fields":[{"target":"calculator.update-money.amount","value":{"kind":"i64","value":7}}]
+        }}),
+    );
+    let independent = apply(&root, rename("calculator.subtract", "difference"));
+    let merged = updated
+        .merge(
+            updated.candidate_digest(),
+            &independent,
+            independent.candidate_digest(),
+        )
+        .unwrap();
+    assert!(source(merged.candidate()).contains(": Money = value;"));
+    assert!(source(merged.candidate()).contains("with {"));
+    assert!(source(merged.candidate()).contains("fn difference("));
+    let unchanged = updated.to_json().to_owned();
+    // The request never names flag, but preserving the rest of a record still
+    // depends on its exact checked field inventory.
+    let changed = canonical.replace(
+        "calculator.update-money.flag",
+        "calculator.update-money.new-flag",
+    );
+    assert_ne!(changed, canonical);
+    std::fs::write(&path, &changed).unwrap();
+    let new_base = fixture.revision();
+    code(
+        updated.rebase(
+            updated.candidate_digest(),
+            Arc::clone(&new_base),
+            new_base.project_revision(),
+        ),
+        "SPX-G235",
+    );
+    assert_eq!(updated.to_json(), unchanged);
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), changed);
+}
+
+#[test]
 fn callee_display_rename_does_not_create_a_false_body_conflict() {
     let fixture = Fixture::new();
     fixture.helper();

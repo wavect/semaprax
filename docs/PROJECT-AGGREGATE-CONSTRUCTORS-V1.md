@@ -7,8 +7,8 @@ Audience: agent builders, compiler contributors, and reviewers.
 
 ## Stable-ID requests
 
-The recursive typed expression vocabulary admits two closed shapes, each with
-an optional `type_arguments` array:
+Record and variant construction use these two closed recursive expression
+shapes, each with an optional `type_arguments` array:
 
 ```json
 {"kind":"record","target":"payments.money","fields":[{"target":"payments.money.amount","value":{"kind":"i64","value":7}}]}
@@ -59,7 +59,7 @@ selected case carries only one of them. Explicit arguments materialize as
 ordinary canonical `.spx`, such as `Option<bool>::Some { value: true }`.
 
 Classes, resource creation, nested or named generic arguments, borrow-preserving
-field views, record updates and general pattern synthesis remain outside this constructor
+field views and general pattern synthesis remain outside this constructor
 grammar. A named field type does not waive ordinary profile, ownership, effect,
 or backend admission.
 
@@ -103,6 +103,54 @@ claims behavioral equivalence with arbitrary existing field-access code.
 Bodies, authenticated expression replacements, contracts, declaration bodies
 and hole fills share the existing constructor/admission path. Generated locals
 are visible in the canonical source diff; they are not graph-only state.
+
+## Immutable record updates
+
+The `update` constructor selects an explicitly identified source record owner
+and a subset of its fields to replace:
+
+```json
+{"kind":"update","target":"payments.money","base":{"kind":"place","name":"payment"},"fields":[{"target":"payments.money.amount","value":{"kind":"i64","value":7}}]}
+```
+
+Optional `type_arguments` supply the exact record template's ordered direct
+`i64`/`bool` arguments. The complete owner and field inventory must have
+explicit identities, and the destination must have one existing local or
+imported binding for that record. Classes, variant payloads and compiler-prelude
+owners do not enter this route. A field with the same name on another record
+is not a substitute for the selected identity.
+
+Replacement targets form a subset: omitted fields retain the base's values
+under ordinary source update semantics. Repeated, foreign or unknown fields
+reject. An empty `fields` array is accepted structurally and remains an actual
+update expression; it does not erase base evaluation or ownership operations.
+Full source/profile/target admission still applies to that empty update.
+
+Lowering stages the base once into a hygienic, exact-owner typed local, then
+emits the existing `UpdateRecord` AST with the requested replacements. The base
+is evaluated before every replacement, and replacement expressions stay in
+request order. The compiler does not reconstruct untouched fields through
+separate projections or reorder replacements into declaration order. For
+example, canonical source contains the equivalent structure:
+
+```text
+{
+    let spx_project_0: Money = payment;
+    spx_project_0 with { amount: 7 }
+}
+```
+
+The annotation checks complete nominal identity and generic arguments; field
+spelling, result type or matching layout cannot waive that check. Name generation
+also respects active match payload bindings. Updates can compose with other
+typed constructors in bodies, authenticated expression replacements and hole
+fills through the same ordinary admission path.
+
+This is an immutable value update, not a mutation of a source place. Existing
+copy/transfer, replacement settlement, loan and cleanup rules remain owned by
+the source verifier and backends. A non-Copy base or replacement does not gain
+permission to copy, escape a loan, reuse moved storage or skip a finalizer.
+The constructor introduces no new owned-record or public aggregate ABI support.
 
 ## Exhaustive variant matching
 
@@ -221,6 +269,16 @@ preserves a loan. `project` is listed among available constructor kinds only
 when this inventory is nonempty. Existing aggregate constructor entries are
 unchanged; projects with no eligible record fields gain no projection property.
 
+An optional nonempty `aggregate_updates` inventory describes eligible visible
+source records, including empty records. Rows retain the complete checked
+record constructor descriptor, with `kind: update`,
+`base_evaluation: once_into_typed_value_binding`, and `field_coverage: subset`.
+The full field inventory is guidance for selecting replacements, not a request
+to replace every field. Generic rows retain their template parameter metadata.
+No compiler-prelude variant row is included. The `update` constructor kind is
+listed only when the inventory is nonempty; report presence does not prove
+that a submitted base or replacement is admitted.
+
 An optional nonempty `aggregate_matches` inventory describes each visible
 variant owner and its complete declaration-ordered case/payload inventory.
 Descriptors carry existing bindings, template field types, optional generic
@@ -251,6 +309,12 @@ Deleting or reidentifying a field, moving it to another owner, or changing the
 owner's field/type-parameter inventory conflicts with `SPX-G235` before replay.
 No same-spelling field fallback is used during rebase.
 
+Update dependencies bind the whole checked record descriptor, including
+untouched fields, before each history step is replayed. Reidentifying an omitted
+field or changing any checked field/type-parameter inventory conflicts with
+`SPX-G235`; preserving a remainder still depends on that exact record shape.
+No empty-update shortcut bypasses this dependency check.
+
 Match dependencies bind the complete checked variant owner, ordered cases,
 payload identities/types, type parameters and any compiler-prelude provenance
 at each original/rebased intermediate revision. Reidentifying even a unit case
@@ -280,6 +344,12 @@ bounds, not measured proportional lookup costs or aggregate heap guarantees.
 Projection discovery separately bounds its repeated field/template metadata to
 65,536 items and 1 MiB, while retaining the enclosing catalogue/context limits.
 
+Update lowering also charges three generated nodes beyond its wire node for
+the let, update and base variable. Base and replacement expressions recurse at
+depth plus two, with type arguments and replacement values charged to the same
+4,096-node budget. Update discovery separately retains the 65,536-item and
+1 MiB descriptor bounds, plus the enclosing catalogue/context limits.
+
 Match lowering uses the same shared expression budget: the wire node becomes
 a block, with three additional generated nodes for its let, match and variable.
 Arm patterns, payload bindings, explicit type arguments and recursive bodies
@@ -303,3 +373,9 @@ function identities remain unchanged. These files are authored evidence only.
 authored and unrun. They cover stable-ID selection, typed staging, lexical
 bindings, discovery, recovery and rejection. The rebase regressions also cover
 case/payload identity changes with an unchanged variant owner and signature.
+
+[Record update regressions](../tests/project_candidate_record_update_v1.rs)
+are authored and unrun. They exercise typed staging, replacement subsets and
+order, generic/local/imported owners, discovery, holes, recovery and rejection.
+The rebase fixture also changes an untouched field identity to ensure a
+partial update cannot silently adopt a different record remainder.

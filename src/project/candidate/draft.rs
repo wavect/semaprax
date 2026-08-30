@@ -393,6 +393,7 @@ impl ProjectCandidateDraft {
         let projections =
             super::intent::aggregate_projections(self.last_valid.revision(), &program)?;
         let matches = super::intent::aggregate_matches(self.last_valid.revision(), &program)?;
+        let updates = super::intent::aggregate_updates(self.last_valid.revision(), &program)?;
         if !aggregates.is_empty() {
             let kinds = report["constructor_kinds"]
                 .as_array_mut()
@@ -417,6 +418,13 @@ impl ProjectCandidateDraft {
                 .ok_or_else(|| grammar("match hole constructor inventory is unavailable"))?
                 .push(json!("match"));
             report["aggregate_matches"] = json!(matches);
+        }
+        if !updates.is_empty() {
+            report["constructor_kinds"]
+                .as_array_mut()
+                .ok_or_else(|| grammar("update hole constructor inventory is unavailable"))?
+                .push(json!("update"));
+            report["aggregate_updates"] = json!(updates);
         }
         Ok(report)
     }

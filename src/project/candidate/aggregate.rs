@@ -153,6 +153,61 @@ pub(in crate::project::candidate) fn aggregate_projections(
     Ok(result)
 }
 
+/// Complete record inventories describe the admissible replacement subset;
+/// ordinary source checking still owns update, transfer and cleanup semantics.
+pub(in crate::project::candidate) fn aggregate_updates(
+    revision: &ProjectRevision,
+    program: &Program,
+) -> Result<Vec<Value>> {
+    let mut targets = BTreeSet::new();
+    for module in revision.semantic.image_modules() {
+        for ty in module.types() {
+            if !matches!(&ty.kind, ResolvedTypeDeclarationKind::Record { fields } if fields.len() <= MAX_FIELDS)
+                || ty.type_parameters.len() > MAX_AGGREGATE_TYPE_ARGUMENTS
+                || binding(program, ty.id.as_str(), module.module())?.is_none()
+            {
+                continue;
+            }
+            targets.insert(ty.id.as_str().to_owned());
+            if targets.len() > MAX_ITEMS {
+                return Err(capacity(
+                    "aggregate update catalogue exceeds its item bound",
+                ));
+            }
+        }
+    }
+    let mut result = Vec::new();
+    let mut bytes = 2usize;
+    let mut items = 0usize;
+    for target in targets {
+        let Some(subject) = subject(revision, &target)? else {
+            continue;
+        };
+        items = items.saturating_add(1 + subject.fields.len() + subject.type_parameters.len());
+        if items > MAX_ITEMS {
+            return Err(capacity(
+                "aggregate update catalogue exceeds its member bound",
+            ));
+        }
+        let Some(binding) = visible_binding(program, &subject)? else {
+            continue;
+        };
+        let mut value = descriptor(&subject, Some(&binding))?;
+        value["kind"] = json!("update");
+        value["base_evaluation"] = json!("once_into_typed_value_binding");
+        value["field_coverage"] = json!("subset");
+        let encoded = super::super::wire::render(value.clone(), MAX_CATALOG_BYTES)?;
+        bytes = bytes.saturating_add(encoded.len());
+        if bytes > MAX_CATALOG_BYTES {
+            return Err(capacity(
+                "aggregate update catalogue exceeds its byte bound",
+            ));
+        }
+        result.push(value);
+    }
+    Ok(result)
+}
+
 struct Subject<'a> {
     kind: &'static str,
     target: &'a str,

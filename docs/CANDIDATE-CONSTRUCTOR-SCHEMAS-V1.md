@@ -27,7 +27,7 @@ required fields and `additionalProperties: false`.
 Expression alternatives cover typed `i64`, `i32`, `u8`, `usize`, and `bool`
 literals; places; calls; binary and unary operators; conditional expressions;
 identity-selected record/variant construction, stable-ID record-field projection,
-and exhaustive stable-ID variant matching.
+exhaustive stable-ID variant matching, and typed stable-ID record updates.
 Literal bounds use the corresponding Rust integer limits, including the
 target-neutral unsigned 64-bit input range for `usize`; target admission can
 still reject a value. New names use the same bounded ordinary identifier shape
@@ -85,6 +85,9 @@ Compiler-owned prelude cases use a distinct closed descriptor shape:
 the actual compiler prelude. These are compiler definitions, not invented
 filesystem declarations. Their field identities and generic parameter facts
 come from the checked prelude index.
+Prelude constructor and match descriptors use
+`evidence_owner: compiler_checked_prelude`; authored source descriptors retain
+`evidence_owner: retained_checked_hir`.
 
 Available aggregate kinds are appended to the existing constructor-kind
 inventories. Empty aggregate inventories are omitted. The newly discoverable
@@ -174,6 +177,38 @@ discovery. Earlier constructor/projection descriptor entries stay unchanged.
 The closed response schema describes the source monomorphic, source generic,
 and compiler-prelude alternatives separately. Matching schema regressions are
 authored and unrun.
+
+Record update uses `{"kind":"update","target":record_owner_id,
+"base":expression,"fields":[{"target":field_id,"value":expression}]}` with
+the same optional direct-scalar `type_arguments`. It selects an explicit checked
+source record with one visible binding, including supported generic instances.
+Each requested field must belong to that exact owner and appear at most once;
+unmentioned fields follow the existing record-update semantics. An empty field
+array is permitted and remains an ordinary update AST, subject to full
+admission. Classes, variants, prelude types, and implicit source identities are
+not update owners in this constructor.
+
+The base is evaluated once into a fresh binding annotated with the exact owner
+and type arguments. The existing `UpdateRecord` expression then evaluates
+replacement expressions in request order after the base. The schema charges
+three generated nodes for the let statement, update, and place; base and field
+children use a two-level depth increment. Field arrays are bounded to 4,095
+entries before the shared node/depth budget applies. The compiler rejects
+foreign or duplicate field IDs and does not reorder the replacement array.
+Typed staging may copy or transfer the base; it is not a borrow-preserving
+operation or an exception to ordinary owned-update, cleanup, or target checks.
+
+Change catalogues and both hole contexts expose optional `aggregate_updates`
+when visible source-record updates are available, adding `update` to constructor
+kinds. Each descriptor retains the complete checked record field inventory,
+including target/owner identity, source binding/provenance, and generic template
+parameters when present. It changes the descriptor kind to `update` and adds
+`base_evaluation: once_into_typed_value_binding` and `field_coverage: subset`.
+The field inventory describes available selections, not required replacements.
+The response schema has separate closed source monomorphic and source generic
+forms; no prelude alternative is accepted. Existing constructor, projection,
+and match entries remain unchanged. These schema regressions are authored and
+unrun; discovery confers no source or execution authority.
 
 Intent alternatives cover declaration rename, both append and ordered-mapping
 signature forms, whole-body replacement, revision-scoped expression replacement,

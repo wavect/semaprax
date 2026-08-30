@@ -33,7 +33,7 @@ mod signature;
 pub(super) use aggregate::{
     aggregate_constructors, aggregate_dependency_fingerprint,
     aggregate_match_dependency_fingerprint, aggregate_matches,
-    aggregate_projection_dependency_fingerprint, aggregate_projections,
+    aggregate_projection_dependency_fingerprint, aggregate_projections, aggregate_updates,
     MAX_AGGREGATE_TYPE_ARGUMENTS,
 };
 pub(super) use signature::ordered_signature_parameters;
@@ -649,6 +649,96 @@ impl Constructor<'_> {
                             }),
                             field: plan.field_name,
                             field_span: Span::default(),
+                        },
+                        span: Span::default(),
+                    }),
+                }
+            }
+            "update" => {
+                if value.get("type_arguments").is_some() {
+                    object(
+                        value,
+                        &["kind", "target", "base", "fields", "type_arguments"],
+                    )?;
+                } else {
+                    object(value, &["kind", "target", "base", "fields"])?;
+                }
+                // Root block plus generated let, update and base variable.
+                self.nodes += 3;
+                if self.nodes > MAX_EXPRESSION_NODES || depth + 2 > MAX_EXPRESSION_DEPTH {
+                    return Err(capacity("update lowering exceeds its node or depth bound"));
+                }
+                if let Some(arguments) = value.get("type_arguments") {
+                    let arguments = arguments.as_array().ok_or_else(|| {
+                        grammar("aggregate type_arguments must be an explicit array")
+                    })?;
+                    if arguments.len() > MAX_AGGREGATE_TYPE_ARGUMENTS
+                        || arguments.len() > MAX_EXPRESSION_NODES.saturating_sub(self.nodes)
+                    {
+                        return Err(capacity(
+                            "update type arguments exceed the remaining node bound",
+                        ));
+                    }
+                    self.nodes += arguments.len();
+                }
+                let revision = self.revision.ok_or_else(|| {
+                    grammar("update requires a retained checked Project revision")
+                })?;
+                let plan = aggregate::plan(
+                    revision,
+                    self.program,
+                    "record",
+                    text(value, "target")?,
+                    value.get("type_arguments"),
+                )?;
+                let requested = array(value, "fields")?;
+                if requested.len() > MAX_EXPRESSION_NODES.saturating_sub(self.nodes) {
+                    return Err(capacity(
+                        "update fields exceed the remaining expression node bound",
+                    ));
+                }
+                let mut seen = BTreeSet::new();
+                // A subset is intentional, including the source-admitted empty
+                // update; membership is checked before constructing any child.
+                for field in requested {
+                    object(field, &["target", "value"])?;
+                    let target = text(field, "target")?;
+                    if !plan.fields.contains_key(target) || !seen.insert(target) {
+                        return Err(grammar(
+                            "update repeats or selects a foreign record field identity",
+                        ));
+                    }
+                }
+                let name = self.projection_name()?;
+                let base = self.expression(member(value, "base")?, depth + 2)?;
+                let mut fields = Vec::with_capacity(requested.len());
+                for field in requested {
+                    fields.push(FieldInitializer {
+                        name: plan.fields[text(field, "target")?].clone(),
+                        name_span: Span::default(),
+                        value: self.expression(member(field, "value")?, depth + 2)?,
+                        span: Span::default(),
+                    });
+                }
+                ExprKind::Block {
+                    statements: vec![Statement::Let {
+                        name: name.clone(),
+                        name_span: Span::default(),
+                        mutable: false,
+                        declared: Some(Type::Named {
+                            name: plan.type_name,
+                            arguments: plan.type_arguments,
+                        }),
+                        value: base,
+                        span: Span::default(),
+                    }],
+                    tail: Box::new(Expr {
+                        kind: ExprKind::UpdateRecord {
+                            base: Box::new(Expr {
+                                kind: ExprKind::Var(name),
+                                span: Span::default(),
+                            }),
+                            fields,
                         },
                         span: Span::default(),
                     }),

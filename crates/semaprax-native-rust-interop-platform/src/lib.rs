@@ -2,6 +2,9 @@
 
 #![forbid(unsafe_code)]
 
+mod doctor;
+pub use doctor::{doctor_version_probe, DoctorProbeError};
+
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 

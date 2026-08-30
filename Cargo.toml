@@ -49,6 +49,7 @@ fs2 = "=0.4.3"
 getrandom = "=0.4.3"
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
+semaprax-native-rust-interop-platform = { version = "=0.1.0", path = "crates/semaprax-native-rust-interop-platform" }
 semaprax-native-rust-owned-data-package = { version = "=0.1.0", path = "crates/semaprax-native-rust-owned-data-package" }
 
 [target.'cfg(unix)'.dependencies]

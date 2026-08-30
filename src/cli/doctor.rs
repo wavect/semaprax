@@ -1,6 +1,5 @@
 use std::fmt;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use semaprax::diagnostic::quote_json;
 
@@ -356,19 +355,34 @@ impl DoctorHost for RealDoctorHost {
         if !path.is_absolute() {
             return Err(DoctorError::new("tool path is not absolute"));
         }
-        let output = Command::new(path)
-            .arg("--version")
-            .output()
-            .map_err(|error| DoctorError::new(format!("cannot run {}: {error}", path.display())))?;
-        if !output.status.success() {
-            return Err(DoctorError::new(format!(
-                "{} --version exited unsuccessfully",
-                path.display()
-            )));
-        }
-        String::from_utf8(output.stdout)
+        let output = version_probe(path)?;
+        String::from_utf8(output)
             .map_err(|_| DoctorError::new(format!("{} returned non-UTF-8 output", path.display())))
     }
+}
+
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+fn version_probe(path: &Path) -> Result<Vec<u8>, DoctorError> {
+    use semaprax_native_rust_interop_platform::{doctor_version_probe, DoctorProbeError};
+    doctor_version_probe(path).map_err(|error| {
+        let reason = match error {
+            DoctorProbeError::Invalid => "has an invalid probe path or environment",
+            DoctorProbeError::Unsupported => "cannot be probed on this host",
+            DoctorProbeError::Spawn => "could not be started",
+            DoctorProbeError::Exit => "exited unsuccessfully",
+            DoctorProbeError::OutputLimit => "exceeded the 65536-byte output limit",
+            DoctorProbeError::Timeout => "exceeded the 10-second execution deadline",
+            DoctorProbeError::Io => "failed during bounded output collection",
+        };
+        DoctorError::new(format!("{} --version {reason}", path.display()))
+    })
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+fn version_probe(_: &Path) -> Result<Vec<u8>, DoctorError> {
+    Err(DoctorError::new(
+        "bounded version probes are unsupported on this host",
+    ))
 }
 
 fn executable_file(path: &Path) -> bool {

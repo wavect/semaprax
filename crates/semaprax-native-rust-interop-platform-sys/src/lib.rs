@@ -5,6 +5,9 @@
 
 #![deny(unsafe_op_in_unsafe_fn)]
 
+mod doctor;
+pub use doctor::{probe_version as doctor_version_probe, ProbeError as DoctorProbeError};
+
 #[cfg(unix)]
 use std::ffi::CString;
 use std::ffi::OsStr;

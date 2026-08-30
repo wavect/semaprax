@@ -25,8 +25,15 @@ const FRAME_SOURCE: &str = include_str!("../examples/frame-payload-project/src/f
 const MANIFEST: &str = include_str!("../examples/frame-payload-project/semaprax.toml");
 const CORPUS: &[u8] = include_bytes!("../examples/frame-payload-project/corpus.json");
 
+#[path = "frame_payload_product_v1/backend_equivalence.rs"]
+mod backend_equivalence;
 #[path = "frame_payload_product_v1/consumer_acceptance.rs"]
 mod consumer_acceptance;
+#[path = "frame_payload_product_v1/raw_wasm.rs"]
+mod raw_wasm;
+#[path = "frame_payload_product_v1/subject_binding.rs"]
+mod subject_binding;
+use backend_equivalence::{assert_interpreter_corpus, assert_native_corpus};
 const SELECTED: [&str; 3] = [
     "frame.payload",
     "frame.payload-maybe",
@@ -271,85 +278,11 @@ fn c_bytes(bytes: &[u8]) -> String {
 #[test]
 fn reference_interpreter_runs_the_exact_corpus_with_status_identity_and_cleanup() {
     let program = resolve(FRAME_SOURCE);
-    for (name, frame, valid, error) in corpus_frames() {
-        let expected = valid.then(|| frame[8..].to_vec());
-        let maybe = evaluate_resolved_owned_data(
-            &program,
-            "frame.payload-maybe",
-            &frame,
-            DEFAULT_MAX_STEPS,
-        )
-        .unwrap();
-        assert_eq!(maybe.function_id.as_str(), "frame.payload-maybe", "{name}");
-        assert_eq!(
-            maybe.outcome,
-            OwnedDataEvaluationOutcome::Returned(OwnedDataValue::OptionBytes(expected.clone())),
-            "{name}"
-        );
-        assert_eq!(
-            maybe.cleanup_events,
-            if valid {
-                vec![OwnedDataCleanupEvent::CopyOutAndSettleBytes]
-            } else {
-                Vec::new()
-            },
-            "{name}"
-        );
-
-        let result = evaluate_resolved_owned_data(
-            &program,
-            "frame.payload-result",
-            &frame,
-            DEFAULT_MAX_STEPS,
-        )
-        .unwrap();
-        assert_eq!(
-            result.function_id.as_str(),
-            "frame.payload-result",
-            "{name}"
-        );
-        let expected_result = match expected.clone() {
-            Some(payload) => Ok(payload),
-            None => Err(error),
-        };
-        assert_eq!(
-            result.outcome,
-            OwnedDataEvaluationOutcome::Returned(OwnedDataValue::ResultBytesI64(expected_result)),
-            "{name}"
-        );
-        assert_eq!(
-            result.cleanup_events,
-            if valid {
-                vec![OwnedDataCleanupEvent::CopyOutAndSettleBytes]
-            } else {
-                Vec::new()
-            },
-            "{name}"
-        );
-
-        if let Some(expected) = expected {
-            let direct =
-                evaluate_resolved_owned_data(&program, "frame.payload", &frame, DEFAULT_MAX_STEPS)
-                    .unwrap();
-            assert_eq!(direct.function_id.as_str(), "frame.payload", "{name}");
-            assert_eq!(
-                direct.outcome,
-                OwnedDataEvaluationOutcome::Returned(OwnedDataValue::Bytes(expected)),
-                "{name}"
-            );
-            assert_eq!(
-                direct.cleanup_events,
-                [OwnedDataCleanupEvent::CopyOutAndSettleBytes],
-                "{name}"
-            );
-        }
-    }
+    assert_interpreter_corpus(&program);
 }
 
 #[test]
 fn native_owned_data_provider_runs_the_exact_corpus_at_o0_and_o2() {
-    use std::fmt::Write as _;
-
     let selected = SELECTED.map(str::to_owned);
     let program = resolve(FRAME_SOURCE);
     let descriptor = derive_public_api_descriptor(&program, &selected, subject()).unwrap();
@@ -361,114 +294,7 @@ fn native_owned_data_provider_runs_the_exact_corpus_at_o0_and_o2() {
         &descriptor.digest(),
     )
     .unwrap();
-    for symbol in [
-        "spx_owned_data_call_spx_frame_dot_payload_v1",
-        "spx_owned_data_call_spx_frame_dot_payload_hyphen_maybe_v1",
-        "spx_owned_data_call_spx_frame_dot_payload_hyphen_result_v1",
-    ] {
-        assert!(artifact.source().contains(symbol));
-    }
-
-    let frames = corpus_frames();
-    let valid_count = frames.iter().filter(|row| row.2).count();
-    let mut declarations = String::new();
-    let mut cases = String::new();
-    for (index, (name, frame, valid, error)) in frames.iter().enumerate() {
-        let pointer = if frame.is_empty() {
-            "NULL".to_owned()
-        } else {
-            writeln!(
-                declarations,
-                "static const uint8_t case_{index}[]={{ {} }};",
-                c_bytes(frame)
-            )
-            .unwrap();
-            format!("case_{index}")
-        };
-        writeln!(
-            cases,
-            "if(run_case(context,{pointer},UINT64_C({}),{},INT64_C({}))!=0)return {}; /* {} */",
-            frame.len(),
-            u8::from(*valid),
-            error,
-            40 + index,
-            name
-        )
-        .unwrap();
-    }
-    let probe = format!(
-        r#"
-{declarations}
-static uint32_t drops=UINT32_C(0);
-static int copy_drop(spx_context_v1 *context,uint64_t handle,const uint8_t *expected,uint64_t length){{
-    uint64_t actual=UINT64_MAX;static uint8_t output[UINT64_C(65528)];
-    if(handle==UINT64_C(0)||spx_owned_bytes_len_v1(context,handle,&actual)!=0||actual!=length)return 1;
-    if(spx_owned_bytes_copy_v1(context,handle,length==0?NULL:output,length)!=0)return 2;
-    if(length!=0&&memcmp(output,expected,(size_t)length)!=0)return 3;
-    if(spx_owned_bytes_drop_v1(context,handle)!=0)return 4;
-    ++drops;return 0;
-}}
-static int run_case(spx_context_v1 *context,const uint8_t *frame,uint64_t length,uint8_t valid,int64_t expected_error){{
-    uint32_t tag=UINT32_C(99);uint64_t handle=UINT64_C(0);int64_t error=INT64_C(99);
-    uint64_t payload_length=valid?length-UINT64_C(8):UINT64_C(0);
-    const uint8_t *payload=valid?frame+UINT64_C(8):NULL;
-    if(spx_owned_data_call_spx_frame_dot_payload_hyphen_maybe_v1(context,frame,length,&tag,&handle,&error)!=SPX_OWNED_DATA_SUCCESS)return 10;
-    if(valid){{if(tag!=UINT32_C(1)||error!=INT64_C(0)||copy_drop(context,handle,payload,payload_length)!=0)return 11;}}
-    else if(tag!=UINT32_C(0)||handle!=UINT64_C(0)||error!=INT64_C(0))return 12;
-    tag=UINT32_C(99);handle=UINT64_C(0);error=INT64_C(99);
-    if(spx_owned_data_call_spx_frame_dot_payload_hyphen_result_v1(context,frame,length,&tag,&handle,&error)!=SPX_OWNED_DATA_SUCCESS)return 13;
-    if(valid){{if(tag!=UINT32_C(0)||error!=INT64_C(0)||copy_drop(context,handle,payload,payload_length)!=0)return 14;}}
-    else if(tag!=UINT32_C(1)||handle!=UINT64_C(0)||error!=expected_error)return 15;
-    if(valid){{
-        tag=UINT32_C(99);handle=UINT64_C(0);error=INT64_C(99);
-        if(spx_owned_data_call_spx_frame_dot_payload_v1(context,frame,length,&tag,&handle,&error)!=SPX_OWNED_DATA_SUCCESS)return 16;
-        if(tag!=UINT32_C(0)||error!=INT64_C(0)||copy_drop(context,handle,payload,payload_length)!=0)return 17;
-    }}
-    return context->live_slots==UINT32_C(0)?0:18;
-}}
-int main(void){{
-    uint64_t size=spx_owned_data_context_size_v1();void *storage=malloc((size_t)size);
-    if(storage==NULL)return 20;
-    if(spx_owned_data_context_init_v1(storage,size)!=SPX_OWNED_DATA_SUCCESS)return 21;
-    spx_context_v1 *context=(spx_context_v1*)storage;
-    {cases}
-    if(drops!=UINT32_C({}))return 22;
-    if(context->live_slots!=UINT32_C(0))return 23;
-    if(spx_owned_data_context_drop_v1(context)!=SPX_OWNED_DATA_SUCCESS)return 24;
-    free(storage);return 0;
-}}
-"#,
-        valid_count * 3
-    );
-
-    let root = temporary("native-provider");
-    fs::create_dir_all(&root).unwrap();
-    for optimization in ["-O0", "-O2"] {
-        let source = root.join(format!("provider-{optimization}.c"));
-        let executable = root.join(format!("provider-{optimization}"));
-        fs::write(&source, format!("{}\n{probe}", artifact.source())).unwrap();
-        let compile = Command::new("clang")
-            .args(["-std=c11", optimization, "-Wall", "-Wextra", "-Werror"])
-            .arg(&source)
-            .arg("-o")
-            .arg(&executable)
-            .output()
-            .unwrap();
-        assert!(
-            compile.status.success(),
-            "{optimization} compile stderr={}",
-            String::from_utf8_lossy(&compile.stderr)
-        );
-        let execute = Command::new(&executable).output().unwrap();
-        assert!(
-            execute.status.success(),
-            "{optimization} status={:?} stdout={} stderr={}",
-            execute.status.code(),
-            String::from_utf8_lossy(&execute.stdout),
-            String::from_utf8_lossy(&execute.stderr)
-        );
-    }
-    fs::remove_dir_all(root).unwrap();
+    assert_native_corpus(artifact.source(), "native-provider");
 }
 
 fn copy_project(destination: &Path, renamed: bool) {
@@ -548,6 +374,7 @@ fn project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_r
     copy_project(&before, false);
     copy_project(&after, true);
     let binary = Path::new(full_toolchain::binary());
+    let mut bound_subjects = Vec::new();
 
     for (label, project) in [("before", &before), ("after", &after)] {
         let npm_consumer = root.join(format!("{label}-web"));
@@ -584,9 +411,15 @@ fn project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_r
         let lock = include_bytes!("../examples/frame-payload-rust/Cargo.lock");
         fs::write(rust_consumer.join("Cargo.lock"), lock).unwrap();
         build(binary, &project.join("semaprax.toml"), "rust", &rust_sdk);
+        bound_subjects.push(subject_binding::verify_product(
+            project,
+            &npm_consumer.join("generated"),
+            &rust_sdk,
+        ));
         let result = native_rust_cargo::cargo_command()
             .args(["run", "--quiet", "--locked", "--offline", "--manifest-path"])
             .arg(rust_consumer.join("Cargo.toml"))
+            .current_dir(&rust_consumer)
             .output()
             .unwrap();
         assert!(
@@ -626,6 +459,7 @@ fn project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_r
         before_descriptor["workspace_revision"],
         after_descriptor["workspace_revision"]
     );
+    subject_binding::verify_display_rename(&bound_subjects[0], &bound_subjects[1]);
 
     fs::remove_dir_all(root).unwrap();
 }

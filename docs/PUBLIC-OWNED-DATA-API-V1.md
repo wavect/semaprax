@@ -458,6 +458,21 @@ SDK and no completion-matrix status is promoted. The upstream baseline run
 linked by the completion matrix predates this work and supplies no Project v8
 promotion evidence.
 
+The frame-payload product's authored binding fixtures now reopen each real
+baseline/display-renamed Project revision and replay the exact descriptor from
+both generated packages against that subject. They compare regenerated npm
+artifacts and independently reconstruct the native manifest's canonical
+inventory and descriptor/provider-source bindings from reopened bytes. This
+is a test-specific manifest observation, not a newly exposed package verifier
+or an independent proof of the archive's machine-code semantics.
+
+The same retained HIR supplies the interpreter and native O0/O2 corpus checks.
+A separate raw-Wasm ABI observer uses the unchanged production arena/core
+templates, observes actual mint/drop/copy-out and empty settlement, and checks
+alignment rejection before imports with preserved poisoned output. It is an
+independent consumer, not an independent arena implementation or a complete
+internal destruction trace. All these new fixtures remain unrun.
+
 ## Nonclaims
 
 Public Owned Data API v1 does not claim public records or authored variants,

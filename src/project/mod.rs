@@ -65,6 +65,10 @@ pub use candidate::{
 pub use candidate::{
     ProjectCandidateArchive, MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES, PROJECT_CANDIDATE_ARCHIVE_SCHEMA,
 };
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_INTERFACE_DELTA_BYTES, PROJECT_CANDIDATE_INTERFACE_DELTA_SCHEMA,
+    PROJECT_CANDIDATE_INTERFACE_DELTA_VERIFICATION_SCHEMA,
+};
 pub use execution::{
     verify_execution_envelope, ProjectExecution, ProjectExecutionOptions, ProjectExecutionOutcome,
     ProjectExecutionRole, PROJECT_EXECUTION_SCHEMA,

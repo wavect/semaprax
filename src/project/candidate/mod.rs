@@ -24,6 +24,7 @@ mod extraction;
 mod git_publication;
 mod intent;
 mod interface;
+mod interface_delta;
 mod movement;
 mod publication;
 mod rebase;
@@ -51,6 +52,11 @@ pub use diagnostics::{
 pub use delta::{
     MAX_PROJECT_CANDIDATE_SEMANTIC_DELTA_BYTES, MAX_PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_BYTES,
     PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_SCHEMA, PROJECT_CANDIDATE_SEMANTIC_DELTA_SCHEMA,
+};
+
+pub use interface_delta::{
+    MAX_PROJECT_CANDIDATE_INTERFACE_DELTA_BYTES, PROJECT_CANDIDATE_INTERFACE_DELTA_SCHEMA,
+    PROJECT_CANDIDATE_INTERFACE_DELTA_VERIFICATION_SCHEMA,
 };
 
 pub use draft::{

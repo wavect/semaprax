@@ -17,6 +17,15 @@
   skip. No tests were run and no runtime, schema, dependency, workflow or
   support-status change is claimed.
 
+- Added independently replayable whole-candidate static interface deltas with
+  complete affected-member inventories and bound-function dependency facts.
+  Added v5 symbol-diagnostic queries linking exact retained rejected attempts
+  to their predecessor/intent target and actually admitted repair classes.
+  Report-bound continuations reject changed diagnostic inventories. Existing
+  selected-delta bytes, v1–v4 profiles and source/publication authority remain
+  unchanged. Focused regressions are authored, unrun; runtime dispatch,
+  behavioral proof, general repairs and full-programme completion remain open.
+
 - Corrected Unix npm publication success binding: canonical path equality is
   now followed by a held/reopened parent identity comparison. Same-path parent
   or ancestor replacement reports failure while preserving the original

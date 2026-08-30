@@ -27,7 +27,7 @@ pub(super) fn payload(
         .iter()
         .map(|method| descriptor(method, policy))
         .collect::<Vec<_>>();
-    let result = match method.name {
+    let mut result = match method.name {
         "protocol/capabilities" => capabilities,
         "protocol/instructions" => {
             json!({"schema":"semaprax.image-agent-instructions.v5","protocol":VNEXT_PROTOCOL_SCHEMA,
@@ -51,6 +51,22 @@ pub(super) fn payload(
         }
         _ => return Err(invalid("v5 discovery received a non-discovery method")),
     };
+    if method.name == "protocol/instructions" {
+        let mut instructions = result["instructions"].as_str().unwrap_or("").to_owned();
+        if methods
+            .iter()
+            .any(|method| method.name == "candidate/interface-delta")
+        {
+            instructions.push_str(" Use candidate/interface-delta to compare whole-candidate static interface bindings, every affected member and retained direct-call dependencies; this does not prove runtime dispatch or behavior.");
+        }
+        if methods
+            .iter()
+            .any(|method| method.name == "candidate/symbol-diagnostics")
+        {
+            instructions.push_str(" Use candidate/symbol-diagnostics for retained rejected intentions matching an exact candidate and target. Start at offset zero, then pass expected_report_revision from that first chunk for every nonzero offset. If that report revision becomes stale, restart at zero. Empty results do not mean the candidate has no diagnostics; rejected spans are not verified candidate locations.");
+        }
+        result["instructions"] = json!(instructions);
+    }
     bounded(result)
 }
 
@@ -106,8 +122,11 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         "workspace/refresh" | "workspace/refresh-preview" => "workspace_refresh",
         "candidate/test" => "candidate_test",
         "candidate/build" => "candidate_build",
+        "candidate/interface-delta" => "candidate_prepare",
         "candidate/commit" | "candidate/commit-report" | "source-commit/status" => "source_commit",
-        name if name == "candidate/attempt" || name.starts_with("attempt/") =>
+        name if name == "candidate/attempt"
+            || name == "candidate/symbol-diagnostics"
+            || name.starts_with("attempt/") =>
             "candidate_diagnostics",
         _ if matches!(method.operation, Operation::Candidate(_)) && !method.query =>
             "candidate_prepare",
@@ -169,6 +188,10 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
             }
             "protocol/conformance" => Some(crate::project::IMAGE_PROTOCOL_CONFORMANCE_SCHEMA),
             "candidate/interface-catalog" => Some("semaprax.project-interface-change-catalog.v1"),
+            "candidate/interface-delta" => Some("semaprax.project-candidate-interface-delta.v1"),
+            "candidate/symbol-diagnostics" => {
+                Some("semaprax.project-candidate-symbol-diagnostics.v1")
+            }
             "image/target-admission" => Some(crate::project::IMAGE_TARGET_ADMISSION_SCHEMA),
             "candidate/build" => Some(crate::project::IMAGE_ARTIFACT_PROJECTION_SCHEMA),
             "candidate/commit-report" => {
@@ -277,6 +300,8 @@ mod tests {
             "urn:semaprax.image-workspace-refresh-preview.v1",
             "urn:semaprax.image-workspace-refresh.v1",
             "urn:semaprax.image-artifact-projection-chunk.v1",
+            "urn:semaprax.image-interface-delta-chunk.v1",
+            "urn:semaprax.image-symbol-diagnostics-chunk.v1",
         ] {
             assert!(ids.contains(id));
         }
@@ -285,6 +310,38 @@ mod tests {
             .unwrap()
             .iter()
             .any(|schema| schema == "urn:semaprax.image-artifact-projection.v1"));
+        for report in [
+            "urn:semaprax.project-candidate-interface-delta.v1",
+            "urn:semaprax.project-candidate-symbol-diagnostics.v1",
+        ] {
+            assert!(bundle["unbundled_payload_schemas"]
+                .as_array()
+                .unwrap()
+                .contains(&json!(report)));
+        }
+        let diagnostics = bundle["methods"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|method| method["method"] == "candidate/symbol-diagnostics")
+            .unwrap();
+        assert_eq!(diagnostics["capability"], "candidate_diagnostics");
+        let interface = bundle["methods"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|method| method["method"] == "candidate/interface-delta")
+            .unwrap();
+        assert_eq!(interface["capability"], "candidate_prepare");
+        let params = &diagnostics["request_schema"]["properties"]["params"];
+        assert!(!params["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("expected_report_revision")));
+        assert_eq!(
+            params["properties"]["expected_report_revision"]["type"],
+            "string"
+        );
         let apply = bundle["methods"]
             .as_array()
             .unwrap()
@@ -350,6 +407,9 @@ mod tests {
             let source = clients::generate(language, &bundle).unwrap();
             assert!(source.contains("WorkspaceRefreshParams"));
             assert!(source.contains("request_workspace_refresh"));
+            assert!(source.contains("request_candidate_interface_delta"));
+            assert!(source.contains("request_candidate_symbol_diagnostics"));
+            assert!(source.contains("expected_report_revision"));
             assert!(source.contains("decode_request_candidate_apply_intent"));
             assert!(source.contains("expected_new_project_revision"));
             assert!(source.contains("request byte bound"));

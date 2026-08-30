@@ -9,6 +9,8 @@ mod discovery;
 mod projections;
 mod read_batch;
 mod recovery;
+mod review_facets;
+mod symbol_diagnostics;
 pub use commit::GitCommitHost;
 
 pub const VNEXT_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v5";
@@ -59,6 +61,8 @@ pub(super) enum Action {
     Commit,
     Targets,
     Build,
+    InterfaceDelta,
+    SymbolDiagnostics,
 }
 
 const REFRESH: Method = Method {
@@ -339,6 +343,14 @@ impl VNextSession {
                     projections::prepare(action, params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(Action::InterfaceDelta) => (
+                    review_facets::interface_delta(params, image, registry)?,
+                    candidates::Mutation::None,
+                ),
+                Operation::VNext(Action::SymbolDiagnostics) => (
+                    symbol_diagnostics::prepare(params, image, registry)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::Candidate(candidates::Action::Diagnostic(_)) => {
                     candidates::diagnostics::prepare(
                         method,
@@ -535,6 +547,7 @@ fn methods(policy: &VNextPolicy, commit_enabled: bool) -> Vec<&'static Method> {
     methods.push(&REFRESH);
     methods.push(&REFRESH_PREVIEW);
     methods.extend(projections::methods(policy.build_enabled));
+    methods.extend(review_facets::methods(policy));
     if commit_enabled {
         methods.extend(commit::methods());
     }

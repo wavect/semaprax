@@ -29,6 +29,106 @@ pub struct ProjectCandidateAttempt {
     digest: String,
 }
 impl ProjectCandidateAttempt {
+    /// Association only: the rejected intention selected this exact predecessor
+    /// and stable target. Diagnostic spans are not predecessor expression IDs.
+    pub(crate) fn matches_symbol(&self, candidate: &str, target: &str) -> bool {
+        self.base.candidate_digest() == candidate
+            && self.change.intent.get("target").and_then(Value::as_str) == Some(target)
+    }
+
+    /// Compact exact diagnostic references and actually admitted repair facts.
+    /// Full messages/path/spans remain in the immutable attempt report; indexing
+    /// the intention target never claims each diagnostic was caused by it.
+    pub fn symbol_diagnostics(
+        &self,
+        expected_attempt: &str,
+        expected_candidate: &str,
+        target: &str,
+    ) -> Result<String, Vec<Diagnostic>> {
+        self.require_digest(expected_attempt)?;
+        self.base.require_candidate(expected_candidate)?;
+        if !self.matches_symbol(expected_candidate, target) {
+            return Err(stale(
+                "attempt does not select the exact candidate and symbol",
+            ));
+        }
+        let provenance = self.base.diagnostic_symbol(expected_candidate, target)?;
+        // Existing discovery performs at most one normal full candidate apply;
+        // this call must never replace it with a guessed repair-class label.
+        let repairs: Value = serde_json::from_str(&self.repair_catalog(expected_attempt)?)
+            .map_err(|_| grammar("compiler repair catalogue serialization is invalid"))?;
+        render(json!({
+            "schema":"semaprax.project-candidate-symbol-diagnostic-attempt.v1",
+            "attempt_revision":self.digest,"base_candidate_revision":expected_candidate,
+            "base_project_revision":self.base.revision().project_revision(),
+            "target":target,"target_provenance":provenance,
+            "association":"exact_rejected_intent_target_not_diagnostic_causality",
+            "diagnostics":self.diagnostics.iter().enumerate().map(|(index,diagnostic)|json!({
+                "index":index,"code":diagnostic.code,"severity":diagnostic.severity.as_str()
+            })).collect::<Vec<_>>(),
+            "diagnostic_count":self.diagnostics.len(),"diagnostic_detail_method":"attempt/query",
+            "diagnostic_location_basis":"uncommitted_attempt_or_constructor_input_not_authenticated_base_span",
+            "repair_catalog":repairs,"state":"rejected","checked_image":false,
+            "materializable":false,"source_authority":false,"tests":"not_run"
+        }))
+    }
+    /// Replay the admitted predecessor and exact rejection before comparing the
+    /// complete selected report. This receipt has no filesystem authority.
+    pub fn verify_symbol_diagnostics(
+        &self,
+        expected_attempt: &str,
+        expected_candidate: &str,
+        target: &str,
+        bytes: &[u8],
+    ) -> Result<String, Vec<Diagnostic>> {
+        if bytes.len() > MAX_REPORT_BYTES {
+            return Err(capacity(
+                "symbol diagnostic verification exceeds its byte bound",
+            ));
+        }
+        self.require_digest(expected_attempt)?;
+        self.base.require_candidate(expected_candidate)?;
+        if !self.matches_symbol(expected_candidate, target) {
+            return Err(stale(
+                "attempt does not select the exact candidate and symbol",
+            ));
+        }
+        let predecessor = ProjectCandidate::replay(
+            Arc::clone(self.base.base_revision()),
+            self.base.base_revision().project_revision(),
+            &self.base.changes,
+            self.base.to_json().as_bytes(),
+        )?;
+        predecessor.require_candidate(expected_candidate)?;
+        let replayed = match Self::apply(
+            Arc::new(predecessor),
+            expected_candidate,
+            &self.change.intent,
+        )? {
+            ProjectCandidateAttemptOutcome::Rejected(attempt) => attempt,
+            ProjectCandidateAttemptOutcome::Accepted(_) => {
+                return Err(stale(
+                    "symbol diagnostic replay no longer rejects the intention",
+                ));
+            }
+        };
+        replayed.require_digest(expected_attempt)?;
+        let report = replayed.symbol_diagnostics(expected_attempt, expected_candidate, target)?;
+        if report.as_bytes() != bytes {
+            return Err(stale(
+                "symbol diagnostic report failed exact predecessor and rejection replay",
+            ));
+        }
+        render(json!({
+            "schema":"semaprax.project-candidate-symbol-diagnostic-verification.v1",
+            "report_schema":"semaprax.project-candidate-symbol-diagnostic-attempt.v1",
+            "attempt_revision":expected_attempt,"base_candidate_revision":expected_candidate,
+            "base_project_revision":replayed.base.revision().project_revision(),"target":target,
+            "report_digest":wire::digest(b"semaprax.project-candidate-symbol-diagnostic-attempt.report.v1\0",bytes),
+            "verification":"exact_predecessor_history_rejection_and_repair_discovery_replay",
+            "source_authority":false,"execution":false,"tests":"not_run"
+        }))
+    }
     /// Stale bindings and structurally oversized requests remain outer errors.
     /// A bounded, canonical intention rejected by ordinary apply is retained.
     pub fn apply(
@@ -260,6 +360,40 @@ impl ProjectCandidateAttempt {
             }),
             "one_compiler_admitted_typed_repair",
         ))
+    }
+}
+
+impl ProjectCandidate {
+    /// Predecessor source provenance for an existing admitted symbol, never a
+    /// diagnostic span-to-HIR resolution or a diagnostic inventory on the image.
+    pub(crate) fn diagnostic_symbol(
+        &self,
+        expected_candidate: &str,
+        target: &str,
+    ) -> Result<Value, Vec<Diagnostic>> {
+        self.require_candidate(expected_candidate)?;
+        if target.is_empty() || target.len() > 4096 {
+            return Err(grammar(
+                "diagnostic symbol selection exceeds its target bound",
+            ));
+        }
+        let symbol = self
+            .revision()
+            .semantic
+            .image_symbol(target)
+            .ok_or_else(|| grammar("diagnostic symbol is absent from the admitted candidate"))?;
+        let source = self
+            .revision()
+            .sources()
+            .iter()
+            .find(|source| Some(source.path()) == symbol["path"].as_str())
+            .ok_or_else(|| grammar("diagnostic symbol has no authenticated source provenance"))?;
+        Ok(
+            json!({"id":target,"kind":symbol["kind"],"identity_origin":symbol["identity_origin"],
+            "owner":symbol["owner"],"path":source.path(),"module":symbol["module"],
+            "source_revision":source.source_revision(),"source_digest":source.source_digest(),
+            "evidence_owner":"retained_verified_predecessor_semantic_index"}),
+        )
     }
 }
 struct Proposal {

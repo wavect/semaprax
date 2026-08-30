@@ -1,5 +1,8 @@
 //! Authority-free npm projection for the closed WP-10/WP-11 owned-data results.
 
+#[path = "owned_invocation.rs"]
+mod invocation;
+
 use sha2::{Digest, Sha256};
 
 use crate::diagnostic::{quote_json, Diagnostic};
@@ -340,12 +343,16 @@ fn render_runtime_prelude(wasm_sha256: &str) -> String {
     render_runtime_prelude_with_admission(wasm_sha256, false, 16)
 }
 
-// The original v8 helper bytes stay exact; v9/v10 now select the same admission.
+// The selected runtimes share the corrected invocation guard. The historical
+// false branch and captured input helper remain byte-identical.
 pub(super) fn render_runtime_prelude_with_admission(
     wasm_sha256: &str,
     bounded: bool,
     capacity: u32,
 ) -> String {
+    if bounded {
+        return invocation::prelude(wasm_sha256, capacity);
+    }
     let input_prelude = if bounded {
         include_str!("owned_data_input_v8.js")
     } else {
@@ -367,6 +374,9 @@ function snapshotUint8(value,label){let buffer;try{buffer=reflectApply(typedBuff
 "#;
 
 fn render_mixed_runtime_facade(exports: &[OwnedExport], bounded: bool) -> String {
+    if bounded {
+        return render_bounded_facade(exports);
+    }
     let input_admission = if bounded {
         "const {snapshots,used}=snapshotArguments(values,fact.params);"
     } else {
@@ -407,6 +417,9 @@ export async function instantiate(bytes){{return facade(await instantiateCore(by
 }
 
 fn render_runtime_facade(exports: &[OwnedExport], bounded: bool) -> String {
+    if bounded {
+        return render_bounded_facade(exports);
+    }
     let input_admission = if bounded {
         "const {snapshots,used}=snapshotArguments(values,fact.params);"
     } else {
@@ -440,6 +453,9 @@ export async function instantiate(bytes){{return facade(await instantiateCore(by
 }
 
 fn render_variant_runtime_facade(exports: &[OwnedExport], bounded: bool) -> String {
+    if bounded {
+        return render_bounded_facade(exports);
+    }
     let input_admission = if bounded {
         "const {snapshots,used}=snapshotArguments(values,fact.params);"
     } else {
@@ -471,6 +487,40 @@ function facade(linked){{const e=linked.instance.exports,memory=e.memory;if(!(me
 export async function instantiate(bytes){{return facade(await instantiateCore(bytes))}}export const exportIds=IDS;export default instantiate;
 "#
     )
+}
+
+fn render_bounded_facade(exports: &[OwnedExport]) -> String {
+    let facts = exports
+        .iter()
+        .map(|export| {
+            let parameters = export
+                .parameters
+                .iter()
+                .map(|parameter| quote_json(parameter_wire(*parameter)))
+                .collect::<Vec<_>>()
+                .join(",");
+            format!(
+                "[{},Object.freeze({{raw:{},params:Object.freeze([{parameters}]),result:{}}})]",
+                quote_json(&export.stable_id),
+                quote_json(&export.wasm_export),
+                quote_json(export.result.wire_name())
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    let memory_bytes = if exports
+        .iter()
+        .any(|export| export.result == PublicApiResultType::OwnedUtf8)
+    {
+        262_144
+    } else {
+        131_072
+    };
+    invocation::facade(&facts, memory_bytes)
+}
+
+pub(super) fn render_flat_runtime_facade(facts: &str) -> String {
+    invocation::facade(facts, 131_072)
 }
 
 fn render_bindings(_exports: &[OwnedExport], _wasm_sha256: &str) -> String {
@@ -602,27 +652,27 @@ mod hostile_source_tests {
     use super::*;
 
     #[test]
-    fn v8_bounded_renderer_fragments_keep_their_prechange_bytes() {
-        // Pinned by static expansion/hash of the baseline literal templates,
-        // not by generating or executing a replacement package.
-        // V8/V9 retain sixteen; V10 substitutes only its derived capacity in
-        // this shared fragment. Wasm/whole-package V10 bindings also change.
+    fn bounded_renderer_fragments_pin_the_reviewed_failure_state_correction() {
+        // Intentional v8-v10 JavaScript correction; Wasm and descriptor bytes
+        // remain unchanged. DATA-only owned_invocation/static_hashes.rb first
+        // calibrates all eight historical pins, then hashes these templates.
+        // No replacement package or runtime is executed to mint these pins.
         for (rendered, expected) in [
             (
                 render_runtime_prelude_with_admission("digest", true, 16),
-                "9f031e17da0d1c125d0fd8ebf54171e69d44a44b24931d8e2a945048577a7e1b",
+                "54984891e42a61f52b66a063a0c92b0ee200057710079a1f998276fd659b6e3f",
             ),
             (
                 render_runtime_facade(&[], true),
-                "758225ba0a123e21c391ab1da56fbb23d4c1870d7b5387fbba8ffa6bc390d716",
+                "231195f9c27ce4667c90ef4985a76b33972b5b7f8d925e4755d160594d06ee06",
             ),
             (
                 render_variant_runtime_facade(&[], true),
-                "1e5eeb39071283bcdcdd0c90ccef2cfc075c89f81b310a9b783cad089850a4fb",
+                "231195f9c27ce4667c90ef4985a76b33972b5b7f8d925e4755d160594d06ee06",
             ),
             (
                 render_mixed_runtime_facade(&[], true),
-                "a64b98625048e72fea3891b6d199e89a6cc628575b285585e3efd257dd8a9f20",
+                "231195f9c27ce4667c90ef4985a76b33972b5b7f8d925e4755d160594d06ee06",
             ),
         ] {
             assert_eq!(hex_sha256(rendered.as_bytes()), expected);
@@ -680,12 +730,54 @@ mod hostile_source_tests {
             render_variant_runtime_facade(&[], true),
             render_mixed_runtime_facade(&[], true),
         ] {
+            let source = format!(
+                "{}{}",
+                render_runtime_prelude_with_admission("digest", true, 16),
+                source
+            );
             let admission = source
                 .find("snapshotArguments(values,fact.params)")
                 .unwrap();
+            assert!(source.find("busy=true").unwrap() < admission);
+            assert!(admission < source.find("entered=true").unwrap());
             assert!(admission < source.find("linked.copyInto(").unwrap());
             assert!(admission < source.find("arena.begin()").unwrap());
         }
+    }
+
+    #[test]
+    fn bounded_facades_share_presence_and_identity_based_failure_selection() {
+        let source = render_runtime_prelude_with_admission("digest", true, 16);
+        assert!(source.contains("if(!hasPrimary){hasPrimary=true;primary=error}"));
+        assert!(source.contains("if(hasPrimary)throw primary;"));
+        assert!(source.contains("hasSemantic&&error===semanticError"));
+        assert!(!source.contains("error?.semapraxSemantic"));
+        assert!(!source.contains("error instanceof TypeError"));
+        assert!(!source.contains("error instanceof RangeError"));
+        assert!(source.contains("Number.isInteger(status)||status<0||status>10"));
+        assert!(source.contains("finally{busy=false}"));
+        assert!(source.contains("fatal:true,ignoreBOM:true"));
+        let slot_proof = source
+            .find("SEMAPRAX failure modified result slot")
+            .unwrap();
+        let identity = source.find("semanticError=error;hasSemantic=true").unwrap();
+        assert!(slot_proof < identity);
+        let settle = source
+            .find("linked.arena.settle();settled=true;linked.arena.check();")
+            .unwrap();
+        assert!(settle < source.find("answer=complete()").unwrap());
+        assert_eq!(
+            render_runtime_facade(&[], true),
+            render_variant_runtime_facade(&[], true)
+        );
+        assert_eq!(
+            render_runtime_facade(&[], true),
+            render_mixed_runtime_facade(&[], true)
+        );
+        assert_eq!(
+            render_runtime_facade(&[], true),
+            render_flat_runtime_facade("")
+        );
     }
 
     #[test]

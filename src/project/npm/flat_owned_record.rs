@@ -219,11 +219,7 @@ fn render_facade(descriptor: &FlatOwnedRecordApiDescriptor) -> String {
         let fields = export.fields().iter().map(|field| format!("Object.freeze({{name:{},kind:{},offset:{}}})",quote_json(field.host_name()),quote_json(field.ty().wire_name()),field.ordinal()*8)).collect::<Vec<_>>().join(",");
         format!("[{},Object.freeze({{raw:{},params:Object.freeze([{parameters}]),fields:Object.freeze([{fields}]),size:{}}})]",quote_json(export.stable_id().as_str()),quote_json(&raw_symbol(export.stable_id().as_str())),export.fields().len()*8)
     }).collect::<Vec<_>>().join(",");
-    format!(
-        r#"const FACTS=new Map([{facts}]),IDS=Object.freeze(Array.from(FACTS.keys())),RESULT=65536,POISON=0xa5;
-function facade(linked){{const e=linked.instance.exports,memory=e.memory;let busy=false,poisoned=false;function invoke(id,values){{if(poisoned||busy)throw new Error("SEMAPRAX flat-record runtime unavailable");const fact=FACTS.get(id);if(!fact||values.length!==fact.params.length)throw new TypeError("SEMAPRAX call identity disagrees");const {{snapshots,used}}=snapshotArguments(values,fact.params);busy=true;let began=false,settled=false,answer,primary=null;const bytes=new Uint8Array(memory.buffer),view=new DataView(memory.buffer);try{{let offset=0;const raw=[];for(const value of snapshots){{if(value instanceof Uint8Array){{linked.copyInto(bytes,value,offset);raw.push(offset,value.byteLength);offset+=value.byteLength}}else raw.push(value)}}bytes.fill(POISON,RESULT,RESULT+fact.size);linked.arena.begin();began=true;const status=e[fact.raw](...raw,RESULT);if(status!==0){{for(let i=0;i<fact.size;i++)if(bytes[RESULT+i]!==POISON)throw new Error("failure modified carrier");throw Object.assign(new Error(`SEMAPRAX failure ${{status}}`),{{status,semapraxSemantic:status<=10}})}}const values=Object.create(null);let ownedCarrier=null;for(const field of fact.fields){{if(field.kind==="owned-bytes")ownedCarrier=view.getBigInt64(RESULT+field.offset,true);else if(field.kind==="i64")values[field.name]=view.getBigInt64(RESULT+field.offset,true);else if(field.kind==="usize")values[field.name]=view.getBigUint64(RESULT+field.offset,true);else{{const value=view.getBigUint64(RESULT+field.offset,true);if(value>1n)throw new Error("bool invariant");values[field.name]=value===1n}}}}const owned=linked.arena.consume(ownedCarrier);linked.arena.settle();settled=true;for(const field of fact.fields)if(field.kind==="owned-bytes")values[field.name]=owned;answer=Object.freeze(values)}}catch(error){{primary=error;if(!(error instanceof RangeError)&&!(error instanceof TypeError)&&error?.semapraxSemantic!==true){{poisoned=true;linked.arena.poison()}}}}finally{{let failure=null;if(began&&!settled)try{{linked.arena.settle()}}catch(error){{poisoned=true;failure=error}}bytes.fill(0,0,used);bytes.fill(POISON,RESULT,RESULT+fact.size);busy=false;if(failure&&primary===null)primary=failure}}if(primary)throw primary;return answer}}const functions=Object.create(null);for(const id of IDS)Object.defineProperty(functions,id,{{value:(...v)=>invoke(id,v),enumerable:true}});return Object.freeze({{functions:Object.freeze(functions),call:(id,...v)=>invoke(id,v),wasmSha256}})}}export async function instantiate(bytes){{return facade(await instantiateCore(bytes))}}export const exportIds=IDS;export default instantiate;
-"#
-    )
+    super::owned_data::render_flat_runtime_facade(&facts)
 }
 
 fn raw_symbol(stable_id: &str) -> String {
@@ -291,7 +287,8 @@ module flat.hostile;
         assert!(runtime[..snapshot].contains("index>=value.length"));
         assert!(runtime[..snapshot].contains("value<-(1n<<63n)"));
         assert!(runtime[..snapshot].contains("value>(1n<<63n)-1n"));
-        assert!(snapshot < runtime.find("busy=true").unwrap());
+        assert!(runtime.find("busy=true").unwrap() < snapshot);
+        assert!(snapshot < runtime.find("entered=true").unwrap());
         assert!(snapshot < runtime.find("linked.copyInto(").unwrap());
         assert!(snapshot < runtime.find("arena.begin()").unwrap());
     }

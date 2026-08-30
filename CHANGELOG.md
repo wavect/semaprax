@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- Aligned the additive v9 native descriptor reader with the compiler's retained
+  identities and presentation names, including exact control-character JSON
+  escapes. Preserved exported-method restrictions and same-identity consistency,
+  restored the complete 256-function inventory bound, and added conservative
+  pre-clone content charging plus shared root/lower canonical regressions.
+  Existing accepted bytes and v8/v10 serialization remain unchanged; all new
+  executable evidence is authored and unrun.
+
+- Strengthened frame-payload evidence around actual baseline/renamed Project
+  subjects: exact npm/Rust descriptor and manifest bindings, retained-HIR
+  interpreter/native corpus checks, and a raw-Wasm consumer observing the
+  production arena. Corrected the private Rust build command and external
+  consumer working directory, documented both quickstart CLI installations,
+  and preserved historical help pins while accounting for upstream image
+  commands. Tests and builds remain unrun; no release or production promotion.
+
 - Corrected authored native String fixtures to establish checked binary stdout
   through one shared test-only helper, including the native sides of internal
   interpreter/Wasm parity. Exact byte assertions, allocation counters, and

@@ -26,6 +26,9 @@ mod build_cli;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
+const QUICKSTART_INSTALL_COMMANDS: &str = "cargo install --locked --path .\n\
+cargo install --locked --path crates/semaprax-toolchain";
+
 const QUICKSTART_COMMANDS: &str = "semaprax-full new first-semaprax\n\
 cd first-semaprax\n\
 semaprax check semaprax.toml\n\
@@ -87,6 +90,11 @@ fn documented_quickstart_executes_the_exact_seven_commands() {
         std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/QUICKSTART.md"))
             .unwrap();
     assert!(documentation.contains(&format!("```sh\n{QUICKSTART_COMMANDS}\n```")));
+    let installs = documentation
+        .find(&format!("```sh\n{QUICKSTART_INSTALL_COMMANDS}\n```"))
+        .expect("the source quickstart must install both CLIs it invokes");
+    let flow = documentation.find(QUICKSTART_COMMANDS).unwrap();
+    assert!(installs < flow, "install both CLIs before invoking either");
 
     let fixture = Fixture::new("flow");
     success(&fixture.root, &["new", "first-semaprax"]);

@@ -6,10 +6,19 @@ Status: pre-alpha bounded calculator workflow; not a production-readiness claim.
 
 This quickstart uses the source-installed `semaprax-full` CLI to create the
 built-in calculator Project v1 template, then the standalone `semaprax` CLI
-to exercise it. Install the private CLI with
-`cargo install --locked --path crates/semaprax-toolchain` from the checkout.
-The generator does not access a network, initialize Git, or install dependencies.
-Tag archives expose the full CLI under the `semaprax` name instead.
+to exercise it. Install both CLIs from the same checkout root:
+
+```sh
+cargo install --locked --path .
+cargo install --locked --path crates/semaprax-toolchain
+```
+
+The first command installs `semaprax`; the second installs the private
+`semaprax-full`. Ensure Cargo's binary directory is on your `PATH`.
+Installation may fetch Rust dependencies. The project generator itself does
+not access a network, initialize Git, or install dependencies. Tag archives
+expose the full CLI under the `semaprax` name instead; when using an archive,
+use `semaprax new` in place of `semaprax-full new` below.
 
 The generator requires a fresh destination beneath an existing parent.
 Its [publication contract](NEW-PROJECT-PUBLICATION-V1.md) keeps a published

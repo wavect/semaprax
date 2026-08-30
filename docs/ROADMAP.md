@@ -162,6 +162,10 @@ ABIs prematurely.
   compiler/arena/facade and cross-backend corpus before promotion; its explicit
   scalar boundary and bounded acyclic closure do not replace the separate
   ordinary-Wasm, general owned-value or Component Model completion gates;
+- execute the authored explicit [internal String Web package](WASM-INTERNAL-STRINGS-WEB-V1.md)
+  CLI, bounded publication and real Node/TypeScript/browser consumer gates;
+  this packages the selected runtime, not general String-valued public APIs,
+  Project integration, browser isolation or ordinary-Wasm settlement;
 - execute the additive [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md)
   conformance route and its strict report replay gates; broader interpreter
   entry values and Project integration require their own explicit admission

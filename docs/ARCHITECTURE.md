@@ -232,6 +232,18 @@ settlement or permit reuse. See [Standalone Wasm Internal String Settlement
 v1](WASM-INTERNAL-STRINGS-V1.md). Evidence is authored and unrun; ordinary Wasm
 imports, Project v1-v10 and Target Evidence do not select this profile.
 
+`internal_strings/web.rs` and its small rendering/template modules expose that
+profile through an explicit source-only Web build selector. The early CLI
+branch bounds and authenticates the source snapshot before compilation and
+rechecks it before reusing the existing fresh-output scalar Web publisher.
+Its eight-file package preserves exact compiler/runtime outputs; a separate
+manifest binds artifacts, while the local browser console authenticates the
+descriptor before constructing scalar controls. Legacy `build_web` rejects
+String-bearing ordinary and materialized generic functions before output
+creation because its runtime lacks those imports. Raw emission and successful
+String-free legacy packages stay unchanged. See [Standalone internal String Web
+package v1](WASM-INTERNAL-STRINGS-WEB-V1.md); all new executable gates are unrun.
+
 `src/wit_component.rs` and `src/wit_component/` provide default-off private
 boundary evidence. They cannot be cited as public Component Model execution.
 

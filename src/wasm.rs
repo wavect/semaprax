@@ -143,8 +143,16 @@ impl StringData {
 /// Whether any resolved function admits an owned string in a signature,
 /// body, or contract.
 fn program_uses_strings(program: &ResolvedProgram) -> bool {
+    // Keep the ordinary raw emitter's existing traversal unchanged. Web
+    // publication separately checks materialized generic functions as well.
+    functions_use_strings(program.functions.iter())
+}
+
+fn functions_use_strings<'a>(
+    functions: impl IntoIterator<Item = &'a hir::ResolvedFunction>,
+) -> bool {
     let mut pending: Vec<&ResolvedExpr> = Vec::new();
-    for function in &program.functions {
+    for function in functions {
         if matches!(function.return_type, ResolvedType::String)
             || function
                 .params
@@ -1713,6 +1721,22 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
             .unwrap_or_else(|| Diagnostic::io("SPX-W100", "HIR resolution failed"))
     })?;
     let owned_plans = owned::plan(&resolved)?;
+    if functions_use_strings(
+        resolved.functions.iter().chain(
+            resolved
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        ),
+    ) {
+        return Err(Diagnostic::io(
+            "SPX-W116",
+            "legacy Web packages do not supply the required String runtime imports",
+        )
+        .with_help(
+            "for admitted scalar exports, use --target web --profile internal-strings-v1 --export <stable-id>; generics, resources and public String signatures remain outside that profile",
+        ));
+    }
     std::fs::create_dir_all(output).map_err(|error| {
         Diagnostic::io(
             "SPX-I301",

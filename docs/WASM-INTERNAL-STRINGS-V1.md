@@ -22,6 +22,11 @@ CleanupPlan schemas, or the resource ABI's prohibition on payload sentinels.
 Zero is reserved solely as an empty private String cell, never a live String
 handle (not even an empty String).
 
+The explicit source-only `build --target web --profile internal-strings-v1`
+package entry is specified separately in [Standalone internal String Web
+package v1](WASM-INTERNAL-STRINGS-WEB-V1.md). It reuses these exact compiler and
+runtime outputs; it does not silently select this profile for legacy builds.
+
 Affected long-term matrix requirements are cross-backend semantic equivalence,
 unique ownership/move safety, Wasm core/components and JavaScript/TypeScript.
 All remain Partial, including the separate ordinary-Wasm settlement gap.

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Authored an explicit source-only internal-String Web package selector with
+  bounded source snapshots, pre-publication drift checks, exact compiler/runtime
+  artifacts, a separate integrity manifest and a local scalar-call console.
+  Reused the existing fresh-output publisher without widening its authority.
+  Legacy Web builds now reject unsupplied String imports before output creation,
+  including String use in materialized generic bodies; raw emission and
+  successful String-free legacy output remain unchanged. Consumer, boundary
+  and preservation fixtures are authored but unrun; no support promotion.
+
 - Authored a shared v8/v9/v10 npm invocation failure state: guarded preflight,
   exact checked-error identity, sticky falsy failures, absorbing reentry/host
   uncertainty, and settlement before publication. UTF-8 validation separates

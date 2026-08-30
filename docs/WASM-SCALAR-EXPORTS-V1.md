@@ -66,8 +66,12 @@ aggregate/resource program would be a different, separately evidenced ABI.
 
 SDK-mode modules export only the explicitly selected adapters. They do not
 export the legacy `semaprax_main`, memory, unselected functions, or owned
-resource adapters. Builds without `--export` retain the unchanged legacy
-`semaprax.web.v3` package and `semaprax_main` behavior.
+resource adapters. Successful String-free builds without `--export` retain
+the unchanged legacy `semaprax.web.v3` package and `semaprax_main` behavior.
+Legacy String-bearing Web builds now reject with `SPX-W116` before output
+creation: their old browser runtime does not supply the required imports.
+The separate explicit [internal String Web profile](WASM-INTERNAL-STRINGS-WEB-V1.md)
+does not change this scalar profile's admission or bytes.
 
 Each raw adapter name is `spx_scalar_` followed by lowercase hexadecimal for
 the exact stable-ID bytes. This injective spelling is independent of source

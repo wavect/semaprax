@@ -20,6 +20,7 @@ impl Candidate {
             SERIAL.fetch_add(1, Ordering::Relaxed)
         ));
         std::fs::create_dir(&root).unwrap();
+        let root = std::fs::canonicalize(root).unwrap();
         std::fs::create_dir(root.join("src")).unwrap();
         let original = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/calculator-project");
         for relative in ["semaprax.toml", "src/core.spx"] {

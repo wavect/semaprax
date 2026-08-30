@@ -1,4 +1,5 @@
-// Normalized value/status observer, not a Wasm String finalization model.
+// Raw Wasm preserves contract failure, but its legacy zero-argument import
+// does not expose precondition versus postcondition codes. Do not invent one.
 import { readFile } from "node:fs/promises";
 import assert from "node:assert/strict";
 
@@ -29,7 +30,7 @@ for (const entry of process.argv.slice(2)) {
     spx_mul: (a, b) => checked(a * b, 3), spx_neg: a => checked(-a, 8),
     spx_div: (a, b) => b === 0n ? arithmetic(4) : a === minimum && b === -1n ? arithmetic(5) : a / b,
     spx_rem: (a, b) => b === 0n ? arithmetic(6) : a === minimum && b === -1n ? arithmetic(7) : a % b,
-    spx_contract_fail: code => { throw new Failure("semaprax.contract.v1", Number(code)); },
+    spx_contract_fail: () => { throw new Failure("semaprax.contract.v1", "unspecified"); },
     spx_string_new: (pointer, length) => add(decoder.decode(new Uint8Array(instance.exports.memory.buffer, Number(pointer), Number(length)))),
     spx_string_eq: (left, right) => get(left) === get(right) ? 1 : 0,
     spx_string_clone: handle => add(get(handle)),

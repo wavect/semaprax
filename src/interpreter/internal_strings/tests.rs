@@ -1,5 +1,5 @@
-use super::super::{self as engine, RenderFacts};
 use super::*;
+use crate::interpreter::{self as engine, RenderFacts};
 
 const SOURCE: &str = r#"module test.internal_string_profile;
 @id("helper") fn helper(value: string) -> string { value }
@@ -35,8 +35,9 @@ fn only_the_opt_in_map_admits_string_signatures() {
     assert!(strings.contains_key("helper"));
     engine::scan_closure("entry", &strings, &program.declarations).unwrap();
     let mut helper = (*strings["helper"]).clone();
+    assert_eq!(helper.params[0].ownership, hir::OwnershipMode::Own);
     assert!(signature_is_admitted(&helper, &program.declarations));
-    for mode in [hir::OwnershipMode::Own, hir::OwnershipMode::Borrow] {
+    for mode in [hir::OwnershipMode::Value, hir::OwnershipMode::Borrow] {
         helper.params[0].ownership = mode;
         assert!(!signature_is_admitted(&helper, &program.declarations));
     }

@@ -3,6 +3,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+#[path = "support/native_rust_cargo.rs"]
+mod native_rust_cargo;
+
 use semaprax::hir;
 use semaprax::interpreter::{
     evaluate_resolved_owned_data, OwnedDataCleanupEvent, OwnedDataEvaluationOutcome,
@@ -578,7 +581,7 @@ fn project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_r
         let lock = include_bytes!("../examples/frame-payload-rust/Cargo.lock");
         fs::write(rust_consumer.join("Cargo.lock"), lock).unwrap();
         build(binary, &project.join("semaprax.toml"), "rust", &rust_sdk);
-        let result = Command::new("cargo")
+        let result = native_rust_cargo::cargo_command()
             .args(["run", "--quiet", "--locked", "--offline", "--manifest-path"])
             .arg(rust_consumer.join("Cargo.toml"))
             .output()

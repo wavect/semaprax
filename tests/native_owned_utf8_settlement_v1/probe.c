@@ -93,6 +93,27 @@ static void private_emitted_functions(void) {
     REQUIRE(fixture_allocations - before == 3 && fixture_live == 0);
     REQUIRE(FIXTURE_PRIVATE_EQUALITY(&semantic, 1, &boolean) == 0 && boolean);
     REQUIRE(fixture_live == 0 && fixture_allocations == fixture_frees);
+    for (unsigned repetition = 0; repetition < 3; ++repetition) {
+        number = INT64_MIN;
+        before = fixture_allocations;
+        status = FIXTURE_PRIVATE_LOOP_CONDITION(&semantic, 3, &number);
+        normalized = spx_status_resolve(&semantic, status);
+        REQUIRE(normalized != NULL && normalized->code == SPX_STATUS_ARITHMETIC_DIVISION_BY_ZERO);
+        REQUIRE(number == INT64_MIN && fixture_allocations - before == 7 && fixture_live == 0);
+        before = fixture_allocations;
+        REQUIRE(FIXTURE_PRIVATE_LOOP_CONDITION(&semantic, 10, &number) == 0 && number == 4);
+        REQUIRE(fixture_allocations - before == 9 && fixture_live == 0);
+        number = INT64_MIN;
+        before = fixture_allocations;
+        status = FIXTURE_PRIVATE_LOOP_BODY(&semantic, 2, &number);
+        normalized = spx_status_resolve(&semantic, status);
+        REQUIRE(normalized != NULL && normalized->code == SPX_STATUS_ARITHMETIC_DIVISION_BY_ZERO);
+        REQUIRE(number == INT64_MIN && fixture_allocations - before == 6 && fixture_live == 0);
+        before = fixture_allocations;
+        REQUIRE(FIXTURE_PRIVATE_LOOP_BODY(&semantic, 10, &number) == 0 && number == 4);
+        REQUIRE(fixture_allocations - before == 9 && fixture_live == 0);
+        REQUIRE(fixture_allocations == fixture_frees);
+    }
 }
 
 int main(void) {

@@ -619,7 +619,7 @@ impl<'a> HirValidator<'a> {
             let execution = FunctionExecutionId::Monomorphic(template.id.clone());
             for (index, parameter) in template.params.iter().enumerate() {
                 if parameter.id != ValueId::parameter(&execution, index)
-                    || parameter.ownership != OwnershipMode::Value
+                    || parameter.ownership != Self::template_ownership(&parameter.ty)
                 {
                     return Err(hir_error(format!(
                         "generic template `{}` has invalid parameter identity or ownership",
@@ -1339,13 +1339,24 @@ impl<'a> HirValidator<'a> {
         Ok(())
     }
 
+    fn template_ownership(ty: &ResolvedType) -> OwnershipMode {
+        // Template parameters have no concrete type facts until substitution;
+        // both admitted substitutions (i64/bool) are Copy. A concrete String
+        // slot retains the resolver's canonical owned classification.
+        if *ty == ResolvedType::String {
+            OwnershipMode::Own
+        } else {
+            OwnershipMode::Value
+        }
+    }
+
     fn validate_function_template_type(
         &self,
         template: &ResolvedFunctionTemplate,
         ty: &ResolvedType,
     ) -> Result<(), Diagnostic> {
         match ty {
-            ResolvedType::I64 | ResolvedType::Bool => Ok(()),
+            ResolvedType::I64 | ResolvedType::Bool | ResolvedType::String => Ok(()),
             ResolvedType::I32
             | ResolvedType::Char
             | ResolvedType::U8
@@ -1353,7 +1364,6 @@ impl<'a> HirValidator<'a> {
             | ResolvedType::ArrayU8(_)
             | ResolvedType::F32
             | ResolvedType::F64
-            | ResolvedType::String
             | ResolvedType::Bytes
             | ResolvedType::Str
             | ResolvedType::SliceU8 => Err(hir_error(format!(
@@ -1423,14 +1433,19 @@ impl<'a> HirValidator<'a> {
     ) -> Result<(), Diagnostic> {
         if expression.id != ExpressionId::new(execution, path)
             || !self.expression_ids.insert(expression.id.clone())
-            || expression.ownership != OwnershipMode::Value
+            || expression.ownership != Self::template_ownership(&expression.ty)
         {
             return Err(hir_error(format!(
                 "generic template `{}` has invalid expression identity or ownership",
                 template.id
             )));
         }
-        self.validate_function_template_type(template, &expression.ty)?;
+        // Char is an admitted body literal (for string_from_char), but not a
+        // generic signature slot or concrete type argument. Every scalar
+        // substitution still passes the ordinary expression validator below.
+        if expression.ty != ResolvedType::Char {
+            self.validate_function_template_type(template, &expression.ty)?;
+        }
         match &expression.kind {
             ResolvedExprKind::Int(_)
             | ResolvedExprKind::Int32(_)
@@ -1464,11 +1479,12 @@ impl<'a> HirValidator<'a> {
             } => {
                 if instance.is_some()
                     || !type_arguments.is_empty()
-                    || self
-                        .program
-                        .functions
-                        .iter()
-                        .all(|target| target.id != *callee)
+                    || (crate::string_ops::by_id(callee.as_str()).is_none()
+                        && self
+                            .program
+                            .functions
+                            .iter()
+                            .all(|target| target.id != *callee))
                 {
                     return Err(hir_error(
                         "generic template call is not a monomorphic executable target",
@@ -1526,12 +1542,14 @@ impl<'a> HirValidator<'a> {
                                 &format!("{statement_path}.value"),
                             )?;
                             if binding.id != ValueId::local(execution, &statement_path)
-                                || binding.ownership != OwnershipMode::Value
+                                || binding.ownership != Self::template_ownership(&binding.ty)
                                 || binding.ty != value.ty
                             {
                                 return Err(hir_error("generic template binding is not canonical"));
                             }
-                            self.validate_function_template_type(template, &binding.ty)?;
+                            if binding.ty != ResolvedType::Char {
+                                self.validate_function_template_type(template, &binding.ty)?;
+                            }
                             self.insert_value(&binding.id)?;
                             block_values.insert(binding.id.clone(), binding.ty.clone());
                         }

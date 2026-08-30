@@ -58,6 +58,8 @@ fn provider() -> String {
         "private.post",
         "private.intrinsic",
         "private.equality",
+        "private.loop-condition",
+        "private.loop-body",
     ] {
         assert_eq!(
             derive_public_api_descriptor(&program, &[rejected.to_owned()], subject)
@@ -101,6 +103,8 @@ fn run(sanitized: bool) {
         ("POST", "private.post"),
         ("INTRINSIC", "private.intrinsic"),
         ("EQUALITY", "private.equality"),
+        ("LOOP_CONDITION", "private.loop-condition"),
+        ("LOOP_BODY", "private.loop-body"),
     ] {
         let hex = id
             .bytes()

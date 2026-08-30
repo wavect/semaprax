@@ -422,22 +422,6 @@ fn stack_bounds(
     Ok((footprint, minimum_stack))
 }
 
-#[cfg(test)]
-mod stack_bound_tests {
-    use super::stack_bounds;
-
-    #[test]
-    fn exact_capacity_reserves_borrowed_bytes_public_carrier_and_wrapper_once() {
-        assert_eq!(stack_bounds(8, 8, 65_520).unwrap(), (65_528, 131_072));
-        assert!(stack_bounds(8, 8, 65_521).is_err());
-        // Public flat-record carrier can be wider than its private layout.
-        assert_eq!(stack_bounds(16, 32, 65_488).unwrap(), (65_504, 131_072));
-        assert!(stack_bounds(16, 32, 65_489).is_err());
-        assert!(stack_bounds(8, 8, u32::MAX).is_err());
-        assert!(stack_bounds(8, u32::MAX, 0).is_err());
-    }
-}
-
 fn poison_temporary(body: &mut Vec<u8>, pointer: u32, size: u32) {
     let full_words = size / 8;
     for word in 0..full_words {
@@ -753,4 +737,20 @@ fn i64_const(body: &mut Vec<u8>, value: i64) {
 }
 fn error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-W124", message)
+}
+
+#[cfg(test)]
+mod stack_bound_tests {
+    use super::stack_bounds;
+
+    #[test]
+    fn exact_capacity_reserves_borrowed_bytes_public_carrier_and_wrapper_once() {
+        assert_eq!(stack_bounds(8, 8, 65_520).unwrap(), (65_528, 131_072));
+        assert!(stack_bounds(8, 8, 65_521).is_err());
+        // Public flat-record carrier can be wider than its private layout.
+        assert_eq!(stack_bounds(16, 32, 65_488).unwrap(), (65_504, 131_072));
+        assert!(stack_bounds(16, 32, 65_489).is_err());
+        assert!(stack_bounds(8, 8, u32::MAX).is_err());
+        assert!(stack_bounds(8, u32::MAX, 0).is_err());
+    }
 }

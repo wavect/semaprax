@@ -361,6 +361,7 @@ impl SemanticSourceIndex {
                 }
             }
             (ExprKind::Int(_), ResolvedExprKind::Int(_))
+            | (ExprKind::String(_), ResolvedExprKind::String(_))
             | (ExprKind::Bool(_), ResolvedExprKind::Bool(_))
             | (ExprKind::Var(_), ResolvedExprKind::Place(_)) => {}
             _ => return None,

@@ -111,6 +111,27 @@ fn external_consumers_share_one_bounded_nested_cargo_linker_path_binder() {
         );
     }
 
+    for (path, expected_commands) in [
+        ("tests/frame_payload_product_v1.rs", 1),
+        ("tests/public_native_rust_owned_data_sdk_v1.rs", 3),
+        ("tests/project_native_rust_owned_utf8_v1.rs", 1),
+    ] {
+        let consumer = read(path);
+        assert!(consumer.contains("mod native_rust_cargo;"), "{path}");
+        assert_eq!(
+            consumer
+                .matches("native_rust_cargo::cargo_command()")
+                .count(),
+            expected_commands,
+            "{path} must bind every generated-package Cargo invocation"
+        );
+        assert!(!consumer.contains("Command::new(\"cargo\")"), "{path}");
+        assert!(
+            !consumer.contains("Command::new(env!(\"CARGO\"))"),
+            "{path}"
+        );
+    }
+
     let consumers = read("tests/public_native_rust_sdk_v1.rs");
     assert_eq!(
         consumers
@@ -133,6 +154,27 @@ fn external_consumers_share_one_bounded_nested_cargo_linker_path_binder() {
         assert!(
             consumers.contains(required),
             "poisoned nested-Cargo command inspection lost `{required}`"
+        );
+    }
+}
+
+#[test]
+fn general_windows_matrix_binds_the_same_explicit_nested_cargo_linker() {
+    let workflow = read(".github/workflows/ci.yml");
+    let verify = workflow
+        .split_once("\n  verify:\n")
+        .map(|(_, tail)| tail)
+        .and_then(|tail| tail.split_once("\n  desktop-native-product:\n"))
+        .map(|(verify, _)| verify)
+        .expect("general Rust verification matrix");
+    for required in [
+        "echo CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=%SEMAPRAX_LINKER%",
+        "echo LINK=",
+        "echo _LINK_=",
+    ] {
+        assert!(
+            verify.contains(required),
+            "general Windows matrix lost `{required}`"
         );
     }
 }

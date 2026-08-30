@@ -32,40 +32,36 @@ fn nested(zero: i64) -> string { three(sink("inner\u{0}tail"), 1 / zero, "must-n
 fn callee(zero: i64) -> string { inner("argument\u{0}tail", zero) }
 // Loops admit scalar calls, not direct String expressions. These helpers
 // establish and settle one owner per condition/body evaluation.
-@id("s.condition-checked")
-fn condition_checked(limit: i64, i: i64) -> bool {
-    let text = "condition"; let checked = 1 / (limit - i); i < 4
-}
-@id("s.condition-plain")
-fn condition_plain(i: i64) -> bool { let text = "condition"; i < 4 }
-@id("s.body-checked")
-fn body_checked(limit: i64, i: i64) -> i64 {
-    let text = "body"; let checked = 1 / (limit - i); i + 1
-}
-@id("s.body-plain")
-fn body_plain(i: i64) -> i64 { let text = "body"; i + 1 }
 @id("s.condition")
 fn condition(limit: i64) -> i64 {
     let mut i = 0;
-    while condition_checked(limit, i) {
-        i = body_plain(i); 0
+    while condition_step(limit, i) {
+        i = body_step(10, i); 0
     }
     i
 }
 @id("s.body")
 fn body(limit: i64) -> i64 {
     let mut i = 0;
-    while condition_plain(i) {
-        i = body_checked(limit, i); 0
+    while condition_step(10, i) {
+        i = body_step(limit, i); 0
     }
     i
+}
+@id("s.condition-step")
+fn condition_step(limit: i64, i: i64) -> bool {
+    let text = "condition"; let checked = 1 / (limit - i); i < 4
+}
+@id("s.body-step")
+fn body_step(limit: i64, i: i64) -> i64 {
+    let text = "body"; let checked = 1 / (limit - i); i + 1
 }
 @id("s.mixed")
 fn mixed(input: borrow Slice<u8>, zero: i64) -> i64 {
     let text = "mixed\u{0}tail"; let bytes = bytes_copy(input); 1 / zero
 }
 @id("s.clone")
-fn cloned() -> string { let a = "alpha\u{0}世界"; let b = a; a }
+fn cloned() -> string { let a = "alpha\u{0}世界"; let b = a; b }
 @id("s.branch")
 fn branch(flag: bool) -> string { if flag { "left\u{0}tail" } else { "\u{0}right" } }
 @id("s.match")

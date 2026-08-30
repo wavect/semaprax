@@ -13,10 +13,34 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use semaprax::hir::ResolvedExprKind;
 use semaprax::interpreter::{self, InterpreterOptions, DEFAULT_MAX_STEPS};
 use semaprax::{codegen, format, graph, hir, parse, verify};
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+
+#[test]
+fn scalar_match_retains_owned_string_arm_result_classification() {
+    let source = r#"module test.owned_match;
+@id("match.text") fn text(value: i64) -> string {
+    match value { 0 => "zero", _ => "other", }
+}
+@id("app.main") fn main() -> i64 { string_len(text(0)) }
+"#;
+    let program = semaprax::check(source, "owned-match.spx").unwrap();
+    let resolved = hir::resolve(&program).unwrap();
+    let ResolvedExprKind::Block { tail, .. } = &resolved.functions[0].body.kind else {
+        panic!("expected function block");
+    };
+    assert!(matches!(tail.kind, ResolvedExprKind::Match { .. }));
+    assert_eq!(tail.ownership, hir::OwnershipMode::Own);
+    let mut hostile = resolved;
+    let ResolvedExprKind::Block { tail, .. } = &mut hostile.functions[0].body.kind else {
+        panic!("expected function block");
+    };
+    tail.ownership = hir::OwnershipMode::Value;
+    assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
+}
 
 const CORPUS: &str = r#"
 module test.refutable_match_v1;

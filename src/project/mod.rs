@@ -112,14 +112,12 @@ pub use semantic::{
     PROJECT_SEMANTIC_CONTEXT_SCHEMA, PROJECT_SEMANTIC_GRAPH_SCHEMA, PROJECT_SEMANTIC_IMPACT_SCHEMA,
 };
 
-#[cfg(all(
-    unix,
-    any(
-        target_os = "linux",
-        target_os = "android",
-        target_vendor = "apple",
-        target_os = "redox"
-    )
+#[cfg(any(
+    windows,
+    target_os = "linux",
+    target_os = "android",
+    target_vendor = "apple",
+    target_os = "redox"
 ))]
 pub(crate) fn rebuild_owned_revision(
     manifest: ProjectManifest,

@@ -196,6 +196,9 @@ pub(super) fn render(program: &crate::hir::ResolvedProgram) -> Result<String, Di
                 let mode = match parameter.ownership {
                     crate::hir::OwnershipMode::Borrow => "borrow ",
                     crate::hir::OwnershipMode::Value => "",
+                    // Source spells by-value String parameters without `own`;
+                    // HIR classifies that non-Copy value as owned implicitly.
+                    crate::hir::OwnershipMode::Own if parameter.ty == ResolvedType::String => "",
                     crate::hir::OwnershipMode::Own => "own ",
                     crate::hir::OwnershipMode::Shared => {
                         return Err(package_error(
@@ -271,8 +274,15 @@ pub(super) fn replay(recipe: &str) -> Result<crate::hir::ResolvedProgram, Diagno
         std::path::Path::new("semaprax-owned-data-recipe.spx"),
     )
     .map_err(|_| package_error("owned-data semantic recipe does not parse"))?;
-    let replayed = crate::hir::resolve(&ast)
-        .map_err(|_| package_error("owned-data semantic recipe does not resolve"))?;
+    let replayed = crate::hir::resolve(&ast).map_err(|errors| {
+        let detail = errors
+            .first()
+            .map(|error| format!("{}: {}", error.code, error.message))
+            .unwrap_or_default();
+        package_error(format!(
+            "owned-data semantic recipe does not resolve: {detail}"
+        ))
+    })?;
     if render(&replayed)? != recipe {
         return Err(package_error("owned-data semantic recipe is not canonical"));
     }

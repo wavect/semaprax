@@ -34,10 +34,10 @@ fn source() -> String {
 @id("s.integer") fn integer(value: i64) -> string { "done" }
 @id("s.two") fn two(value: string, number: i64) -> string { "done" }
 @id("s.simple") fn simple() -> string { sink("argument") }
-@id("s.clone") fn clone_value() -> string { sink({ let a = "alpha"; let b = a; a }) }
+@id("s.clone") fn clone_value() -> string { sink({ let a = "alpha"; let b = a; b }) }
 @id("s.branch") fn branch(flag: bool) -> string { sink(if flag { "left" } else { "right" }) }
 @id("s.loop") fn repeated(count: i64) -> string {
-    integer({ let retained = "retained"; let mut i = 0; while i < count {
+    integer({ let retained = "across-loop"; let mut i = 0; while i < count {
         i = i + 1; 0
     } 0 })
 }

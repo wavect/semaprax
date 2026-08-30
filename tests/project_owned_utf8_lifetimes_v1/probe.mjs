@@ -47,7 +47,9 @@ for(let repeat=0;repeat<3;repeat++){
   run('s.clone',[],4);
   if(minted.slice(before,before+3).some(bytes=>new TextDecoder().decode(bytes)!=='alpha'))throw Error('String read failed to clone source');
   run('s.branch',[1],2); run('s.branch',[0],2);
-  run('s.loop',[40n],2); // One owner retained across the Copy-only loop + result.
+  // The language admits scalar loops, not String allocation in their bodies.
+  // Keep one String owned across all forty backedges, then settle it.
+  run('s.loop',[40n],2); // retained String + result.
   run('s.pressure',[],19); // 17 locals + clone + result.
   memory.set([7,0,255],0);
   run('s.mixed',[0,3],18); // one String + sixteen Bytes + result.

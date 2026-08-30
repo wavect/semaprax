@@ -10,45 +10,75 @@ use super::{
 const BASE: &str = r#"
 module strings.nul_base;
 @id("s.main") fn main() -> i64 {
+    if leading_ok() && cloned_ok() && trailing_ok() { 42 } else { 0 }
+}
+@id("s.leading") fn leading_ok() -> bool {
     let leading = "\u{0}a";
+    leading == "\u{0}a" && leading != "" && leading != "\u{0}b"
+}
+@id("s.cloned") fn cloned_ok() -> bool {
     let middle = "a\u{0}b";
-    let trailing = "a\u{0}";
     let cloned = middle;
-    if leading == "\u{0}a" && leading != "" && leading != "\u{0}b"
-        && middle != "a\u{0}c" && middle != "a" && cloned == "a\u{0}b"
-        && trailing != "a" && trailing == "a\u{0}"
-        && "é\u{0}世界" == "é\u{0}世界" && "é\u{0}世界" != "é\u{0}世間" { 42 } else { 0 }
+    cloned != "a\u{0}c" && cloned != "a" && cloned == "a\u{0}b"
+}
+@id("s.trailing") fn trailing_ok() -> bool {
+    let trailing = "a\u{0}";
+    trailing != "a" && trailing == "a\u{0}"
+        && "é\u{0}世界" == "é\u{0}世界" && "é\u{0}世界" != "é\u{0}世間"
 }
 "#;
 const V1: &str = r#"
 module strings.nul_v1;
 @id("s.main") fn main() -> i64 {
+    if lengths_ok() && empty_ok() && joined_ok() && concat_ok() { 42 } else { 0 }
+}
+@id("s.lengths") fn lengths_ok() -> bool {
     let leading = "\u{0}a";
     let middle = "a\u{0}b";
     let trailing = "a\u{0}";
+    string_len(leading) == 2 && string_len(middle) == 3 && string_len(trailing) == 2
+}
+@id("s.empty") fn empty_ok() -> bool {
+    let leading = "\u{0}a";
+    string_is_empty(leading) == false && string_is_empty("\u{0}") == false
+        && string_is_empty("")
+}
+@id("s.joined") fn joined_ok() -> bool {
     let joined = string_concat("a\u{0}", "\u{0}b");
-    if string_len(leading) == 2 && string_len(middle) == 3 && string_len(trailing) == 2
-        && string_is_empty(leading) == false && string_is_empty("\u{0}") == false
-        && string_is_empty("") && string_len(joined) == 4 && joined == "a\u{0}\u{0}b"
-        && string_concat("", "\u{0}") == "\u{0}" && string_concat("\u{0}", "") == "\u{0}"
-        && string_concat("", "") == "" && string_len("é\u{0}世界") == 9 { 42 } else { 0 }
+    string_len(joined) == 4 && joined == "a\u{0}\u{0}b"
+}
+@id("s.concat") fn concat_ok() -> bool {
+    string_concat("", "\u{0}") == "\u{0}" && string_concat("\u{0}", "") == "\u{0}"
+        && string_concat("", "") == "" && string_len("é\u{0}世界") == 9
 }
 "#;
 const V2: &str = r#"
 module strings.nul_v2;
 @id("s.main") fn main() -> i64 {
+    if lengths_ok() && zero_ok() && prefix_ok() && contains_ok() && unicode_ok() { 42 } else { 0 }
+}
+@id("s.lengths") fn lengths_ok() -> bool {
     let text = "é\u{0}世界";
-    let zero = string_from_char('\u{0}');
-    if string_len(text) == 9 && string_len_chars(text) == 4
+    string_len(text) == 9 && string_len_chars(text) == 4
         && string_len_chars("\u{0}") == 1 && string_len_chars("") == 0
-        && string_len(zero) == 1 && string_len_chars(zero) == 1 && zero == "\u{0}"
+}
+@id("s.zero") fn zero_ok() -> bool {
+    let zero = string_from_char('\u{0}');
+    string_len(zero) == 1 && string_len_chars(zero) == 1 && zero == "\u{0}"
         && string_is_empty(zero) == false
-        && string_starts_with("a\u{0}b", "a\u{0}") && string_starts_with("a\u{0}b", "a\u{0}c") == false
+}
+@id("s.prefix") fn prefix_ok() -> bool {
+    string_starts_with("a\u{0}b", "a\u{0}") && string_starts_with("a\u{0}b", "a\u{0}c") == false
         && string_starts_with("a\u{0}", "a\u{0}b") == false && string_starts_with("\u{0}a", "")
-        && string_contains("a\u{0}b", "\u{0}b") && string_contains("a\u{0}b", "\u{0}c") == false
+}
+@id("s.contains") fn contains_ok() -> bool {
+    string_contains("a\u{0}b", "\u{0}b") && string_contains("a\u{0}b", "\u{0}c") == false
         && string_contains("\u{0}b", "b") && string_contains("a\u{0}", "a\u{0}b") == false
-        && string_contains(text, "\u{0}世") && string_contains(text, "")
-        && string_concat(string_from_char('\u{0}'), string_from_char('λ')) == "\u{0}λ" { 42 } else { 0 }
+}
+@id("s.unicode") fn unicode_ok() -> bool {
+    let text = "é\u{0}世界";
+    string_contains(text, "\u{0}世") && string_contains(text, "")
+        && string_concat(string_from_char('\u{0}'), string_from_char('λ')) == "\u{0}λ"
 }
 "#;
 const OWNED: &str = r#"
@@ -59,6 +89,15 @@ module strings.nul_owned;
 @id("s.main") fn main() -> i64 {
     if same(identity(pick(true)), "\u{0}é\u{0}世界") && same(identity(pick(false)), "end\u{0}")
         && same(identity("a\u{0}b"), "a\u{0}c") == false { 42 } else { 0 }
+}
+"#;
+
+const GENERIC: &str = r#"
+module strings.nul_generic;
+@id("s.identity") fn identity<T>(marker: T, value: string) -> string { value }
+@id("s.bridge") fn bridge(value: string) -> string { identity<i64>(0, value) }
+@id("s.main") fn main() -> i64 {
+    if bridge("a\u{0}é") == "a\u{0}é" { 42 } else { 0 }
 }
 "#;
 
@@ -181,6 +220,7 @@ fn embedded_nul_values_match_native_wasm_and_admitted_interpreter() {
         ("v1", V1, true),
         ("v2", V2, true),
         ("owned", OWNED, false),
+        ("generic", GENERIC, false),
     ] {
         compile_and_run(group, &native(source), false);
         interpreter_and_wasm(source, group, interpreted);
@@ -190,7 +230,13 @@ fn embedded_nul_values_match_native_wasm_and_admitted_interpreter() {
 #[test]
 #[ignore = "requires explicitly provisioned Clang ASan/UBSan runtime"]
 fn provisioned_embedded_nul_native_values_asan_ubsan() {
-    for (group, source) in [("base", BASE), ("v1", V1), ("v2", V2), ("owned", OWNED)] {
+    for (group, source) in [
+        ("base", BASE),
+        ("v1", V1),
+        ("v2", V2),
+        ("owned", OWNED),
+        ("generic", GENERIC),
+    ] {
         compile_and_run(group, &native(source), true);
     }
 }

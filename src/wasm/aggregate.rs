@@ -393,8 +393,10 @@ impl FunctionPlan {
         };
         for (index, parameter) in function.params.iter().enumerate() {
             if parameter.ty == ResolvedType::String {
-                if parameter.ownership != crate::hir::OwnershipMode::Value {
-                    return Err(error("String parameter must use validated value ownership"));
+                if parameter.ownership != crate::hir::OwnershipMode::Own {
+                    return Err(error(
+                        "String parameter must use validated owned classification",
+                    ));
                 }
                 plan.owned_strings.insert(
                     u32::try_from(index).map_err(|_| error("String parameter index overflows"))?,

@@ -51,7 +51,9 @@ same evaluator as the legacy Project route.
 Defaults are 1,000,000 steps, 1 MiB, and 4,096 events. Once the event ceiling
 or byte budget is reached, evaluation continues and the deterministic prefix
 records exact `recorded_events`, `dropped_events`, and `truncated` facts. Trace
-saturation never changes the language outcome.
+saturation never changes the language outcome. Prefix selection performs one
+bounded linear scan: source strings and event JSON are retained only for events
+that fit, and the renderer never repeatedly reconstructs oversized prefixes.
 
 ## Source Trace v1
 
@@ -72,10 +74,11 @@ cooperative cancellation.
 `verify_project_source_trace` checks the closed JSON shape, canonical values,
 bounds, status vocabulary, byte count, digest, and exact reconstruction.
 `verify_project_source_trace_against_revision` additionally binds every event
-to a supplied retained HIR expression and its authenticated source fact. The
-envelope provides canonical self-integrity, not proof that an execution was
-observed. V1 does not independently re-execute or authenticate the dynamic
-path; revision-bound replay proves only retained source-origin consistency.
+to an expression in the exact transitive retained closure, its structural
+requires/body/ensures phase, and its authenticated source fact. V1 does not
+independently re-execute the dynamic path; its public digest detects byte drift
+but is not producer authentication, while the revision verifier proves bounded
+closure/source-origin consistency.
 
 Diagnostics are closed: `SPX-F107` preparation/source-index admission,
 `SPX-F108` request bounds, `SPX-F109` worker lifecycle/panic, and `SPX-F110`

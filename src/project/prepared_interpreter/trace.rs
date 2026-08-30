@@ -5,10 +5,11 @@ use std::collections::BTreeMap;
 use sha2::{Digest as _, Sha256};
 
 use crate::cleanup_plan::{ContractPhase, StatusCase};
-use crate::conformance::NormalizedStatus;
+use crate::conformance::{NormalizedStatus, Retryability, StatusClass};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::interpreter::{
-    PreparedResolvedEvaluation, PreparedResolvedEvaluationOutcome, ResolvedTracePhase,
+    PreparedResolvedEvaluation, PreparedResolvedEvaluationOutcome, ResolvedTraceEvent,
+    ResolvedTracePhase,
 };
 use crate::runtime_status;
 
@@ -103,33 +104,8 @@ pub(super) fn render(
         )]);
     }
     let outcome = map_outcome(evaluated.outcome)?;
-    let mut events = Vec::with_capacity(evaluated.events.len());
-    for (index, event) in evaluated.events.into_iter().enumerate() {
-        let origin = origins.get(event.function_id.as_ref()).ok_or_else(|| {
-            vec![trace_error(
-                "evaluated function has no authenticated source-origin fact",
-            )]
-        })?;
-        if event.span.start > event.span.end || event.span.end > origin.source_bytes {
-            return Err(vec![trace_error(
-                "evaluated expression span is outside its authenticated source",
-            )]);
-        }
-        events.push(ProjectSourceTraceEvent {
-            index,
-            step: event.step,
-            depth: event.depth,
-            phase: event.phase.text(),
-            function_id: event.function_id.to_string(),
-            expression_id: event.expression_id.to_string(),
-            path: origin.path.clone(),
-            source_revision: origin.source_revision.clone(),
-            source_digest: origin.source_digest.clone(),
-            start: event.span.start,
-            end: event.span.end,
-            line: event.span.line,
-            column: event.span.column,
-        });
+    for event in &evaluated.events {
+        validate_evaluated_origin(event, origins)?;
     }
     let module = match role {
         ProjectExecutionRole::Entry => revision.manifest().entry(),
@@ -139,9 +115,21 @@ pub(super) fn render(
         ProjectExecutionRole::Entry => revision.entry_program().entrypoint.as_str(),
         ProjectExecutionRole::Test => revision.test_program().entrypoint.as_str(),
     };
-    let mut dropped = evaluated.dropped_events;
-    loop {
-        let payload = render_payload(RenderSubject {
+    let total_events = evaluated.events.len();
+    let mut events = Vec::new();
+    let mut rendered_event_bytes = 0usize;
+    for event in &evaluated.events {
+        let rendered = render_evaluated_event(events.len(), event, origins)?;
+        let candidate_event_bytes = rendered_event_bytes
+            .checked_add(rendered.len())
+            .and_then(|value| value.checked_add(usize::from(!events.is_empty())))
+            .ok_or_else(|| vec![trace_error("trace event byte accounting overflowed")])?;
+        let candidate_count = events.len() + 1;
+        let candidate_dropped = evaluated
+            .dropped_events
+            .checked_add(total_events - candidate_count)
+            .ok_or_else(|| vec![trace_error("trace truncation accounting overflowed")])?;
+        let subject = RenderSubject {
             project_schema: revision.manifest().schema(),
             project: revision.manifest().name(),
             project_revision: revision.project_revision(),
@@ -153,38 +141,125 @@ pub(super) fn render(
             options,
             steps_used: evaluated.steps_used,
             outcome: &outcome,
-            events: &events,
-            dropped_events: dropped,
-        });
-        let digest = domain_digest(PAYLOAD_DIGEST_DOMAIN, payload.as_bytes());
-        let envelope = format!(
-            "{{\"schema\":{},\"digest\":{},\"bytes\":{},\"payload\":{}}}",
-            quote_json(PROJECT_SOURCE_TRACE_SCHEMA),
-            quote_json(&digest),
-            payload.len(),
-            payload
-        );
-        if envelope.len() <= options.max_trace_bytes {
-            return Ok((
-                outcome,
-                ProjectSourceTrace {
-                    envelope,
-                    digest,
-                    steps_used: evaluated.steps_used,
-                    recorded_events: events.len(),
-                    dropped_events: dropped,
-                },
-            ));
+            events: &[],
+            dropped_events: candidate_dropped,
+        };
+        if !payload_fits(
+            &subject,
+            candidate_count,
+            candidate_event_bytes,
+            options.max_trace_bytes,
+        )? {
+            break;
         }
-        if events.pop().is_none() {
-            return Err(vec![trace_error(
-                "trace subject header cannot fit the declared max_trace_bytes",
-            )]);
-        }
-        dropped = dropped
-            .checked_add(1)
-            .ok_or_else(|| vec![trace_error("trace truncation accounting overflowed")])?;
+        rendered_event_bytes = candidate_event_bytes;
+        events.push(owned_event(events.len(), event, origins)?);
     }
+    let dropped = evaluated
+        .dropped_events
+        .checked_add(total_events - events.len())
+        .ok_or_else(|| vec![trace_error("trace truncation accounting overflowed")])?;
+    let subject = RenderSubject {
+        project_schema: revision.manifest().schema(),
+        project: revision.manifest().name(),
+        project_revision: revision.project_revision(),
+        workspace_revision: revision.workspace_revision(),
+        project_graph_digest: revision.semantic_graph_digest(),
+        role,
+        module,
+        stable_id,
+        options,
+        steps_used: evaluated.steps_used,
+        outcome: &outcome,
+        events: &events,
+        dropped_events: dropped,
+    };
+    let payload = render_payload(&subject);
+    let digest = domain_digest(PAYLOAD_DIGEST_DOMAIN, payload.as_bytes());
+    let envelope = render_envelope(&payload, &digest);
+    if envelope.len() > options.max_trace_bytes {
+        return Err(vec![trace_error(
+            "trace subject header cannot fit the declared max_trace_bytes",
+        )]);
+    }
+    Ok((
+        outcome,
+        ProjectSourceTrace {
+            envelope,
+            digest,
+            steps_used: evaluated.steps_used,
+            recorded_events: events.len(),
+            dropped_events: dropped,
+        },
+    ))
+}
+
+fn validate_evaluated_origin(
+    event: &ResolvedTraceEvent,
+    origins: &BTreeMap<String, FunctionOrigin>,
+) -> Result<(), Vec<Diagnostic>> {
+    let origin = origins.get(event.function_id.as_ref()).ok_or_else(|| {
+        vec![trace_error(
+            "evaluated function has no authenticated source-origin fact",
+        )]
+    })?;
+    if event.span.start > event.span.end || event.span.end > origin.source_bytes {
+        return Err(vec![trace_error(
+            "evaluated expression span is outside its authenticated source",
+        )]);
+    }
+    Ok(())
+}
+
+fn owned_event(
+    index: usize,
+    event: &ResolvedTraceEvent,
+    origins: &BTreeMap<String, FunctionOrigin>,
+) -> Result<ProjectSourceTraceEvent, Vec<Diagnostic>> {
+    let origin = origins
+        .get(event.function_id.as_ref())
+        .ok_or_else(|| vec![trace_error("evaluated source origin disappeared")])?;
+    Ok(ProjectSourceTraceEvent {
+        index,
+        step: event.step,
+        depth: event.depth,
+        phase: event.phase.text(),
+        function_id: event.function_id.to_string(),
+        expression_id: event.expression_id.to_string(),
+        path: origin.path.clone(),
+        source_revision: origin.source_revision.clone(),
+        source_digest: origin.source_digest.clone(),
+        start: event.span.start,
+        end: event.span.end,
+        line: event.span.line,
+        column: event.span.column,
+    })
+}
+
+fn render_evaluated_event(
+    index: usize,
+    event: &ResolvedTraceEvent,
+    origins: &BTreeMap<String, FunctionOrigin>,
+) -> Result<String, Vec<Diagnostic>> {
+    let origin = origins
+        .get(event.function_id.as_ref())
+        .ok_or_else(|| vec![trace_error("evaluated source origin disappeared")])?;
+    Ok(format!(
+        "{{\"index\":{},\"step\":{},\"depth\":{},\"phase\":{},\"function_id\":{},\"expression_id\":{},\"source\":{{\"path\":{},\"revision\":{},\"digest\":{}}},\"span\":{{\"start\":{},\"end\":{},\"line\":{},\"column\":{}}}}}",
+        index,
+        event.step,
+        event.depth,
+        quote_json(event.phase.text()),
+        quote_json(event.function_id.as_ref()),
+        quote_json(event.expression_id.as_ref()),
+        quote_json(&origin.path),
+        quote_json(&origin.source_revision),
+        quote_json(&origin.source_digest),
+        event.span.start,
+        event.span.end,
+        event.span.line,
+        event.span.column,
+    ))
 }
 
 struct RenderSubject<'a> {
@@ -203,20 +278,25 @@ struct RenderSubject<'a> {
     dropped_events: usize,
 }
 
-fn render_payload(subject: RenderSubject<'_>) -> String {
-    let events = subject
+fn render_payload(subject: &RenderSubject<'_>) -> String {
+    let prefix = render_payload_prefix(subject);
+    let suffix = render_payload_suffix(subject.events.len(), subject.dropped_events);
+    let event_bytes = subject
         .events
         .iter()
         .map(render_event)
         .collect::<Vec<_>>()
         .join(",");
-    let nonclaims = NONCLAIMS
-        .iter()
-        .map(|value| quote_json(value))
-        .collect::<Vec<_>>()
-        .join(",");
+    let mut payload = String::with_capacity(prefix.len() + event_bytes.len() + suffix.len());
+    payload.push_str(&prefix);
+    payload.push_str(&event_bytes);
+    payload.push_str(&suffix);
+    payload
+}
+
+fn render_payload_prefix(subject: &RenderSubject<'_>) -> String {
     format!(
-        "{{\"schema\":{},\"project_schema\":{},\"project\":{},\"project_revision\":{},\"workspace_revision\":{},\"project_graph_digest\":{},\"role\":{},\"module\":{},\"stable_id\":{},\"limits\":{{\"max_bytes\":{},\"max_steps\":{},\"max_events\":{}}},\"fuel\":{{\"steps_used\":{},\"max_steps\":{}}},\"outcome\":{},\"events\":[{}],\"truncation\":{{\"recorded_events\":{},\"dropped_events\":{},\"truncated\":{}}},\"nonclaims\":[{}]}}",
+        "{{\"schema\":{},\"project_schema\":{},\"project\":{},\"project_revision\":{},\"workspace_revision\":{},\"project_graph_digest\":{},\"role\":{},\"module\":{},\"stable_id\":{},\"limits\":{{\"max_bytes\":{},\"max_steps\":{},\"max_events\":{}}},\"fuel\":{{\"steps_used\":{},\"max_steps\":{}}},\"outcome\":{},\"events\":[",
         quote_json(PROJECT_SOURCE_TRACE_SCHEMA),
         quote_json(subject.project_schema),
         quote_json(subject.project),
@@ -232,11 +312,58 @@ fn render_payload(subject: RenderSubject<'_>) -> String {
         subject.steps_used,
         subject.options.max_steps,
         render_outcome(subject.outcome),
-        events,
-        subject.events.len(),
-        subject.dropped_events,
-        subject.dropped_events != 0,
-        nonclaims,
+    )
+}
+
+fn render_payload_suffix(recorded_events: usize, dropped_events: usize) -> String {
+    let nonclaims = NONCLAIMS
+        .iter()
+        .map(|value| quote_json(value))
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(
+        "],\"truncation\":{{\"recorded_events\":{recorded_events},\"dropped_events\":{dropped_events},\"truncated\":{}}},\"nonclaims\":[{nonclaims}]}}",
+        dropped_events != 0,
+    )
+}
+
+fn payload_fits(
+    subject: &RenderSubject<'_>,
+    recorded_events: usize,
+    rendered_event_bytes: usize,
+    max_trace_bytes: usize,
+) -> Result<bool, Vec<Diagnostic>> {
+    let prefix = render_payload_prefix(subject);
+    let suffix = render_payload_suffix(recorded_events, subject.dropped_events);
+    let payload_bytes = prefix
+        .len()
+        .checked_add(rendered_event_bytes)
+        .and_then(|value| value.checked_add(suffix.len()))
+        .ok_or_else(|| vec![trace_error("trace payload byte accounting overflowed")])?;
+    rendered_envelope_len(payload_bytes)
+        .map(|bytes| bytes <= max_trace_bytes)
+        .ok_or_else(|| vec![trace_error("trace envelope byte accounting overflowed")])
+}
+
+fn rendered_envelope_len(payload_bytes: usize) -> Option<usize> {
+    const DIGEST_PLACEHOLDER: &str =
+        "0000000000000000000000000000000000000000000000000000000000000000";
+    let wrapper = format!(
+        "{{\"schema\":{},\"digest\":{},\"bytes\":{},\"payload\":}}",
+        quote_json(PROJECT_SOURCE_TRACE_SCHEMA),
+        quote_json(DIGEST_PLACEHOLDER),
+        payload_bytes,
+    );
+    wrapper.len().checked_add(payload_bytes)
+}
+
+fn render_envelope(payload: &str, digest: &str) -> String {
+    format!(
+        "{{\"schema\":{},\"digest\":{},\"bytes\":{},\"payload\":{}}}",
+        quote_json(PROJECT_SOURCE_TRACE_SCHEMA),
+        quote_json(digest),
+        payload.len(),
+        payload
     )
 }
 
@@ -338,8 +465,16 @@ pub fn verify_project_source_trace_against_revision(
             "trace role/module/entry does not equal the retained closure",
         ));
     }
+    let prepared =
+        crate::interpreter::prepare_resolved_zero_arg_i64(program, program.entrypoint.as_str())
+            .map_err(|_| verification_error("retained trace closure no longer passes admission"))?;
     let mut expression_facts = BTreeMap::new();
-    for function in &program.functions {
+    for function_id in prepared.function_ids() {
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == function_id)
+            .ok_or_else(|| verification_error("retained trace closure lost a function"))?;
         let source_path = revision
             .semantic
             .rename_function(function.id.as_str())
@@ -356,31 +491,49 @@ pub fn verify_project_source_trace_against_revision(
                 "retained function source is absent from the revision",
             ));
         };
-        let mut expressions = function
-            .requires
-            .iter()
-            .chain(&function.ensures)
-            .chain(std::iter::once(&function.body))
-            .collect::<Vec<_>>();
-        while let Some(expression) = expressions.pop() {
-            expression_facts.insert(
-                (function.id.as_str(), expression.id.as_str()),
-                (
-                    source.path(),
-                    source.source_revision(),
-                    source.source_digest(),
-                    expression.span,
-                ),
-            );
-            expressions.extend(crate::interpreter::trace_child_expressions(expression));
+        for (phase, roots) in [
+            (
+                ResolvedTracePhase::Requires.text(),
+                function.requires.as_slice(),
+            ),
+            (
+                ResolvedTracePhase::Body.text(),
+                std::slice::from_ref(&function.body),
+            ),
+            (
+                ResolvedTracePhase::Ensures.text(),
+                function.ensures.as_slice(),
+            ),
+        ] {
+            let mut expressions = roots.iter().collect::<Vec<_>>();
+            while let Some(expression) = expressions.pop() {
+                if expression_facts
+                    .insert(
+                        (function.id.as_str(), expression.id.as_str()),
+                        (
+                            source.path(),
+                            source.source_revision(),
+                            source.source_digest(),
+                            expression.span,
+                            phase,
+                        ),
+                    )
+                    .is_some()
+                {
+                    return Err(verification_error(
+                        "retained trace closure contains duplicate expression identity",
+                    ));
+                }
+                expressions.extend(crate::interpreter::trace_child_expressions(expression));
+            }
         }
     }
     for event in &parsed.events {
-        let Some((path, revision_fact, digest, span)) =
+        let Some((path, revision_fact, digest, span, phase)) =
             expression_facts.get(&(event.function_id.as_str(), event.expression_id.as_str()))
         else {
             return Err(verification_error(
-                "trace event does not name a retained expression",
+                "trace event does not name an expression in the exact retained closure",
             ));
         };
         if *path != event.path
@@ -390,9 +543,10 @@ pub fn verify_project_source_trace_against_revision(
             || span.end != event.end
             || span.line != event.line
             || span.column != event.column
+            || *phase != event.phase
         {
             return Err(verification_error(
-                "trace event source origin disagrees with retained HIR",
+                "trace event source origin or structural phase disagrees with retained HIR",
             ));
         }
     }
@@ -534,6 +688,15 @@ fn parse(envelope: &str) -> Result<ParsedTrace, Diagnostic> {
             "trace truncation facts are inconsistent",
         ));
     }
+    if events
+        .len()
+        .checked_add(dropped_events)
+        .is_none_or(|observed| observed > steps_used)
+    {
+        return Err(verification_error(
+            "trace event accounting exceeds charged evaluator steps",
+        ));
+    }
     let nonclaims = payload["nonclaims"]
         .as_array()
         .ok_or_else(|| verification_error("nonclaims must be an array"))?;
@@ -566,7 +729,7 @@ fn parse(envelope: &str) -> Result<ParsedTrace, Diagnostic> {
         events: &events,
         dropped_events,
     };
-    let canonical_payload = render_payload(subject);
+    let canonical_payload = render_payload(&subject);
     if root["bytes"].as_u64() != Some(canonical_payload.len() as u64) {
         return Err(verification_error("trace payload byte count is incorrect"));
     }
@@ -574,13 +737,7 @@ fn parse(envelope: &str) -> Result<ParsedTrace, Diagnostic> {
     if root["digest"].as_str() != Some(expected_digest.as_str()) {
         return Err(verification_error("trace payload digest is incorrect"));
     }
-    let canonical = format!(
-        "{{\"schema\":{},\"digest\":{},\"bytes\":{},\"payload\":{}}}",
-        quote_json(PROJECT_SOURCE_TRACE_SCHEMA),
-        quote_json(&expected_digest),
-        canonical_payload.len(),
-        canonical_payload
-    );
+    let canonical = render_envelope(&canonical_payload, &expected_digest);
     if canonical != envelope {
         return Err(verification_error(
             "trace is not the exact canonical reconstruction",
@@ -712,9 +869,9 @@ fn parse_outcome(
         "cancelled" => {
             keys(outcome, &["before_step", "kind"], "cancelled outcome")?;
             let before_step = usize_value(outcome, "before_step")?;
-            if before_step != steps_used.saturating_add(1) {
+            if steps_used >= max_steps || before_step != steps_used.saturating_add(1) {
                 return Err(verification_error(
-                    "cancelled boundary must immediately follow used fuel",
+                    "cancelled boundary must immediately follow used fuel before exhaustion",
                 ));
             }
             Ok(ProjectPreparedExecutionOutcome::Cancelled { before_step })
@@ -725,7 +882,7 @@ fn parse_outcome(
     }
 }
 
-fn parse_status(value: &serde_json::Value) -> Result<NormalizedStatus, Diagnostic> {
+pub(super) fn parse_status(value: &serde_json::Value) -> Result<NormalizedStatus, Diagnostic> {
     let status = object(value, "status")?;
     keys(
         status,
@@ -763,6 +920,20 @@ fn parse_status(value: &serde_json::Value) -> Result<NormalizedStatus, Diagnosti
             2 => Ok(runtime_status::normalize_contract(ContractPhase::Ensures)),
             _ => Err(verification_error("unknown contract status code")),
         },
+        (crate::byte_ops::RANGE_STATUS_DOMAIN, "adapter") => {
+            let code = match code {
+                1 => crate::byte_ops::RANGE_START_AFTER_END_CODE,
+                2 => crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE,
+                _ => return Err(verification_error("unknown byte-range status code")),
+            };
+            NormalizedStatus::try_new(
+                crate::byte_ops::RANGE_STATUS_DOMAIN,
+                code,
+                StatusClass::Adapter,
+                Retryability::Known(false),
+            )
+            .map_err(|_| verification_error("byte-range status is not canonical"))
+        }
         _ => Err(verification_error(
             "status domain/class is not compiler-owned",
         )),

@@ -180,6 +180,8 @@ fn intent_schema() -> Value {
         base("add_contract",vec![("phase",json!({"enum":["requires","ensures"]})),("predicate",reference("expression"))]),
         base("add_declaration",vec![("declaration",declaration_schema())]),
         base("extract_function",vec![("expression_id",text(16_384)),("new_id",stable_id()),("new_name",identifier())]),
+        base("move_declaration",vec![("destination",text(MAX_ID_BYTES))]),
+        base("add_record_field",vec![("field",json!({"oneOf":["i64","bool"].into_iter().map(|kind| closed(&[("id",stable_id()),("name",identifier()),("type",json!({"const":kind})),("default",literal(kind))])).collect::<Vec<_>>()}))]),
     ]})
 }
 
@@ -187,7 +189,7 @@ fn digest_schema() -> Value {
     json!({"type":"string","pattern":"^sha256:[0-9a-f]{64}$"})
 }
 fn stable_id() -> Value {
-    json!({"type":"string","minLength":1,"maxLength":MAX_ID_BYTES,"pattern":"^[a-z0-9._-]+$"})
+    json!({"type":"string","minLength":1,"maxLength":128,"pattern":"^[a-z0-9._-]+$"})
 }
 fn declaration_schema() -> Value {
     let parameters = [

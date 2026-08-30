@@ -589,7 +589,9 @@ fn constructor_schemas_are_closed_and_resolve_recursion_locally() {
             "replace_expression",
             "add_contract",
             "add_declaration",
-            "extract_function"
+            "extract_function",
+            "move_declaration",
+            "add_record_field"
         ]
     );
 }

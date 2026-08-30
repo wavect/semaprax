@@ -15,14 +15,14 @@ per-module HIR retained by the image's `ProjectRevision`.
 `function_summary(expected_image_digest, stable_id)` returns compact JSON with
 schema `semaprax.image-function-summary.v1`. It describes one declared resolved
 function: display name, relative source path/module, source revision and span,
-parameter count, return type identity, effects, contract counts, and seven
+parameter count, return type identity, effects, contract counts, and nine
 `{facet, handle}` references. Compiler-owned declarations, missing IDs, and
 non-function declarations are not selectable.
 
 `expand_facet(expected_image_digest, stable_id, facet, handle, cursor, options)`
 returns schema `semaprax.image-facet.v1`. The closed `ImageFacet` enum admits
-`signature`, `contracts`, `callers`, `ownership`, `loans`, `cleanup`, and
-`relationships`; `ImageFacet::parse` rejects other names. Every response binds
+`signature`, `contracts`, `callers`, `ownership`, `loans`, `cleanup`,
+`relationships`, `data-access`, and `unsafe-boundaries`; `ImageFacet::parse` rejects other names. Every response binds
 image and Project revisions, target ID, facet, handle, relative source path,
 source revision, item offset/count, and an optional next cursor.
 
@@ -101,3 +101,13 @@ Incremental indexes, persisted typed HIR, expression-level source mutations,
 arbitrary declaration kinds, dynamic/external consumers, target-admission
 execution, inferred test coverage, and all publication authority remain outside
 this query contract.
+
+## Additive HIR relationships
+
+[HIR Relationships v1](SEMANTIC-IMAGE-HIR-RELATIONSHIPS-V1.md) appends
+`data-access` and `unsafe-boundaries` summary handles and transport facet choices.
+The existing seven facet payloads, handle domains, and cursor calculation remain
+unchanged. Summary/discovery bytes necessarily gain the two advertised names;
+Image v1 serialized bytes and digest do not change. Current Project admission
+still rejects unsafe permits/native imports: the unsafe inventory is empty for
+currently admitted projects, not evidence that unsafe source was newly admitted.

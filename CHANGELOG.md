@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added typed cross-file scalar function moves and Copy record-field additions,
+  including stable-ID import/call migration, constructor/pattern migration,
+  exact identity allowances, source replay, discovery and semantic conflict
+  checks. Added bounded data-access and unsafe-boundary HIR facet projections;
+  current Project admission still excludes unsafe-bearing sources. Tests are
+  authored, unrun by request. These additions grant no source publication or
+  runtime authority and do not complete the graph-operational programme.
+
 - Added typed function declaration creation and bounded Copy-expression
   extraction, with exact new-identity inventories, namespace/effect checks,
   authenticated captures, unsafe-boundary rejection and source replay.

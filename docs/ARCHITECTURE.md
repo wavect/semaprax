@@ -334,6 +334,16 @@ only by replaying against an independently admitted exact source base. It
 imports neither serialized HIR nor authority and cannot materialize unresolved
 drafts. These additions and focused regression cases are authored, unrun.
 
+`candidate/movement.rs` moves eligible functions through stable-ID call/import
+bindings. `candidate/record_field.rs` appends a typed scalar field and migrates
+constructors and exact patterns using retained type identities. Both reconstruct
+the expected canonical source independently after admission; identity guards
+permit only the planned function location or new owned field. Rebase compares
+record shape and relocation facts before full replay. No source authority is
+added. `image_facets/relationships.rs` projects bounded data-access and audit
+facts from retained HIR with source, expression and evidence provenance; the
+existing Project admission remains responsible for excluding unsafe sources.
+
 `src/project/manifest.rs` parses the bounded `semaprax.toml` profiles.
 `src/project/` owns held input authority, immutable revisions, semantic
 admission, linking, execution, builds, npm carriers, rename planning, and the

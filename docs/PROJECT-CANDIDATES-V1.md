@@ -49,7 +49,7 @@ These have the bounded meanings below. They do not assert external consumer
 compatibility, general formal equivalence, runtime behavior, or every platform
 target in the mature language contract.
 
-Five operation kinds are currently admitted:
+Nine operation kinds have authored, unrun admission paths:
 
 | Kind | Exact additional fields | Behavior |
 | --- | --- | --- |
@@ -58,6 +58,10 @@ Five operation kinds are currently admitted:
 | `replace_function_body` | `target`, `body` | Construct a new expression AST and admit the complete resulting Project through the real verifier. Existing contracts and declared effects remain. |
 | `replace_expression` | `target`, `expression_id`, `replacement` | Select an authenticated body expression through its current HIR ID and construct a replacement in its lexical scope; preserve the expected type and revalidate the complete Project. See [Expression Change v1](PROJECT-EXPRESSION-CHANGE-V1.md). |
 | `add_contract` | `target`, `phase`, `predicate` | Append one typed pre/postcondition, preserving every existing predicate and all declared effects; see [Contract Change v1](PROJECT-CONTRACT-CHANGE-V1.md). |
+| `add_declaration` | `target`, `declaration` | Append an explicitly identified typed function in the anchor module; see [Declaration Change v1](PROJECT-DECLARATION-CHANGE-V1.md). |
+| `extract_function` | `target`, `expression_id`, `new_id`, `new_name` | Derive immutable Copy captures and replace an authenticated expression with a new helper call; see [Extraction v1](PROJECT-EXTRACTION-V1.md). |
+| `move_declaration` | `target`, `destination` | Move an eligible function to an existing anchor module, preserving identity and migrating call/import bindings; see [Declaration Move v1](PROJECT-DECLARATION-MOVE-V1.md). |
+| `add_record_field` | `target`, `field` | Append a scalar field and migrate authenticated record constructors and exact patterns; see [Record Field Change v1](PROJECT-RECORD-FIELD-CHANGE-V1.md). |
 
 An appended parameter has exactly `name`, `type`, and `argument`. Its type is
 `i64`, `i32`, `u8`, `usize`, or `bool`; its argument has matching `kind` and
@@ -108,8 +112,13 @@ round-trip equality, then runs the complete Project Phase-A build. That build
 relinks entry/test/export closures, validates HIR and ownership/cleanup plans,
 and replays the selected manifest profile's admission. A second complete build
 from the same rendered source must reproduce the exact source facts, Project
-revision, and complete Project graph. Explicit declaration identity facts and
-the canonical manifest/export list must match the preceding revision.
+revision, and complete Project graph. The canonical manifest/export list must
+match the preceding revision. Explicit declaration identity facts must match
+except for the exact added function/field identity or moved function location
+authorized by its typed intention. Function moves transfer the unchanged effect/contract
+inventory between existing modules; no module permit changes are allowed.
+Field migration and moves independently reconstruct the intended complete source
+set after admission and compare it exactly to the candidate.
 
 Both entry and test closures undergo ordinary native C11 emission and ordinary
 Core-Wasm emission plus wasmparser 0.258.0 structural validation. Reports name
@@ -207,8 +216,8 @@ round-trips, branching, sequential changes, stale/tampered replay, real type
 rejection, and no incidental writes. They are authored, unrun at the user's
 request; no local or hosted passing result is claimed.
 
-Typed holes, generalized signature migration, expression selection, extraction,
-new/moved declarations, record/interface/contract operations, affected test
-execution, candidate persistence, semantic rebase, and separately authorized
-source publication are still required by the full programme. The current
-read-only image protocol does not advertise candidate or commit authority.
+The bounded operation, hole, recovery and rebase additions are tracked in the
+[full programme ledger](GRAPH-OPERATIONAL-PROGRAMME.md). General constructors,
+interface implementation, ownership-sensitive migration, affected test execution,
+persistent/incremental HIR and separately authorized source publication remain
+open. Read-only image sessions do not advertise candidate or commit authority.

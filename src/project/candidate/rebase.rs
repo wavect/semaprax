@@ -89,6 +89,14 @@ impl ProjectCandidate {
                         "competing signature intentions target the same stable ID",
                     ));
                 }
+                if left.intent["target"] == right.intent["target"]
+                    && left.intent["kind"] == "move_declaration"
+                    && right.intent["kind"] == "move_declaration"
+                {
+                    return Err(conflict(
+                        "competing move intentions target the same stable ID",
+                    ));
+                }
             }
         }
         let mut common =
@@ -150,6 +158,7 @@ struct Fingerprint {
     body: String,
     contracts: String,
     effects: String,
+    location: String,
 }
 fn fingerprints(
     revision: &ProjectRevision,
@@ -217,11 +226,42 @@ fn fingerprints(
                 body: wire::digest(b"semaprax.rebase.body.v1\0", body.as_bytes()),
                 contracts: hash_value(json!({"requires":requires,"ensures":ensures}))?,
                 effects: hash_value(json!({"effects":function.effects,"permits":program.permits}))?,
+                location: hash_value(json!({"path":program.path,"module":program.module}))?,
             };
             if result.insert(function.stable_id.clone(), fact).is_some() {
                 return Err(grammar(
                     "candidate rebase has ambiguous explicit identities",
                 ));
+            }
+        }
+    }
+    Ok(result)
+}
+
+// Record-shape conflicts are independent of function display/body changes.
+// These conservative source facts select replay; they are not layout evidence.
+fn record_fingerprints(
+    revision: &ProjectRevision,
+) -> Result<BTreeMap<String, String>, Vec<Diagnostic>> {
+    let programs = parse_revision(revision)?;
+    let mut result = BTreeMap::new();
+    for program in &programs {
+        for declaration in &program.types {
+            if !declaration.explicit_id {
+                continue;
+            }
+            if let crate::ast::TypeDeclarationKind::Record { fields } = &declaration.kind {
+                let fingerprint = hash_value(json!({
+                    "path":program.path,"module":program.module,"name":declaration.name,
+                    "parameters":declaration.type_parameters.iter().map(|p| &p.name).collect::<Vec<_>>(),
+                    "fields":fields.iter().map(|f| json!({"id":f.stable_id,"explicit":f.explicit_id,"name":f.name,"type":f.ty.to_string()})).collect::<Vec<_>>(),
+                }))?;
+                if result
+                    .insert(declaration.stable_id.clone(), fingerprint)
+                    .is_some()
+                {
+                    return Err(grammar("candidate rebase has ambiguous record identities"));
+                }
             }
         }
     }
@@ -234,6 +274,14 @@ fn classify(
 ) -> Result<Vec<Value>, Vec<Diagnostic>> {
     let old_facts = fingerprints(old)?;
     let new_facts = fingerprints(new)?;
+    let has_record_changes = changes
+        .iter()
+        .any(|change| change.intent["kind"] == "add_record_field");
+    let (old_records, new_records) = if has_record_changes {
+        (record_fingerprints(old)?, record_fingerprints(new)?)
+    } else {
+        (BTreeMap::new(), BTreeMap::new())
+    };
     let new_graph: Value = serde_json::from_str(new.semantic_graph())
         .map_err(|_| grammar("candidate rebase graph is invalid"))?;
     let new_ids = new_graph["declarations"]
@@ -262,6 +310,11 @@ fn classify(
                     .as_str()
                     .ok_or_else(|| grammar("extraction lacks its new identity"))?,
             ),
+            "add_record_field" => Some(
+                change.intent["field"]["id"]
+                    .as_str()
+                    .ok_or_else(|| grammar("record field addition lacks its identity"))?,
+            ),
             _ => None,
         };
         if addition.is_some_and(|id| new_ids.contains(id) || introduced.contains(id)) {
@@ -270,7 +323,20 @@ fn classify(
             ));
         }
         let (signature_changed, body_changed, contracts_changed, display_changed, effects_changed) =
-            if let Some(before) = old_facts.get(target) {
+            if kind == "add_record_field" {
+                let before = old_records.get(target).ok_or_else(|| {
+                    conflict("record addition target is absent from its original base")
+                })?;
+                let after = new_records.get(target).ok_or_else(|| {
+                    conflict("record addition target was deleted or changed declaration kind")
+                })?;
+                if before != after {
+                    return Err(conflict(
+                        "record field addition conflicts with concurrent record shape changes",
+                    ));
+                }
+                (false, false, false, false, false)
+            } else if let Some(before) = old_facts.get(target) {
                 let after = new_facts.get(target).ok_or_else(|| {
                     conflict("candidate rebase target was deleted or lost explicit identity")
                 })?;
@@ -296,8 +362,30 @@ fn classify(
             "change_function_signature" if signature_changed || body_changed || effects_changed => return Err(conflict("signature evolution conflicts with concurrent target signature, body or effects")),
             "add_contract" if signature_changed || effects_changed => return Err(conflict("contract addition conflicts with concurrent target signature or effects")),
             "add_declaration" if signature_changed || effects_changed => return Err(conflict("declaration addition conflicts with concurrent target signature or effects")),
-            "rename_declaration" | "replace_function_body" | "replace_expression" | "change_function_signature" | "add_contract" | "add_declaration" | "extract_function" => {},
+            "move_declaration" if signature_changed || effects_changed => return Err(conflict("declaration move conflicts with concurrent target signature or effects")),
+            "rename_declaration" | "replace_function_body" | "replace_expression" | "change_function_signature" | "add_contract" | "add_declaration" | "extract_function" | "add_record_field" | "move_declaration" => {},
             _ => return Err(grammar("candidate rebase does not admit this intention kind")),
+        }
+        if kind == "move_declaration" {
+            let destination = change.intent["destination"]
+                .as_str()
+                .ok_or_else(|| grammar("declaration move lacks a destination anchor"))?;
+            for id in [target, destination] {
+                if let Some(before) = old_facts.get(id) {
+                    let after = new_facts.get(id).ok_or_else(|| {
+                        conflict("declaration move target or destination was deleted")
+                    })?;
+                    if before.location != after.location {
+                        return Err(conflict(
+                            "declaration move target or destination was concurrently relocated",
+                        ));
+                    }
+                } else if !introduced.contains(id) {
+                    return Err(conflict(
+                        "declaration move destination is absent from its original history",
+                    ));
+                }
+            }
         }
         for dependency in called_intent_targets(&change.intent) {
             if let Some(before) = old_facts.get(&dependency) {

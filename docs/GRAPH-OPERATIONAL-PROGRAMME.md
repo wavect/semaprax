@@ -38,6 +38,9 @@ outstanding without requiring another permission request now.
 | Declaration creation | [declaration module](../src/project/candidate/declaration.rs), [Declaration Change v1](PROJECT-DECLARATION-CHANGE-V1.md), [declaration evidence](../tests/project_candidate_declaration_v1.rs) |
 | Extraction | [extraction module](../src/project/candidate/extraction.rs), [Extraction v1](PROJECT-EXTRACTION-V1.md), [extraction evidence](../tests/project_candidate_extraction_v1.rs) |
 | Recovery | [recovery module](../src/project/candidate/recovery.rs), [Recovery v1](PROJECT-CANDIDATE-RECOVERY-V1.md), [recovery evidence](../tests/project_candidate_recovery_v1.rs) |
+| Declaration moves | [movement module](../src/project/candidate/movement.rs), [Declaration Move v1](PROJECT-DECLARATION-MOVE-V1.md) |
+| Record-field changes | [field migration](../src/project/candidate/record_field.rs), [Record Field Change v1](PROJECT-RECORD-FIELD-CHANGE-V1.md) |
+| HIR relationships | [relationship facets](../src/project/image_facets/relationships.rs), [HIR Relationships v1](SEMANTIC-IMAGE-HIR-RELATIONSHIPS-V1.md) |
 | Store | [project_revision_store.rs](../src/project_revision_store.rs), [Store v1](PROJECT-REVISION-STORE-V1.md), [Windows-entry v1](PROJECT-REVISION-STORE-WINDOWS-V1.md), [store evidence](../src/project_revision_store/tests.rs) |
 | Analysis | [workspace_analysis.rs](../src/workspace_analysis.rs), [Workspace Analysis v1](WORKSPACE-ANALYSIS-V1.md); retained six-family typed indexes and existing Context/Impact/Review |
 | Existing mutation | [semantic workspace operations](../src/semantic_workspace_operations.rs), [Operations v1](SEMANTIC-WORKSPACE-OPERATIONS-V1.md), [operation evidence](../tests/semantic_workspace_operations_v1.rs); [Project rename](PROJECT-RENAME-TRANSACTION-V1.md) and [rename evidence](../tests/project_agent_transport_rename_v1.rs) |
@@ -66,7 +69,7 @@ working implementation alongside the prior Image foundation.
 | Requirement | Status and remaining evidence |
 | --- | --- |
 | Immutable overlays against one immutable base, branching and discard | Candidate authored/unrun. Applying returns a new value; siblings retain their base, dropping discards. Candidate-only v2 retains bounded candidate/draft registries and exposes discard. No durable registry or recovered branch lifecycle. |
-| Versioned Semantic Change IR and mandatory constraints | Partial, Candidate authored/unrun for seven closed intention kinds. Base revision, exact identity additions, exports, effects, permits, exact contract inventory changes and profile/core-target preservation are checked in that slice. General operation constraints and semantic-delta proof for all intention kinds remain open. |
+| Versioned Semantic Change IR and mandatory constraints | Partial, Candidate authored/unrun for nine closed intention kinds. Base revision, exact identity additions/relocations, exports, effects, permits, exact contract inventory changes and profile/core-target preservation are checked in that slice. General operation constraints and semantic-delta proof for all intention kinds remain open. |
 | Typed expression/declaration constructors | Partial. Candidate constructors cover bounded scalar/parameter/operator/call expressions and monomorphic function declarations with limited ownership modes. General expressions/declarations and expected-type/effect/ownership-guided discovery remain missing. |
 | Ephemeral typed holes | Partial, authored/unrun Holes. Immutable body-hole drafts report expected type, parameter scope, effect budget, contracts, accessible calls and explicitly prior-body loan/cleanup facts; filling performs complete candidate admission. Unresolved drafts expose no candidate/source materialization API. General expression holes, recursive incomplete declarations and complete next-expression ownership guidance remain open. |
 | Candidate ID, base/candidate revisions, semantic/source-diff digests, validation/diagnostics/gates | Partial, Candidate authored/unrun. Complete successful candidates carry digests, source changes, validation facts and required gates. Invalid/incomplete candidate state with queryable unresolved diagnostics is missing. |
@@ -82,14 +85,14 @@ working implementation alongside the prior Image foundation.
 | `replace_function_body` | Partial, Candidate authored/unrun: bounded typed constructors for explicit monomorphic non-main functions followed by full source admission. General body/control/data/ownership shapes remain. |
 | `extract_function` | Partial, authored/unrun. Actual HIR expression selection, immutable built-in Copy capture derivation, fresh caller-selected function identity, in-place call substitution and exact source replay. Owned/mutable captures, unsafe-boundary relocation and general control/data forms remain excluded. |
 | `add_declaration` | Partial, authored/unrun. Typed monomorphic function append in an anchor's module with global identity/namespace/effect checks and exact invariant extension. General declaration kinds, named types, recursive construction and placement remain open. |
-| `move_declaration` | Missing stable-ID move plus import/caller migration. Existing managed file moves are not semantic declaration moves. |
+| `move_declaration` | Partial, authored/unrun. Explicit monomorphic scalar function relocation between existing modules preserves identity, migrates stable-ID call/import bindings and replays exact source. Fixed exports, general named/owned types and audit-bearing relocation remain excluded. |
 | `implement_interface` | Missing required-member discovery, typed implementation construction and contract/dispatch replay. |
-| `add_record_field` | Missing constructor, match and projection migration with layout/ownership/target validation. |
+| `add_record_field` | Partial, authored/unrun. Appends one i64/bool field to an eligible monomorphic Copy record, migrates constructors and exact nested patterns, preserves existing projections and revalidates complete Project/layout/target admission. Owned/generic/class/variant fields and broader evolution remain open. |
 | `add_contract` | Partial, authored/unrun. Append one typed requires/ensures predicate to an explicit monomorphic non-main function, preserving prior predicates and exact other invariants with full Project admission. General declaration contracts, proof of runtime satisfaction and external compatibility remain open. |
 | `repair_diagnostic` | Partial. [Diagnostic Repair v1](DIAGNOSTIC-REPAIR-V1.md), [repair.rs](../src/repair.rs), and [repair evidence](../tests/diagnostic_repair_v1.rs) cover bounded ID assignment; generalized typed repairs and candidate integration are missing. |
 
 `change/catalog <target>` now provides candidate-bound constructor discovery
-in candidate-only v2 for the seven supported intention classes. Unsupported
+in candidate-only v2 for the nine supported intention classes. Unsupported
 targets expose no operations; each payload still requires full admission.
 Discovery of fully proven legal transitions remains open; this catalogue does
 not advertise the aspirational table above. Existing [hygienic generation](HYGIENIC-GEN-V1.md) is related typed
@@ -102,13 +105,13 @@ synthesis, not an implementation of the missing change operations.
 | Contracts | Facets exposes actual pre/postcondition expressions. Missing independently verified dependency edges to invariants and candidate contract deltas. |
 | Ownership | Facets exposes parameter modes and structural slots. Missing general creation/transfer/settlement relationships and candidate ownership deltas. |
 | Cleanup | Facets reuses complete ordered CleanupPlan projection. Missing generalized reverse expression/field-to-obligation queries and candidate cleanup deltas. |
-| Data access | Missing workspace read/write/move/field-projection index and candidate deltas. HIR contains facts but no integrated facet is claimed. |
+| Data access | Partial, authored/unrun HIR Relationships. Bounded function facets expose actual ValueId reads/writes, field projections and consumption-context facts with provenance. General reverse field indexes and candidate deltas remain missing. |
 | Interfaces | Missing workspace implementation/requirement/dispatch facet and candidate deltas. |
 | Tests | Facets reports declared test module and linked-closure membership. Missing declaration/contract/diagnostic/profile coverage evidence and affected-test selection. |
 | Targets | Facets reports existing Project profile admission only. Candidate derives C11/structurally validated Wasm facts; no execution. Missing generalized per-declaration admission/rejection reasons and package-profile coverage. |
 | Artifacts | Facets identifies manifest-selected Web exports. Existing Native Rust/target evidence is separate. Missing unified npm/Rust/C/OpenAPI/Web stable-ID-to-artifact relationship and change-impact inventory. |
 | Packages | Missing unified semantic consumer-interface relationships and cross-package migration evidence. Existing package tools are not that index. |
-| Unsafe boundaries | Missing workspace unsafe entry/dependency/exposure facet and candidate-aware propagation. |
+| Unsafe boundaries | Partial, authored/unrun HIR Relationships projection machinery. Current Project admission excludes unsafe-bearing sources, so its public unsafe inventory remains empty. Active unsafe-source coverage, transitive dependency/exposure analysis, broader import-bearing Project admission and candidate deltas remain missing. |
 | Diagnostics | Existing source diagnostics/repair are separate. Missing workspace symbol-to-diagnostic/repair-class facet and invalid-candidate integration. |
 
 Each generalized fact must bind source provenance, stable identity, revision,

@@ -49,8 +49,20 @@ use crate::project::{ProjectRevision, ProjectSource};
 ))]
 mod unix;
 
-#[cfg(windows)]
-mod windows;
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    )
+))]
+#[doc(hidden)]
+pub mod windows_host;
 
 pub const PROJECT_REVISION_STORE_ENTRY_SCHEMA: &str = "semaprax.project-revision-store-entry.v1";
 pub const PROJECT_REVISION_STORE_WINDOWS_ENTRY_SCHEMA: &str =
@@ -204,28 +216,21 @@ pub fn identify_windows(
     Ok(PreparedEntry::from_windows_revision(revision, expected_project_revision)?.locator())
 }
 
-/// Publish through the explicitly selected, fixed-local-NTFS Windows route.
+/// Compatibility entry point: rejects without a private Windows host.
+/// Use the unpublished toolchain's fixed-local-NTFS publication route.
 pub fn persist_windows(
     root: &Path,
     revision: &ProjectRevision,
     expected_project_revision: &str,
 ) -> Result<ProjectRevisionStoreReceipt, Vec<Diagnostic>> {
-    let prepared = PreparedEntry::from_windows_revision(revision, expected_project_revision)?;
-    #[cfg(windows)]
-    {
-        windows::persist(root, &prepared)?;
-        Ok(prepared.receipt())
-    }
-    #[cfg(not(windows))]
-    {
-        let _ = (root, prepared);
-        Err(io(
-            "Windows Project Revision Store requires a Windows fixed-local-NTFS host",
-        ))
-    }
+    let _ = (
+        root,
+        PreparedEntry::from_windows_revision(revision, expected_project_revision)?,
+    );
+    Err(io("Windows Project Revision Store requires the unpublished semaprax-toolchain fixed-local-NTFS host"))
 }
 
-/// Load and independently replay only the additive Windows-entry-v1 schema.
+/// Compatibility entry point: validates digests, then rejects without a private host.
 pub fn load_windows(
     root: &Path,
     entry_digest: &str,
@@ -233,23 +238,8 @@ pub fn load_windows(
 ) -> Result<ProjectRevision, Vec<Diagnostic>> {
     require_digest(entry_digest, "entry_digest")?;
     require_digest(expected_project_revision, "expected_project_revision")?;
-    #[cfg(windows)]
-    {
-        let stored = windows::load(root, entry_digest)?;
-        replay_stored_for_profile(
-            stored,
-            entry_digest,
-            expected_project_revision,
-            EntryProfile::Windows,
-        )
-    }
-    #[cfg(not(windows))]
-    {
-        let _ = root;
-        Err(io(
-            "Windows Project Revision Store requires a Windows fixed-local-NTFS host",
-        ))
-    }
+    let _ = root;
+    Err(io("Windows Project Revision Store requires the unpublished semaprax-toolchain fixed-local-NTFS host"))
 }
 
 /// Persist one exact immutable revision through an injected store root.
@@ -348,7 +338,8 @@ pub fn load(
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct StoredSource {
+#[doc(hidden)]
+pub struct StoredSource {
     path: String,
     source_graph_schema: String,
     source_revision: String,
@@ -357,7 +348,8 @@ struct StoredSource {
     source: Vec<u8>,
 }
 
-struct PreparedEntry {
+#[doc(hidden)]
+pub struct PreparedEntry {
     profile: EntryProfile,
     project_schema: String,
     project_revision: String,
@@ -385,11 +377,12 @@ struct PreparedEntry {
         )
     )
 ))]
-pub(super) struct StoredEntry {
-    entry_json: Vec<u8>,
-    manifest: Vec<u8>,
-    workspace_manifest: Vec<u8>,
-    sources: Vec<(String, Vec<u8>)>,
+#[doc(hidden)]
+pub struct StoredEntry {
+    pub entry_json: Vec<u8>,
+    pub manifest: Vec<u8>,
+    pub workspace_manifest: Vec<u8>,
+    pub sources: Vec<(String, Vec<u8>)>,
 }
 
 impl PreparedEntry {
@@ -502,7 +495,7 @@ impl PreparedEntry {
             )
         )
     ))]
-    fn entry_hex(&self) -> &str {
+    pub fn entry_hex(&self) -> &str {
         self.entry_digest
             .strip_prefix("sha256:")
             .expect("prepared store digest is canonical")

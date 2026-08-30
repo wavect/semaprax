@@ -4,14 +4,17 @@ Audience: new SEMAPRAX users and contributors.
 
 Status: pre-alpha bounded calculator workflow; not a production-readiness claim.
 
-This quickstart uses the installed `semaprax` CLI to create and exercise the
-built-in calculator Project v1 template. It does not access a network,
-initialize Git, or install dependencies.
+This quickstart uses the source-installed `semaprax-full` CLI to create the
+built-in calculator Project v1 template, then the standalone `semaprax` CLI
+to exercise it. Install the private CLI with
+`cargo install --locked --path crates/semaprax-toolchain` from the checkout.
+The generator does not access a network, initialize Git, or install dependencies.
+Tag archives expose the full CLI under the `semaprax` name instead.
 
 From a directory where `first-semaprax` does not already exist, run:
 
 ```sh
-semaprax new first-semaprax
+semaprax-full new first-semaprax
 cd first-semaprax
 semaprax check semaprax.toml
 semaprax test semaprax.toml

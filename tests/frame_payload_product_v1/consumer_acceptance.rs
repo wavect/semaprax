@@ -61,7 +61,7 @@ fn strict_typescript_accepts_both_display_names_and_rejects_wrong_types() {
         copy_project(&project, renamed);
         fs::create_dir(&consumer).unwrap();
         build(
-            Path::new(env!("CARGO_BIN_EXE_semaprax")),
+            Path::new(super::full_toolchain::binary()),
             &project.join("semaprax.toml"),
             "npm",
             &consumer.join("generated"),

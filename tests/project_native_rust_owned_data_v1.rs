@@ -1,3 +1,8 @@
+#[path = "support/full_toolchain.rs"]
+mod full_toolchain;
+#[path = "support/native_rust_cargo.rs"]
+mod native_rust_cargo;
+
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -79,7 +84,7 @@ fn run(root: &Path, output: &str) -> Output {
     } else {
         configured_tool("SEMAPRAX_ARCHIVER", &["/usr/bin/ar", "/bin/ar"])
     };
-    Command::new(env!("CARGO_BIN_EXE_semaprax"))
+    Command::new(full_toolchain::binary())
         .args([
             "build",
             "--manifest-path",

@@ -26,6 +26,11 @@ The admitted release hosts and target archives are:
 
 Each archive contains `semaprax`, `semapraxd`, `LICENSE`, `README.md`, a fixed
 smoke program, and the deterministic `semaprax.release-artifact.v1` manifest.
+The archive's `semaprax` is the unpublished `semaprax-toolchain` package's
+`semaprax-full` binary, renamed during staging. The standalone crates.io
+package excludes private `new`, `doctor`, Native Rust package publication,
+and Windows revision-store host operations. This distribution split does not
+publish any private library crate or promote its platform support.
 The platform script unpacks its completed archive and uses the unpacked
 `semaprax` binary to run `--version`, `version --json`, `check`, and `run`
 before the archive can be uploaded.

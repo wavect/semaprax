@@ -1,0 +1,87 @@
+//! Unpublished physical hosts for the standalone compiler's checked subjects.
+//! This crate has no registry distribution and introduces no compiler fork.
+use std::path::Path;
+
+use semaprax::diagnostic::Diagnostic;
+use semaprax::project::ProjectSnapshot;
+
+#[cfg(windows)]
+mod windows_revision_store;
+
+#[cfg(windows)]
+pub fn persist_windows(
+    root: &Path,
+    revision: &semaprax::project::ProjectRevision,
+    expected: &str,
+) -> Result<semaprax::project_revision_store::ProjectRevisionStoreReceipt, Vec<Diagnostic>> {
+    semaprax::project_revision_store::windows_host::persist(
+        root,
+        revision,
+        expected,
+        windows_revision_store::persist,
+    )
+}
+
+#[cfg(windows)]
+pub fn load_windows(
+    root: &Path,
+    digest: &str,
+    expected: &str,
+) -> Result<semaprax::project::ProjectRevision, Vec<Diagnostic>> {
+    semaprax::project_revision_store::windows_host::load(
+        root,
+        digest,
+        expected,
+        windows_revision_store::load,
+    )
+}
+
+/// Publish only after compiler-owned descriptor/provider replay and lease checks.
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+pub fn build_rust(snapshot: &mut ProjectSnapshot, output: &Path) -> Result<(), Vec<Diagnostic>> {
+    use semaprax::project::ProjectNativeRustPackageMode;
+    use semaprax_native_rust_owned_data_package as package;
+
+    snapshot.build_rust_with(output, |subject, output| {
+        let (mode, version) = match subject.mode() {
+            ProjectNativeRustPackageMode::OwnedData => (package::PackageMode::ProjectV8, "v8"),
+            ProjectNativeRustPackageMode::FlatOwnedRecord => (package::PackageMode::ProjectV9FlatRecord, "v9"),
+            ProjectNativeRustPackageMode::OwnedUtf8 => (package::PackageMode::ProjectV10OwnedUtf8, "v10"),
+        };
+        let plan = package::PackagePlan::new(
+            subject.descriptor().to_vec(),
+            subject.descriptor_digest().to_owned(),
+            subject.selected().to_vec(),
+            subject.provider().to_vec(),
+            package::provider_sha256(subject.provider()),
+            mode,
+        );
+        let result = if subject.mode() == ProjectNativeRustPackageMode::FlatOwnedRecord {
+            package::build_flat_record_and_publish(plan, output)
+        } else {
+            package::build_and_publish(plan, output)
+        };
+        result.map(|_| ()).map_err(|error| {
+            let (code, message) = match error.kind() {
+                package::PackageErrorKind::Descriptor | package::PackageErrorKind::Provider => (
+                    "SPX-B114",
+                    format!("Project {version} Native Rust package replay failed"),
+                ),
+                package::PackageErrorKind::ToolConfiguration => (
+                    "SPX-I234",
+                    format!("Project {version} Native Rust package requires explicit absolute CLANG and archiver tools"),
+                ),
+                package::PackageErrorKind::Publication => (
+                    "SPX-I234",
+                    format!("Project {version} Native Rust package publication failed"),
+                ),
+            };
+            vec![Diagnostic::io(code, message)]
+        })
+    })
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+pub fn build_rust(snapshot: &mut ProjectSnapshot, output: &Path) -> Result<(), Vec<Diagnostic>> {
+    snapshot.build_rust(output)
+}

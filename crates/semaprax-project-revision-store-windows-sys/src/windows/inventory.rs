@@ -90,7 +90,7 @@ fn require_single_data_stream(file: &StdFile, kind: Kind) -> Result<(), Error> {
             break;
         }
         let next = info.NextEntryOffset as usize;
-        if next < header + info.StreamNameLength as usize || next % 8 != 0 {
+        if next < header + info.StreamNameLength as usize || !next.is_multiple_of(8) {
             return Err(Error::Changed);
         }
         offset = offset.checked_add(next).ok_or(Error::Changed)?;
@@ -198,7 +198,7 @@ fn enumerate(directory: &StdFile, sid: &[u8]) -> Result<Vec<InventoryEntry>, Err
                 break;
             }
             let next = info.NextEntryOffset as usize;
-            if next < header + info.FileNameLength as usize || next % 8 != 0 {
+            if next < header + info.FileNameLength as usize || !next.is_multiple_of(8) {
                 return Err(Error::Changed);
             }
             offset = offset.checked_add(next).ok_or(Error::Changed)?;
@@ -290,7 +290,7 @@ fn find_directory_name(directory: &StdFile, target: &str) -> Result<(), Error> {
                 break;
             }
             let next = info.NextEntryOffset as usize;
-            if next < header + info.FileNameLength as usize || next % 8 != 0 {
+            if next < header + info.FileNameLength as usize || !next.is_multiple_of(8) {
                 return Err(Error::Changed);
             }
             offset = offset.checked_add(next).ok_or(Error::Changed)?;

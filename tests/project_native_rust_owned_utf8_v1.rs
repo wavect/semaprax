@@ -1,3 +1,6 @@
+#[path = "support/full_toolchain.rs"]
+mod full_toolchain;
+
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -71,7 +74,7 @@ fn project_v10_rust_route_emits_a_distinct_mixed_safe_string_package() {
     } else {
         configured_tool("SEMAPRAX_ARCHIVER", &["/usr/bin/ar", "/bin/ar"])
     };
-    let built = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+    let built = Command::new(full_toolchain::binary())
         .args([
             "build",
             "--manifest-path",
@@ -142,7 +145,7 @@ fn rust_profile_rejection_precedes_explicit_parent_creation() {
     .unwrap();
     let fixture = Fixture(root.canonicalize().unwrap());
     let output = fixture.0.join("missing-parent/rust");
-    let rejected = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+    let rejected = Command::new(full_toolchain::binary())
         .args([
             "build",
             "--manifest-path",
@@ -211,7 +214,7 @@ fn real_v10_generated_rust_consumer_recovers_after_string_semantic_failures() {
     } else {
         configured_tool("SEMAPRAX_ARCHIVER", &["/usr/bin/ar", "/bin/ar"])
     };
-    let built = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+    let built = Command::new(full_toolchain::binary())
         .args([
             "build",
             "--manifest-path",

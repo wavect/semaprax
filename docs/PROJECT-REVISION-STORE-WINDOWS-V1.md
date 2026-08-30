@@ -7,11 +7,17 @@ Audience: project-tool authors and platform-host contributors.
 
 ## Additive API and bytes
 
-`project_revision_store::identify_windows`, `persist_windows`, and
-`load_windows` have the same parameters and result types as ordinary
+`project_revision_store::identify_windows`, and the unpublished toolchain's
+`semaprax_toolchain::persist_windows` and `load_windows`, have the same parameters and result types as ordinary
 `identify`, `persist`, and `load`. Identification is authority-free and
 platform-independent. Windows persistence/loading reject unsupported hosts;
 ordinary v1 persistence/loading retain their existing Unix-only admission.
+
+The standalone compiler's legacy Windows persistence/loading entry points
+reject with `SPX-I215`; they have no physical Windows host dependency. Its
+hidden `windows_host` seam prepares opaque canonical facts and independently
+replays loaded bytes. The private toolchain alone connects that seam to retained
+Windows handles; callbacks and evidence do not grant ambient filesystem authority.
 
 The new schema is `semaprax.project-revision-store-windows-entry.v1`; its entry
 digest domain is `semaprax.project-revision-store-windows.entry-digest.v1\0`.
@@ -117,7 +123,7 @@ the host. On that provisioned Windows host, explicitly run:
 
 ```text
 cargo test --locked -p semaprax-project-revision-store-windows-sys --lib -- --ignored --test-threads=1
-cargo test --locked -p semaprax --all-features --test project_revision_store_windows_v1 -- --ignored --test-threads=1
+cargo test --locked -p semaprax-toolchain --test project_revision_store_windows_v1 -- --ignored --test-threads=1
 ```
 
 Promotion requires real create/read/publish/load round trips, every admitted

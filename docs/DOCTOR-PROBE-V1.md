@@ -6,11 +6,15 @@ Audience: CLI/platform contributors and reviewers.
 
 ## Scope
 
-The real `doctor` host invokes one trusted installed executable with exactly
+The unpublished `semaprax-full doctor` host invokes one trusted installed executable with exactly
 `--version`. The injected `DoctorHost`, check order, and
 `semaprax.doctor.v1` report schema are unchanged. The lexical absolute path is
 preserved, including its basename for multicall tools; this is not executable
 identity attestation or authenticated build-tool authority.
+
+The standalone crates.io CLI rejects `doctor` without invoking tools. Report
+policy and version parsing live in `crates/semaprax-toolchain`; the full CLI
+continues to use the existing safe platform facade and sys quarantine.
 
 The safe platform facade owns no policy for general commands. Its existing
 platform-sys quarantine owns the Linux/macOS and Windows OS operations. No
@@ -52,6 +56,10 @@ waiters that reap this child and concurrent changes to that disposition.
 Under that explicit coordination precondition, destructive group/leader
 signals occur only while the unreaped leader pins its PID. No destructive
 numeric-PID operation occurs after reap.
+
+Darwin's zombie-only group `EPERM` is accepted only after non-reaping leader
+exit observation and an independent bounded enumeration proving there are no
+other group members. A live or uninspectable group's denial remains fail-stop.
 
 Linux uses preallocated async-signal-safe child setup followed by `execve`,
 requiring `close_range` support to exclude unrelated inherited descriptors.

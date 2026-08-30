@@ -36,8 +36,8 @@ smoke_root="$output_root/smoke-$target"
 [ ! -e "$smoke_root" ] || fail "smoke extraction path already exists"
 mkdir -p "$package_root/smoke" "$smoke_root"
 
-SEMAPRAX_BUILD_COMMIT=$commit cargo build --locked --release --target "$target" --bin semaprax --bin semapraxd
-cp "target/$target/release/semaprax" "$package_root/semaprax"
+SEMAPRAX_BUILD_COMMIT=$commit cargo build --locked --release --target "$target" -p semaprax -p semaprax-toolchain --bin semaprax-full --bin semapraxd
+cp "target/$target/release/semaprax-full" "$package_root/semaprax"
 cp "target/$target/release/semapraxd" "$package_root/semapraxd"
 cp LICENSE README.md "$package_root/"
 printf '%s\n' \

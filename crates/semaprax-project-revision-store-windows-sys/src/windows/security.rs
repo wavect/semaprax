@@ -190,12 +190,11 @@ fn validate_owned_descriptor(descriptor: &SecurityDescriptor, sid: &[u8]) -> Res
 fn capture_effective_token() -> Result<TokenAuthority, Error> {
     let mut handle: HANDLE = std::ptr::null_mut();
     let thread = unsafe { OpenThreadToken(GetCurrentThread(), TOKEN_QUERY, 1, &mut handle) };
-    if thread == 0 {
-        if unsafe { GetLastError() } != ERROR_NO_TOKEN
-            || unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut handle) } == 0
-        {
-            return Err(Error::Changed);
-        }
+    if thread == 0
+        && (unsafe { GetLastError() } != ERROR_NO_TOKEN
+            || unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut handle) } == 0)
+    {
+        return Err(Error::Changed);
     }
     let token = OwnedHandle(handle);
     let user = token_information(token.raw(), TokenUser)?;

@@ -63,6 +63,8 @@ fn standalone_runner_is_pinned_private_and_outside_the_root_workspace() {
             "crates/semaprax-native-rust-interop-platform-sys",
             "crates/semaprax-native-rust-owned-data-package",
             "crates/semaprax-native-rust-interop-builder",
+            "crates/semaprax-project-revision-store-windows-sys",
+            "crates/semaprax-toolchain",
         ]
     );
 

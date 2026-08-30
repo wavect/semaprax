@@ -56,8 +56,8 @@ pub use manifest::{
     PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
 };
 pub use native_sdk::{
-    with_native_owned_data_sdk_subject, ProjectNativeSdkExport, ProjectNativeSdkSubject,
-    ProjectOwnedDataNativeSdkSubject,
+    with_native_owned_data_sdk_subject, ProjectNativeRustPackage, ProjectNativeRustPackageMode,
+    ProjectNativeSdkExport, ProjectNativeSdkSubject, ProjectOwnedDataNativeSdkSubject,
 };
 pub use npm::{
     ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,

@@ -52,8 +52,20 @@ impl Group<'_> {
         // reaper host condition, the unreaped leader pins this numeric group ID.
         // Also kill the leader if it had not reached setpgid before the deadline.
         for target in [-self.pid, self.pid] {
-            if unsafe { libc::kill(target, libc::SIGKILL) } != 0 && errno() != libc::ESRCH {
-                return Err(ProbeError::Io);
+            if unsafe { libc::kill(target, libc::SIGKILL) } != 0 {
+                let error = errno();
+                // XNU's group kill filters zombies, then returns EPERM when
+                // no signalable member remains. This is not permission to
+                // ignore a live group's denial: independently prove leader
+                // exit (without reap) and absence of every other member.
+                #[cfg(target_os = "macos")]
+                if target == -self.pid && error == libc::EPERM && observe(self.pid)?.is_some() {
+                    self.darwin_group_before_reap(deadline)?;
+                    continue;
+                }
+                if error != libc::ESRCH {
+                    return Err(ProbeError::Io);
+                }
             }
         }
         #[cfg(target_os = "macos")]
@@ -326,4 +338,35 @@ fn require_owned_wait_policy() -> Result<(), ProbeError> {
         return Err(ProbeError::Invalid);
     }
     Ok(())
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+    use super::*;
+    use std::os::unix::process::CommandExt;
+    use std::process::Command;
+
+    #[test]
+    fn exited_only_group_settles_without_treating_zombie_eperm_as_live_permission() {
+        require_owned_wait_policy().unwrap();
+        let probe = super::super::prepare(std::path::Path::new("/usr/bin/true")).unwrap();
+        let mut child = Command::new("/usr/bin/true")
+            .process_group(0)
+            .spawn()
+            .unwrap();
+        let mut group = Group {
+            pid: child.id() as libc::pid_t,
+            probe: &probe,
+            settled: false,
+        };
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while observe(group.pid).unwrap().is_none() {
+            assert!(Instant::now() < deadline);
+            std::thread::yield_now();
+        }
+        // Observation leaves the zombie unreaped, pinning the group identity.
+        group.must_settle_at(deadline);
+        assert!(group.settled);
+        assert_eq!(child.wait().unwrap_err().raw_os_error(), Some(libc::ECHILD));
+    }
 }

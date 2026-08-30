@@ -1,3 +1,6 @@
+#[path = "support/full_toolchain.rs"]
+mod full_toolchain;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -544,7 +547,7 @@ fn project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_r
     let after = root.join("after-project");
     copy_project(&before, false);
     copy_project(&after, true);
-    let binary = Path::new(env!("CARGO_BIN_EXE_semaprax"));
+    let binary = Path::new(full_toolchain::binary());
 
     for (label, project) in [("before", &before), ("after", &after)] {
         let npm_consumer = root.join(format!("{label}-web"));

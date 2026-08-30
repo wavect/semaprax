@@ -25,8 +25,8 @@ fn windows_project_roundtrip_replays_identity_and_preserves_existing_entry() {
         root.display()
     );
 
-    let manifest =
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/calculator-project/semaprax.toml");
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../examples/calculator-project/semaprax.toml");
     let revision =
         project::with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision()))
             .unwrap();
@@ -40,9 +40,9 @@ fn windows_project_roundtrip_replays_identity_and_preserves_existing_entry() {
     );
     assert_eq!(std::fs::read_dir(&root).unwrap().count(), 0);
 
-    let receipt = store::persist_windows(&root, &revision, expected).unwrap();
+    let receipt = semaprax_toolchain::persist_windows(&root, &revision, expected).unwrap();
     assert_eq!(receipt.entry_digest(), locator.entry_digest());
-    let loaded = store::load_windows(&root, receipt.entry_digest(), expected).unwrap();
+    let loaded = semaprax_toolchain::load_windows(&root, receipt.entry_digest(), expected).unwrap();
     assert_eq!(loaded.project_revision(), expected);
     assert_eq!(loaded.workspace_revision(), revision.workspace_revision());
     assert_eq!(
@@ -72,7 +72,7 @@ fn windows_project_roundtrip_replays_identity_and_preserves_existing_entry() {
         .unwrap()
         .contains(store::PROJECT_REVISION_STORE_WINDOWS_ENTRY_SCHEMA));
     assert_eq!(
-        store::persist_windows(&root, &revision, expected).unwrap_err()[0].code,
+        semaprax_toolchain::persist_windows(&root, &revision, expected).unwrap_err()[0].code,
         "SPX-G193"
     );
     assert_eq!(std::fs::read(entry.join("entry.json")).unwrap(), before);
@@ -80,7 +80,7 @@ fn windows_project_roundtrip_replays_identity_and_preserves_existing_entry() {
     let stale = format!("sha256:{}", "0".repeat(64));
     assert_ne!(stale, expected);
     assert_eq!(
-        store::load_windows(&root, receipt.entry_digest(), &stale)
+        semaprax_toolchain::load_windows(&root, receipt.entry_digest(), &stale)
             .err()
             .unwrap()[0]
             .code,

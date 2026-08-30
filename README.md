@@ -63,10 +63,13 @@ semaprax check examples/meaning.spx
 semaprax run examples/meaning.spx
 ```
 
-Create a checked calculator project from the built-in template:
+Private-host commands require the unpublished full toolchain, not the
+standalone crates.io compiler package. Install it from the same checkout to
+create a checked calculator project from the built-in template:
 
 ```sh
-semaprax new first-semaprax
+cargo install --locked --path crates/semaprax-toolchain
+semaprax-full new first-semaprax
 cd first-semaprax
 semaprax check semaprax.toml
 semaprax test semaprax.toml
@@ -177,8 +180,8 @@ publication authority.
 | Command | Purpose |
 | --- | --- |
 | `semaprax --version` / `version --json` | Report deterministic package and injected commit identity. |
-| `semaprax doctor [--target …] [--json]` | Check the bounded local native, Web, and contributor tool requirements without network access. |
-| `semaprax new <destination>` | Create and validate a Project v1 calculator from the built-in template. |
+| `semaprax-full doctor [--target …] [--json]` | Private full-toolchain local tool probes; not a network sandbox. |
+| `semaprax-full new <destination>` | Private full-toolchain creation and validation of a Project v1 calculator. |
 | `semaprax check …` | Parse, resolve, type-check, and verify a file or project manifest. |
 | `semaprax fmt <file> [--check]` | Write or check canonical formatting. |
 | `semaprax run …` / `semaprax test …` | Execute an admitted file or project through the development path. |

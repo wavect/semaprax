@@ -2,7 +2,6 @@ use std::collections::{BTreeSet, HashMap};
 use std::fmt::Write as _;
 use std::path::Path;
 use std::process::Command;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use sha2::{Digest as _, Sha256};
 
@@ -29,6 +28,12 @@ use super::{
 
 mod expression;
 mod owned_strings;
+
+#[path = "../../native_scratch.rs"]
+mod native_scratch;
+
+#[cfg(all(test, any(unix, windows)))]
+mod scratch_tests;
 
 pub(super) fn emit_hir_c_with_labels(
     program: &ResolvedProgram,
@@ -2149,19 +2154,26 @@ pub(super) fn write_and_compile_c_with_mode(
     output: &Path,
     native_command: bool,
 ) -> Result<(), Diagnostic> {
-    static BUILD_ID: AtomicU64 = AtomicU64::new(0);
-    let build_id = BUILD_ID.fetch_add(1, Ordering::Relaxed);
-    let c_path = std::env::temp_dir().join(format!(
-        "semaprax-codegen-{}-{build_id}.c",
-        std::process::id()
-    ));
-    std::fs::write(&c_path, c_source).map_err(|error| {
+    write_and_compile_c_with_runner(c_source, output, native_command, Command::output)
+}
+
+fn write_and_compile_c_with_runner(
+    c_source: &str,
+    output: &Path,
+    native_command: bool,
+    run: impl FnOnce(&mut Command) -> std::io::Result<std::process::Output>,
+) -> Result<(), Diagnostic> {
+    let mut scratch = native_scratch::Scratch::create("source.c", Some(c_source.as_bytes()))
+        .map_err(|error| {
+            Diagnostic::io(
+                "SPX-I101",
+                std::format!("cannot create temporary C source: {error}"),
+            )
+        })?;
+    scratch.seal().map_err(|error| {
         Diagnostic::io(
             "SPX-I101",
-            format!(
-                "cannot write temporary C source {}: {error}",
-                c_path.display()
-            ),
+            std::format!("cannot authenticate temporary C source: {error}"),
         )
     })?;
     let mut compiler = Command::new("clang");
@@ -2172,8 +2184,8 @@ pub(super) fn write_and_compile_c_with_mode(
     }
     #[cfg(not(all(windows, target_env = "gnu")))]
     let _ = native_command;
-    let result = compiler.arg(&c_path).arg("-o").arg(output).output();
-    let _ = std::fs::remove_file(&c_path);
+    compiler.arg(scratch.path()).arg("-o").arg(output);
+    let result = run(&mut compiler);
     let result = result.map_err(|error| {
         Diagnostic::io(
             "SPX-B101",
@@ -2189,6 +2201,9 @@ pub(super) fn write_and_compile_c_with_mode(
             ),
         ));
     }
+    // A failed or uncertain compiler run retains all source scratch. Successful
+    // cleanup remains best-effort and cannot replace the compiler outcome.
+    let _ = scratch.cleanup();
     Ok(())
 }
 

@@ -10,6 +10,7 @@ Audience: all documentation readers.
 - [Quickstart](QUICKSTART.md)
 - [Calculator project publication](NEW-PROJECT-PUBLICATION-V1.md)
 - [Doctor version-probe lifecycle](DOCTOR-PROBE-V1.md)
+- [Native compiler scratch](NATIVE-SCRATCH-V1.md)
 
 ## Language contract
 

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Replaced predictable native C/executable temporary paths with exclusively
+  created scratch directories, create-new C files, and identity/inventory-checked
+  nonrecursive cleanup. Source `run` checks and emits before reserving scratch;
+  failures retain partial work instead of deleting a pre-existing pathname.
+  Added hostile-path and ordering regressions without changing emitted code,
+  compiler flags, or package schemas. Tests remain unrun; this is not process
+  sandboxing or hosted promotion.
+
 - Added real v8/v9 npm mixed-borrow consumers and raw native admission
   fixtures alongside the published Rust corpus. npm checks exact six-file
   publication and calibrated selected-Wasm-export entry counts; the native

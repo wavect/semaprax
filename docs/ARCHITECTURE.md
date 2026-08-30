@@ -214,7 +214,13 @@ the sole status authority.
 and byte-data lowering, command I/O, callable bundles, resource fixtures,
 capability envelopes, conformance traces, and private host contracts.
 
-The public executable lane emits C11 and invokes an explicitly admitted Clang.
+The public executable lane emits C11 and invokes the host's `clang` command.
+The compiler and legacy single-source CLI share the private
+`src/native_scratch.rs` helper for exclusive temporary-directory creation,
+retained file identity, and explicit fixed-inventory cleanup. Failed or uncertain
+work retains its scratch; this does not add a deleting destructor, process
+sandbox, or the SDK builder's separate held-tool authority. See
+[Native compiler scratch v1](NATIVE-SCRATCH-V1.md).
 Private callable and resource lanes are narrower host-integration evidence;
 they do not establish a stable general native ABI.
 

@@ -20,6 +20,12 @@ use semaprax::{
 
 #[path = "cli/mod.rs"]
 mod cli;
+#[path = "native_scratch.rs"]
+mod native_scratch;
+
+#[cfg(test)]
+#[path = "cli/native_scratch_tests.rs"]
+mod native_scratch_tests;
 
 /// Explicit private-host hooks supplied only by the unpublished toolchain.
 pub type DoctorHook = fn(&[String]) -> Result<(String, u8), String>;
@@ -2235,24 +2241,41 @@ fn build_source(options: &cli::build::BuildOptions, input: &Path) -> Result<(), 
 }
 
 fn run_legacy_source(path: &Path) -> Result<(), u8> {
-    let output = std::env::temp_dir().join(format!("semaprax-run-{}", std::process::id()));
-    // The temporary executable is removed on every exit path below, including
-    // spawn failure. Project execution never enters this legacy process route.
-    let outcome = (|| -> Result<(), u8> {
-        let program = checked(path)?;
-        codegen::build(&program, &output).map_err(|error| report(&[error], false))?;
-        let status = Command::new(&output).status().map_err(|error| {
-            eprintln!("cannot run {}: {error}", output.display());
-            1
-        })?;
-        if status.success() {
-            Ok(())
-        } else {
-            Err(child_result_code(&status))
-        }
-    })();
-    let _ = std::fs::remove_file(&output);
-    outcome
+    // Source rejection cannot acquire scratch or cleanup authority.
+    let program = checked(path)?;
+    let c_source = codegen::emit_c(&program).map_err(|error| report(&[error], false))?;
+    let leaf = format!("program{}", std::env::consts::EXE_SUFFIX);
+    let mut scratch = native_scratch::Scratch::create(&leaf, None).map_err(|error| {
+        report(
+            &[Diagnostic::io(
+                "SPX-I101",
+                format!("cannot create native run scratch: {error}"),
+            )],
+            false,
+        )
+    })?;
+    codegen::compile_native_executable(&c_source, scratch.path())
+        .map_err(|error| report(&[error], false))?;
+    scratch.seal().map_err(|error| {
+        report(
+            &[Diagnostic::io(
+                "SPX-I101",
+                format!("cannot seal native run scratch: {error}"),
+            )],
+            false,
+        )
+    })?;
+    let status = Command::new(scratch.path()).status().map_err(|error| {
+        eprintln!("cannot run {}: {error}", scratch.path().display());
+        1
+    })?;
+    if !status.success() {
+        return Err(child_result_code(&status));
+    }
+    // Failures retain their exact scratch for inspection. Even successful
+    // cleanup cannot replace the child status with a secondary cleanup error.
+    let _ = scratch.cleanup();
+    Ok(())
 }
 
 fn project_execution_held(

@@ -13,6 +13,9 @@ pub const CANDIDATE_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v2";
 pub const CANDIDATE_RESULT_SCHEMA: &str = "semaprax.image-agent-result.v2";
 pub const TEST_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v3";
 pub const TEST_RESULT_SCHEMA: &str = "semaprax.image-agent-result.v3";
+mod diagnostics;
+pub use diagnostics::{DIAGNOSTIC_PROTOCOL_SCHEMA, DIAGNOSTIC_RESULT_SCHEMA};
+const MAX_ATTEMPTS: usize = 16;
 const MAX_CANDIDATES: usize = 16;
 const MAX_DRAFTS: usize = 16;
 const MAX_RETAINED_REPORT_BYTES: usize = 256 * 1024 * 1024;
@@ -67,6 +70,7 @@ pub(super) enum Action {
     HoleDiscard,
     TestPlan,
     Test,
+    Diagnostic(diagnostics::Action),
 }
 
 macro_rules! method {
@@ -308,6 +312,7 @@ struct DraftEntry {
 pub(super) struct Registry {
     candidates: BTreeMap<String, Arc<ProjectCandidate>>,
     drafts: BTreeMap<String, DraftEntry>,
+    attempts: BTreeMap<String, Arc<crate::project::ProjectCandidateAttempt>>,
 }
 
 enum Mutation {
@@ -316,6 +321,8 @@ enum Mutation {
     Draft(DraftEntry),
     DropCandidate(String),
     DropDraft(String),
+    Attempt(Arc<crate::project::ProjectCandidateAttempt>),
+    DropAttempt(String),
 }
 
 impl Registry {
@@ -341,10 +348,21 @@ impl Registry {
                     .values()
                     .map(|value| value.draft.retained_report_bytes()),
             )
+            .chain(
+                self.attempts
+                    .values()
+                    .map(|attempt| attempt.retained_report_bytes()),
+            )
             .sum()
     }
     fn admit(&self, mutation: &Mutation) -> Result<(), Vec<Diagnostic>> {
         let added = match mutation {
+            Mutation::Attempt(attempt) if !self.attempts.contains_key(attempt.attempt_digest()) => {
+                if self.attempts.len() >= MAX_ATTEMPTS {
+                    return Err(failure("SPX-G242", "rejected attempt registry is full"));
+                }
+                attempt.retained_report_bytes()
+            }
             Mutation::Candidate(value)
                 if !self.candidates.contains_key(value.candidate_digest()) =>
             {
@@ -372,6 +390,14 @@ impl Registry {
     fn commit(&mut self, mutation: Mutation) {
         match mutation {
             Mutation::None => (),
+            Mutation::Attempt(attempt) => {
+                self.attempts
+                    .entry(attempt.attempt_digest().to_owned())
+                    .or_insert(attempt);
+            }
+            Mutation::DropAttempt(id) => {
+                self.attempts.remove(&id);
+            }
             Mutation::Candidate(candidate) => {
                 self.candidates
                     .entry(candidate.candidate_digest().to_owned())
@@ -390,6 +416,18 @@ impl Registry {
             }
         }
     }
+}
+
+pub(super) fn handle_diagnostics(
+    snapshot: &mut ProjectSnapshot,
+    image: &ProjectSemanticImage,
+    registry: &mut Registry,
+    test_policy: Option<&CandidateTestPolicy>,
+    id: &RequestId,
+    name: &str,
+    params: Map<String, Value>,
+) -> Vec<u8> {
+    diagnostics::handle(snapshot, image, registry, test_policy, id, name, params)
 }
 
 pub(super) fn handle(
@@ -594,6 +632,10 @@ fn prepare_candidate(
     test_policy: Option<&CandidateTestPolicy>,
 ) -> Result<(Value, Mutation), Vec<Diagnostic>> {
     match action {
+        Action::Diagnostic(_) => Err(failure(
+            "SPX-G241",
+            "diagnostic actions require the explicitly selected v4 profile",
+        )),
         Action::TestPlan => {
             if test_policy.is_none() {
                 return Err(failure(

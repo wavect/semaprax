@@ -43,7 +43,31 @@ pub(crate) fn symbol(manifest: &Path, stable_id: &str) -> Result<String, Vec<Dia
     })
 }
 
+pub(crate) fn persist(manifest: &Path, store: &Path) -> Result<String, Vec<Diagnostic>> {
+    project::with_authenticated_project(manifest, |snapshot| {
+        let image =
+            ProjectSemanticImage::derive(snapshot.retain_revision(), snapshot.project_revision())?;
+        project::persist_semantic_image(store, &image, image.image_digest())
+            .map(|receipt| receipt.to_json().to_owned())
+    })
+}
+
+pub(crate) fn load(
+    store: &Path,
+    receipt: &Path,
+    expected_image: &str,
+) -> Result<String, Vec<Diagnostic>> {
+    let bytes = read_bounded(receipt, project::MAX_SEMANTIC_IMAGE_STORE_RECEIPT_BYTES)
+        .map_err(|error| vec![error])?;
+    project::load_semantic_image(store, &bytes, expected_image)
+        .map(|image| image.to_json().to_owned())
+}
+
 fn read_image(path: &Path) -> Result<Vec<u8>, Diagnostic> {
+    read_bounded(path, MAX_SEMANTIC_IMAGE_BYTES)
+}
+
+fn read_bounded(path: &Path, limit: usize) -> Result<Vec<u8>, Diagnostic> {
     // Nonblocking, no-follow leaf opens avoid following a substituted symlink
     // or waiting on a FIFO before the held file's type can be checked.
     let file = open_image(path)?;
@@ -63,14 +87,14 @@ fn read_image(path: &Path) -> Result<Vec<u8>, Diagnostic> {
             ));
         }
     }
-    if metadata.len() > MAX_SEMANTIC_IMAGE_BYTES as u64 {
+    if metadata.len() > limit as u64 {
         return Err(capacity_error());
     }
     let mut bytes = Vec::new();
-    file.take(MAX_SEMANTIC_IMAGE_BYTES as u64 + 1)
+    file.take(limit as u64 + 1)
         .read_to_end(&mut bytes)
         .map_err(|_| input_error("cannot read semantic image input"))?;
-    if bytes.len() > MAX_SEMANTIC_IMAGE_BYTES {
+    if bytes.len() > limit {
         return Err(capacity_error());
     }
     Ok(bytes)

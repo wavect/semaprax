@@ -138,6 +138,13 @@ Do not widen the existing literal/direct-call admission to make a fixture pass.
 
 ## Graph-operational development foundation
 
+Source-backed image storage/refresh, semantic delta replay and diagnostic
+protocol v4 now have authored, unrun implementations. The integrated signature
+workflow reaches separate managed `ACTIVE` publication only. Remaining exit
+conditions include warm/incremental compiler reuse, general interface operations,
+canonical source publication and measured task-level evidence; these additions
+do not change the programme's Partial status.
+
 The complete requirement ledger is the
 [graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md). Image facets,
 read-only/candidate-only protocol discovery, immutable typed candidate previews,

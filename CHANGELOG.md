@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added source-backed semantic image persistence and explicit refresh reports,
+  candidate semantic delta replay, and diagnostic protocol v4 with optional
+  host-selected tests. Added explicit store/load and diagnostic CLI commands
+  plus an integrated signature/merge/managed-publication scenario. These remain
+  authored and unrun; no warm HIR cache, raw Git-source publication or full
+  graph-operational completion is claimed.
+
 - Added candidate-bound static test relevance and explicitly host-selected
   interpreter-test execution with fixed limits and replay-bound reports.
   Rejected attempts now retain bounded diagnostics and can offer one fully

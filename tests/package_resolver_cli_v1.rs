@@ -44,6 +44,8 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     let current = stdout.replacen(NEW_LINE, "", 1);
     const IMAGE_LINES: &str = concat!(
         "semaprax project-image <manifest>\n",
+        "semaprax project-image-store <manifest> <store-root>\n",
+        "semaprax project-image-load <store-root> <receipt.json> <expected-image-digest>\n",
         "semaprax project-image-verify <manifest> <image.json>\n",
         "semaprax project-symbol <manifest> <stable-id>\n",
         "semaprax project-candidate-preview <manifest> <change.json>\n",
@@ -52,6 +54,8 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         "semaprax serve-image <manifest>\n",
         "semaprax serve-candidates <manifest>\n",
         "semaprax serve-test-candidates <manifest>\n",
+        "semaprax serve-diagnostics <manifest>\n",
+        "semaprax serve-diagnostics-tested <manifest>\n",
     );
     assert_eq!(current.matches(IMAGE_LINES).count(), 1);
     // Remove only the exact contiguous additive image commands, retaining the

@@ -14,6 +14,7 @@ use super::{build, ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 
 mod catalog;
 mod declaration;
+mod delta;
 mod diagnostics;
 mod draft;
 mod expression;
@@ -37,6 +38,11 @@ pub use testing::{
 pub use diagnostics::{
     ProjectCandidateAttempt, ProjectCandidateAttemptOutcome, PROJECT_CANDIDATE_ATTEMPT_SCHEMA,
     PROJECT_CANDIDATE_REPAIR_CATALOG_SCHEMA,
+};
+
+pub use delta::{
+    MAX_PROJECT_CANDIDATE_SEMANTIC_DELTA_BYTES, MAX_PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_BYTES,
+    PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_SCHEMA, PROJECT_CANDIDATE_SEMANTIC_DELTA_SCHEMA,
 };
 
 pub use draft::{

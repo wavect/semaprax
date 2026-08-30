@@ -290,6 +290,16 @@ remain outside it. See [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1
 
 ### Project profile and daemon
 
+`src/project/image_store.rs` binds semantic image receipts to secure persisted
+Project source inputs. Loading rebuilds and re-derives the image; refresh reports
+conservative reverse-module invalidation but does not incrementally compile or
+restore serialized HIR. `candidate/delta.rs` derives source-bound before/after
+semantic facts with exact replay. Diagnostic protocol v4 retains bounded rejected
+attempts and verified repair proposals, with test authority selected only by the
+host. Store and managed publication remain separate from protocol authority.
+The [integrated workflow](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md) is authored,
+unrun and publishes managed generations only; canonical Git files stay unchanged.
+
 `src/project/candidate/` owns immutable source-derived candidate overlays and
 closed typed intentions. The engine mutates invocation-local ASTs; canonical
 source then re-enters complete Project admission and a second source replay.

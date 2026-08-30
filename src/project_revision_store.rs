@@ -1255,6 +1255,7 @@ pub(super) fn io(message: impl Into<String>) -> Vec<Diagnostic> {
         )
     )
 ))]
+#[cfg(not(windows))]
 pub(super) fn post_pivot(message: impl Into<String>) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-I216", message)]
 }

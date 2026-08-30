@@ -251,8 +251,6 @@ dependencies = [
  "renamore",
  "rustix",
  "same-file",
- "semaprax-native-rust-interop-platform",
- "semaprax-native-rust-owned-data-package",
  "serde_json",
  "sha2",
  "wasmparser",

@@ -91,7 +91,7 @@ Existing CLI fake-host, version-token, PATH, and multicall tests remain required
 
 ```sh
 cargo test --locked -p semaprax-native-rust-interop-platform-sys doctor::tests
-cargo test --locked -p semaprax --test cli_doctor_v1
+cargo test --locked -p semaprax-toolchain --test cli_doctor_v1
 ```
 
 These fixtures are authored but not executed in this batch. They need physical

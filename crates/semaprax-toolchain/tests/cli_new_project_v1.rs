@@ -1,8 +1,3 @@
-#[path = "support/full_toolchain.rs"]
-mod full_toolchain;
-#[path = "support/native_rust_cargo.rs"]
-mod native_rust_cargo;
-
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -10,7 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 #[cfg(unix)]
 use std::sync::Mutex;
 
-#[path = "../crates/semaprax-toolchain/src/new_project.rs"]
+#[path = "../src/new_project.rs"]
 mod new_project;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
@@ -40,7 +35,7 @@ impl Drop for Fixture {
 }
 
 fn cli(root: &Path, arguments: &[&str]) -> Output {
-    Command::new(full_toolchain::binary())
+    Command::new(env!("CARGO_BIN_EXE_semaprax-full"))
         .args(arguments)
         .current_dir(root)
         .output()
@@ -130,7 +125,7 @@ fn calculator_template_has_exact_deterministic_bytes() {
 
 #[test]
 fn generated_project_validation_never_reopens_the_ambient_staging_tree() {
-    let implementation = include_str!("../crates/semaprax-toolchain/src/new_project.rs");
+    let implementation = include_str!("../src/new_project.rs");
     assert!(implementation.contains("project::validate_owned_project_test"));
     assert!(!implementation.contains("project::with_authenticated_project"));
     assert!(

@@ -3,6 +3,9 @@
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
+#[path = "candidate_schemas.rs"]
+mod candidate_schemas;
+
 pub(super) fn digest() -> Value {
     json!({"type":"string","pattern":"^sha256:[0-9a-f]{64}$"})
 }
@@ -26,7 +29,7 @@ pub(super) fn object(fields: Vec<(&str, Value)>) -> Value {
         .collect::<BTreeMap<_, _>>();
     json!({"type":"object","additionalProperties":false,"required":required,"properties":properties})
 }
-fn document(id: &str, fields: Vec<(&str, Value)>) -> Value {
+pub(super) fn document(id: &str, fields: Vec<(&str, Value)>) -> Value {
     let mut all = vec![("schema", json!({"const":id}))];
     all.extend(fields);
     let mut result = object(all);
@@ -362,5 +365,14 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
     // Capabilities are immutable for one selected host profile, so this exact
     // constant is the strongest truthful schema, including nullable test policy.
     result.insert("urn:semaprax.image-agent-capabilities.v5".into(),json!({"$id":"urn:semaprax.image-agent-capabilities.v5","$schema":"https://json-schema.org/draft/2020-12/schema","const":capabilities}));
+    result.extend(candidate_schemas::documents());
+    for id in [
+        "urn:semaprax.image-workspace-refresh.v1",
+        "urn:semaprax.image-workspace-refresh-preview.v1",
+    ] {
+        // Startup opt-in only; omitted in the unchanged cold response shape.
+        result.get_mut(id).expect("refresh schema")["properties"]["frontend_work"] =
+            json!({"$ref":"urn:semaprax.project-frontend-cache-work.v1"});
+    }
     result
 }

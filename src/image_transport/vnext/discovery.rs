@@ -371,4 +371,84 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn candidate_payloads_and_optional_frontend_work_are_concrete() {
+        let bundle = selected(VNextPolicy {
+            candidate_prepare: true,
+            diagnostics: true,
+            ..VNextPolicy::default()
+        });
+        let documents = bundle["documents"].as_array().unwrap();
+        for id in [
+            "semaprax.project-change-catalog.v1",
+            "semaprax.project-candidate-comparison.v1",
+            "semaprax.image-candidate-reconciliation.v1",
+            "semaprax.project-candidate-rebase.v1",
+            "semaprax.image-validation-catalog.v1",
+            "semaprax.image-validation-catalog.v2",
+            "semaprax.project-candidate-semantic-delta-catalog.v1",
+            "semaprax.project-candidate-test-plan.v1",
+        ] {
+            let uri = format!("urn:{id}");
+            let schema = documents.iter().find(|doc| doc["$id"] == uri).unwrap();
+            assert_eq!(schema["additionalProperties"], false);
+            assert_eq!(schema["properties"]["schema"]["const"], id);
+            assert!(!bundle["unbundled_payload_schemas"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == &uri));
+        }
+        for id in [
+            "urn:semaprax.image-workspace-refresh.v1",
+            "urn:semaprax.image-workspace-refresh-preview.v1",
+        ] {
+            let schema = documents.iter().find(|doc| doc["$id"] == id).unwrap();
+            assert!(!schema["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|name| name == "frontend_work"));
+            assert_eq!(
+                schema["properties"]["frontend_work"],
+                json!({"$ref":"urn:semaprax.project-frontend-cache-work.v1"})
+            );
+        }
+        let frontend = documents
+            .iter()
+            .find(|doc| doc["$id"] == "urn:semaprax.project-frontend-cache-work.v1")
+            .unwrap();
+        assert_eq!(
+            frontend["properties"]["invalidated_sources"]["type"],
+            "array"
+        );
+        let catalog = documents
+            .iter()
+            .find(|doc| doc["$id"] == "urn:semaprax.project-change-catalog.v1")
+            .unwrap();
+        let operations = catalog["properties"]["operations"]["items"]["oneOf"]
+            .as_array()
+            .unwrap();
+        assert_eq!(operations.len(), 11);
+        for kind in [
+            "rename_declaration",
+            "change_function_signature",
+            "replace_function_body",
+            "repair_diagnostic",
+            "replace_expression",
+            "add_contract",
+            "add_declaration",
+            "extract_function",
+            "move_declaration",
+            "add_record_field",
+            "implement_interface",
+        ] {
+            let operation = operations
+                .iter()
+                .find(|schema| schema["properties"]["kind"]["const"] == kind)
+                .unwrap();
+            assert_eq!(operation["additionalProperties"], false);
+        }
+    }
 }

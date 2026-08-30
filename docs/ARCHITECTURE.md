@@ -359,11 +359,28 @@ existing candidate engine. Read-only access, candidate preparation, diagnostic
 attempts, fixed-policy interpreter tests and pathless carrier builds have
 distinct grants; disabled operations are absent from discovery. V1–v4 method
 sets and byte contracts remain separate. `workspace/refresh-preview` observes the
-new source revision without swapping state. `workspace/refresh` cold-loads only the
+new source revision without swapping state. `workspace/refresh` loads only the
 fixed manifest and checks exact expected revisions before swapping the retained
 snapshot/image. Immutable historical candidate handles survive; drafts and
 attempts are cleared on success. This is live source recovery, not incremental
 semantic checking or warm HIR deserialization.
+
+An opt-in `open_with_frontend_cache` constructor uses the same authenticated
+filesystem loader with `ProjectFrontendCache` as its build strategy. It parses
+fresh source directly on first load, then stages exact-source AST reuse during
+refresh/preview while rebuilding all checked semantics. Only successful explicit
+refresh installs the staged cache alongside the new snapshot/image. Host-policy
+v2 selects this strategy through a required boolean; v1 stays closed and cold.
+The optional work report records actual frontend calls, not elapsed speed.
+
+`image_transport/vnext/read_batch.rs` adds an embedding-host batch API for up to
+sixteen immutable image/discovery requests on at most four scoped workers.
+Source authentication surrounds the complete joined batch, and rows remain in
+input order. Workers receive no registry, snapshot handles, cache, Git host or
+test interpreter. Refresh, candidates, builds and publication are excluded;
+the CLI NDJSON loop remains sequential. See
+[Frontend Cache](IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md) and
+[Parallel Reads](IMAGE-PARALLEL-READS-V1.md) for bounds and unrun evidence.
 
 `image_transport/vnext/commit.rs` holds separately supplied fixed Git authority
 and a startup-only private approval slot. A request cannot choose its repository,

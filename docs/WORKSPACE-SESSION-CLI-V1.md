@@ -1,4 +1,4 @@
-# Workspace session host-policy CLI v1
+# Workspace session host-policy CLI
 
 Status: authored, unrun; no live protocol or Git publication test was executed.
 Audience: local embedding hosts and semantic agent client authors.
@@ -26,7 +26,7 @@ The policy is a closed JSON object, at most 64 KiB. A read-only example is:
 }
 ```
 
-All fields are required. Unknown fields reject. Diagnostics, testing, building
+All v1 fields are required. Unknown fields reject. Diagnostics, testing, building
 and committing require `candidate_prepare: true`. These flags are host choices,
 not request arguments. `test_policy` is either null or the exact object
 `{"max_steps":100000,"max_execution_bytes":65536,"max_report_bytes":262144}`;
@@ -34,6 +34,21 @@ values must pass the existing bounded CandidateTestPolicy constructor.
 `build_enabled` grants only pathless compiler carrier generation and replay, not
 filesystem artifact materialization, a native toolchain, package installation
 or target execution.
+
+The additive `semaprax.workspace-host-policy.v2` requires the same fields plus
+`frontend_cache`, a boolean. `false` keeps the cold path. `true` selects
+`VNextSession::open_with_frontend_cache` before any request and retains
+compiler-created source ASTs for authenticated live refresh. V1 remains closed:
+adding `frontend_cache` to a v1 policy rejects rather than silently enabling it.
+Missing, null, string, or numeric cache selections in v2 also reject.
+
+This selection changes frontend work only. It grants no methods, paths, store,
+process, or publication authority; no request can turn it on or off. Cache hits
+still require exact source bytes and complete semantic/link/profile admission.
+There is no serialized HIR loading, cross-process warm reuse, filesystem cache
+root, or measured speedup claim. See
+[Workspace Frontend Cache v1](IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md) for fresh
+snapshot authentication, transactional cache adoption, and actual work reports.
 
 `git_commit` is null or a closed object containing `git_executable`, `repository`,
 `reference`, `base_commit`, `project_prefix`, `author_name`, `author_email`,
@@ -61,7 +76,9 @@ post-pivot outcomes explicitly. Do not blindly retry uncertain publication.
 Source/approval/candidate errors do not create a new approval or widen policy.
 
 `tests/workspace_session_cli_v1.rs` authors host selection, NDJSON framing,
-request-elevation rejection, and invalid closed-policy checks. Existing complete
-CLI help preservation retains the additive command line in its explicit
+request-elevation rejection, and invalid closed-policy checks.
+CLI cache-policy regressions preserve v1 rejection, compare cold/cached discovery
+and image identities, and reject invalid v2 cache selections and RPC overrides.
+Existing complete CLI help preservation retains the additive command line in its explicit
 normalization list. No tests, client snippets, compiler gates or Git publication
 commands were run for this implementation.

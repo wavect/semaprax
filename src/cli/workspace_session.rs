@@ -15,20 +15,7 @@ pub(crate) fn run(manifest: &Path, policy_path: &Path) -> Result<(), Vec<Diagnos
         super::project_image::read_bounded(policy_path, 65536).map_err(|error| vec![error])?;
     let policy: Value = serde_json::from_slice(&bytes)
         .map_err(|_| invalid("workspace host policy must be bounded JSON"))?;
-    exact(
-        &policy,
-        &[
-            "schema",
-            "candidate_prepare",
-            "diagnostics",
-            "build_enabled",
-            "test_policy",
-            "git_commit",
-        ],
-    )?;
-    if policy["schema"] != "semaprax.workspace-host-policy.v1" {
-        return Err(invalid("unknown workspace host policy schema"));
-    }
+    let frontend_cache = frontend_cache_policy(&policy)?;
     let test_policy = if policy["test_policy"].is_null() {
         None
     } else {
@@ -56,7 +43,11 @@ pub(crate) fn run(manifest: &Path, policy_path: &Path) -> Result<(), Vec<Diagnos
             .map_err(|_| invalid("cannot resolve host manifest working directory"))?
             .join(manifest)
     };
-    let mut session = VNextSession::open(&manifest, capability)?;
+    let mut session = if frontend_cache {
+        VNextSession::open_with_frontend_cache(&manifest, capability)?
+    } else {
+        VNextSession::open(&manifest, capability)?
+    };
     if !policy["git_commit"].is_null() {
         if !capability.candidate_prepare {
             return Err(invalid(
@@ -119,6 +110,31 @@ pub(crate) fn run(manifest: &Path, policy_path: &Path) -> Result<(), Vec<Diagnos
             )]
         }
     })
+}
+// Preserve the closed v1 startup contract. Cache selection belongs to a new
+// host policy, and never to a frame or a silently accepted extension field.
+fn frontend_cache_policy(value: &Value) -> Result<bool, Vec<Diagnostic>> {
+    const COMMON: &[&str] = &[
+        "schema",
+        "candidate_prepare",
+        "diagnostics",
+        "build_enabled",
+        "test_policy",
+        "git_commit",
+    ];
+    match value["schema"].as_str() {
+        Some("semaprax.workspace-host-policy.v1") => {
+            exact(value, COMMON)?;
+            Ok(false)
+        }
+        Some("semaprax.workspace-host-policy.v2") => {
+            let mut keys = COMMON.to_vec();
+            keys.push("frontend_cache");
+            exact(value, &keys)?;
+            boolean(value, "frontend_cache")
+        }
+        _ => Err(invalid("unknown workspace host policy schema")),
+    }
 }
 fn exact(value: &Value, keys: &[&str]) -> Result<(), Vec<Diagnostic>> {
     let object = value

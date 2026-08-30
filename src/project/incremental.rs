@@ -206,11 +206,28 @@ impl ProjectFrontendCache {
         Ok(ProjectFrontendBuild { revision, json })
     }
 
-    pub(super) fn fork(&self) -> Self {
+    pub(crate) fn fork(&self) -> Self {
         Self {
             context: self.context.clone(),
             entries: self.entries.clone(),
         }
+    }
+
+    /// Consume source bytes already read through the Project filesystem authority.
+    /// This only changes the frontend work strategy, never source admission.
+    pub(super) fn build_authenticated_sources(
+        &mut self,
+        manifest: &ProjectManifest,
+        sources: Vec<SemanticWorkspaceSource>,
+    ) -> Result<ProjectFrontendBuild> {
+        let sources = sources
+            .into_iter()
+            .map(|source| ProjectFrontendSource {
+                path: source.path,
+                source: source.source,
+            })
+            .collect::<Vec<_>>();
+        self.build(manifest, &sources)
     }
 }
 

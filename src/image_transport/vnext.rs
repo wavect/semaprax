@@ -1,12 +1,13 @@
 //! Additive v5 session with an explicit host policy and recoverable source refresh.
 use super::*;
-use crate::project::CandidateTestPolicy;
+use crate::project::{CandidateTestPolicy, ProjectFrontendCache};
 use crate::project_transport::codec::RequestId;
 use std::path::PathBuf;
 
 mod commit;
 mod discovery;
 mod projections;
+mod read_batch;
 pub use commit::GitCommitHost;
 
 pub const VNEXT_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v5";
@@ -90,17 +91,41 @@ pub struct VNextSession {
     commit: Option<GitCommitHost>,
     started: bool,
     terminal: bool,
+    frontend: Option<ProjectFrontendCache>,
 }
 
 impl VNextSession {
     pub fn open(manifest: &Path, policy: VNextPolicy) -> Result<Self, Vec<Diagnostic>> {
+        Self::open_inner(manifest, policy, false)
+    }
+
+    /// Opt-in invocation-owned AST reuse. Every load still authenticates source
+    /// files and performs complete semantic, linking, and profile admission.
+    pub fn open_with_frontend_cache(
+        manifest: &Path,
+        policy: VNextPolicy,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        Self::open_inner(manifest, policy, true)
+    }
+
+    fn open_inner(
+        manifest: &Path,
+        policy: VNextPolicy,
+        cached: bool,
+    ) -> Result<Self, Vec<Diagnostic>> {
         if !manifest.is_absolute()
             || (!policy.candidate_prepare
                 && (policy.diagnostics || policy.test_policy.is_some() || policy.build_enabled))
         {
             return Err(failure("SPX-G280", "v5 requires an absolute host manifest and candidate preparation for diagnostics, tests, or builds"));
         }
-        let mut snapshot = crate::project::load_snapshot(manifest)?;
+        let (mut snapshot, frontend) = if cached {
+            let (snapshot, cache, _) =
+                crate::project::load_snapshot_with_frontend(manifest, ProjectFrontendCache::new())?;
+            (snapshot, Some(cache))
+        } else {
+            (crate::project::load_snapshot(manifest)?, None)
+        };
         if manifest != snapshot.root().join("semaprax.toml") {
             return Err(failure(
                 "SPX-G280",
@@ -119,6 +144,7 @@ impl VNextSession {
             commit: None,
             started: false,
             terminal: false,
+            frontend,
         })
     }
 
@@ -304,7 +330,16 @@ impl VNextSession {
         // Do not touch/revive the old absorbing snapshot. Recovery independently
         // opens the one host-bound manifest and requires the expected new subject.
         let prepared = (|| {
-            let mut snapshot = crate::project::load_snapshot(&self.manifest)?;
+            // Fork only compiler-owned AST entries; newly held file handles and
+            // bytes are authenticated independently even for unchanged sources.
+            let (mut snapshot, frontend, frontend_work) = match &self.frontend {
+                Some(cache) => {
+                    let (snapshot, cache, work) =
+                        crate::project::load_snapshot_with_frontend(&self.manifest, cache.fork())?;
+                    (snapshot, Some(cache), Some(work))
+                }
+                None => (crate::project::load_snapshot(&self.manifest)?, None, None),
+            };
             if self.manifest != snapshot.root().join("semaprax.toml")
                 || snapshot.manifest().to_canonical_toml()
                     != self.image.revision().manifest().to_canonical_toml()
@@ -330,33 +365,36 @@ impl VNextSession {
                 }
                 let image = if reused { Arc::clone(&self.image) } else { Arc::new(candidate_image) };
                 if preview {
-                    let payload = json!({"schema":"semaprax.image-workspace-refresh-preview.v1",
+                    let mut payload = json!({"schema":"semaprax.image-workspace-refresh-preview.v1",
                         "old_image_revision":self.image.image_digest(),"observed_image_revision":image.image_digest(),
                         "observed_project_revision":image.revision().project_revision(),"workspace_revision":image.revision().workspace_revision(),
                         "manifest_changed":false,"source_authority":false,"current_state_replaced":false,"requires_explicit_refresh":true});
+                    if let Some(work) = &frontend_work { payload["frontend_work"] = work.clone(); }
                     let bytes = response(id, &self.image, payload);
                     if codec::is_overflow_response(&bytes) { return Err(failure("SPX-G281", "v5 refresh preview response exceeds its byte bound")); }
                     return Ok((image, bytes));
                 }
                 let inventory = self.registry.refresh_inventory();
-                let payload = json!({"schema":"semaprax.image-workspace-refresh.v1",
+                let mut payload = json!({"schema":"semaprax.image-workspace-refresh.v1",
                     "old_image_revision":self.image.image_digest(),"image_revision":image.image_digest(),
                     "old_project_revision":self.image.revision().project_revision(),"project_revision":image.revision().project_revision(),
                     "workspace_revision":image.revision().workspace_revision(),"image_arc_reused":reused,
                     "retained_candidates":inventory["retained_candidates"],"cleared_drafts":inventory["cleared_drafts"],"cleared_attempts":inventory["cleared_attempts"],
                     "manifest_changed":false,"source_authority":false,"recovery":"explicit_fresh_snapshot",
                     "nonclaims":["no_implicit_candidate_rebase","no_draft_or_attempt_remapping","no_source_publication","no_incremental_build_claim"]});
+                if let Some(work) = &frontend_work { payload["frontend_work"] = work.clone(); }
                 let bytes = response(id, &image, payload);
                 if codec::is_overflow_response(&bytes) { return Err(failure("SPX-G281", "v5 refresh response exceeds its byte bound")); }
                 Ok((image, bytes))
             })?;
-            Ok((snapshot, image, bytes))
+            Ok((snapshot, image, frontend, bytes))
         })();
         match prepared {
-            Ok((snapshot, image, response)) => {
+            Ok((snapshot, image, frontend, response)) => {
                 if !preview {
                     self.snapshot = snapshot;
                     self.image = image;
+                    self.frontend = frontend;
                     self.registry.clear_transients();
                 }
                 response

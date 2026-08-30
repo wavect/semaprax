@@ -629,6 +629,34 @@ pub fn validate_owned_project_test(
 }
 
 pub(crate) fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic>> {
+    load_snapshot_building(manifest_path, |manifest, sources| {
+        let built = build::build_owned(&manifest, sources)?;
+        Ok((Arc::new(ProjectRevision::from_built(manifest, built)), ()))
+    })
+    .map(|(snapshot, ())| snapshot)
+}
+
+/// The cache is staged by value: failed authentication or admission cannot alter
+/// a caller's retained cache. No filesystem check is bypassed on a cache hit.
+pub(crate) fn load_snapshot_with_frontend(
+    manifest_path: &Path,
+    mut cache: ProjectFrontendCache,
+) -> Result<(ProjectSnapshot, ProjectFrontendCache, serde_json::Value), Vec<Diagnostic>> {
+    let (snapshot, work) = load_snapshot_building(manifest_path, |manifest, sources| {
+        let build = cache.build_authenticated_sources(&manifest, sources)?;
+        let work = incremental::work_value(&build)?;
+        Ok((build.into_revision(), work))
+    })?;
+    Ok((snapshot, cache, work))
+}
+
+fn load_snapshot_building<T>(
+    manifest_path: &Path,
+    build: impl FnOnce(
+        ProjectManifest,
+        Vec<SemanticWorkspaceSource>,
+    ) -> Result<(Arc<ProjectRevision>, T), Vec<Diagnostic>>,
+) -> Result<(ProjectSnapshot, T), Vec<Diagnostic>> {
     let manifest_selection = DeclaredPathSelection::open(manifest_path, "manifest")?;
     let manifest_path = manifest_selection.canonical_path.clone();
     if manifest_path.file_name().and_then(|name| name.to_str()) != Some(MANIFEST_FILE) {
@@ -712,8 +740,7 @@ pub(crate) fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec
         declared_inputs.push(selection);
     }
 
-    let built = build::build_owned(&manifest, workspace_sources)?;
-    let revision = Arc::new(ProjectRevision::from_built(manifest, built));
+    let (revision, result) = build(manifest, workspace_sources)?;
     let mut snapshot = ProjectSnapshot {
         root,
         revision,
@@ -725,7 +752,7 @@ pub(crate) fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec
         request_invalidation: None,
     };
     snapshot.recheck()?;
-    Ok(snapshot)
+    Ok((snapshot, result))
 }
 
 const WEB_PUBLICATION_SUBJECT: &str = "digest-bound Web package";

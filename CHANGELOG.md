@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Made lower owned-data SDK package publication one-way: preparation failures
+  can discard their exact inventory, but settlement, rename and post-publication
+  failures cannot regain cleanup authority. This prevents deletion of an
+  authenticated published tree moved back to its former stage name. Added
+  held-filesystem preservation and real no-clobber regressions; tests remain
+  unrun and no hosted or isolation claim is promoted.
+
 - Centralized native SDK current-target selection around complete compiled
   ABI facts instead of OS/CPU alone, rejecting musl/GNU-Windows and mismatched
   vendor, pointer-width, endianness or ABI without relabeling them. Preserved

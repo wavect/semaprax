@@ -280,6 +280,27 @@ pub(crate) fn publish_package(
     authority: &PublicationAuthority,
     files: [(&'static str, &[u8]); 7],
 ) -> Result<platform::HeldDirectory, PackageError> {
+    publish_package_inner(
+        authority,
+        files,
+        #[cfg(test)]
+        |_, _| Ok(()),
+    )
+}
+
+#[cfg(test)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum PublicationPoint {
+    BeforeSettlement,
+    AfterSettlement,
+    AfterRename,
+}
+
+fn publish_package_inner(
+    authority: &PublicationAuthority,
+    files: [(&'static str, &[u8]); 7],
+    #[cfg(test)] mut observe: impl FnMut(PublicationPoint, &Path) -> Result<(), PackageError>,
+) -> Result<platform::HeldDirectory, PackageError> {
     authority.recheck()?;
     let probe = platform::prepare_child_name(&authority.output_name)
         .map_err(|_| PackageError::publication())?;
@@ -302,7 +323,7 @@ pub(crate) fn publish_package(
     let stage = platform::create_directory_new_prepared(&authority.parent, &stage_name, 0o700)
         .map_err(|_| PackageError::publication())?;
     let mut inventory = inventory;
-    let result = (|| {
+    let preparation = (|| {
         if !platform::same_directory_path(&stage, &stage_path)
             .map_err(|_| PackageError::publication())?
         {
@@ -317,35 +338,48 @@ pub(crate) fn publish_package(
         platform::inventory_exact_prepared(&mut scan, &stage, &inventory)
             .map_err(|_| PackageError::publication())?;
         platform::recheck_directory(&stage).map_err(|_| PackageError::publication())?;
-        inventory
-            .settle_for_publish()
-            .map_err(|_| PackageError::publication())?;
-        let mut publish = platform::prepare_publish_directory(&authority.output_name)
-            .map_err(|_| PackageError::publication())?;
-        platform::publish_directory_new_prepared(
-            &mut publish,
-            &authority.parent,
-            &stage,
-            &stage_name,
-            &authority.output_name,
-        )
-        .map_err(|_| PackageError::publication())?;
-        if !platform::same_directory_path(&stage, &authority.output)
-            .map_err(|_| PackageError::publication())?
-        {
-            return Err(PackageError::publication());
-        }
-        authority.recheck()
+        #[cfg(test)]
+        observe(PublicationPoint::BeforeSettlement, &stage_path)?;
+        Ok(())
     })();
-    if result.is_err() {
+    if let Err(error) = preparation {
         let _ = platform::discard_owned_stage_prepared(
             &authority.parent,
             &stage,
             &stage_name,
             &inventory,
         );
+        return Err(error);
     }
-    result.map(|()| stage)
+
+    // This is the consuming publication boundary. From here onward even a
+    // failed settlement or rename retains the stage for reconciliation. In
+    // particular, a published tree moved back to its old staging name must
+    // never regain deletion authority through still-authenticated file facts.
+    inventory
+        .settle_for_publish()
+        .map_err(|_| PackageError::publication())?;
+    #[cfg(test)]
+    observe(PublicationPoint::AfterSettlement, &stage_path)?;
+    let mut publish = platform::prepare_publish_directory(&authority.output_name)
+        .map_err(|_| PackageError::publication())?;
+    platform::publish_directory_new_prepared(
+        &mut publish,
+        &authority.parent,
+        &stage,
+        &stage_name,
+        &authority.output_name,
+    )
+    .map_err(|_| PackageError::publication())?;
+    #[cfg(test)]
+    observe(PublicationPoint::AfterRename, &stage_path)?;
+    if !platform::same_directory_path(&stage, &authority.output)
+        .map_err(|_| PackageError::publication())?
+    {
+        return Err(PackageError::publication());
+    }
+    authority.recheck()?;
+    Ok(stage)
 }
 
 pub(crate) fn verify_published(
@@ -397,3 +431,6 @@ fn hold_matching(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod publish_tests;

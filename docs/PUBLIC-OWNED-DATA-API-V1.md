@@ -514,6 +514,17 @@ Private regressions inject closed archive failures and exercise real held-stage
 inventory preservation, including foreign bytes. They remain unrun and do not
 prove physical archiver settlement or process quiescence.
 
+The seven-file outer package has the same one-way publication boundary:
+exact-inventory cleanup is available only during preparation. Starting
+`settle_for_publish` consumes that cleanup authority, including when settlement,
+rename, or a later path/replay check fails. Failures retain the inert or
+published tree for reconciliation; moving a published tree back to its former
+staging name cannot restore deletion authority. Private held-filesystem
+regressions cover preparation cleanup, retained post-transition stages, a real
+no-clobber collision, and Unix post-rename displacement back to the stage name.
+They remain unrun and do not establish hostile same-principal isolation or
+permanent pathname binding.
+
 The same retained HIR supplies the interpreter and native O0/O2 corpus checks.
 A separate raw-Wasm ABI observer uses the unchanged production arena/core
 templates, observes actual mint/drop/copy-out and empty settlement, and checks

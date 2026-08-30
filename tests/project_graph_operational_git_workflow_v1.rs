@@ -97,6 +97,14 @@ impl Fixture {
             .output()
             .unwrap();
         assert!(output.status.success(), "{output:?}");
+        // Keep the host-selected repository inside the minimal config grammar
+        // instead of inheriting git init's platform filesystem probes.
+        let config = match format {
+            "sha1" => "[core]\nrepositoryformatversion = 0\nbare = true\n",
+            "sha256" => "[core]\nrepositoryformatversion = 1\nbare = true\n[extensions]\nobjectformat = sha256\n",
+            _ => panic!("unsupported fixture object format"),
+        };
+        fs::write(repo.join("config"), config).unwrap();
         let mut fixture = Self {
             root,
             git,

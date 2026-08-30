@@ -8,6 +8,84 @@ fn read(root: &Path, relative: &str) -> String {
 }
 
 #[test]
+fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let runner = read(
+        root,
+        "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    );
+    let fields = [
+        "project_revision",
+        "workspace_revision",
+        "project_graph_digest",
+    ];
+    let expected = fields.map(|field| {
+        let prefix = format!("{field}: \"");
+        let values: Vec<_> = runner
+            .lines()
+            .filter_map(|line| line.trim().strip_prefix(&prefix)?.strip_suffix("\","))
+            .collect();
+        assert_eq!(
+            values.len(),
+            2,
+            "exact baseline and renamed {field} answers"
+        );
+        values
+    });
+    struct Fixture(std::path::PathBuf);
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+    let fixture = Fixture(std::env::temp_dir().join(format!(
+        "spx-browser-graph-known-answers-{}",
+        std::process::id()
+    )));
+    fs::create_dir(&fixture.0).unwrap();
+    fs::create_dir(fixture.0.join("src")).unwrap();
+    let fixture_root = fixture.0.canonicalize().unwrap();
+    let source_root = root.join("examples/calculator-project");
+    for path in [
+        "semaprax.toml",
+        "src/app.spx",
+        "src/core.spx",
+        "src/tests.spx",
+    ] {
+        fs::copy(source_root.join(path), fixture_root.join(path)).unwrap();
+    }
+    for index in 0..2 {
+        if index == 1 {
+            let path = fixture_root.join("src/core.spx");
+            let original = fs::read_to_string(&path).unwrap();
+            let renamed = original.replace("\nfn add(", "\nfn sum(");
+            assert_ne!(original, renamed);
+            fs::write(path, renamed).unwrap();
+        }
+        semaprax::project::with_authenticated_project(
+            &fixture_root.join("semaprax.toml"),
+            |snapshot| {
+                let revision = snapshot.retain_revision();
+                let actual = [
+                    revision.project_revision(),
+                    revision.workspace_revision(),
+                    revision.semantic_graph_digest(),
+                ];
+                for (field, value) in actual.into_iter().enumerate() {
+                    assert_eq!(
+                        value, expected[field][index],
+                        "{} fixture {index}",
+                        fields[field]
+                    );
+                }
+                Ok(())
+            },
+        )
+        .unwrap();
+    }
+}
+
+#[test]
 fn chromium_scalar_calculator_gate_is_isolated_locked_and_serial() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let workflow = read(root, ".github/workflows/ci.yml");

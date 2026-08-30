@@ -79,6 +79,14 @@ impl Fixture {
             ])
             .arg(&repo);
         assert!(init.output().unwrap().status.success());
+        // git init probes host filesystem settings (including ignorecase and
+        // precomposeunicode on macOS). This host admits only a minimal config.
+        let config = match format {
+            "sha1" => "[core]\nrepositoryformatversion = 0\nbare = true\n",
+            "sha256" => "[core]\nrepositoryformatversion = 1\nbare = true\n[extensions]\nobjectformat = sha256\n",
+            _ => panic!("unsupported fixture object format"),
+        };
+        fs::write(repo.join("config"), config).unwrap();
         let mut value = Self {
             root,
             repo,
@@ -248,6 +256,15 @@ fn unsafe_config_and_nested_storage_redirection_are_rejected() {
     let fixture = Fixture::new(false);
     let config = fixture.repo.join("config");
     let original = fs::read(&config).unwrap();
+    for setting in ["ignorecase", "precomposeunicode"] {
+        let mut changed = original.clone();
+        changed.extend_from_slice(format!("[core]\n{setting} = true\n").as_bytes());
+        fs::write(&config, changed).unwrap();
+        let errors = CandidateGitProcessAuthority::open(&fixture.git, &fixture.repo, 100, 60_000)
+            .err()
+            .expect("unknown filesystem settings must remain rejected");
+        assert!(errors.iter().any(|error| error.code == "SPX-G263"));
+    }
     let mut changed = original.clone();
     changed.extend_from_slice(b"[include]\npath = /tmp/ambient-git-config\n");
     fs::write(&config, changed).unwrap();

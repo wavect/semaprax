@@ -1,5 +1,6 @@
 //! Authored, unrun consumers of the actual explicit-profile CLI package.
 //! Provisioned TypeScript/browser gates never install or silently skip tools.
+#[cfg(unix)]
 use std::fs;
 use std::path::Path;
 use std::process::{Command, Output};

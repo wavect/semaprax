@@ -25,11 +25,7 @@ pub(crate) fn render_sources(
     let cargo_toml = format!(
         "[package]\nname = \"{OWNED_CRATE_NAME}\"\nversion = \"{OWNED_CRATE_VERSION}\"\nedition = \"2021\"\nrust-version = \"1.85\"\npublish = false\nbuild = \"build.rs\"\n\n[lib]\npath = \"lib.rs\"\n\n[workspace]\n"
     );
-    let archive = target.archive_name();
-    let target = target.triple();
-    let build_rs = format!(
-        "#![forbid(unsafe_code)]\nfn main(){{if std::env::var(\"TARGET\").unwrap_or_default()!={target:?}{{panic!(\"generated SEMAPRAX owned-data SDK target mismatch\")}}println!(\"cargo:rerun-if-changed={archive}\");println!(\"cargo:rustc-link-search=native={{}}\",std::env::var(\"CARGO_MANIFEST_DIR\").unwrap());println!(\"cargo:rustc-link-lib=static=semaprax_native_rust_owned_data_sdk\");}}\n"
-    );
+    let build_rs = super::build_script::render(target, false);
     Sources {
         cargo_toml,
         build_rs,

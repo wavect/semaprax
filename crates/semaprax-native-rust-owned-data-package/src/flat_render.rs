@@ -17,11 +17,9 @@ pub(crate) struct Sources {
 }
 
 pub(crate) fn render_sources(descriptor: &Descriptor, target: HostTarget) -> Sources {
-    let archive = target.archive_name();
-    let triple = target.triple();
     Sources {
         cargo_toml: format!("[package]\nname = \"{OWNED_CRATE_NAME}\"\nversion = \"{OWNED_CRATE_VERSION}\"\nedition = \"2021\"\nrust-version = \"1.85\"\npublish = false\nbuild = \"build.rs\"\n\n[lib]\npath = \"lib.rs\"\n\n[workspace]\n"),
-        build_rs: format!("#![forbid(unsafe_code)]\nfn main(){{if std::env::var(\"TARGET\").unwrap_or_default()!={triple:?}{{panic!(\"generated SEMAPRAX flat-record SDK target mismatch\")}}println!(\"cargo:rerun-if-changed={archive}\");println!(\"cargo:rustc-link-search=native={{}}\",std::env::var(\"CARGO_MANIFEST_DIR\").unwrap());println!(\"cargo:rustc-link-lib=static=semaprax_native_rust_owned_data_sdk\");}}\n"),
+        build_rs: super::build_script::render(target, true),
         lib_rs: render_lib(descriptor),
         ffi_rs: render_ffi(descriptor),
     }

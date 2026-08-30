@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Closed Cargo instruction injection through CR/LF-bearing owned-data SDK
+  package paths. V8/v9/v10 now share a private build-script renderer that
+  validates the path before stdout while preserving target-error precedence
+  and valid instruction bytes. Generated `build.rs` and manifest bindings
+  intentionally change; descriptors, providers, safe APIs, FFI, and scalar
+  SDK artifacts do not. Generated-script regressions are authored but unrun.
+
 - Added a separate allocator-observed native O0/O2 lane for the frame-payload
   product, preserving its plain-provider runs and exact nine-case corpus.
   Per-call pointer and allocator accounting checks actual payload release,

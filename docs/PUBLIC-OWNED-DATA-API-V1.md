@@ -378,6 +378,40 @@ substituting another libc or ABI. Unsupported targets retain the existing
 tool error before staging; v8/v9/v10 descriptors and supported-target package
 bytes are unchanged by this selection rule.
 
+### Generated Cargo build-script path boundary
+
+The shared private build-script renderer for v8, v9, and v10 validates
+`CARGO_MANIFEST_DIR` before printing any Cargo instruction. After the existing
+target-mismatch check, it requires a present Unicode path containing neither
+CR nor LF. It does not canonicalize, require existence, or reject spaces and
+other ordinary Unicode characters. Accepted paths retain the exact three
+archive-change, native-search, and static-link instructions in their original
+order. This follows Cargo's [line-oriented build-script output contract](https://doc.rust-lang.org/cargo/reference/build-scripts.html#outputs-of-the-build-script):
+a path must not introduce another instruction line.
+
+This correction intentionally changes generated `build.rs` bytes and their
+manifest integrity bindings, including standalone owned-data evidence packages.
+It does not change descriptors, provider C/archive bytes, generated safe/FFI
+Rust, public signatures, package schemas, or the existing scalar SDK. Missing,
+non-Unicode, and CR/LF paths fail before any stdout; target mismatch retains
+precedence and its original message.
+
+The lower package's `build_script::tests` renders both families for all five
+target identities and authors standalone build-script subprocess checks for
+the current host. The two executables are reused across valid-path, CR/LF,
+missing-variable, target-precedence, and platform-specific non-Unicode cases.
+These regressions are unrun. They test the generated instruction boundary, not
+Cargo's downstream execution, archive linking, pathname authority, or a build
+sandbox; the separate real package consumers remain required.
+
+Focused gate (not executed in this tranche):
+
+```sh
+cargo test --locked -p semaprax-native-rust-owned-data-package build_script::tests
+```
+
+### Raw Wasm call boundary
+
 The raw Wasm owned-result call shape is profile-specific:
 
 ```text

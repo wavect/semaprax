@@ -170,6 +170,13 @@ The new physical allocation evidence is authored but unrun.
 
 ## Evidence boundary
 
+The shared [Cargo build-script path boundary](PUBLIC-OWNED-DATA-API-V1.md#generated-cargo-build-script-path-boundary)
+also applies to the v9 Rust package: reject missing, non-Unicode, or CR/LF
+package paths before any Cargo instruction. Generated `build.rs` and dependent
+manifest bindings intentionally change; descriptors, provider archives, safe
+Rust structs, FFI, and the v9 schema remain unchanged. The checks are authored
+but unrun.
+
 The authored physical npm/Core-Wasm and native-provider/safe-Rust routes are
 wired to the exact descriptor. The npm facade authenticates every scalar
 before copying and settling its sole opaque handle, then constructs the frozen

@@ -60,6 +60,12 @@ authority and receives no HIR or independent semantic-proof authority.
 
 ## Settlement
 
+The v10 Rust package shares the [Cargo build-script path boundary](PUBLIC-OWNED-DATA-API-V1.md#generated-cargo-build-script-path-boundary).
+Missing, non-Unicode, and CR/LF package paths reject before Cargo instructions;
+the target guard retains precedence. Only generated `build.rs` and its manifest
+integrity bindings change, not UTF-8 descriptors, provider archives, safe/FFI
+Rust, or package schemas. These regressions are authored but unrun.
+
 The existing closure admission remains narrow: a String-returning function
 must have a literal or direct retained-function call as its body (optionally
 inside an empty block). A non-String-returning body may not stage String

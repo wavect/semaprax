@@ -577,6 +577,12 @@ unsafe code; the private generated FFI sibling remains the quarantine for
 opaque provider handles. Neither layer transfers provider allocation into a
 host allocator.
 
+The lower package's private `build_script.rs` renders both owned-data build
+script families. It preserves target selection and validates the package path
+before line-oriented Cargo output; path text cannot introduce CR/LF directives.
+See the [path boundary](PUBLIC-OWNED-DATA-API-V1.md#generated-cargo-build-script-path-boundary)
+for the intentional artifact change and authored, unrun regression scope.
+
 The generated owned-data Rust invocation guard proves whole-context settlement
 through the existing context-close ABI before any outward value or recoverable
 error. Inner owner guards settle before context closure, including on unwind.

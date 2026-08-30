@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 use semaprax_native_rust_interop_platform::{current_native_host_target, NativeHostTarget};
 use sha2::{Digest, Sha256};
 
+mod build_script;
 mod descriptor;
 mod flat_descriptor;
 mod flat_render;

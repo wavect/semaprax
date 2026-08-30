@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Centralized native SDK current-target selection around complete compiled
+  ABI facts instead of OS/CPU alone, rejecting musl/GNU-Windows and mismatched
+  vendor, pointer-width, endianness or ABI without relabeling them. Preserved
+  the five public package targets and six private Phase-A targets, existing
+  diagnostic ordering, and supported-target artifact bytes. Pure selector and
+  caller-policy regressions are authored but unrun; no platform support or
+  completion status is promoted.
+
 - Preserved uncertain archive settlement in the lower native owned-data
   package builder instead of discarding that state and attempting cleanup.
   Uncertain failures now retain the inert stage and stop before rechecks or

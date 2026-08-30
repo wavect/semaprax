@@ -532,18 +532,22 @@ fn string_array(output: &mut String, values: &[String]) {
 }
 
 fn target_triple() -> Option<&'static str> {
-    if cfg!(all(target_arch = "x86_64", target_os = "linux")) {
-        Some("x86_64-unknown-linux-gnu")
-    } else if cfg!(all(target_arch = "aarch64", target_os = "linux")) {
-        Some("aarch64-unknown-linux-gnu")
-    } else if cfg!(all(target_arch = "x86_64", target_os = "macos")) {
-        Some("x86_64-apple-darwin")
-    } else if cfg!(all(target_arch = "aarch64", target_os = "macos")) {
-        Some("aarch64-apple-darwin")
-    } else if cfg!(all(target_arch = "x86_64", target_os = "windows")) {
-        Some("x86_64-pc-windows-msvc")
-    } else {
-        None
+    target_triple_for(crate::platform::current_native_host_target())
+}
+
+const fn target_triple_for(
+    host: Option<crate::platform::NativeHostTarget>,
+) -> Option<&'static str> {
+    use crate::platform::NativeHostTarget;
+    match host {
+        Some(
+            target @ (NativeHostTarget::X86_64LinuxGnu
+            | NativeHostTarget::Aarch64LinuxGnu
+            | NativeHostTarget::X86_64Darwin
+            | NativeHostTarget::Aarch64Darwin
+            | NativeHostTarget::X86_64WindowsMsvc),
+        ) => Some(target.triple()),
+        Some(NativeHostTarget::Aarch64WindowsMsvc) | None => None,
     }
 }
 
@@ -609,3 +613,6 @@ pub use project::build_project_native_rust_sdk;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod target_tests;

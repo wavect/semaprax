@@ -11,6 +11,7 @@
 
 use std::path::{Path, PathBuf};
 
+use semaprax_native_rust_interop_platform::{current_native_host_target, NativeHostTarget};
 use sha2::{Digest, Sha256};
 
 mod descriptor;
@@ -55,18 +56,17 @@ pub enum HostTarget {
 
 impl HostTarget {
     pub const fn current() -> Option<Self> {
-        if cfg!(all(target_arch = "x86_64", target_os = "linux")) {
-            Some(Self::X86_64LinuxGnu)
-        } else if cfg!(all(target_arch = "aarch64", target_os = "linux")) {
-            Some(Self::Aarch64LinuxGnu)
-        } else if cfg!(all(target_arch = "x86_64", target_os = "macos")) {
-            Some(Self::X86_64Darwin)
-        } else if cfg!(all(target_arch = "aarch64", target_os = "macos")) {
-            Some(Self::Aarch64Darwin)
-        } else if cfg!(all(target_arch = "x86_64", target_os = "windows")) {
-            Some(Self::X86_64WindowsMsvc)
-        } else {
-            None
+        Self::from_native_host_target(current_native_host_target())
+    }
+
+    const fn from_native_host_target(target: Option<NativeHostTarget>) -> Option<Self> {
+        match target {
+            Some(NativeHostTarget::X86_64LinuxGnu) => Some(Self::X86_64LinuxGnu),
+            Some(NativeHostTarget::Aarch64LinuxGnu) => Some(Self::Aarch64LinuxGnu),
+            Some(NativeHostTarget::X86_64Darwin) => Some(Self::X86_64Darwin),
+            Some(NativeHostTarget::Aarch64Darwin) => Some(Self::Aarch64Darwin),
+            Some(NativeHostTarget::X86_64WindowsMsvc) => Some(Self::X86_64WindowsMsvc),
+            Some(NativeHostTarget::Aarch64WindowsMsvc) | None => None,
         }
     }
 
@@ -464,3 +464,6 @@ mod tests;
 
 #[cfg(test)]
 mod descriptor_input_tests;
+
+#[cfg(test)]
+mod host_target_tests;

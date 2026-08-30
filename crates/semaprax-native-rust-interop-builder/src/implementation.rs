@@ -2279,21 +2279,11 @@ fn current_target() -> Option<Target> {
     if let Some(target) = TEST_TARGET_OVERRIDE.with(|slot| slot.borrow().clone()) {
         return Some(target);
     }
-    let triple = if cfg!(all(target_arch = "x86_64", target_os = "linux")) {
-        "x86_64-unknown-linux-gnu"
-    } else if cfg!(all(target_arch = "aarch64", target_os = "linux")) {
-        "aarch64-unknown-linux-gnu"
-    } else if cfg!(all(target_arch = "x86_64", target_os = "macos")) {
-        "x86_64-apple-darwin"
-    } else if cfg!(all(target_arch = "aarch64", target_os = "macos")) {
-        "aarch64-apple-darwin"
-    } else if cfg!(all(target_arch = "x86_64", target_os = "windows")) {
-        "x86_64-pc-windows-msvc"
-    } else if cfg!(all(target_arch = "aarch64", target_os = "windows")) {
-        "aarch64-pc-windows-msvc"
-    } else {
-        return None;
-    };
+    target_from_native_host(crate::platform::current_native_host_target())
+}
+
+fn target_from_native_host(host: Option<crate::platform::NativeHostTarget>) -> Option<Target> {
+    let triple = host?.triple();
     Some(Target {
         triple: triple.to_owned(),
         pointer_width: 64,
@@ -6049,3 +6039,7 @@ fn publish_stage_platform(
 #[cfg(test)]
 #[path = "implementation/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "implementation/target_tests.rs"]
+mod target_tests;

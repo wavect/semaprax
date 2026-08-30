@@ -166,25 +166,33 @@ fn canonical_options_reject_duplicates_and_nonportable_ids() {
 
 #[test]
 fn generated_cargo_package_has_no_dependency_or_repository_escape() {
-    let facts = DescriptorFacts {
-        module: "calculator".into(),
-        source_revision: "sha256:00".into(),
-        target: target_triple().unwrap().into(),
-        exports: Vec::new(),
-        imports: Vec::new(),
-    };
-    let sources = render_package_sources(&facts, &[]);
-    assert!(sources.cargo_toml.contains("publish = false"));
-    assert!(!sources.cargo_toml.contains("dependencies"));
-    assert!(!sources.cargo_toml.contains("path = \"../"));
-    assert!(!sources.build_rs.contains("Command"));
-    assert!(!sources.build_rs.contains("cargo:rustc-env"));
-    assert!(sources.build_rs.contains("var_os(\"CARGO_MANIFEST_DIR\")"));
-    assert!(sources.build_rs.contains("path.contains(['\\r','\\n'])"));
-    assert!(!sources
-        .build_rs
-        .contains("cargo:rustc-link-search=native=native"));
-    assert!(!sources.build_rs.contains("eprintln!"));
+    for target in [
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-apple-darwin",
+        "aarch64-apple-darwin",
+        "x86_64-pc-windows-msvc",
+    ] {
+        let facts = DescriptorFacts {
+            module: "calculator".into(),
+            source_revision: "sha256:00".into(),
+            target: target.into(),
+            exports: Vec::new(),
+            imports: Vec::new(),
+        };
+        let sources = render_package_sources(&facts, &[]);
+        assert!(sources.cargo_toml.contains("publish = false"));
+        assert!(!sources.cargo_toml.contains("dependencies"));
+        assert!(!sources.cargo_toml.contains("path = \"../"));
+        assert!(!sources.build_rs.contains("Command"));
+        assert!(!sources.build_rs.contains("cargo:rustc-env"));
+        assert!(sources.build_rs.contains("var_os(\"CARGO_MANIFEST_DIR\")"));
+        assert!(sources.build_rs.contains("path.contains(['\\r','\\n'])"));
+        assert!(!sources
+            .build_rs
+            .contains("cargo:rustc-link-search=native=native"));
+        assert!(!sources.build_rs.contains("eprintln!"));
+    }
 }
 
 #[test]

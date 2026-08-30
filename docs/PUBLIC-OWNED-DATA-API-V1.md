@@ -371,6 +371,13 @@ safe package must build locked and offline without repository source or a
 workspace dependency. Unsafe FFI remains quarantined outside the root
 `semaprax` crate and outside the generated safe API.
 
+The lower builder shares the scalar SDK's
+[compiled-ABI admission](NATIVE-RUST-INTEROP-V1.md): five supported
+GNU/Linux, Apple/macOS, and x86-64 MSVC/Windows target identities, without
+substituting another libc or ABI. Unsupported targets retain the existing
+tool error before staging; v8/v9/v10 descriptors and supported-target package
+bytes are unchanged by this selection rule.
+
 The raw Wasm owned-result call shape is profile-specific:
 
 ```text

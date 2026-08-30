@@ -70,40 +70,48 @@ fn standalone_source_and_manifest_shape_remain_frozen_while_project_mode_is_addi
     let bytes = descriptor_bytes("owned-bytes");
     let digest = descriptor_digest(&bytes);
     let descriptor = descriptor::replay(&bytes, &digest, &["fixture.value".to_owned()]).unwrap();
-    let target = HostTarget::current().unwrap();
-    let standalone = render::render_sources(&descriptor, target, PackageMode::StandaloneEvidence);
-    let project = render::render_sources(&descriptor, target, PackageMode::ProjectV8);
-    assert!(standalone
-        .ffi_rs
-        .contains("if bytes.capacity()!=length{return Err(Failure::Host)}"));
-    assert!(!project
-        .ffi_rs
-        .contains("if bytes.capacity()!=length{return Err(Failure::Host)}"));
-    let archive = target.archive_name();
-    let files = [
-        ("Cargo.toml", standalone.cargo_toml.as_bytes()),
-        ("build.rs", standalone.build_rs.as_bytes()),
-        ("lib.rs", standalone.lib_rs.as_bytes()),
-        ("owned_data_ffi.rs", standalone.ffi_rs.as_bytes()),
-        (archive, b"archive".as_slice()),
-        ("descriptor.json", bytes.as_slice()),
-    ];
-    let manifest = render::render_manifest(
-        target,
-        &bytes,
-        &digest,
-        archive,
-        PackageMode::StandaloneEvidence,
-        "sha256:provider",
-        files,
-    );
-    let value: Value = serde_json::from_str(&manifest).unwrap();
-    assert_eq!(value["provider"].as_object().unwrap().len(), 3);
-    assert!(value["nonclaims"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|value| value == "no_project_v8_activation"));
+    for target in [
+        HostTarget::X86_64LinuxGnu,
+        HostTarget::Aarch64LinuxGnu,
+        HostTarget::X86_64Darwin,
+        HostTarget::Aarch64Darwin,
+        HostTarget::X86_64WindowsMsvc,
+    ] {
+        let standalone =
+            render::render_sources(&descriptor, target, PackageMode::StandaloneEvidence);
+        let project = render::render_sources(&descriptor, target, PackageMode::ProjectV8);
+        assert!(standalone
+            .ffi_rs
+            .contains("if bytes.capacity()!=length{return Err(Failure::Host)}"));
+        assert!(!project
+            .ffi_rs
+            .contains("if bytes.capacity()!=length{return Err(Failure::Host)}"));
+        let archive = target.archive_name();
+        let files = [
+            ("Cargo.toml", standalone.cargo_toml.as_bytes()),
+            ("build.rs", standalone.build_rs.as_bytes()),
+            ("lib.rs", standalone.lib_rs.as_bytes()),
+            ("owned_data_ffi.rs", standalone.ffi_rs.as_bytes()),
+            (archive, b"archive".as_slice()),
+            ("descriptor.json", bytes.as_slice()),
+        ];
+        let manifest = render::render_manifest(
+            target,
+            &bytes,
+            &digest,
+            archive,
+            PackageMode::StandaloneEvidence,
+            "sha256:provider",
+            files,
+        );
+        let value: Value = serde_json::from_str(&manifest).unwrap();
+        assert_eq!(value["provider"].as_object().unwrap().len(), 3);
+        assert!(value["nonclaims"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|value| value == "no_project_v8_activation"));
+    }
 }
 
 #[test]
@@ -114,17 +122,21 @@ fn v10_replay_uses_its_exact_domain_and_renders_mixed_safe_utf8_settlement() {
     let descriptor = descriptor::replay(&bytes, &digest, &selected).unwrap();
     assert_eq!(descriptor.exports_len(), 2);
     assert!(descriptor::replay(&bytes, &descriptor_digest(&bytes), &selected).is_err());
-    let sources = render::render_sources(
-        &descriptor,
-        HostTarget::current().unwrap(),
-        PackageMode::ProjectV10OwnedUtf8,
-    );
-    assert!(sources.lib_rs.contains("pub fn spx_fixture_dot_count"));
-    assert!(
-        sources.lib_rs.find("copy_and_settle(raw.handle)").unwrap()
-            < sources.lib_rs.find("String::from_utf8(bytes)").unwrap()
-    );
-    assert!(sources.ffi_rs.contains("pub fn call_spx_fixture_dot_text"));
+    for target in [
+        HostTarget::X86_64LinuxGnu,
+        HostTarget::Aarch64LinuxGnu,
+        HostTarget::X86_64Darwin,
+        HostTarget::Aarch64Darwin,
+        HostTarget::X86_64WindowsMsvc,
+    ] {
+        let sources = render::render_sources(&descriptor, target, PackageMode::ProjectV10OwnedUtf8);
+        assert!(sources.lib_rs.contains("pub fn spx_fixture_dot_count"));
+        assert!(
+            sources.lib_rs.find("copy_and_settle(raw.handle)").unwrap()
+                < sources.lib_rs.find("String::from_utf8(bytes)").unwrap()
+        );
+        assert!(sources.ffi_rs.contains("pub fn call_spx_fixture_dot_text"));
+    }
 }
 
 #[test]

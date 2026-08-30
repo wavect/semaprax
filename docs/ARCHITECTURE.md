@@ -746,6 +746,10 @@ contract:
 - `crates/semaprax-native-host`: connected callable and settlement host;
 - `crates/semaprax-native-rust-interop-*`: unpublished deterministic Rust SDK
   builder and platform-specific publication authority;
+- `crates/semaprax-native-rust-interop-platform/src/host_target.rs`: shared
+  compile-time native target classification; scalar and owned-data package
+  callers retain their narrower publication allowlist, separate from private
+  Phase-A target preparation and all held-tool authority;
 - `crates/semaprax-native-rust-owned-data-package`: dependency-inverted
   Project-v8 held-tool, archive, deterministic rendering, publication, and
   held-stage verification authority; it receives no source, HIR, or provider

@@ -78,6 +78,22 @@ ID, source parameter names and scalar types, result, sorted effects and
 capabilities, exact status domains/ordinals including semantic 65533, host
 65534, and adapter 65535 where required, complete ABI row, and target.
 
+Current-target selection uses the builder's compiled target facts, not merely
+its CPU and operating system. The shared selector requires 64-bit pointers,
+little endian, an empty disambiguating ABI, and the exact vendor/environment:
+`unknown`/`gnu` for Linux, `apple`/empty for macOS, or `pc`/`msvc` for Windows.
+The private Phase-A target profile retains x86-64 and AArch64 for those three
+families. Public scalar and owned-data SDK publication retain the narrower five
+targets, excluding AArch64 Windows because its archive tool plan is not frozen.
+Musl, GNU Windows, x32, big-endian, and mismatched vendor/ABI configurations do
+not inherit another target's identity. They fail through existing unsupported
+target errors before staging. This is a pure compile-time selection rule, not
+runtime host discovery, cross-compilation support, or toolchain attestation;
+the later held-tool checks and existing panic/thread policies remain separate.
+Rust `cfg` facts do not authenticate the raw Cargo `TARGET` spelling or a custom
+target specification. Specifications sharing the admitted facts are
+indistinguishable here; no custom-target support is claimed.
+
 Limits are fixed: exports 32, imports 32, parameters 8, closure functions 256,
 status domains 64, effects 64, identifier bytes 128, source bytes 16,777,216,
 spec bytes 1,048,576, descriptor bytes 1,048,576, generated C bytes 4,194,304,

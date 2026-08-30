@@ -4,6 +4,9 @@
 
 mod doctor;
 pub use doctor::{doctor_version_probe, DoctorProbeError};
+mod host_target;
+#[doc(hidden)]
+pub use host_target::{current_native_host_target, NativeHostTarget};
 
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};

@@ -285,10 +285,9 @@ fn receiver_owner(programs: &[Program], target: &str) -> Result<Option<usize>> {
                 && declaration.explicit_id
                 && declaration.type_parameters.is_empty()
                 && matches!(declaration.kind, TypeDeclarationKind::Record { .. })
+                && found.replace(owner).is_some()
             {
-                if found.replace(owner).is_some() {
-                    return Err(invalid("implementation receiver identity is ambiguous"));
-                }
+                return Err(invalid("implementation receiver identity is ambiguous"));
             }
         }
     }

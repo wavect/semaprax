@@ -37,7 +37,7 @@ impl Fixture {
 "#,
         );
         std::fs::write(&path, source).unwrap();
-        Self(root)
+        Self(root.canonicalize().unwrap())
     }
     fn candidate(&self) -> ProjectCandidate {
         let revision = with_authenticated_project(&self.0.join("semaprax.toml"), |snapshot| {

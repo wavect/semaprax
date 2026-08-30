@@ -25,7 +25,7 @@ impl Fixture {
         for file in FILES {
             std::fs::copy(source.join(file), root.join(file)).unwrap();
         }
-        Self(root)
+        Self(root.canonicalize().unwrap())
     }
     fn session(&self, capability: ImageHostCapability) -> ImageSession {
         ImageSession::open(&self.0.join("semaprax.toml"), capability).unwrap()

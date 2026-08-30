@@ -37,7 +37,7 @@ impl Fixture {
 "#;
         let program = semaprax::parse(&source, Path::new("src/core.spx")).unwrap();
         std::fs::write(path, semaprax::format::canonical(&program)).unwrap();
-        Self(root)
+        Self(root.canonicalize().unwrap())
     }
     fn candidate(&self) -> Arc<ProjectCandidate> {
         with_authenticated_project(&self.0.join("semaprax.toml"), |snapshot| {

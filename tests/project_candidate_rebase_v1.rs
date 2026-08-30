@@ -28,7 +28,7 @@ impl Fixture {
         ] {
             std::fs::copy(sample.join(file), root.join(file)).unwrap();
         }
-        Self(root)
+        Self(root.canonicalize().unwrap())
     }
     fn revision(&self) -> Arc<ProjectRevision> {
         with_authenticated_project(&self.0.join("semaprax.toml"), |snapshot| {

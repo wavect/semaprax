@@ -57,7 +57,7 @@ fn parallel_image_reads_equal_sequential_bytes_in_request_order() {
     let mut sequential = fixture.session();
     let mut parallel = fixture.session();
     let revision = parallel.image_revision();
-    let requests = vec![
+    let requests = [
         frame(8, "workspace/open", json!({})),
         frame(
             3,

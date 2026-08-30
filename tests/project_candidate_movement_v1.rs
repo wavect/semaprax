@@ -16,7 +16,7 @@ impl Fixture {
             SERIAL.fetch_add(1, Ordering::Relaxed)
         ));
         std::fs::create_dir_all(root.join("src")).unwrap();
-        let fixture = Self(root);
+        let fixture = Self(root.canonicalize().unwrap());
         std::fs::write(fixture.0.join("semaprax.toml"), "schema = \"semaprax.project.v1\"\nname = \"mover\"\nentry = \"mover.app\"\nsources = [\"src/app.spx\", \"src/core.spx\", \"src/support.spx\", \"src/tests.spx\"]\nweb_exports = [\"move.export\"]\ntests = [\"mover.tests\"]\n").unwrap();
         fixture.write("core", "module mover.core; @id(\"move.export\") fn exported(value:i64)->i64 {value} @id(\"move.helper\") fn helper(value:i64)->i64 requires value>=0 ensures result>=0 {exported(value)}");
         fixture.write("app", "module mover.app; use function @id(\"move.helper\") from mover.core as via_helper; @id(\"move.app.main\") fn main()->i64 {via_helper(1)}");

@@ -66,10 +66,10 @@ fn apply_inner(
     let mut selected = None;
     for (program_index, program) in programs.iter().enumerate() {
         for (function_index, function) in program.functions.iter().enumerate() {
-            if function.stable_id == target {
-                if selected.replace((program_index, function_index)).is_some() {
-                    return Err(grammar("candidate intention target is ambiguous"));
-                }
+            if function.stable_id == target
+                && selected.replace((program_index, function_index)).is_some()
+            {
+                return Err(grammar("candidate intention target is ambiguous"));
             }
         }
     }

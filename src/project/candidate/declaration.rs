@@ -255,15 +255,14 @@ fn anchor(programs: &[Program], target: &str) -> Result<(usize, usize)> {
     let mut found = None;
     for (owner, program) in programs.iter().enumerate() {
         for (index, function) in program.functions.iter().enumerate() {
-            if function.stable_id == target {
-                if !function.explicit_id
+            if function.stable_id == target
+                && (!function.explicit_id
                     || !function.type_parameters.is_empty()
-                    || found.replace((owner, index)).is_some()
-                {
-                    return Err(grammar(
-                        "declaration anchor must be one explicit monomorphic top-level function",
-                    ));
-                }
+                    || found.replace((owner, index)).is_some())
+            {
+                return Err(grammar(
+                    "declaration anchor must be one explicit monomorphic top-level function",
+                ));
             }
         }
     }

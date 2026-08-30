@@ -27,6 +27,10 @@ struct Identity {
     uid: u32,
 }
 impl Identity {
+    #[allow(
+        clippy::unnecessary_cast,
+        reason = "stat field widths vary across Unix ABIs"
+    )]
     fn from_stat(stat: &Stat) -> Self {
         Self {
             device: stat.st_dev as u64,
@@ -46,7 +50,7 @@ impl FileFact {
         if !FileType::from_raw_mode(stat.st_mode).is_file()
             || stat.st_nlink != 1
             || stat.st_uid != rustix::process::geteuid().as_raw()
-            || stat.st_mode as u32 & 0o7777 != 0o600
+            || stat.st_mode & 0o7777 != 0o600
         {
             return Err(binding(
                 "semantic cache store file must be current-euid-owned regular single-link 0600",
@@ -336,7 +340,7 @@ fn publish(
             "semantic cache destination already exists; no adoption or overwrite",
         ));
     }
-    unchanged(&root, &initial)?;
+    unchanged(root, &initial)?;
     verify()?;
     let fd = fs::openat(
         root.fd(),
@@ -357,8 +361,8 @@ fn publish(
     }
     let mut staged = initial.clone();
     staged.insert(stage.to_owned(), created);
-    unchanged(&root, &staged)?;
-    selected(&root, &stage, &mut file, created, b"")?;
+    unchanged(root, &staged)?;
+    selected(root, stage, &mut file, created, b"")?;
     file.write_all(bytes)
         .and_then(|()| file.sync_all())
         .map_err(|_| io("cannot write and settle semantic cache stage"))?;
@@ -369,12 +373,12 @@ fn publish(
         ));
     }
     staged.insert(stage.to_owned(), written);
-    unchanged(&root, &staged)?;
-    selected(&root, &stage, &mut file, written, bytes)?;
+    unchanged(root, &staged)?;
+    selected(root, stage, &mut file, written, bytes)?;
     fs::fsync(root.fd()).map_err(|_| io("cannot settle semantic cache stage directory"))?;
     verify()?;
-    unchanged(&root, &staged)?;
-    selected(&root, &stage, &mut file, written, bytes)?;
+    unchanged(root, &staged)?;
+    selected(root, stage, &mut file, written, bytes)?;
     file.sync_all()
         .map_err(|_| io("cannot resettle semantic cache stage"))?;
     fs::renameat_with(
@@ -390,8 +394,8 @@ fn publish(
         fs::fsync(root.fd()).map_err(|_| io("cannot settle published semantic cache directory"))?;
         let mut published = initial;
         published.insert(destination.to_owned(), written);
-        unchanged(&root, &published)?;
-        selected(&root, &destination, &mut file, written, bytes)?;
+        unchanged(root, &published)?;
+        selected(root, destination, &mut file, written, bytes)?;
         verify()?;
         lock.release()?;
         Ok(())
@@ -527,6 +531,10 @@ struct CompilerFact {
     bytes: u64,
     links: u64,
 }
+#[allow(
+    clippy::unnecessary_cast,
+    reason = "stat field widths vary across Unix ABIs"
+)]
 fn compiler_fact(stat: &Stat) -> Result<CompilerFact> {
     if !FileType::from_raw_mode(stat.st_mode).is_file()
         || stat.st_size <= 0

@@ -460,9 +460,7 @@ mod publication_boundary_tests {
                 Ok(())
             },
         );
-        let errors = result
-            .err()
-            .expect("postpublication drift must fail explicitly");
+        let errors = result.expect_err("postpublication drift must fail explicitly");
         assert!(errors.iter().any(|error| error.code == "SPX-G248"));
         assert_eq!(
             crate::workspace::snapshot(&root)

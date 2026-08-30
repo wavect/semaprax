@@ -25,6 +25,10 @@ struct Identity {
     uid: u32,
 }
 impl Identity {
+    #[allow(
+        clippy::unnecessary_cast,
+        reason = "stat field widths vary across Unix ABIs"
+    )]
     fn from_stat(stat: &Stat) -> Self {
         Self {
             device: stat.st_dev as u64,
@@ -44,7 +48,7 @@ impl FileFact {
         if !FileType::from_raw_mode(stat.st_mode).is_file()
             || stat.st_nlink != 1
             || stat.st_uid != rustix::process::geteuid().as_raw()
-            || stat.st_mode as u32 & 0o7777 != 0o600
+            || stat.st_mode & 0o7777 != 0o600
         {
             return Err(binding(
                 "archive store file must be current-euid-owned regular single-link 0600",

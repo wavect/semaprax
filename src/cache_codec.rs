@@ -81,8 +81,7 @@ impl Encoder {
                 self.bytes
                     .capacity()
                     .saturating_mul(2)
-                    .max(256)
-                    .min(MAX_BYTES),
+                    .clamp(256, MAX_BYTES),
             );
             self.bytes
                 .try_reserve_exact(target - self.bytes.len())

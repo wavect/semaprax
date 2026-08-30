@@ -29,7 +29,7 @@ impl Fixture {
             let path = format!("src/{file}.spx");
             std::fs::write(root.join(&path), semaprax::format::canonical(&semaprax::parse(source, &path).unwrap())).unwrap();
         }
-        Self(root)
+        Self(root.canonicalize().unwrap())
     }
     fn candidate(&self) -> ProjectCandidate {
         let revision = with_authenticated_project(&self.0.join("semaprax.toml"), |snapshot| {

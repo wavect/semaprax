@@ -79,7 +79,7 @@ use function @id("field.evaluate") from field.core as evaluate;
             let program = semaprax::parse(source, Path::new(path)).unwrap();
             std::fs::write(root.join(path), semaprax::format::canonical(&program)).unwrap();
         }
-        Self(root)
+        Self(root.canonicalize().unwrap())
     }
     fn candidate(&self) -> ProjectCandidate {
         let revision = with_authenticated_project(&self.0.join("semaprax.toml"), |snapshot| {
@@ -170,7 +170,7 @@ fn all_alias_constructors_contracts_and_nested_patterns_migrate_with_exact_repla
     let replay = ProjectCandidate::replay(
         Arc::clone(root.base_revision()),
         root.base_revision().project_revision(),
-        &[change.clone()],
+        std::slice::from_ref(&change),
         candidate.to_json().as_bytes(),
     )
     .unwrap();

@@ -22,7 +22,7 @@ impl Fixture {
         for file in ["semaprax.toml", "src/app.spx", module_file, "src/tests.spx"] {
             std::fs::copy(source.join(file), root.join(file)).unwrap();
         }
-        Self(root)
+        Self(root.canonicalize().unwrap())
     }
     fn candidate(&self) -> ProjectCandidate {
         let revision = with_authenticated_project(&self.0.join("semaprax.toml"), |snapshot| {

@@ -164,7 +164,7 @@ fn repeated_capture_is_one_copy_parameter_and_replay_preserves_source_authority(
     let replay = ProjectCandidate::replay(
         Arc::clone(&revision),
         revision.project_revision(),
-        &[change.clone()],
+        std::slice::from_ref(&change),
         candidate.to_json().as_bytes(),
     )
     .unwrap();

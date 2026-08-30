@@ -26,7 +26,7 @@ impl Fixture {
         ] {
             std::fs::copy(example.join(path), root.join(path)).unwrap();
         }
-        Self(root)
+        Self(root.canonicalize().unwrap())
     }
     fn open(&self) -> ProjectCandidate {
         let revision = with_authenticated_project(&self.0.join("semaprax.toml"), |snapshot| {

@@ -1,6 +1,6 @@
 //! Explicit Unix host adapter; never instantiated by an agent request or capsule.
 use super::*;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 pub struct CandidateGitProcessAuthority {
     #[cfg(unix)]
@@ -191,6 +191,7 @@ mod unix {
     use std::io::{Read, Write};
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
     use std::os::unix::process::CommandExt;
+    use std::path::PathBuf;
     use std::process::{Command, Stdio};
     use std::sync::mpsc;
     pub(super) struct Host {

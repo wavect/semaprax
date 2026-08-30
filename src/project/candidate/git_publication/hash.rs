@@ -56,14 +56,14 @@ fn sha1(parts: &[&[u8]]) -> [u8; 20] {
     block[56..].copy_from_slice(&(length * 8).to_be_bytes());
     compress(&mut state, &block);
     let mut output = [0u8; 20];
-    for (word, slot) in state.iter().zip(output.chunks_exact_mut(4)) {
+    for (word, slot) in state.iter().zip(output.as_chunks_mut::<4>().0) {
         slot.copy_from_slice(&word.to_be_bytes());
     }
     output
 }
 fn compress(state: &mut [u32; 5], block: &[u8; 64]) {
     let mut words = [0u32; 80];
-    for (word, bytes) in words[..16].iter_mut().zip(block.chunks_exact(4)) {
+    for (word, bytes) in words[..16].iter_mut().zip(block.as_chunks::<4>().0) {
         *word = u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
     }
     for i in 16..80 {

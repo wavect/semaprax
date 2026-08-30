@@ -154,7 +154,7 @@ fn actual_hir_expression_ids_expose_local_scope_and_replace_without_writing_sour
     let replay = ProjectCandidate::replay(
         Arc::clone(&revision),
         revision.project_revision(),
-        &[request.clone()],
+        std::slice::from_ref(&request),
         applied.to_json().as_bytes(),
     )
     .unwrap();
@@ -295,13 +295,12 @@ fn match_binding_is_visible_only_in_its_guard_and_arm() {
         .unwrap()
         .iter()
         .filter(|entry| entry["kind"] == "place")
-        .filter(|entry| {
+        .rfind(|entry| {
             let span = &entry["source_span"];
             source.get(
                 span["start"].as_u64().unwrap() as usize..span["end"].as_u64().unwrap() as usize,
             ) == Some("subtotal")
         })
-        .last()
         .unwrap();
     assert!(!fallback["scope"]
         .as_array()

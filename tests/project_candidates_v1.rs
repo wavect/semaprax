@@ -342,7 +342,7 @@ fn replay_rejects_canonical_tampered_diff_and_noncanonical_or_weakened_change() 
         ProjectCandidate::replay(
             Arc::clone(&revision),
             revision.project_revision(),
-            &[change.clone()],
+            std::slice::from_ref(&change),
             tampered.as_bytes(),
         ),
         "SPX-G224",
@@ -351,7 +351,7 @@ fn replay_rejects_canonical_tampered_diff_and_noncanonical_or_weakened_change() 
         ProjectCandidate::replay(
             Arc::clone(&revision),
             revision.project_revision(),
-            &[change.clone()],
+            std::slice::from_ref(&change),
             candidate.to_json().trim_end_matches('\n').as_bytes(),
         ),
         "SPX-G224",

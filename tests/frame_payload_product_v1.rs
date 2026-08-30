@@ -409,7 +409,7 @@ fn project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_r
             "../frame-payload-generated-sdk",
             &format!("../{label}-generated-sdk"),
         );
-        fs::write(rust_consumer.join("Cargo.toml"), rust_manifest).unwrap();
+        fs::write(rust_consumer.join("Cargo.toml"), &rust_manifest).unwrap();
         fs::write(
             rust_consumer.join("src/main.rs"),
             include_bytes!("../examples/frame-payload-rust/src/main.rs"),

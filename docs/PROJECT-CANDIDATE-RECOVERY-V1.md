@@ -70,5 +70,8 @@ schema, import trusted HIR, or restore source/approval authority.
 Image Candidate Protocol v2 adds `candidate/recovery-export` chunk queries and
 `candidate/recovery-restore` for structured capsules fitting its 64 KiB request
 frame. Existing candidate-registry and response-before-mutation bounds apply.
-The read-only v1 profile gains no methods or authority. Drafts, unresolved holes,
-private last-valid candidates, warm HIR, and entire sessions are not persisted.
+The read-only v1 profile gains no methods or authority. This complete-candidate
+schema does not persist drafts, unresolved holes, warm HIR or entire sessions.
+The separate [Draft Recovery v1](PROJECT-CANDIDATE-DRAFT-RECOVERY-V1.md) wraps a
+complete history with pending selectors and restores only a still-incomplete
+draft through ordinary hole admission. Its transport methods are v5-only.

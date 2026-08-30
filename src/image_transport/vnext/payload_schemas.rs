@@ -208,6 +208,22 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
         put(id, fields);
     }
     put(
+        "semaprax.image-draft-recovery-chunk.v1",
+        vec![
+            ("draft_revision", digest()),
+            (
+                "capsule_schema",
+                json!({"const":crate::project::PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA}),
+            ),
+            ("offset", uint()),
+            ("total_bytes", uint()),
+            ("chunk", text()),
+            ("next_offset", nullable(uint())),
+            ("source_authority", json!({"const":false})),
+            ("materializable", json!({"const":false})),
+        ],
+    );
+    put(
         "semaprax.image-interface-delta-chunk.v1",
         vec![
             (

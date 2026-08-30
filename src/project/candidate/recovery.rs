@@ -17,8 +17,8 @@ pub const PROJECT_CANDIDATE_RECOVERY_SCHEMA: &str = "semaprax.project-candidate-
 pub const PROJECT_CANDIDATE_RECOVERY_COMPATIBILITY: &str =
     "semaprax.project-candidate-recovery-compatibility.v1";
 pub const MAX_PROJECT_CANDIDATE_RECOVERY_BYTES: usize = MAX_PROJECT_CANDIDATE_BYTES;
-const MAX_JSON_NODES: usize = MAX_CHANGES * (2 * 8192 + 128) + 256;
-const MAX_JSON_DEPTH: usize = 128;
+pub(super) const MAX_JSON_NODES: usize = MAX_CHANGES * (2 * 8192 + 128) + 256;
+pub(super) const MAX_JSON_DEPTH: usize = 128;
 const DOMAIN: &[u8] = b"semaprax.project-candidate-recovery.payload.v1\0";
 
 impl ProjectCandidate {

@@ -8,6 +8,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+#[path = "support/owned_npm_publication.rs"]
+mod owned_npm_publication;
 #[path = "support/owned_tuple_product.rs"]
 mod subject;
 
@@ -80,7 +82,7 @@ fn publish(root: &Path, flat: bool, retained: &mut Vec<(PathBuf, Vec<u8>)>) {
         let rows = envelope["artifacts"].as_array().unwrap();
         assert_eq!(rows.len(), ARTIFACTS.len());
         let output = root.join("package");
-        snapshot.build_npm(&output)?;
+        owned_npm_publication::publish(snapshot, &manifest, &output, !flat)?;
         inventory(&output, &ARTIFACTS);
         for (row, name) in rows.iter().zip(ARTIFACTS) {
             assert_eq!(row["path"], name);

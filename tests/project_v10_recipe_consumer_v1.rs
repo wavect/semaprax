@@ -13,6 +13,8 @@ use semaprax::project::{
     MAX_PROJECT_NPM_BUILD_BYTES,
 };
 
+#[path = "support/owned_npm_publication.rs"]
+mod owned_npm_publication;
 #[path = "support/owned_utf8_product.rs"]
 mod subject;
 
@@ -127,7 +129,7 @@ fn publish(root: &Path, renamed: bool, retained: &mut Vec<(PathBuf, Vec<u8>)>) -
         let rows = envelope["artifacts"].as_array().unwrap();
         assert_eq!(rows.len(), ARTIFACTS.len());
         let output = root.join("package");
-        snapshot.build_npm(&output)?;
+        owned_npm_publication::publish(snapshot, &manifest, &output, false)?;
         inventory(&output, &ARTIFACTS);
         for (row, name) in rows.iter().zip(ARTIFACTS) {
             assert_eq!(row["path"], name);

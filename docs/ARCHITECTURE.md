@@ -56,6 +56,15 @@ package. Compiler-owned SDK replay and Windows carrier preparation/replay remain
 before/around explicit injected host calls; opaque prepared facts are not
 filesystem authority. See [development](DEVELOPMENT.md) for binary selection.
 
+For Windows Project v8–v10 npm/Web publication, the compiler's opaque
+`ProjectNpmPublication` retains preparation and replay under the live snapshot.
+The private toolchain's `owned_npm` module alone performs held-handle six-file
+publication; the CLI dispatches before legacy output-parent creation. Standalone
+publication rejects safely. Cleanup authority ends before settlement/rename;
+post-publication byte, inventory and path rechecks cannot regain rollback.
+See [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md) for
+admission restrictions and the unrun physical gates.
+
 The full toolchain's calculator generator checks exact owned template bytes
 before staging through `NewProjectAuthority` in the lower package crate.
 Staging selection excludes exact/ASCII-case-equivalent destination names before

@@ -24,6 +24,8 @@ mod prepared_interpreter;
 mod profile;
 mod public_api;
 mod public_utf8_api;
+#[cfg(test)]
+mod publication_tests;
 mod rename;
 mod revision;
 mod semantic;
@@ -120,7 +122,7 @@ pub use native_sdk::{
     ProjectNativeSdkExport, ProjectNativeSdkSubject, ProjectOwnedDataNativeSdkSubject,
 };
 pub use npm::{
-    ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
+    ProjectNpmBuild, ProjectNpmPublication, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
     PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
     PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6, PROJECT_NPM_BUILD_SCHEMA_V7,
     PROJECT_NPM_BUILD_SCHEMA_V8, PROJECT_NPM_BUILD_SCHEMA_V9,
@@ -454,6 +456,38 @@ impl ProjectSnapshot {
         .map_err(|error| vec![error])?;
         self.recheck()?;
         prepared.publish(output).map_err(|error| vec![error])?;
+        self.published_subject = Some(NPM_PUBLICATION_SUBJECT);
+        self.recheck()
+            .map_err(|drift| self.publication_uncertainty(drift))
+    }
+
+    /// Prepare an exact owned npm package for an explicitly supplied trusted
+    /// publication host. The callback owns filesystem effects, not source or
+    /// capsule authority. Errors do not authorize cleanup or promise rollback.
+    pub fn build_owned_npm_with(
+        &mut self,
+        output: &Path,
+        publish: impl FnOnce(&ProjectNpmPublication, &Path) -> Result<(), Vec<Diagnostic>>,
+    ) -> Result<(), Vec<Diagnostic>> {
+        if !self.manifest.is_v8() && !self.manifest.is_v9() && !self.manifest.is_v10() {
+            return Err(vec![Diagnostic::io(
+                "SPX-J114",
+                "owned npm publication requires the exact Project v8, v9, or v10 profile",
+            )]);
+        }
+        let prepared = npm::prepare(
+            &self.manifest,
+            &self.entry_program,
+            &self.project_revision,
+            &self.workspace_revision,
+            self.semantic.graph_digest(),
+            MAX_PROJECT_NPM_BUILD_BYTES,
+        )
+        .map_err(|error| vec![error])?;
+        let plan = ProjectNpmPublication::prepare(&prepared, self.manifest.schema())
+            .map_err(|error| vec![error])?;
+        self.recheck()?;
+        publish(&plan, output)?;
         self.published_subject = Some(NPM_PUBLICATION_SUBJECT);
         self.recheck()
             .map_err(|drift| self.publication_uncertainty(drift))

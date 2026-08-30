@@ -60,7 +60,7 @@ pub(in crate::project) fn artifact(path: &'static str, bytes: &[u8]) -> NpmArtif
     }
 }
 
-enum ReplayedNpmArtifacts {
+pub(super) enum ReplayedNpmArtifacts {
     Text([NpmArtifact; 6]),
     Data([NpmArtifact; 6]),
     Command([NpmArtifact; 7]),
@@ -73,7 +73,7 @@ enum ReplayedNpmArtifacts {
 }
 
 impl ReplayedNpmArtifacts {
-    fn as_slice(&self) -> &[NpmArtifact] {
+    pub(super) fn as_slice(&self) -> &[NpmArtifact] {
         match self {
             Self::Text(value)
             | Self::Data(value)
@@ -726,7 +726,7 @@ pub(super) fn validate_carrier_limit(length: usize, max_bytes: usize) -> Result<
     Ok(())
 }
 
-fn decode_carrier_artifacts(
+pub(super) fn decode_carrier_artifacts(
     envelope: &str,
     max_bytes: usize,
 ) -> Result<ReplayedNpmArtifacts, Diagnostic> {

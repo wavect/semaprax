@@ -170,6 +170,12 @@ The new physical allocation evidence is authored but unrun.
 
 ## Evidence boundary
 
+[Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md) also applies
+to Project v9: `semaprax-full` owns the six-file held-handle publication, while
+standalone Windows publication rejects safely. The existing-parent/output-leaf
+restrictions are explicit; descriptors, artifacts and Unix routing are unchanged.
+The new filesystem and route evidence remains authored and unrun.
+
 The shared [Cargo build-script path boundary](PUBLIC-OWNED-DATA-API-V1.md#generated-cargo-build-script-path-boundary)
 also applies to the v9 Rust package: reject missing, non-Unicode, or CR/LF
 package paths before any Cargo instruction. Generated `build.rs` and dependent

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Moved Windows Project v8–v10 npm/Web publication to the private full toolchain
+  with compiler-prepared six-file plans and existing held-handle filesystem
+  authority. Standalone publication rejects before output effects; the private
+  route requires an existing parent and never rolls back after settlement.
+  Source rechecks, exact bytes, no-clobber and post-rename authentication remain
+  mandatory. Regressions are authored, unrun; generated artifacts, Unix behavior,
+  dependencies and unsafe-code boundaries are unchanged.
+
 - Added stable-ID record field value projection with an exact-owner typed
   temporary, single base evaluation, deterministic scope hygiene, and ordinary
   ownership/cleanup admission. Catalogue and hole discovery describe eligible

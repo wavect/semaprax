@@ -9,6 +9,18 @@ use semaprax::project::ProjectSnapshot;
 mod windows_revision_store;
 
 #[cfg(windows)]
+mod owned_npm;
+
+/// Windows-only held publication of the compiler's opaque Project-v8/v9/v10 plan.
+#[cfg(windows)]
+pub fn build_owned_npm(
+    snapshot: &mut ProjectSnapshot,
+    output: &Path,
+) -> Result<(), Vec<Diagnostic>> {
+    snapshot.build_owned_npm_with(output, owned_npm::publish)
+}
+
+#[cfg(windows)]
 pub fn persist_windows(
     root: &Path,
     revision: &semaprax::project::ProjectRevision,

@@ -99,6 +99,11 @@ using the same compiler and CLI driver. Use it for `new`, `doctor`, and
 its library. Source installs retain the distinct binary name. Tag archives
 package that binary as `semaprax`, alongside `semapraxd`.
 
+Windows Project v8–v10 npm/Web publication also requires `semaprax-full`;
+standalone publication rejects before output effects. The private route requires
+an existing parent and uses held handles, not the legacy CLI parent helper.
+See [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md).
+
 Do not add private crates to the root package's normal or optional dependency
 closure, including test-only dependencies. Private-host tests belong to the
 private toolchain package, whose path dependencies retain exact version pins.

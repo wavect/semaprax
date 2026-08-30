@@ -13,6 +13,8 @@ mod data;
 mod flat_owned_record;
 mod owned_data;
 mod owned_utf8;
+mod publication_plan;
+pub use publication_plan::ProjectNpmPublication;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 mod publication;
 mod semantic_recipe_v8;

@@ -8,6 +8,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+#[path = "support/owned_npm_publication.rs"]
+mod owned_npm_publication;
 #[path = "support/owned_utf8_capacity.rs"]
 mod subject;
 
@@ -81,7 +83,7 @@ fn prepare(root: &Path, byte_len: usize, retained: &mut Vec<(PathBuf, Vec<u8>)>)
         assert_eq!(envelope["schema"], "semaprax.project-npm-build.v9");
         let rows = envelope["artifacts"].as_array().unwrap();
         assert_eq!(rows.len(), ARTIFACTS.len());
-        snapshot.build_npm(&output)?;
+        owned_npm_publication::publish(snapshot, &manifest, &output, false)?;
         inventory(&output, &ARTIFACTS);
         for (row, name) in rows.iter().zip(ARTIFACTS) {
             assert_eq!(row["path"], name);

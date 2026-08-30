@@ -157,6 +157,12 @@ equivalence and native sanitizer evidence remain unrun gates before promotion.
 
 ## Authored evidence
 
+Project v10 follows the separate [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md)
+contract: full-toolchain held-handle publication with an existing parent and an
+admitted output leaf; standalone Windows publication rejects safely. This changes
+filesystem routing, not UTF-8 semantics, artifacts or Unix behavior. Its new
+publication and consumer-route regressions remain unrun.
+
 The shared [descriptor cross-replay cases](PUBLIC-OWNED-DATA-API-V1.md#canonical-public-api-descriptor)
 include authentic v10 `Bytes` and owned-UTF8 counterparts under the same profile
 and synthetic subject facts. Self-replay succeeds; each correctly digested

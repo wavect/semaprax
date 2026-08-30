@@ -13,6 +13,8 @@ static HOST: driver::PrivateHost = driver::PrivateHost {
         new_project::run(arguments).map_err(|error| (error.to_string(), error.exit_code()))
     },
     build_rust: semaprax_toolchain::build_rust,
+    #[cfg(windows)]
+    build_owned_npm: semaprax_toolchain::build_owned_npm,
 };
 
 fn main() -> std::process::ExitCode {

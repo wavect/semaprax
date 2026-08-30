@@ -35,6 +35,8 @@ pub struct PrivateHost {
     pub doctor: DoctorHook,
     pub new_project: NewProjectHook,
     pub build_rust: fn(&mut project::ProjectSnapshot, &Path) -> Result<(), Vec<Diagnostic>>,
+    #[cfg(windows)]
+    pub build_owned_npm: fn(&mut project::ProjectSnapshot, &Path) -> Result<(), Vec<Diagnostic>>,
 }
 
 // Windows reserves a smaller main-thread stack than the admitted compiler
@@ -417,6 +419,24 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                                     "the rust target requires the exact Project v8 owned-data-api.v1, Project v9 flat-owned-record-api.v1, or Project v10 owned-utf8-api.v1 profile",
                                 )]);
                             }
+                        }
+                        // The private Windows publisher owns every filesystem effect,
+                        // including parent admission. Do not pass through the legacy
+                        // pathname-based parent creation/cleanup helper on this route.
+                        #[cfg(windows)]
+                        if matches!(options.target.as_str(), "web" | "wasm" | "npm")
+                            && (snapshot.manifest().is_v8()
+                                || snapshot.manifest().is_v9()
+                                || snapshot.manifest().is_v10())
+                        {
+                            let host = host.ok_or_else(|| {
+                                vec![Diagnostic::io(
+                                    "SPX-W120",
+                                    "Project v8-v10 npm publication requires semaprax-full with safe handle-relative Windows authority",
+                                )]
+                            })?;
+                            (host.build_owned_npm)(snapshot, &output)?;
+                            return Ok((output, snapshot.manifest().project_profile()));
                         }
                         let mut output_parent = options
                             .output

@@ -58,6 +58,11 @@ execution of its authored parent/ancestor substitution, retained-inventory,
 healthy-alias and test-hook isolation regressions. The final parent identity
 check does not establish atomic publication or change Windows support.
 
+The approved [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md)
+split must next pass root/full-host route, held-filesystem hostility and real
+consumer gates for v8–v10. Its authored implementation changes command
+availability, not support status; no promotion follows from static review.
+
 Dependency integrations must preserve locked standalone consumers and exact
 validator-version evidence bindings. The wasmparser 0.258.0 and Android runner
 2.38.0 updates require current-head hosted checks before release promotion;

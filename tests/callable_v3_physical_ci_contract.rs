@@ -46,7 +46,7 @@ fn private_callable_v3_physical_ci_evidence_is_mandatory() {
         "Private Android dynamic loader + host runtime",
         "Enable Android emulator hardware acceleration",
         "Run generated callable-v3 through the x86_64 Android Emulator",
-        "ReactiveCircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0",
+        "ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0",
         "targets: x86_64-linux-android,aarch64-linux-android",
         "api-level: 35",
         "target: default",

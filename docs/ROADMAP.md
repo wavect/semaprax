@@ -49,6 +49,11 @@ The same promotion boundary includes the authored
 Its real-package poison, reentry, exact failure-identity and post-consumption
 UTF-8 cases must execute before treating v8/v9/v10 lifecycle handling as proven.
 
+Dependency integrations must preserve locked standalone consumers and exact
+validator-version evidence bindings. The wasmparser 0.258.0 and Android runner
+2.38.0 updates require current-head hosted checks before release promotion;
+they do not close a completion-matrix row.
+
 Exit outcomes:
 
 1. Confirm the line-filter product on hosted native and WebAssembly lanes and

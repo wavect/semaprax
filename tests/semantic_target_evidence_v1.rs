@@ -113,7 +113,12 @@ fn report_is_exact_typed_and_read_only() {
     assert_eq!(value["capabilities"]["added"], serde_json::json!([]));
     assert_eq!(value["capabilities"]["removed"], serde_json::json!([]));
     assert_eq!(value["targets"][1]["validation"], "wasmparser_structural");
-    assert_eq!(value["targets"][1]["validator_version"], "0.256.0");
+    assert_eq!(value["targets"][1]["validator_version"], "0.258.0");
+    // Keep report metadata tied to the actual pinned dependency.
+    assert!(include_str!("../Cargo.toml").contains(&format!(
+        "wasmparser = {{ version = \"={}\"",
+        value["targets"][1]["validator_version"].as_str().unwrap()
+    )));
     assert_eq!(value["targets"][1]["validator_features"], "all");
     assert!(value["nonclaims"]
         .as_array()
@@ -445,12 +450,23 @@ fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
         Fixture::rebase_v3("kat-v3"),
     ]
     .map(|fixture| target_evidence::preview(&fixture.source, &fixture.patch).unwrap());
+    // The validator upgrade changes only the version fact, not target bytes.
     assert_eq!(
-        reports.each_ref().map(|report| sha256(report)),
+        reports
+            .each_ref()
+            .map(|report| sha256(&report.replace("0.258.0", "0.256.0"))),
         [
             "85f23fa7922fc6083aa8cf1559dcf81d4657dc64cbb8931b5d08885842e3fb89".to_owned(),
             "17587113aab9af67a8b4c8ad4707db1929bbefdd695dd5ae9b85b31f61c8d5d5".to_owned(),
             "f06c0569a76de27c2b082096730106a728d5910ae3b6ae9389e1bd39f5fe6cda".to_owned(),
+        ]
+    );
+    assert_eq!(
+        reports.each_ref().map(|report| sha256(report)),
+        [
+            "f20d8e66029bb7671af569847f154d562f3668cbe12c6f9b45686569c658b787".to_owned(),
+            "079d397e4dfabfec4dcf4d3914c76d3babc7ca56a9a948ae7114274898f4c3ae".to_owned(),
+            "470108d68d4364a49de36df7522c7bc3306112ba6b5af3a83a8788541e2ea393".to_owned(),
         ]
     );
 }

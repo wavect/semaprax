@@ -100,9 +100,10 @@ its library. Source installs retain the distinct binary name. Tag archives
 package that binary as `semaprax`, alongside `semapraxd`.
 
 Do not add private crates to the root package's normal or optional dependency
-closure. Path-only dev dependencies support in-repository tests and are omitted
-from Cargo's normalized registry manifest. The package gate must verify the
-actual archive; disabling verification is not a packaging fix.
+closure, including test-only dependencies. Private-host tests belong to the
+private toolchain package, whose path dependencies retain exact version pins.
+The package gate must verify the actual archive; disabling verification is not
+a packaging fix.
 
 On Unix, run the complete gate with:
 

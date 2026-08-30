@@ -39,8 +39,6 @@ sha2 = "=0.11.0"
 wasmparser = { version = "=0.256.0", default-features = false, features = ["component-model", "features", "validate"] }
 
 [dev-dependencies]
-semaprax-native-rust-interop-platform = { path = "crates/semaprax-native-rust-interop-platform" }
-semaprax-native-rust-owned-data-package = { path = "crates/semaprax-native-rust-owned-data-package" }
 
 [features]
 default = []

@@ -1,14 +1,9 @@
-#[path = "support/full_toolchain.rs"]
-mod full_toolchain;
-#[path = "support/native_rust_cargo.rs"]
-mod native_rust_cargo;
-
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-#[path = "../crates/semaprax-toolchain/src/doctor.rs"]
+#[path = "../src/doctor.rs"]
 mod doctor;
 
 use doctor::{DoctorError, DoctorHost, DoctorTarget};
@@ -96,7 +91,7 @@ impl DoctorHost for FakeHost {
 }
 
 fn cli(arguments: &[&str]) -> Output {
-    Command::new(full_toolchain::binary())
+    Command::new(env!("CARGO_BIN_EXE_semaprax-full"))
         .args(arguments)
         .output()
         .unwrap()
@@ -354,7 +349,7 @@ fn real_path_resolution_preserves_multicall_name_and_skips_unusable_candidates()
     std::fs::set_permissions(&implementation, std::fs::Permissions::from_mode(0o700)).unwrap();
     symlink("multicall", root.join("tools/rustc")).unwrap();
     let run = |path: std::ffi::OsString| {
-        Command::new(full_toolchain::binary())
+        Command::new(env!("CARGO_BIN_EXE_semaprax-full"))
             .args(["doctor", "--json"])
             .current_dir(&root)
             .env("PATH", path)

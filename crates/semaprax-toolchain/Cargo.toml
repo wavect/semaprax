@@ -8,16 +8,16 @@ description = "Private SEMAPRAX full-toolchain CLI and host adapters"
 license = "Apache-2.0"
 
 [dependencies]
-semaprax = { path = "../.." }
+semaprax = { version = "=0.2.0", path = "../.." }
 same-file = "=1.0.6"
 serde_json = "=1.0.151"
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
-semaprax-native-rust-owned-data-package = { path = "../semaprax-native-rust-owned-data-package" }
-semaprax-native-rust-interop-platform = { path = "../semaprax-native-rust-interop-platform" }
+semaprax-native-rust-owned-data-package = { version = "=0.1.0", path = "../semaprax-native-rust-owned-data-package" }
+semaprax-native-rust-interop-platform = { version = "=0.1.0", path = "../semaprax-native-rust-interop-platform" }
 
 [target.'cfg(windows)'.dependencies]
-semaprax-project-revision-store-windows-sys = { path = "../semaprax-project-revision-store-windows-sys" }
+semaprax-project-revision-store-windows-sys = { version = "=0.1.0", path = "../semaprax-project-revision-store-windows-sys" }
 winapi-util = "=0.1.11"
 
 [target.'cfg(unix)'.dependencies]

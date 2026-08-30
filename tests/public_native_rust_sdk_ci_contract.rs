@@ -168,6 +168,10 @@ fn general_windows_matrix_binds_the_same_explicit_nested_cargo_linker() {
         .map(|(verify, _)| verify)
         .expect("general Rust verification matrix");
     for required in [
+        "CARGO_PROFILE_DEV_DEBUG=0",
+        "CARGO_PROFILE_TEST_DEBUG=0",
+        "CARGO_INCREMENTAL=0",
+        "cargo test --locked --workspace --exclude semaprax-native-rust-interop --all-targets --all-features",
         "echo CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=%SEMAPRAX_LINKER%",
         "echo LINK=",
         "echo _LINK_=",
@@ -177,6 +181,15 @@ fn general_windows_matrix_binds_the_same_explicit_nested_cargo_linker() {
             "general Windows matrix lost `{required}`"
         );
     }
+    let compact_step = verify
+        .split_once("- name: Keep Windows compiler and test artifacts compact")
+        .unwrap()
+        .1
+        .split_once("- name:")
+        .unwrap()
+        .0;
+    assert!(compact_step.contains("if: runner.os == 'Windows'"));
+    assert!(!compact_step.contains("DEBUG_ASSERTIONS"));
 }
 
 #[test]

@@ -33,7 +33,7 @@ fn minimally_shaped(path: &std::path::Path) -> Command {
 }
 
 #[test]
-fn help_adds_only_the_frozen_package_resolve_usage_line() {
+fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
         .output()
         .unwrap();
@@ -42,8 +42,12 @@ fn help_adds_only_the_frozen_package_resolve_usage_line() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert_eq!(stdout.matches(NEW_LINE).count(), 1);
     let legacy = stdout.replacen(NEW_LINE, "", 1);
-    assert_eq!(legacy.len(), 4_878);
-    assert_eq!(fnv1a64(legacy.as_bytes()), 0x6486_5e3a_8cbd_7b82);
+    // The additive interpret-strings command contributes exactly 106 bytes.
+    // Keep a whole-output known answer; do not relax unrelated help preservation.
+    const STRINGS_LINE: &str = "semaprax interpret-strings <file> --function <name|stable-id> [--arg <scalar literal>]... [--max-bytes N]\n";
+    assert_eq!(legacy.matches(STRINGS_LINE).count(), 1);
+    assert_eq!(legacy.len(), 4_984);
+    assert_eq!(fnv1a64(legacy.as_bytes()), 0x5d28_008d_32a9_33ac);
 }
 
 fn fnv1a64(bytes: &[u8]) -> u64 {

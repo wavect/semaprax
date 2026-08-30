@@ -43,6 +43,11 @@ safe enough for a narrower run.
 The script is the executable source of truth for the precise command sequence.
 Do not copy that sequence into feature documents.
 
+The general Windows CI job disables dev/test debug-symbol files and incremental
+artifacts to reduce cold-build I/O. It retains debug assertions, all existing
+tests, physical host gates, and release-profile settings; this is a build-cost
+change, not a reduction in coverage.
+
 ## Manual baseline
 
 On a host that cannot run the POSIX script, reproduce the `full` profile:

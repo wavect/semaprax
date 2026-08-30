@@ -45,6 +45,12 @@
   Adversarial review also corrected earlier unrun loop fixtures to respect
   unchanged source/v10 admission. Tests/builds remain unrun; no ordinary-Wasm
   settlement or production promotion is claimed.
+- Kept the strict wildcard dependency ban while moving private-host CLI tests
+  into the unpublished toolchain and pinning its local dependencies. Restricted
+  a now-Unix-only publication helper accordingly and reduced Windows dev/test
+  debug-artifact I/O without removing assertions or test gates. Bounded raw
+  injected Windows replay carriers before parsing and refreshed exact CLI-help
+  and pinned macOS desktop import-order snapshots without widening either gate.
 
 - Split private-host operations into the unpublished `semaprax-toolchain`
   package and `semaprax-full` CLI. The standalone registry compiler rejects

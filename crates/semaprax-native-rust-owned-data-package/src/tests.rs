@@ -4,6 +4,7 @@ use sha2::Sha256;
 use super::*;
 
 pub(crate) mod ffi_boundaries;
+mod flat_input_bounds;
 
 fn descriptor_bytes(result: &str) -> Vec<u8> {
     format!(

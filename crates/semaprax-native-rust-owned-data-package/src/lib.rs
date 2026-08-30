@@ -119,8 +119,11 @@ pub fn build_flat_record_and_publish(
         || plan.provider_c.len() > MAX_PROVIDER_BYTES
         || raw_sha256(&plan.provider_c) != plan.provider_sha256
         || !provider_binds_descriptor(&plan.provider_c, &plan.descriptor_digest)
-        || flat_descriptor_digest(&plan.descriptor) != plan.descriptor_digest
     {
+        return Err(PackageError::provider());
+    }
+    descriptor::validate_input(&plan.descriptor)?;
+    if flat_descriptor_digest(&plan.descriptor) != plan.descriptor_digest {
         return Err(PackageError::provider());
     }
     let descriptor = flat_descriptor::replay(
@@ -424,7 +427,20 @@ const fn manifest_digest_domain(mode: PackageMode) -> &'static [u8] {
     }
 }
 
+#[cfg(test)]
+std::thread_local! {
+    static FLAT_DESCRIPTOR_HASH_WORK: std::cell::Cell<Option<(usize, usize)>> = const {
+        std::cell::Cell::new(None)
+    };
+}
+
 fn flat_descriptor_digest(bytes: &[u8]) -> String {
+    #[cfg(test)]
+    FLAT_DESCRIPTOR_HASH_WORK.with(|work| {
+        if let Some((calls, length)) = work.get() {
+            work.set(Some((calls + 1, length + bytes.len())));
+        }
+    });
     let mut hasher = Sha256::new();
     hasher.update(FLAT_DESCRIPTOR_DIGEST_DOMAIN);
     hasher.update((bytes.len() as u64).to_le_bytes());

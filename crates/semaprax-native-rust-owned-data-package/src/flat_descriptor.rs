@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
-use super::{flat_descriptor_digest, PackageError, MAX_DESCRIPTOR_BYTES};
+#[cfg(test)]
+use super::MAX_DESCRIPTOR_BYTES;
+use super::{flat_descriptor_digest, PackageError};
 use serde_json::{Map, Value};
 
 mod render;
@@ -63,12 +65,8 @@ pub(crate) fn replay(
     digest: &str,
     selected: &[String],
 ) -> Result<Descriptor, PackageError> {
-    if bytes.is_empty()
-        || bytes.len() > MAX_DESCRIPTOR_BYTES
-        || !bytes.ends_with(b"\n")
-        || bytes.contains(&0)
-        || flat_descriptor_digest(bytes) != digest
-    {
+    super::descriptor::validate_input(bytes)?;
+    if flat_descriptor_digest(bytes) != digest {
         return Err(PackageError::descriptor());
     }
     let value: Value = serde_json::from_slice(bytes).map_err(|_| PackageError::descriptor())?;

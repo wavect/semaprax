@@ -77,6 +77,26 @@ that is not a peak-memory or exact rendering-work bound. The inherited
 complete linked-function inventory limit of 256 is checked before indexing,
 including functions outside the selected export closure.
 
+The lower v9 package builder applies the shared descriptor framing guard before
+hashing descriptor bytes: nonempty, at most 1 MiB, terminal LF, and no NUL.
+Previously, its provider-binding condition hashed arbitrarily large descriptor
+input before the replay layer could reject the size. Provider size, integrity,
+and textual binding checks still run first; valid framing does not confer
+canonical or semantic validity. Replay uses the same framing guard.
+
+This deliberately narrows malformed-input error precedence: after valid provider
+checks, invalid descriptor framing reports `Descriptor` even when the supplied
+descriptor digest is also wrong. Previously that compound failure reported
+`Provider` after hashing the invalid input. An in-bound, correctly framed digest
+mismatch still reports `Provider`; unsupported hosts and invalid provider
+facts retain their earlier precedence. Accepted descriptors, digest domains,
+schemas, generated artifacts, and v8/v10 routes are unchanged.
+
+The lower package's `tests::flat_input_bounds` authors framing, exact/plus-one
+size, canonical replay, digest-work, and public-builder rejection regressions.
+These checks are unrun. Their work observation concerns descriptor hashing,
+not total allocation, parsing cost, caller-owned input storage, or tool execution.
+
 ### Identity-preserving semantic recipe
 
 The shared owned-data package recipe is a compiler-private replay projection,

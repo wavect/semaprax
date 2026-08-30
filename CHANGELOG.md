@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Bound v9 native-package descriptor framing before hashing, reusing the
+  existing replay guard. Invalid framing now consistently reports a descriptor
+  error after provider validation, including when the digest is also wrong;
+  accepted artifacts and other profile routes are unchanged. Authored boundary,
+  digest-work and failure-precedence regressions remain unrun.
+
 - Corrected both Wasm `usize` multiplication lowerings: the overflow division
   now executes only for a nonzero multiplier. Zero products retain ordinary
   success, while genuine overflow still reaches aggregate cleanup with status

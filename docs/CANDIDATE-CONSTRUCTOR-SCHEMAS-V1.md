@@ -26,6 +26,7 @@ required fields and `additionalProperties: false`.
 
 Expression alternatives cover typed `i64`, `i32`, `u8`, `usize`, and `bool`
 literals; places; calls; binary and unary operators; conditional expressions;
+immutable scoped `let` bindings;
 identity-selected record/variant construction, stable-ID record-field projection,
 exhaustive stable-ID variant matching, and typed stable-ID record updates.
 Literal bounds use the corresponding Rust integer limits, including the
@@ -33,6 +34,11 @@ target-neutral unsigned 64-bit input range for `usize`; target admission can
 still reject a value. New names use the same bounded ordinary identifier shape
 and excluded keyword set as candidate constructors. Call arguments recurse into
 the same closed expression alternatives.
+
+The closed `let` shape requires `name`, recursive `value`, and recursive `body`.
+Its initializer cannot see the introduced name; only its body can. Normal
+compiler admission checks scope, inferred type, ownership and context legality.
+See [Lexical Binding Constructor](PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md).
 
 Aggregate expressions use exactly `{"kind":"record","target":record_id,
 "fields":[{"target":field_id,"value":expression}]}` or the same shape with

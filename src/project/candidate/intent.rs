@@ -541,10 +541,10 @@ impl Constructor<'_> {
     }
 
     fn projection_name(&mut self) -> Result<String> {
-        // Every attempt either consumes one occupied source/reserved payload
+        // Every attempt either consumes one occupied source/reserved lexical
         // name or selects a new monotonically increasing generated name.
-        // Match payload names are reserved before allocating their staging
-        // local; nested constructors cannot capture active payload bindings.
+        // Match payload and let names are reserved before constructing their
+        // values; nested staging locals cannot capture those bindings.
         let limit = self
             .params
             .len()
@@ -593,6 +593,36 @@ impl Constructor<'_> {
                     ));
                 }
                 ExprKind::Var(name.to_owned())
+            }
+            "let" => {
+                object(value, &["kind", "name", "value", "body"])?;
+                let name = text(value, "name")?;
+                self.match_binder(name)?;
+                // The charged expression root becomes a block. Its inferred,
+                // immutable let statement is one additional AST node.
+                self.nodes += 1;
+                if self.nodes > MAX_EXPRESSION_NODES || depth + 1 > MAX_EXPRESSION_DEPTH {
+                    return Err(capacity("let lowering exceeds its node or depth bound"));
+                }
+                // Reserve before the initializer, but activate only for the
+                // body. Initializer staging must not capture the future name.
+                self.reserved_bindings.insert(name.to_owned());
+                let initializer = self.expression(member(value, "value")?, depth + 1)?;
+                let body_request = member(value, "body")?;
+                self.arm_bindings.insert(name.to_owned());
+                let body = self.expression(body_request, depth + 1);
+                self.arm_bindings.remove(name);
+                ExprKind::Block {
+                    statements: vec![Statement::Let {
+                        name: name.to_owned(),
+                        name_span: Span::default(),
+                        mutable: false,
+                        declared: None,
+                        value: initializer,
+                        span: Span::default(),
+                    }],
+                    tail: Box::new(body?),
+                }
             }
             "match" => return self.match_expression(value, depth),
             "project" => {

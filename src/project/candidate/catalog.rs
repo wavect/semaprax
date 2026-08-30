@@ -115,9 +115,9 @@ impl ProjectCandidate {
                     }));
                     operations.push(json!({
                         "kind":"replace_function_body", "required_fields":["kind","target","body"],
-                        "constructors":["i64","i32","u8","usize","bool","place","binary","unary","if","call"],
+                        "constructors":["i64","i32","u8","usize","bool","place","binary","unary","if","call","let"],
                         "expression_nodes_maximum":4096, "expression_depth_maximum":64,
-                        "constraints":["place_selects_existing_parameter", "call_selects_accessible_stable_id", "expected_return_type", "declared_effect_budget", "contracts_ownership_cleanup_and_target_revalidation"],
+                        "constraints":["place_selects_existing_parameter_or_active_lexical_binding", "call_selects_accessible_stable_id", "expected_return_type", "declared_effect_budget", "contracts_ownership_cleanup_and_target_revalidation"],
                     }));
                     if matches!(
                         function.return_type,

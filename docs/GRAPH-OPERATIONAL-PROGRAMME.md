@@ -33,6 +33,7 @@ outstanding without requiring another permission request now.
 | Holes | [draft module](../src/project/candidate/draft.rs), [Typed Holes v1](PROJECT-CANDIDATE-HOLES-V1.md), [hole evidence](../tests/project_candidate_holes_v1.rs) |
 | Signature mapping | [signature engine](../src/project/candidate/signature.rs), [Signature Evolution v1](PROJECT-SIGNATURE-EVOLUTION-V1.md) |
 | Expression changes | [expression module](../src/project/candidate/expression.rs), [Expression Change v1](PROJECT-EXPRESSION-CHANGE-V1.md), [expression evidence](../tests/project_candidate_expression_v1.rs) |
+| Immutable lexical bindings | [Lexical Binding Constructor v1](PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md); scoped initializer reuse through ordinary candidate admission, authored/unrun |
 | Contract changes | [intent module](../src/project/candidate/intent.rs), [Contract Change v1](PROJECT-CONTRACT-CHANGE-V1.md), [candidate evidence](../tests/project_candidates_v1.rs) |
 | Rebase | [rebase module](../src/project/candidate/rebase.rs), [Candidate Rebase v1](PROJECT-CANDIDATE-REBASE-V1.md), [rebase evidence](../tests/project_candidate_rebase_v1.rs) |
 | Declaration creation | [function declaration module](../src/project/candidate/declaration.rs), [type declaration module](../src/project/candidate/type_declaration.rs), [Declaration Change v1](PROJECT-DECLARATION-CHANGE-V1.md), [function evidence](../tests/project_candidate_declaration_v1.rs), [type evidence](../tests/project_candidate_type_declarations_v1.rs) |

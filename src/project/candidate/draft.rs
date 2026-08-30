@@ -186,7 +186,7 @@ impl ProjectCandidateDraft {
             "prior_body_proof":{"basis":"last_valid_body_not_the_unfilled_hole", "loan_plan":trusted_json(&loans)?, "cleanup_plan":trusted_json(&cleanup)?},
             "obligations":["return_expected_type", "preserve_declared_contracts", "satisfy_parameter_ownership", "revalidate_loans_and_cleanup", "no_new_effects_or_capabilities", "preserve_project_profile_and_previously_admitted_core_targets"],
             "constructor_owner":"semaprax.semantic-change.v1", "intent_kind":"replace_function_body",
-            "constructor_kinds":["i64","i32","u8","usize","bool","place","call","unary","binary","if"],
+            "constructor_kinds":["i64","i32","u8","usize","bool","place","call","unary","binary","if","let"],
             "validation":"pending_fill_full_source_replay", "materializable":false, "source_authority":false,
             "evidence_class":"descriptive_context_not_candidate_validation",
         }))?)
@@ -376,7 +376,7 @@ impl ProjectCandidateDraft {
             "accessible_calls":self.accessible_calls(module,function)?,"prior_body_proof":prior?,
             "obligations":["preserve_selected_type_and_ownership","preserve_declared_contracts","revalidate_whole_function_ownership_loans_cleanup","no_new_effects_or_capabilities","preserve_project_profile_and_previously_admitted_core_targets"],
             "intent_kind":"replace_expression","constructor_owner":"semaprax.semantic-change.v1",
-            "constructor_kinds":["i64","i32","u8","usize","bool","place","call","unary","binary","if"],
+            "constructor_kinds":["i64","i32","u8","usize","bool","place","call","unary","binary","if","let"],
             "validation":"pending_fill_full_source_replay","materializable":false,"source_authority":false,
             "nonclaims":["lexical_scope_is_not_owned_value_liveness","prior_body_proofs_are_not_hole_validity","no_placeholder_ast_or_source","no_execution_or_publication_authority"]}))?,
         )

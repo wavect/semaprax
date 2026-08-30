@@ -118,6 +118,12 @@ own authenticated source transformation and full verifier.
 
 ## Revalidation and expression identities
 
+Calls and nominal constructors nested in a typed `let` initializer or body
+remain ordinary semantic dependencies. Scoped binding does not hide a changed
+callee signature or grant permission to reuse a stale selection. Source replay
+and recovery reconstruct the canonical block and binding through the shared
+constructor. See [Lexical Binding Constructor](PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md).
+
 Conflict selection only decides whether to attempt replay. Every surviving
 intention is reconstructed against the exact current destination revision and
 passed to ordinary `ProjectCandidate::apply`. Canonical source is reformatted,

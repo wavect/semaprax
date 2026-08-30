@@ -14,6 +14,12 @@
   both existing corpora, and strict TypeScript positive/negative consumers.
   No production artifact, schema, dependency, or completion status changes.
 
+- Added immutable scoped `let` expressions to typed candidate constructors,
+  with initializer-before-body lowering, lexical isolation, hygienic names and
+  unchanged compiler admission. Schemas and hole/change discovery expose the
+  form. Scope, ownership, replay, hole and rebase regressions are authored,
+  unrun; no source syntax or publication authority changes.
+
 - Bound v9 native-package descriptor framing before hashing, reusing the
   existing replay guard. Invalid framing now consistently reports a descriptor
   error after provider validation, including when the digest is also wrong;

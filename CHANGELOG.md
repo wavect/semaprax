@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Authored Offline Published Semantic Lock Snapshot v1: an authority-free exact
+  Resolver-v1 input capsule plus unchanged resolution-evidence and Lock-v2
+  bytes, with independent full replay and checked cumulative bounds. The safe
+  lower publisher adds only a sealed fixed three-file create-new inventory and
+  reuses the existing held/no-replace authority state machine, including a
+  second replay immediately before publication and exact staged/published byte
+  authentication. Hostile replay, raw-subject, bound, race, settlement, and
+  build-v1/v2 preservation evidence is authored but unrun. No updateable lock,
+  registry/cache, provenance, build, sandbox, target execution, support,
+  completion, or promotion claim is made.
+
 - Added the authored, unrun [Prepared Project Interpreter and Source Trace
   v1](docs/PROJECT-PREPARED-INTERPRETER-V1.md): one cached exact entry/test
   closure admission, one sequential long-lived fixed-stack worker, bounded

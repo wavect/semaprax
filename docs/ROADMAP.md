@@ -183,6 +183,14 @@ unrun. It is not acquisition, a registry/cache, a published lock workflow, a
 build sandbox, target execution, trusted provenance, or runtime capability
 enforcement, so the milestone remains unpromoted.
 
+An additive Offline Published Semantic Lock Snapshot v1 now captures exact
+Resolver-v1 input, unchanged resolution evidence, and unchanged Lock-v2 bytes,
+then optionally publishes that fixed three-file inventory into one fresh local
+directory through the existing safe lower authority state machine. Its hostile
+replay, bound, and publication evidence is authored but unrun. This is not an
+updateable package lock workflow, registry/cache, trusted provenance, build,
+target execution, or sandbox, so 0.4 remains unpromoted.
+
 An additive Offline Effect-Free Scalar Core-Wasm Package Build v1 is authored
 above exact Resolver-v1 replay. Its intentionally narrow first slice accepts
 one dependency-free selected Subject v2, replays the embedded canonical source,

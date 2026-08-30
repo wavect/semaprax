@@ -4,15 +4,18 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::package_build::OfflinePackageBuild;
 use semaprax::package_build_v2::LinkedOfflinePackageBuild;
+use semaprax::package_resolution_snapshot::ResolutionSnapshot;
 use semaprax_native_rust_interop_platform as platform;
 
 use crate::{
+    lock_snapshot::{INPUT_FILE, LOCK_FILE, RESOLUTION_FILE},
     CleanupStatus, CompilerReplayFailure, PublicationError, PublicationVisibility, EVIDENCE_FILE,
     MANIFEST_FILE, MODULE_FILE, PP_CHANGED, PP_EXISTS, PP_INVALID, PP_PUBLISHED_CHANGED,
     PP_STAGE_EXHAUSTED,
 };
 
-const INVENTORY: [&str; 3] = [MODULE_FILE, EVIDENCE_FILE, MANIFEST_FILE];
+const BUILD_INVENTORY: [&str; 3] = [MODULE_FILE, EVIDENCE_FILE, MANIFEST_FILE];
+const LOCK_SNAPSHOT_INVENTORY: [&str; 3] = [INPUT_FILE, RESOLUTION_FILE, LOCK_FILE];
 const MAX_STAGE_ATTEMPTS: usize = 64;
 static STAGE_SERIAL: AtomicU64 = AtomicU64::new(0);
 
@@ -36,6 +39,16 @@ pub(crate) fn publish_linked_verified<V>(
     let mut replay = || verifier(build);
     let mut observer = NoopObserver;
     publish_artifacts(output, files, &mut replay, &mut observer)
+}
+
+pub(crate) fn publish_lock_snapshot_verified<V>(
+    output: &Path,
+    snapshot: &ResolutionSnapshot,
+    verifier: &mut impl FnMut() -> Result<V, CompilerReplayFailure>,
+) -> Result<(), PublicationError> {
+    let files = ArtifactFiles::from_lock_snapshot(snapshot);
+    let mut observer = NoopObserver;
+    publish_artifacts(output, files, verifier, &mut observer)
 }
 
 #[cfg(test)]
@@ -87,12 +100,14 @@ fn publish_artifacts<V>(
         ));
     }
 
-    let names = INVENTORY.map(OsStr::new);
+    let artifact_names = artifacts.names();
+    let post_hold_errors = artifacts.post_hold_errors();
+    let names = artifact_names.map(OsStr::new);
     let inventory = platform::prepare_discard_inventory(names)
         .map_err(|_| PublicationError::plain(PP_INVALID, "fixed inventory is invalid"))?;
     let exact = platform::prepare_inventory_exact(&inventory)
         .map_err(|_| changed("prepare exact staged inventory"))?;
-    let post = platform::prepare_inventory_entries_exact(names, INVENTORY.len())
+    let post = platform::prepare_inventory_entries_exact(names, artifact_names.len())
         .map_err(|_| changed("prepare exact published inventory"))?;
     let publish = platform::prepare_publish_directory(&output_name)
         .map_err(|_| PublicationError::plain(PP_INVALID, "publication leaf is invalid"))?;
@@ -117,6 +132,8 @@ fn publish_artifacts<V>(
         post_failure: Some(published_changed(
             "published output failed exact post-publication authentication",
         )),
+        artifact_names,
+        post_hold_errors,
     };
 
     if let Err(primary) = staged.write_and_authenticate(artifacts, observer) {
@@ -208,6 +225,8 @@ struct StagedPublication {
     published: bool,
     post_files: Option<[platform::HeldRegularFile; 3]>,
     post_failure: Option<PublicationError>,
+    artifact_names: [&'static str; 3],
+    post_hold_errors: [&'static str; 3],
 }
 
 impl StagedPublication {
@@ -279,25 +298,30 @@ impl StagedPublication {
     }
 
     fn prepare_post_files(&mut self) -> Result<(), PublicationError> {
-        let module =
-            platform::hold_regular_file_prepared(&self.stage, &self.inventory, MODULE_FILE)
-                .map_err(|_| changed("prepare held module for post-publication authentication"))?;
-        let evidence =
-            platform::hold_regular_file_prepared(&self.stage, &self.inventory, EVIDENCE_FILE)
-                .map_err(|_| {
-                    changed("prepare held evidence for post-publication authentication")
-                })?;
-        let manifest =
-            platform::hold_regular_file_prepared(&self.stage, &self.inventory, MANIFEST_FILE)
-                .map_err(|_| {
-                    changed("prepare held manifest for post-publication authentication")
-                })?;
-        self.post_files = Some([module, evidence, manifest]);
+        let first = platform::hold_regular_file_prepared(
+            &self.stage,
+            &self.inventory,
+            self.artifact_names[0],
+        )
+        .map_err(|_| changed(self.post_hold_errors[0]))?;
+        let second = platform::hold_regular_file_prepared(
+            &self.stage,
+            &self.inventory,
+            self.artifact_names[1],
+        )
+        .map_err(|_| changed(self.post_hold_errors[1]))?;
+        let third = platform::hold_regular_file_prepared(
+            &self.stage,
+            &self.inventory,
+            self.artifact_names[2],
+        )
+        .map_err(|_| changed(self.post_hold_errors[2]))?;
+        self.post_files = Some([first, second, third]);
         Ok(())
     }
 
     fn authenticate_files_for_settle(&self) -> Result<(), PublicationError> {
-        for name in INVENTORY {
+        for name in self.artifact_names {
             platform::recheck_regular_file(
                 self.inventory
                     .file(name)
@@ -368,15 +392,22 @@ impl StagedPublication {
 }
 
 #[derive(Clone, Copy)]
-struct ArtifactFiles<'a> {
-    module: &'a [u8],
-    evidence: &'a [u8],
-    manifest: &'a [u8],
+enum ArtifactFiles<'a> {
+    Build {
+        module: &'a [u8],
+        evidence: &'a [u8],
+        manifest: &'a [u8],
+    },
+    LockSnapshot {
+        input: &'a [u8],
+        resolution: &'a [u8],
+        lock: &'a [u8],
+    },
 }
 
 impl<'a> ArtifactFiles<'a> {
     fn from_v1(build: &'a OfflinePackageBuild) -> Self {
-        Self {
+        Self::Build {
             module: &build.module_wasm,
             evidence: build.evidence_json.as_bytes(),
             manifest: build.manifest_json.as_bytes(),
@@ -384,19 +415,64 @@ impl<'a> ArtifactFiles<'a> {
     }
 
     fn from_v2(build: &'a LinkedOfflinePackageBuild) -> Self {
-        Self {
+        Self::Build {
             module: &build.module_wasm,
             evidence: build.evidence_json.as_bytes(),
             manifest: build.manifest_json.as_bytes(),
         }
     }
 
+    fn from_lock_snapshot(snapshot: &'a ResolutionSnapshot) -> Self {
+        Self::LockSnapshot {
+            input: snapshot.input_json.as_bytes(),
+            resolution: snapshot.resolution_evidence_json.as_bytes(),
+            lock: snapshot.lock_json.as_bytes(),
+        }
+    }
+
+    const fn names(self) -> [&'static str; 3] {
+        match self {
+            Self::Build { .. } => BUILD_INVENTORY,
+            Self::LockSnapshot { .. } => LOCK_SNAPSHOT_INVENTORY,
+        }
+    }
+
+    const fn post_hold_errors(self) -> [&'static str; 3] {
+        match self {
+            Self::Build { .. } => [
+                "prepare held module for post-publication authentication",
+                "prepare held evidence for post-publication authentication",
+                "prepare held manifest for post-publication authentication",
+            ],
+            Self::LockSnapshot { .. } => [
+                "prepare held resolution input for post-publication authentication",
+                "prepare held resolution evidence for post-publication authentication",
+                "prepare held semantic lock for post-publication authentication",
+            ],
+        }
+    }
+
     fn files(self) -> [(&'static str, &'a [u8]); 3] {
-        [
-            (MODULE_FILE, self.module),
-            (EVIDENCE_FILE, self.evidence),
-            (MANIFEST_FILE, self.manifest),
-        ]
+        match self {
+            Self::Build {
+                module,
+                evidence,
+                manifest,
+            } => [
+                (MODULE_FILE, module),
+                (EVIDENCE_FILE, evidence),
+                (MANIFEST_FILE, manifest),
+            ],
+            Self::LockSnapshot {
+                input,
+                resolution,
+                lock,
+            } => [
+                (INPUT_FILE, input),
+                (RESOLUTION_FILE, resolution),
+                (LOCK_FILE, lock),
+            ],
+        }
     }
 }
 

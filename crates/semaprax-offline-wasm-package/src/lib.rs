@@ -1,4 +1,5 @@
-//! Safe create-new publication for effect-free Core-Wasm package builds.
+//! Safe create-new publication for effect-free Core-Wasm package builds and
+//! fixed-inventory semantic lock snapshots.
 //!
 //! The compiler remains authority-free. This lower crate owns the only held
 //! filesystem authority, independently replays the caller-owned build before
@@ -22,6 +23,12 @@ use semaprax::package_source_capsule::{PackageSource, SourceCapsuleOptions};
 
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 mod authority;
+mod lock_snapshot;
+
+pub use lock_snapshot::{
+    publish_lock_snapshot, PublishedOfflinePackageLockSnapshot, INPUT_FILE, LOCK_FILE,
+    RESOLUTION_FILE,
+};
 
 pub const MODULE_FILE: &str = "module.wasm";
 pub const EVIDENCE_FILE: &str = "semaprax.package-build.evidence.json";

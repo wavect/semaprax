@@ -271,6 +271,193 @@ fn shared_artifact_adapter_preserves_v1_file_names_order_and_bytes() {
 }
 
 #[test]
+fn sealed_lock_snapshot_adapter_has_only_the_frozen_inventory() {
+    let snapshot = ResolutionSnapshot {
+        input_json: "input".to_owned(),
+        resolution_evidence_json: "resolution".to_owned(),
+        lock_json: "lock".to_owned(),
+    };
+    assert_eq!(
+        ArtifactFiles::from_lock_snapshot(&snapshot).files(),
+        [
+            (INPUT_FILE, b"input".as_slice()),
+            (RESOLUTION_FILE, b"resolution".as_slice()),
+            (LOCK_FILE, b"lock".as_slice()),
+        ]
+    );
+}
+
+#[test]
+fn lock_snapshot_held_replay_disagreement_settles_without_visibility() {
+    let root = root("lock-snapshot-replay");
+    let output = root.join("snapshot");
+    let snapshot = ResolutionSnapshot {
+        input_json: "input".to_owned(),
+        resolution_evidence_json: "resolution".to_owned(),
+        lock_json: "lock".to_owned(),
+    };
+    let mut replay = || -> Result<(), CompilerReplayFailure> {
+        Err(CompilerReplayFailure {
+            code: "SPX-PK505",
+            message: "injected exact snapshot disagreement".to_owned(),
+        })
+    };
+    let mut observer = NoopObserver;
+    let error = publish_artifacts(
+        &output,
+        ArtifactFiles::from_lock_snapshot(&snapshot),
+        &mut replay,
+        &mut observer,
+    )
+    .unwrap_err();
+    assert_eq!(error.code, crate::PP_REPLAY);
+    assert_eq!(error.compiler_code, Some("SPX-PK505"));
+    assert_eq!(error.visibility, PublicationVisibility::NotPublished);
+    assert_eq!(error.cleanup, CleanupStatus::Settled);
+    assert!(!output.exists());
+}
+
+#[test]
+fn lock_snapshot_same_byte_staged_substitution_fails_before_visibility() {
+    let root = root("lock-snapshot-substitution");
+    let output = root.join("snapshot");
+    let snapshot = ResolutionSnapshot {
+        input_json: "input".to_owned(),
+        resolution_evidence_json: "resolution".to_owned(),
+        lock_json: "lock".to_owned(),
+    };
+    let mut observer = ClosureObserver(|point: PublishPoint, paths: &ObservedPaths<'_>| {
+        if point == PublishPoint::BeforeSecondReplay {
+            let file = paths.stage.join(INPUT_FILE);
+            fs::rename(&file, paths.stage.join("displaced")).unwrap();
+            fs::write(file, b"input").unwrap();
+        }
+    });
+    let mut replay = || Ok(());
+    let error = publish_artifacts(
+        &output,
+        ArtifactFiles::from_lock_snapshot(&snapshot),
+        &mut replay,
+        &mut observer,
+    )
+    .unwrap_err();
+    assert_eq!(error.code, crate::PP_CLEANUP);
+    assert_eq!(error.primary_code, Some(PP_CHANGED));
+    assert_eq!(error.visibility, PublicationVisibility::NotPublished);
+    assert!(!output.exists());
+}
+
+#[test]
+fn lock_snapshot_rejects_every_pre_effect_write_and_settle_mutation() {
+    for write_index in 0..3 {
+        let root = root(&format!("lock-snapshot-write-{write_index}"));
+        let output = root.join("snapshot");
+        let snapshot = ResolutionSnapshot {
+            input_json: "input".to_owned(),
+            resolution_evidence_json: "resolution".to_owned(),
+            lock_json: "lock".to_owned(),
+        };
+        let mut observer = ClosureObserver(|point: PublishPoint, paths: &ObservedPaths<'_>| {
+            if point == PublishPoint::BeforeWrite(write_index) {
+                fs::write(paths.stage.join("foreign"), b"foreign").unwrap();
+            }
+        });
+        let mut replay = || Ok(());
+        let error = publish_artifacts(
+            &output,
+            ArtifactFiles::from_lock_snapshot(&snapshot),
+            &mut replay,
+            &mut observer,
+        )
+        .unwrap_err();
+        assert_eq!(error.code, crate::PP_CLEANUP);
+        assert_eq!(error.primary_code, Some(PP_CHANGED));
+        assert_eq!(error.cleanup, CleanupStatus::Incomplete);
+        assert!(!output.exists());
+    }
+
+    let root = root("lock-snapshot-settle");
+    let output = root.join("snapshot");
+    let snapshot = ResolutionSnapshot {
+        input_json: "input".to_owned(),
+        resolution_evidence_json: "resolution".to_owned(),
+        lock_json: "lock".to_owned(),
+    };
+    let mut observer = ClosureObserver(|point: PublishPoint, paths: &ObservedPaths<'_>| {
+        if point == PublishPoint::BeforeSettle {
+            fs::write(paths.stage.join("foreign"), b"foreign").unwrap();
+        }
+    });
+    let mut replay = || Ok(());
+    let error = publish_artifacts(
+        &output,
+        ArtifactFiles::from_lock_snapshot(&snapshot),
+        &mut replay,
+        &mut observer,
+    )
+    .unwrap_err();
+    assert_eq!(error.code, crate::PP_CLEANUP);
+    assert_eq!(error.primary_code, Some(PP_CHANGED));
+    assert_eq!(error.cleanup, CleanupStatus::Incomplete);
+    assert!(!output.exists());
+}
+
+#[test]
+fn lock_snapshot_publish_and_post_publish_uncertainty_fail_stop() {
+    let root = root("lock-snapshot-publish-race");
+    let output = root.join("snapshot");
+    let snapshot = ResolutionSnapshot {
+        input_json: "input".to_owned(),
+        resolution_evidence_json: "resolution".to_owned(),
+        lock_json: "lock".to_owned(),
+    };
+    let mut observer = ClosureObserver(|point: PublishPoint, paths: &ObservedPaths<'_>| {
+        if point == PublishPoint::BeforePublish {
+            fs::create_dir(paths.output).unwrap();
+            fs::write(paths.output.join("sentinel"), b"foreign").unwrap();
+        }
+    });
+    let mut replay = || Ok(());
+    let error = publish_artifacts(
+        &output,
+        ArtifactFiles::from_lock_snapshot(&snapshot),
+        &mut replay,
+        &mut observer,
+    )
+    .unwrap_err();
+    assert_eq!(error.code, PP_EXISTS);
+    assert_eq!(
+        error.cleanup,
+        CleanupStatus::SuppressedAfterPublicationAttempt
+    );
+    assert_eq!(fs::read(output.join("sentinel")).unwrap(), b"foreign");
+
+    let root = root("lock-snapshot-post-publish");
+    let output = root.join("snapshot");
+    let displaced = root.join("displaced");
+    let mut observer = ClosureObserver(|point: PublishPoint, paths: &ObservedPaths<'_>| {
+        if point == PublishPoint::AfterPublish {
+            fs::rename(paths.output, &displaced).unwrap();
+            fs::create_dir(paths.output).unwrap();
+            fs::write(paths.output.join("sentinel"), b"foreign").unwrap();
+        }
+    });
+    let mut replay = || Ok(());
+    let error = publish_artifacts(
+        &output,
+        ArtifactFiles::from_lock_snapshot(&snapshot),
+        &mut replay,
+        &mut observer,
+    )
+    .unwrap_err();
+    assert_eq!(error.code, PP_PUBLISHED_CHANGED);
+    assert_eq!(error.visibility, PublicationVisibility::Published);
+    assert_eq!(error.cleanup, CleanupStatus::NotNeeded);
+    assert_eq!(fs::read(output.join("sentinel")).unwrap(), b"foreign");
+    assert_eq!(fs::read(displaced.join(INPUT_FILE)).unwrap(), b"input");
+}
+
+#[test]
 fn linked_adapter_uses_the_same_exact_file_inventory_and_held_second_replay() {
     let root = root("linked-success");
     let output = root.join("package");

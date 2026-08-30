@@ -828,6 +828,14 @@ pub fn emit_resolved_module_with_byte_exports(
     aggregate::emit_byte_exports(program, &plans)
 }
 
+/// Private selected-HIR inventory for newer generated owned npm runtimes.
+pub(crate) fn owned_arena_capacity(
+    program: &ResolvedProgram,
+    roots: &[crate::hir::DeclarationId],
+) -> Result<u32, Diagnostic> {
+    aggregate::owned_arena_capacity(program, roots)
+}
+
 /// Emit descriptor-driven raw adapters for the closed WP-10/WP-11 results.
 pub fn emit_resolved_module_with_owned_data_exports(
     program: &ResolvedProgram,

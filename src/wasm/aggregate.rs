@@ -6,6 +6,15 @@
 use std::collections::HashMap;
 
 mod owned_stack;
+mod owned_strings;
+
+pub(super) fn owned_arena_capacity(
+    program: &ResolvedProgram,
+    roots: &[crate::hir::DeclarationId],
+) -> Result<u32, Diagnostic> {
+    let layouts = VariantLayoutCache::build(program, crate::variant_layout::VariantTarget::Wasm32)?;
+    owned_stack::arena_capacity(program, &layouts, roots)
+}
 
 use crate::aggregate_layout::{AggregateLayout, AggregateLayoutCache, AggregateTarget};
 use crate::ast::{BinaryOp, UnaryOp};
@@ -147,6 +156,7 @@ impl FrameAllocator {
 }
 
 struct FunctionPlan {
+    owned_strings: owned_strings::Cells,
     local_types: Vec<u8>,
     old_stack: u32,
     frame_base: u32,
@@ -345,6 +355,7 @@ impl FunctionPlan {
                 )
             };
         let mut plan = Self {
+            owned_strings: owned_strings::Cells::default(),
             local_types,
             old_stack,
             frame_base,
@@ -369,6 +380,22 @@ impl FunctionPlan {
             cleanup_call_argument_carriers,
             frame_size: 0,
         };
+        for (index, parameter) in function.params.iter().enumerate() {
+            if parameter.ty == ResolvedType::String {
+                if parameter.ownership != crate::hir::OwnershipMode::Value {
+                    return Err(error("String parameter must use validated value ownership"));
+                }
+                plan.owned_strings.insert(
+                    u32::try_from(index).map_err(|_| error("String parameter index overflows"))?,
+                )?;
+            }
+        }
+        if function.return_type == ResolvedType::String {
+            plan.owned_strings.insert(
+                plan.result_stage_scalar
+                    .ok_or_else(|| error("String result has no scalar stage"))?,
+            )?;
+        }
         for contract in &function.requires {
             plan.collect_expr(
                 program,
@@ -416,6 +443,10 @@ impl FunctionPlan {
         parameter_count: u32,
         frame: &mut FrameAllocator,
     ) -> Result<(), Diagnostic> {
+        let first = parameter_count
+            .checked_add(1)
+            .and_then(|base| base.checked_add(u32::try_from(self.local_types.len()).ok()?))
+            .ok_or_else(|| error("String scope local index overflows"))?;
         if is_aggregate(program, &expr.ty)? {
             let (size, align) = aggregate_size_align(program, variant_layouts, &expr.ty)?;
             let offset = frame.allocate(size, align)?;
@@ -432,6 +463,9 @@ impl FunctionPlan {
         } else {
             let ty = scalar_wasm_type(&expr.ty)?;
             let local = self.add_local(parameter_count, ty)?;
+            if expr.ty == ResolvedType::String {
+                self.owned_strings.insert(local)?;
+            }
             if self
                 .scalar_expressions
                 .insert(expr.id.clone(), local)
@@ -535,6 +569,9 @@ impl FunctionPlan {
                     } else {
                         let local =
                             self.add_local(parameter_count, scalar_wasm_type(&binding.ty)?)?;
+                        if binding.ty == ResolvedType::String {
+                            self.owned_strings.insert(local)?;
+                        }
                         if self
                             .scalar_bindings
                             .insert(binding.id.clone(), local)
@@ -688,6 +725,11 @@ impl FunctionPlan {
             | ResolvedExprKind::Place(_)
             | ResolvedExprKind::BorrowPlace { .. } => {}
         }
+        let end = parameter_count
+            .checked_add(1)
+            .and_then(|base| base.checked_add(u32::try_from(self.local_types.len()).ok()?))
+            .ok_or_else(|| error("String scope local index overflows"))?;
+        self.owned_strings.scope(&expr.id, first, end)?;
         Ok(())
     }
 
@@ -2269,6 +2311,7 @@ fn emit_function(
     range_bindings: Option<&RangeBindings>,
     owned_utf8_literals: Option<&mut OwnedUtf8Literals>,
 ) -> Result<Vec<u8>, Diagnostic> {
+    let owned_string_profile = owned_utf8_literals.is_some();
     let plan = FunctionPlan::build(program, function, variant_layouts)?;
     let mut body = Vec::new();
     write_u32(&mut body, plan.local_types.len() as u32);
@@ -2447,6 +2490,9 @@ fn emit_function(
         emitter.get_scalar(&result);
         emitter.output.push(0x21);
         write_u32(emitter.output, local);
+        if owned_string_profile && function.return_type == ResolvedType::String {
+            emitter.clear_scalar(&result)?;
+        }
         Value::Scalar {
             local,
             ty: function.return_type.clone(),
@@ -2487,6 +2533,12 @@ fn emit_function(
         emitter.failure_expression = None;
     }
     emitter.emit_success_cleanup(&function.cleanup_plan)?;
+    if owned_string_profile {
+        let escape = (function.return_type == ResolvedType::String)
+            .then_some(plan.result_stage_scalar)
+            .flatten();
+        plan.owned_strings.emit_all(emitter.output, escape);
+    }
     let caller = if is_aggregate(program, &function.return_type)? {
         Value::Aggregate {
             pointer: Pointer {
@@ -2516,9 +2568,17 @@ fn emit_function(
         emitter.output.push(0x20);
         write_u32(emitter.output, source);
         emitter.store_scalar(&ty);
+        if owned_string_profile && ty == ResolvedType::String {
+            owned_strings::emit_clear(emitter.output, source);
+        }
     }
     drop(emitter);
     body.push(0x0b);
+    // Every recoverable failure branches here. Successfully published String
+    // stages have been cleared; a failed provisional result remains owned.
+    if owned_string_profile {
+        plan.owned_strings.emit_all(&mut body, None);
+    }
     body.push(0x20);
     write_u32(&mut body, plan.old_stack);
     body.push(0x24);
@@ -2651,6 +2711,18 @@ impl Emitter<'_> {
             }
         ) {
             self.apply_post_transitions(&expr.id, &value)?;
+        }
+        if self.owned_utf8_literals.is_some() {
+            let escape = match &value {
+                Value::Scalar {
+                    local,
+                    ty: ResolvedType::String,
+                } => Some(*local),
+                _ => None,
+            };
+            self.plan
+                .owned_strings
+                .emit_scope(self.output, &expr.id, escape)?;
         }
         Ok(value)
     }
@@ -3684,6 +3756,7 @@ impl Emitter<'_> {
                 let (offset, length) = literals.intern(value)?;
                 let carrier = (u64::from(offset) << 32) | u64::from(length);
                 let destination = self.plan.expr_scalar(expr)?;
+                owned_strings::emit_empty_guard(self.output, destination);
                 self.output.push(0x42);
                 write_i64(self.output, carrier as i64);
                 self.output.push(0x10);
@@ -3697,6 +3770,19 @@ impl Emitter<'_> {
             }
             ResolvedExprKind::Place(place) => {
                 let value = self.place_value(place)?;
+                if self.owned_utf8_literals.is_some() && expr.ty == ResolvedType::String {
+                    let local = self.plan.expr_scalar(expr)?;
+                    owned_strings::emit_empty_guard(self.output, local);
+                    self.get_scalar(&value);
+                    self.output.push(0x10);
+                    write_u32(self.output, BYTE_COPY_IMPORT);
+                    self.output.push(0x21);
+                    write_u32(self.output, local);
+                    return Ok(Value::Scalar {
+                        local,
+                        ty: ResolvedType::String,
+                    });
+                }
                 self.materialize(expr, &value)
             }
             ResolvedExprKind::BorrowPlace { operation, place } => {
@@ -3726,6 +3812,20 @@ impl Emitter<'_> {
             ResolvedExprKind::Block { statements, tail } => {
                 let saved = self.bindings.clone();
                 for statement in statements {
+                    if self.owned_utf8_literals.is_some()
+                        && matches!(statement, ResolvedStatement::Unsafe { body, .. } if body.ty == ResolvedType::String)
+                    {
+                        return Err(error(
+                            "discarding an owned string has no admitted WebAssembly lowering",
+                        ));
+                    }
+                    if self.owned_utf8_literals.is_some()
+                        && matches!(statement, ResolvedStatement::Assign { binding, .. } if binding.ty == ResolvedType::String)
+                    {
+                        return Err(error(
+                            "string assignment has no admitted WebAssembly lowering",
+                        ));
+                    }
                     // Field Mutation v1: the assigned value evaluates fully
                     // first, then stores into the direct scalar field of the
                     // aggregate binding's frame slot.
@@ -5406,6 +5506,19 @@ impl Emitter<'_> {
                 Value::Aggregate { pointer, .. } => self.emit_pointer(*pointer),
             }
         }
+        // All arguments have evaluated successfully. Their values are now on
+        // the operand stack; no fallible semantic work precedes the call.
+        if self.owned_utf8_literals.is_some() {
+            for value in &values {
+                if let Value::Scalar {
+                    local,
+                    ty: ResolvedType::String,
+                } = value
+                {
+                    owned_strings::emit_clear(self.output, *local);
+                }
+            }
+        }
         let (result, result_pointer) =
             if is_aggregate(self.program, &expr.ty)? {
                 let pointer = self.plan.expr_pointer(expr)?;
@@ -5457,6 +5570,9 @@ impl Emitter<'_> {
         self.output.push(0x0b);
         if let Value::Scalar { local, ty } = &result {
             let offset = self.plan.call_out[&expr.id];
+            if self.owned_utf8_literals.is_some() && *ty == ResolvedType::String {
+                owned_strings::emit_empty_guard(self.output, *local);
+            }
             self.emit_pointer(Pointer {
                 local: self.plan.frame_base,
                 offset,
@@ -5464,6 +5580,13 @@ impl Emitter<'_> {
             self.load_scalar(ty);
             self.output.push(0x21);
             write_u32(self.output, *local);
+            if self.owned_utf8_literals.is_some() && *ty == ResolvedType::String {
+                // The loaded local alone owns the result. The initialized
+                // transport word is cleared, never treated as another owner.
+                self.emit_pointer(result_pointer);
+                self.output.extend([0x42, 0x00]);
+                self.store_scalar(ty);
+            }
         }
         Ok(result)
     }
@@ -6248,6 +6371,12 @@ impl Emitter<'_> {
             BinaryOp::Div => self.emit_checked_div_rem(&left, &right, destination, false)?,
             BinaryOp::Rem => self.emit_checked_div_rem(&left, &right, destination, true)?,
             BinaryOp::Eq | BinaryOp::Ne => {
+                if self.owned_utf8_literals.is_some() && value_type(&left) == &ResolvedType::String
+                {
+                    return Err(error(
+                        "owned String equality has no admitted WebAssembly lowering",
+                    ));
+                }
                 if is_aggregate(self.program, value_type(&left))? {
                     return Err(error("record equality is outside executable records v1"));
                 }
@@ -6895,6 +7024,9 @@ impl Emitter<'_> {
         require_type(value_type(source), value_type(destination), context)?;
         match destination {
             Value::Scalar { local, ty } => {
+                if self.owned_utf8_literals.is_some() && *ty == ResolvedType::String {
+                    owned_strings::emit_empty_guard(self.output, *local);
+                }
                 self.get_scalar(source);
                 self.output.push(0x21);
                 write_u32(self.output, *local);
@@ -7194,6 +7326,11 @@ impl Emitter<'_> {
         condition: &ResolvedExpr,
         body: &ResolvedExpr,
     ) -> Result<(), Diagnostic> {
+        if self.owned_utf8_literals.is_some() && body.ty == ResolvedType::String {
+            return Err(error(
+                "discarding an owned string has no admitted WebAssembly lowering",
+            ));
+        }
         self.output.extend([0x02, 0x40]); // block (empty) $exit
         self.output.extend([0x03, 0x40]); // loop (empty) $top
         self.control_depth += 2;

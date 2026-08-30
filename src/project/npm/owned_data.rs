@@ -84,7 +84,7 @@ pub(super) fn prepare(
             "owned-data Wasm disagrees with independent semantic replay",
         ));
     }
-    let artifacts = render_package(package, version, descriptor, &wasm, &exports)?;
+    let artifacts = render_package(program, package, version, descriptor, &wasm, &exports)?;
     let artifact_bytes = artifacts.iter().try_fold(0_usize, |total, artifact| {
         total
             .checked_add(artifact.bytes.len())
@@ -227,6 +227,7 @@ pub(super) fn validate_replayed(
         ));
     }
     let expected = render_package(
+        &program,
         identity.package,
         identity.version,
         &descriptor,
@@ -259,6 +260,7 @@ fn exports_from_descriptor(
 }
 
 fn render_package(
+    program: &ResolvedProgram,
     package: &str,
     version: &str,
     descriptor: &PublicApiDescriptor,
@@ -269,7 +271,23 @@ fn render_package(
         return Err(package_error("owned-data Wasm size is outside its bound"));
     }
     let digest = hex_sha256(wasm);
-    let runtime = render_runtime(&digest, exports, descriptor.project_schema());
+    // Only V10 String-bearing closures need more than the target-neutral
+    // sixteen bytes_copy sites. Bind their lowering inventory by exact replay.
+    let capacity = if descriptor.project_schema() == PUBLIC_OWNED_UTF8_PROJECT_SCHEMA
+        && exports
+            .iter()
+            .any(|export| export.result == PublicApiResultType::OwnedUtf8)
+    {
+        let roots = descriptor
+            .exports()
+            .iter()
+            .map(|export| export.stable_id().clone())
+            .collect::<Vec<_>>();
+        crate::wasm::owned_arena_capacity(program, &roots)?
+    } else {
+        16
+    };
+    let runtime = render_runtime(&digest, exports, descriptor.project_schema(), capacity);
     let bindings = render_bindings(exports, &digest);
     let declarations = render_declarations(exports);
     let metadata = render_metadata(package, version, descriptor, &digest, exports);
@@ -284,12 +302,17 @@ fn render_package(
     ])
 }
 
-fn render_runtime(wasm_sha256: &str, exports: &[OwnedExport], project_schema: &str) -> String {
+fn render_runtime(
+    wasm_sha256: &str,
+    exports: &[OwnedExport],
+    project_schema: &str,
+    capacity: u32,
+) -> String {
     let bounded = matches!(
         project_schema,
         PUBLIC_OWNED_DATA_PROJECT_SCHEMA | PUBLIC_OWNED_UTF8_PROJECT_SCHEMA
     );
-    let mut runtime = render_runtime_prelude_with_admission(wasm_sha256, bounded);
+    let mut runtime = render_runtime_prelude_with_admission(wasm_sha256, bounded, capacity);
     let facade = if exports.iter().any(|export| {
         matches!(
             export.result,
@@ -314,11 +337,15 @@ fn render_runtime(wasm_sha256: &str, exports: &[OwnedExport], project_schema: &s
 
 #[cfg(test)]
 fn render_runtime_prelude(wasm_sha256: &str) -> String {
-    render_runtime_prelude_with_admission(wasm_sha256, false)
+    render_runtime_prelude_with_admission(wasm_sha256, false, 16)
 }
 
 // The original v8 helper bytes stay exact; v9/v10 now select the same admission.
-pub(super) fn render_runtime_prelude_with_admission(wasm_sha256: &str, bounded: bool) -> String {
+pub(super) fn render_runtime_prelude_with_admission(
+    wasm_sha256: &str,
+    bounded: bool,
+    capacity: u32,
+) -> String {
     let input_prelude = if bounded {
         include_str!("owned_data_input_v8.js")
     } else {
@@ -326,7 +353,7 @@ pub(super) fn render_runtime_prelude_with_admission(wasm_sha256: &str, bounded: 
     };
     format!(
         r#"const EXPECTED_WASM_SHA256 = {digest};
-{input_prelude}function createArena(){{const entries=new Map();let nextToken=1,instance=null,poisoned=false;const decode=carrier=>{{if(typeof carrier!=="bigint")throw new Error("SEMAPRAX owned carrier is not i64");const word=BigInt.asUintN(64,carrier),length=Number(word&0xffffffffn),root=Number((word>>32n)&0xffffffffn),token=root&0x7fffffff;if(length>65536)throw new Error("SEMAPRAX owned carrier length invariant");return{{word,length,root,token,tagged:(root&0x80000000)!==0,range:((root&0xc0000000)>>>0)===0x40000000}}}},resolve=value=>{{if(!value.tagged||value.token===0)throw new Error("SEMAPRAX owned carrier token invariant");const bytes=entries.get(value.token);if(!(bytes instanceof Uint8Array)||bytes.byteLength!==value.length)throw new Error("SEMAPRAX stale or wrong-length owned carrier");return bytes}},memory=()=>{{const value=instance?.exports.memory;if(!(value instanceof WebAssembly.Memory))throw new Error("SEMAPRAX borrowed carrier memory invariant");return new Uint8Array(value.buffer)}},allocate=bytes=>{{if(entries.size>=16||nextToken>0x7fffffff)throw new Error("SEMAPRAX owned arena exhausted");const token=nextToken++,owned=new Uint8Array(bytes);entries.set(token,owned);return BigInt.asIntN(64,((0x80000000n|BigInt(token))<<32n)|BigInt(owned.byteLength))}},read=carrier=>{{const value=decode(carrier);if(value.tagged)return resolve(value);const bytes=memory();if(value.range){{const pointer=(value.root&0xffff)*8;if(pointer>131072-32)throw new Error("SEMAPRAX byte range descriptor bounds invariant");const descriptor=new DataView(bytes.buffer,bytes.byteOffset+pointer,32),identity=descriptor.getUint32(0,true),self=descriptor.getUint32(4,true),carrierIdentity=(value.root>>>16)&0x1fff;if(identity===0||identity!==carrierIdentity||self!==pointer)throw new Error("SEMAPRAX byte range descriptor identity invariant");const ultimate=decode(descriptor.getBigInt64(8,true)),offset=descriptor.getBigUint64(16,true),length=descriptor.getBigUint64(24,true);if(length!==BigInt(value.length))throw new Error("SEMAPRAX byte range descriptor length invariant");if(ultimate.range)throw new Error("SEMAPRAX nested byte range descriptor invariant");if(offset>BigInt(ultimate.length)||length>BigInt(ultimate.length)-offset)throw new Error("SEMAPRAX byte range descriptor extent invariant");const base=ultimate.tagged?resolve(ultimate):(()=>{{if(ultimate.root>bytes.byteLength-ultimate.length)throw new Error("SEMAPRAX borrowed carrier range invariant");return bytes.subarray(ultimate.root,ultimate.root+ultimate.length)}})(),start=Number(offset);return base.subarray(start,start+Number(length))}}if(value.root>bytes.byteLength-value.length)throw new Error("SEMAPRAX borrowed carrier range invariant");return bytes.subarray(value.root,value.root+value.length)}},utf8=(offset,length)=>{{try{{new TextDecoder("utf-8",{{fatal:true}}).decode(read((BigInt(offset)<<32n)|BigInt(length)));return 1}}catch{{return 0}}}};return Object.freeze({{imports:Object.freeze({{spx_bytes_copy:c=>allocate(read(c)),spx_bytes_get:(c,i)=>{{const b=read(c),n=BigInt.asUintN(64,i);return n>=BigInt(b.byteLength)?-1:b[Number(n)]}},spx_bytes_drop:c=>{{const v=decode(c);resolve(v);entries.delete(v.token)}},spx_bytes_as_slice:c=>{{read(c);return BigInt.asIntN(64,c)}},spx_owned_utf8_validate_v1:utf8}}),bind(v){{if(instance!==null)throw new Error("SEMAPRAX arena already bound");instance=v}},begin(){{if(poisoned||entries.size!==0){{poisoned=true;throw new Error("SEMAPRAX arena entered unsettled")}}}},consume(c){{const v=decode(c),copy=new Uint8Array(resolve(v));entries.delete(v.token);return copy}},settle(){{if(entries.size!==0){{poisoned=true;throw new Error("SEMAPRAX arena did not settle")}}}},poison(){{poisoned=true}}}})}}
+{input_prelude}function createArena(){{const entries=new Map();let nextToken=1,instance=null,poisoned=false;const decode=carrier=>{{if(typeof carrier!=="bigint")throw new Error("SEMAPRAX owned carrier is not i64");const word=BigInt.asUintN(64,carrier),length=Number(word&0xffffffffn),root=Number((word>>32n)&0xffffffffn),token=root&0x7fffffff;if(length>65536)throw new Error("SEMAPRAX owned carrier length invariant");return{{word,length,root,token,tagged:(root&0x80000000)!==0,range:((root&0xc0000000)>>>0)===0x40000000}}}},resolve=value=>{{if(!value.tagged||value.token===0)throw new Error("SEMAPRAX owned carrier token invariant");const bytes=entries.get(value.token);if(!(bytes instanceof Uint8Array)||bytes.byteLength!==value.length)throw new Error("SEMAPRAX stale or wrong-length owned carrier");return bytes}},memory=()=>{{const value=instance?.exports.memory;if(!(value instanceof WebAssembly.Memory))throw new Error("SEMAPRAX borrowed carrier memory invariant");return new Uint8Array(value.buffer)}},allocate=bytes=>{{if(entries.size>={capacity}||nextToken>0x7fffffff)throw new Error("SEMAPRAX owned arena exhausted");const token=nextToken++,owned=new Uint8Array(bytes);entries.set(token,owned);return BigInt.asIntN(64,((0x80000000n|BigInt(token))<<32n)|BigInt(owned.byteLength))}},read=carrier=>{{const value=decode(carrier);if(value.tagged)return resolve(value);const bytes=memory();if(value.range){{const pointer=(value.root&0xffff)*8;if(pointer>131072-32)throw new Error("SEMAPRAX byte range descriptor bounds invariant");const descriptor=new DataView(bytes.buffer,bytes.byteOffset+pointer,32),identity=descriptor.getUint32(0,true),self=descriptor.getUint32(4,true),carrierIdentity=(value.root>>>16)&0x1fff;if(identity===0||identity!==carrierIdentity||self!==pointer)throw new Error("SEMAPRAX byte range descriptor identity invariant");const ultimate=decode(descriptor.getBigInt64(8,true)),offset=descriptor.getBigUint64(16,true),length=descriptor.getBigUint64(24,true);if(length!==BigInt(value.length))throw new Error("SEMAPRAX byte range descriptor length invariant");if(ultimate.range)throw new Error("SEMAPRAX nested byte range descriptor invariant");if(offset>BigInt(ultimate.length)||length>BigInt(ultimate.length)-offset)throw new Error("SEMAPRAX byte range descriptor extent invariant");const base=ultimate.tagged?resolve(ultimate):(()=>{{if(ultimate.root>bytes.byteLength-ultimate.length)throw new Error("SEMAPRAX borrowed carrier range invariant");return bytes.subarray(ultimate.root,ultimate.root+ultimate.length)}})(),start=Number(offset);return base.subarray(start,start+Number(length))}}if(value.root>bytes.byteLength-value.length)throw new Error("SEMAPRAX borrowed carrier range invariant");return bytes.subarray(value.root,value.root+value.length)}},utf8=(offset,length)=>{{try{{new TextDecoder("utf-8",{{fatal:true}}).decode(read((BigInt(offset)<<32n)|BigInt(length)));return 1}}catch{{return 0}}}};return Object.freeze({{imports:Object.freeze({{spx_bytes_copy:c=>allocate(read(c)),spx_bytes_get:(c,i)=>{{const b=read(c),n=BigInt.asUintN(64,i);return n>=BigInt(b.byteLength)?-1:b[Number(n)]}},spx_bytes_drop:c=>{{const v=decode(c);resolve(v);entries.delete(v.token)}},spx_bytes_as_slice:c=>{{read(c);return BigInt.asIntN(64,c)}},spx_owned_utf8_validate_v1:utf8}}),bind(v){{if(instance!==null)throw new Error("SEMAPRAX arena already bound");instance=v}},begin(){{if(poisoned||entries.size!==0){{poisoned=true;throw new Error("SEMAPRAX arena entered unsettled")}}}},consume(c){{const v=decode(c),copy=new Uint8Array(resolve(v));entries.delete(v.token);return copy}},settle(){{if(entries.size!==0){{poisoned=true;throw new Error("SEMAPRAX arena did not settle")}}}},poison(){{poisoned=true}}}})}}
 async function instantiateCore(input){{const bytes=snapshotUint8(input,"SEMAPRAX module bytes");if(globalThis.crypto?.subtle===undefined)throw new Error("SEMAPRAX Web Crypto SHA-256 support is required");const hash=new Uint8Array(await crypto.subtle.digest("SHA-256",bytes)),actual=Array.from(hash,v=>v.toString(16).padStart(2,"0")).join("");if(actual!==EXPECTED_WASM_SHA256)throw new Error("SEMAPRAX WebAssembly artifact authentication failed");const arena=createArena(),fail=(code,domain)=>{{throw Object.assign(new Error(`SEMAPRAX semantic failure ${{code}}`),{{code,domain,semapraxSemantic:true}})}},checked=(v,c)=>{{if(v<-(1n<<63n)||v>(1n<<63n)-1n)fail(c,"semaprax.arithmetic.v1");return v}},env=Object.freeze({{spx_add:(a,b)=>checked(a+b,1),spx_sub:(a,b)=>checked(a-b,2),spx_mul:(a,b)=>checked(a*b,3),spx_div:(a,b)=>b===0n?fail(4,"semaprax.arithmetic.v1"):a/b,spx_rem:(a,b)=>b===0n?fail(6,"semaprax.arithmetic.v1"):a%b,spx_neg:a=>checked(-a,8),spx_contract_fail:c=>fail(c,"semaprax.contract.v1"),...arena.imports}}),result=await WebAssembly.instantiate(bytes,Object.freeze({{env}}));arena.bind(result.instance);return Object.freeze({{instance:result.instance,arena,copyInto:(target,source,offset)=>reflectApply(typedSet,target,[source,offset])}})}}
 export const wasmSha256=EXPECTED_WASM_SHA256;
 "#,
@@ -578,9 +605,11 @@ mod hostile_source_tests {
     fn v8_bounded_renderer_fragments_keep_their_prechange_bytes() {
         // Pinned by static expansion/hash of the baseline literal templates,
         // not by generating or executing a replacement package.
+        // V8/V9 retain sixteen; V10 substitutes only its derived capacity in
+        // this shared fragment. Wasm/whole-package V10 bindings also change.
         for (rendered, expected) in [
             (
-                render_runtime_prelude_with_admission("digest", true),
+                render_runtime_prelude_with_admission("digest", true, 16),
                 "9f031e17da0d1c125d0fd8ebf54171e69d44a44b24931d8e2a945048577a7e1b",
             ),
             (
@@ -597,6 +626,17 @@ mod hostile_source_tests {
             ),
         ] {
             assert_eq!(hex_sha256(rendered.as_bytes()), expected);
+        }
+    }
+
+    #[test]
+    fn v10_capacity_substitution_preserves_every_other_prelude_byte() {
+        let old = render_runtime_prelude_with_admission("digest", true, 16);
+        for capacity in [1, 19, 0x7fff_ffff] {
+            assert_eq!(
+                render_runtime_prelude_with_admission("digest", true, capacity),
+                old.replace("entries.size>=16||", &format!("entries.size>={capacity}||"))
+            );
         }
     }
 
@@ -628,11 +668,13 @@ mod hostile_source_tests {
 
     #[test]
     fn v8_and_v10_input_admission_is_explicit_and_precedes_scratch_and_arena() {
-        let v8 = render_runtime("digest", &[], PUBLIC_OWNED_DATA_PROJECT_SCHEMA);
-        let v10 = render_runtime("digest", &[], PUBLIC_OWNED_UTF8_PROJECT_SCHEMA);
+        let v8 = render_runtime("digest", &[], PUBLIC_OWNED_DATA_PROJECT_SCHEMA, 16);
+        let v10 = render_runtime("digest", &[], PUBLIC_OWNED_UTF8_PROJECT_SCHEMA, 16);
         assert!(v8.contains("function snapshotArguments("));
         assert!(v10.contains("function snapshotArguments("));
-        assert!(!render_runtime_prelude_with_admission("digest", true).contains("arrayBufferSlice"));
+        assert!(
+            !render_runtime_prelude_with_admission("digest", true, 16).contains("arrayBufferSlice")
+        );
         for source in [
             render_runtime_facade(&[], true),
             render_variant_runtime_facade(&[], true),

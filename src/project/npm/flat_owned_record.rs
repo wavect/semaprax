@@ -193,6 +193,7 @@ fn render_package(
     let mut runtime = super::owned_data::render_runtime_prelude_with_admission(
         wasm_digest.strip_prefix("sha256:").unwrap_or(&wasm_digest),
         true,
+        16,
     );
     runtime.push_str(&render_facade(descriptor));
     let declarations = format!("{}export interface SemapraxRuntime {{ readonly functions: Readonly<SemapraxApi>; call<I extends keyof SemapraxApi>(id:I,...args:Parameters<SemapraxApi[I]>):ReturnType<SemapraxApi[I]>; readonly wasmSha256:string; }}\nexport declare function instantiate(bytes:Uint8Array):Promise<SemapraxRuntime>;\nexport declare const exportIds:readonly(keyof SemapraxApi)[];\nexport default instantiate;\n", crate::project::render_flat_owned_record_typescript(descriptor));

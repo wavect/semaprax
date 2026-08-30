@@ -557,7 +557,11 @@ Copy parameters; admitted direct byte owners must all be retained once.
 templates against each caller's bindings and reuses scope-aware substitution
 to select staged original values. The signature engine appends typed computed
 locals after all original stages; full candidate replay owns semantic admission.
-Provider preflight without callers is structural only. See
+Computed nominal types reuse stable-ID type planning separately for the provider
+and each caller annotation. After source rebuild, an additional signature gate
+checks exact owner/argument identities and retained Sized Copy, resource-free,
+no-drop facts before exposing a candidate, including signatures without calls.
+Expression-template preflight without callers is structural only. See
 [Argument Expressions](PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md).
 Workspace module projections privately retain compiler-checked nominal
 parameter and return TypeFacts, including types outside entry/test reachability. The

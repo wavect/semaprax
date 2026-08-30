@@ -256,7 +256,10 @@ fn new_parameter() -> Value {
 fn computed_parameter() -> Value {
     closed(&[
         ("name", identifier()),
-        ("type", json!({"enum":SCALAR_KINDS})),
+        (
+            "type",
+            json!({"oneOf":[{"enum":SCALAR_KINDS},nominal_type_schema()]}),
+        ),
         ("argument_expression", reference("expression")),
     ])
 }
@@ -418,6 +421,10 @@ mod aggregate_expression_schema_tests {
             assert_eq!(literal["additionalProperties"], false);
             assert_eq!(literal["required"], json!(["name", "type", "argument"]));
             assert!(literal["properties"].get("argument_expression").is_none());
+            assert!(
+                SCALAR_KINDS.contains(&literal["properties"]["type"]["const"].as_str().unwrap())
+            );
+            assert!(literal["properties"]["type"].get("oneOf").is_none());
             assert_eq!(
                 literal["properties"]["type"]["const"],
                 literal["properties"]["argument"]["properties"]["kind"]["const"]
@@ -441,7 +448,26 @@ mod aggregate_expression_schema_tests {
             json!(["name", "type", "argument_expression"])
         );
         assert_eq!(computed["properties"].as_object().unwrap().len(), 3);
-        assert_eq!(computed["properties"]["type"]["enum"], json!(SCALAR_KINDS));
+        let types = computed["properties"]["type"]["oneOf"].as_array().unwrap();
+        assert_eq!(types.len(), 2);
+        assert_eq!(types[0]["enum"], json!(SCALAR_KINDS));
+        assert_eq!(types[1], nominal_type_schema());
+        assert_eq!(types[1]["additionalProperties"], false);
+        assert_eq!(
+            types[1]["required"],
+            json!(["kind", "target", "type_arguments"])
+        );
+        assert_eq!(
+            types[1]["properties"]["type_arguments"]["items"]["enum"],
+            json!(["i64", "bool"])
+        );
+        assert!(types[1]["properties"]["type_arguments"]
+            .get("minItems")
+            .is_none());
+        assert_eq!(
+            types[1]["properties"]["type_arguments"]["maxItems"],
+            MAX_AGGREGATE_TYPE_ARGUMENTS
+        );
         assert_eq!(
             computed["properties"]["argument_expression"],
             reference("expression")

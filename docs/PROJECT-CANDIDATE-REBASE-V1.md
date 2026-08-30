@@ -127,7 +127,11 @@ constructor. See [Lexical Binding Constructor](PROJECT-LEXICAL-BINDING-CONSTRUCT
 The same nested-dependency checks apply to explicit signature
 `argument_expression` templates. A callee display rename can be rebound through
 its stable identity; a changed callee signature remains a conflict before
-computed-argument reconstruction. See
+computed-argument reconstruction. A computed parameter's nominal type selector
+also binds its complete selected owner/member inventory, independently of any
+constructor used by its argument expression; a concurrent shape change rejects.
+These checks use the corresponding intermediate revisions during history replay.
+See
 [Signature Argument Expressions](PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md).
 
 Conflict selection only decides whether to attempt replay. Every surviving

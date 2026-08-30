@@ -2,6 +2,141 @@
 
 use super::*;
 
+pub(super) fn requested_type(
+    revision: Option<&ProjectRevision>,
+    program: &Program,
+    request: &Value,
+) -> Result<Type> {
+    if let Some(name) = request.as_str() {
+        return scalar_type(name);
+    }
+    object(request, &["kind", "target", "type_arguments"])?;
+    if text(request, "kind")? != "nominal" {
+        return Err(grammar(
+            "computed signature type object requires nominal kind",
+        ));
+    }
+    let revision = revision.ok_or_else(|| {
+        grammar("nominal signature arguments require a retained checked Project revision")
+    })?;
+    super::super::nominal_type_plan(
+        revision,
+        program,
+        text(request, "target")?,
+        member(request, "type_arguments")?,
+    )
+}
+
+pub(super) fn nominal_type_nodes(ty: &Type) -> usize {
+    match ty {
+        Type::Named { arguments, .. } => 1 + arguments.len(),
+        _ => 0,
+    }
+}
+
+/// The new provider signature must prove Copy even if no caller materialized
+/// the default. Exact nominal IDs and arguments are checked independently of
+/// provider/caller display aliases after the full canonical source rebuild.
+pub(in crate::project::candidate) fn validate_computed_signature(
+    revision: &ProjectRevision,
+    intent: &Value,
+) -> Result<()> {
+    let Some(parameters) = intent.get("parameters").and_then(Value::as_array) else {
+        return Ok(());
+    };
+    if !parameters.iter().any(|mapping| {
+        mapping.get("argument_expression").is_some()
+            && mapping.get("type").is_some_and(Value::is_object)
+    }) {
+        return Ok(());
+    }
+    if parameters.len() > MAX_PARAMETERS {
+        return Err(capacity(
+            "rebuilt computed signature exceeds its parameter bound",
+        ));
+    }
+    let target = text(intent, "target")?;
+    let mut selected = None;
+    for module in revision.semantic.image_modules() {
+        for function in module
+            .functions()
+            .iter()
+            .filter(|function| function.id.as_str() == target)
+        {
+            if selected.replace((module, function)).is_some() {
+                return Err(grammar("rebuilt computed signature identity is ambiguous"));
+            }
+        }
+    }
+    let (module, function) =
+        selected.ok_or_else(|| grammar("rebuilt computed signature function is absent"))?;
+    if function.params.len() != parameters.len() {
+        return Err(grammar(
+            "rebuilt computed signature parameter inventory disagrees",
+        ));
+    }
+    for (mapping, parameter) in parameters.iter().zip(&function.params) {
+        if mapping.get("argument_expression").is_none()
+            || !mapping.get("type").is_some_and(Value::is_object)
+        {
+            continue;
+        }
+        let request = member(mapping, "type")?;
+        object(request, &["kind", "target", "type_arguments"])?;
+        if text(request, "kind")? != "nominal"
+            || parameter.name != text(mapping, "name")?
+            || parameter.ownership != OwnershipMode::Value
+        {
+            return Err(grammar(
+                "rebuilt nominal parameter binding disagrees with its request",
+            ));
+        }
+        let ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } = &parameter.ty
+        else {
+            return Err(grammar(
+                "rebuilt nominal parameter is not a checked nominal type",
+            ));
+        };
+        let requested_arguments = array(request, "type_arguments")?;
+        if requested_arguments.len() > super::super::MAX_AGGREGATE_TYPE_ARGUMENTS {
+            return Err(capacity(
+                "rebuilt nominal type arguments exceed their bound",
+            ));
+        }
+        if declaration.as_str() != text(request, "target")?
+            || arguments.len() != requested_arguments.len()
+            || !arguments
+                .iter()
+                .zip(requested_arguments)
+                .all(|(actual, requested)| {
+                    matches!(
+                        (actual, requested.as_str()),
+                        (ResolvedType::I64, Some("i64")) | (ResolvedType::Bool, Some("bool"))
+                    )
+                })
+        {
+            return Err(grammar(
+                "rebuilt nominal parameter has a different stable type identity",
+            ));
+        }
+        let (kind, facts) = module.signature_type_facts(&parameter.ty).ok_or_else(|| {
+            grammar("rebuilt nominal parameter has no retained checked type facts")
+        })?;
+        if !matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
+            || !facts.copy
+            || !facts.sized
+            || facts.needs_drop
+            || facts.contains_resource
+        {
+            return Err(grammar("computed nominal parameters require checked sized Copy records or variants without owned cleanup or resources"));
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn charge(nodes: &mut usize, additional: usize) -> Result<()> {
     *nodes = nodes
         .checked_add(additional)

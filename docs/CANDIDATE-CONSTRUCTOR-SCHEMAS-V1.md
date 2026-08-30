@@ -42,10 +42,13 @@ See [Lexical Binding Constructor](PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md).
 
 Ordered signature mappings additionally admit the closed
 `{name, type, argument_expression}` form, with the existing five scalar type
-choices and recursive expression definition. It is a separate alternative to
+choices or the same closed nominal type selector used by function declarations,
+and the recursive expression definition. It is a separate alternative to
 `{name, type, argument}` and retained `from` mappings; append remains literal-only.
 Original-parameter scope and actual per-caller admission belong to
 [Signature Argument Expressions](PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md).
+Nominal discovery identifies existing provider/caller type bindings and rebuilt
+Copy admission; the schema alone cannot establish either property.
 
 Aggregate expressions use exactly `{"kind":"record","target":record_id,
 "fields":[{"target":field_id,"value":expression}]}` or the same shape with

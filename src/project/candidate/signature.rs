@@ -20,6 +20,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 #[path = "signature_arguments.rs"]
 mod computed;
+pub(in crate::project::candidate) use computed::validate_computed_signature;
 #[path = "signature_rename.rs"]
 mod rename;
 
@@ -32,7 +33,10 @@ const MAX_PARAMETERS: usize = 4096;
 enum Argument {
     Existing(usize),
     Literal(Expr),
-    Computed(Value),
+    Computed {
+        template: Value,
+        type_request: Value,
+    },
 }
 
 pub(super) fn apply(
@@ -129,9 +133,14 @@ pub(super) fn apply(
                     "new signature parameter must not rename or reinterpret an old binding",
                 ));
             }
-            let type_name = text(mapping, "type")?;
-            let ty = scalar_type(type_name)?;
+            let type_request = member(mapping, "type")?;
+            let ty = if is_computed {
+                computed::requested_type(revision, &programs[owner], type_request)?
+            } else {
+                scalar_type(text(mapping, "type")?)?
+            };
             if is_computed {
+                computed::charge(&mut template_nodes, computed::nominal_type_nodes(&ty))?;
                 let template = member(mapping, "argument_expression")?;
                 // Preflight even when no source call instantiates this default.
                 // Only instantiated callers receive ordinary semantic checks.
@@ -143,10 +152,13 @@ pub(super) fn apply(
                     &mut BTreeSet::new(),
                     &mut template_nodes,
                 )?;
-                arguments.push(Argument::Computed(template.clone()));
+                arguments.push(Argument::Computed {
+                    template: template.clone(),
+                    type_request: type_request.clone(),
+                });
             } else {
                 let argument = member(mapping, "argument")?;
-                if text(argument, "kind")? != type_name {
+                if text(argument, "kind")? != text(mapping, "type")? {
                     return Err(grammar(
                         "new signature argument must be an exact typed scalar literal",
                     ));
@@ -184,7 +196,7 @@ pub(super) fn apply(
             Argument::Existing(index) => {
                 Some((original_params[*index].name.clone(), param.name.clone()))
             }
-            Argument::Literal(_) | Argument::Computed(_) => None,
+            Argument::Literal(_) | Argument::Computed { .. } => None,
         })
         .collect::<BTreeMap<_, _>>();
     if renames.iter().any(|(old, new)| old != new) {
@@ -202,7 +214,7 @@ pub(super) fn apply(
     let mut migrated_calls = 0usize;
     let has_computed = arguments
         .iter()
-        .any(|argument| matches!(argument, Argument::Computed(_)));
+        .any(|argument| matches!(argument, Argument::Computed { .. }));
     for program in programs.iter_mut() {
         for import in &program.module_uses {
             if import.kind == ModuleUseKind::Function
@@ -250,18 +262,30 @@ pub(super) fn apply(
             let span = expression.span;
             let mut templates = Vec::with_capacity(arguments.len());
             for argument in &arguments {
-                templates.push(if let Argument::Computed(template) = argument {
-                    Some(computed::prepare(
-                        revision,
-                        caller_context.as_ref().expect("computed context retained"),
-                        &original_params,
+                templates.push(
+                    if let Argument::Computed {
                         template,
-                        &mut occupied,
-                        &mut template_nodes,
-                    )?)
-                } else {
-                    None
-                });
+                        type_request,
+                    } = argument
+                    {
+                        let caller = caller_context.as_ref().expect("computed context retained");
+                        // A provider's display spelling is not an imported type
+                        // binding. Resolve the same stable selector in this caller.
+                        let ty = computed::requested_type(revision, caller, type_request)?;
+                        computed::charge(&mut template_nodes, computed::nominal_type_nodes(&ty))?;
+                        let (body, count) = computed::prepare(
+                            revision,
+                            caller,
+                            &original_params,
+                            template,
+                            &mut occupied,
+                            &mut template_nodes,
+                        )?;
+                        Some((body, count, ty))
+                    } else {
+                        None
+                    },
+                );
             }
             if has_computed {
                 computed::charge(&mut added_nodes, old_arity)?;
@@ -272,15 +296,16 @@ pub(super) fn apply(
             }
             let mut defaults = Vec::new();
             let mut mapped = Vec::with_capacity(arguments.len());
-            for ((argument, parameter), template) in arguments.iter().zip(&params).zip(templates) {
+            for (argument, template) in arguments.iter().zip(templates) {
                 mapped.push(match argument {
                     Argument::Existing(index) => Expr {
                         kind: ExprKind::Var(stages[*index].clone()),
                         span,
                     },
                     Argument::Literal(expression) => expression.clone(),
-                    Argument::Computed(_) => {
-                        let (body, body_nodes) = template.expect("computed template prepared");
+                    Argument::Computed { .. } => {
+                        let (body, body_nodes, ty) = template.expect("computed template prepared");
+                        computed::charge(&mut added_nodes, computed::nominal_type_nodes(&ty))?;
                         computed::charge(&mut added_nodes, body_nodes + 1)?;
                         let body =
                             computed::substitute(body, &original_params, &stages, &mut occupied)?;
@@ -289,7 +314,7 @@ pub(super) fn apply(
                             name: name.clone(),
                             name_span: span,
                             mutable: false,
-                            declared: Some(parameter.ty.clone()),
+                            declared: Some(ty),
                             value: body,
                             span,
                         });

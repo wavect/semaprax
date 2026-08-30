@@ -101,6 +101,13 @@ It compares checked signatures, structural inventories and complete ordered
 loan/cleanup plans across the candidate. It takes no target and gains no target
 execution, plan mutation or physical ownership authority.
 
+The existing build grant also enables `candidate/artifact-delta`, which compares
+actual base/candidate Web or npm carriers through
+[Artifact Delta](PROJECT-CANDIDATE-ARTIFACT-DELTA-V1.md). It replays the candidate
+before either build, compares file/export/source bindings, and returns chunks.
+The request cannot change the fixed build limit or gain artifact filesystem
+materialization. Candidate preparation alone does not enable this method.
+
 All available method names, closed request parameters, payload schema references,
 capabilities, and generated clients come from the selected catalogue. Optional
 parameters are omitted; null is accepted only where the declared schema permits

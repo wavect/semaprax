@@ -24,6 +24,35 @@ const METHODS: &[Method] = &[
         payload_schema: "semaprax.image-target-admission-chunk.v1",
     },
     Method {
+        name: "candidate/artifact-delta",
+        operation: Operation::VNext(Action::ArtifactDelta),
+        parameters: &[
+            REVISION,
+            Parameter {
+                name: "candidate_revision",
+                kind: ParameterKind::Digest,
+                required: true,
+            },
+            Parameter {
+                name: "kind",
+                kind: ParameterKind::Choice(&["web", "npm"]),
+                required: true,
+            },
+            Parameter {
+                name: "offset",
+                kind: ParameterKind::Integer(0, 8 * 1024 * 1024),
+                required: false,
+            },
+            Parameter {
+                name: "chunk_bytes",
+                kind: ParameterKind::Integer(1024, 65536),
+                required: false,
+            },
+        ],
+        query: false,
+        payload_schema: "semaprax.image-artifact-delta-chunk.v1",
+    },
+    Method {
         name: "candidate/build",
         operation: Operation::VNext(Action::Build),
         parameters: &[
@@ -56,7 +85,13 @@ const METHODS: &[Method] = &[
 pub(super) fn methods(build_enabled: bool) -> Vec<&'static Method> {
     METHODS
         .iter()
-        .filter(|method| build_enabled || method.name != "candidate/build")
+        .filter(|method| {
+            build_enabled
+                || !matches!(
+                    method.operation,
+                    Operation::VNext(Action::Build | Action::ArtifactDelta)
+                )
+        })
         .collect()
 }
 pub(super) fn prepare(
@@ -104,6 +139,26 @@ pub(super) fn prepare(
                 )?,
             )
         }
+        Action::ArtifactDelta => {
+            let candidate = registry.candidate(text(params, "candidate_revision"))?;
+            let kind = match text(params, "kind") {
+                "web" => ImageArtifactKind::Web,
+                "npm" => ImageArtifactKind::Npm,
+                _ => {
+                    return Err(vec![Diagnostic::io(
+                        "SPX-G331",
+                        "unknown artifact delta kind",
+                    )])
+                }
+            };
+            // This compiler API independently replays the candidate before
+            // building and verifying either fixed-budget pathless carrier.
+            (
+                "semaprax.image-artifact-delta-chunk.v1",
+                "semaprax.project-candidate-artifact-delta.v1",
+                candidate.artifact_delta(candidate.candidate_digest(), kind)?,
+            )
+        }
         _ => {
             return Err(vec![Diagnostic::io(
                 "SPX-G290",
@@ -114,7 +169,11 @@ pub(super) fn prepare(
     let offset = number(params, "offset", 0);
     if offset > report.len() || !report.is_char_boundary(offset) {
         return Err(vec![Diagnostic::io(
-            "SPX-G290",
+            if matches!(action, Action::ArtifactDelta) {
+                "SPX-G331"
+            } else {
+                "SPX-G290"
+            },
             "artifact report offset is outside its UTF-8 boundary",
         )]);
     }
@@ -126,7 +185,11 @@ pub(super) fn prepare(
     }
     if end == offset && offset < report.len() {
         return Err(vec![Diagnostic::io(
-            "SPX-G291",
+            if matches!(action, Action::ArtifactDelta) {
+                "SPX-G332"
+            } else {
+                "SPX-G291"
+            },
             "artifact chunk cannot make progress",
         )]);
     }

@@ -73,6 +73,7 @@ Audience: all documentation readers.
 - [Candidate Interface Delta v1](PROJECT-CANDIDATE-INTERFACE-DELTA-V1.md)
 - [Candidate Contract Delta v1](PROJECT-CANDIDATE-CONTRACT-DELTA-V1.md)
 - [Candidate Ownership Delta v1](PROJECT-CANDIDATE-OWNERSHIP-DELTA-V1.md)
+- [Candidate Artifact Delta v1](PROJECT-CANDIDATE-ARTIFACT-DELTA-V1.md)
 - [Candidate Symbol Diagnostics v1](PROJECT-CANDIDATE-SYMBOL-DIAGNOSTICS-V1.md)
 - [Candidate Diagnostic Protocol v4](IMAGE-CANDIDATE-DIAGNOSTIC-PROTOCOL-V4.md)
 - [Workspace Protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md)

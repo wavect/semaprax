@@ -63,6 +63,7 @@ pub(super) enum Action {
     Commit,
     Targets,
     Build,
+    ArtifactDelta,
     InterfaceDelta,
     ContractDelta,
     OwnershipDelta,
@@ -348,7 +349,9 @@ impl VNextSession {
                     discovery::payload(method, params, available, policy, commit_enabled)?,
                     candidates::Mutation::None,
                 ),
-                Operation::VNext(action @ (Action::Targets | Action::Build)) => (
+                Operation::VNext(
+                    action @ (Action::Targets | Action::Build | Action::ArtifactDelta),
+                ) => (
                     projections::prepare(action, params, image, registry)?,
                     candidates::Mutation::None,
                 ),

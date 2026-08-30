@@ -80,6 +80,11 @@ cross-field condition.
 
 ## Generated clients
 
+The additive `candidate/artifact-delta` method requires `candidate_build` and
+describes a closed artifact-delta chunk envelope. Its selected Web/npm report
+remains explicitly unbundled. Generated request builders preserve the closed
+kind choice and cannot select a build limit or widen host authority.
+
 `protocol/client` accepts `language: "typescript" | "python" | "rust"` and
 returns deterministic source for the selected profile. It provides one typed
 Params interface/TypedDict/struct, request builder, and method-specific response

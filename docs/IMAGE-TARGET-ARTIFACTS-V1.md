@@ -60,3 +60,8 @@ authority remains explicit.
 `tests/image_target_artifacts_v1.rs` authors membership, actual carrier binding,
 export/source provenance, exact replay/mutation, capacity and no-write checks.
 No tests, compiler gates or generated artifacts were executed during this work.
+
+The additive [Candidate Artifact Delta v1](PROJECT-CANDIDATE-ARTIFACT-DELTA-V1.md)
+compares these actual projections across a replayed candidate's original and
+final revisions. It preserves this report's bytes and profile admission, and
+uses the existing v5 build grant for its separate chunked comparison route.

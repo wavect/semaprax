@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added candidate artifact deltas over actual independently replayed Web/npm
+  carriers, comparing file content, stable export identities and source/carrier
+  bindings. V5 requires the existing build grant; no package installation,
+  target execution or artifact publication is added. Regression cases are
+  authored, unrun.
+
 - Added an authored, unrun offline doctor bundle parser over sealed input:
   exact selector/platform binding, bounded canonical file/tool inventory,
   zero-copy views, minimum ELF headers and in-inventory interpreter checks.

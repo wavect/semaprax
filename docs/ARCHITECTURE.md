@@ -545,6 +545,11 @@ instance ownership facts, complete structural inventories, and the existing
 ordered loan/cleanup projections. Exact report verification replays the full
 candidate first. The report neither changes a plan nor turns its actions into
 physical ownership authority; v5 exposes it through candidate-granted chunks.
+`candidate/artifact_delta.rs` replays the full candidate before comparing base
+and candidate Web/npm carriers through existing independently verified pathless
+artifact projections. File-content, stable export, source and carrier bindings
+remain distinct. V5 requires the existing build grant and provides report chunks;
+neither report generation nor verification installs or publishes artifacts.
 The [integrated workflow](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md) is authored,
 unrun and publishes managed generations only; canonical Git files stay unchanged.
 

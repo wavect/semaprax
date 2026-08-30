@@ -56,6 +56,18 @@ artifact projection have separate host selections. A build projects compiler
 artifacts into bounded reports; it does not publish files or execute a native
 or Wasm target. Source publication requires a separately attached Git host.
 
+Candidate preparation also grants `candidate/interface-delta`, a read-only,
+whole-candidate comparison of static interface declarations and their bound
+functions. Diagnostic selection grants `candidate/symbol-diagnostics`, which
+associates retained rejected attempts only with their exact predecessor and
+intention target. It never attributes a rejected-source span to verified HIR.
+Both use bounded report chunks under current image and candidate expectations;
+diagnostic continuations additionally require the exact report revision because
+the retained attempt inventory can change. Neither method enters the parallel
+image-only batch or grants repair application, execution, or publication. Their
+report contracts are [Interface Delta](PROJECT-CANDIDATE-INTERFACE-DELTA-V1.md)
+and [Symbol Diagnostics](PROJECT-CANDIDATE-SYMBOL-DIAGNOSTICS-V1.md).
+
 All available method names, closed request parameters, payload schema references,
 capabilities, and generated clients come from the selected catalogue. Optional
 parameters are omitted; null is accepted only where the declared schema permits

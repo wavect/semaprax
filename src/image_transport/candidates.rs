@@ -326,6 +326,12 @@ pub(super) enum Mutation {
 }
 
 impl Registry {
+    pub(in crate::image_transport) fn retained_attempts(
+        &self,
+    ) -> impl Iterator<Item = &Arc<crate::project::ProjectCandidateAttempt>> {
+        self.attempts.values()
+    }
+
     pub(super) fn candidate(&self, id: &str) -> Result<&Arc<ProjectCandidate>, Vec<Diagnostic>> {
         self.candidates.get(id).ok_or_else(|| {
             failure(

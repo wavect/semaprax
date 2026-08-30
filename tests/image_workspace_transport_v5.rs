@@ -332,3 +332,108 @@ fn legacy_sessions_keep_their_protocol_and_exclude_explicit_refresh() {
         assert_eq!(response["error"]["code"], -32601);
     }
 }
+
+#[test]
+fn interface_delta_chunks_reconstruct_the_exact_library_report() {
+    let fixture = Fixture::new();
+    let before = std::fs::read(fixture.0.join("src/core.spx")).unwrap();
+    let expected = with_authenticated_project(&fixture.manifest(), |snapshot| {
+        let candidate = semaprax::project::ProjectCandidate::open(
+            snapshot.retain_revision(),
+            snapshot.project_revision(),
+        )?;
+        candidate.interface_delta(candidate.candidate_digest())
+    })
+    .unwrap();
+    let mut session = fixture.session(true, false);
+    let candidate = open(&mut session);
+    let mut offset = 0;
+    let mut report = String::new();
+    loop {
+        let chunk = payload(bound(
+            &mut session,
+            "candidate/interface-delta",
+            json!({"candidate_revision":candidate,"offset":offset,"chunk_bytes":1024}),
+        ));
+        assert_eq!(chunk["schema"], "semaprax.image-interface-delta-chunk.v1");
+        assert_eq!(
+            chunk["report_schema"],
+            "semaprax.project-candidate-interface-delta.v1"
+        );
+        assert_eq!(chunk["candidate_revision"], candidate);
+        assert_eq!(chunk["source_authority"], false);
+        report.push_str(chunk["chunk"].as_str().unwrap());
+        match chunk["next_offset"].as_u64() {
+            Some(next) => {
+                assert!(next > offset);
+                offset = next;
+            }
+            None => break,
+        }
+    }
+    assert_eq!(report, expected);
+    let bad = bound(
+        &mut session,
+        "candidate/interface-delta",
+        json!({"candidate_revision":candidate,"offset":report.len()+1}),
+    );
+    assert!(bad["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("SPX-G310"));
+    let unknown = bound(
+        &mut session,
+        "candidate/interface-delta",
+        json!({"candidate_revision":format!("sha256:{}", "0".repeat(64))}),
+    );
+    assert!(unknown.get("error").is_some());
+    assert_eq!(
+        std::fs::read(fixture.0.join("src/core.spx")).unwrap(),
+        before
+    );
+    session.finish().unwrap();
+}
+
+#[test]
+fn review_facet_discovery_is_host_selected_and_legacy_profiles_stay_closed() {
+    let fixture = Fixture::new();
+    for (candidates, diagnostics) in [(false, false), (true, false), (true, true)] {
+        let mut session = fixture.session(candidates, diagnostics);
+        let capabilities = payload(call(&mut session, "protocol/capabilities", json!({})));
+        let methods = capabilities["methods"].as_array().unwrap();
+        assert_eq!(
+            methods.contains(&json!("candidate/interface-delta")),
+            candidates
+        );
+        assert_eq!(
+            methods.contains(&json!("candidate/symbol-diagnostics")),
+            diagnostics
+        );
+        assert!(!session
+            .parallel_read_methods()
+            .contains(&"candidate/interface-delta"));
+        assert!(!session
+            .parallel_read_methods()
+            .contains(&"candidate/symbol-diagnostics"));
+        if !diagnostics {
+            let rejected = bound(
+                &mut session,
+                "candidate/symbol-diagnostics",
+                json!({"candidate_revision":format!("sha256:{}", "0".repeat(64)),"target":"calculator.add"}),
+            );
+            assert_eq!(rejected["error"]["code"], -32601);
+        }
+        session.finish().unwrap();
+    }
+    let mut legacy = ImageSession::open(
+        &fixture.manifest(),
+        ImageHostCapability::CandidateDiagnostics,
+    )
+    .unwrap();
+    for method in ["candidate/interface-delta", "candidate/symbol-diagnostics"] {
+        let request = json!({"jsonrpc":"2.0","id":1,"method":method,"params":{}}).to_string();
+        let rejected: Value =
+            serde_json::from_slice(&legacy.handle_frame(request.as_bytes()).unwrap()).unwrap();
+        assert_eq!(rejected["error"]["code"], -32601);
+    }
+}

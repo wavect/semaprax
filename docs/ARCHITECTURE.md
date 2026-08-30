@@ -489,6 +489,15 @@ Those source-backed image-store routes do not restore serialized HIR.
 semantic facts with exact replay. Diagnostic protocol v4 retains bounded rejected
 attempts and verified repair proposals, with test authority selected only by the
 host. Store and managed publication remain separate from protocol authority.
+`candidate/interface_delta.rs` separately compares complete source-owned protocol
+and implementation inventories, actual member-function facts and static call
+dependencies. Verification replays the candidate before recomputing the report;
+no runtime dispatch facts or graph authority are introduced. V5's
+`review_facets.rs` exposes the candidate-bound chunk query. Its sibling
+`symbol_diagnostics.rs` joins only retained attempts whose predecessor and intent
+target match exactly, derives available repairs through ordinary candidate
+admission, and binds chunk continuations to the exact report digest. Rejected
+attempts never become checked images or trusted source spans.
 The [integrated workflow](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md) is authored,
 unrun and publishes managed generations only; canonical Git files stay unchanged.
 

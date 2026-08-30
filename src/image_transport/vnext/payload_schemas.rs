@@ -207,6 +207,40 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
         }
         put(id, fields);
     }
+    put(
+        "semaprax.image-interface-delta-chunk.v1",
+        vec![
+            (
+                "report_schema",
+                json!({"const":"semaprax.project-candidate-interface-delta.v1"}),
+            ),
+            ("image_revision", digest()),
+            ("candidate_revision", digest()),
+            ("offset", uint()),
+            ("total_bytes", uint()),
+            ("chunk", text()),
+            ("next_offset", nullable(uint())),
+            ("source_authority", json!({"const":false})),
+        ],
+    );
+    put(
+        "semaprax.image-symbol-diagnostics-chunk.v1",
+        vec![
+            (
+                "report_schema",
+                json!({"const":"semaprax.project-candidate-symbol-diagnostics.v1"}),
+            ),
+            ("image_revision", digest()),
+            ("candidate_revision", digest()),
+            ("target", text()),
+            ("report_revision", digest()),
+            ("offset", uint()),
+            ("total_bytes", uint()),
+            ("chunk", text()),
+            ("next_offset", nullable(uint())),
+            ("source_authority", json!({"const":false})),
+        ],
+    );
     for id in [
         "semaprax.image-protocol-conformance-chunk.v1",
         "semaprax.image-interface-catalog-chunk.v1",

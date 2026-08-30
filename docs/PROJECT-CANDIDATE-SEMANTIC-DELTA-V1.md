@@ -36,6 +36,12 @@ canonical candidate evidence. It then recomputes the selected report and compare
 every exact submitted byte. It does not load submitted JSON as HIR or authority.
 No interpreter, target executable, test, source write, or publication is invoked.
 
+The additive [Interface Delta v1](PROJECT-CANDIDATE-INTERFACE-DELTA-V1.md)
+compares whole-candidate static protocol/implementation inventories and their
+member-function dependencies. It preserves this selected-delta schema and its
+bytes; the existing mapping-only `source_static_conformance` facet does not
+substitute for that broader report.
+
 ## Projections and comparison
 
 Every available declaration retains its existing typed identity/index facts and

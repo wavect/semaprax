@@ -65,6 +65,8 @@ Audience: all documentation readers.
 - [Candidate Managed Publication v1](PROJECT-CANDIDATE-PUBLICATION-V1.md)
 - [Semantic Image Store v1](SEMANTIC-IMAGE-STORE-V1.md)
 - [Candidate Semantic Delta v1](PROJECT-CANDIDATE-SEMANTIC-DELTA-V1.md)
+- [Candidate Interface Delta v1](PROJECT-CANDIDATE-INTERFACE-DELTA-V1.md)
+- [Candidate Symbol Diagnostics v1](PROJECT-CANDIDATE-SYMBOL-DIAGNOSTICS-V1.md)
 - [Candidate Diagnostic Protocol v4](IMAGE-CANDIDATE-DIAGNOSTIC-PROTOCOL-V4.md)
 - [Workspace Protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md)
 - [Workspace Frontend Cache v1](IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md)

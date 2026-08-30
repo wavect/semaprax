@@ -94,6 +94,42 @@ fn aggregate_constructor() -> Value {
     json!({"oneOf":[monomorphic,generic,object(generic_fields)]})
 }
 
+fn aggregate_projection() -> Value {
+    let fields = vec![
+        ("kind", json!({"const":"project"})),
+        ("target", text()),
+        ("owner", text()),
+        ("name", text()),
+        ("index", uint()),
+        ("type_identity", text()),
+        ("binding", text()),
+        ("path", text()),
+        ("module", text()),
+        ("generic", json!({"const":false})),
+        ("evidence_owner", json!({"const":"retained_checked_hir"})),
+        ("requires_full_candidate_validation", json!({"const":true})),
+        (
+            "base_evaluation",
+            json!({"const":"once_into_typed_value_binding"}),
+        ),
+    ];
+    let monomorphic = object(fields.clone());
+    let mut generic = fields;
+    generic.retain(|(name, _)| *name != "generic");
+    generic.extend([
+        ("generic", json!({"const":true})),
+        (
+            "type_parameters",
+            json!({"type":"array","minItems":1,"maxItems":4095,
+            "items":object(vec![
+                ("name",text()),("index",uint()),
+                ("allowed_types",json!({"const":["i64","bool"]})),
+            ])}),
+        ),
+    ]);
+    json!({"oneOf":[monomorphic,object(generic)]})
+}
+
 pub(super) fn documents() -> BTreeMap<String, Value> {
     let mut docs = BTreeMap::new();
     let mut put = |id: &str, fields| {
@@ -331,6 +367,8 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
     // catalogue bytes; when present the complete descriptor remains closed.
     docs.get_mut("urn:semaprax.project-change-catalog.v1")
         .unwrap()["properties"]["aggregate_constructors"] = array(aggregate_constructor());
+    docs.get_mut("urn:semaprax.project-change-catalog.v1")
+        .unwrap()["properties"]["aggregate_projections"] = array(aggregate_projection());
     docs
 }
 
@@ -505,5 +543,41 @@ mod signature_parameter_schema_tests {
         assert_eq!(prelude["module"]["type"], "null");
         assert_eq!(prelude["identity_origin"]["const"], "compiler_owned");
         assert_eq!(prelude["compiler_prelude"]["additionalProperties"], false);
+    }
+
+    #[test]
+    fn record_projection_descriptors_close_owner_and_base_evaluation_facts() {
+        let schema = aggregate_projection();
+        let choices = schema["oneOf"].as_array().unwrap();
+        assert_eq!(choices.len(), 2);
+        for choice in choices {
+            assert_eq!(choice["additionalProperties"], false);
+            assert_eq!(choice["properties"]["kind"]["const"], "project");
+            assert_eq!(choice["properties"]["path"]["type"], "string");
+            assert_eq!(
+                choice["properties"]["base_evaluation"]["const"],
+                "once_into_typed_value_binding"
+            );
+            for field in [
+                "target",
+                "owner",
+                "type_identity",
+                "binding",
+                "base_evaluation",
+            ] {
+                assert!(choice["required"]
+                    .as_array()
+                    .unwrap()
+                    .contains(&json!(field)));
+            }
+            assert!(choice["properties"].get("compiler_prelude").is_none());
+        }
+        assert_eq!(choices[0]["properties"]["generic"]["const"], false);
+        assert!(choices[0]["properties"].get("type_parameters").is_none());
+        assert_eq!(choices[1]["properties"]["generic"]["const"], true);
+        assert!(choices[1]["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("type_parameters")));
     }
 }

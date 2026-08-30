@@ -151,6 +151,20 @@ fn expression_schema() -> Value {
             "x-requires-exact-declared-arity":true});
         variants.push(aggregate);
     }
+    let mut projection = closed(&[
+        ("kind", json!({"const":"project"})),
+        ("target", text(MAX_ID_BYTES)),
+        ("base", reference("expression")),
+    ]);
+    projection["properties"]["type_arguments"] = json!({"type":"array",
+        "maxItems":MAX_AGGREGATE_TYPE_ARGUMENTS,"items":{"enum":["i64","bool"]},
+        "x-counts-toward-expression-node-budget":true,
+        "x-requires-exact-declared-arity":true});
+    projection["x-implicit-project-nodes"] = json!(3);
+    projection["x-implicit-project-node-basis"] =
+        json!("generated_let_statement_projection_and_place");
+    projection["x-base-depth-increment"] = json!(2);
+    variants.push(projection);
     variants.push(closed(&[
         ("kind", json!({"const":"binary"})),
         (
@@ -287,7 +301,7 @@ mod aggregate_expression_schema_tests {
             kinds,
             [
                 "i64", "i32", "u8", "usize", "bool", "place", "call", "binary", "unary", "if",
-                "record", "variant"
+                "record", "variant", "project"
             ]
             .into_iter()
             .collect()
@@ -319,5 +333,33 @@ mod aggregate_expression_schema_tests {
                 .contains(&json!("type_arguments")));
             assert!(variant["properties"].get("source").is_none());
         }
+    }
+
+    #[test]
+    fn projection_recurses_through_one_base_and_keeps_owner_selection_compiler_owned() {
+        let schema = expression_schema();
+        let projection = schema["oneOf"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["properties"]["kind"]["const"] == "project")
+            .unwrap();
+        assert_eq!(projection["additionalProperties"], false);
+        assert_eq!(projection["required"], json!(["kind", "target", "base"]));
+        assert_eq!(projection["properties"].as_object().unwrap().len(), 4);
+        assert_eq!(projection["properties"]["base"], reference("expression"));
+        assert_eq!(
+            projection["properties"]["type_arguments"]["items"]["enum"],
+            json!(["i64", "bool"])
+        );
+        assert_eq!(
+            projection["properties"]["type_arguments"]["maxItems"],
+            MAX_AGGREGATE_TYPE_ARGUMENTS
+        );
+        assert_eq!(projection["x-implicit-project-nodes"], 3);
+        assert_eq!(projection["x-base-depth-increment"], 2);
+        assert!(projection["properties"].get("owner").is_none());
+        assert!(projection["properties"].get("name").is_none());
+        assert!(projection["properties"].get("source").is_none());
     }
 }

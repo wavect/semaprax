@@ -59,6 +59,12 @@ even when the changed function has a scalar signature. It does not prove
 transitive shape or behavioral equivalence; see
 [Aggregate Constructors v1](PROJECT-AGGREGATE-CONSTRUCTORS-V1.md).
 
+`project` operands additionally bind the selected explicit record field and
+its complete checked owner descriptor. A deleted or reidentified field cannot
+be recovered by matching its old name. These dependency comparisons also use
+each step's original and rebased intermediate revisions; surviving projections
+still reparse and check the generated exact-owner value binding.
+
 | Concurrent change | Decision for replayed intent |
 | --- | --- |
 | Body edit and unrelated display rename, including the same source file | Replay permitted, then full admission. |

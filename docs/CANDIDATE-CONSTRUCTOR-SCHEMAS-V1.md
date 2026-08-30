@@ -26,7 +26,7 @@ required fields and `additionalProperties: false`.
 
 Expression alternatives cover typed `i64`, `i32`, `u8`, `usize`, and `bool`
 literals; places; calls; binary and unary operators; conditional expressions;
-and identity-selected record/variant construction.
+identity-selected record/variant construction, and stable-ID record-field projection.
 Literal bounds use the corresponding Rust integer limits, including the
 target-neutral unsigned 64-bit input range for `usize`; target admission can
 still reject a value. New names use the same bounded ordinary identifier shape
@@ -50,7 +50,7 @@ available. The optional `type_arguments` field selects ordered direct `i64` or
 `bool` arguments; generic targets require their exact declared arity. This is
 explicit instantiation, not inference, a raw type-expression parser, or a
 conversion. Monomorphic constructors retain the form without type arguments.
-No source, field projection, or arbitrary nominal type argument enters this
+No raw source or arbitrary nominal type argument enters this
 grammar. `type_arguments` may contain at most 4,095 entries, and each entry
 also consumes the shared expression-node budget. Omitting it is equivalent to
 an empty array: monomorphic targets accept either form; a generic target rejects
@@ -95,6 +95,42 @@ closes the optional descriptor objects; heterogeneous hole reports retain their
 previous explicit unbundled-schema status. Discovery grants no source, repair,
 test, build, or publication authority. Schema and end-to-end aggregate
 regressions are authored and unrun.
+
+Record-field projection uses the closed expression
+`{"kind":"project","target":field_id,"base":expression}` with the same optional
+direct-scalar `type_arguments` array. The field's checked owner determines the
+required base type. A source-defined generic record requires its exact ordered
+arguments; monomorphic owners accept omission or an empty array. Classes,
+variant payloads, prelude fields, and implicit source identities remain outside
+this route. The caller supplies neither an owner identity nor a display field
+name to override the selected stable field.
+
+The compiler evaluates the base once into a fresh, explicitly typed value
+binding and projects through that binding. Its type annotation prevents an
+unrelated record with an identically named field from satisfying the request.
+The generated block, let, projection, and place remain in the original
+expression position; naming is hygienic. The schema records three additional
+constructor-budget nodes for the generated let statement, projection, and
+place, and a conservative two-level depth increment for the base. Explicit
+type arguments still consume the shared node budget. This is structural
+construction accounting, not a runtime cost promise.
+
+Ordinary value binding may copy a Copy base or transfer an owned base. It is
+not a borrow-preserving operation, and the schema grants no permission to copy
+an owner, bypass loans, or alter cleanup. The existing whole-candidate verifier
+decides whether the staged base and selected field are admissible.
+
+`change/catalog` and both hole contexts expose `aggregate_projections` only
+when projections are available, adding `project` to their constructor kinds.
+Each closed descriptor identifies the field target/name/index, owner record,
+checked field `type_identity`, visible record binding, source path/module,
+generic flag, and `base_evaluation: once_into_typed_value_binding`. It retains
+`evidence_owner: retained_checked_hir` and
+`requires_full_candidate_validation: true`. Generic descriptors add the same
+ordered `type_parameters`; their field identity is a template fact, not a
+substituted type. Existing aggregate constructor entries are unchanged. Schema
+regressions and `tests/project_candidate_record_projection_v1.rs` are authored
+and unrun; discovery does not validate an arbitrary proposed base expression.
 
 Intent alternatives cover declaration rename, both append and ordered-mapping
 signature forms, whole-body replacement, revision-scoped expression replacement,

@@ -555,6 +555,12 @@ prelude selection authenticates the fixed compiler-owned Option/Result
 declaration inventory against retained HIR; it does not relax authored explicit
 identity checks. Discovery reports templates and compiler provenance rather
 than claiming concrete instantiation admission.
+Record-field value projection uses the same checked owner inventory and emits
+a hygienic typed local followed by the ordinary field AST. The annotation
+forces nominal owner equality through existing source admission, and the base
+is evaluated once under normal value-binding ownership/cleanup rules. Rebase
+binds the selected field and complete owner descriptor before replay; discovery
+does not treat field spelling or a matching result type as owner evidence.
 
 `candidate/declaration.rs` appends a typed function under a selected module
 anchor with globally fresh identity and checked namespace/effect budgets.

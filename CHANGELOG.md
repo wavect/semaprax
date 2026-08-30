@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added stable-ID record field value projection with an exact-owner typed
+  temporary, single base evaluation, deterministic scope hygiene, and ordinary
+  ownership/cleanup admission. Catalogue and hole discovery describe eligible
+  fields; semantic rebase binds each selected field and its complete owner
+  shape. Regressions are authored, unrun. Variant/class projections, borrowed
+  field views, runtime evidence and source/publication authority are unchanged.
+
 - Extended stable-ID aggregate constructors to explicit direct-scalar generic
   arguments and authenticated compiler-owned Option/Result cases. Discovery
   reports checked templates and prelude provenance; concrete admission remains

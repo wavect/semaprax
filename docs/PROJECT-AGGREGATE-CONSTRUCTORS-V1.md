@@ -55,10 +55,51 @@ Result cases require two arguments in success/error order, even when the
 selected case carries only one of them. Explicit arguments materialize as
 ordinary canonical `.spx`, such as `Option<bool>::Some { value: true }`.
 
-Classes, resource creation, nested or named generic arguments, arbitrary field
-projections, record updates and match synthesis remain outside this constructor
+Classes, resource creation, nested or named generic arguments, borrow-preserving
+field views, record updates and match synthesis remain outside this constructor
 grammar. A named field type does not waive ordinary profile, ownership, effect,
 or backend admission.
+
+## Record field value projection
+
+The `project` constructor selects an explicit source-record field identity:
+
+```json
+{"kind":"project","target":"payments.money.amount","base":{"kind":"place","name":"payment"}}
+```
+
+An optional `type_arguments` array supplies the exact owning record's generic
+arguments under the same direct `i64`/`bool` rules. The compiler authenticates
+the field's owner and complete explicit member inventory, then selects that
+record's unique existing local or imported type binding. Variant payloads,
+prelude case fields, classes, and implicit field identities are not admitted.
+
+Lowering deliberately creates an ordinary typed value binding, conceptually:
+
+```text
+{
+    let spx_project_0: Money = payment;
+    spx_project_0.amount
+}
+```
+
+The generated name is deterministic and avoids the constructor's lexical scope,
+function/import/type bindings, and earlier generated names. The base expression
+occurs exactly once. Its explicit owner annotation forces ordinary source
+admission to check the complete nominal type and ordered generic arguments.
+A different record with an identically named, identically typed field cannot
+satisfy the request merely because `.amount` would otherwise type-check.
+
+This is value projection, not a promise to borrow the original place. The
+temporary follows the source language's normal copying, transfer, loan and
+cleanup rules. An owned base may transfer into this scope; reusing a consumed
+base, escaping an invalid loan, or violating cleanup obligations must fail
+ordinary candidate admission. The operation neither duplicates the base nor
+claims behavioral equivalence with arbitrary existing field-access code.
+
+Bodies, authenticated expression replacements, contracts, declaration bodies
+and hole fills share the existing constructor/admission path. Generated locals
+are visible in the canonical source diff; they are not graph-only state.
 
 ## Checked bindings and candidate admission
 
@@ -117,6 +158,15 @@ membership, complete field coverage, unique aliases, lexical scope, types,
 effects or ownership. Adding a discoverable constructor does not widen the
 session's method set or grant execution/publication authority.
 
+An optional nonempty `aggregate_projections` inventory describes visible
+record fields. Entries bind field and owner IDs, field name/index/template type,
+source path/module, the existing type binding, optional generic parameter
+metadata, and `base_evaluation: once_into_typed_value_binding`. They do not
+claim that any supplied base matches the owner or that a value-binding operation
+preserves a loan. `project` is listed among available constructor kinds only
+when this inventory is nonempty. Existing aggregate constructor entries are
+unchanged; projects with no eligible record fields gain no projection property.
+
 ## Rebase and limits
 
 Before replaying each history step, semantic rebase compares referenced
@@ -130,6 +180,12 @@ conservative conflicts. This is not general structural compatibility or a
 transitive behavioral equivalence proof. Surviving intentions still undergo
 complete candidate source admission.
 
+Projection dependencies bind the selected field plus the complete checked
+owning-record descriptor at each original/rebased intermediate revision.
+Deleting or reidentifying a field, moving it to another owner, or changing the
+owner's field/type-parameter inventory conflicts with `SPX-G235` before replay.
+No same-spelling field fallback is used during rebase.
+
 Existing Semantic Change byte/JSON limits, recursive expression node/depth
 limits, and catalogue/context rendering limits remain enforced. Identity and
 shape errors use the constructor's `SPX-G225`; constructor capacity uses
@@ -139,12 +195,18 @@ An aggregate has at most 4,095 fields within the shared 4,096-expression-node
 budget and depth limit of 64. Explicit type arguments also consume that shared
 node budget, with an individual array maximum of 4,095; these maxima cannot all
 be reached in the same expression. Exact template arity still applies.
+Projection lowering charges three additional generated nodes beyond its wire
+node and recurses into the base at depth plus two. Its generic arguments also
+consume the shared node budget. Temporary-name search is bounded by occupied
+names and the constructor-node bound.
 Discovery bounds its combined constructor/member/type-parameter
 inventory to 65,536 items and its aggregate descriptor encoding to 1 MiB;
 individual descriptor construction conservatively charges string expansion.
 The enclosing change catalogue retains its stricter 256 KiB report limit,
 and hole contexts retain their 1 MiB limit. These are finite work/rendering
 bounds, not measured proportional lookup costs or aggregate heap guarantees.
+Projection discovery separately bounds its repeated field/template metadata to
+65,536 items and 1 MiB, while retaining the enclosing catalogue/context limits.
 
 Focused aggregate constructor integration, schema/discovery, and semantic
 rebase regressions are authored but intentionally unrun. Executed canonical

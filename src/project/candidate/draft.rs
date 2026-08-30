@@ -390,6 +390,8 @@ impl ProjectCandidateDraft {
         let program = crate::parse(source.source(), source.path()).map_err(|error| vec![error])?;
         let aggregates =
             super::intent::aggregate_constructors(self.last_valid.revision(), &program)?;
+        let projections =
+            super::intent::aggregate_projections(self.last_valid.revision(), &program)?;
         if !aggregates.is_empty() {
             let kinds = report["constructor_kinds"]
                 .as_array_mut()
@@ -400,6 +402,13 @@ impl ProjectCandidateDraft {
                 }
             }
             report["aggregate_constructors"] = json!(aggregates);
+        }
+        if !projections.is_empty() {
+            report["constructor_kinds"]
+                .as_array_mut()
+                .ok_or_else(|| grammar("projection hole constructor inventory is unavailable"))?
+                .push(json!("project"));
+            report["aggregate_projections"] = json!(projections);
         }
         Ok(report)
     }

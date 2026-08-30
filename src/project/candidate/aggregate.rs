@@ -25,6 +25,126 @@ pub(super) struct Plan {
     pub(super) type_arguments: Vec<Type>,
 }
 
+pub(super) struct ProjectionPlan {
+    pub(super) owner_type: Type,
+    pub(super) field_name: String,
+}
+
+pub(super) fn projection_plan(
+    revision: &ProjectRevision,
+    program: &Program,
+    target: &str,
+    type_arguments: Option<&Value>,
+) -> Result<ProjectionPlan> {
+    let subject = projection_subject(revision, target)?
+        .ok_or_else(|| grammar("projection target must be an explicit checked record field"))?;
+    let plan = plan(revision, program, "record", subject.owner, type_arguments)?;
+    let field_name =
+        plan.fields.get(target).cloned().ok_or_else(|| {
+            grammar("projection field is not a member of its exact checked record")
+        })?;
+    Ok(ProjectionPlan {
+        owner_type: Type::Named {
+            name: plan.type_name,
+            arguments: plan.type_arguments,
+        },
+        field_name,
+    })
+}
+
+fn projection_subject<'a>(
+    revision: &'a ProjectRevision,
+    target: &str,
+) -> Result<Option<Subject<'a>>> {
+    selector(target)?;
+    let mut owner = None;
+    for module in revision.semantic.image_modules() {
+        for ty in module.types() {
+            if let ResolvedTypeDeclarationKind::Record { fields } = &ty.kind {
+                for field in fields {
+                    if field.id.as_str() == target && owner.replace(ty.id.as_str()).is_some() {
+                        return Err(grammar("projection field identity is ambiguous"));
+                    }
+                }
+            }
+        }
+    }
+    match owner {
+        Some(owner) => subject(revision, owner),
+        None => Ok(None),
+    }
+}
+
+/// Whole nominal owner shape plus the selected field, independent of aliases.
+pub(in crate::project::candidate) fn aggregate_projection_dependency_fingerprint(
+    revision: &ProjectRevision,
+    target: &str,
+) -> Result<Option<Value>> {
+    projection_subject(revision, target)?
+        .map(|subject| Ok(json!({"field":target,"record":descriptor(&subject,None)?})))
+        .transpose()
+}
+
+/// Record projections preserve nominal ownership through an exact typed local.
+/// This describes ordinary value binding, not a borrowing operation.
+pub(in crate::project::candidate) fn aggregate_projections(
+    revision: &ProjectRevision,
+    program: &Program,
+) -> Result<Vec<Value>> {
+    let mut result = Vec::new();
+    let mut bytes = 2usize;
+    let mut items = 0usize;
+    for module in revision.semantic.image_modules() {
+        for ty in module.types() {
+            let ResolvedTypeDeclarationKind::Record { fields } = &ty.kind else {
+                continue;
+            };
+            if fields.len() > MAX_FIELDS || ty.type_parameters.len() > MAX_AGGREGATE_TYPE_ARGUMENTS
+            {
+                continue;
+            }
+            let Some(visible) = binding(program, ty.id.as_str(), module.module())? else {
+                continue;
+            };
+            let Some(subject) = subject(revision, ty.id.as_str())? else {
+                continue;
+            };
+            // Each descriptor repeats template metadata; charge that expansion.
+            items = items.saturating_add(
+                fields
+                    .len()
+                    .saturating_mul(1 + subject.type_parameters.len()),
+            );
+            if items > MAX_ITEMS {
+                return Err(capacity(
+                    "aggregate projection catalogue exceeds its item bound",
+                ));
+            }
+            let owner = descriptor(&subject, Some(&visible))?;
+            for field in fields {
+                let mut value = json!({"kind":"project","target":field.id.as_str(),"owner":subject.owner,
+                    "name":field.name,"index":field.index,"type_identity":field.ty.identity_key(),
+                    "path":subject.path,"module":subject.module,"generic":subject.generic,"binding":visible,
+                    "evidence_owner":"retained_checked_hir","requires_full_candidate_validation":true,
+                    "base_evaluation":"once_into_typed_value_binding"});
+                if let Some(parameters) = owner.get("type_parameters") {
+                    value["type_parameters"] = parameters.clone();
+                }
+                let encoded = super::super::wire::render(value.clone(), MAX_CATALOG_BYTES)?;
+                bytes = bytes.saturating_add(encoded.len());
+                if bytes > MAX_CATALOG_BYTES {
+                    return Err(capacity(
+                        "aggregate projection catalogue exceeds its byte bound",
+                    ));
+                }
+                result.push(value);
+            }
+        }
+    }
+    result.sort_by(|left, right| left["target"].as_str().cmp(&right["target"].as_str()));
+    Ok(result)
+}
+
 struct Subject<'a> {
     kind: &'static str,
     target: &'a str,

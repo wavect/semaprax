@@ -327,6 +327,65 @@ fn generic_aggregate_rebase_binds_checked_template_field_types() {
 }
 
 #[test]
+fn field_projection_rebase_rejects_reidentified_member_with_unchanged_owner_type() {
+    let fixture = Fixture::new();
+    let manifest_path = fixture.0.join("semaprax.toml");
+    let manifest = std::fs::read_to_string(&manifest_path)
+        .unwrap()
+        .replace("semaprax.project.v1", "semaprax.project.v8")
+        .replace(
+            "name = \"calculator\"",
+            "name = \"calculator\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"",
+        )
+        .replace("\"calculator.divide\", ", "");
+    std::fs::write(manifest_path, manifest).unwrap();
+    let path = fixture.0.join("src/core.spx");
+    let text = std::fs::read_to_string(&path).unwrap()
+        + r#"
+@id("calculator.projection-money") record Money { @id("calculator.projection-money.amount") amount: i64, }
+@id("calculator.projector") fn projector(value: Money) -> i64 { 0 }
+"#;
+    let canonical = semaprax::format::canonical(&semaprax::parse(&text, "src/core.spx").unwrap());
+    std::fs::write(&path, &canonical).unwrap();
+    let root = fixture.candidate();
+    let projected = apply(
+        &root,
+        json!({"kind":"replace_function_body","target":"calculator.projector","body":{
+            "kind":"project","target":"calculator.projection-money.amount",
+            "base":{"kind":"place","name":"value"}
+        }}),
+    );
+    let independent = apply(&root, rename("calculator.subtract", "difference"));
+    let merged = projected
+        .merge(
+            projected.candidate_digest(),
+            &independent,
+            independent.candidate_digest(),
+        )
+        .unwrap();
+    assert!(source(merged.candidate()).contains(": Money = value;"));
+    assert!(source(merged.candidate()).contains("fn difference("));
+    let unchanged = projected.to_json().to_owned();
+    let changed = canonical.replace(
+        "calculator.projection-money.amount",
+        "calculator.projection-money.new-amount",
+    );
+    assert_ne!(changed, canonical);
+    std::fs::write(&path, &changed).unwrap();
+    let new_base = fixture.revision();
+    code(
+        projected.rebase(
+            projected.candidate_digest(),
+            Arc::clone(&new_base),
+            new_base.project_revision(),
+        ),
+        "SPX-G235",
+    );
+    assert_eq!(projected.to_json(), unchanged);
+    assert_eq!(std::fs::read_to_string(path).unwrap(), changed);
+}
+
+#[test]
 fn callee_display_rename_does_not_create_a_false_body_conflict() {
     let fixture = Fixture::new();
     fixture.helper();

@@ -99,6 +99,9 @@ construct records and variant cases through retained checked type/case/field
 identities and a unique existing local/imported type binding. Generic templates
 require explicit direct `i64`/`bool` arguments; compiler-owned `Option`/`Result`
 cases use a separately authenticated prelude binding.
+The `project` expression selects a record field by stable ID and evaluates its
+base once into a hygienic, exact-owner typed local. This uses ordinary value
+binding rather than granting a borrow-preserving field view.
 Initializer arrays preserve the requested evaluation order. They are recursive
 expression operands, not aggregate defaults for fresh signature parameters.
 Types, effects, contracts, ownership, and cleanup are checked after canonical

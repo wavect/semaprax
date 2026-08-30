@@ -30,7 +30,9 @@ mod aggregate;
 mod signature;
 
 pub(super) use aggregate::{
-    aggregate_constructors, aggregate_dependency_fingerprint, MAX_AGGREGATE_TYPE_ARGUMENTS,
+    aggregate_constructors, aggregate_dependency_fingerprint,
+    aggregate_projection_dependency_fingerprint, aggregate_projections,
+    MAX_AGGREGATE_TYPE_ARGUMENTS,
 };
 pub(super) use signature::ordered_signature_parameters;
 
@@ -210,6 +212,7 @@ fn apply_inner(
                 bindings: &bindings,
                 params: &params,
                 nodes: 0,
+                next_projection: 0,
                 revision,
                 program: &programs[owner],
             };
@@ -289,6 +292,7 @@ fn construct_expression_inner(
         bindings: &bindings,
         params: &params,
         nodes: 0,
+        next_projection: 0,
         revision,
         program,
     }
@@ -320,11 +324,43 @@ struct Constructor<'a> {
     bindings: &'a BTreeMap<String, String>,
     params: &'a BTreeSet<&'a str>,
     nodes: usize,
+    next_projection: usize,
     revision: Option<&'a crate::project::ProjectRevision>,
     program: &'a Program,
 }
 
 impl Constructor<'_> {
+    fn projection_name(&mut self) -> Result<String> {
+        // Every attempt either consumes one occupied source name or selects a
+        // new monotonically increasing generated name. No request can supply
+        // bindings, so nested constructors cannot capture this local.
+        let limit = self
+            .params
+            .len()
+            .saturating_add(self.bindings.len())
+            .saturating_add(self.program.module_uses.len())
+            .saturating_add(self.program.types.len())
+            .saturating_add(MAX_EXPRESSION_NODES);
+        while self.next_projection <= limit {
+            let name = format!("spx_project_{}", self.next_projection);
+            self.next_projection += 1;
+            if !self.params.contains(name.as_str())
+                && !self.bindings.contains_key(&name)
+                && !self
+                    .program
+                    .module_uses
+                    .iter()
+                    .any(|binding| binding.alias == name)
+                && !self.program.types.iter().any(|ty| ty.name == name)
+            {
+                return Ok(name);
+            }
+        }
+        Err(capacity(
+            "projection temporary name inventory exceeds its bound",
+        ))
+    }
+
     fn expression(&mut self, value: &Value, depth: usize) -> Result<Expr> {
         self.nodes += 1;
         if depth > MAX_EXPRESSION_DEPTH || self.nodes > MAX_EXPRESSION_NODES {
@@ -343,6 +379,66 @@ impl Constructor<'_> {
                     ));
                 }
                 ExprKind::Var(name.to_owned())
+            }
+            "project" => {
+                if value.get("type_arguments").is_some() {
+                    object(value, &["kind", "target", "base", "type_arguments"])?;
+                } else {
+                    object(value, &["kind", "target", "base"])?;
+                }
+                // The wire node becomes a block. Charge the generated let
+                // statement, projection and variable as three further nodes.
+                self.nodes += 3;
+                if self.nodes > MAX_EXPRESSION_NODES || depth + 2 > MAX_EXPRESSION_DEPTH {
+                    return Err(capacity(
+                        "projection lowering exceeds its node or depth bound",
+                    ));
+                }
+                if let Some(arguments) = value.get("type_arguments") {
+                    let arguments = arguments.as_array().ok_or_else(|| {
+                        grammar("aggregate type_arguments must be an explicit array")
+                    })?;
+                    if arguments.len() > MAX_AGGREGATE_TYPE_ARGUMENTS
+                        || arguments.len() > MAX_EXPRESSION_NODES.saturating_sub(self.nodes)
+                    {
+                        return Err(capacity(
+                            "projection type arguments exceed the remaining node bound",
+                        ));
+                    }
+                    self.nodes += arguments.len();
+                }
+                let revision = self.revision.ok_or_else(|| {
+                    grammar("projection requires a retained checked Project revision")
+                })?;
+                let plan = aggregate::projection_plan(
+                    revision,
+                    self.program,
+                    text(value, "target")?,
+                    value.get("type_arguments"),
+                )?;
+                let name = self.projection_name()?;
+                let base = self.expression(member(value, "base")?, depth + 2)?;
+                ExprKind::Block {
+                    statements: vec![Statement::Let {
+                        name: name.clone(),
+                        name_span: Span::default(),
+                        mutable: false,
+                        declared: Some(plan.owner_type),
+                        value: base,
+                        span: Span::default(),
+                    }],
+                    tail: Box::new(Expr {
+                        kind: ExprKind::Project {
+                            base: Box::new(Expr {
+                                kind: ExprKind::Var(name),
+                                span: Span::default(),
+                            }),
+                            field: plan.field_name,
+                            field_span: Span::default(),
+                        },
+                        span: Span::default(),
+                    }),
+                }
             }
             "record" | "variant" => {
                 if value.get("type_arguments").is_some() {

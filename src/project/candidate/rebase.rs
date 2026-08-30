@@ -140,12 +140,23 @@ fn apply_rebound(
     // Check each original/rebased intermediate revision, not only the two
     // history roots. Earlier intentions may legitimately change a shape that
     // a later aggregate constructor references.
-    for target in aggregate_intent_targets(&change.intent) {
+    for target in constructor_intent_targets(&change.intent, &["record", "variant"]) {
         let before = intent::aggregate_dependency_fingerprint(original_revision, &target)?;
         let after = intent::aggregate_dependency_fingerprint(candidate.revision(), &target)?;
         if before.is_none() || before != after {
             return Err(conflict(
                 "candidate aggregate target or checked field shape changed concurrently",
+            ));
+        }
+    }
+    for target in constructor_intent_targets(&change.intent, &["project"]) {
+        let before =
+            intent::aggregate_projection_dependency_fingerprint(original_revision, &target)?;
+        let after =
+            intent::aggregate_projection_dependency_fingerprint(candidate.revision(), &target)?;
+        if before.is_none() || before != after {
+            return Err(conflict(
+                "candidate field projection target or checked owner shape changed concurrently",
             ));
         }
     }
@@ -495,17 +506,18 @@ fn called_intent_targets(value: &Value) -> BTreeSet<String> {
     }
     targets
 }
-fn aggregate_intent_targets(value: &Value) -> BTreeSet<String> {
+fn constructor_intent_targets(value: &Value, kinds: &[&str]) -> BTreeSet<String> {
     // SemanticChange already bounds JSON depth, node count and total bytes.
     let mut stack = vec![value];
     let mut targets = BTreeSet::new();
     while let Some(value) = stack.pop() {
         match value {
             Value::Object(object) => {
-                if matches!(
-                    object.get("kind").and_then(Value::as_str),
-                    Some("record" | "variant")
-                ) {
+                if object
+                    .get("kind")
+                    .and_then(Value::as_str)
+                    .is_some_and(|kind| kinds.contains(&kind))
+                {
                     if let Some(target) = object.get("target").and_then(Value::as_str) {
                         targets.insert(target.to_owned());
                     }

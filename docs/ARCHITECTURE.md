@@ -88,6 +88,11 @@ seals before metadata or positional reads and never duplicates/closes the
 caller's descriptor. It returns bounded immutable untrusted bytes, not profile
 or execution authority; unsupported hosts reject. This input primitive is not
 connected to the CLI. See [Doctor sealed input v1](DOCTOR-SEALED-INPUT-V1.md).
+The safe facade's separate `DoctorOfflineBundle` parser consumes that snapshot
+into a closed selector/architecture-bound inventory with zero-copy file views,
+bounded canonical paths/roles and minimum ELF/inventory interpreter checks.
+It owns no OS effects and does not establish full ELF validity, library closure
+or execution authority. See [Doctor offline bundle v1](DOCTOR-OFFLINE-BUNDLE-V1.md).
 
 The retained safe `semaprax-native-rust-interop-platform` facade and platform-sys
 quarantine's separate `doctor/` module are no longer connected to that CLI route.

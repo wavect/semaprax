@@ -32,7 +32,7 @@ semaprax-full doctor [--profile <id>] [--target native|web|all] [--json]
 
 An ID is 1–64 ASCII bytes matching `[a-z][a-z0-9-]{0,63}`. It selects one
 profile; it is not a pathname, environment variable, JSON document, or permission
-to read a registry. No on-disk profile format is admitted by this contract.
+to read a registry. No on-disk profile format is admitted by this CLI contract.
 The default target remains contributor (Rust >=1.88); native requests Clang,
 web requests Node >=22, and all requests Clang, Node, then Rust.
 
@@ -65,6 +65,10 @@ The separate [sealed input primitive](DOCTOR-SEALED-INPUT-V1.md) now authors the
 Linux borrowed-file acquisition boundary: seals before metadata/read, no
 duplication or close, and bounded immutable output bytes. It is not a profile
 parser or production admission backend, and is not connected to this CLI.
+The [offline bundle parser](DOCTOR-OFFLINE-BUNDLE-V1.md) separately binds a
+sealed snapshot to a selector/architecture and validates the closed file/tool
+inventory and minimum ELF interpreter references. It does not activate this
+CLI route or prove loadability, complete dependency closure, or confinement.
 
 ## Retained lower-level probe invocation bounds
 

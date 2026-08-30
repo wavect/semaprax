@@ -1,7 +1,7 @@
 # Doctor sealed input v1
 
-Status: authored, unrun private input-boundary implementation. No CLI activation,
-offline tool profile format, executable isolation, or WP-05 promotion.
+Status: authored, unrun private input-boundary implementation. This primitive
+alone supplies no profile format, CLI activation, executable isolation, or WP-05 promotion.
 
 ## Purpose and authority
 
@@ -92,8 +92,10 @@ quarantine. Earlier CLI/profile and version-probe lifecycle fixtures are
 unchanged and remain required. Unsupported-host behavior must be exercised
 separately from Linux success. All new fixtures are authored and unrun.
 
-Before any production profile can be admitted, separately implement and review
-the closed tool inventory/parser, provisioning/bootstrap, complete tool and
+The separate [offline bundle parser](DOCTOR-OFFLINE-BUNDLE-V1.md) now consumes
+this input through a closed, bounded inventory; it still grants no execution
+authority. Before any production profile can be admitted, separately implement
+and review provisioning/bootstrap, complete tool and
 loader/configuration input closure, OS filesystem/IPC/network restrictions,
 descendant settlement and the explicit selector-to-admission binding. Physical
 platform and real selected-tool compatibility evidence remains mandatory.

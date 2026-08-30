@@ -4,7 +4,13 @@
 
 mod doctor;
 pub use doctor::{doctor_version_probe, DoctorProbeError};
+mod doctor_offline_bundle;
 mod doctor_offline_input;
+#[doc(hidden)]
+pub use doctor_offline_bundle::{
+    DoctorOfflineArchitecture, DoctorOfflineBundle, DoctorOfflineBundleError,
+    DoctorOfflineBundleFile, DoctorOfflineTool,
+};
 #[doc(hidden)]
 pub use doctor_offline_input::{
     DoctorOfflineInput, DoctorOfflineInputError, DOCTOR_OFFLINE_INPUT_MAX_BYTES,

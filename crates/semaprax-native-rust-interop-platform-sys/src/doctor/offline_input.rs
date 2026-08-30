@@ -21,6 +21,16 @@ use linux::{TestControl, TestFault, TestReadFault, TestStage};
 #[cfg(test)]
 mod tests;
 
+#[cfg(all(
+    test,
+    target_os = "linux",
+    target_pointer_width = "64",
+    target_endian = "little",
+    any(target_arch = "x86_64", target_arch = "aarch64")
+))]
+#[path = "offline_input/bundle_handoff.rs"]
+mod bundle_handoff;
+
 pub const DOCTOR_OFFLINE_INPUT_MAX_BYTES: usize = 512 * 1024 * 1024;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

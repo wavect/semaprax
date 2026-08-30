@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added an authored, unrun offline doctor bundle parser over sealed input:
+  exact selector/platform binding, bounded canonical file/tool inventory,
+  zero-copy views, minimum ELF headers and in-inventory interpreter checks.
+  Hostile structural and source-included sealed-handoff fixtures preserve the
+  unavailable CLI route. This is not provenance, complete library closure,
+  executable isolation or a production-readiness promotion.
+
 - Authored a bounded borrowed-file doctor input primitive in the existing OS
   quarantine and unsafe-free facade. Linux checks immutable memory-file seals
   before metadata/read access and never duplicates or closes an untrusted

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Authored a real Project-v10 native Rust publication and external-consumer
+  gate over the same multi-module UTF-8 fixture as npm: exact seven-file
+  descriptor/provider/manifest bindings, stable-ID helper rename, no-clobber
+  preservation, safe owned output, raw byte bounds and failure recovery.
+  The provisioned locked/offline gate remains unrun, and does not replace
+  physical allocation or maximum-String-output evidence. Integrated upstream
+  candidate commands while retaining every historical help snapshot control.
+  No generated package bytes, public APIs or completion status are changed.
+
 - Bound Unix and Windows release packaging to an explicit fresh Cargo build
   directory instead of copying potentially stale default-target binaries.
   Preserved fresh output-root creation, tightened path-collision preflight,

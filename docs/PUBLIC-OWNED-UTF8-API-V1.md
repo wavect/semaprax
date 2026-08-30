@@ -168,6 +168,36 @@ executed while authoring this fixture.
 cargo test --locked -p semaprax --test project_v10_recipe_consumer_v1
 ```
 
+The separate provisioned gate
+`crates/semaprax-toolchain/tests/project_owned_utf8_sdk_v1.rs` consumes the same
+four-source fixture through the real private native publisher. It regenerates
+the provider from retained checked Project HIR, reopens the exact seven-file
+SDK, and compares its canonical manifest against that descriptor/provider
+binding and the reopened file hashes. This test-specific consistency check is
+not an independent proof of archive provenance or provider semantics.
+An unchanged external Rust consumer then builds in an isolated workspace with
+`--locked --offline` and the existing short Cargo target-directory guard. Its
+safe API forbids unsafe code and covers the same primary Node corpus: exact
+17-byte BOM/NUL/Unicode text, empty text, raw malformed UTF-8, 65,536-byte
+`Bytes`, capacity-plus-one input rejection, and repeated checked failure and
+recovery through two SDK objects. Retained `String` and `Vec<u8>` values remain
+independent after later calls, mutation and SDK destruction. These observations
+do not replace physical allocation accounting or prove reuse of one initialized
+native context; the maximum-byte case here is not a maximum `String` result.
+The gate also checks exact revision-only descriptor changes after helper rename,
+`SPX-I234` no-clobber rejection, unchanged consumer inputs, SDK artifacts and
+Project source bytes.
+
+This gate is explicitly ignored until selected on a provisioned host with
+absolute `CLANG` and `SEMAPRAX_ARCHIVER` paths and native Cargo. Windows also
+requires the existing `SEMAPRAX_VCTOOLS`, `INCLUDE`, `LIB` and
+`SEMAPRAX_LINKER` configuration. Authoring or skipping it does not count as a
+successful SDK gate, and it was not executed in this batch:
+
+```sh
+cargo test --locked -p semaprax-toolchain --test project_owned_utf8_sdk_v1 -- --ignored
+```
+
 The shared lower v8/v10 descriptor reader also rejects repeated parameter
 identities within one export, even under a freshly computed descriptor digest;
 see the [owned-data descriptor contract](PUBLIC-OWNED-DATA-API-V1.md#canonical-public-api-descriptor).

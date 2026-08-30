@@ -170,3 +170,19 @@ fn package_mode_and_descriptor_schema_are_closed_before_publication_authority() 
         v10_descriptor.schema
     ));
 }
+
+#[test]
+fn windows_publication_freezes_the_explicit_toolchain_environment() {
+    let source = include_str!("publication.rs");
+    for required in [
+        "required_environment(\"INCLUDE\")",
+        "required_environment(\"LIB\")",
+        "prepare_process_arena_plan_with_environment(1, include, libraries)",
+        "materialize_process_arena_with_environment(",
+    ] {
+        assert!(
+            source.contains(required),
+            "owned-data publication is missing `{required}`"
+        );
+    }
+}

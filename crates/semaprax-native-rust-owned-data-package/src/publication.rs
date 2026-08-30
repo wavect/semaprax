@@ -1,4 +1,4 @@
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -11,6 +11,8 @@ static STAGE_NONCE: AtomicU64 = AtomicU64::new(0);
 pub(crate) struct HeldTools {
     clang: platform::HeldTool,
     archiver: platform::HeldTool,
+    include: Option<OsString>,
+    libraries: Option<OsString>,
 }
 
 /// One invocation-local publication authority. The original parent handle is
@@ -73,7 +75,23 @@ impl HeldTools {
         let clang = platform::hold_prepared_tool(clang_path).map_err(|_| PackageError::tool())?;
         let archiver = platform::hold_configured_archiver(archiver_path, vctools)
             .map_err(|_| PackageError::tool())?;
-        Ok(Self { clang, archiver })
+        #[cfg(windows)]
+        let (include, libraries) = (
+            Some(required_environment("INCLUDE")?),
+            Some(required_environment("LIB")?),
+        );
+        #[cfg(not(windows))]
+        let (include, libraries) = (None, None);
+        Ok(Self {
+            clang,
+            archiver,
+            include,
+            libraries,
+        })
+    }
+
+    fn process_environment(&self) -> (Option<&OsStr>, Option<&OsStr>) {
+        (self.include.as_deref(), self.libraries.as_deref())
     }
 }
 
@@ -81,6 +99,13 @@ fn absolute_environment_path(name: &str) -> Result<PathBuf, PackageError> {
     std::env::var_os(name)
         .map(PathBuf::from)
         .filter(|path| path.is_absolute())
+        .ok_or_else(PackageError::tool)
+}
+
+#[cfg(windows)]
+fn required_environment(name: &str) -> Result<OsString, PackageError> {
+    std::env::var_os(name)
+        .filter(|value| !value.is_empty())
         .ok_or_else(PackageError::tool)
 }
 
@@ -138,10 +163,13 @@ pub(crate) fn build_archive(
             "provider.c",
         )
         .map_err(|_| PackageError::publication())?;
-        let mut compile_arena = platform::materialize_process_arena(
-            platform::prepare_process_arena_plan(1).map_err(|_| PackageError::publication())?,
-        )
-        .map_err(|_| PackageError::publication())?;
+        let (include, libraries) = tools.process_environment();
+        let compile_plan =
+            platform::prepare_process_arena_plan_with_environment(1, include, libraries)
+                .map_err(|_| PackageError::publication())?;
+        let mut compile_arena =
+            platform::materialize_process_arena_with_environment(compile_plan, include, libraries)
+                .map_err(|_| PackageError::publication())?;
         let compile = platform::prepare_c_compile_invocation(
             target.triple(),
             OsStr::new("provider.c"),
@@ -167,10 +195,12 @@ pub(crate) fn build_archive(
             object_name,
         )
         .map_err(|_| PackageError::publication())?;
-        let mut arena = platform::materialize_process_arena(
-            platform::prepare_process_arena_plan(1).map_err(|_| PackageError::publication())?,
-        )
-        .map_err(|_| PackageError::publication())?;
+        let archive_plan =
+            platform::prepare_process_arena_plan_with_environment(1, include, libraries)
+                .map_err(|_| PackageError::publication())?;
+        let mut arena =
+            platform::materialize_process_arena_with_environment(archive_plan, include, libraries)
+                .map_err(|_| PackageError::publication())?;
         let invocation = platform::prepare_archive_invocation(
             OsStr::new(object_name),
             OsStr::new(internal_archive_name),

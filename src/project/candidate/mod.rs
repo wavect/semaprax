@@ -254,7 +254,10 @@ impl ProjectCandidate {
                 expression::apply(&self.revision, &mut programs, &change.intent)?,
                 None,
             ),
-            _ => (intent::apply(&mut programs, &change.intent)?, None),
+            _ => (
+                intent::apply_with_revision(&self.revision, &mut programs, &change.intent)?,
+                None,
+            ),
         };
         if let Some(moved) = &movement {
             let fact = before[&moved.source_path]["functions"]

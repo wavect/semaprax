@@ -50,11 +50,30 @@ New types and literal kinds are the existing `i64`, `i32`, `u8`, `usize`, and
 `parameters`/`append_parameters`, inferred defaults, expressions as new default
 arguments, duplicate mappings, and unknown original names reject.
 
-Every original parameter must either have value mode and a built-in Copy type
-(`i64`, `i32`, `char`, `u8`, `usize`, `[u8; N]`, `f32`, `f64`, or `bool`) or be
-exactly `own Bytes`. Named records/variants, other owning types, borrows, and
-shared modes reject before mutation even if a named type happens to be Copy.
-No type or mode conversion and no new owning parameter is admitted.
+Every original parameter must have value mode and a built-in Copy type
+(`i64`, `i32`, `char`, `u8`, `usize`, `[u8; N]`, `f32`, `f64`, or `bool`),
+have value mode and an admitted concrete Copy record/variant type, or be
+exactly `own Bytes`. Named admission uses the retained checked HIR parameter
+identity and compiler TypeFacts: `copy` and `sized` must be true, while
+`contains_resource` and `needs_drop` must be false. Display names and source
+field shapes do not establish those properties. The compiler retains exact
+nominal parameter facts for admitted modules even when a function is absent
+from the entry/test closure. Concrete generic instances, including admitted
+compiler-owned variants, use their complete ordered type-argument identity;
+generic target functions remain excluded.
+
+The mapping keeps the original source type spelling, type arguments and mode.
+It does not convert a record to another record, introduce aggregate defaults,
+alter fields, widen a target profile or add an owning parameter. Named non-Copy
+types, classes/resources, borrows and shared modes remain excluded. Full
+candidate admission still rejects a removed parameter referenced by the body
+or contracts, and any caller that cannot be legally staged.
+
+For eligible named parameters, `change/catalog` adds `type_identity` and
+`type_provenance`, including the nominal declaration identity, ordered argument
+identities and exact checked Copy/storage facts. Both application and discovery
+use the same retained-HIR eligibility routine. Existing scalar parameter
+descriptors and the intention's `{from[,name]}` shape remain unchanged.
 
 ## Evaluation and lexical hygiene
 
@@ -143,6 +162,13 @@ Semantic Change node/depth/byte limits and Project source/output limits also
 remain active. These are deterministic structural bounds, not a total heap
 memory limit or a performance guarantee.
 
+Retained nominal signature facts additionally allow at most 4,096 distinct
+concrete parameter-type identities per module, under the existing builder-byte
+budget. This counts concrete instances, not only source declarations. Removing
+that extra cap was rejected by automatic security review as weakening a resource
+boundary; it remains enforced and can reject a larger otherwise admitted type
+inventory. This limit is not evidence of general unbounded signature support.
+
 `SPX-G225` rejects unsupported mappings, unsupported type/mode subjects, unknown or
 duplicate parameter selections, inconsistent provider bindings, and name/type
 reinterpretation. `SPX-G226` rejects existing structural capacity excess.
@@ -181,3 +207,13 @@ conversion, arbitrary ownership-sensitive migration, or physical owned-call
 settlement support. Direct byte-owner staging can also change cleanup storage
 and internal trace labels; it does not claim identical runtime traces or costs.
 Those wider cases remain open in the graph-operational roadmap.
+
+`tests/project_signature_named_copy_v1.rs` and
+`tests/project_signature_catalog_v1.rs` author named aggregate staging,
+retention/removal, alias/identity, catalogue and independent candidate replay
+evidence. Rebase signature fingerprints additionally bind retained nominal
+type identities: unchanged source spelling cannot conceal a different record
+or variant identity on a concurrent base. The regression in
+`tests/project_candidate_rebase_v1.rs` authors that conflict and unchanged-source
+failure behavior. These cases are unrun; neither runtime equivalence nor the
+full signature-evolution objective is promoted.

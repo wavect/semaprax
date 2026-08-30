@@ -110,7 +110,7 @@ its broader requirement open.
 | Operation | Present scope and remaining requirement |
 | --- | --- |
 | `rename_declaration` | Partial. Existing managed declaration/import-alias operations and Project display rename; Candidate adds explicit monomorphic non-main function display rename. General types/fields/interfaces, candidate discovery and all dependent-reference cases remain. |
-| `change_function_signature` | Partial, authored/unrun. Scalar append and ordered Copy mapping now include hygienic parameter display renaming and conservative direct owning-Bytes retention/reordering. Owners cannot be dropped or duplicated. Type/result changes, broader borrow/resource mapping, dependent declarations and external consumer migration remain missing. |
+| `change_function_signature` | Partial, authored/unrun. Scalar append and ordered mapping include hygienic parameter display renaming, checked nominal Copy record/variant retention/reordering/removal, and conservative direct owning-Bytes retention/reordering. Exact retained HIR TypeFacts govern named eligibility and nominal identities participate in rebase conflicts. Owners cannot be dropped or duplicated. Type/result conversion, broader borrow/resource mapping, dependent declarations and external consumer migration remain missing. |
 | `replace_expression` | Partial, authored/unrun. Body-expression selection uses actual revision-scoped HIR identity and unambiguous canonical AST provenance; replacement uses authenticated lexical scope, expected-type/ownership checks and full Project admission. Contract-region replacement, generic/synthetic selections and general typed constructors remain open. |
 | `replace_function_body` | Partial, Candidate authored/unrun: bounded typed constructors for explicit monomorphic non-main functions followed by full source admission. General body/control/data/ownership shapes remain. |
 | `extract_function` | Partial, authored/unrun. Actual HIR expression selection, immutable built-in Copy capture derivation, fresh caller-selected function identity, in-place call substitution and exact source replay. Owned/mutable captures, unsafe-boundary relocation and general control/data forms remain excluded. |
@@ -209,7 +209,7 @@ there is no in-session RPC or later-startup approval shortcut.
 | --- | --- |
 | 1. Open immutable Project snapshot | Image/Project foundation; current-head preservation gates unrun. |
 | 2. Select explicit stable-ID function | Image/Facets and Candidate closed selection; authored/unrun. |
-| 3. Change signature | Candidate append-scalar and ordered built-in Copy mapping subsets authored/unrun; general evolution open. |
+| 3. Change signature | Candidate append-scalar and ordered built-in/nominal Copy and direct-Bytes mappings authored/unrun; general evolution open. |
 | 4. Migrate every authenticated caller | Authored bounded append and hygienic mapped-argument migration; local/cross-file/contract-region evidence must run. No external/dynamic migration claim. |
 | 5. Preserve stable ID and exported identity | Candidate identity/manifest checks authored; external ABI compatibility is not implied. |
 | 6. Prove no new effects/capabilities | Candidate invariant checks plus re-admission authored; execute success and hostile cases. |

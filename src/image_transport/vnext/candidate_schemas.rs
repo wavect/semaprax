@@ -14,6 +14,57 @@ fn reference(id: &str) -> Value {
     json!({"$ref":format!("urn:{id}")})
 }
 
+fn change_parameter() -> Value {
+    let fields = vec![
+        ("name", text()),
+        ("type", text()),
+        ("mode", json!({"enum":["value","own","borrow","shared"]})),
+    ];
+    let plain = object(fields.clone());
+    let mut named = fields;
+    named.extend([
+        ("type_identity", text()),
+        (
+            "type_provenance",
+            object(vec![
+                ("declaration", text()),
+                ("arguments", strings()),
+                ("ownership", json!({"const":"copy"})),
+                ("evidence_owner", json!({"const":"retained_checked_hir"})),
+                ("copy", json!({"const":true})),
+                ("sized", json!({"const":true})),
+                ("contains_resource", json!({"const":false})),
+                ("needs_drop", json!({"const":false})),
+            ]),
+        ),
+    ]);
+    json!({"oneOf":[plain,object(named)]})
+}
+
+#[cfg(test)]
+mod signature_parameter_schema_tests {
+    use super::*;
+
+    #[test]
+    fn named_parameter_facts_are_a_closed_paired_extension() {
+        let schema = change_parameter();
+        let choices = schema["oneOf"].as_array().unwrap();
+        assert_eq!(choices.len(), 2);
+        assert_eq!(choices[0]["additionalProperties"], false);
+        assert_eq!(choices[0]["properties"].as_object().unwrap().len(), 3);
+        assert_eq!(choices[1]["additionalProperties"], false);
+        assert_eq!(choices[1]["properties"].as_object().unwrap().len(), 5);
+        let required = choices[1]["required"].as_array().unwrap();
+        assert!(required.contains(&json!("type_identity")));
+        assert!(required.contains(&json!("type_provenance")));
+        let provenance = &choices[1]["properties"]["type_provenance"];
+        assert_eq!(provenance["additionalProperties"], false);
+        assert_eq!(provenance["properties"].as_object().unwrap().len(), 8);
+        assert_eq!(provenance["properties"]["ownership"]["const"], "copy");
+        assert_eq!(provenance["properties"]["needs_drop"]["const"], false);
+    }
+}
+
 pub(super) fn documents() -> BTreeMap<String, Value> {
     let mut docs = BTreeMap::new();
     let mut put = |id: &str, fields| {
@@ -103,14 +154,7 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
             ("candidate_digest", digest()),
             ("project_revision", digest()),
             ("target", text()),
-            (
-                "parameters",
-                array(object(vec![
-                    ("name", text()),
-                    ("type", text()),
-                    ("mode", json!({"enum":["value","own","borrow","shared"]})),
-                ])),
-            ),
+            ("parameters", array(change_parameter())),
             ("operations", array(operation())),
             ("reason", text()),
             ("admission", json!({"const":"constructor_discovery_only"})),

@@ -9,6 +9,15 @@
   distinguish semantic binding from mere hash rejection. The new tests are
   authored and unrun; production code, schemas and golden outputs are unchanged.
 
+- Extended ordered signature evolution to admitted concrete Copy records and
+  variants using retained checked HIR identities and TypeFacts. Discovery uses
+  the same eligibility gate; original argument staging, exact type/mode and
+  complete source replay remain mandatory. Rebase fingerprints now distinguish
+  nominal identities even when type spellings are unchanged. Named aggregate,
+  catalogue and concurrent-identity regressions are authored, unrun; no new
+  aggregate defaults, type conversion, borrow/resource migration or runtime
+  equivalence claim is introduced.
+
 - Replaced the direct-Bytes browser placeholder with a fixed Project-v8 subject
   and real generated-package boundary tests for all three existing browser
   projects. The authored cases cover capacity, hostile buffers and getters,

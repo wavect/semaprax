@@ -36,18 +36,32 @@ impl ProjectCandidate {
                 reason = "candidate_intention_limit_reached";
                 if self.changes.len() < MAX_CHANGES {
                     reason = "constructor_available_payload_requires_full_candidate_admission";
+                    let ordered_parameters =
+                        super::intent::ordered_signature_parameters(&self.revision, function)?;
                     parameters = function
                         .params
                         .iter()
-                        .map(|param| {
-                            json!({
+                        .enumerate()
+                        .map(|(index, param)| {
+                            let mut descriptor = json!({
                                 "name":param.name,
                                 "type":param.ty.to_string(),
                                 "mode":match param.mode {
                                     ParamMode::Value=>"value", ParamMode::Own=>"own",
                                     ParamMode::Borrow=>"borrow", ParamMode::Shared=>"shared",
                                 },
-                            })
+                            });
+                            if let Some(Some(facts)) = ordered_parameters
+                                .as_ref()
+                                .and_then(|parameters| parameters.get(index))
+                            {
+                                // The admission seam owns Copy classification
+                                // and exact source-to-HIR signature matching.
+                                if let Some(facts) = facts.as_object() {
+                                    descriptor.as_object_mut().unwrap().extend(facts.clone());
+                                }
+                            }
+                            descriptor
                         })
                         .collect();
                     operations.push(json!({
@@ -61,24 +75,7 @@ impl ProjectCandidate {
                         "argument":"matching_typed_scalar_literal",
                         "evaluation_order":"original_arguments_unchanged_then_pure_literals",
                     })];
-                    if function.params.len() <= 4096
-                        && function.params.iter().all(|param| {
-                            (param.mode == ParamMode::Value
-                                && matches!(
-                                    param.ty,
-                                    Type::I64
-                                        | Type::I32
-                                        | Type::Char
-                                        | Type::U8
-                                        | Type::Usize
-                                        | Type::ArrayU8(_)
-                                        | Type::F32
-                                        | Type::F64
-                                        | Type::Bool
-                                ))
-                                || (param.mode == ParamMode::Own && param.ty == Type::Bytes)
-                        })
-                    {
+                    if ordered_parameters.is_some() {
                         forms.push(json!({
                             "selector":"parameters", "minimum":0, "maximum":4096,
                             "existing_parameter_fields":["from"],

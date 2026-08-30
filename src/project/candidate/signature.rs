@@ -1,4 +1,4 @@
-//! Ordered Copy/Bytes-parameter evolution with left-to-right argument staging.
+//! Ordered checked Copy/Bytes-parameter evolution with left-to-right staging.
 //!
 //! Every old argument is evaluated once even when its parameter is removed.
 //! Parameter identity is selected by its old name; display renaming follows
@@ -13,7 +13,9 @@ use crate::ast::{
     Expr, ExprKind, Function, MatchPattern, ModuleUseKind, Param, ParamMode, Program,
     RecordMatchFieldPattern, Span, Statement, Type, TypeDeclarationKind,
 };
-use serde_json::Value;
+use crate::hir::{DeclarationKind, OwnershipMode, ResolvedType};
+use crate::project::ProjectRevision;
+use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
 #[path = "signature_rename.rs"]
@@ -31,6 +33,7 @@ enum Argument {
 }
 
 pub(super) fn apply(
+    revision: Option<&ProjectRevision>,
     programs: &mut [Program],
     intent: &Value,
     owner: usize,
@@ -46,12 +49,16 @@ pub(super) fn apply(
             "signature evolution exceeds its original parameter limit",
         ));
     }
-    if original_params.iter().any(|param| {
-        !((param.mode == ParamMode::Value && copy_type(&param.ty))
-            || (param.mode == ParamMode::Own && param.ty == Type::Bytes))
-    }) {
+    let legacy = original_params.iter().all(legacy_parameter);
+    if !legacy
+        && revision
+            .map(|revision| ordered_signature_parameters(revision, function))
+            .transpose()?
+            .flatten()
+            .is_none()
+    {
         return Err(grammar(
-            "ordered signature evolution requires built-in Copy values or direct own Bytes",
+            "ordered signature evolution requires checked Copy values or direct own Bytes",
         ));
     }
     let original = original_params
@@ -283,6 +290,120 @@ fn copy_type(ty: &Type) -> bool {
             | Type::F64
             | Type::Bool
     )
+}
+
+fn legacy_parameter(parameter: &Param) -> bool {
+    (parameter.mode == ParamMode::Value && copy_type(&parameter.ty))
+        || (parameter.mode == ParamMode::Own && parameter.ty == Type::Bytes)
+}
+
+/// One authority shared by candidate admission and catalogue discovery. Legacy
+/// parameters have no additive metadata. Nominal facts come from the original
+/// module's validated index, including internal functions outside linked roots.
+pub(in crate::project::candidate) fn ordered_signature_parameters(
+    revision: &ProjectRevision,
+    function: &Function,
+) -> Result<Option<Vec<Option<Value>>>> {
+    if !function.explicit_id
+        || function.name == "main"
+        || !function.type_parameters.is_empty()
+        || function.params.len() > MAX_PARAMETERS
+    {
+        return Ok(None);
+    }
+    if function.params.iter().all(legacy_parameter) {
+        return Ok(Some(vec![None; function.params.len()]));
+    }
+    // This extension never infers Copy from a named AST or widens borrow/own.
+    if function.params.iter().any(|parameter| {
+        !legacy_parameter(parameter)
+            && !(parameter.mode == ParamMode::Value && matches!(parameter.ty, Type::Named { .. }))
+    }) {
+        return Ok(None);
+    }
+    let mut subject = None;
+    for module in revision.semantic.image_modules() {
+        for checked in module
+            .functions()
+            .iter()
+            .filter(|f| f.id.as_str() == function.stable_id)
+        {
+            if subject.replace((module, checked)).is_some() {
+                return Err(grammar(
+                    "ordered signature checked function identity is ambiguous",
+                ));
+            }
+        }
+    }
+    let Some((module, checked)) = subject else {
+        return Ok(None);
+    };
+    if checked.name != function.name
+        || checked.span != function.span
+        || checked.params.len() != function.params.len()
+    {
+        return Err(grammar(
+            "ordered signature source and checked function disagree",
+        ));
+    }
+    // Authenticate the complete AST subject, including every source type alias,
+    // against retained source before using its checked counterpart's facts.
+    let source = revision
+        .sources()
+        .iter()
+        .find(|s| s.path() == module.path())
+        .ok_or_else(|| grammar("ordered signature checked source is absent"))?;
+    let program = crate::parse(source.source(), source.path()).map_err(|error| vec![error])?;
+    if !program
+        .functions
+        .iter()
+        .any(|original| original == function)
+    {
+        return Err(grammar(
+            "ordered signature AST differs from authenticated source",
+        ));
+    }
+    let mut metadata = Vec::with_capacity(function.params.len());
+    for (parameter, resolved) in function.params.iter().zip(&checked.params) {
+        if parameter.name != resolved.name
+            || parameter.span != resolved.span
+            || OwnershipMode::from(parameter.mode) != resolved.ownership
+        {
+            return Err(grammar(
+                "ordered signature source parameter and checked binding disagree",
+            ));
+        }
+        if legacy_parameter(parameter) {
+            metadata.push(None);
+            continue;
+        }
+        let ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } = &resolved.ty
+        else {
+            return Ok(None);
+        };
+        let Some((kind, facts)) = module.signature_type_facts(&resolved.ty) else {
+            return Err(grammar(
+                "ordered signature retained nominal type facts are absent",
+            ));
+        };
+        if resolved.ownership != OwnershipMode::Value
+            || !matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
+            || !facts.copy
+            || !facts.sized
+            || facts.contains_resource
+            || facts.needs_drop
+        {
+            return Ok(None);
+        }
+        metadata.push(Some(json!({"type_identity":resolved.ty.identity_key(),
+            "type_provenance":{"declaration":declaration.as_str(),"arguments":arguments.iter().map(ResolvedType::identity_key).collect::<Vec<_>>(),
+                "ownership":"copy","evidence_owner":"retained_checked_hir","copy":facts.copy,"sized":facts.sized,
+                "contains_resource":facts.contains_resource,"needs_drop":facts.needs_drop}})));
+    }
+    Ok(Some(metadata))
 }
 
 fn fresh_name(occupied: &mut BTreeSet<String>, counter: &mut usize) -> Result<String> {

@@ -521,8 +521,14 @@ inputs are reauthenticated before registry mutations become visible. Typed
 [body-hole drafts](PROJECT-CANDIDATE-HOLES-V1.md) expose context while blocking
 materialization until all holes are filled through full candidate admission.
 [Ordered signature mapping](PROJECT-SIGNATURE-EVOLUTION-V1.md) stages every
-original built-in Copy argument once, left-to-right, before retaining,
-reordering or removing parameters. These additions are authored, unrun.
+original argument once, left-to-right, before retaining, reordering or removing
+Copy parameters; admitted direct byte owners must all be retained once.
+Workspace module projections privately retain compiler-checked nominal
+parameter TypeFacts, including types outside entry/test reachability. The
+candidate admission and catalogue share those exact facts for concrete Copy
+record/variant eligibility; they do not infer ownership from source spelling.
+These facts add no graph wire fields or source authority. These additions are
+authored, unrun.
 
 `candidate/expression.rs` joins retained HIR identities to canonical AST
 provenance for typed body-expression replacement, preserving the selected
@@ -530,7 +536,8 @@ expression's expected type through complete Project rebuilding. Contract
 insertion permits exactly one additional predicate while retaining prior
 contracts and all other invariant inventories. `candidate/rebase.rs` compares
 stable-ID target/dependency facts, normalizes call display names for conflict
-selection, and replays supported intentions over an admitted base. Same-root
+selection, binds nominal signatures to retained checked type identities, and
+replays supported intentions over an admitted base. Same-root
 merge retains both histories and the original source-diff base. These APIs
 produce candidates and ancestry reports, never source publication authority.
 

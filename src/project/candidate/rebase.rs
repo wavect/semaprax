@@ -3,7 +3,7 @@
 use super::{
     intent, parse_revision, wire, ProjectCandidate, ProjectRevision, SemanticChange, MAX_CHANGES,
 };
-use crate::ast::{ExprKind, ParamMode};
+use crate::ast::{ExprKind, ParamMode, Type};
 use crate::diagnostic::Diagnostic;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -225,7 +225,20 @@ fn fingerprints(
                     "candidate rebase contract fingerprint exceeds its bound",
                 ));
             }
-            let signature = json!({"parameters":function.params.iter().map(|param| json!({"name":param.name,"type":param.ty.to_string(),"mode":match param.mode {ParamMode::Value=>"value",ParamMode::Own=>"own",ParamMode::Borrow=>"borrow",ParamMode::Shared=>"shared"}})).collect::<Vec<_>>(),"return":function.return_type.to_string(), "generic_parameter_count":function.type_parameters.len()});
+            let mut signature = json!({"parameters":function.params.iter().map(|param| json!({"name":param.name,"type":param.ty.to_string(),"mode":match param.mode {ParamMode::Value=>"value",ParamMode::Own=>"own",ParamMode::Borrow=>"borrow",ParamMode::Shared=>"shared"}})).collect::<Vec<_>>(),"return":function.return_type.to_string(), "generic_parameter_count":function.type_parameters.len()});
+            if function
+                .params
+                .iter()
+                .any(|param| matches!(param.ty, Type::Named { .. }))
+                || matches!(function.return_type, Type::Named { .. })
+            {
+                // A display type or import alias can keep its spelling while
+                // resolving to a different nominal identity on the new base.
+                // Bind checked identities as well; scalar fingerprints keep
+                // their historical representation.
+                signature["resolved_type_identity"] =
+                    nominal_signature(revision, &program.path, &function.stable_id)?;
+            }
             let fact = Fingerprint {
                 display: function.name.clone(),
                 signature: hash_value(signature)?,
@@ -242,6 +255,41 @@ fn fingerprints(
         }
     }
     Ok(result)
+}
+
+fn nominal_signature(
+    revision: &ProjectRevision,
+    path: &str,
+    id: &str,
+) -> Result<Value, Vec<Diagnostic>> {
+    let module = revision
+        .semantic
+        .image_modules()
+        .iter()
+        .find(|module| module.path() == path)
+        .ok_or_else(|| grammar("nominal rebase signature lacks its retained source module"))?;
+    let (params, result) = if let Some(function) = module
+        .functions()
+        .iter()
+        .find(|function| function.id.as_str() == id)
+    {
+        (&function.params, &function.return_type)
+    } else if let Some(function) = module
+        .function_templates()
+        .iter()
+        .find(|function| function.id.as_str() == id)
+    {
+        (&function.params, &function.return_type)
+    } else {
+        return Err(grammar(
+            "nominal rebase signature lacks its retained checked function",
+        ));
+    };
+    Ok(json!({
+        "parameters":params.iter().map(|param| param.ty.identity_key()).collect::<Vec<_>>(),
+        "return":result.identity_key(),
+        "evidence_owner":"retained_checked_source_module_HIR"
+    }))
 }
 
 // Record-shape conflicts are independent of function display/body changes.

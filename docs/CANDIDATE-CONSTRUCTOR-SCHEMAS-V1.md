@@ -42,6 +42,29 @@ change-envelope schema fixes the version and compiler-owned ordered requirement
 list. Unknown fields, mixed signature forms, or extra constructor keys are not
 part of the described structural grammar.
 
+Ordered signature mapping retains its existing closed `from` / optional `name`
+constructor. Selecting an existing named Copy record or variant does not add a
+type spelling, conversion, or aggregate literal to the request grammar. The
+compiler checks eligibility against retained checked HIR, including concrete
+generic instances when already admitted by the Project profile. Fresh
+parameters remain restricted to the five scalar literal kinds above. See
+[Project Signature Evolution v1](PROJECT-SIGNATURE-EVOLUTION-V1.md) for exact
+staging, ownership, and complete candidate admission requirements.
+
+Change-catalogue parameter entries preserve `name`, display `type`, and source
+`mode`. Named parameters of an eligible ordered-mapping signature additionally expose `type_identity` and
+`type_provenance`, derived from retained checked HIR rather than display-name
+lookup. These descriptive fields do not become valid request fields. Scalar
+catalogue entries retain their prior shape. The v5 discovery bundle describes
+both closed response alternatives; neither shape is a payload admission proof.
+The provenance closes the declaration stable ID, ordered argument identity keys,
+`ownership: copy`, `evidence_owner: retained_checked_hir`, `copy: true`,
+`sized: true`, `contains_resource: false`, and `needs_drop: false`. An unsupported
+signature does not acquire eligibility merely because its source type has a
+name. `tests/project_signature_catalog_v1.rs` authors nominal/generic identity,
+import-alias identity equivalence, unchanged scalar/Bytes shapes, and rejection
+of owned-record or borrowed-view ordered mapping. These tests remain unrun.
+
 Constructor limits are drawn from the implementation's shared limit constants.
 Depth, aggregate node counts, implicit conditional block nodes, UTF-8 byte
 limits, JSON canonicality, duplicate-key rejection, and lexical integer forms

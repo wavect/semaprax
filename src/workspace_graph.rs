@@ -421,6 +421,7 @@ pub(crate) struct WorkspaceGraphProjectionModule {
     functions: Vec<hir::ResolvedFunction>,
     function_templates: Vec<hir::ResolvedFunctionTemplate>,
     function_instances: Vec<hir::ResolvedFunctionInstance>,
+    signature_types: BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
 }
 
 pub(crate) struct WorkspaceGraphProjectionDeclaration {
@@ -478,6 +479,7 @@ struct WorkspaceResolvedModule {
     functions: Vec<hir::ResolvedFunction>,
     function_templates: Vec<hir::ResolvedFunctionTemplate>,
     function_instances: Vec<hir::ResolvedFunctionInstance>,
+    signature_types: BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -548,6 +550,14 @@ impl WorkspaceGraphProjection {
 }
 
 impl WorkspaceGraphProjectionModule {
+    /// Compiler-checked facts for exact nominal parameters, including functions
+    /// outside the entry/test closures. Never reconstructed from source labels.
+    pub(crate) fn signature_type_facts(
+        &self,
+        ty: &hir::ResolvedType,
+    ) -> Option<&(hir::DeclarationKind, hir::TypeFacts)> {
+        self.signature_types.get(&ty.identity_key())
+    }
     pub(crate) fn path(&self) -> &str {
         &self.path
     }
@@ -2029,6 +2039,7 @@ impl WorkspaceGraphBuild {
                 functions: module.functions,
                 function_templates: module.function_templates,
                 function_instances: module.function_instances,
+                signature_types: module.signature_types,
             });
         }
         modules.sort_by(|left, right| left.path.cmp(&right.path));
@@ -2813,6 +2824,7 @@ impl WorkspaceGraphChangeView {
                 functions: Vec::new(),
                 function_templates: Vec::new(),
                 function_instances: Vec::new(),
+                signature_types: BTreeMap::new(),
             });
         }
         modules.sort_by(|left, right| left.path.cmp(&right.path));
@@ -3346,6 +3358,7 @@ impl AuthenticatedWorkspaceGraphBuild {
                 functions: module.functions,
                 function_templates: module.function_templates,
                 function_instances: module.function_instances,
+                signature_types: module.signature_types,
             });
         }
         modules.sort_by(|left, right| left.path.cmp(&right.path));
@@ -4547,7 +4560,13 @@ fn build_resolved_core(
     reserve_builder_structure(
         synthetic_modules
             .len()
-            .checked_mul(std::mem::size_of::<WorkspaceResolvedModule>())
+            // Empty private signature facts must not change frozen scalar
+            // graph accounting. Nonempty carriers are charged separately.
+            .checked_mul(
+                std::mem::size_of::<WorkspaceResolvedModule>()
+                    - std::mem::size_of::<BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>>(
+                    ),
+            )
             .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?,
     )?;
     let mut modules = Vec::with_capacity(synthetic_modules.len());
@@ -4585,6 +4604,7 @@ fn build_resolved_core(
                     .is_some_and(|owner| owner.module == program.module)
             },
         )?;
+        let signature_types = retained_signature_type_facts(&functions, &resolved.declarations)?;
         modules.push(WorkspaceResolvedModule {
             path: crate::bounded_output::budgeted_clone(&program.path),
             module,
@@ -4594,6 +4614,7 @@ fn build_resolved_core(
             functions,
             function_templates,
             function_instances,
+            signature_types,
         });
     }
     validate_retained_facts(programs, &modules, &expected_edges)?;
@@ -4629,6 +4650,58 @@ fn build_resolved_core(
         declarations,
         expected_edges,
     ))
+}
+
+fn retained_signature_type_facts(
+    functions: &[hir::ResolvedFunction],
+    declarations: &hir::DeclarationIndex,
+) -> Result<BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>, Vec<Diagnostic>> {
+    let mut retained = BTreeMap::new();
+    for function in functions {
+        for parameter in &function.params {
+            let hir::ResolvedType::Nominal { declaration, .. } = &parameter.ty else {
+                continue;
+            };
+            let key = parameter.ty.identity_key();
+            if retained.contains_key(&key) {
+                continue;
+            }
+            if retained.len() >= MAX_DECLARATIONS {
+                return Err(vec![limit_error("declarations", MAX_DECLARATIONS)]);
+            }
+            let kind = declarations
+                .declaration(declaration)
+                .ok_or_else(|| {
+                    vec![graph_error(
+                        "SPX-G173",
+                        "checked signature nominal declaration is absent",
+                    )]
+                })?
+                .kind;
+            let facts = declarations.type_facts(&parameter.ty).ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "checked signature type facts are absent",
+                )]
+            })?;
+            let base = if retained.is_empty() {
+                std::mem::size_of::<BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>>()
+            } else {
+                0
+            };
+            let bytes = base
+                .checked_add(
+                    std::mem::size_of::<(String, hir::DeclarationKind, hir::TypeFacts)>()
+                        + 8 * std::mem::size_of::<usize>(),
+                )
+                .and_then(|bytes| bytes.checked_add(key.capacity()))
+                .and_then(|bytes| bytes.checked_add(facts.layout_key.capacity()))
+                .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+            reserve_builder_structure(bytes)?;
+            retained.insert(key, (kind, facts));
+        }
+    }
+    Ok(retained)
 }
 
 fn filter_owned_vec<T>(

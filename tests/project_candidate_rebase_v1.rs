@@ -94,6 +94,50 @@ fn code<T>(result: Result<T, Vec<Diagnostic>>, expected: &str) {
 }
 
 #[test]
+fn unchanged_type_spelling_cannot_hide_a_concurrent_nominal_identity_change() {
+    let fixture = Fixture::new();
+    let manifest_path = fixture.0.join("semaprax.toml");
+    let manifest = std::fs::read_to_string(&manifest_path)
+        .unwrap()
+        .replace("semaprax.project.v1", "semaprax.project.v8")
+        .replace(
+            "name = \"calculator\"",
+            "name = \"calculator\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"",
+        );
+    std::fs::write(manifest_path, manifest).unwrap();
+    let path = fixture.0.join("src/core.spx");
+    let source = std::fs::read_to_string(&path).unwrap()
+        + r#"
+@id("calculator.money.old") record Money { @id("calculator.money.amount.old") amount: i64, }
+@id("calculator.nominal") fn nominal(value: Money) -> i64 { value.amount }
+@id("calculator.nominal-call") fn nominal_call() -> i64 { nominal(Money { amount: 7 }) }
+"#;
+    let canonical = semaprax::format::canonical(&semaprax::parse(&source, "src/core.spx").unwrap());
+    std::fs::write(&path, &canonical).unwrap();
+    let root = fixture.candidate();
+    let candidate = apply(
+        &root,
+        json!({"kind":"change_function_signature","target":"calculator.nominal","parameters":[{"from":"value","name":"payment"}]}),
+    );
+    let candidate_bytes = candidate.to_json().to_owned();
+    let changed = canonical
+        .replace("calculator.money.old", "calculator.money.new")
+        .replace("calculator.money.amount.old", "calculator.money.amount.new");
+    std::fs::write(&path, &changed).unwrap();
+    let new_base = fixture.revision();
+    code(
+        candidate.rebase(
+            candidate.candidate_digest(),
+            Arc::clone(&new_base),
+            new_base.project_revision(),
+        ),
+        "SPX-G235",
+    );
+    assert_eq!(candidate.to_json(), candidate_bytes);
+    assert_eq!(std::fs::read_to_string(path).unwrap(), changed);
+}
+
+#[test]
 fn merge_keeps_both_same_file_changes_and_the_original_diff_base() {
     let fixture = Fixture::new();
     let root = fixture.candidate();

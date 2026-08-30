@@ -27,6 +27,8 @@ const MAX_WALK_NODES: usize = 1_048_576;
 #[path = "signature.rs"]
 mod signature;
 
+pub(super) use signature::ordered_signature_parameters;
+
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
 pub(super) struct IntentSummary {
@@ -38,6 +40,22 @@ pub(super) struct IntentSummary {
 /// Mutates invocation-local candidate ASTs only. On failure the caller discards
 /// them; this internal routine supplies neither rollback nor source authority.
 pub(super) fn apply(programs: &mut [Program], intent: &Value) -> Result<IntentSummary> {
+    apply_inner(None, programs, intent)
+}
+
+pub(super) fn apply_with_revision(
+    revision: &crate::project::ProjectRevision,
+    programs: &mut [Program],
+    intent: &Value,
+) -> Result<IntentSummary> {
+    apply_inner(Some(revision), programs, intent)
+}
+
+fn apply_inner(
+    revision: Option<&crate::project::ProjectRevision>,
+    programs: &mut [Program],
+    intent: &Value,
+) -> Result<IntentSummary> {
     let kind = text(intent, "kind")?;
     let target = text(intent, "target")?;
     if target.is_empty() || target.len() > MAX_ID_BYTES {
@@ -94,7 +112,7 @@ pub(super) fn apply(programs: &mut [Program], intent: &Value) -> Result<IntentSu
             programs[owner].functions[function_index].name = name.to_owned();
         }
         "change_function_signature" if intent.get("parameters").is_some() => {
-            migrated_calls = signature::apply(programs, intent, owner, function_index)?;
+            migrated_calls = signature::apply(revision, programs, intent, owner, function_index)?;
         }
         "change_function_signature" => {
             object(intent, &["kind", "target", "append_parameters"])?;

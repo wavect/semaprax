@@ -33,11 +33,15 @@ this report alongside the resulting candidate when retaining merge ancestry.
 
 ## Stable-ID conflict selection
 
-Conflict analysis parses only the candidates' already admitted canonical
-source snapshots. It indexes explicit top-level functions by stable ID and
+Conflict analysis uses only the candidates' already admitted canonical
+source snapshots and retained checked HIR. It indexes explicit top-level functions by stable ID and
 separately fingerprints signature, body, contracts and effects/module permits.
 Signatures include parameter names/types/modes and return type, excluding the
-function display name. Canonical expression formatting excludes spans. Local
+function display name. When a parameter or return type is nominal, the
+fingerprint also binds the retained HIR's complete ordered type identities.
+An unchanged type spelling or import alias cannot hide a different declaration
+identity or concrete type arguments on the concurrent base. Scalar fingerprints
+retain their previous representation. Canonical expression formatting excludes spans. Local
 function calls and authenticated import aliases normalize to tokens derived
 from their resolved stable-ID bindings before body/contract fingerprinting.
 Those tokens exist only in the conflict calculation and are never materialized
@@ -52,6 +56,7 @@ as source. There is no whole-file conflict rule.
 | Contract append while target body changed | Potentially compatible; full rebuild required. |
 | Independent contract appends with unchanged signature/effects | Append in merge order and fully rebuild. No duplicate-elimination or logical simplification is inferred. |
 | Same-target competing signature intentions | Conflict, including net-zero signature histories in the merge suffixes. |
+| Nominal type keeps its spelling but resolves to another identity | Signature conflict before applying a dependent signature/body/contract change. |
 | Body/expression replacement versus changed target body, signature or effects | Conflict. Disjoint expression editing is not inferred. |
 | Signature evolution versus changed target body, signature or effects | Conservative conflict. More permissive compatibility analysis remains future work. |
 | Contract append versus changed target signature or effects | Conflict. |

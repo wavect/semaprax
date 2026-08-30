@@ -2405,7 +2405,7 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
     }
 }
 
-fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnostic> {
+pub(crate) fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnostic> {
     Ok(match &expression.kind {
         ResolvedExprKind::Int(value) => format!(
             "{{\"kind\":\"int\",\"value\":{}}}",

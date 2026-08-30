@@ -8,9 +8,11 @@
 mod admission;
 mod authority;
 mod build;
+mod candidate;
 mod execution;
 mod flat_owned_record;
 mod image;
+mod image_facets;
 mod manifest;
 mod native_sdk;
 mod npm;
@@ -36,6 +38,10 @@ pub use crate::wasm::{ProjectWebBuild, MAX_PROJECT_WEB_BUILD_BYTES, PROJECT_WEB_
 use authority::{authentication, DeclaredPathSelection, HeldDirectory, HeldFile};
 #[cfg(all(test, windows))]
 use authority::{declared_absolute_path, has_declared_alias_component};
+pub use candidate::{
+    ProjectCandidate, SemanticChange, MAX_PROJECT_CANDIDATE_BYTES, MAX_SEMANTIC_CHANGE_BYTES,
+    PROJECT_CANDIDATE_SCHEMA, SEMANTIC_CHANGE_REQUIREMENTS, SEMANTIC_CHANGE_SCHEMA,
+};
 pub use execution::{
     verify_execution_envelope, ProjectExecution, ProjectExecutionOptions, ProjectExecutionOutcome,
     ProjectExecutionRole, PROJECT_EXECUTION_SCHEMA,
@@ -52,6 +58,9 @@ pub use flat_owned_record::{
 pub use image::{
     ProjectSemanticImage, MAX_SEMANTIC_IMAGE_BYTES, PROJECT_SEMANTIC_IMAGE_COMPATIBILITY,
     PROJECT_SEMANTIC_IMAGE_SCHEMA, PROJECT_SEMANTIC_IMAGE_SYMBOL_SCHEMA,
+};
+pub use image_facets::{
+    ImageFacet, ImageFacetOptions, IMAGE_FACET_SCHEMA, IMAGE_FUNCTION_SUMMARY_SCHEMA,
 };
 use manifest::{capacity, grammar};
 pub use manifest::{

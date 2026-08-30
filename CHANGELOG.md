@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Added immutable Project candidate overlays with a closed Semantic Change IR,
+  stable-ID function rename, scalar parameter append/caller migration, and typed
+  body construction. Previews materialize canonical source in memory, reparse
+  and replay complete Project admission, retain diffs and structural impact,
+  and bind emitted native/Wasm facts without source or runtime authority.
+  Added HIR-backed image facets with bounded references and pagination, plus a
+  separate self-describing read-only image protocol and generated client
+  helpers. Tests are authored but unrun by request; the full graph-operational
+  programme, runtime gates, incremental reuse, holes, merge, and source commit
+  remain incomplete.
+
 - Authored the first Semantic Workspace Image v1 foundation: a bounded,
   deterministic projection over retained Project revisions, complete graph and
   typed indexes, exact fresh replay, and digest-bound symbol/context/impact

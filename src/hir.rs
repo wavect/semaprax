@@ -85,9 +85,9 @@ pub fn validate(program: &ResolvedProgram) -> Result<(), Diagnostic> {
     inspection::validate(program)?;
     crate::loan_plan::validate_program(program)
 }
+pub(crate) use inspection::visit_resolved_calls;
 use inspection::{
     path_is_prefix, reject_nul_identity, resolved_lifecycle_effects, validate_nul_free_identities,
-    visit_resolved_calls,
 };
 pub(crate) use inspection::{
     validate_attached_identity_references, workspace_call_sites, workspace_expression_identity,

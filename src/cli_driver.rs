@@ -114,7 +114,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 Ok(())
             }
         }
-        "project-image" | "project-image-verify" | "project-symbol" => {
+        "project-image"
+        | "project-image-verify"
+        | "project-symbol"
+        | "project-candidate-preview" => {
             let arity = if command == "project-image" { 2 } else { 3 };
             if args.len() != arity
                 || args[1..]
@@ -124,6 +127,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 let operands = match command {
                     "project-image" => "<manifest>",
                     "project-image-verify" => "<manifest> <image.json>",
+                    "project-candidate-preview" => "<manifest> <change.json>",
                     _ => "<manifest> <stable-id>",
                 };
                 eprintln!("{command} requires exactly {operands}");
@@ -133,6 +137,9 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             let output = match command {
                 "project-image" => cli::project_image::derive(manifest),
                 "project-image-verify" => cli::project_image::verify(manifest, Path::new(&args[2])),
+                "project-candidate-preview" => {
+                    cli::project_candidate::preview(manifest, Path::new(&args[2]))
+                }
                 _ => cli::project_image::symbol(manifest, &args[2]),
             }
             .map_err(|errors| report(&errors, false))?;
@@ -169,6 +176,22 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             })?;
             println!("{context}");
             Ok(())
+        }
+        "serve-image" => {
+            if args.len() != 2 || args[1].is_empty() || args[1].starts_with('-') {
+                eprintln!("serve-image requires exactly <manifest>");
+                return Err(2);
+            }
+            semaprax::image_transport::serve(
+                std::io::stdin().lock(),
+                std::io::stdout().lock(),
+                Path::new(&args[1]),
+                semaprax::image_transport::ImageHostCapability::ReadOnly,
+            )
+            .map_err(|error| {
+                eprintln!("{error}");
+                1
+            })
         }
         "serve" => {
             let path = required_path(&args, 1)?;
@@ -2276,6 +2299,8 @@ fn print_help() {
            semaprax project-image <manifest>\n\
            semaprax project-image-verify <manifest> <image.json>\n\
            semaprax project-symbol <manifest> <stable-id>\n\
+           semaprax project-candidate-preview <manifest> <change.json>\n\
+           semaprax serve-image <manifest>\n\
            semaprax context <file> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n\
             semaprax context-benchmark <manifest>\n\
             semaprax serve <file> [--max-request-bytes N]\n\

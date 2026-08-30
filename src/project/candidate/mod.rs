@@ -1,0 +1,450 @@
+//! Immutable, source-derived semantic candidates. No path or commit authority.
+
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
+
+use serde_json::{json, Value};
+
+use crate::ast::Program;
+use crate::diagnostic::Diagnostic;
+use crate::semantic_workspace::SemanticWorkspaceSource;
+use crate::workspace_analysis::{WorkspaceAnalysisTargetKind, WorkspaceImpactOptions};
+
+use super::{build, ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
+
+mod intent;
+mod wire;
+
+pub const SEMANTIC_CHANGE_SCHEMA: &str = "semaprax.semantic-change.v1";
+pub const PROJECT_CANDIDATE_SCHEMA: &str = "semaprax.project-candidate.v1";
+pub const MAX_SEMANTIC_CHANGE_BYTES: usize = 1024 * 1024;
+pub const MAX_PROJECT_CANDIDATE_BYTES: usize = 64 * 1024 * 1024;
+const MAX_CHANGES: usize = 32;
+
+/// These constraints are mandatory, not caller assertions that bypass checks.
+pub const SEMANTIC_CHANGE_REQUIREMENTS: &[&str] = &[
+    "preserve_stable_identity",
+    "preserve_public_exports",
+    "update_all_callers",
+    "no_new_effects",
+    "no_new_capabilities",
+    "preserve_contracts",
+    "revalidate_ownership_and_cleanup",
+    "preserve_project_profile_admission",
+    "preserve_admitted_core_targets",
+];
+
+/// A closed, canonical typed intention bound to one current Project revision.
+#[derive(Clone)]
+pub struct SemanticChange {
+    base_revision: String,
+    intent: Value,
+    json: String,
+}
+
+impl SemanticChange {
+    /// Construct canonical change bytes; semantic admission happens in apply.
+    pub fn new(base_revision: &str, intent: &Value) -> Result<Self, Vec<Diagnostic>> {
+        wire::validate_digest(base_revision)?;
+        wire::validate_value(intent)?;
+        let value = json!({
+            "schema": SEMANTIC_CHANGE_SCHEMA,
+            "base_revision": base_revision,
+            "intent": intent,
+            "requirements": SEMANTIC_CHANGE_REQUIREMENTS,
+        });
+        let json = wire::render(value, MAX_SEMANTIC_CHANGE_BYTES)?;
+        Ok(Self {
+            base_revision: base_revision.to_owned(),
+            intent: intent.clone(),
+            json,
+        })
+    }
+
+    /// Exact canonical admission rejects duplicate/unknown keys and alternate
+    /// JSON encodings before the intention can enter a candidate.
+    pub fn from_json(bytes: &[u8]) -> Result<Self, Vec<Diagnostic>> {
+        if bytes.len() > MAX_SEMANTIC_CHANGE_BYTES {
+            return Err(capacity("semantic change exceeds its input bound"));
+        }
+        let value: Value = serde_json::from_slice(bytes)
+            .map_err(|_| invalid("semantic change is not bounded valid JSON"))?;
+        wire::validate_value(&value)?;
+        let base = value
+            .get("base_revision")
+            .and_then(Value::as_str)
+            .ok_or_else(|| invalid("semantic change requires a base revision"))?;
+        let intent = value
+            .get("intent")
+            .ok_or_else(|| invalid("semantic change requires an intent"))?;
+        let change = Self::new(base, intent)?;
+        if change.json.as_bytes() != bytes {
+            return Err(invalid(
+                "semantic change must have exact schema, requirements, and canonical bytes",
+            ));
+        }
+        Ok(change)
+    }
+
+    pub fn to_json(&self) -> &str {
+        &self.json
+    }
+    pub fn base_revision(&self) -> &str {
+        &self.base_revision
+    }
+}
+
+/// A complete validated overlay. Applying another intent returns a new value;
+/// neither its base nor any sibling candidate is modified. Dropping discards it.
+pub struct ProjectCandidate {
+    base: Arc<ProjectRevision>,
+    revision: Arc<ProjectRevision>,
+    changes: Vec<SemanticChange>,
+    summaries: Vec<Value>,
+    base_targets: Arc<Value>,
+    targets: Value,
+    json: String,
+    digest: String,
+}
+
+impl ProjectCandidate {
+    pub fn open(
+        base: Arc<ProjectRevision>,
+        expected_revision: &str,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        require_revision(&base, expected_revision)?;
+        let targets = Arc::new(wire::target_facts(&base)?);
+        Self::finish(
+            Arc::clone(&base),
+            base,
+            vec![],
+            vec![],
+            Arc::clone(&targets),
+            &targets,
+        )
+    }
+
+    pub fn apply(
+        &self,
+        expected_candidate: &str,
+        change: &SemanticChange,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        self.require_candidate(expected_candidate)?;
+        require_revision(&self.revision, change.base_revision())?;
+        if self.changes.len() >= MAX_CHANGES {
+            return Err(capacity("candidate intention count exceeds 32"));
+        }
+        let mut programs = parse_revision(&self.revision)?;
+        let before = invariant_facts(&programs);
+        let summary = intent::apply(&mut programs, &change.intent)?;
+        let after = invariant_facts(&programs);
+        if before != after {
+            return Err(invalid(
+                "intent changed permits, effects, or contract inventory",
+            ));
+        }
+        let sources = materialize(&programs)?;
+        // Candidate meaning must re-enter through canonical human source, never
+        // through mutated HIR/graph fields. build_owned performs real Phase A,
+        // ownership/cleanup replay, linkage and manifest-profile admission.
+        let replay_sources = sources
+            .iter()
+            .map(|source| SemanticWorkspaceSource {
+                path: source.path.clone(),
+                source: source.source.clone(),
+            })
+            .collect();
+        let built = build::build_owned(self.revision.manifest(), sources)?;
+        let candidate = Arc::new(ProjectRevision::from_built(
+            self.revision.manifest().clone(),
+            built,
+        ));
+        let replay = build::build_owned(candidate.manifest(), replay_sources)?;
+        if replay.project_revision != candidate.project_revision()
+            || replay.semantic.graph() != candidate.semantic_graph()
+            || replay.sources.len() != candidate.sources().len()
+            || replay
+                .sources
+                .iter()
+                .zip(candidate.sources())
+                .any(|(a, b)| a != b)
+        {
+            return Err(stale(
+                "candidate source replay disagrees with intended projection",
+            ));
+        }
+        preserve_explicit_identities(&self.revision, &candidate)?;
+        if self.revision.manifest().to_canonical_toml() != candidate.manifest().to_canonical_toml()
+        {
+            return Err(invalid(
+                "candidate changed the manifest or exported identity set",
+            ));
+        }
+        let targets = wire::target_facts(&candidate)?;
+        wire::preserve_targets(&self.targets, &targets)?;
+        let mut changes = self.changes.clone();
+        changes.push(change.clone());
+        let mut summaries = self.summaries.clone();
+        summaries.push(json!({
+            "kind": summary.kind,
+            "target": summary.target_id,
+            "migrated_calls": summary.migrated_calls,
+        }));
+        Self::finish(
+            Arc::clone(&self.base),
+            candidate,
+            changes,
+            summaries,
+            Arc::clone(&self.base_targets),
+            &targets,
+        )
+    }
+
+    /// Reconstruct all intentions from the base and compare the complete source
+    /// diff/evidence bytes. A self-consistently rehashed capsule is insufficient.
+    pub fn replay(
+        base: Arc<ProjectRevision>,
+        expected_base: &str,
+        changes: &[SemanticChange],
+        bytes: &[u8],
+    ) -> Result<Self, Vec<Diagnostic>> {
+        if bytes.len() > MAX_PROJECT_CANDIDATE_BYTES || changes.len() > MAX_CHANGES {
+            return Err(capacity("candidate replay exceeds its bound"));
+        }
+        let mut candidate = Self::open(base, expected_base)?;
+        for change in changes {
+            candidate = candidate.apply(candidate.candidate_digest(), change)?;
+        }
+        if candidate.to_json().as_bytes() != bytes {
+            return Err(stale("candidate evidence failed exact source replay"));
+        }
+        Ok(candidate)
+    }
+
+    pub fn to_json(&self) -> &str {
+        &self.json
+    }
+    pub fn candidate_digest(&self) -> &str {
+        &self.digest
+    }
+    pub fn revision(&self) -> &Arc<ProjectRevision> {
+        &self.revision
+    }
+    pub fn base_revision(&self) -> &Arc<ProjectRevision> {
+        &self.base
+    }
+
+    /// Comparison is descriptive, not a semantic-merge or compatibility proof.
+    pub fn compare(&self, other: &Self) -> Result<String, Vec<Diagnostic>> {
+        if self.base.project_revision() != other.base.project_revision() {
+            return Err(stale(
+                "candidate comparison requires the same base revision",
+            ));
+        }
+        let targets = |candidate: &Self| {
+            candidate
+                .summaries
+                .iter()
+                .filter_map(|summary| summary["target"].as_str())
+                .map(str::to_owned)
+                .collect::<BTreeSet<_>>()
+        };
+        let left = targets(self);
+        let right = targets(other);
+        wire::render(
+            json!({
+                "schema": "semaprax.project-candidate-comparison.v1",
+                "base_revision": self.base.project_revision(),
+                "left": self.candidate_digest(), "right": other.candidate_digest(),
+                "same_source_revision": self.revision.project_revision() == other.revision.project_revision(),
+                "overlapping_targets": left.intersection(&right).collect::<Vec<_>>(),
+                "classification": "descriptive_requires_revalidation_before_merge",
+                "commit_authority": false,
+            }),
+            MAX_SEMANTIC_CHANGE_BYTES,
+        )
+    }
+
+    fn require_candidate(&self, expected: &str) -> Result<(), Vec<Diagnostic>> {
+        wire::validate_digest(expected)?;
+        if expected != self.digest {
+            return Err(stale("candidate digest is stale"));
+        }
+        Ok(())
+    }
+
+    fn finish(
+        base: Arc<ProjectRevision>,
+        revision: Arc<ProjectRevision>,
+        changes: Vec<SemanticChange>,
+        summaries: Vec<Value>,
+        base_targets: Arc<Value>,
+        targets: &Value,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        let mut source_changes = Vec::new();
+        if base.sources().len() != revision.sources().len() {
+            return Err(invalid("candidate changed source inventory cardinality"));
+        }
+        for (before, after) in base.sources().iter().zip(revision.sources()) {
+            if before.path() != after.path() {
+                return Err(invalid("candidate changed declared source paths"));
+            }
+            if before.source() == after.source() {
+                continue;
+            }
+            let diff = wire::source_diff(before.path(), before.source(), after.source())?;
+            source_changes.push(json!({
+                "path": before.path(), "base_digest": before.source_digest(),
+                "candidate_digest": after.source_digest(), "replacement_source": after.source(),
+                "source_diff_digest": wire::digest(b"semaprax.candidate.source-diff.v1\0", diff.as_bytes()),
+                "source_diff": diff,
+            }));
+        }
+        let selected = summaries
+            .iter()
+            .filter_map(|s| s["target"].as_str())
+            .collect::<BTreeSet<_>>();
+        let mut impacts = Vec::new();
+        for id in selected {
+            let options = WorkspaceImpactOptions::default();
+            let before =
+                base.semantic_impact(WorkspaceAnalysisTargetKind::Declaration, id, options)?;
+            let after =
+                revision.semantic_impact(WorkspaceAnalysisTargetKind::Declaration, id, options)?;
+            impacts.push(json!({"target": id, "base": serde_json::from_str::<Value>(&before).map_err(|_| invalid("invalid base impact"))?, "candidate": serde_json::from_str::<Value>(&after).map_err(|_| invalid("invalid candidate impact"))?}));
+        }
+        let change_values = changes
+            .iter()
+            .map(|change| {
+                serde_json::from_str::<Value>(change.to_json())
+                    .map_err(|_| invalid("invalid retained change"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let semantic_delta = wire::render(
+            json!({"operations": summaries, "base_graph": base.semantic_graph_digest(), "candidate_graph": revision.semantic_graph_digest()}),
+            MAX_SEMANTIC_CHANGE_BYTES,
+        )?;
+        let json = wire::render(
+            json!({
+                "schema": PROJECT_CANDIDATE_SCHEMA,
+                "base_revision": base.project_revision(), "candidate_revision": revision.project_revision(),
+                "base_graph_digest": base.semantic_graph_digest(), "candidate_graph_digest": revision.semantic_graph_digest(),
+                "changes": change_values, "operations": summaries,
+                "semantic_delta_digest": wire::digest(b"semaprax.candidate.semantic-delta.v1\0", semantic_delta.as_bytes()),
+                "source_changes": source_changes, "impact": impacts,
+                "validation": {"source_reparsed": true, "project_profile_admitted": true, "unresolved_holes": 0, "tests": "not_run"},
+                "core_targets": {"base": base_targets.as_ref(), "candidate": targets},
+                "requirements": SEMANTIC_CHANGE_REQUIREMENTS,
+                "required_gates": ["affected_project_tests", "native_and_wasm_runtime_conformance", "full_quality_profile"],
+                "nonclaims": ["no_commit_or_filesystem_authority", "not_external_consumer_compatibility", "not_behavioral_equivalence", "impact_uses_six_cross_file_edge_families", "no_target_or_test_execution", "no_typed_holes_or_semantic_merge_yet"],
+            }),
+            MAX_PROJECT_CANDIDATE_BYTES,
+        )?;
+        let digest = wire::digest(b"semaprax.project-candidate.v1\0", json.as_bytes());
+        Ok(Self {
+            base,
+            revision,
+            changes,
+            summaries,
+            base_targets,
+            targets: targets.clone(),
+            json,
+            digest,
+        })
+    }
+}
+
+fn require_revision(revision: &ProjectRevision, expected: &str) -> Result<(), Vec<Diagnostic>> {
+    wire::validate_digest(expected)?;
+    if revision.project_revision() != expected {
+        return Err(stale("semantic change base revision is stale"));
+    }
+    Ok(())
+}
+
+fn parse_revision(revision: &ProjectRevision) -> Result<Vec<Program>, Vec<Diagnostic>> {
+    revision
+        .sources()
+        .iter()
+        .map(|source| crate::parse(source.source(), source.path()).map_err(|d| vec![d]))
+        .collect()
+}
+
+fn materialize(programs: &[Program]) -> Result<Vec<SemanticWorkspaceSource>, Vec<Diagnostic>> {
+    let mut total = 0usize;
+    let mut sources = Vec::new();
+    for program in programs {
+        let (source, overflow) = crate::bounded_output::with_limit(MAX_TOTAL_SOURCE_BYTES, || {
+            crate::format::canonical(program)
+        });
+        if overflow {
+            return Err(capacity("candidate canonical source exceeds its bound"));
+        }
+        total = total
+            .checked_add(source.len())
+            .ok_or_else(|| capacity("candidate source size overflow"))?;
+        if total > MAX_TOTAL_SOURCE_BYTES {
+            return Err(capacity("candidate sources exceed the Project bound"));
+        }
+        let reparsed = crate::parse(&source, &program.path).map_err(|d| vec![d])?;
+        let (roundtrip, overflow) =
+            crate::bounded_output::with_limit(MAX_TOTAL_SOURCE_BYTES, || {
+                crate::format::canonical(&reparsed)
+            });
+        if overflow || roundtrip != source {
+            return Err(stale(
+                "candidate source is not an exact canonical round trip",
+            ));
+        }
+        sources.push(SemanticWorkspaceSource {
+            path: program.path.clone(),
+            source,
+        });
+    }
+    Ok(sources)
+}
+
+fn invariant_facts(programs: &[Program]) -> Value {
+    let facts = programs.iter().map(|program| {
+        let mut functions = program.functions.iter().collect::<Vec<_>>();
+        for ty in &program.types {
+            if let crate::ast::TypeDeclarationKind::Class { methods, .. } = &ty.kind { functions.extend(methods); }
+        }
+        let functions = functions.into_iter().map(|function| (function.stable_id.clone(), json!({"effects": function.effects, "requires": function.requires.len(), "ensures": function.ensures.len()}))).collect::<BTreeMap<_,_>>();
+        (program.path.clone(), json!({"permits": program.permits, "functions": functions}))
+    }).collect::<BTreeMap<_,_>>();
+    json!(facts)
+}
+
+fn preserve_explicit_identities(
+    base: &ProjectRevision,
+    candidate: &ProjectRevision,
+) -> Result<(), Vec<Diagnostic>> {
+    fn identities(revision: &ProjectRevision) -> Result<BTreeMap<String, Value>, Vec<Diagnostic>> {
+        let graph: Value = serde_json::from_str(revision.semantic_graph())
+            .map_err(|_| invalid("invalid retained graph"))?;
+        Ok(graph["declarations"]
+            .as_array()
+            .ok_or_else(|| invalid("retained graph lacks declarations"))?
+            .iter()
+            .filter(|d| d["identity_origin"] == "explicit")
+            .map(|d| (d["id"].as_str().unwrap_or_default().to_owned(), d.clone()))
+            .collect())
+    }
+    if identities(base)? != identities(candidate)? {
+        return Err(invalid(
+            "candidate changed explicit declaration identities or ownership",
+        ));
+    }
+    Ok(())
+}
+
+fn invalid(message: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G222", message)]
+}
+fn capacity(message: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G223", message)]
+}
+fn stale(message: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G224", message)]
+}

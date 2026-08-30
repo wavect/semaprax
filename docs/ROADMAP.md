@@ -138,6 +138,15 @@ Do not widen the existing literal/direct-call admission to make a fixture pass.
 
 ## Graph-operational development foundation
 
+The complete requirement ledger is the
+[graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md). Image facets,
+read-only protocol discovery, and immutable typed candidate previews are now
+authored additions, not verified completion. Extend the initial scalar-append
+signature migration into the requested general operations and typed holes;
+connect separately authorized test/build/source-commit capabilities; then
+establish incremental reuse, persistence, semantic rebase, and representative
+task-level benchmarks without reducing the original goal.
+
 The first [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
 foundation is authored, unrun: immutable retained Project/HIR state, canonical
 rebuildable image bytes, typed stable-ID lookup, and bounded existing analysis.

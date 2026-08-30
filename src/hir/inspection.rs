@@ -836,7 +836,7 @@ pub(super) fn resolved_lifecycle_effects(
     Ok(effects)
 }
 
-pub(super) fn visit_resolved_calls(
+pub(crate) fn visit_resolved_calls(
     expression: &ResolvedExpr,
     visit: &mut impl FnMut(&DeclarationId, Option<&FunctionInstanceId>, &[ResolvedType]),
 ) {

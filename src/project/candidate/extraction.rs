@@ -1,4 +1,4 @@
-//! Source-authoritative extraction of one authenticated Copy-scalar expression.
+//! Source-authoritative extraction of one authenticated checked Copy expression.
 //! Captures are resolved ValueIds, never names guessed from source text.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -14,6 +14,9 @@ use crate::hir::{
 use crate::project::{ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 
 use super::{declaration, expression, intent, parse_revision};
+
+#[path = "extraction_types.rs"]
+mod types;
 
 const MAX_NODES: usize = 4096;
 const MAX_DEPTH: usize = 256;
@@ -38,8 +41,11 @@ pub(super) fn apply(
         target,
         text(request, "expression_id")?,
     )?;
-    let captures = capture_plan(&selection)?;
-    let return_type = scalar_type(&selection.expression.ty)?;
+    let (captures, return_type) = {
+        let mut types = types::Types::new(revision, &programs[selection.owner], target)?;
+        let captures = capture_plan(&selection, &mut types)?;
+        (captures, types.ast(&selection.expression.ty)?)
+    };
     let span = Span::default();
     let call = Expr {
         kind: ExprKind::Call {
@@ -155,14 +161,17 @@ fn expression_selector(request: &Value) -> Result<Value> {
     )
 }
 
-fn capture_plan(selection: &expression::AuthoredExpression<'_>) -> Result<Vec<Capture>> {
+fn capture_plan(
+    selection: &expression::AuthoredExpression<'_>,
+    types: &mut types::Types<'_>,
+) -> Result<Vec<Capture>> {
     let mut pending = vec![(selection.expression, 0usize)];
     let mut nodes = Vec::new();
     while let Some((node, depth)) = pending.pop() {
         if depth > MAX_DEPTH || nodes.len() >= MAX_NODES {
             return Err(limit("extraction expression traversal exceeds its bound"));
         }
-        scalar_type(&node.ty)?;
+        types.check(&node.ty)?;
         if node.ownership != OwnershipMode::Value {
             return Err(invalid(
                 "extraction does not admit owned or borrowed expression values",
@@ -199,13 +208,13 @@ fn capture_plan(selection: &expression::AuthoredExpression<'_>) -> Result<Vec<Ca
                         ));
                     }
                     if let ResolvedStatement::Let { binding, .. } = statement {
-                        register_internal(binding, &mut internal)?;
+                        register_internal(binding, &mut internal, types)?;
                     }
                 }
             }
             ResolvedExprKind::Match { arms, .. } => {
                 for arm in arms {
-                    pattern_definitions(&arm.pattern, &mut internal, 0, &mut pattern_nodes)?;
+                    pattern_definitions(&arm.pattern, &mut internal, 0, &mut pattern_nodes, types)?;
                 }
             }
             _ => {}
@@ -231,11 +240,6 @@ fn capture_plan(selection: &expression::AuthoredExpression<'_>) -> Result<Vec<Ca
             }
         }
         if let ResolvedExprKind::Place(place) = &node.kind {
-            if !place.projections.is_empty() {
-                return Err(invalid(
-                    "extraction does not infer captures from field projections",
-                ));
-            }
             let id = place.root.as_str();
             if internal.contains(id) {
                 continue;
@@ -248,14 +252,16 @@ fn capture_plan(selection: &expression::AuthoredExpression<'_>) -> Result<Vec<Ca
                     "extraction requires immutable by-value Copy captures",
                 ));
             }
-            let ty = scalar_type(binding.ty)?;
+            // A field read captures the authenticated whole root, never a
+            // field-shaped argument or a spelling-derived synthetic binding.
+            types.check(binding.ty)?;
             if used.insert(id) {
                 if captures.len() >= MAX_CAPTURES {
                     return Err(limit("extraction capture count exceeds its limit"));
                 }
                 captures.push(Capture {
                     name: binding.name.to_owned(),
-                    ty,
+                    ty: types.ast(binding.ty)?,
                 });
             }
         }
@@ -263,8 +269,12 @@ fn capture_plan(selection: &expression::AuthoredExpression<'_>) -> Result<Vec<Ca
     Ok(captures)
 }
 
-fn register_internal(binding: &ResolvedBinding, internal: &mut BTreeSet<String>) -> Result<()> {
-    scalar_type(&binding.ty)?;
+fn register_internal(
+    binding: &ResolvedBinding,
+    internal: &mut BTreeSet<String>,
+    types: &mut types::Types<'_>,
+) -> Result<()> {
+    types.check(&binding.ty)?;
     if binding.ownership != OwnershipMode::Value {
         return Err(invalid("extraction requires Copy internal bindings"));
     }
@@ -279,18 +289,19 @@ fn pattern_definitions(
     internal: &mut BTreeSet<String>,
     depth: usize,
     nodes: &mut usize,
+    types: &mut types::Types<'_>,
 ) -> Result<()> {
     pattern_budget(depth, nodes)?;
     match pattern {
-        ResolvedMatchPattern::Binding(binding) => register_internal(binding, internal)?,
+        ResolvedMatchPattern::Binding(binding) => register_internal(binding, internal, types)?,
         ResolvedMatchPattern::Variant { fields, .. } => {
             for field in fields {
-                register_internal(&field.binding, internal)?;
+                register_internal(&field.binding, internal, types)?;
             }
         }
         ResolvedMatchPattern::Record { fields, .. } => {
             for field in fields {
-                record_definitions(&field.pattern, internal, depth + 1, nodes)?;
+                record_definitions(&field.pattern, internal, depth + 1, nodes, types)?;
             }
         }
         ResolvedMatchPattern::Or(alternatives) => {
@@ -313,13 +324,16 @@ fn record_definitions(
     internal: &mut BTreeSet<String>,
     depth: usize,
     nodes: &mut usize,
+    types: &mut types::Types<'_>,
 ) -> Result<()> {
     pattern_budget(depth, nodes)?;
     match pattern {
-        ResolvedRecordMatchFieldPattern::Binding(binding) => register_internal(binding, internal)?,
+        ResolvedRecordMatchFieldPattern::Binding(binding) => {
+            register_internal(binding, internal, types)?
+        }
         ResolvedRecordMatchFieldPattern::Record { fields, .. } => {
             for field in fields {
-                record_definitions(&field.pattern, internal, depth + 1, nodes)?;
+                record_definitions(&field.pattern, internal, depth + 1, nodes, types)?;
             }
         }
         ResolvedRecordMatchFieldPattern::Wildcard => {}
@@ -334,18 +348,6 @@ fn pattern_budget(depth: usize, nodes: &mut usize) -> Result<()> {
         ));
     }
     Ok(())
-}
-fn scalar_type(ty: &ResolvedType) -> Result<Type> {
-    match ty {
-        ResolvedType::I64 => Ok(Type::I64),
-        ResolvedType::I32 => Ok(Type::I32),
-        ResolvedType::U8 => Ok(Type::U8),
-        ResolvedType::Usize => Ok(Type::Usize),
-        ResolvedType::Bool => Ok(Type::Bool),
-        _ => Err(invalid(
-            "extraction requires direct i64/i32/u8/usize/bool Copy values",
-        )),
-    }
 }
 fn validate_request(value: &Value) -> Result<()> {
     let object = value

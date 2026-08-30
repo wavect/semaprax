@@ -634,13 +634,19 @@ selectors and visible bindings, including direct-scalar generic instances and
 the fixed compiler prelude. Selection and catalogue templates are provisional;
 after rebuilding, every function addition passes `declaration.rs`'s checked
 nominal-signature gate for value parameters and sized Copy record/variant
-parameters and returns without resources or owned cleanup. Return-only facts
-share the existing 4,096-entry per-module signature table and builder-byte
+parameters and returns without resources or owned cleanup. Signature and checked
+body-value facts share the existing 4,096-entry per-module table and builder-byte
 budget. Rebase binds complete selected type inventories before each replay.
-`candidate/extraction.rs` derives immutable scalar captures from actual HIR
-ValueIds and replaces an authenticated expression in place, rejecting unsafe
+`candidate/extraction.rs` derives immutable scalar or Sized Copy nominal captures
+from actual HIR ValueIds, captures complete immutable roots for field reads,
+and replaces an authenticated expression in place, rejecting unsafe
 boundary relocation. Only the exact declared identity may extend invariant
 inventories. Rebase tracks newly introduced identities and rejects collisions.
+Checked expression/local/pattern types use retained compiler TypeFacts; nominal
+helper signatures use exact stable-ID type planning and the existing post-rebuild
+signature gate. Retention keeps its declaration cap and charges bounded traversal
+storage. Budget-report changes may change derived graph/image digests without
+changing canonical source meaning or granting cache authority.
 `candidate/recovery.rs` exports disposable complete histories and restores them
 only by replaying against an independently admitted exact source base. It
 imports neither serialized HIR nor authority and cannot materialize unresolved

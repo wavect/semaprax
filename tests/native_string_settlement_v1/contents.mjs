@@ -10,7 +10,7 @@ const scalar = ["spx_add", "spx_sub", "spx_mul", "spx_div", "spx_rem", "spx_neg"
 const base = ["spx_string_new", "spx_string_eq", "spx_string_clone"];
 const v1 = ["spx_string_len", "spx_string_concat"];
 const v2 = ["spx_string_starts_with", "spx_string_contains", "spx_string_len_chars", "spx_string_from_char"];
-const expected = [...scalar, ...base, ...(["v1", "v2"].includes(group) ? v1 : []), ...(group === "v2" ? v2 : [])];
+const expected = [...scalar, ...base, ...(["v1", "v2", "generic"].includes(group) ? v1 : []), ...(group === "v2" ? v2 : [])];
 assert.deepEqual(WebAssembly.Module.imports(module), expected.map(name => ({ module: "env", name, kind: "function" })));
 const strings = new Map();
 const encoder = new TextEncoder();

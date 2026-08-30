@@ -84,6 +84,12 @@ complete dynamic impact closure.
 
 ## Fields, callers, tests, and targets
 
+The collector is now shared with the lazy immutable-image
+[declaration dependency index](SEMANTIC-IMAGE-DEPENDENCIES-V1.md). Delta reports
+retain their legacy relationship row shape and selection; standalone image
+queries add source/span provenance and variant-case selection. Index bounds
+apply globally to retained source facts, and overflow fails closed.
+
 A bounded retained-HIR scan indexes selected field/type sites: constructors,
 field initialization, update-result fields, projections, explicit places,
 borrows, in-place field assignment, and recursive record/variant patterns.

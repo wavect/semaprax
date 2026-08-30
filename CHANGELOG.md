@@ -17,6 +17,12 @@
   profiles; source semantics, schemas, descriptors and native code do not.
   Tests remain unrun and no known-answer values were replaced.
 
+- Added a lazy immutable-image declaration dependency index shared with candidate
+  semantic deltas, plus read-only v5 dependency chunks and host parallel reads.
+  Source-bound field/type/case sites and reverse callers remain structural facts,
+  with no execution, coverage or source authority. Regression evidence is
+  authored, unrun; image identity and earlier protocol profiles are unchanged.
+
 - Added real generated npm facade regressions for malformed result carriers,
   Option/Result tags, inactive storage, bools, unsettled owners and corrupted
   semantic-failure output across the existing seven v8/v9/v10 packages. Scoped

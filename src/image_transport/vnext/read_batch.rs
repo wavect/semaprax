@@ -75,6 +75,9 @@ impl VNextSession {
                         | Operation::Catalog => {
                             discovery::payload(method, params, &available, &policy, commit_enabled)
                         }
+                        Operation::VNext(Action::Dependencies) => {
+                            dependencies::prepare(params, image)
+                        }
                         _ => dispatch(method, params, image),
                     };
                     Some(match payload {
@@ -112,6 +115,7 @@ fn parallel_read(operation: Operation) -> bool {
             | Operation::Impact
             | Operation::FunctionSummary
             | Operation::Facet
+            | Operation::VNext(Action::Dependencies)
     )
 }
 
@@ -217,6 +221,21 @@ fn parallel_map<T: Sync, R: Send>(
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
+
+    #[test]
+    fn dependency_query_extends_only_the_immutable_batch_subset() {
+        assert!(parallel_read(Operation::VNext(Action::Dependencies)));
+        for action in [
+            Action::Build,
+            Action::Commit,
+            Action::DraftRecoveryRestore,
+            Action::DraftRecoveryExport,
+            Action::Refresh,
+            Action::InterfaceDelta,
+        ] {
+            assert!(!parallel_read(Operation::VNext(action)));
+        }
+    }
 
     #[test]
     fn scoped_workers_overlap_and_restore_input_order() {

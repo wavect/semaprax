@@ -28,14 +28,17 @@ host semantics.
 
 `parallel_read_methods()` returns the exact supported subset from the selected
 catalogue. It includes image symbol, function summary, facet, context and impact
-queries; workspace open/status projections; and protocol capabilities, schemas,
+queries, including the v5 declaration dependency query; workspace open/status
+projections; and protocol capabilities, schemas,
 instructions, client generation and query catalogue. This is an explicit enum
 allowlist, not an assumption that every method marked `query` is safe to run
 concurrently. Candidate operations, diagnostic attempts, tests, target/artifact
 builds, refresh and preview, source-commit status/receipts, and publication are
 excluded, even when the ordinary session has their grants. Excluded calls get
-JSON-RPC `-32601`. No Git host, filesystem handle, registry, mutable cache, or
-test interpreter is sent to a worker.
+JSON-RPC `-32601`. No Git host, filesystem handle, candidate registry, externally
+mutable cache, or test interpreter is sent to a worker. The shared image may
+initialize its bounded source-derived dependency index once; that memoization
+does not change image identity or authority.
 
 Every accepted semantic batch rechecks its one held source snapshot before
 starting workers and after all workers join and render bounded results. An

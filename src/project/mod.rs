@@ -12,6 +12,7 @@ mod candidate;
 mod execution;
 mod flat_owned_record;
 mod image;
+mod image_dependencies;
 mod image_facets;
 mod image_protocols;
 mod image_store;
@@ -91,6 +92,9 @@ pub use flat_owned_record::{
 pub use image::{
     ProjectSemanticImage, MAX_SEMANTIC_IMAGE_BYTES, PROJECT_SEMANTIC_IMAGE_COMPATIBILITY,
     PROJECT_SEMANTIC_IMAGE_SCHEMA, PROJECT_SEMANTIC_IMAGE_SYMBOL_SCHEMA,
+};
+pub use image_dependencies::{
+    IMAGE_DECLARATION_DEPENDENCIES_SCHEMA, MAX_IMAGE_DECLARATION_DEPENDENCIES_BYTES,
 };
 pub use image_facets::{
     ImageFacet, ImageFacetOptions, IMAGE_FACET_SCHEMA, IMAGE_FUNCTION_SUMMARY_SCHEMA,

@@ -528,6 +528,14 @@ keep their method sets. See [Candidates](PROJECT-CANDIDATES-V1.md),
 [facets](SEMANTIC-IMAGE-FACETS-V1.md), and
 [Image Agent Protocol](IMAGE-AGENT-PROTOCOL-V1.md).
 
+`src/project/image_dependencies.rs` owns a lazy bounded dependency index retained
+by each immutable image. Candidate delta relationships and the read-only v5
+`image/dependencies` query share its source-HIR collector. Source-bound access
+sites and direct caller closure are structural facts, not runtime or coverage
+evidence. Initialization, including failure, is shared across immutable reads;
+no index is serialized into Image v1 or given publication authority. See
+[Declaration Dependencies](SEMANTIC-IMAGE-DEPENDENCIES-V1.md).
+
 The additive [candidate-only protocol](IMAGE-CANDIDATE-PROTOCOL-V2.md) selects
 ephemeral candidate/draft registry authority at host startup; it cannot grant
 source writes, runtime tests or builds. Responses are bounded and held source

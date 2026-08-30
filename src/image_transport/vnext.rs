@@ -5,6 +5,7 @@ use crate::project_transport::codec::RequestId;
 use std::path::PathBuf;
 
 mod commit;
+mod dependencies;
 mod discovery;
 mod draft_recovery;
 mod projections;
@@ -66,6 +67,7 @@ pub(super) enum Action {
     SymbolDiagnostics,
     DraftRecoveryExport,
     DraftRecoveryRestore,
+    Dependencies,
 }
 
 const REFRESH: Method = Method {
@@ -354,6 +356,10 @@ impl VNextSession {
                     symbol_diagnostics::prepare(params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(Action::Dependencies) => (
+                    dependencies::prepare(params, image)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(
                     action @ (Action::DraftRecoveryExport | Action::DraftRecoveryRestore),
                 ) => draft_recovery::prepare(action, params, image, registry)?,
@@ -552,6 +558,7 @@ fn methods(policy: &VNextPolicy, commit_enabled: bool) -> Vec<&'static Method> {
         .collect::<Vec<_>>();
     methods.push(&REFRESH);
     methods.push(&REFRESH_PREVIEW);
+    methods.push(dependencies::method());
     methods.extend(projections::methods(policy.build_enabled));
     methods.extend(review_facets::methods(policy));
     if policy.candidate_prepare {

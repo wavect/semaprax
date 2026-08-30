@@ -41,6 +41,29 @@ fn change_parameter() -> Value {
     json!({"oneOf":[plain,object(named)]})
 }
 
+fn aggregate_constructor() -> Value {
+    let mut fields = array(object(vec![
+        ("target", text()),
+        ("name", text()),
+        ("index", uint()),
+        ("type_identity", text()),
+    ]));
+    fields["maxItems"] = json!(4095);
+    object(vec![
+        ("kind", json!({"enum":["record","variant"]})),
+        ("target", text()),
+        ("owner", text()),
+        ("name", text()),
+        ("binding", text()),
+        ("path", text()),
+        ("module", text()),
+        ("generic", json!({"const":false})),
+        ("fields", fields),
+        ("evidence_owner", json!({"const":"retained_checked_hir"})),
+        ("requires_full_candidate_validation", json!({"const":true})),
+    ])
+}
+
 pub(super) fn documents() -> BTreeMap<String, Value> {
     let mut docs = BTreeMap::new();
     let mut put = |id: &str, fields| {
@@ -274,6 +297,10 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
         "urn:semaprax.project-semantic-cache-work.v1".into(),
         semantic,
     );
+    // Empty aggregate inventories are omitted to preserve existing scalar
+    // catalogue bytes; when present the complete descriptor remains closed.
+    docs.get_mut("urn:semaprax.project-change-catalog.v1")
+        .unwrap()["properties"]["aggregate_constructors"] = array(aggregate_constructor());
     docs
 }
 

@@ -132,6 +132,19 @@ fn expression_schema() -> Value {
         ("name", identifier()),
     ]));
     variants.push(closed(&[("kind",json!({"const":"call"})),("target",text(MAX_ID_BYTES)),("arguments",json!({"type":"array","maxItems":MAX_EXPRESSION_NODES-1,"items":reference("expression")}))]));
+    for kind in ["record", "variant"] {
+        variants.push(closed(&[
+            ("kind", json!({"const":kind})),
+            ("target", text(MAX_ID_BYTES)),
+            (
+                "fields",
+                json!({"type":"array","maxItems":MAX_EXPRESSION_NODES-1,
+                "items":closed(&[("target",text(MAX_ID_BYTES)),("value",reference("expression"))]),
+                "x-order":"caller_expression_evaluation_order",
+                "x-requires-exact-field-identity-coverage":true}),
+            ),
+        ]));
+    }
     variants.push(closed(&[
         ("kind", json!({"const":"binary"})),
         (
@@ -250,4 +263,47 @@ fn declaration_schema() -> Value {
         ),
         ("body", reference("expression")),
     ])
+}
+
+#[cfg(test)]
+mod aggregate_expression_schema_tests {
+    use super::*;
+
+    #[test]
+    fn aggregate_constructors_are_closed_recursive_identity_selected_shapes() {
+        let schema = expression_schema();
+        let variants = schema["oneOf"].as_array().unwrap();
+        let kinds = variants
+            .iter()
+            .map(|variant| variant["properties"]["kind"]["const"].as_str().unwrap())
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(
+            kinds,
+            [
+                "i64", "i32", "u8", "usize", "bool", "place", "call", "binary", "unary", "if",
+                "record", "variant"
+            ]
+            .into_iter()
+            .collect()
+        );
+        for kind in ["record", "variant"] {
+            let variant = variants
+                .iter()
+                .find(|variant| variant["properties"]["kind"]["const"] == kind)
+                .unwrap();
+            assert_eq!(variant["additionalProperties"], false);
+            assert_eq!(variant["required"], json!(["kind", "target", "fields"]));
+            assert_eq!(variant["properties"].as_object().unwrap().len(), 3);
+            let fields = &variant["properties"]["fields"];
+            assert_eq!(fields["maxItems"], MAX_EXPRESSION_NODES - 1);
+            assert_eq!(fields["items"]["additionalProperties"], false);
+            assert_eq!(fields["items"]["required"], json!(["target", "value"]));
+            assert_eq!(
+                fields["items"]["properties"]["value"],
+                reference("expression")
+            );
+            assert!(variant["properties"].get("type_arguments").is_none());
+            assert!(variant["properties"].get("source").is_none());
+        }
+    }
 }

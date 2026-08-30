@@ -98,13 +98,22 @@ pub(super) fn apply(
     let program = &programs[owner];
     let requires = array(declaration, "requires")?
         .iter()
-        .map(|predicate| intent::construct_expression(program, &scope, predicate))
+        .map(|predicate| {
+            intent::construct_expression_with_revision(revision, program, &scope, predicate)
+        })
         .collect::<Result<Vec<_>>>()?;
-    let body = intent::construct_expression(program, &scope, &declaration["body"])?;
+    let body = intent::construct_expression_with_revision(
+        revision,
+        program,
+        &scope,
+        &declaration["body"],
+    )?;
     scope.insert("result".to_owned());
     let ensures = array(declaration, "ensures")?
         .iter()
-        .map(|predicate| intent::construct_expression(program, &scope, predicate))
+        .map(|predicate| {
+            intent::construct_expression_with_revision(revision, program, &scope, predicate)
+        })
         .collect::<Result<Vec<_>>>()?;
     let addition = append_function(
         revision,

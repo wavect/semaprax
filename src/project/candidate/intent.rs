@@ -11,8 +11,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{Map, Value};
 
 use crate::ast::{
-    BinaryOp, Expr, ExprKind, Function, ModuleUseKind, Param, ParamMode, Program, Span, Statement,
-    Type, TypeDeclarationKind, UnaryOp,
+    BinaryOp, Expr, ExprKind, FieldInitializer, Function, ModuleUseKind, Param, ParamMode, Program,
+    Span, Statement, Type, TypeDeclarationKind, UnaryOp,
 };
 use crate::diagnostic::Diagnostic;
 
@@ -24,9 +24,12 @@ pub(super) const MAX_EXPRESSION_NODES: usize = 4096;
 const MAX_WALK_DEPTH: usize = 256;
 const MAX_WALK_NODES: usize = 1_048_576;
 
+#[path = "aggregate.rs"]
+mod aggregate;
 #[path = "signature.rs"]
 mod signature;
 
+pub(super) use aggregate::{aggregate_constructors, aggregate_dependency_fingerprint};
 pub(super) use signature::ordered_signature_parameters;
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
@@ -205,6 +208,8 @@ fn apply_inner(
                 bindings: &bindings,
                 params: &params,
                 nodes: 0,
+                revision,
+                program: &programs[owner],
             };
             let body = constructor.expression(member(intent, "body")?, 0)?;
             programs[owner].functions[function_index].body = body;
@@ -231,8 +236,12 @@ fn apply_inner(
             if phase == "ensures" {
                 places.insert("result".to_owned());
             }
-            let predicate =
-                construct_expression(&programs[owner], &places, member(intent, "predicate")?)?;
+            let predicate = construct_expression_inner(
+                revision,
+                &programs[owner],
+                &places,
+                member(intent, "predicate")?,
+            )?;
             let function = &mut programs[owner].functions[function_index];
             // Append exactly one predicate. Never alter, delete, reorder or
             // infer a replacement for an existing contract.
@@ -254,7 +263,17 @@ fn apply_inner(
 /// Construct an expression from a caller-authenticated lexical scope. This
 /// helper grants no admission: complete source replay owns all type, effect,
 /// ownership, contract and target checks.
-pub(super) fn construct_expression(
+pub(super) fn construct_expression_with_revision(
+    revision: &crate::project::ProjectRevision,
+    program: &Program,
+    scope_names: &BTreeSet<String>,
+    value: &Value,
+) -> Result<Expr> {
+    construct_expression_inner(Some(revision), program, scope_names, value)
+}
+
+fn construct_expression_inner(
+    revision: Option<&crate::project::ProjectRevision>,
     program: &Program,
     scope_names: &BTreeSet<String>,
     value: &Value,
@@ -268,6 +287,8 @@ pub(super) fn construct_expression(
         bindings: &bindings,
         params: &params,
         nodes: 0,
+        revision,
+        program,
     }
     .expression(value, 0)
 }
@@ -297,6 +318,8 @@ struct Constructor<'a> {
     bindings: &'a BTreeMap<String, String>,
     params: &'a BTreeSet<&'a str>,
     nodes: usize,
+    revision: Option<&'a crate::project::ProjectRevision>,
+    program: &'a Program,
 }
 
 impl Constructor<'_> {
@@ -318,6 +341,63 @@ impl Constructor<'_> {
                     ));
                 }
                 ExprKind::Var(name.to_owned())
+            }
+            "record" | "variant" => {
+                object(value, &["kind", "target", "fields"])?;
+                let kind = text(value, "kind")?;
+                let target = text(value, "target")?;
+                let revision = self.revision.ok_or_else(|| {
+                    grammar("aggregate constructor requires a retained checked Project revision")
+                })?;
+                let plan = aggregate::plan(revision, self.program, kind, target)?;
+                let requested = array(value, "fields")?;
+                if requested.len() > MAX_EXPRESSION_NODES.saturating_sub(self.nodes) {
+                    return Err(capacity(
+                        "aggregate constructor fields exceed the remaining expression node bound",
+                    ));
+                }
+                if requested.len() != plan.fields.len() {
+                    return Err(grammar(
+                        "aggregate constructor must initialize every exact field once",
+                    ));
+                }
+                let mut seen = BTreeSet::new();
+                // Validate the complete inventory before constructing any child.
+                for field in requested {
+                    object(field, &["target", "value"])?;
+                    let target = text(field, "target")?;
+                    if !plan.fields.contains_key(target) || !seen.insert(target) {
+                        return Err(grammar(
+                            "aggregate constructor repeats or selects a foreign field identity",
+                        ));
+                    }
+                }
+                let mut fields = Vec::with_capacity(requested.len());
+                for field in requested {
+                    fields.push(FieldInitializer {
+                        name: plan.fields[text(field, "target")?].clone(),
+                        name_span: Span::default(),
+                        value: self.expression(member(field, "value")?, depth + 1)?,
+                        span: Span::default(),
+                    });
+                }
+                if let Some(case_name) = plan.case_name {
+                    ExprKind::ConstructVariant {
+                        type_name: plan.type_name,
+                        type_span: Span::default(),
+                        type_arguments: Vec::new(),
+                        case_name,
+                        case_span: Span::default(),
+                        fields,
+                    }
+                } else {
+                    ExprKind::ConstructRecord {
+                        type_name: plan.type_name,
+                        type_span: Span::default(),
+                        type_arguments: Vec::new(),
+                        fields,
+                    }
+                }
             }
             "call" => {
                 object(value, &["kind", "target", "arguments"])?;

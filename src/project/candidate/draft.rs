@@ -166,7 +166,7 @@ impl ProjectCandidateDraft {
             render(json!({"draft":self.draft_digest(), "hole":hole_id, "target":target}))?
                 .as_bytes(),
         );
-        render(json!({
+        render(self.with_aggregate_context(module, json!({
             "schema":PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA, "draft_digest":self.draft_digest(),
             "hole_id":hole_id, "hole_handle":handle, "target":target,
             "last_valid_revision":self.last_valid.revision().project_revision(),
@@ -182,7 +182,7 @@ impl ProjectCandidateDraft {
             "constructor_kinds":["i64","i32","u8","usize","bool","place","call","unary","binary","if"],
             "validation":"pending_fill_full_source_replay", "materializable":false, "source_authority":false,
             "evidence_class":"descriptive_context_not_candidate_validation",
-        }))
+        }))?)
     }
 
     /// Failed construction/admission leaves this draft and all sibling drafts
@@ -359,7 +359,7 @@ impl ProjectCandidateDraft {
         let handle = wire::digest(b"semaprax.project-candidate-expression-hole-handle.v1\0",
             render(json!({"draft":self.draft_digest(),"hole":hole_id,"target":target,"expression_id":expression_id}))?.as_bytes());
         render(
-            json!({"schema":"semaprax.project-candidate-expression-hole-context.v1",
+            self.with_aggregate_context(module, json!({"schema":"semaprax.project-candidate-expression-hole-context.v1",
             "draft_digest":self.draft_digest(),"hole_id":hole_id,"hole_handle":handle,
             "target":target,"expression_id":expression_id,"source":catalog["source"],
             "last_valid_revision":self.last_valid.revision().project_revision(),
@@ -371,8 +371,37 @@ impl ProjectCandidateDraft {
             "intent_kind":"replace_expression","constructor_owner":"semaprax.semantic-change.v1",
             "constructor_kinds":["i64","i32","u8","usize","bool","place","call","unary","binary","if"],
             "validation":"pending_fill_full_source_replay","materializable":false,"source_authority":false,
-            "nonclaims":["lexical_scope_is_not_owned_value_liveness","prior_body_proofs_are_not_hole_validity","no_placeholder_ast_or_source","no_execution_or_publication_authority"]}),
+            "nonclaims":["lexical_scope_is_not_owned_value_liveness","prior_body_proofs_are_not_hole_validity","no_placeholder_ast_or_source","no_execution_or_publication_authority"]}))?,
         )
+    }
+
+    fn with_aggregate_context(
+        &self,
+        module: &WorkspaceGraphProjectionModule,
+        mut report: Value,
+    ) -> Result<Value, Vec<Diagnostic>> {
+        let source = self
+            .last_valid
+            .revision()
+            .sources()
+            .iter()
+            .find(|source| source.path() == module.path())
+            .ok_or_else(|| grammar("aggregate hole context source is unavailable"))?;
+        let program = crate::parse(source.source(), source.path()).map_err(|error| vec![error])?;
+        let aggregates =
+            super::intent::aggregate_constructors(self.last_valid.revision(), &program)?;
+        if !aggregates.is_empty() {
+            let kinds = report["constructor_kinds"]
+                .as_array_mut()
+                .ok_or_else(|| grammar("aggregate hole constructor inventory is unavailable"))?;
+            for kind in ["record", "variant"] {
+                if aggregates.iter().any(|item| item["kind"] == kind) {
+                    kinds.push(json!(kind));
+                }
+            }
+            report["aggregate_constructors"] = json!(aggregates);
+        }
+        Ok(report)
     }
     fn require_digest(&self, expected: &str) -> Result<(), Vec<Diagnostic>> {
         if expected.len() > 71 {

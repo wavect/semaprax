@@ -24,6 +24,21 @@ impl ProjectCandidate {
             .iter()
             .flat_map(|program| &program.functions)
             .find(|function| function.stable_id == target);
+        let aggregates = match selected {
+            Some(function) if function.explicit_id && function.type_parameters.is_empty() => {
+                let program = programs
+                    .iter()
+                    .find(|program| {
+                        program
+                            .functions
+                            .iter()
+                            .any(|item| item.stable_id == target)
+                    })
+                    .ok_or_else(|| invalid("aggregate discovery source is unavailable"))?;
+                super::intent::aggregate_constructors(&self.revision, program)?
+            }
+            _ => Vec::new(),
+        };
         let mut operations = Vec::<Value>::new();
         let mut parameters = Vec::<Value>::new();
         let mut reason = "target_is_not_a_supported_top_level_function";
@@ -189,18 +204,31 @@ impl ProjectCandidate {
                 reason = "constructor_available_payload_requires_full_candidate_admission";
             }
         }
-        wire::render(
-            json!({
-                "schema":"semaprax.project-change-catalog.v1",
-                "candidate_digest":self.candidate_digest(),
-                "project_revision":self.revision.project_revision(),
-                "target":target, "parameters":parameters, "operations":operations,
-                "reason":reason,
-                "admission":"constructor_discovery_only",
-                "requires_full_candidate_validation":true,
-                "source_authority":false,
-            }),
-            256 * 1024,
-        )
+        if !aggregates.is_empty() {
+            for operation in &mut operations {
+                if operation["kind"] == "replace_function_body" {
+                    let constructors = operation["constructors"].as_array_mut().unwrap();
+                    for kind in ["record", "variant"] {
+                        if aggregates.iter().any(|item| item["kind"] == kind) {
+                            constructors.push(json!(kind));
+                        }
+                    }
+                }
+            }
+        }
+        let mut report = json!({
+            "schema":"semaprax.project-change-catalog.v1",
+            "candidate_digest":self.candidate_digest(),
+            "project_revision":self.revision.project_revision(),
+            "target":target, "parameters":parameters, "operations":operations,
+            "reason":reason,
+            "admission":"constructor_discovery_only",
+            "requires_full_candidate_validation":true,
+            "source_authority":false,
+        });
+        if !aggregates.is_empty() {
+            report["aggregate_constructors"] = json!(aggregates);
+        }
+        wire::render(report, 256 * 1024)
     }
 }

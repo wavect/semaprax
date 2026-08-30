@@ -221,8 +221,12 @@ pub(super) fn apply(
         .ok_or_else(|| invalid("expression has no unique authenticated authored AST origin"))?;
     let path = joined.path.clone();
     let scope = fact.scope.keys().map(|name| (*name).to_owned()).collect();
-    let replacement =
-        intent::construct_expression(&programs[owner], &scope, &request["replacement"])?;
+    let replacement = intent::construct_expression_with_revision(
+        revision,
+        &programs[owner],
+        &scope,
+        &request["replacement"],
+    )?;
     let slot = ast_at_mut(&mut programs[owner].functions[function_index].body, &path)?;
     // Keep the required block category for function and branch bodies. The
     // typed constructors produce expressions, never caller-authored blocks.

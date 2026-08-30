@@ -137,6 +137,18 @@ fn apply_rebound(
     if change.intent["kind"] == "implement_interface" {
         return Err(super::interface::rebase_conflict());
     }
+    // Check each original/rebased intermediate revision, not only the two
+    // history roots. Earlier intentions may legitimately change a shape that
+    // a later aggregate constructor references.
+    for target in aggregate_intent_targets(&change.intent) {
+        let before = intent::aggregate_dependency_fingerprint(original_revision, &target)?;
+        let after = intent::aggregate_dependency_fingerprint(candidate.revision(), &target)?;
+        if before.is_none() || before != after {
+            return Err(conflict(
+                "candidate aggregate target or checked field shape changed concurrently",
+            ));
+        }
+    }
     let mapped;
     let intent = if change.intent["kind"] == "replace_expression" {
         mapped = super::expression::rebase_intent(
@@ -471,6 +483,29 @@ fn called_intent_targets(value: &Value) -> BTreeSet<String> {
         match value {
             Value::Object(object) => {
                 if object.get("kind").and_then(Value::as_str) == Some("call") {
+                    if let Some(target) = object.get("target").and_then(Value::as_str) {
+                        targets.insert(target.to_owned());
+                    }
+                }
+                stack.extend(object.values());
+            }
+            Value::Array(values) => stack.extend(values),
+            _ => {}
+        }
+    }
+    targets
+}
+fn aggregate_intent_targets(value: &Value) -> BTreeSet<String> {
+    // SemanticChange already bounds JSON depth, node count and total bytes.
+    let mut stack = vec![value];
+    let mut targets = BTreeSet::new();
+    while let Some(value) = stack.pop() {
+        match value {
+            Value::Object(object) => {
+                if matches!(
+                    object.get("kind").and_then(Value::as_str),
+                    Some("record" | "variant")
+                ) {
                     if let Some(target) = object.get("target").and_then(Value::as_str) {
                         targets.insert(target.to_owned());
                     }

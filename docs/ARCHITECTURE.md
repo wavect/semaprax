@@ -541,6 +541,15 @@ replays supported intentions over an admitted base. Same-root
 merge retains both histories and the original source-diff base. These APIs
 produce candidates and ancestry reports, never source publication authority.
 
+`candidate/aggregate.rs` resolves typed record/case/field constructors through
+retained checked module declarations and existing local/imported type bindings.
+The revision-aware expression constructor shares this path across bodies,
+expressions, contracts, declarations and hole fills. It preserves requested
+initializer order and delegates all semantic admission to the ordinary complete
+candidate rebuild. Discovery projects the same checked inventory; rebase binds
+referenced aggregate shapes for each original/rebased intermediate revision.
+No source spelling or new import authority comes from constructor requests.
+
 `candidate/declaration.rs` appends a typed function under a selected module
 anchor with globally fresh identity and checked namespace/effect budgets.
 `candidate/extraction.rs` derives immutable scalar captures from actual HIR

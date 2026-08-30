@@ -47,6 +47,16 @@ from their resolved stable-ID bindings before body/contract fingerprinting.
 Those tokens exist only in the conflict calculation and are never materialized
 as source. There is no whole-file conflict rule.
 
+Typed record and variant intentions additionally bind their referenced checked
+aggregate shapes before each history step is replayed. The comparison uses that
+step's original and rebased intermediate revisions, so earlier successful
+intentions remain part of the dependency context. Missing targets or changed
+ordered member identities/types reject with `SPX-G235`; names and source
+locations may also conservatively conflict. This protects aggregate operands
+even when the changed function has a scalar signature. It does not prove
+transitive shape or behavioral equivalence; see
+[Aggregate Constructors v1](PROJECT-AGGREGATE-CONSTRUCTORS-V1.md).
+
 | Concurrent change | Decision for replayed intent |
 | --- | --- |
 | Body edit and unrelated display rename, including the same source file | Replay permitted, then full admission. |

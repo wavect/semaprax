@@ -166,6 +166,73 @@ fn merge_keeps_both_same_file_changes_and_the_original_diff_base() {
 }
 
 #[test]
+fn aggregate_intentions_reject_concurrent_member_identity_or_type_changes() {
+    for edit in ["identity", "type"] {
+        let fixture = Fixture::new();
+        let manifest_path = fixture.0.join("semaprax.toml");
+        let manifest = std::fs::read_to_string(&manifest_path)
+            .unwrap()
+            .replace("semaprax.project.v1", "semaprax.project.v8")
+            .replace(
+                "name = \"calculator\"",
+                "name = \"calculator\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"",
+            )
+            .replace("\"calculator.divide\", ", "");
+        std::fs::write(manifest_path, manifest).unwrap();
+        let path = fixture.0.join("src/core.spx");
+        let text = std::fs::read_to_string(&path).unwrap()
+            + r#"
+@id("calculator.money") record Money { @id("calculator.money.amount") amount: i64, }
+@id("calculator.consume") fn consume(value: Money) -> i64 { 7 }
+@id("calculator.aggregate-user") fn aggregate_user() -> i64 { 7 }
+"#;
+        let canonical =
+            semaprax::format::canonical(&semaprax::parse(&text, "src/core.spx").unwrap());
+        std::fs::write(&path, &canonical).unwrap();
+        let root = fixture.candidate();
+        let candidate = apply(
+            &root,
+            json!({"kind":"replace_function_body","target":"calculator.aggregate-user","body":{
+                "kind":"call","target":"calculator.consume","arguments":[{
+                    "kind":"record","target":"calculator.money","fields":[{
+                        "target":"calculator.money.amount","value":{"kind":"i64","value":7}
+                    }]
+                }]
+            }}),
+        );
+        let unchanged = candidate.to_json().to_owned();
+        let independent = apply(&root, rename("calculator.subtract", "difference"));
+        let merged = candidate
+            .merge(
+                candidate.candidate_digest(),
+                &independent,
+                independent.candidate_digest(),
+            )
+            .unwrap();
+        assert!(source(merged.candidate()).contains("fn difference("));
+        assert!(source(merged.candidate()).contains("consume(Money { amount: 7 })"));
+        let changed = if edit == "identity" {
+            canonical.replace("calculator.money.amount", "calculator.money.new-amount")
+        } else {
+            canonical.replace("amount: i64", "amount: bool")
+        };
+        assert_ne!(changed, canonical);
+        std::fs::write(&path, &changed).unwrap();
+        let new_base = fixture.revision();
+        code(
+            candidate.rebase(
+                candidate.candidate_digest(),
+                Arc::clone(&new_base),
+                new_base.project_revision(),
+            ),
+            "SPX-G235",
+        );
+        assert_eq!(candidate.to_json(), unchanged);
+        assert_eq!(std::fs::read_to_string(path).unwrap(), changed);
+    }
+}
+
+#[test]
 fn same_target_body_and_display_rename_rebase_and_merge() {
     let fixture = Fixture::new();
     let root = fixture.candidate();

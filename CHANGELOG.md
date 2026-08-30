@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added typed record and variant expression constructors selected through
+  stable type/case/field identities, with checked local/import bindings and
+  exact member coverage. Initializers retain requested evaluation order;
+  complete source replay remains the admission gate. Discovery and recursive
+  schemas describe the new forms, and semantic rebase rejects concurrent
+  aggregate shape changes. Regression cases are authored, unrun; generic
+  construction, projection/update/match synthesis and runtime evidence remain
+  outside this change.
+
 - Added authentic descriptor cross-replay regressions for v8/v10 and v9:
   separately checked programs produce valid, correctly digested descriptors
   that self-replay but reject against the other retained HIR. Explicit

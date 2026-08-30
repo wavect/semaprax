@@ -25,12 +25,49 @@ its previous request descriptors. Every constructor object has explicit
 required fields and `additionalProperties: false`.
 
 Expression alternatives cover typed `i64`, `i32`, `u8`, `usize`, and `bool`
-literals; places; calls; binary and unary operators; and conditional expressions.
+literals; places; calls; binary and unary operators; conditional expressions;
+and identity-selected record/variant construction.
 Literal bounds use the corresponding Rust integer limits, including the
 target-neutral unsigned 64-bit input range for `usize`; target admission can
 still reject a value. New names use the same bounded ordinary identifier shape
 and excluded keyword set as candidate constructors. Call arguments recurse into
 the same closed expression alternatives.
+
+Aggregate expressions use exactly `{"kind":"record","target":record_id,
+"fields":[{"target":field_id,"value":expression}]}` or the same shape with
+`kind: variant` and a case identity as the target. Each field value recurses
+through the complete expression grammar. Empty field arrays are structurally
+valid for zero-field records/cases; actual coverage is checked by the compiler.
+The maximum is 4,095 fields before the shared 4,096-node/64-depth budget further
+constrains nested values. Duplicate, missing, foreign-owner, or unknown field
+identities fail actual construction. Request field order is expression
+evaluation order; a schema never sorts or repairs that order.
+
+Only existing source-defined monomorphic record/variant declarations with one
+visible local or imported type binding are eligible. The compiler selects the
+source spelling through that binding; no raw type names, type arguments, source,
+field projection, or guessed conversions enter this new request grammar.
+Nominal identity and every field's expected type remain verifier obligations.
+
+For a selected function's module, `change/catalog` and body/expression-hole
+contexts expose optional `aggregate_constructors` when the compiler finds
+eligible visible declarations. Each descriptor identifies kind, constructor
+target, owner type, source display name, unique visible binding, declaration
+path/module, `generic: false`, and declaration-ordered fields carrying stable
+`target`, display `name`, `index`, and checked `type_identity`. Descriptors state
+`evidence_owner: retained_checked_hir` and
+`requires_full_candidate_validation: true`. Their field order describes the
+declaration; agents may choose a different request evaluation order. This
+module-wide inventory is not a claim that every constructor matches the
+selected hole or body's expected result type or ownership.
+
+Available aggregate kinds are appended to the existing constructor-kind
+inventories. Empty aggregate inventories are omitted, preserving previous
+scalar-only catalogue/context bytes. The v5 bundled change-catalogue schema
+closes the optional descriptor objects; heterogeneous hole reports retain their
+previous explicit unbundled-schema status. Discovery grants no source, repair,
+test, build, or publication authority. Schema and end-to-end aggregate
+regressions are authored and unrun.
 
 Intent alternatives cover declaration rename, both append and ordered-mapping
 signature forms, whole-body replacement, revision-scoped expression replacement,

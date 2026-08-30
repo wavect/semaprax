@@ -51,6 +51,10 @@ It preserves this report's schema and exact comparison rules.
 whole-candidate checked ownership inventories and ordered loan/cleanup plans.
 It performs no target projection and preserves this selected report's schema.
 
+[Artifact Delta v1](PROJECT-CANDIDATE-ARTIFACT-DELTA-V1.md) independently replays
+the candidate and compares actual Web/npm carrier file and export bindings.
+Its v5 route requires the existing build grant and does not publish files.
+
 ## Projections and comparison
 
 Every available declaration retains its existing typed identity/index facts and

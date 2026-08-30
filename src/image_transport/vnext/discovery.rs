@@ -75,6 +75,12 @@ pub(super) fn payload(
         }
         if methods
             .iter()
+            .any(|method| method.name == "candidate/artifact-delta")
+        {
+            instructions.push_str(" Use candidate/artifact-delta only when candidate_build is granted. Bind candidate_revision and select kind web or npm to compare actual independently replayed pathless artifact carriers against the original base. Candidate replay precedes both builds; each side has a fixed 16 MiB build limit that requests cannot override. Reassemble the report using offset and next_offset, with chunk_bytes 1024 through 65536 (default 16384) and an 8 MiB report bound. The heterogeneous report is explicitly unbundled. No artifact paths are written, package manager or target executable is run, or publication authority granted.");
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "hole/recovery-export")
         {
             instructions.push_str(" Use hole/recovery-export to save prior valid history and pending selectors. hole/recovery-restore requires the same exact original source base and returns only a draft; every remaining hole must still be filled before completion. Recovery does not restore approvals or implicitly rebase after source edits.");
@@ -141,7 +147,7 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
     value["capability"] = json!(match method.name {
         "workspace/refresh" | "workspace/refresh-preview" => "workspace_refresh",
         "candidate/test" => "candidate_test",
-        "candidate/build" => "candidate_build",
+        "candidate/build" | "candidate/artifact-delta" => "candidate_build",
         "candidate/interface-delta"
         | "candidate/contract-delta"
         | "candidate/ownership-delta"
@@ -237,6 +243,7 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
             }
             "image/target-admission" => Some(crate::project::IMAGE_TARGET_ADMISSION_SCHEMA),
             "candidate/build" => Some(crate::project::IMAGE_ARTIFACT_PROJECTION_SCHEMA),
+            "candidate/artifact-delta" => Some("semaprax.project-candidate-artifact-delta.v1"),
             "candidate/commit-report" => {
                 Some(crate::project::PROJECT_CANDIDATE_GIT_PUBLICATION_SCHEMA)
             }
@@ -616,6 +623,7 @@ mod tests {
             assert!(source.contains("request_candidate_interface_delta"));
             assert!(source.contains("request_candidate_contract_delta"));
             assert!(source.contains("request_candidate_ownership_delta"));
+            assert!(source.contains("request_candidate_artifact_delta"));
             assert!(source.contains("request_candidate_symbol_diagnostics"));
             assert!(source.contains("expected_report_revision"));
             assert!(source.contains("decode_request_candidate_apply_intent"));

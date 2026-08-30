@@ -219,8 +219,7 @@ fn render_facade(descriptor: &FlatOwnedRecordApiDescriptor) -> String {
         format!("[{},Object.freeze({{raw:{},params:Object.freeze([{parameters}]),fields:Object.freeze([{fields}]),size:{}}})]",quote_json(export.stable_id().as_str()),quote_json(&raw_symbol(export.stable_id().as_str())),export.fields().len()*8)
     }).collect::<Vec<_>>().join(",");
     format!(
-        r#"const FACTS=new Map([{facts}]),IDS=Object.freeze(Array.from(FACTS.keys())),RESULT=65536,POISON=0xa5;const encoder=new TextEncoder();
-function snapshot(value,type,label){{if(type==="borrow-str"){{if(typeof value!=="string")throw new TypeError(`${{label}} must be string`);for(let i=0;i<value.length;i++){{const unit=value.charCodeAt(i);if(unit>=0xd800&&unit<=0xdbff){{if(++i>=value.length||value.charCodeAt(i)<0xdc00||value.charCodeAt(i)>0xdfff)throw new TypeError(`${{label}} must contain Unicode scalar values`)}}else if(unit>=0xdc00&&unit<=0xdfff)throw new TypeError(`${{label}} must contain Unicode scalar values`)}}return encoder.encode(value)}}if(type==="borrow-slice-u8")return snapshotUint8(value,label);if(type==="i64"){{if(typeof value!=="bigint"||value<-(1n<<63n)||value>(1n<<63n)-1n)throw new TypeError(`${{label}} must be signed i64 bigint`);return value}}if(type==="bool"){{if(typeof value!=="boolean")throw new TypeError(`${{label}} must be boolean`);return value?1:0}}throw new Error("unknown parameter")}}
+        r#"const FACTS=new Map([{facts}]),IDS=Object.freeze(Array.from(FACTS.keys())),RESULT=65536,POISON=0xa5;
 function facade(linked){{const e=linked.instance.exports,memory=e.memory;let busy=false,poisoned=false;function invoke(id,values){{if(poisoned||busy)throw new Error("SEMAPRAX flat-record runtime unavailable");const fact=FACTS.get(id);if(!fact||values.length!==fact.params.length)throw new TypeError("SEMAPRAX call identity disagrees");const {{snapshots,used}}=snapshotArguments(values,fact.params);busy=true;let began=false,settled=false,answer,primary=null;const bytes=new Uint8Array(memory.buffer),view=new DataView(memory.buffer);try{{let offset=0;const raw=[];for(const value of snapshots){{if(value instanceof Uint8Array){{linked.copyInto(bytes,value,offset);raw.push(offset,value.byteLength);offset+=value.byteLength}}else raw.push(value)}}bytes.fill(POISON,RESULT,RESULT+fact.size);linked.arena.begin();began=true;const status=e[fact.raw](...raw,RESULT);if(status!==0){{for(let i=0;i<fact.size;i++)if(bytes[RESULT+i]!==POISON)throw new Error("failure modified carrier");throw Object.assign(new Error(`SEMAPRAX failure ${{status}}`),{{status,semapraxSemantic:status<=10}})}}const values=Object.create(null);let ownedCarrier=null;for(const field of fact.fields){{if(field.kind==="owned-bytes")ownedCarrier=view.getBigInt64(RESULT+field.offset,true);else if(field.kind==="i64")values[field.name]=view.getBigInt64(RESULT+field.offset,true);else if(field.kind==="usize")values[field.name]=view.getBigUint64(RESULT+field.offset,true);else{{const value=view.getBigUint64(RESULT+field.offset,true);if(value>1n)throw new Error("bool invariant");values[field.name]=value===1n}}}}const owned=linked.arena.consume(ownedCarrier);linked.arena.settle();settled=true;for(const field of fact.fields)if(field.kind==="owned-bytes")values[field.name]=owned;answer=Object.freeze(values)}}catch(error){{primary=error;if(!(error instanceof RangeError)&&!(error instanceof TypeError)&&error?.semapraxSemantic!==true){{poisoned=true;linked.arena.poison()}}}}finally{{let failure=null;if(began&&!settled)try{{linked.arena.settle()}}catch(error){{poisoned=true;failure=error}}bytes.fill(0,0,used);bytes.fill(POISON,RESULT,RESULT+fact.size);busy=false;if(failure&&primary===null)primary=failure}}if(primary)throw primary;return answer}}const functions=Object.create(null);for(const id of IDS)Object.defineProperty(functions,id,{{value:(...v)=>invoke(id,v),enumerable:true}});return Object.freeze({{functions:Object.freeze(functions),call:(id,...v)=>invoke(id,v),wasmSha256}})}}export async function instantiate(bytes){{return facade(await instantiateCore(bytes))}}export const exportIds=IDS;export default instantiate;
 "#
     )
@@ -249,7 +248,7 @@ mod hostile_source_tests {
     use super::*;
 
     #[test]
-    fn v9_facade_closes_i64_and_utf16_before_busy_or_arena_effects() {
+    fn v9_package_selects_shared_preflight_before_snapshot_and_arena_effects() {
         let source = r#"
 module flat.hostile;
 @id("flat.packet") record Packet { @id("flat.bytes") bytes: Bytes, @id("flat.flag") flag: bool, }
@@ -273,17 +272,26 @@ module flat.hostile;
             subject,
         )
         .unwrap();
-        let facade = render_facade(&descriptor);
-        let snapshot = facade
+        let wasm =
+            crate::wasm::emit_resolved_module_with_flat_owned_record_exports(&program, &descriptor)
+                .unwrap();
+        let package = render_package("flat-hostile", "0.1.0", &descriptor, &wasm).unwrap();
+        let runtime =
+            std::str::from_utf8(artifact_bytes(&package, "semaprax.js").unwrap()).unwrap();
+        assert!(runtime.contains(include_str!("owned_data_input_v8.js")));
+        assert!(!runtime.contains("function snapshot("));
+        assert!(!runtime.contains("const encoder="));
+        assert!(!runtime.contains("arrayBufferSlice"));
+        let snapshot = runtime
             .find("snapshotArguments(values,fact.params)")
             .unwrap();
-        assert!(facade[..snapshot].contains("unit>=0xd800&&unit<=0xdbff"));
-        assert!(facade[..snapshot].contains("unit>=0xdc00&&unit<=0xdfff"));
-        assert!(facade[..snapshot].contains("++i>=value.length"));
-        assert!(facade[..snapshot].contains("return encoder.encode(value)"));
-        assert!(facade[..snapshot].contains("value<-(1n<<63n)"));
-        assert!(facade[..snapshot].contains("value>(1n<<63n)-1n"));
-        assert!(snapshot < facade.find("busy=true").unwrap());
-        assert!(snapshot < facade.find("arena.begin()").unwrap());
+        assert!(runtime[..snapshot].contains("unit>=0xd800&&unit<=0xdbff"));
+        assert!(runtime[..snapshot].contains("unit>=0xdc00&&unit<=0xdfff"));
+        assert!(runtime[..snapshot].contains("index>=value.length"));
+        assert!(runtime[..snapshot].contains("value<-(1n<<63n)"));
+        assert!(runtime[..snapshot].contains("value>(1n<<63n)-1n"));
+        assert!(snapshot < runtime.find("busy=true").unwrap());
+        assert!(snapshot < runtime.find("linked.copyInto(").unwrap());
+        assert!(snapshot < runtime.find("arena.begin()").unwrap());
     }
 }

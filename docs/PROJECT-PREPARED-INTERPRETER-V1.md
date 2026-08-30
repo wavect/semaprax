@@ -46,7 +46,7 @@ same evaluator as the legacy Project route.
 | trace events | 1–65,536 |
 | prepared origin nodes | 262,144 |
 | prepared index bytes | 16,777,216 |
-| worker/in-flight execution | one/one sequentially |
+| worker execution/queued request | one/at most one, sequentially |
 
 Defaults are 1,000,000 steps, 1 MiB, and 4,096 events. Once the event ceiling
 or byte budget is reached, evaluation continues and the deterministic prefix
@@ -72,9 +72,10 @@ cooperative cancellation.
 `verify_project_source_trace` checks the closed JSON shape, canonical values,
 bounds, status vocabulary, byte count, digest, and exact reconstruction.
 `verify_project_source_trace_against_revision` additionally binds every event
-to the supplied retained HIR expression and authenticated source fact. V1 does
-not independently re-execute the dynamic path; the envelope authenticates the
-observed trace, while the revision verifier proves source-origin consistency.
+to a supplied retained HIR expression and its authenticated source fact. The
+envelope provides canonical self-integrity, not proof that an execution was
+observed. V1 does not independently re-execute or authenticate the dynamic
+path; revision-bound replay proves only retained source-origin consistency.
 
 Diagnostics are closed: `SPX-F107` preparation/source-index admission,
 `SPX-F108` request bounds, `SPX-F109` worker lifecycle/panic, and `SPX-F110`
@@ -97,4 +98,3 @@ legacy Project/Interpreter and Agent Transport byte preservation, runtime
 parity, hostile trace replay, capacity boundaries, worker fail-stop, held-input
 drift suppression, and exact-head hosted execution under the ordinary quality
 policy.
-

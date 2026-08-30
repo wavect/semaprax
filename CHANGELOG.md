@@ -1,19 +1,13 @@
 # Changelog
 
+## Unreleased
+
 - Added the authored, unrun [Prepared Project Interpreter and Source Trace
   v1](docs/PROJECT-PREPARED-INTERPRETER-V1.md): one cached exact entry/test
   closure admission, one sequential long-lived fixed-stack worker, bounded
   cancellation-aware expression origins, canonical trace replay, and retained
   revision source-origin verification. Existing Interpreter, Project
   execution, and Agent Transport v1-v5 wires remain unchanged.
-
-## Unreleased
-
-- Authored the authority-neutral Project Profile Admission v1 kernel, routing
-  the existing Project-v9 flat owned-record descriptor and target adapter
-  through ordinary Project construction and Revision Store replay while adding
-  exact v9/v10 execution-envelope verification and preserving earlier profile
-  schemas and bytes. Evidence remains unrun and no profile is promoted.
 
 - Authored Linked Scalar Core-Wasm Package Build v2 as the first consumer of
   the exact Multi-Package Source Capsule replay seam. The authority-free build

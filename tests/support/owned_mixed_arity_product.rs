@@ -45,7 +45,8 @@ pub fn source(max_arity: usize) -> String {
         };
         source.push_str(&format!(
             "@id(\"mixed.arity{arity}\") fn arity{arity}({signature}) -> Bytes {{\n\
-             if {condition} {{ bytes_copy(str_as_bytes(\"ok\")) }} else {{ bytes_copy(str_as_bytes(\"bad\")) }}\n}}\n"
+             if {condition} {{ let output = [111u8, 107u8]; bytes_copy(array_as_slice(output)) }} \
+             else {{ let output = [98u8, 97u8, 100u8]; bytes_copy(array_as_slice(output)) }}\n}}\n"
         ));
     }
     source.push_str("@id(\"mixed.main\") fn main() -> i64 { 0 }\n");

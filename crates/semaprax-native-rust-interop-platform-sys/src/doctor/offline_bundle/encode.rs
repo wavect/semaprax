@@ -176,4 +176,5 @@ fn account_record(
 }
 
 #[cfg(test)]
+#[path = "encode/tests.rs"]
 mod tests;

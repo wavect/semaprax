@@ -762,7 +762,9 @@ inputs are reauthenticated before registry mutations become visible. Typed
 materialization until all holes are filled through full candidate admission.
 [Ordered signature mapping](PROJECT-SIGNATURE-EVOLUTION-V1.md) stages every
 original argument once, left-to-right, before retaining, reordering or removing
-Copy parameters; admitted direct byte owners must all be retained once.
+Copy parameters; admitted byte, String and resource-free nominal owners must
+all be retained once. Source String parameters resolve to owning HIR even
+without an explicit source `own` modifier.
 `candidate/signature_arguments.rs` constructs explicit computed-argument
 templates against each caller's bindings and reuses scope-aware substitution
 to select staged original values. The signature engine appends typed computed
@@ -776,7 +778,9 @@ Expression-template preflight without callers is structural only. See
 Workspace module projections privately retain compiler-checked nominal
 parameter and return TypeFacts, including types outside entry/test reachability. The
 candidate admission and catalogue share those exact facts for concrete Copy
-record/variant eligibility; they do not infer ownership from source spelling.
+record/variant eligibility and resource-free owning record/variant eligibility;
+they do not infer ownership from source spelling. Primitive String eligibility
+uses the checked parameter mode and ordinary compiler TypeFacts.
 These facts add no graph wire fields or source authority. These additions are
 authored, unrun.
 

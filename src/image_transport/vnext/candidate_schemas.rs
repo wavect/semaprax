@@ -59,7 +59,7 @@ fn change_parameter() -> Value {
         ("mode", json!({"enum":["value","own","borrow","shared"]})),
     ];
     let plain = object(fields.clone());
-    let mut named = fields;
+    let mut named = fields.clone();
     named.extend([
         ("type_identity", text()),
         (
@@ -76,7 +76,55 @@ fn change_parameter() -> Value {
             ]),
         ),
     ]);
-    json!({"oneOf":[plain,object(named)]})
+    let mut owning = Vec::new();
+    for string in [true, false] {
+        let mut owned = fields.clone();
+        owned[1].1 = if string {
+            json!({"const":"string"})
+        } else {
+            text()
+        };
+        owned[2].1 = json!({"const":if string { "value" } else { "own" }});
+        owned.extend([
+            (
+                "type_identity",
+                if string {
+                    json!({"const":"string"})
+                } else {
+                    text()
+                },
+            ),
+            (
+                "type_provenance",
+                object(vec![
+                    (
+                        "declaration",
+                        if string {
+                            json!({"type":"null"})
+                        } else {
+                            text()
+                        },
+                    ),
+                    (
+                        "arguments",
+                        if string {
+                            json!({"const":[]})
+                        } else {
+                            strings()
+                        },
+                    ),
+                    ("ownership", json!({"const":"own"})),
+                    ("evidence_owner", json!({"const":"retained_checked_hir"})),
+                    ("copy", json!({"const":false})),
+                    ("sized", json!({"const":true})),
+                    ("contains_resource", json!({"const":false})),
+                    ("needs_drop", json!({"const":true})),
+                ]),
+            ),
+        ]);
+        owning.push(object(owned));
+    }
+    json!({"oneOf":[plain,object(named),{"oneOf":owning}]})
 }
 
 fn aggregate_constructor() -> Value {
@@ -975,7 +1023,7 @@ mod signature_parameter_schema_tests {
     fn named_parameter_facts_are_a_closed_paired_extension() {
         let schema = change_parameter();
         let choices = schema["oneOf"].as_array().unwrap();
-        assert_eq!(choices.len(), 2);
+        assert_eq!(choices.len(), 3);
         assert_eq!(choices[0]["additionalProperties"], false);
         assert_eq!(choices[0]["properties"].as_object().unwrap().len(), 3);
         assert_eq!(choices[1]["additionalProperties"], false);
@@ -988,6 +1036,36 @@ mod signature_parameter_schema_tests {
         assert_eq!(provenance["properties"].as_object().unwrap().len(), 8);
         assert_eq!(provenance["properties"]["ownership"]["const"], "copy");
         assert_eq!(provenance["properties"]["needs_drop"]["const"], false);
+        let owning = choices[2]["oneOf"].as_array().unwrap();
+        assert_eq!(owning.len(), 2);
+        for shape in owning {
+            assert_eq!(shape["additionalProperties"], false);
+            assert_eq!(shape["properties"].as_object().unwrap().len(), 5);
+            let facts = &shape["properties"]["type_provenance"];
+            assert_eq!(facts["additionalProperties"], false);
+            assert_eq!(facts["properties"].as_object().unwrap().len(), 8);
+            assert_eq!(facts["properties"]["ownership"]["const"], "own");
+            assert_eq!(facts["properties"]["copy"]["const"], false);
+            assert_eq!(facts["properties"]["needs_drop"]["const"], true);
+            assert_eq!(facts["properties"]["sized"]["const"], true);
+            assert_eq!(facts["properties"]["contains_resource"]["const"], false);
+        }
+        assert_eq!(owning[0]["properties"]["type"]["const"], "string");
+        assert_eq!(owning[0]["properties"]["mode"]["const"], "value");
+        assert_eq!(owning[0]["properties"]["type_identity"]["const"], "string");
+        assert_eq!(
+            owning[0]["properties"]["type_provenance"]["properties"]["declaration"]["type"],
+            "null"
+        );
+        assert_eq!(
+            owning[0]["properties"]["type_provenance"]["properties"]["arguments"]["const"],
+            json!([])
+        );
+        assert_eq!(owning[1]["properties"]["mode"]["const"], "own");
+        assert_eq!(
+            owning[1]["properties"]["type_provenance"]["properties"]["declaration"]["type"],
+            "string"
+        );
     }
 
     #[test]

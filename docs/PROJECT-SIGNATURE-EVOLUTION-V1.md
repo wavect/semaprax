@@ -57,28 +57,41 @@ signature facts must prove exact-identity Sized Copy admission.
 
 Every original parameter must have value mode and a built-in Copy type
 (`i64`, `i32`, `char`, `u8`, `usize`, `[u8; N]`, `f32`, `f64`, or `bool`),
-have value mode and an admitted concrete Copy record/variant type, or be
-exactly `own Bytes`. Named admission uses the retained checked HIR parameter
-identity and compiler TypeFacts: `copy` and `sized` must be true, while
-`contains_resource` and `needs_drop` must be false. Display names and source
-field shapes do not establish those properties. The compiler retains exact
-nominal parameter and return facts for admitted modules even when a function is absent
-from the entry/test closure. Concrete generic instances, including admitted
+have value mode and an admitted concrete Copy record/variant type, be
+exactly `own Bytes`, or belong to the checked owning extension below.
+Named Copy admission uses the retained checked HIR parameter identity and
+compiler TypeFacts: `copy` and `sized` must be true, while
+`contains_resource` and `needs_drop` must be false. The owning extension admits
+ordinary `string` parameters and `own` record/variant parameters whose checked
+facts have `copy: false`, `sized: true`, `contains_resource: false`, and
+`needs_drop: true`. Source `string` parameters use the ordinary bare type
+spelling; the checked HIR supplies their owning mode. They are owners for the
+exactly-once retention rule even though source does not spell `own string`.
+Display names and source field shapes do not establish those properties. The
+compiler retains exact nominal parameter and return facts for admitted modules
+even when a function is absent from the entry/test closure. Concrete generic instances, including admitted
 compiler-owned variants, use their complete ordered type-argument identity;
 generic target functions remain excluded.
 
 The mapping keeps the original source type spelling, type arguments and mode.
 Retained mappings do not convert a record to another record,
-alter fields, widen a target profile or add an owning parameter. Named non-Copy
-types, classes/resources, borrows and shared modes remain excluded. Full
-candidate admission still rejects a removed parameter referenced by the body
-or contracts, and any caller that cannot be legally staged.
+alter fields, widen a target profile or add an owning parameter. Classes,
+resources, resource-containing aggregates, borrows and shared modes remain
+excluded. Full candidate admission still rejects a removed parameter referenced
+by the body or contracts, and any caller that cannot be legally staged.
 
 For eligible named parameters, `change/catalog` adds `type_identity` and
 `type_provenance`, including the nominal declaration identity, ordered argument
-identities and exact checked Copy/storage facts. Both application and discovery
-use the same retained-HIR eligibility routine. Existing scalar parameter
-descriptors and the intention's `{from[,name]}` shape remain unchanged.
+identities and exact checked ownership/storage facts. The owning extension
+also identifies the primitive String type separately from nominal declarations:
+`type_identity` is `string`, provenance `declaration` is null, and `arguments`
+is empty. Its surface `mode` remains `value`, while provenance `ownership` is
+`own`. Owning nominal descriptors keep their declaration and argument identities
+and surface `mode: own`. These descriptors add
+`checked_owning_parameters_retained_exactly_once` to the mapping constraints.
+Both application and discovery use the same retained-HIR eligibility routine.
+Existing scalar parameter descriptors and the intention's `{from[,name]}` shape
+remain unchanged.
 
 ## Evaluation and lexical hygiene
 
@@ -128,17 +141,22 @@ rename destination. A reference to a removed parameter cannot silently become
 a reference to a retained parameter renamed to that spelling. Unknown future
 binding-bearing or-pattern forms reject until their binding rules are supported.
 
-For direct `own Bytes`, each original expression moves into one owning local,
-in original argument order. The final ordinary call receives every retained
-owner once in mapped order; the real verifier and cleanup-plan builder own
+For each admitted owning parameter, each original expression result is staged
+in an owning local in original argument order. The final ordinary call receives
+every retained owner once in mapped order; the real verifier and cleanup-plan builder own
 transfer and atomic CallCommit semantics. This changes the placement of moves:
 a later original argument borrowing an owner already moved into an earlier
 staging local may fail ordinary verification. Such candidates reject; this
 operation does not bypass loans or promise admission of every previously valid
-call shape. Other owning types remain unsupported because observable resource
-finalizers and general settlement order need additional treatment. No custom
-cleanup, physical finalization authority, or hidden settlement-model action is
-introduced here.
+call shape. Resource-bearing types remain unsupported because observable resource
+finalizers and general settlement order need additional treatment. Admission of
+resource-free String or nominal owners is not permission to drop or duplicate
+one: every original owner must reach the final ordinary call exactly once.
+String place reads retain the ordinary compiler's clone semantics. Staging can
+therefore add String copies or allocations; this route does not establish
+unchanged physical move counts, allocation failures, or finalization traces.
+No custom cleanup, physical finalization authority, or hidden settlement-model
+action is introduced here.
 
 Stable-ID provider bindings determine which direct calls migrate. Existing
 import aliases stay unchanged, and provider module identity is checked.
@@ -201,6 +219,13 @@ capture. [`tests/project_candidate_signature_ownership_v1.rs`](../tests/project_
 authors full Project candidate/replay checks for reordered and renamed owned
 byte arguments, exact original evaluation order, duplicate/removal rejection,
 and unchanged live source files. These tests have not been executed.
+[`tests/project_signature_owned_values_v1.rs`](../tests/project_signature_owned_values_v1.rs)
+adds authored cases for bare String and resource-free owned record/variant
+parameters, local and imported aliases, preserved argument subtrees and order,
+renaming, exact replay/recovery, stale rejection, omitted-owner diagnostics and
+borrowed-mode exclusion. Catalog assertions distinguish implicit String
+ownership from source mode and preserve legacy Bytes/scalar descriptors. These
+cases are also unrun and do not establish runtime or physical cleanup behavior.
 The pure reference-interpreter probes are authored executable evidence; no
 interpreter, target, compiler check, or local test was run for this change.
 Declared-effect ordering is a structural regression, not hosted effect-runtime
@@ -212,7 +237,8 @@ equivalence, external consumer migration, a full semantic merge, type/return
 conversion, arbitrary ownership-sensitive migration, or physical owned-call
 settlement support. Direct byte-owner staging can also change cleanup storage
 and internal trace labels; it does not claim identical runtime traces or costs.
-Those wider cases remain open in the graph-operational roadmap.
+Those wider cases remain open in the graph-operational roadmap. The same
+storage, trace-label and cost limits apply to String and nominal owner staging.
 
 `tests/project_signature_named_copy_v1.rs` and
 `tests/project_signature_catalog_v1.rs` author named aggregate staging,

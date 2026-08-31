@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Extended ordered signature intentions to retain and reorder admitted String
+  and resource-free owned record/variant parameters using checked ownership and
+  TypeFacts. Bare String parameters count as owners and cannot be omitted;
+  original argument order, full candidate replay and ordinary cleanup admission
+  remain mandatory. New owning defaults, resources and borrowing migrations
+  remain excluded. Discovery and regression additions are authored, unrun.
+
 - Corrected cleanup-inventory traversal after assignment, while and audited
   unsafe statements, restoring discovery of later owned storage without changing
   admission or cleanup order. Corrected shared native Bytes argument, conditional

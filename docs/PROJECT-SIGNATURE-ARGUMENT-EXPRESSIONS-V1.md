@@ -111,7 +111,8 @@ Copy eligibility. It does not type-check an uninstantiated argument template.
 
 The exact type annotation prevents an otherwise unused new parameter from
 hiding a wrongly typed computed value at an instantiated call. Existing
-`own Bytes` parameters must still be retained exactly once. A computed
+owning parameters (direct Bytes, ordinary String, or admitted resource-free
+nominal owners) must still be retained exactly once. A computed
 expression cannot consume such an owner and also transfer it again through the
 final call; ordinary ownership and loan verification decides each use.
 

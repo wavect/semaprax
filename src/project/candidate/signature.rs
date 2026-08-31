@@ -1,4 +1,4 @@
-//! Ordered checked Copy/Bytes-parameter evolution with left-to-right staging.
+//! Ordered checked Copy/resource-free-owner evolution with left-to-right staging.
 //!
 //! Every old argument is evaluated once even when its parameter is removed.
 //! Parameter identity is selected by its old name; display renaming follows
@@ -73,7 +73,7 @@ pub(super) fn apply(
             .is_none()
     {
         return Err(grammar(
-            "ordered signature evolution requires checked Copy values or direct own Bytes",
+            "ordered signature evolution requires checked Copy values or resource-free owned data",
         ));
     }
     let original = original_params
@@ -185,7 +185,7 @@ pub(super) fn apply(
     if original_params
         .iter()
         .enumerate()
-        .any(|(index, param)| param.mode == ParamMode::Own && !selected.contains(&index))
+        .any(|(index, param)| owning_parameter(param) && !selected.contains(&index))
     {
         return Err(vec![crate::diagnostic::Diagnostic::io(
             "SPX-G260",
@@ -401,6 +401,11 @@ fn legacy_parameter(parameter: &Param) -> bool {
         || (parameter.mode == ParamMode::Own && parameter.ty == Type::Bytes)
 }
 
+fn owning_parameter(parameter: &Param) -> bool {
+    parameter.mode == ParamMode::Own
+        || (parameter.mode == ParamMode::Value && parameter.ty == Type::String)
+}
+
 /// One authority shared by candidate admission and catalogue discovery. Legacy
 /// parameters have no additive metadata. Nominal facts come from the original
 /// module's validated index, including internal functions outside linked roots.
@@ -418,10 +423,16 @@ pub(in crate::project::candidate) fn ordered_signature_parameters(
     if function.params.iter().all(legacy_parameter) {
         return Ok(Some(vec![None; function.params.len()]));
     }
-    // This extension never infers Copy from a named AST or widens borrow/own.
+    // The source language spells an owned String parameter as bare `string`;
+    // its checked HIR mode is Own. No new ownership mode is invented here.
+    // All newly admitted subjects below still require exact checked facts.
     if function.params.iter().any(|parameter| {
         !legacy_parameter(parameter)
-            && !(parameter.mode == ParamMode::Value && matches!(parameter.ty, Type::Named { .. }))
+            && !matches!(
+                (&parameter.mode, &parameter.ty),
+                (ParamMode::Value, Type::String | Type::Named { .. })
+                    | (ParamMode::Own, Type::Named { .. })
+            )
     }) {
         return Ok(None);
     }
@@ -469,9 +480,15 @@ pub(in crate::project::candidate) fn ordered_signature_parameters(
     }
     let mut metadata = Vec::with_capacity(function.params.len());
     for (parameter, resolved) in function.params.iter().zip(&checked.params) {
+        let source_ownership = if parameter.mode == ParamMode::Value && parameter.ty == Type::String
+        {
+            OwnershipMode::Own
+        } else {
+            OwnershipMode::from(parameter.mode)
+        };
         if parameter.name != resolved.name
             || parameter.span != resolved.span
-            || OwnershipMode::from(parameter.mode) != resolved.ownership
+            || source_ownership != resolved.ownership
         {
             return Err(grammar(
                 "ordered signature source parameter and checked binding disagree",
@@ -479,6 +496,29 @@ pub(in crate::project::candidate) fn ordered_signature_parameters(
         }
         if legacy_parameter(parameter) {
             metadata.push(None);
+            continue;
+        }
+        if parameter.mode == ParamMode::Value && parameter.ty == Type::String {
+            if resolved.ty != ResolvedType::String || resolved.ownership != OwnershipMode::Own {
+                return Err(grammar(
+                    "ordered String parameter disagrees with checked ownership",
+                ));
+            }
+            // The retained nominal inventory intentionally has no fabricated
+            // String declaration. Ask the compiler's existing scalar TypeFacts
+            // owner using the exact authenticated checked parameter type.
+            let facts = revision
+                .entry_program()
+                .declarations
+                .type_facts(&resolved.ty)
+                .ok_or_else(|| grammar("ordered String parameter has no compiler TypeFacts"))?;
+            if facts.copy || !facts.sized || facts.contains_resource || !facts.needs_drop {
+                return Ok(None);
+            }
+            metadata.push(Some(json!({"type_identity":resolved.ty.identity_key(),
+                "type_provenance":{"declaration":null,"arguments":[],
+                    "ownership":"own","evidence_owner":"retained_checked_hir","copy":facts.copy,"sized":facts.sized,
+                    "contains_resource":facts.contains_resource,"needs_drop":facts.needs_drop}})));
             continue;
         }
         let ResolvedType::Nominal {
@@ -493,18 +533,18 @@ pub(in crate::project::candidate) fn ordered_signature_parameters(
                 "ordered signature retained nominal type facts are absent",
             ));
         };
-        if resolved.ownership != OwnershipMode::Value
-            || !matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
-            || !facts.copy
+        let copy = resolved.ownership == OwnershipMode::Value && facts.copy && !facts.needs_drop;
+        let owned = resolved.ownership == OwnershipMode::Own && !facts.copy && facts.needs_drop;
+        if !matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
             || !facts.sized
             || facts.contains_resource
-            || facts.needs_drop
+            || !(copy || owned)
         {
             return Ok(None);
         }
         metadata.push(Some(json!({"type_identity":resolved.ty.identity_key(),
             "type_provenance":{"declaration":declaration.as_str(),"arguments":arguments.iter().map(ResolvedType::identity_key).collect::<Vec<_>>(),
-                "ownership":"copy","evidence_owner":"retained_checked_hir","copy":facts.copy,"sized":facts.sized,
+                "ownership":if owned {"own"} else {"copy"},"evidence_owner":"retained_checked_hir","copy":facts.copy,"sized":facts.sized,
                 "contains_resource":facts.contains_resource,"needs_drop":facts.needs_drop}})));
     }
     Ok(Some(metadata))
@@ -667,6 +707,47 @@ mod tests {
                 "kind":"change_function_signature","target":"math.select","parameters":parameters
             }),
         )
+    }
+
+    #[test]
+    fn implicit_string_retention_guard_agrees_with_real_checked_parameter_ownership() {
+        let source = program(
+            r#"module test.signature;
+@id("text.inspect") fn inspect(owned: string, view: borrow str, scalar: i64) -> i64 { scalar }
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+        );
+        let checked = hir::resolve(&source).unwrap();
+        let original = source
+            .functions
+            .iter()
+            .find(|function| function.stable_id == "text.inspect")
+            .unwrap();
+        let resolved = checked
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "text.inspect")
+            .unwrap();
+        assert_eq!(original.params[0].mode, ParamMode::Value);
+        assert_eq!(original.params[0].ty, Type::String);
+        assert_eq!(resolved.params[0].ownership, OwnershipMode::Own);
+        assert!(owning_parameter(&original.params[0]));
+        assert!(!legacy_parameter(&original.params[0]));
+        assert!(!owning_parameter(&original.params[1]));
+        assert!(!legacy_parameter(&original.params[1]));
+        assert!(!owning_parameter(&original.params[2]));
+        assert!(legacy_parameter(&original.params[2]));
+        let facts = checked
+            .declarations
+            .type_facts(&resolved.params[0].ty)
+            .unwrap();
+        assert!(!facts.copy);
+        assert!(facts.sized && facts.needs_drop);
+        assert!(!facts.contains_resource);
+        assert_eq!(
+            format::canonical(&source),
+            format::canonical(&program(&format::canonical(&source)))
+        );
     }
 
     #[test]

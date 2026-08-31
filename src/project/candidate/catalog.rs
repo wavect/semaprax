@@ -87,7 +87,7 @@ impl ProjectCandidate {
                                 .as_ref()
                                 .and_then(|parameters| parameters.get(index))
                             {
-                                // The admission seam owns Copy classification
+                                // The admission seam owns ownership classification
                                 // and exact source-to-HIR signature matching.
                                 if let Some(facts) = facts.as_object() {
                                     descriptor.as_object_mut().unwrap().extend(facts.clone());
@@ -108,6 +108,21 @@ impl ProjectCandidate {
                         "evaluation_order":"original_arguments_unchanged_then_pure_literals",
                     })];
                     if ordered_parameters.is_some() {
+                        let mut constraints = vec![
+                            "existing_parameter_selected_at_most_once",
+                            "existing_type_mode_preserved",
+                            "scope_preserving_display_rename",
+                            "own_bytes_retained_exactly_once",
+                            "new_name_distinct_from_all_old_names",
+                            "removed_parameters_must_not_remain_referenced",
+                            "ordinary_ownership_cleanup_admission",
+                        ];
+                        if parameters
+                            .iter()
+                            .any(|parameter| parameter["type_provenance"]["ownership"] == "own")
+                        {
+                            constraints.push("checked_owning_parameters_retained_exactly_once");
+                        }
                         forms.push(json!({
                             "selector":"parameters", "minimum":0, "maximum":4096,
                             "existing_parameter_fields":["from"],
@@ -126,7 +141,7 @@ impl ProjectCandidate {
                             },
                             "new_parameter_types":["i64","i32","u8","usize","bool"],
                             "argument":"matching_typed_scalar_literal",
-                            "constraints":["existing_parameter_selected_at_most_once", "existing_type_mode_preserved", "scope_preserving_display_rename", "own_bytes_retained_exactly_once", "new_name_distinct_from_all_old_names", "removed_parameters_must_not_remain_referenced", "ordinary_ownership_cleanup_admission"],
+                            "constraints":constraints,
                             "evaluation_order":"stage_every_original_argument_once_left_to_right_including_removed_arguments",
                         }));
                     }

@@ -15,15 +15,26 @@ use std::io::Write;
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Mutex, MutexGuard,
+};
 static SERIAL: AtomicU64 = AtomicU64::new(0);
+static FIXTURE_LIFETIME: Mutex<()> = Mutex::new(());
 struct Fixture {
+    _fixture_lifetime: MutexGuard<'static, ()>,
     root: PathBuf,
     store: PathBuf,
     compiler: PathBuf,
 }
 impl Fixture {
     fn new() -> Self {
+        // One case deliberately changes the installed image's link and write
+        // authority. Keep every test-local install/mutate/execute lifetime
+        // disjoint so Linux never observes a writable executable image.
+        let fixture_lifetime = FIXTURE_LIFETIME
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let root = std::env::temp_dir().join(format!(
             "spx-hir-cache-cli-{}-{}",
             std::process::id(),
@@ -80,6 +91,7 @@ impl Fixture {
             "cache fixture requires a compiler within the existing 256-MiB bound; build with debug=0"
         );
         Self {
+            _fixture_lifetime: fixture_lifetime,
             root,
             store,
             compiler,

@@ -3,9 +3,10 @@
 ## Unreleased
 
 - Corrected the semantic-cache CLI fixture to finish and close a create-new
-  staged compiler copy before atomically installing and executing it. This
-  removes Linux `ETXTBSY` races without retries, sleeps, or weaker executable
-  identity, hard-link, permission, and cache-binding assertions.
+  staged compiler copy before atomically installing it, and to serialize each
+  test-local install/mutate/execute lifetime. This removes Linux `ETXTBSY`
+  races without retries, sleeps, or weaker executable identity, hard-link,
+  permission, and cache-binding assertions.
 
 - Corrected the held Windows C compiler environment to expose the already
   bounded, caller-selected MSVC/SDK include directory set through both

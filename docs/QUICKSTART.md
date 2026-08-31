@@ -43,3 +43,9 @@ missing `dist` parent and publishes the Web package at `dist/web`.
 
 SEMAPRAX remains pre-alpha. This flow demonstrates the bounded calculator
 project contract; it is not a production-readiness or broader ecosystem claim.
+
+The executable quickstart suite passed all nine tests locally on macOS arm64
+with Rust 1.98, including the seven-command flow and hostile output-parent
+cases. That suite invokes freshly built CLI paths and checks the install
+instructions as text; it does not prove installation, `PATH` setup, release
+archives, or Windows behavior.

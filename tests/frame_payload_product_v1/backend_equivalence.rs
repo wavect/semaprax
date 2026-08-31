@@ -74,6 +74,14 @@ pub(super) fn assert_interpreter_corpus(program: &hir::ResolvedProgram) {
 }
 
 pub(super) fn assert_native_corpus(provider: &str, label: &str) {
+    assert_native_corpus_with(provider, label, &native_execution::Execution::Ordinary);
+}
+
+pub(super) fn assert_native_corpus_with(
+    provider: &str,
+    label: &str,
+    execution: &native_execution::Execution,
+) {
     use std::fmt::Write as _;
 
     for symbol in [
@@ -188,27 +196,8 @@ int main(void){{
     for optimization in ["-O0", "-O2"] {
         let source = root.join(format!("provider-{optimization}.c"));
         let executable = root.join(format!("provider-{optimization}"));
-        fs::write(&source, plain.as_bytes()).unwrap();
-        let compile = Command::new("clang")
-            .args(["-std=c11", optimization, "-Wall", "-Wextra", "-Werror"])
-            .arg(&source)
-            .arg("-o")
-            .arg(&executable)
-            .output()
-            .unwrap();
-        assert!(
-            compile.status.success(),
-            "{optimization} compile stderr={}",
-            String::from_utf8_lossy(&compile.stderr)
-        );
-        let execute = Command::new(&executable).output().unwrap();
-        assert!(
-            execute.status.success(),
-            "{optimization} status={:?} stdout={} stderr={}",
-            execute.status.code(),
-            String::from_utf8_lossy(&execute.stdout),
-            String::from_utf8_lossy(&execute.stderr)
-        );
+        execution.write_source(&source, &plain);
+        execution.compile_and_run(&source, &executable, optimization, false);
     }
     // Keep the original plain-provider checkpoints above. This additional lane
     // observes actual libc calls made by that same provider, rather than
@@ -225,29 +214,8 @@ int main(void){{
             "settlement-{optimization}{}",
             std::env::consts::EXE_SUFFIX
         ));
-        fs::write(&source, instrumented.as_bytes()).unwrap();
-        let compile = Command::new("clang")
-            .args(["-std=c11", optimization, "-Wall", "-Wextra", "-Werror"])
-            .arg(&source)
-            .arg("-o")
-            .arg(&executable)
-            .output()
-            .unwrap();
-        assert!(
-            compile.status.success(),
-            "{optimization} settlement compile stderr={}",
-            String::from_utf8_lossy(&compile.stderr)
-        );
-        let execute = Command::new(&executable).output().unwrap();
-        assert!(
-            execute.status.success(),
-            "{optimization} settlement status={:?} stdout={} stderr={}",
-            execute.status.code(),
-            String::from_utf8_lossy(&execute.stdout),
-            String::from_utf8_lossy(&execute.stderr)
-        );
-        assert!(execute.stdout.is_empty());
-        assert!(execute.stderr.is_empty());
+        execution.write_source(&source, &instrumented);
+        execution.compile_and_run(&source, &executable, optimization, true);
     }
     fs::remove_dir_all(root).unwrap();
 }

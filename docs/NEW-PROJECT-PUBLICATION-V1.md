@@ -1,6 +1,7 @@
 # Calculator project publication v1
 
-Status: authored correction; all new executable evidence remains unrun.
+Status: correction with local macOS CLI evidence; lower-level cross-platform
+and hosted gates remain required.
 
 Audience: toolchain contributors, host integrators, and reviewers.
 
@@ -144,7 +145,8 @@ than racing or resetting the process-global serial. Cover exact and ASCII-case
 collisions, the unchanged attempt ceiling, successful publication with exact
 template bytes, final-path absence during staging/writes and injected failure,
 and lower-level rejection without creating any child. Existing-output errors
-and foreign bytes must remain unchanged. These cases are authored but unrun.
+and foreign bytes must remain unchanged. The CLI collision/binding cases passed
+locally on macOS; lower-level and Windows-specific gates remain separate.
 
 Windows-specific tests must force the extended-to-legacy transition and inspect
 the actual submitted replacement field. They also exercise native legacy
@@ -152,9 +154,11 @@ success and existing regular-file/directory collision preservation. A physical
 directory-collision test alone cannot detect the wrong flags field because the
 OS can reject directory replacement independently.
 
-No new tests, builds, Windows execution, or hosted gates have run in this
-correction batch. Static review and formatting cannot promote WP-06 or any
-completion-matrix row.
+The full `cli_new_project_v1` test binary passed 15 tests locally on macOS arm64
+with Rust 1.98. The separate quickstart suite passed nine tests and the version
+suite passed six. These results do not prove installation, release archives,
+Windows execution, or hosted gates, and cannot promote WP-06 or any
+completion-matrix row without its remaining required evidence.
 
 Focused gates, to run on the required hosts before promotion:
 

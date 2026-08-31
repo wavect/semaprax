@@ -615,7 +615,9 @@ A separate raw-Wasm ABI observer uses the unchanged production arena/core
 templates, observes actual mint/drop/copy-out and empty settlement, and checks
 alignment rejection before imports with preserved poisoned output. It is an
 independent consumer, not an independent arena implementation or a complete
-internal destruction trace. All these new fixtures remain unrun.
+internal destruction trace. These frame-product lanes passed locally on macOS
+arm64 with Rust 1.98, Apple Clang 21 and Node 24.3, including the actual
+baseline/display-renamed Project npm and locked/offline Rust consumers.
 
 The frame-payload native corpus additionally has a separate allocator-observed
 O0/O2 lane, alongside the unchanged plain-provider lane. The test wraps the
@@ -626,9 +628,36 @@ drop rejection without another free. Both live-pointer and provider-slot
 inventories must be empty between calls. Existing callers select the isolated
 module and both authenticated baseline/display-renamed Project subjects.
 The observer and its static context are private fixtures, not generated hooks
-or public ABI. These checks remain authored and unrun; successful handle-drop
-statuses alone are not physical deallocation evidence, and this lane does not
-replace sanitizers, OOM handling, or the separate generated Rust consumer.
+or public ABI. These checks passed in the same local macOS frame-product run;
+successful handle-drop statuses alone are not physical deallocation evidence,
+and this lane does not replace sanitizers, OOM handling, or the separate
+generated Rust consumer.
+
+The explicitly selected `native_execution` sanitizer gate reuses those exact
+plain-provider and allocator-observed C corpora at O0/O2 for the isolated
+module and both retained Project subjects. It requires an absolute
+`SEMAPRAX_FRAME_SANITIZER_CLANG`, enables ASan and UBSan with recovery disabled,
+and rejects missing compile-time instrumentation. Independent use-after-free
+and signed-overflow controls must fail with their sanitizer diagnostics at
+both optimization levels before the 12 product executables may pass. It does
+not modify the ordinary compiler flags, provider bytes, or corpus expectations.
+
+```sh
+SEMAPRAX_FRAME_SANITIZER_CLANG=/absolute/path/to/clang cargo test --locked --offline -p semaprax --test frame_payload_product_v1 native_execution::isolated_and_retained_project_corpora_pass_asan_and_ubsan_at_o0_and_o2 -- --ignored --exact
+```
+
+Provision the selected compiler's headers and sanitizer runtimes. Direct Apple
+Clang also needs the installed macOS SDK selected through `SDKROOT`. This gate
+is not sanitizer coverage of every source program, Rust allocation, or public
+SDK build, and cannot promote a platform without its other required gates.
+
+The selected gate passed locally on macOS arm64 with Rust 1.98/Apple Clang 21
+and on Linux arm64 kernel 6.12.72 with Rust 1.88/Clang 14.0.6. Linux execution
+used an offline Docker container with all capabilities dropped and read-only
+source/registry mounts. The four calibration failures were expected controls;
+all 12 product executables succeeded. Linux compilation also emitted an
+existing unused-constant warning in the standalone String emitter; no clean
+Linux lint or complete quality-gate result is claimed here.
 
 The separate frame-format supplement in
 `tests/frame_payload_product_v1/adversarial.json` retains the existing corpus
@@ -649,8 +678,11 @@ path and shares only the compilation cache, avoiding reliance on timestamps
 for an in-place `include_str!` input change. The provisioned Chromium fixture
 passes the test-owned supplement to the unchanged same-origin corpus runner
 after checking the original host-served corpus; it does not require a changed
-host corpus or claim authentication of Project source derivation. All of these
-additional execution checks remain authored and unrun.
+host corpus or claim authentication of Project source derivation. The local
+macOS frame-product run passed these additional interpreter/native/Wasm/npm/Rust
+checks. A separate local Chromium run with Playwright 1.62.0 passed both
+packages' nine canonical and 72 supplemental cases; pinned served bytes were
+unchanged afterward. These are not Windows or hosted promotion results.
 
 The provisioned private toolchain gate `project_owned_tuple_sdk_v1` adds real
 published v8/v9 Rust consumers for one borrowed UTF-8 string plus two borrowed
@@ -706,7 +738,7 @@ host-provisioned package provenance, raw-carrier fault coverage and physical
 cleanup traces are separate obligations. No production artifact or schema
 changes follow from completing this evidence fixture.
 
-### Authored offline installed-package gate
+### Offline installed-package gate
 
 `tests/frame_payload_product_v1/npm_installation.rs` adds an explicitly
 provisioned v8 gate for both baseline and display-renamed frame projects. It
@@ -734,8 +766,10 @@ Missing tools fail this selected gate instead of skipping it. Installation and
 consumption follow package generation without invoking SEMAPRAX or a native
 compiler; TypeScript is used separately for declaration checking. Offline npm
 flags, disabled lifecycle scripts, private cache and cleared npm configuration
-are not OS-level network confinement. This gate is authored and unrun, covers
-v8 only, and does not establish registry publication or hosted promotion.
+are not OS-level network confinement. This gate passed locally on macOS arm64
+with Node 24.3, npm 11.4.2 and TypeScript 5.8.3, for both display names. The
+separate direct-consumer strict TypeScript gate also passed. The gates cover
+v8 only and do not establish registry publication or hosted promotion.
 
 ### Authored same-source Result-extrema gates
 

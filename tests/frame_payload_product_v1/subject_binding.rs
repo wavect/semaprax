@@ -116,13 +116,41 @@ fn verify_native_inventory(
     files["descriptor.json"].clone()
 }
 
-pub(super) fn verify_product(project: &Path, npm: &Path, rust: &Path) -> BoundProduct {
+pub(super) fn retain(project: &Path) -> BoundProduct {
     let revision =
         semaprax::project::with_authenticated_project(&project.join("semaprax.toml"), |snapshot| {
             Ok(snapshot.retain_revision())
         })
         .unwrap();
     let descriptor = revision.public_api_descriptor().unwrap();
+    BoundProduct {
+        revision,
+        descriptor,
+    }
+}
+
+pub(super) fn native_provider(
+    product: &BoundProduct,
+) -> semaprax::codegen::NativeOwnedDataProviderArtifact {
+    let revision = &product.revision;
+    let descriptor = &product.descriptor;
+    let provider = semaprax::codegen::emit_project_v8_native_owned_data_provider(
+        revision.entry_program(),
+        revision.manifest().web_exports(),
+        subject(revision),
+        &descriptor.canonical_bytes(),
+        &descriptor.digest(),
+    )
+    .unwrap();
+    assert_eq!(provider.descriptor(), descriptor.canonical_bytes());
+    assert_eq!(provider.descriptor_digest(), descriptor.digest());
+    provider
+}
+
+pub(super) fn verify_product(project: &Path, npm: &Path, rust: &Path) -> BoundProduct {
+    let product = retain(project);
+    let revision = &product.revision;
+    let descriptor = &product.descriptor;
     let selected = revision.manifest().web_exports();
     let expected_npm = revision.build_npm_inline(40 * 1024 * 1024).unwrap();
     expected_npm.verify().unwrap();
@@ -142,29 +170,22 @@ pub(super) fn verify_product(project: &Path, npm: &Path, rust: &Path) -> BoundPr
     let replayed = replay_public_api_descriptor(
         revision.entry_program(),
         selected,
-        subject(&revision),
+        subject(revision),
         npm_descriptor,
         metadata["descriptor_digest"].as_str().unwrap(),
     )
     .unwrap();
-    assert_eq!(replayed, descriptor);
-    let provider = semaprax::codegen::emit_project_v8_native_owned_data_provider(
-        revision.entry_program(),
-        selected,
-        subject(&revision),
-        &descriptor.canonical_bytes(),
-        &descriptor.digest(),
-    )
-    .unwrap();
+    assert_eq!(&replayed, descriptor);
+    let provider = native_provider(&product);
     assert_eq!(provider.descriptor(), npm_descriptor);
     assert_eq!(provider.descriptor_digest(), descriptor.digest());
-    let rust_descriptor = verify_native_inventory(rust, &descriptor, provider.source().as_bytes());
+    let rust_descriptor = verify_native_inventory(rust, descriptor, provider.source().as_bytes());
     assert_eq!(rust_descriptor, npm_descriptor);
     assert_eq!(
-        replay_public_api_descriptor(
+        &replay_public_api_descriptor(
             revision.entry_program(),
             selected,
-            subject(&revision),
+            subject(revision),
             &rust_descriptor,
             &descriptor.digest(),
         )
@@ -176,11 +197,8 @@ pub(super) fn verify_product(project: &Path, npm: &Path, rust: &Path) -> BoundPr
     // source origins, not just an isolated module with invented revision facts.
     assert_interpreter_corpus(revision.entry_program());
     assert_native_corpus(provider.source(), "bound-project-native");
-    raw_wasm::run(npm, &descriptor);
-    BoundProduct {
-        revision,
-        descriptor,
-    }
+    raw_wasm::run(npm, descriptor);
+    product
 }
 
 pub(super) fn verify_display_rename(before: &BoundProduct, after: &BoundProduct) {

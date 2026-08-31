@@ -1,6 +1,6 @@
 # Provisioned frame-payload browser evidence
 
-Status: authored, unrun; Chromium only, no hosted or public promotion.
+Status: local macOS Chromium evidence; no hosted or public promotion.
 
 This fixture reuses the repository's existing pinned Playwright 1.62.0 under
 `platform-tests/wasm-scalar-browser-v1/node_modules`. It installs nothing and
@@ -31,4 +31,11 @@ test-owned 72-case frame-format supplement into that same runner on a fresh
 runtime for each package. The supplement is supplied by the test, not fetched
 from the host: keep both served `corpus.json` files unchanged. The additional
 inputs check all declared-length bits, truncation and error precedence, and
-16 valid power-of-two payloads. This added browser evidence is also unrun.
+16 valid power-of-two payloads.
+
+The authored gate passed locally on macOS arm64 with Node 24.3, Playwright
+1.62.0 and cached Chromium revision 1234. Both packages came from the passing
+offline installed-package gate; their exact source/display-rename relationship
+and pinned package/asset bytes were checked before serving and after shutdown.
+This is one Chromium fixture pass, not multi-engine, Windows, Linux-browser or
+hosted evidence. The fixture's host-provisioned-artifact boundary is unchanged.

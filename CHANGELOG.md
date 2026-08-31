@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added an explicitly selected frame-product ASan/UBSan gate with calibrated
+  failure controls, reusing the unchanged nine-case and 72-case corpora for
+  isolated and retained baseline/display-renamed Projects at O0/O2. It passes
+  locally on Linux arm64/Rust 1.88/Clang 14 and macOS arm64/Rust 1.98/Clang 21.
+  Ordinary frame, strict TypeScript, offline npm installation, generated Rust,
+  Chromium and version/new-project/quickstart gates also have local macOS passes.
+  No production emitter, schema, corpus, hosted workflow or promotion changes.
+
 - Corrected doctor encoder test-module routing and the mixed-arity fixture's
   borrowed-view provenance: result bytes now come from named fixed-array
   storage, without relaxing compiler admission. Local macOS arm64 validation

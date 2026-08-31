@@ -19,13 +19,19 @@ pub(super) fn apply(
         ));
     }
     let body = &rejected["body"];
-    exact(body, &["kind", "value"])?;
-    if !matches!(text(body, "kind")?, "i64" | "i32" | "u8" | "usize")
-        || !(body["value"].is_i64() || body["value"].is_u64())
-    {
+    if !body.is_object() {
         return Err(grammar(
-            "repair intention supports only an explicit integer-literal body rejection",
+            "repair intention body requires a typed constructor",
         ));
+    }
+    if matches!(text(body, "kind")?, "i64" | "i32" | "u8" | "usize") {
+        // Preserve the original literal wire grammar and diagnostics exactly.
+        exact(body, &["kind", "value"])?;
+        if !(body["value"].is_i64() || body["value"].is_u64()) {
+            return Err(grammar(
+                "repair intention supports only an explicit integer-literal body rejection",
+            ));
+        }
     }
     let repair_id = text(request, "repair_id")?;
     wire::validate_digest(repair_id)
@@ -33,7 +39,7 @@ pub(super) fn apply(
     // This closed rejected kind makes recursion impossible: neither the failed
     // apply nor the compiler-derived successful apply can be another repair.
     let derived = ProjectCandidateAttempt::derive_wire_repair(base, rejected, repair_id)?;
-    let mut summary = intent::apply(programs, &derived.intent)?;
+    let mut summary = intent::apply_with_revision(base.revision(), programs, &derived.intent)?;
     summary.kind = "repair_diagnostic".into();
     Ok(summary)
 }

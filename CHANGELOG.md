@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added compiler-guided repair for rejected byte-field views staged through
+  value projections. An actual `SPX-T266` rejection and full candidate admission
+  are required before offering direct field storage with unchanged stable field
+  and lexical root selectors. Repair selection retains exact predecessor and
+  replay bindings; source loan rules and publication authority are unchanged.
+  Discovery, schema and regression additions are authored, unrun.
+
 - Broadened semantic record-field changes to checked Copy and existing flat
   owned-byte records, with inert i64/bool/i32/u8/usize defaults. Migrations
   preserve old initializer order, owning pattern bindings and stable field

@@ -119,6 +119,12 @@ pub(super) fn payload(
         }
         if methods
             .iter()
+            .any(|method| method.name == "attempt/repair-catalog")
+        {
+            instructions.push_str(" Discover repairs only from attempt/repair-catalog after a retained rejection. change/catalog may describe multiple repair_diagnostic classes for one target; those descriptors do not promise an available repair. retag_integer_literal_to_retained_return_type preserves the existing bounded literal repair. borrow_owned_byte_field_without_staging requires a recorded SPX-T266 rejection and an exact compiler builtin byte-view pattern over a direct lexical field projection; its proposal replaces staging with authenticated field_place and is emitted only after ordinary full candidate admission succeeds. The rejected_intent remains a replace_function_body for the same target with a closed typed expression body, never a nested repair. Select the exact predecessor-bound repair_id explicitly; stale histories require rediscovery. No arbitrary borrow repair, ownership transfer, contract weakening, test execution or source authority is implied.");
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "hole/archive-export")
         {
             instructions.push_str(" Use hole/archive-export to obtain a self-contained source-backed draft archive in UTF-8 chunks. Keep draft_revision and image_revision fixed while following next_offset; chunk_bytes is 1024 through 65536 (default 16384). To restore, send the structured archive plus exact archive_revision and draft_revision to hole/archive-restore. RPC restoration requires the same exact original source base as the current session; a saved historical base cannot be selected through a request. Only an explicit startup host import may restore a historical source archive before the first frame. The unchanged 64 KiB request-frame limit applies even though the library archive limit is 128 MiB; larger archives require an explicit library host, not larger RPC frames. Restore retains only a draft, not a registered candidate, approval, trusted HIR or source authority. Its source_candidate_revision is a reconstructed association and need not name a registered candidate. Fill and complete through ordinary hole APIs; unresolved holes still block completion. No archive operation is admitted to the immutable image batch.");

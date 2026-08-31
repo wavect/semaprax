@@ -762,6 +762,14 @@ fn operation() -> Value {
                 {"kind":"variant","placement":"append_variant_in_anchor_module","min_cases":1,"max_cases":64,"max_fields_per_case":64,"max_combined_identities":4096,"requires_full_candidate_validation":true},
             ]});
         }
+        if kind == "repair_diagnostic" {
+            let mut borrowed_field = shape.clone();
+            borrowed_field["properties"]["repair_class"] =
+                json!({"const":"borrow_owned_byte_field_without_staging"});
+            borrowed_field["properties"]["selector_source"] =
+                json!({"const":"attempt/repair-catalog"});
+            choices.push(borrowed_field);
+        }
         choices.push(shape);
     }
     json!({"oneOf":choices})

@@ -321,7 +321,7 @@ fn intent_schema() -> Value {
         base("change_function_signature",vec![("append_parameters",json!({"type":"array","minItems":1,"maxItems":MAX_APPEND_PARAMETERS,"items":new_parameter()}))]),
         base("change_function_signature",vec![("parameters",json!({"type":"array","minItems":0,"maxItems":4096,"items":mapped_parameter}))]),
         base("replace_function_body",vec![("body",reference("expression"))]),
-        base("repair_diagnostic",vec![("rejected_intent",base("replace_function_body",vec![("body",json!({"oneOf":[literal("i64"),literal("i32"),literal("u8"),literal("usize")]}))])),("repair_id",digest_schema())]),
+        base("repair_diagnostic",vec![("rejected_intent",base("replace_function_body",vec![("body",reference("expression"))])),("repair_id",digest_schema())]),
         base("replace_expression",vec![("expression_id",text(16_384)),("replacement",reference("expression"))]),
         base("replace_contract_expression",vec![("expression_id",text(16_384)),("replacement",reference("expression"))]),
         base("add_contract",vec![("phase",json!({"enum":["requires","ensures"]})),("predicate",reference("expression"))]),
@@ -830,5 +830,35 @@ mod aggregate_expression_schema_tests {
         assert_eq!(update["x-base-and-fields-depth-increment"], 2);
         assert!(update["properties"].get("owner").is_none());
         assert!(update["properties"].get("name").is_none());
+    }
+
+    #[test]
+    fn diagnostic_repair_rejected_body_uses_expression_grammar_without_nested_repairs() {
+        let schema = intent_schema();
+        let repair = schema["oneOf"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["properties"]["kind"]["const"] == "repair_diagnostic")
+            .unwrap();
+        assert_eq!(repair["additionalProperties"], false);
+        assert_eq!(
+            repair["required"],
+            json!(["kind", "target", "rejected_intent", "repair_id"])
+        );
+        let rejected = &repair["properties"]["rejected_intent"];
+        assert_eq!(rejected["additionalProperties"], false);
+        assert_eq!(rejected["required"], json!(["kind", "target", "body"]));
+        assert_eq!(
+            rejected["properties"]["kind"]["const"],
+            "replace_function_body"
+        );
+        assert_eq!(rejected["properties"]["body"], reference("expression"));
+        assert_eq!(repair["properties"]["repair_id"], digest_schema());
+        assert!(!expression_schema()["oneOf"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| { item["properties"]["kind"]["const"] == "repair_diagnostic" }));
     }
 }

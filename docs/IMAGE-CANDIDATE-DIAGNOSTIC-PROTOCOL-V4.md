@@ -83,7 +83,9 @@ Diagnostic spans remain explicitly distinct from verified predecessor expression
 locations. No invalid source or HIR is returned or persisted.
 
 Repair discovery offers only the library's bounded, fully admitted integer
-literal retagging class. Selection re-derives and fully validates the chosen
+literal retagging and direct owned-byte field borrow classes. The latter
+requires an actual `SPX-T266` rejection and preserves source borrowing admission.
+Selection re-derives and fully validates the chosen
 repair. It returns a new ordinary candidate; the attempt and predecessor remain
 unchanged. The additive [Project Diagnostic Change v1](PROJECT-DIAGNOSTIC-CHANGE-V1.md)
 also exposes a `repair_diagnostic` SemanticChange through ordinary candidate

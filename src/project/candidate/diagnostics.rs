@@ -5,6 +5,9 @@ use crate::hir::ResolvedType;
 use serde_json::{json, Value};
 use std::sync::Arc;
 
+#[path = "diagnostic_borrow.rs"]
+mod borrow;
+
 pub const PROJECT_CANDIDATE_ATTEMPT_SCHEMA: &str = "semaprax.project-candidate-attempt.v1";
 pub const PROJECT_CANDIDATE_REPAIR_CATALOG_SCHEMA: &str =
     "semaprax.project-candidate-repair-catalog.v1";
@@ -222,9 +225,14 @@ impl ProjectCandidateAttempt {
         let attempt = Self::rejected(retained, change, diagnostics)?;
         let (proposal, _) = attempt.repair()?;
         let proposal = proposal.ok_or_else(|| {
-            super::diagnostic_intent::stale(
-                "no compiler-admitted integer-literal repair is available",
-            )
+            let literal = rejected_intent["body"]["kind"]
+                .as_str()
+                .is_some_and(|kind| matches!(kind, "i64" | "i32" | "u8" | "usize"));
+            super::diagnostic_intent::stale(if literal {
+                "no compiler-admitted integer-literal repair is available"
+            } else {
+                "no compiler-admitted typed repair is available"
+            })
         })?;
         if proposal.id != repair_id {
             return Err(super::diagnostic_intent::stale(
@@ -303,6 +311,18 @@ impl ProjectCandidateAttempt {
         let Some(body) = intent["body"].as_object() else {
             return Ok((None, "no_supported_repair_class"));
         };
+        // Keep the existing literal proposal, identity, and availability bytes
+        // unchanged. The second class inspects actual diagnostic codes only;
+        // messages and spans never select source or infer a repair.
+        let literal_shape = body.len() == 2
+            && body
+                .get("kind")
+                .and_then(Value::as_str)
+                .is_some_and(|kind| matches!(kind, "i64" | "i32" | "u8" | "usize"))
+            && body.contains_key("value");
+        if !literal_shape && self.diagnostics.iter().any(|item| item.code == "SPX-T266") {
+            return borrow::repair(self, target);
+        }
         if body.len() != 2 {
             return Ok((None, "no_supported_repair_class"));
         }

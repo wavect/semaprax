@@ -154,6 +154,13 @@ impl ProjectCandidate {
                         }));
                     }
                     operations.push(json!({
+                        "kind":"repair_diagnostic", "required_fields":["kind","target","rejected_intent","repair_id"],
+                        "repair_class":"borrow_owned_byte_field_without_staging",
+                        "selector_source":"attempt/repair-catalog",
+                        "rejected_kind":"replace_function_body",
+                        "constraints":["exact_rejected_target", "recorded_SPX-T266_diagnostic", "closed_builtin_byte_view_of_direct_lexical_field_projection", "fresh_rejected_attempt_and_repair_derivation", "exact_predecessor_bound_repair_id", "full_candidate_admission", "rebase_requires_rediscovery"],
+                    }));
+                    operations.push(json!({
                         "kind":"replace_expression", "required_fields":["kind","target","expression_id","replacement"],
                         "selector_source":"expression/catalog",
                         "constraints":["exact_revision_scoped_hir_expression", "unambiguous_source_expression", "body_region_only", "preserve_expected_type", "authenticated_lexical_scope", "full_candidate_revalidation"],

@@ -955,7 +955,11 @@ executes the declared interpreter test closure only after exact candidate replay
 Image protocol v3 selects this bounded authority at host startup; policy cannot
 be changed by requests. `candidate/diagnostics.rs` retains failed intentions and
 diagnostics without exposing invalid source as a checked image, and routes its
-bounded repair class through ordinary complete candidate admission.
+bounded literal-retag and direct-field borrow repairs through ordinary complete
+candidate admission. Its private `candidate/diagnostic_borrow.rs` helper requires
+an actual `SPX-T266` rejection
+and only changes typed projections of named roots under byte-view constructors;
+source ownership and loan validation remain the admission authority.
 
 `candidate/publication.rs` is a separate host invocation over an existing managed
 Workspace. Its in-memory Change-v1 seam acquires existing shared/exclusive

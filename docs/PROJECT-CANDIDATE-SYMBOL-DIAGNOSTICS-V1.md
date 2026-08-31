@@ -54,7 +54,8 @@ the new image.
 
 Each matched entry embeds the existing exact `repair_catalog` result. Available
 repair classes are not guessed from an error code or a target type. Discovery
-uses the existing compiler-derived integer-literal retag proposal and requires
+uses the compiler-derived integer-literal retag or direct owned-byte field
+borrow proposal and requires
 normal full candidate admission before advertising it. Unsupported cases keep
 the existing empty repair array and explicit availability reason. Querying does
 not select a repair or create a new registry candidate; explicit existing

@@ -115,16 +115,18 @@ The field-place dependency fingerprint excludes owner and field display names
 so a stable-ID display rename can be replayed with the new source spelling.
 It retains identities, declaration order, types, type parameters, and source
 provenance. Other descriptor changes can still conflict conservatively. The
-older value-projection fingerprint is unchanged. This is not general
+older value-projection fingerprint producer is unchanged; rebase comparisons
+normalize its authenticated descriptor display names as well. This is not general
 structural compatibility or behavioral equivalence evidence.
 
 The existing target-body, signature, effect, and contract conflict checks still
-apply before dependency replay.
-If the concurrent field rename also changes an expression in the original
-target body, its source-body fingerprint can conservatively reject with
-`SPX-G235`. A newly requested field use can follow a display rename when that
-original target region is otherwise unchanged. General stable-field
-normalization of pre-existing body expressions remains separate work.
+apply before dependency replay. The additive
+[rebase occurrence normal form](PROJECT-CANDIDATE-REBASE-V1.md) now authenticates
+pre-existing nominal and member references before comparing them. A field
+display rename can therefore preserve an original body or predicate fingerprint
+when its identity, owner shape and actual expression structure are unchanged.
+Different field identities, types, owners, operators or evaluation order still
+conflict; unsupported occurrence joins fail closed.
 
 Existing request byte, expression depth/node, and enclosing catalogue/context
 bounds remain in force. Nominal fact propagation does not reset those budgets.

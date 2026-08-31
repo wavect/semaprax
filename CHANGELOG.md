@@ -22,6 +22,12 @@
   both resource-free report-oracle tests pass. Physical execution remains
   unrun; ordinary doctor acquisition and WP-05 status are unchanged.
 
+- Added authenticated nominal/member occurrence normalization to candidate and
+  draft rebase comparisons. Pure display renames preserve compatible regions;
+  identity, owner-shape, field-type, ordering and real expression changes remain
+  conflicts. Private markers cannot enter source or impersonate authored names.
+  Candidate/draft/transport regressions are authored, unrun.
+
 - Added direct typed field-place selection with authenticated nominal roots
   and stable member identities, without value-staging temporaries. Catalogue,
   hole and schema discovery share the constructor; ordinary source replay

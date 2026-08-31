@@ -126,8 +126,11 @@ impl ProjectCandidateDraft {
                 ));
             }
             for id in old_types {
-                let left = intent::nominal_type_dependency_fingerprint(before, &id)?;
-                let right = intent::nominal_type_dependency_fingerprint(after, &id)?;
+                let mut left = intent::nominal_type_dependency_fingerprint(before, &id)?;
+                let mut right = intent::nominal_type_dependency_fingerprint(after, &id)?;
+                for descriptor in left.iter_mut().chain(right.iter_mut()) {
+                    rebase::normalize_nominal_descriptor(descriptor);
+                }
                 if left.is_none() || left != right {
                     return Err(conflict(
                         "pending draft nominal owner shape changed or is unavailable",

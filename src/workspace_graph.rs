@@ -18,6 +18,7 @@ mod package;
 mod retained_validation;
 
 use operation_sidecar::build_operation_sidecar;
+pub(crate) use operation_sidecar::project_operation_sidecar;
 #[cfg(test)]
 use retained_validation::validate_effect_and_capability_edges;
 use retained_validation::validate_retained_facts;

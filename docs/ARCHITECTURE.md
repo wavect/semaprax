@@ -777,6 +777,15 @@ replays supported intentions over an admitted base. Same-root
 merge retains both histories and the original source-diff base. These APIs
 produce candidates and ancestry reports, never source publication authority.
 
+`candidate/rebase_normalize.rs` borrows the existing Operations AST/HIR
+occurrence collector through a private Project view. It derives bounded,
+collision-checked identity markers for nominal and member references in
+comparison-only source copies, retaining checked owner shapes and ancestry.
+Canonical formatting of those parse-only copies removes display-name noise
+without changing binders, expression order or actual source. Candidate and
+draft dependency comparisons normalize only known descriptor display fields;
+ordinary source replay and publication boundaries remain unchanged.
+
 The additive contract-expression route in `candidate/expression.rs` reuses exact
 HIR/AST joins for existing pre/postcondition subtrees while leaving body-only
 APIs unchanged. Its post-admission gate reconstructs the complete requested

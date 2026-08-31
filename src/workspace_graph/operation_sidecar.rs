@@ -23,6 +23,52 @@ pub(super) fn build_operation_sidecar(
     modules: &[WorkspaceResolvedModule],
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
 ) -> Result<WorkspaceOperationSidecar, Vec<Diagnostic>> {
+    let modules = modules
+        .iter()
+        .map(|module| OperationModule {
+            path: &module.path,
+            types: &module.types,
+            functions: &module.functions,
+            function_templates: &module.function_templates,
+        })
+        .collect::<Vec<_>>();
+    build_sidecar(programs, sources, &modules, authored, true)
+}
+
+struct OperationModule<'a> {
+    path: &'a str,
+    types: &'a [hir::ResolvedTypeDeclaration],
+    functions: &'a [hir::ResolvedFunction],
+    function_templates: &'a [hir::ResolvedFunctionTemplate],
+}
+
+/// Reuse the exact source/HIR occurrence join over an already checked Project.
+/// Borrowed views retain no additional HIR and grant no source authority.
+pub(crate) fn project_operation_sidecar(
+    programs: &[Program],
+    sources: &[WorkspaceSource],
+    modules: &[super::WorkspaceGraphProjectionModule],
+) -> Result<WorkspaceOperationSidecar, Vec<Diagnostic>> {
+    let authored = super::index_authored(programs)?;
+    let modules = modules
+        .iter()
+        .map(|module| OperationModule {
+            path: module.path(),
+            types: module.types(),
+            functions: module.functions(),
+            function_templates: module.function_templates(),
+        })
+        .collect::<Vec<_>>();
+    build_sidecar(programs, sources, &modules, &authored, false)
+}
+
+fn build_sidecar(
+    programs: &[Program],
+    sources: &[WorkspaceSource],
+    modules: &[OperationModule<'_>],
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    fingerprints: bool,
+) -> Result<WorkspaceOperationSidecar, Vec<Diagnostic>> {
     let source_bytes = sources
         .iter()
         .try_fold(0usize, |total, source| {
@@ -296,6 +342,12 @@ pub(super) fn build_operation_sidecar(
             )]);
         }
     }
+    if !fingerprints {
+        return Ok(WorkspaceOperationSidecar {
+            declarations,
+            imports,
+        });
+    }
     reserve_builder_structure(
         declarations
             .len()
@@ -474,7 +526,7 @@ fn push_operation_member(
 #[allow(clippy::too_many_arguments)]
 fn collect_program_operation_occurrences(
     program: &Program,
-    resolved: &WorkspaceResolvedModule,
+    resolved: &OperationModule<'_>,
     tokens: &[crate::lexer::Token],
     declaration_index: &BTreeMap<String, usize>,
     import_index: &BTreeMap<(String, ModuleUseKind, String, String), usize>,

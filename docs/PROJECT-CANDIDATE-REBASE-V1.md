@@ -55,11 +55,42 @@ from their resolved stable-ID bindings before body/contract fingerprinting.
 Those tokens exist only in the conflict calculation and are never materialized
 as source. There is no whole-file conflict rule.
 
+An additive nominal-reference normal form uses the existing Operations AST/HIR
+occurrence collector to authenticate source record/variant references and their
+member labels. It replaces only proven identifier tokens in disposable source
+copies with stable-ID-derived identifiers, reparses those copies syntactically,
+and then applies canonical expression formatting for the comparison. Record
+construction, updates, projections and patterns retain their structure and
+evaluation order. Shorthand field syntax expands with its original local
+binding preserved. Same-spelling locals and unrelated members are not renamed
+by textual matching.
+Each marker also binds declaration kind, immediate owner and case ancestry,
+and a digest of the complete checked nominal-owner descriptor with only its
+known display names removed. Field types and member order therefore remain
+significant even when the replayed intention uses no aggregate constructor.
+
+Nominal parameter and result type spellings use the same comparison-only
+normal form, while their retained HIR type identities still bind exact owners
+and ordered arguments. Parameter names and modes, local binders, effects,
+operators, literal values and predicate order remain significant. A display
+rename can therefore stop changing a body, contract or signature fingerprint;
+reidentifying a field, selecting a sibling field, changing its owner, or editing
+the actual expression cannot be hidden by the normalization.
+
+The `spx_rebase_ref_` identifier prefix is reserved only within this comparison
+route. Original lexer identifiers using that prefix reject before substitution,
+so authored names cannot impersonate an identity marker. Markers never enter a
+candidate, source diff, recovery capsule, graph, verifier input or publication.
+Malformed, ambiguous, overlapping or unsupported AST/HIR joins fail closed;
+there is no same-spelling fallback. This does not make the marker source an
+alternative canonical program.
+
 [Nominal declaration renames](PROJECT-NOMINAL-RENAME-V1.md) additionally use
 separate source record/variant display, shape and origin fingerprints. Competing
 renames or shape/origin drift reject; unrelated function edits can replay.
-Existing function/aggregate hashes retain their conservative source-spelling
-checks, so this does not normalize every merge across a type display rename.
+The separate rename-operation conflict checks still bind their selected display
+names, so competing renames remain conflicts. Nominal-reference normalization
+does not erase rename intent or establish compatibility for a changed shape.
 
 [Member renames](PROJECT-MEMBER-RENAME-V1.md) use the same source fingerprint
 route with explicit owner/case ancestry, selected member kind/name and the
@@ -71,8 +102,9 @@ Typed record and variant intentions additionally bind their referenced checked
 aggregate shapes before each history step is replayed. The comparison uses that
 step's original and rebased intermediate revisions, so earlier successful
 intentions remain part of the dependency context. Missing targets or changed
-ordered member identities/types reject with `SPX-G235`; names and source
-locations may also conservatively conflict. Generic template fingerprints bind
+ordered member identities/types reject with `SPX-G235`. Known descriptor display
+names are normalized separately from semantic identities; source locations and
+other retained provenance can still conservatively conflict. Generic template fingerprints bind
 ordered parameter identities even for phantom parameters; prelude fingerprints
 also bind the compiler-owned schema/digest provenance. This protects aggregate operands
 even when the changed function has a scalar signature. It does not prove
@@ -118,6 +150,7 @@ guards. No new type is considered present in the original source base.
 | Body edit and unrelated display rename, including the same source file | Replay permitted, then full admission. |
 | Same-target body edit plus function display rename | Replay permitted; stable identity selects the renamed declaration. |
 | Callee display rename changes a caller's source spelling | Stable-ID call normalization avoids a false caller-body conflict. |
+| Authenticated nominal/member display rename changes an existing type reference, field label or projection | Occurrence-bound normalization avoids a false signature/body/contract conflict; ordinary dependency checks and full source replay remain required. |
 | Target contracts changed while body/signature/display intent is replayed | Potentially compatible; full candidate rebuild required. This does not prove predicate truth or behavioral equivalence. |
 | Contract append while target body changed | Potentially compatible; full rebuild required. |
 | Independent contract appends with unchanged signature/effects | Append in merge order and fully rebuild. No duplicate-elimination or logical simplification is inferred. |
@@ -190,6 +223,13 @@ Project/source and AST traversal bounds constrain fingerprint work; individual
 body/contract/fingerprint renderers use a 16 MiB limit, and the final report
 uses a 1 MiB limit. These are not incremental-performance or aggregate-heap
 claims. Normalization and replay do not add persistent caches or ambient I/O.
+The additive occurrence path accounts at most 64 MiB for its sidecar, 64 MiB
+for serialized owner-shape work, 1,048,576 selected occurrences, and 16 MiB
+for all normalized source copies together. A per-file lexer envelope is checked
+before scanning marker identifiers. Sources without explicit authored records
+or variants retain the earlier scalar/prelude-only path. The new occurrence
+path retains the existing collector's unsupported-join rejections; it is not
+universal normalization of every language feature.
 
 | Diagnostic | Meaning |
 | --- | --- |

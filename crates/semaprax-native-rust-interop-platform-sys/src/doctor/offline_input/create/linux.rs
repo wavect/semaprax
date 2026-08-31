@@ -1,5 +1,5 @@
 //! Native operations on one fresh, exclusively owned memory-file descriptor.
-use super::{DoctorOfflineInput, Error};
+use super::{DoctorOfflineInput, Error, Storage};
 use std::fs::File;
 use std::os::fd::{AsRawFd, FromRawFd, IntoRawFd};
 
@@ -10,6 +10,7 @@ const REQUIRED: i32 = IMMUTABLE | libc::F_SEAL_EXEC;
 pub(super) fn create(
     bytes: &[u8],
     max_bytes: usize,
+    storage: Storage,
     #[cfg(test)] mut control: Option<&mut TestControl>,
 ) -> Result<(File, DoctorOfflineInput), Error> {
     // Every pwrite offset is representable before creating any descriptor.
@@ -24,12 +25,16 @@ pub(super) fn create(
             return Err(Error::Unsupported);
         }
     }
-    // Fixed debug name only. NOEXEC_SEAL is mandatory even on kernels whose
-    // current memfd policy defaults to NX; never retry with weaker flags.
+    // Closed internal policy, not caller-chosen flags. Neither explicit mode
+    // has an older-kernel, host-default, or executable-permission fallback.
+    let (name, execution_flag) = match storage {
+        Storage::NonExecutable => (c"semaprax-doctor-input", libc::MFD_NOEXEC_SEAL),
+        Storage::Executable => (c"semaprax-doctor-executable", libc::MFD_EXEC),
+    };
     let fd = unsafe {
         libc::memfd_create(
-            c"semaprax-doctor-input".as_ptr(),
-            libc::MFD_CLOEXEC | libc::MFD_ALLOW_SEALING | libc::MFD_NOEXEC_SEAL,
+            name.as_ptr(),
+            libc::MFD_CLOEXEC | libc::MFD_ALLOW_SEALING | execution_flag,
         )
     };
     if fd < 0 {
@@ -44,6 +49,7 @@ pub(super) fn create(
         file.borrow(),
         bytes,
         max_bytes,
+        storage,
         #[cfg(test)]
         &mut control,
     );
@@ -96,9 +102,24 @@ fn populate(
     file: &File,
     bytes: &[u8],
     max_bytes: usize,
+    storage: Storage,
     #[cfg(test)] control: &mut Option<&mut TestControl>,
 ) -> Result<DoctorOfflineInput, Error> {
     let fd = file.as_raw_fd();
+    if storage == Storage::Executable {
+        #[cfg(test)]
+        {
+            record(control, TestStage::Mode);
+            if fault(control, TestFault::Mode) {
+                return Err(Error::Io);
+            }
+        }
+        // Set owner-only read/execute immediately on the owned unpublished
+        // file. Its original O_RDWR description still permits bounded pwrite.
+        if unsafe { libc::fchmod(fd, 0o500) } != 0 {
+            return Err(Error::Io);
+        }
+    }
     let mut offset = 0;
     #[cfg(test)]
     let mut write_call = 0;
@@ -147,12 +168,17 @@ fn populate(
             return Err(Error::Io);
         }
     }
-    if unsafe { libc::fcntl(fd, libc::F_ADD_SEALS, IMMUTABLE) } != 0 {
+    let seals = match storage {
+        Storage::NonExecutable => IMMUTABLE,
+        Storage::Executable => REQUIRED,
+    };
+    if unsafe { libc::fcntl(fd, libc::F_ADD_SEALS, seals) } != 0 {
         return Err(Error::Io);
     }
     verify_properties(
         file,
         bytes.len(),
+        storage,
         #[cfg(test)]
         control,
     )?;
@@ -181,6 +207,7 @@ fn populate(
 fn verify_properties(
     file: &File,
     expected_length: usize,
+    storage: Storage,
     #[cfg(test)] control: &mut Option<&mut TestControl>,
 ) -> Result<(), Error> {
     let fd = file.as_raw_fd();
@@ -223,6 +250,14 @@ fn verify_properties(
     } else {
         mode
     };
+    #[cfg(test)]
+    let mode = if fault(control, TestFault::WrongMode) {
+        mode & !0o100
+    } else if fault(control, TestFault::ExcessMode) {
+        mode | 0o020
+    } else {
+        mode
+    };
     let length = metadata.st_size;
     #[cfg(test)]
     let length = if fault(control, TestFault::SizeMismatch) {
@@ -230,8 +265,12 @@ fn verify_properties(
     } else {
         length
     };
+    let valid_mode = match storage {
+        Storage::NonExecutable => mode & 0o111 == 0,
+        Storage::Executable => mode & 0o7777 == 0o500,
+    };
     if mode & libc::S_IFMT != libc::S_IFREG
-        || mode & 0o111 != 0
+        || !valid_mode
         || usize::try_from(length).map_err(|_| Error::Invalid)? != expected_length
     {
         return Err(Error::Invalid);
@@ -263,6 +302,7 @@ fn verify_properties(
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum TestStage {
     Create,
+    Mode,
     Write { offset: usize, length: usize },
     Seal,
     GetSeals,
@@ -287,6 +327,7 @@ pub(super) enum TestWriteFault {
 pub(super) enum TestFault {
     Create,
     CreateUnsupported,
+    Mode,
     Write {
         call: usize,
         outcome: TestWriteFault,
@@ -296,6 +337,8 @@ pub(super) enum TestFault {
     MissingSeals,
     Metadata,
     ExecutableMode,
+    WrongMode,
+    ExcessMode,
     SizeMismatch,
     GetFlags,
     MissingCloexec,

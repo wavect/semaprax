@@ -74,6 +74,51 @@ Creation does not authenticate content provenance, parse a profile, discover
 dependencies, start a worker, configure namespaces, or activate the ordinary
 CLI. Its returned file is transport storage, not execution authority.
 
+## Executable image creation
+
+The separate `create_doctor_offline_executable(bytes, max_bytes)` factory returns
+the same `(File, DoctorOfflineInput)` shape for worker/collector image storage.
+It does not change the non-executable factory or turn borrowed input acquisition
+into an executable validator. The safe facade delegates to the existing sys
+quarantine; both factories share one private creation, bounded-write, snapshot
+comparison and checked failure-cleanup implementation.
+
+Common zero-limit, above-ceiling, empty-input and input-length checks retain
+their order. Unsupported platforms then return `Unsupported`. On supported
+native64 Linux hosts, the existing minimum ELF validator checks the explicit
+bytes against the current architecture before creating a descriptor. Scripts,
+malformed framing and foreign images return `Invalid` without creation or
+cleanup effects. This is the same structural validator used by the bundle and
+launcher, not a second parser. A structurally admitted interpreter name is not
+looked up and does not prove that the image can load.
+
+The executable route requires `MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_EXEC`.
+Immediately after acquiring ownership of the new descriptor it sets mode
+`0500`, before writing image bytes. The already-open read/write description
+is used for bounded positional writes; no path reopen or temporary disk file
+is needed. It adds the four immutable seals and `F_SEAL_EXEC` together, then
+requires their presence, a regular file, exact permission/special bits `0500`,
+exact length and close-on-exec. Additional kernel seals are permitted. Existing
+sealed acquisition and exact byte comparison precede transfer of either result.
+The returned shared file offset is zero, and dropping the file leaves the
+snapshot valid. Creation/query/write/cleanup errors retain the ordinary input
+factory's error and one-shot ownership rules, including fail-stop uncertain
+closure. There is no retry with weaker flags, executable-mode downgrade, sysctl
+change or filesystem fallback when the host prohibits executable memory files.
+
+Linux can reject explicit executable memfds under its namespace policy.
+`F_SEAL_EXEC` prevents changing execute bits, not every permission or metadata
+field; executable sealing may add further write-related seals. See the
+[kernel API](https://docs.kernel.org/userspace-api/mfd_noexec.html) and
+[seal implementation](https://raw.githubusercontent.com/torvalds/linux/master/mm/memfd.c).
+Mode `0500` is checked at handoff, not promised immutable against later caller
+metadata operations. No factory result attests a particular worker/collector
+role, provenance, library/configuration closure, credential behavior or binfmt
+policy. It does not execute the bytes or confine other code in the calling
+process. The provisioner still owns those facts and aggregate resources;
+the [launcher](DOCTOR-OFFLINE-LAUNCHER-V1.md) independently validates its actual
+inherited descriptors before use. Ordinary CLI admission remains unavailable.
+
 ## Admission and ordering
 
 1. Reject a zero caller limit with `Invalid`; reject a caller limit above the
@@ -162,6 +207,23 @@ not silently skip or downgrade when that prerequisite is missing.
 ```sh
 cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib doctor::offline_input::create
 ```
+
+Executable-factory regressions retain the non-executable cases and add literal
+native ELF framing, pre-effect malformed/foreign/script and limit rejection,
+exact chunk boundaries, mode/offset/seal/content checks, blocked content/size/
+execute-bit mutations, failure-prefix and one-shot cleanup observations. Private
+fault controls exercise the shared native flow; they are not physical syscall
+fault evidence. A subprocess-only forced-close case must terminate without a
+later factory return. Unsupported-host cases do not substitute for Linux success.
+
+Launcher admission tests pass the actual returned executable files, not rebuilt
+copies, into both image roles. The ignored production-launcher fixtures use
+factory-created healthy images alongside independently constructed hostile
+images; malformed inputs must still reach launcher rejection tests rather than
+being filtered out by the factory first. No fixture has been executed here.
+Storage and structural acceptance do not prove executable startup; the real
+launcher/worker/collector runs need the complete provisioned context described
+in the launcher contract.
 
 The collector's ignored `tests/support/created_handoff.rs` additionally passes
 the actual production-created files to the existing trusted launch fixture,

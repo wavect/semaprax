@@ -20,8 +20,8 @@ pub use doctor_offline_bundle::{
 };
 #[doc(hidden)]
 pub use doctor_offline_input::{
-    create_doctor_offline_input, DoctorOfflineInput, DoctorOfflineInputError,
-    DOCTOR_OFFLINE_INPUT_MAX_BYTES,
+    create_doctor_offline_executable, create_doctor_offline_input, DoctorOfflineInput,
+    DoctorOfflineInputError, DOCTOR_OFFLINE_INPUT_MAX_BYTES,
 };
 mod host_target;
 #[doc(hidden)]

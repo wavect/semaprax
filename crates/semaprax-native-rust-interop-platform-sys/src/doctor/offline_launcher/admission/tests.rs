@@ -1,8 +1,8 @@
 //! Structural/storage admission only, never a physical no-child-created claim.
 use super::*;
 use crate::{
-    create_doctor_offline_input, encode_doctor_offline_bundle, DoctorOfflineBundleEntry,
-    DoctorOfflineBundleRoles, DoctorOfflineTarget,
+    create_doctor_offline_executable, create_doctor_offline_input, encode_doctor_offline_bundle,
+    DoctorOfflineBundleEntry, DoctorOfflineBundleRoles, DoctorOfflineTarget,
 };
 use std::io::Write;
 
@@ -135,6 +135,54 @@ fn both_images_require_sealed_executable_native_elf_and_preserve_inputs() {
             .bytes(),
         bytes
     );
+}
+
+#[test]
+fn production_created_executable_files_reach_both_roles_without_snapshot_substitution() {
+    let (request, bundle, request_bytes) = inputs();
+    // This minimal literal is structurally admitted, not a runnable worker or
+    // collector. Admission tests cannot authenticate executable role/provenance.
+    let bytes = image(None);
+    let (worker, worker_snapshot) = create_doctor_offline_executable(&bytes, bytes.len()).unwrap();
+    let (collector, collector_snapshot) =
+        create_doctor_offline_executable(&bytes, bytes.len()).unwrap();
+    assert_eq!(worker_snapshot.bytes(), bytes);
+    assert_eq!(collector_snapshot.bytes(), bytes);
+    assert_eq!(
+        validate_files(&request, &bundle, &worker, &collector),
+        Ok(())
+    );
+
+    let (nonexecutable, nonexecutable_snapshot) =
+        create_doctor_offline_input(&bytes, bytes.len()).unwrap();
+    assert_eq!(nonexecutable_snapshot.bytes(), bytes);
+    assert!(validate_files(&request, &bundle, &nonexecutable, &collector).is_err());
+    assert!(validate_files(&request, &bundle, &worker, &nonexecutable).is_err());
+    assert_eq!(
+        validate_files(&request, &bundle, &worker, &collector),
+        Ok(())
+    );
+
+    // Admission borrows the actual returned descriptors; it does not accept
+    // factory snapshots in their place or consume caller ownership on failure.
+    for file in [&worker, &collector, &nonexecutable] {
+        assert_eq!(
+            DoctorOfflineInput::acquire(file, bytes.len())
+                .unwrap()
+                .bytes(),
+            bytes
+        );
+    }
+    assert_eq!(
+        DoctorOfflineInput::acquire(&request, 149).unwrap().bytes(),
+        request_bytes
+    );
+    drop(worker);
+    drop(collector);
+    drop(nonexecutable);
+    assert_eq!(worker_snapshot.bytes(), bytes);
+    assert_eq!(collector_snapshot.bytes(), bytes);
+    assert_eq!(nonexecutable_snapshot.bytes(), bytes);
 }
 
 #[test]

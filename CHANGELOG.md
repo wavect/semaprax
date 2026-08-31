@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added production creation of sealed executable doctor images from explicit
+  native ELF bytes, sharing bounded writes and one-shot failure cleanup with
+  non-executable input creation. Added authored, unrun factory regressions and
+  actual-file launcher handoff coverage; hostile images still use independent
+  fixtures. No provenance, loader-closure, ordinary CLI or support promotion
+  is inferred from executable storage.
+
 - Added a private provisioner-owned doctor launcher: sealed input and executable
   preflight, fixed-descriptor worker creation, parent-death protection and
   pidfd-owned collector handoff with bounded failure settlement. Added authored,

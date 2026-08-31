@@ -11,8 +11,8 @@ pub use doctor::{
     SettledDoctorObservation, SettledDoctorTool,
 };
 pub use doctor::{
-    create_doctor_offline_input, DoctorOfflineInput, DoctorOfflineInputError,
-    DOCTOR_OFFLINE_INPUT_MAX_BYTES,
+    create_doctor_offline_executable, create_doctor_offline_input, DoctorOfflineInput,
+    DoctorOfflineInputError, DOCTOR_OFFLINE_INPUT_MAX_BYTES,
 };
 pub use doctor::{
     encode_doctor_offline_bundle, DoctorOfflineArchitecture, DoctorOfflineBundle,

@@ -2,7 +2,7 @@
 use std::fs::File;
 
 mod create;
-pub use create::create_doctor_offline_input;
+pub use create::{create_doctor_offline_executable, create_doctor_offline_input};
 
 #[cfg(all(
     target_os = "linux",

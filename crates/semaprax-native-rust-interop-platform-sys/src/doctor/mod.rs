@@ -62,8 +62,8 @@ pub use offline_bundle::{
     DoctorOfflineBundleRoles, DoctorOfflineTool,
 };
 pub use offline_input::{
-    create_doctor_offline_input, DoctorOfflineInput, DoctorOfflineInputError,
-    DOCTOR_OFFLINE_INPUT_MAX_BYTES,
+    create_doctor_offline_executable, create_doctor_offline_input, DoctorOfflineInput,
+    DoctorOfflineInputError, DOCTOR_OFFLINE_INPUT_MAX_BYTES,
 };
 
 #[cfg(test)]

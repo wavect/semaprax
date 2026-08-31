@@ -64,8 +64,11 @@ snapshots; limits bound each carrier, not total resident memory or kernel work.
 Executable images require explicit executable-memfd provisioning and the four
 immutable seals plus `F_SEAL_EXEC`. The
 [non-executable input factory](DOCTOR-SEALED-INPUT-V1.md#anonymous-carrier-creation)
-is appropriate for descriptors 3/4, never 5/6. There is no executable-mode
-fallback or conversion in the launcher. Structural image validation does not
+is appropriate for descriptors 3/4, never 5/6. The separate
+[executable factory](DOCTOR-SEALED-INPUT-V1.md#executable-image-creation) creates
+sealed owner-executable images from explicit native ELF bytes; it does not
+authenticate their provenance. There is no executable-mode fallback or
+conversion in the launcher. Structural image validation does not
 prove loadability, correct role, trusted provenance or loader closure. The
 same approved image descriptors remain pinned through their actual exec.
 

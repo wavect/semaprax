@@ -2,7 +2,9 @@
 //! The trusted driver provisions immutable images and maps only its four files.
 //! Rejection observations alone do not prove absence of child or tool effects.
 use super::{fixture, launch, observe, report};
-use semaprax_native_rust_interop_platform_sys::create_doctor_offline_input;
+use semaprax_native_rust_interop_platform_sys::{
+    create_doctor_offline_executable, create_doctor_offline_input,
+};
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::os::fd::{AsRawFd, FromRawFd};
@@ -37,6 +39,18 @@ fn installed_image(variable: &str) -> Vec<u8> {
     bytes
 }
 
+fn prepared_executable(bytes: &[u8]) -> File {
+    assert!(!bytes.is_empty() && bytes.len() <= IMAGE_LIMIT);
+    let (file, snapshot) = create_doctor_offline_executable(bytes, bytes.len()).unwrap();
+    assert_eq!(snapshot.bytes(), bytes);
+    // The launcher receives the actual factory-created file. A retained byte
+    // snapshot cannot substitute for the executable descriptor handoff.
+    drop(snapshot);
+    file
+}
+
+// Independent hostile image construction: malformed bytes or absent seals
+// must reach launcher admission, not be rejected by the production factory.
 fn executable_file(bytes: &[u8], execution_seal: bool) -> File {
     assert!(!bytes.is_empty() && bytes.len() <= IMAGE_LIMIT);
     let fd = unsafe {
@@ -128,8 +142,8 @@ fn healthy(request: &File, bundle: &File, worker: &File, collector: &File, all: 
 #[ignore = "requires current-head production launcher/worker/collector and fully provisioned native context"]
 fn production_launcher_reports_native_and_all_from_literal_transport_files() {
     context();
-    let worker = executable_file(&installed_image("SEMAPRAX_DOCTOR_WORKER"), true);
-    let collector = executable_file(&installed_image("SEMAPRAX_DOCTOR_COLLECTOR"), true);
+    let worker = prepared_executable(&installed_image("SEMAPRAX_DOCTOR_WORKER"));
+    let collector = prepared_executable(&installed_image("SEMAPRAX_DOCTOR_COLLECTOR"));
     for all in [false, true] {
         // Independent existing literal helpers, not launcher-private encoders.
         let bytes = if all {
@@ -149,8 +163,8 @@ fn production_launcher_rejects_both_image_defects_and_digest_drift() {
     context();
     let worker_bytes = installed_image("SEMAPRAX_DOCTOR_WORKER");
     let collector_bytes = installed_image("SEMAPRAX_DOCTOR_COLLECTOR");
-    let worker = executable_file(&worker_bytes, true);
-    let collector = executable_file(&collector_bytes, true);
+    let worker = prepared_executable(&worker_bytes);
+    let collector = prepared_executable(&collector_bytes);
     let bundle_bytes = fixture::bundle();
     let request_bytes = fixture::request(&bundle_bytes);
     let request = transport(&request_bytes);
@@ -207,8 +221,8 @@ fn production_launcher_rejects_structural_collector_with_missing_loader() {
         std::fs::symlink_metadata(missing).unwrap_err().kind(),
         io::ErrorKind::NotFound
     );
-    let worker = executable_file(&installed_image("SEMAPRAX_DOCTOR_WORKER"), true);
-    let collector = executable_file(&installed_image("SEMAPRAX_DOCTOR_COLLECTOR"), true);
+    let worker = prepared_executable(&installed_image("SEMAPRAX_DOCTOR_WORKER"));
+    let collector = prepared_executable(&installed_image("SEMAPRAX_DOCTOR_COLLECTOR"));
     let bytes = fixture::bundle();
     let request = transport(&fixture::request(&bytes));
     let bundle = transport(&bytes);

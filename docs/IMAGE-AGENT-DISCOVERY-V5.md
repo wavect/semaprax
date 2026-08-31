@@ -107,6 +107,12 @@ helpers call the existing method-bound decoder first; generic decoders retain
 their signatures. Types derive only from the bundled response documents, while
 explicitly unbundled reports and JSON inside chunk strings remain opaque.
 
+[Typed Request Clients v1](IMAGE-TYPED-REQUEST-CLIENTS-V1.md) adds
+`<Method>TypedParams` and `request_*_typed` helpers describing complete request
+parameters, including recursive compiler-owned constructor shapes. Existing
+builders keep their signatures. The new builders share their outer validation;
+static constructor types do not replace compiler admission.
+
 `candidate/source-review` adds a typed chunk envelope and separately bundled
 closed source-review report schema. Clients must reassemble and validate the
 encoded report and its digests separately; a typed chunk string is not source
@@ -114,20 +120,23 @@ verification. See [Source Review v1](PROJECT-CANDIDATE-SOURCE-REVIEW-V1.md).
 
 The helpers validate closed outer parameter shapes, enum values, digest format,
 integer and UTF-8 bounds, control characters, and request byte limits. Nested
-constructor objects remain JSON objects and are checked by the compiler; their
+constructor values remain JSON objects and are checked by the compiler; their
 full schemas are available in `protocol/schemas`. These helpers are not general
 JSON Schema validators and do not duplicate semantic admission. Constructor-only
 schema documents and unrelated inner reports are omitted from generated runtime
 metadata: only the transitive documents reached by the selected response payloads
 are embedded. All documents remain available in the complete schema bundle.
 
-Client generation audits every consumed schema against the common implemented
+Runtime-validation schema generation audits its consumed schemas against the common implemented
 subset: closed objects, typed scalar bounds, arrays, constants/enums, alternatives,
 absolute document references, and the exact digest/control patterns. Unsupported
 keywords, local references, reference siblings requiring additional assertions,
 schema-valued additional properties, or assertions without their matching type
 fail generation with `SPX-G288`. They are never silently discarded. This is a
 deliberately bounded validator, not a general Draft 2020-12 implementation.
+The separate static request model can describe local recursive references and
+documents its own supported shapes and limits; it does not expand this runtime
+validator's contract.
 
 Decoders match request IDs, protocol/result version, exact envelope fields,
 digest fields, and bundled transport payload shapes. Unbundled results remain

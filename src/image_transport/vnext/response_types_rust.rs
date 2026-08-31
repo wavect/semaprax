@@ -1,6 +1,6 @@
 //! Rust representations retain integer range and optional/null distinctions.
 use super::{Model, Result, Shape};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
 
 const SUPPORT: &str = r#"
@@ -42,8 +42,69 @@ pub fn typed_result<T:serde::de::DeserializeOwned>(envelope:ResultEnvelope)->Res
 }
 "#;
 
+const RECURSIVE_SUPPORT: &str = r#"
+std::thread_local! {
+    static RESPONSE_TYPED_STATE: std::cell::Cell<(usize,usize,bool)> = const { std::cell::Cell::new((0,0,false)) };
+}
+struct ResponseTypeDecodeGuard;
+impl ResponseTypeDecodeGuard {
+    fn enter()->Result<Self,String> {
+        RESPONSE_TYPED_STATE.with(|state| {
+            let (mut remaining,depth,mut failed)=state.get();
+            if depth==0 { remaining=65_536; failed=false; }
+            if failed || depth>=128 || remaining==0 {
+                state.set((remaining,depth,true));
+                return Err("recursive typed response conversion capacity exceeded".into());
+            }
+            state.set((remaining-1,depth+1,false));
+            Ok(Self)
+        })
+    }
+    fn charge()->Result<(),String> {
+        RESPONSE_TYPED_STATE.with(|state| {
+            let (remaining,depth,failed)=state.get();
+            if failed || remaining==0 {
+                state.set((remaining,depth,true));
+                return Err("recursive typed response conversion capacity exceeded".into());
+            }
+            state.set((remaining-1,depth,false));
+            Ok(())
+        })
+    }
+    fn check()->Result<(),String> {
+        if RESPONSE_TYPED_STATE.with(|state|state.get().2) {
+            Err("recursive typed response conversion capacity exceeded".into())
+        } else { Ok(()) }
+    }
+}
+impl Drop for ResponseTypeDecodeGuard {
+    fn drop(&mut self) {
+        RESPONSE_TYPED_STATE.with(|state| {
+            let (remaining,depth,failed)=state.get();
+            state.set((remaining,depth.saturating_sub(1),failed));
+        });
+    }
+}
+"#;
+
 pub(super) fn emit(model: &Model) -> Result<String> {
-    let mut source = SUPPORT.to_owned();
+    let recursive = super::recursive_names(model)?;
+    let mut source = if recursive.is_empty() {
+        SUPPORT.to_owned()
+    } else {
+        let mut support = SUPPORT.replace(
+            "    let payload=serde_json::from_value(envelope.payload).map_err(|error|error.to_string())?;",
+            "    let _budget=ResponseTypeDecodeGuard::enter()?;\n    let payload=serde_json::from_value(envelope.payload);\n    ResponseTypeDecodeGuard::check()?;\n    let payload=payload.map_err(|error|error.to_string())?;",
+        );
+        support.push_str(RECURSIVE_SUPPORT);
+        support
+    };
+    let shapes = model
+        .definitions
+        .iter()
+        .map(|definition| (definition.name.as_str(), &definition.shape))
+        .collect::<BTreeMap<_, _>>();
+    let mut guard_work = 0;
     for definition in &model.definitions {
         let name = &definition.name;
         match &definition.shape {
@@ -52,10 +113,32 @@ pub(super) fn emit(model: &Model) -> Result<String> {
             Shape::Integer => writeln!(source, "pub type {name} = ResponseInteger;").unwrap(),
             Shape::String => writeln!(source, "pub type {name} = String;").unwrap(),
             Shape::Null => writeln!(source, "pub type {name} = ();").unwrap(),
-            Shape::Alias(target) => writeln!(source, "pub type {name} = {target};").unwrap(),
-            Shape::Array(item) => writeln!(source, "pub type {name} = Vec<{item}>;").unwrap(),
+            Shape::Alias(target) => {
+                if recursive.contains(name) {
+                    transparent(&mut source, name, &format!("Box<{target}>"));
+                } else {
+                    writeln!(source, "pub type {name} = {target};").unwrap();
+                }
+            }
+            Shape::Array(item) => {
+                if recursive.contains(name) {
+                    transparent(&mut source, name, &format!("Vec<{item}>"));
+                } else {
+                    writeln!(source, "pub type {name} = Vec<{item}>;").unwrap();
+                }
+            }
             Shape::Tuple(items) => {
-                if items.is_empty() {
+                if recursive.contains(name) {
+                    let boxed = items
+                        .iter()
+                        .map(|ty| format!("Box<{ty}>"))
+                        .collect::<Vec<_>>();
+                    if items.len() <= 12 {
+                        transparent(&mut source, name, &format!("({},)", boxed.join(",")));
+                    } else {
+                        sequence(&mut source, name, &boxed);
+                    }
+                } else if items.is_empty() {
                     writeln!(source, "pub type {name} = [Value; 0];").unwrap();
                 } else if items.len() <= 12 {
                     writeln!(source, "pub type {name} = ({},);", items.join(",")).unwrap();
@@ -77,11 +160,34 @@ pub(super) fn emit(model: &Model) -> Result<String> {
                 writeln!(source,"impl Serialize for {name} {{\n    fn serialize<S:serde::Serializer>(&self,serializer:S)->Result<S::Ok,S::Error> {{\n        let expected:Value=serde_json::from_str({literal:?}).map_err(serde::ser::Error::custom)?;\n        expected.serialize(serializer)\n    }}\n}}").unwrap();
             }
             Shape::Union(alternatives) => {
-                writeln!(source,"#[derive(Clone, Debug, Serialize, Deserialize)]\n#[serde(untagged)]\npub enum {name} {{").unwrap();
+                let derives = if recursive.contains(name) {
+                    "Clone, Debug, Serialize"
+                } else {
+                    "Clone, Debug, Serialize, Deserialize"
+                };
+                writeln!(
+                    source,
+                    "#[derive({derives})]\n#[serde(untagged)]\npub enum {name} {{"
+                )
+                .unwrap();
                 for (index, ty) in alternatives.iter().enumerate() {
-                    writeln!(source, "    Choice{index}({ty}),").unwrap();
+                    if recursive.contains(name) && recursive.contains(ty) {
+                        writeln!(source, "    Choice{index}(Box<{ty}>),").unwrap();
+                    } else {
+                        writeln!(source, "    Choice{index}({ty}),").unwrap();
+                    }
                 }
                 writeln!(source, "}}").unwrap();
+                if recursive.contains(name) {
+                    recursive_union(
+                        &mut source,
+                        name,
+                        alternatives,
+                        &recursive,
+                        &shapes,
+                        &mut guard_work,
+                    )?;
+                }
             }
             Shape::Object { fields, open } => {
                 writeln!(source, "#[derive(Clone, Debug, Serialize, Deserialize)]").unwrap();
@@ -105,15 +211,20 @@ pub(super) fn emit(model: &Model) -> Result<String> {
                         fallback
                     };
                     writeln!(source, "    #[serde(rename = {original:?})]").unwrap();
-                    let ty = if field.required {
+                    let inner = if recursive.contains(name) && recursive.contains(&field.ty) {
+                        format!("Box<{}>", field.ty)
+                    } else {
                         field.ty.clone()
+                    };
+                    let ty = if field.required {
+                        inner
                     } else {
                         writeln!(
                             source,
                             "    #[serde(default, skip_serializing_if = \"Presence::is_missing\")]"
                         )
                         .unwrap();
-                        format!("Presence<{}>", field.ty)
+                        format!("Presence<{inner}>")
                     };
                     writeln!(source, "    pub r#{identifier}: {ty},").unwrap();
                 }
@@ -134,6 +245,118 @@ pub(super) fn emit(model: &Model) -> Result<String> {
         }
     }
     Ok(source)
+}
+
+fn transparent(source: &mut String, name: &str, inner: &str) {
+    writeln!(source,"#[derive(Clone, Debug, Serialize, Deserialize)]\n#[serde(transparent)]\npub struct {name}(pub {inner});").unwrap();
+}
+
+fn recursive_union(
+    source: &mut String,
+    name: &str,
+    alternatives: &[String],
+    recursive: &BTreeSet<String>,
+    shapes: &BTreeMap<&str, &Shape>,
+    work: &mut usize,
+) -> Result<()> {
+    writeln!(source,"impl<'de> Deserialize<'de> for {name} {{\n    fn deserialize<D:serde::Deserializer<'de>>(deserializer:D)->Result<Self,D::Error> {{\n        let _budget=ResponseTypeDecodeGuard::enter().map_err(serde::de::Error::custom)?;\n        let value=Value::deserialize(deserializer)?;").unwrap();
+    for (index, target) in alternatives.iter().enumerate() {
+        let guard = branch_guard(target, shapes, work)?;
+        let ty = if recursive.contains(target) {
+            format!("Box<{target}>")
+        } else {
+            target.clone()
+        };
+        writeln!(source,"        ResponseTypeDecodeGuard::charge().map_err(serde::de::Error::custom)?;\n        if {guard} {{\n            if let Ok(parsed)=serde_json::from_value::<{ty}>(value.clone()) {{\n                ResponseTypeDecodeGuard::check().map_err(serde::de::Error::custom)?;\n                return Ok(Self::Choice{index}(parsed));\n            }}\n        }}").unwrap();
+    }
+    writeln!(source,"        ResponseTypeDecodeGuard::check().map_err(serde::de::Error::custom)?;\n        Err(serde::de::Error::custom(\"recursive response union has no admitted branch\"))\n    }}\n}}").unwrap();
+    Ok(())
+}
+
+fn terminal_shape<'a>(
+    mut name: &'a str,
+    shapes: &BTreeMap<&str, &'a Shape>,
+    work: &mut usize,
+) -> Result<&'a Shape> {
+    for _ in 0..=128 {
+        *work += 1;
+        if *work > 65_536 {
+            return Err(super::capacity(
+                "typed Rust response discriminant traversal exceeds its bound",
+            ));
+        }
+        match shapes.get(name).copied() {
+            Some(Shape::Alias(next)) => name = next,
+            Some(shape) => return Ok(shape),
+            None => {
+                return Err(super::invalid(
+                    "typed response discriminant names an absent definition",
+                ))
+            }
+        }
+    }
+    Err(super::invalid(
+        "typed response discriminant alias chain is cyclic or too deep",
+    ))
+}
+
+fn scalar_guard(shape: &Shape, value: &str) -> Option<String> {
+    match shape {
+        Shape::Null => Some(format!("{value}.is_null()")),
+        Shape::Literal(serde_json::Value::String(literal)) => {
+            Some(format!("{value}.as_str()==Some({literal:?})"))
+        }
+        Shape::Literal(serde_json::Value::Bool(literal)) => {
+            Some(format!("{value}.as_bool()==Some({literal})"))
+        }
+        Shape::Literal(serde_json::Value::Number(literal)) if literal.is_i64() => Some(format!(
+            "{value}.as_i64()==Some({}i64)",
+            literal.as_i64().expect("checked i64")
+        )),
+        Shape::Literal(serde_json::Value::Number(literal)) if literal.is_u64() => Some(format!(
+            "{value}.as_u64()==Some({}u64)",
+            literal.as_u64().expect("checked u64")
+        )),
+        _ => None,
+    }
+}
+
+fn branch_guard(target: &str, shapes: &BTreeMap<&str, &Shape>, work: &mut usize) -> Result<String> {
+    let shape = terminal_shape(target, shapes, work)?;
+    if let Some(guard) = scalar_guard(shape, "value") {
+        return Ok(guard);
+    }
+    Ok(match shape {
+        Shape::Object { fields, .. } => {
+            let mut guard = "value.is_object()".to_owned();
+            // Inspect only schema-proven scalar constants. In particular kind
+            // and target are checked before recursively decoding arguments or
+            // bodies, regardless of canonical JSON/property ordering.
+            for field in fields {
+                if let Some(check) =
+                    scalar_guard(terminal_shape(&field.ty, shapes, work)?, "literal")
+                {
+                    let predicate = if field.required {
+                        "is_some_and"
+                    } else {
+                        "is_none_or"
+                    };
+                    write!(
+                        guard,
+                        " && value.get({:?}).{predicate}(|literal|{check})",
+                        field.name
+                    )
+                    .unwrap();
+                }
+            }
+            guard
+        }
+        Shape::Array(_) | Shape::Tuple(_) => "value.is_array()".into(),
+        Shape::Bool => "value.is_boolean()".into(),
+        Shape::Integer => "(value.is_i64() || value.is_u64())".into(),
+        Shape::String => "value.is_string()".into(),
+        _ => "true".into(),
+    })
 }
 
 fn rust_field(name: &str) -> bool {

@@ -12,20 +12,32 @@ pub struct ResultEnvelope {
 pub struct RpcError { pub code: i64, pub message: String }
 fn metadata() -> Result<Value,String> { serde_json::from_str(METADATA).map_err(|e|e.to_string()) }
 fn check(value:&Value, schema:&Value, meta:&Value, depth:usize)->Result<(),String> {
+    check_bounded(value,schema,meta,depth,&mut 1_048_576usize)
+}
+fn check_bounded(value:&Value, schema:&Value, meta:&Value, depth:usize, work:&mut usize)->Result<(),String> {
+    *work=work.checked_sub(1).ok_or("shape work exceeded")?;
     if depth>128 { return Err("shape depth exceeded".into()); }
     if let Some(reference)=schema["$ref"].as_str() {
-        if let Some(document)=meta["documents"].get(reference) { return check(value,document,meta,depth+1); }
+        if let Some(document)=meta["documents"].get(reference) { return check_bounded(value,document,meta,depth+1,work); }
         if meta["unbundled"].as_array().is_some_and(|items|items.iter().any(|item|item==reference)) && value["schema"]==reference.strip_prefix("urn:").unwrap_or(reference) { return Ok(()); }
         return Err("unresolved or foreign payload schema".into());
     }
     for alternative in ["oneOf","anyOf"] {
         if let Some(branches)=schema[alternative].as_array() {
-            let count=branches.iter().filter(|branch|check(value,branch,meta,depth+1).is_ok()).count();
+            let mut count=0;
+            for branch in branches {
+                match check_bounded(value,branch,meta,depth+1,work) {
+                    Ok(())=>count+=1,
+                    Err(error) if error=="shape work exceeded" || error=="shape depth exceeded"=>return Err(error),
+                    Err(_)=>{},
+                }
+            }
             if (alternative=="oneOf" && count!=1) || (alternative=="anyOf" && count==0) { return Err("shape alternatives mismatch".into()); }
         }
     }
     if schema.get("const").is_some_and(|expected|value!=expected) { return Err("constant mismatch".into()); }
     if schema["enum"].as_array().is_some_and(|values|!values.contains(value)) { return Err("choice mismatch".into()); }
+    if schema["not"]["enum"].as_array().is_some_and(|values|values.contains(value)) { return Err("excluded choice".into()); }
     match schema["type"].as_str() {
         Some("null") if !value.is_null()=>return Err("null required".into()),
         Some("boolean") if !value.is_boolean()=>return Err("boolean required".into()),
@@ -44,21 +56,44 @@ fn check(value:&Value, schema:&Value, meta:&Value, depth:usize)->Result<(),Strin
                     if text.len()!=71 || !text.starts_with("sha256:") || !text.as_bytes()[7..].iter().all(|c|c.is_ascii_digit() || (b'a'..=b'f').contains(c)) { return Err("digest format".into()); }
                 } else if pattern=="^[^\\u0000-\\u001f\\u007f-\\u009f]+$" {
                     if text.is_empty() || text.chars().any(char::is_control) { return Err("control character".into()); }
+                } else if pattern=="^[A-Za-z_][A-Za-z0-9_]*$" {
+                    let mut bytes=text.bytes();
+                    if !bytes.next().is_some_and(|byte|byte.is_ascii_alphabetic() || byte==b'_') || !bytes.all(|byte|byte.is_ascii_alphanumeric() || byte==b'_') { return Err("identifier format".into()); }
+                } else if pattern=="^[A-Za-z0-9_.:-]+$" {
+                    if text.is_empty() || !text.bytes().all(|byte|byte.is_ascii_alphanumeric() || matches!(byte,b'_'|b'.'|b':'|b'-')) { return Err("binding format".into()); }
+                } else if pattern=="^[a-z0-9._-]+$" {
+                    if text.is_empty() || !text.bytes().all(|byte|byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte,b'.'|b'_'|b'-')) { return Err("stable identity format".into()); }
                 } else { return Err("unsupported client pattern; use compiler schema validator".into()); }
             }
         },
         Some("object")=>{
             let object=value.as_object().ok_or("object required")?;
             if schema["required"].as_array().is_some_and(|names|names.iter().any(|name|!object.contains_key(name.as_str().unwrap_or("")))) { return Err("missing field".into()); }
+            // Reject a foreign discriminant before walking a recursive body/argument.
+            if let Some(properties)=schema["properties"].as_object() {
+                for (name,field) in properties {
+                    if field.get("const").is_some() {
+                        if let Some(item)=object.get(name) { check_bounded(item,field,meta,depth+1,work)?; }
+                    }
+                }
+            }
             for(name,item)in object {
-                if let Some(field)=schema["properties"].get(name) { check(item,field,meta,depth+1)?; }
+                if let Some(field)=schema["properties"].get(name) { check_bounded(item,field,meta,depth+1,work)?; }
                 else if schema["additionalProperties"]==false { return Err(format!("unknown field {name}")); }
             }
         },
         Some("array")=>{
             let values=value.as_array().ok_or("array required")?;
             if (values.len() as u64)<schema["minItems"].as_u64().unwrap_or(0) || (values.len() as u64)>schema["maxItems"].as_u64().unwrap_or(u64::MAX) { return Err("array bound".into()); }
-            if let Some(items)=schema.get("items") { for value in values { check(value,items,meta,depth+1)?; } }
+            if let Some(items)=schema.get("items") { for value in values { check_bounded(value,items,meta,depth+1,work)?; } }
+            if schema["uniqueItems"]==true {
+                let mut seen=std::collections::BTreeSet::new();
+                for value in values {
+                    *work=work.checked_sub(1).ok_or("shape work exceeded")?;
+                    let text=value.as_str().ok_or("unique string items required")?;
+                    if !seen.insert(text) { return Err("unique string items required".into()); }
+                }
+            }
         }, _=>{},
     }
     Ok(())
@@ -98,8 +133,9 @@ pub fn decode(line:&str,method:&str,id:&RpcId)->Result<ResultEnvelope,String> {
     let result:ResultEnvelope=serde_json::from_value(value["result"].clone()).map_err(|e|e.to_string())?;
     if result.schema!=RESULT_SCHEMA || result.protocol!=PROTOCOL { return Err("protocol mismatch".into()); }
     let digest=json!({"type":"string","pattern":"^sha256:[0-9a-f]{64}$"});
-    check(&json!(result.image_revision),&digest,&meta,0)?;
-    check(&json!(result.project_revision),&digest,&meta,0)?;
-    check(&result.payload,&entry["payload"],&meta,0)?;
+    let mut work=1_048_576usize;
+    check_bounded(&json!(result.image_revision),&digest,&meta,0,&mut work)?;
+    check_bounded(&json!(result.project_revision),&digest,&meta,0,&mut work)?;
+    check_bounded(&result.payload,&entry["payload"],&meta,0,&mut work)?;
     Ok(result)
 }

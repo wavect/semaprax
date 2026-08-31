@@ -505,10 +505,16 @@ ordinary NDJSON and `serve-workspace-mcp`; no client capability becomes authorit
 See [MCP Adapter](IMAGE-MCP-ADAPTER-V1.md) for bounds and unrun evidence.
 
 Discovery's `clients.rs` retains selected-method request generation and runtime
-validation. `response_types.rs` builds a shared bounded response-type model from
-the already audited reachable payload schemas; `response_types_rust.rs` and
+validation. Its bounded response normalizer lifts only document-local definitions
+from reachable schemas into an internal absolute-reference registry and retains
+all supported assertions. `repair_schemas.rs` composes the closed repair report
+from the existing constructor owner, restricted to actual body repair forms.
+`response_types.rs` builds a shared bounded response-type model with guarded
+recursion from the already audited reachable payload schemas; `response_types_rust.rs` and
 `response_types_script.rs` emit concrete Rust, TypeScript and Python shapes.
-Additive typed decoders enter through the existing validators. Unbundled reports
+Additive typed decoders enter through validators whose work budget is shared
+across recursive references and failed alternative trials. Constant discriminants
+are checked before recursive fields. Unbundled reports
 remain opaque, and no generated helper owns transport or publication authority.
 See [Typed Response Clients](IMAGE-TYPED-RESPONSE-CLIENTS-V1.md).
 

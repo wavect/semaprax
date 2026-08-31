@@ -90,6 +90,14 @@ unbundled because they include heterogeneous HIR/impact facts. Source diffs are
 strings inside those owning candidate reports; no new standalone source-diff
 payload is invented. These limitations do not make their chunk envelope opaque.
 
+The selected `attempt/repair-catalog` payload is now bundled as a closed report
+with empty, integer-literal and byte-field repair alternatives. Its recursive
+typed bodies reuse the compiler-owned constructor grammar. Generated response
+clients normalize document-local definitions without fetching schemas and check
+their supported assertions before returning typed payloads. Cross-field repair
+identity, provenance and admission still require compiler replay; a schema is
+not a repair receipt. Other heterogeneous reports remain explicitly unbundled.
+
 The candidate ownership-delta, contract-delta, interface-delta and symbol-diagnostics queries
 likewise have concrete chunk envelopes and explicit owning report-schema listings.
 Ownership, contract and interface deltas require candidate preparation; symbol diagnostics
@@ -119,6 +127,10 @@ payload/result aliases and `decode_*_typed` helpers for selected methods. These
 helpers call the existing method-bound decoder first; generic decoders retain
 their signatures. Types derive only from the bundled response documents, while
 explicitly unbundled reports and JSON inside chunk strings remain opaque.
+Guarded recursive response structures now have concrete language types;
+alias-only cycles remain rejected. Runtime shape validation shares its bounded
+work across every alternative and rejects mismatched constant discriminants
+before descending through recursive child values.
 
 [Typed Request Clients v1](IMAGE-TYPED-REQUEST-CLIENTS-V1.md) adds
 `<Method>TypedParams` and `request_*_typed` helpers describing complete request

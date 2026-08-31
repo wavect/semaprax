@@ -25,6 +25,13 @@
   local regressions pass; full-profile and current-head hosted promotion remain
   pending.
 
+- Added guarded recursive response types and complete repair-catalogue schemas
+  to generated v5 clients. Response-reachable local definitions retain their
+  document scope and asserted constraints, while alias-only cycles and unknown
+  assertions fail closed. Shared runtime validation budgets include failed
+  alternatives. Generated clients remain I/O-free and grant no authority;
+  regression evidence is authored, unrun.
+
 - Added compiler-guided repair for rejected byte-field views staged through
   value projections. An actual `SPX-T266` rejection and full candidate admission
   are required before offering direct field storage with unchanged stable field

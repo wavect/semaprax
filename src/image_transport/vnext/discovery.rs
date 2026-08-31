@@ -11,6 +11,8 @@ use std::collections::{BTreeMap, BTreeSet};
 mod clients;
 #[path = "payload_schemas.rs"]
 mod payload_schemas;
+#[path = "repair_schemas.rs"]
+mod repair_schemas;
 
 const MAX_DISCOVERY_BYTES: usize = 900 * 1024;
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
@@ -121,6 +123,7 @@ pub(super) fn payload(
             .iter()
             .any(|method| method.name == "attempt/repair-catalog")
         {
+            instructions.push_str(" The selected repair catalogue has a complete closed response schema, including empty catalogues and separate literal and field-borrow proposal shapes. Its recursive expression bodies reuse compiler constructor grammar; generated response decoders validate normalized local definitions through exact registry references. Structural validation does not replay source, establish lexical or ownership admission, authorize repair selection, or run tests. Other explicitly unbundled reports remain opaque.");
             instructions.push_str(" Discover repairs only from attempt/repair-catalog after a retained rejection. change/catalog may describe multiple repair_diagnostic classes for one target; those descriptors do not promise an available repair. retag_integer_literal_to_retained_return_type preserves the existing bounded literal repair. borrow_owned_byte_field_without_staging requires a recorded SPX-T266 rejection and an exact compiler builtin byte-view pattern over a direct lexical field projection; its proposal replaces staging with authenticated field_place and is emitted only after ordinary full candidate admission succeeds. The rejected_intent remains a replace_function_body for the same target with a closed typed expression body, never a nested repair. Select the exact predecessor-bound repair_id explicitly; stale histories require rediscovery. No arbitrary borrow repair, ownership transfer, contract weakening, test execution or source authority is implied.");
         }
         if methods
@@ -256,6 +259,13 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
     }
     for (id, document) in payload_schemas::documents(capabilities) {
         documents.insert(id, document);
+    }
+    if descriptors
+        .iter()
+        .any(|descriptor| descriptor["method"] == "attempt/repair-catalog")
+    {
+        let repair = repair_schemas::schema(&documents)?;
+        documents.insert(repair_schemas::ID.to_owned(), repair);
     }
     if descriptors.iter().any(|descriptor| {
         matches!(

@@ -236,12 +236,14 @@ fn audit_schema(schema: &Value, refs: &mut BTreeSet<String>, depth: usize) -> Re
                 | "items"
                 | "minItems"
                 | "maxItems"
+                | "uniqueItems"
                 | "minimum"
                 | "maximum"
                 | "minLength"
                 | "maxLength"
                 | "x-max-utf8-bytes"
                 | "pattern"
+                | "not"
         ) {
             return Err(invalid(
                 "client schema uses an unsupported validation keyword",
@@ -282,10 +284,19 @@ fn audit_schema(schema: &Value, refs: &mut BTreeSet<String>, depth: usize) -> Re
             "object",
             &["properties", "required", "additionalProperties"][..],
         ),
-        ("array", &["items", "minItems", "maxItems"][..]),
+        (
+            "array",
+            &["items", "minItems", "maxItems", "uniqueItems"][..],
+        ),
         (
             "string",
-            &["minLength", "maxLength", "x-max-utf8-bytes", "pattern"][..],
+            &[
+                "minLength",
+                "maxLength",
+                "x-max-utf8-bytes",
+                "pattern",
+                "not",
+            ][..],
         ),
         ("integer", &["minimum", "maximum"][..]),
     ] {
@@ -304,8 +315,48 @@ fn audit_schema(schema: &Value, refs: &mut BTreeSet<String>, depth: usize) -> Re
         ));
     }
     if let Some(pattern) = fields.get("pattern") {
-        if pattern != "^sha256:[0-9a-f]{64}$" && pattern != r"^[^\u0000-\u001f\u007f-\u009f]+$" {
+        if !matches!(
+            pattern.as_str(),
+            Some(
+                "^sha256:[0-9a-f]{64}$"
+                    | r"^[^\u0000-\u001f\u007f-\u009f]+$"
+                    | "^[A-Za-z_][A-Za-z0-9_]*$"
+                    | "^[A-Za-z0-9_.:-]+$"
+                    | "^[a-z0-9._-]+$"
+            )
+        ) {
             return Err(invalid("client schema uses an unsupported pattern"));
+        }
+    }
+    if let Some(excluded) = fields.get("not") {
+        let object = excluded
+            .as_object()
+            .ok_or_else(|| invalid("client exclusion must be a closed finite string enum"))?;
+        let values = object
+            .get("enum")
+            .and_then(Value::as_array)
+            .filter(|values| !values.is_empty() && values.len() <= 4096)
+            .ok_or_else(|| invalid("client exclusion requires a bounded nonempty enum"))?;
+        let mut unique = BTreeSet::new();
+        if object.len() != 1
+            || values
+                .iter()
+                .any(|value| value.as_str().is_none_or(|value| !unique.insert(value)))
+        {
+            return Err(invalid("client exclusion must contain unique strings only"));
+        }
+    }
+    if let Some(unique) = fields.get("uniqueItems") {
+        if !unique.is_boolean()
+            || (unique == true
+                && (schema["items"]["type"] != "string"
+                    || !schema["maxItems"]
+                        .as_u64()
+                        .is_some_and(|bound| bound <= 4096)))
+        {
+            return Err(invalid(
+                "client uniqueness requires a bounded direct string array",
+            ));
         }
     }
     for keyword in ["oneOf", "anyOf"] {
@@ -336,13 +387,183 @@ fn audit_schema(schema: &Value, refs: &mut BTreeSet<String>, depth: usize) -> Re
     Ok(())
 }
 
+/// Lift only root-local compiler definitions. Schema positions are visited
+/// explicitly so literal objects containing `$ref` remain literal data.
+struct ResponseNormalizer {
+    work: usize,
+    bytes: usize,
+}
+impl ResponseNormalizer {
+    fn document(&mut self, id: &str, source: &Value) -> Result<BTreeMap<String, Value>> {
+        self.bytes = self.bytes.saturating_add(source.to_string().len());
+        if self.bytes > 16 * 1024 * 1024
+            || !id.starts_with("urn:")
+            || id.contains('#')
+            || id.len() > 4096
+        {
+            return Err(invalid(
+                "client response schema identity or inventory exceeds bounds",
+            ));
+        }
+        let mut root = source.clone();
+        let object = root
+            .as_object_mut()
+            .ok_or_else(|| invalid("client schema document is not an object"))?;
+        if object.get("$id").and_then(Value::as_str) != Some(id) {
+            return Err(invalid(
+                "client schema document identity does not match its registry key",
+            ));
+        }
+        let definitions = match object.remove("$defs") {
+            Some(Value::Object(definitions)) => definitions,
+            Some(_) => return Err(invalid("client schema definitions must be an object")),
+            None => serde_json::Map::new(),
+        };
+        if definitions.len() > 4096 {
+            return Err(invalid("client schema definition count exceeds its bound"));
+        }
+        let mut names = BTreeMap::new();
+        for name in definitions.keys() {
+            if name.is_empty()
+                || name.len() > 128
+                || !name
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-'))
+            {
+                return Err(invalid("client schema definition name is unsupported"));
+            }
+            names.insert(name.clone(), format!("{id}:response-def:{name}"));
+        }
+        let mut result = BTreeMap::new();
+        self.schema(&mut root, &names, true, 0)?;
+        result.insert(id.to_owned(), root);
+        for (name, mut definition) in definitions {
+            self.schema(&mut definition, &names, false, 0)?;
+            let name = names[&name].clone();
+            definition
+                .as_object_mut()
+                .unwrap()
+                .insert("$id".into(), json!(name));
+            result.insert(name, definition);
+        }
+        Ok(result)
+    }
+
+    fn schema(
+        &mut self,
+        schema: &mut Value,
+        names: &BTreeMap<String, String>,
+        root: bool,
+        depth: usize,
+    ) -> Result<()> {
+        self.work = self.work.saturating_add(1);
+        if self.work > 65536 || depth > 128 {
+            return Err(invalid(
+                "client response normalization exceeds its traversal bound",
+            ));
+        }
+        let object = schema
+            .as_object_mut()
+            .ok_or_else(|| invalid("client normalization requires a schema object"))?;
+        if object.contains_key("$defs")
+            || (!root && (object.contains_key("$id") || object.contains_key("$schema")))
+        {
+            return Err(invalid(
+                "client schema has an unsupported nested identity or definition scope",
+            ));
+        }
+        object.retain(|key, _| !response_annotation(key));
+        if let Some(reference) = object.get_mut("$ref") {
+            let value = reference
+                .as_str()
+                .ok_or_else(|| invalid("client schema reference must be text"))?;
+            if let Some(name) = value.strip_prefix("#/$defs/") {
+                let absolute = names.get(name).ok_or_else(|| {
+                    invalid("client schema local reference is dangling or unsupported")
+                })?;
+                *reference = json!(absolute);
+            } else if !value.starts_with("urn:") || value.contains('#') {
+                return Err(invalid(
+                    "client schema reference is not an exact registry identity",
+                ));
+            }
+        }
+        if let Some(properties) = object.get_mut("properties") {
+            for property in properties
+                .as_object_mut()
+                .ok_or_else(|| invalid("client schema properties are malformed"))?
+                .values_mut()
+            {
+                self.schema(property, names, false, depth + 1)?;
+            }
+        }
+        for keyword in ["oneOf", "anyOf"] {
+            if let Some(branches) = object.get_mut(keyword) {
+                for branch in branches
+                    .as_array_mut()
+                    .ok_or_else(|| invalid("client schema alternatives are malformed"))?
+                {
+                    self.schema(branch, names, false, depth + 1)?;
+                }
+            }
+        }
+        for keyword in ["items", "not"] {
+            if let Some(child) = object.get_mut(keyword) {
+                self.schema(child, names, false, depth + 1)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+fn response_annotation(key: &str) -> bool {
+    matches!(
+        key,
+        "x-base-and-fields-depth-increment"
+            | "x-base-depth-increment"
+            | "x-body-scope"
+            | "x-counts-toward-expression-node-budget"
+            | "x-evaluation-order"
+            | "x-field-coverage"
+            | "x-implicit-field-place-node-basis"
+            | "x-implicit-field-place-nodes"
+            | "x-implicit-if-block-nodes"
+            | "x-implicit-let-nodes"
+            | "x-implicit-match-nodes"
+            | "x-implicit-project-node-basis"
+            | "x-implicit-project-nodes"
+            | "x-implicit-update-nodes"
+            | "x-initializer-scope"
+            | "x-max-combined-identities"
+            | "x-max-expression-depth"
+            | "x-max-expression-nodes"
+            | "x-order"
+            | "x-pattern-node-charge"
+            | "x-requires-exact-declared-arity"
+            | "x-requires-exact-exhaustive-case-and-field-coverage"
+            | "x-requires-exact-field-identity-coverage"
+            | "x-requires-exact-owner-and-field-admission"
+            | "x-root-depth-increment"
+            | "x-root-selection"
+            | "x-sorted"
+            | "x-total-payload-binders-maximum"
+            | "x-value-and-body-depth-increment"
+    )
+}
+
 fn response_documents(bundle: &Value) -> Result<BTreeMap<String, Value>> {
-    let available = bundle["documents"]
+    let mut available = BTreeMap::new();
+    for document in bundle["documents"]
         .as_array()
         .ok_or_else(|| invalid("client schema documents missing"))?
-        .iter()
-        .map(|document| (document["$id"].as_str().unwrap_or("").to_owned(), document))
-        .collect::<BTreeMap<_, _>>();
+    {
+        let id = document["$id"]
+            .as_str()
+            .ok_or_else(|| invalid("client schema identity is absent"))?;
+        if available.insert(id.to_owned(), document).is_some() {
+            return Err(invalid("client schema identities collide"));
+        }
+    }
     let unbundled = bundle["unbundled_payload_schemas"]
         .as_array()
         .ok_or_else(|| invalid("client opaque schema inventory missing"))?;
@@ -371,16 +592,36 @@ fn response_documents(bundle: &Value) -> Result<BTreeMap<String, Value>> {
     }
     let mut visited = BTreeSet::new();
     let mut included = BTreeMap::new();
+    let mut lifted = BTreeMap::new();
+    let mut normalizer = ResponseNormalizer { work: 0, bytes: 0 };
     while let Some(id) = pending.pop_first() {
         if !visited.insert(id.clone()) {
             continue;
         }
-        if let Some(document) = available.get(&id) {
-            audit_schema(document, &mut pending, 0)?;
-            included.insert(id, (*document).clone());
+        if let Some(document) = lifted.remove(&id) {
+            audit_schema(&document, &mut pending, 0)?;
+            included.insert(id, document);
+        } else if let Some(document) = available.get(&id) {
+            let normalized = normalizer.document(&id, document)?;
+            for (name, schema) in normalized {
+                if name == id {
+                    audit_schema(&schema, &mut pending, 0)?;
+                    included.insert(name, schema);
+                } else if available.contains_key(&name)
+                    || included.contains_key(&name)
+                    || lifted.insert(name, schema).is_some()
+                {
+                    return Err(invalid("client normalized definition identities collide"));
+                }
+            }
         } else if !unbundled.iter().any(|value| value == &id) {
             return Err(invalid(
                 "client response schema has an unclassified missing reference",
+            ));
+        }
+        if included.len().saturating_add(lifted.len()) > 4096 {
+            return Err(invalid(
+                "client normalized schema inventory exceeds its bound",
             ));
         }
     }
@@ -478,6 +719,55 @@ mod tests {
         let mut changed = bundle;
         changed["documents"][1]["allOf"] = json!([]);
         assert!(response_documents(&changed).is_err());
+    }
+
+    #[test]
+    fn selected_recursive_definitions_normalize_without_erasing_assertions() {
+        let root = json!({"$id":"urn:recursive","$ref":"#/$defs/expression","$defs":{
+            "expression":{"oneOf":[
+                {"type":"string","minLength":1,"x-max-utf8-bytes":128,"pattern":"^[A-Za-z_][A-Za-z0-9_]*$","not":{"enum":["let"]}},
+                {"type":"array","items":{"$ref":"#/$defs/expression"},"maxItems":2,"x-max-expression-nodes":4096},
+                {"const":{"$ref":"#literal-data","$id":"literal-data"}}
+            ]},
+            "unused":{"type":"string"}
+        }});
+        let bundle = json!({"methods":[{"request_schema":{"properties":{"params":{"type":"object","properties":{}}}},"success_response_schema":{"properties":{"result":{"properties":{"payload":{"$ref":"urn:recursive"}}}}}}],
+            "documents":[root],"unbundled_payload_schemas":[]});
+        let docs = response_documents(&bundle).unwrap();
+        assert_eq!(docs.len(), 2);
+        assert_eq!(
+            docs["urn:recursive"]["$ref"],
+            "urn:recursive:response-def:expression"
+        );
+        let cases = &docs["urn:recursive:response-def:expression"]["oneOf"];
+        assert_eq!(cases[0]["not"], json!({"enum":["let"]}));
+        assert_eq!(cases[0]["x-max-utf8-bytes"], 128);
+        assert_eq!(
+            cases[1]["items"]["$ref"],
+            "urn:recursive:response-def:expression"
+        );
+        assert!(cases[1].get("x-max-expression-nodes").is_none());
+        assert_eq!(cases[2]["const"]["$ref"], "#literal-data");
+        for hostile in [
+            json!({"$ref":"#/$defs/missing"}),
+            json!({"$ref":"https://example.invalid/schema"}),
+            json!({"$ref":"urn:other#/$defs/x"}),
+            json!({"$id":"urn:nested","type":"string"}),
+            json!({"type":"string","x-unknown-validation":true}),
+            json!({"type":"string","not":{"type":"string"}}),
+            json!({"type":"string","not":{"enum":["let","let"]}}),
+            json!({"type":"string","allOf":[{"minLength":1}]}),
+        ] {
+            let mut changed = bundle.clone();
+            changed["documents"][0]["$defs"]["expression"]["oneOf"][0] = hostile;
+            assert!(response_documents(&changed).is_err());
+        }
+        let mut collision = bundle;
+        collision["documents"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({"$id":"urn:recursive:response-def:expression","type":"string"}));
+        assert!(response_documents(&collision).is_err());
     }
 
     #[test]

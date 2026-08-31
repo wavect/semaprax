@@ -9,20 +9,23 @@ function same(a: any, b: any): boolean {
   if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((v,i)=>same(v,b[i]));
   return object(a) && object(b) && Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(k=>Object.hasOwn(b,k) && same(a[k],b[k]));
 }
-function check(v: any, s: any, depth = 0): void {
-  if (depth > 128) throw Error('shape depth exceeded');
+class ShapeLimitError extends Error {}
+function check(v: any, s: any, depth = 0, budget = {remaining: 1048576}): void {
+  if (--budget.remaining < 0) throw new ShapeLimitError('shape work exceeded');
+  if (depth > 128) throw new ShapeLimitError('shape depth exceeded');
   if (s.$ref) {
     const doc = META.documents[s.$ref];
-    if (doc) return check(v, doc, depth+1);
+    if (doc) return check(v, doc, depth+1, budget);
     if (META.unbundled.includes(s.$ref) && object(v) && v.schema === s.$ref.slice(4)) return;
     throw Error('unresolved or foreign payload schema');
   }
   for (const kind of ['oneOf','anyOf']) if (s[kind]) {
-    const count=s[kind].filter((branch:any)=>{try {check(v,branch,depth+1);return true;}catch{return false;}}).length;
+    const count=s[kind].filter((branch:any)=>{try {check(v,branch,depth+1,budget);return true;}catch(error){if(error instanceof ShapeLimitError) throw error;return false;}}).length;
     if (kind==='oneOf' ? count!==1 : count===0) throw Error('shape alternatives mismatch');
   }
   if (Object.hasOwn(s,'const') && !same(v,s.const)) throw Error('constant mismatch');
   if (s.enum && !s.enum.some((x:any)=>same(x,v))) throw Error('choice mismatch');
+  if (s.not?.enum?.some((x:any)=>same(x,v))) throw Error('excluded choice');
   if (s.type==='null' && v!==null) throw Error('null required');
   if (s.type==='boolean' && typeof v!=='boolean') throw Error('boolean required');
   if (s.type==='integer' && (!Number.isSafeInteger(v) || v<(s.minimum??-Number.MAX_SAFE_INTEGER) || v>(s.maximum??Number.MAX_SAFE_INTEGER))) throw Error('integer bound');
@@ -36,14 +39,26 @@ function check(v: any, s: any, depth = 0): void {
   if (s.type==='object') {
     if (!object(v)) throw Error('object required');
     for (const key of s.required??[]) if (!Object.hasOwn(v,key)) throw Error('missing field '+key);
+    // Reject a foreign discriminant before walking a recursive body/argument.
+    for (const [key, field] of Object.entries(s.properties??{}) as [string, any][]) {
+      if (Object.hasOwn(v,key) && Object.hasOwn(field,'const')) check(v[key],field,depth+1,budget);
+    }
     for (const key of Object.keys(v)) {
-      if (s.properties && Object.hasOwn(s.properties,key)) check(v[key],s.properties[key],depth+1);
+      if (s.properties && Object.hasOwn(s.properties,key)) check(v[key],s.properties[key],depth+1,budget);
       else if (s.additionalProperties===false) throw Error('unknown field '+key);
     }
   }
   if (s.type==='array') {
     if (!Array.isArray(v) || v.length<(s.minItems??0) || v.length>(s.maxItems??Infinity)) throw Error('array bound');
-    if (s.items) for (const item of v) check(item,s.items,depth+1);
+    if (s.items) for (const item of v) check(item,s.items,depth+1,budget);
+    if (s.uniqueItems) {
+      const seen = new Set<string>();
+      for (const item of v) {
+        if (--budget.remaining < 0) throw new ShapeLimitError('shape work exceeded');
+        if (typeof item !== 'string' || seen.has(item)) throw Error('unique string items required');
+        seen.add(item);
+      }
+    }
   }
 }
 function idCheck(id: RpcId): void {

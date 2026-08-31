@@ -3,6 +3,7 @@
 use super::{Model, Shape};
 use crate::diagnostic::Diagnostic;
 use serde_json::Value;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
@@ -61,9 +62,9 @@ pub(super) fn typescript(model: &Model) -> Result<String> {
 }
 
 pub(super) fn python(model: &Model) -> Result<String> {
-    // The model is topological: every referenced alias is a runtime typing
-    // object before its parent is evaluated. Functional TypedDict declarations
-    // preserve wire keys that are keywords or are not Python identifiers.
+    // Preserve eager references for existing acyclic models. Recursive and
+    // forward references remain quoted typing references until every generated
+    // definition exists; postponed aliases resolve to real structural objects.
     let mut source = String::from(concat!(
         "# Static response types supplement, but never replace, the runtime decoder.\n",
         "from typing import Any, Generic, Literal, Never, NotRequired, TypeAlias, TypeVar, TypedDict, Union, cast\n",
@@ -75,7 +76,20 @@ pub(super) fn python(model: &Model) -> Result<String> {
         "    project_revision: str\n",
         "    payload: _ResponsePayload\n\n",
     ));
+    let definitions = model
+        .definitions
+        .iter()
+        .map(|definition| (definition.name.as_str(), &definition.shape))
+        .collect::<BTreeMap<_, _>>();
+    let mut emitted = BTreeSet::new();
+    let mut postponed = Vec::new();
     for definition in &model.definitions {
+        if let Shape::Alias(target) = &definition.shape {
+            if !emitted.contains(target) {
+                postponed.push(definition);
+                continue;
+            }
+        }
         if let Shape::Object {
             fields,
             open: false,
@@ -94,9 +108,9 @@ pub(super) fn python(model: &Model) -> Result<String> {
                     "    {}: {},",
                     quoted(&field.name)?,
                     if field.required {
-                        field.ty.clone()
+                        py_reference(&field.ty, &emitted)?
                     } else {
-                        format!("NotRequired[{}]", field.ty)
+                        format!("NotRequired[{}]", py_reference(&field.ty, &emitted)?)
                     }
                 )
                 .unwrap();
@@ -111,18 +125,28 @@ pub(super) fn python(model: &Model) -> Result<String> {
                 Shape::String => source.push_str("str"),
                 Shape::Null => source.push_str("None"),
                 Shape::Literal(value) => source.push_str(&py_literal(value)?),
-                Shape::Array(item) => write!(source, "list[{item}]").unwrap(),
+                Shape::Array(item) => {
+                    write!(source, "list[{}]", py_reference(item, &emitted)?).unwrap()
+                }
                 Shape::Tuple(items) => {
                     // JSON arrays decode as lists, never Python tuples. Exact
                     // length/order of constant arrays stays a runtime check.
-                    write!(source, "list[{}]", py_union(items, "Never")).unwrap();
+                    let items = items
+                        .iter()
+                        .map(|item| py_reference(item, &emitted))
+                        .collect::<Result<Vec<_>>>()?;
+                    write!(source, "list[{}]", py_union(&items, "Never")).unwrap();
                 }
                 Shape::Alias(name) => source.push_str(name),
                 Shape::Union(variants) => {
                     if variants.is_empty() {
                         return Err(invalid("response union has no alternatives"));
                     }
-                    source.push_str(&py_union(variants, "Never"));
+                    let variants = variants
+                        .iter()
+                        .map(|item| py_reference(item, &emitted))
+                        .collect::<Result<Vec<_>>>()?;
+                    source.push_str(&py_union(&variants, "Never"));
                 }
                 Shape::Object { open: true, .. } => {
                     // Python 3.11 has no TypedDict extra-items type. A normal
@@ -133,9 +157,60 @@ pub(super) fn python(model: &Model) -> Result<String> {
             }
             source.push('\n');
         }
+        emitted.insert(definition.name.clone());
+        bound(&source)?;
+    }
+    let mut terminals = BTreeMap::new();
+    let mut work = 0;
+    for definition in postponed {
+        let terminal = terminal_alias(&definition.name, &definitions, &mut terminals, &mut work)?;
+        writeln!(source, "{}: TypeAlias = {terminal}", definition.name).unwrap();
         bound(&source)?;
     }
     Ok(source)
+}
+
+fn py_reference(name: &str, emitted: &BTreeSet<String>) -> Result<String> {
+    if emitted.contains(name) {
+        Ok(name.to_owned())
+    } else {
+        quoted(name)
+    }
+}
+
+fn terminal_alias(
+    name: &str,
+    definitions: &BTreeMap<&str, &Shape>,
+    terminals: &mut BTreeMap<String, String>,
+    work: &mut usize,
+) -> Result<String> {
+    let mut current = name;
+    let mut path = BTreeSet::new();
+    let terminal = loop {
+        *work += 1;
+        if *work > 65_536 || path.len() > 128 {
+            return Err(super::capacity(
+                "typed Python response alias traversal exceeds its bound",
+            ));
+        }
+        if let Some(terminal) = terminals.get(current) {
+            break terminal.clone();
+        }
+        if !path.insert(current.to_owned()) {
+            return Err(invalid(
+                "response alias cycle has no structural constructor",
+            ));
+        }
+        match definitions.get(current) {
+            Some(Shape::Alias(next)) => current = next,
+            Some(_) => break current.to_owned(),
+            None => return Err(invalid("response alias names an absent definition")),
+        }
+    };
+    for name in path {
+        terminals.insert(name, terminal.clone());
+    }
+    Ok(terminal)
 }
 
 fn py_union(items: &[String], empty: &str) -> String {

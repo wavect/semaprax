@@ -18,13 +18,21 @@ def _same(left: Any, right: Any) -> bool:
         return len(left) == len(right) and all(_same(a, b) for a, b in zip(left, right))
     return left == right
 
-def _check(value: Any, schema: dict[str, Any], depth: int = 0) -> None:
+class _ShapeLimitError(ValueError):
+    pass
+
+def _check(value: Any, schema: dict[str, Any], depth: int = 0, budget: list[int] | None = None) -> None:
+    if budget is None:
+        budget = [1048576]
+    budget[0] -= 1
+    if budget[0] < 0:
+        raise _ShapeLimitError('shape work exceeded')
     if depth > 128:
-        raise ValueError('shape depth exceeded')
+        raise _ShapeLimitError('shape depth exceeded')
     if '$ref' in schema:
         reference = schema['$ref']
         if reference in META['documents']:
-            return _check(value, META['documents'][reference], depth + 1)
+            return _check(value, META['documents'][reference], depth + 1, budget)
         if reference in META['unbundled'] and isinstance(value, dict) and value.get('schema') == reference[4:]:
             return
         raise ValueError('unresolved or foreign payload schema')
@@ -33,8 +41,10 @@ def _check(value: Any, schema: dict[str, Any], depth: int = 0) -> None:
             count = 0
             for branch in schema[alternative]:
                 try:
-                    _check(value, branch, depth + 1)
+                    _check(value, branch, depth + 1, budget)
                     count += 1
+                except _ShapeLimitError:
+                    raise
                 except ValueError:
                     pass
             if (count != 1 if alternative == 'oneOf' else count == 0):
@@ -43,6 +53,8 @@ def _check(value: Any, schema: dict[str, Any], depth: int = 0) -> None:
         raise ValueError('constant mismatch')
     if 'enum' in schema and not any(_same(value, item) for item in schema['enum']):
         raise ValueError('choice mismatch')
+    if 'not' in schema and any(_same(value, item) for item in schema['not']['enum']):
+        raise ValueError('excluded choice')
     kind = schema.get('type')
     if kind == 'null' and value is not None:
         raise ValueError('null required')
@@ -58,9 +70,13 @@ def _check(value: Any, schema: dict[str, Any], depth: int = 0) -> None:
             raise ValueError('object required')
         if any(key not in value for key in schema.get('required', [])):
             raise ValueError('missing field')
+        # Reject a foreign discriminant before walking a recursive body/argument.
+        for key, field in schema.get('properties', {}).items():
+            if key in value and 'const' in field:
+                _check(value[key], field, depth + 1, budget)
         for key, item in value.items():
             if key in schema.get('properties', {}):
-                _check(item, schema['properties'][key], depth + 1)
+                _check(item, schema['properties'][key], depth + 1, budget)
             elif schema.get('additionalProperties') is False:
                 raise ValueError('unknown field: ' + key)
     if kind == 'array':
@@ -68,7 +84,16 @@ def _check(value: Any, schema: dict[str, Any], depth: int = 0) -> None:
             raise ValueError('array bound')
         if 'items' in schema:
             for item in value:
-                _check(item, schema['items'], depth + 1)
+                _check(item, schema['items'], depth + 1, budget)
+        if schema.get('uniqueItems'):
+            seen: set[str] = set()
+            for item in value:
+                budget[0] -= 1
+                if budget[0] < 0:
+                    raise _ShapeLimitError('shape work exceeded')
+                if not isinstance(item, str) or item in seen:
+                    raise ValueError('unique string items required')
+                seen.add(item)
 
 def _id(request_id: RpcId) -> None:
     if type(request_id) is int:

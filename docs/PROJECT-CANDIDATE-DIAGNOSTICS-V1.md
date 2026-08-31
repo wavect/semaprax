@@ -156,10 +156,11 @@ it does not acquire filesystem, build, test, process, network, or source-write
 authority.
 
 Typed requests and change-catalogue descriptors expose both classes. The full
-heterogeneous repair report remains outside the v5 bundled typed-response
-schema set: its nested recursive expression/change payloads are not yet
-supported by that response-type generator. This remains an explicit protocol
-discovery gap, not a claim of complete generated-client coverage.
+repair report is included in the selected v5 response schema bundle, using
+closed proposal alternatives and the compiler-owned recursive expression/change
+schemas. [Typed response clients](IMAGE-TYPED-RESPONSE-CLIENTS-V1.md) validate
+those structures before exposing concrete language types. This describes report
+shape; only ordinary compiler replay establishes repair admission and identity.
 
 [Focused authored tests](../tests/project_candidate_diagnostics_v1.rs) cover
 exact diagnostic retention, source/target binding, successful full-admission

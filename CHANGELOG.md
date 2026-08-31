@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Restored the resolved-interface slice in the borrowed operation-sidecar view
+  for both workspace and retained-Project constructors. This fixes the refactor's
+  compile error while preserving the existing authenticated interface-parameter
+  type occurrence join. The focused interface type-rename regression passes;
+  native-import graph admission remains unchanged.
+
 - Added real generated npm owned-result finalization fault coverage for copy
   allocation, owner deletion, scratch cleanup and frozen result construction,
   with exact first-error preservation and poisoned-reuse checks. The two-test,

@@ -28,6 +28,7 @@ pub(super) fn build_operation_sidecar(
         .map(|module| OperationModule {
             path: &module.path,
             types: &module.types,
+            interfaces: &module.interfaces,
             functions: &module.functions,
             function_templates: &module.function_templates,
         })
@@ -38,6 +39,7 @@ pub(super) fn build_operation_sidecar(
 struct OperationModule<'a> {
     path: &'a str,
     types: &'a [hir::ResolvedTypeDeclaration],
+    interfaces: &'a [hir::ResolvedInterface],
     functions: &'a [hir::ResolvedFunction],
     function_templates: &'a [hir::ResolvedFunctionTemplate],
 }
@@ -55,6 +57,7 @@ pub(crate) fn project_operation_sidecar(
         .map(|module| OperationModule {
             path: module.path(),
             types: module.types(),
+            interfaces: module.interfaces(),
             functions: module.functions(),
             function_templates: module.function_templates(),
         })

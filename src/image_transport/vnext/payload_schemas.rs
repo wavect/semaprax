@@ -7,6 +7,8 @@ use std::collections::BTreeMap;
 mod candidate_schemas;
 #[path = "hole_navigation_schemas.rs"]
 mod hole_navigation_schemas;
+#[path = "merge_preview_schemas.rs"]
+mod merge_preview_schemas;
 #[path = "package_schemas.rs"]
 mod package_schemas;
 
@@ -760,6 +762,16 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
     result.insert("urn:semaprax.image-agent-capabilities.v5".into(),json!({"$id":"urn:semaprax.image-agent-capabilities.v5","$schema":"https://json-schema.org/draft/2020-12/schema","const":capabilities}));
     result.extend(candidate_schemas::documents());
     result.extend(hole_navigation_schemas::documents());
+    if capabilities["methods"].as_array().is_some_and(|methods| {
+        methods
+            .iter()
+            .any(|method| method == "candidate/merge-preview")
+    }) {
+        result.insert(
+            "urn:semaprax.project-candidate-merge-preview.v1".into(),
+            merge_preview_schemas::schema(),
+        );
+    }
     if capabilities["methods"]
         .as_array()
         .is_some_and(|methods| methods.iter().any(|method| method == "package/summary"))

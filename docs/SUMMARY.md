@@ -240,6 +240,7 @@ Audience: all documentation readers.
 - [Native adapter descriptor](NATIVE-ADAPTER-DESCRIPTOR-V1.md)
 
 - [Complete candidate recovery](PROJECT-CANDIDATE-RECOVERY-V1.md)
+- [Read-only candidate merge preview](PROJECT-CANDIDATE-MERGE-PREVIEW-V1.md)
 - [Typed-hole draft recovery](PROJECT-CANDIDATE-DRAFT-RECOVERY-V1.md)
 - [Source-backed typed-draft archive](PROJECT-CANDIDATE-DRAFT-ARCHIVE-V1.md)
 - [Typed-draft archive persistence](DRAFT-ARCHIVE-PERSISTENCE-V1.md)

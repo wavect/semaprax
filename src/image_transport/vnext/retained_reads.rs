@@ -20,6 +20,7 @@ pub(super) fn supports(operation: Operation) -> bool {
                 | Action::ContractDelta
                 | Action::OwnershipDelta
                 | Action::SourceReview
+                | Action::CandidateMergePreview
                 | Action::HoleSummary
                 | Action::HolePage
                 | Action::DraftExpressionCatalog
@@ -72,6 +73,16 @@ pub(super) fn prepare(
         }
         Operation::VNext(Action::SourceReview) => {
             source_review::for_candidate(params, image, candidate()?)
+        }
+        Operation::VNext(Action::CandidateMergePreview) => {
+            let candidate = candidate()?;
+            let other = subjects.other.as_deref().ok_or_else(|| {
+                failure(
+                    "SPX-G224",
+                    "other candidate handle is stale, discarded, or unknown",
+                )
+            })?;
+            merge_preview::for_candidates(params, candidate, other)
         }
         Operation::VNext(
             action @ (Action::HoleSummary | Action::HolePage | Action::DraftExpressionCatalog),

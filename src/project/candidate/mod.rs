@@ -29,6 +29,7 @@ mod git_publication;
 mod intent;
 mod interface;
 mod interface_delta;
+mod merge_preview;
 mod movement;
 mod ownership_delta;
 mod publication;
@@ -109,6 +110,10 @@ pub use publication::{
 pub use draft_navigation::{
     MAX_PROJECT_HOLE_NAVIGATION_BYTES, MAX_PROJECT_HOLE_NAVIGATION_ITEMS, PROJECT_HOLE_PAGE_SCHEMA,
     PROJECT_HOLE_SUMMARY_SCHEMA,
+};
+pub use merge_preview::{
+    MAX_PROJECT_CANDIDATE_MERGE_PREVIEW_BYTES, PROJECT_CANDIDATE_MERGE_PREVIEW_SCHEMA,
+    PROJECT_CANDIDATE_MERGE_PREVIEW_VERIFICATION_SCHEMA,
 };
 pub use rebase::{ProjectCandidateRebase, PROJECT_CANDIDATE_REBASE_SCHEMA};
 pub use recovery::{

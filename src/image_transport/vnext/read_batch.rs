@@ -336,6 +336,7 @@ mod tests {
             Action::ContractDelta,
             Action::OwnershipDelta,
             Action::SourceReview,
+            Action::CandidateMergePreview,
             Action::HoleSummary,
             Action::HolePage,
             Action::DraftExpressionCatalog,

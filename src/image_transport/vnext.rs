@@ -17,6 +17,7 @@ mod draft_recovery;
 mod hole_navigation;
 mod mcp;
 mod mcp_catalog;
+mod merge_preview;
 mod package_graph;
 mod projections;
 mod read_batch;
@@ -85,6 +86,7 @@ pub(super) enum Action {
     ContractDelta,
     OwnershipDelta,
     SourceReview,
+    CandidateMergePreview,
     HoleSummary,
     HolePage,
     DraftExpressionCatalog,
@@ -411,6 +413,10 @@ impl VNextSession {
                     source_review::prepare(params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(Action::CandidateMergePreview) => (
+                    merge_preview::prepare(params, image, registry)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(
                     action @ (Action::HoleSummary
                     | Action::HolePage
@@ -679,6 +685,7 @@ fn session_methods(
     methods.extend(review_facets::methods(policy));
     if policy.candidate_prepare {
         methods.push(source_review::method());
+        methods.push(merge_preview::method());
         methods.extend(hole_navigation::methods());
         methods.push(cleanup_dependencies::candidate_method());
         methods.extend(draft_recovery::methods());

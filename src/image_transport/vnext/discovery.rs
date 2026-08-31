@@ -76,6 +76,12 @@ pub(super) fn payload(
         {
             instructions.push_str(" With candidate_prepare, candidate/source-review independently replays the exact retained candidate and returns a closed source-review report in UTF-8 chunks. Keep image_revision and candidate_revision fixed, start at offset zero, and follow next_offset until null; chunk_bytes is 1024 through 65536 (default 16384), and the full report is bounded to 16 MiB. Its bundled report schema describes changed canonical paths, exact base/candidate source text, source digests and ordinary source diffs, with report_revision binding the complete report. No filesystem edit, candidate installation, execution or publication authority is granted. Embedding hosts may include this pure read in authenticated parallel read batches. JSON shape checks do not establish digest authenticity or source replay.");
         }
+        if methods
+            .iter()
+            .any(|method| method.name == "candidate/merge-preview")
+        {
+            instructions.push_str(" With candidate_prepare, call candidate/merge-preview using exact image_revision, candidate_revision and other_candidate_revision for two retained candidates sharing an original base. This read performs the ordinary merge in both history orders, including full candidate admission for successful directions; it can be expensive and is not the lightweight candidate/compare report. left_then_right replays left history before the right suffix, and right_then_left reverses that order. Each direction is a closed accepted result-digest summary or a bounded diagnostic rejection; rejection can reflect conservative checks or capacity limits and is not proof of semantic incompatibility. same_source is null unless both directions succeed, then compares exact resulting canonical sources, not behavior, history identity or external compatibility. The report is bounded to 256 KiB, with at most 64 diagnostics and 16 KiB of combined diagnostic code/message UTF-8 per rejected direction. Result candidate digests do not register handles; the query retains no candidate or attempt, grants no execution or publication, and does not require candidate_diagnostics. Authenticated parallel read batches may run this pure query over detached candidates. candidate/compare and earlier protocol profiles remain unchanged.");
+        }
         instructions.push_str(" For compact navigation, first call image/dependency-summary, then pass the selected sites, callers, calls or members facet handle to image/dependency-page. Keep image_revision, target, view, page_size and max_bytes fixed while following next_cursor; omit cursor on the first page. Page size is 1 through 128 (default 32), and max_bytes is 1024 through 1048576 (default 65536). Handles and cursors are bound compiler references, not authority; do not synthesize or reuse them with another target or image. Page wrappers are closed, but heterogeneous item facts remain explicitly unbundled.");
         if methods
             .iter()
@@ -225,6 +231,7 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         | "candidate/contract-delta"
         | "candidate/ownership-delta"
         | "candidate/source-review"
+        | "candidate/merge-preview"
         | "candidate/cleanup-dependencies"
         | "candidate/contract-expression-catalog"
         | "hole/open-contract-expression"

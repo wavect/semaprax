@@ -802,6 +802,13 @@ replays supported intentions over an admitted base. Same-root
 merge retains both histories and the original source-diff base. These APIs
 produce candidates and ancestry reports, never source publication authority.
 
+`candidate/merge_preview.rs` reuses the ordinary merge implementation in both
+orders and compares exact accepted manifest/source bytes. It returns only bound
+directional facts or bounded diagnostic excerpts, never either temporary
+candidate. The v5 adapter uses the same detached two-candidate read subjects in
+sequential and parallel paths; no registry mutation or publication host enters
+the preview. See [Merge Preview](PROJECT-CANDIDATE-MERGE-PREVIEW-V1.md).
+
 `candidate/rebase_normalize.rs` borrows the existing Operations AST/HIR
 occurrence collector through a private Project view. It derives bounded,
 collision-checked identity markers for nominal and member references in

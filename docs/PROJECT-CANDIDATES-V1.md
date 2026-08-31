@@ -211,6 +211,11 @@ edge families. Full local call migration is broader than that impact report.
 `compare(other)` requires a common base and reports target overlap and source
 revision equality. It is descriptive and cannot authorize semantic merge.
 
+The additive [merge preview](PROJECT-CANDIDATE-MERGE-PREVIEW-V1.md) performs
+ordinary merge replay in both orders without retaining a merged candidate. It
+reports actual directional admission and exact resulting source comparison;
+it does not change the descriptive comparison contract or grant publication.
+
 The additive [semantic rebase/merge API](PROJECT-CANDIDATE-REBASE-V1.md)
 classifies stable-ID conflicts and constructs a fully revalidated candidate.
 Its separate report binds the parent candidates and selected base. It adds no

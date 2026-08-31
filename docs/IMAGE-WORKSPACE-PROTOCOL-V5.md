@@ -89,6 +89,13 @@ Restore requires the current exact original base and the existing request-frame
 limit; it cannot silently rebase a draft after source changes. Refresh continues
 to clear drafts, and v1–v4 gain no recovery methods for unfinished work.
 
+Candidate preparation also selects the read-only `candidate/merge-preview`
+query. It authenticates two retained candidate selectors, attempts ordinary
+semantic merge in both orders and reports directional admission plus exact
+resulting source comparison. Temporary merged candidates are not installed in
+the registry. Diagnostic excerpts require no rejected-attempt grant and cannot
+be used as attempt handles. See [Merge Preview](PROJECT-CANDIDATE-MERGE-PREVIEW-V1.md).
+
 Candidate preparation also selects `candidate/contract-expression-catalog` and
 `hole/open-contract-expression`. These expose existing pre/postcondition
 subtrees and open [Contract Expression Holes](PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md)

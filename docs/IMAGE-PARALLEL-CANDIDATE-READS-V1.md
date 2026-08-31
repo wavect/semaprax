@@ -49,7 +49,7 @@ includes these method families, only under their ordinary host grants:
 
 | Family | Methods |
 | --- | --- |
-| Candidate inspection | `candidate/query`, `candidate/compare`, `candidate/impact`, `candidate/validate`, `candidate/recovery-export` |
+| Candidate inspection | `candidate/query`, `candidate/compare`, `candidate/merge-preview`, `candidate/impact`, `candidate/validate`, `candidate/recovery-export` |
 | Typed discovery | `change/catalog`, `expression/catalog`, `candidate/contract-expression-catalog`, `candidate/interface-catalog`, `protocol/constructor-schemas`, `validation/catalog` |
 | Semantic review | `candidate/semantic-delta`, `candidate/semantic-delta-catalog`, `candidate/interface-delta`, `candidate/contract-delta`, `candidate/ownership-delta`, `candidate/cleanup-dependencies` |
 | Pending work | `hole/query`, `hole/recovery-export`, `hole/archive-export` |
@@ -63,6 +63,12 @@ These remain their existing source-only checks. No temporary repair candidate
 is retained, no pending hole is completed and no generated target is executed.
 Static test planning executes no interpreter; selecting that query does not
 execute the separately granted `candidate/test` method.
+
+Merge preview receives exactly two detached candidates and invokes ordinary
+merge replay in both orders. It returns only descriptive results and bounded
+diagnostic excerpts, retaining neither temporary candidate. This source-replay
+work can be expensive; the worker cap does not promise a CPU, stack or RSS
+bound. The distinct registry-mutating `candidate/merge` remains excluded.
 
 Candidate, draft and attempt digests retain their own exact subjects. The
 current image expectation still binds the session's held source, but does not

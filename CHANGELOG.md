@@ -51,6 +51,12 @@
   closed, `LIB` is unchanged, and missing headers still fail before archive or
   package publication.
 
+- Added read-only candidate merge preview through actual merge replay in both
+  orders. Reports bind exact parents, directional admission or bounded
+  diagnostics, and accepted canonical source equality without retaining or
+  publishing a candidate. V5 discovery and parallel retained reads share the
+  same handler. Regressions are authored, unrun locally.
+
 - Connected typed data creation to local owning function declarations. New
   helpers can accept and return checked resource-free nominal owners or bare
   String values, with requested modes bound to rebuilt HIR and ordinary type

@@ -81,9 +81,6 @@ fn v10_npm_maps_only_string_results_to_fatal_decoded_js_strings() {
     assert!(declarations.contains("readonly \"utf8.greeting\": () => string;"));
     assert!(declarations.contains("readonly \"bytes.raw\": (arg0: Uint8Array) => Uint8Array;"));
 
-    if Command::new("node").arg("--version").output().is_err() {
-        return;
-    }
     let directory = std::env::temp_dir().join(format!(
         "semaprax-owned-utf8-{}-{}",
         std::process::id(),
@@ -105,7 +102,7 @@ fn v10_npm_maps_only_string_results_to_fatal_decoded_js_strings() {
         .arg("contract.mjs")
         .current_dir(&directory)
         .output()
-        .unwrap();
+        .expect("Node is required by the owned-UTF8 npm boundary gate");
     let _ = fs::remove_dir_all(&directory);
     assert!(
         output.status.success(),

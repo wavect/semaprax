@@ -237,9 +237,6 @@ fn exact_descriptor_driven_package_and_v7_carrier_replay() {
 
 #[test]
 fn node_boundary_copies_consumes_settles_and_rejects_hostiles() {
-    if Command::new("node").arg("--version").output().is_err() {
-        return;
-    }
     let program = resolved();
     let descriptor = derive_public_api_descriptor(&program, &selected(), subject()).unwrap();
     let build = prepare_owned_data_npm_build(
@@ -265,6 +262,7 @@ fn node_boundary_copies_consumes_settles_and_rejects_hostiles() {
     fs::write(
         directory.join("contract.mjs"),
         r#"import fs from 'node:fs';
+import assert from 'node:assert/strict';
 import instantiate from './semaprax.bindings.js';
 const wasm=new Uint8Array(fs.readFileSync(new URL('./app.wasm',import.meta.url)));
 async function instantiateRaw(){let instance=null,next=1;const entries=new Map(),decode=c=>{const w=BigInt.asUintN(64,c),length=Number(w&0xffffffffn),root=Number((w>>32n)&0xffffffffn),token=root&0x7fffffff;if((root&0x80000000)===0||token===0||length>65536)throw Error('carrier invariant');return{length,root,token}},resolve=v=>{const b=entries.get(v.token);if(!(b instanceof Uint8Array)||b.length!==v.length)throw Error('stale or wrong length');return b},read=c=>{const w=BigInt.asUintN(64,c),length=Number(w&0xffffffffn),root=Number((w>>32n)&0xffffffffn);if((root&0x80000000)!==0)return resolve(decode(c));if(!instance||root>instance.exports.memory.buffer.byteLength-length)throw Error('range');return new Uint8Array(instance.exports.memory.buffer,root,length)},allocate=b=>{const token=next++,copy=new Uint8Array(b);entries.set(token,copy);return BigInt.asIntN(64,((0x80000000n|BigInt(token))<<32n)|BigInt(copy.length))},semantic=(code)=>{throw Object.assign(Error(`SEMAPRAX semantic failure ${code}`),{semapraxSemantic:true})};const arena={begin(){if(entries.size)throw Error('entered unsettled')},consume(c){const v=decode(c),copy=new Uint8Array(resolve(v));entries.delete(v.token);return copy},settle(){if(entries.size)throw Error('unsettled')}};const imports={spx_add:(a,b)=>a+b,spx_sub:(a,b)=>a-b,spx_mul:(a,b)=>a*b,spx_div:(a,b)=>b===0n?semantic(4):a/b,spx_rem:(a,b)=>b===0n?semantic(6):a%b,spx_neg:a=>-a,spx_contract_fail:semantic,spx_bytes_copy:c=>allocate(read(c)),spx_bytes_get:(c,i)=>{const b=read(c);return i<0n||i>=BigInt(b.length)?-1:b[Number(i)]},spx_bytes_drop:c=>{const v=decode(c);resolve(v);entries.delete(v.token)},spx_bytes_as_slice:c=>{read(c);return c},spx_owned_utf8_validate_v1:(o,l)=>{try{new TextDecoder('utf-8',{fatal:true}).decode(read((BigInt(o)<<32n)|BigInt(l)));return 1}catch{return 0}}};instance=(await WebAssembly.instantiate(wasm,{env:imports})).instance;return{instance,arena}}
@@ -274,7 +272,12 @@ for(const input of cases){const out=api.functions['frame.payload'](input);if(!(o
 for(let i=0;i<8;i++){const out=api.functions['frame.payload'](new Uint8Array([i,0,255]));if(out[0]!==i)throw Error('repeat')}
 const mixed=api.functions['frame.mixed'](false,'A\0€',new Uint8Array([9]));if(new TextDecoder().decode(mixed)!=='A\0€')throw Error('utf8');
 for(const [args,label] of [[[new Uint8Array(65537)],'oversize'],[[new Uint16Array(2)],'typed']]){let ok=false;try{api.functions['frame.payload'](...args)}catch{ok=true}if(!ok)throw Error(label)}
-if(typeof SharedArrayBuffer!=='undefined'){let ok=false;try{api.functions['frame.payload'](new Uint8Array(new SharedArrayBuffer(1)))}catch{ok=true}if(!ok)throw Error('shared')}
+assert.equal(typeof SharedArrayBuffer,'function','shared input rejection requires SharedArrayBuffer');
+const shared=new Uint8Array(new SharedArrayBuffer(1));
+assert.equal(shared.buffer instanceof SharedArrayBuffer,true);shared[0]=9;assert.equal(shared[0],9);
+assert.deepEqual(api.functions['frame.payload'](new Uint8Array([21])),new Uint8Array([21]));
+assert.throws(()=>api.functions['frame.payload'](shared),error=>error instanceof TypeError&&error.message==='argument 0 must be an ordinary attached fixed Uint8Array');
+assert.deepEqual(api.functions['frame.payload'](new Uint8Array([23])),new Uint8Array([23]),'shared rejection must preserve reuse');
 const beforeApi=await instantiate(wasm);let beforeError;try{beforeApi.functions['frame.fail-before'](new Uint8Array([1,2]),0n)}catch(error){beforeError=error}if(!beforeError?.message.includes('semantic failure 4'))throw Error('failure before publication identity');if(beforeApi.functions['frame.payload'](new Uint8Array([7]))[0]!==7)throw Error('settled semantic failure poisoned runtime');
 const afterApi=await instantiate(wasm);let afterError;try{afterApi.functions['frame.fail-after'](new Uint8Array([1,2]),0n)}catch(error){afterError=error}if(!afterError?.message.includes('semantic failure 4'))throw Error('first failure replaced by settlement');if(afterApi.functions['frame.payload'](new Uint8Array([8]))[0]!==8)throw Error('post-staging cleanup did not settle');
 const savedSet=Uint8Array.prototype.set;let intercepted=false;Uint8Array.prototype.set=function(){intercepted=true;throw Error('caller mutation hook')};const isolated=api.functions['frame.payload'](new Uint8Array([4,5]));Uint8Array.prototype.set=savedSet;if(intercepted||isolated[1]!==5)throw Error('snapshot intrinsic isolation');
@@ -289,7 +292,13 @@ async function rawCarrier(){const x=await instantiateRaw(),ex=x.instance.exports
 {const {x}=await rawCarrier();let ok=false;try{x.arena.settle()}catch{ok=true}if(!ok)throw Error('unsettled arena')}
 for(const id of ['frame.fail-before','frame.fail-after']){const x=await instantiateRaw(),ex=x.instance.exports,mem=new Uint8Array(ex.memory.buffer),raw='spx_owned_v1_'+Array.from(new TextEncoder().encode(id),b=>b.toString(16).padStart(2,'0')).join('');mem.fill(0x3c,131064,131072);if(ex[raw](0,0,0n,131064)!==11)throw Error('alias was not rejected');if(mem.slice(131064,131072).some(b=>b!==0x3c))throw Error('aliased failure modified public out')}
 {const detached=new Uint8Array([1]);structuredClone(detached.buffer,{transfer:[detached.buffer]});let ok=false;try{api.functions['frame.payload'](detached)}catch{ok=true}if(!ok)throw Error('detached')}
-try{const buffer=new ArrayBuffer(1,{maxByteLength:2});if(buffer.resizable){let ok=false;try{api.functions['frame.payload'](new Uint8Array(buffer))}catch{ok=true}if(!ok)throw Error('resizable')}}catch{}
+assert.equal(typeof ArrayBuffer.prototype.resize,'function','resizable input rejection requires resize');
+const resizableBuffer=new ArrayBuffer(1,{maxByteLength:2}),resizable=new Uint8Array(resizableBuffer);
+assert.equal(resizableBuffer.resizable,true);assert.equal(resizableBuffer.maxByteLength,2);
+resizableBuffer.resize(2);assert.equal(resizable.byteLength,2);resizableBuffer.resize(1);assert.equal(resizable.byteLength,1);
+assert.deepEqual(api.functions['frame.payload'](new Uint8Array([25])),new Uint8Array([25]));
+assert.throws(()=>api.functions['frame.payload'](resizable),error=>error instanceof TypeError&&error.message==='argument 0 must be an ordinary attached fixed Uint8Array');
+assert.deepEqual(api.functions['frame.payload'](new Uint8Array([27])),new Uint8Array([27]),'resizable rejection must preserve reuse');
 console.log('owned-data-contract-ok');
 "#,
     )
@@ -298,7 +307,7 @@ console.log('owned-data-contract-ok');
         .arg("contract.mjs")
         .current_dir(&directory)
         .output()
-        .unwrap();
+        .expect("Node is required by the owned-data boundary gate");
     assert!(
         output.status.success(),
         "stdout={} stderr={}",
@@ -444,9 +453,6 @@ fn option_result_package_is_exact_and_project_v8_stays_inactive() {
 
 #[test]
 fn node_option_result_carriers_preserve_tags_liveness_and_first_failure() {
-    if Command::new("node").arg("--version").output().is_err() {
-        return;
-    }
     let program = variant_resolved();
     let descriptor =
         derive_public_api_descriptor(&program, &variant_selected(), subject()).unwrap();
@@ -497,7 +503,7 @@ console.log('owned-variant-contract-ok');
         .arg("contract.mjs")
         .current_dir(&directory)
         .output()
-        .unwrap();
+        .expect("Node is required by the owned-variant boundary gate");
     assert!(
         output.status.success(),
         "stdout={} stderr={}",

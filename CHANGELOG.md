@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Removed silent Node prerequisite skips and a swallowed resizable-buffer
+  rejection assertion from owned-data npm evidence. Shared v8/v9/v10 fixtures
+  now require real hostile buffer capabilities and exact adapter rejection,
+  retaining healthy-call controls. Tests remain unrun; production runtime,
+  generated artifacts, schemas and support claims are unchanged.
+
 - Removed silent Windows hostile-path fixture omissions from the new-project
   and quickstart checks. A shared test helper requires an actual Unix symlink
   or Windows junction, authenticates the fixture target, and exercises rejection

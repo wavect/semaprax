@@ -352,6 +352,17 @@ unrun, not promotion evidence; their owner is
 [`tests/project_owned_input_admission_v1.rs`](../tests/project_owned_input_admission_v1.rs),
 alongside the preserved v8 renderer known answers.
 
+The Node evidence requires actual shared and resizable buffers plus transfer
+support; missing prerequisites fail the selected gate rather than omit cases.
+Buffer construction and capability checks happen outside rejection assertions.
+The direct-Bytes fixture and shared v8/v9/v10 input-admission fixture require the
+actual facade's `TypeError` and fixed-input diagnostic, followed by healthy
+same-instance calls. An assertion that a forbidden input was accepted must not
+be swallowed by a capability-detection catch. The direct/variant v8 and UTF-8
+consumer tests also require Node execution instead of returning success when
+Node cannot start. These evidence corrections are authored and unrun; generated
+runtime bytes, schemas, and support status are unchanged.
+
 The subsequent [owned npm invocation correction](OWNED-NPM-INVOCATION-V1.md)
 reserves busy state before preflight and distinguishes reusable input rejection
 from post-entry uncertainty. Only a locally authenticated checked-status error

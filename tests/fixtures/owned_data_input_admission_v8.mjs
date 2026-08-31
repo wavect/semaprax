@@ -66,9 +66,18 @@ const detached=new OriginalUint8([1]);structuredClone(detached.buffer,{transfer:
 rejected([detached,'',empty],TypeError);
 const detachedEmpty=new OriginalUint8();structuredClone(detachedEmpty.buffer,{transfer:[detachedEmpty.buffer]});
 rejected([detachedEmpty,'',empty],TypeError);
-if(typeof SharedArrayBuffer!=='undefined')rejected([new OriginalUint8(new SharedArrayBuffer(1)),'',empty],TypeError);
-const resizable=new ArrayBuffer(1,{maxByteLength:2});
-if(resizable.resizable)rejected([new OriginalUint8(resizable),'',empty],TypeError);
+assert.equal(typeof SharedArrayBuffer,'function','shared input rejection requires SharedArrayBuffer');
+const shared=new OriginalUint8(new SharedArrayBuffer(1));
+assert.equal(shared.buffer instanceof SharedArrayBuffer,true);shared[0]=9;assert.equal(shared[0],9);
+assert.equal(typeof ArrayBuffer.prototype.resize,'function','resizable input rejection requires resize');
+const resizableBuffer=new ArrayBuffer(1,{maxByteLength:2}),resizable=new OriginalUint8(resizableBuffer);
+assert.equal(resizableBuffer.resizable,true);assert.equal(resizableBuffer.maxByteLength,2);
+resizableBuffer.resize(2);assert.equal(resizable.byteLength,2);resizableBuffer.resize(1);assert.equal(resizable.byteLength,1);
+for(const value of [shared,resizable]){
+  assert.deepEqual(bytes(call(new OriginalUint8([21]),'',empty)),new OriginalUint8([21]));
+  rejected([value,'',empty],error=>error instanceof TypeError&&error.message==='argument 0 must be an ordinary attached fixed Uint8Array');
+  assert.deepEqual(bytes(call(new OriginalUint8([23]),'',empty)),new OriginalUint8([23]),'rejection must preserve same-instance reuse');
+}
 const subclassBuffer=new (class extends ArrayBuffer {})(1);
 rejected([new OriginalUint8(subclassBuffer),'',empty],TypeError);
 let hooks=0;

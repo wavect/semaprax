@@ -1,7 +1,8 @@
 # Doctor offline bundle v1
 
-Status: authored, unrun private inventory parser. No CLI activation, production
-profile provisioning, executable isolation, or WP-05 promotion.
+Status: authored, unrun private inventory parsing and preparation. No CLI
+activation, production profile provisioning, executable isolation, or WP-05
+promotion.
 
 Audience: CLI/platform contributors and reviewers.
 
@@ -23,6 +24,42 @@ permission to execute. The parser performs no filesystem access, process launch,
 environment discovery, publication, or fallback. It does not convert a bundle
 into an admitted `DoctorHost`. The [real doctor CLI](DOCTOR-PROBE-V1.md) continues
 to report unavailable production profiles.
+
+## Pure provisioner preparation
+
+`encode_doctor_offline_bundle(architecture, selector, entries, roles, max_bytes)`
+prepares the existing binary format from explicitly supplied borrowed inputs.
+Each `DoctorOfflineBundleEntry` contains a relative `path`, a borrowed `bytes`
+slice and an `executable` intent. `DoctorOfflineBundleRoles` explicitly supplies
+optional `clang`, `node` and `rustc` indices into that same entry slice. The
+encoder does not sort entries, infer roles, follow paths, discover dependencies,
+or repair invalid input. The existing exact basename and interpreter rules apply.
+
+The caller may lower but never widen the 512 MiB carrier ceiling. A zero
+`max_bytes` is `Invalid`; a value above the ceiling is `Limit`, before examining
+input records. File count, selector/path lengths, cumulative path bytes and
+every header/record/content contribution are bounded before reserving the output.
+The encoder requests one fallible reservation for the complete measured carrier,
+then passes its complete bytes through the existing full inventory validator
+before returning them. Invalid roles, ordering, paths, minimum ELF or interpreter
+closure can therefore fail after a bounded buffer has been allocated and filled;
+this is not a claim of complete validation before payload copying. No partial
+output is returned. Existing decoder acceptance and diagnostic precedence remain
+unchanged.
+
+The return value is only `Vec<u8>`, not `DoctorOfflineInput`, an opaque admitted
+bundle, a filesystem object or execution authority. Callers retain their original
+input buffers unchanged. Either named Linux architecture may be serialized on
+any host where this private API is available; that does not widen native-host
+sealed acquisition or bundle admission. The provisioner must still arrange
+immutable storage, reacquire through the sealed-input boundary and parse against
+the actual native host and selected profile. It must separately authenticate
+provenance, loader closure and the complete launch context.
+
+An already parsed bundle can prepare a matching request using
+`encode_worker_request(target, nonce)`, as specified by the
+[worker request contract](DOCTOR-OFFLINE-WORKER-V1.md#canonical-request-preparation).
+There is no arbitrary-byte constructor that skips sealed-input acquisition.
 
 ## Closed binary format
 
@@ -142,6 +179,31 @@ original file, and rejects wrong selector/architecture bindings. The former
 cross-crate source include is removed. Separate safe-facade type checks cover
 the exported API and file-view lifetimes. No test-only public input constructor
 or new dependency is introduced.
+
+Preparation regressions compare complete encoded carriers against independent
+literal framing for both architecture tags and all role masks. They cover exact
+caller-lowered bounds, malformed inventory, ordering and interpreter rejection.
+Near-ceiling length-only arithmetic cases do not establish successful physical
+allocation of a 512 MiB carrier. Request regressions acquire real sealed inputs,
+derive every target/mask combination, preserve source offsets and seals, retain
+bindings after the original file is dropped, and reject missing roles or zero
+nonces. Same-length payload, path and selector changes exercise exact-byte
+binding; nonzero nonce coverage is not evidence of freshness.
+
+The targeted structural and sealed-input gates are authored but unrun:
+
+```sh
+cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib doctor::offline_bundle::encode
+cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib doctor::offline_input::request_handoff
+```
+
+The collector's `tests/support/prepared_handoff.rs` adds an ignored physical
+handoff gate: independently literal-checked preparation, sealed acquisition,
+worker execution and exact report delivery for native/all targets, plus
+unrepaired request-digest and bundle-payload drift rejection. It requires the
+same external trusted context, executable paths and serial invocation as the
+[provisioned collector fixtures](DOCTOR-OFFLINE-COLLECTOR-V1.md#evidence-and-non-claims).
+Prepared bytes alone do not prove immutable storage or successful execution.
 
 The separate internal [detached root materializer](DOCTOR-OFFLINE-ROOT-V1.md)
 consumes this opaque inventory inside an already controlled child context.

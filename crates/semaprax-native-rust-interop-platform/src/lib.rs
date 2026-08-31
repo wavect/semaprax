@@ -14,8 +14,9 @@ mod doctor_offline_bundle;
 mod doctor_offline_input;
 #[doc(hidden)]
 pub use doctor_offline_bundle::{
-    DoctorOfflineArchitecture, DoctorOfflineBundle, DoctorOfflineBundleError,
-    DoctorOfflineBundleFile, DoctorOfflineTool,
+    encode_doctor_offline_bundle, DoctorOfflineArchitecture, DoctorOfflineBundle,
+    DoctorOfflineBundleEntry, DoctorOfflineBundleError, DoctorOfflineBundleFile,
+    DoctorOfflineBundleRoles, DoctorOfflineTool,
 };
 #[doc(hidden)]
 pub use doctor_offline_input::{

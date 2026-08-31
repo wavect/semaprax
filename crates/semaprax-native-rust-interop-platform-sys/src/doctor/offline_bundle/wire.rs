@@ -2,11 +2,11 @@
 use super::{elf, DoctorOfflineArchitecture, DoctorOfflineBundleError as Error};
 use std::ops::Range;
 
-const MAGIC: &[u8; 8] = b"SPXDOC1\0";
-const MAX_FILES: usize = 4096;
-const MAX_PATH_BYTES: usize = 1024;
-const MAX_TOTAL_PATH_BYTES: usize = 1024 * 1024;
-const ABSENT: u32 = u32::MAX;
+pub(super) const MAGIC: &[u8; 8] = b"SPXDOC1\0";
+pub(super) const MAX_FILES: usize = 4096;
+pub(super) const MAX_PATH_BYTES: usize = 1024;
+pub(super) const MAX_TOTAL_PATH_BYTES: usize = 1024 * 1024;
+pub(super) const ABSENT: u32 = u32::MAX;
 
 #[derive(Debug)]
 pub(super) struct Index {

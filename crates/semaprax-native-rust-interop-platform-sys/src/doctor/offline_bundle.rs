@@ -3,6 +3,14 @@
 
 use crate::{DoctorOfflineInput, DOCTOR_OFFLINE_INPUT_MAX_BYTES};
 
+#[path = "offline_bundle/encode.rs"]
+mod encode;
+#[path = "offline_bundle/request.rs"]
+mod request;
+pub use encode::{
+    encode_doctor_offline_bundle, DoctorOfflineBundleEntry, DoctorOfflineBundleRoles,
+};
+
 #[path = "offline_bundle/elf.rs"]
 mod elf;
 #[path = "offline_bundle/wire.rs"]

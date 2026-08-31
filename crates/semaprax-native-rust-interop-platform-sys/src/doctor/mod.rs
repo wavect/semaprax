@@ -55,8 +55,9 @@ pub unsafe fn provisioned_doctor_worker_entry() -> ! {
     std::process::exit(125)
 }
 pub use offline_bundle::{
-    DoctorOfflineArchitecture, DoctorOfflineBundle, DoctorOfflineBundleError,
-    DoctorOfflineBundleFile, DoctorOfflineTool,
+    encode_doctor_offline_bundle, DoctorOfflineArchitecture, DoctorOfflineBundle,
+    DoctorOfflineBundleEntry, DoctorOfflineBundleError, DoctorOfflineBundleFile,
+    DoctorOfflineBundleRoles, DoctorOfflineTool,
 };
 pub use offline_input::{
     DoctorOfflineInput, DoctorOfflineInputError, DOCTOR_OFFLINE_INPUT_MAX_BYTES,

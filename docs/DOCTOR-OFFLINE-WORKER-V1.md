@@ -75,6 +75,30 @@ worker termination and owned-worker settlement. A complete frame followed by
 failed or uncertain termination is not a successful observation. No
 `reply bytes -> AdmittedProfile` conversion is provided.
 
+## Canonical request preparation
+
+`DoctorOfflineBundle::encode_worker_request(target, nonce)` prepares request
+bytes from the exact retained, structurally admitted bundle. The typed
+`DoctorOfflineTarget` selects contributor/native/web/all and therefore the exact
+role mask. Every requested role must exist in the bundle; there is no target
+downgrade or role inference. Unrequested roles do not select extra invocations.
+The encoder derives the selector, architecture, complete bundle length and
+SHA-256 from the retained input, not from caller-supplied metadata or a reopened
+pathname. It replays the sole existing request decoder before returning bytes.
+
+The caller supplies the 32-byte nonce and owns any freshness or unpredictability
+requirement. An all-zero nonce and a missing requested role reject as `Invalid`
+before hashing or reserving request output. Nonzero does not mean fresh or
+unpredictable. Output is at most 149 bytes, with fallible allocation and no change
+to request or reply framing. Unsupported native hosts return `Unsupported`;
+the method does not bypass the existing native bundle admission restrictions.
+
+The result is only mutable transport bytes. It neither seals those bytes nor
+starts, authenticates or settles a worker. Modifying a prepared request or bundle
+cannot bypass the worker and collector's ordinary sealed-input, binding and
+lifecycle checks. Only the live provisioned collector can produce a settled
+observation; an encoder return value never substitutes for one.
+
 ## Tool execution and settlement
 
 Each selected tool gets a fresh PID namespace through `clone3` with a pidfd.

@@ -11,12 +11,13 @@ pub use doctor::{
     SettledDoctorObservation, SettledDoctorTool,
 };
 pub use doctor::{
-    probe_version as doctor_version_probe, provisioned_doctor_worker_entry,
-    ProbeError as DoctorProbeError,
+    encode_doctor_offline_bundle, DoctorOfflineArchitecture, DoctorOfflineBundle,
+    DoctorOfflineBundleEntry, DoctorOfflineBundleError, DoctorOfflineBundleFile,
+    DoctorOfflineBundleRoles, DoctorOfflineTool,
 };
 pub use doctor::{
-    DoctorOfflineArchitecture, DoctorOfflineBundle, DoctorOfflineBundleError,
-    DoctorOfflineBundleFile, DoctorOfflineTool,
+    probe_version as doctor_version_probe, provisioned_doctor_worker_entry,
+    ProbeError as DoctorProbeError,
 };
 pub use doctor::{DoctorOfflineInput, DoctorOfflineInputError, DOCTOR_OFFLINE_INPUT_MAX_BYTES};
 

@@ -24,6 +24,8 @@ mod nonchild;
 mod observe;
 #[path = "support/physical_reports.rs"]
 mod physical_reports;
+#[path = "support/prepared_handoff.rs"]
+mod prepared_handoff;
 #[path = "support/report.rs"]
 mod report;
 #[path = "support/sentinel_elf.rs"]

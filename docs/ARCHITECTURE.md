@@ -94,6 +94,11 @@ views, bounded paths/roles and minimum ELF/interpreter checks. The safe facade
 delegates to this single validator; no public constructor bypasses admission.
 It owns no OS effects and does not establish full ELF validity, library closure
 or execution authority. See [Doctor offline bundle v1](DOCTOR-OFFLINE-BUNDLE-V1.md).
+Its `encode` module prepares canonical bytes from explicit borrowed entries and
+role indices, with size preflight and replay through that same full validator.
+The `request` module derives exact worker-request binding from the retained
+opaque bundle. Both preparation routes are unsafe-free and return only bytes;
+they do not mint sealed-input or settled-observation authority or discover files.
 The separate private `doctor/offline_root` component preallocates a bounded plan
 from that opaque bundle and materializes a detached read-only tmpfs inside an
 already controlled child context. It owns only newly created descriptors and

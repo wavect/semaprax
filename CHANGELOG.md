@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added canonical offline doctor bundle and worker-request preparation from
+  explicit borrowed content and retained sealed-input bindings. The APIs return
+  bounded transport bytes only, reuse existing validators and preserve native
+  admission. Added independent literal, hostile-input and provisioned handoff
+  regressions, all authored and unrun. No ordinary CLI activation, provisioning
+  authority or production-support promotion is claimed.
+
 - Shared the provisioned doctor collector's ownership and report-delivery state
   machines with resource-free hostile scripts, preserving fixed descriptor
   ownership, fail-stop uncertainty, write bounds and deadlines. Added authored,

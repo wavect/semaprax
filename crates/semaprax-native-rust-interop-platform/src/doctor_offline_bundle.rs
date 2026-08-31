@@ -3,7 +3,8 @@ use crate::DoctorOfflineInput;
 use semaprax_native_rust_interop_platform_sys as sys;
 
 pub use sys::{
-    DoctorOfflineArchitecture, DoctorOfflineBundleError, DoctorOfflineBundleFile, DoctorOfflineTool,
+    encode_doctor_offline_bundle, DoctorOfflineArchitecture, DoctorOfflineBundleEntry,
+    DoctorOfflineBundleError, DoctorOfflineBundleFile, DoctorOfflineBundleRoles, DoctorOfflineTool,
 };
 
 /// An immutable structurally admitted inventory, not executable provenance or
@@ -41,6 +42,16 @@ impl DoctorOfflineBundle {
     pub fn tool(&self, tool: DoctorOfflineTool) -> Option<DoctorOfflineBundleFile<'_>> {
         self.0.tool(tool)
     }
+
+    /// Prepare request bytes for this exact retained bundle. The caller owns
+    /// nonce freshness, sealing and provisioning; bytes confer no authority.
+    pub fn encode_worker_request(
+        &self,
+        target: crate::DoctorOfflineTarget,
+        nonce: [u8; 32],
+    ) -> Result<Vec<u8>, DoctorOfflineBundleError> {
+        self.0.encode_worker_request(target, nonce)
+    }
 }
 
 #[cfg(test)]
@@ -68,5 +79,21 @@ mod tests {
         check_path(DoctorOfflineBundleFile::path);
         fn check_bytes<'a>(_f: fn(&DoctorOfflineBundleFile<'a>) -> &'a [u8]) {}
         check_bytes(DoctorOfflineBundleFile::bytes);
+    }
+
+    #[test]
+    fn preparation_returns_bytes_and_request_derivation_requires_the_retained_bundle() {
+        let _: fn(
+            DoctorOfflineArchitecture,
+            &str,
+            &[DoctorOfflineBundleEntry<'_>],
+            DoctorOfflineBundleRoles,
+            usize,
+        ) -> Result<Vec<u8>, DoctorOfflineBundleError> = encode_doctor_offline_bundle;
+        let _: fn(
+            &DoctorOfflineBundle,
+            crate::DoctorOfflineTarget,
+            [u8; 32],
+        ) -> Result<Vec<u8>, DoctorOfflineBundleError> = DoctorOfflineBundle::encode_worker_request;
     }
 }

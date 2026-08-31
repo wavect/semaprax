@@ -24,35 +24,38 @@ impl ProjectCandidate {
             .iter()
             .flat_map(|program| &program.functions)
             .find(|function| function.stable_id == target);
-        let (aggregates, projections, matches, updates, nominal_types, builtins) = match selected {
-            Some(function) if function.explicit_id && function.type_parameters.is_empty() => {
-                let program = programs
-                    .iter()
-                    .find(|program| {
-                        program
-                            .functions
-                            .iter()
-                            .any(|item| item.stable_id == target)
-                    })
-                    .ok_or_else(|| invalid("aggregate discovery source is unavailable"))?;
-                (
-                    super::intent::aggregate_constructors(&self.revision, program)?,
-                    super::intent::aggregate_projections(&self.revision, program)?,
-                    super::intent::aggregate_matches(&self.revision, program)?,
-                    super::intent::aggregate_updates(&self.revision, program)?,
-                    super::intent::nominal_types(&self.revision, program)?,
-                    super::intent::builtin_constructors(&self.revision, program)?,
-                )
-            }
-            _ => (
-                Vec::new(),
-                Vec::new(),
-                Vec::new(),
-                Vec::new(),
-                Vec::new(),
-                Vec::new(),
-            ),
-        };
+        let (aggregates, projections, matches, updates, nominal_types, builtins, field_places) =
+            match selected {
+                Some(function) if function.explicit_id && function.type_parameters.is_empty() => {
+                    let program = programs
+                        .iter()
+                        .find(|program| {
+                            program
+                                .functions
+                                .iter()
+                                .any(|item| item.stable_id == target)
+                        })
+                        .ok_or_else(|| invalid("aggregate discovery source is unavailable"))?;
+                    (
+                        super::intent::aggregate_constructors(&self.revision, program)?,
+                        super::intent::aggregate_projections(&self.revision, program)?,
+                        super::intent::aggregate_matches(&self.revision, program)?,
+                        super::intent::aggregate_updates(&self.revision, program)?,
+                        super::intent::nominal_types(&self.revision, program)?,
+                        super::intent::builtin_constructors(&self.revision, program)?,
+                        super::intent::field_places(&self.revision, program)?,
+                    )
+                }
+                _ => (
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                ),
+            };
         let mut operations = Vec::<Value>::new();
         let mut parameters = Vec::<Value>::new();
         let mut reason = "target_is_not_a_supported_top_level_function";
@@ -270,12 +273,16 @@ impl ProjectCandidate {
             || !matches.is_empty()
             || !updates.is_empty()
             || !builtins.is_empty()
+            || !field_places.is_empty()
         {
             for operation in &mut operations {
                 if operation["kind"] == "replace_function_body" {
                     let constructors = operation["constructors"].as_array_mut().unwrap();
                     if !builtins.is_empty() {
                         constructors.push(json!("builtin_call"));
+                    }
+                    if !field_places.is_empty() {
+                        constructors.push(json!("field_place"));
                     }
                     for kind in ["record", "variant"] {
                         if aggregates.iter().any(|item| item["kind"] == kind) {
@@ -321,6 +328,9 @@ impl ProjectCandidate {
         }
         if !builtins.is_empty() {
             report["builtin_calls"] = json!(builtins);
+        }
+        if !field_places.is_empty() {
+            report["field_places"] = json!(field_places);
         }
         wire::render(report, 256 * 1024)
     }

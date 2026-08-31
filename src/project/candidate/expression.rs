@@ -317,10 +317,24 @@ fn apply_region(
         .ok_or_else(|| invalid("expression has no unique authenticated authored AST origin"))?;
     let path = joined.path.clone();
     let scope = fact.scope.keys().map(|name| (*name).to_owned()).collect();
-    let replacement = intent::construct_expression_with_revision(
+    let nominal_scope = if intent::uses_field_places(&request["replacement"]) {
+        fact.scope
+            .values()
+            .map(|binding| {
+                (
+                    binding.name.to_owned(),
+                    std::sync::Arc::new(binding.ty.clone()),
+                )
+            })
+            .collect()
+    } else {
+        BTreeMap::new()
+    };
+    let replacement = intent::construct_expression_with_scope(
         revision,
         &programs[owner],
         &scope,
+        nominal_scope,
         &request["replacement"],
     )?;
     let slot = region_at_mut(

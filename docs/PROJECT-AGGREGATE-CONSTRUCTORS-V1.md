@@ -58,9 +58,12 @@ Result cases require two arguments in success/error order, even when the
 selected case carries only one of them. Explicit arguments materialize as
 ordinary canonical `.spx`, such as `Option<bool>::Some { value: true }`.
 
-Classes, resource creation, nested or named generic arguments, borrow-preserving
-field views and general pattern synthesis remain outside this constructor
-grammar. A named field type does not waive ordinary profile, ownership, effect,
+Classes, resource creation, nested or named generic arguments and general
+pattern synthesis remain outside this constructor grammar. The separate
+[field place constructor](PROJECT-FIELD-PLACE-CONSTRUCTOR-V1.md) selects a
+direct field of an authenticated named root without value staging; its use in
+a byte view retains the source language's existing borrow profile.
+A named field type does not waive ordinary profile, ownership, effect,
 or backend admission.
 
 ## Record field value projection
@@ -99,6 +102,10 @@ cleanup rules. An owned base may transfer into this scope; reusing a consumed
 base, escaping an invalid loan, or violating cleanup obligations must fail
 ordinary candidate admission. The operation neither duplicates the base nor
 claims behavioral equivalence with arbitrary existing field-access code.
+
+Use the separate `field_place` constructor when the base is an existing lexical
+root whose nominal type can be authenticated and the field must remain a direct
+place. It does not change `project` lowering or admit general nested borrowing.
 
 Bodies, authenticated expression replacements, contracts, declaration bodies
 and hole fills share the existing constructor/admission path. Generated locals

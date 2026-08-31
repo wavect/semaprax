@@ -183,6 +183,17 @@ fn expression_schema() -> Value {
             "x-requires-exact-declared-arity":true});
         variants.push(aggregate);
     }
+    let mut field_place = closed(&[
+        ("kind", json!({"const":"field_place"})),
+        ("target", text(MAX_ID_BYTES)),
+        ("root", identifier()),
+    ]);
+    field_place["x-root-selection"] = json!("existing_lexical_place_not_an_expression");
+    field_place["x-requires-exact-owner-and-field-admission"] = json!(true);
+    field_place["x-implicit-field-place-nodes"] = json!(1);
+    field_place["x-implicit-field-place-node-basis"] = json!("generated_root_place");
+    field_place["x-root-depth-increment"] = json!(1);
+    variants.push(field_place);
     let mut projection = closed(&[
         ("kind", json!({"const":"project"})),
         ("target", text(MAX_ID_BYTES)),
@@ -652,6 +663,7 @@ mod aggregate_expression_schema_tests {
                 "record",
                 "variant",
                 "project",
+                "field_place",
                 "match",
                 "update",
                 "let",
@@ -660,6 +672,19 @@ mod aggregate_expression_schema_tests {
             .into_iter()
             .collect()
         );
+        let field_place = variants
+            .iter()
+            .find(|variant| variant["properties"]["kind"]["const"] == "field_place")
+            .unwrap();
+        assert_eq!(field_place["additionalProperties"], false);
+        assert_eq!(field_place["required"], json!(["kind", "target", "root"]));
+        assert_eq!(field_place["properties"].as_object().unwrap().len(), 3);
+        assert_eq!(field_place["properties"]["root"]["type"], "string");
+        assert_eq!(field_place["properties"]["root"], identifier());
+        assert_eq!(field_place["x-implicit-field-place-nodes"], 1);
+        assert_eq!(field_place["x-root-depth-increment"], 1);
+        assert!(field_place["properties"].get("base").is_none());
+        assert!(field_place["properties"].get("type_arguments").is_none());
         let builtins = variants
             .iter()
             .filter(|variant| variant["properties"]["kind"]["const"] == "builtin_call")

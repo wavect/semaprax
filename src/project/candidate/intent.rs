@@ -29,6 +29,8 @@ const MAX_WALK_NODES: usize = 1_048_576;
 mod aggregate;
 #[path = "builtin.rs"]
 mod builtin;
+#[path = "field_place.rs"]
+mod field_place;
 #[path = "signature.rs"]
 mod signature;
 
@@ -36,12 +38,13 @@ pub(super) use aggregate::{
     aggregate_constructors, aggregate_dependency_fingerprint,
     aggregate_match_dependency_fingerprint, aggregate_matches,
     aggregate_projection_dependency_fingerprint, aggregate_projections, aggregate_updates,
-    nominal_type_dependency_fingerprint, nominal_type_plan, nominal_types, validate_nominal_ast,
-    MAX_AGGREGATE_TYPE_ARGUMENTS,
+    field_place_dependency_fingerprint, field_places, nominal_type_dependency_fingerprint,
+    nominal_type_plan, nominal_types, validate_nominal_ast, MAX_AGGREGATE_TYPE_ARGUMENTS,
 };
 pub(super) use builtin::{
     builtin_constructors, builtin_dependency_fingerprint, validate_builtin_namespace,
 };
+pub(super) use field_place::{parameter_nominal_scope, NominalScope};
 pub(super) use signature::{ordered_signature_parameters, validate_computed_signature};
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
@@ -225,6 +228,17 @@ fn apply_inner(
                 reserved_bindings: BTreeSet::new(),
                 generated_bindings: BTreeSet::new(),
                 builtin_identities: None,
+                nominal_scope: match revision {
+                    Some(revision) => field_place::parameter_nominal_scope(
+                        revision,
+                        &programs[owner],
+                        &function.params,
+                        member(intent, "body")?,
+                    )?,
+                    None => BTreeMap::new(),
+                },
+                field_enabled: field_place::requested(member(intent, "body")?),
+                field_work: 0,
                 revision,
                 program: &programs[owner],
             };
@@ -253,10 +267,31 @@ fn apply_inner(
             if phase == "ensures" {
                 places.insert("result".to_owned());
             }
+            let mut nominal_scope = match revision {
+                Some(revision) => parameter_nominal_scope(
+                    revision,
+                    &programs[owner],
+                    &function.params,
+                    member(intent, "predicate")?,
+                )?,
+                None => BTreeMap::new(),
+            };
+            if phase == "ensures" && field_place::requested(member(intent, "predicate")?) {
+                if let Some(revision) = revision {
+                    field_place::insert_ast_type(
+                        revision,
+                        &programs[owner],
+                        &mut nominal_scope,
+                        "result",
+                        &function.return_type,
+                    )?;
+                }
+            }
             let predicate = construct_expression_inner(
                 revision,
                 &programs[owner],
                 &places,
+                nominal_scope,
                 member(intent, "predicate")?,
             )?;
             let function = &mut programs[owner].functions[function_index];
@@ -277,22 +312,38 @@ fn apply_inner(
     })
 }
 
+pub(super) fn uses_field_places(value: &Value) -> bool {
+    field_place::requested(value)
+}
+
 /// Construct an expression from a caller-authenticated lexical scope. This
 /// helper grants no admission: complete source replay owns all type, effect,
 /// ownership, contract and target checks.
-pub(super) fn construct_expression_with_revision(
+pub(super) fn construct_expression_with_scope(
     revision: &crate::project::ProjectRevision,
     program: &Program,
     scope_names: &BTreeSet<String>,
+    nominal_scope: NominalScope,
     value: &Value,
 ) -> Result<Expr> {
-    construct_expression_inner(Some(revision), program, scope_names, value)
+    construct_expression_inner(Some(revision), program, scope_names, nominal_scope, value)
+}
+
+pub(super) fn insert_nominal_type(
+    revision: &crate::project::ProjectRevision,
+    program: &Program,
+    scope: &mut NominalScope,
+    name: &str,
+    ty: &Type,
+) -> Result<()> {
+    field_place::insert_ast_type(revision, program, scope, name, ty)
 }
 
 fn construct_expression_inner(
     revision: Option<&crate::project::ProjectRevision>,
     program: &Program,
     scope_names: &BTreeSet<String>,
+    nominal_scope: NominalScope,
     value: &Value,
 ) -> Result<Expr> {
     let bindings = call_bindings(program)?;
@@ -309,6 +360,9 @@ fn construct_expression_inner(
         reserved_bindings: BTreeSet::new(),
         generated_bindings: BTreeSet::new(),
         builtin_identities: None,
+        nominal_scope,
+        field_enabled: field_place::requested(value),
+        field_work: 0,
         revision,
         program,
     }
@@ -345,6 +399,9 @@ struct Constructor<'a> {
     reserved_bindings: BTreeSet<String>,
     generated_bindings: BTreeSet<String>,
     builtin_identities: Option<BTreeSet<String>>,
+    nominal_scope: NominalScope,
+    field_enabled: bool,
+    field_work: usize,
     revision: Option<&'a crate::project::ProjectRevision>,
     program: &'a Program,
 }
@@ -357,6 +414,26 @@ struct PreparedMatchArm<'a> {
 }
 
 impl Constructor<'_> {
+    fn infer_nominal(
+        &mut self,
+        expression: &Expr,
+    ) -> Result<Option<std::sync::Arc<crate::hir::ResolvedType>>> {
+        if !self.field_enabled {
+            return Ok(None);
+        }
+        let revision = self
+            .revision
+            .ok_or_else(|| grammar("field places require an authenticated Project revision"))?;
+        field_place::infer(
+            revision,
+            self.program,
+            self.bindings,
+            &self.nominal_scope,
+            expression,
+            &mut self.field_work,
+            0,
+        )
+    }
     fn match_binder(&self, name: &str) -> Result<()> {
         identifier(name)?;
         if matches!(
@@ -499,14 +576,29 @@ impl Constructor<'_> {
         let name = self.projection_name()?;
         // No arm names are active while the original scrutinee is constructed.
         let scrutinee = self.expression(member(value, "value")?, depth + 2)?;
+        let scrutinee_type = self.infer_nominal(&scrutinee)?;
         let mut arms = Vec::new();
         for arm in prepared {
             for binding in &arm.bindings {
                 self.arm_bindings.insert(binding.clone());
             }
+            if let Some(root) = &scrutinee_type {
+                for field in &arm.fields {
+                    if let Some(ty) = field_place::field_type(
+                        revision,
+                        root,
+                        Some(&arm.case_name),
+                        &field.name,
+                        &mut self.field_work,
+                    )? {
+                        self.nominal_scope.insert(field.binding.clone(), ty);
+                    }
+                }
+            }
             let body = self.expression(arm.body, depth + 2);
             for binding in &arm.bindings {
                 self.arm_bindings.remove(binding);
+                self.nominal_scope.remove(binding);
             }
             arms.push(MatchArm {
                 pattern: MatchPattern::Variant {
@@ -616,10 +708,15 @@ impl Constructor<'_> {
                 // body. Initializer staging must not capture the future name.
                 self.reserved_bindings.insert(name.to_owned());
                 let initializer = self.expression(member(value, "value")?, depth + 1)?;
+                let nominal = self.infer_nominal(&initializer)?;
                 let body_request = member(value, "body")?;
                 self.arm_bindings.insert(name.to_owned());
+                if let Some(ty) = nominal {
+                    self.nominal_scope.insert(name.to_owned(), ty);
+                }
                 let body = self.expression(body_request, depth + 1);
                 self.arm_bindings.remove(name);
+                self.nominal_scope.remove(name);
                 ExprKind::Block {
                     statements: vec![Statement::Let {
                         name: name.to_owned(),
@@ -633,6 +730,41 @@ impl Constructor<'_> {
                 }
             }
             "match" => return self.match_expression(value, depth),
+            "field_place" => {
+                object(value, &["kind", "target", "root"])?;
+                let root = identifier(text(value, "root")?)?;
+                if !self.params.contains(root) && !self.arm_bindings.contains(root) {
+                    return Err(grammar(
+                        "field place root must be an existing lexical named binding",
+                    ));
+                }
+                let ty = self.nominal_scope.get(root).ok_or_else(|| {
+                    grammar("field place root has no exact authenticated nominal type fact")
+                })?;
+                let revision = self.revision.ok_or_else(|| {
+                    grammar("field places require an authenticated Project revision")
+                })?;
+                let (field, _) = aggregate::field_place_plan(
+                    revision,
+                    self.program,
+                    text(value, "target")?,
+                    ty,
+                )?;
+                self.nodes += 1;
+                if self.nodes > MAX_EXPRESSION_NODES || depth + 1 > MAX_EXPRESSION_DEPTH {
+                    return Err(capacity(
+                        "field place projection exceeds its node or depth bound",
+                    ));
+                }
+                ExprKind::Project {
+                    base: Box::new(Expr {
+                        kind: ExprKind::Var(root.to_owned()),
+                        span: Span::default(),
+                    }),
+                    field,
+                    field_span: Span::default(),
+                }
+            }
             "project" => {
                 if value.get("type_arguments").is_some() {
                     object(value, &["kind", "target", "base", "type_arguments"])?;

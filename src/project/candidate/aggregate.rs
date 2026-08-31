@@ -65,6 +65,78 @@ pub(super) fn projection_plan(
     })
 }
 
+pub(super) fn field_place_plan(
+    revision: &ProjectRevision,
+    program: &Program,
+    target: &str,
+    root: &ResolvedType,
+) -> Result<(String, ResolvedType)> {
+    let subject = projection_subject(revision, target)?
+        .ok_or_else(|| grammar("field place requires an explicit checked record field"))?;
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = root
+    else {
+        return Err(grammar(
+            "field place root is not an authenticated nominal record",
+        ));
+    };
+    if declaration.as_str() != subject.owner
+        || arguments.len() != subject.type_parameters.len()
+        || visible_binding(program, &subject)?.is_none()
+    {
+        return Err(grammar(
+            "field place root type does not match the exact visible field owner",
+        ));
+    }
+    let field = subject
+        .fields
+        .iter()
+        .find(|field| field.id.as_str() == target)
+        .ok_or_else(|| grammar("field place target is not in its checked owner"))?;
+    let ty = crate::hir::substitute_type(&field.ty, declaration, arguments)
+        .map_err(|error| vec![error])?;
+    Ok((field.name.clone(), ty))
+}
+
+pub(in crate::project::candidate) fn field_places(
+    revision: &ProjectRevision,
+    program: &Program,
+) -> Result<Vec<Value>> {
+    let mut rows = aggregate_projections(revision, program)?;
+    for row in &mut rows {
+        row["kind"] = json!("field_place");
+        row["base_evaluation"] = json!("direct_named_place_no_staging");
+        row["root_requirement"] = json!("authenticated_lexical_nominal_binding");
+    }
+    // Recheck expansion after adding the root requirement metadata.
+    super::super::wire::render(json!(rows), MAX_CATALOG_BYTES)?;
+    Ok(rows)
+}
+
+pub(in crate::project::candidate) fn field_place_dependency_fingerprint(
+    revision: &ProjectRevision,
+    target: &str,
+) -> Result<Option<Value>> {
+    let Some(mut value) = aggregate_projection_dependency_fingerprint(revision, target)? else {
+        return Ok(None);
+    };
+    // Display renames do not change direct stable-field place meaning. Keep
+    // owner/member identities, vector order, types and generic parameters.
+    if let Some(record) = value["record"].as_object_mut() {
+        record.remove("name");
+    }
+    if let Some(fields) = value["record"]["fields"].as_array_mut() {
+        for field in fields {
+            if let Some(field) = field.as_object_mut() {
+                field.remove("name");
+            }
+        }
+    }
+    Ok(Some(value))
+}
+
 fn projection_subject<'a>(
     revision: &'a ProjectRevision,
     target: &str,

@@ -99,20 +99,48 @@ pub(super) fn apply(
     let requires = array(declaration, "requires")?
         .iter()
         .map(|predicate| {
-            intent::construct_expression_with_revision(revision, program, &scope, predicate)
+            let nominal_scope =
+                intent::parameter_nominal_scope(revision, program, &params, predicate)?;
+            intent::construct_expression_with_scope(
+                revision,
+                program,
+                &scope,
+                nominal_scope,
+                predicate,
+            )
         })
         .collect::<Result<Vec<_>>>()?;
-    let body = intent::construct_expression_with_revision(
+    let body_scope =
+        intent::parameter_nominal_scope(revision, program, &params, &declaration["body"])?;
+    let body = intent::construct_expression_with_scope(
         revision,
         program,
         &scope,
+        body_scope,
         &declaration["body"],
     )?;
     scope.insert("result".to_owned());
     let ensures = array(declaration, "ensures")?
         .iter()
         .map(|predicate| {
-            intent::construct_expression_with_revision(revision, program, &scope, predicate)
+            let mut nominal_scope =
+                intent::parameter_nominal_scope(revision, program, &params, predicate)?;
+            if intent::uses_field_places(predicate) {
+                intent::insert_nominal_type(
+                    revision,
+                    program,
+                    &mut nominal_scope,
+                    "result",
+                    &return_type,
+                )?;
+            }
+            intent::construct_expression_with_scope(
+                revision,
+                program,
+                &scope,
+                nominal_scope,
+                predicate,
+            )
         })
         .collect::<Result<Vec<_>>>()?;
     let addition = append_function(

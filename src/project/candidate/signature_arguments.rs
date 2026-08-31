@@ -173,6 +173,7 @@ pub(super) fn prepare(
     revision: Option<&ProjectRevision>,
     program: &Program,
     original: &[Param],
+    nominal_scope: &super::super::NominalScope,
     template: &Value,
     occupied: &mut BTreeSet<String>,
     total_nodes: &mut usize,
@@ -181,8 +182,14 @@ pub(super) fn prepare(
         grammar("computed signature arguments require a retained checked Project revision")
     })?;
     let scope = original.iter().map(|param| param.name.clone()).collect();
-    let body =
-        super::super::construct_expression_with_revision(revision, program, &scope, template)?;
+    charge(total_nodes, nominal_scope.len())?;
+    let body = super::super::construct_expression_with_scope(
+        revision,
+        program,
+        &scope,
+        nominal_scope.clone(),
+        template,
+    )?;
     let mut function = carrier(body, original);
     let mut expressions = 0usize;
     let mut bindings = 0usize;

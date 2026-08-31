@@ -233,6 +233,15 @@ fn apply_rebound(
             ));
         }
     }
+    for target in constructor_intent_targets(&change.intent, &["field_place"]) {
+        let before = intent::field_place_dependency_fingerprint(original_revision, &target)?;
+        let after = intent::field_place_dependency_fingerprint(candidate.revision(), &target)?;
+        if before.is_none() || before != after {
+            return Err(conflict(
+                "candidate field place target or checked nominal owner shape changed concurrently",
+            ));
+        }
+    }
     for target in constructor_intent_targets(&change.intent, &["match"]) {
         let before = intent::aggregate_match_dependency_fingerprint(original_revision, &target)?;
         let after = intent::aggregate_match_dependency_fingerprint(candidate.revision(), &target)?;

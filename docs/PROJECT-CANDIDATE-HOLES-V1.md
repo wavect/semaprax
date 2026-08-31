@@ -91,6 +91,11 @@ hole filled in one branch completes another branch's pending intention.
 
 ## Typed context
 
+The additive [compact navigation API](PROJECT-HOLE-NAVIGATION-V1.md) provides a
+summary and revision-bound pages for scope, accessible calls, obligations and
+constructor kinds. It preserves the full context below and does not make an
+unresolved draft valid or materializable.
+
 The additive [Expression Holes v1](PROJECT-CANDIDATE-EXPRESSION-HOLES-V1.md)
 extends the same draft with disjoint authored expression selections, including
 local lexical scope and selector remapping after fills. Body-only report bytes

@@ -26,6 +26,10 @@ contract selections.
 
 ## Context and validation
 
+The additive [compact navigation API](PROJECT-HOLE-NAVIGATION-V1.md) exposes
+expected type/ownership, effect policy and selected lexical/call/obligation pages
+without changing the original context or expression-selection rules.
+
 `hole_context` returns the existing body schema for body holes and
 `semaprax.project-candidate-expression-hole-context.v1` for expression holes.
 Expression context binds the draft, source revision/digest, actual selection,

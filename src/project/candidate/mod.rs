@@ -22,6 +22,7 @@ mod delta;
 mod diagnostic_intent;
 mod diagnostics;
 mod draft;
+mod draft_navigation;
 mod expression;
 mod extraction;
 mod git_publication;
@@ -104,6 +105,10 @@ pub use publication::{
     MAX_PROJECT_CANDIDATE_PUBLICATION_BYTES, PROJECT_CANDIDATE_PUBLICATION_SCHEMA,
 };
 
+pub use draft_navigation::{
+    MAX_PROJECT_HOLE_NAVIGATION_BYTES, MAX_PROJECT_HOLE_NAVIGATION_ITEMS, PROJECT_HOLE_PAGE_SCHEMA,
+    PROJECT_HOLE_SUMMARY_SCHEMA,
+};
 pub use rebase::{ProjectCandidateRebase, PROJECT_CANDIDATE_REBASE_SCHEMA};
 pub use recovery::{
     MAX_PROJECT_CANDIDATE_RECOVERY_BYTES, PROJECT_CANDIDATE_RECOVERY_COMPATIBILITY,

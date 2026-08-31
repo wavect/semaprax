@@ -1,9 +1,12 @@
 //! PID-namespace ownership and fair, bounded capture for one prepared tool.
-use super::{
-    child, errno, fail_stop, guard::Guard, nonblocking, offline_root, pipe, Fd, ProbeError,
-};
+use super::{child, fail_stop, guard::Guard, nonblocking, offline_root, pipe, Fd, ProbeError};
 use std::ffi::CStr;
 use std::time::{Duration, Instant};
+
+mod operations;
+use operations::{Native, Operations};
+#[cfg(test)]
+mod tests;
 
 #[repr(C)]
 #[derive(Default)]
@@ -45,7 +48,7 @@ pub(super) fn run(
         exit_signal: libc::SIGCHLD as u64,
         ..CloneArgs::default()
     };
-    let deadline = Instant::now() + Duration::from_secs(10);
+    let origin = Instant::now();
     // No CLONE_VM/FILES/THREAD: ordinary private fork-like state, but a fresh
     // PID namespace for each tool, not an irreversible supervisor unshare.
     let pid = unsafe {
@@ -72,20 +75,27 @@ pub(super) fn run(
     if pidfd < 0 || pid > i32::MAX as libc::c_long {
         fail_stop();
     }
-    let mut owned = Child {
-        pid: pid as i32,
-        pidfd: Fd(pidfd),
-        reaped: false,
-    };
+    let mut native = Native::new(pid as i32, pidfd, stdout, stderr, origin);
     drop((stdin, stdout_writer, stderr_writer, supervisor));
+    drive(&mut native, output)
+}
+
+/// The real supervisor and authority-free scripts use this identical state
+/// machine. Scripted outcomes prove control flow, never physical settlement.
+fn drive(operations: &mut impl Operations, output: &mut Vec<u8>) -> Result<(), ProbeError> {
     let mut selected = None;
     let mut total = 0;
     let mut ended = [false; 2];
     loop {
-        for (index, fd) in [stdout.0, stderr.0].into_iter().enumerate() {
-            if !ended[index] {
-                match read(fd, &mut total, (index == 0).then_some(&mut *output)) {
-                    Ok(eof) => ended[index] = eof,
+        for (index, eof) in ended.iter_mut().enumerate() {
+            if !*eof {
+                match read(
+                    operations,
+                    index,
+                    &mut total,
+                    (index == 0).then_some(&mut *output),
+                ) {
+                    Ok(value) => *eof = value,
                     Err(error) => {
                         selected.get_or_insert(error);
                     }
@@ -95,57 +105,53 @@ pub(super) fn run(
         if selected.is_some() {
             break;
         }
-        let mut info = unsafe { std::mem::zeroed::<libc::siginfo_t>() };
-        if unsafe {
-            libc::waitid(
-                libc::P_PIDFD,
-                pidfd as libc::id_t,
-                &mut info,
-                libc::WEXITED | libc::WNOHANG | libc::WNOWAIT,
-            )
-        } != 0
-        {
-            selected = Some(ProbeError::Io);
-            break;
+        match operations.observe_exit() {
+            Ok(true) => break,
+            Ok(false) => {}
+            Err(()) => {
+                selected = Some(ProbeError::Io);
+                break;
+            }
         }
-        if unsafe { info.si_pid() } != 0 {
-            break;
-        }
-        if Instant::now() >= deadline {
+        if operations.now() >= Duration::from_secs(10) {
             selected = Some(ProbeError::Timeout);
             break;
         }
-        std::thread::sleep(Duration::from_millis(1));
+        operations.pause();
     }
     // Signal only the pinned, unreaped identity. Reaping namespace PID 1 also
     // waits for the kernel's namespace-descendant teardown before publication.
-    let settle_deadline = Instant::now() + Duration::from_secs(5);
-    let status = owned.settle(settle_deadline);
+    let settle_deadline = operations
+        .now()
+        .checked_add(Duration::from_secs(5))
+        .unwrap_or_else(|| operations.fail_stop());
+    let success = settle(operations, settle_deadline);
     while !ended.iter().all(|eof| *eof) {
-        if Instant::now() >= settle_deadline {
-            fail_stop();
+        if operations.now() >= settle_deadline {
+            operations.fail_stop();
         }
-        for (index, fd) in [stdout.0, stderr.0].into_iter().enumerate() {
-            if !ended[index] {
+        for (index, eof) in ended.iter_mut().enumerate() {
+            if !*eof {
                 match read(
-                    fd,
+                    operations,
+                    index,
                     &mut total,
                     (index == 0 && selected.is_none()).then_some(&mut *output),
                 ) {
-                    Ok(eof) => ended[index] = eof,
+                    Ok(value) => *eof = value,
                     Err(error) => {
                         selected.get_or_insert(error);
                         // An I/O error cannot establish EOF. No successful or
                         // ordinary-error reply may hide uncertain drainage.
                         if error == ProbeError::Io {
-                            fail_stop();
+                            operations.fail_stop();
                         }
                     }
                 }
             }
         }
     }
-    if !libc::WIFEXITED(status) || libc::WEXITSTATUS(status) != 0 {
+    if !success {
         selected.get_or_insert(ProbeError::Exit);
     }
     if let Some(error) = selected {
@@ -156,74 +162,67 @@ pub(super) fn run(
     }
 }
 
-fn read(fd: i32, total: &mut usize, output: Option<&mut Vec<u8>>) -> Result<bool, ProbeError> {
+fn read(
+    operations: &mut impl Operations,
+    stream: usize,
+    total: &mut usize,
+    output: Option<&mut Vec<u8>>,
+) -> Result<bool, ProbeError> {
     let mut bytes = [0_u8; 8192];
-    let count = unsafe { libc::read(fd, bytes.as_mut_ptr().cast(), bytes.len()) };
+    let Some(count) = operations
+        .read(stream, &mut bytes)
+        .map_err(|()| ProbeError::Io)?
+    else {
+        return Ok(false);
+    };
     if count == 0 {
         return Ok(true);
     }
-    if count < 0 {
-        return if errno() == libc::EAGAIN {
-            Ok(false)
-        } else {
-            Err(ProbeError::Io)
-        };
+    // The native read cannot exceed its buffer. Preserve that invariant even
+    // for a malformed scripted implementation rather than indexing unchecked.
+    if count > bytes.len() {
+        return Err(ProbeError::Io);
     }
-    let count = count as usize;
+    account(total, &bytes[..count], output)?;
+    Ok(false)
+}
+
+fn account(
+    total: &mut usize,
+    bytes: &[u8],
+    output: Option<&mut Vec<u8>>,
+) -> Result<(), ProbeError> {
+    let count = bytes.len();
     *total = total.checked_add(count).ok_or(ProbeError::OutputLimit)?;
     if *total > 65_536 {
         return Err(ProbeError::OutputLimit);
     }
     if let Some(output) = output {
-        if output.capacity() - output.len() < count {
+        if output
+            .capacity()
+            .checked_sub(output.len())
+            .is_none_or(|remaining| remaining < count)
+        {
             return Err(ProbeError::OutputLimit);
         }
-        output.extend_from_slice(&bytes[..count]);
+        output.extend_from_slice(bytes);
     }
-    Ok(false)
+    Ok(())
 }
 
-struct Child {
-    pid: i32,
-    pidfd: Fd,
-    reaped: bool,
-}
-impl Child {
-    fn settle(&mut self, deadline: Instant) -> i32 {
-        if self.reaped {
-            fail_stop();
-        }
-        if unsafe {
-            libc::syscall(
-                libc::SYS_pidfd_send_signal,
-                self.pidfd.0,
-                libc::SIGKILL,
-                std::ptr::null::<libc::siginfo_t>(),
-                0_u32,
-            )
-        } != 0
-            && errno() != libc::ESRCH
-        {
-            fail_stop();
-        }
-        loop {
-            let mut status = 0;
-            let waited = unsafe { libc::waitpid(self.pid, &mut status, libc::WNOHANG) };
-            if waited == self.pid {
-                self.reaped = true;
-                return status;
-            }
-            if waited != 0 || Instant::now() >= deadline {
-                fail_stop();
-            }
-            std::thread::sleep(Duration::from_millis(1));
-        }
+fn settle(operations: &mut impl Operations, deadline: Duration) -> bool {
+    if operations.kill_owned().is_err() {
+        operations.fail_stop();
     }
-}
-impl Drop for Child {
-    fn drop(&mut self) {
-        if !self.reaped {
-            self.settle(Instant::now() + Duration::from_secs(5));
+    loop {
+        match operations.reap_owned() {
+            Ok(Some(success)) => return success,
+            Ok(None) => {}
+            Err(()) => operations.fail_stop(),
         }
+        if operations.now() >= deadline {
+            operations.fail_stop();
+        }
+        operations.pause();
     }
 }

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added offline-worker hostile native programs and external post-exec
+  capability/parent-death observations without widening the syscall policy.
+  Factored capture/settlement control flow for scripted sticky-failure and
+  fail-stop regressions alongside native owned operations. All new fixtures
+  remain unrun; physical injection, real-tool compatibility and live CLI
+  admission remain separate pending gates.
+
 - Connected the private Linux offline doctor worker from sealed request/bundle
   framing through per-tool PID namespaces, detached roots, capability removal,
   syscall filtering and bounded capture/reap. Added synthetic and real-bundle

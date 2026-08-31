@@ -115,6 +115,11 @@ binds observations to request bytes, not executable provenance or admitted
 version policy. Linux execution and hostile fixtures are authored, unrun;
 macOS/Windows require separate native implementations. See
 [Provisioned offline doctor worker v1](DOCTOR-OFFLINE-WORKER-V1.md).
+Capture's private native-operations adapter owns OS effects, while native and
+scripted test operations share the observation/settlement control flow. Test
+scripts cannot create process authority. External lifecycle fixtures inspect a
+stopped supervisor's pinned child; they do not expose procfs to the tool or
+change the production syscall filter.
 
 The retained safe `semaprax-native-rust-interop-platform` facade and platform-sys
 quarantine's separate `doctor/` module are no longer connected to that CLI route.

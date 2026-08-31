@@ -10,6 +10,10 @@ use std::path::PathBuf;
 use std::process::{Child, Command, ExitStatus, Stdio};
 use std::time::{Duration, Instant};
 
+mod hostile;
+mod lifecycle;
+mod native;
+
 const SELECTOR: &str = "worker-fixture";
 const VERSION: &[u8] = b"clang version 1.0.0\n";
 
@@ -155,7 +159,7 @@ fn collect(child: &mut Child) -> io::Result<(ExitStatus, Vec<u8>, Vec<u8>)> {
     }
 }
 
-fn run(request: &[u8], bundle: &[u8]) -> (ExitStatus, Vec<u8>, Vec<u8>) {
+fn spawn(request: &[u8], bundle: &[u8]) -> Child {
     let executable = worker();
     let request = high_duplicate(&sealed(request));
     let bundle = high_duplicate(&sealed(bundle));
@@ -189,9 +193,13 @@ fn run(request: &[u8], bundle: &[u8]) -> (ExitStatus, Vec<u8>, Vec<u8>) {
             Ok(())
         });
     }
-    let mut child = command
+    command
         .spawn()
-        .expect("start the explicitly provisioned worker");
+        .expect("start the explicitly provisioned worker")
+}
+
+fn run(request: &[u8], bundle: &[u8]) -> (ExitStatus, Vec<u8>, Vec<u8>) {
+    let mut child = spawn(request, bundle);
     let output = collect(&mut child);
     if output.is_err() {
         stop(&mut child);
@@ -203,6 +211,10 @@ fn run(request: &[u8], bundle: &[u8]) -> (ExitStatus, Vec<u8>, Vec<u8>) {
 /// These synthetic executables prove no real Clang/Node/Rust compatibility.
 fn executable(payload: &[u8], socket: bool, spin: bool) -> Vec<u8> {
     let code = machine_code(payload.len(), socket, spin);
+    executable_image(&code, payload)
+}
+
+fn executable_image(code: &[u8], payload: &[u8]) -> Vec<u8> {
     let mut elf = vec![0; 120];
     elf[..7].copy_from_slice(b"\x7fELF\x02\x01\x01");
     elf[16..18].copy_from_slice(&2u16.to_le_bytes());
@@ -220,7 +232,7 @@ fn executable(payload: &[u8], socket: bool, spin: bool) -> Vec<u8> {
     elf[96..104].copy_from_slice(&length.to_le_bytes());
     elf[104..112].copy_from_slice(&length.to_le_bytes());
     elf[112..120].copy_from_slice(&4096u64.to_le_bytes());
-    elf.extend_from_slice(&code);
+    elf.extend_from_slice(code);
     elf.extend_from_slice(payload);
     elf
 }

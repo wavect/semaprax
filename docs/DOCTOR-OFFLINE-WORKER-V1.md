@@ -111,6 +111,11 @@ failure and uncertain settlement, plus exact role order and no premature reply.
 Authored physical fixtures in `doctor/offline_worker/tests.rs` cover actual
 synthetic native ELF execution, socket-denial observation, exact 65,536-byte
 success, overflow, timeout, and invalid request/hash/missing-role rejection.
+A separate hostile-program fixture covers exact mutation/process-creation
+denials, stdin EOF, inherited descriptor exclusion, readable bundled content,
+root traversal and an inaccessible, unchanged outside sentinel. These programs
+do not receive a test-only syscall policy. A denied capability-changing call
+does not itself prove that the effective capability set was cleared.
 A separate fixture requires externally provisioned real Clang/Node/Rust bundle
 inputs. Selecting these ignored tests requires the absolute worker path in
 `SEMAPRAX_DOCTOR_WORKER` and the explicit context acknowledgement
@@ -119,11 +124,59 @@ The acknowledgement does not authenticate provisioning. The driver owns its
 close-on-exec descriptor flushes outside the worker boundary. Provisioned
 cgroup cleanup is still required on driver or worker uncertainty.
 
-No fixture has been executed here. The syscall-denial observation alone cannot
-distinguish the worker filter from a stricter provisioner policy. Physical
-supervisor-death, capability-recovery and injected settlement-failure cases
-remain to be authored; the real distributions may reject the initial no-thread
-policy. These are pending gates, not evidence of compatible deployment.
+The external lifecycle fixture pauses the exclusively owned supervisor and
+consumes its exact stop event before looking up its sole child. The stopped
+single-threaded supervisor and exclusion of other reapers pin that child's PID
+until the driver retains its pidfd. While the supervisor remains stopped, the
+driver requires exact executed-image bytes and observes empty post-exec
+capability sets, no-new-privileges and filter mode through procfs. It then kills
+only the supervisor, observes the retained child's termination, and requires
+worker capture EOF without a premature reply. No numeric child PID is reused
+after the supervisor resumes or dies. Orphan reaping is the provisioner's
+responsibility, not a claimed driver-owned reap.
+
+This fixture additionally requires readable procfs using the driver's PID
+namespace, executable/status inspection permission, and no competing external
+termination policy during the parent-death observation. It grants no procfs or
+additional syscall access to the tool. The driver requires one self `NSpid`
+entry matching its own PID and verifies that it is not a child subreaper before
+launch. These observations follow the kernel's
+[stop-event semantics](https://man7.org/linux/man-pages/man2/waitid.2.html),
+[pidfd lifetime](https://man7.org/linux/man-pages/man2/pidfd_open.2.html), and
+[process status fields](https://man7.org/linux/man-pages/man5/proc_pid_status.5.html).
+
+The capture/settlement algorithm is shared by native owned operations and a
+private scripted test implementation. Scripts cover fair drainage, exact and
+over-limit output, EOF without exit, sticky first failure, and uncertain
+kill/reap/drain/deadline fail-stop with no later action. Scripted operations
+carry no process authority and do not prove physical syscall-failure behavior;
+no production environment variable enables injection.
+
+No fixture has been executed here. Syscall-denial observations alone cannot
+distinguish the worker filter from a stricter provisioner policy; securebits
+locking and physical injected settlement failures still need their own
+evidence. The real distributions may reject the initial no-thread policy.
+These are pending gates, not evidence of compatible deployment.
+
+Select the authority-free wire, BPF and shared-control-flow tests separately:
+
+```sh
+cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib doctor::offline_worker::wire
+cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib doctor::offline_worker::guard
+cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib doctor::offline_worker::capture
+```
+
+Only inside the separately provisioned context described above, with the worker
+artifact and real-bundle inputs already supplied, select the ignored physical
+gates serially. Missing prerequisites fail; no fixture silently skips:
+
+```sh
+cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib doctor::offline_worker::tests -- --ignored --test-threads=1
+```
+
+The real-distribution fixture additionally requires absolute
+`SEMAPRAX_DOCTOR_REAL_BUNDLE` and its exact `SEMAPRAX_DOCTOR_REAL_SELECTOR`.
+These commands describe pending evidence, not commands executed in this batch.
 
 The ordinary CLI remains unavailable until an explicit live provisioner-owned
 handoff and final doctor version-policy integration are implemented. Linux

@@ -45,6 +45,40 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         Ok(())
     }
 
+    fn stage_bytes_call_argument(
+        &mut self,
+        call: &ResolvedExpr,
+        index: usize,
+        argument: &ResolvedExpr,
+        mut value: CValue,
+    ) -> Result<CValue, Diagnostic> {
+        if !matches!(value.ty, ResolvedType::Bytes) {
+            return Ok(value);
+        }
+        let plan = self
+            .bytes_plan
+            .ok_or_else(|| backend_error("owned Bytes call has no canonical cleanup plan"))?;
+        let index = u32::try_from(index)
+            .map_err(|_| backend_error("native call has too many parameters"))?;
+        let storage = plan.call_argument_storage(&call.id, index)?;
+        // Producers can already have transferred into this exact epoch. The
+        // plan authenticates both that case and the one remaining transfer;
+        // replaying every transition at the argument would initialize twice.
+        let transitions = plan.transfer_field_at(
+            &argument.id,
+            &value.code,
+            &crate::cleanup_plan::CleanupPlace {
+                storage,
+                projections: Vec::new(),
+            },
+        )?;
+        for line in transitions.lines() {
+            self.line(line);
+        }
+        value.code = plan.call_argument(&call.id, index)?.0.to_owned();
+        Ok(value)
+    }
+
     /// Refutable Match v1 native lowering: the scrutinee stages once, then
     /// every arm tests `!matched && (<literal equality>)` with an optional
     /// inner guard branch. `&&` short-circuits so a guard evaluates exactly
@@ -1030,10 +1064,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         while let Some(call) = pending.pop() {
             let mut values = Vec::with_capacity(call.args.len());
             if let Some(first) = value.take() {
-                values.push(first);
+                values.push(self.stage_bytes_call_argument(call.expr, 0, &call.args[0], first)?);
             }
-            for argument in call.args.iter().skip(values.len()) {
-                values.push(self.emit_expr(argument)?);
+            for (index, argument) in call.args.iter().enumerate().skip(values.len()) {
+                let value = self.emit_expr(argument)?;
+                values.push(self.stage_bytes_call_argument(call.expr, index, argument, value)?);
             }
             value = Some(self.emit_user_call_values(call.expr, &call.target, call.args, values)?);
         }
@@ -1049,9 +1084,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
     ) -> Result<CValue, Diagnostic> {
         let mut arguments = Vec::with_capacity(args.len());
         let mut string_arguments = Vec::new();
-        for (index, ((arg, expected), argument)) in
-            args.iter().zip(&target.params).zip(values).enumerate()
-        {
+        for (index, (expected, argument)) in target.params.iter().zip(values).enumerate() {
             self.require_type(&argument.ty, expected, &format!("call argument {index}"))?;
             arguments.push(
                 if matches!(expected, ResolvedType::String) && self.owned_strings.is_some() {
@@ -1066,13 +1099,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     let plan = self.bytes_plan.ok_or_else(|| {
                         backend_error("owned Bytes call has no canonical cleanup plan")
                     })?;
-                    let transitions = plan.apply_at(&arg.id)?;
-                    for line in transitions.lines() {
-                        self.line(line);
-                    }
                     let parameter_index = u32::try_from(index)
                         .map_err(|_| backend_error("native call has too many parameters"))?;
                     let (value, _) = plan.call_argument(&expr.id, parameter_index)?;
+                    if argument.code != value {
+                        return Err(backend_error(
+                            "owned Bytes call argument was not staged in its canonical epoch",
+                        ));
+                    }
                     format!("spx_bytes_move(&{value})")
                 } else if is_aggregate_type(self.program, expected)? {
                     if target.param_ownerships[index] == hir::OwnershipMode::Own {
@@ -1100,7 +1134,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             if is_aggregate_type(self.program, expected)?
                 && target.param_ownerships[index] == hir::OwnershipMode::Borrow
             {
-                let ResolvedExprKind::Place(place) = &arg.kind else {
+                let ResolvedExprKind::Place(place) = &args[index].kind else {
                     return Err(backend_error(
                         "borrowed owned-record argument is not one authenticated place",
                     ));
@@ -1611,9 +1645,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             let plan = self
                 .bytes_plan
                 .ok_or_else(|| backend_error("owned Bytes if has no cleanup plan"))?;
-            let transitions = plan.transfer_from_to(
+            let transitions = plan.transfer_branch_at(
+                &expr.id,
                 &value.code,
-                &crate::cleanup_plan::StorageId::Temporary(expr.id.clone()),
+                &crate::cleanup_plan::CleanupPlace {
+                    storage: crate::cleanup_plan::StorageId::Temporary(expr.id.clone()),
+                    projections: Vec::new(),
+                },
             )?;
             for line in transitions.lines() {
                 self.line(line);
@@ -2342,7 +2380,27 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ))
                 })?;
                 self.require_type(&expr.ty, &field.ty, "record projection")?;
-                if field.size == 0 {
+                if matches!(field.ty, ResolvedType::Bytes) {
+                    let plan = self.bytes_plan.ok_or_else(|| {
+                        backend_error("owned Bytes projection has no canonical cleanup plan")
+                    })?;
+                    // The plan owns the projected leaf, not the aggregate's
+                    // C field expression. Apply its field-to-result chain once
+                    // before handing the canonical slot to the consumer.
+                    let transitions = plan.apply_at(&expr.id)?;
+                    for line in transitions.lines() {
+                        self.line(line);
+                    }
+                    CValue {
+                        code: plan
+                            .result_at(&expr.id)
+                            .ok_or_else(|| {
+                                backend_error("owned Bytes projection has no canonical result")
+                            })?
+                            .to_owned(),
+                        ty: field.ty,
+                    }
+                } else if field.size == 0 {
                     self.emit_erased_record_field_value(&field.ty)?
                 } else {
                     CValue {

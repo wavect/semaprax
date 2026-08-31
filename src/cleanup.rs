@@ -902,10 +902,14 @@ impl InventoryBuilder<'_> {
                             };
                         }
                         ResolvedExprKind::Block { statements, tail } => {
-                            // Each statement contributes child_count()
-                            // expression visits followed by one binding step.
+                            // Only let statements need a trailing binding step.
+                            // A no-op step for assignment/unsafe/while would
+                            // end this traversal before later storage or tail.
                             let per_statement = |statement: &ResolvedStatement| {
-                                statement.child_count().saturating_add(1)
+                                statement.child_count().saturating_add(usize::from(matches!(
+                                    statement,
+                                    ResolvedStatement::Let { .. }
+                                )))
                             };
                             let mut offset = 0usize;
                             let mut matched = None;

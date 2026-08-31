@@ -1,4 +1,4 @@
-//! Authored, unrun standalone SDK evidence. This explicit gate requires installed tools.
+//! Standalone SDK consumer evidence; this explicit gate requires installed tools.
 #![cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 
 use std::fs;

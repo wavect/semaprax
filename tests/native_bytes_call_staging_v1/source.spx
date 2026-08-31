@@ -1,0 +1,39 @@
+module native.bytes_staging;
+
+@id("stage.main") fn main() -> i64 { 0 }
+@id("stage.take") fn take(first: own Bytes, checked: i64, last: own Bytes) -> Bytes { first }
+@id("stage.take-many") fn take_many(first: own Bytes, second: own Bytes, checked: i64, last: own Bytes) -> Bytes { first }
+@id("stage.identity") fn identity(value: own Bytes) -> Bytes { value }
+
+@id("stage.packet") record Packet {
+    @id("stage.packet.first") first: Bytes,
+    @id("stage.packet.second") second: Bytes,
+}
+
+@id("stage.direct") fn direct(input: borrow Slice<u8>, other: borrow Slice<u8>, branch: i64, zero: i64) -> Bytes {
+    take(bytes_copy(input), 1 / zero, bytes_copy(other))
+}
+@id("stage.place") fn place(input: borrow Slice<u8>, other: borrow Slice<u8>, branch: i64, zero: i64) -> Bytes {
+    let bytes = bytes_copy(input);
+    take(bytes, 1 / zero, bytes_copy(other))
+}
+@id("stage.projected") fn projected(input: borrow Slice<u8>, other: borrow Slice<u8>, branch: i64, zero: i64) -> Bytes {
+    let packet = Packet { first: bytes_copy(input), second: bytes_copy(other) };
+    take(packet.first, 1 / zero, bytes_copy(other))
+}
+@id("stage.temporary") fn temporary(input: borrow Slice<u8>, other: borrow Slice<u8>, branch: i64, zero: i64) -> Bytes {
+    take((Packet { first: bytes_copy(input), second: bytes_copy(other) }).first, 1 / zero, bytes_copy(other))
+}
+@id("stage.nested") fn nested(input: borrow Slice<u8>, other: borrow Slice<u8>, branch: i64, zero: i64) -> Bytes {
+    take(identity(identity(bytes_copy(input))), 1 / zero, bytes_copy(other))
+}
+@id("stage.block") fn block(input: borrow Slice<u8>, other: borrow Slice<u8>, branch: i64, zero: i64) -> Bytes {
+    take({ let bytes = bytes_copy(input); bytes }, 1 / zero, bytes_copy(other))
+}
+@id("stage.conditional") fn conditional(input: borrow Slice<u8>, other: borrow Slice<u8>, branch: i64, zero: i64) -> Bytes {
+    take(if branch == 0 { bytes_copy(input) } else { bytes_copy(other) }, 1 / zero, bytes_copy(other))
+}
+@id("stage.multiple") fn multiple(input: borrow Slice<u8>, other: borrow Slice<u8>, branch: i64, zero: i64) -> Bytes {
+    let second = bytes_copy(other);
+    take_many(bytes_copy(input), second, 1 / zero, bytes_copy(other))
+}

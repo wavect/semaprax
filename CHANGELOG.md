@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Corrected cleanup-inventory traversal after assignment, while and audited
+  unsafe statements, restoring discovery of later owned storage without changing
+  admission or cleanup order. Corrected shared native Bytes argument, conditional
+  and temporary-record projection lowering to use exact canonical transfer
+  identities once. Affected native artifacts intentionally change. Added ordered
+  inventory/hostile regressions, an eight-shape physical allocation corpus and a
+  generated Rust fail-stop-oracle calibration. Owned-result matches retain
+  mandatory H006 rejection. Original String and new Bytes allocation and
+  sanitizer gates pass locally on Linux, as does the generated String SDK's
+  locked/offline consumer
+  with tmpfs publication; Docker Desktop bind-mount publication remains an
+  undiagnosed filesystem-dependent limit. No full-quality, profile or hosted
+  promotion is implied.
+
 - Restored the resolved-interface slice in the borrowed operation-sidecar view
   for both workspace and retained-Project constructors. This fixes the refactor's
   compile error while preserving the existing authenticated interface-parameter

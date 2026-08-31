@@ -6,6 +6,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use super::*;
 
+mod fatal_oracle;
+
 static NEXT: AtomicU64 = AtomicU64::new(0);
 
 #[test]
@@ -66,7 +68,7 @@ pub(crate) fn run_boundary_fixture(kind: u32, lib: &str, ffi: &str, method: &str
         marker,
         &format!("{marker}\nif crate::mode()==21{{panic!(\"host unwind after owner guard\")}}"),
     );
-    std::fs::write(root.join("owned_data_ffi.rs"), instrumented).unwrap();
+    std::fs::write(root.join("owned_data_ffi.rs"), &instrumented).unwrap();
     std::fs::write(
         root.join("provider.rs"),
         include_str!("fixtures/owned_boundary_provider.rs"),
@@ -88,6 +90,9 @@ fn main(){{
         Err(error)=>{{assert_eq!(selected,18);assert_eq!(error,sdk::CallError::AdapterRejected);println!("constructor-rejected");return}}
     }};
     let result=std::panic::catch_unwind(std::panic::AssertUnwindSafe(||sdk.{method}()));
+    // A returned error or caught panic is not process fail-stop. Publish this
+    // witness before any harness assertion can itself terminate the process.
+    {{use std::io::Write;let mut out=std::io::stdout().lock();writeln!(out,"call-completed").unwrap();out.flush().unwrap();}}
     if selected==21{{assert!(result.is_err());println!("unwind-settled")}}
     else{{
         let result=result.unwrap();
@@ -110,7 +115,7 @@ fn main(){{
         value_assertions = value_assertions(kind)
     );
     let harness = root.join("boundary.rs");
-    std::fs::write(&harness, source).unwrap();
+    std::fs::write(&harness, &source).unwrap();
     for optimization in ["0", "2"] {
         let executable: PathBuf = root.join(format!(
             "boundary-o{optimization}{}",
@@ -177,7 +182,9 @@ fn main(){{
                 })
                 .unwrap();
             let closed = stdout.find("event:close").unwrap();
-            assert!(closed < publication, "{stdout}");
+            assert_eq!(stdout.matches("call-completed").count(), 1, "{stdout}");
+            let completed = stdout.find("call-completed").unwrap();
+            assert!(closed < completed && completed < publication, "{stdout}");
             let owned_first =
                 (kind <= 3 || kind == 7) && !matches!(selected, 12 | 13 | 14 | 23 | 24);
             assert_eq!(
@@ -203,30 +210,14 @@ fn main(){{
                 .output()
                 .unwrap();
             let stdout = String::from_utf8(output.stdout).unwrap();
-            assert!(
-                !output.status.success(),
-                "kind {kind}, mode {selected}: {stdout}"
+            assert_eq!(
+                fatal_oracle::check(selected, output.status.success(), &stdout),
+                Ok(()),
+                "kind {kind}, mode {selected}, O{optimization}: {stdout}"
             );
-            assert!(
-                !stdout.contains("returned:")
-                    && !stdout.contains("recovered")
-                    && !stdout.contains("finished"),
-                "{stdout}"
-            );
-            if selected == 9 || selected == 10 || selected == 26 {
-                assert!(
-                    !stdout.contains("event:len")
-                        && !stdout.contains("event:copy")
-                        && !stdout.contains("event:drop")
-                        && !stdout.contains("event:close"),
-                    "{stdout}"
-                );
-            } else if selected == 7 || selected == 27 {
-                assert_eq!(stdout.matches("event:drop").count(), 1, "{stdout}");
-                assert!(!stdout.contains("event:close"), "{stdout}");
-            } else {
-                assert_eq!(stdout.matches("event:close").count(), 1, "{stdout}");
-            }
+        }
+        if kind == 0 {
+            fatal_oracle::calibrate(&root, lib, &instrumented, &source, optimization);
         }
     }
 }

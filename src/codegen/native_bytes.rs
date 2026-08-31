@@ -696,47 +696,44 @@ impl NativeBytesPlan {
         ))
     }
 
-    pub(super) fn transfer_from_to(
+    pub(super) fn transfer_branch_at(
         &self,
+        at: &ExpressionId,
         source_value: &str,
-        storage: &StorageId,
+        destination: &CleanupPlace,
     ) -> Result<String, Diagnostic> {
-        let mut matches = self
-            .transitions
-            .values()
-            .flatten()
-            .filter_map(|transition| {
-                let CleanupTransition::Transfer {
-                    source,
-                    destination,
-                    ..
-                } = transition
-                else {
-                    return None;
-                };
-                let source_slot = self.slots.get(source)?;
-                (source_slot.value == source_value && destination.storage == *storage)
-                    .then_some((source, destination))
-            });
-        let Some((source, destination)) = matches.next() else {
-            return Err(error(format!(
-                "Bytes branch source `{source_value}` has no transfer to `{storage:?}`"
-            )));
-        };
+        // Branch joins are anchored at the parent expression. Select only
+        // the reached branch's exact source/destination relation; never replay
+        // the other branch transitions sharing that parent anchor.
+        let mut matches =
+            self.transitions.get(at).into_iter().flatten().filter_map(
+                |transition| match transition {
+                    CleanupTransition::Transfer {
+                        source,
+                        destination: target,
+                        ..
+                    } if target == destination => {
+                        let slot = self.slots.get(source)?;
+                        (slot.value == source_value).then_some(source)
+                    }
+                    _ => None,
+                },
+            );
+        let source = matches
+            .next()
+            .ok_or_else(|| error("Bytes branch source has no canonical result transfer"))?;
         if matches.next().is_some() {
             return Err(error("Bytes branch transfer is ambiguous"));
         }
-        let source = &self.slots[source];
-        let destination = &self.slots[destination];
-        Ok(format!(
-            "if (!{} || {}) spx_runtime_invariant_failure(\"Bytes plan branch transfer liveness\");\n{} = spx_bytes_move(&{});\n{} = false;\n{} = true;\n",
-            source.flag,
-            destination.flag,
-            destination.value,
-            source.value,
-            source.flag,
-            destination.flag
-        ))
+        let source = self
+            .slots
+            .get(source)
+            .ok_or_else(|| error("Bytes branch source is not indexed"))?;
+        let destination = self
+            .slots
+            .get(destination)
+            .ok_or_else(|| error("Bytes branch destination is not indexed"))?;
+        Ok(emit_transfer(source, destination, "branch transfer"))
     }
 
     pub(super) fn transfer_variant_branch_to(

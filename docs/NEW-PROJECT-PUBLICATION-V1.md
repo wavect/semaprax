@@ -1,7 +1,7 @@
 # Calculator project publication v1
 
-Status: correction with local macOS CLI evidence; lower-level cross-platform
-and hosted gates remain required.
+Status: correction with local macOS/Linux evidence; Windows and hosted gates
+remain required.
 
 Audience: toolchain contributors, host integrators, and reviewers.
 
@@ -84,6 +84,16 @@ Immediately after rename succeeds, the authority latches publication before
 any hook, reopen, content verification, or path comparison. Published state
 never regains pre-publication cleanup authority.
 
+The descendant `src` handle is released before the rename, preserving the
+Windows publication prerequisite. A failed rename must return its selected
+error before any `src` reopen. Reopening is verification-only after successful
+publication, never a way to reacquire cleanup authority. Previously, an
+unconditional reopen after failure could adopt an independently created `src`
+replacement containing the original tracked files. Their matching file
+identities did not make the replacement directory owned, yet subsequent cleanup
+could delete it. Returning before the reopen preserves that ownership history
+without changing successful publication or the platform rename implementation.
+
 Success requires all of the following observations:
 
 1. Reopened held files exactly match the checked template bytes and both
@@ -109,6 +119,14 @@ Before publication, cleanup is limited to the exact held stage inventories.
 An incomplete write, untracked file, changed identity, or foreign inventory
 can leave inert staging residue. Failure does not promise that every staging
 directory disappears; cleanup must not infer authority from a nonce prefix.
+
+Once the original `src` handle has been released for publication, a failed
+rename leaves the stage inert, including an ordinary output collision. Dropping
+the authority performs no source or root discard. The original rename error
+remains selected even if `src` is now absent or cannot be reopened. A later
+publication call on that authority rejects before another rename because its
+original source authority is gone. Earlier preparation failures retain their
+existing exact-inventory cleanup behavior.
 
 After successful rename, failed content or path binding reports failure and
 retains the complete published tree, even if its original name has been moved.
@@ -140,6 +158,17 @@ parent; original ancestor-alias displacement; unchanged foreign sentinels and
 the displaced original inventory after error and drop; and partial/untracked
 stage residue that is not adopted for cleanup.
 
+Failed-rename evidence must also cover a real output collision after descendant
+release, both with unchanged `src` and with a substituted source directory.
+The Unix substitution case moves the original tracked files into an
+independently created replacement directory: exact bytes and file identities
+alone must not authorize deleting that directory. Retain directory identity
+witnesses and require the original displaced directory, replacement directory,
+tracked files, stage root and foreign output to survive error and drop. A
+missing or linked `src` must not mask the primary collision error or authorize
+another publication attempt. These cases are bounded namespace-substitution
+observations, not hostile same-principal isolation or crash recovery.
+
 Staging-name regressions must use invocation-local candidate selection rather
 than racing or resetting the process-global serial. Cover exact and ASCII-case
 collisions, the unchanged attempt ceiling, successful publication with exact
@@ -159,6 +188,19 @@ with Rust 1.98. The separate quickstart suite passed nine tests and the version
 suite passed six. These results do not prove installation, release archives,
 Windows execution, or hosted gates, and cannot promote WP-06 or any
 completion-matrix row without its remaining required evidence.
+
+The failed-rename replacement-directory regression was executed against the
+old ordering on both macOS arm64/Rust 1.98 and Linux arm64/Rust 1.88: dropping
+the failed authority actually removed the replacement source directory and
+stage. The same unchanged regression passes after propagating the rename
+failure before reopening. All nine lower project-publication tests and all
+15 calculator CLI cases pass on both hosts; the complete lower package's
+46 unit tests and warnings-denied package Clippy also pass on macOS. Linux
+used the existing offline, capability-dropped container with read-only source.
+The CLI's relative-path fixture requires a writable working directory: the
+initial read-only-checkout run failed setup, then the exact Cargo-reported
+test executable passed all 15 cases when launched from container `/tmp`.
+This is not a source/test relaxation, Windows evidence or a full quality run.
 
 Focused gates, to run on the required hosts before promotion:
 

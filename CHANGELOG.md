@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Fixed new-project failed-publication cleanup authority: return the rename
+  error before reopening `src`, so a replacement directory cannot become owned
+  merely because it contains the original tracked files. Failed rename retains
+  inert staging and its primary diagnostic; successful publication, templates,
+  schemas and platform rename behavior remain unchanged. The destructive
+  regression fails before and passes after the fix on macOS and Linux; all nine
+  publication tests and 15 calculator CLI cases pass on both. The full lower
+  package's 46 tests and package Clippy pass on macOS. No hosted or Windows
+  promotion is implied.
+
 - Corrected a doctor report test oracle that omitted a byte after partial writes;
   added exact accepted-byte conservation across short writes, repeated `EAGAIN`
   and 8 KiB chunk boundaries without changing production delivery. All 52 selected

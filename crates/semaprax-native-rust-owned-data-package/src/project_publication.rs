@@ -38,6 +38,8 @@ pub struct NewProjectAuthority {
     source_files: platform::PreparedDiscardInventory<2>,
     published: bool,
     #[cfg(test)]
+    before_rename: Option<Box<dyn FnOnce()>>,
+    #[cfg(test)]
     after_rename: Option<Box<dyn FnOnce()>>,
 }
 
@@ -99,6 +101,8 @@ impl NewProjectAuthority {
             root,
             source_files,
             published: false,
+            #[cfg(test)]
+            before_rename: None,
             #[cfg(test)]
             after_rename: None,
         })
@@ -198,6 +202,10 @@ impl NewProjectAuthority {
         drop(self.source.take());
         let mut publish =
             platform::prepare_publish_directory(&self.output_name).map_err(map_invalid)?;
+        #[cfg(test)]
+        if let Some(hook) = self.before_rename.take() {
+            hook();
+        }
         let published = platform::publish_directory_new_prepared(
             &mut publish,
             &self.parent,
@@ -213,10 +221,14 @@ impl NewProjectAuthority {
                 hook();
             }
         }
+        // Descendant release ended our original source-directory ownership.
+        // A failed rename must not reacquire cleanup authority from whatever
+        // now occupies `src`, even if its files retain the original identities.
+        // Leave inert staging residue and preserve the selected publish error.
+        published.map_err(map_create)?;
         self.source = Some(
             platform::hold_child_directory(&self.stage, OsStr::new("src")).map_err(map_changed)?,
         );
-        published.map_err(map_create)?;
         self.authenticate_published(files)?;
         if !self.ambient_paths_still_bind(&self.parent_path, &self.output_path)? {
             return Err(NewProjectAuthorityError::Changed);

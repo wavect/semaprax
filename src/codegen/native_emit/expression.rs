@@ -50,10 +50,24 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         call: &ResolvedExpr,
         index: usize,
         argument: &ResolvedExpr,
+        ownership: hir::OwnershipMode,
         mut value: CValue,
     ) -> Result<CValue, Diagnostic> {
         if !matches!(value.ty, ResolvedType::Bytes) {
             return Ok(value);
+        }
+        if ownership == hir::OwnershipMode::Borrow {
+            if !matches!(argument.kind, ResolvedExprKind::Place(_)) {
+                return Err(backend_error(
+                    "borrowed Bytes call argument is not one authenticated place",
+                ));
+            }
+            return Ok(value);
+        }
+        if ownership != hir::OwnershipMode::Own {
+            return Err(backend_error(
+                "Bytes call argument lacks validated ownership classification",
+            ));
         }
         let plan = self
             .bytes_plan
@@ -1064,11 +1078,23 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         while let Some(call) = pending.pop() {
             let mut values = Vec::with_capacity(call.args.len());
             if let Some(first) = value.take() {
-                values.push(self.stage_bytes_call_argument(call.expr, 0, &call.args[0], first)?);
+                values.push(self.stage_bytes_call_argument(
+                    call.expr,
+                    0,
+                    &call.args[0],
+                    call.target.param_ownerships[0],
+                    first,
+                )?);
             }
             for (index, argument) in call.args.iter().enumerate().skip(values.len()) {
                 let value = self.emit_expr(argument)?;
-                values.push(self.stage_bytes_call_argument(call.expr, index, argument, value)?);
+                values.push(self.stage_bytes_call_argument(
+                    call.expr,
+                    index,
+                    argument,
+                    call.target.param_ownerships[index],
+                    value,
+                )?);
             }
             value = Some(self.emit_user_call_values(call.expr, &call.target, call.args, values)?);
         }
@@ -1096,18 +1122,29 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     string_arguments.push(argument.code);
                     alias
                 } else if matches!(expected, ResolvedType::Bytes) {
-                    let plan = self.bytes_plan.ok_or_else(|| {
-                        backend_error("owned Bytes call has no canonical cleanup plan")
-                    })?;
-                    let parameter_index = u32::try_from(index)
-                        .map_err(|_| backend_error("native call has too many parameters"))?;
-                    let (value, _) = plan.call_argument(&expr.id, parameter_index)?;
-                    if argument.code != value {
-                        return Err(backend_error(
-                            "owned Bytes call argument was not staged in its canonical epoch",
-                        ));
+                    match target.param_ownerships[index] {
+                        hir::OwnershipMode::Own => {
+                            let plan = self.bytes_plan.ok_or_else(|| {
+                                backend_error("owned Bytes call has no canonical cleanup plan")
+                            })?;
+                            let parameter_index = u32::try_from(index).map_err(|_| {
+                                backend_error("native call has too many parameters")
+                            })?;
+                            let (value, _) = plan.call_argument(&expr.id, parameter_index)?;
+                            if argument.code != value {
+                                return Err(backend_error(
+                                    "owned Bytes call argument was not staged in its canonical epoch",
+                                ));
+                            }
+                            format!("spx_bytes_move(&{value})")
+                        }
+                        hir::OwnershipMode::Borrow => format!("&({})", argument.code),
+                        _ => {
+                            return Err(backend_error(
+                                "Bytes call argument lacks validated ownership classification",
+                            ));
+                        }
                     }
-                    format!("spx_bytes_move(&{value})")
                 } else if is_aggregate_type(self.program, expected)? {
                     if target.param_ownerships[index] == hir::OwnershipMode::Own {
                         if let Some(plan) = self.bytes_plan {
@@ -1201,7 +1238,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         ));
         if let Some(plan) = self.bytes_plan {
             for (index, expected) in target.params.iter().enumerate() {
-                if matches!(expected, ResolvedType::Bytes) {
+                if matches!(expected, ResolvedType::Bytes)
+                    && target.param_ownerships[index] == hir::OwnershipMode::Own
+                {
                     let (_, flag) = plan.call_argument(
                         &expr.id,
                         u32::try_from(index)
@@ -3111,5 +3150,67 @@ mod tests {
     #[test]
     fn native_codegen_handles_deep_if_on_the_default_stack() {
         assert_native_codegen(RecursiveFamily::If, "if");
+    }
+
+    #[test]
+    fn native_borrowed_bytes_calls_use_const_aliases_without_owned_staging() {
+        let source = r#"
+module test.native_borrowed_bytes;
+@id("packet") record Packet {
+    @id("packet.payload") payload: Bytes,
+    @id("packet.marker") marker: i64,
+}
+@id("bytes.inspect")
+fn inspect(value: borrow Bytes) -> usize {
+    byte_len(bytes_as_slice(value))
+}
+@id("bytes.consume")
+fn consume(value: own Bytes) -> usize {
+    byte_len(bytes_as_slice(value))
+}
+@id("bytes.projected")
+fn projected(data: borrow Slice<u8>) -> usize {
+    let packet = Packet { payload: bytes_copy(data), marker: 7 };
+    inspect(packet.payload)
+}
+@id("bytes.owned")
+fn owned(data: borrow Slice<u8>) -> usize {
+    let value = bytes_copy(data);
+    consume(value)
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+        let resolved = crate::hir::resolve(
+            &crate::parse(source, Path::new("native-borrowed-bytes.spx")).unwrap(),
+        )
+        .unwrap();
+        let generated = crate::codegen::emit_hir_c(&resolved).unwrap();
+        let inspect =
+            super::super::c_function_symbol(&crate::hir::DeclarationId::new("bytes.inspect"));
+        let consume =
+            super::super::c_function_symbol(&crate::hir::DeclarationId::new("bytes.consume"));
+
+        let inspect_lines = generated
+            .lines()
+            .filter(|line| line.contains(&inspect))
+            .collect::<Vec<_>>();
+        assert!(
+            generated.contains(&format!(
+                "{inspect}(struct spx_context *spx_ctx, const spx_bytes_v1 *spx_param_0"
+            )),
+            "{inspect_lines:?}"
+        );
+        let borrow_call = generated
+            .lines()
+            .find(|line| line.contains("spx_status =") && line.contains(&inspect))
+            .expect("projected borrowed call is emitted");
+        assert!(borrow_call.contains("&("), "{borrow_call}");
+        assert!(!borrow_call.contains("spx_bytes_move"), "{borrow_call}");
+
+        let owned_call = generated
+            .lines()
+            .find(|line| line.contains("spx_status =") && line.contains(&consume))
+            .expect("owned call is emitted");
+        assert!(owned_call.contains("spx_bytes_move"), "{owned_call}");
     }
 }

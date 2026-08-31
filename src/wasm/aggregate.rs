@@ -5414,15 +5414,17 @@ impl Emitter<'_> {
         }
         let mut values = Vec::with_capacity(args.len());
         for (index, (argument, parameter)) in args.iter().zip(&target.params).enumerate() {
-            let value = if parameter.ownership == crate::hir::OwnershipMode::Borrow
-                && is_aggregate(self.program, &parameter.ty)?
-            {
+            let borrowed_bytes = parameter.ownership == crate::hir::OwnershipMode::Borrow
+                && parameter.ty == ResolvedType::Bytes;
+            let borrowed_aggregate = parameter.ownership == crate::hir::OwnershipMode::Borrow
+                && is_aggregate(self.program, &parameter.ty)?;
+            let value = if borrowed_bytes || borrowed_aggregate {
                 let ResolvedExprKind::Place(place) = &argument.kind else {
                     return Err(error(
-                        "borrowed aggregate call argument is not an exact place",
+                        "borrowed owned-data call argument is not an exact place",
                     ));
                 };
-                if !place.projections.is_empty() {
+                if borrowed_aggregate && !place.projections.is_empty() {
                     return Err(error(
                         "borrowed aggregate call projections are outside flat v1",
                     ));
@@ -5436,32 +5438,36 @@ impl Emitter<'_> {
                 self.emit_expr(argument)?
             };
             require_type(value_type(&value), &parameter.ty, "call argument")?;
-            let parameter_index = u32::try_from(index)
-                .map_err(|_| error("aggregate call argument index overflows u32"))?;
-            let epoch = crate::cleanup_plan::StorageId::CallArgument {
-                call: expr.id.clone(),
-                parameter_index,
-                value_expression: argument.id.clone(),
-            };
-            if is_aggregate(self.program, &parameter.ty)?
-                && self.plan.cleanup_storage_types.contains_key(&epoch)
-                && self
-                    .call_argument_values
-                    .insert(epoch.clone(), value.clone())
-                    .is_some()
-            {
-                return Err(error("projected call epoch carrier is not unique"));
+            if parameter.ownership == crate::hir::OwnershipMode::Own {
+                let parameter_index = u32::try_from(index)
+                    .map_err(|_| error("aggregate call argument index overflows u32"))?;
+                let epoch = crate::cleanup_plan::StorageId::CallArgument {
+                    call: expr.id.clone(),
+                    parameter_index,
+                    value_expression: argument.id.clone(),
+                };
+                if is_aggregate(self.program, &parameter.ty)?
+                    && self.plan.cleanup_storage_types.contains_key(&epoch)
+                    && self
+                        .call_argument_values
+                        .insert(epoch.clone(), value.clone())
+                        .is_some()
+                {
+                    return Err(error("projected call epoch carrier is not unique"));
+                }
+                values.push(
+                    self.plan
+                        .cleanup_call_argument_carriers
+                        .get(&epoch)
+                        .copied()
+                        .map_or(value, |local| Value::Scalar {
+                            local,
+                            ty: parameter.ty.clone(),
+                        }),
+                );
+            } else {
+                values.push(value);
             }
-            values.push(
-                self.plan
-                    .cleanup_call_argument_carriers
-                    .get(&epoch)
-                    .copied()
-                    .map_or(value, |local| Value::Scalar {
-                        local,
-                        ty: parameter.ty.clone(),
-                    }),
-            );
         }
         self.apply_call_commit(&expr.id)?;
         for value in &values {
@@ -7552,6 +7558,88 @@ mod tests {
             &DeclarationId::new(crate::byte_ops::BYTES_AS_SLICE_ID),
             &deeper,
         ));
+    }
+
+    #[test]
+    fn projected_borrowed_bytes_forwards_one_token_and_drops_only_the_owner() {
+        if Command::new("node").arg("--version").output().is_err() {
+            return;
+        }
+        let source = r#"
+module test.wasm_projected_borrowed_bytes;
+@id("packet") record Packet {
+    @id("packet.payload") payload: Bytes,
+    @id("packet.marker") marker: i64,
+}
+@id("bytes.inspect")
+fn inspect(value: borrow Bytes) -> usize {
+    byte_len(bytes_as_slice(value))
+}
+@id("bytes.projected")
+fn projected(packet: own Packet) -> usize {
+    let first = inspect(packet.payload);
+    let second = inspect(packet.payload);
+    first + second
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+        let resolved =
+            hir::resolve(&parse(source, Path::new("wasm-projected-borrowed-bytes.spx")).unwrap())
+                .unwrap();
+        let bytes = emit_profile(&resolved, true, false).unwrap();
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        let stem = format!(
+            "semaprax-projected-borrowed-bytes-wasm-{}-{id}",
+            std::process::id()
+        );
+        let wasm_path = std::env::temp_dir().join(format!("{stem}.wasm"));
+        let script_path = std::env::temp_dir().join(format!("{stem}.mjs"));
+        std::fs::write(&wasm_path, bytes).unwrap();
+        let projected = format!(
+            "__spx_test_{}",
+            hex_identity(&DeclarationId::new("bytes.projected"))
+        );
+        let script = format!(
+            r#"import {{ readFile }} from "node:fs/promises";
+const bytes = await readFile(process.argv[2]);
+let copies = 0, drops = 0, views = 0;
+const fail = name => () => {{ throw new Error(`unexpected host import ${{name}}`); }};
+const {{instance}} = await WebAssembly.instantiate(bytes, {{env: {{
+  spx_add: fail("spx_add"), spx_sub: fail("spx_sub"), spx_mul: fail("spx_mul"),
+  spx_div: fail("spx_div"), spx_rem: fail("spx_rem"), spx_neg: fail("spx_neg"),
+  spx_contract_fail: fail("spx_contract_fail"),
+  spx_bytes_copy: value => {{ copies += 1; return value; }},
+  spx_bytes_drop: () => {{ drops += 1; }},
+  spx_bytes_as_slice: value => {{ views += 1; return value; }},
+  spx_bytes_get: fail("spx_bytes_get"),
+}}}});
+const view = new DataView(instance.exports.__spx_test_memory.buffer);
+const input = 1024, output = 2048, token = 5n;
+for (let iteration = 1; iteration <= 3; iteration++) {{
+  view.setBigUint64(input, token, true);
+  view.setBigInt64(input + 8, 7n, true);
+  if (instance.exports["{projected}"](input, output) !== 0) throw new Error("status");
+  if (view.getBigUint64(output, true) !== 10n) throw new Error("borrowed token changed");
+  if (copies !== 0) throw new Error("borrow minted an owner");
+  if (drops !== iteration) throw new Error("borrow scheduled an extra drop");
+}}
+if (views !== 12) throw new Error("borrowed carrier was not forwarded unchanged");
+"#
+        );
+        std::fs::write(&script_path, script).unwrap();
+        let output = Command::new("node")
+            .arg(&script_path)
+            .arg(&wasm_path)
+            .output()
+            .unwrap();
+        let _ = std::fs::remove_file(script_path);
+        let _ = std::fs::remove_file(wasm_path);
+        assert!(
+            output.status.success(),
+            "stdout={} stderr={}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
 
     #[test]

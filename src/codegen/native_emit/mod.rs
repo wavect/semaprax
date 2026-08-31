@@ -1185,7 +1185,11 @@ pub(super) fn emit_function_prototypes(
         .expect("writing to a string cannot fail");
         for param in &function.params {
             let ty = c_value_type(program, resource_abi, &param.ty)?;
-            if is_aggregate_type(program, &param.ty)? {
+            if matches!(param.ty, ResolvedType::Bytes)
+                && param.ownership == crate::hir::OwnershipMode::Borrow
+            {
+                write!(output, ", const {ty} *").expect("writing to a string cannot fail");
+            } else if is_aggregate_type(program, &param.ty)? {
                 let storage = crate::cleanup_plan::StorageId::Value(param.id.clone());
                 let qualifier = if bytes_plan
                     .as_ref()
@@ -1776,7 +1780,12 @@ fn emit_function(
     .expect("writing to a string cannot fail");
     for (index, param) in function.params.iter().enumerate() {
         let ty = c_value_type(program, resource_abi, &param.ty)?;
-        if is_aggregate_type(program, &param.ty)? {
+        if matches!(param.ty, ResolvedType::Bytes)
+            && param.ownership == crate::hir::OwnershipMode::Borrow
+        {
+            write!(output, ", const {ty} *spx_param_{index}")
+                .expect("writing to a string cannot fail");
+        } else if is_aggregate_type(program, &param.ty)? {
             let storage = crate::cleanup_plan::StorageId::Value(param.id.clone());
             let qualifier = if bytes_plan
                 .as_ref()
@@ -1820,7 +1829,9 @@ fn emit_function(
             emission.output_profile == NativeOutputProfile::OwnedDataProvider,
         ));
         for (index, parameter) in function.params.iter().enumerate() {
-            if matches!(parameter.ty, ResolvedType::Bytes) {
+            if matches!(parameter.ty, ResolvedType::Bytes)
+                && parameter.ownership == crate::hir::OwnershipMode::Own
+            {
                 output.push_str(&plan.initialize_parameter(
                     &crate::cleanup_plan::StorageId::Value(parameter.id.clone()),
                     &format!("spx_param_{index}"),
@@ -1849,11 +1860,19 @@ fn emit_function(
     let mut borrowed_aggregate_bytes = HashMap::new();
     for (index, param) in function.params.iter().enumerate() {
         let name = if matches!(param.ty, ResolvedType::Bytes) {
-            bytes_plan
-                .as_ref()
-                .ok_or_else(|| backend_error("owned Bytes parameter has no cleanup plan"))?
-                .value(&crate::cleanup_plan::StorageId::Value(param.id.clone()))?
-                .to_owned()
+            match param.ownership {
+                crate::hir::OwnershipMode::Own => bytes_plan
+                    .as_ref()
+                    .ok_or_else(|| backend_error("owned Bytes parameter has no cleanup plan"))?
+                    .value(&crate::cleanup_plan::StorageId::Value(param.id.clone()))?
+                    .to_owned(),
+                crate::hir::OwnershipMode::Borrow => format!("(*spx_param_{index})"),
+                _ => {
+                    return Err(backend_error(
+                        "Bytes parameter lacks validated ownership classification",
+                    ));
+                }
+            }
         } else if is_aggregate_type(program, &param.ty)? {
             format!("(*spx_param_{index})")
         } else {

@@ -475,7 +475,7 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
         document_digest(graph.to_json().as_bytes()),
         // Re-pinned after the authenticated owned-byte-variant HIR carriers
         // enlarged the shared graph-capacity facts.
-        "sha256:7a24360d1ad303a43341935b34522c5273532ef149bcfbcb116af6472e0bfcae"
+        "sha256:989061200a99a62c01ccaa6ae3fdbd494363bb886c57bf3430faf9b435d4db73"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -889,14 +889,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:b568f413788c2abc409e34874f9573a78dec13185a7031d56b370cb909c1967a",
-            "sha256:11471bd07fd545e763f6ec3ae07517176db5fa036f9ed2ce06de025509f9bb5e",
-            "sha256:4e38a954cd0e8f58198fdc7b6d3c96efd9de90deb8fc8812373e9e3ae6fe144f",
-            "sha256:97a18b5898e05c3afc46ead68ee90fbc271dd43249aac19fd9a83a55fa1806b4",
-            "sha256:4a5eebf5a30d2c3b733ef4fa2ce5efaf8a3fbae90009ab8ab9ee1e3c9733d4b0",
-            "sha256:9360bbd1782c68c3296504da988924ef6da38f394c0b7bb2e2bac15278c8ecec",
-            "sha256:c09b6b3b47133fa66f3635c4d9787756714f7244ef336b5bb7f0c13fc75c42a2",
-            "sha256:9305e1d9428e902f09f347f312d96a12ea4653ddb4ec38be07c1cd25786ecd16",
+            "sha256:1b9135c3f25e42c5ed8eac6d6271f8f3dda96ba745315b45bc6552cd756eb194",
+            "sha256:8f7b6863ecc5d31b8cab8b416208e0987aa44743f43237e4dab571b4215adbf6",
+            "sha256:5200d6c8508451674320f3a69d0b67e6dd04854d0676525f6dd625080631052e",
+            "sha256:a5098ac3e4baa01be1b55eda1ac81dd5151f86f29e3c4bdbddd4c365155b72ce",
+            "sha256:26776f28e21d671df0885d8969e34b3ae4116174a2d9acb3cc793f4df68e65d0",
+            "sha256:10c0abe37a4021d326a568a738225d046f9a72bcea009269d393f17c8ea67c7f",
+            "sha256:0e8ff75f953587a979857df86988562371951312fa2606781ee8dd5076dc2172",
+            "sha256:87ee07f52fe9e1b5c3e026c6e5f82cebd9f08f84abca1c38333a6c1f0e7acc41",
         ]
     );
 

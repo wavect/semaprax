@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added typed-draft semantic rebase for checked history and pending body,
+  expression and contract holes. V5 returns a newly bound draft and report after
+  conflict checks and source-origin remapping, without completing holes or
+  granting source authority. Regression evidence is authored, unrun.
+
 - Added explicit durable typed-draft storage and host CLI recovery through the
   existing immutable archive store. Host-policy v6 selects historical drafts
   before requests and Git-provider startup, preserving pending holes and separate

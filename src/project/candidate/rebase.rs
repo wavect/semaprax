@@ -275,6 +275,58 @@ struct Fingerprint {
     effects: String,
     location: String,
 }
+
+/// Pending selectors have no replacement intention to classify. Reuse the
+/// source conflict facts directly before any revision-local selector remapping.
+/// The returned tuple records concurrent body and contract changes separately.
+pub(super) fn pending_draft_conflicts(
+    before: &ProjectRevision,
+    after: &ProjectRevision,
+    body_targets: &BTreeSet<&str>,
+    contract_targets: &BTreeSet<&str>,
+    contract_callees: &BTreeSet<String>,
+) -> Result<BTreeMap<String, (bool, bool)>, Vec<Diagnostic>> {
+    let old = fingerprints(before)?;
+    let new = fingerprints(after)?;
+    let reject = |message| vec![Diagnostic::io("SPX-G345", message)];
+    let mut changes = BTreeMap::new();
+    for target in body_targets.union(contract_targets) {
+        let left = old
+            .get(*target)
+            .ok_or_else(|| reject("pending draft owner lacks explicit source facts"))?;
+        let right = new
+            .get(*target)
+            .ok_or_else(|| reject("pending draft owner was removed or lost explicit identity"))?;
+        let body_changed = left.body != right.body;
+        let contracts_changed = left.contracts != right.contracts;
+        if left.signature != right.signature
+            || left.effects != right.effects
+            || (body_targets.contains(target) && body_changed)
+            || (contract_targets.contains(target) && contracts_changed)
+        {
+            return Err(reject("pending draft region conflicts with concurrent signature, effects or selected-region changes"));
+        }
+        changes.insert((*target).to_owned(), (body_changed, contracts_changed));
+    }
+    for target in contract_callees {
+        let left = old
+            .get(target)
+            .ok_or_else(|| reject("pending contract callee lacks authenticated source facts"))?;
+        let right = new
+            .get(target)
+            .ok_or_else(|| reject("pending contract callee was concurrently removed"))?;
+        if left.signature != right.signature
+            || left.effects != right.effects
+            || left.contracts != right.contracts
+        {
+            return Err(reject(
+                "pending contract callee signature, effects or contracts changed concurrently",
+            ));
+        }
+    }
+    Ok(changes)
+}
+
 fn fingerprints(
     revision: &ProjectRevision,
 ) -> Result<BTreeMap<String, Fingerprint>, Vec<Diagnostic>> {

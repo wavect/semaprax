@@ -103,6 +103,20 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
             ("buildable", json!({"const":false})),
         ],
     );
+    put(
+        "semaprax.image-draft-rebase.v1",
+        vec![
+            ("selected_candidate_revision", digest()),
+            (
+                "draft",
+                json!({"$ref":"urn:semaprax.image-draft-handle.v1"}),
+            ),
+            (
+                "report",
+                json!({"$ref":"urn:semaprax.project-candidate-draft-rebase.v1"}),
+            ),
+        ],
+    );
     for (id, handle) in [
         ("semaprax.image-candidate-discard.v1", "candidate_revision"),
         ("semaprax.image-draft-discard.v1", "draft_revision"),

@@ -788,6 +788,12 @@ selectors and complete archive before returning only a draft. The v5
 `vnext/recovery.rs` separately allow same-manifest historical draft restore only
 before the first frame. Both use ordinary authenticated registry admission and
 recover no candidate entry or approval. See [Draft Archive](PROJECT-CANDIDATE-DRAFT-ARCHIVE-V1.md).
+`candidate/draft_rebase.rs` rebases the private checked history through the
+existing candidate owner, then uses shared semantic conflict fingerprints and
+authenticated expression-origin remapping to reconstruct pending holes. The
+v5 `draft_rebase.rs` adapter installs only the resulting draft after bounded
+report preparation and live-source authentication; no candidate or publication
+authority is released. See [Draft Rebase](PROJECT-CANDIDATE-DRAFT-REBASE-V1.md).
 These additions and focused regression cases are authored, unrun.
 
 `candidate/movement.rs` moves eligible functions through stable-ID call/import

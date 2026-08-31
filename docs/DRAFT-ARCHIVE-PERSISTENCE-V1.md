@@ -116,6 +116,9 @@ A sibling checkout with the same canonical manifest may have changed source.
 Recovery retains the historical base without replacing the current image.
 Filling holes and completing the draft remain explicit operations; historical
 completion still requires explicit rebase before current-source publication.
+Alternatively, [typed-draft rebase](PROJECT-CANDIDATE-DRAFT-REBASE-V1.md) can
+move valid history and pending selectors to the current revision before filling
+the remaining holes. It returns a draft and does not implicitly complete it.
 The original Git startup approval boundary is unchanged. No RPC can choose a
 store root, change startup policy, write the store or approve a candidate.
 

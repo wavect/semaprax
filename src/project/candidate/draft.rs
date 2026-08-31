@@ -23,6 +23,13 @@ pub use recovery::{
     PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA,
 };
 
+#[path = "draft_rebase.rs"]
+mod rebase;
+pub use rebase::{
+    ProjectCandidateDraftRebase, MAX_PROJECT_CANDIDATE_DRAFT_REBASE_BYTES,
+    PROJECT_CANDIDATE_DRAFT_REBASE_SCHEMA,
+};
+
 pub const PROJECT_CANDIDATE_DRAFT_SCHEMA: &str = "semaprax.project-candidate-draft.v1";
 pub const PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA: &str =
     "semaprax.project-candidate-hole-context.v1";

@@ -6,8 +6,8 @@ Audience: maintainers and release reviewers.
 
 SEMAPRAX tag releases are produced only by the repository CI workflow after
 the exact tag commit passes every job aggregated by `release-gate`. A local
-archive is useful for checking packaging mechanics, but is not release
-evidence.
+archive can establish scoped local packaging and product behavior, but is not
+release-promotion evidence.
 
 ## Tag admission
 
@@ -75,6 +75,92 @@ daemon behavior, release provenance, or a successful product release.
 cargo test --locked -p semaprax --test release_packaging_unix_v1
 cargo test --locked -p semaprax --test release_packaging_windows_v1
 ```
+
+## Explicit unpacked-product acceptance
+
+`tests/release_archive_product_v1.rs` is an opt-in local product gate over an
+already unpacked archive. It does not build or extract that archive, install
+anything, consult hosted CI, or fall back to a checkout compiler. Provision
+`SEMAPRAX_RELEASE_ROOT` as an absolute native archive directory outside the
+checkout, and `SEMAPRAX_RELEASE_COMMIT` as its expected 40-byte lowercase Git
+label. The gate checks the closed plain-file inventory, canonical manifest,
+fixed smoke source, documentation bytes and exact CLI version responses.
+
+The calculator/daemon lane creates a fresh outside-checkout project, checks its
+literal template and repeated graph output, runs check/test/run/Web publication,
+and checks no-clobber behavior. Two finite default-v2 daemon sessions obtain
+the daemon's revision bindings, exercise read-only snapshot/check/graph/test,
+reject a stale revision, recover with a healthy query, and shut down. The
+daemon has no version command; this is behavior evidence, not daemon commit
+attestation.
+
+The owned-frame lane publishes npm and Rust packages using the archived CLI,
+then runs the unchanged standalone Node and locked/offline Rust consumers for
+both the baseline and display-renamed Project. The canonical nine-case and
+supplemental 72-case corpora are shared with the ordinary frame suite. One
+shared test oracle replays source-bound descriptors, regenerates npm artifacts
+and reconstructs the native manifest from published bytes and the current
+test driver's provider. A differing older compiler must fail those comparisons,
+not silently adopt the driver's artifact bytes. This does not prove arbitrary
+cross-version compatibility.
+
+Both lanes require a trusted, quiescent archive, source checkout, temporary
+parent and selected tool installation. Fresh fixtures and captures are retained.
+The owned-frame lane also retains its separately reserved Cargo build cache,
+including on failure: direct-child settlement does not justify deleting files
+that an unproven descendant might still use.
+Finite file-backed input/output and deadline polling bound capture reads and
+direct-child settlement attempts; they are not a hard disk quota, descendant
+containment, hostile same-principal isolation or a sandbox. No library or
+compiler gains authority from this test helper. Archive hashes and label
+agreement prove self-consistency only; the caller still owns provenance.
+
+Run the ordinary admission/capture controls without provisioning an archive:
+
+```sh
+cargo test --locked --offline -p semaprax --test release_archive_product_v1
+```
+
+After setting the two archive variables above, select the real onboarding lane:
+
+```sh
+cargo test --locked --offline -p semaprax --test release_archive_product_v1 provisioned_archive_cli_and_daemon_work_outside_checkout -- --ignored --exact
+```
+
+The owned-frame lane additionally requires absolute provisioned `NODE`,
+`CLANG`, `SEMAPRAX_ARCHIVER` and `CARGO` paths, a compatible Rust/linker/SDK
+environment, and already cached consumer dependencies. On Windows retain the
+existing `SEMAPRAX_LINKER`/`SEMAPRAX_VCTOOLS` policy. No dependency downloads are
+performed and missing prerequisites fail the selected gate:
+
+```sh
+cargo test --locked --offline -p semaprax --test release_archive_product_v1 provisioned_archive_owned_frame_consumers_work_outside_checkout -- --ignored --exact
+```
+
+## Local archive evidence
+
+A real local `aarch64-apple-darwin` archive was built offline from clean source
+commit `177fccfd5f5ab08ac2c86da77046b47f5b4c22f1`, using Rust 1.98 and the
+unchanged optimized release profile. The packaging script's unpacked
+`--version`, `version --json`, `check`, and `run` checks passed. The resulting
+`semaprax-v0.2.0-aarch64-apple-darwin.tar.gz` has SHA-256
+`2c07c488a726824ff3b4b3a59379e1cd71a32bcbe93b5f7551283a621efa49c6`.
+Six Unix packaging-mechanics regressions also passed separately at that commit;
+their fake tools do not contribute to the real compiler execution claim.
+
+The new archive acceptance driver subsequently passed both explicitly selected
+lanes on this same retained macOS archive: calculator/Web and read-only daemon
+onboarding, plus Node 24.3 and Rust 1.98 consumers of the baseline and renamed
+owned-frame packages over both corpora. Five default harness tests also pass,
+including admission hostility and finite capture controls; the two actual
+archive lanes remain ignored unless explicitly selected. The existing ordinary
+frame suite and calibrated macOS ASan/UBSan gate pass after sharing the artifact
+oracle, and the two focused test targets pass Clippy with warnings denied.
+
+This is a retained local artifact, not a tag, upload, signature, notarization,
+Windows/Linux archive result, or current-head hosted gate. A later acceptance
+test driver can inspect that exact older archive without relabeling its source
+commit as the driver's commit. Changes to either require separate evidence.
 
 ## Publication boundary
 

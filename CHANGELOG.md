@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Added explicit unpacked-release product gates for calculator/Web onboarding,
+  revision-bound read-only daemon queries and unchanged Node/Rust frame consumers.
+  Shared source-bound artifact replay with the original frame suite; retained
+  exact inventories, hostile admission/capture controls and bounded direct-child
+  cleanup without recursive cache deletion after uncertain descendant settlement.
+  Both archive lanes pass locally on macOS against the real archive built from
+  `177fccf`; the release guide records its digest and separates archive identity
+  from the newer test driver. Updated affected programme rows to scoped local
+  evidence, without hosted, release or production promotion.
+
 - Added an explicitly selected frame-product ASan/UBSan gate with calibrated
   failure controls, reusing the unchanged nine-case and 72-case corpora for
   isolated and retained baseline/display-renamed Projects at O0/O2. It passes

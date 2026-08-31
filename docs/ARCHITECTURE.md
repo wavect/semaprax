@@ -1035,10 +1035,19 @@ facts. The external Rust fixture has a committed standalone lock and uses
 fixtures require explicit local provisioning and download nothing. Node and
 browser entry points share one corpus runner. The browser gate consumes
 host-provisioned before/after artifacts rather than authenticating their source
-derivation; the Project test owns that rename proof. These gates are authored
-but unrun and do not establish exact-head hosted promotion. Gate selection is
+derivation; the Project test owns that rename proof. Selected local passes do
+not establish exact-head hosted promotion. Gate selection is
 documented in the [web consumer](../examples/frame-payload-web/README.md) and
 [browser fixture](../platform-tests/frame-payload-browser-v1/README.md).
+
+`tests/support/owned_frame_artifacts.rs` shares the held-Project descriptor,
+provider and published-package replay between that product and the explicitly
+provisioned `tests/release_archive_product_v1.rs` archive gate. The archive gate
+uses caller-selected unpacked binaries outside the checkout for calculator,
+read-only daemon and generated-consumer checks; the existing frame suite keeps
+its interpreter/native/raw-Wasm execution lanes. Archive inventory and label
+agreement establish self-consistency, not build provenance. The
+[release process](RELEASE-PROCESS.md) owns selection and evidence limits.
 
 `src/project/flat_owned_record.rs` is the authority-free additive Project-v9
 description layer. It authenticates the exact one-direct-`Bytes` flat record

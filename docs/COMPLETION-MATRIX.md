@@ -29,9 +29,10 @@ model, or a narrower private target does not complete a broader row. Local,
 hosted, private, public, and proof-only evidence are distinct.
 
 In the programme audit below, **Authored, unrun** means that implementation and
-executable evidence are present in the current source tree, but this audit did
-not execute them. It is weaker than local green evidence and cannot support a
-hosted or public promotion claim.
+executable evidence are present but the row's required programme has not been
+executed. **Local, partial** records only the selected local gates identified
+by the evidence owner, not an entire work package or the current hosted head.
+Neither state supports a hosted or public promotion claim.
 
 ## Current summary
 
@@ -103,35 +104,35 @@ v2–v7 references, [Bounded Language Command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V
 ## WP-01–WP-15 implementation and promotion audit
 
 This table tracks the bounded developer-preview programme separately from the
-49-requirement product contract. It records what is present in the current
-source tree, not what was executed by this documentation-only audit. No row below
-changes a long-term status to Implemented.
+49-requirement product contract. It distinguishes authored evidence from
+selected local execution; exact artifact/source labels belong to the linked
+evidence owners. No row below changes a long-term status to Implemented.
 
 | Work package | Current source state | Authored evidence | Remaining gate |
 | --- | --- | --- | --- |
 | WP-01 CI decomposition | Authored, unrun | Dedicated desktop/native product matrix, release aggregation, and CI contract evidence | Execute the workflow and preserve a blocking exact-head release aggregation. |
-| WP-02 deterministic version | Authored, unrun | Human and canonical JSON version renderers with injected commit identity and focused CLI evidence | Execute local gates and bind the exact release commit in hosted artifacts. |
-| WP-03 release artifacts | Authored, unrun | Deterministic Unix/Windows packaging, manifest/checksum workflow, smoke route, and contract evidence | Exercise every advertised archive on its build host at the release head. |
+| WP-02 deterministic version | Local, partial | Six version tests pass locally on macOS at `177fccf`; a real unpacked CLI also agrees with its supplied label, as recorded in [release evidence](RELEASE-PROCESS.md#local-archive-evidence) | Bind the exact release commit in hosted artifacts; label agreement alone is not provenance. |
+| WP-03 release artifacts | Local, partial | Real macOS arm64 archive build and unpacked smoke, plus six Unix fake-tool mechanics regressions; [release evidence](RELEASE-PROCESS.md#local-archive-evidence) separates these scopes | Exercise every advertised archive on its build host at the release head. |
 | WP-04 v0.2 tagged artifact/release promotion | Pending | Promotion criteria are specified; no tagged artifact or release-promotion record was added | Exercise the final tagged artifacts at one exact head, pass the release gate, and record its run, checksums, and artifact inventory. |
 | WP-05 `doctor` | Authored, unrun | [Explicit bounded offline-profile selection](DOCTOR-PROBE-V1.md), one scoped admission, selector/platform agreement, canonical missing/unavailable failures, and no ambient fallback; injected-host/version checks retained. [Borrowed sealed-input acquisition](DOCTOR-SEALED-INPUT-V1.md), [closed bundle/minimum ELF parsing](DOCTOR-OFFLINE-BUNDLE-V1.md), lower-level bounded settlement and native64 Linux syscall-denial fixtures remain separate from the CLI | Implement real offline profile provisioning/admission and complete tool/input, filesystem/broker, network and descendant closure on Linux/macOS/Windows; current production acquisition always reports unavailable. Execute input/parser handoff fixtures, platform gates and tool-compatibility cases. Structural inventory/ELF checks, injected tests and the retained Linux denylist do not establish full no-network enforcement; no v0.2 promotion. |
-| WP-06 `new` | Authored, unrun | Compiled-in calculator template, staged authenticated publication, and hostile path/failure evidence | Execute the generator, Project check/test, and publication gates. |
-| WP-07 quickstart | Authored, unrun | Executable quickstart document and mirrored repository test | Execute the documented sequence against the candidate compiler. |
+| WP-06 `new` | Local, partial | Fifteen CLI cases pass locally on macOS at `177fccf`; [publication contract](NEW-PROJECT-PUBLICATION-V1.md) retains the lower-level and cross-platform requirements | Execute the complete generator, Project check/test, and publication gates on the required hosts. |
+| WP-07 quickstart | Local, partial | All nine [quickstart](QUICKSTART.md) tests pass locally on macOS at `177fccf`; source installation and PATH setup are not exercised by that suite | Execute the documented installation and sequence against each candidate distribution on required hosts. |
 | WP-08 v8 specification | Specified | [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) freezes identifiers, admission, lifetime, compatibility, and twelve completion gates | Keep the specification synchronized with the additive implementation and promotion evidence. |
 | WP-09 canonical descriptor | Authored, unrun | Validated-HIR derivation, canonical bytes/digest, independent replay, stable host naming, and hostile descriptor evidence | Execute focused replay/KAT and legacy-preservation gates. |
 | WP-10 direct `Bytes` npm/Wasm | Authored, unrun | Profile-specific carrier, fresh copy-out, preallocation whole-tuple input admission, intrinsic-brand hostility, selected-call-path private-frame exclusion, and settlement evidence | Execute Node/browser, capacity, settlement, and legacy-byte gates. |
 | WP-11 `Option<Bytes>` / `Result<Bytes, i64>` | Authored, unrun | Fixed tags, active-payload handling, TypeScript mapping, cleanup evidence, reference-interpreter normalization, and [actual generated-facade malformed-tag/carrier and inactive-storage observations](OWNED-NPM-INVOCATION-V1.md#authentic-malformed-result-observations) | Execute interpreter/native/Wasm/npm branch and hostile-tag equivalence gates; test-local arena/decoder checks alone do not establish facade enforcement. |
 | WP-12 safe native/Rust SDK | Authored, unrun; unpublished | Root-owned HIR/provider, held-tool publication, safe API/private FFI, nonreused handle serials, all 4,096 slots, foreign-context/reincarnation and exhaustion/contention evidence, per-invocation whole-context settlement before return, inactive-payload rejection, unwind/copy-failure and external-consumer fixtures, plus the explicitly amended [internal String settlement](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md) | Execute O0/O2, physical String allocation and exact-content checks, locked offline consumer, hostile provider/handle, sanitizer, and Linux/macOS/Windows gates; intentionally decide publication support. |
 | WP-13 Project v8 activation | Authored, unrun | Exact v8 manifest/profile parsing, bounded multi-root linking, semantic-recipe replay, CLI `web`/`npm`/`rust` routing, and [Windows full-host owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md) with standalone rejection | Execute v1–v7 KAT preservation, standalone/full-host routing, Windows held-publication hostility and every v8 target route at one candidate head. |
-| WP-14 frame-payload product | Authored, unrun | One committed corpus and display-rename proof across interpreter, native O0/O2, Core Wasm/Node, generated npm, and locked/offline Rust; shared Node/browser corpus runner, explicit strict-TypeScript positive/negative and provisioned Chromium fixtures | Execute the complete identical corpus and external consumers on required hosts; explicitly select provisioned TypeScript/browser gates and establish required browser breadth. |
+| WP-14 frame-payload product | Local, partial | [Owned-data evidence](PUBLIC-OWNED-DATA-API-V1.md) records local macOS interpreter/native/Wasm/npm/Rust, strict TypeScript and Chromium execution, plus calibrated macOS/Linux ASan/UBSan at `177fccf`; display-rename and canonical/supplemental corpora remain shared | Execute the complete identical corpus and external consumers on required hosts; establish required browser breadth and exact-head hosted evidence. |
 | WP-15 v8 promotion | Pending | The twelve-gate contract is specified; no dedicated exact-head v8 promotion matrix or run is recorded | Add and pass every blocking Project/npm/browser/Rust/equivalence/sanitizer/hostile job on one exact commit, with no skip or allowed failure. |
 | Agent Transport v5 follow-on | Authored, unrun; unpromoted | Opt-in read-only descriptor and inline npm methods with typed descriptor binding, bounded framing, stale-subject rejection, and zero publication/process authority evidence | Execute focused gates, preserve v2–v4 bytes, then include the surface in an exact-head promotion decision. |
 | Project v9 flat owned record follow-on | Implementation including ordinary Phase-A admission authored, unrun; unpublished; unpromoted | [Public Flat Owned Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md), [Project Profile Admission v1](PROJECT-PROFILE-ADMISSION-V1.md), exact descriptor, Wasm/npm adapter with bounded pre-copy tuple admission, root native provider, safe Rust whole-context settlement guard, and v1-v10 Revision Store evidence | Execute ordinary Project admission, Revision Store replay, hostile input/provider and cross-target physical consumers, and preservation gates, then make an explicit v9 publication and promotion decision before any dependent profile. |
 | Project v10 owned UTF-8 follow-on | Authored, unrun; unpublished; unpromoted; blocked on v9 promotion | [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md), distinct descriptor/digest, bounded Wasm/npm input and inline String ownership/call settlement, v10 native String owner ledger and physical allocation fixtures, validating native provider, safe Rust `String` with whole-context settlement guard, and hostile UTF-8 evidence | First promote v9; execute exact replay/carrier, ownership/capacity/hostility, native allocation settlement, valid/invalid UTF-8, host consumers, native sanitizers, and v1-v9 byte preservation subject to the explicit owned-data internal-String correction on every required target before publication or promotion. Ordinary and owned-data native corrections remain unrun; frozen command/callable String limitations remain open. |
 | Project Revision Store v1 follow-on | Unix implementation and additive Windows-entry authority/identity/physical fixtures authored, unrun; unpromoted | [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md), [Windows-entry v1](PROJECT-REVISION-STORE-WINDOWS-V1.md), unchanged ordinary v1 bytes, Unix current-euid `0700` and Windows effective-SID/protected-DACL fixed-local-NTFS held-root authority, bounded replay, complete selected-entry semantic replay, one no-replace publication pivot, authority-neutral location, and read-only inert-stage quarantine | Complete and execute literal v1-v10 round trips and the full hostile programme on required Unix and Windows hosts at one exact head; opt-in provisioned-host fixtures and static review alone do not promote support. Measure explicit retained revision reuse without promoting the store to an ambient cache. |
 
-The Project v8 implementation and executable evidence are therefore
-**authored in the current source tree but unrun and unpromoted**. The generated
-npm and Rust packages remain developer-preview and unpublished surfaces.
+The Project v8 implementation has **selected local evidence but remains
+unpromoted**; the complete work-package and host matrices have not been run.
+The generated npm and Rust packages remain developer-preview and unpublished surfaces.
 WP-15 is the explicit blocker for describing the bounded owned-data API as
 hosted, supported, or released.
 

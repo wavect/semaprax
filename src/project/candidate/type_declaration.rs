@@ -1,5 +1,5 @@
-//! Explicit scalar record/variant creation through canonical source replay.
-use std::collections::BTreeSet;
+//! Explicit resource-free data declarations through canonical source replay.
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{json, Value};
 
@@ -8,6 +8,7 @@ use crate::ast::{
     VariantCaseDeclaration,
 };
 use crate::diagnostic::Diagnostic;
+use crate::hir::{DeclarationIndex, ResolvedType, ResolvedTypeDeclarationKind};
 use crate::project::ProjectRevision;
 
 use super::{declaration, intent::IntentSummary, parse_revision, MAX_TOTAL_SOURCE_BYTES};
@@ -50,7 +51,14 @@ impl Inventory<'_> {
         Ok(())
     }
 
-    fn fields(&mut self, value: &Value, owner: &str, kind: &str) -> Result<Vec<FieldDeclaration>> {
+    fn fields(
+        &mut self,
+        revision: &ProjectRevision,
+        program: &Program,
+        value: &Value,
+        owner: &str,
+        kind: &str,
+    ) -> Result<Vec<FieldDeclaration>> {
         let requested = array(value, MAX_TYPE_FIELDS)?;
         let mut names = BTreeSet::new();
         let mut fields = Vec::new();
@@ -61,11 +69,7 @@ impl Inventory<'_> {
             if !names.insert(name) {
                 return Err(grammar("type fields must have unique local names"));
             }
-            let ty = match text(field, "type")? {
-                "i64" => Type::I64,
-                "bool" => Type::Bool,
-                _ => return Err(grammar("new type fields admit only direct i64 or bool")),
-            };
+            let ty = field_type(revision, program, &field["type"])?;
             self.add(id, kind, Some(owner))?;
             fields.push(FieldDeclaration {
                 stable_id: id.to_owned(),
@@ -78,6 +82,36 @@ impl Inventory<'_> {
         }
         Ok(fields)
     }
+}
+
+fn field_type(revision: &ProjectRevision, program: &Program, value: &Value) -> Result<Type> {
+    if let Some(name) = value.as_str() {
+        return match name {
+            "i64" => Ok(Type::I64),
+            "bool" => Ok(Type::Bool),
+            "i32" => Ok(Type::I32),
+            "u8" => Ok(Type::U8),
+            "usize" => Ok(Type::Usize),
+            "string" => Ok(Type::String),
+            "Bytes" => Ok(Type::Bytes),
+            _ => Err(grammar(
+                "new type field is outside the resource-free constructor vocabulary",
+            )),
+        };
+    }
+    object(value, &["kind", "target", "type_arguments"])?;
+    if text(value, "kind")? != "nominal" {
+        return Err(grammar("new type field object requires nominal kind"));
+    }
+    // This existing owner authenticates the complete explicit declaration,
+    // exact generic arity, and one current local/imported source binding.
+    // A newly introduced identity cannot resolve in the retained predecessor.
+    super::intent::nominal_type_plan(
+        revision,
+        program,
+        text(value, "target")?,
+        &value["type_arguments"],
+    )
 }
 
 pub(super) fn apply(
@@ -150,7 +184,7 @@ pub(super) fn apply(
     inventory.add(id, kind, None)?;
     let declaration_kind = if kind == "record" {
         TypeDeclarationKind::Record {
-            fields: inventory.fields(&value["fields"], id, "field")?,
+            fields: inventory.fields(revision, program, &value["fields"], id, "field")?,
         }
     } else {
         let requested = array(&value["cases"], MAX_TYPE_CASES)?;
@@ -167,7 +201,8 @@ pub(super) fn apply(
                 return Err(grammar("variant cases must have unique local names"));
             }
             inventory.add(case_id, "variant_case", Some(id))?;
-            let fields = inventory.fields(&case["fields"], case_id, "case_field")?;
+            let fields =
+                inventory.fields(revision, program, &case["fields"], case_id, "case_field")?;
             cases.push(VariantCaseDeclaration {
                 stable_id: case_id.to_owned(),
                 explicit_id: true,
@@ -216,7 +251,7 @@ pub(super) fn validate(
     request: &Value,
 ) -> Result<()> {
     let mut expected = parse_revision(before)?;
-    let _ = apply(before, &mut expected, request)?;
+    let (_, addition) = apply(before, &mut expected, request)?;
     if expected.len() != after.sources().len() {
         return Err(grammar("type declaration replay changed source inventory"));
     }
@@ -233,6 +268,71 @@ pub(super) fn validate(
                 "type declaration differs from exact independent source reconstruction",
             ));
         }
+    }
+    validate_checked_data(after, &addition)
+}
+
+fn validate_checked_data(revision: &ProjectRevision, addition: &TypeAddition) -> Result<()> {
+    // Use all retained declarations as borrowed lookup inputs, but rebuild
+    // only this selected nominal closure. Unused declarations need the same
+    // actual TypeFacts proof as ones that happen to occur in a function body.
+    let mut declarations = BTreeMap::new();
+    let mut selected = None;
+    for module in revision.semantic.image_modules() {
+        for declaration in module.types() {
+            if declarations
+                .insert(declaration.id.as_str(), declaration)
+                .is_some()
+            {
+                return Err(grammar("new data type checked identity is ambiguous"));
+            }
+            if declaration.id.as_str() == addition.id
+                && (module.path() != addition.path
+                    || module.module() != addition.module
+                    || declaration.name != addition.name
+                    || selected.replace(declaration).is_some())
+            {
+                return Err(grammar("new data type checked source binding changed"));
+            }
+        }
+    }
+    let declaration =
+        selected.ok_or_else(|| grammar("new data type has no retained checked declaration"))?;
+    if !declaration.type_parameters.is_empty() {
+        return Err(grammar("new data type must remain monomorphic"));
+    }
+    let fields = match &declaration.kind {
+        ResolvedTypeDeclarationKind::Record { fields } if addition.kind == "record" => {
+            fields.iter().collect::<Vec<_>>()
+        }
+        ResolvedTypeDeclarationKind::Variant { cases } if addition.kind == "variant" => {
+            cases.iter().flat_map(|case| case.fields.iter()).collect()
+        }
+        _ => return Err(grammar("new data type checked declaration kind changed")),
+    };
+    if fields.len() > MAX_TYPE_IDENTITIES {
+        return Err(capacity(
+            "new data type checked field inventory exceeds its bound",
+        ));
+    }
+    if fields
+        .iter()
+        .any(|field| matches!(field.ty, ResolvedType::Str | ResolvedType::SliceU8))
+    {
+        return Err(grammar("new data type cannot store borrowed views"));
+    }
+    // The shared owner rejects classes/resources throughout the selected
+    // dependency closure and computes layout, sizedness and drop facts through
+    // the ordinary DeclarationIndex algorithm under its existing work/byte
+    // bounds. Source and independent HIR validation additionally prohibit
+    // borrowed aggregate fields, including inside referenced declarations.
+    let facts = DeclarationIndex::record_evolution_type_facts(&declaration.id, &declarations)
+        .map_err(|diagnostic| vec![diagnostic])?
+        .ok_or_else(|| grammar("new data type lacks bounded checked resource-free TypeFacts"))?;
+    if !facts.sized || facts.contains_resource {
+        return Err(grammar(
+            "new data type requires checked sized resource-free fields",
+        ));
     }
     Ok(())
 }

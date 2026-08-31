@@ -51,6 +51,12 @@
   closed, `LIB` is unchanged, and missing headers still fail before archive or
   package publication.
 
+- Extended typed record and variant creation to direct data scalars, owned
+  String/Bytes and existing stable-ID nominal fields. Full source replay and
+  bounded checked type facts govern admission, including unused declarations;
+  function-signature, import and target profiles remain unchanged. Discovery,
+  schemas and ownership/rebase regressions are updated, authored and unrun.
+
 - Added optional editor diagnostic attempts, exact-byte diagnostic inspection
   and explicit compiler repair selection. Repairs remain bound to the retained
   predecessor and submit selectors only; ordinary Apply remains fail-fast.

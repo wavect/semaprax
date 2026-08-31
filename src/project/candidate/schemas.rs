@@ -360,8 +360,14 @@ fn nominal_type_schema() -> Value {
 }
 
 fn declaration_schema() -> Value {
+    // Field ownership and resource freedom are established after rebuilding
+    // the new type. Function signatures keep their separate Copy admission.
+    let field_type = json!({"oneOf":[
+        {"enum":["i64","bool","i32","u8","usize","string","Bytes"]},
+        nominal_type_schema(),
+    ]});
     let fields = json!({"type":"array","maxItems":64,"items":closed(&[
-        ("id",stable_id()),("name",identifier()),("type",json!({"enum":["i64","bool"]})),
+        ("id",stable_id()),("name",identifier()),("type",field_type),
     ])});
     let mut record = closed(&[
         ("kind", json!({"const":"record"})),
@@ -640,8 +646,22 @@ mod aggregate_expression_schema_tests {
             assert!(fields.get("minItems").is_none());
             assert_eq!(fields["items"]["additionalProperties"], false);
             assert_eq!(fields["items"]["required"], json!(["id", "name", "type"]));
+            let types = fields["items"]["properties"]["type"]["oneOf"]
+                .as_array()
+                .unwrap();
+            assert_eq!(types.len(), 2);
             assert_eq!(
-                fields["items"]["properties"]["type"]["enum"],
+                types[0]["enum"],
+                json!(["i64", "bool", "i32", "u8", "usize", "string", "Bytes"])
+            );
+            assert_eq!(types[1], nominal_type_schema());
+            assert_eq!(types[1]["additionalProperties"], false);
+            assert_eq!(
+                types[1]["required"],
+                json!(["kind", "target", "type_arguments"])
+            );
+            assert_eq!(
+                types[1]["properties"]["type_arguments"]["items"]["enum"],
                 json!(["i64", "bool"])
             );
         }

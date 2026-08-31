@@ -376,6 +376,49 @@ fn newly_added_types_are_discovered_and_compose_with_nominal_function_signatures
 }
 
 #[test]
+fn formerly_scalar_only_fields_replay_as_checked_data_declarations() {
+    let fixture = Fixture::new();
+    let disk = fixture.bytes();
+    let base = fixture.candidate();
+    for (requested, expected) in [
+        (json!("Bytes"), Type::Bytes),
+        (json!("i32"), Type::I32),
+        (
+            json!({"kind":"nominal","target":"types.existing","type_arguments":[]}),
+            Type::Named {
+                name: "Existing".to_owned(),
+                arguments: vec![],
+            },
+        ),
+    ] {
+        let mut declaration = record();
+        declaration["fields"][0]["type"] = requested;
+        let (candidate, change) = apply(&base, &intent("types.public", declaration)).unwrap();
+        let parsed = semaprax::parse(source(&candidate, "src/core.spx"), "src/core.spx").unwrap();
+        let added = parsed
+            .types
+            .iter()
+            .find(|ty| ty.stable_id == "types.added")
+            .unwrap();
+        let TypeDeclarationKind::Record { fields } = &added.kind else {
+            panic!("new declaration must remain a record");
+        };
+        assert_eq!(fields[0].ty, expected);
+        assert_eq!(fields[0].stable_id, "types.added.z");
+        assert_fact(
+            &candidate,
+            "types.added.z",
+            "field",
+            Some("types.added"),
+            "src/core.spx",
+            "types.core",
+        );
+        replay(&base, &candidate, &[change]);
+    }
+    assert_eq!(fixture.bytes(), disk);
+}
+
+#[test]
 fn closed_shapes_duplicate_names_and_global_identity_collisions_leave_candidate_unchanged() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
@@ -421,9 +464,9 @@ fn closed_shapes_duplicate_names_and_global_identity_collisions_leave_candidate_
     collision["fields"][0]["id"] = json!("types.added");
     invalid.push(collision);
     for ty in [
-        json!("Bytes"),
-        json!("i32"),
-        json!({"kind":"nominal","target":"types.existing","type_arguments":[]}),
+        json!("str"),
+        json!("Slice<u8>"),
+        json!({"kind":"nominal","target":"types.added","type_arguments":[]}),
     ] {
         let mut declaration = record();
         declaration["fields"][0]["type"] = ty;

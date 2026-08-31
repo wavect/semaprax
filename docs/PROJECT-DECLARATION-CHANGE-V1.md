@@ -8,7 +8,7 @@ this document makes no verified completion or target-execution claim.
 
 The additive `add_declaration` intention creates one explicit, monomorphic
 function, record, or variant in an existing Project module. Functions cannot
-be named `main`; record/variant fields use the closed direct-scalar vocabulary
+be named `main`; record/variant fields use the closed data-type vocabulary
 below. The intention travels through
 the existing [Semantic Change and Candidate](PROJECT-CANDIDATES-V1.md) envelope,
 revision checks, full source reconstruction, verifier, Project profile admission,
@@ -171,13 +171,42 @@ identities. Type display names must not collide in the module namespace; case
 names are unique within a variant and field names within their record or case.
 Array order determines canonical field/case order and is never sorted away.
 
-Field types are exactly `i64` or `bool`. Empty records and payload-free cases
+The field request vocabulary accepts `i64`, `bool`, `i32`, `u8`, `usize`, `string`, and `Bytes`,
+or the same closed stable-ID nominal selector shown above. A nominal field
+selects an already admitted visible record or variant, with exact generic arity
+and direct `i64`/`bool` arguments. It cannot select the type currently being
+created, invent a source spelling, or introduce an import. Selection remains
+provisional until complete source rebuilding and checked data-type admission.
+The owned String type uses lowercase `string` in this request and canonical
+source; `String` is not an alias in the constructor vocabulary. Fixed arrays
+are not part of this field constructor.
+Owned fields do not gain borrowed storage, resource authority or a wider
+Project/target profile. The function-signature constructor's separate Copy
+restriction is unchanged; creating an owned type does not make it eligible for
+that function constructor or cross-module owning imports.
+
+This vocabulary does not widen aggregate source profiles. In particular, a
+variant without a direct `Bytes` payload retains the existing `SPX-T215`
+restriction on payload types beyond `i64`/`bool`; putting `string`, `i32`, `u8`
+or `usize` in such a variant still rejects. Nesting a generic record instance
+in a record field retains `SPX-T223`. Other source, HIR and selected-target
+restrictions also remain authoritative. These are explicit rejection cases,
+not successful type-creation evidence.
+
+The post-rebuild gate computes ordinary type facts for the new monomorphic
+owner and its selected dependency closure even when unused. It requires
+`sized` and no resources, rejects class/resource dependencies and preserves
+the helper's existing limits: 4,096 declarations, 1,048,576 visits, depth 256
+and 16 MiB input/output accounting. No global retained type-facts limit changes.
+
+Empty records and payload-free cases
 are allowed subject to ordinary Project admission; variants require at least
 one case. Each record/case has at most 64 fields, a variant has at most 64
 cases, and the complete planned identity inventory has at most 4,096 entries,
 including its owner. Existing JSON, source, graph and candidate limits still
-apply and can reject smaller requests. Generic parameters, named/owned fields,
-methods, custom layout, imports and manifest exports are not constructor fields.
+apply and can reject smaller requests. Generic declaration parameters, borrowed
+views, resources, methods, custom layout, imports and manifest exports are not
+constructor fields.
 
 The compiler constructs source AST declarations, renders canonical source, and
 performs full Project rebuilding and replay. Identity admission permits only
@@ -189,9 +218,14 @@ request nor the identity inventory can inject graph-only meaning.
 
 Subsequent intentions can construct values of the new type, use it through a
 stable-ID nominal function signature, or extend a new record through the
-existing field-change route. Every step re-enters ordinary source admission.
+existing field-change route when its own eligibility checks hold. Every step
+re-enters ordinary source admission.
 The catalogue's additive `type_declaration_forms` describes the two placements
-and bounds; existing function placement metadata remains unchanged.
+and bounds, lists direct `field_types`, and points `nominal_type_selector` to
+the existing provisional `nominal_types` inventory. Its field admission marker
+is `checked_resource_free_field_type`. The shared nominal rows' function Copy
+metadata does not impose Copy on fields or prove field eligibility. Existing
+function placement and signature rules remain unchanged.
 
 ## Reports, composition, and remaining boundaries
 
@@ -212,7 +246,8 @@ a conflict before replay, even when the new type owner itself is unused.
 Records introduced by an earlier history step can be extended later in that
 history; their shape is checked through intermediate candidate admission.
 
-Nominal type objects additionally bind the complete checked owner inventory
+Nominal type objects, including those in new record and variant fields,
+additionally bind the complete checked owner inventory
 at each original/rebased intermediate revision. Reidentifying an untouched
 field or unit case conflicts even when the added body only forwards a parameter
 and contains no aggregate expression constructor. This is conservative shape
@@ -248,6 +283,10 @@ identity inventories and independent source reconstruction.
 creation, downstream use, identity rejection, bounds and recovery cases. Rebase
 regressions cover creation followed by record evolution and nominal use, plus
 nested identity collisions against independently admitted candidates.
+The former scalar-only field exclusions have explicit positive replay cases
+for `Bytes`, `i32` and existing nominal records; borrowed and self-reference
+inputs retain negative coverage. Additional data-field and ownership cases in
+`tests/project_candidate_data_type_declarations_v1.rs` are authored, unrun.
 
 Creating generic types, classes, resources, interfaces,
 protocols, methods, generic functions, modules, public exports, new imports,

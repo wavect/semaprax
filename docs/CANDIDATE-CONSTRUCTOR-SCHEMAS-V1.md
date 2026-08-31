@@ -287,8 +287,14 @@ Focused structural regressions are authored but unrun.
 The `add_declaration` payload also accepts two closed type-declaration forms:
 `{"kind":"record","id":owner_id,"name":name,"fields":[field]}` and
 `{"kind":"variant","id":owner_id,"name":name,"cases":[case]}`.
-A field is exactly `{"id":field_id,"name":name,"type":"i64"}` or the
-same shape with `type: bool`; a case is exactly
+A field is exactly `{"id":field_id,"name":name,"type":field_type}`.
+`field_type` is one of `i64`, `bool`, `i32`, `u8`, `usize`, `string`, or `Bytes`,
+or the closed nominal selector above with exact direct-scalar generic arguments.
+The lowercase `string` spelling denotes the owned String type. Direct view or
+array requests, resources, new self references and arbitrary source type
+spellings are excluded. An existing nominal dependency may retain its ordinary
+source-admitted array storage; the request cannot construct a new array type.
+A case is exactly
 `{"id":case_id,"name":name,"fields":[field]}`. Records and cases may have
 zero fields. Variants require at least one case. Each field list and case list
 is bounded to 64 entries, with at most 4,096 combined owner, case, and field
@@ -296,7 +302,16 @@ identities. The ordinary change JSON byte, node, and depth limits still apply.
 `x-max-combined-identities` describes the compiler-enforced aggregate bound;
 standard JSON Schema validation alone does not count this cross-list total.
 New type declarations have no generic parameters, methods, effects, defaults,
-or nominal/resource fields. Their names and all identities must pass ordinary
+or resource fields. Existing nominal fields must already have an authenticated
+visible binding in the anchor module. Full rebuilding checks the new owner and
+its selected dependency closure with the ordinary bounded type-facts engine;
+the resulting type must be sized and resource-free. Field types need not be
+Copy, and the separate function-signature Copy gate is unchanged.
+The field vocabulary describes request structure, not aggregate profile
+eligibility: non-Bytes variants retain `SPX-T215` restrictions, and nested
+generic record fields retain `SPX-T223`. Complete source/target admission can
+reject other structurally valid selections.
+Their names and all identities must pass ordinary
 freshness and namespace admission; structural acceptance is not that proof.
 
 An existing explicit monomorphic function, including `main`, selects the module.
@@ -306,9 +321,13 @@ is the unchanged first declaration alternative, with no `kind` field added.
 Its discovery `placement: append_function_in_anchor_module` and function
 constraints retain their prior meaning. The additive `type_declaration_forms`
 inventory describes record and variant placement separately and supplies the
-corresponding list/identity bounds plus
+corresponding list/identity bounds, the direct `field_types`,
+`nominal_type_selector: nominal_types`,
+`field_type_admission: checked_resource_free_field_type`, and
 `requires_full_candidate_validation: true`. The v5 descriptor schema accepts
-that exact optional inventory. Newly admitted types become ordinary stable-ID
+that exact optional inventory. The shared nominal rows' `copy_admission`
+metadata still describes function signatures; it does not impose Copy on fields
+or prove a new type's admission. Newly admitted types become ordinary stable-ID
 nominal and aggregate discovery subjects after full candidate rebuilding;
 discovery itself creates no source or publication authority. Structural
 regressions for the declaration alternatives and discovery forms are authored
@@ -359,9 +378,9 @@ The recovery document closes the complete capsule envelope and embeds the same
 change and expression definitions. Compiler compatibility is an exact constant;
 content hashes, canonical bytes, original-base agreement, and actual replay are
 checked by the recovery API, not JSON Schema. Addition schemas describe the
-bounded scalar/Bytes/str/Slice<u8> declaration grammar; extraction accepts only
+separate bounded function-signature and data-field grammars above; extraction accepts only
 an expression identity and new declaration identity/name. Neither accepts raw
 source, HIR, source spans, or arbitrary filesystem paths.
-Record fields require an `i64` or `bool` default literal matching the requested
-field type; constructor/pattern migration is owned by the compiler. Move
+The distinct `add_record_field` operation requires a matching inert literal
+from its direct scalar vocabulary; constructor/pattern migration is owned by the compiler. Move
 destinations select existing stable identities rather than paths or source text.

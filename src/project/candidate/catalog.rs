@@ -215,8 +215,8 @@ impl ProjectCandidate {
                     "anchor":target, "placement":"append_function_in_anchor_module",
                     "nominal_type_selector":"nominal_types",
                     "type_declaration_forms":[
-                        {"kind":"record","placement":"append_record_in_anchor_module","max_fields":64,"max_combined_identities":4096,"requires_full_candidate_validation":true},
-                        {"kind":"variant","placement":"append_variant_in_anchor_module","min_cases":1,"max_cases":64,"max_fields_per_case":64,"max_combined_identities":4096,"requires_full_candidate_validation":true},
+                        {"kind":"record","placement":"append_record_in_anchor_module","max_fields":64,"max_combined_identities":4096,"field_types":["i64","bool","i32","u8","usize","string","Bytes"],"nominal_type_selector":"nominal_types","field_type_admission":"checked_resource_free_field_type","requires_full_candidate_validation":true},
+                        {"kind":"variant","placement":"append_variant_in_anchor_module","min_cases":1,"max_cases":64,"max_fields_per_case":64,"max_combined_identities":4096,"field_types":["i64","bool","i32","u8","usize","string","Bytes"],"nominal_type_selector":"nominal_types","field_type_admission":"checked_resource_free_field_type","requires_full_candidate_validation":true},
                     ],
                     "constraints":["globally_new_explicit_identity", "non_main_monomorphic_function", "unambiguous_module_namespace", "effects_within_anchor_budget_and_module_permits", "preserve_all_existing_declarations_and_exports", "full_candidate_revalidation"],
                 }));

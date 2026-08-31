@@ -806,8 +806,8 @@ fn operation() -> Value {
         }
         if kind == "add_declaration" {
             shape["properties"]["type_declaration_forms"] = json!({"const":[
-                {"kind":"record","placement":"append_record_in_anchor_module","max_fields":64,"max_combined_identities":4096,"requires_full_candidate_validation":true},
-                {"kind":"variant","placement":"append_variant_in_anchor_module","min_cases":1,"max_cases":64,"max_fields_per_case":64,"max_combined_identities":4096,"requires_full_candidate_validation":true},
+                {"kind":"record","placement":"append_record_in_anchor_module","max_fields":64,"max_combined_identities":4096,"field_types":["i64","bool","i32","u8","usize","string","Bytes"],"nominal_type_selector":"nominal_types","field_type_admission":"checked_resource_free_field_type","requires_full_candidate_validation":true},
+                {"kind":"variant","placement":"append_variant_in_anchor_module","min_cases":1,"max_cases":64,"max_fields_per_case":64,"max_combined_identities":4096,"field_types":["i64","bool","i32","u8","usize","string","Bytes"],"nominal_type_selector":"nominal_types","field_type_admission":"checked_resource_free_field_type","requires_full_candidate_validation":true},
             ]});
         }
         if kind == "repair_diagnostic" {
@@ -947,8 +947,8 @@ mod signature_parameter_schema_tests {
         assert_eq!(
             operation["properties"]["type_declaration_forms"]["const"],
             json!([
-                {"kind":"record","placement":"append_record_in_anchor_module","max_fields":64,"max_combined_identities":4096,"requires_full_candidate_validation":true},
-                {"kind":"variant","placement":"append_variant_in_anchor_module","min_cases":1,"max_cases":64,"max_fields_per_case":64,"max_combined_identities":4096,"requires_full_candidate_validation":true},
+                {"kind":"record","placement":"append_record_in_anchor_module","max_fields":64,"max_combined_identities":4096,"field_types":["i64","bool","i32","u8","usize","string","Bytes"],"nominal_type_selector":"nominal_types","field_type_admission":"checked_resource_free_field_type","requires_full_candidate_validation":true},
+                {"kind":"variant","placement":"append_variant_in_anchor_module","min_cases":1,"max_cases":64,"max_fields_per_case":64,"max_combined_identities":4096,"field_types":["i64","bool","i32","u8","usize","string","Bytes"],"nominal_type_selector":"nominal_types","field_type_admission":"checked_resource_free_field_type","requires_full_candidate_validation":true},
             ])
         );
     }

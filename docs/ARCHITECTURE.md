@@ -873,10 +873,13 @@ binds that inventory even for fields omitted from the replacement subset.
 `candidate/declaration.rs` appends a typed function under a selected module
 anchor with globally fresh identity and checked namespace/effect budgets.
 `candidate/type_declaration.rs` appends explicit monomorphic record/variant
-declarations with direct scalar fields under the same function-anchor rule.
+declarations with bounded direct data fields or authenticated existing nominal
+selectors under the same function-anchor rule. Field selection reuses the
+compiler's stable-ID binding planner; full rebuilding owns data-type admission.
 Its complete planned owner/case/field inventory is the only allowed graph
 identity extension; exact source reconstruction follows full Project replay.
-Rebase checks collisions for all new member IDs and preserves history order
+Rebase checks collisions for all new member IDs, binds nominal field dependencies
+through the shared recursive intention walk, and preserves history order
 when a later operation evolves or uses the new type.
 
 `candidate/type_rename.rs` delegates source record/variant display changes to a

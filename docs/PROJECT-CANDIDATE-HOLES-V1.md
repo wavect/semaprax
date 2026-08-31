@@ -75,6 +75,10 @@ prior valid history and pending selectors for explicit restart recovery. It
 does not export the incomplete state as checked source or candidate evidence.
 Restore independently replays that history and recreates each hole; completion
 still rejects unresolved drafts. Context is regenerated, not persisted as proof.
+The [self-contained Draft Archive](PROJECT-CANDIDATE-DRAFT-ARCHIVE-V1.md)
+additionally retains the original canonical source needed to reconstruct that
+history after the checkout changes or disappears. It preserves the same
+pending-hole and explicit-completion rules.
 
 ## Typed context
 

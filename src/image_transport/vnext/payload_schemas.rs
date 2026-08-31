@@ -224,6 +224,26 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
         ],
     );
     put(
+        "semaprax.image-draft-archive-chunk.v1",
+        vec![
+            (
+                "archive_schema",
+                json!({"const":crate::project::PROJECT_CANDIDATE_DRAFT_ARCHIVE_SCHEMA}),
+            ),
+            ("image_revision", digest()),
+            ("archive_revision", digest()),
+            ("draft_revision", digest()),
+            ("offset", uint()),
+            ("total_bytes", uint()),
+            ("chunk", text()),
+            ("next_offset", nullable(uint())),
+            ("source_authority", json!({"const":false})),
+            ("approval_authority", json!({"const":false})),
+            ("trusted_hir", json!({"const":false})),
+            ("materializable", json!({"const":false})),
+        ],
+    );
+    put(
         "semaprax.image-declaration-dependencies-chunk.v1",
         vec![
             (

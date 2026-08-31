@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added self-contained typed-draft archives that rebuild canonical original
+  source, valid history and pending holes after checkout loss. V5 separates
+  current-base RPC recovery from startup-only historical host recovery;
+  no approvals or publication authority are restored. Evidence is authored, unrun.
+
 - Added offline-worker hostile native programs and external post-exec
   capability/parent-death observations without widening the syscall policy.
   Factored capture/settlement control flow for scripted sticky-failure and

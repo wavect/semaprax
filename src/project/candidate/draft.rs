@@ -9,6 +9,13 @@ use crate::diagnostic::Diagnostic;
 use crate::hir::{IdentityOrigin, OwnershipMode, ResolvedFunction};
 use crate::workspace_graph::WorkspaceGraphProjectionModule;
 
+#[path = "draft_archive.rs"]
+mod archive;
+pub use archive::{
+    ProjectCandidateDraftArchive, MAX_PROJECT_CANDIDATE_DRAFT_ARCHIVE_BYTES,
+    PROJECT_CANDIDATE_DRAFT_ARCHIVE_COMPATIBILITY, PROJECT_CANDIDATE_DRAFT_ARCHIVE_SCHEMA,
+};
+
 #[path = "draft_recovery.rs"]
 mod recovery;
 pub use recovery::{

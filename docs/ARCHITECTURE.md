@@ -762,6 +762,14 @@ pending selectors, independently restores the history, and re-creates holes
 through ordinary draft APIs before comparing exact draft/capsule identities.
 `image_transport/vnext/draft_recovery.rs` exposes host-selected chunk export and
 transactional draft-only retention; it imports no registry or approval state.
+`candidate/draft_archive.rs` composes that capsule with the existing complete
+candidate source archive, so rebuilding an unfinished draft no longer requires
+its original checkout. It compares the rebuilt last-valid candidate, pending
+selectors and complete archive before returning only a draft. The v5
+`draft_archive.rs` RPC module retains exact-current-base import; host methods in
+`vnext/recovery.rs` separately allow same-manifest historical draft restore only
+before the first frame. Both use ordinary authenticated registry admission and
+recover no candidate entry or approval. See [Draft Archive](PROJECT-CANDIDATE-DRAFT-ARCHIVE-V1.md).
 These additions and focused regression cases are authored, unrun.
 
 `candidate/movement.rs` moves eligible functions through stable-ID call/import

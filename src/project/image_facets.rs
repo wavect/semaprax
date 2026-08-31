@@ -81,6 +81,14 @@ impl ImageFacetOptions {
             max_bytes,
         })
     }
+
+    pub(crate) fn page_size(self) -> usize {
+        self.page_size
+    }
+
+    pub(crate) fn max_bytes(self) -> usize {
+        self.max_bytes
+    }
 }
 impl Default for ImageFacetOptions {
     fn default() -> Self {

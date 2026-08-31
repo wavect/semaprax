@@ -3,6 +3,8 @@
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
+#[path = "candidate_function_schemas.rs"]
+mod candidate_function_schemas;
 #[path = "candidate_schemas.rs"]
 mod candidate_schemas;
 #[path = "function_instance_schemas.rs"]
@@ -1018,6 +1020,13 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
             .any(|method| method == "candidate/analysis-coverage")
     }) {
         result.remove("urn:semaprax.project-candidate-analysis-coverage.v1");
+    }
+    if capabilities["methods"].as_array().is_some_and(|methods| {
+        methods
+            .iter()
+            .any(|method| method == "candidate/function-summary")
+    }) {
+        result.extend(candidate_function_schemas::documents());
     }
     if !capabilities["methods"].as_array().is_some_and(|methods| {
         methods

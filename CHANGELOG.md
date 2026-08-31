@@ -10,6 +10,12 @@
   publication diagnostics now distinguish provider compilation and archive
   failures without exposing tool output or weakening fail-stop settlement.
 
+- Added candidate-bound compact function summaries and paged access to all
+  nine existing HIR facets for changed and introduced functions. Handles and
+  cursors bind the exact final candidate; pure reads support detached parallel
+  batches without granting source, execution, retention or publication
+  authority. Evidence is authored and unrun.
+
 - Added a host-selected v5 compact inventory of live retained candidates,
   drafts and rejected attempts. It exposes bounded registry-local
   handles, associations and detail/discard routes without granting validity,

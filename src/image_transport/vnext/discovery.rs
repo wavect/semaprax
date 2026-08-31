@@ -127,6 +127,12 @@ pub(super) fn payload(
         }
         if methods
             .iter()
+            .any(|method| method.name == "candidate/function-summary")
+        {
+            instructions.push_str(" With candidate_prepare, call candidate/function-summary with exact image_revision, candidate_revision and function target to obtain the final candidate's compact signature and nine candidate-bound facet handles. Expand one handle through candidate/function-facet with the same candidate and target, facet, optional cursor, page_size 1 through 128 (default 32), and max_bytes 1024 through 1048576 (default 65536). Keep page_size fixed while following next_cursor; max_bytes may vary under the existing facet cursor contract. Handles and cursors are isolated from the base image and sibling candidates and confer no retention or authority. Closed summary and page envelopes bind final-candidate source provenance, while heterogeneous item values remain explicitly unbundled as semaprax.project-candidate-function-facet-item.v1. These descriptive retained-HIR facts do not prove runtime liveness, dynamic or external callers, test coverage, behavioral equivalence or publication. Both pure queries are eligible for authenticated parallel read batches over a detached candidate.");
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "candidate/impact-summary")
         {
             instructions.push_str(" With candidate_prepare, use candidate/impact-summary and candidate/impact-page to navigate the existing reverse semantic-impact artifact for one exact retained candidate and declaration target. The impact query options are depth 0 through 1024 (default 16), impact_max_bytes 4096 through 16777216 (default 1048576), and max_nodes 1 through 8208 (default 1024); keep them fixed when expanding affected, dependency_edges or frontier. Page size is 1 through 128 (default 32), and max_bytes is 1024 through 1048576 (default 65536). Follow next_cursor with the same candidate, target, query, view, handle and page options. Handles bind the exact recomputed artifact digest and grant no retention or authority. Truncation, frontier and budget remain part of the evidence: a bounded inventory is not complete impact. These pages are not a candidate delta, behavioral change, runtime liveness, test coverage, repair ranking or external-consumer compatibility. The pure reads can join authenticated parallel batches over a detached candidate and grant no source, execution or publication authority. Existing candidate/impact remains unchanged.");
@@ -305,6 +311,8 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         | "candidate/analysis-coverage"
         | "candidate/dependency-summary"
         | "candidate/dependency-page"
+        | "candidate/function-summary"
+        | "candidate/function-facet"
         | "candidate/impact-summary"
         | "candidate/impact-page"
         | "candidate/cleanup-dependencies"

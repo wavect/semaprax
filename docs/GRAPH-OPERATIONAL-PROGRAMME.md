@@ -66,6 +66,7 @@ outstanding without requiring another permission request now.
 | Cleanup dependencies | [Cleanup Dependencies v1](SEMANTIC-IMAGE-CLEANUP-DEPENDENCIES-V1.md); reverse type/case/field selection over actual retained inventory/cleanup/loan facts, original plan coordinates and candidate before/after review, authored/unrun |
 | Artifact deltas | [Artifact Delta v1](PROJECT-CANDIDATE-ARTIFACT-DELTA-V1.md); actual base/candidate Web/npm, [OpenAPI](IMAGE-OPENAPI-ARTIFACTS-V1.md) and [C source](IMAGE-C-ARTIFACTS-V1.md) file and stable export comparisons after full replay, under the existing build grant, authored/unrun |
 | Candidate artifact boundary evidence | [Candidate Analysis Artifact Evidence v1](PROJECT-CANDIDATE-ANALYSIS-ARTIFACT-EVIDENCE-V1.md); exact candidate coverage plus one independently replayed selected pathless carrier delta, changing only generated artifacts to partial; library and v5 build-granted chunk evidence authored/unrun |
+| Candidate function facets | [Candidate Function Facets v1](PROJECT-CANDIDATE-FUNCTION-FACETS-V1.md); final-candidate compact summaries and all nine existing HIR facet pages with candidate-bound handles and cursors, authored/unrun |
 | Diagnostic protocol | [Diagnostic Protocol v4](IMAGE-CANDIDATE-DIAGNOSTIC-PROTOCOL-V4.md) |
 | Integrated managed workflow | [Workflow v1](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md), [authored scenario](../tests/project_graph_operational_workflow_v1.rs) |
 | Frontend reuse | [Frontend Cache v1](PROJECT-FRONTEND-CACHE-V1.md), [incremental.rs](../src/project/incremental.rs) |

@@ -197,6 +197,15 @@ flags and the owning detail/discard methods. Membership grants no validity,
 source freshness, execution or publication authority. Because the inventory
 observes mutable session state, it is excluded from `workspace/read-batch`.
 
+Candidate preparation also selects `candidate/function-summary` and
+`candidate/function-facet`, the compact [Candidate Function Facets
+v1](PROJECT-CANDIDATE-FUNCTION-FACETS-V1.md) projection. Nine handles bind the
+exact final candidate, ephemeral derived image, target and facet. Pages preserve
+existing HIR item order; page cursors fix handle, offset and page size while
+allowing the existing byte limit to vary. Both pure reads are eligible for
+detached authenticated parallel batches and grant no execution, retention,
+source or publication authority.
+
 ## Explicit refresh and stale state
 
 After a manual edit, call `workspace/refresh-preview` with the current image

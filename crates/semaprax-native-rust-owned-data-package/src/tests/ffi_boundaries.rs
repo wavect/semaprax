@@ -67,7 +67,7 @@ pub(crate) fn run_boundary_fixture(kind: u32, lib: &str, ffi: &str, method: &str
     assert_eq!(ffi.matches(marker).count(), usize::from(has_owner));
     let instrumented = ffi.replace(
         marker,
-        &format!("{marker}\nif crate::mode()==21{{panic!(\"host unwind after owner guard\")}}"),
+        &format!("{marker}\nif matches!(crate::mode(),21|28|29){{crate::event(\"unwind\");panic!(\"host unwind after owner guard\")}}"),
     );
     std::fs::write(root.join("owned_data_ffi.rs"), &instrumented).unwrap();
     std::fs::write(
@@ -123,7 +123,13 @@ fn main(){{
             std::env::consts::EXE_SUFFIX
         ));
         let output = Command::new("rustc")
-            .args(["--edition=2021", "-C", &format!("opt-level={optimization}")])
+            .args([
+                "--edition=2021",
+                "-C",
+                "panic=unwind",
+                "-C",
+                &format!("opt-level={optimization}"),
+            ])
             .arg(&harness)
             .arg("-o")
             .arg(&executable)
@@ -138,7 +144,7 @@ fn main(){{
         let mut fatal = vec![8, 22];
         if kind <= 3 || kind == 7 {
             ordinary.extend([4, 5, 6, 15, 16, 21]);
-            fatal.extend([1, 7, 26, 27]);
+            fatal.extend([1, 7, 26, 27, 28, 29]);
         } else {
             fatal.push(1);
         }

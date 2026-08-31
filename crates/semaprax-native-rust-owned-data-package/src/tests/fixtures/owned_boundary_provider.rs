@@ -11,7 +11,11 @@ fn mode() -> u32 {
     MODE.load(Ordering::Relaxed)
 }
 fn event(value: &str) {
-    println!("event:{value}");
+    // Fail-stop must not lose the operation/phase witness to buffered stdout.
+    use std::io::Write;
+    let mut output = std::io::stdout().lock();
+    writeln!(output, "event:{value}").unwrap();
+    output.flush().unwrap();
 }
 #[no_mangle]
 extern "C" fn spx_owned_data_context_size_v1() -> u64 {
@@ -37,7 +41,14 @@ unsafe extern "C" fn spx_owned_data_context_init_v1(context: *mut State, length:
 #[no_mangle]
 unsafe extern "C" fn spx_owned_data_context_drop_v1(context: *mut State) -> u32 {
     event("close");
-    if mode() == 8 || unsafe { (*context).live != 0 } {
+    if mode() == 29 {
+        event(if std::thread::panicking() {
+            "close-unwinding"
+        } else {
+            "close-not-unwinding"
+        });
+    }
+    if matches!(mode(), 8 | 29) || unsafe { (*context).live != 0 } {
         return 5;
     }
     0
@@ -95,9 +106,16 @@ unsafe extern "C" fn spx_owned_bytes_copy_v1(
 #[no_mangle]
 unsafe extern "C" fn spx_owned_bytes_drop_v1(context: *mut State, handle: u64) -> u32 {
     event("drop");
+    if matches!(mode(), 28 | 29) {
+        event(if std::thread::panicking() {
+            "drop-unwinding"
+        } else {
+            "drop-not-unwinding"
+        });
+    }
     assert_eq!(handle, 1);
     assert!(unsafe { (*context).live > 0 });
-    if mode() == 7 || mode() == 27 {
+    if matches!(mode(), 7 | 27 | 28) {
         return 5;
     }
     unsafe {

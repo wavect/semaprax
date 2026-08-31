@@ -841,6 +841,45 @@ is recorded above. Windows, exact Rust 1.85.0, sanitizers for this tuple corpus,
 full-profile and exact-head hosted evidence
 remain separate. No public support or release promotion follows.
 
+The same lower-package boundary harness additionally covers joint host unwind
+and finalizer failure. Modes 28 and 29 inject a Rust panic immediately after
+the private owner guard is armed, outside every `extern "C"` call. The ABI
+double records and flushes the actual `std::thread::panicking()` state inside
+the owner/context finalizers. An owner-drop failure must end after that one
+drop; a context-close failure after successful owner drop must end after that
+one close. Exact ordered transcripts forbid length/copy, repeated cleanup,
+reinitialization, caught-call completion, or outward publication. The healthy
+unwind case remains mandatory, and every harness/control explicitly compiles
+with `panic=unwind` at O0 and O2.
+
+Independent generated-test-file controls suppress only one finalizer's abort
+response at a time. Ignoring owner-drop uncertainty reaches the still-checked
+context close and must fail the same oracle for a forbidden later effect;
+ignoring context-close failure reaches the flushed caller-completion witness
+and must fail that oracle even when the harness subsequently panics. The
+original ordinary-error broken-close control remains. A separate pure mutation
+test rejects missing, duplicated, reordered and extra transcript events. This
+is generated Rust/ABI-double protocol evidence, not real C-provider cleanup,
+physical allocator accounting, panic traversal across FFI, OOM recovery,
+`panic=abort` recovery, or protection against hostile native machine code.
+
+Scoped validation of that joint-failure batch passes all 50 lower-package unit
+tests on Linux AArch64/Rust 1.88 and macOS AArch64/Rust 1.98. The two new modes
+run across five owned result shapes (`Bytes`, `Option<Bytes>`,
+`Result<Bytes, i64>`, UTF-8, and the flat record), at both optimization levels:
+twenty joint-failure invocations per host, with four additional broken-finalizer
+control invocations. The same Rust-1.88-built test executable also passes all
+50 tests inside the cached Linux Rust 1.85.1 environment, compiling and executing
+fresh generated SDK and control crates there. This is not a Rust-1.85 build of
+the root compiler, exact Rust 1.85.0 evidence, or a real C-provider MSRV gate.
+All runs have external deadlines; the Linux environments have no network,
+read-only input mounts, and bounded resources. Scoped macOS package Clippy and
+the two documentation tests pass. The existing frame-product suite also passes
+on both hosts after retaining its exact original browser provisioning command
+and adding an independently pinned variant command: nine tests pass, while the
+three explicitly provisioned TypeScript/sanitizer/npm-installation tests were
+not selected. Windows, full-profile, and hosted claims remain open.
+
 The complete existing
 `project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_rename`
 frame-product gate also passes on Linux AArch64/Rust 1.88/Clang 14/Node 24.3 at

@@ -246,6 +246,15 @@
   client tests pass locally, including actual Python and offline Rust consumers;
   full-profile and current-head hosted validation remain pending.
 
+- Added generated owned-SDK fail-stop regressions combining active Rust unwind
+  with owner-drop or context-close failure. Exact flushed phase traces and
+  independent broken-finalizer controls reject ordinary return and later
+  provider effects. Existing successful unwind and failure cases remain;
+  all 50 lower-package tests pass on Linux/macOS and with fresh generated
+  consumers in Rust 1.85.1. This is ABI-double protocol evidence, not real
+  provider or hosted promotion; production code, ABI, schemas and generated
+  artifacts are unchanged.
+
 - Extended real owned-data browser fixtures with independent direct-Bytes and
   staged Option/Result packages, exact twelve-artifact request admission, fixed
   offset controls, calibrated resizable-buffer rejection and retained variant

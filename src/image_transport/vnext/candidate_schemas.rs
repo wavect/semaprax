@@ -770,6 +770,10 @@ fn operation() -> Value {
                 ("anchor", text()),
                 ("nominal_type_selector", json!({"const":"nominal_types"})),
                 (
+                    "nominal_owning_admission",
+                    json!({"const":"checked_candidate_owning_signature"}),
+                ),
+                (
                     "placement",
                     json!({"const":"append_function_in_anchor_module"}),
                 ),
@@ -939,6 +943,10 @@ mod signature_parameter_schema_tests {
         assert_eq!(
             operation["properties"]["placement"]["const"],
             "append_function_in_anchor_module"
+        );
+        assert_eq!(
+            operation["properties"]["nominal_owning_admission"]["const"],
+            "checked_candidate_owning_signature"
         );
         assert!(!operation["required"]
             .as_array()

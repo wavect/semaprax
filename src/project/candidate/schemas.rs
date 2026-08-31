@@ -411,6 +411,16 @@ fn function_declaration_schema() -> Value {
         ("type", nominal_type_schema()),
         ("mode", json!({"const":"value"})),
     ]));
+    parameters.push(closed(&[
+        ("name", identifier()),
+        ("type", nominal_type_schema()),
+        ("mode", json!({"const":"own"})),
+    ]));
+    parameters.push(closed(&[
+        ("name", identifier()),
+        ("type", json!({"const":"string"})),
+        ("mode", json!({"const":"value"})),
+    ]));
     closed(&[
         ("id", stable_id()),
         ("name", identifier()),
@@ -420,7 +430,7 @@ fn function_declaration_schema() -> Value {
         ),
         (
             "return_type",
-            json!({"oneOf":[{"enum":["i64","i32","u8","usize","bool","Bytes"]},nominal_type_schema()]}),
+            json!({"oneOf":[{"enum":["i64","i32","u8","usize","bool","Bytes","string"]},nominal_type_schema()]}),
         ),
         (
             "effects",
@@ -574,12 +584,12 @@ mod aggregate_expression_schema_tests {
     }
 
     #[test]
-    fn declaration_nominal_types_are_closed_and_only_value_parameters() {
+    fn declaration_nominal_types_preserve_copy_forms_and_add_owning_forms() {
         let declaration = function_declaration_schema();
         let parameters = declaration["properties"]["parameters"]["items"]["oneOf"]
             .as_array()
             .unwrap();
-        assert_eq!(parameters.len(), 4);
+        assert_eq!(parameters.len(), 6);
         assert_eq!(
             parameters[0]["properties"]["type"]["enum"],
             json!(SCALAR_KINDS)
@@ -593,6 +603,19 @@ mod aggregate_expression_schema_tests {
             json!(["str", "Slice<u8>"])
         );
         assert_eq!(parameters[3]["properties"]["mode"]["const"], "value");
+        assert_eq!(parameters[4]["properties"]["mode"]["const"], "own");
+        assert_eq!(
+            parameters[4]["properties"]["type"],
+            parameters[3]["properties"]["type"]
+        );
+        assert_eq!(parameters[4]["additionalProperties"], false);
+        assert_eq!(parameters[5]["properties"]["type"]["const"], "string");
+        assert_eq!(parameters[5]["properties"]["mode"]["const"], "value");
+        assert_eq!(parameters[5]["additionalProperties"], false);
+        assert_eq!(
+            declaration["properties"]["return_type"]["oneOf"][0]["enum"],
+            json!(["i64", "i32", "u8", "usize", "bool", "Bytes", "string"])
+        );
         let nominal = &parameters[3]["properties"]["type"];
         assert_eq!(nominal["additionalProperties"], false);
         assert_eq!(

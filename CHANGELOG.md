@@ -51,6 +51,12 @@
   closed, `LIB` is unchanged, and missing headers still fail before archive or
   package publication.
 
+- Connected typed data creation to local owning function declarations. New
+  helpers can accept and return checked resource-free nominal owners or bare
+  String values, with requested modes bound to rebuilt HIR and ordinary type
+  facts. Copy, borrow, extraction, import and target restrictions remain in
+  force. Composition and rejection regressions are authored, unrun locally.
+
 - Extended typed record and variant creation to direct data scalars, owned
   String/Bytes and existing stable-ID nominal fields. Full source replay and
   bounded checked type facts govern admission, including unused declarations;

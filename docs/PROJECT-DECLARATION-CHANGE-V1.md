@@ -57,8 +57,10 @@ type, interface, protocol, or imported alias in the destination module.
 | --- | --- | --- |
 | `i64`, `i32`, `u8`, `usize`, `bool` | `value` | Yes |
 | `Bytes` | `own` | Yes |
+| `string` (owned String) | `value` in source, checked as `own` | Yes |
 | `str`, `Slice<u8>` | `borrow` | No |
 | Stable-ID nominal object for a checked Copy record/variant | `value` | Yes |
+| Stable-ID nominal object for a checked resource-free owning record/variant | `own` | Yes |
 
 Existing string types retain their wire representation. A named parameter or
 return type uses the closed object below, selecting a type owner rather than a
@@ -80,10 +82,22 @@ classes, resources, inferred arguments and newly introduced imports are closed.
 Selection is provisional. After full candidate rebuilding and identity replay,
 every added function, including compiler-derived extraction, passes an exact
 checked-signature gate before a candidate is exposed. Every nominal parameter
-must have value ownership; every nominal parameter and return must resolve to
-a record or variant whose compiler TypeFacts establish `copy` and `sized`,
-with neither `needs_drop` nor `contains_resource`. Template shapes never prove
-those properties. The retained facts now include return-only instances and
+and return must resolve to a sized, resource-free record or variant. A `value`
+nominal parameter requires checked value ownership, `copy` and no `needs_drop`.
+An `own` nominal parameter requires checked owning mode, no `copy`, and
+`needs_drop`. Nominal returns may belong to either checked data category;
+borrowing and resources remain excluded. An owning type requested in `value`
+mode and a Copy type requested in `own` mode still reject.
+
+The owned String request uses lowercase `string` and `mode: value`, matching
+the language's bare String parameter syntax. Its actual HIR mode must be `own`,
+and ordinary type facts must establish sized, non-Copy, resource-free storage
+that needs cleanup. This does not add `own string`, borrowed nominal parameters,
+new imports or a wider callable/target profile. The extraction planner retains
+its separate immutable Copy capture/result rules; sharing append validation
+does not authorize owned extraction.
+
+Template shapes never prove those properties. The retained facts include return-only instances and
 share the existing per-module limit of 4,096 distinct nominal types and
 builder-byte budget with checked body-value facts used by extraction. Fresh generic instances need not have appeared in an
 earlier function signature, but must pass this rebuilt admission.
@@ -94,6 +108,11 @@ with `copy_admission: "checked_candidate_signature"` and
 template or concrete argument combination is Copy. The inventory is bounded
 to 65,536 entries/parameter items and 1 MiB before the enclosing 256 KiB
 catalogue limit.
+
+The operation's separate
+`nominal_owning_admission: "checked_candidate_owning_signature"` marker describes
+the owning path; it does not turn template discovery into proof of eligibility.
+Owning nominal parameters use monomorphic owners with no type arguments.
 
 Parameters must have distinct names and cannot be named `result`. There are at
 most 64 parameters, 64 effects, 64 preconditions, and 64 postconditions. Effects
@@ -181,9 +200,10 @@ The owned String type uses lowercase `string` in this request and canonical
 source; `String` is not an alias in the constructor vocabulary. Fixed arrays
 are not part of this field constructor.
 Owned fields do not gain borrowed storage, resource authority or a wider
-Project/target profile. The function-signature constructor's separate Copy
-restriction is unchanged; creating an owned type does not make it eligible for
-that function constructor or cross-module owning imports.
+Project/target profile. The function-signature constructor separately checks
+its requested ownership mode and rebuilt type facts. A newly created owned
+type can subsequently be selected by a local owning helper, but creating it
+does not grant cross-module owning imports or waive function/target admission.
 
 This vocabulary does not widen aggregate source profiles. In particular, a
 variant without a direct `Bytes` payload retains the existing `SPX-T215`
@@ -225,7 +245,7 @@ and bounds, lists direct `field_types`, and points `nominal_type_selector` to
 the existing provisional `nominal_types` inventory. Its field admission marker
 is `checked_resource_free_field_type`. The shared nominal rows' function Copy
 metadata does not impose Copy on fields or prove field eligibility. Existing
-function placement and signature rules remain unchanged.
+function placement and the separate checked signature rules still apply.
 
 ## Reports, composition, and remaining boundaries
 
@@ -271,11 +291,18 @@ bodies, list bounds, and borrowed-byte forwarding to an owned-byte result.
 These regressions have not been run.
 
 `candidate/aggregate_nominal.rs` owns nominal selector authentication and
-template discovery; `declaration.rs` owns the post-build Copy gate.
+template discovery; `declaration.rs` owns requested-mode preflight and the
+post-build checked signature gate. Copy and owning modes remain distinct.
 `tests/project_candidate_nominal_declarations_v1.rs` adds authored, unrun cases
 for unused generic instances, return-only records/variants, monomorphic aliases,
 Option/Result, malformed selectors, non-Copy signatures, recovery and no writes.
 `tests/project_candidate_rebase_v1.rs` adds type-only dependency conflicts.
+
+`tests/project_candidate_owned_declarations_v1.rs` adds authored, unrun
+composition of data-type creation and local owning helpers, String forwarding,
+checked ownership/cleanup evidence, exact replay, mode rejection and unchanged
+import/source-profile limits. These are not physical execution or allocation
+conformance results.
 
 `candidate/type_declaration.rs` owns record/variant construction, exact planned
 identity inventories and independent source reconstruction.

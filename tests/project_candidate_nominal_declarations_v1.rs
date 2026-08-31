@@ -325,7 +325,7 @@ fn malformed_noncopy_modes_owner_identity_type_arguments_and_body_mismatches_fai
     let mut wrong = valid.clone();
     wrong["declaration"]["return_type"] = nominal("nominal.pair", &[]);
     assert!(apply(&base, &wrong).is_err());
-    // A valid body does not make a non-Copy nominal parameter admissible.
+    // A valid body does not make value mode admissible for a non-Copy owner.
     let mut owned = valid.clone();
     owned["declaration"]["return_type"] = nominal("nominal.owned", &[]);
     owned["declaration"]["parameters"][0]["type"] = nominal("nominal.owned", &[]);
@@ -342,8 +342,7 @@ fn malformed_noncopy_modes_owner_identity_type_arguments_and_body_mismatches_fai
 }
 
 #[test]
-fn declaration_catalog_describes_nominal_templates_and_visible_aliases_without_granting_owned_modes(
-) {
+fn declaration_catalog_describes_nominal_templates_without_granting_type_admission() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
     let base = fixture.candidate();

@@ -262,10 +262,16 @@ in parameter `type` and `return_type`. They additionally accept the closed
 object `{"kind":"nominal","target":type_owner_id,"type_arguments":["i64","bool"]}`.
 The argument array is required, including `[]` for monomorphic types; its
 maximum is 4,095 direct scalar arguments and actual arity must match the selected
-declaration. Nominal parameters require `mode: value`. Named parameter and
-return types must be Copy, sized, resource-free, and need no drop in the new
-function's checked signature after complete candidate rebuilding. Structural
-schema acceptance or a template's presence never establishes those facts.
+declaration. Nominal parameters use `mode: value` for checked Copy types or
+`mode: own` for checked owning types. Copy parameters require no drop; owners
+require non-Copy storage that needs drop. Both must be sized and resource-free
+in the rebuilt signature, and the requested mode must agree with checked HIR.
+Owning nominal parameters currently select monomorphic owners. Named returns
+may be checked Copy or owning data. Lowercase `string` is an additional
+parameter/return token: its source parameter mode is `value`, but checked HIR
+must carry the language's implicit String ownership. `own string` remains
+outside this constructor. Structural schema acceptance or a template's
+presence never establishes those facts.
 Existing `own Bytes` and borrowed string/slice parameter alternatives remain
 unchanged; nominal borrowing and owned resource signatures are not added.
 
@@ -273,6 +279,8 @@ The change catalogue's optional `nominal_types` array supplies stable owner
 identities and unique visible bindings for source records/variants and the
 authenticated compiler-owned `Option`/`Result` owners. The `add_declaration`
 operation identifies that inventory with `nominal_type_selector: nominal_types`.
+Its separate `nominal_owning_admission: checked_candidate_owning_signature`
+marker identifies the owning path without changing the meaning of Copy rows.
 Closed descriptors carry `kind`, `target`, `binding`, `generic`,
 `declaration_kind`, `path`, `module`, `evidence_owner`,
 `requires_full_candidate_validation: true`, and
@@ -306,7 +314,8 @@ or resource fields. Existing nominal fields must already have an authenticated
 visible binding in the anchor module. Full rebuilding checks the new owner and
 its selected dependency closure with the ordinary bounded type-facts engine;
 the resulting type must be sized and resource-free. Field types need not be
-Copy, and the separate function-signature Copy gate is unchanged.
+Copy. Function signatures have separate checked Copy and owning admission;
+field selection does not determine a parameter's mode.
 The field vocabulary describes request structure, not aggregate profile
 eligibility: non-Bytes variants retain `SPX-T215` restrictions, and nested
 generic record fields retain `SPX-T223`. Complete source/target admission can
@@ -326,7 +335,7 @@ corresponding list/identity bounds, the direct `field_types`,
 `field_type_admission: checked_resource_free_field_type`, and
 `requires_full_candidate_validation: true`. The v5 descriptor schema accepts
 that exact optional inventory. The shared nominal rows' `copy_admission`
-metadata still describes function signatures; it does not impose Copy on fields
+metadata still describes Copy function signatures; it does not impose Copy on fields
 or prove a new type's admission. Newly admitted types become ordinary stable-ID
 nominal and aggregate discovery subjects after full candidate rebuilding;
 discovery itself creates no source or publication authority. Structural

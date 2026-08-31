@@ -3,12 +3,13 @@
 //! Appending is not admission. The candidate owner must format, reparse and
 //! rebuild the whole Project before exposing a revision or evidence.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::Value;
 
 use crate::ast::{Function, Param, ParamMode, Program, Span, Type};
 use crate::diagnostic::Diagnostic;
+use crate::hir::{DeclarationKind, OwnershipMode, ResolvedType};
 use crate::project::ProjectRevision;
 
 use super::intent::{self, IntentSummary};
@@ -198,6 +199,8 @@ pub(super) fn append_function(
         ));
     }
     let mut names = BTreeSet::new();
+    let program = &programs[owner];
+    let mut checked_owners = BTreeSet::new();
     for parameter in &function.params {
         identifier(&parameter.name)?;
         if parameter.name == "result" || !names.insert(&parameter.name) {
@@ -206,9 +209,11 @@ pub(super) fn append_function(
             ));
         }
         validate_parameter(&parameter.ty, parameter.mode)?;
+        if parameter.mode == ParamMode::Own && matches!(parameter.ty, Type::Named { .. }) {
+            validate_owned_nominal(revision, program, &parameter.ty, &mut checked_owners)?;
+        }
     }
     validate_return(&function.return_type)?;
-    let program = &programs[owner];
     for ty in function
         .params
         .iter()
@@ -321,6 +326,7 @@ fn type_name(name: &str) -> Result<Type> {
         "u8" => Ok(Type::U8),
         "usize" => Ok(Type::Usize),
         "bool" => Ok(Type::Bool),
+        "string" => Ok(Type::String),
         "Bytes" => Ok(Type::Bytes),
         "str" => Ok(Type::Str),
         "Slice<u8>" => Ok(Type::SliceU8),
@@ -347,7 +353,8 @@ fn requested_type(revision: &ProjectRevision, program: &Program, value: &Value) 
 }
 
 /// Every addition, including compiler-derived extraction, passes this gate
-/// after full source rebuild. Nominal syntax alone never proves Copy safety.
+/// after full source rebuild. Nominal syntax alone proves neither Copy nor
+/// owning admission; canonical source modes must match the checked signature.
 pub(super) fn validate_added_signature(
     revision: &ProjectRevision,
     addition: &DeclarationAddition,
@@ -373,38 +380,161 @@ pub(super) fn validate_added_signature(
             "added checked function disagrees with its source owner",
         ));
     }
-    for parameter in &function.params {
-        if matches!(&parameter.ty, crate::hir::ResolvedType::Nominal { .. })
-            && parameter.ownership != crate::hir::OwnershipMode::Value
+    let source = revision
+        .sources()
+        .iter()
+        .find(|source| source.path() == module.path())
+        .ok_or_else(|| grammar("added function canonical source is absent"))?;
+    let program = crate::parse(source.source(), source.path()).map_err(|error| vec![error])?;
+    let authored = program
+        .functions
+        .iter()
+        .find(|source| source.stable_id == addition.id)
+        .ok_or_else(|| grammar("added function canonical declaration is absent"))?;
+    if authored.name != function.name
+        || authored.span != function.span
+        || authored.params.len() != function.params.len()
+    {
+        return Err(grammar("added source and checked signatures disagree"));
+    }
+    for (source, parameter) in authored.params.iter().zip(&function.params) {
+        validate_parameter(&source.ty, source.mode)?;
+        let expected = if source.mode == ParamMode::Value && source.ty == Type::String {
+            OwnershipMode::Own
+        } else {
+            match source.mode {
+                ParamMode::Value => OwnershipMode::Value,
+                ParamMode::Own => OwnershipMode::Own,
+                ParamMode::Borrow => OwnershipMode::Borrow,
+                ParamMode::Shared => {
+                    return Err(grammar(
+                        "added signature cannot introduce shared parameters",
+                    ))
+                }
+            }
+        };
+        if source.name != parameter.name
+            || source.span != parameter.span
+            || parameter.ownership != expected
         {
             return Err(grammar(
-                "added nominal parameters require checked value ownership",
+                "added parameter source mode disagrees with checked ownership",
             ));
         }
+        checked_signature_type(revision, module, &parameter.ty, Some(expected))?;
     }
-    for ty in function
-        .params
-        .iter()
-        .map(|parameter| &parameter.ty)
-        .chain(std::iter::once(&function.return_type))
-    {
-        if !matches!(ty, crate::hir::ResolvedType::Nominal { .. }) {
-            continue;
-        }
+    validate_return(&authored.return_type)?;
+    checked_signature_type(revision, module, &function.return_type, None)
+}
+
+fn checked_signature_type(
+    revision: &ProjectRevision,
+    module: &crate::workspace_graph::WorkspaceGraphProjectionModule,
+    ty: &ResolvedType,
+    ownership: Option<OwnershipMode>,
+) -> Result<()> {
+    if matches!(ty, ResolvedType::Nominal { .. }) {
         let (kind, facts) = module
             .signature_type_facts(ty)
             .ok_or_else(|| grammar("added nominal signature has no retained checked type facts"))?;
-        if !matches!(
-            kind,
-            crate::hir::DeclarationKind::Record | crate::hir::DeclarationKind::Variant
-        ) || !facts.copy
+        let copy = facts.copy && !facts.needs_drop;
+        let owned = !facts.copy && facts.needs_drop;
+        let admitted = match ownership {
+            Some(OwnershipMode::Value) => copy,
+            Some(OwnershipMode::Own) => owned,
+            Some(OwnershipMode::Borrow | OwnershipMode::Shared) => false,
+            None => copy || owned,
+        };
+        if !matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
             || !facts.sized
-            || facts.needs_drop
+            || facts.contains_resource
+            || !admitted
+        {
+            return Err(grammar("added nominal signature requires checked sized resource-free Copy values or explicit non-Copy owning parameters"));
+        }
+    } else if *ty == ResolvedType::String {
+        let facts = revision
+            .entry_program()
+            .declarations
+            .type_facts(ty)
+            .ok_or_else(|| grammar("added String signature has no compiler TypeFacts"))?;
+        if ownership.is_some_and(|mode| mode != OwnershipMode::Own)
+            || facts.copy
+            || !facts.needs_drop
+            || !facts.sized
             || facts.contains_resource
         {
-            return Err(grammar("added nominal signature requires a checked sized Copy record or variant without owned cleanup or resources"));
+            return Err(grammar(
+                "added String signature requires checked resource-free ownership",
+            ));
         }
     }
+    Ok(())
+}
+
+fn validate_owned_nominal(
+    revision: &ProjectRevision,
+    program: &Program,
+    ty: &Type,
+    checked: &mut BTreeSet<String>,
+) -> Result<()> {
+    intent::validate_nominal_ast(revision, program, ty)?;
+    let Type::Named { name, arguments } = ty else {
+        unreachable!("caller selected nominal parameter")
+    };
+    if !arguments.is_empty() {
+        return Err(grammar(
+            "added owning nominal parameters require monomorphic source types",
+        ));
+    }
+    let id = program
+        .types
+        .iter()
+        .find(|declaration| declaration.name == *name)
+        .map(|declaration| declaration.stable_id.as_str())
+        .or_else(|| {
+            program
+                .module_uses
+                .iter()
+                .find(|binding| {
+                    binding.kind == crate::ast::ModuleUseKind::Type && binding.alias == *name
+                })
+                .map(|binding| binding.persistent_id.as_str())
+        })
+        .ok_or_else(|| grammar("added owning nominal parameter has no source owner binding"))?;
+    if checked.contains(id) {
+        return Ok(());
+    }
+    let declarations = revision
+        .semantic
+        .image_modules()
+        .iter()
+        .flat_map(|module| module.types())
+        .map(|declaration| (declaration.id.as_str(), declaration))
+        .collect::<BTreeMap<_, _>>();
+    let declaration = declarations
+        .get(id)
+        .ok_or_else(|| grammar("added owning nominal source declaration is absent"))?;
+    if !declaration.type_parameters.is_empty() {
+        return Err(grammar(
+            "added owning nominal parameters require monomorphic declarations",
+        ));
+    }
+    // Preflight preserves the established G225 for `own` Copy parameters,
+    // before source verification would reject them as O002. The final gate
+    // still checks the freshly retained signature facts after complete replay.
+    let facts =
+        crate::hir::DeclarationIndex::record_evolution_type_facts(&declaration.id, &declarations)
+            .map_err(|diagnostic| vec![diagnostic])?
+            .ok_or_else(|| {
+                grammar("added owning nominal parameter lacks bounded checked TypeFacts")
+            })?;
+    if facts.copy || !facts.needs_drop || !facts.sized || facts.contains_resource {
+        return Err(grammar(
+            "added owning nominal parameter requires a checked non-Copy resource-free owner",
+        ));
+    }
+    checked.insert(id.to_owned());
     Ok(())
 }
 
@@ -416,8 +546,8 @@ fn scalar(ty: &Type) -> bool {
 }
 
 fn validate_parameter(ty: &Type, mode: ParamMode) -> Result<()> {
-    if ((scalar(ty) || matches!(ty, Type::Named { .. })) && mode == ParamMode::Value)
-        || (*ty == Type::Bytes && mode == ParamMode::Own)
+    if ((scalar(ty) || matches!(ty, Type::String | Type::Named { .. })) && mode == ParamMode::Value)
+        || (matches!(ty, Type::Bytes | Type::Named { .. }) && mode == ParamMode::Own)
         || (matches!(ty, Type::Str | Type::SliceU8) && mode == ParamMode::Borrow)
     {
         Ok(())
@@ -429,11 +559,11 @@ fn validate_parameter(ty: &Type, mode: ParamMode) -> Result<()> {
 }
 
 fn validate_return(ty: &Type) -> Result<()> {
-    if scalar(ty) || *ty == Type::Bytes || matches!(ty, Type::Named { .. }) {
+    if scalar(ty) || matches!(ty, Type::String | Type::Bytes | Type::Named { .. }) {
         Ok(())
     } else {
         Err(grammar(
-            "declaration return type must be an admitted scalar, owned Bytes or checked Copy nominal type",
+            "declaration return type must be an admitted scalar, String, Bytes or checked resource-free nominal type",
         ))
     }
 }

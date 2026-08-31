@@ -905,8 +905,12 @@ no new public Operations subject or publication route is exposed. See
 selectors and visible bindings, including direct-scalar generic instances and
 the fixed compiler prelude. Selection and catalogue templates are provisional;
 after rebuilding, every function addition passes `declaration.rs`'s checked
-nominal-signature gate for value parameters and sized Copy record/variant
-parameters and returns without resources or owned cleanup. Signature and checked
+signature gate. Value nominal parameters require sized Copy/no-drop facts;
+explicit owning nominal parameters require sized non-Copy/drop facts. Both
+exclude resources, as do nominal results. Bare String parameters retain their
+implicit checked ownership. Owning nominal preflight uses the existing bounded
+selected-declaration type-facts helper; source/import/target admission is
+unchanged. Signature and checked
 body-value facts share the existing 4,096-entry per-module table and builder-byte
 budget. Rebase binds complete selected type inventories before each replay.
 `candidate/extraction.rs` derives immutable scalar or Sized Copy nominal captures

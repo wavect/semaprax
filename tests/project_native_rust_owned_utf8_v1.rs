@@ -3,6 +3,7 @@ mod full_toolchain;
 
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::Mutex;
 
 #[path = "support/native_rust_cargo.rs"]
 mod native_rust_cargo;
@@ -11,6 +12,15 @@ mod native_rust_target;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
+static PACKAGE_PUBLICATION: Mutex<()> = Mutex::new(());
+
+fn publication_guard() -> std::sync::MutexGuard<'static, ()> {
+    // These tests exercise the same real compiler and archiver authorities.
+    // Keep their package-publication lifetimes disjoint within this test binary.
+    PACKAGE_PUBLICATION
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
 
 fn configured_tool(variable: &str, candidates: &[&str]) -> PathBuf {
     if let Some(configured) = std::env::var_os(variable)
@@ -68,6 +78,7 @@ fn fixture() -> Fixture {
 
 #[test]
 fn project_v10_rust_route_emits_a_distinct_mixed_safe_string_package() {
+    let _publication = publication_guard();
     let fixture = fixture();
     let output = fixture.0.join("rust");
     let clang = configured_tool("CLANG", &["/usr/bin/clang"]);
@@ -167,6 +178,7 @@ fn rust_profile_rejection_precedes_explicit_parent_creation() {
 
 #[test]
 fn real_v10_generated_rust_consumer_recovers_after_string_semantic_failures() {
+    let _publication = publication_guard();
     // This is the actual Project -> provider archive -> generated safe package
     // route, not the ABI double used by the separate hostile guard tests.
     // Physical C heap counts belong to native_owned_utf8_settlement_v1.

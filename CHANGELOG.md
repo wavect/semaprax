@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Serialized the two test-local Project v10 Native Rust publication lifetimes.
+  Windows no longer overlaps their real compiler and archiver authorities;
+  generated SDK execution, semantic-failure recovery, and all package checks
+  remain unchanged, while independent CI shards still run in parallel.
+
 - Bound the Windows doctor descendant-settlement regression to an exact
   exclusive lease held by the authored child. Parallel process churn can no
   longer turn a terminating or reused numeric PID into a false failure; the

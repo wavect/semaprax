@@ -257,9 +257,12 @@
 
 - Made CLI help reflect the authority already present in its host: standalone
   `semaprax` no longer advertises private `doctor`, `new`, or Rust-package build
-  routes, while `semaprax-full` documents those existing routes. Parsing,
-  direct-invocation diagnostics, command availability, and private-host hooks
-  are unchanged; standalone and full alias/no-activity tests pass locally.
+  routes, while `semaprax-full` documents those existing routes. A typed closed
+  catalog now drives byte-identical global help, exhaustive command dispatch,
+  and inert `help <command>`, `<command> --help`, and `<command> -h` views;
+  misplaced help flags fail before command effects. Ordinary command parsing,
+  availability, and private-host hooks are unchanged; standalone and full
+  catalog/alias/no-activity tests pass locally.
 
 - Added a retained-Project reference evaluator for the complete closed Project
   v8 public signature surface: zero through eight ordered `i64`, `bool`,

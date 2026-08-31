@@ -82,8 +82,27 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
         print_help(host.is_some());
         return Err(2);
     };
-    match command {
-        "check" => {
+    if command == "help" && args.len() == 2 {
+        return print_scoped_help(&args[1], host.is_some());
+    }
+    if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
+        return print_scoped_help(command, host.is_some());
+    }
+    if args[1..]
+        .iter()
+        .any(|argument| matches!(argument.as_str(), "--help" | "-h"))
+    {
+        eprintln!("help flags are admitted only as the sole operand of a command");
+        return Err(2);
+    }
+    let Some(command_id) = cli::help::parse(command, true) else {
+        eprintln!("unknown command `{command}`\n");
+        print_help(host.is_some());
+        return Err(2);
+    };
+    use cli::help::CommandId;
+    match command_id {
+        CommandId::Check => {
             let options = cli::project::parse_check_options(&args[1..])?;
             let json = options.json;
             let path = match options.input {
@@ -123,7 +142,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 Ok(())
             }
         }
-        "project-candidate-git-publish" => {
+        CommandId::ProjectCandidateGitPublish => {
             if args.len() != 5
                 || args[1..]
                     .iter()
@@ -142,7 +161,9 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        "semantic-cache-init" | "semantic-cache-persist" | "semantic-cache-load" => {
+        CommandId::SemanticCacheInit
+        | CommandId::SemanticCachePersist
+        | CommandId::SemanticCacheLoad => {
             let arity = if command == "semantic-cache-init" {
                 2
             } else {
@@ -167,7 +188,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        "project-draft-persist" | "project-draft-load" => {
+        CommandId::ProjectDraftPersist | CommandId::ProjectDraftLoad => {
             if args.len() != 4
                 || args[1..]
                     .iter()
@@ -194,7 +215,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        "project-candidate-persist" | "project-candidate-load" => {
+        CommandId::ProjectCandidatePersist | CommandId::ProjectCandidateLoad => {
             if args.len() != 4
                 || args[1..]
                     .iter()
@@ -221,14 +242,14 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        "project-image"
-        | "project-image-store"
-        | "project-image-load"
-        | "project-image-verify"
-        | "project-symbol"
-        | "project-candidate-preview"
-        | "project-candidate-export"
-        | "project-candidate-restore" => {
+        CommandId::ProjectImage
+        | CommandId::ProjectImageStore
+        | CommandId::ProjectImageLoad
+        | CommandId::ProjectImageVerify
+        | CommandId::ProjectSymbol
+        | CommandId::ProjectCandidatePreview
+        | CommandId::ProjectCandidateExport
+        | CommandId::ProjectCandidateRestore => {
             let arity = match command {
                 "project-image" => 2,
                 "project-image-load" => 4,
@@ -276,14 +297,14 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        "graph" => {
+        CommandId::Graph => {
             let path = required_path(&args, 1)?;
             let program = checked(&path)?;
             let output = graph::to_json(&program).map_err(|errors| report(&errors, false))?;
             println!("{output}");
             Ok(())
         }
-        "context" => {
+        CommandId::Context => {
             let path = required_path(&args, 1)?;
             let symbol = args.get(2).ok_or_else(|| {
                 eprintln!("context requires a symbol name or stable id");
@@ -307,7 +328,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{context}");
             Ok(())
         }
-        "serve-workspace" | "serve-workspace-mcp" => {
+        CommandId::ServeWorkspace | CommandId::ServeWorkspaceMcp => {
             if args.len() != 3
                 || args[1..]
                     .iter()
@@ -323,11 +344,11 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
             .map_err(|errors| report(&errors, false))
         }
-        "serve-image"
-        | "serve-candidates"
-        | "serve-test-candidates"
-        | "serve-diagnostics"
-        | "serve-diagnostics-tested" => {
+        CommandId::ServeImage
+        | CommandId::ServeCandidates
+        | CommandId::ServeTestCandidates
+        | CommandId::ServeDiagnostics
+        | CommandId::ServeDiagnosticsTested => {
             if args.len() != 2 || args[1].is_empty() || args[1].starts_with('-') {
                 eprintln!("{command} requires exactly <manifest>");
                 return Err(2);
@@ -353,7 +374,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 1
             })
         }
-        "serve" => {
+        CommandId::Serve => {
             let path = required_path(&args, 1)?;
             let limits = serve_options(&args)?;
             let outcome = agent_transport::serve(
@@ -368,7 +389,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
             Ok(())
         }
-        "context-benchmark" => {
+        CommandId::ContextBenchmark => {
             if args.len() != 2 {
                 eprintln!("context-benchmark requires exactly one manifest path");
                 return Err(2);
@@ -379,7 +400,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{output}");
             Ok(())
         }
-        "quality-plan" => {
+        CommandId::QualityPlan => {
             let profile = args.get(1).ok_or_else(|| {
                 eprintln!("quality-plan requires quick, changed, or full");
                 2
@@ -392,7 +413,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{plan}");
             Ok(())
         }
-        "doctor" => {
+        CommandId::Doctor => {
             let (output, exit_code) = (require_private_host(host, "doctor")?.doctor)(&args[1..])
                 .map_err(|error| {
                     eprintln!("doctor: {error}");
@@ -405,7 +426,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 Err(exit_code)
             }
         }
-        "new" => {
+        CommandId::New => {
             let destination = (require_private_host(host, "new")?.new_project)(&args[1..])
                 .map_err(|(error, code)| {
                     eprintln!("new: {error}");
@@ -414,7 +435,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("created calculator project {}", destination.display());
             Ok(())
         }
-        "build" => {
+        CommandId::Build => {
             let options = cli::build::parse(&args[1..])?;
             if options.target == "rust" {
                 require_private_host(host, "build --target rust")?;
@@ -496,7 +517,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
             Ok(())
         }
-        "run" => {
+        CommandId::Run => {
             let options = cli::execution::parse_run(&args[1..])?;
             match &options.input {
                 cli::execution::ExecutionInput::Source(path) => run_legacy_source(path),
@@ -505,14 +526,14 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 }
             }
         }
-        "test" => {
+        CommandId::Test => {
             let options = cli::execution::parse_test(&args[1..])?;
             let cli::execution::ExecutionInput::Project(manifest_path) = &options.input else {
                 unreachable!("project test parser rejects source inputs")
             };
             project_execution_held("test", manifest_path, &options)
         }
-        "fmt" => {
+        CommandId::Fmt => {
             let path = required_path(&args, 1)?;
             let check_only = args.iter().any(|arg| arg == "--check");
             let source = std::fs::read_to_string(&path).map_err(|error| {
@@ -533,7 +554,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 })
             }
         }
-        "patch" => {
+        CommandId::Patch => {
             let source_path = required_path(&args, 1)?;
             let patch_path = required_path(&args, 2)?;
             let revision =
@@ -541,7 +562,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("applied semantic patch; graph is now {revision}");
             Ok(())
         }
-        "workspace-init" => {
+        CommandId::WorkspaceInit => {
             if args.len() != 3 {
                 eprintln!("workspace-init requires exactly <root> <path-set.json>");
                 return Err(2);
@@ -553,7 +574,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("initialized semantic workspace; workspace is {revision}");
             Ok(())
         }
-        "semantic-workspace-init" => {
+        CommandId::SemanticWorkspaceInit => {
             if args.len() != 3 {
                 eprintln!("semantic-workspace-init requires exactly <root> <path-set.json>");
                 return Err(2);
@@ -565,7 +586,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("initialized semantic graph workspace; workspace is {revision}");
             Ok(())
         }
-        "semantic-workspace-change-preview" => {
+        CommandId::SemanticWorkspaceChangePreview => {
             if args.len() != 3 {
                 eprintln!(
                     "semantic-workspace-change-preview requires exactly <root> <proposal.json>"
@@ -579,7 +600,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        "semantic-workspace-change-evidence" => {
+        CommandId::SemanticWorkspaceChangeEvidence => {
             if args.len() != 3 {
                 eprintln!(
                     "semantic-workspace-change-evidence requires exactly <root> <proposal.json>"
@@ -593,7 +614,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        "verify-semantic-workspace-change-evidence" => {
+        CommandId::VerifySemanticWorkspaceChangeEvidence => {
             if args.len() != 4 {
                 eprintln!(
                     "verify-semantic-workspace-change-evidence requires exactly <root> <proposal.json> <evidence.json>"
@@ -608,7 +629,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{receipt}");
             Ok(())
         }
-        "apply-semantic-workspace-change-evidence" => {
+        CommandId::ApplySemanticWorkspaceChangeEvidence => {
             if args.len() != 4 {
                 eprintln!(
                     "apply-semantic-workspace-change-evidence requires exactly <root> <proposal.json> <evidence.json>"
@@ -623,7 +644,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{receipt}");
             Ok(())
         }
-        "semantic-workspace-structural-change-preview" => {
+        CommandId::SemanticWorkspaceStructuralChangePreview => {
             if args.len() != 3 {
                 eprintln!(
                     "semantic-workspace-structural-change-preview requires exactly <root> <proposal.json>"
@@ -637,7 +658,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        "semantic-workspace-structural-change-evidence" => {
+        CommandId::SemanticWorkspaceStructuralChangeEvidence => {
             if args.len() != 3 {
                 eprintln!(
                     "semantic-workspace-structural-change-evidence requires exactly <root> <proposal.json>"
@@ -651,7 +672,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        "verify-semantic-workspace-structural-change-evidence" => {
+        CommandId::VerifySemanticWorkspaceStructuralChangeEvidence => {
             if args.len() != 4 {
                 eprintln!(
                     "verify-semantic-workspace-structural-change-evidence requires exactly <root> <proposal.json> <evidence.json>"
@@ -666,7 +687,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{receipt}");
             Ok(())
         }
-        "apply-semantic-workspace-structural-change-evidence" => {
+        CommandId::ApplySemanticWorkspaceStructuralChangeEvidence => {
             if args.len() != 4 {
                 eprintln!(
                     "apply-semantic-workspace-structural-change-evidence requires exactly <root> <proposal.json> <evidence.json>"
@@ -681,7 +702,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{receipt}");
             Ok(())
         }
-        "semantic-workspace-operations-derive" => {
+        CommandId::SemanticWorkspaceOperationsDerive => {
             if args.len() != 3 {
                 eprintln!(
                     "semantic-workspace-operations-derive requires exactly <root> <proposal.json>"
@@ -695,7 +716,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        "semantic-workspace-operations-change-proposal" => {
+        CommandId::SemanticWorkspaceOperationsChangeProposal => {
             if args.len() != 3 {
                 eprintln!(
                     "semantic-workspace-operations-change-proposal requires exactly <root> <proposal.json>"
@@ -709,7 +730,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        "semantic-workspace-operations-evidence" => {
+        CommandId::SemanticWorkspaceOperationsEvidence => {
             if args.len() != 3 {
                 eprintln!(
                     "semantic-workspace-operations-evidence requires exactly <root> <proposal.json>"
@@ -723,7 +744,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        "verify-semantic-workspace-operations-evidence" => {
+        CommandId::VerifySemanticWorkspaceOperationsEvidence => {
             if args.len() != 4 {
                 eprintln!(
                     "verify-semantic-workspace-operations-evidence requires exactly <root> <proposal.json> <evidence.json>"
@@ -738,7 +759,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        "apply-semantic-workspace-operations-evidence" => {
+        CommandId::ApplySemanticWorkspaceOperationsEvidence => {
             if args.len() != 4 {
                 eprintln!(
                     "apply-semantic-workspace-operations-evidence requires exactly <root> <proposal.json> <evidence.json>"
@@ -753,7 +774,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        "workspace-snapshot" => {
+        CommandId::WorkspaceSnapshot => {
             if args.len() != 2 {
                 eprintln!("workspace-snapshot requires exactly <root>");
                 return Err(2);
@@ -763,7 +784,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{}", snapshot.to_json());
             Ok(())
         }
-        "workspace-graph" => {
+        CommandId::WorkspaceGraph => {
             if args.len() != 3 {
                 eprintln!("workspace-graph requires exactly <root> <entry-module>");
                 return Err(2);
@@ -775,7 +796,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{}", graph.to_json());
             Ok(())
         }
-        "workspace-context" => {
+        CommandId::WorkspaceContext => {
             if args.len() < 5 {
                 eprintln!("workspace-context requires <root> <entry-module> <declaration|capability> <target> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N]");
                 return Err(2);
@@ -790,7 +811,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{output}");
             Ok(())
         }
-        "workspace-impact" => {
+        CommandId::WorkspaceImpact => {
             if args.len() < 5 {
                 eprintln!("workspace-impact requires <root> <entry-module> <declaration|capability> <target> [--depth N] [--max-bytes N] [--max-nodes N]");
                 return Err(2);
@@ -805,7 +826,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{output}");
             Ok(())
         }
-        "workspace-review" => {
+        CommandId::WorkspaceReview => {
             if args.len() != 5 {
                 eprintln!("workspace-review requires exactly <root> <entry-module> <declaration|capability> <target>");
                 return Err(2);
@@ -818,7 +839,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{output}");
             Ok(())
         }
-        "workspace-preview" => {
+        CommandId::WorkspacePreview => {
             if args.len() != 3 {
                 eprintln!("workspace-preview requires exactly <root> <patch.wspatch>");
                 return Err(2);
@@ -830,7 +851,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{preview}");
             Ok(())
         }
-        "workspace-apply" => {
+        CommandId::WorkspaceApply => {
             if args.len() != 3 {
                 eprintln!("workspace-apply requires exactly <root> <patch.wspatch>");
                 return Err(2);
@@ -842,7 +863,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("applied semantic workspace transaction; workspace is now {revision}");
             Ok(())
         }
-        "workspace-patch-evidence" => {
+        CommandId::WorkspacePatchEvidence => {
             if args.len() != 3 {
                 eprintln!("workspace-patch-evidence requires exactly <root> <patch.wspatch>");
                 return Err(2);
@@ -854,7 +875,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{evidence}");
             Ok(())
         }
-        "verify-workspace-patch-evidence" => {
+        CommandId::VerifyWorkspacePatchEvidence => {
             if args.len() != 4 {
                 eprintln!(
                     "verify-workspace-patch-evidence requires exactly <root> <patch.wspatch> <evidence.json>"
@@ -869,7 +890,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{receipt}");
             Ok(())
         }
-        "workspace-apply-with-evidence" => {
+        CommandId::WorkspaceApplyWithEvidence => {
             if args.len() != 4 {
                 eprintln!(
                     "workspace-apply-with-evidence requires exactly <root> <patch.wspatch> <evidence.json>"
@@ -886,7 +907,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             );
             Ok(())
         }
-        "impact" => {
+        CommandId::Impact => {
             let source_path = required_path(&args, 1)?;
             let patch_path = required_path(&args, 2)?;
             let options = impact_options(&args)?;
@@ -895,7 +916,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{report}");
             Ok(())
         }
-        "review" => {
+        CommandId::Review => {
             if args.len() != 3 {
                 eprintln!("review requires exactly <file> <patch.spatch>");
                 return Err(2);
@@ -907,7 +928,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{report}");
             Ok(())
         }
-        "properties" => {
+        CommandId::Properties => {
             let path = required_path(&args, 1)?;
             let options = property_options(&args)?;
             let report =
@@ -915,7 +936,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{report}");
             Ok(())
         }
-        "hygienic-gen" => {
+        CommandId::HygienicGen => {
             let path = required_path(&args, 1)?;
             let options = hygienic_options(&args)?;
             let report =
@@ -923,7 +944,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{report}");
             Ok(())
         }
-        "openapi" => {
+        CommandId::Openapi => {
             let path = required_path(&args, 1)?;
             let (functions, options) = openapi_options(&args)?;
             let report = openapi::generate(&path, &functions, &options)
@@ -931,7 +952,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{report}");
             Ok(())
         }
-        "openapi-compat" => {
+        CommandId::OpenapiCompat => {
             if args.len() < 3 {
                 eprintln!(
                     "openapi-compat requires exactly <base.json> <candidate.json> [--max-bytes N]"
@@ -946,7 +967,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{report}");
             Ok(())
         }
-        "abi-report" => {
+        CommandId::AbiReport => {
             let path = required_path(&args, 1)?;
             let options = abi_report_options(&args)?;
             let report =
@@ -954,7 +975,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{report}");
             Ok(())
         }
-        "c-header" => {
+        CommandId::CHeader => {
             let path = required_path(&args, 1)?;
             let (options, emit_header) = c_header_options(&args)?;
             if emit_header {
@@ -968,7 +989,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
             Ok(())
         }
-        "freestanding-object" => {
+        CommandId::FreestandingObject => {
             let path = required_path(&args, 1)?;
             let options = freestanding_object_options(&args)?;
             let envelope = freestanding_object::generate(&path, &options)
@@ -976,7 +997,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{envelope}");
             Ok(())
         }
-        "capability-manifest" => {
+        CommandId::CapabilityManifest => {
             let path = required_path(&args, 1)?;
             let options = capability_manifest_options(&args)?;
             let envelope = capability_manifest::generate(&path, &options)
@@ -984,7 +1005,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{envelope}");
             Ok(())
         }
-        "package-report" => {
+        CommandId::PackageReport => {
             let path = required_path(&args, 1)?;
             let options = package_report_options(&args)?;
             let envelope = package_report::generate(&path, &options)
@@ -992,7 +1013,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{envelope}");
             Ok(())
         }
-        "package-lock" => match cli::package_lock::run(&args[1..]) {
+        CommandId::PackageLock => match cli::package_lock::run(&args[1..]) {
             Ok(lock) => {
                 println!("{lock}");
                 Ok(())
@@ -1005,7 +1026,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 Err(report(&errors, false))
             }
         },
-        "package-resolve" => match cli::package_resolver::run(&args[1..]) {
+        CommandId::PackageResolve => match cli::package_resolver::run(&args[1..]) {
             Ok(evidence) => {
                 write_package_resolver_stdout(&evidence).map_err(|error| report(&[error], false))
             }
@@ -1017,7 +1038,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 Err(report(&errors, false))
             }
         },
-        "region-report" => {
+        CommandId::RegionReport => {
             let path = required_path(&args, 1)?;
             let options = region_report_options(&args)?;
             let envelope = region_report::generate(&path, &options)
@@ -1025,7 +1046,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{envelope}");
             Ok(())
         }
-        "simd-report" => {
+        CommandId::SimdReport => {
             let path = required_path(&args, 1)?;
             let options = simd_report_options(&args)?;
             let envelope =
@@ -1033,7 +1054,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{envelope}");
             Ok(())
         }
-        "protocol-check" => {
+        CommandId::ProtocolCheck => {
             let path = required_path(&args, 1)?;
             let options = protocol_check_options(&args)?;
             let envelope = protocol_check::generate(&path, &options)
@@ -1041,7 +1062,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{envelope}");
             Ok(())
         }
-        "interpret" | "interpret-strings" => {
+        CommandId::Interpret | CommandId::InterpretStrings => {
             let path = required_path(&args, 1)?;
             let (function, arguments, options) = interpret_options(&args)?;
             let interpret = if args[0] == "interpret-strings" {
@@ -1058,7 +1079,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 Err(1)
             }
         }
-        "plugin-manifest" => {
+        CommandId::PluginManifest => {
             let path = required_path(&args, 1)?;
             let options = plugin_manifest_options(&args)?;
             let envelope = plugin_manifest::generate(&path, &options)
@@ -1066,7 +1087,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{envelope}");
             Ok(())
         }
-        "ui-schema" => {
+        CommandId::UiSchema => {
             let path = required_path(&args, 1)?;
             let options = ui_schema_options(&args)?;
             let envelope =
@@ -1074,7 +1095,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{envelope}");
             Ok(())
         }
-        "cxx-shim" => {
+        CommandId::CxxShim => {
             let path = required_path(&args, 1)?;
             let (options, emit_fragment) = cxx_shim_options(&args)?;
             if emit_fragment {
@@ -1088,7 +1109,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
             Ok(())
         }
-        "target-evidence" => {
+        CommandId::TargetEvidence => {
             if args.len() != 3 {
                 eprintln!("target-evidence requires exactly <file> <patch.spatch>");
                 return Err(2);
@@ -1100,7 +1121,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{report}");
             Ok(())
         }
-        "patch-evidence" => {
+        CommandId::PatchEvidence => {
             if args.len() != 3 {
                 eprintln!("patch-evidence requires exactly <file> <patch.spatch>");
                 return Err(2);
@@ -1112,7 +1133,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{evidence}");
             Ok(())
         }
-        "patch-evidence-v2" => {
+        CommandId::PatchEvidenceV2 => {
             if args.len() != 3 {
                 eprintln!("patch-evidence-v2 requires exactly <file> <patch.spatch>");
                 return Err(2);
@@ -1124,7 +1145,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{evidence}");
             Ok(())
         }
-        "verify-patch-evidence" => {
+        CommandId::VerifyPatchEvidence => {
             if args.len() != 4 {
                 eprintln!(
                     "verify-patch-evidence requires exactly <file> <patch.spatch> <evidence.json>"
@@ -1139,7 +1160,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{receipt}");
             Ok(())
         }
-        "verify-patch-evidence-v2" => {
+        CommandId::VerifyPatchEvidenceV2 => {
             if args.len() != 4 {
                 eprintln!(
                     "verify-patch-evidence-v2 requires exactly <file> <patch.spatch> <evidence.json>"
@@ -1154,7 +1175,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{receipt}");
             Ok(())
         }
-        "patch-with-evidence" => {
+        CommandId::PatchWithEvidence => {
             if args.len() != 4 {
                 eprintln!(
                     "patch-with-evidence requires exactly <file> <patch.spatch> <evidence.json>"
@@ -1169,7 +1190,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("applied semantic patch with exact evidence replay; graph is now {revision}");
             Ok(())
         }
-        "patch-with-evidence-v2" => {
+        CommandId::PatchWithEvidenceV2 => {
             if args.len() != 4 {
                 eprintln!(
                     "patch-with-evidence-v2 requires exactly <file> <patch.spatch> <evidence.json>"
@@ -1184,7 +1205,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("applied semantic patch with exact evidence replay; graph is now {revision}");
             Ok(())
         }
-        "repairs" => {
+        CommandId::Repairs => {
             if args.len() != 4 || args[2] != "assign-function-id" {
                 eprintln!("repairs requires <file> assign-function-id <automatic-function-id>");
                 return Err(2);
@@ -1200,7 +1221,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{report}");
             Ok(())
         }
-        "repair" => {
+        CommandId::Repair => {
             if args.len() != 5 || args[3] != "--persistent-id" {
                 eprintln!("repair requires <file> <repair-id> --persistent-id <persistent-id>");
                 return Err(2);
@@ -1216,7 +1237,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{preview}");
             Ok(())
         }
-        "version" => {
+        CommandId::Version => {
             let output = cli::version::render(cli::version::Invocation::Command, &args[1..])
                 .map_err(|error| {
                     eprintln!("{error}");
@@ -1225,7 +1246,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        "--version" | "-V" => {
+        CommandId::VersionFlag => {
             let output = cli::version::render(cli::version::Invocation::Flag, &args[1..]).map_err(
                 |error| {
                     eprintln!("{error}");
@@ -1235,14 +1256,15 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        "help" | "--help" | "-h" => {
-            print_help(host.is_some());
-            Ok(())
-        }
-        other => {
-            eprintln!("unknown command `{other}`\n");
-            print_help(host.is_some());
-            Err(2)
+        CommandId::Help => {
+            if args.len() == 1 {
+                print_help(host.is_some());
+                Ok(())
+            } else {
+                eprintln!("unknown command `{command}`\n");
+                print_help(host.is_some());
+                Err(2)
+            }
         }
     }
 }
@@ -2497,113 +2519,23 @@ fn report_all(errors: &[Diagnostic], json: bool) {
 }
 
 fn print_help(has_private_host: bool) {
-    let private_commands = if has_private_host {
-        "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\nsemaprax new <destination> [--name project-name] [--template calculator]\n"
+    print!("{}", global_help(has_private_host));
+}
+
+fn print_scoped_help(command: &str, has_private_host: bool) -> Result<(), u8> {
+    let help = global_help(has_private_host);
+    if let Some(scoped) = cli::help::scoped(command, has_private_host) {
+        print!("{scoped}");
+        Ok(())
     } else {
-        ""
-    };
-    let build_targets = if has_private_host {
-        "native|native-callable|web|wasm|npm|rust"
-    } else {
-        "native|native-callable|web|wasm|npm"
-    };
-    println!(
-        "SEMAPRAX — Meaning in. Verified machine code out.\n\n\
-         Usage:\n\
-           semaprax check [<file>|semaprax.toml|--manifest-path path] [--json]\n\
-           semaprax graph <file>\n\
-           semaprax project-image <manifest>\n\
-           semaprax project-image-store <manifest> <store-root>\n\
-           semaprax project-image-load <store-root> <receipt.json> <expected-image-digest>\n\
-           semaprax project-image-verify <manifest> <image.json>\n\
-           semaprax project-symbol <manifest> <stable-id>\n\
-           semaprax project-candidate-preview <manifest> <change.json>\n\
-           semaprax project-candidate-export <manifest> <change.json>\n\
-           semaprax project-candidate-restore <manifest> <capsule.json>\n\
-           semaprax semantic-cache-init <store-root>\n\
-           semaprax semantic-cache-persist <manifest> <store-root>\n\
-           semaprax semantic-cache-load <store-root> <entry-digest>\n\
-           semaprax project-candidate-persist <manifest> <capsule.json> <store-root>\n\
-           semaprax project-candidate-load <store-root> <archive-digest> <candidate-digest>\n\
-           semaprax project-draft-persist <manifest> <draft-capsule.json> <store-root>\n\
-           semaprax project-draft-load <store-root> <archive-digest> <draft-digest>\n\
-           semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\n\
-           semaprax serve-workspace <manifest> <host-policy.json>\n\
-           semaprax serve-workspace-mcp <manifest> <host-policy.json>\n\
-           semaprax serve-image <manifest>\n\
-           semaprax serve-candidates <manifest>\n\
-           semaprax serve-test-candidates <manifest>\n\
-           semaprax serve-diagnostics <manifest>\n\
-           semaprax serve-diagnostics-tested <manifest>\n\
-           semaprax context <file> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n\
-            semaprax context-benchmark <manifest>\n\
-            semaprax serve <file> [--max-request-bytes N]\n\
-            semaprax quality-plan <quick|changed|full> [exact-changed-path ...]\n\
-{private_commands}\
-           semaprax build [<file>|semaprax.toml|--manifest-path path] [--target {build_targets}] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]\n\
-           semaprax run <file>\n\
-           semaprax run [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n\
-           semaprax test [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n\
-           semaprax fmt <file> [--check]\n\
-           semaprax patch <file> <patch.spatch>\n\
-           semaprax workspace-init <root> <path-set.json>\n\
-           semaprax semantic-workspace-init <root> <path-set.json>\n\
-           semaprax semantic-workspace-change-preview <root> <proposal.json>\n\
-           semaprax semantic-workspace-change-evidence <root> <proposal.json>\n\
-           semaprax verify-semantic-workspace-change-evidence <root> <proposal.json> <evidence.json>\n\
-           semaprax apply-semantic-workspace-change-evidence <root> <proposal.json> <evidence.json>\n\
-           semaprax semantic-workspace-structural-change-preview <root> <proposal.json>\n\
-           semaprax semantic-workspace-structural-change-evidence <root> <proposal.json>\n\
-           semaprax verify-semantic-workspace-structural-change-evidence <root> <proposal.json> <evidence.json>\n\
-           semaprax apply-semantic-workspace-structural-change-evidence <root> <proposal.json> <evidence.json>\n\
-           semaprax semantic-workspace-operations-derive <root> <proposal.json>\n\
-           semaprax semantic-workspace-operations-change-proposal <root> <proposal.json>\n\
-           semaprax semantic-workspace-operations-evidence <root> <proposal.json>\n\
-           semaprax verify-semantic-workspace-operations-evidence <root> <proposal.json> <evidence.json>\n\
-           semaprax apply-semantic-workspace-operations-evidence <root> <proposal.json> <evidence.json>\n\
-           semaprax workspace-snapshot <root>\n\
-           semaprax workspace-graph <root> <entry-module>\n\
-           semaprax workspace-context <root> <entry-module> <declaration|capability> <target> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N]\n\
-           semaprax workspace-impact <root> <entry-module> <declaration|capability> <target> [--depth N] [--max-bytes N] [--max-nodes N]\n\
-           semaprax workspace-review <root> <entry-module> <declaration|capability> <target>\n\
-           semaprax workspace-preview <root> <patch.wspatch>\n\
-           semaprax workspace-apply <root> <patch.wspatch>\n\
-           semaprax workspace-patch-evidence <root> <patch.wspatch>\n\
-           semaprax verify-workspace-patch-evidence <root> <patch.wspatch> <evidence.json>\n\
-           semaprax workspace-apply-with-evidence <root> <patch.wspatch> <evidence.json>\n\
-           semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]\n\
-           semaprax properties <file> [--max-cases N] [--max-functions N] [--max-bytes N] [--seed N]\n\
-           semaprax hygienic-gen <file> [--templates default-constructor,field-accessors] [--max-bytes N]\n\
-           semaprax openapi <file> --function <name|stable-id> ... [--max-bytes N]\n\
-           semaprax openapi-compat <base.json> <candidate.json> [--max-bytes N]\n\
-            semaprax c-header <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-header]\n\
-            semaprax freestanding-object <file> [--max-bytes N]\n\
-            semaprax abi-report <file> --function name|stable-id[,...] [--function ...] [--max-bytes N]\n\
-             semaprax capability-manifest <file> [--max-bytes N]\n\
-              semaprax package-report <file> [--max-bytes N]\n\
-              semaprax package-lock <subject.json>... [--max-bytes N]\n\
-              semaprax package-resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]\n\
-             semaprax region-report <file> [--max-bytes N]\n\
-             semaprax simd-report <file> [--max-bytes N]\n\
-            semaprax protocol-check <file> [--max-bytes N]\n\
-            semaprax interpret <file> --function <name|stable-id> [--arg <scalar literal>]... [--max-bytes N]\n\
-            semaprax interpret-strings <file> --function <name|stable-id> [--arg <scalar literal>]... [--max-bytes N]\n\
-             semaprax ui-schema <file> [--max-bytes N]\n\
-           semaprax plugin-manifest <file> [--max-bytes N]\n\
-            semaprax cxx-shim <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-fragment]\n\
-           semaprax review <file> <patch.spatch>\n\
-           semaprax target-evidence <file> <patch.spatch>\n\
-           semaprax patch-evidence <file> <patch.spatch>\n\
-           semaprax patch-evidence-v2 <file> <patch.spatch>\n\
-           semaprax verify-patch-evidence <file> <patch.spatch> <evidence.json>\n\
-           semaprax verify-patch-evidence-v2 <file> <patch.spatch> <evidence.json>\n\
-           semaprax patch-with-evidence <file> <patch.spatch> <evidence.json>\n\
-           semaprax patch-with-evidence-v2 <file> <patch.spatch> <evidence.json>\n\
-           semaprax repairs <file> assign-function-id <automatic-function-id>\n\
-           semaprax repair <file> <repair-id> --persistent-id <persistent-id>\n\
-           semaprax version [--json]\n\
-           semaprax --version"
-    );
+        eprintln!("unknown command `{command}`\n");
+        print!("{help}");
+        Err(2)
+    }
+}
+
+fn global_help(has_private_host: bool) -> String {
+    cli::help::global(has_private_host)
 }
 
 #[cfg(test)]

@@ -8,6 +8,7 @@ Audience: all documentation readers.
 
 - [Documentation overview](index.md)
 - [Quickstart](QUICKSTART.md)
+- [Capability-aware CLI help](CLI-HELP-V1.md)
 - [Calculator project publication](NEW-PROJECT-PUBLICATION-V1.md)
 - [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md)
 - [Doctor version-probe lifecycle](DOCTOR-PROBE-V1.md)

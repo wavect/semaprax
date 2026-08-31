@@ -17,11 +17,11 @@ fn empty_working_directory() -> PathBuf {
     path
 }
 
-fn invoke(argument: Option<&str>) -> (Output, PathBuf) {
+fn invoke(arguments: &[&str]) -> (Output, PathBuf) {
     let working_directory = empty_working_directory();
     let mut command = Command::new(env!("CARGO_BIN_EXE_semaprax"));
     command.current_dir(&working_directory);
-    if let Some(argument) = argument {
+    for argument in arguments {
         command.arg(argument);
     }
     let output = command.output().unwrap();
@@ -31,12 +31,12 @@ fn invoke(argument: Option<&str>) -> (Output, PathBuf) {
 
 #[test]
 fn standalone_help_is_exact_capability_aware_and_inert() {
-    let (empty, empty_dir) = invoke(None);
+    let (empty, empty_dir) = invoke(&[]);
     assert_eq!(empty.status.code(), Some(2));
     assert!(empty.stderr.is_empty());
 
     for alias in ["help", "--help", "-h"] {
-        let (output, working_directory) = invoke(Some(alias));
+        let (output, working_directory) = invoke(&[alias]);
         assert!(output.status.success(), "{alias}");
         assert!(output.stderr.is_empty(), "{alias}");
         assert_eq!(output.stdout, empty.stdout, "{alias}");
@@ -53,11 +53,93 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
         0
     );
 
-    let (unknown, unknown_dir) = invoke(Some("not-a-command"));
+    let (unknown, unknown_dir) = invoke(&["not-a-command"]);
     assert_eq!(unknown.status.code(), Some(2));
     assert_eq!(unknown.stdout, empty.stdout);
     assert_eq!(unknown.stderr, b"unknown command `not-a-command`\n\n");
 
     std::fs::remove_dir(unknown_dir).unwrap();
     std::fs::remove_dir(empty_dir).unwrap();
+}
+
+#[test]
+fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
+    let (global, global_dir) = invoke(&["--help"]);
+    let global_text = String::from_utf8(global.stdout.clone()).unwrap();
+    let usages: Vec<_> = global_text
+        .lines()
+        .filter_map(|line| line.trim_start().strip_prefix("semaprax "))
+        .collect();
+    assert!(!usages.is_empty());
+    for usage in usages {
+        let command = usage.split_whitespace().next().unwrap();
+        let expected: String = global_text
+            .lines()
+            .filter_map(|line| {
+                let line = line.trim_start();
+                let prefix = format!("semaprax {command}");
+                (line == prefix
+                    || line
+                        .strip_prefix(&prefix)
+                        .is_some_and(|tail| tail.starts_with(' ')))
+                .then(|| format!("  {line}\n"))
+            })
+            .collect();
+        let expected = format!("Usage:\n{expected}");
+        for arguments in [
+            vec!["help", command],
+            vec![command, "--help"],
+            vec![command, "-h"],
+        ] {
+            let (output, directory) = invoke(&arguments);
+            assert!(output.status.success(), "{arguments:?}");
+            assert!(output.stderr.is_empty(), "{arguments:?}");
+            assert_eq!(output.stdout, expected.as_bytes(), "{arguments:?}");
+            std::fs::remove_dir(directory).unwrap();
+        }
+    }
+
+    for private in ["doctor", "new"] {
+        let (output, directory) = invoke(&["help", private]);
+        assert_eq!(output.status.code(), Some(2));
+        assert_eq!(output.stdout, global.stdout);
+        assert_eq!(
+            output.stderr,
+            format!("unknown command `{private}`\n\n").as_bytes()
+        );
+        std::fs::remove_dir(directory).unwrap();
+    }
+    let (version_alias, version_alias_dir) = invoke(&["-V", "--help"]);
+    assert!(version_alias.status.success());
+    assert!(version_alias.stderr.is_empty());
+    assert_eq!(version_alias.stdout, b"Usage:\n  semaprax --version\n");
+    std::fs::remove_dir(version_alias_dir).unwrap();
+    for name in ["help", "--help", "-h"] {
+        let (output, directory) = invoke(&["help", name]);
+        assert!(output.status.success(), "{name}");
+        assert_eq!(output.stdout, b"Usage:\n  semaprax help <command>\n");
+        assert!(output.stderr.is_empty());
+        std::fs::remove_dir(directory).unwrap();
+    }
+    let (malformed, malformed_dir) = invoke(&["help", "build", "extra"]);
+    assert_eq!(malformed.status.code(), Some(2));
+    assert_eq!(malformed.stdout, global.stdout);
+    assert_eq!(malformed.stderr, b"unknown command `help`\n\n");
+    let (embedded, embedded_dir) = invoke(&["fmt", "effectful.spx", "--help"]);
+    assert_eq!(embedded.status.code(), Some(2));
+    assert!(embedded.stdout.is_empty());
+    assert_eq!(
+        embedded.stderr,
+        b"help flags are admitted only as the sole operand of a command\n"
+    );
+    assert!(!embedded_dir.join("effectful.spx").exists());
+    let (embedded_short, embedded_short_dir) = invoke(&["fmt", "effectful.spx", "-h"]);
+    assert_eq!(embedded_short.status.code(), Some(2));
+    assert!(embedded_short.stdout.is_empty());
+    assert_eq!(embedded_short.stderr, embedded.stderr);
+    assert!(!embedded_short_dir.join("effectful.spx").exists());
+    std::fs::remove_dir(embedded_short_dir).unwrap();
+    std::fs::remove_dir(embedded_dir).unwrap();
+    std::fs::remove_dir(malformed_dir).unwrap();
+    std::fs::remove_dir(global_dir).unwrap();
 }

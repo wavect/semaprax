@@ -48,6 +48,11 @@ safe enough for a narrower run.
 | `changed` | Bounded reviewed changes | `quick` plus package Clippy, agent-context integration, and package rustdoc |
 | `full` | Semantic changes and release candidates | workspace Clippy/tests/doctests/rustdoc, release build, package check, and canonical example checks |
 
+Capability-aware command help additionally requires the exact catalog/dispatcher
+inventory, global-byte preservation, standalone/full capability separation,
+scoped and malformed-position behavior, and zero-activity gates owned by
+[Capability-Aware CLI Help v1](CLI-HELP-V1.md).
+
 The script is the executable source of truth for the precise command sequence.
 Do not copy that sequence into feature documents.
 

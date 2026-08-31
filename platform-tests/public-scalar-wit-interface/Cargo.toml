@@ -1,0 +1,23 @@
+[package]
+name = "semaprax-public-scalar-wit-interface-consumer"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.88"
+publish = false
+license = "Apache-2.0"
+
+# Keep the maintained WIT parser and its lock outside the published SEMAPRAX
+# workspace and dependency graph.
+[workspace]
+resolver = "2"
+
+[dependencies]
+semaprax = { version = "=0.2.0", path = "../..", default-features = false }
+wit-parser = { version = "=0.252.0", default-features = false, features = ["std"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "deny"
+pedantic = "deny"

@@ -39,6 +39,8 @@ semaprax run semaprax.toml\n\
 semaprax graph src/app.spx\n\
 semaprax build semaprax.toml --target web -o dist/web";
 
+const QUICKSTART_SCAFFOLD_COMMAND: &str = "semaprax project-scaffold --name first-semaprax";
+
 struct Fixture {
     root: PathBuf,
 }
@@ -129,6 +131,31 @@ fn documented_quickstart_executes_the_exact_seven_commands() {
     assert!(project
         .join("dist/web/semaprax.scalar-exports.json")
         .is_file());
+}
+
+#[test]
+fn documented_public_scaffold_is_stdout_only_and_precedes_publication() {
+    let documentation =
+        std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/QUICKSTART.md"))
+            .unwrap();
+    let scaffold = documentation
+        .find(&format!("```sh\n{QUICKSTART_SCAFFOLD_COMMAND}\n```"))
+        .unwrap();
+    let publication = documentation.find(QUICKSTART_COMMANDS).unwrap();
+    assert!(scaffold < publication);
+
+    let fixture = Fixture::new("public-scaffold");
+    let output = success(
+        &fixture.root,
+        &["project-scaffold", "--name", "first-semaprax"],
+    );
+    assert!(output.stderr.is_empty());
+    assert_eq!(std::fs::read_dir(&fixture.root).unwrap().count(), 0);
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(value["schema"], "semaprax.project-scaffold.v1");
+    assert_eq!(value["project_name"], "first-semaprax");
+    assert_eq!(value["project_schema"], "semaprax.project.v1");
+    assert_eq!(value["files"].as_array().unwrap().len(), 4);
 }
 
 #[test]

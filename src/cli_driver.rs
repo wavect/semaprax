@@ -77,6 +77,54 @@ fn require_private_host<'a>(
     })
 }
 
+fn parse_project_scaffold_options(arguments: &[String]) -> Result<(&str, &str), u8> {
+    let mut name = None;
+    let mut template = None;
+    let mut index = 0usize;
+    while index < arguments.len() {
+        let option = arguments[index].as_str();
+        if !matches!(option, "--name" | "--template") {
+            eprintln!("project-scaffold accepts only --name and --template");
+            return Err(2);
+        }
+        let value = arguments
+            .get(index + 1)
+            .filter(|value| !value.starts_with('-'))
+            .ok_or_else(|| {
+                eprintln!("project-scaffold option requires one value");
+                2
+            })?;
+        match option {
+            "--name" if name.is_none() => name = Some(value.as_str()),
+            "--template" if template.is_none() => {
+                if value != project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR {
+                    eprintln!("project-scaffold template must be calculator");
+                    return Err(2);
+                }
+                template = Some(value.as_str());
+            }
+            "--name" => {
+                eprintln!("duplicate project-scaffold option --name");
+                return Err(2);
+            }
+            "--template" => {
+                eprintln!("duplicate project-scaffold option --template");
+                return Err(2);
+            }
+            _ => unreachable!("closed project-scaffold option grammar"),
+        }
+        index += 2;
+    }
+    let name = name.ok_or_else(|| {
+        eprintln!("project-scaffold requires --name project-name");
+        2
+    })?;
+    Ok((
+        name,
+        template.unwrap_or(project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR),
+    ))
+}
+
 fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
     let Some(command) = args.first().map(String::as_str) else {
         print_help(host.is_some());
@@ -433,6 +481,22 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                     code
                 })?;
             println!("created calculator project {}", destination.display());
+            Ok(())
+        }
+        CommandId::ProjectScaffold => {
+            let (name, template) = parse_project_scaffold_options(&args[1..])?;
+            let artifact = project::derive_project_scaffold_v1(name, template)
+                .map_err(|errors| report(&errors, false))?;
+            let bytes = artifact.canonical_bytes();
+            let stdout = std::io::stdout();
+            let mut stdout = stdout.lock();
+            stdout
+                .write_all(&bytes)
+                .and_then(|()| stdout.flush())
+                .map_err(|error| {
+                    eprintln!("project-scaffold: cannot write descriptor: {error}");
+                    1
+                })?;
             Ok(())
         }
         CommandId::Build => {

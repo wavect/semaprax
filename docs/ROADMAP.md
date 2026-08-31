@@ -61,6 +61,13 @@ The separate [calculator publication gate](NEW-PROJECT-PUBLICATION-V1.md) must
 also exercise staging/destination collisions before first-use publication can
 be treated as proven. Neither authored correction promotes support.
 
+The additive [Public Project Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md)
+exposes the calculator's exact four files as subject-bound, canonical,
+authority-free bytes and a stdout-only public CLI. Execute its replay,
+capacity, private-template convergence, and no-activity gates before treating
+it as product evidence. It is not a replacement for the private held-parent
+publication gate and does not widen Project v1.
+
 The shared [Unix npm publication boundary](PROJECT-MANIFEST-V2.md) also requires
 execution of its authored parent/ancestor substitution, retained-inventory,
 healthy-alias and test-hook isolation regressions. The final parent identity

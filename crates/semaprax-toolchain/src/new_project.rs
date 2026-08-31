@@ -11,10 +11,8 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use same_file::Handle;
-use semaprax::project::{self, ProjectExecutionOptions};
+use semaprax::project::{self, ProjectScaffoldFileV1};
 use semaprax_native_rust_owned_data_package::{NewProjectAuthority, NewProjectAuthorityError};
-
-use templates::TemplateFile;
 
 static STAGING_SERIAL: AtomicU64 = AtomicU64::new(0);
 const MAX_STAGING_ATTEMPTS: usize = 32;
@@ -104,11 +102,25 @@ fn create_with_serial(
         NewProjectFailure::creation(format!("cannot resolve new project destination: {error}"))
     })?;
     validate_name(name).map_err(NewProjectFailure::creation)?;
-    let files = templates::render(name);
-    let paths = files.iter().map(|file| file.path).collect::<Vec<_>>();
+    let scaffold =
+        project::derive_project_scaffold_v1(name, project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR)
+            .map_err(|diagnostics| {
+                NewProjectFailure::creation(format!(
+                    "generated calculator project failed exact scaffold derivation: {}",
+                    diagnostics
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join("; ")
+                ))
+            })?;
+    let files = scaffold.files();
+    let paths = files
+        .iter()
+        .map(ProjectScaffoldFileV1::path)
+        .collect::<Vec<_>>();
     validate_template_inventory(&paths).map_err(NewProjectFailure::creation)?;
-    let expected = expected_files(&files)?;
-    validate_rendered_project(expected)?;
+    let expected = expected_files(files)?;
 
     let file_name = requested_destination.file_name().ok_or_else(|| {
         NewProjectFailure::creation("new project destination must name one directory")
@@ -151,14 +163,14 @@ fn create_with_serial(
     require_original_parent_identity(requested_parent, &parent_identity)?;
     require_ambient_binding(&authority, &parent, &staging)?;
     for (index, file) in files.iter().enumerate() {
-        hook.before_write(index, file.path).map_err(|error| {
+        hook.before_write(index, file.path()).map_err(|error| {
             NewProjectFailure::creation(format!(
                 "injected write failure before `{}`: {error}",
-                file.path
+                file.path()
             ))
         })?;
         authority
-            .write(file.path, &file.bytes)
+            .write(file.path(), file.bytes())
             .map_err(|error| authority_failure("write staged project", error))?;
     }
     authority
@@ -182,7 +194,7 @@ fn create_with_serial(
 pub(crate) fn validate_template_inventory(paths: &[&str]) -> Result<(), String> {
     let mut observed = paths.to_vec();
     observed.sort_unstable();
-    let mut expected = templates::INVENTORY.to_vec();
+    let mut expected = project::PROJECT_SCAFFOLD_INVENTORY.to_vec();
     expected.sort_unstable();
     if observed == expected && observed.windows(2).all(|pair| pair[0] != pair[1]) {
         Ok(())
@@ -210,7 +222,7 @@ fn parse(arguments: &[String]) -> Result<NewProjectOptions, NewProjectFailure> {
             }
             "--template" if !template_seen => {
                 let value = option_value(arguments, index, "--template")?;
-                if value != templates::TEMPLATE_NAME {
+                if value != project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR {
                     return Err(NewProjectFailure::invocation(format!(
                         "unknown new template `{value}`; expected calculator"
                     )));
@@ -314,47 +326,15 @@ fn create_staging_authority(
     ))
 }
 
-fn expected_files(files: &[TemplateFile]) -> Result<[(&str, &[u8]); 4], NewProjectFailure> {
+fn expected_files(
+    files: &[ProjectScaffoldFileV1; project::PROJECT_SCAFFOLD_FILE_COUNT],
+) -> Result<[(&str, &[u8]); project::PROJECT_SCAFFOLD_FILE_COUNT], NewProjectFailure> {
     files
         .iter()
-        .map(|file| (file.path, file.bytes.as_slice()))
+        .map(|file| (file.path(), file.bytes()))
         .collect::<Vec<_>>()
         .try_into()
         .map_err(|_| NewProjectFailure::creation("calculator template inventory is not exact"))
-}
-
-fn validate_rendered_project(files: [(&str, &[u8]); 4]) -> Result<(), NewProjectFailure> {
-    let manifest = std::str::from_utf8(files[1].1).map_err(|_| {
-        NewProjectFailure::creation("generated project manifest is not canonical UTF-8")
-    })?;
-    let app = std::str::from_utf8(files[2].1).map_err(|_| {
-        NewProjectFailure::creation("generated project app source is not canonical UTF-8")
-    })?;
-    let tests = std::str::from_utf8(files[3].1).map_err(|_| {
-        NewProjectFailure::creation("generated project test source is not canonical UTF-8")
-    })?;
-    let execution = project::validate_owned_project_test(
-        manifest,
-        &[(files[2].0, app), (files[3].0, tests)],
-        &ProjectExecutionOptions::default(),
-    )
-    .map_err(|diagnostics| {
-        NewProjectFailure::creation(format!(
-            "generated project failed exact owned-byte check or test: {}",
-            diagnostics
-                .iter()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join("; ")
-        ))
-    })?;
-    if execution.command_succeeded() {
-        Ok(())
-    } else {
-        Err(NewProjectFailure::creation(
-            "generated calculator project tests did not pass",
-        ))
-    }
 }
 
 fn require_ambient_binding(

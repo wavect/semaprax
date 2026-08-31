@@ -124,16 +124,29 @@ fn calculator_template_has_exact_deterministic_bytes() {
     assert!(String::from_utf8(first["semaprax.toml"].clone())
         .unwrap()
         .contains("name = \"demo-project\"\nentry = \"demo_project.app\""));
+
+    let scaffold =
+        semaprax::project::derive_project_scaffold_v1("demo-project", "calculator").unwrap();
+    assert_eq!(
+        scaffold
+            .files()
+            .iter()
+            .map(|file| (file.path().to_owned(), file.bytes().to_vec()))
+            .collect::<BTreeMap<_, _>>(),
+        first,
+        "private publication and the authority-free public capsule must retain one literal template",
+    );
 }
 
 #[test]
 fn generated_project_validation_never_reopens_the_ambient_staging_tree() {
     let implementation = include_str!("../src/new_project.rs");
-    assert!(implementation.contains("project::validate_owned_project_test"));
+    let scaffold = include_str!("../../../src/project/scaffold.rs");
+    assert!(scaffold.contains("validate_owned_project_test"));
     assert!(!implementation.contains("project::with_authenticated_project"));
     assert!(
         implementation
-            .find("validate_rendered_project(expected)")
+            .find("project::derive_project_scaffold_v1")
             .unwrap()
             < implementation.find("create_staging_authority").unwrap()
     );

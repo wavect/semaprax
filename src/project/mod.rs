@@ -30,6 +30,7 @@ mod public_utf8_api;
 mod publication_tests;
 mod rename;
 mod revision;
+mod scaffold;
 mod scalar_wit;
 mod semantic;
 #[cfg(test)]
@@ -262,6 +263,12 @@ pub use public_api::{
     PUBLIC_RESULT_ERR_TAG, PUBLIC_RESULT_OK_TAG,
 };
 pub use public_utf8_api::{PUBLIC_OWNED_UTF8_API_SCHEMA, PUBLIC_OWNED_UTF8_PROJECT_SCHEMA};
+pub use scaffold::{
+    derive_project_scaffold_v1, replay_project_scaffold_v1, ProjectScaffoldFileV1,
+    ProjectScaffoldV1, MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES, MAX_PROJECT_SCAFFOLD_NAME_BYTES,
+    PROJECT_SCAFFOLD_FILE_COUNT, PROJECT_SCAFFOLD_INVENTORY, PROJECT_SCAFFOLD_SCHEMA,
+    PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR,
+};
 pub use scalar_wit::{
     ScalarWitExportV1, ScalarWitInterfaceArtifactV1, ScalarWitTypeV1,
     MAX_SCALAR_WIT_DESCRIPTOR_BYTES, MAX_SCALAR_WIT_INTERFACE_BYTES, SCALAR_WIT_INTERFACE_SCHEMA,

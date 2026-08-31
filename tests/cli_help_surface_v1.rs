@@ -6,6 +6,8 @@ static NEXT: AtomicU64 = AtomicU64::new(0);
 const BUILD_LINE: &str = "semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]\n";
 const DOCTOR_LINE: &str = "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n";
 const NEW_LINE: &str = "semaprax new <destination> [--name project-name] [--template calculator]\n";
+const PROJECT_SCAFFOLD_LINE: &str =
+    "semaprax project-scaffold --name project-name [--template calculator]\n";
 
 fn empty_working_directory() -> PathBuf {
     let path = std::env::temp_dir().join(format!(
@@ -47,6 +49,8 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
     assert_eq!(help.matches(BUILD_LINE).count(), 1);
     assert_eq!(help.matches(DOCTOR_LINE).count(), 0);
     assert_eq!(help.matches(NEW_LINE).count(), 0);
+    assert_eq!(help.matches(PROJECT_SCAFFOLD_LINE).count(), 1);
+    assert!(help.find(PROJECT_SCAFFOLD_LINE).unwrap() < help.find(BUILD_LINE).unwrap());
     assert_eq!(
         help.matches("native|native-callable|web|wasm|npm|rust")
             .count(),

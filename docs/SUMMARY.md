@@ -8,6 +8,7 @@ Audience: all documentation readers.
 
 - [Documentation overview](index.md)
 - [Quickstart](QUICKSTART.md)
+- [Public Project Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md)
 - [Capability-aware CLI help](CLI-HELP-V1.md)
 - [Calculator project publication](NEW-PROJECT-PUBLICATION-V1.md)
 - [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md)

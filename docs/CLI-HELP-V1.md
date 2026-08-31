@@ -5,14 +5,18 @@ completion matrix and release evidence own product status.
 
 Audience: CLI users, release engineers, and compiler contributors.
 
-This additive command-help surface makes the existing closed CLI grammar
-inspectable without acquiring command authority. It does not add a command,
-option, alias, target, plugin, or host capability.
+This additive command-help surface makes the closed CLI grammar inspectable
+without acquiring command authority. The help mechanism itself does not add an
+option, alias, target, plugin, or host capability. The later public
+`project-scaffold` command is an additive catalog entry owned by [Public
+Project Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md).
 
 ## Capability boundary
 
 The standalone `semaprax` executable has no private host. Its help omits the
 private `doctor` and `new` commands and the private Rust-package build target.
+It does include the public stdout-only `project-scaffold --name project-name
+[--template calculator]` route, which has no private host hook.
 The unpublished `semaprax-full` executable receives one explicit
 `PrivateHost`; only that presence bit selects the fuller catalog. Help must not
 call a host hook, read a path, inspect the environment, search `PATH`, discover

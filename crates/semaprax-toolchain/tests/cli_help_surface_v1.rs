@@ -5,6 +5,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 static NEXT: AtomicU64 = AtomicU64::new(0);
 const DOCTOR_LINE: &str = "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n";
 const NEW_LINE: &str = "semaprax new <destination> [--name project-name] [--template calculator]\n";
+const PROJECT_SCAFFOLD_LINE: &str =
+    "semaprax project-scaffold --name project-name [--template calculator]\n";
 const BUILD_LINE: &str = "semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm|rust] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]\n";
 
 fn empty_working_directory() -> PathBuf {
@@ -46,11 +48,13 @@ fn full_help_is_exact_capability_aware_and_inert() {
     let help = String::from_utf8(empty.stdout.clone()).unwrap();
     assert_eq!(help.matches(DOCTOR_LINE).count(), 1);
     assert_eq!(help.matches(NEW_LINE).count(), 1);
+    assert_eq!(help.matches(PROJECT_SCAFFOLD_LINE).count(), 1);
     assert_eq!(help.matches(BUILD_LINE).count(), 1);
     let doctor = help.find(DOCTOR_LINE).unwrap();
     let new = help.find(NEW_LINE).unwrap();
+    let scaffold = help.find(PROJECT_SCAFFOLD_LINE).unwrap();
     let build = help.find(BUILD_LINE).unwrap();
-    assert!(doctor < new && new < build);
+    assert!(doctor < new && new < scaffold && scaffold < build);
 
     let (unknown, unknown_dir) = invoke(&["not-a-command"]);
     assert_eq!(unknown.status.code(), Some(2));

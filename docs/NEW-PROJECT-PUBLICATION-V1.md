@@ -12,6 +12,9 @@ built-in calculator template. Tag archives expose that full CLI as `semaprax`;
 the standalone registry compiler does not gain private-host dependencies.
 See the [quickstart](QUICKSTART.md) for the user workflow and
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) for checked project semantics.
+The separate [Public Project Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md)
+derives and replays the same four file bytes without a destination or write
+authority; it does not replace this held-parent publication protocol.
 
 This correction changes publication verification, not the command grammar,
 template names, Project schema, source semantics, or successful file bytes.

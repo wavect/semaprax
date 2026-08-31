@@ -21,6 +21,15 @@
   handles, associations and detail/discard routes without granting validity,
   execution, source or publication authority. Evidence is authored and unrun.
 
+- Added the authority-free Public Project Scaffold Capsule v1. It derives and
+  independently replays the built-in calculator's exact ordered four-file
+  Project-v1 bytes under per-file and canonical artifact digests. The public
+  `project-scaffold` CLI writes only the exact canonical capsule to stdout;
+  private `new` bytes and its held-parent no-replace publication remain
+  unchanged. The capsule grants no filesystem or publication authority, and
+  its focused library, CLI, private-byte-preservation, and quickstart evidence
+  passes locally; required-host and release-artifact gates remain open.
+
 - Added a public authority-free WIT interface artifact for exact retained
   Project-v1 scalar exports. Injective stable-ID hexadecimal function names,
   ordinal arguments, and `result<i64|bool, status>` signatures are bound into

@@ -20,6 +20,17 @@ not access a network, initialize Git, or install dependencies. Tag archives
 expose the full CLI under the `semaprax` name instead; when using an archive,
 use `semaprax new` in place of `semaprax-full new` below.
 
+To inspect or hand to another tool the exact calculator files without granting
+SEMAPRAX a destination or write authority, print the public scaffold capsule:
+
+```sh
+semaprax project-scaffold --name first-semaprax
+```
+
+This writes one canonical `semaprax.project-scaffold.v1` document to stdout and
+does not materialize a project. The capsule is not a publication primitive; a
+consumer that writes its files owns that filesystem and publication policy.
+
 The generator requires a fresh destination beneath an existing parent.
 Its [publication contract](NEW-PROJECT-PUBLICATION-V1.md) keeps a published
 project intact if final verification fails; do not automatically delete a
@@ -44,8 +55,9 @@ missing `dist` parent and publishes the Web package at `dist/web`.
 SEMAPRAX remains pre-alpha. This flow demonstrates the bounded calculator
 project contract; it is not a production-readiness or broader ecosystem claim.
 
-The executable quickstart suite passed all nine tests locally on macOS arm64
+The executable quickstart suite's previously recorded nine tests passed locally on macOS arm64
 with Rust 1.98, including the seven-command flow and hostile output-parent
-cases. That suite invokes freshly built CLI paths and checks the install
-instructions as text; it does not prove installation, `PATH` setup, release
-archives, or Windows behavior.
+cases. The additive stdout-only scaffold case also passed locally. That suite
+invokes freshly built CLI paths and checks the install instructions as text; it
+does not prove installation, `PATH` setup, release archives, or Windows
+behavior.

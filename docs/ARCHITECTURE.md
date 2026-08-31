@@ -74,6 +74,13 @@ the CLI additionally rechecks the original requested parent spelling. Failure
 after that latch cannot regain cleanup authority. See [Calculator project
 publication v1](NEW-PROJECT-PUBLICATION-V1.md) for the correction and unrun gates.
 
+`src/project/scaffold.rs` separately derives and independently replays the same
+four calculator files as a bounded `semaprax.project-scaffold.v1` artifact.
+The standalone CLI prints those canonical bytes directly to stdout. The
+artifact owns no path, file handle, staging namespace, process, or publication
+authority; materialization remains entirely caller-owned. See [Public Project
+Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md).
+
 The toolchain library's shared doctor module owns strict bounded `--profile` selection and one
 scoped offline-profile admission per report. Missing/unavailable profiles fail
 required checks without ambient discovery or tool execution; returned selector

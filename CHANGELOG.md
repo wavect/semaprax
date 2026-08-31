@@ -14,8 +14,10 @@
   remain unchanged.
 
 - Keep Windows owned-data SDK publication within the existing fail-fast tool
-  process bound by compiling its already O0/O2-validated provider at O0; Unix
-  package archives remain O2 and no timeout, retry, or test boundary changes.
+  process bound by compiling its already O0/O2-validated provider at O1. The
+  bounded middle mode avoids both O2 compilation exhaustion and O0's larger
+  COFF/archive path; Unix packages remain O2 and no timeout, retry, or test
+  boundary changes.
 
 - Partitioned the current Rust toolchain's Linux, macOS, and Windows workspace
   target inventory into parallel lib/bin and three integration-test shards,

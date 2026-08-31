@@ -3538,7 +3538,7 @@ pub fn prepare_c_compile_invocation(
 ) -> Result<PreparedCCompileInvocation, Error> {
     normal_name(input)?;
     if sanitizers
-        || !matches!(optimization, 0 | 2)
+        || !matches!(optimization, 0 | 1 | 2)
         || target.is_empty()
         || !target
             .bytes()
@@ -3556,7 +3556,11 @@ pub fn prepare_c_compile_invocation(
             "-Wall",
             "-Wextra",
             "-Werror",
-            if optimization == 0 { "-O0" } else { "-O2" },
+            match optimization {
+                0 => "-O0",
+                1 => "-O1",
+                _ => "-O2",
+            },
             "-c",
             input,
             "-o",
@@ -4207,7 +4211,7 @@ pub fn compile_c_to_stdout(
     maximum: usize,
 ) -> Result<Vec<u8>, Error> {
     normal_name(input)?;
-    if sanitizers || !matches!(optimization, 0 | 2) {
+    if sanitizers || !matches!(optimization, 0 | 1 | 2) {
         return Err(Error::Invalid);
     }
     let arguments = vec![
@@ -4217,11 +4221,12 @@ pub fn compile_c_to_stdout(
         "-Wall".to_owned(),
         "-Wextra".to_owned(),
         "-Werror".to_owned(),
-        if optimization == 0 {
-            "-O0".to_owned()
-        } else {
-            "-O2".to_owned()
-        },
+        match optimization {
+            0 => "-O0",
+            1 => "-O1",
+            _ => "-O2",
+        }
+        .to_owned(),
         "-c".to_owned(),
         input.to_string_lossy().into_owned(),
         "-o".to_owned(),

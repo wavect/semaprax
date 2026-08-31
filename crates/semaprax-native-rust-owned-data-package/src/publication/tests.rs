@@ -6,7 +6,7 @@ fn provider_compilation_preserves_the_fixed_windows_process_budget() {
 
     assert_eq!(
         super::provider_optimization(HostTarget::X86_64WindowsMsvc),
-        0
+        1
     );
     for target in [
         HostTarget::X86_64LinuxGnu,

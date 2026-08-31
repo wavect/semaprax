@@ -11,10 +11,11 @@ static STAGE_NONCE: AtomicU64 = AtomicU64::new(0);
 const fn provider_optimization(target: HostTarget) -> u8 {
     match target {
         // Hosted Windows tool startup consumes most of the fixed 30-second
-        // process budget. O0 keeps the authenticated provider compilation
-        // inside that unchanged fail-fast bound; backend O0/O2 equivalence is
-        // established separately before package publication is promoted.
-        HostTarget::X86_64WindowsMsvc => 0,
+        // process budget. O2 exhausts that budget in compilation while O0's
+        // larger COFF output exhausts the following archive path. O1 keeps
+        // both bounded phases inside the unchanged limit; backend O0/O2
+        // equivalence is established separately before package promotion.
+        HostTarget::X86_64WindowsMsvc => 1,
         _ => 2,
     }
 }

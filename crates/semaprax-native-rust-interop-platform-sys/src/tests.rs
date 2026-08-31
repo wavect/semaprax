@@ -1101,6 +1101,26 @@ fn windows_c_compile_plan_disables_incremental_linker_compatible_timestamps() {
 
 #[cfg(windows)]
 #[test]
+fn windows_c_compile_plan_selects_the_bounded_middle_optimization_exactly() {
+    use std::ffi::OsStr;
+
+    let prepared = super::platform::prepare_c_compile_invocation(
+        "x86_64-pc-windows-msvc",
+        OsStr::new("module.c"),
+        1,
+        false,
+        33_554_432,
+    )
+    .unwrap();
+    let (arguments, _) = super::platform::test_prepared_c_compile_arguments(&prepared);
+    assert!(arguments.iter().any(|argument| argument == "-O1"));
+    assert!(!arguments
+        .iter()
+        .any(|argument| matches!(argument.as_str(), "-O0" | "-O2")));
+}
+
+#[cfg(windows)]
+#[test]
 fn windows_real_brepro_archive_round_trips_through_exact_admission() {
     use sha2::{Digest as _, Sha256};
     use std::ffi::OsStr;

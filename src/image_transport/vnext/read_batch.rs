@@ -14,6 +14,20 @@ enum Read {
     },
 }
 
+enum DetachedRead<'a> {
+    Immediate(&'a Option<Vec<u8>>),
+    Discovery {
+        id: &'a RequestId,
+        payload: Result<Value, Vec<Diagnostic>>,
+    },
+    Query {
+        id: &'a RequestId,
+        method: &'static Method,
+        params: &'a Map<String, Value>,
+        subjects: Result<candidates::reads::ReadSubjects, Vec<Diagnostic>>,
+    },
+}
+
 impl VNextSession {
     /// The host chooses concurrency; frames cannot request worker count or
     /// widen the closed immutable-read subset. Results retain input order.
@@ -61,31 +75,85 @@ impl VNextSession {
                 .collect());
         }
         let image = &self.image;
+        let registry = &self.registry;
         let policy = self.policy;
+        let test_enabled = policy.test_policy.is_some();
         let commit_enabled = self.commit.is_some();
         self.snapshot.with_authenticated_request(|_| {
-            parallel_map(&reads, workers, &|read| match read {
-                Read::Immediate(response) => response.clone(),
-                Read::Query { id, method, params } => {
-                    let payload = match method.operation {
+            // Resolve only selected immutable subjects inside live-source
+            // authentication. Even all-unknown-handle queries take both checks.
+            // Precompute cheap discovery values here so no host/test policy
+            // object needs to enter workers merely to describe its bounds.
+            let detached = reads
+                .iter()
+                .map(|read| match read {
+                    Read::Immediate(response) => DetachedRead::Immediate(response),
+                    Read::Query { id, method, params } => match method.operation {
                         Operation::Capabilities
                         | Operation::Schemas
                         | Operation::Instructions
                         | Operation::Client
-                        | Operation::Catalog => {
-                            discovery::payload(method, params, &available, &policy, commit_enabled)
-                        }
-                        Operation::VNext(Action::Dependencies) => {
-                            dependencies::prepare(params, image)
-                        }
-                        Operation::VNext(Action::CleanupDependencies) => {
-                            cleanup_dependencies::prepare(params, image)
-                        }
-                        Operation::VNext(
-                            action @ (Action::DependencySummary | Action::DependencyPage),
-                        ) => dependencies::prepare_navigation(action, params, image),
-                        _ => dispatch(method, params, image),
-                    };
+                        | Operation::Catalog => DetachedRead::Discovery {
+                            id,
+                            payload: discovery::payload(
+                                method,
+                                params,
+                                &available,
+                                &policy,
+                                commit_enabled,
+                            ),
+                        },
+                        _ => DetachedRead::Query {
+                            id,
+                            method,
+                            params,
+                            subjects: registry.detach_read(method.operation, params),
+                        },
+                    },
+                })
+                .collect::<Vec<_>>();
+            parallel_map(&detached, workers, &|read| match read {
+                DetachedRead::Immediate(response) => (*response).clone(),
+                DetachedRead::Discovery { id, payload } => Some(match payload {
+                    Ok(payload) => response(id, image, payload.clone()),
+                    Err(errors) => error_response(id, errors),
+                }),
+                DetachedRead::Query {
+                    id,
+                    method,
+                    params,
+                    subjects,
+                } => {
+                    let payload = subjects
+                        .as_ref()
+                        .map_err(Clone::clone)
+                        .and_then(|subjects| match method.operation {
+                            Operation::Candidate(candidates::Action::Diagnostic(action)) => {
+                                candidates::diagnostics::read_payload(
+                                    action, params, image, subjects,
+                                )
+                            }
+                            Operation::Candidate(action) => candidates::reads::payload(
+                                action,
+                                params,
+                                image,
+                                subjects,
+                                test_enabled,
+                            ),
+                            operation if retained_reads::supports(operation) => {
+                                retained_reads::prepare(operation, params, image, subjects)
+                            }
+                            Operation::VNext(Action::Dependencies) => {
+                                dependencies::prepare(params, image)
+                            }
+                            Operation::VNext(Action::CleanupDependencies) => {
+                                cleanup_dependencies::prepare(params, image)
+                            }
+                            Operation::VNext(
+                                action @ (Action::DependencySummary | Action::DependencyPage),
+                            ) => dependencies::prepare_navigation(action, params, image),
+                            _ => dispatch(method, params, image),
+                        });
                     Some(match payload {
                         Ok(payload) => response(id, image, payload),
                         Err(errors) => error_response(id, &errors),
@@ -107,6 +175,12 @@ impl VNextSession {
 }
 
 fn parallel_read(operation: Operation) -> bool {
+    if retained_reads::supports(operation) {
+        return true;
+    }
+    if let Operation::Candidate(action) = operation {
+        return candidates::reads::supports(action);
+    }
     matches!(
         operation,
         Operation::Capabilities
@@ -238,16 +312,28 @@ mod tests {
         assert!(parallel_read(Operation::VNext(Action::DependencyPage)));
         for action in [
             Action::CandidateCleanupDependencies,
-            Action::Build,
-            Action::Commit,
-            Action::DraftRecoveryRestore,
             Action::DraftRecoveryExport,
             Action::DraftArchiveExport,
+            Action::InterfaceDelta,
+            Action::ContractDelta,
+            Action::OwnershipDelta,
+            Action::SymbolDiagnostics,
+            Action::ContractExpressionCatalog,
+            Action::Targets,
+        ] {
+            assert!(parallel_read(Operation::VNext(action)));
+        }
+        for action in [
+            Action::Build,
+            Action::ArtifactDelta,
+            Action::Commit,
+            Action::DraftRecoveryRestore,
             Action::DraftArchiveRestore,
             Action::DraftRebase,
             Action::DraftMerge,
             Action::Refresh,
-            Action::InterfaceDelta,
+            Action::RefreshPreview,
+            Action::ContractHoleOpen,
         ] {
             assert!(!parallel_read(Operation::VNext(action)));
         }

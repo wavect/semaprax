@@ -101,9 +101,12 @@ clients describe the closed chunk envelope. The heterogeneous compiler report
 is explicitly listed as unbundled, not claimed to have a complete client schema.
 
 The route authenticates the session's source before and after the read. It does
-not mutate a candidate, enter parallel image-only workers, run tests or targets,
+not mutate a candidate, run tests or targets,
 or gain source, Git, cache, build, or publication authority. The report and its
 verification receipt cannot authorize a commit.
+
+The [parallel retained-read extension](IMAGE-PARALLEL-CANDIDATE-READS-V1.md)
+uses this same pure handler with only the selected immutable candidate.
 
 ## Bounds and evidence
 

@@ -21,29 +21,56 @@ pub(super) fn prepare(
             "symbol diagnostic image revision is stale",
         ));
     }
-    let offset = number(params, "offset", 0);
-    let chunk_bytes = number(params, "chunk_bytes", 16_384);
-    let expected = params
-        .get("expected_report_revision")
-        .and_then(Value::as_str);
-    if offset > 0 && expected.is_none() {
+    validate_parameters_before_selection(params)?;
+    let subjects = registry.detach_read(Operation::VNext(Action::SymbolDiagnostics), params)?;
+    for_subjects(params, image, &subjects)
+}
+
+pub(in crate::image_transport) fn validate_parameters_before_selection(
+    params: &Map<String, Value>,
+) -> Result<(), Vec<Diagnostic>> {
+    if number(params, "offset", 0) > 0
+        && params
+            .get("expected_report_revision")
+            .and_then(Value::as_str)
+            .is_none()
+    {
         return Err(failure(
             "SPX-G243",
             "symbol diagnostic continuation requires expected_report_revision",
         ));
     }
-    if !(1024..=65_536).contains(&chunk_bytes) {
+    if !(1024..=65_536).contains(&number(params, "chunk_bytes", 16_384)) {
         return Err(failure(
             "SPX-G241",
             "symbol diagnostic chunk size is outside its bounds",
         ));
     }
-    let candidate = registry.candidate(text(params, "candidate_revision"))?;
+    Ok(())
+}
+
+pub(super) fn for_subjects(
+    params: &Map<String, Value>,
+    image: &ProjectSemanticImage,
+    subjects: &candidates::reads::ReadSubjects,
+) -> Result<Value, Vec<Diagnostic>> {
+    validate_parameters_before_selection(params)?;
+    let offset = number(params, "offset", 0);
+    let chunk_bytes = number(params, "chunk_bytes", 16_384);
+    let expected = params
+        .get("expected_report_revision")
+        .and_then(Value::as_str);
+    let candidate = subjects.candidate.as_ref().ok_or_else(|| {
+        failure(
+            "SPX-G224",
+            "candidate handle is stale, discarded, or unknown",
+        )
+    })?;
     let target = text(params, "target");
     let provenance = candidate.diagnostic_symbol(candidate.candidate_digest(), target)?;
     let mut considered = 0;
     let mut matched = Vec::new();
-    for attempt in registry.retained_attempts() {
+    for attempt in &subjects.retained_attempts {
         considered += 1;
         if considered > MAX_ATTEMPTS_CONSIDERED {
             return Err(failure(

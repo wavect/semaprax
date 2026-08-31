@@ -73,31 +73,8 @@ pub(super) fn prepare(
     match action {
         Action::DraftArchiveExport => {
             let draft = registry.draft_value(text(params, "draft_revision"))?;
-            let archive = ProjectCandidateDraftArchive::prepare(draft, draft.draft_digest())?;
-            let bytes = archive.to_json();
-            let offset = number(params, "offset", 0);
-            let chunk_bytes = number(params, "chunk_bytes", 16384);
-            if !(1024..=65536).contains(&chunk_bytes)
-                || offset > bytes.len()
-                || !bytes.is_char_boundary(offset)
-            {
-                return Err(failure(
-                    "SPX-G230",
-                    "draft archive chunk is outside its bounded UTF8 archive",
-                ));
-            }
-            let mut end = offset.saturating_add(chunk_bytes).min(bytes.len());
-            while !bytes.is_char_boundary(end) {
-                end -= 1;
-            }
             Ok((
-                json!({
-                    "schema":"semaprax.image-draft-archive-chunk.v1",
-                    "archive_schema":PROJECT_CANDIDATE_DRAFT_ARCHIVE_SCHEMA,
-                    "image_revision":image.image_digest(),"archive_revision":archive.archive_digest(),"draft_revision":archive.draft_digest(),
-                    "offset":offset,"total_bytes":bytes.len(),"chunk":&bytes[offset..end],"next_offset":(end<bytes.len()).then_some(end),
-                    "source_authority":false,"approval_authority":false,"trusted_hir":false,"materializable":false,
-                }),
+                export_for_draft(params, image, draft)?,
                 candidates::Mutation::None,
             ))
         }
@@ -133,4 +110,35 @@ pub(super) fn prepare(
         }
         _ => Err(failure("SPX-G230", "unsupported draft archive action")),
     }
+}
+
+pub(super) fn export_for_draft(
+    params: &Map<String, Value>,
+    image: &ProjectSemanticImage,
+    draft: &crate::project::ProjectCandidateDraft,
+) -> Result<Value, Vec<Diagnostic>> {
+    let archive = ProjectCandidateDraftArchive::prepare(draft, draft.draft_digest())?;
+    let bytes = archive.to_json();
+    let offset = number(params, "offset", 0);
+    let chunk_bytes = number(params, "chunk_bytes", 16384);
+    if !(1024..=65536).contains(&chunk_bytes)
+        || offset > bytes.len()
+        || !bytes.is_char_boundary(offset)
+    {
+        return Err(failure(
+            "SPX-G230",
+            "draft archive chunk is outside its bounded UTF8 archive",
+        ));
+    }
+    let mut end = offset.saturating_add(chunk_bytes).min(bytes.len());
+    while !bytes.is_char_boundary(end) {
+        end -= 1;
+    }
+    Ok(json!({
+        "schema":"semaprax.image-draft-archive-chunk.v1",
+        "archive_schema":PROJECT_CANDIDATE_DRAFT_ARCHIVE_SCHEMA,
+        "image_revision":image.image_digest(),"archive_revision":archive.archive_digest(),"draft_revision":archive.draft_digest(),
+        "offset":offset,"total_bytes":bytes.len(),"chunk":&bytes[offset..end],"next_offset":(end<bytes.len()).then_some(end),
+        "source_authority":false,"approval_authority":false,"trusted_hir":false,"materializable":false,
+    }))
 }

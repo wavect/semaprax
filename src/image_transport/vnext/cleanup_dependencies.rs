@@ -73,6 +73,14 @@ pub(super) fn prepare_candidate(
         ));
     }
     let candidate = registry.candidate(text(params, "candidate_revision"))?;
+    for_candidate(params, image, candidate)
+}
+
+pub(super) fn for_candidate(
+    params: &Map<String, Value>,
+    image: &ProjectSemanticImage,
+    candidate: &crate::project::ProjectCandidate,
+) -> Result<Value, Vec<Diagnostic>> {
     let target = text(params, "target");
     let report = candidate.cleanup_dependencies(candidate.candidate_digest(), target)?;
     if report.len() > MAX_PROJECT_CANDIDATE_CLEANUP_DEPENDENCIES_BYTES {

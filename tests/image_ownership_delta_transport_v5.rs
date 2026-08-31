@@ -159,13 +159,33 @@ fn candidate_permission_controls_closed_discovery_and_legacy_profiles_remain_clo
                 .contains(&json!(METHOD)),
             candidates
         );
-        assert!(!session.parallel_read_methods().contains(&METHOD));
+        assert_eq!(
+            session.parallel_read_methods().contains(&METHOD),
+            candidates
+        );
         if !candidates {
             assert_eq!(
                 call(&mut session, METHOD, json!({}))["error"]["code"],
                 -32601
             );
             continue;
+        }
+        let candidate = open(&mut session);
+        let request = frame(
+            METHOD,
+            json!({"image_revision":session.image_revision(),"candidate_revision":candidate,"chunk_bytes":1024}),
+        );
+        let sequential = session.handle_frame(&request);
+        let read: Value = serde_json::from_slice(sequential.as_ref().unwrap()).unwrap();
+        assert!(read.get("error").is_none(), "{read}");
+        assert_eq!(read["result"]["payload"]["source_authority"], false);
+        for workers in [1, 2, 4] {
+            assert_eq!(
+                session
+                    .handle_read_batch(&[request.as_slice()], workers)
+                    .unwrap(),
+                vec![sequential.clone()]
+            );
         }
         let schemas = payload(call(&mut session, "protocol/schemas", json!({})));
         let descriptor = schemas["methods"]

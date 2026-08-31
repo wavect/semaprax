@@ -358,7 +358,7 @@ fn parallel_cleanup_reads_preserve_sequential_bytes_order_and_read_only_whitelis
 }
 
 #[test]
-fn candidate_chunks_bind_both_target_and_candidate_without_entering_immutable_read_batches() {
+fn candidate_chunks_bind_both_target_and_candidate_in_immutable_read_batches() {
     const CANDIDATE_METHOD: &str = "candidate/cleanup-dependencies";
     let fixture = Fixture::new();
     let disk = fixture.bytes();
@@ -439,15 +439,22 @@ fn candidate_chunks_bind_both_target_and_candidate_without_entering_immutable_re
     let params = &method["request_schema"]["properties"]["params"];
     assert_eq!(params["additionalProperties"], false);
     assert_eq!(params["properties"].as_object().unwrap().len(), 5);
-    assert!(!session.parallel_read_methods().contains(&CANDIDATE_METHOD));
+    assert!(session.parallel_read_methods().contains(&CANDIDATE_METHOD));
     let request = frame(
         9,
         CANDIDATE_METHOD,
         json!({"image_revision":session.image_revision(),"candidate_revision":changed.candidate_digest(),"target":TARGET}),
     );
-    let batch = session.handle_read_batch(&[request.as_slice()], 1).unwrap();
-    let rejected: Value = serde_json::from_slice(batch[0].as_ref().unwrap()).unwrap();
-    assert_eq!(rejected["error"]["code"], -32601);
+    let sequential = session.handle_frame(&request);
+    let read: Value = serde_json::from_slice(sequential.as_ref().unwrap()).unwrap();
+    assert!(read.get("error").is_none(), "{read}");
+    assert_eq!(read["result"]["payload"]["source_authority"], false);
+    for workers in [1, 2, 4] {
+        let batch = session
+            .handle_read_batch(&[request.as_slice()], workers)
+            .unwrap();
+        assert_eq!(batch, vec![sequential.clone()]);
+    }
     for params in [
         json!({"candidate_revision":changed.candidate_digest(),"target":TARGET,"offset":-1}),
         json!({"candidate_revision":changed.candidate_digest(),"target":TARGET,"source_authority":true}),

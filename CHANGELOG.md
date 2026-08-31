@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Extended host-selected parallel reads to immutable candidate, draft and
+  diagnostic review. Workers receive only selected subjects and share the
+  sequential query implementations; source authentication still surrounds the
+  complete batch. Mutations, runtime tests, builds and publication stay excluded.
+  Regression evidence is authored, unrun; no throughput claim is made.
+
 - Added canonical offline doctor bundle and worker-request preparation from
   explicit borrowed content and retained sealed-input bindings. The APIs return
   bounded transport bytes only, reuse existing validators and preserve native

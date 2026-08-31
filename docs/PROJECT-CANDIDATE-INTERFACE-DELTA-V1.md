@@ -107,7 +107,9 @@ Offsets must lie on a UTF-8 boundary in the report. The
 the report schema, offset, total bytes, chunk, nullable next offset and
 `source_authority:false`. Candidate immutability fixes all chunk contents.
 The session authenticates live source before and after preparation; this route
-does not mutate candidates or enter the parallel image-only read batch. V1–v4
+does not mutate candidates. The
+[parallel retained-read extension](IMAGE-PARALLEL-CANDIDATE-READS-V1.md) shares
+the same pure handler with only the selected candidate. V1–v4
 method sets remain unchanged. Transport/discovery evidence is authored in
 `tests/image_workspace_transport_v5.rs` and the v5 discovery module.
 

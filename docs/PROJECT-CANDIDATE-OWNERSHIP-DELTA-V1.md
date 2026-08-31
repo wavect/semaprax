@@ -93,9 +93,12 @@ compiler report remains explicitly unbundled. V1–v4 and existing delta report
 schemas remain unchanged.
 
 The session authenticates live source before and after preparation. This read
-does not mutate candidates, join parallel image-only workers, emit target
+does not mutate candidates or emit target
 artifacts, run interpreters/tests/targets, or acquire source, Git, filesystem,
 cache, approval or publication authority.
+
+The [parallel retained-read extension](IMAGE-PARALLEL-CANDIDATE-READS-V1.md)
+shares the pure handler over the selected immutable candidate.
 
 ## Bounds and evidence
 

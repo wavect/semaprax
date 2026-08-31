@@ -112,8 +112,10 @@ candidate. Existing identical drafts retain their prior session association.
 
 The request frame stays at 64 KiB. Larger archives can use the library or host
 API; chunked export does not introduce chunked request uploads, caller-selected
-filesystem paths or an authority-bearing continuation. Both methods remain
-outside immutable parallel-read batches. V1–v4 methods and older recovery
+filesystem paths or an authority-bearing continuation. The
+[parallel retained-read extension](IMAGE-PARALLEL-CANDIDATE-READS-V1.md) admits
+archive export from a selected immutable draft; restore remains excluded.
+V1–v4 methods and older recovery
 capsule bytes are unchanged.
 
 ## Bounds, evidence and remaining work

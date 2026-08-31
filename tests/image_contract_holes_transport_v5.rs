@@ -328,7 +328,26 @@ fn discovery_selects_only_v5_candidate_authority_and_keeps_request_selectors_clo
         if method == OPEN {
             assert_eq!(params["properties"]["expression_id"]["maxLength"], 4096);
         }
-        assert!(!session.parallel_read_methods().contains(&method));
+        assert_eq!(
+            session.parallel_read_methods().contains(&method),
+            method == CATALOG
+        );
+    }
+    let candidate = open(&mut session);
+    let request = frame(
+        CATALOG,
+        json!({"image_revision":session.image_revision(),"candidate_revision":candidate,"target":TARGET}),
+    );
+    let sequential = session.handle_frame(&request);
+    let read: Value = serde_json::from_slice(sequential.as_ref().unwrap()).unwrap();
+    assert!(read.get("error").is_none(), "{read}");
+    for workers in [1, 2, 4] {
+        assert_eq!(
+            session
+                .handle_read_batch(&[request.as_slice()], workers)
+                .unwrap(),
+            vec![sequential.clone()]
+        );
     }
     for schema in [
         "urn:semaprax.project-contract-expression-catalog.v1",

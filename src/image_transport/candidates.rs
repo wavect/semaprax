@@ -14,6 +14,7 @@ pub const CANDIDATE_RESULT_SCHEMA: &str = "semaprax.image-agent-result.v2";
 pub const TEST_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v3";
 pub const TEST_RESULT_SCHEMA: &str = "semaprax.image-agent-result.v3";
 pub(super) mod diagnostics;
+pub(in crate::image_transport) mod reads;
 pub use diagnostics::{DIAGNOSTIC_PROTOCOL_SCHEMA, DIAGNOSTIC_RESULT_SCHEMA};
 const MAX_ATTEMPTS: usize = 16;
 const MAX_CANDIDATES: usize = 16;
@@ -326,12 +327,6 @@ pub(super) enum Mutation {
 }
 
 impl Registry {
-    pub(in crate::image_transport) fn retained_attempts(
-        &self,
-    ) -> impl Iterator<Item = &Arc<crate::project::ProjectCandidateAttempt>> {
-        self.attempts.values()
-    }
-
     pub(super) fn candidate(&self, id: &str) -> Result<&Arc<ProjectCandidate>, Vec<Diagnostic>> {
         self.candidates.get(id).ok_or_else(|| {
             failure(
@@ -694,23 +689,33 @@ fn prepare_candidate(
     test_policy: Option<&CandidateTestPolicy>,
 ) -> Result<(Value, Mutation), Vec<Diagnostic>> {
     match action {
-        Action::Diagnostic(_) => Err(failure(
-            "SPX-G241",
-            "diagnostic actions require the explicitly selected v4 profile",
-        )),
-        Action::TestPlan => {
-            if test_policy.is_none() {
+        Action::TestPlan
+        | Action::Query
+        | Action::RecoveryExport
+        | Action::Validate
+        | Action::Impact
+        | Action::Compare
+        | Action::ChangeCatalog
+        | Action::ExpressionCatalog
+        | Action::ConstructorSchemas
+        | Action::ValidationCatalog
+        | Action::HoleQuery => {
+            if matches!(action, Action::TestPlan) && test_policy.is_none() {
                 return Err(failure(
                     "SPX-G239",
                     "candidate test profile is not selected by the host",
                 ));
             }
-            let candidate = registry.candidate(text(params, "candidate_revision"))?;
+            let subjects = registry.detach_read(Operation::Candidate(action), params)?;
             Ok((
-                parse_payload(candidate.test_plan(candidate.candidate_digest())?)?,
+                reads::payload(action, params, image, &subjects, test_policy.is_some())?,
                 Mutation::None,
             ))
         }
+        Action::Diagnostic(_) => Err(failure(
+            "SPX-G241",
+            "diagnostic actions require the explicitly selected v4 profile",
+        )),
         Action::Test => {
             let policy = test_policy.ok_or_else(|| {
                 failure(
@@ -734,48 +739,6 @@ fn prepare_candidate(
                 candidate.apply(candidate.candidate_digest(), &change)?,
             ))
         }
-        Action::Query => {
-            let candidate = registry.candidate(text(params, "candidate_revision"))?;
-            let report = candidate.to_json();
-            let offset = number(params, "offset", 0);
-            if offset > report.len() || !report.is_char_boundary(offset) {
-                return Err(failure(
-                    "SPX-G222",
-                    "candidate query offset is outside canonical UTF-8 report",
-                ));
-            }
-            let mut end = offset
-                .saturating_add(number(params, "chunk_bytes", 16_384))
-                .min(report.len());
-            while !report.is_char_boundary(end) {
-                end -= 1;
-            }
-            Ok((
-                json!({"schema":"semaprax.image-candidate-report-chunk.v1","candidate_revision":candidate.candidate_digest(),"report_schema":crate::project::PROJECT_CANDIDATE_SCHEMA,"offset":offset,"total_bytes":report.len(),"chunk":&report[offset..end],"next_offset":(end<report.len()).then_some(end),"source_authority":false}),
-                Mutation::None,
-            ))
-        }
-        Action::RecoveryExport => {
-            let candidate = registry.candidate(text(params, "candidate_revision"))?;
-            let capsule = candidate.recovery_capsule()?;
-            let offset = number(params, "offset", 0);
-            if offset > capsule.len() || !capsule.is_char_boundary(offset) {
-                return Err(failure(
-                    "SPX-G236",
-                    "recovery offset is outside canonical UTF-8 capsule",
-                ));
-            }
-            let mut end = offset
-                .saturating_add(number(params, "chunk_bytes", 16_384))
-                .min(capsule.len());
-            while !capsule.is_char_boundary(end) {
-                end -= 1;
-            }
-            Ok((
-                json!({"schema":"semaprax.image-candidate-recovery-chunk.v1","candidate_revision":candidate.candidate_digest(),"capsule_schema":crate::project::PROJECT_CANDIDATE_RECOVERY_SCHEMA,"offset":offset,"total_bytes":capsule.len(),"chunk":&capsule[offset..end],"next_offset":(end<capsule.len()).then_some(end),"source_authority":false}),
-                Mutation::None,
-            ))
-        }
         Action::RecoveryRestore => {
             let mut capsule = params["capsule"].clone();
             capsule.sort_all_objects();
@@ -785,56 +748,6 @@ fn prepare_candidate(
                 image.revision().project_revision(),
                 bytes.as_bytes(),
             )?))
-        }
-        Action::Validate => {
-            let candidate = registry.candidate(text(params, "candidate_revision"))?;
-            let report = parse_payload(candidate.to_json().to_owned())?;
-            let changes = report["changes"]
-                .as_array()
-                .ok_or_else(|| failure("SPX-G222", "retained candidate lacks change inventory"))?
-                .iter()
-                .map(|change| {
-                    SemanticChange::new(
-                        change["base_revision"]
-                            .as_str()
-                            .ok_or_else(|| failure("SPX-G222", "retained change lacks revision"))?,
-                        &change["intent"],
-                    )
-                })
-                .collect::<Result<Vec<_>, _>>()?;
-            let replay = ProjectCandidate::replay(
-                Arc::clone(candidate.base_revision()),
-                candidate.base_revision().project_revision(),
-                &changes,
-                candidate.to_json().as_bytes(),
-            )?;
-            Ok((
-                json!({"schema":"semaprax.image-candidate-validation.v1","candidate_revision":replay.candidate_digest(),"independently_replayed":true,"source_reparsed":true,"project_profile_admitted":true,"tests":"not_run","target_execution":false,"commit_authority":false}),
-                Mutation::None,
-            ))
-        }
-        Action::Impact => {
-            let candidate = registry.candidate(text(params, "candidate_revision"))?;
-            let options = WorkspaceImpactOptions::new(
-                number(params, "depth", 16),
-                number(params, "max_bytes", MAX_QUERY_BYTES),
-                number(params, "max_nodes", 1024),
-            )
-            .map_err(|error| vec![error])?;
-            let mut impact = parse_payload(candidate.revision().semantic_impact(
-                WorkspaceAnalysisTargetKind::Declaration,
-                text(params, "target"),
-                options,
-            )?)?;
-            // Keep the existing payload unchanged; candidate selection is
-            // explicit in this additive wrapper, never an authority receipt.
-            impact = json!({"schema":"semaprax.image-candidate-impact.v1","candidate_revision":candidate.candidate_digest(),"impact":impact});
-            Ok((impact, Mutation::None))
-        }
-        Action::Compare => {
-            let left = registry.candidate(text(params, "candidate_revision"))?;
-            let right = registry.candidate(text(params, "other_candidate_revision"))?;
-            Ok((parse_payload(left.compare(right)?)?, Mutation::None))
         }
         Action::Merge | Action::Rebase => {
             let candidate = registry.candidate(text(params, "candidate_revision"))?;
@@ -881,37 +794,6 @@ fn prepare_candidate(
                 Mutation::DropCandidate(candidate.candidate_digest().to_owned()),
             ))
         }
-        Action::ChangeCatalog => {
-            let candidate = registry.candidate(text(params, "candidate_revision"))?;
-            Ok((
-                parse_payload(candidate.change_catalog(text(params, "target"))?)?,
-                Mutation::None,
-            ))
-        }
-        Action::ExpressionCatalog => {
-            let candidate = registry.candidate(text(params, "candidate_revision"))?;
-            Ok((
-                parse_payload(candidate.expression_catalog(text(params, "target"))?)?,
-                Mutation::None,
-            ))
-        }
-        Action::ConstructorSchemas => Ok((
-            parse_payload(SemanticChange::constructor_schemas()?)?,
-            Mutation::None,
-        )),
-        Action::ValidationCatalog => {
-            let mut payload = json!({"schema":"semaprax.image-validation-catalog.v1","available":[{"method":"candidate/validate","kind":"independent_source_and_target_projection_replay","runtime_execution":false}],"required_external_gates":["affected_project_tests","native_and_wasm_runtime_conformance","full_quality_profile"],"tests":"not_run","source_authority":false});
-            if test_policy.is_some() {
-                payload["schema"] = json!("semaprax.image-validation-catalog.v2");
-                payload["available"].as_array_mut().expect("array").push(json!({"method":"candidate/test","kind":"bounded_project_interpreter_test_closure","runtime_execution":true}));
-                payload["tests"] = json!("available_only_on_explicit_request");
-                payload["required_external_gates"] = json!([
-                    "native_and_wasm_runtime_conformance",
-                    "full_quality_profile"
-                ]);
-            }
-            Ok((payload, Mutation::None))
-        }
         Action::HoleOpen => {
             let candidate = registry.candidate(text(params, "candidate_revision"))?;
             let draft = if let Some(id) = params.get("draft_revision").and_then(Value::as_str) {
@@ -934,17 +816,6 @@ fn prepare_candidate(
                 )?
             };
             retain_draft(draft, candidate.candidate_digest())
-        }
-        Action::HoleQuery => {
-            let entry = registry.draft(text(params, "draft_revision"))?;
-            Ok((
-                parse_payload(
-                    entry
-                        .draft
-                        .hole_context(text(params, "draft_revision"), text(params, "hole_id"))?,
-                )?,
-                Mutation::None,
-            ))
         }
         Action::HoleFill => {
             let entry = registry.draft(text(params, "draft_revision"))?;

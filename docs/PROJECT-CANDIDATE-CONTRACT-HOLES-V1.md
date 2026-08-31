@@ -120,7 +120,9 @@ and registry/response capacity checks still precede installing any draft.
 V1–v4 method sets stay unchanged. V5 discovery and generated TypeScript, Python
 and Rust helpers describe the new requests; heterogeneous catalogue/context
 interiors remain explicitly unbundled. Neither method grants build, test,
-filesystem or publication authority, or participates in parallel image reads.
+filesystem or publication authority. The
+[parallel retained-read extension](IMAGE-PARALLEL-CANDIDATE-READS-V1.md) admits
+the read-only catalogue; opening a contract hole remains excluded.
 
 The existing expression bounds remain: 4,096 expressions, depth 256, 16,384
 cumulative scope facts and 1 MiB catalogue/context output. Draft selectors use

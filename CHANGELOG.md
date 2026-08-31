@@ -9,11 +9,23 @@
   trusted provisioner; no service installation, ordinary CLI activation,
   macOS/Windows support or completion promotion is claimed.
 
+- Added source-bound image and candidate cleanup dependency queries for types,
+  cases and fields, using retained inventory, cleanup and loan plan facts with
+  exact coordinates. V5 provides permission-separated report chunks; candidate
+  verification replays source history. Evidence is authored, unrun, with no
+  runtime, source-publication or completion claim.
+
 - Removed silent Node prerequisite skips and a swallowed resizable-buffer
   rejection assertion from owned-data npm evidence. Shared v8/v9/v10 fixtures
   now require real hostile buffer capabilities and exact adapter rejection,
   retaining healthy-call controls. Tests remain unrun; production runtime,
   generated artifacts, schemas and support claims are unchanged.
+
+- Added candidate display renames for explicit record fields, variant cases and
+  payload fields through shared authenticated cross-file reference planning and
+  exact source replay. Discovery, conservative member conflicts and static test
+  relevance use the existing candidate protocol. Regression evidence is authored,
+  unrun; public Operations grammar and publication authority are unchanged.
 
 - Removed silent Windows hostile-path fixture omissions from the new-project
   and quickstart checks. A shared test helper requires an actual Unix symlink

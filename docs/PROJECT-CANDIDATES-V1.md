@@ -53,7 +53,7 @@ The current intention catalogue has these authored, unrun admission paths:
 
 | Kind | Exact additional fields | Behavior |
 | --- | --- | --- |
-| `rename_declaration` | `target`, `name` | Rename an explicit monomorphic non-main function and local calls, or an explicit record/variant through authenticated type occurrences. Imports retain stable IDs and aliases. See [Nominal Rename v1](PROJECT-NOMINAL-RENAME-V1.md). |
+| `rename_declaration` | `target`, `name` | Rename an explicit monomorphic non-main function and local calls, an explicit record/variant through authenticated type occurrences, or its explicit fields/cases through authenticated cross-file member references. Imports retain stable IDs and aliases. See [Nominal Rename v1](PROJECT-NOMINAL-RENAME-V1.md) and [Member Rename v1](PROJECT-MEMBER-RENAME-V1.md). |
 | `change_function_signature` | `target`, `append_parameters` | Append 1–16 by-value scalar parameters and append the supplied exact scalar literals to every authenticated local/import call. Existing parameter and argument order is unchanged. |
 | `replace_function_body` | `target`, `body` | Construct a new expression AST and admit the complete resulting Project through the real verifier. Existing contracts and declared effects remain. |
 | `replace_expression` | `target`, `expression_id`, `replacement` | Select an authenticated body expression through its current HIR ID and construct a replacement in its lexical scope; preserve the expected type and revalidate the complete Project. See [Expression Change v1](PROJECT-EXPRESSION-CHANGE-V1.md). |
@@ -139,7 +139,7 @@ the closed AST transformation. Module permits, per-function declared effects,
 and contract inventories must remain unchanged, except that `add_contract`
 permits exactly one count increment for its authenticated target and phase.
 That operation retains existing predicates in order. Other constructors preserve
-predicate ASTs except for declared signature call-site migration, proven nominal
+predicate ASTs except for declared signature call-site migration, proven nominal/member
 display references, or the selected `replace_contract_expression` subtree; the
 inventory comparison alone is not a formal proof of predicate equivalence.
 

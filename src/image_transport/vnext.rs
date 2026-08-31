@@ -4,6 +4,7 @@ use crate::project::{CandidateTestPolicy, ProjectFrontendCache};
 use crate::project_transport::codec::RequestId;
 use std::path::PathBuf;
 
+mod cleanup_dependencies;
 mod commit;
 mod contract_holes;
 mod dependencies;
@@ -74,6 +75,8 @@ pub(super) enum Action {
     DraftRecoveryExport,
     DraftRecoveryRestore,
     Dependencies,
+    CleanupDependencies,
+    CandidateCleanupDependencies,
     DependencySummary,
     DependencyPage,
 }
@@ -381,6 +384,14 @@ impl VNextSession {
                     dependencies::prepare(params, image)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(Action::CleanupDependencies) => (
+                    cleanup_dependencies::prepare(params, image)?,
+                    candidates::Mutation::None,
+                ),
+                Operation::VNext(Action::CandidateCleanupDependencies) => (
+                    cleanup_dependencies::prepare_candidate(params, image, registry)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(action @ (Action::DependencySummary | Action::DependencyPage)) => {
                     (
                         dependencies::prepare_navigation(action, params, image)?,
@@ -586,10 +597,12 @@ fn methods(policy: &VNextPolicy, commit_enabled: bool) -> Vec<&'static Method> {
     methods.push(&REFRESH);
     methods.push(&REFRESH_PREVIEW);
     methods.push(dependencies::method());
+    methods.push(cleanup_dependencies::method());
     methods.extend(dependencies::navigation_methods());
     methods.extend(projections::methods(policy.build_enabled));
     methods.extend(review_facets::methods(policy));
     if policy.candidate_prepare {
+        methods.push(cleanup_dependencies::candidate_method());
         methods.extend(draft_recovery::methods());
         methods.extend(contract_holes::methods());
     }

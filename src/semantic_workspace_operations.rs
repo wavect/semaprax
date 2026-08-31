@@ -100,6 +100,10 @@ enum DeclarationSubject {
     Record,
     Variant,
     Interface,
+    // Private Project member route only; deliberately absent from parse().
+    RecordField,
+    VariantCase,
+    VariantField,
 }
 
 impl DeclarationSubject {
@@ -123,6 +127,9 @@ impl DeclarationSubject {
             Self::Record => "record",
             Self::Variant => "variant",
             Self::Interface => "interface",
+            Self::RecordField => "record_field",
+            Self::VariantCase => "variant_case",
+            Self::VariantField => "variant_field",
         }
     }
 }
@@ -1753,6 +1760,8 @@ fn validate_candidate_namespaces(
             "function" | "function_template" => 0_u8,
             "resource" | "record" | "variant" => 1,
             "interface" => 2,
+            "record_field" | "variant_field" => 3,
+            "variant_case" => 4,
             _ => return Err(replay()),
         };
         let final_name = operations
@@ -1773,7 +1782,12 @@ fn validate_candidate_namespaces(
                 _ => None,
             })
             .unwrap_or(&declaration.name);
-        if !names.insert((declaration.path.as_str(), category, final_name)) {
+        if !names.insert((
+            declaration.path.as_str(),
+            category,
+            declaration.namespace_owner.as_deref(),
+            final_name,
+        )) {
             return Err(conflict(
                 "Semantic Workspace Operations candidate name namespace conflicts",
             ));
@@ -1805,7 +1819,7 @@ fn validate_candidate_namespaces(
                 _ => None,
             })
             .unwrap_or(&import.alias);
-        if !names.insert((import.path.as_str(), category, final_name)) {
+        if !names.insert((import.path.as_str(), category, None, final_name)) {
             return Err(conflict(
                 "Semantic Workspace Operations candidate name namespace conflicts",
             ));
@@ -1870,6 +1884,9 @@ fn select_occurrences(
     )?;
     let mut spans = Vec::with_capacity(occurrences.len());
     for occurrence in occurrences {
+        if occurrence.path != operation.path() || occurrence.shorthand_binding.is_some() {
+            return Err(replay());
+        }
         if source.get(occurrence.span.start..occurrence.span.end) != Some(operation.from()) {
             return Err(conflict(
                 "Semantic Workspace Operations source occurrence proof is incomplete",
@@ -1979,15 +1996,24 @@ fn replay_candidate(
         for occurrence in occurrences {
             if let Some(owner) = &occurrence.owner {
                 allowed_fingerprint_owners.insert(owner.as_str());
-                if let Ok(index) = base
-                    .graph
-                    .declarations()
-                    .binary_search_by(|declaration| declaration.id().cmp(owner))
-                {
-                    let declaration = &base.graph.declarations()[index];
-                    if let Some(parent) = declaration.owner() {
-                        allowed_fingerprint_owners.insert(parent);
+                let mut ancestor = owner.as_str();
+                // Cases add one more ownership level below a variant. Walk
+                // only the authenticated finite declaration ancestry.
+                for _ in 0..base.graph.declarations().len() {
+                    let Ok(index) = base
+                        .graph
+                        .declarations()
+                        .binary_search_by(|declaration| declaration.id().cmp(ancestor))
+                    else {
+                        break;
+                    };
+                    let Some(parent) = base.graph.declarations()[index].owner() else {
+                        break;
+                    };
+                    if !allowed_fingerprint_owners.insert(parent) {
+                        break;
                     }
+                    ancestor = parent;
                 }
             }
         }
@@ -2062,7 +2088,7 @@ fn same_occurrence_owners(
         && before
             .iter()
             .zip(after)
-            .all(|(left, right)| left.owner == right.owner)
+            .all(|(left, right)| left.path == right.path && left.owner == right.owner)
 }
 
 fn same_normalized_sidecar(
@@ -2085,6 +2111,7 @@ fn same_normalized_sidecar(
                     && left.kind == right.kind
                     && left.explicit == right.explicit
                     && left.id == right.id
+                    && left.namespace_owner == right.namespace_owner
                     && left.normalized_fingerprint == right.normalized_fingerprint
                     && (selected || left.name == right.name)
                     && same_occurrence_owners(&left.occurrences, &right.occurrences)
@@ -2572,6 +2599,28 @@ fn operations_evidence_replay() -> Vec<Diagnostic> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn public_declaration_subject_grammar_excludes_private_members() {
+        for (text, subject) in [
+            ("function", DeclarationSubject::Function),
+            ("function_template", DeclarationSubject::FunctionTemplate),
+            ("resource", DeclarationSubject::Resource),
+            ("record", DeclarationSubject::Record),
+            ("variant", DeclarationSubject::Variant),
+            ("interface", DeclarationSubject::Interface),
+        ] {
+            assert_eq!(DeclarationSubject::parse(text), Some(subject));
+            assert_eq!(subject.text(), text);
+        }
+        for subject in [
+            DeclarationSubject::RecordField,
+            DeclarationSubject::VariantCase,
+            DeclarationSubject::VariantField,
+        ] {
+            assert_eq!(DeclarationSubject::parse(subject.text()), None);
+        }
+    }
     use fs2::FileExt;
     use std::fs::OpenOptions;
     use std::io::Write as _;

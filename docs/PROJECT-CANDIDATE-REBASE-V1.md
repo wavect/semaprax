@@ -53,6 +53,12 @@ renames or shape/origin drift reject; unrelated function edits can replay.
 Existing function/aggregate hashes retain their conservative source-spelling
 checks, so this does not normalize every merge across a type display rename.
 
+[Member renames](PROJECT-MEMBER-RENAME-V1.md) use the same source fingerprint
+route with explicit owner/case ancestry, selected member kind/name and the
+complete owner shape. Competing member renames, including net-zero histories,
+reject. Earlier member additions are resolved against each intermediate source
+revision before replay; unrelated function edits still require full admission.
+
 Typed record and variant intentions additionally bind their referenced checked
 aggregate shapes before each history step is replayed. The comparison uses that
 step's original and rebased intermediate revisions, so earlier successful
@@ -118,9 +124,10 @@ guards. No new type is considered present in the original source base.
 
 Unrecognized future intention kinds fail closed until their conflict contract
 is defined. New declarations, declaration deletion/movement, general package
-changes, type/field renames and semantic schema migrations are not admitted by
-this v1 merge policy. Existing direct caller migration still runs through its
-own authenticated source transformation and full verifier.
+changes and semantic schema migrations outside the separately specified
+additive intention routes are not admitted by this v1 merge policy. Existing
+direct caller migration still runs through its own authenticated source
+transformation and full verifier.
 
 ## Revalidation and expression identities
 

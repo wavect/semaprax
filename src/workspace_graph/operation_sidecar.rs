@@ -63,6 +63,55 @@ pub(super) fn build_operation_sidecar(
                 declaration.name_span,
                 declaration.span,
             )?;
+            match &declaration.kind {
+                TypeDeclarationKind::Record { fields } => {
+                    for field in fields {
+                        push_operation_member(
+                            &mut declarations,
+                            &mut declaration_index,
+                            program,
+                            &field.stable_id,
+                            "record_field",
+                            declaration.explicit_id && field.explicit_id,
+                            &field.name,
+                            field.name_span,
+                            field.span,
+                            &declaration.stable_id,
+                        )?;
+                    }
+                }
+                TypeDeclarationKind::Variant { cases } => {
+                    for case in cases {
+                        push_operation_member(
+                            &mut declarations,
+                            &mut declaration_index,
+                            program,
+                            &case.stable_id,
+                            "variant_case",
+                            declaration.explicit_id && case.explicit_id,
+                            &case.name,
+                            case.name_span,
+                            case.span,
+                            &declaration.stable_id,
+                        )?;
+                        for field in &case.fields {
+                            push_operation_member(
+                                &mut declarations,
+                                &mut declaration_index,
+                                program,
+                                &field.stable_id,
+                                "variant_field",
+                                declaration.explicit_id && case.explicit_id && field.explicit_id,
+                                &field.name,
+                                field.name_span,
+                                field.span,
+                                &case.stable_id,
+                            )?;
+                        }
+                    }
+                }
+                _ => {}
+            }
         }
         for interface in &program.interfaces {
             push_operation_declaration(
@@ -191,8 +240,10 @@ pub(super) fn build_operation_sidecar(
             imports[index]
                 .occurrences
                 .push(WorkspaceOperationOccurrence {
+                    path: crate::bounded_output::budgeted_clone(&program.path),
                     span: alias_span,
                     owner: None,
+                    shorthand_binding: None,
                 });
         }
         let resolved = modules
@@ -231,7 +282,8 @@ pub(super) fn build_operation_sidecar(
         .chain(imports.iter_mut().map(|item| &mut item.occurrences))
     {
         occurrences.sort_by(|left, right| {
-            (left.span.start, left.span.end, &left.owner).cmp(&(
+            (&left.path, left.span.start, left.span.end, &left.owner).cmp(&(
+                &right.path,
                 right.span.start,
                 right.span.end,
                 &right.owner,
@@ -285,29 +337,37 @@ fn operation_declaration_fingerprint(
         .ok_or_else(operation_sidecar_disagreement)?;
     reserve_builder_structure(
         occurrence_count
-            .checked_mul(std::mem::size_of::<(Span, &str)>())
+            .checked_mul(std::mem::size_of::<(Span, &str, Option<&str>)>())
             .ok_or_else(|| vec![limit_error("change_builder_bytes", active_builder_limit())])?,
     )?;
     let mut substitutions = declarations
         .iter()
         .flat_map(|target| {
             target.occurrences.iter().filter_map(|occurrence| {
-                (occurrence.owner.as_deref() == Some(declaration.id.as_str())
+                (occurrence.path == declaration.path
                     && occurrence.span.start >= declaration.span.start
                     && occurrence.span.end <= declaration.span.end)
-                    .then_some((occurrence.span, target.id.as_str()))
+                    .then_some((
+                        occurrence.span,
+                        target.id.as_str(),
+                        occurrence.shorthand_binding.as_deref(),
+                    ))
             })
         })
         .chain(imports.iter().flat_map(|target| {
             target.occurrences.iter().filter_map(|occurrence| {
-                (occurrence.owner.as_deref() == Some(declaration.id.as_str())
+                (occurrence.path == declaration.path
                     && occurrence.span.start >= declaration.span.start
                     && occurrence.span.end <= declaration.span.end)
-                    .then_some((occurrence.span, target.target_id.as_str()))
+                    .then_some((
+                        occurrence.span,
+                        target.target_id.as_str(),
+                        occurrence.shorthand_binding.as_deref(),
+                    ))
             })
         }))
         .collect::<Vec<_>>();
-    substitutions.sort_by_key(|(span, _)| (span.start, span.end));
+    substitutions.sort_by_key(|(span, _, _)| (span.start, span.end));
     if substitutions
         .windows(2)
         .any(|pair| pair[0].0.end > pair[1].0.start)
@@ -317,10 +377,14 @@ fn operation_declaration_fingerprint(
     let mut hasher = Sha256::new();
     hasher.update(b"semaprax.semantic-workspace-operations.normalized-declaration.v1\0");
     let mut cursor = declaration.span.start;
-    for (span, identity) in substitutions {
+    for (span, identity, shorthand_binding) in substitutions {
         hasher.update(&source.as_bytes()[cursor..span.start]);
         hasher.update((identity.len() as u64).to_le_bytes());
         hasher.update(identity.as_bytes());
+        if let Some(binding) = shorthand_binding {
+            hasher.update(b": ");
+            hasher.update(binding.as_bytes());
+        }
         cursor = span.end;
     }
     hasher.update(&source.as_bytes()[cursor..declaration.span.end]);
@@ -363,13 +427,47 @@ fn push_operation_declaration(
         kind,
         explicit,
         name: crate::bounded_output::budgeted_clone(name),
+        namespace_owner: None,
         span,
         normalized_fingerprint: String::new(),
         occurrences: vec![WorkspaceOperationOccurrence {
+            path: crate::bounded_output::budgeted_clone(&program.path),
             span: name_span,
             owner: Some(crate::bounded_output::budgeted_clone(id)),
+            shorthand_binding: None,
         }],
     });
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn push_operation_member(
+    declarations: &mut Vec<WorkspaceOperationDeclaration>,
+    index: &mut BTreeMap<String, usize>,
+    program: &Program,
+    id: &str,
+    kind: &'static str,
+    explicit: bool,
+    name: &str,
+    name_span: Span,
+    span: Span,
+    parent: &str,
+) -> Result<(), Vec<Diagnostic>> {
+    push_operation_declaration(
+        declarations,
+        index,
+        program,
+        id,
+        kind,
+        explicit,
+        name,
+        name_span,
+        span,
+    )?;
+    declarations
+        .last_mut()
+        .ok_or_else(operation_sidecar_disagreement)?
+        .namespace_owner = Some(crate::bounded_output::budgeted_clone(parent));
     Ok(())
 }
 
@@ -400,6 +498,11 @@ fn collect_program_operation_occurrences(
                     return Err(operation_sidecar_disagreement());
                 }
                 for (field, resolved_field) in fields.iter().zip(resolved_fields) {
+                    if field.stable_id != resolved_field.id.as_str()
+                        || field.name != resolved_field.name
+                    {
+                        return Err(operation_sidecar_disagreement());
+                    }
                     let mut cursor = field.name_span.end;
                     collect_operation_type_occurrences(
                         program,
@@ -426,10 +529,20 @@ fn collect_program_operation_occurrences(
                     return Err(operation_sidecar_disagreement());
                 }
                 for (case, resolved_case) in cases.iter().zip(resolved_cases) {
+                    if case.stable_id != resolved_case.id.as_str()
+                        || case.name != resolved_case.name
+                    {
+                        return Err(operation_sidecar_disagreement());
+                    }
                     if case.fields.len() != resolved_case.fields.len() {
                         return Err(operation_sidecar_disagreement());
                     }
                     for (field, resolved_field) in case.fields.iter().zip(&resolved_case.fields) {
+                        if field.stable_id != resolved_field.id.as_str()
+                            || field.name != resolved_field.name
+                        {
+                            return Err(operation_sidecar_disagreement());
+                        }
                         let mut cursor = field.name_span.end;
                         collect_operation_type_occurrences(
                             program,
@@ -730,6 +843,15 @@ fn collect_operation_expr_occurrences(
             {
                 return Err(operation_sidecar_disagreement());
             }
+            collect_operation_place_occurrences(
+                program,
+                &args[0],
+                place,
+                tokens,
+                owner,
+                declaration_index,
+                declarations,
+            )?;
         }
         (
             ExprKind::Call {
@@ -877,6 +999,32 @@ fn collect_operation_expr_occurrences(
                 return Err(operation_sidecar_disagreement());
             }
             for (statement, resolved_statement) in statements.iter().zip(resolved_statements) {
+                if let (
+                    crate::ast::Statement::Assign {
+                        field: source_field,
+                        ..
+                    },
+                    hir::ResolvedStatement::Assign {
+                        field: resolved_field,
+                        ..
+                    },
+                ) = (statement, resolved_statement)
+                {
+                    match (source_field, resolved_field) {
+                        (Some(field), Some(id)) => push_member_operation_occurrence(
+                            program,
+                            id.as_str(),
+                            field.span,
+                            tokens,
+                            owner,
+                            None,
+                            declaration_index,
+                            declarations,
+                        )?,
+                        (None, None) => {}
+                        _ => return Err(operation_sidecar_disagreement()),
+                    }
+                }
                 if let (
                     crate::ast::Statement::Let {
                         declared: Some(ty),
@@ -1039,15 +1187,27 @@ fn collect_operation_expr_occurrences(
                 type_name,
                 type_span,
                 type_arguments,
+                case_span,
                 fields,
                 ..
             },
             R::ConstructVariant {
                 variant,
+                case,
                 fields: resolved_fields,
                 ..
             },
         ) => {
+            push_member_operation_occurrence(
+                program,
+                case.as_str(),
+                *case_span,
+                tokens,
+                owner,
+                None,
+                declaration_index,
+                declarations,
+            )?;
             push_bound_operation_occurrence(
                 program,
                 variant.as_str(),
@@ -1183,24 +1343,50 @@ fn collect_operation_expr_occurrences(
             )?;
         }
         (
-            ExprKind::Project { base, .. },
+            ExprKind::Project {
+                base, field_span, ..
+            },
             R::Project {
                 base: resolved_base,
+                field,
                 ..
             },
-        ) => collect_operation_expr_occurrences(
-            program,
-            base,
-            resolved_base,
-            tokens,
-            owner,
-            declaration_index,
-            import_index,
-            declarations,
-            imports,
-        )?,
+        ) => {
+            push_member_operation_occurrence(
+                program,
+                field.as_str(),
+                *field_span,
+                tokens,
+                owner,
+                None,
+                declaration_index,
+                declarations,
+            )?;
+            collect_operation_expr_occurrences(
+                program,
+                base,
+                resolved_base,
+                tokens,
+                owner,
+                declaration_index,
+                import_index,
+                declarations,
+                imports,
+            )?;
+        }
         (ExprKind::Project { .. } | ExprKind::Var(_), R::Place(place))
-            if operation_source_place(source, place) => {}
+            if operation_source_place(source, place) =>
+        {
+            collect_operation_place_occurrences(
+                program,
+                source,
+                place,
+                tokens,
+                owner,
+                declaration_index,
+                declarations,
+            )?;
+        }
         (ExprKind::Int(_), R::Int(_))
         | (ExprKind::Int32(_), R::Int32(_))
         | (ExprKind::Char(_), R::Char(_))
@@ -1233,6 +1419,16 @@ fn collect_operation_field_values(
         return Err(operation_sidecar_disagreement());
     }
     for (field, resolved) in fields.iter().zip(resolved_fields) {
+        push_member_operation_occurrence(
+            program,
+            resolved.field.as_str(),
+            field.name_span,
+            tokens,
+            owner,
+            None,
+            declaration_index,
+            declarations,
+        )?;
         collect_operation_expr_occurrences(
             program,
             &field.value,
@@ -1306,10 +1502,46 @@ fn collect_operation_pattern_occurrences(
             crate::ast::MatchPattern::Variant {
                 type_name,
                 type_span,
+                case_span,
+                fields,
                 ..
             },
-            hir::ResolvedMatchPattern::Variant { variant, .. },
+            hir::ResolvedMatchPattern::Variant {
+                variant,
+                case,
+                fields: resolved_fields,
+            },
         ) => {
+            push_member_operation_occurrence(
+                program,
+                case.as_str(),
+                *case_span,
+                tokens,
+                owner,
+                None,
+                declaration_index,
+                declarations,
+            )?;
+            if fields.len() != resolved_fields.len() {
+                return Err(operation_sidecar_disagreement());
+            }
+            for (field, resolved_field) in fields.iter().zip(resolved_fields) {
+                if field.binding != resolved_field.binding.name {
+                    return Err(operation_sidecar_disagreement());
+                }
+                let shorthand =
+                    (field.name_span == field.binding_span).then_some(field.binding.as_str());
+                push_member_operation_occurrence(
+                    program,
+                    resolved_field.field.as_str(),
+                    field.name_span,
+                    tokens,
+                    owner,
+                    shorthand,
+                    declaration_index,
+                    declarations,
+                )?;
+            }
             if source_text_token(tokens, *type_span)? != type_name {
                 return Err(operation_sidecar_disagreement());
             }
@@ -1412,6 +1644,24 @@ fn collect_nested_record_pattern_occurrences(
         return Err(operation_sidecar_disagreement());
     }
     for (field, resolved_field) in fields.iter().zip(resolved_fields) {
+        let shorthand = match &field.pattern {
+            crate::ast::RecordMatchFieldPattern::Binding { name, span }
+                if *span == field.name_span =>
+            {
+                Some(name.as_str())
+            }
+            _ => None,
+        };
+        push_member_operation_occurrence(
+            program,
+            resolved_field.field.as_str(),
+            field.name_span,
+            tokens,
+            owner,
+            shorthand,
+            declaration_index,
+            declarations,
+        )?;
         match (&field.pattern, &resolved_field.pattern) {
             (
                 crate::ast::RecordMatchFieldPattern::Record {
@@ -1453,10 +1703,10 @@ fn collect_nested_record_pattern_occurrences(
                 )?;
             }
             (
-                crate::ast::RecordMatchFieldPattern::Binding { .. },
-                hir::ResolvedRecordMatchFieldPattern::Binding(_),
-            )
-            | (
+                crate::ast::RecordMatchFieldPattern::Binding { name, .. },
+                hir::ResolvedRecordMatchFieldPattern::Binding(binding),
+            ) if name == &binding.name => {}
+            (
                 crate::ast::RecordMatchFieldPattern::Wildcard { .. },
                 hir::ResolvedRecordMatchFieldPattern::Wildcard,
             ) => {}
@@ -1480,8 +1730,10 @@ fn push_bound_operation_occurrence(
 ) -> Result<(), Vec<Diagnostic>> {
     reserve_builder_structure(std::mem::size_of::<WorkspaceOperationOccurrence>())?;
     let occurrence = WorkspaceOperationOccurrence {
+        path: crate::bounded_output::budgeted_clone(&program.path),
         span,
         owner: owner.map(crate::bounded_output::budgeted_clone),
+        shorthand_binding: None,
     };
     let family_text = match family {
         ModuleUseKind::Function => "function",
@@ -1527,6 +1779,88 @@ fn operation_source_place(source: &Expr, place: &hir::Place) -> bool {
         fields += 1;
     }
     matches!(&source.kind, ExprKind::Var(_)) && fields == place.projections.len()
+}
+
+#[allow(clippy::too_many_arguments)]
+fn collect_operation_place_occurrences(
+    program: &Program,
+    source: &Expr,
+    place: &hir::Place,
+    tokens: &[crate::lexer::Token],
+    owner: &str,
+    index: &BTreeMap<String, usize>,
+    declarations: &mut [WorkspaceOperationDeclaration],
+) -> Result<(), Vec<Diagnostic>> {
+    if !operation_source_place(source, place) {
+        return Err(operation_sidecar_disagreement());
+    }
+    let mut source = source;
+    for projection in place.projections.iter().rev() {
+        let ExprKind::Project {
+            base, field_span, ..
+        } = &source.kind
+        else {
+            return Err(operation_sidecar_disagreement());
+        };
+        let hir::PlaceProjection::Field(field) = projection else {
+            return Err(operation_sidecar_disagreement());
+        };
+        push_member_operation_occurrence(
+            program,
+            field.as_str(),
+            *field_span,
+            tokens,
+            owner,
+            None,
+            index,
+            declarations,
+        )?;
+        source = base;
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn push_member_operation_occurrence(
+    program: &Program,
+    target: &str,
+    span: Span,
+    tokens: &[crate::lexer::Token],
+    owner: &str,
+    shorthand: Option<&str>,
+    index: &BTreeMap<String, usize>,
+    declarations: &mut [WorkspaceOperationDeclaration],
+) -> Result<(), Vec<Diagnostic>> {
+    let Some(position) = index.get(target).copied() else {
+        // Compiler-owned members have no source declaration or rename authority.
+        return if matches!(
+            target,
+            crate::prelude::OPTION_NONE_ID
+                | crate::prelude::OPTION_SOME_ID
+                | crate::prelude::OPTION_SOME_VALUE_ID
+                | crate::prelude::RESULT_OK_ID
+                | crate::prelude::RESULT_OK_VALUE_ID
+                | crate::prelude::RESULT_ERR_ID
+                | crate::prelude::RESULT_ERR_ERROR_ID
+        ) {
+            Ok(())
+        } else {
+            Err(operation_sidecar_disagreement())
+        };
+    };
+    let declaration = &mut declarations[position];
+    if declaration.namespace_owner.is_none() || source_text_token(tokens, span)? != declaration.name
+    {
+        return Err(operation_sidecar_disagreement());
+    }
+    reserve_builder_structure(std::mem::size_of::<WorkspaceOperationOccurrence>())?;
+    declaration.occurrences.push(WorkspaceOperationOccurrence {
+        path: crate::bounded_output::budgeted_clone(&program.path),
+        span,
+        owner: Some(crate::bounded_output::budgeted_clone(owner)),
+        shorthand_binding: shorthand.map(crate::bounded_output::budgeted_clone),
+    });
+    Ok(())
 }
 
 fn find_identifier_token(

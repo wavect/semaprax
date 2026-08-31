@@ -605,6 +605,12 @@ fn operation() -> Value {
             _ => {}
         }
         let mut shape = object(fields);
+        if kind == "rename_declaration" {
+            // Optional for legacy function and nominal-owner descriptors;
+            // present only for the source-authenticated member route.
+            shape["properties"]["member_kind"] =
+                json!({"enum":["record_field","variant_case","variant_field"]});
+        }
         if kind == "add_declaration" {
             shape["properties"]["type_declaration_forms"] = json!({"const":[
                 {"kind":"record","placement":"append_record_in_anchor_module","max_fields":64,"max_combined_identities":4096,"requires_full_candidate_validation":true},

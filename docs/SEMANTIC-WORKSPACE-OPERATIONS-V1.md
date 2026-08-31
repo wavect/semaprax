@@ -15,7 +15,10 @@ The source-only [Project Nominal Rename](PROJECT-NOMINAL-RENAME-V1.md) adapter
 reuses this implementation's occurrence collector and exact replay through a
 crate-private, single-declaration entry point. It accepts no managed path or
 publication authority. This public proposal's operation/path minima, schemas,
-evidence and lock/apply behavior remain unchanged.
+evidence schemas and lock/apply behavior remain unchanged.
+The additive [Project Member Rename](PROJECT-MEMBER-RENAME-V1.md) uses private
+member subjects and cross-file source occurrences in that same planner; those
+subjects are not admitted by this public proposal grammar.
 
 ## Proposal
 

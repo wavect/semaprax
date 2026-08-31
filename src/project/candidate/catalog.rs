@@ -220,10 +220,18 @@ impl ProjectCandidate {
             && super::type_rename::eligible(&self.revision, target)?
         {
             reason = "constructor_available_payload_requires_full_candidate_admission";
-            operations.push(json!({
-                "kind":"rename_declaration", "required_fields":["kind","target","name"],
-                "constraints":["source_record_or_variant_owner", "new_identifier_max_128_bytes", "different_display_name", "unambiguous_type_namespace", "preserve_stable_identity_and_member_identities", "preserve_import_aliases", "migrate_authenticated_type_occurrences", "full_candidate_revalidation"],
-            }));
+            if let Some(kind) = super::type_rename::member_kind(&self.revision, target)? {
+                operations.push(json!({
+                    "kind":"rename_declaration", "required_fields":["kind","target","name"],
+                    "member_kind":kind,
+                    "constraints":["explicit_source_owner_and_member_chain", "new_identifier_max_128_bytes", "different_display_name", "unambiguous_owner_member_namespace", "preserve_stable_identity_and_member_order", "preserve_import_aliases", "migrate_authenticated_member_occurrences", "full_candidate_revalidation"],
+                }));
+            } else {
+                operations.push(json!({
+                    "kind":"rename_declaration", "required_fields":["kind","target","name"],
+                    "constraints":["source_record_or_variant_owner", "new_identifier_max_128_bytes", "different_display_name", "unambiguous_type_namespace", "preserve_stable_identity_and_member_identities", "preserve_import_aliases", "migrate_authenticated_type_occurrences", "full_candidate_revalidation"],
+                }));
+            }
         }
         if self.changes.len() < MAX_CHANGES
             && super::record_field::eligible(&self.revision, target)?

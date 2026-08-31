@@ -1696,6 +1696,33 @@ use function @id("image.add") from image.core as plus;
     }
 
     #[test]
+    fn widened_copy_literals_preserve_scalar_bits_and_signed_node_shape() {
+        let character = data_expression(&json!({"kind":"char","scalar":"0001f600"})).unwrap();
+        assert!(matches!(character.kind, ExprKind::Char(0x1f600)));
+        let positive = data_expression(&json!({"kind":"f64","bits":"0000000000000001"})).unwrap();
+        assert!(matches!(positive.kind, ExprKind::Float64(1)));
+        let negative_zero = data_expression(&json!({"kind":"f32","bits":"80000000"})).unwrap();
+        assert_eq!(literal_nodes(&negative_zero), 2);
+        assert!(
+            matches!(negative_zero.kind, ExprKind::Unary { op: UnaryOp::Neg, value }
+            if matches!(value.kind, ExprKind::Float32(0)))
+        );
+        for invalid in [
+            json!({"kind":"char","scalar":"0000d800"}),
+            json!({"kind":"char","scalar":"0001F600"}),
+            json!({"kind":"f32","bits":"7f800000"}),
+            json!({"kind":"f32","bits":"7fc00000"}),
+            json!({"kind":"f64","bits":"fff0000000000000"}),
+            json!({"kind":"f64","bits":"000000000000000"}),
+        ] {
+            assert_eq!(data_expression(&invalid).unwrap_err()[0].code, "SPX-G225");
+        }
+        assert_eq!(scalar_type("char").unwrap(), Type::Char);
+        assert_eq!(scalar_type("f32").unwrap(), Type::F32);
+        assert_eq!(scalar_type("f64").unwrap(), Type::F64);
+    }
+
+    #[test]
     fn append_migrates_nested_contract_loop_and_import_calls_without_reordering() {
         let mut programs = programs();
         let summary = apply(&mut programs, &append()).unwrap();

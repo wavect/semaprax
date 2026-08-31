@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Corrected the MSRV router's test-only stdout bridge to preserve exact bytes
+  on Windows. Its original byte assertion and Cargo failure checks remain
+  unchanged. The routing and typed-client Python fixtures now force CRLF text
+  translation even on Unix while emitting their asserted bytes through binary
+  stdout; the router's ordinary human-readable logging is unchanged.
+
 - Partitioned the Rust 1.88 CI target inventory into four fail-fast jobs with
   unchanged workspace feature selection, checks, coverage and 20-minute limits.
   Routing regressions require exact once-only coverage and reject unknown target

@@ -184,7 +184,10 @@ import io
 import json
 import runpy
 import subprocess
+import sys
 from unittest.mock import patch
+# Exercise Windows text translation even on Unix; forward asserted bytes below.
+sys.stdout.reconfigure(newline="\r\n")
 router = runpy.run_path('scripts/ci-msrv.py')
 def target(kind, name):
     return {'kind': [kind], 'name': name}
@@ -219,12 +222,15 @@ with patch('subprocess.run') as run:
         else:
             raise AssertionError('unknown shard accepted')
     run.assert_not_called()
+router_log = io.StringIO()
 with patch('subprocess.run', side_effect=[
     subprocess.CompletedProcess([], 0, stdout=json.dumps(metadata)),
     subprocess.CompletedProcess([], 101),
 ]) as run:
-    assert router['main'](['--shard', 'integration-0']) == 101
+    with contextlib.redirect_stdout(router_log):
+        assert router['main'](['--shard', 'integration-0']) == 101
     assert run.call_count == 2
     assert run.call_args_list[0].kwargs['check'] is True
     assert run.call_args_list[1].args[0] == plan['shards'][1]['command']
+sys.stdout.buffer.write(router_log.getvalue().encode('utf-8'))
 "#;

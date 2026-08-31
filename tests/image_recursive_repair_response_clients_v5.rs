@@ -422,6 +422,8 @@ from pathlib import Path
 import sys
 import typing
 
+# Exercise Windows text translation; the asserted transcript uses binary stdout.
+sys.stdout.reconfigure(newline="\r\n")
 root = Path(__file__).parent
 spec = importlib.util.spec_from_file_location('generated_client', root / 'generated_client.py')
 client = importlib.util.module_from_spec(spec)

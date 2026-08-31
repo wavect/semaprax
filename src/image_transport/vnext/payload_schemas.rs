@@ -93,6 +93,58 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
             ("tests", json!({"const":"not_run"})),
         ],
     );
+    let review_text = json!({
+        "type":"string",
+        "maxLength":crate::project::MAX_PROJECT_CANDIDATE_SOURCE_REVIEW_BYTES,
+        "x-max-utf8-bytes":crate::project::MAX_PROJECT_CANDIDATE_SOURCE_REVIEW_BYTES,
+    });
+    let mut review_files = array(object(vec![
+        (
+            "path",
+            json!({"type":"string","minLength":1,"maxLength":240,"x-max-utf8-bytes":240}),
+        ),
+        ("base_source", review_text.clone()),
+        ("candidate_source", review_text.clone()),
+        ("base_digest", digest()),
+        ("candidate_digest", digest()),
+        ("source_diff", review_text),
+        ("source_diff_digest", digest()),
+    ]));
+    review_files["maxItems"] = json!(16);
+    put(
+        crate::project::PROJECT_CANDIDATE_SOURCE_REVIEW_SCHEMA,
+        vec![
+            ("base_project_revision", digest()),
+            ("candidate_project_revision", digest()),
+            ("candidate_revision", digest()),
+            ("source_authority", json!({"const":false})),
+            ("files", review_files),
+            ("report_revision", digest()),
+        ],
+    );
+    let review_offset = json!({
+        "type":"integer","minimum":0,
+        "maximum":crate::project::MAX_PROJECT_CANDIDATE_SOURCE_REVIEW_BYTES,
+    });
+    put(
+        "semaprax.image-source-review-chunk.v1",
+        vec![
+            ("image_revision", digest()),
+            ("candidate_revision", digest()),
+            (
+                "report_schema",
+                json!({"const":crate::project::PROJECT_CANDIDATE_SOURCE_REVIEW_SCHEMA}),
+            ),
+            ("offset", review_offset.clone()),
+            ("total_bytes", review_offset.clone()),
+            (
+                "chunk",
+                json!({"type":"string","maxLength":65536,"x-max-utf8-bytes":65536}),
+            ),
+            ("next_offset", nullable(review_offset)),
+            ("source_authority", json!({"const":false})),
+        ],
+    );
     put(
         "semaprax.image-draft-handle.v1",
         vec![

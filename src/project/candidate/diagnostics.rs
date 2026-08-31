@@ -217,6 +217,7 @@ impl ProjectCandidateAttempt {
             targets: base.targets.clone(),
             json: base.json.clone(),
             digest: base.digest.clone(),
+            source_review_cache: base.source_review_cache.clone(),
         });
         let attempt = Self::rejected(retained, change, diagnostics)?;
         let (proposal, _) = attempt.repair()?;

@@ -15,6 +15,12 @@
   fixtures. No provenance, loader-closure, ordinary CLI or support promotion
   is inferred from executable storage.
 
+- Added closed, independently replayed candidate source-review reports and a
+  saved-source VS Code adapter with explicit MCP startup, typed-intention
+  submission and read-only virtual diffs. Candidate-owned review bytes are
+  shared across chunks; source authentication and separate publication remain
+  unchanged. Compiler, transport and editor regressions are authored, unrun.
+
 - Added a private provisioner-owned doctor launcher: sealed input and executable
   preflight, fixed-descriptor worker creation, parent-death protection and
   pidfd-owned collector handoff with bounded failure settlement. Added authored,

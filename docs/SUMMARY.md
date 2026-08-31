@@ -92,6 +92,8 @@ Audience: all documentation readers.
 - [Semantic Workspace MCP Adapter v1](IMAGE-MCP-ADAPTER-V1.md)
 - [Agent Discovery and Typed Clients v5](IMAGE-AGENT-DISCOVERY-V5.md)
 - [Typed Workspace Response Clients v1](IMAGE-TYPED-RESPONSE-CLIENTS-V1.md)
+- [Candidate Source Review v1](PROJECT-CANDIDATE-SOURCE-REVIEW-V1.md)
+- [VS Code Saved-Source Adapter v1](VSCODE-SAVED-SOURCE-ADAPTER-V1.md)
 - [Source Commit Protocol v5](IMAGE-SOURCE-COMMIT-PROTOCOL-V5.md)
 - [Image Target and Artifact Projections v1](IMAGE-TARGET-ARTIFACTS-V1.md)
 - [Source-bound OpenAPI Artifacts v1](IMAGE-OPENAPI-ARTIFACTS-V1.md)

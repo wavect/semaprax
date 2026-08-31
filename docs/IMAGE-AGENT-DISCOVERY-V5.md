@@ -107,6 +107,11 @@ helpers call the existing method-bound decoder first; generic decoders retain
 their signatures. Types derive only from the bundled response documents, while
 explicitly unbundled reports and JSON inside chunk strings remain opaque.
 
+`candidate/source-review` adds a typed chunk envelope and separately bundled
+closed source-review report schema. Clients must reassemble and validate the
+encoded report and its digests separately; a typed chunk string is not source
+verification. See [Source Review v1](PROJECT-CANDIDATE-SOURCE-REVIEW-V1.md).
+
 The helpers validate closed outer parameter shapes, enum values, digest format,
 integer and UTF-8 bounds, control characters, and request byte limits. Nested
 constructor objects remain JSON objects and are checked by the compiler; their

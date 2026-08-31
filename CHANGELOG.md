@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added saved-source editor controls for body, expression and contract holes,
+  compact context navigation, revision-bound fill scratches and explicit draft
+  completion. Superseded in-memory draft handles are released without source
+  writes; unfinished drafts cannot be previewed as valid candidates. Regression
+  evidence is authored, unrun; no editor-host or completion claim is added.
+
 - Added an explicitly selected frame-product ASan/UBSan gate with calibrated
   failure controls, reusing the unchanged nine-case and 72-case corpora for
   isolated and retained baseline/display-renamed Projects at O0/O2. It passes

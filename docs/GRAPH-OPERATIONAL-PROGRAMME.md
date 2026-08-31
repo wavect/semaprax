@@ -86,6 +86,7 @@ outstanding without requiring another permission request now.
 | Unified workspace protocol | [Workspace Protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md), [startup CLI](WORKSPACE-SESSION-CLI-V1.md) |
 | MCP integration | [MCP Adapter v1](IMAGE-MCP-ADAPTER-V1.md); pinned stdio lifecycle, selected tool catalogue and exact v5 forwarding through the same host-policy loader, authored/unrun |
 | Editor source review | [Source Review v1](PROJECT-CANDIDATE-SOURCE-REVIEW-V1.md) and [VS Code Adapter v1](VSCODE-SAVED-SOURCE-ADAPTER-V1.md); replayed source pairs, shared bounded chunks and explicit saved-source candidate workflow with read-only virtual diffs, authored/unrun |
+| Editor typed holes | [VS Code Adapter v1](VSCODE-SAVED-SOURCE-ADAPTER-V1.md#typed-hole-workflow); three-kind hole planning, compact facets, bound fill scratches and explicit completion, authored/unrun; general post-fill selection, repair UX and editor-host execution remain open |
 | Protocol source commit | [Source Commit Protocol v5](IMAGE-SOURCE-COMMIT-PROTOCOL-V5.md); independently selected startup authority and exact approval |
 | Target/artifact queries | [Target and Artifact Projections v1](IMAGE-TARGET-ARTIFACTS-V1.md), [OpenAPI Artifacts v1](IMAGE-OPENAPI-ARTIFACTS-V1.md) and [C Artifacts v1](IMAGE-C-ARTIFACTS-V1.md); actual pathless source-bound carrier construction and replay |
 | Canonical Git publication | [Git Publication v1](PROJECT-CANDIDATE-GIT-PUBLICATION-V1.md), [explicit host CLI](CANDIDATE-GIT-PUBLICATION-CLI-V1.md) |

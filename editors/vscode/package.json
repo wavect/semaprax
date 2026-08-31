@@ -20,6 +20,16 @@
       { "command": "semaprax.newIntent", "title": "SEMAPRAX: New Typed Intent Scratch" },
       { "command": "semaprax.applyIntent", "title": "SEMAPRAX: Apply Active Typed Intent" },
       { "command": "semaprax.previewSourceDiff", "title": "SEMAPRAX: Preview Candidate Source Diff" },
+      { "command": "semaprax.openHole", "title": "SEMAPRAX: Open Typed Hole" },
+      { "command": "semaprax.selectHole", "title": "SEMAPRAX: Select Pending Hole" },
+      { "command": "semaprax.holeSummary", "title": "SEMAPRAX: Show Descriptive Hole Summary" },
+      { "command": "semaprax.holeFacet", "title": "SEMAPRAX: Show Hole Facet Page or Next Page" },
+      { "command": "semaprax.holeContext", "title": "SEMAPRAX: Show Full Hole Context (Unbundled)" },
+      { "command": "semaprax.showHoleConstructors", "title": "SEMAPRAX: Show Typed Hole Constructor Schemas" },
+      { "command": "semaprax.newHoleFillScratch", "title": "SEMAPRAX: New Hole Fill Scratch" },
+      { "command": "semaprax.fillHole", "title": "SEMAPRAX: Fill Selected Hole from Active Scratch" },
+      { "command": "semaprax.completeDraft", "title": "SEMAPRAX: Complete Ready Draft as Candidate" },
+      { "command": "semaprax.discardDraft", "title": "SEMAPRAX: Discard Typed-Hole Draft" },
       { "command": "semaprax.refresh", "title": "SEMAPRAX: Preview and Explicitly Refresh Saved Source" }
     ],
     "configuration": {

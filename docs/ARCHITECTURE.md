@@ -538,6 +538,13 @@ events invalidate UI state but never authorize or replace source authentication.
 See [Source Review](PROJECT-CANDIDATE-SOURCE-REVIEW-V1.md) and
 [Saved-Source Editor](VSCODE-SAVED-SOURCE-ADAPTER-V1.md).
 
+`editors/vscode/holes.js` coordinates an editor-owned typed draft through the
+existing body, expression and contract-hole routes. It validates bound handles
+and compact navigation, preserves failed fills, retires superseded draft
+handles and requires explicit completion before candidate review. Editor
+scratch bindings and source epochs are local freshness checks, not semantic
+proof or publication authority; compiler admission remains unchanged.
+
 An opt-in `open_with_frontend_cache` constructor uses the same authenticated
 filesystem loader with `ProjectFrontendCache` as its build strategy. It parses
 fresh source directly on first load, then stages exact-source AST reuse during

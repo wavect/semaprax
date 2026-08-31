@@ -30,8 +30,8 @@ fn workspace_ci_keeps_bounded_test_executables_and_fail_fast_coverage() {
     // workspace inventory and exact Cargo selectors, including shared names.
     for (name, test_command) in [
         (
-            "verify",
-            "cargo test --locked --workspace --all-targets --all-features",
+            "verify-tests",
+            "python3 scripts/ci-msrv.py --label \"Rust $RUNNER_OS\" --shard \"${{ matrix.shard }}\"",
         ),
         (
             "msrv",

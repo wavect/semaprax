@@ -192,7 +192,7 @@ fn general_windows_matrix_binds_the_same_explicit_nested_cargo_linker() {
         "CARGO_PROFILE_DEV_DEBUG=0",
         "CARGO_PROFILE_TEST_DEBUG=0",
         "CARGO_INCREMENTAL=0",
-        "cargo test --locked --workspace --exclude semaprax-native-rust-interop --all-targets --all-features",
+        "python3 scripts/ci-msrv.py --label \"Rust Windows\" --shard \"${{ matrix.shard }}\" --exclude-package semaprax-native-rust-interop",
         "echo CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=%SEMAPRAX_LINKER%",
         "echo LINK=",
         "echo _LINK_=",

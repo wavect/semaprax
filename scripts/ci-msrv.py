@@ -12,11 +12,24 @@ SHARDS = ("unit", "integration-0", "integration-1", "integration-2")
 TEST = ["cargo", "test", "--locked", "--workspace", "--all-features"]
 
 
-def plan(metadata):
+def plan(metadata, excluded_packages=()):
     members = set(metadata["workspace_members"])
     packages = [p for p in metadata["packages"] if p["id"] in members]
     if not members or {p["id"] for p in packages} != members:
         raise ValueError("incomplete workspace package inventory")
+    package_names = {p["name"] for p in packages}
+    excluded_packages = set(excluded_packages)
+    missing_exclusions = excluded_packages - package_names
+    if missing_exclusions:
+        raise ValueError(
+            f"unknown excluded workspace package: {sorted(missing_exclusions)}"
+        )
+    packages = [p for p in packages if p["name"] not in excluded_packages]
+    test = TEST + [
+        argument
+        for package in sorted(excluded_packages)
+        for argument in ("--exclude", package)
+    ]
     targets = []
     seen = set()
     for package in packages:
@@ -37,14 +50,14 @@ def plan(metadata):
     names = sorted({t["name"] for t in targets if t["kind"] == "test"})
     shards = [{
         "name": "unit",
-        "command": TEST + ["--lib", "--bins"],
+        "command": test + ["--lib", "--bins"],
         "targets": [t for t in targets if t["kind"] != "test"],
     }]
     for index, name in enumerate(SHARDS[1:]):
         selected = names[index::len(SHARDS) - 1]
         shards.append({
             "name": name,
-            "command": TEST + [arg for target in selected for arg in ("--test", target)],
+            "command": test + [arg for target in selected for arg in ("--test", target)],
             "targets": [t for t in targets if t["kind"] == "test" and t["name"] in selected],
         })
     if any(not shard["targets"] for shard in shards):
@@ -56,6 +69,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--shard", choices=SHARDS)
     parser.add_argument("--plan-only", action="store_true")
+    parser.add_argument("--exclude-package", action="append", default=[])
+    parser.add_argument("--label", default="MSRV")
     args = parser.parse_args(argv)
     if args.shard is None and not args.plan_only:
         parser.error("--shard is required unless --plan-only is selected")
@@ -63,12 +78,12 @@ def main(argv=None):
         ["cargo", "metadata", "--locked", "--no-deps", "--all-features", "--format-version", "1"],
         cwd=ROOT, capture_output=True, text=True, check=True,
     )
-    selected_plan = plan(json.loads(metadata.stdout))
+    selected_plan = plan(json.loads(metadata.stdout), args.exclude_package)
     if args.plan_only:
         print(json.dumps(selected_plan, sort_keys=True))
         return 0
     shard = next(shard for shard in selected_plan["shards"] if shard["name"] == args.shard)
-    print(f"MSRV {args.shard}: {len(shard['targets'])} workspace targets", flush=True)
+    print(f"{args.label} {args.shard}: {len(shard['targets'])} workspace targets", flush=True)
     # One Cargo invocation; preserve its first failure and exact exit status.
     return subprocess.run(shard["command"], cwd=ROOT, check=False).returncode
 

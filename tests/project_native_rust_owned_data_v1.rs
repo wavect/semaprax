@@ -6,9 +6,13 @@ mod native_rust_cargo;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Mutex,
+};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
+static PACKAGE_PUBLICATION: Mutex<()> = Mutex::new(());
 
 fn configured_tool(variable: &str, candidates: &[&str]) -> PathBuf {
     if let Some(configured) = std::env::var_os(variable)
@@ -77,6 +81,15 @@ fn fixture(export_name: &str) -> Fixture {
     Fixture(root.canonicalize().unwrap())
 }
 
+fn publication_guard() -> std::sync::MutexGuard<'static, ()> {
+    // Windows package publication holds real compiler, archiver, and SDK
+    // authorities. Keep each test's publication sequence disjoint; one test
+    // intentionally retains two independent fixtures for rename comparison.
+    PACKAGE_PUBLICATION
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 fn run(root: &Path, output: &str) -> Output {
     let clang = configured_tool("CLANG", &["/usr/bin/clang"]);
     let archiver = if cfg!(target_os = "macos") {
@@ -117,6 +130,7 @@ fn inventory(path: &Path) -> BTreeMap<String, Vec<u8>> {
 
 #[test]
 fn project_v8_rust_cli_normalizes_relative_output_replays_and_never_clobbers() {
+    let _publication = publication_guard();
     let fixture = fixture("valid");
     let result = run(&fixture.0, "dist/rust");
     assert!(
@@ -190,6 +204,7 @@ fn project_v8_rust_cli_normalizes_relative_output_replays_and_never_clobbers() {
 
 #[test]
 fn display_rename_preserves_the_stable_rust_method_identity() {
+    let _publication = publication_guard();
     let original = fixture("valid");
     let renamed = fixture("renamed_valid");
     for (fixture, output) in [(&original, "original"), (&renamed, "renamed")] {

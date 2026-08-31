@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Partitioned the current Rust toolchain's Linux, macOS, and Windows workspace
+  target inventory into parallel lib/bin and three integration-test shards,
+  while retaining separate blocking quality, documentation, release, example,
+  sanitizer, and physical-platform jobs. The shared router rejects unknown
+  targets and Windows package exclusions, every matrix remains release-gated,
+  and commands remain fail-fast.
+
+- Serialized the two test-local Project v8 Native Rust publication lifetimes.
+  Windows no longer overlaps their real compiler, SDK, and archiver authority;
+  all package bytes, replay, no-clobber, and stable-ID assertions are unchanged.
+
 - Corrected the semantic-cache CLI fixture to finish and close a create-new
   staged compiler copy before atomically installing it, and to serialize each
   test-local install/mutate/execute lifetime. This removes Linux `ETXTBSY`

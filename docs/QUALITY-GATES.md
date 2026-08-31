@@ -56,6 +56,16 @@ artifacts to reduce cold-build I/O. It retains debug assertions, all existing
 tests, physical host gates, and release-profile settings; this is a build-cost
 change, not a reduction in coverage.
 
+The current-toolchain Rust lane uses the same closed four-way Cargo target
+inventory on Linux, macOS, and Windows: one lib/bin shard and three integration
+target shards run in parallel, while formatting, strict Clippy, documentation,
+release builds, examples, sanitizers, and physical platform gates remain in a
+separate blocking job for each host. Windows retains its existing exclusion of
+the separately owned native-Rust-interop package; the router validates that
+exclusion against Cargo metadata instead of accepting a free-form omitted
+target. Unknown target kinds or package exclusions fail closed. The release
+gate requires both matrices.
+
 The Rust 1.88 minimum-version lane partitions the complete Cargo workspace
 target inventory into a lib/bin shard and three integration-target shards using
 `scripts/ci-msrv.py`. Every shard retains workspace-wide feature unification,

@@ -940,8 +940,8 @@ fn hosted_workflow_names_all_private_interop_evidence_boundaries() {
         "Require private Native Rust Interop language, HIR, Graph, and Wasm preservation evidence",
         "cargo test --locked -p semaprax --test native_rust_interop_v1 -- --nocapture",
         "cargo test --locked -p semaprax --test native_rust_interop_ci_contract -- --nocapture",
-        "Run workspace tests without duplicate Windows native interop",
-        "cargo test --locked --workspace --exclude semaprax-native-rust-interop --all-targets --all-features",
+        "Test the complete workspace target shard without duplicate Windows native interop",
+        "python3 scripts/ci-msrv.py --label \"Rust Windows\" --shard \"${{ matrix.shard }}\" --exclude-package semaprax-native-rust-interop",
         "Require private Native Rust Interop A+B replay, static-link, runtime, and hostile evidence",
         "cargo test --locked -p semaprax-native-rust-interop -- --nocapture",
         "Require private Native Rust Interop platform authority evidence",
@@ -966,7 +966,7 @@ fn hosted_workflow_names_all_private_interop_evidence_boundaries() {
         .find("- name: Fetch the complete locked workspace dependency closure")
         .expect("Rust matrix dependency fetch");
     let verify_tests = verify_job
-        .find("- name: Run workspace tests")
+        .find("- name: Test the complete workspace target shard (Unix)")
         .expect("Rust matrix workspace tests");
     assert!(verify_fetch < verify_tests);
     assert!(!verify_job.contains("continue-on-error: true"));

@@ -177,6 +177,49 @@ fn msrv_matrix_preserves_checks_timeout_fail_fast_and_release_dependency() {
     assert!(release.contains("      - msrv\n"));
 }
 
+#[test]
+fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() {
+    let workflow = std::fs::read_to_string(root().join(".github/workflows/ci.yml")).unwrap();
+    let tests = workflow
+        .split_once("\n  verify-tests:\n")
+        .unwrap()
+        .1
+        .split_once("\n  desktop-native-product:\n")
+        .unwrap()
+        .0;
+    for required in [
+        "name: Rust tests ${{ matrix.os }} (${{ matrix.shard }})",
+        "timeout-minutes: 30",
+        "fail-fast: true",
+        "os: [ubuntu-latest, macos-latest, windows-latest]",
+        "shard: [unit, integration-0, integration-1, integration-2]",
+        "python3 scripts/ci-msrv.py --label \"Rust $RUNNER_OS\" --shard \"${{ matrix.shard }}\"",
+        "python3 scripts/ci-msrv.py --label \"Rust Windows\" --shard \"${{ matrix.shard }}\" --exclude-package semaprax-native-rust-interop",
+    ] {
+        assert!(tests.contains(required), "missing Rust shard contract: {required}");
+    }
+    for forbidden in ["continue-on-error", "--no-fail-fast", "actions/cache"] {
+        assert!(!tests.contains(forbidden), "Rust shard bypass: {forbidden}");
+    }
+    let verify = workflow
+        .split_once("\n  verify:\n")
+        .unwrap()
+        .1
+        .split_once("\n  verify-tests:\n")
+        .unwrap()
+        .0;
+    assert!(!verify.contains("cargo test --locked --workspace --all-targets --all-features"));
+    assert!(!verify.contains("cargo test --locked --workspace --exclude"));
+    let release = workflow
+        .split_once("\n  release-gate:\n")
+        .unwrap()
+        .1
+        .split_once("\n  release-artifacts:\n")
+        .unwrap()
+        .0;
+    assert!(release.contains("      - verify-tests\n"));
+}
+
 const ROUTER_FAILURES: &str = r#"
 import contextlib
 import copy
@@ -192,13 +235,25 @@ router = runpy.run_path('scripts/ci-msrv.py')
 def target(kind, name):
     return {'kind': [kind], 'name': name}
 metadata = {'workspace_members': ['one', 'two'], 'packages': [
-    {'id': 'one', 'targets': [target('lib', 'one'), target('test', 'a'), target('test', 'b')]},
-    {'id': 'two', 'targets': [target('bin', 'two'), target('test', 'a'), target('test', 'c')]},
-    {'id': 'external', 'targets': [target('example', 'not_in_workspace')]},
+    {'id': 'one', 'name': 'one', 'targets': [target('lib', 'one'), target('test', 'a'), target('test', 'b')]},
+    {'id': 'two', 'name': 'two', 'targets': [target('bin', 'two'), target('test', 'a'), target('test', 'c')]},
+    {'id': 'external', 'name': 'external', 'targets': [target('example', 'not_in_workspace')]},
 ]}
 plan = router['plan'](metadata)
 assert [len(shard['targets']) for shard in plan['shards']] == [2, 2, 1, 1]
 assert router['plan'](dict(metadata, packages=list(reversed(metadata['packages'])))) == plan
+excluded = copy.deepcopy(metadata)
+excluded['packages'][0]['targets'].append(target('test', 'd'))
+excluded_plan = router['plan'](excluded, ['two'])
+assert all(row['package'] == 'one' for row in excluded_plan['inventory'])
+assert all(command_part not in ('two',) for shard in excluded_plan['shards'] for command_part in shard['command'][7:])
+assert all(shard['command'][5:7] == ['--exclude', 'two'] for shard in excluded_plan['shards'])
+try:
+    router['plan'](metadata, ['missing'])
+except ValueError as error:
+    assert 'unknown excluded workspace package' in str(error), str(error)
+else:
+    raise AssertionError('unknown excluded package was accepted')
 for mutation, message in [
     (lambda m: m['packages'][0]['targets'].append(target('example', 'future')), 'unrouted'),
     (lambda m: m['packages'][0]['targets'].append(target('test', 'a')), 'duplicate'),

@@ -68,7 +68,7 @@ fn check(steps: Vec<Step>, expected: Result<usize, ()>) {
     let mut script = Script(steps.into());
     let actual = collect(&mut script);
     assert!(script.0.is_empty(), "missing actions: {:?}", script.0);
-    assert_eq!(actual.clone().map(Vec::len), expected);
+    assert_eq!(actual.clone().map(|v| v.len()), expected);
     if let Ok(bytes) = actual {
         assert!(bytes.iter().all(|byte| *byte == b'x'));
     }

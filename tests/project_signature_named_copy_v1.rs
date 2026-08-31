@@ -1,4 +1,4 @@
-//! Named Copy signature evolution evidence, authored and intentionally unrun.
+//! Named Copy signature evolution and checked owning-retention boundaries.
 use semaprax::ast::{Expr, ExprKind, Function, ParamMode, Program, Statement, Type};
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{with_authenticated_project, ProjectCandidate, SemanticChange};
@@ -460,7 +460,7 @@ fn export_contracts_and_cross_module_option_signatures_remain_closed() {
 }
 
 #[test]
-fn noncopy_nominals_borrow_modes_and_new_aggregate_defaults_remain_closed() {
+fn owning_nominals_must_be_retained_and_borrows_and_new_aggregate_defaults_stay_closed() {
     let fixture = Fixture::new();
     fixture.append(
         r#"
@@ -473,7 +473,35 @@ fn noncopy_nominals_borrow_modes_and_new_aggregate_defaults_remain_closed() {
     let disk = fixture.bytes();
     let base = fixture.candidate();
     let unchanged = base.to_json().to_owned();
-    for target in ["named.owned-take", "named.borrow-owned", "named.borrow"] {
+    let (retained, change) = evolve(
+        &base,
+        "named.owned-take",
+        json!([{"from":"value","name":"retained"}]),
+    )
+    .unwrap();
+    let retained_program = program(&retained, "src/core.spx");
+    let retained_function = function(&retained_program, "named.owned-take");
+    assert_eq!(retained_function.params.len(), 1);
+    assert_eq!(retained_function.params[0].name, "retained");
+    assert_eq!(retained_function.params[0].mode, ParamMode::Own);
+    assert_eq!(retained_function.params[0].ty.to_string(), "Owned");
+    let replayed = ProjectCandidate::replay(
+        Arc::clone(base.base_revision()),
+        base.base_revision().project_revision(),
+        &[change],
+        retained.to_json().as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(replayed.to_json(), retained.to_json());
+    let errors = evolve(&base, "named.owned-take", json!([]))
+        .err()
+        .expect("owning parameter cannot be omitted");
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-G260"),
+        "{errors:?}"
+    );
+
+    for target in ["named.borrow-owned", "named.borrow"] {
         let errors = evolve(&base, target, json!([{"from":"value"}]))
             .err()
             .expect("unsupported mode admitted");

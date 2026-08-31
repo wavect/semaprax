@@ -1,4 +1,4 @@
-//! Checked signature catalogue evidence, authored and intentionally unrun.
+//! Checked signature catalogue evidence for Copy, owning and borrowed parameters.
 use semaprax::project::{with_authenticated_project, ProjectCandidate};
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -159,13 +159,43 @@ fn scalar_and_direct_bytes_parameter_shapes_stay_unchanged() {
 }
 
 #[test]
-fn owned_records_and_borrowed_views_do_not_advertise_ordered_mapping() {
+fn owned_records_require_retention_while_borrowed_views_do_not_advertise_mapping() {
     let fixture = Fixture::new();
     let candidate = fixture.candidate();
-    for target in ["catalog.owned-select", "catalog.borrowed"] {
-        let report = catalog(&candidate, target);
-        assert!(!ordered(&report));
-        assert!(report["parameters"][0].get("type_identity").is_none());
-        assert!(report["parameters"][0].get("type_provenance").is_none());
-    }
+    let owned = catalog(&candidate, "catalog.owned-select");
+    assert!(ordered(&owned));
+    assert_eq!(owned["parameters"][0]["mode"], "own");
+    assert!(owned["parameters"][0]["type_identity"]
+        .as_str()
+        .unwrap()
+        .starts_with("nominal:"));
+    assert_eq!(
+        owned["parameters"][0]["type_provenance"],
+        json!({
+            "declaration":"catalog.owned", "arguments":[], "ownership":"own",
+            "evidence_owner":"retained_checked_hir", "copy":false, "sized":true,
+            "contains_resource":false, "needs_drop":true
+        })
+    );
+    let signature = owned["operations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|operation| operation["kind"] == "change_function_signature")
+        .unwrap();
+    let mapping = signature["exactly_one_form"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|form| form["selector"] == "parameters")
+        .unwrap();
+    assert!(mapping["constraints"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("checked_owning_parameters_retained_exactly_once")));
+
+    let borrowed = catalog(&candidate, "catalog.borrowed");
+    assert!(!ordered(&borrowed));
+    assert!(borrowed["parameters"][0].get("type_identity").is_none());
+    assert!(borrowed["parameters"][0].get("type_provenance").is_none());
 }

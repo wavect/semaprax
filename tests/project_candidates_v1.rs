@@ -101,12 +101,40 @@ fn change_catalog_is_revision_bound_and_omits_unsupported_targets() {
             "change_function_signature",
             "replace_function_body",
             "repair_diagnostic",
+            "repair_diagnostic",
             "replace_expression",
             "add_contract",
             "add_declaration",
             "extract_function",
         ]
     );
+    let repairs = report["operations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|operation| operation["kind"] == "repair_diagnostic")
+        .collect::<Vec<_>>();
+    assert_eq!(repairs.len(), 2);
+    assert_eq!(
+        repairs[0]["repair_class"],
+        "retag_integer_literal_to_retained_return_type"
+    );
+    assert_eq!(
+        repairs[0]["selector_source"],
+        "candidate-attempt/repair-catalog"
+    );
+    assert_eq!(
+        repairs[1]["repair_class"],
+        "borrow_owned_byte_field_without_staging"
+    );
+    assert_eq!(repairs[1]["selector_source"], "attempt/repair-catalog");
+    for repair in repairs {
+        assert_eq!(
+            repair["required_fields"],
+            json!(["kind", "target", "rejected_intent", "repair_id"])
+        );
+        assert_eq!(repair["rejected_kind"], "replace_function_body");
+    }
     assert_eq!(
         report["operations"][1]["exactly_one_form"]
             .as_array()

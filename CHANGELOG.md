@@ -246,6 +246,14 @@
   client tests pass locally, including actual Python and offline Rust consumers;
   full-profile and current-head hosted validation remain pending.
 
+- Added external compile-negative `Send`/`Sync` guards for four generated
+  owned-data SDK variants, with healthy metadata consumers and exact compiler
+  diagnostic checks. The gate passes on Linux/macOS, as do real v8/v9 native
+  tuple providers at O0/O2, locked/offline published Rust consumers, and
+  generated owner/context-close failure oracles. Documented host tool
+  prerequisites and scoped evidence; no production, unsafe, dependency,
+  artifact, schema or support-status change.
+
 - Strengthened owned-data evidence with 33 genuine export declarations and
   24 freshly digested fixed-limit mutations across v8/v10. A separate real
   v8 npm fixture observes initialized owners dropping before successful

@@ -3,6 +3,7 @@ use sha2::Sha256;
 
 use super::*;
 
+mod auto_traits;
 pub(crate) mod ffi_boundaries;
 mod flat_input_bounds;
 

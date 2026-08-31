@@ -1,4 +1,4 @@
-//! Authored, unrun raw-C evidence for rejection before the existing provider
+//! Raw-C evidence for rejection before the existing provider
 //! invocation boundary. This is not the generated safe SDK or a new public ABI.
 use semaprax::codegen::NativeOwnedDataProviderArtifact;
 use semaprax::project::{with_authenticated_project, PublicApiSubject};

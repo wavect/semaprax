@@ -1,7 +1,7 @@
 # Public Flat Owned Record API v1
 
-Status: authored but unrun; unpublished and unpromoted additive Project-v9
-implementation tranche.
+Status: authored implementation with selected local consumer evidence;
+unpublished and unpromoted additive Project-v9 tranche.
 
 Audience: compiler contributors, generated-package integrators, and promotion
 reviewers.
@@ -291,7 +291,8 @@ publishes a real v9 record package whose two exports accept a UTF-8 string and
 two byte slices. The consumer checks exact copied bytes and all three reported
 byte lengths at cumulative input boundaries, with rejection followed by SDK
 object reuse. It shares its corpus with v8 while retaining distinct descriptor
-and package manifest oracles. This gate is also authored, unrun, and opt-in;
+and package manifest oracles. This opt-in gate passes locally on Linux/Rust
+1.88 and macOS/Rust 1.98, as recorded in the owning mixed-borrow evidence;
 it does not prove allocation counts or persistent-context reuse.
 
 The companion `tests/project_owned_tuple_npm_v1.rs` reopens the six real npm
@@ -300,7 +301,8 @@ tuple boundaries under Node. It checks the frozen null-prototype record,
 stable-ID field names, exact `BigInt` lengths, and independent byte copies.
 Calibrated selected-Wasm-export entry counts distinguish successful calls from
 whole-tuple JavaScript rejection; they do not measure allocation or internal
-Wasm semantic entry. This companion is also authored and unrun.
+Wasm semantic entry. This companion passes in the separate scoped local
+descriptor/lifecycle batch on Linux and macOS.
 
 The separate native `native_owned_tuple_admission_v1` fixture generates the
 real v9 provider from the retained Project subject. All four output carrier
@@ -308,11 +310,12 @@ slots start at the ABI-required sentinel. Rejected tuples must preserve the
 carrier and physical context, with no post-validation invocation increment,
 owner issuance, or instrumented allocator call. Successful controls check
 every scalar, exact copied bytes, handle settlement, and same-context recovery.
-This authored O0/O2 fixture remains unrun and does not expose those private
-observations as a public aggregate ABI or establish sanitizer coverage.
+This O0/O2 fixture passes locally on Linux/Clang 14 and macOS/Apple Clang 21.
+It does not expose those private observations as a public aggregate ABI or
+establish sanitizer coverage.
 
-No test, target consumer, hosted job, registry publication, or release
-promotion is claimed by the authored source state. The upstream baseline at
+These selected local results do not establish all target consumers, a hosted
+job, registry publication or release promotion. The upstream baseline at
 `4cc03820c86e70527cb65c4b10ee3841c7af167d` predates Project v9.
 
 This tranche does not claim nested aggregates, variants, resources, owned

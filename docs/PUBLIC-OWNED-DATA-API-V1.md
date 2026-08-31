@@ -466,6 +466,39 @@ Focused gate (not executed in this tranche):
 cargo test --locked -p semaprax-native-rust-owned-data-package build_script::tests
 ```
 
+### Safe Rust thread-confinement gate
+
+The generated `NativeRustOwnedDataSdk` remains `!Send` and `!Sync`; owning a
+copied host result does not grant permission to move or share its provider
+context across threads. The compile-only lower-package test
+`tests::auto_traits::generated_owned_sdks_reject_send_and_sync_in_external_safe_consumers`
+protects this existing boundary for standalone v8, Project v8, v9 and v10.
+
+Each case replays its canonical descriptor fixture and compiles the actual
+generated SDK and private FFI into a separate metadata crate. A healthy external
+consumer with `#![forbid(unsafe_code)]` must compile before separate concrete
+`Send` and `Sync` assertions are checked. Rejections must carry `E0277` at the
+intended SDK assertion, with the requested trait and SDK identified by compiler
+diagnostic facts; a missing dependency, syntax failure or arbitrary nonzero
+exit is not evidence. The private FFI is not included beneath the consumer's
+unsafe prohibition. No provider or linker is invoked, and these descriptor
+fixtures are not evidence of root-owned HIR admission.
+
+The gate contains four healthy consumers and eight negative consumers. It
+adds no unsafe implementation, dependency, public type or runtime behavior;
+compile-time confinement is not runtime reentrancy, lifecycle, provider-thread
+safety or minimum-version validation.
+All four profiles pass their healthy and negative consumers locally on Linux
+AArch64/Rust 1.88 and macOS AArch64/Rust 1.98. Strict lower-package library/test
+Clippy also passes on macOS; generated-SDK Rust 1.85 and Windows execution are
+not claimed.
+
+Focused command:
+
+```sh
+cargo test --locked --offline -p semaprax-native-rust-owned-data-package --lib auto_traits
+```
+
 ### Raw Wasm call boundary
 
 The raw Wasm owned-result call shape is profile-specific:
@@ -705,7 +738,8 @@ rejections are followed by successful calls on the same SDK object. Separate
 objects, input/output mutation, and retained outputs after object drop check
 host-owned copies. Each seven-file package is reopened against its canonical
 descriptor and regenerated provider binding before the locked/offline consumer
-runs. The gate is authored but unrun and ignored until tools are provisioned:
+runs. The gate is ignored by default and must be explicitly selected after
+tool provisioning; scoped local results are recorded below:
 
 ```sh
 cargo test --locked -p semaprax-toolchain --test project_owned_tuple_sdk_v1 -- --ignored
@@ -724,7 +758,8 @@ actual selected Wasm exports: accepted calls calibrate one entry, and rejected
 tuples must leave the count unchanged before a successful recovery call. This
 observes JavaScript preflight before selected-export entry, not Wasm-internal
 allocation, native-context lifetime, browser execution, or TypeScript checking.
-The fixture remains authored and unrun.
+The scoped local descriptor/lifecycle batch records this fixture's Linux and
+macOS execution in [Owned npm invocation](OWNED-NPM-INVOCATION-V1.md#scoped-local-execution).
 
 `tests/native_owned_tuple_admission_v1.rs` uses the same authenticated Project
 subjects to generate the actual native v8/v9 providers. Its separate C fixture
@@ -734,9 +769,28 @@ Successful calls calibrate entry and allocation observations; oversized tuples
 and malformed UTF-8 must preserve output sentinels and context bytes without
 entry, allocation calls, or ownership changes, including inactive v8 branches.
 Recovery uses the same physical context. Empty active `Bytes` results still own
-a handle; their drop observes `free(NULL)` without a payload allocation. These
-authored O0/O2 checks remain unrun; test-only allocator instrumentation is not a public
+a handle; their drop observes `free(NULL)` without a payload allocation. This
+test-only allocator instrumentation is not a public
 ABI, an OOM-recovery proof, or a sanitizer substitute.
+
+The native tuple test passes all four v8/v9 O0/O2 executables on Linux
+AArch64/Rust 1.88/Clang 14 and macOS AArch64/Rust 1.98/Apple Clang 21. On those
+same hosts, the explicitly selected Rust consumer gate passes actual v8/v9
+publication, exact seven-file reopening and both locked/offline consumers.
+Linux publication uses the container's `/tmp` tmpfs and the held
+`/usr/bin/aarch64-linux-gnu-ar`; macOS requires `/usr/bin/libtool`, as frozen by
+the native archive contract. A first macOS invocation selecting `ar` correctly
+rejected with `SPX-I234` before package publication; the provisioned `libtool`
+invocation passed without changing admission.
+
+The lower package's three `close`-selected unit tests also pass on both hosts,
+including generated v8/v10 and flat-record boundary consumers at O0/O2 and the
+deliberately broken-close calibration. Their hostile provider is a Rust ABI
+double, not the real C provider or a proof of panic traversal across C.
+All subprocess gates run under external deadlines; Linux also has container
+resource/network confinement. Windows, minimum generated-SDK Rust 1.85,
+sanitizers for this tuple corpus, full-profile and exact-head hosted evidence
+remain separate. No public support or release promotion follows.
 
 The provisioned [Owned Data Browser v1 fixture](../platform-tests/owned-data-browser-v1/README.md)
 now imports an actual generated direct-Bytes package in the existing three

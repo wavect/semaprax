@@ -1,4 +1,4 @@
-//! Authored, unrun mixed-borrow published v8/v9 safe Rust consumer evidence.
+//! Mixed-borrow published v8/v9 safe Rust consumer evidence.
 #![cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 
 use semaprax::project::{with_authenticated_project, PublicApiSubject};

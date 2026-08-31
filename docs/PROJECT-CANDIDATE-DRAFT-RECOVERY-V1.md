@@ -120,6 +120,12 @@ changed original base rejects: this route does not implicitly rebase holes.
 Historical source archives, entire registries, pending validation, cursors and
 publication authority are not part of draft recovery.
 
+The additive [Draft Archive v1](PROJECT-CANDIDATE-DRAFT-ARCHIVE-V1.md) wraps
+this unchanged capsule with the original canonical source archive. Library
+restore no longer needs a separately retained original revision. Historical
+live-session imports remain host-only at startup; its separate RPC restore
+requires the current original base and recovers no extra authority.
+
 Authored, unrun evidence lives in
 `tests/project_candidate_draft_recovery_v1.rs` and
 `tests/image_draft_recovery_transport_v5.rs`, covering mixed holes, partial fills,

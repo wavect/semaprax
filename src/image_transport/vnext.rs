@@ -9,6 +9,7 @@ mod commit;
 mod contract_holes;
 mod dependencies;
 mod discovery;
+mod draft_archive;
 mod draft_recovery;
 mod projections;
 mod read_batch;
@@ -74,6 +75,8 @@ pub(super) enum Action {
     SymbolDiagnostics,
     DraftRecoveryExport,
     DraftRecoveryRestore,
+    DraftArchiveExport,
+    DraftArchiveRestore,
     Dependencies,
     CleanupDependencies,
     CandidateCleanupDependencies,
@@ -401,6 +404,9 @@ impl VNextSession {
                 Operation::VNext(
                     action @ (Action::DraftRecoveryExport | Action::DraftRecoveryRestore),
                 ) => draft_recovery::prepare(action, params, image, registry)?,
+                Operation::VNext(
+                    action @ (Action::DraftArchiveExport | Action::DraftArchiveRestore),
+                ) => draft_archive::prepare(action, params, image, registry)?,
                 Operation::Candidate(candidates::Action::Diagnostic(_)) => {
                     candidates::diagnostics::prepare(
                         method,
@@ -604,6 +610,7 @@ fn methods(policy: &VNextPolicy, commit_enabled: bool) -> Vec<&'static Method> {
     if policy.candidate_prepare {
         methods.push(cleanup_dependencies::candidate_method());
         methods.extend(draft_recovery::methods());
+        methods.extend(draft_archive::methods());
         methods.extend(contract_holes::methods());
     }
     if commit_enabled {

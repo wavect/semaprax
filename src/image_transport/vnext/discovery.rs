@@ -104,6 +104,12 @@ pub(super) fn payload(
         {
             instructions.push_str(" Use candidate/symbol-diagnostics for retained rejected intentions matching an exact candidate and target. Start at offset zero, then pass expected_report_revision from that first chunk for every nonzero offset. If that report revision becomes stale, restart at zero. Empty results do not mean the candidate has no diagnostics; rejected spans are not verified candidate locations.");
         }
+        if methods
+            .iter()
+            .any(|method| method.name == "hole/archive-export")
+        {
+            instructions.push_str(" Use hole/archive-export to obtain a self-contained source-backed draft archive in UTF-8 chunks. Keep draft_revision and image_revision fixed while following next_offset; chunk_bytes is 1024 through 65536 (default 16384). To restore, send the structured archive plus exact archive_revision and draft_revision to hole/archive-restore. RPC restoration requires the same exact original source base as the current session; a saved historical base cannot be selected through a request. Only an explicit startup host import may restore a historical source archive before the first frame. The unchanged 64 KiB request-frame limit applies even though the library archive limit is 128 MiB; larger archives require an explicit library host, not larger RPC frames. Restore retains only a draft, not a registered candidate, approval, trusted HIR or source authority. Its source_candidate_revision is a reconstructed association and need not name a registered candidate. Fill and complete through ordinary hole APIs; unresolved holes still block completion. No archive operation is admitted to the immutable image batch.");
+        }
         result["instructions"] = json!(instructions);
     }
     bounded(result)
@@ -168,7 +174,9 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         | "candidate/contract-expression-catalog"
         | "hole/open-contract-expression"
         | "hole/recovery-export"
-        | "hole/recovery-restore" => "candidate_prepare",
+        | "hole/recovery-restore"
+        | "hole/archive-export"
+        | "hole/archive-restore" => "candidate_prepare",
         "candidate/commit" | "candidate/commit-report" | "source-commit/status" => "source_commit",
         name if name == "candidate/attempt"
             || name == "candidate/symbol-diagnostics"
@@ -213,6 +221,21 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
             schema,
         );
     }
+    if descriptors.iter().any(|descriptor| {
+        matches!(
+            descriptor["method"].as_str(),
+            Some("hole/archive-export" | "hole/archive-restore")
+        )
+    }) {
+        let schema = draft_archive_schema();
+        documents.insert(
+            format!(
+                "urn:{}",
+                crate::project::PROJECT_CANDIDATE_DRAFT_ARCHIVE_SCHEMA
+            ),
+            schema,
+        );
+    }
     for descriptor in descriptors {
         let method = descriptor["method"]
             .as_str()
@@ -239,6 +262,22 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
     // Chunk data is a string, so JSON Schema $ref traversal cannot discover its
     // owning report schema. List those report schemas explicitly as well.
     for descriptor in descriptors {
+        if matches!(
+            descriptor["method"].as_str(),
+            Some("hole/archive-export" | "hole/archive-restore")
+        ) {
+            // Canonical nested archives remain strings rather than imported
+            // source/HIR objects. Their compiler-owned interiors are not
+            // described by the closed transport archive wrapper.
+            references.insert(format!(
+                "urn:{}",
+                crate::project::PROJECT_CANDIDATE_ARCHIVE_SCHEMA
+            ));
+            references.insert(format!(
+                "urn:{}",
+                crate::project::PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA
+            ));
+        }
         let report = match descriptor["method"].as_str().unwrap_or("") {
             "candidate/query" => Some("semaprax.project-candidate.v1"),
             "candidate/recovery-export" => Some("semaprax.project-candidate-recovery.v1"),
@@ -248,6 +287,7 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
                 Some(crate::project::PROJECT_CANDIDATE_CLEANUP_DEPENDENCIES_SCHEMA)
             }
             "hole/recovery-export" => Some(crate::project::PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA),
+            "hole/archive-export" => Some(crate::project::PROJECT_CANDIDATE_DRAFT_ARCHIVE_SCHEMA),
             "attempt/query" => Some("semaprax.project-candidate-attempt.v1"),
             "candidate/semantic-delta" => Some("semaprax.project-candidate-semantic-delta.v1"),
             "candidate/semantic-delta-catalog" => {
@@ -347,6 +387,39 @@ fn draft_recovery_schema() -> Value {
             ),
             ("draft_digest", digest()),
             ("capsule_digest", digest()),
+        ],
+    )
+}
+
+fn draft_archive_schema() -> Value {
+    use payload_schemas::{digest, document};
+    document(
+        crate::project::PROJECT_CANDIDATE_DRAFT_ARCHIVE_SCHEMA,
+        vec![
+            (
+                "compiler",
+                json!({"const":{
+                    "package":env!("CARGO_PKG_NAME"),"version":env!("CARGO_PKG_VERSION"),
+                    "compatibility":crate::project::PROJECT_CANDIDATE_DRAFT_ARCHIVE_COMPATIBILITY,
+                    "binary_identity_claimed":false,
+                }}),
+            ),
+            ("base_revision", digest()),
+            ("candidate_digest", digest()),
+            ("candidate_archive_digest", digest()),
+            ("draft_digest", digest()),
+            (
+                "candidate_archive",
+                json!({"type":"string","minLength":1,"maxLength":crate::project::MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES,"x-max-utf8-bytes":crate::project::MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES,"description":"Exact canonical source-backed candidate archive JSON string; independently rebuilt and replayed by the compiler."}),
+            ),
+            (
+                "draft_recovery_capsule",
+                json!({"type":"string","minLength":1,"maxLength":crate::project::MAX_PROJECT_CANDIDATE_DRAFT_RECOVERY_BYTES,"x-max-utf8-bytes":crate::project::MAX_PROJECT_CANDIDATE_DRAFT_RECOVERY_BYTES,"description":"Exact canonical draft recovery capsule JSON string; pending selectors are reconstructed through ordinary hole APIs."}),
+            ),
+            ("source_authority", json!({"const":false})),
+            ("approval_authority", json!({"const":false})),
+            ("trusted_hir", json!({"const":false})),
+            ("archive_digest", digest()),
         ],
     )
 }
@@ -560,6 +633,109 @@ mod tests {
                 !crate::image_transport::candidates::diagnostics::methods(test_enabled)
                     .iter()
                     .any(|method| method.name == "candidate/cleanup-dependencies")
+            );
+        }
+    }
+    #[test]
+    fn draft_archives_keep_explicit_selectors_closed_strings_and_candidate_grant() {
+        let readonly = selected(VNextPolicy::default());
+        assert!(!readonly["methods"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|method| method["method"]
+                .as_str()
+                .unwrap()
+                .starts_with("hole/archive-")));
+        let bundle = selected(VNextPolicy {
+            candidate_prepare: true,
+            ..VNextPolicy::default()
+        });
+        for name in ["hole/archive-export", "hole/archive-restore"] {
+            let method = bundle["methods"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|method| method["method"] == name)
+                .unwrap();
+            assert_eq!(method["capability"], "candidate_prepare");
+            assert_eq!(method["query"], name == "hole/archive-export");
+            let params = &method["request_schema"]["properties"]["params"];
+            assert_eq!(params["additionalProperties"], false);
+            assert_eq!(params["properties"].as_object().unwrap().len(), 4);
+            if name == "hole/archive-restore" {
+                assert_eq!(
+                    params["required"],
+                    json!([
+                        "image_revision",
+                        "archive",
+                        "archive_revision",
+                        "draft_revision"
+                    ])
+                );
+                assert_eq!(
+                    params["properties"]["archive"]["$ref"],
+                    format!(
+                        "urn:{}",
+                        crate::project::PROJECT_CANDIDATE_DRAFT_ARCHIVE_SCHEMA
+                    )
+                );
+            } else {
+                assert_eq!(params["properties"]["offset"]["maximum"], 128 * 1024 * 1024);
+            }
+        }
+        let archive = bundle["documents"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|document| {
+                document["$id"]
+                    == format!(
+                        "urn:{}",
+                        crate::project::PROJECT_CANDIDATE_DRAFT_ARCHIVE_SCHEMA
+                    )
+            })
+            .unwrap();
+        assert_eq!(archive["additionalProperties"], false);
+        assert_eq!(archive["properties"].as_object().unwrap().len(), 12);
+        for field in ["candidate_archive", "draft_recovery_capsule"] {
+            assert_eq!(archive["properties"][field]["type"], "string");
+        }
+        for field in ["source_authority", "approval_authority", "trusted_hir"] {
+            assert_eq!(archive["properties"][field]["const"], false);
+        }
+        let chunk = bundle["documents"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|document| document["$id"] == "urn:semaprax.image-draft-archive-chunk.v1")
+            .unwrap();
+        assert_eq!(chunk["additionalProperties"], false);
+        for field in ["image_revision", "archive_revision", "draft_revision"] {
+            assert!(chunk["required"]
+                .as_array()
+                .unwrap()
+                .contains(&json!(field)));
+        }
+        assert_eq!(chunk["properties"]["materializable"]["const"], false);
+        assert!(bundle["unbundled_payload_schemas"]
+            .as_array()
+            .unwrap()
+            .contains(&json!(format!(
+                "urn:{}",
+                crate::project::PROJECT_CANDIDATE_ARCHIVE_SCHEMA
+            ))));
+        for language in ["typescript", "python", "rust"] {
+            let source = clients::generate(language, &bundle).unwrap();
+            assert!(source.contains("request_hole_archive_export"));
+            assert!(source.contains("request_hole_archive_restore"));
+            assert!(source.contains("archive_revision"));
+        }
+        for test_enabled in [false, true] {
+            assert!(
+                !crate::image_transport::candidates::diagnostics::methods(test_enabled)
+                    .iter()
+                    .any(|method| method.name.starts_with("hole/archive-"))
             );
         }
     }

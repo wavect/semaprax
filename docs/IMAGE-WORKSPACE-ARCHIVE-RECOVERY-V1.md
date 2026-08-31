@@ -59,6 +59,13 @@ request-selected filesystem root, background scanning, or ambient persistence.
 The self-contained archive owns its byte bounds, source checks, and independent
 replay; the session adds lifecycle, authentication, and registry bounds.
 
+The additive [Draft Archive](PROJECT-CANDIDATE-DRAFT-ARCHIVE-V1.md) introduces
+separate host `restore_draft_archive` and `export_draft_archive` methods. The
+historical restore keeps this startup-only, same-manifest fence and installs
+only a draft. Its distinct in-session RPC accepts only the current original
+base; completing a ready draft cannot bypass historical-candidate startup
+admission. Neither mechanism restores approvals or changes the live image.
+
 ## Diagnostics and evidence
 
 `SPX-G303` rejects lifecycle/policy misuse and a foreign canonical Project

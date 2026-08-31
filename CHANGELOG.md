@@ -16,6 +16,12 @@
   Rust 1.88/Clang 14, including hostile handles and issuer boundaries; the nested
   offline Cargo consumer is excluded. No hosted or full-profile promotion.
 
+- Corrected analysis-coverage evidence after integration exposed an invalid
+  Native Rust import fixture. The native case now explicitly preserves Graph
+  admission rejection `SPX-G218`; a separate non-native resource-import case
+  covers partial declaration facts. Reports expose that admission limit. The
+  correction is authored and unrun here, without widening native support.
+
 - Added an authenticated package semantic graph with coordinate-qualified
   consumer queries, separate import/call facts, and explicit host-selected v5
   reads. The graph reuses complete package source-capsule replay and never

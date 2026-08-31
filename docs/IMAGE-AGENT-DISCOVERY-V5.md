@@ -118,6 +118,13 @@ closed source-review report schema. Clients must reassemble and validate the
 encoded report and its digests separately; a typed chunk string is not source
 verification. See [Source Review v1](PROJECT-CANDIDATE-SOURCE-REVIEW-V1.md).
 
+`hole/summary` and `hole/page` provide closed typed navigation reports for all
+three pending-hole kinds. A compact summary supplies expected type/ownership,
+effect policy and opaque context-bound references for scope, calls, obligations
+and constructor choices. Pages expand only the selected facet. Full `hole/query`
+contexts and their prior contract/loan/cleanup proofs remain explicitly unbundled
+and unchanged. See [Compact Hole Navigation](PROJECT-HOLE-NAVIGATION-V1.md).
+
 The helpers validate closed outer parameter shapes, enum values, digest format,
 integer and UTF-8 bounds, control characters, and request byte limits. Nested
 constructor values remain JSON objects and are checked by the compiler; their

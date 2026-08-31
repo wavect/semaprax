@@ -74,6 +74,11 @@ existing static test-root dependency closure; static relevance is not coverage.
 
 ## Drafts, context and recovery
 
+[Compact hole navigation](PROJECT-HOLE-NAVIGATION-V1.md) preserves the contract's
+pure effect budget and expected ownership while offering revision-bound scope,
+call, obligation and constructor pages. Full prior proof/context reports remain
+separate and do not validate the unfilled predicate.
+
 ```rust
 with_contract_expression_hole(
     &self, expected_draft: &str, target: &str,

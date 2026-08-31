@@ -13,6 +13,7 @@ mod draft_archive;
 mod draft_merge;
 mod draft_rebase;
 mod draft_recovery;
+mod hole_navigation;
 mod mcp;
 mod mcp_catalog;
 mod projections;
@@ -82,6 +83,8 @@ pub(super) enum Action {
     ContractDelta,
     OwnershipDelta,
     SourceReview,
+    HoleSummary,
+    HolePage,
     SymbolDiagnostics,
     DraftRecoveryExport,
     DraftRecoveryRestore,
@@ -392,6 +395,10 @@ impl VNextSession {
                     source_review::prepare(params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(action @ (Action::HoleSummary | Action::HolePage)) => (
+                    hole_navigation::prepare(action, params, image, registry)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(Action::SymbolDiagnostics) => (
                     symbol_diagnostics::prepare(params, image, registry)?,
                     candidates::Mutation::None,
@@ -631,6 +638,7 @@ fn methods(policy: &VNextPolicy, commit_enabled: bool) -> Vec<&'static Method> {
     methods.extend(review_facets::methods(policy));
     if policy.candidate_prepare {
         methods.push(source_review::method());
+        methods.extend(hole_navigation::methods());
         methods.push(cleanup_dependencies::candidate_method());
         methods.extend(draft_recovery::methods());
         methods.extend(draft_archive::methods());

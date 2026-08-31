@@ -20,6 +20,12 @@
   container with all capabilities dropped.
   Provisioned worker/collector execution and hosted gates are not implied.
 
+- Added compact typed-hole summaries and revision-bound pages for lexical scope,
+  accessible calls, obligations and constructor choices. V5 discovery, generated
+  clients and parallel reads describe the new closed reports; full contexts and
+  unresolved-draft authority remain unchanged. Regression evidence is authored,
+  unrun; no token or latency improvement is claimed.
+
 - Added recursive typed request parameters and additive builders to generated
   TypeScript, Python and Rust workspace clients. Types derive from selected
   compiler-owned schemas; legacy builders and compiler admission remain

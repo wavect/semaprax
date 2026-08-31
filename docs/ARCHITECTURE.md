@@ -519,6 +519,14 @@ existing outer validator. They do not add nested runtime validation, semantic
 admission, transport or publication authority. See
 [Typed Request Clients](IMAGE-TYPED-REQUEST-CLIENTS-V1.md).
 
+`project/candidate/draft_navigation.rs` derives compact hole summaries and
+bounded facet pages from the existing exact full context. Opaque references bind
+the draft, hole, context bytes and selected facet; they grant no authority.
+The v5 `hole_navigation.rs` adapter exposes these pure projections through
+ordinary live-source authentication and detached reads. Full contract, loan and
+cleanup contexts retain their existing owners and bytes. See
+[Compact Hole Navigation](PROJECT-HOLE-NAVIGATION-V1.md).
+
 `project/candidate/source_review.rs` independently replays candidate history and
 derives a closed source-pair/diff report, lazily retained on that exact candidate.
 The v5 `source_review.rs` adapter shares its immutable bytes across bounded

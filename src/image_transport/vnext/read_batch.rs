@@ -318,6 +318,8 @@ mod tests {
             Action::ContractDelta,
             Action::OwnershipDelta,
             Action::SourceReview,
+            Action::HoleSummary,
+            Action::HolePage,
             Action::SymbolDiagnostics,
             Action::ContractExpressionCatalog,
             Action::Targets,

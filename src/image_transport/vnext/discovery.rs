@@ -122,6 +122,9 @@ pub(super) fn payload(
         if methods.iter().any(|method| method.name == "hole/merge") {
             instructions.push_str(" Use hole/merge with exact draft_revision and other_draft_revision to merge checked histories sharing an original base and readmit both parents' pending selectors. The result retains only a draft, not its underlying valid candidate. Its report preserves each parent's selector mappings and the final union, bounded to 16 holes; conflicting IDs, regions or checked intentions fail closed. Read the bounded inline report (64 KiB limit) and continue through ordinary hole APIs; there is no implicit completion, placeholder source, arbitrary subtree merge, execution or publication authority. The immutable image batch excludes this mutation, and workspace refresh still clears drafts.");
         }
+        if methods.iter().any(|method| method.name == "hole/summary") {
+            instructions.push_str(" With candidate_prepare, use hole/summary with the exact image_revision, draft_revision and hole_id for a compact typed summary. Select the compiler-issued scope, calls, obligations or constructors reference and pass it to hole/page with the same selectors. Offset is 0 through 16384 (default 0); limit is 1 through 64 (default 16). Follow next_offset until null, retaining the same context-bound reference. Each closed summary or typed facet page is bounded to 64 KiB. These descriptive facts do not establish owned-value liveness, callable admission, successful fill or candidate validity. hole/query remains the unchanged full proof/context report and explicitly unbundled. Embedding hosts may use the compact pure reads in authenticated parallel batches; no candidate installation, execution or source authority is granted.");
+        }
         result["instructions"] = json!(instructions);
     }
     bounded(result)
@@ -192,6 +195,7 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         | "hole/archive-restore"
         | "hole/rebase"
         | "hole/merge" => "candidate_prepare",
+        "hole/summary" | "hole/page" => "candidate_prepare",
         "candidate/commit" | "candidate/commit-report" | "source-commit/status" => "source_commit",
         name if name == "candidate/attempt"
             || name == "candidate/symbol-diagnostics"

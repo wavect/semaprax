@@ -128,3 +128,19 @@ not raw checkout files, a remote repository, managed `ACTIVE`, or a deployment.
 Neither this document nor these unrun regressions promote the current head to
 verified or the [graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md) to
 complete.
+
+## Task-economics observation
+
+The same workflow authors a bounded
+[`semaprax.agent-task-economics.v1`](AGENT-TASK-ECONOMICS-V1.md) observation.
+Its wrapper records exact v5 request/response traffic, review-material sizes,
+scripted control rejections and assertion-backed twelve-step criteria without
+changing protocol bytes. Frame-to-criterion associations are logical rather
+than a second chronological step sequence, and one signature operation covers
+both signature change and caller migration. Compiler protocol calls are not
+model tool calls; sibling-candidate reconciliation is not stale recovery;
+target admission is not target execution. Model tokens, latency, validation
+time and human review time remain explicitly unobserved. Commit, commit-report
+and source-commit-status route hashes are host-bound invocation evidence rather
+than portable snapshots; recovery traffic remains separately labeled. No task
+report has been executed or measured on this head.

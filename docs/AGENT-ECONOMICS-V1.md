@@ -88,3 +88,8 @@ never means “no tests.”
 Graphify remains deferred under [ADR 0001](decisions/0001-graphify.md). No new
 pinned temporary Graphify run was available for this tranche, so no adoption or
 comparative token claim was made.
+
+The separate [Agent Task Economics v1](AGENT-TASK-ECONOMICS-V1.md) records
+bounded compiler-protocol and review-material observations for the integrated
+twelve-step signature workflow. It does not reinterpret these context results
+or supply the still-unobserved model, latency and human-review measurements.

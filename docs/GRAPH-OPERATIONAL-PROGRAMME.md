@@ -312,3 +312,13 @@ multi-agent conflict/recovery cases; bind corpus, compiler, prompts/models,
 source revisions and correctness/coverage criteria. Run generated-client,
 protocol preservation, hostile-image/candidate, backend and policy-selected
 quality gates before any completion or comparative productivity assertion.
+
+An additive [task-economics observation](AGENT-TASK-ECONOMICS-V1.md) is
+authored/unrun inside the integrated twelve-step Git workflow. It records exact
+semantic protocol traffic, review-material sizes, scripted control rejections,
+validation/replay/test operation counts, target-admission row counts and the
+twelve asserted criteria. It explicitly records stale recoveries as zero and
+leaves model
+tokens, external agent tool calls, elapsed validation cost and human review time
+unobserved. It is infrastructure for the missing comparison, not benchmark
+results or a productivity claim.

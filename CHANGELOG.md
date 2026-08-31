@@ -51,6 +51,14 @@
   closed, `LIB` is unchanged, and missing headers still fail before archive or
   package publication.
 
+- Strengthened the integrated twelve-step Git workflow with ordered parameter
+  rename/reordering, exact default insertion, scope-aware body/contract updates
+  and three staged local/cross-file caller migrations. An additive task-economics
+  observation records exact semantic protocol/review traffic and asserted
+  workflow criteria while leaving model tokens, external tool calls, timing and
+  human review explicitly unobserved. Evidence is authored and unrun; no
+  productivity, target-execution or completion claim is made.
+
 - Completed typed scalar literal construction with exact Unicode scalar and
   finite IEEE-754 bit encodings for `char`, `f32` and `f64`. Signed floats lower
   through canonical unary negation, including negative zero. Recursive

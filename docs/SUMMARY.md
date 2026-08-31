@@ -222,6 +222,7 @@ Audience: all documentation readers.
 
 - [Bounded native Agent Runtime](AGENT-RUNTIME-V1.md)
 - [Agent context economics](AGENT-ECONOMICS-V1.md)
+- [Agent task economics v1](AGENT-TASK-ECONOMICS-V1.md)
 - [Economic Agent](ECONOMIC-AGENT-V1.md)
 - [Deterministic ARC zone model](ARC-ZONES-V1.md)
 - [Deterministic scoped task model](SCOPED-TASKS-V1.md)

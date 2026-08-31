@@ -15,14 +15,14 @@ const IMAGE_LIMIT: usize = 512 * 1024 * 1024;
 const IMMUTABLE: i32 =
     libc::F_SEAL_WRITE | libc::F_SEAL_GROW | libc::F_SEAL_SHRINK | libc::F_SEAL_SEAL;
 
-fn context() {
+pub(super) fn context() {
     assert_eq!(
         std::env::var("SEMAPRAX_DOCTOR_WORKER_TEST_CONTEXT").as_deref(),
         Ok("private-mapped-user-mount-clean-worker-cgroup-v1")
     );
 }
 
-fn installed_image(variable: &str) -> Vec<u8> {
+pub(super) fn installed_image(variable: &str) -> Vec<u8> {
     let path = launch::provisioned_path(variable);
     let file = File::open(path).unwrap();
     let metadata = file.metadata().unwrap();
@@ -39,7 +39,7 @@ fn installed_image(variable: &str) -> Vec<u8> {
     bytes
 }
 
-fn prepared_executable(bytes: &[u8]) -> File {
+pub(super) fn prepared_executable(bytes: &[u8]) -> File {
     assert!(!bytes.is_empty() && bytes.len() <= IMAGE_LIMIT);
     let (file, snapshot) = create_doctor_offline_executable(bytes, bytes.len()).unwrap();
     assert_eq!(snapshot.bytes(), bytes);
@@ -78,7 +78,12 @@ fn transport(bytes: &[u8]) -> File {
     file
 }
 
-fn run(request: &File, bundle: &File, worker: &File, collector: &File) -> observe::Observation {
+pub(super) fn run(
+    request: &File,
+    bundle: &File,
+    worker: &File,
+    collector: &File,
+) -> observe::Observation {
     context();
     let launcher = launch::provisioned_path("SEMAPRAX_DOCTOR_LAUNCHER");
     let sources = [request, bundle, worker, collector].map(|file| launch::high(file.as_raw_fd()));

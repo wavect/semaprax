@@ -1,6 +1,7 @@
 # Provisioned offline doctor collector v1
 
-Status: private implementation authored; unrun and unpromoted.
+Status: private implementation; selected Linux unit evidence passes locally;
+physical lifecycle evidence unrun and unpromoted.
 
 Audience: toolchain maintainers, trusted provisioners and security reviewers.
 
@@ -123,7 +124,9 @@ Authored evidence is split by ownership:
   operations and resource-free scripts. Lifetime scripts cover ownership
   authentication before signaling, bounded emergency kill/reap, the irreversible
   reap latch and fixed one-shot handle closure. Report scripts cover exact byte
-  suffixes after partial writes, the unchanged write deadline, setup failure,
+  suffixes and accepted-byte conservation after partial writes, including
+  repeated `EAGAIN` across 8 KiB chunk boundaries, the unchanged write deadline,
+  setup failure,
   zero/impossible/error writes and termination after each uncertain close.
   Only native adapters own descriptors and process termination. Scripted
   outcomes cannot construct a settled observation or enable fault injection
@@ -141,6 +144,9 @@ Authored evidence is split by ownership:
   bracket a failed Node invocation with healthy controls, and require the later
   Rust role's successful observation in the ordinary exit-one report. These
   execute synthetic bundled programs, not real tool distributions.
+- The separate real-distribution gate described below routes an explicit real
+  bundle through the production launcher, worker and collector, using independent
+  expected tool details. It is authored but physically unrun.
 - The closed-sink case first calibrates a complete large report from the actual
   worker, then observes an exact report prefix before closing its sole reader.
   The checked pipe capacity proves that the complete report was not yet written;
@@ -170,10 +176,60 @@ cargo test --locked -p semaprax-doctor-collector --test provisioned -- --ignored
 Missing prerequisites fail rather than skip or weaken the policy. The external
 provisioner must bound startup and reconcile the entire fixture cgroup on
 failure; reaping the collector alone does not prove descendant settlement.
-These gates are authored, not executed. Physical owned-handle close and
+The physical gates are authored, not executed. Selected sys unit suites pass
+locally on Linux AArch64/Rust 1.88: worker wire (7), guard (4), capture (7),
+collector Linux (21), and launcher (13), for 52 tests. This is scoped scripted
+control-flow and native input/admission evidence, not physical tool execution,
+process settlement fault injection or complete doctor validation.
+Physical owned-handle close and
 settlement fault injection, syscall-specific report-failure observation and
 real-tool compatibility remain additional pending evidence. Sibling rejection
 does not establish executable/endpoint provenance for arbitrary child handoffs.
+
+### Real-distribution production-launcher gate
+
+`real_launched_handoff::production_launcher_reports_all_roles_from_provisioned_real_distributions`
+requires the full context above, plus an absolute immutable current-head
+`SEMAPRAX_DOCTOR_LAUNCHER` path. The trusted provisioner also supplies:
+
+- `SEMAPRAX_DOCTOR_REAL_BUNDLE`: an absolute, quiescent regular file containing
+  the admitted bundle, nonempty and no larger than 512 MiB; the harness bounds
+  the read and the production bundle parser validates its closed inventory.
+- `SEMAPRAX_DOCTOR_REAL_SELECTOR`: the bundle's exact admitted selector.
+- `SEMAPRAX_DOCTOR_EXPECTED_CLANG_DETAIL`,
+  `SEMAPRAX_DOCTOR_EXPECTED_NODE_DETAIL`, and
+  `SEMAPRAX_DOCTOR_EXPECTED_RUST_DETAIL`: independent expected report details,
+  each nonempty UTF-8, already trimmed, control-free and at most 8 KiB.
+
+The Clang detail includes its absolute in-root executable path followed by the
+normalized first version line in parentheses, such as
+`/bin/clang (clang version ...)`. Node and Rust details are their normalized
+first version lines. Supply these expectations independently of the observed
+report; the harness neither derives them from actual output nor runs an
+unconfined version command. Actual shared policy still requires Node 22 or newer
+and Rust 1.88 or newer. The provisioner owns real-distribution provenance and
+the complete tool, loader, library and configuration closure; expected strings
+and exact JSON are not provenance evidence.
+
+The gate uses production sealed-input and executable factories, derives an
+`All` request from the admitted bundle, and invokes the production launcher.
+It requires exactly eight canonical ordered successful rows (SEMAPRAX, OS,
+architecture, release, profile, Clang, Node, Rust), exit zero and empty stderr,
+then reacquires the retained sealed request and bundle and compares their bytes.
+There is no synthetic fallback or confinement relaxation.
+
+Inside the genuinely provisioned context only, select this gate serially:
+
+```sh
+cargo test --locked -p semaprax-doctor-collector --test provisioned real_launched_handoff::production_launcher_reports_all_roles_from_provisioned_real_distributions -- --exact --ignored --test-threads=1
+```
+
+Compiling this ignored test or running its resource-free report-oracle tests
+does not execute the physical gate. The harness compiles locally on Linux
+AArch64/Rust 1.88; both literal report-oracle tests pass, with all 13 physical
+tests left ignored. A default restricted Docker container does
+not supply the mapped namespaces, capabilities and dedicated cgroup prerequisite;
+setting the context acknowledgement cannot make it do so.
 
 This component does not install or discover a provisioner, authenticate arbitrary
 startup state, make Linux observations represent macOS/Windows, or promote WP-05.

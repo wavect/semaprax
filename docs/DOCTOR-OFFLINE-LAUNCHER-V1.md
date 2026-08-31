@@ -1,6 +1,7 @@
 # Provisioned offline doctor launcher v1
 
-Status: private Linux launch implementation authored; unrun and unpromoted.
+Status: private Linux implementation; selected admission/lifetime tests pass
+locally; physical launch evidence unrun and unpromoted.
 
 Audience: trusted provisioners, toolchain contributors and security reviewers.
 
@@ -146,6 +147,10 @@ and immutable current-head launcher, worker and collector paths supplied through
 `SEMAPRAX_DOCTOR_COLLECTOR`. These fixture variables are not production admission.
 Missing prerequisites fail; tests never downgrade executable sealing or
 isolation. Existing direct worker/collector fixtures stay independent and
-required. All new evidence is authored and unrun. Physical fault injection,
+required. The 13 selected launcher unit tests pass locally on
+Linux AArch64/Rust 1.88; they do not execute the provisioned launch pipeline.
+The [real-distribution gate](DOCTOR-OFFLINE-COLLECTOR-V1.md#real-distribution-production-launcher-gate)
+adds independent all-role expectations through the actual production launcher.
+All physical gates remain authored and unrun. Physical fault injection,
 real-tool compatibility, complete deployment and cross-platform support remain
 pending; ordinary CLI profiles remain unavailable and WP-05 is unpromoted.

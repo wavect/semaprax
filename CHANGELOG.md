@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Corrected a doctor report test oracle that omitted a byte after partial writes;
+  added exact accepted-byte conservation across short writes, repeated `EAGAIN`
+  and 8 KiB chunk boundaries without changing production delivery. All 52 selected
+  Linux AArch64/Rust 1.88 doctor wire, guard, capture, collector and launcher unit
+  tests pass locally. Added an explicitly provisioned real-distribution gate
+  through the production launcher, worker and collector with independent expected
+  tool details and retained sealed-input checks; its Linux harness compiles and
+  both resource-free report-oracle tests pass. Physical execution remains
+  unrun; ordinary doctor acquisition and WP-05 status are unchanged.
+
 - Added explicit unpacked-release product gates for calculator/Web onboarding,
   revision-bound read-only daemon queries and unchanged Node/Rust frame consumers.
   Shared source-bound artifact replay with the original frame suite; retained

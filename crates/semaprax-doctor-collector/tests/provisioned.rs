@@ -30,6 +30,8 @@ mod observe;
 mod physical_reports;
 #[path = "support/prepared_handoff.rs"]
 mod prepared_handoff;
+#[path = "support/real_launched_handoff.rs"]
+mod real_launched_handoff;
 #[path = "support/report.rs"]
 mod report;
 #[path = "support/sentinel_elf.rs"]

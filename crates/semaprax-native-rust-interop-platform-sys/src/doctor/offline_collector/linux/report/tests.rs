@@ -17,7 +17,10 @@ enum Step {
 }
 use Step::*;
 
-struct Script(VecDeque<Step>);
+struct Script {
+    steps: VecDeque<Step>,
+    accepted: Vec<u8>,
+}
 
 fn result(success: bool) -> Result<(), ()> {
     if success {
@@ -29,7 +32,7 @@ fn result(success: bool) -> Result<(), ()> {
 
 impl Script {
     fn next(&mut self) -> Step {
-        self.0
+        self.steps
             .pop_front()
             .expect("unexpected later delivery action")
     }
@@ -83,6 +86,12 @@ impl Operations for Script {
             Write(expected, result) => {
                 assert_eq!(bytes, expected, "wrong report bytes or write offset");
                 assert!(!bytes.is_empty() && bytes.len() <= WRITE_CHUNK);
+                match result {
+                    Ok(count) if count > 0 && count <= bytes.len() => {
+                        self.accepted.extend_from_slice(&bytes[..count]);
+                    }
+                    _ => {}
+                }
                 result
             }
             step => panic!("expected report write, got {step:?}"),
@@ -120,13 +129,19 @@ fn closure() -> [Step; 3] {
 }
 
 fn check(report: &[u8], status: u8, steps: Vec<Step>, expected: Result<u8, ()>) {
-    let mut script = Script(steps.into());
+    let mut script = Script {
+        steps: steps.into(),
+        accepted: Vec::new(),
+    };
     assert_eq!(deliver(report, status, &mut script), expected);
     assert!(
-        script.0.is_empty(),
+        script.steps.is_empty(),
         "missing delivery actions: {:?}",
-        script.0
+        script.steps
     );
+    if expected.is_ok() {
+        assert_eq!(script.accepted, report, "lost or repeated accepted bytes");
+    }
 }
 
 #[test]
@@ -197,10 +212,43 @@ fn partial_writes_and_repeated_eagain_keep_exact_remaining_suffix() {
         Time(Duration::from_secs(3)),
         Write(b"defgh".to_vec(), Ok(2)),
         Time(Duration::from_secs(4)),
-        Write(b"gh".to_vec(), Ok(2)),
+        Write(b"fgh".to_vec(), Ok(3)),
     ]);
     steps.extend(closure());
     check(b"abcdefgh", 1, steps, Ok(1));
+}
+
+#[test]
+fn short_writes_cross_chunk_boundaries_without_lost_or_repeated_bytes() {
+    let report = (0..16389)
+        .map(|index| (index % 251) as u8)
+        .collect::<Vec<_>>();
+    let mut steps = setup();
+    // Literal windows and accepted lengths are an independent conservation
+    // oracle, not a second implementation of the production offset loop.
+    steps.extend([
+        Time(Duration::from_millis(100)),
+        Write(report[0..8192].to_vec(), Ok(8191)),
+        Time(Duration::from_millis(200)),
+        Write(report[8191..16383].to_vec(), Err(libc::EAGAIN)),
+        Pause,
+        Time(Duration::from_millis(300)),
+        Write(report[8191..16383].to_vec(), Ok(2)),
+        Time(Duration::from_millis(400)),
+        Write(report[8193..16385].to_vec(), Err(libc::EAGAIN)),
+        Pause,
+        Time(Duration::from_millis(500)),
+        Write(report[8193..16385].to_vec(), Err(libc::EAGAIN)),
+        Pause,
+        Time(Duration::from_millis(600)),
+        Write(report[8193..16385].to_vec(), Ok(8190)),
+        Time(Duration::from_millis(700)),
+        Write(report[16383..16389].to_vec(), Ok(1)),
+        Time(Duration::from_millis(800)),
+        Write(report[16384..16389].to_vec(), Ok(5)),
+    ]);
+    steps.extend(closure());
+    check(&report, 0, steps, Ok(0));
 }
 
 #[test]

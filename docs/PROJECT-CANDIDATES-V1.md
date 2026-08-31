@@ -15,6 +15,11 @@ files unchanged. Dropping a candidate discards the overlay. There are no
 filesystem handles, cache locations, source locks, publication methods, or
 automatic execution in this API.
 
+[Source Review v1](PROJECT-CANDIDATE-SOURCE-REVIEW-V1.md) exposes a closed report
+of exact base/candidate source pairs and ordinary diffs after independent
+history replay. It adds no source-write or commit authority and leaves the
+existing heterogeneous candidate report and digest unchanged.
+
 Every change names the exact current Project revision. Every application also
 requires the exact candidate digest, which binds the complete intention
 history and evidence. Two histories that reach the same source revision need

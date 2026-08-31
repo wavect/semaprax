@@ -317,6 +317,7 @@ mod tests {
             Action::InterfaceDelta,
             Action::ContractDelta,
             Action::OwnershipDelta,
+            Action::SourceReview,
             Action::SymbolDiagnostics,
             Action::ContractExpressionCatalog,
             Action::Targets,

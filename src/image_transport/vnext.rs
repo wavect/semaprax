@@ -20,6 +20,7 @@ mod read_batch;
 mod recovery;
 mod retained_reads;
 mod review_facets;
+mod source_review;
 pub(super) mod symbol_diagnostics;
 pub use commit::GitCommitHost;
 pub use mcp::{
@@ -80,6 +81,7 @@ pub(super) enum Action {
     InterfaceDelta,
     ContractDelta,
     OwnershipDelta,
+    SourceReview,
     SymbolDiagnostics,
     DraftRecoveryExport,
     DraftRecoveryRestore,
@@ -386,6 +388,10 @@ impl VNextSession {
                     review_facets::ownership_delta(params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(Action::SourceReview) => (
+                    source_review::prepare(params, image, registry)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(Action::SymbolDiagnostics) => (
                     symbol_diagnostics::prepare(params, image, registry)?,
                     candidates::Mutation::None,
@@ -624,6 +630,7 @@ fn methods(policy: &VNextPolicy, commit_enabled: bool) -> Vec<&'static Method> {
     methods.extend(projections::methods(policy.build_enabled));
     methods.extend(review_facets::methods(policy));
     if policy.candidate_prepare {
+        methods.push(source_review::method());
         methods.push(cleanup_dependencies::candidate_method());
         methods.extend(draft_recovery::methods());
         methods.extend(draft_archive::methods());

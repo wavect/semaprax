@@ -105,6 +105,9 @@ pub use candidate::{
     MAX_PROJECT_CANDIDATE_OWNERSHIP_DELTA_BYTES, PROJECT_CANDIDATE_OWNERSHIP_DELTA_SCHEMA,
     PROJECT_CANDIDATE_OWNERSHIP_DELTA_VERIFICATION_SCHEMA,
 };
+pub use candidate::{
+    MAX_PROJECT_CANDIDATE_SOURCE_REVIEW_BYTES, PROJECT_CANDIDATE_SOURCE_REVIEW_SCHEMA,
+};
 pub use execution::{
     verify_execution_envelope, ProjectExecution, ProjectExecutionOptions, ProjectExecutionOutcome,
     ProjectExecutionRole, PROJECT_EXECUTION_SCHEMA,

@@ -61,6 +61,12 @@ pub(super) fn payload(
         {
             instructions.push_str(" With candidate_prepare, use candidate/cleanup-dependencies with candidate_revision and target for before/after cleanup dependency facts against the original source base. Keep image_revision, candidate_revision and target fixed while reassembling offset/next_offset chunks; chunk_bytes is 1024 through 65536 (default 16384), report bound 8 MiB. The heterogeneous report remains explicitly unbundled. This read is excluded from immutable image batches and grants no execution or publication authority.");
         }
+        if methods
+            .iter()
+            .any(|method| method.name == "candidate/source-review")
+        {
+            instructions.push_str(" With candidate_prepare, candidate/source-review independently replays the exact retained candidate and returns a closed source-review report in UTF-8 chunks. Keep image_revision and candidate_revision fixed, start at offset zero, and follow next_offset until null; chunk_bytes is 1024 through 65536 (default 16384), and the full report is bounded to 16 MiB. Its bundled report schema describes changed canonical paths, exact base/candidate source text, source digests and ordinary source diffs, with report_revision binding the complete report. No filesystem edit, candidate installation, execution or publication authority is granted. Embedding hosts may include this pure read in authenticated parallel read batches. JSON shape checks do not establish digest authenticity or source replay.");
+        }
         instructions.push_str(" For compact navigation, first call image/dependency-summary, then pass the selected sites, callers, calls or members facet handle to image/dependency-page. Keep image_revision, target, view, page_size and max_bytes fixed while following next_cursor; omit cursor on the first page. Page size is 1 through 128 (default 32), and max_bytes is 1024 through 1048576 (default 65536). Handles and cursors are bound compiler references, not authority; do not synthesize or reuse them with another target or image. Page wrappers are closed, but heterogeneous item facts remain explicitly unbundled.");
         if methods
             .iter()
@@ -176,6 +182,7 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         "candidate/interface-delta"
         | "candidate/contract-delta"
         | "candidate/ownership-delta"
+        | "candidate/source-review"
         | "candidate/cleanup-dependencies"
         | "candidate/contract-expression-catalog"
         | "hole/open-contract-expression"
@@ -306,6 +313,9 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
             "candidate/interface-delta" => Some("semaprax.project-candidate-interface-delta.v1"),
             "candidate/contract-delta" => Some("semaprax.project-candidate-contract-delta.v1"),
             "candidate/ownership-delta" => Some("semaprax.project-candidate-ownership-delta.v1"),
+            "candidate/source-review" => {
+                Some(crate::project::PROJECT_CANDIDATE_SOURCE_REVIEW_SCHEMA)
+            }
             "candidate/symbol-diagnostics" => {
                 Some("semaprax.project-candidate-symbol-diagnostics.v1")
             }

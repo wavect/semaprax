@@ -512,6 +512,17 @@ Additive typed decoders enter through the existing validators. Unbundled reports
 remain opaque, and no generated helper owns transport or publication authority.
 See [Typed Response Clients](IMAGE-TYPED-RESPONSE-CLIENTS-V1.md).
 
+`project/candidate/source_review.rs` independently replays candidate history and
+derives a closed source-pair/diff report, lazily retained on that exact candidate.
+The v5 `source_review.rs` adapter shares its immutable bytes across bounded
+chunks and detached reads; held-source authentication remains in the coordinator.
+`editors/vscode` supplies an optional explicit-start MCP client and read-only
+virtual diff documents. Its command allowlist excludes build, test and source
+publication even when the selected server host has broader grants. Editor
+events invalidate UI state but never authorize or replace source authentication.
+See [Source Review](PROJECT-CANDIDATE-SOURCE-REVIEW-V1.md) and
+[Saved-Source Editor](VSCODE-SAVED-SOURCE-ADAPTER-V1.md).
+
 An opt-in `open_with_frontend_cache` constructor uses the same authenticated
 filesystem loader with `ProjectFrontendCache` as its build strategy. It parses
 fresh source directly on first load, then stages exact-source AST reuse during

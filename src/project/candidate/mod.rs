@@ -1,7 +1,7 @@
 //! Immutable, source-derived semantic candidates. No path or commit authority.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use serde_json::{json, Value};
 
@@ -35,6 +35,7 @@ mod rebase;
 mod record_field;
 mod recovery;
 mod schemas;
+mod source_review;
 mod testing;
 mod type_declaration;
 mod type_rename;
@@ -107,6 +108,9 @@ pub use rebase::{ProjectCandidateRebase, PROJECT_CANDIDATE_REBASE_SCHEMA};
 pub use recovery::{
     MAX_PROJECT_CANDIDATE_RECOVERY_BYTES, PROJECT_CANDIDATE_RECOVERY_COMPATIBILITY,
     PROJECT_CANDIDATE_RECOVERY_SCHEMA,
+};
+pub use source_review::{
+    MAX_PROJECT_CANDIDATE_SOURCE_REVIEW_BYTES, PROJECT_CANDIDATE_SOURCE_REVIEW_SCHEMA,
 };
 
 pub const SEMANTIC_CHANGE_SCHEMA: &str = "semaprax.semantic-change.v1";
@@ -199,6 +203,8 @@ pub struct ProjectCandidate {
     targets: Value,
     json: String,
     digest: String,
+    // Derived only from this immutable candidate; never serialized or authority.
+    source_review_cache: OnceLock<Result<Arc<str>, Vec<Diagnostic>>>,
 }
 
 pub(super) fn target_projection_facts(
@@ -683,6 +689,7 @@ impl ProjectCandidate {
             targets: targets.clone(),
             json,
             digest,
+            source_review_cache: OnceLock::new(),
         })
     }
 }

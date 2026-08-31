@@ -19,6 +19,7 @@ pub(super) fn supports(operation: Operation) -> bool {
                 | Action::InterfaceDelta
                 | Action::ContractDelta
                 | Action::OwnershipDelta
+                | Action::SourceReview
                 | Action::CandidateCleanupDependencies
                 | Action::ContractExpressionCatalog
                 | Action::DraftRecoveryExport
@@ -65,6 +66,9 @@ pub(super) fn prepare(
         }
         Operation::VNext(Action::OwnershipDelta) => {
             review_facets::ownership_delta_for_candidate(params, image, candidate()?)
+        }
+        Operation::VNext(Action::SourceReview) => {
+            source_review::for_candidate(params, image, candidate()?)
         }
         Operation::VNext(Action::CandidateCleanupDependencies) => {
             cleanup_dependencies::for_candidate(params, image, candidate()?)

@@ -17,6 +17,10 @@ The external protocol references are the pinned
 specifications. This document owns Semaprax's adapter bounds and authority model,
 not the upstream protocol.
 
+The optional [saved-source VS Code adapter](VSCODE-SAVED-SOURCE-ADAPTER-V1.md)
+uses this transport for an explicit candidate and read-only diff workflow. It
+does not expose server build, test or publication grants as editor commands.
+
 ## Host startup
 
 ```text

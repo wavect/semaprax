@@ -30,6 +30,18 @@ operators; conditional expressions;
 immutable scoped `let` bindings;
 identity-selected record/variant construction, stable-ID record-field projection,
 exhaustive stable-ID variant matching, and typed stable-ID record updates.
+The additive `field_place` shape is closed to `kind`, stable field `target`,
+and lexical identifier `root`. Its exact root type and member identity are
+compiler obligations, not schema assertions. It lowers without a staging
+temporary and retains ordinary source ownership and borrowing admission; see
+[Field Place Constructor](PROJECT-FIELD-PLACE-CONSTRUCTOR-V1.md).
+Catalogue and hole discovery add optional `field_places` descriptors and the
+`field_place` constructor kind when visible source-record fields are available.
+The closed descriptor shapes retain ordinary source monomorphic/generic
+projection metadata, change `base_evaluation` to
+`direct_named_place_no_staging`, and require
+`root_requirement: authenticated_lexical_nominal_binding`. Template presence
+does not authenticate a supplied root or prove a borrow is admissible.
 Literal bounds use the corresponding Rust integer limits, including the
 target-neutral unsigned 64-bit input range for `usize`; target admission can
 still reject a value. New names use the same bounded ordinary identifier shape

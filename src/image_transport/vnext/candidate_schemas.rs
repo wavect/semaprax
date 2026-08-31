@@ -173,6 +173,21 @@ fn aggregate_projection() -> Value {
     json!({"oneOf":[monomorphic,object(generic)]})
 }
 
+fn field_place() -> Value {
+    let mut schema = aggregate_projection();
+    for branch in schema["oneOf"].as_array_mut().unwrap() {
+        branch["properties"]["kind"] = json!({"const":"field_place"});
+        branch["properties"]["base_evaluation"] = json!({"const":"direct_named_place_no_staging"});
+        branch["properties"]["root_requirement"] =
+            json!({"const":"authenticated_lexical_nominal_binding"});
+        branch["required"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!("root_requirement"));
+    }
+    schema
+}
+
 fn aggregate_update() -> Value {
     // Update discovery carries the same complete source-record field inventory
     // as construction. Prelude and variant alternatives are not update owners.
@@ -644,6 +659,10 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
     builtins["maxItems"] = json!(crate::byte_ops::ByteOp::ALL.len());
     docs.get_mut("urn:semaprax.project-change-catalog.v1")
         .unwrap()["properties"]["builtin_calls"] = builtins;
+    let mut places = array(field_place());
+    places["maxItems"] = json!(65536);
+    docs.get_mut("urn:semaprax.project-change-catalog.v1")
+        .unwrap()["properties"]["field_places"] = places;
     docs
 }
 

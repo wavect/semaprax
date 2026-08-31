@@ -605,6 +605,14 @@ impl ProjectCandidateDraft {
             .ok_or_else(|| grammar("aggregate hole context source is unavailable"))?;
         let program = crate::parse(source.source(), source.path()).map_err(|error| vec![error])?;
         let builtins = super::intent::builtin_constructors(self.last_valid.revision(), &program)?;
+        let field_places = super::intent::field_places(self.last_valid.revision(), &program)?;
+        if !field_places.is_empty() {
+            report["constructor_kinds"]
+                .as_array_mut()
+                .ok_or_else(|| grammar("field-place constructor inventory is unavailable"))?
+                .push(json!("field_place"));
+            report["field_places"] = json!(field_places);
+        }
         if !builtins.is_empty() {
             report["constructor_kinds"]
                 .as_array_mut()

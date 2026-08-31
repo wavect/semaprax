@@ -69,6 +69,11 @@ See [Portable Indexed Byte Data](PORTABLE-INDEXED-BYTE-DATA-V1.md),
 [Projected Owned Byte Field Borrow](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md).
 The constructor does not widen those language profiles.
 
+The separate [Field Place Constructor](PROJECT-FIELD-PLACE-CONSTRUCTOR-V1.md)
+can supply a direct authenticated record field to `core.bytes.as-slice` without
+the value-staging temporary used by `project`. Its root-type and field-identity
+checks do not waive the source borrow profile or live-loan checks.
+
 `bytes_copy` allocates an owned value and participates in capacity and cleanup
 analysis. An empty declared effect list grants no ambient authority and does
 not mean allocation-free execution, unrestricted contract admission, or

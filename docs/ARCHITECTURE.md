@@ -815,6 +815,15 @@ forces nominal owner equality through existing source admission, and the base
 is evaluated once under normal value-binding ownership/cleanup rules. Rebase
 binds the selected field and complete owner descriptor before replay; discovery
 does not treat field spelling or a matching result type as owner evidence.
+Direct `field_place` construction instead authenticates the lexical root's
+nominal type against the selected stable field owner and emits an ordinary
+field expression without a temporary. The intent child `candidate/field_place.rs`
+owns bounded nominal fact propagation. Constructor scope facts come from
+authenticated parameters, selected HIR scope and bounded propagation through
+typed constructors; they do not replace the source verifier's loan, move or
+cleanup checks. Discovery distinguishes direct places from value projections,
+and rebase retains the complete selected-owner dependency. See
+[Field Place Constructor](PROJECT-FIELD-PLACE-CONSTRUCTOR-V1.md).
 `candidate/aggregate_match.rs` derives whole-variant matching plans and
 discovery from the same checked source/prelude identities. The expression
 constructor stages the exact nominal scrutinee once and emits ordinary

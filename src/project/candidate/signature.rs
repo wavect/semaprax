@@ -51,6 +51,14 @@ pub(super) fn apply(
     let function = &programs[owner].functions[function_index];
     let owner_module = programs[owner].module.clone();
     let original_params = function.params.clone();
+    // Template variables name provider parameters, even while lowering the
+    // template against an importing caller's available declaration bindings.
+    let original_nominal_scope = match revision {
+        Some(revision) => {
+            super::parameter_nominal_scope(revision, &programs[owner], &original_params, intent)?
+        }
+        None => BTreeMap::new(),
+    };
     if original_params.len() > MAX_PARAMETERS {
         return Err(capacity(
             "signature evolution exceeds its original parameter limit",
@@ -148,6 +156,7 @@ pub(super) fn apply(
                     revision,
                     &programs[owner],
                     &original_params,
+                    &original_nominal_scope,
                     template,
                     &mut BTreeSet::new(),
                     &mut template_nodes,
@@ -277,6 +286,7 @@ pub(super) fn apply(
                             revision,
                             caller,
                             &original_params,
+                            &original_nominal_scope,
                             template,
                             &mut occupied,
                             &mut template_nodes,

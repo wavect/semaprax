@@ -137,6 +137,12 @@ pub(super) fn payload(
         {
             instructions.push_str(" Typed expressions may use builtin_call with an exact compiler byte-operation target and arguments in left-to-right order. Constructor schemas derive the seven admitted identities and exact argument counts from the compiler operation owner. Read optional builtin_calls metadata in change/catalog or the full hole/query context for source-compatible operation names, parameter ownership, return types and type families; array_u8_any_length is a family, not an exact zero-length array type. Ordinary call and accessible_calls still select existing local or imported functions only. Empty declared effects do not imply allocation-free or infallible behavior: bytes_copy creates owned storage, and byte views and ranges retain ordinary place, lifetime, capacity, cleanup and target-profile checks. These catalogues describe potential constructors, never contract validity or permission to execute. Every fill or candidate change still requires full compiler admission; no ambient capability or source authority is granted.");
         }
+        if methods
+            .iter()
+            .any(|method| method.name == "candidate/apply-intent")
+        {
+            instructions.push_str(" Use field_place with only kind, target (an exact record field ID) and root (an existing lexical name) to select original field storage without the typed temporary introduced by project. Optional field_places metadata in change/catalog and full hole/query describes visible field membership and owner identity; it does not establish a root's current type, availability, loan state or legal use. Root nominal identity and any existing generic arguments must match the selected owner exactly; a same-named field in a different owner is not interchangeable. There is no recursive base, caller-provided type assertion or implicit staging. Using a field place as a value may move it; borrowing still requires the ordinary bytes_as_slice direct owned-byte-field profile. Whole candidate source, ownership, cleanup and target admission remain mandatory, and no general nested or mutable borrow is granted.");
+        }
         result["instructions"] = json!(instructions);
     }
     bounded(result)

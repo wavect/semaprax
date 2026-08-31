@@ -12,6 +12,12 @@
   both resource-free report-oracle tests pass. Physical execution remains
   unrun; ordinary doctor acquisition and WP-05 status are unchanged.
 
+- Added direct typed field-place selection with authenticated nominal roots
+  and stable member identities, without value-staging temporaries. Catalogue,
+  hole and schema discovery share the constructor; ordinary source replay
+  still owns borrowing, moves and cleanup. Regression coverage is authored,
+  unrun, with no completion or target-execution promotion.
+
 - Added explicit unpacked-release product gates for calculator/Web onboarding,
   revision-bound read-only daemon queries and unchanged Node/Rust frame consumers.
   Shared source-bound artifact replay with the original frame suite; retained

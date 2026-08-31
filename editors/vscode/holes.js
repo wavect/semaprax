@@ -84,7 +84,7 @@ class HoleDraft {
     const hole = this.#pending.find(row => row.holeId === id);
     assert(hole, 'Select a pending hole in this draft'); return hole;
   }
-  #planning() { assert(!this.#filled, 'Plan all holes before filling: this editor does not add holes after a successful fill'); }
+  #choiceKey(kind, target) { return JSON.stringify([this.#draft, this.#candidate, kind, target]); }
   async #retire(revision) {
     if (revision === null) return;
     try {
@@ -120,15 +120,30 @@ class HoleDraft {
   }
   async expressionChoices(kind, target) {
     return this.#serial(async () => {
-      this.#planning();
       assert((kind === 'expression' || kind === 'contract') && selector(target, 512), 'Select an expression or contract target');
-      const schema = kind === 'contract' ? 'semaprax.project-contract-expression-catalog.v1' : 'semaprax.project-expression-catalog.v1';
-      const report = await this.#invoke(kind === 'contract' ? 'candidate/contract-expression-catalog' : 'expression/catalog',
-        { candidate_revision: this.#candidate, target });
+      const draft = this.#draft, region = kind === 'contract' ? 'contract' : 'body';
+      this.#choices.clear();
+      const schema = draft !== null ? 'semaprax.project-draft-expression-catalog.v1' :
+        kind === 'contract' ? 'semaprax.project-contract-expression-catalog.v1' : 'semaprax.project-expression-catalog.v1';
+      // An existing draft always selects its last valid retained source. An
+      // unavailable draft method must fail; never retry the original candidate.
+      const report = await this.#invoke(draft !== null ? 'hole/expression-catalog' :
+        kind === 'contract' ? 'candidate/contract-expression-catalog' : 'expression/catalog',
+        draft !== null ? { draft_revision: draft, target, region } : { candidate_revision: this.#candidate, target });
       const rows = checked(() => {
         bounded(report, MAX_CONTEXT);
-        exact(report, ['schema', 'candidate_digest', 'project_revision', 'target', 'source', 'declared_effect_budget', 'expressions', 'limits', 'nonclaims']);
-        assert(report.schema === schema && report.candidate_digest === this.#candidate && report.target === target && digest(report.project_revision) &&
+        if (draft !== null) {
+          exact(report, ['schema', 'draft_revision', 'last_valid_revision', 'last_valid_candidate_digest', 'target', 'region', 'source', 'declared_effect_budget',
+            'expressions', 'limits', 'materializable', 'source_authority', 'validation', 'evidence_class', 'selection_admission', 'nonclaims']);
+          assert(report.draft_revision === draft && digest(report.last_valid_revision) && digest(report.last_valid_candidate_digest) && report.region === region &&
+            report.materializable === false && report.source_authority === false && report.validation === 'pending_fill_full_source_replay' &&
+            report.evidence_class === 'last_valid_expression_inventory_not_draft_validation' && report.selection_admission === 'requires_hole_open_validation',
+            'Invalid current draft expression catalogue binding');
+        } else {
+          exact(report, ['schema', 'candidate_digest', 'project_revision', 'target', 'source', 'declared_effect_budget', 'expressions', 'limits', 'nonclaims']);
+          assert(report.candidate_digest === this.#candidate && digest(report.project_revision), 'Invalid candidate expression catalogue binding');
+        }
+        assert(report.schema === schema && report.target === target &&
           strings(report.declared_effect_budget) && strings(report.nonclaims) && Array.isArray(report.expressions) && report.expressions.length <= 4096, 'Invalid expression catalogue binding');
         exact(report.source, ['path', 'module', 'source_revision', 'source_digest']);
         assert(text(report.source.path) && text(report.source.module) && digest(report.source.source_revision) && digest(report.source.source_digest), 'Invalid expression source binding');
@@ -144,28 +159,27 @@ class HoleDraft {
           exact(row.source_span, ['start', 'end', 'line', 'column']);
           assert(Object.values(row.source_span).every(value => index(value, Number.MAX_SAFE_INTEGER)) && row.source_span.start <= row.source_span.end, 'Invalid expression source span');
           assert(kind !== 'contract' || row.phase !== 'body', 'Contract catalogue contains a body selection');
+          assert(draft === null || region !== 'body' || row.phase === 'body', 'Draft body catalogue contains a contract selection');
         }
         return report.expressions.filter(row => row.replaceable && (kind === 'contract' ? row.phase !== 'body' : row.phase === 'body'));
       });
-      this.#choices.clear();
-      this.#choices.set(JSON.stringify([kind, target]), new Set(rows.map(row => row.expression_id)));
+      this.#choices.set(this.#choiceKey(kind, target), new Set(rows.map(row => row.expression_id)));
       return copy(rows);
     });
   }
   async open(kind, target, holeId, expressionId) {
     return this.#serial(async () => {
-      this.#planning();
       assert(Object.hasOwn(KINDS, kind) && selector(target, 512) && selector(holeId, 128), 'Invalid typed hole selection');
       assert(this.#pending.length < 16 && !this.#pending.some(row => row.holeId === holeId), 'Hole ID is duplicated or the 16-hole limit was reached');
       if (kind === 'body') assert(expressionId === undefined, 'Body holes do not take an expression selector');
-      else assert(selector(expressionId, 4096) && this.#choices.get(JSON.stringify([kind, target]))?.has(expressionId), 'Select an expression from the current candidate catalogue first');
+      else assert(selector(expressionId, 4096) && this.#choices.get(this.#choiceKey(kind, target))?.has(expressionId), 'Select an expression from the current draft or candidate catalogue first');
       const params = { candidate_revision: this.#candidate, target, hole_id: holeId };
       if (this.#draft !== null) params.draft_revision = this.#draft;
       if (kind !== 'body') params.expression_id = expressionId;
       const old = this.#draft, report = await this.#invoke(KINDS[kind][0], params);
       checked(() => { draftHandle(report, this.#candidate); assert(report.draft_revision !== old, 'Opening a hole did not change the draft identity'); });
       this.#draft = report.draft_revision; this.#pending.push({ holeId, target, kind, ...(kind === 'body' ? {} : { expressionId }) });
-      this.#summaries.clear(); await this.#retire(old); return copy(report);
+      this.#summaries.clear(); this.#choices.clear(); await this.#retire(old); return copy(report);
     });
   }
   async summary(holeId) {

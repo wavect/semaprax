@@ -111,6 +111,7 @@ Audience: all documentation readers.
 - [Project Candidate Expression Holes v1](PROJECT-CANDIDATE-EXPRESSION-HOLES-V1.md)
 - [Project Candidate Contract Expression Holes v1](PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md)
 - [Compact Typed-Hole Navigation v1](PROJECT-HOLE-NAVIGATION-V1.md)
+- [Project Draft Expression Catalogue v1](PROJECT-DRAFT-EXPRESSION-CATALOG-V1.md)
 - [Project Frontend Cache v1](PROJECT-FRONTEND-CACHE-V1.md)
 - [Project Semantic Cache v1](PROJECT-SEMANTIC-CACHE-V1.md)
 - [Persistent Semantic Cache v1](PERSISTENT-SEMANTIC-CACHE-V1.md)

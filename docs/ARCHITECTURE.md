@@ -527,6 +527,13 @@ ordinary live-source authentication and detached reads. Full contract, loan and
 cleanup contexts retain their existing owners and bytes. See
 [Compact Hole Navigation](PROJECT-HOLE-NAVIGATION-V1.md).
 
+`project/candidate/draft_expression_catalog.rs` reuses the private last-valid
+candidate's checked expression catalogue and wraps it with exact draft and
+region bindings. The separate last-valid digest fields are descriptive; this
+query releases no candidate, source or publication handle. V5 and detached
+reads share the projection, and the editor uses it for further hole selection
+after fills. See [Draft Expression Catalogue](PROJECT-DRAFT-EXPRESSION-CATALOG-V1.md).
+
 `project/candidate/source_review.rs` independently replays candidate history and
 derives a closed source-pair/diff report, lazily retained on that exact candidate.
 The v5 `source_review.rs` adapter shares its immutable bytes across bounded

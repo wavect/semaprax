@@ -74,6 +74,10 @@ existing static test-root dependency closure; static relevance is not coverage.
 
 ## Drafts, context and recovery
 
+[Draft expression discovery](PROJECT-DRAFT-EXPRESSION-CATALOG-V1.md) exposes
+current pre/postcondition selections after earlier fills without completing the
+draft or registering its private last-valid candidate as a public handle.
+
 [Compact hole navigation](PROJECT-HOLE-NAVIGATION-V1.md) preserves the contract's
 pure effect budget and expected ownership while offering revision-bound scope,
 call, obligation and constructor pages. Full prior proof/context reports remain

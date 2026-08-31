@@ -320,6 +320,7 @@ mod tests {
             Action::SourceReview,
             Action::HoleSummary,
             Action::HolePage,
+            Action::DraftExpressionCatalog,
             Action::SymbolDiagnostics,
             Action::ContractExpressionCatalog,
             Action::Targets,

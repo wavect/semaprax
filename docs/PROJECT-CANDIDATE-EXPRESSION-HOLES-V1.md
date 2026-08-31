@@ -10,6 +10,10 @@ selection. The function stable ID, actual revision-scoped HIR expression ID and
 exact draft digest select meaning. Source spans and AST paths are not request
 inputs. The existing expression catalogue supplies eligible selections.
 
+[Draft expression discovery](PROJECT-DRAFT-EXPRESSION-CATALOG-V1.md) supplies
+current body selections after earlier fills, bound to the exact draft and its
+private last-valid state. It does not release that state as a completed draft.
+
 The selection must have a unique authenticated canonical AST origin in a
 monomorphic top-level function body, including `main`. Contract regions remain
 read-only. The compiler derives structural paths only to reject overlapping

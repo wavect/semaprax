@@ -56,7 +56,8 @@ changes that the host refuses require a new explicitly configured session.
 
 For incomplete work, **Open Typed Hole** plans a body, body-expression or
 contract-expression replacement. Choose expression identities from the
-compiler catalogue and plan all holes before filling any. **Select Pending
+compiler catalogue. Once a draft exists, choices come from that draft's current
+last-valid state, so more holes can be opened after earlier fills. **Select Pending
 Hole**, **Show Descriptive Hole Summary**, **Show Hole Facet Page or Next Page**
 and **Show Full Hole Context (Unbundled)** inspect the current draft without
 exposing it as valid source. Facet pages are

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added draft-bound body and contract expression catalogues over the current
+  private last-valid state, with typed v5 discovery and shared immutable reads.
+  The editor can plan additional holes after fills without reusing stale
+  original-candidate selectors or exposing unfinished drafts as valid source.
+  Library, transport and editor regression evidence is authored, unrun.
+
 - Added saved-source editor controls for body, expression and contract holes,
   compact context navigation, revision-bound fill scratches and explicit draft
   completion. Superseded in-memory draft handles are released without source

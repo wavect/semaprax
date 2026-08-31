@@ -10,6 +10,12 @@
   Chromium and version/new-project/quickstart gates also have local macOS passes.
   No production emitter, schema, corpus, hosted workflow or promotion changes.
 
+- Added typed `builtin_call` expressions for the seven compiler-owned byte
+  operations, with owner-derived schemas and discovery, collision checks,
+  and semantic rebase dependencies. Ordinary source replay still owns type,
+  loan, cleanup, capacity and target admission. Regression coverage is authored,
+  unrun; no completion or performance claim is added.
+
 - Corrected doctor encoder test-module routing and the mixed-arity fixture's
   borrowed-view provenance: result bytes now come from named fixed-array
   storage, without relaxing compiler admission. Local macOS arm64 validation

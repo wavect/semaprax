@@ -154,6 +154,17 @@ fn expression_schema() -> Value {
     binding["x-evaluation-order"] = json!("value_then_body");
     variants.push(binding);
     variants.push(closed(&[("kind",json!({"const":"call"})),("target",text(MAX_ID_BYTES)),("arguments",json!({"type":"array","maxItems":MAX_EXPRESSION_NODES-1,"items":reference("expression")}))]));
+    for operation in crate::byte_ops::ByteOp::ALL {
+        variants.push(closed(&[
+            ("kind", json!({"const":"builtin_call"})),
+            ("target", json!({"const":operation.id()})),
+            (
+                "arguments",
+                json!({"type":"array","minItems":operation.arity(),
+                "maxItems":operation.arity(),"items":reference("expression")}),
+            ),
+        ]));
+    }
     for kind in ["record", "variant"] {
         let mut aggregate = closed(&[
             ("kind", json!({"const":kind})),
@@ -628,12 +639,52 @@ mod aggregate_expression_schema_tests {
         assert_eq!(
             kinds,
             [
-                "i64", "i32", "u8", "usize", "bool", "place", "call", "binary", "unary", "if",
-                "record", "variant", "project", "match", "update", "let"
+                "i64",
+                "i32",
+                "u8",
+                "usize",
+                "bool",
+                "place",
+                "call",
+                "binary",
+                "unary",
+                "if",
+                "record",
+                "variant",
+                "project",
+                "match",
+                "update",
+                "let",
+                "builtin_call"
             ]
             .into_iter()
             .collect()
         );
+        let builtins = variants
+            .iter()
+            .filter(|variant| variant["properties"]["kind"]["const"] == "builtin_call")
+            .collect::<Vec<_>>();
+        assert_eq!(builtins.len(), crate::byte_ops::ByteOp::ALL.len());
+        for operation in crate::byte_ops::ByteOp::ALL {
+            let shape = builtins
+                .iter()
+                .find(|shape| shape["properties"]["target"]["const"] == operation.id())
+                .unwrap();
+            assert_eq!(shape["additionalProperties"], false);
+            assert_eq!(shape["required"], json!(["kind", "target", "arguments"]));
+            assert_eq!(
+                shape["properties"]["arguments"]["minItems"],
+                operation.arity()
+            );
+            assert_eq!(
+                shape["properties"]["arguments"]["maxItems"],
+                operation.arity()
+            );
+            assert_eq!(
+                shape["properties"]["arguments"]["items"],
+                reference("expression")
+            );
+        }
         for kind in ["record", "variant"] {
             let variant = variants
                 .iter()

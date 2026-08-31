@@ -183,6 +183,11 @@ fn apply_rebound(
             let before = fingerprints(original_revision)?;
             let after = fingerprints(candidate.revision())?;
             for dependency in dependencies {
+                if !before.contains_key(&dependency)
+                    && unchanged_builtin(original_revision, candidate.revision(), &dependency)?
+                {
+                    continue;
+                }
                 let left = before.get(&dependency).ok_or_else(|| {
                     conflict("contract call dependency lacks authenticated source facts")
                 })?;
@@ -201,6 +206,13 @@ fn apply_rebound(
     // Check each original/rebased intermediate revision, not only the two
     // history roots. Earlier intentions may legitimately change a shape that
     // a later aggregate constructor references.
+    for target in constructor_intent_targets(&change.intent, &["builtin_call"]) {
+        if !unchanged_builtin(original_revision, candidate.revision(), &target)? {
+            return Err(conflict(
+                "candidate builtin target or compiler owner facts conflict with source identities",
+            ));
+        }
+    }
     for target in constructor_intent_targets(&change.intent, &["record", "variant", "update"]) {
         let before = intent::aggregate_dependency_fingerprint(original_revision, &target)?;
         let after = intent::aggregate_dependency_fingerprint(candidate.revision(), &target)?;
@@ -309,6 +321,9 @@ pub(super) fn pending_draft_conflicts(
         changes.insert((*target).to_owned(), (body_changed, contracts_changed));
     }
     for target in contract_callees {
+        if !old.contains_key(target) && unchanged_builtin(before, after, target)? {
+            continue;
+        }
         let left = old
             .get(target)
             .ok_or_else(|| reject("pending contract callee lacks authenticated source facts"))?;
@@ -325,6 +340,20 @@ pub(super) fn pending_draft_conflicts(
         }
     }
     Ok(changes)
+}
+
+// This is not a source-function fallback: both revisions must authenticate the
+// exact compiler owner and prove absence from the authored identity namespace.
+// A real authored function whose ID resembles a builtin retains all ordinary
+// source signature/effect/contract checks above.
+fn unchanged_builtin(
+    before: &ProjectRevision,
+    after: &ProjectRevision,
+    target: &str,
+) -> Result<bool, Vec<Diagnostic>> {
+    let old = intent::builtin_dependency_fingerprint(before, target)?;
+    let new = intent::builtin_dependency_fingerprint(after, target)?;
+    Ok(old.is_some() && old == new)
 }
 
 fn fingerprints(

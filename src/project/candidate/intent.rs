@@ -27,6 +27,8 @@ const MAX_WALK_NODES: usize = 1_048_576;
 
 #[path = "aggregate.rs"]
 mod aggregate;
+#[path = "builtin.rs"]
+mod builtin;
 #[path = "signature.rs"]
 mod signature;
 
@@ -36,6 +38,9 @@ pub(super) use aggregate::{
     aggregate_projection_dependency_fingerprint, aggregate_projections, aggregate_updates,
     nominal_type_dependency_fingerprint, nominal_type_plan, nominal_types, validate_nominal_ast,
     MAX_AGGREGATE_TYPE_ARGUMENTS,
+};
+pub(super) use builtin::{
+    builtin_constructors, builtin_dependency_fingerprint, validate_builtin_namespace,
 };
 pub(super) use signature::{ordered_signature_parameters, validate_computed_signature};
 
@@ -219,6 +224,7 @@ fn apply_inner(
                 arm_bindings: BTreeSet::new(),
                 reserved_bindings: BTreeSet::new(),
                 generated_bindings: BTreeSet::new(),
+                builtin_identities: None,
                 revision,
                 program: &programs[owner],
             };
@@ -302,6 +308,7 @@ fn construct_expression_inner(
         arm_bindings: BTreeSet::new(),
         reserved_bindings: BTreeSet::new(),
         generated_bindings: BTreeSet::new(),
+        builtin_identities: None,
         revision,
         program,
     }
@@ -337,6 +344,7 @@ struct Constructor<'a> {
     arm_bindings: BTreeSet<String>,
     reserved_bindings: BTreeSet<String>,
     generated_bindings: BTreeSet<String>,
+    builtin_identities: Option<BTreeSet<String>>,
     revision: Option<&'a crate::project::ProjectRevision>,
     program: &'a Program,
 }
@@ -853,6 +861,54 @@ impl Constructor<'_> {
                         type_arguments: plan.type_arguments,
                         fields,
                     }
+                }
+            }
+            "builtin_call" => {
+                object(value, &["kind", "target", "arguments"])?;
+                let target = text(value, "target")?;
+                if crate::byte_ops::by_id(target).is_none() {
+                    return Err(grammar(
+                        "builtin call target is not a compiler-owned byte operation",
+                    ));
+                }
+                let revision = self.revision.ok_or_else(|| {
+                    grammar("builtin calls require an authenticated Project revision")
+                })?;
+                if self.builtin_identities.is_none() {
+                    self.builtin_identities = Some(builtin::source_identities(revision)?);
+                }
+                let identities = self
+                    .builtin_identities
+                    .as_ref()
+                    .ok_or_else(|| grammar("builtin source identity inventory is unavailable"))?;
+                let op = builtin::plan(identities, self.program, target)?;
+                if self.params.contains(op.name())
+                    || self.arm_bindings.contains(op.name())
+                    || self.generated_bindings.contains(op.name())
+                {
+                    return Err(grammar(
+                        "builtin call spelling is shadowed by a lexical binding",
+                    ));
+                }
+                let arguments = array(value, "arguments")?;
+                if arguments.len() != op.arity() {
+                    return Err(grammar(
+                        "builtin call requires its compiler-owned exact arity",
+                    ));
+                }
+                if arguments.len() > MAX_EXPRESSION_NODES.saturating_sub(self.nodes) {
+                    return Err(capacity(
+                        "builtin call arguments exceed the constructor node bound",
+                    ));
+                }
+                let args = arguments
+                    .iter()
+                    .map(|argument| self.expression(argument, depth + 1))
+                    .collect::<Result<Vec<_>>>()?;
+                ExprKind::Call {
+                    name: op.name().to_owned(),
+                    type_arguments: Vec::new(),
+                    args,
                 }
             }
             "call" => {

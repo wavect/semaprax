@@ -14,6 +14,44 @@ fn reference(id: &str) -> Value {
     json!({"$ref":format!("urn:{id}")})
 }
 
+fn builtin_constructor() -> Value {
+    let mut parameters = array(object(vec![
+        ("index", json!({"type":"integer","minimum":0,"maximum":2})),
+        ("name", text()),
+        ("type_id", nullable(text())),
+        (
+            "type_family",
+            nullable(json!({"const":"array_u8_any_length"})),
+        ),
+        (
+            "ownership",
+            json!({"enum":["value","own","borrow","shared"]}),
+        ),
+    ]));
+    parameters["minItems"] = json!(1);
+    parameters["maxItems"] = json!(3);
+    object(vec![
+        ("kind", json!({"const":"builtin_call"})),
+        (
+            "target",
+            json!({"enum":crate::byte_ops::ByteOp::ALL.iter().map(|operation|operation.id()).collect::<Vec<_>>()}),
+        ),
+        (
+            "name",
+            json!({"enum":crate::byte_ops::ByteOp::ALL.iter().map(|operation|operation.name()).collect::<Vec<_>>()}),
+        ),
+        ("arity", json!({"type":"integer","minimum":1,"maximum":3})),
+        ("parameters", parameters),
+        ("return_type_id", text()),
+        ("effects", json!({"const":[]})),
+        (
+            "evidence_owner",
+            json!({"const":"compiler_byte_operations"}),
+        ),
+        ("requires_full_candidate_validation", json!({"const":true})),
+    ])
+}
+
 fn change_parameter() -> Value {
     let fields = vec![
         ("name", text()),
@@ -602,6 +640,10 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
         .unwrap()["properties"]["aggregate_updates"] = array(aggregate_update());
     docs.get_mut("urn:semaprax.project-change-catalog.v1")
         .unwrap()["properties"]["nominal_types"] = array(nominal_type());
+    let mut builtins = array(builtin_constructor());
+    builtins["maxItems"] = json!(crate::byte_ops::ByteOp::ALL.len());
+    docs.get_mut("urn:semaprax.project-change-catalog.v1")
+        .unwrap()["properties"]["builtin_calls"] = builtins;
     docs
 }
 

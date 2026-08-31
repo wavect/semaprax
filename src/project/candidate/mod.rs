@@ -323,6 +323,13 @@ impl ProjectCandidate {
                 None,
             ),
         };
+        intent::validate_builtin_namespace(
+            &programs,
+            self.changes
+                .iter()
+                .map(|change| &change.intent)
+                .chain(std::iter::once(&change.intent)),
+        )?;
         if let Some(moved) = &movement {
             let fact = before[&moved.source_path]["functions"]
                 .as_object_mut()

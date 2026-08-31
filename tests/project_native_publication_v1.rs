@@ -55,7 +55,7 @@ fn cli(root: &Path, arguments: &[&str]) -> Output {
 }
 
 fn executable(path: &Path) -> PathBuf {
-    path.with_extension(std::env::consts::EXE_SUFFIX)
+    path.with_extension(std::env::consts::EXE_EXTENSION)
 }
 
 fn run_stdout(path: &Path) -> String {

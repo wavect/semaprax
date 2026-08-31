@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Corrected three native Project fixtures to construct Windows executable paths
+  from the dot-free platform extension instead of treating the already dotted
+  executable suffix as an extension. This removes the test-only `..exe` lookup;
+  native output naming, create-new publication and runtime behavior are unchanged.
+
 - Corrected Unix Git-publication lease release: the owning guard now explicitly
   unlocks on drop, rejected admission and unwinding instead of relying on the
   final descriptor close under concurrent process creation. Added deterministic

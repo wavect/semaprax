@@ -54,7 +54,19 @@ fn cli(root: &Path, arguments: &[&str]) -> Output {
 }
 
 fn executable(path: &Path) -> PathBuf {
-    path.with_extension(std::env::consts::EXE_SUFFIX)
+    path.with_extension(std::env::consts::EXE_EXTENSION)
+}
+
+#[test]
+fn native_executable_path_has_exactly_one_platform_extension() {
+    let actual = executable(Path::new("program"));
+    let expected = if std::env::consts::EXE_EXTENSION.is_empty() {
+        PathBuf::from("program")
+    } else {
+        PathBuf::from(format!("program.{}", std::env::consts::EXE_EXTENSION))
+    };
+    assert_eq!(actual, expected);
+    assert!(!actual.to_string_lossy().contains(".."));
 }
 
 fn build(root: &Path, output: &Path) -> Output {

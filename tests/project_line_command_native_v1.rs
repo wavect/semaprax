@@ -85,7 +85,7 @@ fn project_v7_builds_and_runs_the_real_multimodule_line_filter() {
         "Project v7 native build failed: {}",
         String::from_utf8_lossy(&built.stderr)
     );
-    let executable = output.with_extension(std::env::consts::EXE_SUFFIX);
+    let executable = output.with_extension(std::env::consts::EXE_EXTENSION);
 
     let input = b"alpha\nbeta\0\nalphabet";
     let matched = run(&executable, &["alpha"], input);
@@ -173,7 +173,9 @@ fn project_v6_cannot_downgrade_a_reachable_v7_operation_closure() {
         String::from_utf8_lossy(&rejected.stderr)
     );
     assert!(!output.exists());
-    assert!(!output.with_extension(std::env::consts::EXE_SUFFIX).exists());
+    assert!(!output
+        .with_extension(std::env::consts::EXE_EXTENSION)
+        .exists());
 }
 
 #[cfg(not(windows))]

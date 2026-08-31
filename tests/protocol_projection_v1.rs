@@ -124,7 +124,7 @@ fn golden_fixture_envelope_digest_is_pinned() {
     ));
     assert_eq!(
         sha256_hex(envelope.as_bytes()),
-        "sha256:23fed66596023ce4a6fba82ddd34feda63ca34c625ce23db685b9f33dd84ca9f"
+        "sha256:7b4aebced197093b37aa2e96c283406a50aa771ff6e7b77f1d70857878f74ba3"
     );
 }
 

@@ -4,6 +4,8 @@ use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
 
+#[path = "request_types.rs"]
+mod request_types;
 #[path = "response_types.rs"]
 mod response_types;
 
@@ -20,6 +22,7 @@ pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
             .as_array()
             .ok_or_else(|| invalid("client opaque schema inventory missing"))?,
     )?;
+    let typed_requests = request_types::generate(language, methods, &request_documents(bundle)?)?;
     let metadata = json!({"methods":methods.iter().map(|descriptor|(descriptor["method"].as_str().unwrap().to_owned(),json!({"params":descriptor["request_schema"]["properties"]["params"],"payload":descriptor["success_response_schema"]["properties"]["result"]["properties"]["payload"]}))).collect::<serde_json::Map<_,_>>(),
         "documents":documents,
         "unbundled":bundle["unbundled_payload_schemas"]});
@@ -32,6 +35,7 @@ pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
         _ => return Err(invalid("unknown client language")),
     };
     source.push_str(&typed.source);
+    source.push_str(&typed_requests.source);
     let mut public_names = BTreeSet::new();
     for descriptor in methods {
         let method = descriptor["method"].as_str().unwrap();
@@ -130,8 +134,49 @@ pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
             .get(method)
             .ok_or_else(|| invalid("selected client method lacks a response type"))?;
         typed_decoder(&mut source, language, method, &class, &function, payload);
+        let parameters = typed_requests
+            .params
+            .get(method)
+            .ok_or_else(|| invalid("selected client method lacks a request type"))?;
+        typed_request(&mut source, language, method, &class, &function, parameters);
     }
     Ok(source)
+}
+
+/// Additive structural request types retain ordinary outer validation and
+/// compiler-owned admission. Neither static types nor serialization authorize
+/// a semantic operation, widen the selected method set, or perform any I/O.
+fn typed_request(
+    source: &mut String,
+    language: &str,
+    method: &str,
+    class: &str,
+    function: &str,
+    parameters: &str,
+) {
+    let alias = format!("{class}TypedParams");
+    match language {
+        "typescript" => writeln!(source, "export type {alias} = {parameters};\nexport function {function}_typed(id: RpcId, params: {alias}): string {{ return request(id, {method:?}, params); }}").unwrap(),
+        "python" => writeln!(source, "{alias}: TypeAlias = {parameters}\ndef {function}_typed(request_id: RpcId, params: {alias}) -> str:\n    return request(request_id, {method:?}, dict(params))\n").unwrap(),
+        _ => writeln!(source, "pub type {alias} = {parameters};\npub fn {function}_typed(id: RpcId, params: {alias}) -> Result<String, String> {{ request(id, {method:?}, serde_json::to_value(params).map_err(|e|e.to_string())?) }}").unwrap(),
+    }
+}
+
+fn request_documents(bundle: &Value) -> Result<BTreeMap<String, Value>> {
+    let mut documents = BTreeMap::new();
+    for document in bundle["documents"]
+        .as_array()
+        .ok_or_else(|| invalid("client request schema documents missing"))?
+    {
+        let id = document["$id"]
+            .as_str()
+            .filter(|id| !id.is_empty())
+            .ok_or_else(|| invalid("client request schema identity missing"))?;
+        if documents.insert(id.to_owned(), document.clone()).is_some() {
+            return Err(invalid("client request schema identities collide"));
+        }
+    }
+    Ok(documents)
 }
 
 /// Additive typed helpers always enter through the existing method-bound

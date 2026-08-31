@@ -54,7 +54,9 @@ than silently falling back to a permissive payload type.
 Explicitly unbundled compiler reports remain opaque. A fully described chunk
 contains a typed string, offset and continuation metadata; it does not make the
 JSON encoded inside that string a typed semantic report. Constructor request
-interiors remain compiler-validated JSON objects, as before. Neither this change
+interiors remain compiler-validated JSON objects. The additive
+[typed request helpers](IMAGE-TYPED-REQUEST-CLIENTS-V1.md) describe their recursive
+structural shapes without changing runtime admission. Neither this change
 nor the generated type names claim complete HIR or candidate-report schemas.
 
 ## Language boundaries
@@ -97,6 +99,7 @@ author selected-profile, deterministic generation, concrete shape, nullable and
 hostile-input evidence. They have not been executed. Tests, compiler checks,
 generated clients and long local quality gates were not run for this change.
 
-Complete heterogeneous compiler-report schemas, typed constructor requests,
-editor integration, independent cross-language conformance and measured workflow
-improvements remain open. No completion-matrix row is promoted.
+Complete heterogeneous compiler-report schemas, independent cross-language
+conformance and measured workflow improvements remain open. Typed constructor
+requests and the optional saved-source editor have separate authored, unrun
+contracts. No completion-matrix row is promoted.

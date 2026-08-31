@@ -12,6 +12,11 @@
   container with all capabilities dropped.
   Provisioned worker/collector execution and hosted gates are not implied.
 
+- Added recursive typed request parameters and additive builders to generated
+  TypeScript, Python and Rust workspace clients. Types derive from selected
+  compiler-owned schemas; legacy builders and compiler admission remain
+  unchanged. Model, emitter and integration evidence is authored, unrun.
+
 - Added shared-source mixed v8 parameter-boundary regressions: all arities
   zero through eight, exact ninth-parameter rejection, native O0/O2 and generated
   npm/Rust consumers with independent argument literals and recovery controls.

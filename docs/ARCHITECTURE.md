@@ -512,6 +512,13 @@ Additive typed decoders enter through the existing validators. Unbundled reports
 remain opaque, and no generated helper owns transport or publication authority.
 See [Typed Response Clients](IMAGE-TYPED-RESPONSE-CLIENTS-V1.md).
 
+`request_types.rs` separately models selected complete request shapes, retaining
+document-local reference scopes and admitting recursive constructor shapes.
+Its Rust and script emitters supply additive typed request builders through the
+existing outer validator. They do not add nested runtime validation, semantic
+admission, transport or publication authority. See
+[Typed Request Clients](IMAGE-TYPED-REQUEST-CLIENTS-V1.md).
+
 `project/candidate/source_review.rs` independently replays candidate history and
 derives a closed source-pair/diff report, lazily retained on that exact candidate.
 The v5 `source_review.rs` adapter shares its immutable bytes across bounded

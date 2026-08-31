@@ -229,6 +229,34 @@ all patched intrinsics are restored before reuse checks. These trusted-realm
 faults do not demonstrate physical out-of-memory behavior, deallocation or GC,
 or a hostile-JavaScript sandbox. UTF-8 decoder evidence remains a separate case.
 
+### Successful inactive results after initialized ownership
+
+`tests/project_owned_inactive_cleanup_v1.rs` adds a separate authenticated v8
+Project whose two exports copy their borrowed input before selecting `Some`
+versus `None`, or `Ok` versus `Err`. It materializes the six verified inline
+artifacts for Node consumption; it is not a production filesystem-publication
+or installed-package test. Canonical source/Graph round-trips and descriptor
+bindings are checked, and fixture inputs and artifacts remain unchanged.
+
+The consumer executes the actual Wasm and passes through the actual arena
+imports. It binds observations to the minted token, arena Map and byte array.
+Every call must mint once, including empty bytes. An inactive success must
+drop that same owner during compiler execution, delete it exactly once and
+perform no result consumption. Active controls must instead consume once
+after engine return, without a compiler drop. Both paths require the bound
+arena to be empty before publication, cleared scratch and healthy reuse.
+`None` must not read inactive payload storage; `Err` reads its scalar error,
+not an owned payload.
+
+The fixed corpus covers empty, binary/invalid-UTF8, 65,535 and 65,536-byte
+inputs, repeated active/inactive/recovery sequences, and retained independent
+host copies. All 96 invocations use one real instance. Scoped intrinsic
+observers are restored in `finally`; no carrier, generated source or arena is
+replaced. These observations establish logical ownership settlement, not
+physical deallocation, native behavior, browser coverage or a hostile-realm
+sandbox. Temporary fixture trees are retained, and the selected gate needs an
+external process deadline/resource bound.
+
 ### Scoped local execution
 
 On macOS AArch64 with Rust 1.98 and Node 24.3, both tests in
@@ -238,3 +266,16 @@ runtime templates and existing artifact known answers are unchanged by the
 finalization-test batch. This is local evidence for this selected gate, not a
 full quality-profile, hosted release, package publication, support promotion
 or overall production-readiness claim.
+
+The later descriptor/inactive-cleanup test-only batch passes the complete
+`public_api_descriptor_v1` suite (16 tests), `project_owned_bytes_npm_v1`
+(7), `project_owned_failure_fsm_v1` (2), `project_owned_tuple_npm_v1` (1),
+and `project_owned_inactive_cleanup_v1` (1) together on macOS AArch64/Rust
+1.98 and offline Linux AArch64/Rust 1.88, both using Node 24.3. The new fixture
+observes 64 active consumes and 32 inactive compiler drops. Two documentation
+checks pass on both hosts; strict compiler-library and changed-integration
+Clippy passes on macOS. Linux uses the provisioned resource-bounded,
+network-disabled container. Production files and artifact known answers are
+unchanged. Windows, the pinned three-engine browser gate, native allocation
+evidence, full-profile verification and exact-head hosted promotion remain
+separate; these local results do not certify the concurrently changing main.

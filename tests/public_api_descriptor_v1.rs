@@ -16,6 +16,9 @@ mod semantic_replay;
 #[path = "public_api_descriptor_v1/mixed_arity.rs"]
 mod mixed_arity;
 
+#[path = "public_api_descriptor_v1/limits.rs"]
+mod limits;
+
 const PROJECT_REVISION: &str =
     "sha256:1111111111111111111111111111111111111111111111111111111111111111";
 const WORKSPACE_REVISION: &str =
@@ -359,7 +362,8 @@ fn one_and_maximum_exports_are_bounded_and_deterministic() {
     );
     let mut source = String::from("module exports.maximum;\n");
     let mut ids = Vec::new();
-    for index in 0..MAX_PUBLIC_API_EXPORTS {
+    assert_eq!(MAX_PUBLIC_API_EXPORTS, 32);
+    for index in 0..=MAX_PUBLIC_API_EXPORTS {
         let id = format!("export.{index:02}");
         source.push_str(&format!(
             "@id(\"{id}\") fn value_{index}() -> i64 {{ {index} }}\n"
@@ -368,10 +372,38 @@ fn one_and_maximum_exports_are_bounded_and_deterministic() {
     }
     source.push_str("@id(\"app.main\") fn main() -> i64 { 0 }\n");
     let maximum = resolve(&source);
-    let descriptor = derive_public_api_descriptor(&maximum, &ids, subject()).unwrap();
-    assert_eq!(descriptor.exports().len(), MAX_PUBLIC_API_EXPORTS);
-    ids.push("export.32".to_owned());
-    assert!(derive_public_api_descriptor(&maximum, &ids, subject()).is_err());
+    assert_eq!(maximum.functions.len(), 34);
+    assert_eq!(ids.len(), 33);
+    for id in &ids {
+        assert!(maximum
+            .functions
+            .iter()
+            .any(|function| function.id.as_str() == id));
+    }
+    for count in [31, 32] {
+        let selected = &ids[..count];
+        let descriptor = derive_public_api_descriptor(&maximum, selected, subject()).unwrap();
+        assert_eq!(descriptor.exports().len(), count);
+        assert_eq!(
+            replay_public_api_descriptor(
+                &maximum,
+                selected,
+                subject(),
+                &descriptor.canonical_bytes(),
+                &descriptor.digest(),
+            )
+            .unwrap(),
+            descriptor
+        );
+    }
+    // Every selected identity exists. An absent-export error must not mask a
+    // regression in the count guard at this boundary.
+    let error = derive_public_api_descriptor(&maximum, &ids, subject()).unwrap_err();
+    assert_eq!(error.code, "SPX-J113");
+    assert_eq!(
+        error.message,
+        "public API descriptor requires 1..=32 exports"
+    );
 }
 
 #[test]

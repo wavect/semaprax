@@ -886,6 +886,38 @@ change production code, generated artifacts, schemas or completion status, and
 do not replace strict TypeScript, installed-package, sanitizer or exact-head
 hosted gates.
 
+### Authentic descriptor capacity regressions
+
+The export-count regression in `tests/public_api_descriptor_v1.rs` resolves
+33 real export declarations. Selections of 31 and 32 derive and replay; selecting
+all 33 requires `SPX-J113` with the exact export-count diagnostic. The previous
+negative selected a nonexistent extra identity, which could conceal a broken
+count guard behind a different rejection.
+
+The companion `public_api_descriptor_v1/limits.rs` changes each of the six
+literal wire limits by minus one and plus one, independently for v8 and v10.
+All 24 submissions retain canonical member order and have freshly recomputed,
+profile-specific digests. Healthy self-replay brackets the mutations; rejection
+must identify invalid limits rather than a stale digest or unrelated subject.
+These are descriptor validation checks, not execution at the runtime capacities.
+All 16 descriptor tests pass in the [scoped local batch](OWNED-NPM-INVOCATION-V1.md#scoped-local-execution)
+on macOS/Rust 1.98 and Linux/Rust 1.88; no hosted promotion follows.
+
+### Owned-output capacity evidence boundary
+
+The current admitted byte-operation vocabulary has no concatenation or growth
+operation: `bytes_copy` preserves the source extent, ranges cannot enlarge it,
+and admitted external or fixed-array roots are bounded by 65,536 bytes. The
+selected v10 closure also rejects compiler-owned String intrinsics. This audit
+establishes no admitted source construction of a 65,537-byte owned result.
+
+Keep the three observations separate: a real compiled copy can return 65,536
+bytes; a 65,537-byte borrowed input rejects before entry; and a test-mutated
+65,537-byte output carrier rejects after entry and poisons the facade. The
+last observation in `project_owned_failure_fsm_v1/result.mjs` exercises the
+real decoder, not compiler production of an oversized value. None of these
+labels relaxes the output bound or grants the full capacity/promotion gate.
+
 ## Nonclaims
 
 Public Owned Data API v1 does not claim public records or authored variants,

@@ -1,0 +1,17 @@
+module inactive.app;
+
+@id("inactive.maybe")
+fn maybe(input: borrow Slice<u8>, present: bool) -> Option<Bytes> {
+    let staged = bytes_copy(input);
+    if present { Option<Bytes>::Some { value: staged } }
+    else { Option<Bytes>::None {} }
+}
+
+@id("inactive.result")
+fn outcome(input: borrow Slice<u8>, ok: bool) -> Result<Bytes, i64> {
+    let staged = bytes_copy(input);
+    if ok { Result<Bytes, i64>::Ok { value: staged } }
+    else { Result<Bytes, i64>::Err { error: -7 } }
+}
+
+@id("inactive.main") fn main() -> i64 { 0 }

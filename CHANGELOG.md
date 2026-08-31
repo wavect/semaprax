@@ -246,6 +246,15 @@
   client tests pass locally, including actual Python and offline Rust consumers;
   full-profile and current-head hosted validation remain pending.
 
+- Strengthened owned-data evidence with 33 genuine export declarations and
+  24 freshly digested fixed-limit mutations across v8/v10. A separate real
+  v8 npm fixture observes initialized owners dropping before successful
+  `None`/`Err`, versus active result consumption, across 96 calls including
+  maximum byte values. All 27 selected descriptor/lifecycle tests and two
+  documentation checks pass on Linux/macOS; strict scoped macOS Clippy passes.
+  Documented the distinction between oversized input, forged output carriers
+  and source-reachable results. No production, schema or support-status change.
+
 - Strengthened standalone String Web package evidence without changing production
   behavior: real source/descriptor boundary publication, private manifest-inclusive
   package accounting, and browser cancellation before oversized-response EOF.

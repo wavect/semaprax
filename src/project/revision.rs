@@ -11,7 +11,8 @@ use super::{
     admission, build::BuiltProject, execution, npm, semantic, ProjectManifest, ProjectNpmBuild,
 };
 use super::{
-    FlatOwnedRecordEvaluation, PublicApiArgument, PublicApiEvaluation, PublicApiParameterType,
+    FlatOwnedRecordEvaluation, OwnedUtf8ApiEvaluation, PublicApiArgument, PublicApiEvaluation,
+    PublicApiParameterType,
 };
 use super::{ProjectExecution, ProjectExecutionOptions, ProjectExecutionRole, ProjectProfile};
 use super::{ProjectSource, ProjectWebBuild};
@@ -423,6 +424,67 @@ impl ProjectRevision {
             &descriptor.digest(),
         )
         .map_err(|error| vec![error])
+    }
+
+    /// Evaluate one manifest-selected Project v10 export from this immutable
+    /// retained subject. Exact descriptor replay and invocation-shape checks
+    /// precede the authority-free, cumulatively bounded UTF-8 interpreter.
+    pub fn evaluate_owned_utf8_api_v1(
+        &self,
+        entry_id: &str,
+        arguments: &[PublicApiArgument<'_>],
+        max_steps: usize,
+    ) -> Result<OwnedUtf8ApiEvaluation, Vec<Diagnostic>> {
+        let descriptor = self.owned_utf8_api_descriptor()?;
+        if !super::public_api::valid_stable_id(entry_id) {
+            return Err(vec![Diagnostic::io(
+                "SPX-F102",
+                "interpreter admission failed (unsupported_callee): owned UTF-8 API selector is invalid",
+            )]);
+        }
+        let export = descriptor
+            .exports()
+            .iter()
+            .find(|export| export.stable_id().as_str() == entry_id)
+            .ok_or_else(|| {
+                vec![Diagnostic::io(
+                    "SPX-F102",
+                    format!(
+                        "interpreter admission failed (unsupported_callee): retained Project v10 descriptor does not select export `{entry_id}`"
+                    ),
+                )]
+            })?;
+        if arguments.len() != export.parameters().len() {
+            return Err(vec![Diagnostic::io(
+                "SPX-F103",
+                format!(
+                    "owned UTF-8 API export `{entry_id}` takes {} argument(s), {} were provided",
+                    export.parameters().len(),
+                    arguments.len()
+                ),
+            )]);
+        }
+        for (ordinal, (parameter, argument)) in
+            export.parameters().iter().zip(arguments).enumerate()
+        {
+            if !public_argument_matches(parameter.ty(), argument) {
+                return Err(vec![Diagnostic::io(
+                    "SPX-F103",
+                    format!(
+                        "parameter `{}` at ordinal {ordinal} of owned UTF-8 API export `{entry_id}` expects {}, but the argument is {}",
+                        parameter.source_name(),
+                        parameter.ty().wire_name(),
+                        public_argument_name(argument),
+                    ),
+                )]);
+            }
+        }
+        crate::interpreter::evaluate_resolved_owned_utf8_api(
+            &self.entry_program,
+            export,
+            arguments,
+            max_steps,
+        )
     }
 
     /// Emit the sole retained test-module closure as legacy core Wasm.

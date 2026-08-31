@@ -246,6 +246,17 @@
   client tests pass locally, including actual Python and offline Rust consumers;
   full-profile and current-head hosted validation remain pending.
 
+- Added a retained-Project reference evaluator for the closed Project-v10
+  owned-UTF8 profile. Exact descriptor/HIR replay precedes an authority-free
+  invocation over all seven result shapes. The v10-only runtime removes
+  implicit value cloning and precharges every interpreter-owned String
+  materialization against fixed cumulative 65,536-byte and 4,096-allocation
+  limits; borrowed snapshots and host copy-out retain their separate bounds.
+  Distinct Bytes/UTF8 settlement events, closed quota outcomes, automatic-ID
+  helper replay, mixed arities, hostile selection and exact boundaries are
+  covered by focused evidence. This does not widen v10 closure admission,
+  change v8/v9 behavior, execute a target, or promote/publicize the profile.
+
 - Added retained-Project reference evaluation for the closed Project-v9 flat
   owned-record profile. The evaluator replays the exact descriptor, validates
   the complete declaration-ordered record inventory before consumption, copies

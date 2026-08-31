@@ -44,8 +44,10 @@ use crate::semantic_workspace::SemanticWorkspaceSource;
 
 pub use crate::interpreter::{
     FlatOwnedRecordEvaluation, FlatOwnedRecordEvaluationOutcome, FlatOwnedRecordMember,
-    FlatOwnedRecordMemberValue, FlatOwnedRecordValue, PublicApiArgument, PublicApiEvaluation,
-    PublicApiEvaluationOutcome, PublicApiValue,
+    FlatOwnedRecordMemberValue, FlatOwnedRecordValue, OwnedUtf8ApiEvaluation,
+    OwnedUtf8ApiEvaluationOutcome, OwnedUtf8ApiValue, OwnedUtf8SettlementEvent, PublicApiArgument,
+    PublicApiEvaluation, PublicApiEvaluationOutcome, PublicApiValue,
+    MAX_OWNED_UTF8_LOGICAL_ALLOCATIONS, MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES,
 };
 pub use crate::wasm::{ProjectWebBuild, MAX_PROJECT_WEB_BUILD_BYTES, PROJECT_WEB_BUILD_SCHEMA};
 use authority::{authentication, DeclaredPathSelection, HeldDirectory, HeldFile};
@@ -259,6 +261,13 @@ pub use public_api::{
     PUBLIC_RESULT_ERR_TAG, PUBLIC_RESULT_OK_TAG,
 };
 pub use public_utf8_api::{PUBLIC_OWNED_UTF8_API_SCHEMA, PUBLIC_OWNED_UTF8_PROJECT_SCHEMA};
+
+pub(crate) fn validate_owned_utf8_closure_function(
+    function: &crate::hir::ResolvedFunction,
+) -> Result<(), String> {
+    public_api::validate_closure_function(function).map_err(|error| error.message)?;
+    public_utf8_api::validate_closure_shape(function)
+}
 pub(crate) use rename::{PreparedProjectRename, ProjectRenameDerivation};
 pub use revision::ProjectRevision;
 pub use semantic::{

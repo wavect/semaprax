@@ -107,6 +107,14 @@ pub const MAX_STEPS_LIMIT: usize = 100_000_000;
 /// never a language status.
 pub const MAX_CALL_DEPTH: usize = 256;
 
+/// Fixed cumulative logical UTF-8 materialization count for one retained
+/// Project-v10 evaluation. Callers cannot widen this interpreter capacity.
+pub const MAX_OWNED_UTF8_LOGICAL_ALLOCATIONS: u64 = 4_096;
+
+/// Fixed cumulative logical UTF-8 payload bytes for one retained Project-v10
+/// evaluation. This bounds logical string payload, not allocator metadata.
+pub const MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES: u64 = 65_536;
+
 const SOURCE_DIGEST_DOMAIN: &[u8] = b"semaprax.interpret.source.v1\0";
 const PAYLOAD_DIGEST_DOMAIN: &[u8] = b"semaprax.interpret.payload.v1\0";
 
@@ -604,6 +612,54 @@ pub struct PublicApiEvaluation {
     pub max_steps: usize,
 }
 
+/// One normalized Project-v10 value. Owned UTF-8 is kept distinct from the
+/// Project-v8 vocabulary so older callers cannot silently acquire a new
+/// result shape.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum OwnedUtf8ApiValue {
+    I64(i64),
+    Bool(bool),
+    Usize(u64),
+    Bytes(Vec<u8>),
+    OptionBytes(Option<Vec<u8>>),
+    ResultBytesI64(Result<Vec<u8>, i64>),
+    Utf8(String),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum OwnedUtf8ApiEvaluationOutcome {
+    Returned(OwnedUtf8ApiValue),
+    LanguageFailure(NormalizedStatus),
+    FuelExhausted,
+    CallDepthExceeded,
+    Utf8MaterializationLimitExceeded {
+        attempted_materializations: u64,
+        attempted_bytes: u64,
+    },
+    GuardError(String),
+}
+
+/// Public-boundary settlement after a private interpreter carrier has been
+/// consumed. Internal drops do not create settlement evidence.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OwnedUtf8SettlementEvent {
+    CopyOutAndSettleBytes,
+    CopyOutAndSettleUtf8,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OwnedUtf8ApiEvaluation {
+    pub function_id: DeclarationId,
+    pub outcome: OwnedUtf8ApiEvaluationOutcome,
+    pub settlement_events: Vec<OwnedUtf8SettlementEvent>,
+    pub steps_used: usize,
+    pub max_steps: usize,
+    pub utf8_materializations_used: u64,
+    pub utf8_materializations_max: u64,
+    pub utf8_bytes_used: u64,
+    pub utf8_bytes_max: u64,
+}
+
 /// One identity-bound Project-v9 flat-record member. The vector containing
 /// these values is always in authenticated descriptor order; it is not a
 /// target layout or an offset-bearing aggregate.
@@ -752,6 +808,12 @@ pub(crate) fn evaluate_resolved_zero_arg_i64(
                     Err(Flow::Cancelled { .. }) => ResolvedEvaluationOutcome::GuardError(
                         "unexpected cancellation in legacy resolved evaluation".to_owned(),
                     ),
+                    Err(Flow::Utf8MaterializationLimitExceeded { .. }) => {
+                        ResolvedEvaluationOutcome::GuardError(
+                            "unexpected UTF-8 materialization limit in legacy resolved evaluation"
+                                .to_owned(),
+                        )
+                    }
                     Err(Flow::Guard(detail)) => {
                         ResolvedEvaluationOutcome::GuardError(detail.to_owned())
                     }
@@ -888,6 +950,12 @@ pub fn evaluate_resolved_owned_data(
                     Err(Flow::Cancelled { .. }) => OwnedDataEvaluationOutcome::GuardError(
                         "unexpected cancellation in legacy owned-data evaluation".to_owned(),
                     ),
+                    Err(Flow::Utf8MaterializationLimitExceeded { .. }) => {
+                        OwnedDataEvaluationOutcome::GuardError(
+                            "unexpected UTF-8 materialization limit in legacy owned-data evaluation"
+                                .to_owned(),
+                        )
+                    }
                     Err(Flow::Guard(detail)) => {
                         OwnedDataEvaluationOutcome::GuardError(detail.to_owned())
                     }
@@ -1101,6 +1169,12 @@ pub(crate) fn evaluate_resolved_public_api(
                     Err(Flow::Cancelled { .. }) => PublicApiEvaluationOutcome::GuardError(
                         "unexpected cancellation in public API evaluation".to_owned(),
                     ),
+                    Err(Flow::Utf8MaterializationLimitExceeded { .. }) => {
+                        PublicApiEvaluationOutcome::GuardError(
+                            "unexpected UTF-8 materialization limit in Project-v8 evaluation"
+                                .to_owned(),
+                        )
+                    }
                     Err(Flow::Guard(detail)) => {
                         PublicApiEvaluationOutcome::GuardError(detail.to_owned())
                     }
@@ -1307,6 +1381,12 @@ pub(crate) fn evaluate_resolved_flat_owned_record_api(
                     Err(Flow::Cancelled { .. }) => FlatOwnedRecordEvaluationOutcome::GuardError(
                         "unexpected cancellation in flat owned-record evaluation".to_owned(),
                     ),
+                    Err(Flow::Utf8MaterializationLimitExceeded { .. }) => {
+                        FlatOwnedRecordEvaluationOutcome::GuardError(
+                            "unexpected UTF-8 materialization limit in Project-v9 evaluation"
+                                .to_owned(),
+                        )
+                    }
                     Err(Flow::Guard(detail)) => {
                         FlatOwnedRecordEvaluationOutcome::GuardError(detail.to_owned())
                     }
@@ -1330,6 +1410,279 @@ pub(crate) fn evaluate_resolved_flat_owned_record_api(
             )]
         })
     })
+}
+
+/// Evaluate one exact Project-v10 descriptor export against already-validated
+/// HIR. The caller owns descriptor authentication; this seam independently
+/// replays every selected signature/identity fact and the complete reachable
+/// closure before enabling the fixed UTF-8 materialization meter.
+pub(crate) fn evaluate_resolved_owned_utf8_api(
+    program: &hir::ResolvedProgram,
+    expected: &crate::project::PublicApiExport,
+    arguments: &[PublicApiArgument<'_>],
+    max_steps: usize,
+) -> Result<OwnedUtf8ApiEvaluation, Vec<Diagnostic>> {
+    hir::validate(program).map_err(|diagnostic| vec![diagnostic])?;
+    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
+        return Err(vec![option_error(format!(
+            "owned UTF-8 API evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
+        ))]);
+    }
+    if arguments.len() > crate::project::MAX_PUBLIC_API_PARAMETERS {
+        return Err(vec![argument_error(format!(
+            "owned UTF-8 API invocation exceeds {} parameters",
+            crate::project::MAX_PUBLIC_API_PARAMETERS
+        ))]);
+    }
+    validate_public_api_borrowed_input_bound(arguments, "owned UTF-8 API")?;
+
+    let entry_id = expected.stable_id().as_str();
+    let entry = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == entry_id)
+        .ok_or_else(|| {
+            vec![selection_error(
+                REASON_UNSUPPORTED_CALLEE,
+                format!("resolved owned UTF-8 export `{entry_id}` is absent"),
+            )]
+        })?;
+    if entry.id == program.entrypoint
+        || program
+            .declarations
+            .declaration(&entry.id)
+            .is_none_or(|declaration| declaration.identity_origin != hir::IdentityOrigin::Explicit)
+    {
+        return Err(vec![selection_error(
+            REASON_AUTOMATIC_IDENTITY,
+            format!(
+                "resolved owned UTF-8 export `{entry_id}` is not an explicit non-entry identity"
+            ),
+        )]);
+    }
+    if entry.params.len() != expected.parameters().len() || entry.params.len() != arguments.len() {
+        return Err(vec![argument_error(format!(
+            "resolved owned UTF-8 export `{entry_id}` argument inventory disagrees with its descriptor"
+        ))]);
+    }
+    for (index, ((parameter, descriptor_parameter), argument)) in entry
+        .params
+        .iter()
+        .zip(expected.parameters())
+        .zip(arguments)
+        .enumerate()
+    {
+        if parameter.id != *descriptor_parameter.stable_id()
+            || parameter.name != descriptor_parameter.source_name()
+            || !public_api_parameter_type_matches(parameter, descriptor_parameter.ty())
+            || !public_api_argument_matches(parameter, argument)
+        {
+            return Err(vec![selection_error(
+                REASON_UNSUPPORTED_PARAMETER_TYPE,
+                format!(
+                    "resolved owned UTF-8 export `{entry_id}` parameter {index} disagrees with its exact descriptor and argument"
+                ),
+            )]);
+        }
+    }
+    if !owned_utf8_api_result_matches(&entry.return_type, expected.result()) {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_RESULT_TYPE,
+            format!(
+                "resolved owned UTF-8 export `{entry_id}` result disagrees with its exact descriptor"
+            ),
+        )]);
+    }
+
+    let admitted = program
+        .functions
+        .iter()
+        .filter(|function| {
+            resolved_owned_utf8_signature_is_admitted(function, &program.declarations)
+        })
+        .map(|function| (function.id.as_str(), function))
+        .collect::<BTreeMap<_, _>>();
+    if !admitted.contains_key(entry_id) {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_CALLEE,
+            format!("resolved owned UTF-8 export `{entry_id}` is outside the interpreter profile"),
+        )]);
+    }
+    let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
+    if closure.len() > crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_CALLEE,
+            format!(
+                "owned UTF-8 selected closure exceeds {} functions",
+                crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS
+            ),
+        )]);
+    }
+    for id in &closure {
+        let function = admitted.get(id.as_str()).ok_or_else(|| {
+            vec![selection_error(
+                REASON_UNSUPPORTED_CALLEE,
+                format!("owned UTF-8 closure function `{id}` is not admitted"),
+            )]
+        })?;
+        crate::project::validate_owned_utf8_closure_function(function).map_err(|detail| {
+            vec![selection_error(
+                REASON_UNSUPPORTED_CALLEE,
+                format!("owned UTF-8 closure function `{id}` failed replay: {detail}"),
+            )]
+        })?;
+    }
+    require_acyclic_public_api_closure(entry_id, &admitted)?;
+
+    // Borrowed host carriers are bounded above and snapshotted before the
+    // evaluator thread. They are not owned UTF-8 runtime materializations.
+    let arguments = entry
+        .params
+        .iter()
+        .zip(arguments)
+        .map(|(parameter, argument)| {
+            let value = match argument {
+                PublicApiArgument::I64(value) => ArgumentValue::Int(*value),
+                PublicApiArgument::Bool(value) => ArgumentValue::Bool(*value),
+                PublicApiArgument::BorrowStr(value) => {
+                    ArgumentValue::BorrowedStr((*value).to_owned())
+                }
+                PublicApiArgument::BorrowSliceU8(value) => {
+                    ArgumentValue::BorrowedSlice((*value).to_vec())
+                }
+            };
+            (parameter.name.clone(), value)
+        })
+        .collect::<Vec<_>>();
+    let return_type = entry.return_type.clone();
+
+    std::thread::scope(|scope| {
+        let worker = std::thread::Builder::new()
+            .name("semaprax-owned-utf8-api-evaluate".to_owned())
+            .stack_size(EVALUATION_STACK_BYTES)
+            .spawn_scoped(scope, || {
+                let (evaluated, steps_used, _, (utf8_materializations_used, utf8_bytes_used)) =
+                    evaluate_resolved_entry_with_utf8_budget(
+                        entry,
+                        &arguments,
+                        &admitted,
+                        &program.declarations,
+                        max_steps,
+                        false,
+                        Utf8MaterializationBudget::fixed(),
+                    );
+                let mut settlement_events = Vec::with_capacity(1);
+                let outcome = match evaluated {
+                    Ok(value) => {
+                        match copy_out_owned_utf8_api(value, &return_type, &mut settlement_events) {
+                            Ok(value) => OwnedUtf8ApiEvaluationOutcome::Returned(value),
+                            Err(detail) => {
+                                OwnedUtf8ApiEvaluationOutcome::GuardError(detail.to_owned())
+                            }
+                        }
+                    }
+                    Err(Flow::Failure(status)) => {
+                        OwnedUtf8ApiEvaluationOutcome::LanguageFailure(status)
+                    }
+                    Err(Flow::Exhausted) => OwnedUtf8ApiEvaluationOutcome::FuelExhausted,
+                    Err(Flow::DepthExceeded) => OwnedUtf8ApiEvaluationOutcome::CallDepthExceeded,
+                    Err(Flow::Utf8MaterializationLimitExceeded {
+                        attempted_materializations,
+                        attempted_bytes,
+                    }) => OwnedUtf8ApiEvaluationOutcome::Utf8MaterializationLimitExceeded {
+                        attempted_materializations,
+                        attempted_bytes,
+                    },
+                    Err(Flow::Cancelled { .. }) => OwnedUtf8ApiEvaluationOutcome::GuardError(
+                        "unexpected cancellation in owned UTF-8 API evaluation".to_owned(),
+                    ),
+                    Err(Flow::Guard(detail)) => {
+                        OwnedUtf8ApiEvaluationOutcome::GuardError(detail.to_owned())
+                    }
+                };
+                OwnedUtf8ApiEvaluation {
+                    function_id: entry.id.clone(),
+                    outcome,
+                    settlement_events,
+                    steps_used,
+                    max_steps,
+                    utf8_materializations_used,
+                    utf8_materializations_max: MAX_OWNED_UTF8_LOGICAL_ALLOCATIONS,
+                    utf8_bytes_used,
+                    utf8_bytes_max: MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES,
+                }
+            })
+            .map_err(|error| {
+                vec![guard_error(&format!(
+                    "owned UTF-8 API evaluation thread failed to start: {error}"
+                ))]
+            })?;
+        worker.join().map_err(|_| {
+            vec![guard_error(
+                "owned UTF-8 API evaluation thread panicked after HIR validation",
+            )]
+        })
+    })
+}
+
+fn resolved_owned_utf8_signature_is_admitted(
+    function: &ResolvedFunction,
+    declarations: &hir::DeclarationIndex,
+) -> bool {
+    function.effects.is_empty()
+        && function.requires.is_empty()
+        && function.ensures.is_empty()
+        && resolved_owned_utf8_body_is_import_and_generic_free(&function.body)
+        && function.params.iter().all(|parameter| {
+            resolved_data_parameter_is_admitted(&parameter.ty, parameter.ownership, declarations)
+                || (parameter.ty == ResolvedType::String
+                    && parameter.ownership == hir::OwnershipMode::Own)
+        })
+        && (resolved_data_result_is_admitted(&function.return_type, declarations)
+            || function.return_type == ResolvedType::String)
+}
+
+fn resolved_owned_utf8_body_is_import_and_generic_free(root: &ResolvedExpr) -> bool {
+    let mut pending = vec![root];
+    while let Some(expression) = pending.pop() {
+        match &expression.kind {
+            ResolvedExprKind::NativeRustImportCall(_) | ResolvedExprKind::HostCommandCall(_) => {
+                return false;
+            }
+            ResolvedExprKind::Call {
+                type_arguments,
+                instance,
+                ..
+            } if !type_arguments.is_empty() || instance.is_some() => return false,
+            _ => pending.extend(child_expressions(expression)),
+        }
+    }
+    true
+}
+
+fn owned_utf8_api_result_matches(
+    ty: &ResolvedType,
+    expected: crate::project::PublicApiResultType,
+) -> bool {
+    match expected {
+        crate::project::PublicApiResultType::I64 => ty == &ResolvedType::I64,
+        crate::project::PublicApiResultType::Bool => ty == &ResolvedType::Bool,
+        crate::project::PublicApiResultType::Usize => ty == &ResolvedType::Usize,
+        crate::project::PublicApiResultType::OwnedBytes => ty == &ResolvedType::Bytes,
+        crate::project::PublicApiResultType::OptionOwnedBytes => matches!(
+            ty,
+            ResolvedType::Nominal { declaration, arguments }
+                if declaration.as_str() == crate::prelude::OPTION_ID
+                    && arguments.as_slice() == [ResolvedType::Bytes]
+        ),
+        crate::project::PublicApiResultType::ResultOwnedBytesI64 => matches!(
+            ty,
+            ResolvedType::Nominal { declaration, arguments }
+                if declaration.as_str() == crate::prelude::RESULT_ID
+                    && arguments.as_slice() == [ResolvedType::Bytes, ResolvedType::I64]
+        ),
+        crate::project::PublicApiResultType::OwnedUtf8 => ty == &ResolvedType::String,
+    }
 }
 
 fn public_api_argument_matches(
@@ -1787,6 +2140,60 @@ fn copy_out_public_api(
     }
 }
 
+fn copy_out_owned_utf8_api(
+    value: Value,
+    expected: &ResolvedType,
+    settlement_events: &mut Vec<OwnedUtf8SettlementEvent>,
+) -> Result<OwnedUtf8ApiValue, &'static str> {
+    match expected {
+        ResolvedType::I64 => match value {
+            Value::Int(value) => Ok(OwnedUtf8ApiValue::I64(value)),
+            _ => Err("owned UTF-8 API i64 result disagrees with its signature"),
+        },
+        ResolvedType::Bool => match value {
+            Value::Bool(value) => Ok(OwnedUtf8ApiValue::Bool(value)),
+            _ => Err("owned UTF-8 API bool result disagrees with its signature"),
+        },
+        ResolvedType::Usize => match value {
+            Value::Usize(value) => Ok(OwnedUtf8ApiValue::Usize(value)),
+            _ => Err("owned UTF-8 API usize result disagrees with its signature"),
+        },
+        ResolvedType::String => {
+            let Value::String(value) = value else {
+                return Err("owned UTF-8 API String result disagrees with its signature");
+            };
+            let output_limit = u64::try_from(crate::project::MAX_PUBLIC_API_OWNED_OUTPUT_BYTES)
+                .unwrap_or(u64::MAX);
+            if u64::try_from(value.len()).unwrap_or(u64::MAX) > output_limit {
+                return Err("owned UTF-8 API String result exceeds the public output bound");
+            }
+            // Host copy-out has its own fixed public bound and is deliberately
+            // outside the private runtime meter. Settle the private carrier
+            // only after the host allocation has completed.
+            let host_value = value.clone();
+            drop(value);
+            settlement_events.push(OwnedUtf8SettlementEvent::CopyOutAndSettleUtf8);
+            Ok(OwnedUtf8ApiValue::Utf8(host_value))
+        }
+        _ => {
+            let mut byte_events = Vec::with_capacity(1);
+            let value = copy_out_owned_data(value, expected, &mut byte_events)?;
+            for event in byte_events {
+                match event {
+                    OwnedDataCleanupEvent::CopyOutAndSettleBytes => {
+                        settlement_events.push(OwnedUtf8SettlementEvent::CopyOutAndSettleBytes)
+                    }
+                }
+            }
+            Ok(match value {
+                OwnedDataValue::Bytes(value) => OwnedUtf8ApiValue::Bytes(value),
+                OwnedDataValue::OptionBytes(value) => OwnedUtf8ApiValue::OptionBytes(value),
+                OwnedDataValue::ResultBytesI64(value) => OwnedUtf8ApiValue::ResultBytesI64(value),
+            })
+        }
+    }
+}
+
 /// Interpret one selected function of one verified source file.
 ///
 /// Read-only: source bytes must remain unchanged between the snapshot and the
@@ -1945,6 +2352,11 @@ fn interpret_on_current_thread(
             Flow::Cancelled { .. } => {
                 return Err(vec![guard_error(
                     "unexpected cancellation in legacy source evaluation",
+                )]);
+            }
+            Flow::Utf8MaterializationLimitExceeded { .. } => {
+                return Err(vec![guard_error(
+                    "unexpected UTF-8 materialization limit in legacy source evaluation",
                 )]);
             }
             Flow::Guard(detail) => return Err(vec![guard_error(detail)]),
@@ -2781,6 +3193,11 @@ pub(crate) fn evaluate_resolved_stdout_transcript(
         Err(Flow::Cancelled { .. }) => ResolvedEvaluationOutcome::GuardError(
             "unexpected cancellation in legacy hosted evaluation".to_owned(),
         ),
+        Err(Flow::Utf8MaterializationLimitExceeded { .. }) => {
+            ResolvedEvaluationOutcome::GuardError(
+                "unexpected UTF-8 materialization limit in legacy hosted evaluation".to_owned(),
+            )
+        }
         Err(Flow::Guard(detail)) => ResolvedEvaluationOutcome::GuardError(detail.to_owned()),
     };
     if !matches!(outcome, ResolvedEvaluationOutcome::ReturnedI64(_)) {
@@ -2901,6 +3318,7 @@ pub(crate) fn evaluate_resolved_language_command(
         budget: max_steps,
         next_byte_allocation: 0,
         allocated_byte_payload: 0,
+        utf8_materialization_budget: Utf8MaterializationBudget::UnlimitedLegacy,
         stdout_transcript: Some(Vec::new()),
         stderr_transcript: Some(Vec::new()),
         command_input: Some(command_input),
@@ -2923,6 +3341,9 @@ pub(crate) fn evaluate_resolved_language_command(
         Err(Flow::DepthExceeded) => CommandEvaluationOutcome::CallDepthExceeded,
         Err(Flow::Cancelled { .. }) => CommandEvaluationOutcome::GuardError(
             "unexpected cancellation in legacy hosted command evaluation".to_owned(),
+        ),
+        Err(Flow::Utf8MaterializationLimitExceeded { .. }) => CommandEvaluationOutcome::GuardError(
+            "unexpected UTF-8 materialization limit in hosted command evaluation".to_owned(),
         ),
         Err(Flow::Guard(detail)) => CommandEvaluationOutcome::GuardError(detail.to_owned()),
     };
@@ -3051,7 +3472,7 @@ fn child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, PartialEq)]
 enum Value {
     Int(i64),
     Int32(i32),
@@ -3157,13 +3578,13 @@ struct OwnedBytesValue {
     bytes: Arc<[u8]>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, PartialEq)]
 struct OwnedRecordValue {
     record: hir::DeclarationId,
     fields: BTreeMap<hir::DeclarationId, Value>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, PartialEq)]
 struct OwnedVariantValue {
     ty: ResolvedType,
     variant: hir::DeclarationId,
@@ -3178,12 +3599,71 @@ fn borrowed_text(value: &Value) -> Option<&str> {
     }
 }
 
+#[derive(Debug)]
 enum Flow {
     Failure(NormalizedStatus),
     Exhausted,
     DepthExceeded,
-    Cancelled { before_step: usize },
+    Cancelled {
+        before_step: usize,
+    },
+    Utf8MaterializationLimitExceeded {
+        attempted_materializations: u64,
+        attempted_bytes: u64,
+    },
     Guard(&'static str),
+}
+
+#[derive(Clone, Copy)]
+enum Utf8MaterializationBudget {
+    UnlimitedLegacy,
+    Fixed {
+        used_materializations: u64,
+        used_bytes: u64,
+    },
+}
+
+impl Utf8MaterializationBudget {
+    fn fixed() -> Self {
+        Self::Fixed {
+            used_materializations: 0,
+            used_bytes: 0,
+        }
+    }
+
+    fn usage(self) -> (u64, u64) {
+        match self {
+            Self::UnlimitedLegacy => (0, 0),
+            Self::Fixed {
+                used_materializations,
+                used_bytes,
+            } => (used_materializations, used_bytes),
+        }
+    }
+
+    fn charge(&mut self, byte_len: usize) -> Result<(), Flow> {
+        let Self::Fixed {
+            used_materializations,
+            used_bytes,
+        } = self
+        else {
+            return Ok(());
+        };
+        let attempted_materializations = used_materializations.saturating_add(1);
+        let byte_len = u64::try_from(byte_len).unwrap_or(u64::MAX);
+        let attempted_bytes = used_bytes.saturating_add(byte_len);
+        if attempted_materializations > MAX_OWNED_UTF8_LOGICAL_ALLOCATIONS
+            || attempted_bytes > MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES
+        {
+            return Err(Flow::Utf8MaterializationLimitExceeded {
+                attempted_materializations,
+                attempted_bytes,
+            });
+        }
+        *used_materializations = attempted_materializations;
+        *used_bytes = attempted_bytes;
+        Ok(())
+    }
 }
 
 struct OutcomeJson {
@@ -3295,6 +3775,7 @@ struct Evaluator<'a> {
     budget: usize,
     next_byte_allocation: u32,
     allocated_byte_payload: u64,
+    utf8_materialization_budget: Utf8MaterializationBudget,
     stdout_transcript: Option<Vec<u8>>,
     stderr_transcript: Option<Vec<u8>>,
     command_input: Option<CommandInputState>,
@@ -3321,6 +3802,27 @@ fn evaluate_resolved_entry<'a>(
     budget: usize,
     host_stdout: bool,
 ) -> (Result<Value, Flow>, usize, Vec<u8>) {
+    let (outcome, steps, transcript, _) = evaluate_resolved_entry_with_utf8_budget(
+        entry,
+        arguments,
+        admitted,
+        declarations,
+        budget,
+        host_stdout,
+        Utf8MaterializationBudget::UnlimitedLegacy,
+    );
+    (outcome, steps, transcript)
+}
+
+fn evaluate_resolved_entry_with_utf8_budget<'a>(
+    entry: &'a ResolvedFunction,
+    arguments: &[(String, ArgumentValue)],
+    admitted: &'a BTreeMap<&'a str, &'a ResolvedFunction>,
+    declarations: &'a hir::DeclarationIndex,
+    budget: usize,
+    host_stdout: bool,
+    utf8_materialization_budget: Utf8MaterializationBudget,
+) -> (Result<Value, Flow>, usize, Vec<u8>, (u64, u64)) {
     let mut evaluator = Evaluator {
         admitted: FunctionLookup::Borrowed(admitted),
         declarations,
@@ -3328,6 +3830,7 @@ fn evaluate_resolved_entry<'a>(
         budget,
         next_byte_allocation: 0,
         allocated_byte_payload: 0,
+        utf8_materialization_budget,
         stdout_transcript: host_stdout.then(Vec::new),
         stderr_transcript: None,
         command_input: None,
@@ -3340,10 +3843,12 @@ fn evaluate_resolved_entry<'a>(
         trace_phase: ResolvedTracePhase::Body,
     };
     let outcome = evaluator.evaluate_entry(entry, arguments);
+    let utf8_usage = evaluator.utf8_materialization_budget.usage();
     (
         outcome,
         evaluator.steps,
         evaluator.stdout_transcript.unwrap_or_default(),
+        utf8_usage,
     )
 }
 
@@ -3362,6 +3867,7 @@ impl Evaluator<'_> {
             budget,
             next_byte_allocation: 0,
             allocated_byte_payload: 0,
+            utf8_materialization_budget: Utf8MaterializationBudget::UnlimitedLegacy,
             stdout_transcript: None,
             stderr_transcript: None,
             command_input: None,
@@ -3390,26 +3896,75 @@ impl Evaluator<'_> {
         Ok(())
     }
 
-    fn lookup(environment: &Environment, root: &ValueId) -> Option<Value> {
-        environment
+    fn charge_utf8_materialization(&mut self, byte_len: usize) -> Result<(), Flow> {
+        self.utf8_materialization_budget.charge(byte_len)
+    }
+
+    fn materialize_utf8_copy(&mut self, value: &str) -> Result<String, Flow> {
+        self.charge_utf8_materialization(value.len())?;
+        Ok(value.to_owned())
+    }
+
+    /// The runtime value carrier deliberately has no `Clone` implementation.
+    /// Every semantic copy therefore passes through this evaluator-owned seam,
+    /// making owned UTF-8 accounting compiler-enforced at future call sites.
+    fn clone_value(&mut self, value: &Value) -> Result<Value, Flow> {
+        Ok(match value {
+            Value::Int(value) => Value::Int(*value),
+            Value::Int32(value) => Value::Int32(*value),
+            Value::Uint8(value) => Value::Uint8(*value),
+            Value::Usize(value) => Value::Usize(*value),
+            Value::Char(value) => Value::Char(*value),
+            Value::Float32(value) => Value::Float32(*value),
+            Value::Float64(value) => Value::Float64(*value),
+            Value::Bool(value) => Value::Bool(*value),
+            Value::ArrayU8(value) => Value::ArrayU8(Arc::clone(value)),
+            Value::Bytes(value) => Value::Bytes(value.clone()),
+            Value::String(value) => Value::String(self.materialize_utf8_copy(value)?),
+            Value::BorrowedStr(value) => Value::BorrowedStr(value.clone()),
+            Value::BorrowedSlice(value) => Value::BorrowedSlice(value.clone()),
+            Value::OptionU8(value) => Value::OptionU8(*value),
+            // Aggregate aliases preserve the existing authenticated-borrow
+            // semantics; Arc cloning does not duplicate any nested payload.
+            Value::Record(value) => Value::Record(Arc::clone(value)),
+            Value::Variant(value) => Value::Variant(Arc::clone(value)),
+            Value::Moved => Value::Moved,
+        })
+    }
+
+    fn lookup(&mut self, environment: &Environment, root: &ValueId) -> Result<Option<Value>, Flow> {
+        let value = environment
             .iter()
             .rev()
             .find(|(key, _)| key == root)
-            .and_then(|(_, value)| (!matches!(value, Value::Moved)).then(|| value.clone()))
+            .map(|(_, value)| value);
+        match value {
+            Some(Value::Moved) | None => Ok(None),
+            Some(value) => self.clone_value(value).map(Some),
+        }
     }
 
-    fn lookup_place(environment: &Environment, place: &hir::Place) -> Option<Value> {
-        let mut value = Self::lookup(environment, &place.root)?;
+    fn lookup_place(
+        &mut self,
+        environment: &Environment,
+        place: &hir::Place,
+    ) -> Result<Option<Value>, Flow> {
+        let Some(mut value) = self.lookup(environment, &place.root)? else {
+            return Ok(None);
+        };
         for projection in &place.projections {
             let hir::PlaceProjection::Field(field) = projection else {
-                return None;
+                return Ok(None);
             };
             let Value::Record(record) = value else {
-                return None;
+                return Ok(None);
             };
-            value = record.fields.get(field)?.clone();
+            let Some(field) = record.fields.get(field) else {
+                return Ok(None);
+            };
+            value = self.clone_value(field)?;
         }
-        Some(value)
+        Ok(Some(value))
     }
 
     fn take_owned(environment: &mut Environment, root: &ValueId) -> Option<Value> {
@@ -3577,7 +4132,10 @@ impl Evaluator<'_> {
         }
         self.set_trace_phase(ResolvedTracePhase::Body);
         let value = self.evaluate(&function.body, &mut frame, depth)?;
-        frame.push((function.result_id.clone(), value.clone()));
+        if !function.ensures.is_empty() {
+            let result_value = self.clone_value(&value)?;
+            frame.push((function.result_id.clone(), result_value));
+        }
         self.set_trace_phase(ResolvedTracePhase::Ensures);
         for clause in &function.ensures {
             self.charge()?;
@@ -3634,7 +4192,9 @@ impl Evaluator<'_> {
                     .map_err(|_| Flow::Guard("fixed byte array length does not fit host usize"))?;
                 Ok(Value::ArrayU8(Arc::from(vec![*value; length])))
             }
-            ResolvedExprKind::String(value) => Ok(Value::String(value.clone())),
+            ResolvedExprKind::String(value) => {
+                Ok(Value::String(self.materialize_utf8_copy(value)?))
+            }
             ResolvedExprKind::Place(place) => {
                 let moves_storage = expression.ownership == hir::OwnershipMode::Own
                     && matches!(
@@ -3645,14 +4205,15 @@ impl Evaluator<'_> {
                     Self::take_owned_place(environment, place)
                         .ok_or(Flow::Guard("use of moved owned storage"))
                 } else {
-                    Self::lookup_place(environment, place)
+                    self.lookup_place(environment, place)?
                         .ok_or(Flow::Guard("unresolved scalar place"))
                 }
             }
             ResolvedExprKind::BorrowPlace { operation, place } => {
                 let op = crate::byte_ops::by_id(operation.as_str())
                     .ok_or(Flow::Guard("unknown compiler-owned byte view"))?;
-                let source = Self::lookup_place(environment, place)
+                let source = self
+                    .lookup_place(environment, place)?
                     .ok_or(Flow::Guard("unresolved byte view storage root"))?;
                 match (op, source) {
                     (crate::byte_ops::ByteOp::BytesAsSlice, Value::Bytes(value)) => {
@@ -4030,7 +4591,17 @@ impl Evaluator<'_> {
                         crate::string_ops::StringOp::Concat => {
                             match (values.first(), values.get(1)) {
                                 (Some(Value::String(left)), Some(Value::String(right))) => {
-                                    Ok(Value::String(format!("{left}{right}")))
+                                    let length = left.len().checked_add(right.len()).ok_or(
+                                        Flow::Utf8MaterializationLimitExceeded {
+                                            attempted_materializations: u64::MAX,
+                                            attempted_bytes: u64::MAX,
+                                        },
+                                    )?;
+                                    self.charge_utf8_materialization(length)?;
+                                    let mut result = String::with_capacity(length);
+                                    result.push_str(left);
+                                    result.push_str(right);
+                                    Ok(Value::String(result))
                                 }
                                 _ => Err(Flow::Guard("ill-typed string operation operand")),
                             }
@@ -4059,7 +4630,11 @@ impl Evaluator<'_> {
                         },
                         crate::string_ops::StringOp::FromChar => match values.first() {
                             Some(Value::Char(scalar)) => match char::from_u32(*scalar) {
-                                Some(value) => Ok(Value::String(value.to_string())),
+                                Some(value) => {
+                                    let mut bytes = [0u8; 4];
+                                    let value = value.encode_utf8(&mut bytes);
+                                    Ok(Value::String(self.materialize_utf8_copy(value)?))
+                                }
                                 None => Err(Flow::Guard("ill-typed string operation operand")),
                             },
                             _ => Err(Flow::Guard("ill-typed string operation operand")),
@@ -4214,7 +4789,7 @@ impl Evaluator<'_> {
                         if !place.projections.is_empty() {
                             return Err(Flow::Guard("borrowed record call argument is projected"));
                         }
-                        Self::lookup(environment, &place.root)
+                        self.lookup(environment, &place.root)?
                             .ok_or(Flow::Guard("borrowed record call owner is unavailable"))?
                     } else {
                         self.evaluate(argument, environment, depth)?
@@ -4333,7 +4908,7 @@ impl Evaluator<'_> {
                             "borrowed record match has a projected scrutinee",
                         ));
                     }
-                    Self::lookup(environment, &place.root)
+                    self.lookup(environment, &place.root)?
                         .ok_or(Flow::Guard("borrowed record owner is unavailable"))?
                 } else {
                     self.evaluate(scrutinee, environment, depth)?
@@ -4406,7 +4981,8 @@ impl Evaluator<'_> {
                                 ))?;
                                 match &field.pattern {
                                     hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
-                                        bindings.push((binding.id.clone(), value.clone()));
+                                        bindings
+                                            .push((binding.id.clone(), self.clone_value(value)?));
                                     }
                                     hir::ResolvedRecordMatchFieldPattern::Wildcard => {}
                                     hir::ResolvedRecordMatchFieldPattern::Record { .. } => {
@@ -4534,7 +5110,7 @@ impl Evaluator<'_> {
                                         "borrowed byte variant payload type changed before aliasing",
                                     ));
                                 }
-                                bindings.push((field.binding.id.clone(), value.clone()));
+                                bindings.push((field.binding.id.clone(), self.clone_value(value)?));
                             }
                         }
                         hir::ResolvedMatchMode::Value => {
@@ -4621,10 +5197,11 @@ impl Evaluator<'_> {
                     let aggregate_count = aggregate_bindings.len();
                     environment.extend(aggregate_bindings);
                     // Binding arms capture the staged scrutinee value.
-                    let mut bound: Option<(ValueId, Value)> = None;
+                    let mut has_bound_value = false;
                     if let crate::hir::ResolvedMatchPattern::Binding(binding) = &arm.pattern {
-                        bound = Some((binding.id.clone(), staged.clone()));
-                        environment.push((binding.id.clone(), staged.clone()));
+                        let bound_value = self.clone_value(&staged)?;
+                        environment.push((binding.id.clone(), bound_value));
+                        has_bound_value = true;
                     }
                     let guard_ok = match &arm.guard {
                         Some(guard) => match self.evaluate(guard.as_ref(), environment, depth)? {
@@ -4634,14 +5211,14 @@ impl Evaluator<'_> {
                         None => true,
                     };
                     if !guard_ok {
-                        if bound.is_some() {
+                        if has_bound_value {
                             environment.pop();
                         }
                         environment.truncate(environment.len().saturating_sub(aggregate_count));
                         continue;
                     }
                     let outcome = self.evaluate(&arm.value, environment, depth);
-                    if bound.is_some() {
+                    if has_bound_value {
                         environment.pop();
                     }
                     environment.truncate(environment.len().saturating_sub(aggregate_count));
@@ -5624,6 +6201,7 @@ mod tests {
                 budget: 10_000,
                 next_byte_allocation: 0,
                 allocated_byte_payload: 0,
+                utf8_materialization_budget: Utf8MaterializationBudget::UnlimitedLegacy,
                 stdout_transcript: None,
                 stderr_transcript: None,
                 command_input: None,
@@ -5922,7 +6500,10 @@ mod tests {
             invocation_root: root.clone(),
             bytes: Arc::from("aé\0z".as_bytes()),
         });
-        let forwarded = original.clone();
+        let Value::BorrowedStr(value) = &original else {
+            unreachable!("constructed borrowed string value")
+        };
+        let forwarded = Value::BorrowedStr(value.clone());
         let (Value::BorrowedStr(original), Value::BorrowedStr(forwarded)) = (original, forwarded)
         else {
             panic!("borrowed values retain their distinct runtime form")
@@ -5930,5 +6511,330 @@ mod tests {
         assert_eq!(original.invocation_root, root);
         assert_eq!(forwarded.invocation_root, root);
         assert!(Arc::ptr_eq(&original.bytes, &forwarded.bytes));
+    }
+
+    #[test]
+    fn owned_utf8_budget_is_cumulative_atomic_and_exact_at_both_fixed_caps() {
+        let mut bytes = Utf8MaterializationBudget::fixed();
+        bytes
+            .charge(MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES as usize)
+            .unwrap();
+        assert_eq!(bytes.usage(), (1, MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES));
+        assert!(matches!(
+            bytes.charge(1),
+            Err(Flow::Utf8MaterializationLimitExceeded {
+                attempted_materializations: 2,
+                attempted_bytes,
+            }) if attempted_bytes == MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES + 1
+        ));
+        assert_eq!(
+            bytes.usage(),
+            (1, MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES),
+            "a rejected precharge must not mutate either cumulative counter"
+        );
+
+        let mut allocations = Utf8MaterializationBudget::fixed();
+        for _ in 0..MAX_OWNED_UTF8_LOGICAL_ALLOCATIONS {
+            allocations.charge(0).unwrap();
+        }
+        assert_eq!(allocations.usage(), (MAX_OWNED_UTF8_LOGICAL_ALLOCATIONS, 0));
+        assert!(matches!(
+            allocations.charge(0),
+            Err(Flow::Utf8MaterializationLimitExceeded {
+                attempted_materializations,
+                attempted_bytes: 0,
+            }) if attempted_materializations == MAX_OWNED_UTF8_LOGICAL_ALLOCATIONS + 1
+        ));
+        assert_eq!(allocations.usage(), (MAX_OWNED_UTF8_LOGICAL_ALLOCATIONS, 0));
+    }
+
+    #[test]
+    fn owned_utf8_intrinsics_precharge_before_result_allocation_and_legacy_is_unlimited() {
+        let concat = resolved(
+            "module test.utf8_concat;\n\n@id(\"text.concat\")\nfn concat() -> string { string_concat(\"a\", \"b\") }\n\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n",
+        );
+        let entry = concat
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "text.concat")
+            .unwrap();
+        let admitted = concat
+            .functions
+            .iter()
+            .map(|function| (function.id.as_str(), function))
+            .collect::<BTreeMap<_, _>>();
+        let (outcome, _, _, usage) = evaluate_resolved_entry_with_utf8_budget(
+            entry,
+            &[],
+            &admitted,
+            &concat.declarations,
+            100,
+            false,
+            Utf8MaterializationBudget::Fixed {
+                used_materializations: 0,
+                used_bytes: MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES - 3,
+            },
+        );
+        assert!(matches!(
+            outcome,
+            Err(Flow::Utf8MaterializationLimitExceeded {
+                attempted_materializations: 3,
+                attempted_bytes,
+            }) if attempted_bytes == MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES + 1
+        ));
+        assert_eq!(
+            usage,
+            (2, MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES - 1),
+            "the rejected concat result must not mutate the accepted literal charges"
+        );
+
+        let from_char = resolved(
+            "module test.utf8_char;\n\n@id(\"text.char\")\nfn text() -> string { string_from_char('\\u{1f600}') }\n\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n",
+        );
+        let entry = from_char
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "text.char")
+            .unwrap();
+        let admitted = from_char
+            .functions
+            .iter()
+            .map(|function| (function.id.as_str(), function))
+            .collect::<BTreeMap<_, _>>();
+        let (outcome, _, _, usage) = evaluate_resolved_entry_with_utf8_budget(
+            entry,
+            &[],
+            &admitted,
+            &from_char.declarations,
+            100,
+            false,
+            Utf8MaterializationBudget::Fixed {
+                used_materializations: 0,
+                used_bytes: MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES - 3,
+            },
+        );
+        assert!(matches!(
+            outcome,
+            Err(Flow::Utf8MaterializationLimitExceeded {
+                attempted_materializations: 1,
+                attempted_bytes,
+            }) if attempted_bytes == MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES + 1
+        ));
+        assert_eq!(usage, (0, MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES - 3));
+
+        let mut legacy = Utf8MaterializationBudget::UnlimitedLegacy;
+        for _ in 0..=MAX_OWNED_UTF8_LOGICAL_ALLOCATIONS {
+            legacy.charge(usize::MAX).unwrap();
+        }
+        assert_eq!(legacy.usage(), (0, 0));
+    }
+
+    #[test]
+    fn owned_utf8_primitive_replays_descriptor_parameter_and_result_facts() {
+        const SHA: &str = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
+        let original = resolved(
+            "module test.utf8_descriptor;\n\n@id(\"api.value\")\nfn value(input: i64) -> i64 { input }\n\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n",
+        );
+        let descriptor = crate::project::derive_public_api_descriptor(
+            &original,
+            &["api.value".to_owned()],
+            crate::project::PublicApiSubject {
+                project_schema: crate::project::PUBLIC_OWNED_UTF8_PROJECT_SCHEMA,
+                project_revision: SHA,
+                workspace_revision: SHA,
+                project_graph_digest: SHA,
+            },
+        )
+        .unwrap();
+        let export = &descriptor.exports()[0];
+
+        let parameter_drift = resolved(
+            "module test.utf8_descriptor;\n\n@id(\"api.value\")\nfn value(changed: i64) -> i64 { changed }\n\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n",
+        );
+        let diagnostics = evaluate_resolved_owned_utf8_api(
+            &parameter_drift,
+            export,
+            &[PublicApiArgument::I64(1)],
+            100,
+        )
+        .unwrap_err();
+        assert_eq!(diagnostics[0].code, "SPX-F102");
+        assert!(diagnostics[0].message.contains("parameter 0 disagrees"));
+
+        let result_drift = resolved(
+            "module test.utf8_descriptor;\n\n@id(\"api.value\")\nfn value(input: i64) -> bool { input == 0 }\n\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n",
+        );
+        let diagnostics = evaluate_resolved_owned_utf8_api(
+            &result_drift,
+            export,
+            &[PublicApiArgument::I64(1)],
+            100,
+        )
+        .unwrap_err();
+        assert_eq!(diagnostics[0].code, "SPX-F102");
+        assert!(diagnostics[0].message.contains("result disagrees"));
+
+        let closure_drift = resolved(
+            "module test.utf8_descriptor;\n\n@id(\"api.value\")\nfn value(input: i64) -> i64 { if string_is_empty(\"\") { input } else { input } }\n\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n",
+        );
+        let diagnostics = evaluate_resolved_owned_utf8_api(
+            &closure_drift,
+            export,
+            &[PublicApiArgument::I64(1)],
+            100,
+        )
+        .unwrap_err();
+        assert_eq!(diagnostics[0].code, "SPX-F102");
+        assert!(diagnostics[0].message.contains("failed replay"));
+    }
+
+    #[test]
+    fn owned_utf8_literal_place_clone_call_transfer_and_host_copy_are_exact() {
+        let place = resolved(
+            "module test.utf8_place;\n\n@id(\"text.place\")\nfn text() -> string { let value = \"x\"; value }\n\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n",
+        );
+        let entry = place
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "text.place")
+            .unwrap();
+        let admitted = place
+            .functions
+            .iter()
+            .map(|function| (function.id.as_str(), function))
+            .collect::<BTreeMap<_, _>>();
+        let (outcome, _, _, usage) = evaluate_resolved_entry_with_utf8_budget(
+            entry,
+            &[],
+            &admitted,
+            &place.declarations,
+            100,
+            false,
+            Utf8MaterializationBudget::fixed(),
+        );
+        assert_eq!(outcome.unwrap(), Value::String("x".to_owned()));
+        assert_eq!(
+            usage,
+            (2, 2),
+            "literal and preserving place clone charge once each"
+        );
+
+        let transfer = resolved(
+            "module test.utf8_transfer;\n\nfn helper() -> string { \"x\" }\n\n@id(\"text.transfer\")\nfn text() -> string { helper() }\n\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n",
+        );
+        let entry = transfer
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "text.transfer")
+            .unwrap();
+        let admitted = transfer
+            .functions
+            .iter()
+            .map(|function| (function.id.as_str(), function))
+            .collect::<BTreeMap<_, _>>();
+        for _ in 0..2 {
+            let (outcome, _, _, usage) = evaluate_resolved_entry_with_utf8_budget(
+                entry,
+                &[],
+                &admitted,
+                &transfer.declarations,
+                100,
+                false,
+                Utf8MaterializationBudget::fixed(),
+            );
+            assert_eq!(outcome.unwrap(), Value::String("x".to_owned()));
+            assert_eq!(
+                usage,
+                (1, 1),
+                "callee result transfer and repeated invocations must not clone or retain quota"
+            );
+        }
+
+        let exact = "x".repeat(crate::project::MAX_PUBLIC_API_OWNED_OUTPUT_BYTES);
+        let mut events = Vec::new();
+        let output = copy_out_owned_utf8_api(
+            Value::String(exact.clone()),
+            &ResolvedType::String,
+            &mut events,
+        )
+        .unwrap();
+        assert_eq!(output, OwnedUtf8ApiValue::Utf8(exact));
+        assert_eq!(events, [OwnedUtf8SettlementEvent::CopyOutAndSettleUtf8]);
+
+        let oversize = "x".repeat(crate::project::MAX_PUBLIC_API_OWNED_OUTPUT_BYTES + 1);
+        let mut events = Vec::new();
+        assert_eq!(
+            copy_out_owned_utf8_api(Value::String(oversize), &ResolvedType::String, &mut events,),
+            Err("owned UTF-8 API String result exceeds the public output bound")
+        );
+        assert!(events.is_empty(), "rejected host copy-out cannot settle");
+    }
+
+    #[test]
+    fn owned_utf8_primitive_reports_exact_attempted_and_committed_byte_quota() {
+        const SHA: &str = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
+        fn program(length: usize) -> hir::ResolvedProgram {
+            let literal = "x".repeat(length);
+            resolved(&format!(
+                "module test.utf8_quota;\n\n@id(\"api.text\")\nfn text() -> string {{ \"{literal}\" }}\n\n@id(\"app.main\")\nfn main() -> i64 {{ 0 }}\n"
+            ))
+        }
+        fn export(program: &hir::ResolvedProgram) -> crate::project::PublicApiDescriptor {
+            crate::project::derive_public_api_descriptor(
+                program,
+                &["api.text".to_owned()],
+                crate::project::PublicApiSubject {
+                    project_schema: crate::project::PUBLIC_OWNED_UTF8_PROJECT_SCHEMA,
+                    project_revision: SHA,
+                    workspace_revision: SHA,
+                    project_graph_digest: SHA,
+                },
+            )
+            .unwrap()
+        }
+
+        let exact = program(MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES as usize);
+        let descriptor = export(&exact);
+        let evaluation = evaluate_resolved_owned_utf8_api(
+            &exact,
+            &descriptor.exports()[0],
+            &[],
+            MAX_STEPS_LIMIT,
+        )
+        .unwrap();
+        assert!(matches!(
+            evaluation.outcome,
+            OwnedUtf8ApiEvaluationOutcome::Returned(OwnedUtf8ApiValue::Utf8(ref value))
+                if value.len() as u64 == MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES
+        ));
+        assert_eq!(evaluation.utf8_materializations_used, 1);
+        assert_eq!(
+            evaluation.utf8_bytes_used,
+            MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES
+        );
+        assert_eq!(
+            evaluation.settlement_events,
+            [OwnedUtf8SettlementEvent::CopyOutAndSettleUtf8]
+        );
+
+        let oversize = program((MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES + 1) as usize);
+        let descriptor = export(&oversize);
+        let evaluation = evaluate_resolved_owned_utf8_api(
+            &oversize,
+            &descriptor.exports()[0],
+            &[],
+            MAX_STEPS_LIMIT,
+        )
+        .unwrap();
+        assert_eq!(
+            evaluation.outcome,
+            OwnedUtf8ApiEvaluationOutcome::Utf8MaterializationLimitExceeded {
+                attempted_materializations: 1,
+                attempted_bytes: MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES + 1,
+            }
+        );
+        assert_eq!(evaluation.utf8_materializations_used, 0);
+        assert_eq!(evaluation.utf8_bytes_used, 0);
+        assert!(evaluation.settlement_events.is_empty());
     }
 }

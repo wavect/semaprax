@@ -250,6 +250,59 @@ cargo test --locked -p semaprax --test project_owned_utf8_capacity_v1
 cargo test --locked -p semaprax-toolchain --test project_owned_utf8_capacity_v1 -- --ignored
 ```
 
+## Retained reference evaluation
+
+The additive retained-Project evaluator replays the exact v10 descriptor and
+then independently authenticates the selected HIR closure before evaluating
+it without filesystem, process, publication, target, or cache authority. The
+public result vocabulary is v10-only: the six v8 scalar/owned-byte shapes plus
+one owned UTF-8 `String`. It does not extend the exhaustive v8 result enum.
+
+The selected export must be an explicit, non-entry stable identity and must
+match its descriptor parameter identities, names, types, order, and result.
+Automatic-identity monomorphic helpers remain valid inside the exact selected
+closure, as they are in descriptor admission. Every reached function is
+rechecked as import-, generic-, effect-, and contract-free, the closure is
+acyclic and contains at most 256 functions, and the v10-only closure-shape
+predicate is applied independently of the broader internal-String interpreter.
+Malformed selectors produce the fixed non-echoing `SPX-F102` diagnostic.
+
+Each invocation has two fixed, non-caller-widenable logical materialization
+limits:
+
+- 65,536 cumulative owned UTF-8 payload bytes; and
+- 4,096 cumulative owned UTF-8 allocations, including empty strings.
+
+These are logical interpreter payload limits, not claims about allocator
+metadata or physical heap size. One atomic precharge occurs before every
+interpreter-owned `String` allocation. Rejection neither mutates the committed
+counters nor allocates, and checked-arithmetic overflow fails as the same
+closed capacity outcome. There are no refunds. Literal materialization and
+the existing source-preserving String place read both charge; authenticated
+let/result handoff, staged argument-to-callee transfer, drop, and final carrier
+handoff do not. The runtime value carrier has no implicit deep-clone route, so
+future String copies must pass through the same accounting seam. Compiler-owned
+String intrinsics remain rejected by v10 admission, but their allocation paths
+also precharge defensively so admission drift cannot bypass the meter.
+
+Borrowed `str` and `Slice<u8>` snapshots retain their separate cumulative
+65,536-byte input bound and are admitted completely before any snapshot. The
+successful host copy-out retains its separate 65,536-byte output bound. Neither
+host boundary is charged again as an interpreter-owned materialization; doing
+so would make an otherwise valid maximum-size result impossible. A successful
+active `Bytes` or UTF-8 result emits exactly one distinct copy-out-and-settle
+event. Scalars, `None`, `Result::Err`, and every failure emit none. Empty UTF-8
+is still an active owner and therefore emits one UTF-8 settlement event.
+
+Fuel is charged before a node's materialization precharge, the first selected
+failure remains sticky, and the closed quota outcome is not a guard error or a
+language status. Its attempted counters identify the rejecting precharge;
+ordinary used counters report only committed charges, including when a later
+language, fuel, or depth failure wins. Counters are created afresh for every
+evaluation. This reference lane is not target-execution or promotion evidence,
+and v8, v9, legacy, and internal-String evaluator behavior remains selected by
+their existing APIs.
+
 The shared lower v8/v10 descriptor reader also rejects repeated parameter
 identities within one export, even under a freshly computed descriptor digest;
 see the [owned-data descriptor contract](PUBLIC-OWNED-DATA-API-V1.md#canonical-public-api-descriptor).

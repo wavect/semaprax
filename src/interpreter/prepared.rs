@@ -254,6 +254,11 @@ pub(crate) fn evaluate_prepared_resolved_zero_arg_i64(
         Err(Flow::Cancelled { before_step }) => {
             PreparedResolvedEvaluationOutcome::Cancelled { before_step }
         }
+        Err(Flow::Utf8MaterializationLimitExceeded { .. }) => {
+            PreparedResolvedEvaluationOutcome::GuardError(
+                "unexpected UTF-8 materialization limit in legacy prepared evaluation".to_owned(),
+            )
+        }
         Err(Flow::Guard(detail)) => {
             PreparedResolvedEvaluationOutcome::GuardError(detail.to_owned())
         }

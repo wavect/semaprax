@@ -333,6 +333,113 @@ fn generate_internal(
     Ok(generation)
 }
 
+/// Source-only adapter for a fully admitted Project. The native text is the
+/// caller's actual linked entry projection, including manifest export roots;
+/// selected declarations and contracts are parsed from their complete source,
+/// never represented by replacement bodies or independently invented symbols.
+pub(crate) fn project_source_header(
+    revision: &crate::project::ProjectRevision,
+    path: &str,
+    selections: &[String],
+    native_text: &str,
+    max_bytes: usize,
+) -> Result<(String, String), Vec<Diagnostic>> {
+    let options =
+        CHeaderOptions::new(selections.to_vec(), max_bytes).map_err(|error| vec![error])?;
+    let source = revision
+        .sources()
+        .iter()
+        .find(|source| source.path() == path)
+        .ok_or_else(|| {
+            vec![selection_error(
+                "Project C header source is absent".to_owned(),
+            )]
+        })?;
+    let program = parse(source.source(), Path::new(path)).map_err(|error| vec![error])?;
+    if format::canonical(&program) != source.source() {
+        return Err(vec![consistency_error(
+            "Project C header source is not canonical".to_owned(),
+        )]);
+    }
+    let mut selected = Vec::new();
+    for id in selections {
+        if !revision.manifest().web_exports().contains(id) {
+            return Err(vec![selection_error(
+                "Project C header target is not a manifest export".to_owned(),
+            )]);
+        }
+        selected.push(
+            program
+                .functions
+                .iter()
+                .find(|function| function.stable_id == *id)
+                .ok_or_else(|| {
+                    vec![selection_error(
+                        "Project C header target is absent from its source".to_owned(),
+                    )]
+                })?,
+        );
+    }
+    selected.sort_by(|left, right| left.stable_id.as_bytes().cmp(right.stable_id.as_bytes()));
+    let mut emitted = Vec::new();
+    let mut excluded = Vec::new();
+    for function in selected {
+        match admission(function) {
+            Some(reason) => excluded.push(ExcludedFunction {
+                stable_id: function.stable_id.clone(),
+                name: function.name.clone(),
+                reason,
+            }),
+            None => {
+                let symbol = c_function_symbol(&function.stable_id);
+                let signature =
+                    extract_native_signature(native_text, &symbol, &function.stable_id)?;
+                emitted.push(EmittedFunction {
+                    stable_id: function.stable_id.clone(),
+                    name: hygiene_check(function.name.clone())?,
+                    symbol,
+                    signature,
+                    requires: contract_clauses(&function.requires)?,
+                    ensures: contract_clauses(&function.ensures)?,
+                    effects: hygiene_check(function.effects.join(", "))?,
+                });
+            }
+        }
+    }
+    let guard = include_guard(
+        &emitted
+            .iter()
+            .map(|function| function.stable_id.clone())
+            .collect::<Vec<_>>(),
+    );
+    let digest = source_digest(source.source());
+    let (generation, overflowed) = with_limit(max_bytes, || {
+        render(
+            path,
+            source.source_revision(),
+            &digest,
+            &guard,
+            &options,
+            program.functions.len(),
+            &emitted,
+            &excluded,
+        )
+    });
+    if overflowed {
+        return Err(vec![Diagnostic::io(
+            "SPX-D103",
+            "Project C header exceeds its output bound",
+        )]);
+    }
+    let replay = verify_envelope(&generation.envelope).map_err(|error| vec![error])?;
+    if replay != generation.header {
+        return Err(vec![consistency_error(
+            "Project C header envelope does not bind its exact header".to_owned(),
+        )]);
+    }
+    Ok((generation.envelope, generation.header))
+}
+
 fn resolve_selection<'a>(
     program: &'a Program,
     tokens: &[String],

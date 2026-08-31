@@ -9,6 +9,11 @@
   remain unrun; physical injection, real-tool compatibility and live CLI
   admission remain separate pending gates.
 
+- Added source-replayed C image artifacts and candidate comparisons, binding
+  actual linked C11 output to exact header prototypes or explicit exclusions.
+  V5 discovery and generated clients include the `c` build kind. Static linkage
+  and publication authority are unchanged; regression evidence is authored, unrun.
+
 - Added source-bound OpenAPI image artifacts and candidate artifact deltas,
   using the existing scalar document renderer and complete canonical Project
   replay. V5 build discovery and generated clients include the additive kind;

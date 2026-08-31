@@ -129,3 +129,11 @@ mappings, compiled conformance evidence, and any target execution.
 
 See also [PROPERTY-TESTS-V1.md](PROPERTY-TESTS-V1.md) for the sibling
 read-only scalar analysis tranche and its shared admission profile.
+
+The additive [Project image C artifact lane](IMAGE-C-ARTIFACTS-V1.md) reuses
+this admission, header rendering, hygiene and exact native-prototype extraction
+for manifest-selected stable IDs across canonical Project sources. It emits
+the checked linked native C11 source as a separate artifact and independently
+rebuilds the complete Project before regeneration. It preserves this command's
+single-file bytes and exclusions, and adds no public linkage or compiled
+consumer support.

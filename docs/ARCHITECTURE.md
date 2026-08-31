@@ -583,6 +583,12 @@ scalar admission rules; the Project carrier rebuilds every canonical input and
 regenerates the artifacts before exact replay. Source-selected stable IDs bind
 documents to exports, while image summaries and candidate deltas retain their
 existing authority boundaries. See [OpenAPI Artifacts](IMAGE-OPENAPI-ARTIFACTS-V1.md).
+Its `project/image_targets/c.rs` sibling binds the actual checked native C11
+entry projection to source-selected C headers through the existing renderer's
+prototype extraction, admission and hygiene rules. The carrier rebuilds all
+canonical Project inputs and regenerates every file before exact comparison.
+Explicit header exclusions do not create ABI symbols; static linkage and
+context/status conventions remain unchanged. See [C Artifacts](IMAGE-C-ARTIFACTS-V1.md).
 The [integrated workflow](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md) is authored,
 unrun and publishes managed generations only; canonical Git files stay unchanged.
 

@@ -84,7 +84,7 @@ pub(super) fn payload(
             .iter()
             .any(|method| method.name == "candidate/artifact-delta")
         {
-            instructions.push_str(" Use candidate/build or candidate/artifact-delta only when candidate_build is granted. Bind candidate_revision and select kind web, npm or openapi for an independently replayed pathless artifact projection or its before/after comparison against the original base. OpenAPI projects supported manifest-selected export signatures as schema documents; it does not host or execute an HTTP service or establish external compatibility. Candidate replay precedes builds; each side has a fixed 16 MiB build limit that requests cannot override. Reassemble reports using offset and next_offset, with chunk_bytes 1024 through 65536 (default 16384); projection reports are bounded to 1 MiB and delta reports to 8 MiB. Heterogeneous reports remain explicitly unbundled. No artifact paths are written, package manager or target executable is run, or publication authority granted.");
+            instructions.push_str(" Use candidate/build or candidate/artifact-delta only when candidate_build is granted. Bind candidate_revision and select kind web, npm, openapi or c for an independently replayed pathless artifact projection or its before/after comparison against the original base. OpenAPI projects supported manifest-selected export signatures as schema documents; it does not host or execute an HTTP service or establish external compatibility. C projects supported manifest-selected scalar exports into native-emitter-derived C declarations; it does not compile or link a C consumer or establish a general foreign ABI. Candidate replay precedes builds; each side has a fixed 16 MiB build limit that requests cannot override. Reassemble reports using offset and next_offset, with chunk_bytes 1024 through 65536 (default 16384); projection reports are bounded to 1 MiB and delta reports to 8 MiB. Heterogeneous reports remain explicitly unbundled. No artifact paths are written, package manager or target executable is run, or publication authority granted.");
         }
         if methods
             .iter()
@@ -765,7 +765,7 @@ mod tests {
         );
     }
     #[test]
-    fn openapi_artifact_kind_uses_existing_build_grant_and_closed_client_schemas() {
+    fn artifact_kinds_use_existing_build_grant_and_closed_client_schemas() {
         for policy in [
             VNextPolicy::default(),
             VNextPolicy {
@@ -800,7 +800,7 @@ mod tests {
             assert_eq!(params["additionalProperties"], false);
             assert_eq!(
                 params["properties"]["kind"]["enum"],
-                json!(["web", "npm", "openapi"])
+                json!(["web", "npm", "openapi", "c"])
             );
             assert_eq!(params["properties"].as_object().unwrap().len(), 5);
             assert!(params["properties"].get("max_build_bytes").is_none());
@@ -822,7 +822,7 @@ mod tests {
                 .get("enum")
                 .or_else(|| kind["anyOf"][0].get("enum"))
                 .unwrap();
-            assert_eq!(choices, &json!(["web", "npm", "openapi"]));
+            assert_eq!(choices, &json!(["web", "npm", "openapi", "c"]));
             for field in [
                 "source_authority",
                 "artifact_materialization",

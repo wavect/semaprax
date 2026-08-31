@@ -5,6 +5,7 @@ use crate::project_transport::codec::RequestId;
 use std::path::PathBuf;
 
 mod analysis_coverage;
+mod candidate_dependency_navigation;
 mod cleanup_dependencies;
 mod commit;
 mod contract_holes;
@@ -108,6 +109,8 @@ pub(super) enum Action {
     PackageConsumers,
     CleanupDependencies,
     CandidateCleanupDependencies,
+    CandidateDependencySummary,
+    CandidateDependencyPage,
     DependencySummary,
     DependencyPage,
     FunctionInstances,
@@ -493,6 +496,12 @@ impl VNextSession {
                     cleanup_dependencies::prepare_candidate(params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(
+                    action @ (Action::CandidateDependencySummary | Action::CandidateDependencyPage),
+                ) => (
+                    candidate_dependency_navigation::prepare(action, params, image, registry)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(action @ (Action::DependencySummary | Action::DependencyPage)) => {
                     (
                         dependencies::prepare_navigation(action, params, image)?,
@@ -735,6 +744,7 @@ fn session_methods(
         methods.extend(hole_navigation::methods());
         methods.push(hole_suggestions::method());
         methods.push(cleanup_dependencies::candidate_method());
+        methods.extend(candidate_dependency_navigation::methods());
         methods.extend(draft_recovery::methods());
         methods.extend(draft_archive::methods());
         methods.push(draft_rebase::method());

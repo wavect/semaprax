@@ -19,6 +19,7 @@ mod cleanup_dependencies;
 mod contract_delta;
 mod declaration;
 mod delta;
+mod dependency_navigation;
 mod diagnostic_intent;
 mod diagnostics;
 mod draft;
@@ -59,6 +60,10 @@ pub use cleanup_dependencies::{
 pub use contract_delta::{
     MAX_PROJECT_CANDIDATE_CONTRACT_DELTA_BYTES, PROJECT_CANDIDATE_CONTRACT_DELTA_SCHEMA,
     PROJECT_CANDIDATE_CONTRACT_DELTA_VERIFICATION_SCHEMA,
+};
+pub use dependency_navigation::{
+    MAX_PROJECT_CANDIDATE_DEPENDENCY_PAGE_BYTES, MAX_PROJECT_CANDIDATE_DEPENDENCY_SUMMARY_BYTES,
+    PROJECT_CANDIDATE_DEPENDENCY_PAGE_SCHEMA, PROJECT_CANDIDATE_DEPENDENCY_SUMMARY_SCHEMA,
 };
 pub use ownership_delta::{
     MAX_PROJECT_CANDIDATE_OWNERSHIP_DELTA_BYTES, PROJECT_CANDIDATE_OWNERSHIP_DELTA_SCHEMA,

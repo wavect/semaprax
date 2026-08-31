@@ -75,6 +75,15 @@ Agents can instead request `image/dependency-summary` and expand selected
 counts and bounded sites/callers/calls/members pages without transferring the
 complete report. See [Dependency Navigation](SEMANTIC-IMAGE-DEPENDENCY-NAVIGATION-V1.md).
 
+With candidate preparation, `candidate/dependency-summary` and
+`candidate/dependency-page` expose the same compact views over one exact
+retained candidate revision. Their handles and cursors bind the candidate, so
+base-image and sibling-candidate selectors cannot be reused. The queries derive
+and discard an image from the already admitted candidate, create or retain no
+additional candidate or derived-image registry entry, and are eligible for
+detached authenticated read batches. See
+[Candidate Dependency Navigation](PROJECT-CANDIDATE-DEPENDENCY-NAVIGATION-V1.md).
+
 Startup-only archive handoff can preload complete historical candidates from
 independently replayed source-backed archives. It retains the current image and
 fixed policy, requires the same canonical manifest, and grants no approvals or

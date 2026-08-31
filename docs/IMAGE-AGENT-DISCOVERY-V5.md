@@ -48,6 +48,15 @@ The heterogeneous dependency-item schema remains explicitly unbundled. These
 selectors grant no authority and remain bound to their exact immutable image.
 See [Dependency Navigation](SEMANTIC-IMAGE-DEPENDENCY-NAVIGATION-V1.md).
 
+Candidate preparation adds parallel-eligible `candidate/dependency-summary`
+and `candidate/dependency-page` methods with closed candidate-bound wrappers.
+One signature request can change both the selected declaration and its caller
+inventory; generated clients preserve the exact candidate selector, handle and
+page options without treating the report as a delta. The heterogeneous item
+schema remains explicitly unbundled, and no selector grants retention,
+execution or publication. See
+[Candidate Dependency Navigation](PROJECT-CANDIDATE-DEPENDENCY-NAVIGATION-V1.md).
+
 Host-selected draft recovery adds closed capsule and chunk-envelope schemas plus
 `hole/recovery-export` / `hole/recovery-restore` builders to v5 clients. Capsule
 shape validation does not replace nested candidate replay, source-base checks,

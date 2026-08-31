@@ -21,6 +21,8 @@ pub(super) fn supports(operation: Operation) -> bool {
                 | Action::OwnershipDelta
                 | Action::SourceReview
                 | Action::CandidateMergePreview
+                | Action::CandidateDependencySummary
+                | Action::CandidateDependencyPage
                 | Action::HoleSummary
                 | Action::HolePage
                 | Action::HoleFillSuggestions
@@ -91,6 +93,9 @@ pub(super) fn prepare(
         Operation::VNext(Action::CandidateCleanupDependencies) => {
             cleanup_dependencies::for_candidate(params, image, candidate()?)
         }
+        Operation::VNext(
+            action @ (Action::CandidateDependencySummary | Action::CandidateDependencyPage),
+        ) => candidate_dependency_navigation::for_candidate(action, params, candidate()?),
         Operation::VNext(Action::HoleFillSuggestions) => {
             hole_suggestions::for_draft(params, draft()?)
         }

@@ -107,6 +107,12 @@ pub(super) fn payload(
         instructions.push_str(" For compact navigation, first call image/dependency-summary, then pass the selected sites, callers, calls or members facet handle to image/dependency-page. Keep image_revision, target, view, page_size and max_bytes fixed while following next_cursor; omit cursor on the first page. Page size is 1 through 128 (default 32), and max_bytes is 1024 through 1048576 (default 65536). Handles and cursors are bound compiler references, not authority; do not synthesize or reuse them with another target or image. Page wrappers are closed, but heterogeneous item facts remain explicitly unbundled.");
         if methods
             .iter()
+            .any(|method| method.name == "candidate/dependency-summary")
+        {
+            instructions.push_str(" With candidate_prepare, use candidate/dependency-summary and candidate/dependency-page to navigate the exact fully admitted revision of one retained candidate, including changed or introduced declarations. Keep image_revision, candidate_revision, target, view, page_size and max_bytes fixed while following next_cursor. Candidate handles and cursors are isolated from base-image and sibling-candidate references and grant no retention, execution, source or publication authority. One signature change can alter several dependency views; these final-candidate pages are not a before/after delta, test coverage, runtime liveness or evidence of external callers. Both queries are eligible for authenticated parallel read batches over detached immutable candidates.");
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "candidate/interface-delta")
         {
             instructions.push_str(" Use candidate/interface-delta to compare whole-candidate static interface bindings, every affected member and retained direct-call dependencies; this does not prove runtime dispatch or behavior.");
@@ -274,6 +280,8 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         | "candidate/ownership-delta"
         | "candidate/source-review"
         | "candidate/merge-preview"
+        | "candidate/dependency-summary"
+        | "candidate/dependency-page"
         | "candidate/cleanup-dependencies"
         | "candidate/contract-expression-catalog"
         | "hole/open-contract-expression"

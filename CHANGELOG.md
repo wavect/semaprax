@@ -44,6 +44,14 @@
   races without retries, sleeps, or weaker executable identity, hard-link,
   permission, and cache-binding assertions.
 
+- Added candidate-bound compact dependency summaries and paged
+  sites/callers/calls/members navigation over the exact admitted candidate
+  revision. Handles and cursors isolate candidate histories while reusing the
+  existing immutable dependency collector; v5 discovery, generated clients,
+  MCP and authenticated parallel reads select the queries only with candidate
+  preparation. Evidence is authored and unrun, with no source, execution,
+  retention, publication or measured context-economics claim.
+
 - Corrected the held Windows C compiler environment to expose the already
   bounded, caller-selected MSVC/SDK include directory set through both
   `CPATH` (for the GNU-compatible `clang.exe` driver used by CI and the

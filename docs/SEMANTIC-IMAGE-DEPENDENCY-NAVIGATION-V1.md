@@ -95,6 +95,11 @@ from the selected method registry. Payload schema claims are limited to the
 structures actually bundled; heterogeneous compiler facts do not become proven
 semantics merely by appearing inside a validated envelope.
 
+The additive [candidate navigation contract](PROJECT-CANDIDATE-DEPENDENCY-NAVIGATION-V1.md)
+reuses these inventories over an exact admitted candidate while issuing a
+separate candidate-bound handle and cursor domain. Image references remain
+image-only and their schemas and bytes are unchanged.
+
 Authored evidence is in `tests/image_dependency_navigation_v1.rs` and
 `tests/image_dependency_navigation_transport_v5.rs`. Pagination completeness,
 reference rejection, source drift, cross-root determinism and batch equivalence

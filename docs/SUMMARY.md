@@ -72,6 +72,7 @@ Audience: all documentation readers.
 - [Semantic Image HIR Relationships v1](SEMANTIC-IMAGE-HIR-RELATIONSHIPS-V1.md)
 - [Semantic Image Declaration Dependencies v1](SEMANTIC-IMAGE-DEPENDENCIES-V1.md)
 - [Semantic Image Dependency Navigation v1](SEMANTIC-IMAGE-DEPENDENCY-NAVIGATION-V1.md)
+- [Project Candidate Dependency Navigation v1](PROJECT-CANDIDATE-DEPENDENCY-NAVIGATION-V1.md)
 - [Semantic Image Cleanup Dependencies v1](SEMANTIC-IMAGE-CLEANUP-DEPENDENCIES-V1.md)
 - [Candidate Tests v1](PROJECT-CANDIDATE-TESTS-V1.md)
 - [Candidate Test Protocol v3](IMAGE-CANDIDATE-TEST-PROTOCOL-V3.md)

@@ -1,4 +1,22 @@
 //! Authored, unrun archive-boundary evidence; no compiler or archiver is run.
+
+#[test]
+fn provider_compilation_preserves_the_fixed_windows_process_budget() {
+    use crate::HostTarget;
+
+    assert_eq!(
+        super::provider_optimization(HostTarget::X86_64WindowsMsvc),
+        0
+    );
+    for target in [
+        HostTarget::X86_64LinuxGnu,
+        HostTarget::Aarch64LinuxGnu,
+        HostTarget::X86_64Darwin,
+        HostTarget::Aarch64Darwin,
+    ] {
+        assert_eq!(super::provider_optimization(target), 2);
+    }
+}
 use super::*;
 use std::cell::RefCell;
 use std::fs;

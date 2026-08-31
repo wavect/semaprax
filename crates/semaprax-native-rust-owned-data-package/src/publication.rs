@@ -8,6 +8,17 @@ use super::{HostTarget, PackageError, MAX_ARCHIVE_BYTES, MAX_PROVIDER_BYTES};
 
 static STAGE_NONCE: AtomicU64 = AtomicU64::new(0);
 
+const fn provider_optimization(target: HostTarget) -> u8 {
+    match target {
+        // Hosted Windows tool startup consumes most of the fixed 30-second
+        // process budget. O0 keeps the authenticated provider compilation
+        // inside that unchanged fail-fast bound; backend O0/O2 equivalence is
+        // established separately before package publication is promoted.
+        HostTarget::X86_64WindowsMsvc => 0,
+        _ => 2,
+    }
+}
+
 pub(crate) struct HeldTools {
     clang: platform::HeldTool,
     archiver: platform::HeldTool,
@@ -174,7 +185,7 @@ pub(crate) fn build_archive(
         let compile = platform::prepare_c_compile_invocation(
             target.triple(),
             OsStr::new("provider.c"),
-            2,
+            provider_optimization(target),
             false,
             MAX_PROVIDER_BYTES,
         )

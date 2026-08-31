@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Keep Windows owned-data SDK publication within the existing fail-fast tool
+  process bound by compiling its already O0/O2-validated provider at O0; Unix
+  package archives remain O2 and no timeout, retry, or test boundary changes.
+
 - Partitioned the current Rust toolchain's Linux, macOS, and Windows workspace
   target inventory into parallel lib/bin and three integration-test shards,
   while retaining separate blocking quality, documentation, release, example,

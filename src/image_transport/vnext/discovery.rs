@@ -1339,7 +1339,32 @@ mod tests {
         let operations = catalog["properties"]["operations"]["items"]["oneOf"]
             .as_array()
             .unwrap();
-        assert_eq!(operations.len(), 12);
+        assert_eq!(operations.len(), 13);
+        let repairs = operations
+            .iter()
+            .filter(|schema| schema["properties"]["kind"]["const"] == "repair_diagnostic")
+            .collect::<Vec<_>>();
+        assert_eq!(repairs.len(), 2);
+        for (repair, class, selector) in [
+            (
+                repairs[0],
+                "borrow_owned_byte_field_without_staging",
+                "attempt/repair-catalog",
+            ),
+            (
+                repairs[1],
+                "retag_integer_literal_to_retained_return_type",
+                "candidate-attempt/repair-catalog",
+            ),
+        ] {
+            assert_eq!(repair["additionalProperties"], false);
+            assert_eq!(repair["properties"]["repair_class"]["const"], class);
+            assert_eq!(repair["properties"]["selector_source"]["const"], selector);
+            assert_eq!(
+                repair["properties"]["rejected_kind"]["const"],
+                "replace_function_body"
+            );
+        }
         for kind in [
             "rename_declaration",
             "change_function_signature",

@@ -1,4 +1,4 @@
-//! Checked nominal value admission and source binding projection for extraction.
+//! Separate Copy-boundary and internal-owner admission for extraction.
 
 use super::*;
 use crate::hir::DeclarationKind;
@@ -9,6 +9,7 @@ pub(super) struct Types<'a> {
     program: &'a Program,
     module: &'a WorkspaceGraphProjectionModule,
     checked: BTreeSet<ResolvedType>,
+    owned: BTreeSet<ResolvedType>,
     checked_nodes: usize,
     projected_nodes: usize,
 }
@@ -41,6 +42,7 @@ impl<'a> Types<'a> {
             program,
             module: selected.ok_or_else(|| invalid("extraction checked function is absent"))?,
             checked: BTreeSet::new(),
+            owned: BTreeSet::new(),
             checked_nodes: 0,
             projected_nodes: 0,
         })
@@ -116,6 +118,46 @@ impl<'a> Types<'a> {
             declaration.as_str(),
             &json!(arguments),
         )
+    }
+
+    /// Internal owners never become captures or helper results. Their facts
+    /// come from the same compiler owner as ordinary source admission.
+    pub(super) fn internal(&mut self, ty: &ResolvedType, mode: OwnershipMode) -> Result<bool> {
+        if mode == OwnershipMode::Value {
+            self.check(ty)?;
+            return Ok(false);
+        }
+        if mode != OwnershipMode::Own {
+            return Err(invalid(
+                "extraction cannot relocate borrowed or shared values",
+            ));
+        }
+        if self.owned.contains(ty) {
+            return Ok(true);
+        }
+        let facts = match ty {
+            ResolvedType::String | ResolvedType::Bytes => hir::DeclarationIndex::default()
+                .type_facts(ty)
+                .ok_or_else(|| invalid("extraction internal owner has no compiler type facts"))?,
+            ResolvedType::Nominal { arguments, .. } if arguments.is_empty() => {
+                let (kind, facts) = self.module.value_type_facts(ty).ok_or_else(|| {
+                    invalid("extraction internal nominal owner has no retained type facts")
+                })?;
+                if !matches!(kind, DeclarationKind::Record | DeclarationKind::Variant) {
+                    return Err(invalid("extraction internal owners exclude classes and resources"));
+                }
+                facts.clone()
+            }
+            _ => return Err(invalid("extraction internal owners require String, Bytes or monomorphic record/variant types")),
+        };
+        if facts.copy || !facts.sized || !facts.needs_drop || facts.contains_resource {
+            return Err(invalid(
+                "extraction internal owners require checked sized resource-free owned data",
+            ));
+        }
+        charge(&mut self.checked_nodes, 1)?;
+        self.owned.insert(ty.clone());
+        Ok(true)
     }
 }
 

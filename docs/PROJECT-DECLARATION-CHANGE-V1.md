@@ -95,7 +95,9 @@ and ordinary type facts must establish sized, non-Copy, resource-free storage
 that needs cleanup. This does not add `own string`, borrowed nominal parameters,
 new imports or a wider callable/target profile. The extraction planner retains
 its separate immutable Copy capture/result rules; sharing append validation
-does not authorize owned extraction.
+does not authorize owned capture or result extraction. The independently
+guarded [nested-block extraction lane](PROJECT-EXTRACTION-V1.md#nested-blocks-with-internal-owned-data)
+can retain internal owners without passing them across the new call boundary.
 
 Template shapes never prove those properties. The retained facts include return-only instances and
 share the existing per-module limit of 4,096 distinct nominal types and

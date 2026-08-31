@@ -1,4 +1,5 @@
-//! Source-authoritative extraction of one authenticated checked Copy expression.
+//! Source-authoritative extraction with Copy captures/results and bounded
+//! resource-free ownership wholly inside preserved nested lexical blocks.
 //! Captures are resolved ValueIds, never names guessed from source text.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -15,6 +16,8 @@ use crate::project::{ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 
 use super::{declaration, expression, intent, parse_revision};
 
+#[path = "extraction_owned.rs"]
+mod owned;
 #[path = "extraction_types.rs"]
 mod types;
 
@@ -24,6 +27,7 @@ const MAX_CAPTURES: usize = 64;
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
 struct Capture {
+    id: String,
     name: String,
     ty: Type,
 }
@@ -41,10 +45,10 @@ pub(super) fn apply(
         target,
         text(request, "expression_id")?,
     )?;
-    let (captures, return_type) = {
+    let (captures, return_type, extended) = {
         let mut types = types::Types::new(revision, &programs[selection.owner], target)?;
-        let captures = capture_plan(&selection, &mut types)?;
-        (captures, types.ast(&selection.expression.ty)?)
+        let (captures, extended) = capture_plan(&selection, &mut types)?;
+        (captures, types.ast(&selection.expression.ty)?, extended)
     };
     let span = Span::default();
     let call = Expr {
@@ -75,6 +79,19 @@ pub(super) fn apply(
         call
     };
     let body = std::mem::replace(slot, replacement);
+    // A function's root locals survive through ensures. Keep the selected
+    // nested scope nested, rather than promoting its owners into root locals.
+    let body = if extended {
+        Expr {
+            kind: ExprKind::Block {
+                statements: Vec::new(),
+                tail: Box::new(body),
+            },
+            span,
+        }
+    } else {
+        body
+    };
     let mut effects = selection.effects.to_vec();
     effects.sort();
     effects.dedup();
@@ -138,7 +155,8 @@ pub(super) fn validate(
             ));
         }
     }
-    expression::validate_replacement(before, after, &expression_selector(request)?)
+    expression::validate_replacement(before, after, &expression_selector(request)?)?;
+    owned::validate(before, after, request)
 }
 
 /// Called only after the rebase layer rejects competing anchor body/signature
@@ -164,19 +182,15 @@ fn expression_selector(request: &Value) -> Result<Value> {
 fn capture_plan(
     selection: &expression::AuthoredExpression<'_>,
     types: &mut types::Types<'_>,
-) -> Result<Vec<Capture>> {
+) -> Result<(Vec<Capture>, bool)> {
     let mut pending = vec![(selection.expression, 0usize)];
     let mut nodes = Vec::new();
+    let mut extended = false;
     while let Some((node, depth)) = pending.pop() {
         if depth > MAX_DEPTH || nodes.len() >= MAX_NODES {
             return Err(limit("extraction expression traversal exceeds its bound"));
         }
-        types.check(&node.ty)?;
-        if node.ownership != OwnershipMode::Value {
-            return Err(invalid(
-                "extraction does not admit owned or borrowed expression values",
-            ));
-        }
+        extended |= types.internal(&node.ty, node.ownership)?;
         if matches!(
             node.kind,
             ResolvedExprKind::Try { .. }
@@ -207,12 +221,27 @@ fn capture_plan(
                             "extraction cannot relocate an unsafe audit boundary",
                         ));
                     }
-                    if let ResolvedStatement::Let { binding, .. } = statement {
-                        register_internal(binding, &mut internal, types)?;
+                    if let ResolvedStatement::Let {
+                        binding, mutable, ..
+                    } = statement
+                    {
+                        let owns = types.internal(&binding.ty, binding.ownership)?;
+                        if owns && *mutable {
+                            return Err(invalid(
+                                "extraction internal owning bindings must be immutable",
+                            ));
+                        }
+                        extended |= owns;
+                        if !internal.insert(binding.id.as_str().to_owned()) {
+                            return Err(invalid("extraction internal value identity is ambiguous"));
+                        }
                     }
                 }
             }
-            ResolvedExprKind::Match { arms, .. } => {
+            ResolvedExprKind::Match { mode, arms, .. } => {
+                if *mode != hir::ResolvedMatchMode::Value {
+                    return Err(invalid("extraction cannot relocate owning match patterns"));
+                }
                 for arm in arms {
                     pattern_definitions(&arm.pattern, &mut internal, 0, &mut pattern_nodes, types)?;
                 }
@@ -231,7 +260,10 @@ fn capture_plan(
         if let ResolvedExprKind::Block { statements, .. } = &node.kind {
             for statement in statements {
                 if let ResolvedStatement::Assign { binding, field, .. } = statement {
-                    if field.is_some() || !internal.contains(binding.id.as_str()) {
+                    if field.is_some()
+                        || !internal.contains(binding.id.as_str())
+                        || binding.ownership != OwnershipMode::Value
+                    {
                         return Err(invalid(
                             "extraction cannot copy back writes to an enclosing binding",
                         ));
@@ -260,13 +292,26 @@ fn capture_plan(
                     return Err(limit("extraction capture count exceeds its limit"));
                 }
                 captures.push(Capture {
+                    id: id.to_owned(),
                     name: binding.name.to_owned(),
                     ty: types.ast(binding.ty)?,
                 });
             }
         }
     }
-    Ok(captures)
+    if extended
+        && (selection.path.is_empty()
+            || !matches!(selection.expression.kind, ResolvedExprKind::Block { .. }))
+    {
+        return Err(invalid(
+            "extraction internal owners require a non-root authored block",
+        ));
+    }
+    types.check(&selection.expression.ty)?;
+    if selection.expression.ownership != OwnershipMode::Value {
+        return Err(invalid("extraction result must remain Copy"));
+    }
+    Ok((captures, extended))
 }
 
 fn register_internal(

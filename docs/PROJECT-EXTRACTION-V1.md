@@ -48,8 +48,9 @@ record/variant whose exact checked TypeFacts establish Sized Copy with no drop
 or resource content. Nominal captures and results retain the exact stable owner
 and ordered type arguments; same-shaped declarations are not interchangeable.
 
-Every visited expression value and internal binding must also be an admitted
-Copy value. Nominal helper types resolve through the selected source module's
+Ordinary expression extraction requires every visited value and internal
+binding to be Copy. The nested-block lane below also admits internal owned
+data without changing capture or result rules. Nominal helper types resolve through the selected source module's
 existing binding, including monomorphic import aliases. Local generic and fixed
 compiler-prelude instances support direct `i64`/`bool` arguments; nested type
 arguments, new imports and generic target functions remain excluded. Body-only
@@ -63,7 +64,7 @@ This preserves first-use capture order without converting source field labels
 into new parameters. Internal nominal locals and pattern bindings remain in the
 helper body and are checked by the same Copy rules.
 
-Owned values, borrowed values, propagation, and compiler ownership lowering
+Owned captures and results, borrowed values, propagation, and compiler ownership lowering
 are rejected. External mutable
 captures and writes to enclosing bindings are rejected. Mutable locals and whole-binding
 writes wholly inside the moved subtree remain inside it and are allowed; field
@@ -78,6 +79,42 @@ The moved body retains its internal evaluation order and lazy branches, and
 executes once when the original position executes. This does not promise
 identical call depth, interpreter fuel consumption, stack usage, generated code,
 performance, or function-labelled diagnostic traces.
+
+## Nested blocks with internal owned data
+
+A selected non-root authored block may contain owned String, Bytes and checked
+monomorphic resource-free record/variant values created and settled entirely
+inside that block. Its result and all external captures remain immutable Copy
+values under the rules above. Nominal admission uses retained Sized, Copy,
+drop and resource facts; source spelling or the presence of a constructor does
+not prove eligibility. Ordinary source and target profiles still apply.
+
+The compiler places the exact original block inside a fresh, empty helper-root
+block. This preserves the original nested lexical cleanup boundary. It does
+not flatten the selected block into a function root: root locals survive
+through function postconditions, whereas nested locals settle before their
+enclosing expression resumes. Selecting the original function root with owned
+data is rejected even when its postconditions happen to be empty. Existing
+Copy-only extraction retains its original source projection.
+
+No owner or loan crosses the new call boundary. Internal owning lets must be
+immutable. Owned assignments, owning pattern bindings, borrowed values and
+views, resource-containing data, native-import/host-command call forms,
+propagation and unsafe-boundary relocation remain excluded. Internal ordinary
+calls, construction, cloning and consumption retain their authored order;
+ordinary source admission still checks each transfer. On success, the nested
+region settles before the caller resumes. On language-level failure it settles
+before the unchanged failure reaches the caller's enclosing cleanup. The helper
+has no contracts that could insert work between these stages.
+
+Independent candidate replay checks the source wrapper and the rebuilt helper's
+Copy signature. A separate HIR correspondence check binds the moved expression
+types, ownership, stable call/member identities and lexical values to the
+original subtree and Copy captures. The helper root must introduce no owned
+parameter, result or root storage. Canonical cleanup plans are rebuilt by their
+existing owner, never filtered, sorted, remapped or repaired for execution.
+This is a constrained lexical transformation, not a general equivalence check
+for arbitrary ownership plans or a physical runtime trace claim.
 
 The helper inherits the anchor's compiler-checked effect budget, sorted and
 unique. This is a conservative budget, not minimal expression-effect inference.
@@ -111,6 +148,12 @@ candidate/source byte bounds, declaration limits, and Project admission bounds
 also apply. Unsupported requests use `SPX-G225`; operation capacity failures use
 `SPX-G226`. Existing candidate stale/replay diagnostics remain unchanged.
 
+The owned-block correspondence uses the same 4,096-node, depth-256 and pattern
+bounds and at most 4,160 paired lexical identities (internal nodes plus the 64
+captures). Its separate Copy/owned type inventories share the existing checked
+type-node budget. An additional source wrapper can encounter ordinary source
+or HIR bounds; extraction does not raise them to admit the transformed program.
+
 The checked nominal inventory shares the existing per-module 4,096 distinct
 type-identity ceiling and builder-byte charges with signature facts. Body,
 contract, local-binding and pattern types now count in that same inventory;
@@ -142,7 +185,14 @@ for nominal captures/results, whole-root field reads, body-only generic values,
 rejection cases and exact candidate recovery. Discovery advertises the checked
 Copy and whole-root constraints without claiming each expression is extractable.
 
-Owned or borrowed extraction, mutable capture copy-back, broader nominal types,
+`tests/project_candidate_owned_block_extraction_v1.rs` authors the nested-owned
+block lane and its rejection boundaries. These cases have not been run; actual
+backend execution and cleanup/failure traces remain required evidence.
+Private correspondence regressions first build ordinary extracted calculator
+candidates, then reject a same-typed lexical-root substitution or changed
+stable callee in a cloned helper HIR. They are also authored and unrun.
+
+Owned captures or results, borrowed extraction, mutable capture copy-back, broader nominal types,
 generic functions, contract extraction, propagation across function boundaries,
 unsafe audit relocation, minimal effect inference, arbitrary extraction regions,
 and runtime resource equivalence remain outside this version. The broader

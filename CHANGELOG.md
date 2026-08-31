@@ -51,6 +51,12 @@
   closed, `LIB` is unchanged, and missing headers still fail before archive or
   package publication.
 
+- Extended function extraction to nested blocks containing internal resource-free
+  owners while retaining Copy captures and results. A helper wrapper preserves
+  the nested cleanup boundary; source/HIR correspondence rejects owner crossings
+  and root-body relocation. Discovery and regressions describe the bounded lane;
+  cases are authored, unrun, with no runtime or completion promotion.
+
 - Connected checked hole-fill suggestions to an explicit editor selection that
   seeds a scratch document for the current draft and hole. Closed report checks
   and asynchronous stale-state fences precede scratch binding; previews are

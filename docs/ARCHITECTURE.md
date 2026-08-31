@@ -947,7 +947,13 @@ boundary relocation. Only the exact declared identity may extend invariant
 inventories. Rebase tracks newly introduced identities and rejects collisions.
 Checked expression/local/pattern types use retained compiler TypeFacts; nominal
 helper signatures use exact stable-ID type planning and the existing post-rebuild
-signature gate. Retention keeps its declaration cap and charges bounded traversal
+signature gate. A separate nested-block lane retains internal resource-free
+owners while keeping captures and results Copy. It wraps the original nested
+block in an empty helper root, preserving lexical cleanup before the caller
+resumes and rejecting root-body relocation with owned data. Source/HIR
+correspondence in `candidate/extraction_owned.rs` authenticates local values
+and stable semantic identities; no
+canonical ownership plan is rewritten. Retention keeps its declaration cap and charges bounded traversal
 storage. Budget-report changes may change derived graph/image digests without
 changing canonical source meaning or granting cache authority.
 `candidate/recovery.rs` exports disposable complete histories and restores them

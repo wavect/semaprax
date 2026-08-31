@@ -4,6 +4,7 @@ use sha2::{Digest, Sha256};
 
 use super::ProjectSemanticImage;
 use crate::diagnostic::Diagnostic;
+mod openapi;
 
 pub const IMAGE_TARGET_ADMISSION_SCHEMA: &str = "semaprax.image-target-admission.v1";
 pub const IMAGE_ARTIFACT_PROJECTION_SCHEMA: &str = "semaprax.image-artifact-projection.v1";
@@ -14,12 +15,14 @@ pub const MAX_IMAGE_ARTIFACT_REPORT_BYTES: usize = 1024 * 1024;
 pub enum ImageArtifactKind {
     Web,
     Npm,
+    OpenApi,
 }
 impl ImageArtifactKind {
     pub fn name(self) -> &'static str {
         match self {
             Self::Web => "web",
             Self::Npm => "npm",
+            Self::OpenApi => "openapi",
         }
     }
 }
@@ -94,7 +97,7 @@ impl ProjectSemanticImage {
         )
     }
 
-    /// Build and independently replay the existing pathless Web/npm carrier,
+    /// Build and independently replay a pathless Web/npm or OpenAPI carrier,
     /// then return compact file bindings and source-owned export relationships.
     /// No compiler executable, package manager or filesystem publisher runs.
     pub fn artifact_projection(
@@ -129,6 +132,7 @@ impl ProjectSemanticImage {
                     build.artifact_bytes(),
                 )
             }
+            ImageArtifactKind::OpenApi => openapi::projection_build(self.revision(), max_bytes)?,
         };
         if envelope.len() > max_bytes {
             return Err(error(
@@ -169,6 +173,13 @@ impl ProjectSemanticImage {
             files.push(json!({"path": row["path"], "bytes": hex.len() / 2, "sha256": row["sha256"],
                 "edge_kind": "emitted_artifact", "reason": "member_of_independently_replayed_carrier",
                 "evidence_owner": "existing_project_carrier_replay"}));
+            if kind == ImageArtifactKind::OpenApi {
+                let file = files.last_mut().expect("just appended artifact");
+                file["source_path"] = row["source_path"].clone();
+                file["document_digest"] = row["document_digest"].clone();
+                file["evidence_owner"] =
+                    json!("full_project_source_rebuild_and_existing_openapi_renderer");
+            }
         }
         let mut exports = Vec::new();
         for id in self.revision().manifest().web_exports() {
@@ -181,6 +192,23 @@ impl ProjectSemanticImage {
             exports.push(json!({"id":id, "source":source, "edge_kind":"public_export_selected_by_manifest",
                 "reason":"exact_manifest_export_passed_to_compiler_carrier_builder",
                 "evidence_owner":"project_manifest_and_context_bound_carrier", "classification":"descriptive"}));
+            if kind == ImageArtifactKind::OpenApi {
+                let mapping = payload["exports"]
+                    .as_array()
+                    .and_then(|exports| {
+                        exports
+                            .iter()
+                            .find(|item| item["id"].as_str() == Some(id.as_str()))
+                    })
+                    .ok_or_else(|| {
+                        error("SPX-G292", "OpenAPI export artifact mapping is absent")
+                    })?;
+                let export = exports.last_mut().expect("just appended export");
+                for key in ["artifact_path", "operation_path", "operation_id"] {
+                    export[key] = mapping[key].clone();
+                }
+                export["evidence_owner"] = json!("manifest_export_and_actual_openapi_operation");
+            }
         }
         let sources = self.revision().sources().iter().map(|source| json!({
             "path": source.path(), "source_revision": source.source_revision(), "source_digest": source.source_digest(),
@@ -190,6 +218,24 @@ impl ProjectSemanticImage {
             "sha256:{:x}",
             crate::digest_hex::LowerHex(Sha256::digest(envelope.as_bytes()))
         );
+        let nonclaims = if kind == ImageArtifactKind::OpenApi {
+            vec![
+                "no_rust_c_package_projection",
+                "not_http_server_or_runtime_route",
+                "no_package_installation_or_external_consumer_evidence",
+                "no_runtime_or_test_coverage",
+                "no_filesystem_artifact_publication",
+                "no_publication_authority",
+            ]
+        } else {
+            vec![
+                "no_rust_c_or_openapi_package_projection",
+                "no_package_installation_or_external_consumer_evidence",
+                "no_runtime_or_test_coverage",
+                "no_filesystem_artifact_publication",
+                "no_publication_authority",
+            ]
+        };
         super::image::render(
             json!({
                 "schema":IMAGE_ARTIFACT_PROJECTION_SCHEMA, "image_revision":self.image_digest(),
@@ -199,7 +245,7 @@ impl ProjectSemanticImage {
                 "max_build_bytes":max_bytes, "artifacts":files, "exports":exports, "sources":sources,
                 "evidence_class":"independently_replayed_pathless_compiler_artifacts", "source_authority":false,
                 "artifact_materialization":false, "target_execution":false,
-                "nonclaims":["no_rust_c_or_openapi_package_projection", "no_package_installation_or_external_consumer_evidence", "no_runtime_or_test_coverage", "no_filesystem_artifact_publication", "no_publication_authority"],
+                "nonclaims":nonclaims,
             }),
             false,
             MAX_IMAGE_ARTIFACT_REPORT_BYTES,

@@ -188,22 +188,32 @@ fn existing_rpc_discovers_and_validates_record_and_variant_display_renames() {
         assert!(app.contains("as Metric;"));
         assert!(app.contains("as Decision;"));
     }
-    for target in [
-        "rename.field",
-        "rename.some",
-        "rename.payload",
-        "core.option",
+    for (target, member_kind) in [
+        ("rename.field", Some("record_field")),
+        ("rename.some", Some("variant_case")),
+        ("rename.payload", Some("variant_field")),
+        ("core.option", None),
     ] {
         let catalog = payload(call(
             &mut session,
             "change/catalog",
             json!({"candidate_revision":root,"target":target}),
         ));
-        assert!(!catalog["operations"]
+        let has = catalog["operations"]
             .as_array()
             .unwrap()
             .iter()
-            .any(|op| op["kind"] == "rename_declaration"));
+            .any(|op| op["kind"] == "rename_declaration");
+        assert_eq!(has, member_kind.is_some(), "target {target}");
+        if let Some(kind) = member_kind {
+            let op = catalog["operations"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|op| op["kind"] == "rename_declaration")
+                .unwrap();
+            assert_eq!(op["member_kind"], kind);
+        }
     }
     let mut readonly = VNextSession::open(&fixture.manifest(), VNextPolicy::default()).unwrap();
     assert_eq!(

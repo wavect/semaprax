@@ -90,6 +90,9 @@ fn carrier(revision: &ProjectRevision, kind: ImageArtifactKind) -> Value {
             build.verify().unwrap();
             serde_json::from_str(build.envelope()).unwrap()
         }
+        ImageArtifactKind::OpenApi => {
+            panic!("OpenAPI has dedicated source-bound artifact evidence; this helper decodes Web/npm carriers")
+        }
     }
 }
 fn files(carrier: &Value, kind: ImageArtifactKind) -> BTreeMap<String, Vec<u8>> {

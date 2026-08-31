@@ -9,6 +9,11 @@
   remain unrun; physical injection, real-tool compatibility and live CLI
   admission remain separate pending gates.
 
+- Added source-bound OpenAPI image artifacts and candidate artifact deltas,
+  using the existing scalar document renderer and complete canonical Project
+  replay. V5 build discovery and generated clients include the additive kind;
+  no files are published and regression evidence remains authored, unrun.
+
 - Connected the private Linux offline doctor worker from sealed request/bundle
   framing through per-tool PID namespaces, detached roots, capability removal,
   syscall filtering and bounded capture/reap. Added synthetic and real-bundle

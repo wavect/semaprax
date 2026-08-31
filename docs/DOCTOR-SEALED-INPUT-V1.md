@@ -1,6 +1,7 @@
 # Doctor sealed input v1
 
-Status: authored, unrun private input-boundary implementation. This primitive
+Status: private input-boundary implementation with local Linux acquisition/creator and
+macOS unsupported-host/common-precedence test evidence. This primitive
 alone supplies no profile format, CLI activation, executable isolation, or WP-05 promotion.
 
 Audience: CLI/platform contributors and reviewers.
@@ -191,7 +192,19 @@ the original descriptor usable alone would not detect a duplicate-close flush.
 The facade retains `forbid(unsafe_code)` and only delegates to the existing OS
 quarantine. Earlier CLI/profile and version-probe lifecycle fixtures are
 unchanged and remain required. Unsupported-host behavior must be exercised
-separately from Linux success. All new fixtures are authored and unrun.
+separately from Linux success. The four creator common-precedence and
+unsupported-host tests passed locally on macOS arm64 with Rust 1.98; this is
+not native acquisition or creation evidence.
+
+The creator group separately passed 18 tests on Linux arm64, kernel 6.12.72,
+with Rust 1.88 in an offline Docker container with all capabilities dropped. Its two ignored
+private fail-stop helpers were selected by passing parent tests and exited 126
+as required. These results include physical sealed-file creation and mutation
+rejection; injected failures still are not physical kernel-fault evidence.
+The expanded sealed-input group passed 32 tests in that same Linux environment,
+including acquisition and acquired-snapshot bundle/request handoff. The two
+private helpers retain the same parent-driven execution. This is not the
+provisioned worker-to-collector handoff gate.
 
 Creator fixtures separately cover exact binary content and chunk boundaries,
 zero initial offset, close-on-exec, immutable and executable seals, rejected
@@ -220,7 +233,8 @@ Launcher admission tests pass the actual returned executable files, not rebuilt
 copies, into both image roles. The ignored production-launcher fixtures use
 factory-created healthy images alongside independently constructed hostile
 images; malformed inputs must still reach launcher rejection tests rather than
-being filtered out by the factory first. No fixture has been executed here.
+being filtered out by the factory first. These Linux launcher fixtures remain
+unrun; the portable creator tests do not exercise them.
 Storage and structural acceptance do not prove executable startup; the real
 launcher/worker/collector runs need the complete provisioned context described
 in the launcher contract.
@@ -232,8 +246,8 @@ and request checks precede native/all worker-to-report observations and an
 unrepaired request-digest rejection. Existing literal-sealing hostile fixtures
 remain independent. This gate requires the full
 [provisioned collector context](DOCTOR-OFFLINE-COLLECTOR-V1.md#evidence-and-non-claims),
-not merely permission to create a memory file. All creator and handoff cases
-remain authored and unrun.
+not merely permission to create a memory file. The provisioned handoff cases
+remain unrun; passing creator tests does not supply that launch context.
 
 The separate [offline bundle parser](DOCTOR-OFFLINE-BUNDLE-V1.md) now consumes
 this input through a closed, bounded inventory; it still grants no execution

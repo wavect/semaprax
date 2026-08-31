@@ -2,11 +2,22 @@
 
 ## Unreleased
 
+- Corrected doctor encoder test-module routing and the mixed-arity fixture's
+  borrowed-view provenance: result bytes now come from named fixed-array
+  storage, without relaxing compiler admission. Local macOS arm64 validation
+  passes the 15 descriptor tests, mixed-arity native O0/O2/npm and generated Rust
+  SDK gates, result-extrema interpreter/native/npm and Rust SDK gates, owned
+  multiplication gate, and 40 doctor unit tests. Local Linux arm64 Rust 1.88
+  passes 32 sealed-input/factory/handoff tests and 25 bundle/ELF tests in a
+  container with all capabilities dropped.
+  Provisioned worker/collector execution and hosted gates are not implied.
+
 - Added shared-source mixed v8 parameter-boundary regressions: all arities
   zero through eight, exact ninth-parameter rejection, native O0/O2 and generated
   npm/Rust consumers with independent argument literals and recovery controls.
-  Descriptor and published-package bindings remain explicit. These fixtures are
-  authored and unrun; no production, schema, artifact or promotion change is made.
+  Descriptor and published-package bindings remain explicit. These fixtures now
+  have focused local macOS evidence; no production, schema, artifact or promotion
+  change is made.
 
 - Added production creation of sealed executable doctor images from explicit
   native ELF bytes, sharing bounded writes and one-shot failure cleanup with

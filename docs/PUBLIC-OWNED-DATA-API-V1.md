@@ -777,18 +777,21 @@ retains one physical native context. Provision absolute `CLANG` and
 cargo test --locked -p semaprax-toolchain --test project_owned_result_extrema_sdk_v1 provisioned_result_extrema_publish_and_run -- --ignored --exact
 ```
 
-Both gates remain authored and unrun. They add no production ABI, schema,
-artifact or completion-status change and do not replace sanitizer or exact-head
-hosted evidence.
+Both gates passed locally on macOS arm64 with Rust 1.98, Apple Clang 21 and
+Node 24.3, including the explicitly selected, locked/offline Rust SDK consumer.
+They add no production ABI, schema, artifact or completion-status change and
+do not replace sanitizer or exact-head hosted evidence.
 
-### Authored mixed-parameter arity gates
+### Mixed-parameter arity gates
 
 `tests/support/owned_mixed_arity_product.rs` supplies one canonical v8 Project
 with nine selected exports, covering every arity from zero through eight. The
 parameter prefix repeats `i64`, `bool`, `borrow str`, and `borrow Slice<u8>`;
 distinct scalar values and borrowed lengths distinguish both positions of each
 repeated type. Each export returns owned `ok` or `bad` bytes according to its
-present arguments. Consumer literals are independent of the source predicates.
+present arguments. Result bytes are copied from named local fixed arrays,
+preserving the language's exact storage-place requirement for borrowed views.
+Consumer literals are independent of the source predicates.
 
 The descriptor fixture `tests/public_api_descriptor_v1/mixed_arity.rs` checks
 exact parameter order, names, identities, ordinals, result types and replay,
@@ -813,13 +816,20 @@ external consumer calls all nine methods, checks each eight-argument mutation
 and recovery, and retains independent outputs across two SDK objects and after
 their disposal. SDK object reuse is not proof of one persistent native context.
 
-Focused gates, all authored and unrun:
+Focused gates:
 
 ```sh
 cargo test --locked -p semaprax --test public_api_descriptor_v1 mixed_arity
 cargo test --locked -p semaprax --test project_owned_mixed_arity_v1
 cargo test --locked -p semaprax-toolchain --test project_owned_mixed_arity_sdk_v1 provisioned_mixed_arity_publish_and_run -- --ignored --exact
 ```
+
+All three gates passed locally on macOS arm64 with Rust 1.98, Apple Clang 21
+and Node 24.3 after correcting the fixture's invalid string-literal byte view.
+The complete descriptor test binary passed all 15 tests; the native/npm and
+explicitly selected Rust SDK gates each passed their product test. This is
+local evidence, not Linux, Windows, minimum-Rust, browser, sanitizer or hosted
+validation.
 
 Native/npm execution requires Clang and Node, plus the existing full-toolchain
 prerequisites for Windows npm publication. The selected Rust gate requires

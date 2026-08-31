@@ -1,6 +1,7 @@
 # Doctor offline bundle v1
 
-Status: authored, unrun private inventory parsing and preparation. No CLI
+Status: private inventory parsing and preparation with local macOS structural
+and Linux sealed-input/bundle/request test evidence. No CLI
 activation, production profile provisioning, executable isolation, or WP-05
 promotion.
 
@@ -197,7 +198,7 @@ bindings after the original file is dropped, and reject missing roles or zero
 nonces. Same-length payload, path and selector changes exercise exact-byte
 binding; nonzero nonce coverage is not evidence of freshness.
 
-The targeted structural and sealed-input gates are authored but unrun:
+The targeted structural and sealed-input gates are:
 
 ```sh
 cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib doctor::offline_bundle::encode
@@ -216,8 +217,18 @@ The separate internal [detached root materializer](DOCTOR-OFFLINE-ROOT-V1.md)
 consumes this opaque inventory inside an already controlled child context.
 It remains unconnected to production launch or profile admission.
 
-All fixtures remain unrun. Existing sealed-input, CLI report, profile-selection
-and lower-level probe fixtures remain unchanged and required. Completion still
+All seven encoder tests and the portable structural/ELF tests passed in the
+local macOS arm64 Rust 1.98 doctor unit-test run (40 tests total). The encoder
+test-module path explicitly selects its own fixtures rather than the parser's
+sibling tests. Provisioned worker/collector handoff gates remain unrun.
+Existing sealed-input, CLI report, profile-selection and
+lower-level probe fixtures remain unchanged and required. Completion still
 needs real provisioning, immutable executable/library/configuration inputs,
 OS filesystem/IPC/network containment, descendant settlement, selector-to-host
 admission, and physical selected-tool compatibility at the release head.
+
+The complete bundle group (25 tests, including seven encoder and six shared ELF
+tests) also passed locally on Linux arm64, kernel 6.12.72, with Rust 1.88 in an
+offline Docker container with all capabilities dropped. The sealed-input group passed
+32 tests, including acquired-snapshot bundle/request handoff. These fixtures
+do not exercise provisioned tool execution or isolation.

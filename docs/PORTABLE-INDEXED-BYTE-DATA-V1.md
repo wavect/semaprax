@@ -387,8 +387,12 @@ consumption or failure cleanup, checks preserved failure output and same-instanc
 reuse, and checks earlier-addition failure before multiplication by zero.
 Native provider failures retain their existing normalized semantic-failure
 status; this does not claim a newly exposed native arithmetic-status ABI.
-All new fixtures remain unrun. Formatting and static review do not prove target
-execution or promote byte-data or checked-arithmetic support.
+The owned-result cross-target fixture (`tests/usize_mul_owned_v1.rs`) passed
+locally on macOS arm64 with Rust 1.98, Apple Clang 21 and Node 24.3. This is
+evidence for that fixture's interpreter/native O0/O2/npm cases, not execution
+of every authored arithmetic regression or hosted validation. Formatting and
+static review alone do not prove target execution or promote byte-data or
+checked-arithmetic support.
 
 The feature is additive and must be reachability-gated. When no new type or
 operation is reachable:

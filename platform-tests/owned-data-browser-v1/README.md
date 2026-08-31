@@ -33,6 +33,11 @@ not exist; replace the example absolute path with that parent's path):
 
 ```sh
 semaprax-full build platform-tests/owned-data-browser-v1/project/semaprax.toml --target npm -o /absolute/host-owned/generated
+```
+
+Provision the distinct variant package into another fresh destination:
+
+```sh
 semaprax-full build platform-tests/owned-data-browser-v1/variant-project/semaprax.toml --target npm -o /absolute/host-owned/generated-variants
 ```
 

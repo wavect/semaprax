@@ -16,6 +16,8 @@ fn documented_npm_publication_selects_the_full_toolchain() {
     let browser = include_str!("../../platform-tests/owned-data-browser-v1/README.md");
     let command = "```sh\nsemaprax-full build platform-tests/owned-data-browser-v1/project/semaprax.toml --target npm -o /absolute/host-owned/generated\n```";
     assert_eq!(browser.matches(command).count(), 1);
+    let variant_command = "```sh\nsemaprax-full build platform-tests/owned-data-browser-v1/variant-project/semaprax.toml --target npm -o /absolute/host-owned/generated-variants\n```";
+    assert_eq!(browser.matches(variant_command).count(), 1);
     for documentation in [frame, browser] {
         assert!(documentation.contains("SPX-W120"));
         assert!(documentation.contains("Release archives expose the full CLI"));

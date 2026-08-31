@@ -558,6 +558,13 @@ handles and requires explicit completion before candidate review. Editor
 scratch bindings and source epochs are local freshness checks, not semantic
 proof or publication authority; compiler admission remains unchanged.
 
+`editors/vscode/repairs.js` retains rejected attempts separately from the valid
+candidate, verifies exact raw diagnostic report bytes and binds compiler repair
+catalogues to the predecessor. Explicit selection sends only attempt and repair
+IDs; displayed change bodies never become requests. The controller retires old
+attempt handles after validated transitions and fails closed on uncertainty.
+Diagnostic locations remain descriptive, with no source navigation authority.
+
 An opt-in `open_with_frontend_cache` constructor uses the same authenticated
 filesystem loader with `ProjectFrontendCache` as its build strategy. It parses
 fresh source directly on first load, then stages exact-source AST reuse during

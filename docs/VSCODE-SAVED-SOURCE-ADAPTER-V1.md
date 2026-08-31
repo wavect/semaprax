@@ -9,7 +9,7 @@ an explicitly started local editor session to the existing
 [MCP stdio adapter](IMAGE-MCP-ADAPTER-V1.md). It provides stable-ID selection,
 compiler-derived change discovery, typed-intention submission and read-only
 source diffs for complete immutable candidates, plus ephemeral typed-hole
-planning and fills. It does not make editor buffers
+planning, fills and explicitly selected compiler repairs. It does not make editor buffers
 canonical, install a compiler or publish source.
 
 ## Startup and authority
@@ -28,7 +28,9 @@ policy are host choices, not values inferred from source or tool responses.
 The ordinary host-policy loader still decides what the server can do. The
 extension intersects discovered tools with its own small allowlist; even a
 broader host policy cannot enable editor build, test, approval or commit calls.
-Prefer a candidate-only policy for this workflow.
+Prefer a candidate-only policy for ordinary changes. The optional diagnostic
+workflow also requires diagnostics in the already selected host policy; the
+editor does not edit that policy or enable missing methods.
 
 The extension performs the pinned MCP initialize/initialized exchange and pages
 through the selected tool inventory. It validates the outer response ID and the
@@ -51,8 +53,59 @@ they cannot become candidate handles or permission to retry publication.
 The JSON scratch document is a request draft, not `.spx` source or checked HIR.
 The extension accepts no arbitrary source patch and does not claim that a
 catalogue entry makes every payload valid. Existing candidate failure behavior
-leaves the prior candidate unchanged. Diagnostic-repair interactions, branching
-recovery and a complete graph browser remain separate protocol surfaces.
+leaves the prior candidate unchanged. Branching recovery and a complete graph
+browser remain separate protocol surfaces.
+
+## Diagnostic attempts and explicit repair
+
+The ordinary Apply command remains fail-fast. A separate diagnostic-attempt
+command submits the tracked typed-intention scratch through `candidate/attempt`
+only when the host exposes the diagnostic lifecycle. An accepted outcome must
+contain an ordinary candidate handle and no attempt. A rejected outcome must
+contain a rejected attempt summary and no candidate; the selected predecessor
+remains unchanged. A rejected record cannot become a candidate, typed-hole draft
+or source-review subject.
+
+The controller binds the attempt to the exact image, held Project revision,
+predecessor candidate and predecessor Project revision. It tracks the original
+candidate base separately: that base is not necessarily the predecessor's
+current Project revision after earlier changes. Closed response variants,
+revision digests, byte/count bounds and no-authority fields are checked before
+adopting state.
+
+Diagnostic details are shown as read-only report text. `attempt/query` chunks
+must preserve their exact attempt selector, byte offsets, total size and UTF-8
+progress. The controller bounds the assembled report to 2 MiB and verifies the
+attempt digest over its exact raw bytes, including the canonical final LF.
+Parsed values are not reserialized to verify this digest. Diagnostic paths and
+spans describe rejected constructor input or uncommitted candidate source;
+the editor does not open those paths or jump to them as verified source spans.
+
+Repair discovery displays only the compiler's current bounded catalogue, its
+availability reason and the advertised proposal metadata. The user explicitly
+chooses a proposal. Application sends only the retained `attempt_revision` and
+exact `repair_id`, alongside the image revision. The editor never reconstructs
+or submits a proposal's displayed change or `semantic_change_intent`. Thus
+displayed integers outside JavaScript's safe range cannot silently become
+rounded replacement intentions. The returned candidate must match the selected
+proposal's advertised validated candidate revision and original base binding.
+Ordinary compiler re-derivation and full candidate admission remain authoritative.
+
+Only one attempt is selected locally. Replacing it retires the old server
+attempt only after the new outcome has been validated; repeated identical
+attempt handles are not accidentally discarded. Applying a repair validates the
+returned candidate before retiring the rejected attempt. Failed retirement
+ends the session and reports that the preceding mutation may already have
+succeeded; it does not claim rollback or automatically retry. Ordinary semantic
+rejection preserves the current selection for correction. Source drift,
+malformed responses and transport uncertainty invalidate editor state.
+
+Active typed-hole drafts block attempt submission and repair application.
+Candidate replacement, target or draft transitions invalidate prior repair
+views and selections. An asynchronous picker cannot apply a selection after
+its image, candidate, attempt or editor generation changes. A repaired candidate
+can use the existing source-diff preview; repair selection grants no source
+publication, approval, build, test or external execution authority.
 
 ## Typed-hole workflow
 
@@ -163,7 +216,13 @@ protocol/report-validator cases in the extension. None were executed. No
 compiler, Node test runner, generated client, VS Code extension host, package
 installation or local quality gate was run for this change.
 
+`editors/vscode/test/repairs.test.js` adds authored, unrun controller cases for
+accepted/rejected variants, exact predecessor and proposal bindings, raw report
+hashes, explicit selection, stale state and uncertain retirement. Its mocked
+responses establish intended adapter behavior, not executed compiler or editor
+conformance.
+
 Real editor-host integration, accessibility and platform evidence, richer typed
-constructor UI, diagnostic workflows, asynchronous cancellation,
+constructor UI, broader diagnostic workflows, asynchronous cancellation,
 durable candidate recovery and task-level measurements remain open. This is an
 optional local adapter, not a marketplace release or full programme completion.

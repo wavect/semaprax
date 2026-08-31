@@ -21,8 +21,9 @@ local filesystem workspace and saved source/manifest buffers are required.
 The explicit Start command invokes the selected binary directly, without a shell:
 `serve-workspace-mcp <manifest> <host-policy>`. Nothing downloads or builds it.
 The existing host-policy v1–v6 parser remains authoritative. Prefer a policy with
-candidate preparation enabled and builds, tests, diagnostics and Git commit
-disabled. The adapter cannot widen policy and its own fixed allowlist excludes
+candidate preparation enabled and builds, tests and Git commit disabled. Enable
+diagnostics in the host policy only if you want the optional attempt workflow
+below. The adapter cannot widen policy and its own fixed allowlist excludes
 builds, tests, commit approval, source publication and archive restoration even
 if the supplied policy grants them.
 
@@ -44,6 +45,19 @@ Use the command palette in this order:
    then displays the selected base/candidate text through read-only virtual
    documents. It performs no `WorkspaceEdit`, filesystem write or arbitrary path
    read. Source paths are validated labels, not filesystem access instructions.
+
+For diagnostic recovery, **Try Active Typed Intent with Diagnostics** preserves
+a rejected attempt separately from the valid candidate. **Show Rejected Attempt
+Summary** and **Show Retained Attempt Diagnostics** inspect it; the latter
+verifies the bounded report's exact bytes and displays diagnostic locations as
+descriptions, never source navigation. **Show Compiler-Admitted Repair Catalog**
+displays available proposals. **Select and Apply Exact Diagnostic Repair** asks
+you to select a proposal, then sends only its exact repair ID and attempt
+revision. Displayed intentions and potentially rounded numbers are never
+resubmitted as repairs. The accepted candidate can use the existing source diff.
+**Discard Diagnostic Attempt** releases the attempt without changing source.
+These commands require the existing host policy to expose diagnostics; ordinary
+Apply remains fail-fast. There is no automatic repair, policy change or retry.
 
 Source or manifest edits invalidate candidate selection and visible previews.
 Unsaved buffers must first be saved or reverted. **Preview and Explicitly Refresh
@@ -97,7 +111,9 @@ Authored Node tests live in `test/`. They use the built-in `node:test` runner an
 mock processes to cover protocol bounds, exact inner envelopes, rejected tool
 authority, timeouts, duplicate keys, canonical source-review digests and hostile
 chunk/path inputs. Additional authored cases cover typed-hole lifecycle,
-context/reference binding, failed fills and explicit completion. They were
+context/reference binding, failed fills and explicit completion. Repair cases
+use schema-shaped mock responses to cover exact selectors, bound raw diagnostic
+reports, malformed responses and failed handle retirement. They were
 **not run** during implementation. Later explicit verification can use
 `node --test test/*.test.js`; no VS Code or compiler process
 is started by those tests.

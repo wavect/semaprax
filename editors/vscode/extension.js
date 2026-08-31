@@ -6,18 +6,22 @@ const crypto = require('node:crypto');
 const { McpClient, parse, digest, invalidates } = require('./protocol');
 const { fetchReview } = require('./review');
 const { HoleDraft } = require('./holes');
+const { Repairs, validateCandidateHandle } = require('./repairs');
 let stopActive = () => {};
 function activate(context) {
   let client, config, image, candidate, target, stale = true, epoch = 0, busy = false;
   let holes, selectedHole, holeNavigation;
+  let imageProject, candidateHandle, repairs;
   let watchers = [];
   const documents = new Map(), scratch = new Set(), changed = new vscode.EventEmitter();
   const holeScratch = new Map();
   const holeReports = new Set();
+  const attemptReports = new Set();
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
   status.text = 'SEMAPRAX: stopped'; status.show();
   const clear = label => {
     epoch++; stale = true; candidate = undefined; target = undefined;
+    candidateHandle = undefined; repairs = undefined; attemptReports.clear();
     holes = undefined; selectedHole = undefined; holeNavigation = undefined;
     holeScratch.clear(); scratch.clear();
     holeReports.clear();
@@ -25,7 +29,7 @@ function activate(context) {
     status.text = `SEMAPRAX: ${label}`;
   };
   const stop = () => {
-    const old = client; client = undefined; image = undefined;
+    const old = client; client = undefined; image = undefined; imageProject = undefined;
     for (const watcher of watchers) watcher.dispose(); watchers = [];
     clear('stopped'); documents.clear(); scratch.clear(); if (old) old.stop();
   };
@@ -67,6 +71,49 @@ function activate(context) {
   function ensureEpoch(current) {
     saved(); if (epoch !== current || stale || !client || client.closed) throw discardError('Editor view invalidated while awaiting input');
   }
+  function repairToken() {
+    requireNoDraft(); requireCandidate();
+    return { epoch, image, candidate, controller: repairs, revision: repairs?.attemptRevision };
+  }
+  function ensureRepairToken(token, afterMutation = false) {
+    ensureEpoch(token.epoch); requireNoDraft();
+    if (image !== token.image || candidate !== token.candidate || repairs !== token.controller || (!afterMutation && repairs?.attemptRevision !== token.revision)) throw discardError('Diagnostic attempt changed while awaiting input');
+  }
+  function clearAttemptViews() {
+    for (const uri of attemptReports) {
+      if (documents.has(uri)) { documents.set(uri, 'Previous diagnostic attempt invalidated. Inspect the current attempt explicitly.'); changed.fire(vscode.Uri.parse(uri)); }
+    }
+    attemptReports.clear();
+  }
+  async function repairOperation(operation) {
+    try { return await operation(); }
+    catch (error) { if (error.protocolInvalid) { if (client) client.fail(error); clear('invalid diagnostic response; restart required'); } throw error; }
+  }
+  async function retireAttempt() {
+    if (repairs?.attemptRevision) {
+      const token = repairToken();
+      await repairOperation(() => repairs.discard()); ensureRepairToken(token, true);
+    }
+    repairs = undefined; clearAttemptViews();
+  }
+  function adoptCandidate(handle, expectedBase = candidateHandle?.base_revision || imageProject) {
+    try { validateCandidateHandle(handle, expectedBase); }
+    catch (error) { if (client) client.fail(error); clear('invalid candidate response; restart required'); throw error; }
+    candidateHandle = handle; candidate = handle.candidate_revision;
+    repairs = undefined; clearAttemptViews(); scratch.clear();
+    status.text = 'SEMAPRAX: candidate ' + candidate.slice(7, 19);
+  }
+  function requireDiagnosticMethods() {
+    const methods = ['candidate/attempt', 'attempt/summary', 'attempt/query', 'attempt/repair-catalog', 'attempt/repair-apply', 'attempt/discard'];
+    if (!client || methods.some(method => !client.tools.has(method))) throw new Error('This host has not selected the diagnostic attempt and repair methods; the extension cannot enable them');
+  }
+  async function showAttemptReport(value, label, token) {
+    ensureRepairToken(token);
+    const text = '// Retained diagnostic evidence, not a valid candidate or permission to repair.\n// Large report integers may be rounded for display; only the exact repair ID is submitted.\n' + JSON.stringify(value, null, 2) + '\n';
+    const uri = await virtual(text, label + '.jsonc', 'jsonc', token.epoch); ensureRepairToken(token);
+    attemptReports.add(uri.toString());
+    await vscode.window.showTextDocument(uri, { preview: true }); ensureRepairToken(token);
+  }
   function holeToken() {
     requireCandidate();
     return { epoch, image, candidate, controller: holes, revision: holes?.draftRevision, hole: selectedHole };
@@ -81,7 +128,7 @@ function activate(context) {
     return holeToken();
   }
   function changedDraft() {
-    holeScratch.clear(); holeNavigation = undefined;
+    holeScratch.clear(); scratch.clear(); holeNavigation = undefined;
     for (const uri of holeReports) {
       if (documents.has(uri)) { documents.set(uri, 'Previous draft context invalidated. Request fresh context for the current draft.'); changed.fire(vscode.Uri.parse(uri)); }
     }
@@ -112,10 +159,10 @@ function activate(context) {
       await vscode.languages.setTextDocumentLanguage(doc, language); ensureEpoch(current); return uri;
     } catch (error) { documents.delete(uri.toString()); changed.fire(uri); throw error; }
   }
-  async function catalog() {
-    requireCandidate(); if (!target) throw new Error('Select a stable target ID first');
-    const response = await invoke('change/catalog', { image_revision: image, candidate_revision: candidate, target });
-    if (response.payload.schema !== 'semaprax.project-change-catalog.v1' || response.payload.candidate_digest !== candidate || response.payload.target !== target || response.payload.source_authority !== false || !Array.isArray(response.payload.operations)) invalidResponse('Unexpected target catalog');
+  async function catalog(selectedTarget = target) {
+    requireCandidate(); if (!selectedTarget) throw new Error('Select a stable target ID first');
+    const response = await invoke('change/catalog', { image_revision: image, candidate_revision: candidate, target: selectedTarget });
+    if (response.payload.schema !== 'semaprax.project-change-catalog.v1' || response.payload.candidate_digest !== candidate || response.payload.target !== selectedTarget || response.payload.source_authority !== false || !Array.isArray(response.payload.operations)) invalidResponse('Unexpected target catalog');
     return response.payload;
   }
   const commands = {
@@ -128,7 +175,7 @@ function activate(context) {
         await selected.initialize();
         const response = await invoke('workspace/open', {}, true);
         if (response.payload.schema !== 'semaprax.image-agent-workspace.v1' || response.payload.state !== 'open' || response.payload.image_revision !== response.image_revision || response.payload.project_revision !== response.project_revision) invalidResponse('Invalid workspace handle');
-        image = response.image_revision; stale = false;
+        image = response.image_revision; imageProject = response.project_revision; stale = false;
         const watch = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(path.dirname(config.manifest), '**/*'));
         const hint = uri => { if (uri.fsPath.endsWith('.spx') || uri.fsPath === config.manifest) clear('disk changed; refresh required'); };
         watchers = [watch, watch.onDidChange(hint), watch.onDidCreate(hint), watch.onDidDelete(hint)];
@@ -138,9 +185,10 @@ function activate(context) {
     async stop() { stop(); },
     async openCandidate() {
       requireNoDraft();
+      await retireAttempt();
       const response = await invoke('candidate/open', { image_revision: image });
       if (response.payload.schema !== 'semaprax.image-candidate-handle.v1' || !digest(response.payload.candidate_revision) || response.payload.source_authority !== false) invalidResponse('Invalid candidate handle');
-      candidate = response.payload.candidate_revision; target = undefined; status.text = 'SEMAPRAX: candidate ' + candidate.slice(7, 19);
+      adoptCandidate(response.payload, imageProject); target = undefined;
     },
     async selectTarget() {
       requireCandidate(); const current = epoch;
@@ -148,7 +196,9 @@ function activate(context) {
       ensureEpoch(current);
       if (selection === undefined) return;
       if (!selection || Buffer.byteLength(selection) > 512 || /[\u0000-\u001f\u007f]/.test(selection)) throw new Error('Invalid stable ID');
-      target = selection; await catalog(); ensureEpoch(current);
+      await catalog(selection); ensureEpoch(current);
+      if (selection !== target) { await retireAttempt(); ensureEpoch(current); scratch.clear(); }
+      target = selection;
     },
     async changeCatalog() {
       const current = epoch; const value = await catalog(); ensureEpoch(current);
@@ -175,9 +225,63 @@ function activate(context) {
       const intent = parse(doc.getText(), 60 * 1024, true);
       const value = await catalog();
       if (intent.target !== target || !value.operations.some(row => row.kind === intent.kind)) throw new Error('Intent must target the selected ID and a catalogued operation');
+      await retireAttempt();
       const response = await invoke('candidate/apply-intent', { image_revision: image, candidate_revision: candidate, intent });
       if (response.payload.schema !== 'semaprax.image-candidate-handle.v1' || !digest(response.payload.candidate_revision) || response.payload.source_authority !== false) invalidResponse('Invalid candidate result');
-      candidate = response.payload.candidate_revision; status.text = 'SEMAPRAX: candidate ' + candidate.slice(7, 19);
+      adoptCandidate(response.payload);
+    },
+    async tryIntent() {
+      requireDiagnosticMethods(); const token = repairToken();
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc || !scratch.has(doc.uri.toString()) || doc.languageId !== 'json') throw new Error('Use New Typed Intent Scratch, then edit that JSON document');
+      const intent = parse(doc.getText(), 60 * 1024, true);
+      const value = await catalog(); ensureRepairToken(token);
+      if (intent.target !== target || !value.operations.some(row => row.kind === intent.kind)) throw new Error('Intent must target the selected ID and a catalogued operation');
+      const controller = repairs || await repairOperation(() => new Repairs((method, params) => invoke(method, params), { image_revision: image, project_revision: imageProject }, candidateHandle));
+      ensureRepairToken(token);
+      const result = await repairOperation(() => controller.tryIntent(intent)); ensureRepairToken(token, true);
+      if (result.status === 'accepted') { adoptCandidate(result.candidate); return; }
+      repairs = controller; clearAttemptViews();
+      status.text = 'SEMAPRAX: rejected attempt · candidate unchanged';
+      await showAttemptReport(result.attempt, 'attempt-summary', repairToken());
+    },
+    async attemptSummary() {
+      const token = repairToken();
+      if (!repairs?.attemptRevision) throw new Error('Try an intent with diagnostics first');
+      const value = await repairOperation(() => repairs.summary()); ensureRepairToken(token);
+      await showAttemptReport(value, 'attempt-summary', token);
+    },
+    async attemptDiagnostics() {
+      const token = repairToken();
+      if (!repairs?.attemptRevision) throw new Error('No rejected attempt is selected');
+      const raw = await repairOperation(() => repairs.report()); ensureRepairToken(token);
+      const uri = await virtual(raw, 'retained-attempt-diagnostics.json', 'json', token.epoch); ensureRepairToken(token);
+      attemptReports.add(uri.toString());
+      await vscode.window.showTextDocument(uri, { preview: true }); ensureRepairToken(token);
+    },
+    async repairCatalog() {
+      const token = repairToken();
+      if (!repairs?.attemptRevision) throw new Error('No rejected attempt is selected');
+      const value = await repairOperation(() => repairs.catalog()); ensureRepairToken(token);
+      await showAttemptReport(value, 'repair-catalog-explicit-selection', token);
+    },
+    async applyRepair() {
+      const token = repairToken();
+      if (!repairs?.attemptRevision) throw new Error('No rejected attempt is selected');
+      const value = await repairOperation(() => repairs.catalog()); ensureRepairToken(token);
+      if (!value.repairs.length) throw new Error('The compiler did not admit a repair for this attempt');
+      const selected = await vscode.window.showQuickPick(value.repairs.map(row => ({ label: row.class, description: row.repair_id, row })), { title: 'Explicitly apply one compiler-admitted repair to a new candidate' });
+      ensureRepairToken(token); if (!selected) return;
+      const result = await repairOperation(() => repairs.apply(selected.row.repair_id)); ensureRepairToken(token, true);
+      adoptCandidate(result);
+    },
+    async discardAttempt() {
+      const token = repairToken();
+      if (!repairs?.attemptRevision) throw new Error('No rejected attempt is selected');
+      const choice = await vscode.window.showWarningMessage('Discard this diagnostic attempt? The current valid candidate and source remain unchanged.', { modal: true }, 'Discard Attempt');
+      ensureRepairToken(token); if (choice !== 'Discard Attempt') return;
+      await retireAttempt(); scratch.clear();
+      status.text = 'SEMAPRAX: candidate ' + candidate.slice(7, 19);
     },
     async previewSourceDiff() {
       requireNoDraft();
@@ -216,6 +320,7 @@ function activate(context) {
       const holeId = await vscode.window.showInputBox({ prompt: 'New hole ID for the current draft', ignoreFocusOut: true });
       ensureHoleToken(token); if (holeId === undefined) return;
       if (!holeId || Buffer.byteLength(holeId) > 128 || !/^[A-Za-z0-9_.-]+$/.test(holeId)) throw new Error('Use a hole ID of at most 128 ASCII letters, digits, dots, underscores or hyphens');
+      await retireAttempt(); ensureHoleToken(token);
       await draftOperation(() => controller.open(kind.kind, selectedTarget, holeId, expressionId)); ensureHoleToken(token, true);
       holes = controller; selectedHole = holeId; target = selectedTarget; changedDraft();
     },
@@ -275,7 +380,7 @@ function activate(context) {
       if (!holes?.draftRevision) throw new Error('No typed-hole draft to complete');
       if (holes.pending.length) throw new Error('Fill every pending hole before completing the draft');
       const result = await draftOperation(() => holes.complete()); ensureHoleToken(token, true);
-      candidate = result.candidate_revision; holes = undefined; selectedHole = undefined; changedDraft();
+      adoptCandidate(result); holes = undefined; selectedHole = undefined; changedDraft();
     },
     async discardDraft() {
       const token = holeToken();
@@ -291,13 +396,13 @@ function activate(context) {
       const preview = await invoke('workspace/refresh-preview', { image_revision: image }, true);
       const observed = preview.payload.observed_project_revision;
       if (preview.payload.schema !== 'semaprax.image-workspace-refresh-preview.v1' || preview.payload.old_image_revision !== image || !digest(observed) || !digest(preview.payload.observed_image_revision) || preview.payload.source_authority !== false || preview.payload.current_state_replaced !== false || preview.payload.requires_explicit_refresh !== true) invalidResponse('Invalid refresh preview');
-      const decision = await vscode.window.showInformationMessage('Replace the held image with this saved-source revision? Candidate selection, typed-hole drafts, scratch bindings and previews will be cleared.', { modal: true }, 'Refresh Saved Source');
+      const decision = await vscode.window.showInformationMessage('Replace the held image with this saved-source revision? Candidate selection, diagnostic attempts, typed-hole drafts, scratch bindings and previews will be cleared.', { modal: true }, 'Refresh Saved Source');
       saved();
       if (epoch !== refreshEpoch || client !== refreshClient || image !== refreshImage || holes !== refreshDraft || holes?.draftRevision !== refreshRevision) throw discardError('Session or draft changed while awaiting refresh confirmation');
       if (decision !== 'Refresh Saved Source') return;
       const response = await invoke('workspace/refresh', { image_revision: image, expected_new_project_revision: observed }, true);
       if (response.payload.schema !== 'semaprax.image-workspace-refresh.v1' || response.payload.image_revision !== response.image_revision || response.payload.old_image_revision !== image || response.payload.project_revision !== observed || response.project_revision !== observed || response.payload.source_authority !== false) invalidResponse('Invalid refreshed image');
-      clear('saved source refreshed'); image = response.image_revision; stale = false;
+      clear('saved source refreshed'); image = response.image_revision; imageProject = response.project_revision; stale = false;
     }
   };
   context.subscriptions.push(status, changed, vscode.workspace.registerTextDocumentContentProvider('semaprax-review', {

@@ -51,6 +51,13 @@
   closed, `LIB` is unchanged, and missing headers still fail before archive or
   package publication.
 
+- Added optional editor diagnostic attempts, exact-byte diagnostic inspection
+  and explicit compiler repair selection. Repairs remain bound to the retained
+  predecessor and submit selectors only; ordinary Apply remains fail-fast.
+  Stale views and uncertain handle retirement invalidate the editor session.
+  No policy elevation or publication route was added. Controller regressions
+  are authored with mock responses, unrun locally.
+
 - Extended declaration-move planning to resource-free owned values, String
   signatures and scalar helpers with internal byte operations. Builtin identities
   and lexical bindings are authenticated; exact source and checked place/type

@@ -6,11 +6,16 @@ use semaprax::diagnostic::quote_json;
 
 #[path = "doctor/offline_profile.rs"]
 mod offline_profile;
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+#[path = "doctor/settled_report.rs"]
+mod settled_report;
 #[path = "doctor/version_token.rs"]
 mod version_token;
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+pub(crate) use settled_report::render_settled;
 
 #[cfg(test)]
-// Used by the path-included integration harness, not the binary test target.
+// Used by the path-included integration harness, not the library test target.
 #[allow(unused_imports)]
 pub(crate) use offline_profile::{inspect_profile, AdmittedProfile};
 pub(crate) use offline_profile::{run_with_profile_host, OfflineProfileHost};
@@ -112,7 +117,7 @@ pub(crate) fn run(arguments: &[String]) -> Result<DoctorOutcome, DoctorError> {
 }
 
 #[cfg(test)]
-// Preserves the legacy injected-harness view; the binary test target uses profiles.
+// Preserves the legacy injected-harness view; production uses explicit profiles.
 #[allow(dead_code)]
 pub(crate) fn inspect(
     host: &dyn DoctorHost,
@@ -128,12 +133,17 @@ pub(crate) fn inspect(
 fn base_checks(os: &str, arch: &str, release_build: bool) -> Result<Vec<Check>, DoctorError> {
     validate_host_fact("operating system", os)?;
     validate_host_fact("architecture", arch)?;
-    Ok(vec![
+    Ok(platform_checks(os, arch, release_build))
+}
+
+// Callers either validate free-form host facts or supply closed platform enums.
+fn platform_checks(os: &str, arch: &str, release_build: bool) -> Vec<Check> {
+    vec![
         Check::ok("semaprax", VERSION),
         Check::ok("os", os),
         Check::ok("arch", arch),
         Check::ok("release", if release_build { "release" } else { "debug" }),
-    ])
+    ]
 }
 
 fn append_tool_checks(checks: &mut Vec<Check>, host: &dyn DoctorHost, target: DoctorTarget) {
@@ -241,8 +251,12 @@ fn check_clang(host: &dyn DoctorHost) -> Check {
     if !path.is_absolute() {
         return Check::failed("clang", "resolved Clang path is not absolute");
     }
-    match normalized_version(host.run_version(&path)) {
-        Ok(version) => Check::ok("clang", format!("{} ({version})", path.display())),
+    clang_version(&path.display().to_string(), host.run_version(&path))
+}
+
+fn clang_version(path: &str, output: Result<String, DoctorError>) -> Check {
+    match normalized_version(output) {
+        Ok(version) => Check::ok("clang", format!("{path} ({version})")),
         Err(error) => Check::failed("clang", error.to_string()),
     }
 }
@@ -255,7 +269,11 @@ fn check_node(host: &dyn DoctorHost) -> Check {
     if !path.is_absolute() {
         return Check::failed("node", "resolved Node path is not absolute");
     }
-    let version = match normalized_version(host.run_version(&path)) {
+    node_version(host.run_version(&path))
+}
+
+fn node_version(output: Result<String, DoctorError>) -> Check {
+    let version = match normalized_version(output) {
         Ok(version) => version,
         Err(error) => return Check::failed("node", error.to_string()),
     };
@@ -277,7 +295,11 @@ fn check_rust(host: &dyn DoctorHost) -> Check {
     if !path.is_absolute() {
         return Check::failed("rust", "resolved Rust path is not absolute");
     }
-    let version = match normalized_version(host.run_version(&path)) {
+    rust_version_check(host.run_version(&path))
+}
+
+fn rust_version_check(output: Result<String, DoctorError>) -> Check {
+    let version = match normalized_version(output) {
         Ok(version) => version,
         Err(error) => return Check::failed("rust", error.to_string()),
     };

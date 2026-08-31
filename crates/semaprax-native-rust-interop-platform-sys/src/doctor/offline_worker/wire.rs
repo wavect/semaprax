@@ -5,26 +5,26 @@ use super::super::{
 use super::Error;
 use sha2::{Digest, Sha256};
 
-pub(super) const MAX_REQUEST_BYTES: usize = 149;
-pub(super) const MAX_REPLY_BYTES: usize = 3 * 65_536 + 128;
+pub(in crate::doctor) const MAX_REQUEST_BYTES: usize = 149;
+pub(in crate::doctor) const MAX_REPLY_BYTES: usize = 3 * 65_536 + 128;
 const REQUEST_MAGIC: &[u8; 8] = b"SPXDWK1\0";
 const REPLY_MAGIC: &[u8; 8] = b"SPXDWR1\0";
 const REPLY_HEADER: usize = 77;
 
 #[derive(Debug)]
-pub(super) struct Request {
+pub(in crate::doctor) struct Request {
     pub(super) nonce: [u8; 32],
     pub(super) digest: [u8; 32],
-    pub(super) bundle_digest: [u8; 32],
-    pub(super) bundle_len: usize,
-    pub(super) architecture: DoctorOfflineArchitecture,
-    pub(super) target: u8,
+    pub(in crate::doctor) bundle_digest: [u8; 32],
+    pub(in crate::doctor) bundle_len: usize,
+    pub(in crate::doctor) architecture: DoctorOfflineArchitecture,
+    pub(in crate::doctor) target: u8,
     pub(super) roles: u8,
-    pub(super) selector: String,
+    pub(in crate::doctor) selector: String,
 }
 
 impl Request {
-    pub(super) fn parse(bytes: &[u8]) -> Result<Self, Error> {
+    pub(in crate::doctor) fn parse(bytes: &[u8]) -> Result<Self, Error> {
         if bytes.len() > MAX_REQUEST_BYTES {
             return Err(Error::Limit);
         }
@@ -93,7 +93,7 @@ impl Request {
         })
     }
 
-    pub(super) fn roles(&self) -> impl Iterator<Item = (u8, DoctorOfflineTool)> + '_ {
+    pub(in crate::doctor) fn roles(&self) -> impl Iterator<Item = (u8, DoctorOfflineTool)> + '_ {
         [
             (1, DoctorOfflineTool::Clang),
             (2, DoctorOfflineTool::Node),
@@ -112,7 +112,7 @@ impl Request {
     }
 }
 
-pub(super) type ReplyRow = (u8, Result<Vec<u8>, ProbeError>);
+pub(in crate::doctor) type ReplyRow = (u8, Result<Vec<u8>, ProbeError>);
 
 pub(super) fn encode_reply(request: &Request, rows: &[ReplyRow]) -> Result<Vec<u8>, Error> {
     if rows.len() != request.roles().count() {
@@ -160,7 +160,10 @@ pub(super) fn encode_reply(request: &Request, rows: &[ReplyRow]) -> Result<Vec<u
 
 /// Validate only byte binding and shape. The collector separately owns the live
 /// worker, endpoint, successful termination and descendant-settlement proof.
-pub(super) fn validate_reply(request: &Request, bytes: &[u8]) -> Result<Vec<ReplyRow>, Error> {
+pub(in crate::doctor) fn validate_reply(
+    request: &Request,
+    bytes: &[u8],
+) -> Result<Vec<ReplyRow>, Error> {
     if bytes.len() > MAX_REPLY_BYTES {
         return Err(Error::Limit);
     }

@@ -178,8 +178,9 @@ The real-distribution fixture additionally requires absolute
 `SEMAPRAX_DOCTOR_REAL_BUNDLE` and its exact `SEMAPRAX_DOCTOR_REAL_SELECTOR`.
 These commands describe pending evidence, not commands executed in this batch.
 
-The ordinary CLI remains unavailable until an explicit live provisioner-owned
-handoff and final doctor version-policy integration are implemented. Linux
+The separate [live collector](DOCTOR-OFFLINE-COLLECTOR-V1.md) connects provisioned
+handoff to shared doctor version/report policy. It is not ordinary CLI worker
+discovery: that CLI remains unavailable. Linux
 worker output does not represent native macOS or Windows tool availability;
 those hosts need their own worker/storage/confinement implementations. No
 existing report schema, generated artifact, release package inventory or

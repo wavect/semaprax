@@ -11,13 +11,13 @@ use std::time::{Duration, Instant};
 mod capture;
 mod child;
 mod guard;
-mod wire;
+pub(in crate::doctor) mod wire;
 
 #[cfg(test)]
 mod tests;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum Error {
+pub(in crate::doctor) enum Error {
     Invalid,
     Limit,
     Allocation,

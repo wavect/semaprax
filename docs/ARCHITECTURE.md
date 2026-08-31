@@ -74,7 +74,7 @@ the CLI additionally rechecks the original requested parent spelling. Failure
 after that latch cannot regain cleanup authority. See [Calculator project
 publication v1](NEW-PROJECT-PUBLICATION-V1.md) for the correction and unrun gates.
 
-The full-toolchain CLI doctor owns strict bounded `--profile` selection and one
+The toolchain library's shared doctor module owns strict bounded `--profile` selection and one
 scoped offline-profile admission per report. Missing/unavailable profiles fail
 required checks without ambient discovery or tool execution; returned selector
 and platform facts are checked before tool callbacks. No production admission
@@ -120,6 +120,16 @@ scripted test operations share the observation/settlement control flow. Test
 scripts cannot create process authority. External lifecycle fixtures inspect a
 stopped supervisor's pinned child; they do not expose procfs to the tool or
 change the production syscall filter.
+
+The separate `doctor/offline_collector` sys component consumes a provisioner-owned
+live worker handoff. It alone constructs opaque settled observations after exact
+pidfd exit/reap, bounded capture, request/bundle/reply binding and owned-handle
+closure. The safe facade reexports only immutable observation types. A small
+unpublished `semaprax-doctor-collector` entry crate bridges that unsafe process
+boundary to the toolchain library's shared doctor report policy, avoiding a
+dependency cycle or an unsafe ordinary CLI. Tool rows stay keyed by role even
+when their bundled paths alias. This provisioned entry does not activate ordinary
+CLI worker discovery. See [Provisioned offline doctor collector v1](DOCTOR-OFFLINE-COLLECTOR-V1.md).
 
 The retained safe `semaprax-native-rust-interop-platform` facade and platform-sys
 quarantine's separate `doctor/` module are no longer connected to that CLI route.

@@ -4,6 +4,12 @@
 
 mod doctor;
 pub use doctor::{doctor_version_probe, DoctorProbeError};
+// Opaque settled observations only. The process-consuming unsafe collector
+// entry is intentionally NOT exposed through this safe facade.
+#[doc(hidden)]
+pub use semaprax_native_rust_interop_platform_sys::{
+    DoctorOfflineTarget, SettledDoctorObservation, SettledDoctorTool,
+};
 mod doctor_offline_bundle;
 mod doctor_offline_input;
 #[doc(hidden)]

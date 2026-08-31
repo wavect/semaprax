@@ -69,6 +69,11 @@ The [offline bundle parser](DOCTOR-OFFLINE-BUNDLE-V1.md) separately binds a
 sealed snapshot to a selector/architecture and validates the closed file/tool
 inventory and minimum ELF interpreter references. It does not activate this
 CLI route or prove loadability, complete dependency closure, or confinement.
+The separate [provisioned worker](DOCTOR-OFFLINE-WORKER-V1.md) and
+[live collector](DOCTOR-OFFLINE-COLLECTOR-V1.md) now connect controlled execution
+to this library's shared version/report policy without activating ordinary CLI
+discovery. The collector requires an actual exclusively owned worker invocation,
+not caller-supplied reply bytes. Both paths remain authored and unrun.
 
 ## Retained lower-level probe invocation bounds
 

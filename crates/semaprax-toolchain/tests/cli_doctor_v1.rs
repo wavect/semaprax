@@ -101,6 +101,26 @@ fn cli(arguments: &[&str]) -> Output {
 }
 
 #[test]
+fn library_entry_preserves_ordinary_profile_policy_and_errors() {
+    for arguments in [
+        vec![],
+        vec!["--json"],
+        vec!["--profile", "profile-v1", "--target", "all", "--json"],
+        vec!["--profile", "bad/profile"],
+        vec!["--unknown"],
+    ] {
+        let arguments = arguments
+            .iter()
+            .map(|value| (*value).to_owned())
+            .collect::<Vec<_>>();
+        let expected = doctor::run(&arguments)
+            .map(|outcome| (outcome.output, outcome.exit_code))
+            .map_err(|error| error.to_string());
+        assert_eq!(semaprax_toolchain::run_doctor(&arguments), expected);
+    }
+}
+
+#[test]
 fn default_is_source_contributor_mode_and_json_is_canonical() {
     let host = FakeHost::healthy();
     let outcome = doctor::inspect(&host, DoctorTarget::Contributor, true, false).unwrap();

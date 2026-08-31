@@ -7,6 +7,10 @@
 
 mod doctor;
 pub use doctor::{
+    collect_provisioned_doctor_worker, finish_provisioned_doctor_report, DoctorOfflineTarget,
+    SettledDoctorObservation, SettledDoctorTool,
+};
+pub use doctor::{
     probe_version as doctor_version_probe, provisioned_doctor_worker_entry,
     ProbeError as DoctorProbeError,
 };

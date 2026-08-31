@@ -258,6 +258,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "semaprax-doctor-collector"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "semaprax-native-rust-interop-platform-sys",
+ "semaprax-toolchain",
+ "sha2",
+]
+
+[[package]]
 name = "semaprax-native-host"
 version = "0.1.0"
 dependencies = [

@@ -5,6 +5,26 @@ use std::path::Path;
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::ProjectSnapshot;
 
+mod doctor;
+
+/// Run ordinary doctor policy without discovering or spawning a worker.
+pub fn run_doctor(arguments: &[String]) -> Result<(String, u8), String> {
+    doctor::run(arguments)
+        .map(|outcome| (outcome.output, outcome.exit_code))
+        .map_err(|error| error.to_string())
+}
+
+/// Render only an opaque, live-collected and settled offline worker observation.
+/// This applies version policy; it neither acquires authority nor runs tools.
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+pub fn render_settled_doctor(
+    observation: &semaprax_native_rust_interop_platform::SettledDoctorObservation,
+    json: bool,
+) -> (String, u8) {
+    let outcome = doctor::render_settled(observation, json);
+    (outcome.output, outcome.exit_code)
+}
+
 #[cfg(windows)]
 mod windows_revision_store;
 

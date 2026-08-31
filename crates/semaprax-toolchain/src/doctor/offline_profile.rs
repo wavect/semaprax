@@ -1,5 +1,5 @@
-//! Profile selection is not authority. Only a future platform admission backend
-//! may supply a host owning a complete offline execution/input closure.
+//! Ordinary profile selection is not authority. The separate provisioned
+//! collector reports its opaque settled observation without activating discovery.
 use super::{
     append_tool_checks, base_checks, parse, report, validate_host_fact, Check, DoctorError,
     DoctorHost, DoctorOutcome, DoctorTarget,
@@ -31,7 +31,7 @@ impl OfflineProfileHost for RealOfflineProfileHost {
 
     fn acquire(&self, selector: &str) -> Result<AdmittedProfile<'_>, DoctorError> {
         // Deliberately no environment, cwd, filesystem, registry or process
-        // discovery. OS-level closure admission has not been implemented.
+        // discovery. This ordinary CLI route has no provisioner-owned handoff.
         Err(DoctorError::new(format!(
             "offline profile `{selector}` is unavailable on this host"
         )))

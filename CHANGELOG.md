@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Connected provisioner-owned offline worker collection to the shared doctor
+  report policy through a separate unpublished collector entry. Only exact
+  request/bundle/reply binding, complete capture and successful owned-worker
+  reap can produce an opaque observation; malformed or uncertain handoffs
+  fail-stop. Added authored, unrun lifecycle/report fixtures. Ordinary CLI
+  discovery, service installation and support promotion remain unchanged.
+
 - Added offline-worker hostile native programs and external post-exec
   capability/parent-death observations without widening the syscall policy.
   Factored capture/settlement control flow for scripted sticky-failure and

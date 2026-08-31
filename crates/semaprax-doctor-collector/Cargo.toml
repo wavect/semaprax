@@ -1,0 +1,19 @@
+[package]
+name = "semaprax-doctor-collector"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.88"
+publish = false
+description = "Private provisioner-owned offline doctor collector entry"
+license = "Apache-2.0"
+
+[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
+semaprax-native-rust-interop-platform-sys = { version = "=0.1.0", path = "../semaprax-native-rust-interop-platform-sys" }
+semaprax-toolchain = { version = "=0.2.0", path = "../semaprax-toolchain" }
+
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+libc = "=0.2.189"
+sha2 = "=0.11.0"
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"

@@ -147,7 +147,7 @@ pub(super) fn payload(
             .iter()
             .any(|method| method.name == "candidate/artifact-delta")
         {
-            instructions.push_str(" Use candidate/build or candidate/artifact-delta only when candidate_build is granted. Bind candidate_revision and select kind web, npm, openapi or c for an independently replayed pathless artifact projection or its before/after comparison against the original base. OpenAPI projects supported manifest-selected export signatures as schema documents; it does not host or execute an HTTP service or establish external compatibility. C projects supported manifest-selected scalar exports into native-emitter-derived C declarations; it does not compile or link a C consumer or establish a general foreign ABI. Candidate replay precedes builds; each side has a fixed 16 MiB build limit that requests cannot override. Reassemble reports using offset and next_offset, with chunk_bytes 1024 through 65536 (default 16384); projection reports are bounded to 1 MiB and delta reports to 8 MiB. Heterogeneous reports remain explicitly unbundled. No artifact paths are written, package manager or target executable is run, or publication authority granted.");
+            instructions.push_str(" Use candidate/build, candidate/artifact-delta, or candidate/analysis-artifact-evidence only when candidate_build is granted. Bind candidate_revision and select kind web, npm, openapi or c for an independently replayed pathless artifact projection, its before/after comparison, or a candidate analysis boundary report that changes only generated_artifacts to partial for that selected carrier. OpenAPI projects supported manifest-selected export signatures as schema documents; it does not host or execute an HTTP service or establish external compatibility. C projects supported manifest-selected scalar exports into native-emitter-derived C declarations; it does not compile or link a C consumer or establish a general foreign ABI. Candidate replay precedes builds; each side has a fixed 16 MiB build limit that requests cannot override. Reassemble reports using offset and next_offset, with chunk_bytes 1024 through 65536 (default 16384); projection reports are bounded to 1 MiB, delta reports to 8 MiB, and composed analysis-artifact reports to 10 MiB. Match report_sha256 across every composed-report chunk. Heterogeneous reports remain explicitly unbundled, and each chunk request freshly replays the complete report rather than reading a retained cache. No artifact paths are written, package manager, compiler executable, native compilation, or target executable is run, and no deployment, compatibility, or publication authority is established.");
         }
         if methods
             .iter()
@@ -288,7 +288,8 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         "workspace/read-batch" => "parallel_read",
         "workspace/refresh" | "workspace/refresh-preview" => "workspace_refresh",
         "candidate/test" => "candidate_test",
-        "candidate/build" | "candidate/artifact-delta" => "candidate_build",
+        "candidate/build" | "candidate/artifact-delta" | "candidate/analysis-artifact-evidence" =>
+            "candidate_build",
         "candidate/interface-delta"
         | "candidate/contract-delta"
         | "candidate/ownership-delta"
@@ -460,6 +461,9 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
             "image/target-admission" => Some(crate::project::IMAGE_TARGET_ADMISSION_SCHEMA),
             "candidate/build" => Some(crate::project::IMAGE_ARTIFACT_PROJECTION_SCHEMA),
             "candidate/artifact-delta" => Some("semaprax.project-candidate-artifact-delta.v1"),
+            "candidate/analysis-artifact-evidence" => {
+                Some(crate::project::PROJECT_CANDIDATE_ANALYSIS_ARTIFACT_EVIDENCE_SCHEMA)
+            }
             "candidate/commit-report" => {
                 Some(crate::project::PROJECT_CANDIDATE_GIT_PUBLICATION_SCHEMA)
             }
@@ -1259,7 +1263,11 @@ mod tests {
             },
         ] {
             let bundle = selected(policy);
-            for name in ["candidate/build", "candidate/artifact-delta"] {
+            for name in [
+                "candidate/build",
+                "candidate/artifact-delta",
+                "candidate/analysis-artifact-evidence",
+            ] {
                 assert!(!bundle["methods"]
                     .as_array()
                     .unwrap()
@@ -1272,7 +1280,11 @@ mod tests {
             build_enabled: true,
             ..VNextPolicy::default()
         });
-        for name in ["candidate/build", "candidate/artifact-delta"] {
+        for name in [
+            "candidate/build",
+            "candidate/artifact-delta",
+            "candidate/analysis-artifact-evidence",
+        ] {
             let method = bundle["methods"]
                 .as_array()
                 .unwrap()
@@ -1294,6 +1306,7 @@ mod tests {
         for id in [
             "urn:semaprax.image-artifact-projection-chunk.v1",
             "urn:semaprax.image-artifact-delta-chunk.v1",
+            "urn:semaprax.image-analysis-artifact-evidence-chunk.v1",
         ] {
             let chunk = bundle["documents"]
                 .as_array()
@@ -1321,6 +1334,7 @@ mod tests {
             assert!(source.contains("openapi"));
             assert!(source.contains("request_candidate_build"));
             assert!(source.contains("request_candidate_artifact_delta"));
+            assert!(source.contains("request_candidate_analysis_artifact_evidence"));
         }
         for test_enabled in [false, true] {
             for method in crate::image_transport::candidates::diagnostics::methods(test_enabled) {

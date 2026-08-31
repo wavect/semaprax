@@ -170,6 +170,17 @@ before either build, compares file/export/source bindings, and returns chunks.
 The request cannot change the fixed build limit or gain artifact filesystem
 materialization. Candidate preparation alone does not enable this method.
 
+The same grant additively selects `candidate/analysis-artifact-evidence`. It
+composes exact candidate analysis coverage with one freshly replayed Web, npm,
+OpenAPI or C artifact delta and returns the heterogeneous report in bounded
+UTF-8 chunks. The closed chunk binds the candidate and kind and includes plain
+SHA256 of the exact full report bytes for consistent reassembly. The route is a
+build-class operation, is absent without `candidate_build`, and is excluded
+from parallel reads and `workspace/read-batch`. Only `generated_artifacts`
+becomes partial for the selected pathless carrier; no materialization,
+deployment, native compilation, target execution or external-consumer evidence
+is inferred.
+
 All available method names, closed request parameters, payload schema references,
 capabilities, and generated clients come from the selected catalogue. Optional
 parameters are omitted; null is accepted only where the declared schema permits

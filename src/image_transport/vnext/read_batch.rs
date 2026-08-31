@@ -385,6 +385,7 @@ mod tests {
             Action::ReadBatch,
             Action::Build,
             Action::ArtifactDelta,
+            Action::AnalysisArtifactEvidence,
             Action::Commit,
             Action::DraftRecoveryRestore,
             Action::DraftArchiveRestore,

@@ -1,6 +1,9 @@
 //! Host-selected pathless builds and source-bound target projection queries.
 use super::*;
-use crate::project::{ImageArtifactKind, MAX_IMAGE_ARTIFACT_BUILD_BYTES};
+use crate::project::{
+    ImageArtifactKind, MAX_IMAGE_ARTIFACT_BUILD_BYTES,
+    MAX_PROJECT_CANDIDATE_ANALYSIS_ARTIFACT_EVIDENCE_BYTES,
+};
 
 const METHODS: &[Method] = &[
     Method {
@@ -53,6 +56,38 @@ const METHODS: &[Method] = &[
         payload_schema: "semaprax.image-artifact-delta-chunk.v1",
     },
     Method {
+        name: "candidate/analysis-artifact-evidence",
+        operation: Operation::VNext(Action::AnalysisArtifactEvidence),
+        parameters: &[
+            REVISION,
+            Parameter {
+                name: "candidate_revision",
+                kind: ParameterKind::Digest,
+                required: true,
+            },
+            Parameter {
+                name: "kind",
+                kind: ParameterKind::Choice(&["web", "npm", "openapi", "c"]),
+                required: true,
+            },
+            Parameter {
+                name: "offset",
+                kind: ParameterKind::Integer(
+                    0,
+                    MAX_PROJECT_CANDIDATE_ANALYSIS_ARTIFACT_EVIDENCE_BYTES,
+                ),
+                required: false,
+            },
+            Parameter {
+                name: "chunk_bytes",
+                kind: ParameterKind::Integer(1024, 65536),
+                required: false,
+            },
+        ],
+        query: false,
+        payload_schema: "semaprax.image-analysis-artifact-evidence-chunk.v1",
+    },
+    Method {
         name: "candidate/build",
         operation: Operation::VNext(Action::Build),
         parameters: &[
@@ -89,7 +124,9 @@ pub(super) fn methods(build_enabled: bool) -> Vec<&'static Method> {
             build_enabled
                 || !matches!(
                     method.operation,
-                    Operation::VNext(Action::Build | Action::ArtifactDelta)
+                    Operation::VNext(
+                        Action::Build | Action::ArtifactDelta | Action::AnalysisArtifactEvidence
+                    )
                 )
         })
         .collect()
@@ -159,6 +196,15 @@ pub(super) fn prepare(
                 candidate.artifact_delta(candidate.candidate_digest(), kind)?,
             )
         }
+        Action::AnalysisArtifactEvidence => {
+            let candidate = registry.candidate(text(params, "candidate_revision"))?;
+            let kind = artifact_kind(params, "SPX-G354", "unknown analysis artifact kind")?;
+            (
+                "semaprax.image-analysis-artifact-evidence-chunk.v1",
+                crate::project::PROJECT_CANDIDATE_ANALYSIS_ARTIFACT_EVIDENCE_SCHEMA,
+                candidate.analysis_artifact_evidence(candidate.candidate_digest(), kind)?,
+            )
+        }
         _ => {
             return Err(vec![Diagnostic::io(
                 "SPX-G290",
@@ -195,11 +241,7 @@ fn render_chunk(
     let offset = number(params, "offset", 0);
     if offset > report.len() || !report.is_char_boundary(offset) {
         return Err(vec![Diagnostic::io(
-            if matches!(action, Action::ArtifactDelta) {
-                "SPX-G331"
-            } else {
-                "SPX-G290"
-            },
+            chunk_error(action, false),
             "artifact report offset is outside its UTF-8 boundary",
         )]);
     }
@@ -211,18 +253,49 @@ fn render_chunk(
     }
     if end == offset && offset < report.len() {
         return Err(vec![Diagnostic::io(
-            if matches!(action, Action::ArtifactDelta) {
-                "SPX-G332"
-            } else {
-                "SPX-G291"
-            },
+            chunk_error(action, true),
             "artifact chunk cannot make progress",
         )]);
     }
-    Ok(
-        json!({"schema":schema,"report_schema":report_schema,"image_revision":image.image_digest(),
+    let mut value = json!({"schema":schema,"report_schema":report_schema,"image_revision":image.image_digest(),
         "candidate_revision":params.get("candidate_revision"),"target":params.get("target"),"kind":params.get("kind"),
         "offset":offset,"total_bytes":report.len(),"chunk":&report[offset..end],"next_offset":(end<report.len()).then_some(end),
-        "source_authority":false,"artifact_materialization":false,"target_execution":false}),
+        "source_authority":false,"artifact_materialization":false,"target_execution":false});
+    if matches!(action, Action::AnalysisArtifactEvidence) {
+        value["report_sha256"] = json!(report_sha256(report));
+    }
+    Ok(value)
+}
+
+fn artifact_kind(
+    params: &Map<String, Value>,
+    code: &'static str,
+    message: &'static str,
+) -> Result<ImageArtifactKind, Vec<Diagnostic>> {
+    match text(params, "kind") {
+        "web" => Ok(ImageArtifactKind::Web),
+        "npm" => Ok(ImageArtifactKind::Npm),
+        "openapi" => Ok(ImageArtifactKind::OpenApi),
+        "c" => Ok(ImageArtifactKind::C),
+        _ => Err(vec![Diagnostic::io(code, message)]),
+    }
+}
+
+fn chunk_error(action: Action, capacity: bool) -> &'static str {
+    match (action, capacity) {
+        (Action::ArtifactDelta, false) => "SPX-G331",
+        (Action::ArtifactDelta, true) => "SPX-G332",
+        (Action::AnalysisArtifactEvidence, false) => "SPX-G354",
+        (Action::AnalysisArtifactEvidence, true) => "SPX-G355",
+        (_, false) => "SPX-G290",
+        (_, true) => "SPX-G291",
+    }
+}
+
+fn report_sha256(report: &str) -> String {
+    use sha2::{Digest, Sha256};
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(report.as_bytes()))
     )
 }

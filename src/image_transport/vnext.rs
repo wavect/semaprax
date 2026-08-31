@@ -86,6 +86,7 @@ pub(super) enum Action {
     Targets,
     Build,
     ArtifactDelta,
+    AnalysisArtifactEvidence,
     ContractExpressionCatalog,
     ContractHoleOpen,
     InterfaceDelta,
@@ -430,7 +431,10 @@ impl VNextSession {
                     candidates::Mutation::None,
                 ),
                 Operation::VNext(
-                    action @ (Action::Targets | Action::Build | Action::ArtifactDelta),
+                    action @ (Action::Targets
+                    | Action::Build
+                    | Action::ArtifactDelta
+                    | Action::AnalysisArtifactEvidence),
                 ) => (
                     projections::prepare(action, params, image, registry)?,
                     candidates::Mutation::None,

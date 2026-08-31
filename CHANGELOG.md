@@ -20,6 +20,9 @@
   artifact delta. Only `generated_artifacts` becomes partial for the selected
   pathless carrier; generated-file provenance, deployment, runtime, external
   behavior and consumers remain uninspected. Evidence is authored and unrun.
+  The selected v5 build grant also exposes the exact composite through bounded
+  candidate/kind-bound chunks with full-report SHA256; it remains outside
+  parallel reads and grants no materialization, execution or publication.
 
 - Bound the Windows doctor descendant-settlement regression to an exact
   exclusive lease held by the authored child. Parallel process churn can no

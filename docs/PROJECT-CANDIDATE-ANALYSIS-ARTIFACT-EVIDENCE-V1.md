@@ -76,7 +76,8 @@ listed `.spx` source is checked source, not a generator receipt. Deployment
 configuration stays `not_inspected`; unlisted deployment files are neither read
 nor inferred. External API behavior, runtime environment and consumers stay
 uninspected. The report makes no compatibility, package-install, publication,
-test, compiler-execution or behavioral-equivalence claim.
+test, compiler-executable, native-compilation, target-execution or
+behavioral-equivalence claim.
 
 ## Determinism, authority and diagnostics
 
@@ -98,5 +99,43 @@ report with independently invoked coverage and delta owners, exercise changed
 and unchanged Web evidence and admitted npm/OpenAPI/C carriers, check exact
 source/hash/export joins, preserve the other seven boundaries, reject stale and
 sibling selectors and unsupported carrier admission, ignore an unlisted
-deployment file, and preserve source and candidate bytes. No test, compiler,
-target, package manager or application executable was run for this tranche.
+deployment file, and preserve source and candidate bytes. No test, compiler
+executable, native compilation, target, package manager or application was run
+for this tranche.
+
+## V5 build-granted transport
+
+The selected v5 `candidate/analysis-artifact-evidence` route requires the
+existing `candidate_build` grant and candidate preparation. It takes exact
+`image_revision`, `candidate_revision` and `kind`, plus optional `offset` and
+`chunk_bytes`. Offset is 0 through 10,485,760; chunk size is 1,024 through
+65,536, default 16,384. Requests cannot widen the library or carrier bounds.
+
+The closed `semaprax.image-analysis-artifact-evidence-chunk.v1` envelope binds
+the report schema, live image, candidate, selected kind, byte offsets, total
+length and exact chunk. `report_sha256` is lowercase SHA256 over the exact full
+report bytes and remains identical across its chunks. It detects accidental
+mixing during reassembly; it does not replace candidate authentication or grant
+authority. `target` is null and source authority, artifact materialization and
+target execution are false. The heterogeneous 20-field report remains listed
+as unbundled; generated TypeScript, Python and Rust clients cover the closed
+request and chunk envelope.
+
+This build-class route is absent without the build grant and remains outside
+the immutable parallel-read subset and `workspace/read-batch`, even when the
+host separately enables parallel reads. Existing live source authentication
+surrounds every request. A request that observes stale source releases no new
+chunk and terminates the session under the ordinary fail-stop contract. Earlier
+chunks may already exist, but callers must not use them without the complete
+declared byte length and one matching `report_sha256`. Invalid chunk selectors
+use `SPX-G354`; a chunk that cannot make progress uses `SPX-G355`. MCP exposes
+the selected tool as `candidate__analysis-artifact-evidence`; selection adds no
+filesystem, compiler-executable, native-compilation, target-execution or
+publication authority.
+
+Authored, unrun transport evidence lives in
+`tests/image_analysis_artifact_evidence_transport_v5.rs`. It covers exact chunk
+reassembly and report-hash consistency, build gating, selected closed schemas,
+all three generated clients, MCP discovery and direct-frame byte parity,
+parallel-batch rejection, hostile parameters, stale selectors, live source
+drift and unchanged source bytes.

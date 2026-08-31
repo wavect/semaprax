@@ -677,6 +677,27 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
         ],
     );
     put(
+        "semaprax.image-analysis-artifact-evidence-chunk.v1",
+        vec![
+            (
+                "report_schema",
+                json!({"const":"semaprax.project-candidate-analysis-artifact-evidence.v1"}),
+            ),
+            ("report_sha256", digest()),
+            ("image_revision", digest()),
+            ("candidate_revision", digest()),
+            ("target", json!({"type":"null"})),
+            ("kind", json!({"enum":["web","npm","openapi","c"]})),
+            ("offset", uint()),
+            ("total_bytes", uint()),
+            ("chunk", text()),
+            ("next_offset", nullable(uint())),
+            ("source_authority", json!({"const":false})),
+            ("artifact_materialization", json!({"const":false})),
+            ("target_execution", json!({"const":false})),
+        ],
+    );
+    put(
         "semaprax.image-ownership-delta-chunk.v1",
         vec![
             (

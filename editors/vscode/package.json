@@ -33,6 +33,7 @@
       { "command": "semaprax.holeContext", "title": "SEMAPRAX: Show Full Hole Context (Unbundled)" },
       { "command": "semaprax.showHoleConstructors", "title": "SEMAPRAX: Show Typed Hole Constructor Schemas" },
       { "command": "semaprax.newHoleFillScratch", "title": "SEMAPRAX: New Hole Fill Scratch" },
+      { "command": "semaprax.suggestHoleFill", "title": "SEMAPRAX: Choose Checked Hole Fill for Scratch" },
       { "command": "semaprax.fillHole", "title": "SEMAPRAX: Fill Selected Hole from Active Scratch" },
       { "command": "semaprax.completeDraft", "title": "SEMAPRAX: Complete Ready Draft as Candidate" },
       { "command": "semaprax.discardDraft", "title": "SEMAPRAX: Discard Typed-Hole Draft" },
@@ -43,7 +44,7 @@
       "properties": {
         "semaprax.compilerPath": { "type": "string", "default": "", "scope": "machine", "description": "User-selected absolute compiler binary path. Never read from workspace settings." },
         "semaprax.manifestPath": { "type": "string", "default": "", "scope": "machine", "description": "User-selected absolute saved semaprax.toml path." },
-        "semaprax.hostPolicyPath": { "type": "string", "default": "", "scope": "machine", "description": "User-selected absolute existing v1-v6 host-policy JSON path. Prefer candidate preparation only; this extension cannot invoke build, tests, approval or publication." }
+        "semaprax.hostPolicyPath": { "type": "string", "default": "", "scope": "machine", "description": "User-selected absolute existing v1-v7 host-policy JSON path. Prefer candidate preparation only; this extension cannot invoke build, tests, approval or publication." }
       }
     }
   }

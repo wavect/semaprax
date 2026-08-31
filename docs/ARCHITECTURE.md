@@ -567,6 +567,11 @@ and compact navigation, preserves failed fills, retires superseded draft
 handles and requires explicit completion before candidate review. Editor
 scratch bindings and source epochs are local freshness checks, not semantic
 proof or publication authority; compiler admission remains unchanged.
+Checked fill suggestions bind a closed bounded report to the controller's own
+current summary. The extension requires an explicit choice before copying only
+its expression into ordinary bound scratch; preview digests are never adopted.
+Epoch and selection checks surround each asynchronous UI step, and actual fill
+remains a separate compiler-validated request.
 
 `editors/vscode/repairs.js` retains rejected attempts separately from the valid
 candidate, verifies exact raw diagnostic report bytes and binds compiler repair

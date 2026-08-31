@@ -5,6 +5,10 @@ const { exact, digest } = require('./protocol');
 const { canonical, hash } = require('./review');
 const MAX_CONTEXT = 1024 * 1024, MAX_PAGE = 65536, MAX_ITEMS = 16384;
 const FACETS = ['scope', 'calls', 'obligations', 'constructors'];
+// Keep this finite place-name grammar aligned with candidate/schemas.rs.
+const RESERVED_NAMES = new Set(['module', 'use', 'fn', 'let', 'mut', 'if', 'else', 'while', 'match', 'true', 'false',
+  'requires', 'ensures', 'uses', 'permit', 'unsafe', 'return', 'own', 'borrow', 'shared', 'self', 'super']);
+const SUGGESTION_NONCLAIMS = ['not_intent_correctness', 'not_runtime_contract_proof', 'not_complete_expression_search', 'not_liveness_inference'];
 const KINDS = {
   body: ['hole/open', 'semaprax.project-candidate-hole-context.v1', 'replace_function_body'],
   expression: ['hole/open-expression', 'semaprax.project-candidate-expression-hole-context.v1', 'replace_expression'],
@@ -21,6 +25,18 @@ function checked(action) {
   try { return action(); } catch (error) { error.protocolInvalid = true; throw error; }
 }
 function bounded(value, max) { assert(Buffer.byteLength(JSON.stringify(value)) + 1 <= max, 'Hole report byte limit'); }
+function suggestedPlace(row) {
+  exact(row, ['kind', 'name']);
+  assert(row.kind === 'place' && text(row.name, 128) && /^[A-Za-z_]/.test(row.name) && !/[^A-Za-z0-9_]/.test(row.name) && !RESERVED_NAMES.has(row.name),
+    'Invalid suggested lexical place');
+}
+function suggestedExpression(row, target) {
+  if (row && row.kind === 'place') return suggestedPlace(row);
+  exact(row, ['kind', 'target', 'arguments']);
+  assert(row.kind === 'call' && selector(row.target, 4096) && !/[\u0000-\u001f\u007f-\u009f]/.test(row.target) && row.target !== target &&
+    Array.isArray(row.arguments) && row.arguments.length <= 64, 'Invalid suggested direct call');
+  row.arguments.forEach(suggestedPlace);
+}
 function scope(row, compact) {
   exact(row, compact ? ['id', 'name', 'type_id', 'ownership', 'mutable'] : ['value_id', 'name', 'type', 'ownership', 'mutable']);
   assert(text(row[compact ? 'id' : 'value_id']) && text(row.name) && text(row[compact ? 'type_id' : 'type']) && own(row.ownership) &&
@@ -206,6 +222,37 @@ class HoleDraft {
         });
       });
       this.#summaries.set(holeId, canonical(report)); return copy(report);
+    });
+  }
+  async fillSuggestions(summary) {
+    return this.#serial(async () => {
+      assert(summary && this.#summaries.get(summary.hole_id) === canonical(summary) && summary.draft_revision === this.#draft,
+        'Use a current summary from this controller');
+      this.#hole(summary.hole_id);
+      // Read the saved canonical summary, not caller-owned data after an await.
+      const selected = JSON.parse(this.#summaries.get(summary.hole_id));
+      const report = await this.#invoke('hole/fill-suggestions', { draft_revision: this.#draft, hole_id: selected.hole_id });
+      checked(() => {
+        bounded(report, MAX_PAGE);
+        exact(report, ['schema', 'draft_revision', 'hole_id', 'context_revision', 'last_valid_revision', 'expected_type_id', 'considered', 'rejected',
+          'search_exhausted', 'suggestions', 'validation', 'tests', 'source_authority', 'draft_retained', 'nonclaims']);
+        assert(report.schema === 'semaprax.project-hole-fill-suggestions.v1' && report.draft_revision === this.#draft && report.hole_id === selected.hole_id &&
+          report.context_revision === selected.context_revision && report.last_valid_revision === selected.last_valid_revision && report.expected_type_id === selected.expected_type_id &&
+          index(report.considered, 32) && index(report.rejected, 32) && typeof report.search_exhausted === 'boolean' &&
+          Array.isArray(report.suggestions) && report.suggestions.length <= 32 && report.considered === report.rejected + report.suggestions.length &&
+          report.validation === 'ordinary_fill_source_replay' && report.tests === 'not_run' && report.source_authority === false && report.draft_retained === false,
+          'Invalid fill suggestion report binding');
+        assert(Array.isArray(report.nonclaims) && report.nonclaims.length === SUGGESTION_NONCLAIMS.length &&
+          report.nonclaims.every((value, position) => value === SUGGESTION_NONCLAIMS[position]), 'Invalid fill suggestion nonclaims');
+        for (const row of report.suggestions) {
+          exact(row, ['expression', 'preview_draft_revision']);
+          assert(digest(row.preview_draft_revision) && row.preview_draft_revision !== this.#draft, 'Invalid suggestion preview identity');
+          suggestedExpression(row.expression, selected.target);
+        }
+      });
+      // Preview identities are correlation data only; no draft is adopted or
+      // retained. Choosing and filling an expression remains an explicit step.
+      return copy(report);
     });
   }
   async page(summary, facet, offset = 0, limit = 16) {

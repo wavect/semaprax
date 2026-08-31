@@ -80,7 +80,14 @@ Hole Constructor Schemas** displays the compiler's recursive expression grammar
 without fetching schema references or claiming semantic admission.
 
 **New Hole Fill Scratch** creates a typed-expression JSON document bound to the
-selected draft revision and hole. **Fill Selected Hole from Active Scratch**
+selected draft revision and hole. **Choose Checked Hole Fill for Scratch** can
+instead request bounded compiler suggestions and copy one explicitly selected
+expression into the same kind of scratch. The command requires the host's
+`hole/fill-suggestions` method. It shows accepted/considered counts and whether
+the finite search was exhausted; empty results do not prove no valid fill exists.
+Suggestions passed source replay, not tests or proof of the desired behavior.
+Selecting one never adopts its preview digest or fills the hole automatically.
+You can inspect or edit it before **Fill Selected Hole from Active Scratch**
 submits it through ordinary compiler admission. Rejected fills preserve the draft; successful
 changes invalidate older fill scratches and navigation references. Select the
 next pending hole and create a fresh scratch. Only **Complete Ready Draft as
@@ -111,7 +118,9 @@ Authored Node tests live in `test/`. They use the built-in `node:test` runner an
 mock processes to cover protocol bounds, exact inner envelopes, rejected tool
 authority, timeouts, duplicate keys, canonical source-review digests and hostile
 chunk/path inputs. Additional authored cases cover typed-hole lifecycle,
-context/reference binding, failed fills and explicit completion. Repair cases
+context/reference binding, failed fills and explicit completion. Suggestion
+controller cases cover exact summary/report bindings, bounded expression
+grammar, stale and asynchronous failures, and no implicit preview adoption. Repair cases
 use schema-shaped mock responses to cover exact selectors, bound raw diagnostic
 reports, malformed responses and failed handle retirement. They were
 **not run** during implementation. Later explicit verification can use

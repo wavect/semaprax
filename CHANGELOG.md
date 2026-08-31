@@ -51,6 +51,13 @@
   closed, `LIB` is unchanged, and missing headers still fail before archive or
   package publication.
 
+- Connected checked hole-fill suggestions to an explicit editor selection that
+  seeds a scratch document for the current draft and hole. Closed report checks
+  and asynchronous stale-state fences precede scratch binding; previews are
+  never adopted and ordinary Fill remains separate. Editor digest validation
+  now rejects trailing-newline aliases. Mock controller cases are
+  authored, unrun; no editor-host or compiler execution is claimed.
+
 - Added bounded typed-hole fill suggestions derived from exact context types,
   effects and lexical bindings. Every returned proposal passes ordinary source
   fill replay; previews are discarded and publication remains separate. Typed

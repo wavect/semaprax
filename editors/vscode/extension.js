@@ -148,6 +148,15 @@ function activate(context) {
     holeReports.add(uri.toString());
     await vscode.window.showTextDocument(uri, { preview: true }); ensureHoleToken(token);
   }
+  async function holeFillScratch(expression, token) {
+    ensureHoleToken(token);
+    if (holeScratch.size >= 64) throw new Error('Hole scratch reference budget reached; fill or discard this draft before creating more');
+    const doc = await vscode.workspace.openTextDocument({ language: 'json', content: JSON.stringify(expression, null, 2) + '\n' });
+    ensureHoleToken(token);
+    holeScratch.set(doc.uri.toString(), { image: token.image, sourceCandidate: token.controller.sourceCandidate, draftRevision: token.revision, holeId: token.hole });
+    try { await vscode.window.showTextDocument(doc, { preview: false }); ensureHoleToken(token); }
+    catch (error) { holeScratch.delete(doc.uri.toString()); throw error; }
+  }
   async function virtual(text, suffix, language = 'plaintext', current = epoch) {
     ensureEpoch(current);
     const retained = [...documents.values()].reduce((sum, value) => sum + Buffer.byteLength(value), 0);
@@ -361,12 +370,35 @@ function activate(context) {
     },
     async newHoleFillScratch() {
       const token = requireHole();
-      if (holeScratch.size >= 64) throw new Error('Hole scratch reference budget reached; fill or discard this draft before creating more');
-      const doc = await vscode.workspace.openTextDocument({ language: 'json', content: JSON.stringify({ kind: 'place', name: 'REPLACE_WITH_SCOPE_NAME' }, null, 2) + '\n' });
-      ensureHoleToken(token);
-      holeScratch.set(doc.uri.toString(), { image, sourceCandidate: holes.sourceCandidate, draftRevision: holes.draftRevision, holeId: selectedHole });
-      try { await vscode.window.showTextDocument(doc, { preview: false }); ensureHoleToken(token); }
-      catch (error) { holeScratch.delete(doc.uri.toString()); throw error; }
+      await holeFillScratch({ kind: 'place', name: 'REPLACE_WITH_SCOPE_NAME' }, token);
+    },
+    async suggestHoleFill() {
+      const token = requireHole();
+      if (!client?.tools.has('hole/fill-suggestions')) throw new Error('This host has not selected hole/fill-suggestions; the extension cannot enable it');
+      const summary = await draftOperation(() => holes.summary(selectedHole)); ensureHoleToken(token);
+      const report = await draftOperation(() => holes.fillSuggestions(summary)); ensureHoleToken(token);
+      const scope = report.search_exhausted ? 'defined place/call search exhausted' : 'search stopped at its preview limit';
+      if (!report.suggestions.length) {
+        await vscode.window.showInformationMessage(`No checked fill suggestions from ${report.considered} previews; ${scope}. This does not prove no valid fill exists. You can still create a Hole Fill Scratch.`);
+        ensureHoleToken(token); return;
+      }
+      const choices = report.suggestions.map((row, index) => {
+        const expression = row.expression;
+        const label = expression.kind === 'place' ? `Use ${expression.name}` : `Call ${expression.target}(${expression.arguments.map(argument => argument.name).join(', ')})`;
+        const characters = Array.from(label);
+        return { label: characters.length > 180 ? characters.slice(0, 177).join('') + '...' : label,
+          description: 'Source replay admitted; behavior is not proven',
+          detail: row.preview_draft_revision, index };
+      });
+      const choice = await vscode.window.showQuickPick(choices, {
+        title: 'Choose a checked fill to copy into scratch; nothing is applied',
+        placeHolder: `${report.suggestions.length} suggestions from ${report.considered} previews; ${scope}`
+      });
+      ensureHoleToken(token); if (!choice) return;
+      if (!choices.includes(choice)) throw new Error('Select a suggestion from the current compiler report');
+      // Only the finite typed expression becomes editable scratch. A preview
+      // digest never becomes the current draft; ordinary Fill replays it later.
+      await holeFillScratch(report.suggestions[choice.index].expression, token);
     },
     async fillHole() {
       const token = requireHole(), doc = vscode.window.activeTextEditor?.document;

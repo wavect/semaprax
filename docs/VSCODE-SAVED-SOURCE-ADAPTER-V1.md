@@ -152,6 +152,31 @@ its reference. Successful draft changes invalidate old hole view text as well
 as scratch bindings. Only the most recently requested expression catalogue is
 retained for a new expression selection.
 
+`Choose Checked Hole Fill for Scratch` adds an optional entry point to that
+same scratch workflow. It first requires the already discovered
+`hole/fill-suggestions` method, obtains a current compact summary, and requests
+the [bounded source-checked report](PROJECT-HOLE-FILL-SUGGESTIONS-V1.md).
+The controller binds its exact draft, hole, context, last-valid revision and
+expected type to its own retained summary. It checks the closed report fields,
+safe counters, 64 KiB limit, fixed no-authority/nonclaim fields and finite
+place/direct-call expression grammar before returning a defensive copy.
+It never hashes reparsed full context or treats lexical scope as liveness.
+
+The command presents the admitted proposals in compiler order with considered
+counts and finite-search exhaustion status. Labels may be shortened for display;
+the exact selected expression goes into the scratch document. No proposal is
+automatically chosen, filled or completed. Its `preview_draft_revision` remains
+descriptive text and never becomes the editor's draft or a query handle. Editing
+the scratch is allowed; the ordinary explicit Fill command always revalidates
+the submitted expression rather than trusting the earlier preview.
+
+Source/dirty-buffer, epoch, controller, draft and selected-hole checks follow
+every asynchronous query, choice and scratch-opening step. Cancelling the chooser
+creates no scratch or server mutation. Stale views cannot create a current scratch
+binding, and a failed final display removes any provisional binding. Missing
+host support fails before RPC without enabling a method or broadening policy.
+The editor allowlist does not acquire parallel batching, execution or publication.
+
 An active draft blocks ordinary candidate replacement, intention submission and
 source-diff preview, including after its final hole is filled. The user must
 explicitly complete it. Only the validated `hole/complete` response becomes the
@@ -226,3 +251,10 @@ Real editor-host integration, accessibility and platform evidence, richer typed
 constructor UI, broader diagnostic workflows, asynchronous cancellation,
 durable candidate recovery and task-level measurements remain open. This is an
 optional local adapter, not a marketplace release or full programme completion.
+
+`editors/vscode/test/holes-suggestions.test.js` adds authored, unrun mock
+controller cases for summary binding, malformed or excessive proposals,
+ordinary semantic rejection, busy/delayed requests and no implicit fill or
+preview adoption. These mocks do not exercise the actual VS Code quick pick,
+document-opening lifecycle or compiler source replay; those integration gates
+remain outstanding.

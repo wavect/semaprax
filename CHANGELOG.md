@@ -6,7 +6,9 @@
   input accounting and carrier construction begin on distinct C statements.
   Strict compilers can no longer reject the authenticated provider for
   misleading guard indentation; validation order, byte limits, optimization,
-  process deadlines, and publication authority remain unchanged.
+  process deadlines, and publication authority remain unchanged. Bounded
+  publication diagnostics now distinguish provider compilation and archive
+  failures without exposing tool output or weakening fail-stop settlement.
 
 - Serialized the two test-local Project v10 Native Rust publication lifetimes.
   Windows no longer overlaps their real compiler and archiver authorities;

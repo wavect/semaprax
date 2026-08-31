@@ -77,7 +77,10 @@ fn uncertain_archive_failures_block_cleanup_recheck_and_publication() {
         .inspect(|_| {
             events.borrow_mut().push("publish");
         });
-        assert_eq!(result, Err(PackageError::publication()));
+        assert_eq!(
+            result,
+            Err(PackageError::publication_detail("archive admission failed"))
+        );
         assert!(events.into_inner().is_empty(), "phase {phase:?}");
     }
     // Even an inconsistent successful payload cannot bypass the sticky latch.
@@ -104,7 +107,7 @@ fn settled_archive_outcomes_keep_cleanup_order_and_sticky_primary() {
             },
             &mut uncertain,
         ),
-        PackageError::publication()
+        PackageError::publication_detail("archive admission failed")
     );
     assert!(!uncertain);
     let primary = PackageError::provider();
@@ -270,7 +273,7 @@ fn real_held_stage_is_preserved_on_uncertainty_and_settled_otherwise() {
             if success {
                 Ok(b"archive output".to_vec())
             } else {
-                Err(PackageError::publication())
+                Err(PackageError::publication_detail("archive admission failed"))
             }
         );
         assert_eq!(

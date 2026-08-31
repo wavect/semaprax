@@ -241,6 +241,7 @@ pub enum PackageErrorKind {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PackageError {
     kind: PackageErrorKind,
+    detail: Option<&'static str>,
 }
 
 impl PackageError {
@@ -248,27 +249,42 @@ impl PackageError {
         self.kind
     }
 
+    pub const fn detail(self) -> Option<&'static str> {
+        self.detail
+    }
+
     const fn descriptor() -> Self {
         Self {
             kind: PackageErrorKind::Descriptor,
+            detail: None,
         }
     }
 
     const fn provider() -> Self {
         Self {
             kind: PackageErrorKind::Provider,
+            detail: None,
         }
     }
 
     const fn tool() -> Self {
         Self {
             kind: PackageErrorKind::ToolConfiguration,
+            detail: None,
         }
     }
 
     const fn publication() -> Self {
         Self {
             kind: PackageErrorKind::Publication,
+            detail: None,
+        }
+    }
+
+    const fn publication_detail(detail: &'static str) -> Self {
+        Self {
+            kind: PackageErrorKind::Publication,
+            detail: Some(detail),
         }
     }
 }

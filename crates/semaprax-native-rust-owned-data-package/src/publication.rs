@@ -197,7 +197,7 @@ pub(crate) fn build_archive(
             compile,
             &mut compile_arena,
         )
-        .map_err(|_| PackageError::publication())?
+        .map_err(compile_failure)?
         .into_bytes();
         platform::write_file_new_prepared(&directory, &mut inventory, object_name, &object, 0o600)
             .map_err(|_| PackageError::publication())?;
@@ -263,7 +263,21 @@ fn archive_failure(
         failure.settlement,
         platform::ArchiveToolSettlement::Uncertain
     );
-    PackageError::publication()
+    PackageError::publication_detail(match failure.error {
+        platform::Error::Exit => "archive tool exited unsuccessfully",
+        platform::Error::Spawn => "archive tool process failed",
+        platform::Error::OutputLimit => "archive tool output exceeded its bound",
+        _ => "archive admission failed",
+    })
+}
+
+fn compile_failure(error: platform::Error) -> PackageError {
+    PackageError::publication_detail(match error {
+        platform::Error::Exit => "provider compiler exited unsuccessfully",
+        platform::Error::Spawn => "provider compiler process failed",
+        platform::Error::OutputLimit => "provider compiler output exceeded its bound",
+        _ => "provider compilation admission failed",
+    })
 }
 
 fn finish_archive_stage(

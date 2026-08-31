@@ -105,7 +105,14 @@ pub fn build_rust(snapshot: &mut ProjectSnapshot, output: &Path) -> Result<(), V
                 ),
                 package::PackageErrorKind::Publication => (
                     "SPX-I234",
-                    format!("Project {version} Native Rust package publication failed"),
+                    match error.detail() {
+                        Some(detail) => format!(
+                            "Project {version} Native Rust package publication failed: {detail}"
+                        ),
+                        None => {
+                            format!("Project {version} Native Rust package publication failed")
+                        }
+                    },
                 ),
             };
             vec![Diagnostic::io(code, message)]

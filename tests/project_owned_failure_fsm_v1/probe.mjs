@@ -4,6 +4,7 @@ import instantiate from './semaprax.bindings.js';
 import {exerciseValidator,faultValidator} from './utf8.mjs';
 import {exerciseIdentities,exerciseBusyIdentities} from './identity.mjs';
 import {exerciseResults} from './result.mjs';
+import {exerciseFinalization} from './finalization.mjs';
 
 const config=JSON.parse(process.argv[2]);
 const wasm=Uint8Array.from(readFileSync('app.wasm'));
@@ -221,4 +222,5 @@ if(config.utf8){
   assertSuccess(baseline.api);
 }
 await exerciseResults({fixture,config,raw,input,RESULT,capture});
+await exerciseFinalization({fixture,config,raw,input,RESULT,capture});
 console.log('owned-failure-fsm-ok');

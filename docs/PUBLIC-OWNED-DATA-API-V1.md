@@ -337,6 +337,17 @@ thread safety, or guaranteed successful progress under contention. The same
 private runtime correction applies to v9/v10; generated C/object/archive bytes
 and integrity bindings intentionally change, not public signatures or schemas.
 
+Scoped local execution of `public_native_rust_owned_data_sdk_v1` on Linux
+AArch64/Rust 1.88/Clang 14 passes nine selected tests: seven provider/SDK tests
+and two target-management support checks. The native probes exercise hostile
+handles, all 4,096 slots, context reincarnation, serial exhaustion and contention,
+and separate thread-confined contexts at O0/O2; the provider/issuer probes also
+run the Linux O2 sanitizer lane. The UTF-8 rejection probe runs at O0/O2.
+The nested offline Cargo package-consumer test is explicitly excluded. The
+Windows path-budget support check is a model, not Windows execution. These
+results do not establish shared-context safety, full native support, hosted
+promotion or physical allocator settlement for internal Strings.
+
 The authored v8/v9/v10 JavaScript correction admits the entire argument tuple,
 including exact bounded UTF-8 lengths, before payload snapshot allocation.
 Captured intrinsic view checks reject detached/shared/resizable and wrong-brand
@@ -372,7 +383,8 @@ value is preserved without truthiness checks. This correction intentionally
 changes v8/v9/v10 JavaScript and its dependent integrity bindings, including
 the bounded-renderer known answers. Historical unselected renderers, Wasm,
 descriptors, declarations and v1-v7 artifacts remain unchanged. Its separate
-real-package failure matrix is authored but unrun.
+real-package failure matrix has scoped local execution evidence recorded in
+that contract; it does not promote the entire public profile.
 
 ## Generated artifacts and carriers
 

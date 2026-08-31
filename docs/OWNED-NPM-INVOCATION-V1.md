@@ -1,6 +1,7 @@
 # Owned npm invocation failure state v1
 
-Status: authored correction; executable evidence remains unrun.
+Status: correction with scoped local real-package evidence; no hosted or
+production-readiness promotion.
 
 Audience: compiler/runtime contributors, SDK integrators and reviewers.
 
@@ -202,13 +203,38 @@ checked semantic failure with modified output must not take the recoverable
 status path. Scoped, pass-through DataView/Map observers are restored after
 each observation and never manufacture a decoder failure.
 
-These are authored, unrun JavaScript boundary regressions. Test-only engine
+These are JavaScript boundary regressions. Test-only engine
 substitution and trusted-realm observation do not prove an adversarial-JavaScript
 sandbox, compiler generation of malformed results, native behavior, or
 physical deallocation of owners retained by a poisoned instance. Production
 artifacts, package subjects, descriptors and existing known answers are unchanged.
 
-These fixtures, compiler checks and hosted release gates are unrun. No tests,
-builds, target probes or hosted workflows are authorized in this batch. No
-package publication, support promotion or overall production-readiness claim
-is made.
+### Authentic owned-result finalization failures
+
+The companion `tests/project_owned_failure_fsm_v1/finalization.mjs` observes
+the real owned `Bytes` result of `case.copy` in all seven packages. After a
+successful real Wasm return, it binds observations to the exact returned token,
+arena Map and owned byte array. Scoped intrinsic hooks inject failures at
+copy allocation, before and after actual owner deletion, input scratch clearing,
+result-slot poisoning, and variant/record wrapper freezing. Healthy pass-through
+calibration requires copy, consumption, empty-arena settlement and reusable
+success before fault cases are accepted.
+
+Each fault preserves the exact thrown Error or falsy value, publishes no value,
+and rejects a later call without another engine entry or owned import. A real
+owned-result copy failure followed by a distinct scratch-cleanup failure must
+retain the primary error. Successful deletion followed by a throw is not counted
+as successful settlement. Observer assertions escape the capture oracle, and
+all patched intrinsics are restored before reuse checks. These trusted-realm
+faults do not demonstrate physical out-of-memory behavior, deallocation or GC,
+or a hostile-JavaScript sandbox. UTF-8 decoder evidence remains a separate case.
+
+### Scoped local execution
+
+On macOS AArch64 with Rust 1.98 and Node 24.3, both tests in
+`project_owned_failure_fsm_v1` pass across the seven generated packages,
+including the malformed-result and finalization companions above. Production
+runtime templates and existing artifact known answers are unchanged by the
+finalization-test batch. This is local evidence for this selected gate, not a
+full quality-profile, hosted release, package publication, support promotion
+or overall production-readiness claim.

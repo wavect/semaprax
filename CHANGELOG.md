@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added real generated npm owned-result finalization fault coverage for copy
+  allocation, owner deletion, scratch cleanup and frozen result construction,
+  with exact first-error preservation and poisoned-reuse checks. The two-test,
+  seven-package gate passes locally on macOS/Rust 1.98/Node 24.3 without runtime
+  changes. Nine selected native provider/target tests pass on Linux AArch64/
+  Rust 1.88/Clang 14, including hostile handles and issuer boundaries; the nested
+  offline Cargo consumer is excluded. No hosted or full-profile promotion.
+
 - Fixed new-project failed-publication cleanup authority: return the rename
   error before reopening `src`, so a replacement directory cannot become owned
   merely because it contains the original tracked files. Failed rename retains

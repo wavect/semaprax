@@ -128,6 +128,11 @@ fn consume(
         include_str!("project_owned_failure_fsm_v1/result.mjs"),
     )
     .unwrap();
+    fs::write(
+        directory.join("finalization.mjs"),
+        include_str!("project_owned_failure_fsm_v1/finalization.mjs"),
+    )
+    .unwrap();
     let output = Command::new("node")
         .arg("probe.mjs")
         .arg(config.to_string())
@@ -149,6 +154,7 @@ fn consume(
     names.push("utf8.mjs");
     names.push("identity.mjs");
     names.push("result.mjs");
+    names.push("finalization.mjs");
     remove_exact(&directory, &names);
 }
 

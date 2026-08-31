@@ -4,6 +4,7 @@ use sha2::{Digest, Sha256};
 
 use super::ProjectSemanticImage;
 use crate::diagnostic::Diagnostic;
+mod c;
 mod openapi;
 
 pub const IMAGE_TARGET_ADMISSION_SCHEMA: &str = "semaprax.image-target-admission.v1";
@@ -16,6 +17,7 @@ pub enum ImageArtifactKind {
     Web,
     Npm,
     OpenApi,
+    C,
 }
 impl ImageArtifactKind {
     pub fn name(self) -> &'static str {
@@ -23,6 +25,7 @@ impl ImageArtifactKind {
             Self::Web => "web",
             Self::Npm => "npm",
             Self::OpenApi => "openapi",
+            Self::C => "c",
         }
     }
 }
@@ -97,7 +100,7 @@ impl ProjectSemanticImage {
         )
     }
 
-    /// Build and independently replay a pathless Web/npm or OpenAPI carrier,
+    /// Build and independently replay a pathless Web/npm, OpenAPI or C carrier,
     /// then return compact file bindings and source-owned export relationships.
     /// No compiler executable, package manager or filesystem publisher runs.
     pub fn artifact_projection(
@@ -133,6 +136,7 @@ impl ProjectSemanticImage {
                 )
             }
             ImageArtifactKind::OpenApi => openapi::projection_build(self.revision(), max_bytes)?,
+            ImageArtifactKind::C => c::projection_build(self.revision(), max_bytes)?,
         };
         if envelope.len() > max_bytes {
             return Err(error(
@@ -180,6 +184,22 @@ impl ProjectSemanticImage {
                 file["evidence_owner"] =
                     json!("full_project_source_rebuild_and_existing_openapi_renderer");
             }
+            if kind == ImageArtifactKind::C {
+                let file = files.last_mut().expect("just appended artifact");
+                for key in [
+                    "role",
+                    "source_path",
+                    "header_digest",
+                    "function_ids",
+                    "scope",
+                ] {
+                    if !row[key].is_null() {
+                        file[key] = row[key].clone();
+                    }
+                }
+                file["evidence_owner"] =
+                    json!("full_project_source_rebuild_native_c11_emitter_and_c_header_renderer");
+            }
         }
         let mut exports = Vec::new();
         for id in self.revision().manifest().web_exports() {
@@ -209,6 +229,32 @@ impl ProjectSemanticImage {
                 }
                 export["evidence_owner"] = json!("manifest_export_and_actual_openapi_operation");
             }
+            if kind == ImageArtifactKind::C {
+                let mapping = payload["exports"]
+                    .as_array()
+                    .and_then(|exports| {
+                        exports
+                            .iter()
+                            .find(|item| item["id"].as_str() == Some(id.as_str()))
+                    })
+                    .ok_or_else(|| error("SPX-G292", "C export artifact mapping is absent"))?;
+                let export = exports.last_mut().expect("just appended export");
+                for key in [
+                    "admission",
+                    "native_artifact_path",
+                    "native_relation",
+                    "header_artifact_path",
+                    "header_envelope_path",
+                    "symbol",
+                    "signature",
+                    "declaration_digest",
+                    "reason",
+                ] {
+                    export[key] = mapping[key].clone();
+                }
+                export["evidence_owner"] =
+                    json!("manifest_export_and_actual_native_prototype_or_header_exclusion");
+            }
         }
         let sources = self.revision().sources().iter().map(|source| json!({
             "path": source.path(), "source_revision": source.source_revision(), "source_digest": source.source_digest(),
@@ -218,7 +264,19 @@ impl ProjectSemanticImage {
             "sha256:{:x}",
             crate::digest_hex::LowerHex(Sha256::digest(envelope.as_bytes()))
         );
-        let nonclaims = if kind == ImageArtifactKind::OpenApi {
+        let nonclaims = if kind == ImageArtifactKind::C {
+            vec![
+                "no_rust_package_projection",
+                "source_inspection_not_standalone_ffi_or_shared_library",
+                "static_linkage_and_status_abi_unchanged",
+                "excluded_exports_have_no_header_prototype",
+                "no_c_compilation_linking_or_runtime_execution",
+                "no_package_installation_or_external_consumer_evidence",
+                "no_runtime_or_test_coverage",
+                "no_filesystem_artifact_publication",
+                "no_publication_authority",
+            ]
+        } else if kind == ImageArtifactKind::OpenApi {
             vec![
                 "no_rust_c_package_projection",
                 "not_http_server_or_runtime_route",

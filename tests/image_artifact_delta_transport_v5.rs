@@ -222,7 +222,7 @@ fn build_permission_is_required_and_discovery_is_closed_without_client_elevation
         assert_eq!(params["properties"].as_object().unwrap().len(), 5);
         assert_eq!(
             params["properties"]["kind"]["enum"],
-            json!(["web", "npm", "openapi"])
+            json!(["web", "npm", "openapi", "c"])
         );
         assert_eq!(params["properties"]["offset"]["maximum"], 8 * 1024 * 1024);
         for absent in [

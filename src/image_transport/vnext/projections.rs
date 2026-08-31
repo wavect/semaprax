@@ -35,7 +35,7 @@ const METHODS: &[Method] = &[
             },
             Parameter {
                 name: "kind",
-                kind: ParameterKind::Choice(&["web", "npm", "openapi"]),
+                kind: ParameterKind::Choice(&["web", "npm", "openapi", "c"]),
                 required: true,
             },
             Parameter {
@@ -64,7 +64,7 @@ const METHODS: &[Method] = &[
             },
             Parameter {
                 name: "kind",
-                kind: ParameterKind::Choice(&["web", "npm", "openapi"]),
+                kind: ParameterKind::Choice(&["web", "npm", "openapi", "c"]),
                 required: true,
             },
             Parameter {
@@ -128,6 +128,7 @@ pub(super) fn prepare(
                 "web" => ImageArtifactKind::Web,
                 "npm" => ImageArtifactKind::Npm,
                 "openapi" => ImageArtifactKind::OpenApi,
+                "c" => ImageArtifactKind::C,
                 _ => return Err(vec![Diagnostic::io("SPX-G290", "unknown artifact kind")]),
             };
             (
@@ -146,6 +147,7 @@ pub(super) fn prepare(
                 "web" => ImageArtifactKind::Web,
                 "npm" => ImageArtifactKind::Npm,
                 "openapi" => ImageArtifactKind::OpenApi,
+                "c" => ImageArtifactKind::C,
                 _ => {
                     return Err(vec![Diagnostic::io(
                         "SPX-G331",

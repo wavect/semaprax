@@ -1,4 +1,4 @@
-//! Host-granted OpenAPI artifact transport regressions, authored and unrun.
+//! Host-granted C artifact transport evidence, authored and intentionally unrun.
 use semaprax::image_transport::{VNextPolicy, VNextSession};
 use semaprax::project::{
     with_authenticated_project, ImageArtifactKind, ProjectCandidate, ProjectSemanticImage,
@@ -21,7 +21,7 @@ struct Fixture(PathBuf);
 impl Fixture {
     fn new() -> Self {
         let root = std::env::temp_dir().join(format!(
-            "spx-openapi-artifact-rpc-{}-{}",
+            "spx-c-artifact-rpc-{}-{}",
             std::process::id(),
             SERIAL.fetch_add(1, Ordering::Relaxed)
         ));
@@ -35,11 +35,11 @@ impl Fixture {
     fn manifest(&self) -> PathBuf {
         self.0.join("semaprax.toml")
     }
-    fn session(&self, candidates: bool, build: bool) -> VNextSession {
+    fn session(&self, candidate: bool, build: bool) -> VNextSession {
         VNextSession::open(
             &self.manifest(),
             VNextPolicy {
-                candidate_prepare: candidates,
+                candidate_prepare: candidate,
                 build_enabled: build,
                 ..Default::default()
             },
@@ -65,9 +65,9 @@ impl Drop for Fixture {
     }
 }
 fn call(session: &mut VNextSession, method: &str, params: Value) -> Value {
-    let frame = json!({"jsonrpc":"2.0","id":"openapi-artifacts","method":method,"params":params})
-        .to_string();
-    serde_json::from_slice(&session.handle_frame(frame.as_bytes()).unwrap()).unwrap()
+    let request =
+        json!({"jsonrpc":"2.0","id":"c-artifact","method":method,"params":params}).to_string();
+    serde_json::from_slice(&session.handle_frame(request.as_bytes()).unwrap()).unwrap()
 }
 fn bound(session: &mut VNextSession, method: &str, mut params: Value) -> Value {
     params["image_revision"] = json!(session.image_revision());
@@ -78,38 +78,38 @@ fn payload(response: Value) -> Value {
     response["result"]["payload"].clone()
 }
 fn report(session: &mut VNextSession, method: &str, candidate: &str) -> String {
-    let mut result = String::new();
+    let mut text = String::new();
     for _ in 0..8193 {
         let chunk = payload(bound(
             session,
             method,
-            json!({"candidate_revision":candidate,"kind":"openapi","offset":result.len(),"chunk_bytes":1024}),
+            json!({"candidate_revision":candidate,"kind":"c","offset":text.len(),"chunk_bytes":1024}),
         ));
-        assert_eq!(chunk["kind"], "openapi");
+        assert_eq!(chunk["kind"], "c");
         assert_eq!(chunk["candidate_revision"], candidate);
         assert_eq!(chunk["image_revision"], session.image_revision());
-        assert_eq!(chunk["offset"], result.len());
-        for field in [
+        assert_eq!(chunk["offset"], text.len());
+        for flag in [
             "source_authority",
             "artifact_materialization",
             "target_execution",
         ] {
-            assert_eq!(chunk[field], false);
+            assert_eq!(chunk[flag], false);
         }
-        let text = chunk["chunk"].as_str().unwrap();
-        assert!(!text.is_empty() && text.len() <= 1024);
-        result.push_str(text);
+        let piece = chunk["chunk"].as_str().unwrap();
+        assert!(!piece.is_empty() && piece.len() <= 1024);
+        text.push_str(piece);
         if chunk["next_offset"].is_null() {
-            assert_eq!(chunk["total_bytes"], result.len());
-            return result;
+            assert_eq!(chunk["total_bytes"], text.len());
+            return text;
         }
-        assert_eq!(chunk["next_offset"], result.len());
+        assert_eq!(chunk["next_offset"], text.len());
     }
-    panic!("bounded OpenAPI artifact report did not terminate")
+    panic!("bounded C artifact report did not terminate")
 }
 
 #[test]
-fn build_and_delta_chunks_match_independent_source_replayed_openapi_projections() {
+fn c_build_and_signature_delta_chunks_reassemble_exact_independent_library_reports() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
     let base = fixture.candidate();
@@ -119,17 +119,17 @@ fn build_and_delta_chunks_match_independent_source_replayed_openapi_projections(
         .unwrap()
         .to_owned();
     assert_eq!(root, base.candidate_digest());
-    let initial = ProjectSemanticImage::derive(
+    let image = ProjectSemanticImage::derive(
         Arc::clone(base.revision()),
         base.revision().project_revision(),
     )
     .unwrap();
     assert_eq!(
         report(&mut session, "candidate/build", &root),
-        initial
+        image
             .artifact_projection(
-                initial.image_digest(),
-                ImageArtifactKind::OpenApi,
+                image.image_digest(),
+                ImageArtifactKind::C,
                 MAX_IMAGE_ARTIFACT_BUILD_BYTES
             )
             .unwrap()
@@ -157,7 +157,7 @@ fn build_and_delta_chunks_match_independent_source_replayed_openapi_projections(
         image
             .artifact_projection(
                 image.image_digest(),
-                ImageArtifactKind::OpenApi,
+                ImageArtifactKind::C,
                 MAX_IMAGE_ARTIFACT_BUILD_BYTES
             )
             .unwrap()
@@ -169,12 +169,14 @@ fn build_and_delta_chunks_match_independent_source_replayed_openapi_projections(
             changed.candidate_digest()
         ),
         changed
-            .artifact_delta(changed.candidate_digest(), ImageArtifactKind::OpenApi)
+            .artifact_delta(changed.candidate_digest(), ImageArtifactKind::C)
             .unwrap()
     );
-    let old = report(&mut session, "candidate/artifact-delta", &root);
-    let old: Value = serde_json::from_str(&old).unwrap();
-    assert_eq!(old["comparison"]["artifact_bytes_equal"], true);
+    assert_eq!(
+        report(&mut session, "candidate/artifact-delta", &root),
+        base.artifact_delta(base.candidate_digest(), ImageArtifactKind::C)
+            .unwrap()
+    );
     session.finish().unwrap();
     assert_eq!(fixture.bytes(), disk);
     let mut names = std::fs::read_dir(&fixture.0)
@@ -186,7 +188,7 @@ fn build_and_delta_chunks_match_independent_source_replayed_openapi_projections(
 }
 
 #[test]
-fn discovery_admits_openapi_only_through_existing_host_build_grant_and_closed_kind_enum() {
+fn c_kind_discovery_retains_host_build_authority_and_generated_client_request_bounds() {
     let fixture = Fixture::new();
     assert!(VNextSession::open(
         &fixture.manifest(),
@@ -210,7 +212,7 @@ fn discovery_admits_openapi_only_through_existing_host_build_grant_and_closed_ki
             assert!(!session.parallel_read_methods().contains(&method));
             if !build {
                 assert_eq!(
-                    call(&mut session, method, json!({"kind":"openapi"}))["error"]["code"],
+                    call(&mut session, method, json!({"kind":"c"}))["error"]["code"],
                     -32601
                 );
             }
@@ -237,8 +239,8 @@ fn discovery_admits_openapi_only_through_existing_host_build_grant_and_closed_ki
                 "path",
                 "max_bytes",
                 "max_build_bytes",
-                "build_enabled",
                 "target",
+                "build_enabled",
             ] {
                 assert!(params["properties"].get(absent).is_none());
             }
@@ -250,20 +252,21 @@ fn discovery_admits_openapi_only_through_existing_host_build_grant_and_closed_ki
                 json!({"language":language}),
             ));
             let source = client["source"].as_str().unwrap();
-            assert!(source.contains("openapi"));
             assert!(source.contains("request_candidate_build"));
             assert!(source.contains("request_candidate_artifact_delta"));
+            assert!(source.contains("openapi"));
         }
-        let instructions = payload(call(&mut session, "protocol/instructions", json!({})));
-        assert!(instructions["instructions"]
-            .as_str()
-            .unwrap()
-            .contains("openapi"));
+        assert!(
+            payload(call(&mut session, "protocol/instructions", json!({})))["instructions"]
+                .as_str()
+                .unwrap()
+                .contains("native-emitter-derived C declarations")
+        );
     }
 }
 
 #[test]
-fn stale_and_malformed_openapi_requests_preserve_candidate_and_source() {
+fn stale_or_authority_shaped_c_requests_cannot_change_source_or_cached_candidate() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
     let mut session = fixture.session(true, true);
@@ -274,12 +277,13 @@ fn stale_and_malformed_openapi_requests_preserve_candidate_and_source() {
     let expected = report(&mut session, "candidate/build", &root);
     for method in ["candidate/build", "candidate/artifact-delta"] {
         for extra in [
-            json!({"kind":"arbitrary"}),
+            json!({"kind":"shared-library"}),
+            json!({"path":"/tmp/output.c"}),
+            json!({"compile":true}),
             json!({"max_build_bytes":1024}),
-            json!({"path":"/tmp/output"}),
             json!({"chunk_bytes":1023}),
         ] {
-            let mut params = json!({"candidate_revision":root,"kind":"openapi"});
+            let mut params = json!({"candidate_revision":root,"kind":"c"});
             params
                 .as_object_mut()
                 .unwrap()
@@ -290,7 +294,7 @@ fn stale_and_malformed_openapi_requests_preserve_candidate_and_source() {
             call(
                 &mut session,
                 method,
-                json!({"image_revision":format!("sha256:{}","0".repeat(64)),"candidate_revision":root,"kind":"openapi"})
+                json!({"image_revision":format!("sha256:{}","0".repeat(64)),"candidate_revision":root,"kind":"c"})
             )["error"]["code"],
             -32000
         );
@@ -298,7 +302,7 @@ fn stale_and_malformed_openapi_requests_preserve_candidate_and_source() {
             bound(
                 &mut session,
                 method,
-                json!({"candidate_revision":format!("sha256:{}","0".repeat(64)),"kind":"openapi"})
+                json!({"candidate_revision":format!("sha256:{}","0".repeat(64)),"kind":"c"})
             )["error"]["code"],
             -32000
         );

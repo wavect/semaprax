@@ -4,7 +4,7 @@ Status: Partial; implementation and regression evidence authored, unrun.
 
 Audience: compiler contributors and agents reviewing generated package changes.
 
-This additive report compares actual pathless Web, npm or OpenAPI carriers from a
+This additive report compares actual pathless Web, npm, OpenAPI or C carriers from a
 candidate's original base and final admitted Project revision. It connects
 candidate review to emitted file bindings and manifest-selected export
 identities. It does not infer installed consumers, package compatibility or
@@ -19,7 +19,7 @@ pub fn verify_artifact_delta(&self, expected_candidate: &str,
     kind: ImageArtifactKind, bytes: &[u8]) -> Result<String, Vec<Diagnostic>>;
 ```
 
-`ImageArtifactKind` selects `Web`, `Npm` or additive `OpenApi`. The report schema is
+`ImageArtifactKind` selects `Web`, `Npm`, `OpenApi` or `C`. The report schema is
 `semaprax.project-candidate-artifact-delta.v1`; verification uses
 `semaprax.project-candidate-artifact-delta-verification.v1`. The exact candidate
 digest and requested kind bind every invocation.
@@ -74,10 +74,14 @@ v1 pathless carrier, while npm uses its supported Project profiles. Unsupported
 profile/kind combinations propagate their owning diagnostics; they are not
 converted into empty successful output. [OpenAPI artifacts](IMAGE-OPENAPI-ARTIFACTS-V1.md)
 use the existing scalar generator on real selected source declarations, with
-complete Project source replay. Rust and C package projections remain outside
-this report's scope, not claimed to be absent from the platform. Existing
+complete Project source replay. [C artifacts](IMAGE-C-ARTIFACTS-V1.md) bind
+the checked linked native source to exact header prototypes or explicit
+exclusions. Rust carriers and compiled C libraries remain outside this report's
+scope, not claimed to be absent from the platform. Existing
 Web/npm report bytes retain their prior `outside_projection` inventory; the
-new OpenAPI kind excludes itself from that inventory.
+OpenAPI kind excludes itself from that inventory. C source artifacts have their
+own scope and do not imply a public linkable ABI; earlier report bytes remain
+unchanged.
 
 No compiler executable, native compilation process, interpreter, test runner,
 package manager or generated target runs. No files are installed or published.
@@ -89,12 +93,12 @@ artifact report, verification receipt or digest grants commit authority.
 `candidate/artifact-delta` requires the existing startup build grant and
 candidate preparation. Candidate-only sessions cannot discover or invoke it.
 Required parameters are `image_revision`, `candidate_revision` and `kind`
-(`web`, `npm` or `openapi`); there is no target selector or request-selected build limit.
+(`web`, `npm`, `openapi` or `c`); there is no target selector or request-selected build limit.
 
 The method is classified under `candidate_build`, not ordinary semantic reads.
 It authenticates live source before and after preparation, leaves the candidate
 registry unchanged, and remains outside the parallel image-read batch. V1–v4
-remain unchanged; `candidate/build` shares the additive OpenAPI kind.
+remain unchanged; `candidate/build` shares the additive artifact kinds.
 
 The closed `semaprax.image-artifact-delta-chunk.v1` envelope returns bounded
 UTF-8 chunks with image/candidate/kind/report bindings and offsets. Optional

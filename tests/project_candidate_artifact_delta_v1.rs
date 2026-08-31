@@ -93,6 +93,9 @@ fn carrier(revision: &ProjectRevision, kind: ImageArtifactKind) -> Value {
         ImageArtifactKind::OpenApi => {
             panic!("OpenAPI has dedicated source-bound artifact evidence; this helper decodes Web/npm carriers")
         }
+        ImageArtifactKind::C => {
+            panic!("C has dedicated source-bound artifact evidence; this helper decodes Web/npm carriers")
+        }
     }
 }
 fn files(carrier: &Value, kind: ImageArtifactKind) -> BTreeMap<String, Vec<u8>> {

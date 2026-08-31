@@ -187,22 +187,26 @@ impl ProjectCandidate {
             "changed_files":files.len()-unchanged_files,"unchanged_files":unchanged_files,
             "base_exports":base_exports.len(),"candidate_exports":candidate_exports.len(),
             "changed_exports":exports.len()-unchanged_exports,"unchanged_exports":unchanged_exports});
-        // Preserve earlier Web/npm report bytes. OpenAPI is an additive
-        // source-bound projection, not a claim about native package support.
-        let outside_projection = if kind == ImageArtifactKind::OpenApi {
-            json!(["rust", "c"])
-        } else {
-            json!(["rust", "c", "openapi"])
+        // Preserve earlier kind-specific report bytes while describing the
+        // new native-source carrier without a compiled-library claim.
+        let outside_projection = match kind {
+            ImageArtifactKind::C => json!(["rust", "compiled_c_library"]),
+            ImageArtifactKind::OpenApi => json!(["rust", "c"]),
+            _ => json!(["rust", "c", "openapi"]),
         };
-        let export_relationship_scope = if kind == ImageArtifactKind::OpenApi {
-            "manifest_selected_exports_with_exact_source_document_and_operation_mapping"
-        } else {
-            "manifest_selected_exports_of_whole_carrier_not_per_file_edges"
+        let export_relationship_scope = match kind {
+            ImageArtifactKind::C => {
+                "manifest_selected_exports_with_exact_header_native_prototype_or_exclusion"
+            }
+            ImageArtifactKind::OpenApi => {
+                "manifest_selected_exports_with_exact_source_document_and_operation_mapping"
+            }
+            _ => "manifest_selected_exports_of_whole_carrier_not_per_file_edges",
         };
-        let mapping_nonclaim = if kind == ImageArtifactKind::OpenApi {
-            "document_operation_mapping_is_not_live_http_routing"
-        } else {
-            "not_per_file_export_mapping"
+        let mapping_nonclaim = match kind {
+            ImageArtifactKind::C => "native_prototype_mapping_is_not_a_public_linkable_abi",
+            ImageArtifactKind::OpenApi => "document_operation_mapping_is_not_live_http_routing",
+            _ => "not_per_file_export_mapping",
         };
         render(
             json!({"schema":PROJECT_CANDIDATE_ARTIFACT_DELTA_SCHEMA,"kind":kind.name(),

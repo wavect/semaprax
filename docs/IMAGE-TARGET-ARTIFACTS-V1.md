@@ -12,7 +12,7 @@ establish that this function caused the failure. The report labels this scope
 and carries the owning compiler diagnostic without claiming runtime execution,
 native machine-code compilation, standalone function support or failure blame.
 
-`artifact_projection(expected_image, ImageArtifactKind::{Web,Npm,OpenApi}, max_bytes)`
+`artifact_projection(expected_image, ImageArtifactKind::{Web,Npm,OpenApi,C}, max_bytes)`
 invokes the pathless Project carrier builder for the selected kind.
 The existing manifest/profile decides admission; Web remains scalar Project v1,
 and npm keeps its existing supported profiles. OpenAPI retains its scalar
@@ -25,11 +25,14 @@ Manifest-selected public export stable IDs link to their retained source
 declarations. Every authenticated source path/digest/revision is also listed as
 a Project input. These are source/manifest and carrier relationships, not
 dynamic coverage, proof that every file exports every declaration, external
-consumer usage, or npm installation evidence. Rust/C package carriers and
+consumer usage, or npm installation evidence. Rust carriers, compiled C libraries and
 package-consumer migration remain outside this report. The additive
 [OpenAPI artifact kind](IMAGE-OPENAPI-ARTIFACTS-V1.md) provides source-bound
 per-module documents through the existing scalar generator and full Project
-source replay, while preserving Web/npm report bytes.
+source replay, while preserving Web/npm report bytes. The additive
+[C artifact kind](IMAGE-C-ARTIFACTS-V1.md) binds real linked native C11 source
+to exact header prototypes or explicit exclusions, without changing linkage
+or claiming a standalone FFI header.
 
 The artifact build/envelope bound is host-selected within 1 KiB–16 MiB. Compact
 reports are at most 1 MiB and contain no encoded artifact bodies. Existing
@@ -50,7 +53,7 @@ Image Agent Protocol v5 adds `image/target-admission` as a `semantic_read` query
 It takes exact `image_revision`, `target`, and optional bounded UTF-8 chunk
 offset/size. `candidate/build` is exposed only if the host selected both
 candidate preparation and build authority. It takes a retained candidate, kind
-`web`, `npm` or additive `openapi`, and chunk controls; requests cannot widen its fixed 16 MiB build
+`web`, `npm`, `openapi` or `c`, and chunk controls; requests cannot widen its fixed 16 MiB build
 bound. The candidate's entire recovery history is independently restored before
 building and replaying its pathless carrier. It returns artifact-projection
 chunks, never filesystem materialization or publication authority.

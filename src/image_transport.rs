@@ -28,7 +28,8 @@ pub use candidates::{CANDIDATE_PROTOCOL_SCHEMA, CANDIDATE_RESULT_SCHEMA};
 pub use candidates::{DIAGNOSTIC_PROTOCOL_SCHEMA, DIAGNOSTIC_RESULT_SCHEMA};
 pub use candidates::{TEST_PROTOCOL_SCHEMA, TEST_RESULT_SCHEMA};
 pub use vnext::{
-    serve_vnext, GitCommitHost, VNextPolicy, VNextSession, VNextSessionFailure,
+    serve_mcp, serve_vnext, GitCommitHost, McpSession, VNextPolicy, VNextSession,
+    VNextSessionFailure, MAX_MCP_REQUEST_BYTES, MAX_MCP_RESPONSE_BYTES, MCP_PROTOCOL_VERSION,
     VNEXT_PROTOCOL_SCHEMA, VNEXT_RESULT_SCHEMA,
 };
 

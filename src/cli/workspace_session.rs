@@ -1,7 +1,8 @@
 //! Explicit startup host policy for the unified semantic workspace protocol.
 use semaprax::diagnostic::Diagnostic;
 use semaprax::image_transport::{
-    serve_vnext, GitCommitHost, VNextPolicy, VNextSession, VNextSessionFailure,
+    serve_mcp, serve_vnext, GitCommitHost, McpSession, VNextPolicy, VNextSession,
+    VNextSessionFailure,
 };
 use semaprax::project::{
     CandidateGitCommitMetadata, CandidateGitProcessAuthority, CandidateGitTarget,
@@ -11,6 +12,16 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 
 pub(crate) fn run(manifest: &Path, policy_path: &Path) -> Result<(), Vec<Diagnostic>> {
+    let session = open_session(manifest, policy_path)?;
+    serve_vnext(std::io::stdin().lock(), std::io::stdout().lock(), session).map_err(session_failure)
+}
+
+pub(crate) fn run_mcp(manifest: &Path, policy_path: &Path) -> Result<(), Vec<Diagnostic>> {
+    let session = McpSession::new(open_session(manifest, policy_path)?)?;
+    serve_mcp(std::io::stdin().lock(), std::io::stdout().lock(), session).map_err(session_failure)
+}
+
+fn open_session(manifest: &Path, policy_path: &Path) -> Result<VNextSession, Vec<Diagnostic>> {
     let bytes =
         super::project_image::read_bounded(policy_path, 65536).map_err(|error| vec![error])?;
     let policy: Value = serde_json::from_slice(&bytes)
@@ -143,19 +154,21 @@ pub(crate) fn run(manifest: &Path, policy_path: &Path) -> Result<(), Vec<Diagnos
         // discoverable through source-commit/status; no secret token is implied.
         session.approve_git_commit(string(git, "approved_candidate_digest")?)?;
     }
-    serve_vnext(std::io::stdin().lock(), std::io::stdout().lock(), session).map_err(|error| {
-        if let Some(failure) = error
-            .get_ref()
-            .and_then(|source| source.downcast_ref::<VNextSessionFailure>())
-        {
-            failure.diagnostics().to_vec()
-        } else {
-            vec![Diagnostic::io(
-                "SPX-G280",
-                format!("workspace session ended: {error}"),
-            )]
-        }
-    })
+    Ok(session)
+}
+
+fn session_failure(error: std::io::Error) -> Vec<Diagnostic> {
+    if let Some(failure) = error
+        .get_ref()
+        .and_then(|source| source.downcast_ref::<VNextSessionFailure>())
+    {
+        failure.diagnostics().to_vec()
+    } else {
+        vec![Diagnostic::io(
+            "SPX-G280",
+            format!("workspace session ended: {error}"),
+        )]
+    }
 }
 // Preserve the closed v1 startup contract. Cache selection belongs to a new
 // host policy, and never to a frame or a silently accepted extension field.

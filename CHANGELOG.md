@@ -9,6 +9,12 @@
   worker/collector handoff regressions. Ordinary CLI admission, host
   configuration and production-support claims remain unchanged.
 
+- Added an optional MCP stdio adapter over the host-selected v5 workspace,
+  with a pinned lifecycle, derived tool schemas and exact semantic responses.
+  The CLI reuses existing startup policy and separate Git approval; response
+  storage is reserved before tool execution to preserve complete outcomes.
+  Integration evidence is authored, unrun; no client-conformance claim is made.
+
 - Extended host-selected parallel reads to immutable candidate, draft and
   diagnostic review. Workers receive only selected subjects and share the
   sequential query implementations; source authentication still surrounds the

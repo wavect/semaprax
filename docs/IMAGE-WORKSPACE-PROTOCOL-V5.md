@@ -34,6 +34,12 @@ the host's existing fixed `CandidateTestPolicy`. No request changes these
 booleans or limits. `serve_vnext(input, output, session)` accepts host-provided
 streams and the already configured session; it discovers no paths or authority.
 
+The optional [MCP adapter](IMAGE-MCP-ADAPTER-V1.md) consumes that configured
+session and exposes its selected methods as tools. It preserves exact v5
+arguments and response bytes, requires a separate MCP initialization handshake,
+and cannot add a grant or approve a candidate. Its larger outer response bound
+accounts for escaping a complete v5 response before any operation runs.
+
 An additive `open_with_frontend_cache` constructor keeps the same policy and
 image identity while reusing source-exact compiler ASTs during authenticated
 live refresh. The separate embedding-host `handle_read_batch` API runs selected

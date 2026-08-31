@@ -687,6 +687,14 @@ rebase uses separate source shape/origin/binding facts and test planning falls
 back conservatively for non-callable type changes. See
 [Nominal Rename](PROJECT-NOMINAL-RENAME-V1.md).
 
+The same adapter and private planner also select explicit source record fields,
+variant cases and payload fields. Member sidecar facts bind parent namespaces
+and cross-file occurrence paths so constructor, pattern and projection labels
+are migrated in consumers while type aliases stay unchanged. Member rebase
+binds the complete owner shape and test planning uses a non-callable fallback;
+no new public Operations subject or publication route is exposed. See
+[Member Rename](PROJECT-MEMBER-RENAME-V1.md).
+
 `candidate/aggregate_nominal.rs` authenticates existing record/variant type
 selectors and visible bindings, including direct-scalar generic instances and
 the fixed compiler prelude. Selection and catalogue templates are provisional;

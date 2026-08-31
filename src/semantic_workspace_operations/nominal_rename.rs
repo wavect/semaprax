@@ -90,18 +90,8 @@ fn derive(
     )?;
     let program =
         crate::parse(file.source(), Path::new(file.path())).map_err(|error| vec![error])?;
-    let declaration = program
-        .types
-        .iter()
-        .find(|declaration| declaration.explicit_id && declaration.stable_id == target)
-        .ok_or_else(|| binding(false))?;
-    let subject = match declaration.kind {
-        crate::ast::TypeDeclarationKind::Record { .. } => DeclarationSubject::Record,
-        crate::ast::TypeDeclarationKind::Variant { .. } => DeclarationSubject::Variant,
-        _ => return Err(binding(false)),
-    };
-    if selected.kind != subject.text() || selected.name != declaration.name || selected.name == name
-    {
+    let (subject, source_name) = source_subject(&program, target).ok_or_else(|| binding(false))?;
+    if selected.kind != subject.text() || selected.name != source_name || selected.name == name {
         return Err(binding(false));
     }
     reserve_operations(
@@ -120,25 +110,15 @@ fn derive(
     };
     let operations = [operation];
     validate_candidate_namespaces(&view.sidecar, &operations)?;
-    let mut spans = select_occurrences(
-        file.source(),
-        &operations[0],
-        &view.sidecar,
-        MAX_PLANNED_EDITS,
-    )?;
-    if spans.is_empty() {
+    let occurrences = selected_occurrences(&view.sidecar, &operations[0]).ok_or_else(replay)?;
+    if occurrences.is_empty() {
         return Err(replay());
     }
-    spans.sort_unstable();
-    let replacement_bytes = spans
-        .len()
-        .checked_mul(name.len())
-        .ok_or_else(|| limit("edit_replacement_bytes", MAX_EDIT_REPLACEMENT_BYTES))?;
-    if replacement_bytes > MAX_EDIT_REPLACEMENT_BYTES {
-        return Err(limit("edit_replacement_bytes", MAX_EDIT_REPLACEMENT_BYTES));
+    if occurrences.len() > MAX_PLANNED_EDITS {
+        return Err(limit("planned_edits", MAX_PLANNED_EDITS));
     }
     reserve_operations(
-        spans
+        occurrences
             .len()
             .checked_mul(
                 std::mem::size_of::<PlannedEditFact>()
@@ -148,32 +128,88 @@ fn derive(
             )
             .ok_or_else(|| limit("operations_builder_bytes", MAX_OPERATIONS_BUILDER_BYTES))?,
     )?;
-    let edits = spans
-        .into_iter()
-        .map(|(start, end)| PlannedEditFact {
-            path: selected.path.clone(),
-            start,
-            end,
-            replacement: name.to_owned(),
+    let mut replacement_bytes = 0usize;
+    let mut edits = Vec::with_capacity(occurrences.len());
+    for occurrence in occurrences {
+        let file = files
+            .iter()
+            .find(|file| file.path() == occurrence.path)
+            .ok_or_else(replay)?;
+        if file
+            .source()
+            .get(occurrence.span.start..occurrence.span.end)
+            != Some(selected.name.as_str())
+        {
+            return Err(replay());
+        }
+        let replacement = if let Some(binding) = &occurrence.shorthand_binding {
+            reserve_operations(binding.len() + 2)?;
+            crate::bounded_output::budgeted_format(format_args!("{name}: {binding}"))
+        } else {
+            name.to_owned()
+        };
+        replacement_bytes = replacement_bytes
+            .checked_add(replacement.len())
+            .ok_or_else(|| limit("edit_replacement_bytes", MAX_EDIT_REPLACEMENT_BYTES))?;
+        if replacement_bytes > MAX_EDIT_REPLACEMENT_BYTES {
+            return Err(limit("edit_replacement_bytes", MAX_EDIT_REPLACEMENT_BYTES));
+        }
+        reserve_operations(occurrence.path.len())?;
+        edits.push(PlannedEditFact {
+            path: occurrence.path.clone(),
+            start: occurrence.span.start,
+            end: occurrence.span.end,
+            replacement,
             operation_index: 0,
-        })
-        .collect::<Vec<_>>();
-    let refs = edits.iter().collect::<Vec<_>>();
-    let replacement = render_candidate_source(file.source(), &refs)?;
-    validate_replacement_source_per_path(&replacement)?;
+        });
+    }
+    edits.sort_by(|left, right| {
+        (&left.path, left.start, left.end).cmp(&(&right.path, right.start, right.end))
+    });
     reserve_operations(
         files.len() * std::mem::size_of::<semantic_workspace::SemanticWorkspaceSource>(),
     )?;
-    let mut replacement = Some(replacement);
     let mut sources = Vec::with_capacity(files.len());
+    let mut changed_bytes = 0usize;
     for file in &files {
         reserve_operations(file.path().len())?;
-        let source = if file.path() == selected.path {
-            replacement.take().ok_or_else(replay)?
-        } else {
-            reserve_operations(file.source().len())?;
-            file.source().to_owned()
-        };
+        let refs = edits
+            .iter()
+            .filter(|edit| edit.path == file.path())
+            .collect::<Vec<_>>();
+        let source =
+            if !refs.is_empty() {
+                let replacement = render_candidate_source(file.source(), &refs)?;
+                validate_replacement_source_per_path(&replacement)?;
+                // A renamed label can cease to share its binding's spelling (or
+                // acquire it). Canonicalize the explicit source transformation so
+                // shorthand remains only a projection, never a binding mutation.
+                reserve_operations(replacement.len().checked_mul(4).ok_or_else(|| {
+                    limit("operations_builder_bytes", MAX_OPERATIONS_BUILDER_BYTES)
+                })?)?;
+                let parsed = crate::parse(&replacement, Path::new(file.path()))
+                    .map_err(|error| vec![error])?;
+                let replacement = crate::format::canonical(&parsed);
+                validate_replacement_source_per_path(&replacement)?;
+                changed_bytes = changed_bytes
+                    .checked_add(replacement.len())
+                    .ok_or_else(|| {
+                        limit(
+                            "total_replacement_source_bytes",
+                            MAX_TOTAL_REPLACEMENT_SOURCE_BYTES,
+                        )
+                    })?;
+                if changed_bytes > MAX_TOTAL_REPLACEMENT_SOURCE_BYTES {
+                    return Err(limit(
+                        "total_replacement_source_bytes",
+                        MAX_TOTAL_REPLACEMENT_SOURCE_BYTES,
+                    ));
+                }
+                replacement
+            } else {
+                reserve_operations(file.source().len())?;
+                file.source().to_owned()
+            };
         sources.push(semantic_workspace::SemanticWorkspaceSource {
             path: file.path().to_owned(),
             source,
@@ -206,4 +242,48 @@ fn derive(
             })
         })
         .collect()
+}
+
+fn source_subject<'a>(
+    program: &'a crate::ast::Program,
+    target: &str,
+) -> Option<(DeclarationSubject, &'a str)> {
+    use crate::ast::TypeDeclarationKind;
+    for declaration in &program.types {
+        if !declaration.explicit_id {
+            continue;
+        }
+        match &declaration.kind {
+            TypeDeclarationKind::Record { fields } => {
+                if declaration.stable_id == target {
+                    return Some((DeclarationSubject::Record, &declaration.name));
+                }
+                if let Some(field) = fields
+                    .iter()
+                    .find(|field| field.explicit_id && field.stable_id == target)
+                {
+                    return Some((DeclarationSubject::RecordField, &field.name));
+                }
+            }
+            TypeDeclarationKind::Variant { cases } => {
+                if declaration.stable_id == target {
+                    return Some((DeclarationSubject::Variant, &declaration.name));
+                }
+                for case in cases.iter().filter(|case| case.explicit_id) {
+                    if case.stable_id == target {
+                        return Some((DeclarationSubject::VariantCase, &case.name));
+                    }
+                    if let Some(field) = case
+                        .fields
+                        .iter()
+                        .find(|field| field.explicit_id && field.stable_id == target)
+                    {
+                        return Some((DeclarationSubject::VariantField, &field.name));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    None
 }

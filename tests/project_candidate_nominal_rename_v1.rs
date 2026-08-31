@@ -68,7 +68,7 @@ use type @id("rename.pair") from rename.core as Metric;
 use type @id("rename.choice") from rename.core as Signal;
 use function @id("rename.evaluate") from rename.core as evaluate;
 @id("rename.app-local") fn local(pair:Metric)->i64 {pair.value}
-@id("rename.app-choice") fn choose(value:Signal)->i64 {match value {Signal::Some {value} => value, Signal::None {} => 0,}}
+@id("rename.app-choice") fn choose(input:Signal)->i64 {match input {Signal::Some {value} => value, Signal::None {} => 0,}}
 @id("rename.main") fn main()->i64 {evaluate(41) + local(Metric {value:0}) + choose(Signal::None {})}
 "#);
         fixture.write(
@@ -182,7 +182,6 @@ fn error<T>(result: Result<T, Vec<Diagnostic>>, expected: &str) {
 }
 
 #[test]
-#[ignore = "repro at be5d3da: choose Signal::Some value shadowing"]
 fn record_rename_updates_nested_types_patterns_and_contract_bodies_without_alias_edits() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
@@ -247,7 +246,6 @@ fn record_rename_updates_nested_types_patterns_and_contract_bodies_without_alias
 }
 
 #[test]
-#[ignore = "repro at be5d3da: choose Signal::Some value shadowing"]
 fn variant_owner_rename_preserves_case_payload_ids_and_order_and_imported_match_labels() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
@@ -309,7 +307,6 @@ fn variant_owner_rename_preserves_case_payload_ids_and_order_and_imported_match_
 }
 
 #[test]
-#[ignore = "repro at be5d3da: choose Signal::Some value shadowing"]
 fn local_generic_record_and_variant_rename_preserve_concrete_arguments_and_shadowed_parameters() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
@@ -333,7 +330,6 @@ fn local_generic_record_and_variant_rename_preserve_concrete_arguments_and_shado
 }
 
 #[test]
-#[ignore = "repro at be5d3da: choose Signal::Some value shadowing"]
 fn owned_record_rename_retains_own_signature_and_ordinary_cleanup_admission() {
     let fixture = Fixture::new();
     fixture.append(
@@ -362,7 +358,6 @@ fn owned_record_rename_retains_own_signature_and_ordinary_cleanup_admission() {
 }
 
 #[test]
-#[ignore = "repro at be5d3da: choose Signal::Some value shadowing"]
 fn collisions_nonowners_and_implicit_identity_reject_without_changing_sources() {
     let fixture = Fixture::new();
     fixture.append("\nrecord Occupied { flag:bool, }\n");
@@ -399,7 +394,6 @@ fn collisions_nonowners_and_implicit_identity_reject_without_changing_sources() 
 }
 
 #[test]
-#[ignore = "repro at be5d3da: choose Signal::Some value shadowing"]
 fn nominal_rename_history_replays_and_rebases_without_reinterpreting_stale_revision() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();

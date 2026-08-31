@@ -8,6 +8,12 @@
   retaining healthy-call controls. Tests remain unrun; production runtime,
   generated artifacts, schemas and support claims are unchanged.
 
+- Added candidate display renames for explicit record fields, variant cases and
+  payload fields through shared authenticated cross-file reference planning and
+  exact source replay. Discovery, conservative member conflicts and static test
+  relevance use the existing candidate protocol. Regression evidence is authored,
+  unrun; public Operations grammar and publication authority are unchanged.
+
 - Removed silent Windows hostile-path fixture omissions from the new-project
   and quickstart checks. A shared test helper requires an actual Unix symlink
   or Windows junction, authenticates the fixture target, and exercises rejection

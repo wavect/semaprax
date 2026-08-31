@@ -447,22 +447,69 @@ fn type_fingerprints(
     let mut items = 0usize;
     for program in parse_revision(revision)? {
         for declaration in &program.types {
-            if !declaration.explicit_id || !targets.contains(declaration.stable_id.as_str()) {
+            if !declaration.explicit_id {
                 continue;
             }
+            let mut selected = Vec::new();
+            if targets.contains(declaration.stable_id.as_str()) {
+                selected.push((
+                    declaration.stable_id.as_str(),
+                    declaration.name.as_str(),
+                    None,
+                ));
+            }
             let (kind, members) = match &declaration.kind {
-                crate::ast::TypeDeclarationKind::Record { fields } => ("record", fields.len()),
-                crate::ast::TypeDeclarationKind::Variant { cases } => (
-                    "variant",
-                    cases
-                        .iter()
-                        .try_fold(cases.len(), |count, case| {
-                            count.checked_add(case.fields.len())
-                        })
-                        .ok_or_else(|| capacity("type rename fingerprint inventory overflow"))?,
-                ),
+                crate::ast::TypeDeclarationKind::Record { fields } => {
+                    for field in fields {
+                        if field.explicit_id && targets.contains(field.stable_id.as_str()) {
+                            selected.push((
+                                field.stable_id.as_str(),
+                                field.name.as_str(),
+                                Some("record_field"),
+                            ));
+                        }
+                    }
+                    ("record", fields.len())
+                }
+                crate::ast::TypeDeclarationKind::Variant { cases } => {
+                    for case in cases {
+                        if !case.explicit_id {
+                            continue;
+                        }
+                        if targets.contains(case.stable_id.as_str()) {
+                            selected.push((
+                                case.stable_id.as_str(),
+                                case.name.as_str(),
+                                Some("variant_case"),
+                            ));
+                        }
+                        for field in &case.fields {
+                            if field.explicit_id && targets.contains(field.stable_id.as_str()) {
+                                selected.push((
+                                    field.stable_id.as_str(),
+                                    field.name.as_str(),
+                                    Some("variant_field"),
+                                ));
+                            }
+                        }
+                    }
+                    (
+                        "variant",
+                        cases
+                            .iter()
+                            .try_fold(cases.len(), |count, case| {
+                                count.checked_add(case.fields.len())
+                            })
+                            .ok_or_else(|| {
+                                capacity("type rename fingerprint inventory overflow")
+                            })?,
+                    )
+                }
                 _ => continue,
             };
+            if selected.is_empty() {
+                continue;
+            }
             items = items
                 .checked_add(members)
                 .and_then(|count| count.checked_add(declaration.type_parameters.len()))
@@ -501,14 +548,28 @@ fn type_fingerprints(
             if overflow {
                 return Err(capacity("type rename fingerprint render exceeds its bound"));
             }
-            let fact = TypeFingerprint {
-                display: declaration.name.clone(),
-                kind,
-                shape: shape?,
-                location: hash_value(json!({"path":program.path,"module":program.module}))?,
-            };
-            if result.insert(declaration.stable_id.clone(), fact).is_some() {
-                return Err(grammar("type rename fingerprint identities are ambiguous"));
+            let shape = shape?;
+            let location = hash_value(json!({"path":program.path,"module":program.module}))?;
+            for (id, display, member_kind) in selected {
+                // Member facts bind their complete owner, including sibling
+                // names/identities and payload order. This also distinguishes
+                // a stable member moved to a different nominal owner.
+                let selected_shape = if member_kind.is_some() {
+                    hash_value(
+                        json!({"owner":declaration.stable_id,"owner_name":declaration.name,"shape":shape}),
+                    )?
+                } else {
+                    shape.clone()
+                };
+                let fact = TypeFingerprint {
+                    display: display.to_owned(),
+                    kind: member_kind.unwrap_or(kind),
+                    shape: selected_shape,
+                    location: location.clone(),
+                };
+                if result.insert(id.to_owned(), fact).is_some() {
+                    return Err(grammar("type rename fingerprint identities are ambiguous"));
+                }
             }
         }
     }

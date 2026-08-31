@@ -98,12 +98,19 @@ impl ProjectCandidate {
         self.require_candidate(expected_candidate)?;
         let before = reachability(&self.base)?;
         let after = reachability(&self.revision)?;
-        let renamed_types = if self
+        let renamed_nominals = if self
             .changes
             .iter()
             .any(|change| change.intent["kind"] == "rename_declaration")
         {
-            let mut ids = BTreeSet::new();
+            let mut ids = BTreeMap::new();
+            let mut retain = |id: &String, is_member: bool| -> Result<()> {
+                if ids.len() >= MAX_CALLS && !ids.contains_key(id) {
+                    return Err(capacity("test nominal target inventory exceeds its bound"));
+                }
+                ids.insert(id.clone(), is_member);
+                Ok(())
+            };
             for revision in [&self.base, &self.revision] {
                 for program in super::parse_revision(revision)? {
                     for declaration in &program.types {
@@ -114,19 +121,37 @@ impl ProjectCandidate {
                                     | crate::ast::TypeDeclarationKind::Variant { .. }
                             )
                         {
-                            if ids.len() >= MAX_CALLS && !ids.contains(&declaration.stable_id) {
-                                return Err(capacity(
-                                    "test nominal target inventory exceeds its bound",
-                                ));
+                            retain(&declaration.stable_id, false)?;
+                            match &declaration.kind {
+                                crate::ast::TypeDeclarationKind::Record { fields } => {
+                                    for field in fields {
+                                        if field.explicit_id {
+                                            retain(&field.stable_id, true)?;
+                                        }
+                                    }
+                                }
+                                crate::ast::TypeDeclarationKind::Variant { cases } => {
+                                    for case in cases {
+                                        if !case.explicit_id {
+                                            continue;
+                                        }
+                                        retain(&case.stable_id, true)?;
+                                        for field in &case.fields {
+                                            if field.explicit_id {
+                                                retain(&field.stable_id, true)?;
+                                            }
+                                        }
+                                    }
+                                }
+                                _ => {}
                             }
-                            ids.insert(declaration.stable_id.clone());
                         }
                     }
                 }
             }
             ids
         } else {
-            BTreeSet::new()
+            BTreeMap::new()
         };
         let mut targets = BTreeSet::new();
         let mut fallback = BTreeSet::new();
@@ -144,8 +169,14 @@ impl ProjectCandidate {
                 }
             }
             match kind {
-                "rename_declaration" if renamed_types.contains(required_id(intent, "target")?) => {
-                    fallback.insert("non_callable_type_display_change");
+                "rename_declaration"
+                    if renamed_nominals.contains_key(required_id(intent, "target")?) =>
+                {
+                    fallback.insert(if renamed_nominals[required_id(intent, "target")?] {
+                        "non_callable_member_display_change"
+                    } else {
+                        "non_callable_type_display_change"
+                    });
                 }
                 "rename_declaration"
                 | "replace_function_body"

@@ -18,9 +18,11 @@ authority and introduces no new source syntax, graph schema or request fields.
 
 `target` is the declaration's persistent ID; `name` is one ordinary identifier
 of at most 128 bytes and must differ from the current display name. Only an
-explicit record or variant owner is admitted by this route. A case, field,
-compiler prelude identity, resource, class, protocol or implicit declaration is
-not a nominal rename target. Existing function rename behavior is unchanged.
+explicit record or variant owner is admitted by the nominal route. The additive
+[Member Rename v1](PROJECT-MEMBER-RENAME-V1.md) route selects explicit source
+fields and cases through the same adapter and planner. Compiler prelude
+identities, resources, classes, protocols and implicit declarations remain
+unsupported. Existing function rename behavior is unchanged.
 
 This route does not impose a new Copy-only or monomorphic type restriction.
 Existing Project admission and the shared authenticated occurrence collector
@@ -114,5 +116,6 @@ and `tests/image_nominal_rename_transport_v5.rs`. It covers proven local uses,
 stable identities and consumer aliases, generic/owned admitted source shapes,
 collisions, immutable failure, recovery and conservative rebase. No compiler,
 test, interpreter, application executable or long local quality gate was run.
-Field/case renaming, broader declaration kinds, general merge normalization,
+Field/case renaming has a separate authored [member contract](PROJECT-MEMBER-RENAME-V1.md).
+Broader declaration kinds, general merge normalization,
 external consumer migration and executed evidence remain outstanding.

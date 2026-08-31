@@ -1,4 +1,4 @@
-//! Source-only nominal display renames through the shared authenticated
+//! Source-only nominal and member display renames through the shared authenticated
 //! Operations occurrence planner. No second index or publication route.
 use crate::ast::{Program, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
@@ -19,20 +19,69 @@ pub(super) struct NominalRename {
 /// arbitrary name or every reference form passes the shared replay engine.
 pub(super) fn eligible(revision: &ProjectRevision, target: &str) -> Result<bool> {
     let programs = parse_revision(revision)?;
-    let mut found = false;
-    for program in &programs {
+    Ok(selection(&programs, target)?.is_some())
+}
+
+/// Member-specific discovery uses the same source ancestry rules as apply.
+pub(super) fn member_kind(
+    revision: &ProjectRevision,
+    target: &str,
+) -> Result<Option<&'static str>> {
+    let programs = parse_revision(revision)?;
+    Ok(selection(&programs, target)?.and_then(|selected| selected.member_kind))
+}
+
+struct Selection<'a> {
+    name: &'a str,
+    member_kind: Option<&'static str>,
+}
+
+fn selection<'a>(programs: &'a [Program], target: &str) -> Result<Option<Selection<'a>>> {
+    let mut found = None;
+    let mut retain = |id: &str, explicit: bool, name: &'a str, member_kind| {
+        if explicit && id == target {
+            if found.is_some() {
+                return Err(invalid("candidate nominal rename identity is ambiguous"));
+            }
+            found = Some(Selection { name, member_kind });
+        }
+        Ok(())
+    };
+    for program in programs {
         for declaration in &program.types {
-            if declaration.stable_id == target
-                && declaration.explicit_id
-                && matches!(
-                    declaration.kind,
-                    TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Variant { .. }
-                )
-            {
-                if found {
-                    return Err(invalid("candidate nominal rename identity is ambiguous"));
+            if !declaration.explicit_id {
+                continue;
+            }
+            match &declaration.kind {
+                TypeDeclarationKind::Record { fields } => {
+                    retain(&declaration.stable_id, true, &declaration.name, None)?;
+                    for field in fields {
+                        retain(
+                            &field.stable_id,
+                            field.explicit_id,
+                            &field.name,
+                            Some("record_field"),
+                        )?;
+                    }
                 }
-                found = true;
+                TypeDeclarationKind::Variant { cases } => {
+                    retain(&declaration.stable_id, true, &declaration.name, None)?;
+                    for case in cases {
+                        if !case.explicit_id {
+                            continue;
+                        }
+                        retain(&case.stable_id, true, &case.name, Some("variant_case"))?;
+                        for field in &case.fields {
+                            retain(
+                                &field.stable_id,
+                                field.explicit_id,
+                                &field.name,
+                                Some("variant_field"),
+                            )?;
+                        }
+                    }
+                }
+                _ => {}
             }
         }
     }
@@ -70,24 +119,12 @@ pub(super) fn apply(
             .as_str()
             .ok_or_else(|| invalid("candidate nominal rename requires a display name"))?,
     )?;
-    let old = programs
-        .iter()
-        .flat_map(|program| &program.types)
-        .find(|declaration| declaration.stable_id == target)
-        .ok_or_else(|| invalid("candidate nominal rename source declaration is absent"))?;
+    let old = selection(programs, target)?.ok_or_else(|| {
+        invalid("candidate nominal rename requires an explicit record, variant or member ancestry")
+    })?;
     if old.name == name {
         return Err(invalid(
             "candidate declaration rename must change its display name",
-        ));
-    }
-    if !old.explicit_id
-        || !matches!(
-            old.kind,
-            TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Variant { .. }
-        )
-    {
-        return Err(invalid(
-            "candidate nominal rename requires an explicit record or variant",
         ));
     }
     let sources = crate::semantic_workspace_operations::derive_nominal_rename(

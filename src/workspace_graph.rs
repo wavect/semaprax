@@ -205,8 +205,10 @@ pub(crate) struct WorkspaceGraphOperationView {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorkspaceOperationOccurrence {
+    pub(crate) path: String,
     pub(crate) span: Span,
     pub(crate) owner: Option<String>,
+    pub(crate) shorthand_binding: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -217,6 +219,7 @@ pub(crate) struct WorkspaceOperationDeclaration {
     pub(crate) kind: &'static str,
     pub(crate) explicit: bool,
     pub(crate) name: String,
+    pub(crate) namespace_owner: Option<String>,
     pub(crate) span: Span,
     pub(crate) normalized_fingerprint: String,
     pub(crate) occurrences: Vec<WorkspaceOperationOccurrence>,

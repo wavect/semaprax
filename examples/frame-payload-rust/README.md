@@ -27,5 +27,14 @@ absent. No dependency installation is part of the consumer acceptance gate.
 Both baseline and display-renamed integration fixtures copy this lock before
 execution and assert its bytes remain unchanged afterward.
 
-Status: lock and acceptance corrections are authored, unrun. No hosted,
-minimum-toolchain, or published SDK claim follows from committing this lock.
+The explicit `msrv_handoff::provisioned_frame_consumer_handoff_binds_both_revisions`
+gate uses the current Linux AArch64 compiler to authenticate both real Project
+revisions and then retains exactly two seven-file SDKs plus four unchanged
+four-file consumers. A separate compiler-free Linux AArch64 environment ran all
+four consumers with Rust/Cargo 1.85.1, `--locked --offline`, a read-only handoff
+and registry, no checkout mount or network, and a fresh target. It observed four
+exact success markers, empty stderr and unchanged bytes for all 30 input files.
+
+This is local generated-package and consumer evidence for Rust 1.85.1. It is
+not a Rust 1.85 build of the compiler, exact Rust 1.85.0, Windows, hosted,
+published-SDK or minimum-supported-toolchain evidence.

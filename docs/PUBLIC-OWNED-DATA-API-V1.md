@@ -889,6 +889,21 @@ descriptors/providers and executes the baseline/renamed nine-case corpus and
 This direct-consumer run is not npm installation, TypeScript, browser or
 current-hosted-head evidence.
 
+A separate explicit handoff gate now authenticates those same baseline and
+display-renamed products with the current Linux AArch64/Rust 1.88 compiler,
+copies only the two verified seven-file SDKs and four unchanged four-file
+consumers into a fixed 30-file transfer inventory, and rechecks every source
+and transferred byte. An independent compiler-free Linux AArch64 environment
+then passes all four canonical/supplemental consumers under Rust/Cargo 1.85.1
+with `--locked --offline`, a read-only handoff and registry, no checkout mount,
+no network and a fresh target. The four stdout markers are exact, stderr is
+empty, and all 30 files remain byte-identical afterward. The publisher still
+runs on its authenticated native scratch filesystem; transfer uses `create_new`
+only after product verification, avoiding unsupported bind-mount publication
+semantics without weakening publication checks. This is local generated-package
+and consumer evidence, not a Rust-1.85 compiler build, exact Rust 1.85.0,
+Windows, hosted, published-SDK or repository-MSRV evidence.
+
 The provisioned [Owned Data Browser v1 fixture](../platform-tests/owned-data-browser-v1/README.md)
 imports two actual generated packages in the existing three browser projects,
 with mandatory distinct same-origin URLs and an exact twelve-artifact request

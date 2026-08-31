@@ -246,6 +246,14 @@
   client tests pass locally, including actual Python and offline Rust consumers;
   full-profile and current-head hosted validation remain pending.
 
+- Added an explicit compiler-free frame-product handoff: the current Linux
+  compiler authenticates baseline and renamed Project packages, then retains
+  exactly two seven-file SDKs and four unchanged consumers. All four consumers
+  pass locked/offline under Linux AArch64 Rust/Cargo 1.85.1 with a read-only
+  30-file handoff, no checkout or network, fresh build state, empty stderr and
+  exact post-run bytes. Publication authority remains unchanged; this is local
+  consumer evidence, not compiler MSRV, Windows, hosted or support promotion.
+
 - Added generated owned-SDK fail-stop regressions combining active Rust unwind
   with owner-drop or context-close failure. Exact flushed phase traces and
   independent broken-finalizer controls reject ordinary return and later

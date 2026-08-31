@@ -1,5 +1,8 @@
 use super::*;
 
+#[path = "../../support/frame_consumer.rs"]
+mod frame_consumer;
+
 pub(super) fn prepare_web(root: &Path) {
     for (name, bytes) in [
         (
@@ -63,33 +66,13 @@ pub(super) fn node(runner: &mut Runner, node: &Path, root: &Path) {
 }
 
 pub(super) fn rust(runner: &mut Runner, cargo: &Path, root: &Path, label: &str, target: &Path) {
-    let original_manifest = include_str!("../../../examples/frame-payload-rust/Cargo.toml");
-    assert_eq!(
-        original_manifest
-            .matches("../frame-payload-generated-sdk")
-            .count(),
-        1
-    );
-    let manifest = original_manifest.replace(
-        "../frame-payload-generated-sdk",
-        &format!("../{label}-generated-sdk"),
-    );
-    let lock = include_bytes!("../../../examples/frame-payload-rust/Cargo.lock");
-    let source = include_bytes!("../../../examples/frame-payload-rust/src/main.rs");
     for (suffix, corpus) in [("rust", CORPUS), ("rust-adversarial", SUPPLEMENT)] {
         // Distinct include_str! paths prevent timestamp-only in-place corpus
         // replacement from reusing the preceding consumer's compiled data.
         let consumer = root.join(format!("{label}-{suffix}"));
         fs::create_dir(&consumer).unwrap();
-        fs::create_dir(consumer.join("src")).unwrap();
-        for (name, bytes) in [
-            ("Cargo.toml", manifest.as_bytes()),
-            ("Cargo.lock", lock.as_slice()),
-            ("src/main.rs", source.as_slice()),
-            ("corpus.json", corpus),
-        ] {
-            files::write(&consumer, name, bytes);
-        }
+        let consumer = consumer.canonicalize().unwrap();
+        frame_consumer::prepare(&consumer, label, corpus);
         let mut command = native_rust_cargo::cargo_command();
         assert_eq!(Path::new(command.get_program()), cargo);
         command
@@ -100,18 +83,6 @@ pub(super) fn rust(runner: &mut Runner, cargo: &Path, root: &Path, label: &str, 
             .env("CARGO_NET_OFFLINE", "true");
         let result = runner.run(&mut command, Duration::from_secs(300));
         assert_eq!(result.stdout, b"frame-payload-rust-v1-ok\n");
-        files::assert_names(
-            &consumer,
-            &["Cargo.toml", "Cargo.lock", "corpus.json", "src"],
-        );
-        files::assert_names(&consumer.join("src"), &["main.rs"]);
-        for (name, bytes) in [
-            ("Cargo.toml", manifest.as_bytes()),
-            ("Cargo.lock", lock.as_slice()),
-            ("src/main.rs", source.as_slice()),
-            ("corpus.json", corpus),
-        ] {
-            assert_eq!(fs::read(consumer.join(name)).unwrap(), bytes);
-        }
+        frame_consumer::assert_unchanged(&consumer, label, corpus);
     }
 }

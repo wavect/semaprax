@@ -12,6 +12,9 @@ mod native_rust_cargo;
 #[path = "support/native_rust_target.rs"]
 mod native_rust_target;
 
+#[path = "support/frame_consumer.rs"]
+mod frame_consumer;
+
 use semaprax::hir;
 use semaprax::interpreter::{
     evaluate_resolved_owned_data, OwnedDataCleanupEvent, OwnedDataEvaluationOutcome,
@@ -36,6 +39,8 @@ mod adversarial_consumers;
 mod backend_equivalence;
 #[path = "frame_payload_product_v1/consumer_acceptance.rs"]
 mod consumer_acceptance;
+#[path = "frame_payload_product_v1/msrv_handoff.rs"]
+mod msrv_handoff;
 #[path = "frame_payload_product_v1/native_execution.rs"]
 mod native_execution;
 #[path = "frame_payload_product_v1/npm_installation.rs"]
@@ -408,20 +413,8 @@ fn project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_r
 
         let rust_consumer = root.join(format!("{label}-rust"));
         let rust_sdk = root.join(format!("{label}-generated-sdk"));
-        fs::create_dir_all(rust_consumer.join("src")).unwrap();
-        let rust_manifest = include_str!("../examples/frame-payload-rust/Cargo.toml").replace(
-            "../frame-payload-generated-sdk",
-            &format!("../{label}-generated-sdk"),
-        );
-        fs::write(rust_consumer.join("Cargo.toml"), &rust_manifest).unwrap();
-        fs::write(
-            rust_consumer.join("src/main.rs"),
-            include_bytes!("../examples/frame-payload-rust/src/main.rs"),
-        )
-        .unwrap();
-        fs::write(rust_consumer.join("corpus.json"), CORPUS).unwrap();
-        let lock = include_bytes!("../examples/frame-payload-rust/Cargo.lock");
-        fs::write(rust_consumer.join("Cargo.lock"), lock).unwrap();
+        fs::create_dir(&rust_consumer).unwrap();
+        frame_consumer::prepare(&rust_consumer, label, CORPUS);
         build(binary, &project.join("semaprax.toml"), "rust", &rust_sdk);
         bound_subjects.push(subject_binding::verify_product(
             project,
@@ -446,14 +439,10 @@ fn project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_r
             String::from_utf8_lossy(&result.stdout).trim(),
             "frame-payload-rust-v1-ok"
         );
-        assert_eq!(
-            fs::read(rust_consumer.join("Cargo.lock")).unwrap(),
-            lock.as_slice()
-        );
+        frame_consumer::assert_unchanged(&rust_consumer, label, CORPUS);
         adversarial_consumers::run_rust(
             &root.join(format!("{label}-rust-adversarial")),
-            &rust_manifest,
-            lock,
+            label,
             cargo_target.path(),
         );
     }

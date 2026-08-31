@@ -1,0 +1,89 @@
+//! Closed value-only dispatch over immutable subjects selected by the host.
+use super::*;
+use candidates::reads::ReadSubjects;
+
+pub(super) fn supports(operation: Operation) -> bool {
+    use candidates::diagnostics::Action as D;
+    matches!(
+        operation,
+        Operation::Candidate(candidates::Action::Diagnostic(
+            D::Summary
+                | D::Query
+                | D::RepairCatalog
+                | D::Delta
+                | D::DeltaCatalog
+                | D::ProtocolConformance
+                | D::InterfaceCatalog
+        )) | Operation::VNext(
+            Action::Targets
+                | Action::InterfaceDelta
+                | Action::ContractDelta
+                | Action::OwnershipDelta
+                | Action::CandidateCleanupDependencies
+                | Action::ContractExpressionCatalog
+                | Action::DraftRecoveryExport
+                | Action::DraftArchiveExport
+                | Action::SymbolDiagnostics
+        )
+    )
+}
+
+pub(super) fn prepare(
+    operation: Operation,
+    params: &Map<String, Value>,
+    image: &ProjectSemanticImage,
+    subjects: &ReadSubjects,
+) -> Result<Value, Vec<Diagnostic>> {
+    // The normal frame and batch coordinators check this before subject lookup.
+    if text(params, "image_revision") != image.image_digest() {
+        return Err(failure("SPX-G282", "v5 expected image revision is stale"));
+    }
+    let candidate = || {
+        subjects.candidate.as_deref().ok_or_else(|| {
+            failure(
+                "SPX-G224",
+                "candidate handle is stale, discarded, or unknown",
+            )
+        })
+    };
+    let draft = || {
+        subjects
+            .draft
+            .as_deref()
+            .ok_or_else(|| failure("SPX-G232", "draft handle is stale, discarded, or unknown"))
+    };
+    match operation {
+        Operation::VNext(Action::Targets) => projections::target_for_image(params, image),
+        Operation::Candidate(candidates::Action::Diagnostic(action)) => {
+            candidates::diagnostics::read_payload(action, params, image, subjects)
+        }
+        Operation::VNext(Action::InterfaceDelta) => {
+            review_facets::interface_delta_for_candidate(params, image, candidate()?)
+        }
+        Operation::VNext(Action::ContractDelta) => {
+            review_facets::contract_delta_for_candidate(params, image, candidate()?)
+        }
+        Operation::VNext(Action::OwnershipDelta) => {
+            review_facets::ownership_delta_for_candidate(params, image, candidate()?)
+        }
+        Operation::VNext(Action::CandidateCleanupDependencies) => {
+            cleanup_dependencies::for_candidate(params, image, candidate()?)
+        }
+        Operation::VNext(Action::ContractExpressionCatalog) => {
+            contract_holes::catalog_for_candidate(params, candidate()?)
+        }
+        Operation::VNext(Action::DraftRecoveryExport) => {
+            draft_recovery::export_for_draft(params, draft()?)
+        }
+        Operation::VNext(Action::DraftArchiveExport) => {
+            draft_archive::export_for_draft(params, image, draft()?)
+        }
+        Operation::VNext(Action::SymbolDiagnostics) => {
+            symbol_diagnostics::for_subjects(params, image, subjects)
+        }
+        _ => Err(failure(
+            "SPX-G294",
+            "operation is not a detached immutable report",
+        )),
+    }
+}

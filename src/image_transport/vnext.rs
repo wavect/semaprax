@@ -16,8 +16,9 @@ mod draft_recovery;
 mod projections;
 mod read_batch;
 mod recovery;
+mod retained_reads;
 mod review_facets;
-mod symbol_diagnostics;
+pub(super) mod symbol_diagnostics;
 pub use commit::GitCommitHost;
 
 pub const VNEXT_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v5";

@@ -462,9 +462,23 @@ fn host_startup_fences_manifest_permission_late_frames_and_bounded_rpc_without_d
             .code,
         "SPX-G282"
     );
-    assert!(!first
+    assert!(first
         .parallel_read_methods()
         .contains(&"hole/archive-export"));
+    let request = json!({"jsonrpc":"2.0","id":"archive-batch","method":"hole/archive-export","params":{"image_revision":image,"draft_revision":saved.draft_digest(),"chunk_bytes":1024}}).to_string();
+    let sequential = first.handle_frame(request.as_bytes());
+    let read: Value = serde_json::from_slice(sequential.as_ref().unwrap()).unwrap();
+    assert!(read.get("error").is_none(), "{read}");
+    assert_eq!(read["result"]["payload"]["source_authority"], false);
+    assert_eq!(read["result"]["payload"]["materializable"], false);
+    for workers in [1, 2, 4] {
+        assert_eq!(
+            first
+                .handle_read_batch(&[request.as_bytes()], workers)
+                .unwrap(),
+            vec![sequential.clone()]
+        );
+    }
     assert!(!first
         .parallel_read_methods()
         .contains(&"hole/archive-restore"));

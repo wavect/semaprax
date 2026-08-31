@@ -101,8 +101,9 @@ The embedding-host immutable read batch admits this method under its existing
 before/after held-source authentication and join-before-return boundary.
 
 `candidate/cleanup-dependencies` additionally requires `candidate_revision`
-and the host's existing candidate-preparation grant. It is excluded from
-immutable read batches. Neither method can obtain test, build, filesystem,
+and the host's existing candidate-preparation grant. The
+[parallel retained-read extension](IMAGE-PARALLEL-CANDIDATE-READS-V1.md) admits
+the same pure handler with only the selected candidate. Neither method can obtain test, build, filesystem,
 network or source-commit permission through a request.
 
 Chunks use `semaprax.image-cleanup-dependencies-chunk.v1` and

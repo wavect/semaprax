@@ -36,11 +36,14 @@ streams and the already configured session; it discovers no paths or authority.
 
 An additive `open_with_frontend_cache` constructor keeps the same policy and
 image identity while reusing source-exact compiler ASTs during authenticated
-live refresh. The separate embedding-host `handle_read_batch` API runs only
-immutable image/discovery reads on bounded scoped workers. Neither changes the
+live refresh. The separate embedding-host `handle_read_batch` API runs selected
+immutable image/discovery and retained semantic reads on bounded scoped workers.
+Neither changes the
 ordinary sequential NDJSON loop or grants new methods. See
 [Live Frontend Cache](IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md) and
-[Parallel Reads](IMAGE-PARALLEL-READS-V1.md) for their explicit host choices.
+[Parallel Reads](IMAGE-PARALLEL-READS-V1.md) and
+[Parallel Retained Reads](IMAGE-PARALLEL-CANDIDATE-READS-V1.md) for their explicit
+host choices and detached worker inputs.
 
 The default read-only method set also includes `image/dependencies`: exact-image,
 stable-ID declaration dependency reports delivered in bounded UTF-8 chunks.
@@ -89,8 +92,9 @@ associates retained rejected attempts only with their exact predecessor and
 intention target. It never attributes a rejected-source span to verified HIR.
 Both use bounded report chunks under current image and candidate expectations;
 diagnostic continuations additionally require the exact report revision because
-the retained attempt inventory can change. Neither method enters the parallel
-image-only batch or grants repair application, execution, or publication. Their
+the retained attempt inventory can change. Parallel retained reads select an
+immutable snapshot of that inventory inside source authentication. Neither
+method grants repair application, execution, or publication. Their
 report contracts are [Interface Delta](PROJECT-CANDIDATE-INTERFACE-DELTA-V1.md)
 and [Symbol Diagnostics](PROJECT-CANDIDATE-SYMBOL-DIAGNOSTICS-V1.md).
 
@@ -100,7 +104,7 @@ contract-bearing functions against the candidate's original base, including
 static helper dependencies behind unchanged predicates. It takes no target
 selector and returns immutable bounded UTF-8 chunks under exact image/candidate
 expectations. It performs no target projection or execution, grants no additional
-authority, and stays outside the parallel image-only batch.
+authority. The parallel retained-read extension admits the same pure handler.
 
 `candidate/ownership-delta` uses the same candidate-preparation grant and bounded
 chunk parameters for [Ownership Delta](PROJECT-CANDIDATE-OWNERSHIP-DELTA-V1.md).

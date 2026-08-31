@@ -2,6 +2,18 @@
 use super::*;
 use crate::project::{ProjectCandidateAttempt, ProjectCandidateAttemptOutcome};
 
+#[path = "diagnostics_reads.rs"]
+mod reads;
+
+pub(in crate::image_transport) fn read_payload(
+    action: Action,
+    params: &Map<String, Value>,
+    image: &ProjectSemanticImage,
+    subjects: &super::reads::ReadSubjects,
+) -> Result<Value, Vec<Diagnostic>> {
+    reads::payload(action, params, image, subjects)
+}
+
 pub const DIAGNOSTIC_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v4";
 pub const DIAGNOSTIC_RESULT_SCHEMA: &str = "semaprax.image-agent-result.v4";
 const ATTEMPT: Parameter = Parameter {
@@ -352,68 +364,19 @@ fn action_payload(
     registry: &Registry,
 ) -> Result<(Value, Mutation), Vec<Diagnostic>> {
     match action {
-        Action::ProtocolConformance | Action::InterfaceCatalog => {
-            let candidate = params
-                .get("candidate_revision")
-                .and_then(Value::as_str)
-                .map(|id| registry.candidate(id))
-                .transpose()?;
-            let (schema, report_schema, report) = if matches!(action, Action::InterfaceCatalog) {
-                let candidate = candidate
-                    .ok_or_else(|| failure("SPX-G241", "interface catalog requires a candidate"))?;
-                (
-                    "semaprax.image-interface-catalog-chunk.v1",
-                    "semaprax.project-interface-change-catalog.v1",
-                    candidate
-                        .interface_catalog(candidate.candidate_digest(), text(params, "target"))?,
-                )
-            } else {
-                let selected = if let Some(candidate) = candidate {
-                    ProjectSemanticImage::derive(
-                        Arc::clone(candidate.revision()),
-                        candidate.revision().project_revision(),
-                    )?
-                } else {
-                    ProjectSemanticImage::derive(
-                        Arc::clone(image.revision()),
-                        image.revision().project_revision(),
-                    )?
-                };
-                (
-                    "semaprax.image-protocol-conformance-chunk.v1",
-                    crate::project::IMAGE_PROTOCOL_CONFORMANCE_SCHEMA,
-                    selected.protocol_conformance(selected.image_digest())?,
-                )
-            };
-            let offset = number(params, "offset", 0);
-            if offset > report.len() || !report.is_char_boundary(offset) {
-                return Err(failure(
-                    "SPX-G241",
-                    "protocol report offset is outside canonical UTF-8 report",
-                ));
-            }
-            let mut end = offset
-                .saturating_add(number(params, "chunk_bytes", 16_384))
-                .min(report.len());
-            while !report.is_char_boundary(end) {
-                end -= 1;
-            }
-            if end == offset && offset < report.len() {
-                return Err(failure(
-                    "SPX-G241",
-                    "chunk_bytes cannot hold the next UTF-8 character",
-                ));
-            }
+        Action::ProtocolConformance
+        | Action::InterfaceCatalog
+        | Action::Summary
+        | Action::Query
+        | Action::RepairCatalog
+        | Action::Delta
+        | Action::DeltaCatalog => {
+            let subjects = registry.detach_read(
+                Operation::Candidate(super::Action::Diagnostic(action)),
+                params,
+            )?;
             Ok((
-                json!({
-                    "schema": schema, "report_schema": report_schema,
-                    "image_revision": image.image_digest(),
-                    "candidate_revision": params.get("candidate_revision"),
-                    "target": params.get("target"),
-                    "offset": offset, "total_bytes": report.len(),
-                    "chunk": &report[offset..end], "next_offset": (end < report.len()).then_some(end),
-                    "source_authority": false,
-                }),
+                read_payload(action, params, image, &subjects)?,
                 Mutation::None,
             ))
         }
@@ -467,47 +430,6 @@ fn action_payload(
                 }
             }
         }
-        Action::Summary => {
-            let attempt = attempt(registry, text(params, "attempt_revision"))?;
-            Ok((
-                parse_payload(attempt.summary(attempt.attempt_digest())?)?,
-                Mutation::None,
-            ))
-        }
-        Action::Query => {
-            let attempt = attempt(registry, text(params, "attempt_revision"))?;
-            let report = attempt.to_json();
-            let offset = number(params, "offset", 0);
-            if offset > report.len() || !report.is_char_boundary(offset) {
-                return Err(failure(
-                    "SPX-G241",
-                    "attempt query offset is outside canonical UTF-8 report",
-                ));
-            }
-            let mut end = offset
-                .saturating_add(number(params, "chunk_bytes", 16_384))
-                .min(report.len());
-            while !report.is_char_boundary(end) {
-                end -= 1;
-            }
-            if end == offset && offset < report.len() {
-                return Err(failure(
-                    "SPX-G241",
-                    "chunk_bytes cannot hold the next UTF-8 character",
-                ));
-            }
-            Ok((
-                json!({"schema":"semaprax.image-attempt-report-chunk.v1","attempt_revision":attempt.attempt_digest(),"report_schema":crate::project::PROJECT_CANDIDATE_ATTEMPT_SCHEMA,"offset":offset,"total_bytes":report.len(),"chunk":&report[offset..end],"next_offset":(end<report.len()).then_some(end),"materializable":false,"source_authority":false}),
-                Mutation::None,
-            ))
-        }
-        Action::RepairCatalog => {
-            let attempt = attempt(registry, text(params, "attempt_revision"))?;
-            Ok((
-                parse_payload(attempt.repair_catalog(attempt.attempt_digest())?)?,
-                Mutation::None,
-            ))
-        }
         Action::RepairApply => {
             let attempt = attempt(registry, text(params, "attempt_revision"))?;
             retain_candidate(
@@ -519,44 +441,6 @@ fn action_payload(
             Ok((
                 json!({"schema":"semaprax.image-attempt-discard.v1","attempt_revision":attempt.attempt_digest(),"discarded":true,"source_unchanged":true}),
                 Mutation::DropAttempt(attempt.attempt_digest().to_owned()),
-            ))
-        }
-        Action::Delta | Action::DeltaCatalog => {
-            let candidate = registry.candidate(text(params, "candidate_revision"))?;
-            let (schema, report) = if matches!(action, Action::Delta) {
-                (
-                    "semaprax.project-candidate-semantic-delta.v1",
-                    candidate
-                        .semantic_delta(candidate.candidate_digest(), text(params, "target"))?,
-                )
-            } else {
-                (
-                    "semaprax.project-candidate-semantic-delta-catalog.v1",
-                    candidate.semantic_delta_catalog(candidate.candidate_digest())?,
-                )
-            };
-            let offset = number(params, "offset", 0);
-            if offset > report.len() || !report.is_char_boundary(offset) {
-                return Err(failure(
-                    "SPX-G241",
-                    "semantic delta offset is outside canonical UTF-8 report",
-                ));
-            }
-            let mut end = offset
-                .saturating_add(number(params, "chunk_bytes", 16_384))
-                .min(report.len());
-            while !report.is_char_boundary(end) {
-                end -= 1;
-            }
-            if end == offset && offset < report.len() {
-                return Err(failure(
-                    "SPX-G241",
-                    "chunk_bytes cannot hold the next UTF-8 character",
-                ));
-            }
-            Ok((
-                json!({"schema":"semaprax.image-semantic-delta-chunk.v1","candidate_revision":candidate.candidate_digest(),"target":params.get("target"),"report_schema":schema,"offset":offset,"total_bytes":report.len(),"chunk":&report[offset..end],"next_offset":(end<report.len()).then_some(end),"source_authority":false}),
-                Mutation::None,
             ))
         }
     }

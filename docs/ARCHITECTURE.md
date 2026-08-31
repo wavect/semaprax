@@ -508,13 +508,20 @@ v5 can select one entry before live source authentication; no RPC gains storage
 or signing authority. Existing source-backed Image/Revision stores stay cold.
 
 `image_transport/vnext/read_batch.rs` adds an embedding-host batch API for up to
-sixteen immutable image/discovery requests on at most four scoped workers.
+sixteen selected immutable semantic requests on at most four scoped workers.
 Source authentication surrounds the complete joined batch, and rows remain in
 input order. Workers receive no registry, snapshot handles, cache, Git host or
-test interpreter. Refresh, candidates, builds and publication are excluded;
+test interpreter. Retained reads resolve only request-selected candidate, draft
+and attempt references inside authentication, then share pure payload handlers
+with sequential dispatch. Diagnostic inventory reads detach a bounded immutable
+attempt-reference inventory and retain ordinary matching/error order.
+Policy-bearing discovery values are prepared by the serial coordinator inside
+authentication, so workers receive no execution policy. Refresh, registry mutations, runtime
+tests, builds and publication are excluded;
 the CLI NDJSON loop remains sequential. See
 [Frontend Cache](IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md) and
-[Parallel Reads](IMAGE-PARALLEL-READS-V1.md) for bounds and unrun evidence.
+[Parallel Reads](IMAGE-PARALLEL-READS-V1.md) and
+[Parallel Retained Reads](IMAGE-PARALLEL-CANDIDATE-READS-V1.md) for bounds and unrun evidence.
 
 `image_transport/vnext/commit.rs` holds separately supplied fixed Git authority
 and a startup-only private approval slot. A request cannot choose its repository,

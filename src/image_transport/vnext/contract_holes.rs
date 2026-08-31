@@ -59,14 +59,10 @@ pub(super) fn prepare(
     match action {
         Action::ContractExpressionCatalog => {
             let candidate = registry.candidate(text(params, "candidate_revision"))?;
-            let report = candidate.contract_expression_catalog(text(params, "target"))?;
-            let payload = serde_json::from_str(&report).map_err(|_| {
-                failure(
-                    "SPX-G230",
-                    "compiler contract expression catalogue is invalid JSON",
-                )
-            })?;
-            Ok((payload, candidates::Mutation::None))
+            Ok((
+                catalog_for_candidate(params, candidate)?,
+                candidates::Mutation::None,
+            ))
         }
         Action::ContractHoleOpen => registry.open_contract_hole(
             text(params, "candidate_revision"),
@@ -77,4 +73,17 @@ pub(super) fn prepare(
         ),
         _ => Err(failure("SPX-G230", "unknown contract expression operation")),
     }
+}
+
+pub(super) fn catalog_for_candidate(
+    params: &Map<String, Value>,
+    candidate: &crate::project::ProjectCandidate,
+) -> Result<Value, Vec<Diagnostic>> {
+    let report = candidate.contract_expression_catalog(text(params, "target"))?;
+    serde_json::from_str(&report).map_err(|_| {
+        failure(
+            "SPX-G230",
+            "compiler contract expression catalogue is invalid JSON",
+        )
+    })
 }

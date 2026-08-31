@@ -81,6 +81,14 @@ pub(super) fn ownership_delta(
         ));
     }
     let candidate = registry.candidate(text(params, "candidate_revision"))?;
+    ownership_delta_for_candidate(params, image, candidate)
+}
+
+pub(super) fn ownership_delta_for_candidate(
+    params: &Map<String, Value>,
+    image: &ProjectSemanticImage,
+    candidate: &crate::project::ProjectCandidate,
+) -> Result<Value, Vec<Diagnostic>> {
     let report = candidate.ownership_delta(candidate.candidate_digest())?;
     let offset = number(params, "offset", 0);
     if offset > report.len() || !report.is_char_boundary(offset) {
@@ -118,6 +126,14 @@ pub(super) fn contract_delta(
         ));
     }
     let candidate = registry.candidate(text(params, "candidate_revision"))?;
+    contract_delta_for_candidate(params, image, candidate)
+}
+
+pub(super) fn contract_delta_for_candidate(
+    params: &Map<String, Value>,
+    image: &ProjectSemanticImage,
+    candidate: &crate::project::ProjectCandidate,
+) -> Result<Value, Vec<Diagnostic>> {
     let report = candidate.contract_delta(candidate.candidate_digest())?;
     let offset = number(params, "offset", 0);
     if offset > report.len() || !report.is_char_boundary(offset) {
@@ -155,6 +171,14 @@ pub(super) fn interface_delta(
         ));
     }
     let candidate = registry.candidate(text(params, "candidate_revision"))?;
+    interface_delta_for_candidate(params, image, candidate)
+}
+
+pub(super) fn interface_delta_for_candidate(
+    params: &Map<String, Value>,
+    image: &ProjectSemanticImage,
+    candidate: &crate::project::ProjectCandidate,
+) -> Result<Value, Vec<Diagnostic>> {
     let report = candidate.interface_delta(candidate.candidate_digest())?;
     let offset = number(params, "offset", 0);
     if offset > report.len() || !report.is_char_boundary(offset) {

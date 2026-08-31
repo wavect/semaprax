@@ -65,33 +65,7 @@ pub(super) fn prepare(
     match action {
         Action::DraftRecoveryExport => {
             let draft = registry.draft_value(text(params, "draft_revision"))?;
-            let capsule = draft.recovery_capsule()?;
-            let offset = number(params, "offset", 0);
-            let chunk_bytes = number(params, "chunk_bytes", 16384);
-            if !(1024..=65536).contains(&chunk_bytes)
-                || offset > capsule.len()
-                || !capsule.is_char_boundary(offset)
-            {
-                return Err(failure(
-                    "SPX-G230",
-                    "draft recovery chunk is outside its bounded UTF8 capsule",
-                ));
-            }
-            let mut end = offset.saturating_add(chunk_bytes).min(capsule.len());
-            while !capsule.is_char_boundary(end) {
-                end -= 1;
-            }
-            Ok((
-                json!({
-                    "schema":"semaprax.image-draft-recovery-chunk.v1",
-                    "draft_revision":draft.draft_digest(),
-                    "capsule_schema":PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA,
-                    "offset":offset,"total_bytes":capsule.len(),"chunk":&capsule[offset..end],
-                    "next_offset":(end<capsule.len()).then_some(end),
-                    "source_authority":false,"materializable":false,
-                }),
-                candidates::Mutation::None,
-            ))
+            Ok((export_for_draft(params, draft)?, candidates::Mutation::None))
         }
         Action::DraftRecoveryRestore => {
             // The frame codec bounds this structured input before construction.
@@ -121,4 +95,34 @@ pub(super) fn prepare(
         }
         _ => Err(failure("SPX-G230", "unsupported draft recovery action")),
     }
+}
+
+pub(super) fn export_for_draft(
+    params: &Map<String, Value>,
+    draft: &ProjectCandidateDraft,
+) -> Result<Value, Vec<Diagnostic>> {
+    let capsule = draft.recovery_capsule()?;
+    let offset = number(params, "offset", 0);
+    let chunk_bytes = number(params, "chunk_bytes", 16384);
+    if !(1024..=65536).contains(&chunk_bytes)
+        || offset > capsule.len()
+        || !capsule.is_char_boundary(offset)
+    {
+        return Err(failure(
+            "SPX-G230",
+            "draft recovery chunk is outside its bounded UTF8 capsule",
+        ));
+    }
+    let mut end = offset.saturating_add(chunk_bytes).min(capsule.len());
+    while !capsule.is_char_boundary(end) {
+        end -= 1;
+    }
+    Ok(json!({
+        "schema":"semaprax.image-draft-recovery-chunk.v1",
+        "draft_revision":draft.draft_digest(),
+        "capsule_schema":PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA,
+        "offset":offset,"total_bytes":capsule.len(),"chunk":&capsule[offset..end],
+        "next_offset":(end<capsule.len()).then_some(end),
+        "source_authority":false,"materializable":false,
+    }))
 }

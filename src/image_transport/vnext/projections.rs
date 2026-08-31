@@ -107,11 +107,7 @@ pub(super) fn prepare(
         )]);
     }
     let (schema, report_schema, report) = match action {
-        Action::Targets => (
-            "semaprax.image-target-admission-chunk.v1",
-            crate::project::IMAGE_TARGET_ADMISSION_SCHEMA,
-            image.target_admission(image.image_digest(), text(params, "target"))?,
-        ),
+        Action::Targets => return target_for_image(params, image),
         Action::Build => {
             let candidate = registry.candidate(text(params, "candidate_revision"))?;
             let capsule = candidate.recovery_capsule()?;
@@ -170,6 +166,32 @@ pub(super) fn prepare(
             )])
         }
     };
+    render_chunk(action, params, image, schema, report_schema, &report)
+}
+
+pub(super) fn target_for_image(
+    params: &Map<String, Value>,
+    image: &ProjectSemanticImage,
+) -> Result<Value, Vec<Diagnostic>> {
+    let report = image.target_admission(image.image_digest(), text(params, "target"))?;
+    render_chunk(
+        Action::Targets,
+        params,
+        image,
+        "semaprax.image-target-admission-chunk.v1",
+        crate::project::IMAGE_TARGET_ADMISSION_SCHEMA,
+        &report,
+    )
+}
+
+fn render_chunk(
+    action: Action,
+    params: &Map<String, Value>,
+    image: &ProjectSemanticImage,
+    schema: &str,
+    report_schema: &str,
+    report: &str,
+) -> Result<Value, Vec<Diagnostic>> {
     let offset = number(params, "offset", 0);
     if offset > report.len() || !report.is_char_boundary(offset) {
         return Err(vec![Diagnostic::io(

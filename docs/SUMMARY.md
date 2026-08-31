@@ -87,6 +87,7 @@ Audience: all documentation readers.
 - [Workspace Protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md)
 - [Workspace Frontend Cache v1](IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md)
 - [Image Parallel Reads v1](IMAGE-PARALLEL-READS-V1.md)
+- [Parallel Retained Semantic Reads v1](IMAGE-PARALLEL-CANDIDATE-READS-V1.md)
 - [Agent Discovery and Typed Clients v5](IMAGE-AGENT-DISCOVERY-V5.md)
 - [Source Commit Protocol v5](IMAGE-SOURCE-COMMIT-PROTOCOL-V5.md)
 - [Image Target and Artifact Projections v1](IMAGE-TARGET-ARTIFACTS-V1.md)

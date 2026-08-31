@@ -6,7 +6,10 @@ Status: code and regressions authored, **unrun**. No compiler, test, scheduler,
 latency, throughput, or memory gate has been executed in this change.
 
 `VNextSession::handle_read_batch(frames, workers)` is an explicit host API for
-concurrent immutable image and discovery reads. It takes a slice of raw NDJSON
+concurrent immutable image and discovery reads. The additive
+[retained-read contract](IMAGE-PARALLEL-CANDIDATE-READS-V1.md) extends its explicit
+allowlist to selected candidate, draft and diagnostic reads without changing
+the scheduling and authentication rules below. It takes a slice of raw NDJSON
 frame bodies, without LF, and returns one optional response per input position.
 The host supplies between one and four workers and one to sixteen frames.
 Each frame retains the existing 64 KiB limit; each response retains the 1 MiB
@@ -16,8 +19,12 @@ stack, HIR, CPU, or RSS limits. Up to four independently bounded query
 computations may be live simultaneously.
 
 The implementation spawns scoped worker threads over an immutable shared image
-and fixed discovery policy. It does not rebuild or clone a complete image per
-request. Workers process disjoint input positions. All spawned workers join
+and selected immutable read inputs. Policy-bearing discovery payloads are
+prepared on the serial coordinator inside authentication; no host policy enters
+the retained-read workers. The coordinator shares its pinned image rather than
+cloning complete HIR to dispatch each worker. Selected query owners can still
+replay source or derive projections under their own bounds. Workers process
+disjoint input positions. All spawned workers join
 before the host receives results; response order is restored to input order,
 regardless of completion order. No result is streamed early. A worker spawn
 failure or panic discards the complete batch result after joining the remaining
@@ -32,9 +39,10 @@ queries, including the v5 declaration dependency query; workspace open/status
 projections; and protocol capabilities, schemas,
 instructions, client generation and query catalogue. This is an explicit enum
 allowlist, not an assumption that every method marked `query` is safe to run
-concurrently. Candidate operations, diagnostic attempts, tests, target/artifact
-builds, refresh and preview, source-commit status/receipts, and publication are
-excluded, even when the ordinary session has their grants. Excluded calls get
+concurrently. Candidate mutations, diagnostic-attempt creation, test execution,
+target/artifact builds, refresh and preview, source-commit status/receipts, and
+publication are excluded, even when the ordinary session has their grants.
+The retained-read extension owns its additional pure query selection. Excluded calls get
 JSON-RPC `-32601`. No Git host, filesystem handle, candidate registry, externally
 mutable cache, or test interpreter is sent to a worker. The shared image may
 initialize its bounded source-derived dependency index once; that memoization
@@ -56,7 +64,9 @@ borrow.
 
 Malformed requests and invalid parameters receive the existing codec errors.
 Notifications and empty frames produce `None` and perform no semantic work.
-An all-rejected/notification batch does not authenticate source or spawn workers.
+An all-codec/parameter/unavailable-method rejection or notification batch does
+not authenticate source or spawn workers. Unknown retained subject handles are
+semantic query failures and remain inside authentication.
 Valid requests carry the ordinary exact image expectation. Bounds are checked
 before parsing any frame; a batch-level bound error is `SPX-G294` and returns
 no rows. A frame submitted through this entry point still starts the session
@@ -68,8 +78,9 @@ This is not JSON-RPC array batching or a new remotely available method.
 An embedding host must explicitly collect a bounded group and invoke this API;
 an agent cannot request worker count or widen the supported read subset. Method
 capabilities and normal sequential response bytes remain unchanged. Transport
-scheduling across independent incoming streams, parallel candidate queries,
-cancellation, and measured throughput improvements remain outstanding.
+scheduling across independent incoming streams, cancellation, and measured
+throughput improvements remain outstanding. Selected parallel candidate reads
+are authored in the separate retained-read extension.
 
 `tests/image_parallel_reads_v1.rs` authors sequential-byte equality across
 worker counts, request-order preservation, operation exclusion, invalid input,

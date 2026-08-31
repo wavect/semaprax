@@ -409,12 +409,45 @@ fn review_facet_discovery_is_host_selected_and_legacy_profiles_stay_closed() {
             methods.contains(&json!("candidate/symbol-diagnostics")),
             diagnostics
         );
-        assert!(!session
-            .parallel_read_methods()
-            .contains(&"candidate/interface-delta"));
-        assert!(!session
-            .parallel_read_methods()
-            .contains(&"candidate/symbol-diagnostics"));
+        assert_eq!(
+            session
+                .parallel_read_methods()
+                .contains(&"candidate/interface-delta"),
+            candidates
+        );
+        assert_eq!(
+            session
+                .parallel_read_methods()
+                .contains(&"candidate/symbol-diagnostics"),
+            diagnostics
+        );
+        if candidates {
+            let candidate = open(&mut session);
+            for method in ["candidate/interface-delta", "candidate/symbol-diagnostics"] {
+                if method == "candidate/symbol-diagnostics" && !diagnostics {
+                    continue;
+                }
+                let mut params = json!({"image_revision":session.image_revision(),"candidate_revision":candidate,"chunk_bytes":1024});
+                if method == "candidate/symbol-diagnostics" {
+                    params["target"] = json!("calculator.add");
+                }
+                let request =
+                    json!({"jsonrpc":"2.0","id":"parallel-review","method":method,"params":params})
+                        .to_string();
+                let sequential = session.handle_frame(request.as_bytes());
+                let read: Value = serde_json::from_slice(sequential.as_ref().unwrap()).unwrap();
+                assert!(read.get("error").is_none(), "{read}");
+                assert_eq!(read["result"]["payload"]["source_authority"], false);
+                for workers in [1, 2, 4] {
+                    assert_eq!(
+                        session
+                            .handle_read_batch(&[request.as_bytes()], workers)
+                            .unwrap(),
+                        vec![sequential.clone()]
+                    );
+                }
+            }
+        }
         if !diagnostics {
             let rejected = bound(
                 &mut session,

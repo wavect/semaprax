@@ -12,6 +12,7 @@ use super::{
 };
 use super::{ProjectExecution, ProjectExecutionOptions, ProjectExecutionRole, ProjectProfile};
 use super::{ProjectSource, ProjectWebBuild};
+use super::{PublicApiArgument, PublicApiEvaluation, PublicApiParameterType};
 
 /// One immutable, fully admitted Project revision without ambient authority.
 pub struct ProjectRevision {
@@ -234,6 +235,67 @@ impl ProjectRevision {
         .map_err(|error| vec![error])
     }
 
+    /// Evaluate one manifest-selected Project v8 export from this immutable
+    /// retained subject. Descriptor replay and exact invocation-shape checks
+    /// precede the authority-free interpreter call.
+    pub fn evaluate_public_api_v1(
+        &self,
+        entry_id: &str,
+        arguments: &[PublicApiArgument<'_>],
+        max_steps: usize,
+    ) -> Result<PublicApiEvaluation, Vec<Diagnostic>> {
+        let descriptor = self.public_api_descriptor()?;
+        if !super::public_api::valid_stable_id(entry_id) {
+            return Err(vec![Diagnostic::io(
+                "SPX-F102",
+                "interpreter admission failed (unsupported_callee): public API selector is invalid",
+            )]);
+        }
+        let export = descriptor
+            .exports()
+            .iter()
+            .find(|export| export.stable_id().as_str() == entry_id)
+            .ok_or_else(|| {
+                vec![Diagnostic::io(
+                    "SPX-F102",
+                    format!(
+                        "interpreter admission failed (unsupported_callee): retained Project v8 descriptor does not select export `{entry_id}`"
+                    ),
+                )]
+            })?;
+        if arguments.len() != export.parameters().len() {
+            return Err(vec![Diagnostic::io(
+                "SPX-F103",
+                format!(
+                    "public API export `{entry_id}` takes {} argument(s), {} were provided",
+                    export.parameters().len(),
+                    arguments.len()
+                ),
+            )]);
+        }
+        for (ordinal, (parameter, argument)) in
+            export.parameters().iter().zip(arguments).enumerate()
+        {
+            if !public_argument_matches(parameter.ty(), argument) {
+                return Err(vec![Diagnostic::io(
+                    "SPX-F103",
+                    format!(
+                        "parameter `{}` at ordinal {ordinal} of public API export `{entry_id}` expects {}, but the argument is {}",
+                        parameter.source_name(),
+                        parameter.ty().wire_name(),
+                        public_argument_name(argument),
+                    ),
+                )]);
+            }
+        }
+        crate::interpreter::evaluate_resolved_public_api(
+            &self.entry_program,
+            entry_id,
+            arguments,
+            max_steps,
+        )
+    }
+
     /// Independently replay the retained canonical Project v9 flat
     /// owned-record descriptor from this immutable retained subject.
     pub fn flat_owned_record_api_descriptor(
@@ -304,6 +366,34 @@ impl ProjectRevision {
     /// Emit the sole retained test-module closure as legacy core Wasm.
     pub fn test_wasm_module(&self) -> Result<Vec<u8>, Vec<Diagnostic>> {
         crate::wasm::emit_resolved_module(&self.test_program).map_err(|error| vec![error])
+    }
+}
+
+fn public_argument_matches(
+    expected: PublicApiParameterType,
+    argument: &PublicApiArgument<'_>,
+) -> bool {
+    matches!(
+        (expected, argument),
+        (PublicApiParameterType::I64, PublicApiArgument::I64(_))
+            | (PublicApiParameterType::Bool, PublicApiArgument::Bool(_))
+            | (
+                PublicApiParameterType::BorrowStr,
+                PublicApiArgument::BorrowStr(_)
+            )
+            | (
+                PublicApiParameterType::BorrowSliceU8,
+                PublicApiArgument::BorrowSliceU8(_)
+            )
+    )
+}
+
+fn public_argument_name(argument: &PublicApiArgument<'_>) -> &'static str {
+    match argument {
+        PublicApiArgument::I64(_) => "i64",
+        PublicApiArgument::Bool(_) => "bool",
+        PublicApiArgument::BorrowStr(_) => "borrow-str",
+        PublicApiArgument::BorrowSliceU8(_) => "borrow-slice-u8",
     }
 }
 

@@ -246,6 +246,16 @@
   client tests pass locally, including actual Python and offline Rust consumers;
   full-profile and current-head hosted validation remain pending.
 
+- Added a retained-Project reference evaluator for the complete closed Project
+  v8 public signature surface: zero through eight ordered `i64`, `bool`,
+  borrowed UTF-8 and borrowed byte-slice arguments, plus all six v8 result
+  shapes. Independent descriptor replay and exact export membership precede
+  evaluation; borrowed carriers are snapshotted under one cumulative byte cap,
+  and active owned outputs reuse authenticated copy-out and settlement. The
+  focused hostile suite passes locally, including boundary, wrong-shape,
+  unselected-entry, failure and cleanup cases. This adds no process, filesystem,
+  publication, backend or v9/v10 authority and does not promote v8 support.
+
 - Added an explicit compiler-free frame-product handoff: the current Linux
   compiler authenticates baseline and renamed Project packages, then retains
   exactly two seven-file SDKs and four unchanged consumers. All four consumers

@@ -1063,8 +1063,9 @@ the shared-oracle extraction. Scoped root/compiler and changed-toolchain-test
 Clippy passes on macOS. This batch does not execute the new source on Windows,
 Rust 1.85, real browsers or sanitizers, and does not run the full quality profile
 or exact-head hosted promotion. In particular, the single-Slice owned-data
-interpreter entry point does not accept this fixture's additional Bool parameter;
-the interpreter has not been widened merely to make this test available there.
+interpreter gate used by that earlier fixture did not accept its additional Bool
+parameter. The later retained-Project evaluator below closes that reference-lane
+gap without changing the original single-Slice entry point or its diagnostics.
 
 ### Mixed-parameter arity gates
 
@@ -1076,6 +1077,29 @@ repeated type. Each export returns owned `ok` or `bad` bytes according to its
 present arguments. Result bytes are copied from named local fixed arrays,
 preserving the language's exact storage-place requirement for borrowed views.
 Consumer literals are independent of the source predicates.
+
+`ProjectRevision::evaluate_public_api_v1` is the authority-free reference lane
+for this complete v8 signature surface. It independently replays the retained
+canonical descriptor, requires exact selected-export membership, and validates
+argument count, type and order before calling the crate-private HIR evaluator.
+The evaluator admits only the four v8 parameter types and six v8 result types,
+requires an explicit stable identity and a bounded effect-free, contract-free,
+acyclic closure, and snapshots borrowed UTF-8 and byte slices before starting
+the fixed-stack worker. UTF-8 contributes its encoded byte length to the same
+65,536-byte cumulative borrowed-input limit. Active `Bytes` payloads use the
+existing authenticated copy-out and settlement path; scalar and inactive
+variant results create no cleanup event. The retained descriptor, rather than
+caller-supplied metadata or discoverable HIR membership, remains the export
+authority.
+
+`tests/project_owned_mixed_arity_interpreter_v1.rs` executes arities zero through
+eight, repeated same-type position swaps, all four argument and six result
+shapes, scalar/error extrema, `None`/`Some`, `Ok`/`Err`, language failure and
+exact active-owner cleanup. It also checks cumulative UTF-8-plus-slice sizes of
+65,535, 65,536 and 65,537 bytes, exact wrong-count/type/order diagnostics, and
+an explicit retained function that is absent from the selected descriptor. The
+four focused cases pass locally on macOS arm64; this is not cross-backend,
+Windows, minimum-Rust, hosted or support-promotion evidence.
 
 The descriptor fixture `tests/public_api_descriptor_v1/mixed_arity.rs` checks
 exact parameter order, names, identities, ordinals, result types and replay,
@@ -1104,6 +1128,7 @@ Focused gates:
 
 ```sh
 cargo test --locked -p semaprax --test public_api_descriptor_v1 mixed_arity
+cargo test --locked -p semaprax --test project_owned_mixed_arity_interpreter_v1
 cargo test --locked -p semaprax --test project_owned_mixed_arity_v1
 cargo test --locked -p semaprax-toolchain --test project_owned_mixed_arity_sdk_v1 provisioned_mixed_arity_publish_and_run -- --ignored --exact
 ```

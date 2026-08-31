@@ -1023,7 +1023,7 @@ fn string<'a>(object: &'a Map<String, Value>, key: &str) -> Result<&'a str, Diag
         .ok_or_else(|| api_error(format!("public API descriptor field `{key}` is invalid")))
 }
 
-fn valid_stable_id(value: &str) -> bool {
+pub(super) fn valid_stable_id(value: &str) -> bool {
     (1..=MAX_STABLE_ID_BYTES).contains(&value.len())
         && value.bytes().all(|byte| {
             byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'.' | b'_' | b'-')

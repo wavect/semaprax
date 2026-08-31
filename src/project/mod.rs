@@ -42,6 +42,9 @@ use std::sync::Arc;
 use crate::diagnostic::Diagnostic;
 use crate::semantic_workspace::SemanticWorkspaceSource;
 
+pub use crate::interpreter::{
+    PublicApiArgument, PublicApiEvaluation, PublicApiEvaluationOutcome, PublicApiValue,
+};
 pub use crate::wasm::{ProjectWebBuild, MAX_PROJECT_WEB_BUILD_BYTES, PROJECT_WEB_BUILD_SCHEMA};
 use authority::{authentication, DeclaredPathSelection, HeldDirectory, HeldFile};
 #[cfg(all(test, windows))]

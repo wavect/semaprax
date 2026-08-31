@@ -561,6 +561,48 @@ pub struct OwnedDataEvaluation {
     pub max_steps: usize,
 }
 
+/// One borrowed Project-v8 public invocation argument. Borrowed host carriers
+/// are snapshotted before evaluation and never become interpreter ownership.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PublicApiArgument<'a> {
+    I64(i64),
+    Bool(bool),
+    BorrowStr(&'a str),
+    BorrowSliceU8(&'a [u8]),
+}
+
+/// One normalized Project-v8 value returned by the reference interpreter.
+/// Active byte payloads are copied into ordinary host-owned vectors first.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PublicApiValue {
+    I64(i64),
+    Bool(bool),
+    Usize(u64),
+    Bytes(Vec<u8>),
+    OptionBytes(Option<Vec<u8>>),
+    ResultBytesI64(Result<Vec<u8>, i64>),
+}
+
+/// Closed outcome vocabulary for one Project-v8 public invocation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PublicApiEvaluationOutcome {
+    Returned(PublicApiValue),
+    LanguageFailure(NormalizedStatus),
+    FuelExhausted,
+    CallDepthExceeded,
+    GuardError(String),
+}
+
+/// Authority-free execution facts for one exact selected Project-v8 export.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PublicApiEvaluation {
+    pub function_id: DeclarationId,
+    pub outcome: PublicApiEvaluationOutcome,
+    pub cleanup_events: Vec<OwnedDataCleanupEvent>,
+    pub steps_used: usize,
+    pub max_steps: usize,
+}
+
 /// Closed outcomes for one hosted Language Command I/O v1 invocation.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CommandEvaluationOutcome {
@@ -828,6 +870,299 @@ pub fn evaluate_resolved_owned_data(
     })
 }
 
+/// Evaluate one exact Project-v8 public export from already-validated HIR.
+///
+/// Selection authority remains with the caller's authenticated Project
+/// revision. This function accepts no descriptor, filesystem or process
+/// authority and does not infer an export set from the program.
+pub(crate) fn evaluate_resolved_public_api(
+    program: &hir::ResolvedProgram,
+    entry_id: &str,
+    arguments: &[PublicApiArgument<'_>],
+    max_steps: usize,
+) -> Result<PublicApiEvaluation, Vec<Diagnostic>> {
+    hir::validate(program).map_err(|diagnostic| vec![diagnostic])?;
+    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
+        return Err(vec![option_error(format!(
+            "public API evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
+        ))]);
+    }
+    if arguments.len() > crate::project::MAX_PUBLIC_API_PARAMETERS {
+        return Err(vec![argument_error(format!(
+            "public API invocation exceeds {} parameters",
+            crate::project::MAX_PUBLIC_API_PARAMETERS
+        ))]);
+    }
+    let mut borrowed_bytes = 0usize;
+    for argument in arguments {
+        let length = match argument {
+            PublicApiArgument::BorrowStr(value) => value.len(),
+            PublicApiArgument::BorrowSliceU8(value) => value.len(),
+            PublicApiArgument::I64(_) | PublicApiArgument::Bool(_) => 0,
+        };
+        borrowed_bytes = borrowed_bytes.checked_add(length).ok_or_else(|| {
+            vec![argument_error(
+                "public API cumulative borrowed input byte count overflowed".to_owned(),
+            )]
+        })?;
+        if borrowed_bytes > crate::project::MAX_PUBLIC_API_BORROWED_INPUT_BYTES {
+            return Err(vec![argument_error(format!(
+                "public API cumulative borrowed input exceeds {} bytes",
+                crate::project::MAX_PUBLIC_API_BORROWED_INPUT_BYTES
+            ))]);
+        }
+    }
+    let entry = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == entry_id)
+        .ok_or_else(|| {
+            vec![selection_error(
+                REASON_UNSUPPORTED_CALLEE,
+                format!("resolved public API export `{entry_id}` is absent"),
+            )]
+        })?;
+    let explicit_entry = program
+        .declarations
+        .declaration(&entry.id)
+        .is_some_and(|declaration| declaration.identity_origin == hir::IdentityOrigin::Explicit);
+    if !explicit_entry {
+        return Err(vec![selection_error(
+            REASON_AUTOMATIC_IDENTITY,
+            format!("resolved public API export `{entry_id}` has no explicit stable identity"),
+        )]);
+    }
+    if entry.params.len() != arguments.len() {
+        return Err(vec![argument_error(format!(
+            "resolved public API export `{entry_id}` takes {} argument(s), {} were provided",
+            entry.params.len(),
+            arguments.len()
+        ))]);
+    }
+    for (index, (parameter, argument)) in entry.params.iter().zip(arguments).enumerate() {
+        let admitted = matches!(
+            (&parameter.ty, parameter.ownership, argument),
+            (
+                ResolvedType::I64,
+                hir::OwnershipMode::Value,
+                PublicApiArgument::I64(_)
+            ) | (
+                ResolvedType::Bool,
+                hir::OwnershipMode::Value,
+                PublicApiArgument::Bool(_)
+            ) | (
+                ResolvedType::Str,
+                hir::OwnershipMode::Borrow,
+                PublicApiArgument::BorrowStr(_)
+            ) | (
+                ResolvedType::SliceU8,
+                hir::OwnershipMode::Borrow,
+                PublicApiArgument::BorrowSliceU8(_)
+            )
+        );
+        if !admitted {
+            return Err(vec![selection_error(
+                REASON_UNSUPPORTED_PARAMETER_TYPE,
+                format!(
+                    "resolved public API export `{entry_id}` parameter {index} disagrees with its exact Project-v8 argument"
+                ),
+            )]);
+        }
+    }
+    if !public_api_result_is_admitted(&entry.return_type) {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_RESULT_TYPE,
+            format!("resolved public API export `{entry_id}` has a non-v8 result type"),
+        )]);
+    }
+    if !entry.effects.is_empty() {
+        return Err(vec![selection_error(
+            REASON_DECLARED_EFFECTS,
+            format!("resolved public API export `{entry_id}` declares effects"),
+        )]);
+    }
+    if !entry.requires.is_empty() || !entry.ensures.is_empty() {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_CALLEE,
+            format!("resolved public API export `{entry_id}` declares contracts"),
+        )]);
+    }
+
+    hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
+    let admitted = admitted_resolved_functions(program);
+    if !admitted.contains_key(entry_id) {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_CALLEE,
+            format!("resolved public API export `{entry_id}` is outside the interpreter profile"),
+        )]);
+    }
+    let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
+    if closure.len() > crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_CALLEE,
+            format!(
+                "public API selected closure exceeds {} functions",
+                crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS
+            ),
+        )]);
+    }
+    for id in &closure {
+        let function = admitted.get(id.as_str()).ok_or_else(|| {
+            vec![selection_error(
+                REASON_UNSUPPORTED_CALLEE,
+                format!("public API closure function `{id}` is not admitted"),
+            )]
+        })?;
+        if !function.effects.is_empty()
+            || !function.requires.is_empty()
+            || !function.ensures.is_empty()
+        {
+            return Err(vec![selection_error(
+                REASON_UNSUPPORTED_CALLEE,
+                format!("public API closure function `{id}` must be effect- and contract-free"),
+            )]);
+        }
+    }
+    require_acyclic_public_api_closure(entry_id, &admitted)?;
+
+    // Snapshot borrowed carriers before spawning the fixed-stack evaluator.
+    let arguments = entry
+        .params
+        .iter()
+        .zip(arguments)
+        .map(|(parameter, argument)| {
+            let value = match argument {
+                PublicApiArgument::I64(value) => ArgumentValue::Int(*value),
+                PublicApiArgument::Bool(value) => ArgumentValue::Bool(*value),
+                PublicApiArgument::BorrowStr(value) => {
+                    ArgumentValue::BorrowedStr((*value).to_owned())
+                }
+                PublicApiArgument::BorrowSliceU8(value) => {
+                    ArgumentValue::BorrowedSlice((*value).to_vec())
+                }
+            };
+            (parameter.name.clone(), value)
+        })
+        .collect::<Vec<_>>();
+    let return_type = entry.return_type.clone();
+
+    std::thread::scope(|scope| {
+        let worker = std::thread::Builder::new()
+            .name("semaprax-public-api-evaluate".to_owned())
+            .stack_size(EVALUATION_STACK_BYTES)
+            .spawn_scoped(scope, || {
+                let (evaluated, steps_used, _) = evaluate_resolved_entry(
+                    entry,
+                    &arguments,
+                    &admitted,
+                    &program.declarations,
+                    max_steps,
+                    false,
+                );
+                let mut cleanup_events = Vec::with_capacity(1);
+                let outcome = match evaluated {
+                    Ok(value) => {
+                        match copy_out_public_api(value, &return_type, &mut cleanup_events) {
+                            Ok(value) => PublicApiEvaluationOutcome::Returned(value),
+                            Err(detail) => {
+                                PublicApiEvaluationOutcome::GuardError(detail.to_owned())
+                            }
+                        }
+                    }
+                    Err(Flow::Failure(status)) => {
+                        PublicApiEvaluationOutcome::LanguageFailure(status)
+                    }
+                    Err(Flow::Exhausted) => PublicApiEvaluationOutcome::FuelExhausted,
+                    Err(Flow::DepthExceeded) => PublicApiEvaluationOutcome::CallDepthExceeded,
+                    Err(Flow::Cancelled { .. }) => PublicApiEvaluationOutcome::GuardError(
+                        "unexpected cancellation in public API evaluation".to_owned(),
+                    ),
+                    Err(Flow::Guard(detail)) => {
+                        PublicApiEvaluationOutcome::GuardError(detail.to_owned())
+                    }
+                };
+                PublicApiEvaluation {
+                    function_id: entry.id.clone(),
+                    outcome,
+                    cleanup_events,
+                    steps_used,
+                    max_steps,
+                }
+            })
+            .map_err(|error| {
+                vec![guard_error(&format!(
+                    "public API evaluation thread failed to start: {error}"
+                ))]
+            })?;
+        worker.join().map_err(|_| {
+            vec![guard_error(
+                "public API evaluation thread panicked after HIR validation",
+            )]
+        })
+    })
+}
+
+fn public_api_result_is_admitted(ty: &ResolvedType) -> bool {
+    matches!(
+        ty,
+        ResolvedType::I64 | ResolvedType::Bool | ResolvedType::Usize
+    ) || owned_data_result_is_admitted(ty)
+}
+
+fn require_acyclic_public_api_closure(
+    entry_id: &str,
+    admitted: &BTreeMap<&str, &ResolvedFunction>,
+) -> Result<(), Vec<Diagnostic>> {
+    fn visit<'a>(
+        id: &'a str,
+        admitted: &BTreeMap<&'a str, &'a ResolvedFunction>,
+        states: &mut BTreeMap<&'a str, u8>,
+    ) -> Result<(), Vec<Diagnostic>> {
+        match states.get(id) {
+            Some(1) => {
+                return Err(vec![selection_error(
+                    REASON_UNSUPPORTED_CALLEE,
+                    "public API selected closure must be acyclic".to_owned(),
+                )])
+            }
+            Some(2) => return Ok(()),
+            _ => {}
+        }
+        states.insert(id, 1);
+        let function = admitted.get(id).ok_or_else(|| {
+            vec![selection_error(
+                REASON_UNSUPPORTED_CALLEE,
+                format!("public API closure function `{id}` is not admitted"),
+            )]
+        })?;
+        for expression in function
+            .requires
+            .iter()
+            .chain(&function.ensures)
+            .chain(std::iter::once(&function.body))
+        {
+            let mut pending = vec![expression];
+            while let Some(expression) = pending.pop() {
+                if let ResolvedExprKind::Call {
+                    callee,
+                    instance: None,
+                    ..
+                } = &expression.kind
+                {
+                    if admitted.contains_key(callee.as_str()) {
+                        visit(callee.as_str(), admitted, states)?;
+                    }
+                }
+                pending.extend(child_expressions(expression));
+            }
+        }
+        states.insert(id, 2);
+        Ok(())
+    }
+
+    visit(entry_id, admitted, &mut BTreeMap::new())
+}
+
 fn owned_data_result_is_admitted(ty: &ResolvedType) -> bool {
     matches!(ty, ResolvedType::Bytes)
         || matches!(
@@ -927,6 +1262,32 @@ fn copy_out_owned_data(
             _ => Err("Result<Bytes, i64> has an invalid active case or payload inventory"),
         },
         _ => Err("owned-data result uses an unauthenticated variant identity"),
+    }
+}
+
+fn copy_out_public_api(
+    value: Value,
+    expected: &ResolvedType,
+    cleanup_events: &mut Vec<OwnedDataCleanupEvent>,
+) -> Result<PublicApiValue, &'static str> {
+    match expected {
+        ResolvedType::I64 => match value {
+            Value::Int(value) => Ok(PublicApiValue::I64(value)),
+            _ => Err("public API i64 result disagrees with its signature"),
+        },
+        ResolvedType::Bool => match value {
+            Value::Bool(value) => Ok(PublicApiValue::Bool(value)),
+            _ => Err("public API bool result disagrees with its signature"),
+        },
+        ResolvedType::Usize => match value {
+            Value::Usize(value) => Ok(PublicApiValue::Usize(value)),
+            _ => Err("public API usize result disagrees with its signature"),
+        },
+        _ => match copy_out_owned_data(value, expected, cleanup_events)? {
+            OwnedDataValue::Bytes(value) => Ok(PublicApiValue::Bytes(value)),
+            OwnedDataValue::OptionBytes(value) => Ok(PublicApiValue::OptionBytes(value)),
+            OwnedDataValue::ResultBytesI64(value) => Ok(PublicApiValue::ResultBytesI64(value)),
+        },
     }
 }
 

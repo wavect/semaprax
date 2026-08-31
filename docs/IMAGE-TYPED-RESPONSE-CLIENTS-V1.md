@@ -107,6 +107,11 @@ independent conversion starts with a fresh budget. This protects the typed
 conversion step as well as the preceding runtime schema validation; it is not
 an alternative source-admission API.
 
+Literal unit types share generated macro implementations with the same serde
+checks and integer widths. Unchanged field names omit redundant rename
+attributes; escaped or remapped identifiers retain them. This reduces source
+and JSON-string escaping overhead without erasing types or assertions.
+
 No generated client reads files, opens a socket, starts a process, applies a
 source edit or approves a commit. A decoded publication result retains its
 ordinary meaning; its Rust/Python/TypeScript type cannot authorize a retry.
@@ -119,6 +124,8 @@ shape traversal: at most 4,096 definitions, 65,536 visits, depth 128 and 16 MiB
 of retained schema keys. Unguarded reference cycles fail generation. These
 limits are not an overall heap, CPU or latency guarantee. Unsupported shapes
 retain `SPX-G288`; generation-capacity and discovery-size failures use `SPX-G289`.
+The client-size regression exercises the actual serialized discovery payload,
+including metadata and escaped source, rather than only the raw source length.
 
 Response normalization separately bounds input schema bytes to 16 MiB, traversal
 to 65,536 visits and depth 128, and the combined retained/lifted document registry

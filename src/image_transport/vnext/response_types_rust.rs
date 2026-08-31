@@ -87,6 +87,31 @@ impl Drop for ResponseTypeDecodeGuard {
 }
 "#;
 
+// Emit literal implementations once in source. Macro expansion preserves the
+// same public unit types and exact serde checks without repeating their text
+// for every enum/discriminant in the transport's bounded JSON source string.
+const LITERAL_SUPPORT: &str = r#"
+macro_rules! response_literal {
+    ($name:ident, $literal:literal) => {
+        #[derive(Clone, Debug, PartialEq)]
+        pub struct $name;
+        impl<'de> Deserialize<'de> for $name {
+            fn deserialize<D:serde::Deserializer<'de>>(deserializer:D)->Result<Self,D::Error> {
+                let value=Value::deserialize(deserializer)?;
+                let expected:Value=serde_json::from_str($literal).map_err(serde::de::Error::custom)?;
+                if value==expected { Ok(Self) } else { Err(serde::de::Error::custom("response literal mismatch")) }
+            }
+        }
+        impl Serialize for $name {
+            fn serialize<S:serde::Serializer>(&self,serializer:S)->Result<S::Ok,S::Error> {
+                let expected:Value=serde_json::from_str($literal).map_err(serde::ser::Error::custom)?;
+                expected.serialize(serializer)
+            }
+        }
+    };
+}
+"#;
+
 pub(super) fn emit(model: &Model) -> Result<String> {
     let recursive = super::recursive_names(model)?;
     let mut source = if recursive.is_empty() {
@@ -99,6 +124,13 @@ pub(super) fn emit(model: &Model) -> Result<String> {
         support.push_str(RECURSIVE_SUPPORT);
         support
     };
+    if model
+        .definitions
+        .iter()
+        .any(|definition| matches!(definition.shape, Shape::Literal(_)))
+    {
+        source.push_str(LITERAL_SUPPORT);
+    }
     let shapes = model
         .definitions
         .iter()
@@ -151,13 +183,7 @@ pub(super) fn emit(model: &Model) -> Result<String> {
             }
             Shape::Literal(value) => {
                 let literal = value.to_string();
-                writeln!(
-                    source,
-                    "#[derive(Clone, Debug, PartialEq)]\npub struct {name};"
-                )
-                .unwrap();
-                writeln!(source,"impl<'de> Deserialize<'de> for {name} {{\n    fn deserialize<D:serde::Deserializer<'de>>(deserializer:D)->Result<Self,D::Error> {{\n        let value=Value::deserialize(deserializer)?;\n        let expected:Value=serde_json::from_str({literal:?}).map_err(serde::de::Error::custom)?;\n        if value==expected {{ Ok(Self) }} else {{ Err(serde::de::Error::custom(\"response literal mismatch\")) }}\n    }}\n}}").unwrap();
-                writeln!(source,"impl Serialize for {name} {{\n    fn serialize<S:serde::Serializer>(&self,serializer:S)->Result<S::Ok,S::Error> {{\n        let expected:Value=serde_json::from_str({literal:?}).map_err(serde::ser::Error::custom)?;\n        expected.serialize(serializer)\n    }}\n}}").unwrap();
+                writeln!(source, "response_literal!({name}, {literal:?});").unwrap();
             }
             Shape::Union(alternatives) => {
                 let derives = if recursive.contains(name) {
@@ -210,7 +236,9 @@ pub(super) fn emit(model: &Model) -> Result<String> {
                         used.insert(fallback.clone());
                         fallback
                     };
-                    writeln!(source, "    #[serde(rename = {original:?})]").unwrap();
+                    if identifier != *original {
+                        writeln!(source, "    #[serde(rename = {original:?})]").unwrap();
+                    }
                     let inner = if recursive.contains(name) && recursive.contains(&field.ty) {
                         format!("Box<{}>", field.ty)
                     } else {

@@ -722,6 +722,47 @@ mod tests {
     }
 
     #[test]
+    fn rust_client_fits_the_actual_serialized_discovery_payload() {
+        use super::super::super::VNextPolicy;
+        for policy in [
+            VNextPolicy::default(),
+            VNextPolicy {
+                candidate_prepare: true,
+                ..VNextPolicy::default()
+            },
+            VNextPolicy {
+                candidate_prepare: true,
+                diagnostics: true,
+                ..VNextPolicy::default()
+            },
+            VNextPolicy {
+                candidate_prepare: true,
+                diagnostics: true,
+                build_enabled: true,
+                ..VNextPolicy::default()
+            },
+        ] {
+            let methods = super::super::super::methods(&policy, false);
+            let method = methods
+                .iter()
+                .find(|method| method.name == "protocol/client")
+                .unwrap();
+            let params = serde_json::Map::from_iter([("language".to_owned(), json!("rust"))]);
+            // Exercise the production payload builder and its unchanged cap:
+            // the JSON source string escapes quotes/newlines and is larger
+            // than the generated source's own byte count.
+            let report = super::super::payload(method, &params, &methods, &policy, false).unwrap();
+            assert!(
+                serde_json::to_vec(&report).unwrap().len() <= super::super::MAX_DISCOVERY_BYTES
+            );
+            let source = report["source"].as_str().unwrap();
+            assert!(source.contains("response_literal!"));
+            assert_eq!(source.matches("macro_rules! response_literal").count(), 1);
+            assert!(source.contains("response literal mismatch"));
+        }
+    }
+
+    #[test]
     fn selected_recursive_definitions_normalize_without_erasing_assertions() {
         let root = json!({"$id":"urn:recursive","$ref":"#/$defs/expression","$defs":{
             "expression":{"oneOf":[

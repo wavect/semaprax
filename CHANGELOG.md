@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Reduced generated Rust client source duplication by sharing literal serde
+  implementations through macros and omitting redundant field-rename attributes.
+  Public types, literal checks and recursive conversion budgets remain unchanged.
+  Added a regression against the serialized discovery payload size, including
+  JSON escaping, without raising its existing cap. Authored, unrun locally;
+  coordinated CI owns executable verification.
+
 - Extended ordered signature intentions to retain and reorder admitted String
   and resource-free owned record/variant parameters using checked ownership and
   TypeFacts. Bare String parameters count as owners and cannot be omitted;

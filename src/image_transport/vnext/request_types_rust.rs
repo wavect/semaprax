@@ -30,8 +30,35 @@ impl<T:Serialize> Serialize for RequestPresence<T> {
 }
 "#;
 
+const LITERAL_SUPPORT: &str = r#"
+macro_rules! request_literal {
+    ($name:ident, $ty:ty, $expected:expr) => {
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub struct $name;
+        impl<'de> Deserialize<'de> for $name {
+            fn deserialize<D:serde::Deserializer<'de>>(deserializer:D)->Result<Self,D::Error> {
+                let value=<$ty>::deserialize(deserializer)?;
+                if value==$expected { Ok(Self) } else { Err(serde::de::Error::custom("request literal mismatch")) }
+            }
+        }
+        impl Serialize for $name {
+            fn serialize<S:serde::Serializer>(&self,serializer:S)->Result<S::Ok,S::Error> {
+                Serialize::serialize(&$expected,serializer)
+            }
+        }
+    };
+}
+"#;
+
 pub(super) fn emit(model: &Model) -> Result<String> {
     let mut source = SUPPORT.to_owned();
+    if model
+        .definitions
+        .iter()
+        .any(|definition| matches!(definition.shape, Shape::Literal(_)))
+    {
+        source.push_str(LITERAL_SUPPORT);
+    }
     for definition in &model.definitions {
         let name = &definition.name;
         match &definition.shape {
@@ -93,7 +120,9 @@ pub(super) fn emit(model: &Model) -> Result<String> {
                         used.insert(fallback.clone());
                         fallback
                     };
-                    writeln!(source, "    #[serde(rename = {original:?})]").unwrap();
+                    if identifier != *original {
+                        writeln!(source, "    #[serde(rename = {original:?})]").unwrap();
+                    }
                     let ty = if field.required {
                         format!("Box<{}>", field.ty)
                     } else {
@@ -144,15 +173,9 @@ fn literal(source: &mut String, name: &str, value: &serde_json::Value) -> Result
             ))
         }
     };
-    writeln!(
-        source,
-        "#[derive(Clone, Copy, Debug, PartialEq, Eq)]\npub struct {name};"
-    )
-    .unwrap();
-    writeln!(source,"impl<'de> Deserialize<'de> for {name} {{\n    fn deserialize<D:serde::Deserializer<'de>>(deserializer:D)->Result<Self,D::Error> {{\n        let value=<{ty}>::deserialize(deserializer)?;\n        if value=={expected} {{ Ok(Self) }} else {{ Err(serde::de::Error::custom(\"request literal mismatch\")) }}\n    }}\n}}").unwrap();
     // String's expected expression is a &str, which serializes identically
     // without an allocation. Other literal expressions have explicit widths.
-    writeln!(source,"impl Serialize for {name} {{\n    fn serialize<S:serde::Serializer>(&self,serializer:S)->Result<S::Ok,S::Error> {{\n        Serialize::serialize(&{expected},serializer)\n    }}\n}}").unwrap();
+    writeln!(source, "request_literal!({name}, {ty}, {expected});").unwrap();
     Ok(())
 }
 

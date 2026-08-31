@@ -24,6 +24,8 @@ pub(super) fn supports(operation: Operation) -> bool {
                 | Action::CandidateAnalysisCoverage
                 | Action::CandidateDependencySummary
                 | Action::CandidateDependencyPage
+                | Action::CandidateImpactSummary
+                | Action::CandidateImpactPage
                 | Action::HoleSummary
                 | Action::HolePage
                 | Action::HoleFillSuggestions
@@ -100,6 +102,9 @@ pub(super) fn prepare(
         Operation::VNext(
             action @ (Action::CandidateDependencySummary | Action::CandidateDependencyPage),
         ) => candidate_dependency_navigation::for_candidate(action, params, candidate()?),
+        Operation::VNext(
+            action @ (Action::CandidateImpactSummary | Action::CandidateImpactPage),
+        ) => candidate_impact_navigation::for_candidate(action, params, candidate()?),
         Operation::VNext(Action::HoleFillSuggestions) => {
             hole_suggestions::for_draft(params, draft()?)
         }

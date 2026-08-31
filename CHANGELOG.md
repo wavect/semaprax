@@ -27,6 +27,13 @@
   COFF/archive path; Unix packages remain O2 and no timeout, retry, or test
   boundary changes.
 
+- Added candidate-bound compact semantic-impact summaries and paged
+  `affected`, `dependency_edges` and `frontier` navigation over the exact final
+  candidate artifact. Handles bind candidate, target, query, artifact and view;
+  pages preserve compiler order and existing truncation without adding impact
+  facts, completeness, runtime, compatibility, retention or publication
+  claims. Library and transport evidence is authored and unrun.
+
 - Partitioned the current Rust toolchain's Linux, macOS, and Windows workspace
   target inventory into parallel lib/bin and three integration-test shards,
   while retaining separate blocking quality, documentation, release, example,

@@ -229,6 +229,12 @@ retains that exact Impact binding and separately binds
 to Patch v3, targets, repositories, or multi-file analysis. Impact is not a
 proof carrier, verifier, authorization token, or apply/commit authority.
 
+Project candidates use a distinct retained multi-source impact artifact. Its
+additive [candidate impact navigation](PROJECT-CANDIDATE-IMPACT-NAVIGATION-V1.md)
+exposes compact metadata and exact pages over that artifact's existing arrays.
+It does not change this single-file Semantic Patch Impact v1 schema, bytes,
+traversal or evidence claims.
+
 ## Evidence
 
 The canonical rename-report SHA-256 KAT is

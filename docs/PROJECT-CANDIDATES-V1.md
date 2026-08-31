@@ -217,6 +217,10 @@ file, structural before/after impact, target facts, and required execution gates
 The semantic-delta digest binds operation summaries and graph digests, not a
 complete behavioral proof. Impact currently uses the existing six cross-file
 edge families. Full local call migration is broader than that impact report.
+The additive [compact impact navigation](PROJECT-CANDIDATE-IMPACT-NAVIGATION-V1.md)
+recomputes that final candidate artifact and pages only its existing affected,
+dependency-edge and frontier arrays. It does not add impact families or turn a
+bounded/truncated artifact into complete impact.
 `compare(other)` requires a common base and reports target overlap and source
 revision equality. It is descriptive and cannot authorize semantic merge.
 

@@ -29,6 +29,7 @@ mod draft_suggestions;
 mod expression;
 mod extraction;
 mod git_publication;
+mod impact_navigation;
 mod intent;
 mod interface;
 mod interface_delta;
@@ -90,6 +91,11 @@ pub use delta::{
     PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_SCHEMA, PROJECT_CANDIDATE_SEMANTIC_DELTA_SCHEMA,
 };
 
+pub use impact_navigation::{
+    CandidateImpactPageOptions, CandidateImpactView, MAX_PROJECT_CANDIDATE_IMPACT_PAGE_BYTES,
+    MAX_PROJECT_CANDIDATE_IMPACT_SUMMARY_BYTES, PROJECT_CANDIDATE_IMPACT_ITEM_SCHEMA,
+    PROJECT_CANDIDATE_IMPACT_PAGE_SCHEMA, PROJECT_CANDIDATE_IMPACT_SUMMARY_SCHEMA,
+};
 pub use interface_delta::{
     MAX_PROJECT_CANDIDATE_INTERFACE_DELTA_BYTES, PROJECT_CANDIDATE_INTERFACE_DELTA_SCHEMA,
     PROJECT_CANDIDATE_INTERFACE_DELTA_VERIFICATION_SCHEMA,

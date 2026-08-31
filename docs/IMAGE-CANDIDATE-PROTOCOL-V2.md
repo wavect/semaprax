@@ -94,6 +94,13 @@ binds every chunk selection; clients cannot select an arbitrary file. Impact
 uses the existing context byte/node/depth bounds and adds the selected candidate
 handle without changing the nested Project impact schema.
 
+Additive v5 `candidate/impact-summary` and `candidate/impact-page` methods
+provide compact, candidate/query-bound navigation over the exact final
+candidate impact artifact. [Project Candidate Impact Navigation
+v1](PROJECT-CANDIDATE-IMPACT-NAVIGATION-V1.md) owns their bounds, opaque
+references and strict nonclaims. They do not change the v2 `candidate/impact`
+request or payload bytes.
+
 `hole/open` without a draft begins from the specified candidate; with a draft,
 that draft must belong to the same original candidate. Hole IDs are bounded to
 128 ASCII identifier bytes; nested hole context and constructor limits belong to

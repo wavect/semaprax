@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 mod analysis_coverage;
 mod candidate_dependency_navigation;
+mod candidate_impact_navigation;
 mod cleanup_dependencies;
 mod commit;
 mod contract_holes;
@@ -112,6 +113,8 @@ pub(super) enum Action {
     CandidateCleanupDependencies,
     CandidateDependencySummary,
     CandidateDependencyPage,
+    CandidateImpactSummary,
+    CandidateImpactPage,
     DependencySummary,
     DependencyPage,
     FunctionInstances,
@@ -507,6 +510,12 @@ impl VNextSession {
                     candidate_dependency_navigation::prepare(action, params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(
+                    action @ (Action::CandidateImpactSummary | Action::CandidateImpactPage),
+                ) => (
+                    candidate_impact_navigation::prepare(action, params, image, registry)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(action @ (Action::DependencySummary | Action::DependencyPage)) => {
                     (
                         dependencies::prepare_navigation(action, params, image)?,
@@ -751,6 +760,7 @@ fn session_methods(
         methods.push(hole_suggestions::method());
         methods.push(cleanup_dependencies::candidate_method());
         methods.extend(candidate_dependency_navigation::methods());
+        methods.extend(candidate_impact_navigation::methods());
         methods.extend(draft_recovery::methods());
         methods.extend(draft_archive::methods());
         methods.push(draft_rebase::method());

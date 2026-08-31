@@ -91,6 +91,15 @@ additional candidate or derived-image registry entry, and are eligible for
 detached authenticated read batches. See
 [Candidate Dependency Navigation](PROJECT-CANDIDATE-DEPENDENCY-NAVIGATION-V1.md).
 
+Candidate preparation also selects `candidate/impact-summary` and
+`candidate/impact-page`. These methods recompute the existing bounded reverse
+impact artifact for the exact candidate and expose its affected, dependency-edge
+and frontier inventories through artifact/query-bound handles. Page items use a
+self-identifying unbundled envelope whose `value` is the unchanged compiler row.
+Truncation and budget evidence remain visible; pagination adds no omitted facts,
+authority, execution or completeness. See
+[Candidate Impact Navigation](PROJECT-CANDIDATE-IMPACT-NAVIGATION-V1.md).
+
 Startup-only archive handoff can preload complete historical candidates from
 independently replayed source-backed archives. It retains the current image and
 fixed policy, requires the same canonical manifest, and grants no approvals or

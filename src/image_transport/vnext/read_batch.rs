@@ -362,6 +362,8 @@ mod tests {
             Action::CandidateAnalysisCoverage,
             Action::CandidateDependencySummary,
             Action::CandidateDependencyPage,
+            Action::CandidateImpactSummary,
+            Action::CandidateImpactPage,
             Action::DraftRecoveryExport,
             Action::DraftArchiveExport,
             Action::InterfaceDelta,

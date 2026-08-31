@@ -95,7 +95,10 @@ API. An agent cannot request worker count or widen the supported read subset.
 Default method capabilities and ordinary response bytes remain unchanged. Transport
 scheduling across independent incoming streams, cancellation, and measured
 throughput improvements remain outstanding. Selected parallel candidate reads
-are authored in the separate retained-read extension.
+are authored in the separate retained-read extension. Candidate impact summary
+and page reads join that immutable detached subset: each worker recomputes the
+same candidate-bound artifact, mutates no registry, and returns bytes in request
+order. This scheduling does not make a truncated impact artifact complete.
 
 `tests/image_parallel_reads_v1.rs` authors sequential-byte equality across
 worker counts, request-order preservation, operation exclusion, invalid input,

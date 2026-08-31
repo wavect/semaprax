@@ -64,6 +64,15 @@ schema remains explicitly unbundled, and no selector grants retention,
 execution or publication. See
 [Candidate Dependency Navigation](PROJECT-CANDIDATE-DEPENDENCY-NAVIGATION-V1.md).
 
+Candidate preparation conditionally adds `candidate/impact-summary` and
+`candidate/impact-page` with closed 19-field and 27-field root schemas. Generated
+clients keep impact query limits distinct from page limits and recognize the
+self-identifying unbundled item envelope while leaving its compiler-owned
+`value` opaque. Handles bind candidate, target, artifact, query and view;
+cursors also bind page options. Discovery states that bounded or truncated
+impact is incomplete and grants no execution, retention or publication authority.
+See [Candidate Impact Navigation](PROJECT-CANDIDATE-IMPACT-NAVIGATION-V1.md).
+
 Host-selected draft recovery adds closed capsule and chunk-envelope schemas plus
 `hole/recovery-export` / `hole/recovery-restore` builders to v5 clients. Capsule
 shape validation does not replace nested candidate replay, source-base checks,

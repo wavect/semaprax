@@ -15,6 +15,7 @@ use super::{build, ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 mod archive;
 mod artifact_delta;
 mod catalog;
+mod cleanup_dependencies;
 mod contract_delta;
 mod declaration;
 mod delta;
@@ -45,6 +46,11 @@ pub use archive::{
 pub use artifact_delta::{
     MAX_PROJECT_CANDIDATE_ARTIFACT_DELTA_BYTES, PROJECT_CANDIDATE_ARTIFACT_DELTA_SCHEMA,
     PROJECT_CANDIDATE_ARTIFACT_DELTA_VERIFICATION_SCHEMA,
+};
+pub use cleanup_dependencies::{
+    MAX_PROJECT_CANDIDATE_CLEANUP_DEPENDENCIES_BYTES,
+    PROJECT_CANDIDATE_CLEANUP_DEPENDENCIES_SCHEMA,
+    PROJECT_CANDIDATE_CLEANUP_DEPENDENCIES_VERIFICATION_SCHEMA,
 };
 pub use contract_delta::{
     MAX_PROJECT_CANDIDATE_CONTRACT_DELTA_BYTES, PROJECT_CANDIDATE_CONTRACT_DELTA_SCHEMA,

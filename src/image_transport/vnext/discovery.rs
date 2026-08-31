@@ -54,6 +54,13 @@ pub(super) fn payload(
     if method.name == "protocol/instructions" {
         let mut instructions = result["instructions"].as_str().unwrap_or("").to_owned();
         instructions.push_str(" Use image/dependencies with the current image_revision and a stable declaration target to inspect bounded compiler-derived reverse dependency facts. It is read-only and grants no candidate or execution authority. Read UTF8 chunks from offset zero using next_offset; chunk_bytes is 1024 through 65536 (default 16384), and the complete report is bounded to 8 MiB. The heterogeneous dependency report remains explicitly unbundled; its closed chunk envelope does not prove transitive runtime effects.");
+        instructions.push_str(" Use image/cleanup-dependencies with the current image_revision and a stable declaration target to inspect compiler-derived relationships to ordered cleanup facts. Read UTF-8 chunks from offset zero using next_offset; chunk_bytes is 1024 through 65536 (default 16384), and the report is bounded to 8 MiB. The heterogeneous report is explicitly unbundled. This immutable read grants no candidate, execution, physical cleanup or source authority and does not prove runtime liveness or destruction order.");
+        if methods
+            .iter()
+            .any(|method| method.name == "candidate/cleanup-dependencies")
+        {
+            instructions.push_str(" With candidate_prepare, use candidate/cleanup-dependencies with candidate_revision and target for before/after cleanup dependency facts against the original source base. Keep image_revision, candidate_revision and target fixed while reassembling offset/next_offset chunks; chunk_bytes is 1024 through 65536 (default 16384), report bound 8 MiB. The heterogeneous report remains explicitly unbundled. This read is excluded from immutable image batches and grants no execution or publication authority.");
+        }
         instructions.push_str(" For compact navigation, first call image/dependency-summary, then pass the selected sites, callers, calls or members facet handle to image/dependency-page. Keep image_revision, target, view, page_size and max_bytes fixed while following next_cursor; omit cursor on the first page. Page size is 1 through 128 (default 32), and max_bytes is 1024 through 1048576 (default 65536). Handles and cursors are bound compiler references, not authority; do not synthesize or reuse them with another target or image. Page wrappers are closed, but heterogeneous item facts remain explicitly unbundled.");
         if methods
             .iter()
@@ -157,6 +164,7 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         "candidate/interface-delta"
         | "candidate/contract-delta"
         | "candidate/ownership-delta"
+        | "candidate/cleanup-dependencies"
         | "candidate/contract-expression-catalog"
         | "hole/open-contract-expression"
         | "hole/recovery-export"
@@ -235,6 +243,10 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
             "candidate/query" => Some("semaprax.project-candidate.v1"),
             "candidate/recovery-export" => Some("semaprax.project-candidate-recovery.v1"),
             "image/dependencies" => Some(crate::project::IMAGE_DECLARATION_DEPENDENCIES_SCHEMA),
+            "image/cleanup-dependencies" => Some(crate::project::IMAGE_CLEANUP_DEPENDENCIES_SCHEMA),
+            "candidate/cleanup-dependencies" => {
+                Some(crate::project::PROJECT_CANDIDATE_CLEANUP_DEPENDENCIES_SCHEMA)
+            }
             "hole/recovery-export" => Some(crate::project::PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA),
             "attempt/query" => Some("semaprax.project-candidate-attempt.v1"),
             "candidate/semantic-delta" => Some("semaprax.project-candidate-semantic-delta.v1"),
@@ -428,6 +440,128 @@ mod tests {
             .as_array()
             .unwrap()
             .contains(&json!("urn:semaprax.image-declaration-dependencies.v1")));
+    }
+    #[test]
+    fn cleanup_dependencies_are_v5_read_only_with_closed_chunks_and_generated_clients() {
+        let bundle = selected(VNextPolicy::default());
+        let method = bundle["methods"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|method| method["method"] == "image/cleanup-dependencies")
+            .unwrap();
+        assert_eq!(method["capability"], "semantic_read");
+        assert_eq!(method["query"], true);
+        let params = &method["request_schema"]["properties"]["params"];
+        assert_eq!(params["additionalProperties"], false);
+        assert_eq!(params["properties"].as_object().unwrap().len(), 4);
+        assert_eq!(params["properties"]["offset"]["maximum"], 8 * 1024 * 1024);
+        assert_eq!(params["properties"]["chunk_bytes"]["minimum"], 1024);
+        assert_eq!(params["properties"]["chunk_bytes"]["maximum"], 65536);
+        assert_eq!(params["required"], json!(["image_revision", "target"]));
+        let chunk = bundle["documents"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|document| document["$id"] == "urn:semaprax.image-cleanup-dependencies-chunk.v1")
+            .unwrap();
+        assert_eq!(chunk["additionalProperties"], false);
+        assert_eq!(chunk["properties"]["source_authority"]["const"], false);
+        assert_eq!(
+            chunk["properties"]["report_schema"]["const"],
+            crate::project::IMAGE_CLEANUP_DEPENDENCIES_SCHEMA
+        );
+        assert!(chunk["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("image_revision")));
+        assert!(chunk["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("target")));
+        assert!(bundle["unbundled_payload_schemas"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("urn:semaprax.image-cleanup-dependencies.v1")));
+        for language in ["typescript", "python", "rust"] {
+            let source = clients::generate(language, &bundle).unwrap();
+            assert!(source.contains("image/cleanup-dependencies"));
+            assert!(source.contains("semaprax.image-cleanup-dependencies-chunk.v1"));
+        }
+        for test_enabled in [false, true] {
+            assert!(
+                !crate::image_transport::candidates::diagnostics::methods(test_enabled)
+                    .iter()
+                    .any(|method| method.name == "image/cleanup-dependencies")
+            );
+        }
+    }
+    #[test]
+    fn candidate_cleanup_dependencies_require_candidate_grant_and_exact_target_binding() {
+        let readonly = selected(VNextPolicy::default());
+        assert!(!readonly["methods"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|method| method["method"] == "candidate/cleanup-dependencies"));
+        let bundle = selected(VNextPolicy {
+            candidate_prepare: true,
+            ..VNextPolicy::default()
+        });
+        let method = bundle["methods"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|method| method["method"] == "candidate/cleanup-dependencies")
+            .unwrap();
+        assert_eq!(method["capability"], "candidate_prepare");
+        assert_eq!(method["query"], true);
+        let params = &method["request_schema"]["properties"]["params"];
+        assert_eq!(params["additionalProperties"], false);
+        assert_eq!(params["properties"].as_object().unwrap().len(), 5);
+        assert_eq!(
+            params["required"],
+            json!(["image_revision", "candidate_revision", "target"])
+        );
+        assert_eq!(params["properties"]["offset"]["maximum"], 8 * 1024 * 1024);
+        let chunk = bundle["documents"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|document| {
+                document["$id"] == "urn:semaprax.image-candidate-cleanup-dependencies-chunk.v1"
+            })
+            .unwrap();
+        assert_eq!(chunk["additionalProperties"], false);
+        assert_eq!(chunk["properties"]["source_authority"]["const"], false);
+        assert_eq!(
+            chunk["properties"]["report_schema"]["const"],
+            crate::project::PROJECT_CANDIDATE_CLEANUP_DEPENDENCIES_SCHEMA
+        );
+        for field in ["image_revision", "candidate_revision", "target"] {
+            assert!(chunk["required"]
+                .as_array()
+                .unwrap()
+                .contains(&json!(field)));
+        }
+        assert!(bundle["unbundled_payload_schemas"]
+            .as_array()
+            .unwrap()
+            .contains(&json!(
+                "urn:semaprax.project-candidate-cleanup-dependencies.v1"
+            )));
+        for language in ["typescript", "python", "rust"] {
+            let source = clients::generate(language, &bundle).unwrap();
+            assert!(source.contains("candidate/cleanup-dependencies"));
+            assert!(source.contains("semaprax.image-candidate-cleanup-dependencies-chunk.v1"));
+        }
+        for test_enabled in [false, true] {
+            assert!(
+                !crate::image_transport::candidates::diagnostics::methods(test_enabled)
+                    .iter()
+                    .any(|method| method.name == "candidate/cleanup-dependencies")
+            );
+        }
     }
     #[test]
     fn draft_recovery_is_v5_candidate_only_with_closed_replay_schema() {

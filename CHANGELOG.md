@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added source-bound image and candidate cleanup dependency queries for types,
+  cases and fields, using retained inventory, cleanup and loan plan facts with
+  exact coordinates. V5 provides permission-separated report chunks; candidate
+  verification replays source history. Evidence is authored, unrun, with no
+  runtime, source-publication or completion claim.
+
 - Removed silent Node prerequisite skips and a swallowed resizable-buffer
   rejection assertion from owned-data npm evidence. Shared v8/v9/v10 fixtures
   now require real hostile buffer capabilities and exact adapter rejection,

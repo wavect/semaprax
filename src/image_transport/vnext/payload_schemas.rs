@@ -239,6 +239,39 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
             ("source_authority", json!({"const":false})),
         ],
     );
+    put(
+        "semaprax.image-cleanup-dependencies-chunk.v1",
+        vec![
+            (
+                "report_schema",
+                json!({"const":crate::project::IMAGE_CLEANUP_DEPENDENCIES_SCHEMA}),
+            ),
+            ("image_revision", digest()),
+            ("target", text()),
+            ("offset", uint()),
+            ("total_bytes", uint()),
+            ("chunk", text()),
+            ("next_offset", nullable(uint())),
+            ("source_authority", json!({"const":false})),
+        ],
+    );
+    put(
+        "semaprax.image-candidate-cleanup-dependencies-chunk.v1",
+        vec![
+            (
+                "report_schema",
+                json!({"const":crate::project::PROJECT_CANDIDATE_CLEANUP_DEPENDENCIES_SCHEMA}),
+            ),
+            ("image_revision", digest()),
+            ("candidate_revision", digest()),
+            ("target", text()),
+            ("offset", uint()),
+            ("total_bytes", uint()),
+            ("chunk", text()),
+            ("next_offset", nullable(uint())),
+            ("source_authority", json!({"const":false})),
+        ],
+    );
     let dependency_source = object(vec![
         ("path", text()),
         ("module", text()),

@@ -16,9 +16,14 @@ pub const IMAGE_DECLARATION_DEPENDENCIES_SCHEMA: &str =
     "semaprax.image-declaration-dependencies.v1";
 pub const MAX_IMAGE_DECLARATION_DEPENDENCIES_BYTES: usize = 8 * 1024 * 1024;
 mod navigation;
+mod obligations;
 pub use navigation::{
     ImageDependencyPageOptions, ImageDependencyView, IMAGE_DEPENDENCY_PAGE_SCHEMA,
     IMAGE_DEPENDENCY_SUMMARY_SCHEMA,
+};
+pub use obligations::{
+    IMAGE_CLEANUP_DEPENDENCIES_SCHEMA, IMAGE_CLEANUP_DEPENDENCIES_VERIFICATION_SCHEMA,
+    MAX_IMAGE_CLEANUP_DEPENDENCIES_BYTES,
 };
 const MAX_ITEMS: usize = 65_536;
 const MAX_VISITS: usize = 1_048_576;
@@ -37,6 +42,7 @@ struct DependencySelection {
 
 #[derive(Default)]
 pub(super) struct DependencyIndex {
+    cleanup: OnceLock<Result<obligations::CleanupDependencyIndex>>,
     typed: BTreeMap<String, Value>,
     members: BTreeMap<String, Vec<String>>,
     rows: Vec<Value>,

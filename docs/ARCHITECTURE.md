@@ -588,6 +588,16 @@ IDs and row ordinals; only requested page rows are projected. It adds no HIR
 walker, mutable cursor registry or source authority. See
 [Dependency Navigation](SEMANTIC-IMAGE-DEPENDENCY-NAVIGATION-V1.md).
 
+Its `image_dependencies/obligations.rs` child lazily indexes retained cleanup
+and loan proof facts by their actual type/case/field identities. Storage shapes
+and exact projection paths select original plan coordinates without another
+expression-reference scan or changes to plan vectors. The cache stays outside
+Image v1 serialization; image verification recomputes it from retained checked
+HIR. `candidate/cleanup_dependencies.rs` reuses the collector for target-specific
+before/after review, with complete source-history replay on verification. V5
+keeps the image query read-only and the candidate query behind its existing
+candidate grant. See [Cleanup Dependencies](SEMANTIC-IMAGE-CLEANUP-DEPENDENCIES-V1.md).
+
 The additive [candidate-only protocol](IMAGE-CANDIDATE-PROTOCOL-V2.md) selects
 ephemeral candidate/draft registry authority at host startup; it cannot grant
 source writes, runtime tests or builds. Responses are bounded and held source

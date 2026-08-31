@@ -60,6 +60,11 @@ boundary still apply. The stdio transport remains sequential.
 summaries and revision-bound detail pages over this same index. The full report
 and chunk query remain available with unchanged payloads.
 
+[Cleanup Dependencies](SEMANTIC-IMAGE-CLEANUP-DEPENDENCIES-V1.md) adds a lazy
+child over existing checked inventory/cleanup/loan plans for reverse member
+obligation queries. It preserves this report's payload and uses no second
+source-expression reference collector.
+
 Authored evidence lives in `tests/image_declaration_dependencies_v1.rs` and
 `tests/image_declaration_dependencies_transport_v5.rs`. General package and
 artifact consumers, runtime obligations, and measured index benefits remain

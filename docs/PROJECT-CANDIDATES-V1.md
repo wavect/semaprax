@@ -221,6 +221,13 @@ The additive [compact impact navigation](PROJECT-CANDIDATE-IMPACT-NAVIGATION-V1.
 recomputes that final candidate artifact and pages only its existing affected,
 dependency-edge and frontier arrays. It does not add impact families or turn a
 bounded/truncated artifact into complete impact.
+
+Explicit [Candidate Package Consumer Replay
+v1](PROJECT-CANDIDATE-PACKAGE-CONSUMER-REPLAY-V1.md) can independently replay
+one caller-supplied package corpus whose provider report and source exactly
+match a selected final-candidate source. Its coordinate-qualified imports and
+static call sites do not establish installed-consumer discovery, compatibility,
+execution or whole-Project package association.
 `compare(other)` requires a common base and reports target overlap and source
 revision equality. It is descriptive and cannot authorize semantic merge.
 

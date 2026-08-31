@@ -36,6 +36,7 @@ mod interface_delta;
 mod merge_preview;
 mod movement;
 mod ownership_delta;
+mod package_consumer_replay;
 mod publication;
 mod rebase;
 mod record_field;
@@ -73,6 +74,10 @@ pub use dependency_navigation::{
 pub use ownership_delta::{
     MAX_PROJECT_CANDIDATE_OWNERSHIP_DELTA_BYTES, PROJECT_CANDIDATE_OWNERSHIP_DELTA_SCHEMA,
     PROJECT_CANDIDATE_OWNERSHIP_DELTA_VERIFICATION_SCHEMA,
+};
+pub use package_consumer_replay::{
+    CandidatePackageConsumerReplayInput, MAX_PROJECT_CANDIDATE_PACKAGE_CONSUMER_REPLAY_BYTES,
+    PROJECT_CANDIDATE_PACKAGE_CONSUMER_REPLAY_SCHEMA,
 };
 
 pub use testing::{

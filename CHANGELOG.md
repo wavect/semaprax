@@ -27,6 +27,13 @@
   COFF/archive path; Unix packages remain O2 and no timeout, retry, or test
   boundary changes.
 
+- Added library-only candidate package-consumer replay from an explicit,
+  independently verified candidate-era provider report, source and package
+  capsule. Exact source identity binds known coordinate-qualified imports and
+  static call sites while retaining import-only consumers and strict
+  nonclaims for installed discovery, completeness, compatibility, execution,
+  retention and authority. Evidence is authored and unrun.
+
 - Added candidate-bound compact semantic-impact summaries and paged
   `affected`, `dependency_edges` and `frontier` navigation over the exact final
   candidate artifact. Handles bind candidate, target, query, artifact and view;

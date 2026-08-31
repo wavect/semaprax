@@ -68,6 +68,13 @@ describe the same host-attached subject. Parallel reads share its immutable
 derived facts, without package acquisition, mutable registries or execution
 authority. No public package query can attach a graph or widen host policy.
 
+The separate [Candidate Package Consumer Replay
+v1](PROJECT-CANDIDATE-PACKAGE-CONSUMER-REPLAY-V1.md) derives a fresh graph from
+an explicit candidate-era provider report, source and capsule, then requires
+that provider source to equal one exact final-candidate source. This adds a
+bounded source projection for known consumers; it does not change this graph's
+independent `project_association: "none"` contract or infer installed consumers.
+
 ## Scope and preservation
 
 The existing capsule profile remains two through four selected packages,

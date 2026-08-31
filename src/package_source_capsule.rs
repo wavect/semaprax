@@ -105,6 +105,13 @@ pub(crate) fn verify_for_semantic_graph(
     )
 }
 
+/// Recompute the exact implementation-source digest retained by the verified
+/// package semantic graph. This is crate-private so candidate evidence can
+/// compare identities without reimplementing the capsule's digest domain.
+pub(crate) fn semantic_graph_source_digest(source: &str) -> String {
+    wire::source_digest(source)
+}
+
 fn verify_linked(
     capsule: &str,
     sources: &[PackageSource],

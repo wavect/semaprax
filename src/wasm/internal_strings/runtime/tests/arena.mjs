@@ -16,6 +16,14 @@ const EXPECTED_BYTES=4;
   assert.throws(()=>snapshotModule(new Uint8Array(new SharedArrayBuffer(4))),TypeError);
   const detached=new Uint8Array(4);structuredClone(detached.buffer,{transfer:[detached.buffer]});
   assert.throws(()=>snapshotModule(detached),TypeError);
+  // Required Node 24 capability, not a conditional test or a disguised buffer.
+  const resizable=new ArrayBuffer(4,{maxByteLength:8});
+  assert.equal(resizable.resizable,true);
+  const tracking=new Uint8Array(resizable),fixed=new Uint8Array(resizable,0,4);
+  resizable.resize(8);assert.equal(tracking.byteLength,8);assert.equal(fixed.byteLength,4);
+  resizable.resize(4);
+  assert.throws(()=>snapshotModule(tracking),TypeError);
+  assert.throws(()=>snapshotModule(fixed),TypeError);
 }
 let DESCRIPTOR,tokenPayloadAllocations=0;
 function fixture(overrides={},factory=createArena){
@@ -42,6 +50,38 @@ capacity({max_cumulative_bytes:0},"cumulative_bytes");
   assert.equal(tokenPayloadAllocations,1);
   f.arena.begin();assert.equal(literal(f,[]),0n);assert.equal(f.arena.settle(11),"tokens");
   assert.equal(tokenPayloadAllocations,1);assert.equal(f.poisoned(),false);
+}
+// Each one-byte attempt exceeds every limit at and after its expected cause.
+// The final empty owner exhausts tokens without spending any byte quota. Only
+// the first row retains that owner, independently selecting the owner tie.
+for(const [expected,value,live,cumulative,keepOwner] of [
+  ['owners',0,0,0,true],
+  ['value_bytes',0,0,0,false],
+  ['live_bytes',1,0,0,false],
+  ['cumulative_bytes',1,1,0,false],
+  ['tokens',1,1,1,false],
+]){
+  const before=tokenPayloadAllocations;
+  const f=fixture({max_live_owners:1,max_string_bytes:value,max_live_bytes:live,max_cumulative_bytes:cumulative},tokenArena);
+  const last=literal(f,[]);
+  assert.equal(last>>32n,0x7fffffffn);assert.equal(last&0xffffffffn,0n);
+  assert.equal(tokenPayloadAllocations,before+1);
+  if(!keepOwner)f.i.drop(last);
+  assert.equal(literal(f,[120]),0n);
+  assert.equal(tokenPayloadAllocations,before+1,'quota refusal allocated payload');
+  if(keepOwner)f.i.drop(last);
+  assert.equal(f.arena.settle(11),expected);assert.equal(f.poisoned(),false);
+}
+{
+  const f=fixture({max_string_bytes:0});
+  assert.equal(literal(f,[120]),0n);assert.equal(f.poisoned(),false);
+  // A second mint before settlement violates the compiler's immediate refusal
+  // branch. It must poison, not overwrite the selected cause or return zero.
+  assert.throws(()=>f.i.from_char(0),/poison/);assert.equal(f.poisoned(),true);
+  assert.throws(()=>f.arena.settle(11),/poison/);
+  assert.throws(()=>f.arena.begin(),/poison/);
+  assert.throws(()=>literal(f,[]),/poison/);
+  assert.equal(f.poisoned(),true);
 }
 {
   const f=fixture({max_live_owners:1,max_string_bytes:0,max_live_bytes:0,max_cumulative_bytes:0});

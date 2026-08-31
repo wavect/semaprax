@@ -906,8 +906,15 @@ impl Parser {
     }
 
     fn prefix(&mut self, allow_record_literals: bool) -> Result<Expr, Diagnostic> {
+        let expression = self.prefix_atom(allow_record_literals)?;
+        self.postfix(expression, allow_record_literals)
+    }
+
+    // Parsing a nested atom must not retain the inactive record/call postfix
+    // temporaries on every recursive parser frame.
+    fn prefix_atom(&mut self, allow_record_literals: bool) -> Result<Expr, Diagnostic> {
         let token = self.bump().clone();
-        let mut expression = match token.kind {
+        let expression = match token.kind {
             TokenKind::Int(value) => Expr {
                 kind: ExprKind::Int(value),
                 span: token.span,
@@ -993,7 +1000,14 @@ impl Parser {
                 );
             }
         };
+        Ok(expression)
+    }
 
+    fn postfix(
+        &mut self,
+        mut expression: Expr,
+        allow_record_literals: bool,
+    ) -> Result<Expr, Diagnostic> {
         loop {
             let type_arguments = if self.at(&TokenKind::Lt)
                 && matches!(&expression.kind, ExprKind::Var(_))

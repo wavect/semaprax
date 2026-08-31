@@ -1,6 +1,11 @@
 use super::*;
 use std::path::Path;
 
+#[path = "tests/nesting.rs"]
+mod nesting;
+#[path = "tests/work_bounds.rs"]
+mod work_bounds;
+
 const SOURCE: &str = r#"
 module test.standalone_strings;
 @id("s.keep")

@@ -295,6 +295,23 @@ Plan construction follows these rules:
 
 HIR validation must replay the complete plan against typed control flow and reject duplicate initialization, transfer from a non-live place, conflicting storage, missing cleanup coverage, non-atomic call commits, non-deterministic ordering, invalid field paths, missing or contradictory blocks/edges/regions/exits, and disagreement with ownership facts. Failure selection is write-once: dataflow begins with no selected status, `SelectFailure` chooses one canonical expression/lane source, cleanup cannot replace or clear it, `ReturnFailure` must return that exact dominating source, and a success/result-commit path must have none. Separate lanes distinguish an operation failure from a false contract result at the same expression. `CommitResult { source }` is a semantic exit action rather than an expression transition: it may occur only after postconditions and every non-result cleanup action, and no failure-reachable edge may execute it. `SPX-H006` remains the existing generic malformed-HIR trust-boundary diagnostic; cleanup-plan failures use it with a deterministic cleanup-specific reason and semantic IDs. A malformed plan is a compiler-input error even when source verification previously succeeded.
 
+### Replay work accounting
+
+Independent replay reserves its existing materialization-operation allowance
+before building path evidence. Block estimates include continuation pushes,
+statement and tail sequencing, and the identity clones and transfers required
+by owned, droppable bindings and results. The same replay ownership/type
+predicates determine those extra charges. The program-wide 8,000,000-unit cap
+and charge-before-materialization refusal remain unchanged; increasing a local
+estimate does not increase that cap or authorize different cleanup behavior.
+
+The focused `cleanup_plan::replay::tests::block_work` regressions compare the
+census with independently counted scalar/String block operations, exact and
+one-unit-short execution allowances, and real owned-resource transfers. These
+units count operations such as cloning an observation vector, not its bytes or
+the cost of copying its contents. They are not a peak-heap, CPU-time, or source
+parsing bound. No plan schema, transition order, or backend authority changes.
+
 ## Conformance trace
 
 Backend equivalence tests use the versioned [conformance trace v1](CONFORMANCE-TRACE-V1.md): a target-neutral event trace containing stable import/lifecycle IDs, semantic storage/place IDs, expression IDs for transitions, event kind (`initialize`, `transfer`, `call_commit`, `import_begin`, `import_end`, `select_failure`, `finalize_begin`, `finalize_end`, or `result_commit`), and normalized status. `select_failure` exposes the exact write-once source selected by every nested frame as well as the root. Callable imports may complete with a normalized failure; automatic-finalizer import completion is success-only in the type system. A trivial strategy emits both finalization events with success even though it performs no host call. Physical pointers, Wasm handles, status tokens, stack offsets, and host exception objects are excluded. Two backends conform only when they produce the same ordered semantic events and normalized final status for the same verified program and injected import outcomes.

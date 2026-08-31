@@ -11,11 +11,10 @@ use std::collections::{BTreeMap, BTreeSet};
 pub(super) const LITERAL_IMPORT: u32 = 0;
 pub(super) const CLONE_IMPORT: u32 = 1;
 pub(super) const EQ_IMPORT: u32 = 6;
-const DROP_IMPORT: u32 = 9;
 const IMPORT_COUNT: u32 = 10;
 const RESULT_OFFSET: u32 = 65_536;
 const MAX_MODULE_BYTES: usize = 16 * 1024 * 1024;
-const _: () = assert!(DROP_IMPORT == BYTE_DROP_IMPORT);
+const _: () = assert!(BYTE_DROP_IMPORT == 9);
 
 pub(in crate::wasm) fn emit(
     program: &ResolvedProgram,
@@ -53,8 +52,10 @@ pub(in crate::wasm) fn emit(
                 "standalone String profile cannot finalize resource cleanup slots",
             ));
         }
-        drop_work = drop_work
-            .checked_add(plan.owned_strings.bounded_emission_work()?)
+        drop_work = plan
+            .owned_strings
+            .bounded_emission_work()
+            .and_then(|work| drop_work.checked_add(work))
             .filter(|value| *value <= 262_144)
             .ok_or_else(|| error("standalone String cleanup emission exceeds its work bound"))?;
         frames.insert(function.id.clone(), plan.frame_size);

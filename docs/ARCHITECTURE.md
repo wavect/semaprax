@@ -178,6 +178,9 @@ contract](DOCTOR-PROBE-V1.md).
 ### Canonical source
 
 `src/lexer.rs`, `src/parser.rs`, and `src/ast.rs` parse human-readable source.
+The parser separates recursive prefix atoms from postfix construction so
+inactive postfix temporaries do not accumulate during nested atom parsing.
+Token order, contextual grammar, spans and diagnostics are unchanged.
 `src/format.rs` is the canonical source projection. Revision digests bind the
 canonical bytes, not incidental whitespace.
 
@@ -361,9 +364,14 @@ common status epilogue. The existing aggregate entry points explicitly leave
 that mode off. Generated modules pass structural validation before return.
 `internal_strings/runtime/` separates exact input/artifact admission, bounded
 UTF-8 arena ownership, and a scalar-only poisoned-on-uncertainty facade.
+The shared `aggregate/expressions.rs` keeps recursive scalar dispatch and block
+statement lowering separate from inactive aggregate-arm temporaries. The
+`aggregate.rs` expression wrapper still applies canonical post-transitions and
+String scope cleanup exactly once, after the selected handler returns.
 Capacity refusals run generated cleanup; unexpected traps do not promise
 settlement or permit reuse. See [Standalone Wasm Internal String Settlement
-v1](WASM-INTERNAL-STRINGS-V1.md). Evidence is authored and unrun; ordinary Wasm
+v1](WASM-INTERNAL-STRINGS-V1.md#local-validation-record) for selected local
+evidence and remaining gates; ordinary Wasm
 imports, Project v1-v10 and Target Evidence do not select this profile.
 
 `internal_strings/web.rs` and its small rendering/template modules expose that

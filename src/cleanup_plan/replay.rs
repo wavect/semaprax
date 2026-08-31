@@ -1095,17 +1095,37 @@ fn expression_skeleton_work_upper(
                 ResolvedExprKind::HostCommandCall(call) => call.args.len().saturating_mul(6) + 14,
                 ResolvedExprKind::ByteRange { .. } => 32,
                 ResolvedExprKind::Block { statements, .. } => {
-                    // While statements add two continuation pushes plus their
-                    // Boolean split beyond the ordinary statement budget.
-                    let while_count = statements
-                        .iter()
-                        .filter(|statement| matches!(statement, ResolvedStatement::While { .. }))
-                        .count();
-                    statements
-                        .len()
-                        .saturating_mul(4)
-                        .saturating_add(while_count.saturating_mul(6))
-                        .saturating_add(5)
+                    // Child censuses include their Eval push. Each statement
+                    // additionally needs its continuation and four sequencing
+                    // operations; root setup and tail sequencing need seven.
+                    let mut local = checked_skeleton_add(
+                        function,
+                        checked_skeleton_mul(function, statements.len(), 5)?,
+                        7,
+                    )?;
+                    for statement in statements {
+                        let extra = match statement {
+                            ResolvedStatement::While { .. } => 6,
+                            ResolvedStatement::Let { binding, .. }
+                            | ResolvedStatement::Assign { binding, .. }
+                                if binding.ownership == OwnershipMode::Own
+                                    && type_needs_drop(program, function, &binding.ty)? =>
+                            {
+                                // Two identity clones and four completed-transfer
+                                // operations, matching BlockValue below.
+                                6
+                            }
+                            _ => 0,
+                        };
+                        local = checked_skeleton_add(function, local, extra)?;
+                    }
+                    if expression.ownership == OwnershipMode::Own
+                        && type_needs_drop(program, function, &expression.ty)?
+                    {
+                        // BlockTail also authenticates an owned result transfer.
+                        local = checked_skeleton_add(function, local, 6)?;
+                    }
+                    local
                 }
                 ResolvedExprKind::ConstructVariant { fields, .. }
                 | ResolvedExprKind::ConstructRecord { fields, .. } => {

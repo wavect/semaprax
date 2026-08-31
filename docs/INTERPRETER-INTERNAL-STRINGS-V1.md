@@ -1,7 +1,9 @@
 # Internal String Interpreter v1
 
-Status: additive implementation and regression evidence authored but unrun;
-no production or cross-platform promotion.
+Status: additive implementation with bounded, partial local validation;
+the [local validation record](WASM-INTERNAL-STRINGS-V1.md#local-validation-record)
+owns the executed scope. Cross-platform, full-profile, and hosted gates remain;
+no production or support promotion.
 
 Audience: language users, compiler contributors, and conformance reviewers.
 
@@ -122,8 +124,10 @@ The report tests cover deterministic generation, source drift, exact output
 capacity, input bounds, canonical and re-signed hostile envelopes, profile
 cross-pair rejection, unchanged external String rejection, frozen
 effect/import/generic/unsafe rejection, and CLI behavior.
-These fixtures are authored but unrun; no hosted or sanitizer evidence is
-claimed for this profile.
+Executed selections and their limits are recorded in the
+[local validation record](WASM-INTERNAL-STRINGS-V1.md#local-validation-record).
+This is partial local evidence, not completion of the cross-platform,
+full-profile, or hosted gates, and does not imply interpreter sanitizer evidence.
 
 The focused gates are:
 
@@ -139,7 +143,8 @@ The new integration fixture is split between
 `support.rs`, and `probe.mjs` children. Its parity gate requires installed
 Clang and Node; neither is downloaded or silently skipped. Existing legacy
 and native String gates remain necessary preservation evidence. These
-commands document required checks, not checks executed for this batch.
+commands document required checks; the linked record, not this list, identifies
+which selections have executed.
 
 Fuel bounds evaluated work, not String byte growth or peak heap allocation.
 Source/output caps are not an execution-memory sandbox. Allocator failure,

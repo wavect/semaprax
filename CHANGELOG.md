@@ -246,6 +246,17 @@
   client tests pass locally, including actual Python and offline Rust consumers;
   full-profile and current-head hosted validation remain pending.
 
+- Corrected standalone String literal-pool admission and complete cleanup-work
+  accounting without raising limits or leaking legacy diagnostics. Independent
+  cleanup replay now reserves every charged block continuation and owned
+  transfer. Split recursive parser atoms and Wasm dispatch from inactive large
+  frames after reproducing default-stack overflows on valid nested source;
+  grammar, canonical cleanup order and tested artifact bytes are preserved.
+  Added exact-boundary, hostile carrier/quota and nested compilation regressions.
+  Focused local Linux units, parity/preservation and native sanitizer gates,
+  macOS nesting and strict Clippy pass; the versioned String evidence record
+  separates these results from full-quality, hosted and support promotion.
+
 - Extended ordered signature intentions to retain and reorder admitted String
   and resource-free owned record/variant parameters using checked ownership and
   TypeFacts. Bare String parameters count as owners and cannot be omitted;

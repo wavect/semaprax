@@ -8,6 +8,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::{error, write_u32, Diagnostic, ExpressionId, BYTE_DROP_IMPORT};
 
+#[cfg(test)]
+mod work_bounds;
+
 #[derive(Default)]
 pub(super) struct Cells {
     pub(super) owners: BTreeSet<u32>,
@@ -15,23 +18,18 @@ pub(super) struct Cells {
 }
 
 impl Cells {
-    pub(super) fn bounded_emission_work(&self) -> Result<usize, Diagnostic> {
+    pub(super) fn bounded_emission_work(&self) -> Option<usize> {
         let mut work = self
             .owners
             .len()
             .checked_mul(2)
-            .ok_or_else(|| error("String drop work overflows"))?;
+            .filter(|value| *value <= 262_144)?;
         for range in self.scopes.values() {
             for _ in self.owners.range(range.clone()) {
-                work = work
-                    .checked_add(1)
-                    .filter(|value| *value <= 262_144)
-                    .ok_or_else(|| {
-                        error("standalone String cleanup emission exceeds its work bound")
-                    })?;
+                work = work.checked_add(1).filter(|value| *value <= 262_144)?;
             }
         }
-        Ok(work)
+        Some(work)
     }
     pub(super) fn insert(&mut self, local: u32) -> Result<(), Diagnostic> {
         if !self.owners.insert(local) {

@@ -5,6 +5,9 @@ use crate::{hir, parse};
 
 use super::*;
 
+#[path = "replay_tests/block_work.rs"]
+mod block_work;
+
 const SOURCE: &str = r#"module test.replay_paths;
 
 @id("token.type")

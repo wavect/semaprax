@@ -1,4 +1,4 @@
-//! Authored, unrun evidence for the explicit String-settling Wasm profile.
+//! Focused evidence for the explicit String-settling Wasm profile.
 //! Raw imports independently observe compiler drops; generated-runtime tests
 //! separately exercise policy and the safe host boundary. Neither substitutes
 //! for the other or claims ordinary Wasm settlement.
@@ -13,6 +13,9 @@ use sha2::{Digest as _, Sha256};
 #[path = "interpreter_internal_strings_v1/support.rs"]
 mod support;
 use support::Fixture;
+
+#[path = "wasm_internal_strings_v1/literal_bounds.rs"]
+mod literal_bounds;
 
 const BASE: &str = include_str!("interpreter_internal_strings_v1/source.spx");
 const EXTRA: &str = include_str!("wasm_internal_strings_v1/source.spx");

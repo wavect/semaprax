@@ -67,6 +67,8 @@ pub(super) fn prepare(
         pending.extend(children.iter().filter(|id| !closure.contains(*id)).cloned());
     }
     let mut nodes = 0usize;
+    let mut literals = BTreeSet::new();
+    let mut literal_bytes = 0usize;
     for function in program
         .functions
         .iter()
@@ -112,10 +114,22 @@ pub(super) fn prepare(
                 ResolvedExprKind::Int(_)
                 | ResolvedExprKind::Bool(_)
                 | ResolvedExprKind::Char(_)
-                | ResolvedExprKind::String(_)
                 | ResolvedExprKind::Unary { .. }
                 | ResolvedExprKind::Binary { .. }
                 | ResolvedExprKind::If { .. } => {}
+                ResolvedExprKind::String(value) => {
+                    // The selected profile owns the fixed literal segment's
+                    // admission. Match the emitter's exact UTF-8 deduplication
+                    // without allocating another copy of the payload bytes.
+                    if literals.insert(value.as_str()) {
+                        literal_bytes = literal_bytes
+                            .checked_add(value.len())
+                            .filter(|bytes| *bytes <= 65_536)
+                            .ok_or_else(|| {
+                                error("standalone String literal pool exceeds 65536 bytes")
+                            })?;
+                    }
+                }
                 ResolvedExprKind::Place(place) if place.projections.is_empty() => {}
                 ResolvedExprKind::Call {
                     callee,

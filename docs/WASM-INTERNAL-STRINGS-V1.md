@@ -2,7 +2,7 @@
 
 Audience: compiler contributors and runtime implementers.
 
-Status: authored implementation; all new executable evidence is unrun.
+Status: local, partial executable evidence; no production or cross-platform promotion.
 This opt-in compiler/runtime profile does not promote a completion-matrix row.
 
 ## Purpose and unchanged boundaries
@@ -83,6 +83,10 @@ The module uses one private unshared memory with initial and maximum four
 64-KiB pages, no start function, table or imported memory. Frames occupy
 `[0,65536)`; the mutable shadow-stack global starts at 65536. A fixed scalar
 result word starts at 65536. UTF-8 literal data occupies `[196608,262144)`.
+Selected bodies and contracts share one 65536-byte literal pool, deduplicated
+by exact UTF-8 contents across functions. Admission checks this pool before
+lowering and reports `SPX-W111` on overflow; unrelated valid literals do not
+consume it. The older aggregate/v10 emitter retains its `SPX-W110` diagnostic.
 The compiler derives complete selected call-path frame usage and rejects
 anything above 65536 bytes. Engine stack exhaustion remains an unexpected
 trap, not a recoverable language failure.
@@ -93,8 +97,11 @@ evidence. Before emission, selected bodies and contract expressions are limited 
 65536 expression nodes and expression nesting depth 256. Static String-drop
 work is the sum of owner cells visited by lexical scope sweeps plus twice the
 function owner count for normal/failure epilogues, capped at 262144. All
-arithmetic in these inventories is checked. These limits bound selected
-lowering work, not source parsing/HIR validation or total heap usage. The
+initial, per-function and cumulative terms must fit that bound, including
+functions without lexical sweeps. The standalone caller owns the `SPX-W111`
+refusal; the shared counter reports bounded-count failure, not an older
+profile's diagnostic. Arithmetic in these inventories is checked. These limits
+bound selected lowering work, not source parsing/HIR validation or total heap usage. The
 16-MiB final module limit is checked after emission and is an output-size cap,
 not a preallocation or peak-memory guarantee.
 
@@ -206,7 +213,7 @@ Hostile evidence covers exact/+1 owner/live/cumulative limits, empty owners,
 concat overlap, each mint's capacity refusal, recovery after checked capacity,
 wrong/stale/double drops, unexpected host errors, traps, reentry, forged module
 bytes and input carriers. Compatibility witnesses cover unchanged ordinary and
-earlier Project artifact paths. No local execution is authorized in this work;
+earlier Project artifact paths. Selected local execution is recorded below;
 format/diff inspection cannot satisfy these executable gates.
 
 No fuel, deadline, cancellation, general sandbox, recursive-call guarantee,
@@ -225,15 +232,74 @@ real engine crash. Boolean-return mint sites are also fault-injected.
 
 Compiler units in `src/wasm/internal_strings/tests.rs` cover the fixed module
 shape, unsupported profile boundaries, guarded matching and selection facts.
+The `tests/nesting.rs` child exercises 32 nested blocks, unary/binary operations,
+calls, conditionals, scalar matches and mixed composition on the ordinary test
+thread stack. The separate healthy String work fixture must actually emit a
+module after admission, not stop at an earlier budget refusal. These are
+compiler regressions, not a general host-stack or depth-256 execution guarantee.
+Literal-pool exact/+1 UTF-8 and legacy-diagnostic checks live in
+`tests/wasm_internal_strings_v1/literal_bounds.rs`; private exact/+1 cleanup-work
+counts and a real selected over-limit source have separate unit witnesses.
 Private host units in `runtime/tests.rs` and `runtime/tests/arena.mjs` cover
 byte/slot accounting, UTF-8/carrier rejection and terminal token exhaustion.
 The token boundary uses a uniquely asserted test-only initial-counter splice,
 not a public runtime counter override.
+They also require genuine resizable-buffer rejection, ordered quota ties without
+payload allocation, and absorbing poison after a second mint following refusal.
+The facade fixture mutates the caller's module buffer before the first async
+boundary completes and verifies that the authenticated snapshot is independent.
 
 Earlier ordinary/native-v10/interpreter loop fixtures are corrected to obey
 source admission; v10 retains one String across a Copy-only loop instead of
 claiming per-iteration allocation. Existing legacy artifact known-answer
-tests remain required and unrun. Calling an old emitter before/after the new
+tests remain required. Calling an old emitter before/after the new
 one is only state-isolation evidence, not a substitute for revision-to-revision
-byte preservation. No tests, builds, runtime probes or hosted workflows were
-executed as part of this implementation.
+byte preservation.
+
+### Local validation record
+
+The 2026-08-31 isolated batch is based on `f24bbc4`, not the concurrent hosted
+repair head. Linux AArch64 Rust 1.88/Clang 14/Node 24.3 runs use the existing
+offline, network-disabled container with default test-thread stacks. On the
+batch after the parser/aggregate-dispatch splits, all 80 selected cleanup-plan,
+internal-String interpreter, Wasm profile, private host and Web-entry unit tests
+pass. These include exact/+1 work accounting, the real selected work refusal,
+all seven 32-level nesting shapes and the healthy nested String emitter.
+The same eight nesting/healthy-emission tests pass on macOS AArch64 Rust 1.98.
+Strict Clippy passes for the compiler library and the four String/legacy
+interpreter/native integration targets.
+
+After both structural stack fixes, all 84 selected Linux integration tests
+pass: eight opt-in interpreter, twelve ordinary interpreter, six ordinary
+native String, nine standalone Wasm, and 49 contextual-match/record syntax,
+generic record/variant, refutable-match and executable aggregate/record-pattern/
+variant preservation cases. Clang O0/O2 and Node are actually provisioned;
+ordinary interpreter parity is mandatory, not skipped when tools are missing.
+The two frozen ordinary interpreter envelope goldens remain unchanged.
+The ordinary native suite's two provisioned ASan/UBSan fixtures were then
+explicitly selected and both passed at O0/O2. Their default ignored status is
+not counted as a pass. This sanitizer evidence belongs to native generated C,
+not Wasm or interpreter heap behavior.
+
+Independent pre-refactor packages were retained before rebuilding the compiler.
+All eight standalone String package files and all five ordinary record package
+files are byte-identical after rebuilding and generating fresh packages. This
+is not a comparison of two emissions from the same compiler binary:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Pre-refactor compiler | `a7859f28ccdd605e3a1561875e727b7d0ebbdd5b4a0b0651525a839e7d185ba7` |
+| Post-refactor compiler | `e0fad44967825d076935433fa4d7c72fd157f375f4c0edc9068f8ef1b33eaddc` |
+| Standalone String `app.wasm`, both | `a538597674a78ddd864fff0319ad27b14bc0cede2acd98323ae82a09c839232c` |
+| Ordinary record `app.wasm`, both | `0b3dbc360f2f6a747de86d1cafbc3fb4e56f82c2c33531ce9604babb9ecf288e` |
+
+The String source is `tests/interpreter_internal_strings_v1/source.spx`, selected
+by the ten `case.content/requires/ensures/late/first/nested/branch/loop/recover/scalar`
+identities; the ordinary source is `examples/records.spx`. These two preservation
+witnesses do not establish every legacy Project package or backend artifact.
+
+This is selected local evidence, not a full-quality, current hosted-head,
+Windows/MSRV, browser, Component Model, package-release or production claim.
+No stack-size override, cleanup-cap increase, relaxed warning or ignored
+regression is part of these corrections. Materialization-work counters bound
+charged operations, not CPU time, peak heap or copied identity bytes.

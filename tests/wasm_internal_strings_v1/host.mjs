@@ -5,6 +5,17 @@ const bytes=Uint8Array.from(readFileSync('program.wasm'));
 const cases=JSON.parse(readFileSync('cases.json','utf8'));
 const api=await instantiate(bytes);
 assert(Object.isFrozen(api));assert.deepEqual(Object.keys(api),['call']);
+{
+  // Snapshotting must finish before the first asynchronous digest/compile
+  // boundary. Mutating the caller's magic header must affect neither the
+  // authenticated instance nor which bytes the engine eventually compiles.
+  const mutable=Uint8Array.from(bytes),pending=instantiate(mutable);
+  mutable[0]^=1;
+  assert.notEqual(mutable[0],bytes[0]);
+  const independent=await pending;
+  assert.deepEqual(independent.call('case.scalar',41n),{kind:'success',value:42n});
+  await assert.rejects(instantiate(mutable),/authentication/);
+}
 for(const [id,expected] of cases){
   for(let repeat=0;repeat<3;repeat++){
     const outcome=api.call(id);assert(Object.isFrozen(outcome));

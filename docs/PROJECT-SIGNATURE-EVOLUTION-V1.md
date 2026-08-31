@@ -47,8 +47,11 @@ owning parameter must be retained exactly once; it cannot be removed or copied.
 
 New parameter names must be distinct from all original names, including names
 of removed parameters. They cannot reinterpret an existing body binding.
-New scalar types and literal kinds are the existing `i64`, `i32`, `u8`, `usize`, and
-`bool` vocabulary with exact numeric bounds. Unknown fields, combined
+New scalar types and literal kinds are the complete `i64`, `i32`, `char`, `u8`,
+`usize`, `f32`, `f64`, and `bool` vocabulary. Characters and floats use the
+exact transport encodings and signed-float canonical lowering defined by
+[Scalar Literal Constructors v1](PROJECT-SCALAR-LITERAL-CONSTRUCTORS-V1.md).
+Unknown fields, combined
 `parameters`/`append_parameters`, inferred defaults, nonliteral `argument`
 values, duplicate mappings, and unknown original names reject. Computed values
 require the separate explicit `argument_expression` form above.

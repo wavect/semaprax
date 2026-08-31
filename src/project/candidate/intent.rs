@@ -686,7 +686,19 @@ impl Constructor<'_> {
             ));
         }
         let kind = match text(value, "kind")? {
-            "i64" | "i32" | "u8" | "usize" | "bool" => return literal(value),
+            "i64" | "i32" | "u8" | "usize" | "bool" | "char" | "f32" | "f64" => {
+                let expression = literal(value)?;
+                let added = literal_nodes(&expression).saturating_sub(1);
+                if added != 0 {
+                    self.nodes = self.nodes.saturating_add(added);
+                    if self.nodes > MAX_EXPRESSION_NODES || depth + 1 > MAX_EXPRESSION_DEPTH {
+                        return Err(capacity(
+                            "signed float literal exceeds the expression node or depth bound",
+                        ));
+                    }
+                }
+                return Ok(expression);
+            }
             "string" => {
                 object(value, &["kind", "value"])?;
                 let contents = text(value, "value")?;
@@ -1181,31 +1193,82 @@ fn block(tail: Expr) -> Expr {
 }
 
 fn literal(value: &Value) -> Result<Expr> {
-    object(value, &["kind", "value"])?;
-    let raw = member(value, "value")?;
     let kind = match text(value, "kind")? {
-        "i64" => ExprKind::Int(
-            raw.as_i64()
-                .ok_or_else(|| grammar("candidate i64 literal is out of range"))?,
-        ),
-        "i32" => ExprKind::Int32(
-            raw.as_i64()
-                .and_then(|n| i32::try_from(n).ok())
-                .ok_or_else(|| grammar("candidate i32 literal is out of range"))?,
-        ),
-        "u8" => ExprKind::Uint8(
-            raw.as_u64()
-                .and_then(|n| u8::try_from(n).ok())
-                .ok_or_else(|| grammar("candidate u8 literal is out of range"))?,
-        ),
-        "usize" => ExprKind::Usize(
-            raw.as_u64()
-                .ok_or_else(|| grammar("candidate usize literal is out of range"))?,
-        ),
-        "bool" => ExprKind::Bool(
-            raw.as_bool()
-                .ok_or_else(|| grammar("candidate bool literal is invalid"))?,
-        ),
+        "i64" => {
+            object(value, &["kind", "value"])?;
+            ExprKind::Int(
+                member(value, "value")?
+                    .as_i64()
+                    .ok_or_else(|| grammar("candidate i64 literal is out of range"))?,
+            )
+        }
+        "i32" => {
+            object(value, &["kind", "value"])?;
+            ExprKind::Int32(
+                member(value, "value")?
+                    .as_i64()
+                    .and_then(|n| i32::try_from(n).ok())
+                    .ok_or_else(|| grammar("candidate i32 literal is out of range"))?,
+            )
+        }
+        "u8" => {
+            object(value, &["kind", "value"])?;
+            ExprKind::Uint8(
+                member(value, "value")?
+                    .as_u64()
+                    .and_then(|n| u8::try_from(n).ok())
+                    .ok_or_else(|| grammar("candidate u8 literal is out of range"))?,
+            )
+        }
+        "usize" => {
+            object(value, &["kind", "value"])?;
+            ExprKind::Usize(
+                member(value, "value")?
+                    .as_u64()
+                    .ok_or_else(|| grammar("candidate usize literal is out of range"))?,
+            )
+        }
+        "bool" => {
+            object(value, &["kind", "value"])?;
+            ExprKind::Bool(
+                member(value, "value")?
+                    .as_bool()
+                    .ok_or_else(|| grammar("candidate bool literal is invalid"))?,
+            )
+        }
+        "char" => {
+            object(value, &["kind", "scalar"])?;
+            let scalar = exact_hex(value, "scalar", 8)? as u32;
+            if char::from_u32(scalar).is_none() {
+                return Err(grammar(
+                    "candidate char literal is not a Unicode scalar value",
+                ));
+            }
+            ExprKind::Char(scalar)
+        }
+        "f32" => {
+            object(value, &["kind", "bits"])?;
+            let bits = exact_hex(value, "bits", 8)? as u32;
+            if !f32::from_bits(bits).is_finite() {
+                return Err(grammar(
+                    "candidate f32 literal bits are not source-representable finite data",
+                ));
+            }
+            return Ok(float_literal(bits & 0x7fff_ffff, bits & 0x8000_0000 != 0));
+        }
+        "f64" => {
+            object(value, &["kind", "bits"])?;
+            let bits = exact_hex(value, "bits", 16)?;
+            if !f64::from_bits(bits).is_finite() {
+                return Err(grammar(
+                    "candidate f64 literal bits are not source-representable finite data",
+                ));
+            }
+            return Ok(float64_literal(
+                bits & 0x7fff_ffff_ffff_ffff,
+                bits & 0x8000_0000_0000_0000 != 0,
+            ));
+        }
         _ => {
             return Err(grammar(
                 "candidate migration argument must be a scalar literal",
@@ -1218,12 +1281,64 @@ fn literal(value: &Value) -> Result<Expr> {
     })
 }
 
+fn exact_hex(value: &Value, key: &str, digits: usize) -> Result<u64> {
+    let text = text(value, key)?;
+    if text.len() != digits
+        || !text
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(grammar(
+            "candidate scalar bit pattern must be fixed-width lowercase hexadecimal",
+        ));
+    }
+    u64::from_str_radix(text, 16)
+        .map_err(|_| grammar("candidate scalar bit pattern is out of range"))
+}
+
+fn float_literal(magnitude: u32, negative: bool) -> Expr {
+    let value = Expr {
+        kind: ExprKind::Float32(magnitude),
+        span: Span::default(),
+    };
+    signed_float(value, negative)
+}
+
+fn float64_literal(magnitude: u64, negative: bool) -> Expr {
+    let value = Expr {
+        kind: ExprKind::Float64(magnitude),
+        span: Span::default(),
+    };
+    signed_float(value, negative)
+}
+
+fn signed_float(value: Expr, negative: bool) -> Expr {
+    if negative {
+        Expr {
+            kind: ExprKind::Unary {
+                op: UnaryOp::Neg,
+                value: Box::new(value),
+            },
+            span: Span::default(),
+        }
+    } else {
+        value
+    }
+}
+
+fn literal_nodes(expression: &Expr) -> usize {
+    usize::from(matches!(&expression.kind, ExprKind::Unary { .. })) + 1
+}
+
 fn scalar_type(name: &str) -> Result<Type> {
     match name {
         "i64" => Ok(Type::I64),
         "i32" => Ok(Type::I32),
         "u8" => Ok(Type::U8),
         "usize" => Ok(Type::Usize),
+        "char" => Ok(Type::Char),
+        "f32" => Ok(Type::F32),
+        "f64" => Ok(Type::F64),
         "bool" => Ok(Type::Bool),
         _ => Err(grammar(
             "candidate appended parameter type must be an admitted Copy scalar",
@@ -1444,7 +1559,10 @@ fn walk(
     if let ExprKind::Call { args, .. } = &expression.kind {
         // The sole growth admitted by migration is direct literal arguments;
         // charge them even though traversal deliberately did not revisit them.
-        *nodes += args.len().saturating_sub(previous_arity);
+        let added = args.get(previous_arity..).ok_or_else(|| {
+            grammar("candidate migration unexpectedly reduced a caller argument inventory")
+        })?;
+        *nodes += added.iter().map(literal_nodes).sum::<usize>();
         if *nodes > MAX_WALK_NODES {
             return Err(capacity(
                 "candidate migrated arguments exceed the node bound",

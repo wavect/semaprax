@@ -323,6 +323,8 @@ fn audit_schema(schema: &Value, refs: &mut BTreeSet<String>, depth: usize) -> Re
                     | "^[A-Za-z_][A-Za-z0-9_]*$"
                     | "^[A-Za-z0-9_.:-]+$"
                     | "^[a-z0-9._-]+$"
+                    | "^[0-9a-f]{8}$"
+                    | "^[0-9a-f]{16}$"
             )
         ) {
             return Err(invalid("client schema uses an unsupported pattern"));
@@ -705,6 +707,14 @@ mod tests {
             0,
         )
         .unwrap();
+        for (pattern, length) in [("^[0-9a-f]{8}$", 8), ("^[0-9a-f]{16}$", 16)] {
+            audit_schema(
+                &json!({"type":"string","minLength":length,"maxLength":length,"pattern":pattern}),
+                &mut BTreeSet::new(),
+                0,
+            )
+            .unwrap();
+        }
     }
 
     #[test]

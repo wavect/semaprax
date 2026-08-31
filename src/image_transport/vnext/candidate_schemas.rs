@@ -901,7 +901,7 @@ fn signature_form() -> Value {
             ("maximum", json!({"const":if append {16}else{4096}})),
             (
                 "new_parameter_types",
-                json!({"const":["i64","i32","u8","usize","bool"]}),
+                json!({"const":["i64","i32","u8","usize","bool","char","f32","f64"]}),
             ),
             ("argument", json!({"const":"matching_typed_scalar_literal"})),
             ("evaluation_order", text()),
@@ -951,6 +951,12 @@ mod signature_parameter_schema_tests {
         let schema = signature_form();
         let forms = schema["oneOf"].as_array().unwrap();
         assert_eq!(forms.len(), 2);
+        for form in forms {
+            assert_eq!(
+                form["properties"]["new_parameter_types"]["const"],
+                json!(["i64", "i32", "u8", "usize", "bool", "char", "f32", "f64"])
+            );
+        }
         assert_eq!(
             forms[0]["properties"]["selector"]["const"],
             "append_parameters"

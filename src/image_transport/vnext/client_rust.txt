@@ -63,6 +63,10 @@ fn check_bounded(value:&Value, schema:&Value, meta:&Value, depth:usize, work:&mu
                     if text.is_empty() || !text.bytes().all(|byte|byte.is_ascii_alphanumeric() || matches!(byte,b'_'|b'.'|b':'|b'-')) { return Err("binding format".into()); }
                 } else if pattern=="^[a-z0-9._-]+$" {
                     if text.is_empty() || !text.bytes().all(|byte|byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte,b'.'|b'_'|b'-')) { return Err("stable identity format".into()); }
+                } else if pattern=="^[0-9a-f]{8}$" {
+                    if text.len()!=8 || !text.bytes().all(|byte|byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)) { return Err("32-bit hexadecimal format".into()); }
+                } else if pattern=="^[0-9a-f]{16}$" {
+                    if text.len()!=16 || !text.bytes().all(|byte|byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)) { return Err("64-bit hexadecimal format".into()); }
                 } else { return Err("unsupported client pattern; use compiler schema validator".into()); }
             }
         },

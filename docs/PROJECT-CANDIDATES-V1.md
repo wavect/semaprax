@@ -72,8 +72,10 @@ The current intention catalogue has these authored, unrun admission paths:
 | `repair_diagnostic` | `target`, `rejected_intent`, `repair_id` | Independently rederive a supported typed repair against its rejected predecessor; see [Diagnostic Change v1](PROJECT-DIAGNOSTIC-CHANGE-V1.md). |
 
 An appended parameter has exactly `name`, `type`, and `argument`. Its type is
-`i64`, `i32`, `u8`, `usize`, or `bool`; its argument has matching `kind` and
-`value`. For example, the intent value (shown pretty-printed for reading) is:
+one of the eight built-in Copy scalars: `i64`, `i32`, `char`, `u8`, `usize`,
+`f32`, `f64`, or `bool`. Its argument has a matching exact
+[scalar literal](PROJECT-SCALAR-LITERAL-CONSTRUCTORS-V1.md). For example, the
+intent value (shown pretty-printed for reading) is:
 
 ```json
 {
@@ -96,7 +98,8 @@ argument evaluation in left-to-right order. Authenticated caller migration
 visits contracts, ordinary and generic bodies, class bodies, loops, match
 guards, and nested expressions; it does not discover external consumers.
 
-Body constructors are closed objects: scalar `kind`/`value` literals;
+Body constructors are closed objects: exact scalar literals using `value`,
+`scalar`, or `bits` according to their kind;
 `place` with `name`; `binary` with `op`, `left`, `right`; `unary` with `op`,
 `value`; `if` with `condition`, `then`, `else`; and `call` with stable-ID
 `target` and `arguments`. Places select existing function parameters. Calls
@@ -104,7 +107,10 @@ select existing local functions or explicit imports and cannot add an import.
 Constructors cannot submit source text, HIR, graph fields, or unresolved holes.
 The additive [literal constructors](PROJECT-LITERAL-CONSTRUCTORS-V1.md) supply
 bounded decoded string contents or an explicit byte-array inventory through
-the same source replay path. Scalar-only migration defaults remain unchanged.
+the same source replay path. The separate
+[scalar extension](PROJECT-SCALAR-LITERAL-CONSTRUCTORS-V1.md) completes
+expression and signature defaults while retaining narrower record/repair
+grammars.
 The [scoped `let` constructor](PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md) binds
 one initializer for reuse in its body, with ordinary inferred typing and
 ownership verification. Places may also select active constructor-local or

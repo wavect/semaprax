@@ -131,14 +131,18 @@ working implementation alongside the prior Image foundation.
 
 The additive [literal constructors](PROJECT-LITERAL-CONSTRUCTORS-V1.md) cover
 bounded owned string contents and explicit fixed byte arrays through ordinary
-source replay. This authored, unrun extension leaves scalar migration defaults,
-source ownership/provenance and target admission unchanged; repeat arrays and
-general constructor search remain outside its scope.
+source replay. The [scalar literal extension](PROJECT-SCALAR-LITERAL-CONSTRUCTORS-V1.md)
+adds exact character and finite IEEE encodings to recursive expressions and
+both signature-default forms, completing the eight built-in Copy scalars while
+leaving record defaults, diagnostic repair and computed argument selectors on
+their explicit narrower grammars. Both extensions are authored/unrun; source
+ownership/provenance and target admission remain unchanged, and repeat arrays
+and general constructor search remain outside their scope.
 The existing seven String intrinsics are also selectable through compiler-owned
 typed builtin calls, with exact parameter ownership and separate byte/string
 evidence owners. Discovery and eligible declaration movement share those
 identities. This authored, unrun extension does not widen String target
-profiles, character constructors, source imports or runtime authority.
+profiles, source imports or runtime authority.
 
 ## Phase 3: all eleven requested operations
 

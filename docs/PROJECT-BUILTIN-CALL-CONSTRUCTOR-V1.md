@@ -53,8 +53,9 @@ arguments using the existing ownership machinery. Compiler-generated staging
 and String place reads retain their ordinary cloning/allocation behavior;
 `borrow` metadata is not a claim of allocation-free execution. `from_char`
 accepts an existing checked character place or an ordinary character-valued
-expression. It does not introduce a character literal constructor or coerce
-an integer/string into a character. String and byte operations remain distinct:
+expression. The separate [scalar literal constructor](PROJECT-SCALAR-LITERAL-CONSTRUCTORS-V1.md)
+can construct that checked character; this operation does not coerce an
+integer/string into a character. String and byte operations remain distinct:
 there is no implicit String-to-`str`, byte-slice or `Bytes` conversion.
 
 An authored Project identity that collides with the selected compiler identity

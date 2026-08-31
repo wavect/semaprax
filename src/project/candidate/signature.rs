@@ -259,8 +259,15 @@ pub(super) fn apply(
             // Original argument expressions move into let initializers. New
             // expression nodes are the block and the mapped Vars/literals;
             // the existing Call becomes the block's tail Call.
+            let argument_nodes = arguments
+                .iter()
+                .map(|argument| match argument {
+                    Argument::Literal(expression) => super::literal_nodes(expression),
+                    Argument::Existing(_) | Argument::Computed { .. } => 1,
+                })
+                .sum::<usize>();
             added_nodes = added_nodes
-                .checked_add(1 + arguments.len())
+                .checked_add(1 + argument_nodes)
                 .ok_or_else(|| capacity("signature migration node count overflow"))?;
             if added_nodes > MAX_WALK_NODES {
                 return Err(capacity(

@@ -82,9 +82,12 @@ they do not promise a successful fill. Finite checked hole suggestions keep
 their existing place/direct-call search and do not automatically invent
 literal values.
 
-Signature append arguments, inert record-field defaults and scalar diagnostic
-retagging retain their separate scalar-only grammars. No method, permission,
-publication route, source syntax, Graph schema or backend operation is added.
+The additive [scalar literal extension](PROJECT-SCALAR-LITERAL-CONSTRUCTORS-V1.md)
+completes the shared expression and signature-default grammar with exact
+`char`, `f32` and `f64` encodings. Inert record-field defaults and scalar
+diagnostic retagging retain their separate narrower grammars. No method,
+permission, publication route, source syntax, Graph schema or backend operation
+is added.
 
 ## Evidence
 

@@ -118,8 +118,8 @@ fn expression(
         return Ok(false);
     };
     match kind {
-        "i64" | "i32" | "u8" | "usize" | "bool" | "string" | "array_u8" | "place"
-        | "field_place" => Ok(true),
+        "i64" | "i32" | "u8" | "usize" | "bool" | "char" | "f32" | "f64" | "string"
+        | "array_u8" | "place" | "field_place" => Ok(true),
         "let" => children(value, &["value", "body"], replacements, nodes, depth),
         "binary" => children(value, &["left", "right"], replacements, nodes, depth),
         "unary" => children(value, &["value"], replacements, nodes, depth),

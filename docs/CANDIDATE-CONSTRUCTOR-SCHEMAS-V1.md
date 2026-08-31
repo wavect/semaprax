@@ -24,8 +24,9 @@ constructor references exposed by Image Candidate Protocol v2 without changing
 its previous request descriptors. Every constructor object has explicit
 required fields and `additionalProperties: false`.
 
-Expression alternatives cover typed `i64`, `i32`, `u8`, `usize`, and `bool`
-literals; bounded decoded string and explicit byte-array literals; places;
+Expression alternatives cover exact typed `i64`, `i32`, `char`, `u8`, `usize`,
+`f32`, `f64`, and `bool` literals; bounded decoded string and explicit
+byte-array literals; places;
 ordinary calls; compiler-owned byte calls; binary and unary
 operators; conditional expressions;
 immutable scoped `let` bindings;
@@ -360,7 +361,9 @@ constructor. Selecting an existing named Copy record or variant does not add a
 type spelling, conversion, or aggregate literal to the request grammar. The
 compiler checks eligibility against retained checked HIR, including concrete
 generic instances when already admitted by the Project profile. Fresh
-parameters remain restricted to the five scalar literal kinds above. See
+literal-default parameters admit the eight scalar kinds above. Computed
+argument expressions keep their separately bounded five direct scalar type
+selectors. See
 [Project Signature Evolution v1](PROJECT-SIGNATURE-EVOLUTION-V1.md) for exact
 staging, ownership, and complete candidate admission requirements.
 

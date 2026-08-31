@@ -30,7 +30,7 @@ tests = ["literal.tests"]
         .unwrap();
         for (path, source) in [
             ("src/app.spx", "module literal.app;\n@id(\"literal.main\") fn main()->i64 {0}\n"),
-            ("src/core.spx", "module literal.core;\n@id(\"literal.work\") fn work()->i64 {0}\n@id(\"literal.public\") fn public_value(value:i64)->i64 {value}\n"),
+            ("src/core.spx", "module literal.core;\n@id(\"literal.work\") fn work()->i64 {0}\n@id(\"literal.char\") fn char_value()->char {'a'}\n@id(\"literal.f32\") fn f32_value()->f32 {0.0f32}\n@id(\"literal.f64\") fn f64_value()->f64 {0.0}\n@id(\"literal.public\") fn public_value(value:i64)->i64 {value}\n"),
             ("src/tests.spx", "module literal.tests;\n@id(\"literal.test\") fn main()->i64 {0}\n"),
         ] {
             let parsed = semaprax::parse(source, path).unwrap();
@@ -107,8 +107,20 @@ fn literal_source_replay_matches_library_and_hole_constructor_discovery() {
         .iter()
         .find(|row| row["kind"] == "replace_function_body")
         .unwrap()["constructors"];
-    for kind in ["string", "array_u8"] {
+    for kind in ["string", "array_u8", "char", "f32", "f64"] {
         assert!(constructors.as_array().unwrap().contains(&json!(kind)));
+    }
+    let signature = catalog["operations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["kind"] == "change_function_signature")
+        .unwrap();
+    for form in signature["exactly_one_form"].as_array().unwrap() {
+        assert_eq!(
+            form["new_parameter_types"],
+            json!(["i64", "i32", "u8", "usize", "bool", "char", "f32", "f64"])
+        );
     }
     let draft = payload(call(
         &mut session,
@@ -120,7 +132,7 @@ fn literal_source_replay_matches_library_and_hole_constructor_discovery() {
         "hole/query",
         json!({"draft_revision":draft["draft_revision"],"hole_id":"body"}),
     ));
-    for kind in ["string", "array_u8"] {
+    for kind in ["string", "array_u8", "char", "f32", "f64"] {
         assert!(context["constructor_kinds"]
             .as_array()
             .unwrap()
@@ -134,6 +146,24 @@ fn literal_source_replay_matches_library_and_hole_constructor_discovery() {
     ] {
         let intent =
             json!({"kind":"replace_function_body","target":"literal.work","body":expression});
+        let change = SemanticChange::new(base.revision().project_revision(), &intent).unwrap();
+        let expected = base.apply(base.candidate_digest(), &change).unwrap();
+        let actual = payload(call(
+            &mut session,
+            "candidate/apply-intent",
+            json!({"candidate_revision":base.candidate_digest(),"intent":intent}),
+        ));
+        assert_eq!(actual["candidate_revision"], expected.candidate_digest());
+    }
+    for (target, expression) in [
+        ("literal.char", json!({"kind":"char","scalar":"0001f600"})),
+        ("literal.f32", json!({"kind":"f32","bits":"80000000"})),
+        (
+            "literal.f64",
+            json!({"kind":"f64","bits":"0000000000000001"}),
+        ),
+    ] {
+        let intent = json!({"kind":"replace_function_body","target":target,"body":expression});
         let change = SemanticChange::new(base.revision().project_revision(), &intent).unwrap();
         let expected = base.apply(base.candidate_digest(), &change).unwrap();
         let actual = payload(call(
@@ -182,6 +212,23 @@ fn literal_schemas_are_closed_bounded_and_selected_clients_keep_existing_authori
             assert!(!forms
                 .iter()
                 .any(|row| row["properties"]["kind"]["const"] == "repeat_array_u8"));
+            for (kind, field, pattern, length) in [
+                ("char", "scalar", "^[0-9a-f]{8}$", 8),
+                ("f32", "bits", "^[0-9a-f]{8}$", 8),
+                ("f64", "bits", "^[0-9a-f]{16}$", 16),
+            ] {
+                let form = forms
+                    .iter()
+                    .find(|row| row["properties"]["kind"]["const"] == kind)
+                    .unwrap();
+                assert_eq!(form["required"], json!(["kind", field]));
+                assert_eq!(form["additionalProperties"], false);
+                assert_eq!(form["properties"].as_object().unwrap().len(), 2);
+                assert_eq!(form["properties"][field]["type"], "string");
+                assert_eq!(form["properties"][field]["minLength"], length);
+                assert_eq!(form["properties"][field]["maxLength"], length);
+                assert_eq!(form["properties"][field]["pattern"], pattern);
+            }
         }
         for language in ["typescript", "python", "rust"] {
             let generated = payload(call(
@@ -196,6 +243,9 @@ fn literal_schemas_are_closed_bounded_and_selected_clients_keep_existing_authori
             );
             if selected {
                 assert!(source.contains("array_u8"));
+                for token in ["char", "f32", "f64"] {
+                    assert!(source.contains(token));
+                }
             }
             assert!(!source.contains("request_candidate_commit("));
             assert_eq!(generated["io"], false);
@@ -218,6 +268,13 @@ fn malformed_literal_payloads_are_rejected_without_changing_retained_candidate_o
         json!({"kind":"array_u8","values":[{"kind":"u8","value":1}]}),
         json!({"kind":"array_u8","values":vec![0;4096]}),
         json!({"kind":"repeat_array_u8","value":0,"count":1}),
+        json!({"kind":"char","scalar":"0000D800"}),
+        json!({"kind":"char","scalar":"0000d800"}),
+        json!({"kind":"char","scalar":"00110000"}),
+        json!({"kind":"f32","bits":"7f800000"}),
+        json!({"kind":"f32","bits":"7fc00000"}),
+        json!({"kind":"f64","bits":"7ff0000000000000"}),
+        json!({"kind":"f64","bits":"7ff8000000000000"}),
     ] {
         let response = call(
             &mut session,

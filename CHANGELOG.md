@@ -51,6 +51,14 @@
   closed, `LIB` is unchanged, and missing headers still fail before archive or
   package publication.
 
+- Completed typed scalar literal construction with exact Unicode scalar and
+  finite IEEE-754 bit encodings for `char`, `f32` and `f64`. Signed floats lower
+  through canonical unary negation, including negative zero. Recursive
+  expressions and both signature-default forms now cover all eight built-in
+  Copy scalars; record defaults, diagnostic retagging, computed argument type
+  selectors and target profiles remain unchanged. Regressions are authored and
+  unrun; no compiler, client, backend or completion claim is made.
+
 - Exposed the seven existing String operations through typed builtin calls,
   preserving their borrowed-read, consuming and copied-character signatures.
   Closed discovery and semantic rebase use compiler-owned descriptors; eligible
@@ -60,8 +68,8 @@
 
 - Added bounded typed string and explicit byte-array literal constructors,
   with closed schemas and catalogue/hole discovery. Existing canonical source
-  replay owns type, ownership, view provenance and target admission; scalar-only
-  migration defaults remain unchanged. Regression cases are authored, unrun;
+  replay owns type, ownership, view provenance and target admission. The later
+  scalar extension is separately specified. Regression cases are authored, unrun;
   no runtime, generated-client size or completion promotion is claimed.
 
 - Added read-only navigation from source generic-function templates to retained

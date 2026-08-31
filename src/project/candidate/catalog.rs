@@ -103,7 +103,7 @@ impl ProjectCandidate {
                     let mut forms = vec![json!({
                         "selector":"append_parameters", "minimum":1, "maximum":16,
                         "item_fields":["name","type","argument"],
-                        "new_parameter_types":["i64","i32","u8","usize","bool"],
+                        "new_parameter_types":["i64","i32","u8","usize","bool","char","f32","f64"],
                         "argument":"matching_typed_scalar_literal",
                         "evaluation_order":"original_arguments_unchanged_then_pure_literals",
                     })];
@@ -139,7 +139,7 @@ impl ProjectCandidate {
                                 "nominal_admission":"rebuilt_copy_sized_resource_free_no_drop_signature",
                                 "admission":"full_candidate_revalidation",
                             },
-                            "new_parameter_types":["i64","i32","u8","usize","bool"],
+                            "new_parameter_types":["i64","i32","u8","usize","bool","char","f32","f64"],
                             "argument":"matching_typed_scalar_literal",
                             "constraints":constraints,
                             "evaluation_order":"stage_every_original_argument_once_left_to_right_including_removed_arguments",
@@ -152,7 +152,7 @@ impl ProjectCandidate {
                     }));
                     operations.push(json!({
                         "kind":"replace_function_body", "required_fields":["kind","target","body"],
-                        "constructors":["i64","i32","u8","usize","bool","string","array_u8","place","binary","unary","if","call","let"],
+                        "constructors":["i64","i32","u8","usize","bool","string","array_u8","char","f32","f64","place","binary","unary","if","call","let"],
                         "expression_nodes_maximum":4096, "expression_depth_maximum":64,
                         "constraints":["place_selects_existing_parameter_or_active_lexical_binding", "call_selects_accessible_stable_id", "expected_return_type", "declared_effect_budget", "contracts_ownership_cleanup_and_target_revalidation"],
                     }));

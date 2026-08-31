@@ -136,11 +136,13 @@ proof that an unfilled hole is valid. No new liveness, destruction order,
 capability or runtime effect is inferred. Successful fill rebuilds the actual
 new body's proof attachments.
 
-The initial constructor surface is the existing scalar `i64`, `i32`, `u8`,
-`usize`, `bool`, parameter `place`, stable-ID `call`, `unary`, `binary` and `if`
-forms. No nested expression holes, local-binding synthesis, resource
-constructors, arbitrary declaration constructors or solver-backed completion
-is added. A context can describe a richer function while its chosen filling
+The initial constructor surface's scalar alternatives now include exact `i64`,
+`i32`, `char`, `u8`, `usize`, `f32`, `f64`, and `bool` forms alongside its
+parameter `place`, stable-ID `call`, `unary`, `binary` and `if` forms. Later
+versioned constructor specifications own their additive shapes. This scalar
+extension adds no nested expression holes, resource constructors, arbitrary
+declaration constructors or solver-backed completion. A context can describe a
+richer function while its chosen filling
 expression still must fit the bounded constructor and pass real admission.
 
 The additive [aggregate constructors](PROJECT-AGGREGATE-CONSTRUCTORS-V1.md)

@@ -17,7 +17,12 @@ use super::{
 const EXPRESSION_ID: &str = "urn:semaprax.typed-expression.v1";
 const INTENT_ID: &str = "urn:semaprax.semantic-change-intent.v1";
 const CHANGE_ID: &str = "urn:semaprax.semantic-change.v1";
-const SCALAR_KINDS: &[&str] = &["i64", "i32", "u8", "usize", "bool"];
+const COMPUTED_SCALAR_KINDS: &[&str] = &["i64", "i32", "u8", "usize", "bool"];
+const SIGNATURE_LITERAL_KINDS: &[&str] =
+    &["i64", "i32", "u8", "usize", "bool", "char", "f32", "f64"];
+const RECORD_FIELD_LITERAL_KINDS: &[&str] = &["i64", "bool", "i32", "u8", "usize"];
+const HEX32_PATTERN: &str = "^[0-9a-f]{8}$";
+const HEX64_PATTERN: &str = "^[0-9a-f]{16}$";
 
 impl SemanticChange {
     /// Self-contained structural constructor documents. Each document closes
@@ -112,19 +117,43 @@ fn identifier() -> Value {
 }
 
 fn literal(kind: &str) -> Value {
-    let value = match kind {
-        "i64" => json!({"type":"integer","minimum":i64::MIN,"maximum":i64::MAX}),
-        "i32" => json!({"type":"integer","minimum":i32::MIN,"maximum":i32::MAX}),
-        "u8" => json!({"type":"integer","minimum":0,"maximum":u8::MAX}),
-        "usize" => json!({"type":"integer","minimum":0,"maximum":u64::MAX}),
-        "bool" => json!({"type":"boolean"}),
+    let (field, value) = match kind {
+        "i64" => (
+            "value",
+            json!({"type":"integer","minimum":i64::MIN,"maximum":i64::MAX}),
+        ),
+        "i32" => (
+            "value",
+            json!({"type":"integer","minimum":i32::MIN,"maximum":i32::MAX}),
+        ),
+        "u8" => (
+            "value",
+            json!({"type":"integer","minimum":0,"maximum":u8::MAX}),
+        ),
+        "usize" => (
+            "value",
+            json!({"type":"integer","minimum":0,"maximum":u64::MAX}),
+        ),
+        "bool" => ("value", json!({"type":"boolean"})),
+        "char" => (
+            "scalar",
+            json!({"type":"string","minLength":8,"maxLength":8,"pattern":HEX32_PATTERN}),
+        ),
+        "f32" => (
+            "bits",
+            json!({"type":"string","minLength":8,"maxLength":8,"pattern":HEX32_PATTERN}),
+        ),
+        "f64" => (
+            "bits",
+            json!({"type":"string","minLength":16,"maxLength":16,"pattern":HEX64_PATTERN}),
+        ),
         _ => unreachable!("compiler-owned scalar kind"),
     };
-    closed(&[("kind", json!({"const":kind})), ("value", value)])
+    closed(&[("kind", json!({"const":kind})), (field, value)])
 }
 
 fn expression_schema() -> Value {
-    let mut variants = SCALAR_KINDS
+    let mut variants = COMPUTED_SCALAR_KINDS
         .iter()
         .map(|kind| literal(kind))
         .collect::<Vec<_>>();
@@ -136,6 +165,7 @@ fn expression_schema() -> Value {
         ("kind", json!({"const":"array_u8"})),
         ("values", json!({"type":"array","maxItems":MAX_EXPRESSION_NODES-1,"items":{"type":"integer","minimum":0,"maximum":u8::MAX},"x-counts-toward-expression-node-budget":true})),
     ]));
+    variants.extend(["char", "f32", "f64"].into_iter().map(literal));
     variants.push(closed(&[
         ("kind", json!({"const":"place"})),
         ("name", identifier()),
@@ -288,7 +318,7 @@ fn expression_schema() -> Value {
 }
 
 fn new_parameter() -> Value {
-    json!({"oneOf":SCALAR_KINDS.iter().map(|kind|closed(&[("name",identifier()),("type",json!({"const":kind})),("argument",literal(kind))])).collect::<Vec<_>>()})
+    json!({"oneOf":SIGNATURE_LITERAL_KINDS.iter().map(|kind|closed(&[("name",identifier()),("type",json!({"const":kind})),("argument",literal(kind))])).collect::<Vec<_>>()})
 }
 
 fn computed_parameter() -> Value {
@@ -296,7 +326,7 @@ fn computed_parameter() -> Value {
         ("name", identifier()),
         (
             "type",
-            json!({"oneOf":[{"enum":SCALAR_KINDS},nominal_type_schema()]}),
+            json!({"oneOf":[{"enum":COMPUTED_SCALAR_KINDS},nominal_type_schema()]}),
         ),
         ("argument_expression", reference("expression")),
     ])
@@ -321,8 +351,9 @@ fn intent_schema() -> Value {
         new_parameter(),
         computed_parameter()
     ]});
-    let record_fields = ["i64", "bool", "i32", "u8", "usize"]
-        .into_iter()
+    let record_fields = RECORD_FIELD_LITERAL_KINDS
+        .iter()
+        .copied()
         .map(|kind| {
             let mut default = literal(kind);
             // Source negation is separate from the positive literal token.
@@ -501,10 +532,35 @@ mod aggregate_expression_schema_tests {
             json!({"type":"integer","minimum":0,"maximum":255})
         );
         assert!(values.get("minItems").is_none());
-        assert_eq!(SCALAR_KINDS, &["i64", "i32", "u8", "usize", "bool"]);
+        assert_eq!(
+            COMPUTED_SCALAR_KINDS,
+            &["i64", "i32", "u8", "usize", "bool"]
+        );
+        assert_eq!(
+            SIGNATURE_LITERAL_KINDS,
+            &["i64", "i32", "u8", "usize", "bool", "char", "f32", "f64"]
+        );
         assert!(!forms
             .iter()
             .any(|form| form["properties"]["kind"]["const"] == "repeat_array_u8"));
+        for (kind, field, pattern, length) in [
+            ("char", "scalar", HEX32_PATTERN, 8),
+            ("f32", "bits", HEX32_PATTERN, 8),
+            ("f64", "bits", HEX64_PATTERN, 16),
+        ] {
+            let form = forms
+                .iter()
+                .find(|form| form["properties"]["kind"]["const"] == kind)
+                .unwrap();
+            assert_eq!(form["additionalProperties"], false);
+            assert_eq!(form["required"], json!(["kind", field]));
+            assert_eq!(form["properties"].as_object().unwrap().len(), 2);
+            assert_eq!(form["properties"][field]["type"], "string");
+            assert_eq!(form["properties"][field]["minLength"], length);
+            assert_eq!(form["properties"][field]["maxLength"], length);
+            assert_eq!(form["properties"][field]["pattern"], pattern);
+            assert!(form["properties"].get("value").is_none());
+        }
     }
 
     #[test]
@@ -530,6 +586,31 @@ mod aggregate_expression_schema_tests {
     }
 
     #[test]
+    fn record_field_defaults_remain_the_five_inert_literal_kinds() {
+        let schema = intent_schema();
+        let record = schema["oneOf"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|form| form["properties"]["kind"]["const"] == "add_record_field")
+            .unwrap();
+        let fields = record["properties"]["field"]["oneOf"].as_array().unwrap();
+        assert_eq!(fields.len(), RECORD_FIELD_LITERAL_KINDS.len());
+        assert_eq!(
+            fields
+                .iter()
+                .map(|field| field["properties"]["type"]["const"].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            RECORD_FIELD_LITERAL_KINDS
+        );
+        assert!(fields.iter().all(|field| {
+            field["properties"]["default"]["properties"]
+                .get("value")
+                .is_some()
+        }));
+    }
+
+    #[test]
     fn computed_signature_arguments_are_a_separate_recursive_mapping_only_form() {
         let schema = intent_schema();
         let forms = schema["oneOf"].as_array().unwrap();
@@ -540,20 +621,24 @@ mod aggregate_expression_schema_tests {
         let literal_items = append["properties"]["append_parameters"]["items"]["oneOf"]
             .as_array()
             .unwrap();
-        assert_eq!(literal_items.len(), 5);
+        assert_eq!(literal_items.len(), 8);
         for literal in literal_items {
             assert_eq!(literal["additionalProperties"], false);
             assert_eq!(literal["required"], json!(["name", "type", "argument"]));
             assert!(literal["properties"].get("argument_expression").is_none());
-            assert!(
-                SCALAR_KINDS.contains(&literal["properties"]["type"]["const"].as_str().unwrap())
-            );
+            assert!(SIGNATURE_LITERAL_KINDS
+                .contains(&literal["properties"]["type"]["const"].as_str().unwrap()));
             assert!(literal["properties"]["type"].get("oneOf").is_none());
             assert_eq!(
                 literal["properties"]["type"]["const"],
                 literal["properties"]["argument"]["properties"]["kind"]["const"]
             );
         }
+        let literal_kinds = literal_items
+            .iter()
+            .map(|item| item["properties"]["type"]["const"].as_str().unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(literal_kinds, SIGNATURE_LITERAL_KINDS);
         let mapped = forms
             .iter()
             .find(|form| form["properties"].get("parameters").is_some())
@@ -574,7 +659,7 @@ mod aggregate_expression_schema_tests {
         assert_eq!(computed["properties"].as_object().unwrap().len(), 3);
         let types = computed["properties"]["type"]["oneOf"].as_array().unwrap();
         assert_eq!(types.len(), 2);
-        assert_eq!(types[0]["enum"], json!(SCALAR_KINDS));
+        assert_eq!(types[0]["enum"], json!(COMPUTED_SCALAR_KINDS));
         assert_eq!(types[1], nominal_type_schema());
         assert_eq!(types[1]["additionalProperties"], false);
         assert_eq!(
@@ -647,7 +732,7 @@ mod aggregate_expression_schema_tests {
         assert_eq!(parameters.len(), 6);
         assert_eq!(
             parameters[0]["properties"]["type"]["enum"],
-            json!(SCALAR_KINDS)
+            json!(COMPUTED_SCALAR_KINDS)
         );
         assert_eq!(
             parameters[1]["properties"]["type"]["enum"],

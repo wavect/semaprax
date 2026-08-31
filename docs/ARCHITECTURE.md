@@ -940,11 +940,16 @@ the same request/registry boundary. See [Draft Merge](PROJECT-CANDIDATE-DRAFT-ME
 These additions and focused regression cases are authored, unrun.
 
 `candidate/movement.rs` moves eligible functions through stable-ID call/import
-bindings. `candidate/movement_types.rs` checks retained Copy nominal value facts,
+bindings. `candidate/movement_types.rs` checks retained resource-free nominal value facts,
 plans authenticated type imports and remaps signature/local/aggregate/pattern
 type syntax through destination bindings. Rebuilt type identities supplement
 the existing call-inventory and exact source-reconstruction checks; source type
 imports remain unchanged and ordinary Project admission still rejects cycles.
+The movement planner retains exact checked builtin occurrences and reserves
+their unchanged spellings during alias migration. Place roots, view operations,
+type and ownership identities are compared after source rebuilding. Internal
+owned byte work and String signatures add no staging or cleanup-plan edits;
+existing owning parameter/type import restrictions remain authoritative.
 `candidate/record_field.rs` appends a typed scalar field and migrates
 constructors and exact patterns using retained type identities and the owning
 compiler type facts. `hir/record_evolution.rs` reconstructs only the bounded

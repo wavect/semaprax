@@ -1,4 +1,4 @@
-//! Checked Copy type dependencies and hygienic source type relocation.
+//! Checked resource-free value dependencies and hygienic source relocation.
 //! Type declarations stay in their authenticated provider modules.
 
 use super::{intent, invalid, limit, Result, MAX_DEPENDENCIES};
@@ -25,6 +25,8 @@ pub(super) struct TypeMovePlan {
     dependencies: BTreeMap<String, Dependency>,
     aliases: BTreeMap<String, String>,
     locals: BTreeSet<String>,
+    builtins: BTreeMap<(usize, usize), crate::byte_ops::ByteOp>,
+    extended: bool,
 }
 
 pub(super) fn plan(
@@ -38,6 +40,8 @@ pub(super) fn plan(
         dependencies: BTreeMap::new(),
         aliases: BTreeMap::new(),
         locals: function.params.iter().map(|p| p.name.clone()).collect(),
+        builtins: BTreeMap::new(),
+        extended: false,
     };
     result.locals.insert(function.name.clone());
     result.locals.insert("result".to_owned());
@@ -45,8 +49,40 @@ pub(super) fn plan(
     let mut type_nodes = 0;
     let mut nodes = Nodes::new(checked);
     while let Some(node) = nodes.next()? {
+        result.extended |= node
+            .ownership()
+            .is_some_and(|mode| mode != OwnershipMode::Value);
+        if let Node::Expression(expression) = node {
+            use hir::ResolvedExprKind as E;
+            let operation = match &expression.kind {
+                E::Call { callee, .. } => Some(callee),
+                E::BorrowPlace { operation, .. } | E::ByteRange { operation, .. } => {
+                    Some(operation)
+                }
+                _ => None,
+            };
+            if let Some(op) = operation.and_then(|id| crate::byte_ops::by_id(id.as_str())) {
+                charge(&mut type_nodes, 1)?;
+                if result
+                    .builtins
+                    .insert((expression.span.start, expression.span.end), op)
+                    .is_some()
+                {
+                    return Err(invalid("movement builtin source occurrence is ambiguous"));
+                }
+                result.extended = true;
+            }
+        }
         if let Some(ty) = node.ty() {
             checked_type(module, ty)?;
+            result.extended |= matches!(
+                ty,
+                ResolvedType::String
+                    | ResolvedType::Bytes
+                    | ResolvedType::ArrayU8(_)
+                    | ResolvedType::Str
+                    | ResolvedType::SliceU8
+            );
             if let ResolvedType::Nominal {
                 declaration,
                 arguments,
@@ -160,6 +196,18 @@ pub(super) fn validate_signature(
 }
 
 impl TypeMovePlan {
+    pub(super) fn extended(&self) -> bool {
+        self.extended
+    }
+
+    pub(super) fn builtin_at(&self, span: Span) -> Option<crate::byte_ops::ByteOp> {
+        self.builtins.get(&(span.start, span.end)).copied()
+    }
+
+    pub(super) fn builtin_names(&self) -> BTreeSet<&'static str> {
+        self.builtins.values().map(|op| op.name()).collect()
+    }
+
     pub(super) fn local_names(&self) -> &BTreeSet<String> {
         &self.locals
     }
@@ -303,14 +351,31 @@ fn signature(
         ));
     }
     checked_type(module, &checked.return_type)?;
+    if matches!(
+        checked.return_type,
+        ResolvedType::Str | ResolvedType::SliceU8
+    ) {
+        return Err(invalid(
+            "movement does not relocate borrowed return surfaces",
+        ));
+    }
     for (parameter, resolved) in source.params.iter().zip(&checked.params) {
-        if parameter.mode != ParamMode::Value
-            || resolved.ownership != OwnershipMode::Value
+        let expected_ownership = match (&parameter.mode, &parameter.ty) {
+            (ParamMode::Value, Type::String) => OwnershipMode::Own,
+            (ParamMode::Value, _) => OwnershipMode::Value,
+            (ParamMode::Own, Type::Bytes | Type::Named { .. }) => OwnershipMode::Own,
+            _ => {
+                return Err(invalid(
+                    "movement signature does not admit borrowed or shared parameters",
+                ))
+            }
+        };
+        if resolved.ownership != expected_ownership
             || parameter.name != resolved.name
             || parameter.span != resolved.span
         {
             return Err(invalid(
-                "movement signature requires exact checked value parameters",
+                "movement signature requires exact checked value or owning parameters",
             ));
         }
         checked_type(module, &resolved.ty)?;
@@ -324,7 +389,12 @@ fn checked_type(module: &WorkspaceGraphProjectionModule, ty: &ResolvedType) -> R
         | ResolvedType::I32
         | ResolvedType::U8
         | ResolvedType::Usize
-        | ResolvedType::Bool => Ok(()),
+        | ResolvedType::Bool
+        | ResolvedType::String
+        | ResolvedType::Bytes
+        | ResolvedType::ArrayU8(_)
+        | ResolvedType::Str
+        | ResolvedType::SliceU8 => Ok(()),
         ResolvedType::Nominal { arguments, .. } => {
             if arguments.len() > intent::MAX_AGGREGATE_TYPE_ARGUMENTS {
                 return Err(limit(
@@ -343,17 +413,16 @@ fn checked_type(module: &WorkspaceGraphProjectionModule, ty: &ResolvedType) -> R
                 invalid("movement nominal value has no retained checked type facts")
             })?;
             if !matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
-                || !facts.copy
                 || !facts.sized
-                || facts.needs_drop
                 || facts.contains_resource
+                || facts.copy == facts.needs_drop
             {
-                return Err(invalid("movement nominal values require sized Copy records or variants without resource or cleanup obligations"));
+                return Err(invalid("movement nominal values require sized resource-free Copy or owning records or variants"));
             }
             Ok(())
         }
         _ => Err(invalid(
-            "movement requires scalar or checked Copy nominal values",
+            "movement requires admitted resource-free values or internal byte/string views",
         )),
     }
 }
@@ -433,7 +502,16 @@ fn rewrite_type(
     rename: &mut impl FnMut(&mut String) -> Result<()>,
 ) -> Result<()> {
     match ty {
-        Type::I64 | Type::I32 | Type::U8 | Type::Usize | Type::Bool => Ok(()),
+        Type::I64
+        | Type::I32
+        | Type::U8
+        | Type::Usize
+        | Type::Bool
+        | Type::String
+        | Type::Bytes
+        | Type::ArrayU8(_)
+        | Type::Str
+        | Type::SliceU8 => Ok(()),
         Type::Named { name, arguments } => {
             charge(syntax, 1 + arguments.len())?;
             direct_arguments(arguments)?;
@@ -609,10 +687,11 @@ impl<'a> Node<'a> {
     fn check_ownership(self) -> Result<()> {
         if self
             .ownership()
-            .is_some_and(|mode| mode != OwnershipMode::Value)
+            .is_some_and(|mode| matches!(mode, OwnershipMode::Borrow | OwnershipMode::Shared))
+            && !matches!(self.ty(), Some(ResolvedType::Str | ResolvedType::SliceU8))
         {
             return Err(invalid(
-                "movement does not admit owned or borrowed checked values",
+                "movement permits internal borrowed/shared views only over string or byte slices",
             ));
         }
         Ok(())
@@ -664,7 +743,21 @@ impl<'a> Node<'a> {
                         },
                     ) => a == b && ac == bc,
                     (E::Project { field: a, .. }, E::Project { field: b, .. }) => a == b,
-                    (E::Place(a), E::Place(b)) => a.projections == b.projections,
+                    (E::Match { mode: a, .. }, E::Match { mode: b, .. }) => a == b,
+                    (E::Place(a), E::Place(b)) => a == b,
+                    (
+                        E::BorrowPlace {
+                            operation: a,
+                            place: ap,
+                        },
+                        E::BorrowPlace {
+                            operation: b,
+                            place: bp,
+                        },
+                    ) => a == b && ap == bp,
+                    (E::ByteRange { operation: a, .. }, E::ByteRange { operation: b, .. }) => {
+                        a == b
+                    }
                     (
                         E::Call {
                             callee: a,

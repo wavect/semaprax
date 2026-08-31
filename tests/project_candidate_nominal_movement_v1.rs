@@ -306,13 +306,28 @@ fn generated_type_alias_avoids_destination_type_and_function_names_and_moved_loc
 }
 
 #[test]
-fn owned_borrowed_generic_exported_and_cyclic_nominal_moves_leave_sources_unchanged() {
+fn unused_owned_bytes_move_while_borrowed_generic_exported_and_cyclic_moves_reject() {
     let fixture = Fixture::new(false, false);
     let disk = fixture.bytes();
     let base = fixture.candidate();
     let before = base.to_json().to_owned();
+    // This unused Bytes identity requires no forbidden owning-function import.
+    let owned = apply(&base, movement("movement.own")).unwrap();
+    let destination = program(&owned, "support");
+    let function = destination
+        .functions
+        .iter()
+        .find(|f| f.stable_id == "movement.own")
+        .unwrap();
+    assert_eq!(function.params[0].mode, semaprax::ast::ParamMode::Own);
+    assert_eq!(function.params[0].ty, Type::Bytes);
+    assert_eq!(function.return_type, Type::Bytes);
+    assert!(!program(&owned, "core")
+        .module_uses
+        .iter()
+        .any(|binding| binding.persistent_id == "movement.own"));
+    replay(&owned);
     for target in [
-        "movement.own",
         "movement.borrow",
         "movement.generic",
         "movement.public",

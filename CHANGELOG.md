@@ -51,6 +51,13 @@
   closed, `LIB` is unchanged, and missing headers still fail before archive or
   package publication.
 
+- Extended declaration-move planning to resource-free owned values, String
+  signatures and scalar helpers with internal byte operations. Builtin identities
+  and lexical bindings are authenticated; exact source and checked place/type
+  replay preserve the original body without adding staging. Existing owning
+  import, resource, borrowed-signature and audit restrictions remain in force.
+  Regression additions are authored, unrun locally.
+
 - Corrected three native Project fixtures to construct Windows executable paths
   from the dot-free platform extension instead of treating the already dotted
   executable suffix as an extension. This removes the test-only `..exe` lookup;

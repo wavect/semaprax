@@ -37,27 +37,44 @@ effect, and have no conflicting declaration or import alias with the moved
 function's name. Importing this exact target is permitted: those imports become
 the local declaration. Neither module permits nor function effects are widened.
 
-This version admits value-mode `i64`, `i32`, `u8`, `usize`, and `bool`, plus
-authenticated record/variant types whose exact checked TypeFacts establish
-Sized Copy with neither resource content nor drop obligations. The same checks
-apply to parameters, results, body values and local/pattern bindings. A source
-type's spelling or field shape does not establish its eligibility.
+The planner admits value-mode `i64`, `i32`, `u8`, `usize`, and `bool`, ordinary
+String ownership, direct owned Bytes, and authenticated record/variant values
+whose exact checked TypeFacts establish Sized resource-free storage. Nominal
+values must be either Copy without drop obligations or non-Copy with drop
+obligations. The same checks apply to parameters, results, body values and
+local/pattern bindings. Bare source `string` parameters retain their checked
+owning mode; explicit `own` remains required for Bytes and admitted owned
+nominals. A source type's spelling or field shape does not establish eligibility.
+
+Planning does not widen cross-module admission. Existing `SPX-G172` rules reject
+imports of explicitly owning parameters and owning nominal types. An unused
+direct-Bytes helper can move without creating an import, but surviving callers
+that would need an unsupported import still reject. String signatures and
+scalar signatures with internal owned byte work can relocate under existing
+import rules. Owned nominal planning does not establish that such a function
+can actually cross the current type-import boundary.
 
 Bodies and contracts can contain admitted scalar expressions, local bindings,
 whole-binding assignments, loops, explicit monomorphic calls, Copy record and
-variant construction, field reads, record updates, and admitted plain Copy
-matching. Direct callees must themselves have explicit top-level monomorphic
-Copy signatures. At most 64 combined distinct direct callable and nominal type
+variant construction, field reads, record updates, plain Copy matching and
+admitted `match own` forms. String and byte-array literals, owned locals and
+internal byte/string views are also planned. Direct source callees must
+themselves have explicit top-level monomorphic resource-free signatures. At most
+64 combined distinct direct callable and nominal type
 dependencies are admitted, including dependencies from contracts. Matching
 locals participate in alias hygiene.
 
 Nominal type planning and nominal source/pattern rewriting each have a
-4,096-node budget. Checked HIR traversal admits at most 1,048,576 visited items
+4,096-node budget; the type-planning budget also charges each retained builtin
+occurrence. Checked HIR traversal admits at most 1,048,576 visited items
 and depth 256. These bounds do not charge ordinary scalar annotations as new
 nominal syntax.
 
-Owned/borrowed values, field mutation, propagation, methods, host or
-compiler-builtin calls, and audited unsafe boundaries remain excluded. Generic
+Borrowed/shared parameters, borrowed results, explicit borrowed matching,
+resources and resource-containing values, field mutation, propagation, methods,
+host calls and audited unsafe boundaries remain excluded. Internal `str` and
+`Slice<u8>` views use ordinary checked loan provenance and cannot escape through
+the relocated signature. Generic
 function calls and generic source-type imports also remain closed. Fixed
 compiler-owned Option/Result instances keep their direct `i64`/`bool` argument
 rules. No type declaration moves with the function and no type argument is
@@ -66,6 +83,14 @@ Existing cross-module function-signature admission also remains unchanged:
 moving a prelude-typed signature can still reject if surviving callers would
 require a currently unsupported generic-signature import. A body-local prelude
 value does not itself require a synthetic type import.
+
+Compiler byte operations are recognized from retained checked HIR operation
+identities at the exact original source occurrence. Their source spellings stay
+unchanged and never become authored function imports. Source identity/binding
+collisions and destination shadowing reject; dependency aliases reserve those
+spellings. The operation inventory does not widen nominal admission:
+`byte_get` still fails this planner's direct-`i64`/`bool` nominal argument gate
+because its result is `Option<u8>`.
 
 These restrictions do not restrict unrelated functions in the Project. Caller
 migration uses the existing bounded exhaustive AST walker, including contracts,
@@ -135,6 +160,12 @@ bindings prevents an accidental alias change from silently changing a callee.
 The moved function's checked nominal identities are also independently compared
 after rebuilding; a same-spelled destination type cannot replace the original
 owner. This is semantic identity preservation, not a runtime-equivalence claim.
+Place roots and projections, view-operation identities and byte-range operation
+identities are compared after rebuilding. Unlike signature reordering, a move
+introduces no argument staging or additional local copies. Ordinary source
+verification still reconstructs loans and cleanup plans; the planner never
+sorts or repairs cleanup vectors, performs a finalizer, or treats proof data as
+runtime permission. Source locations and generated artifacts can change.
 
 `destinations(revision, target)` supplies sorted structural anchor choices for
 constructor discovery. Unsupported targets produce no choices. Namespace and
@@ -167,7 +198,13 @@ bindings, aggregate syntax, replay, and rejected relocation shapes. Discovery
 advertises checked nominal identity and type-binding migration constraints;
 an advertised destination still requires full candidate admission.
 
-General declaration kinds, owned type relocation, public-export
+`tests/project_candidate_owned_movement_v1.rs` adds authored, unrun String
+call/import migration, scalar-signature internal byte work, unused owning Bytes
+relocation, exact replay and unchanged-source assertions. Existing owning import
+and cycle failures remain negative cases. These are not physical execution or
+cross-module owning ABI evidence.
+
+General declaration kinds, owning type-import admission, public-export
 origin migration, audited boundary relocation, broader expression syntax,
 runtime equivalence evidence, and full graph-operational programme completion
 remain outside this bounded slice.

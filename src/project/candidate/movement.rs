@@ -1,4 +1,4 @@
-//! Relocate one checked Copy declaration and reconstruct its lexical bindings.
+//! Relocate one checked resource-free declaration and reconstruct its bindings.
 //! No HIR is mutated or deserialized; full Project admission remains mandatory.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -117,6 +117,7 @@ pub(super) fn apply(
         });
     }
     let mut occupied = namespace(&programs[destination]);
+    occupied.extend(plan.types.builtin_names().into_iter().map(str::to_owned));
     occupied.insert(function.name.clone());
     occupied.extend(plan.local_names.iter().cloned());
     let mut bindings = intent::call_bindings(&programs[destination])?;
@@ -155,7 +156,14 @@ pub(super) fn apply(
         names.insert(dependency.clone(), alias);
     }
     intent::walk_function(&mut function, &mut nodes, &mut |expression| {
+        let builtin = plan.types.builtin_at(expression.span);
         if let ExprKind::Call { name, .. } = &mut expression.kind {
+            if let Some(op) = builtin {
+                if name != op.name() {
+                    return Err(invalid("movement builtin source spelling changed"));
+                }
+                return Ok(());
+            }
             let id = plan
                 .calls
                 .get(name)
@@ -274,10 +282,13 @@ fn call_inventory(revision: &ProjectRevision) -> Result<Calls> {
 
 /// Structural discovery only: destination anchors do not assert cycle freedom
 /// or full admission for the final reconstructed Project.
-pub(super) fn destinations(revision: &ProjectRevision, target: &str) -> Result<Vec<String>> {
+pub(super) fn destinations(
+    revision: &ProjectRevision,
+    target: &str,
+) -> Result<(Vec<String>, bool)> {
     let programs = parse_revision(revision)?;
     let Ok(plan) = plan(revision, &programs, target) else {
-        return Ok(Vec::new());
+        return Ok((Vec::new(), false));
     };
     let mut anchors = Vec::new();
     for (index, program) in programs.iter().enumerate() {
@@ -292,7 +303,7 @@ pub(super) fn destinations(revision: &ProjectRevision, target: &str) -> Result<V
         }
     }
     anchors.sort();
-    Ok(anchors)
+    Ok((anchors, plan.types.extended()))
 }
 
 fn plan(revision: &ProjectRevision, programs: &[Program], target: &str) -> Result<Plan> {
@@ -308,10 +319,20 @@ fn plan(revision: &ProjectRevision, programs: &[Program], target: &str) -> Resul
             .any(|id| id == target)
     {
         return Err(invalid(
-            "movement requires an explicit non-exported monomorphic Copy function",
+            "movement requires an explicit non-exported monomorphic resource-free function",
         ));
     }
     let types = types::plan(revision, &programs[source], function)?;
+    // The occurrence comes from retained checked HIR. The compiler-owned
+    // catalogue independently excludes authored identity/name impersonation.
+    let builtin_ids = if types.builtin_names().is_empty() {
+        BTreeSet::new()
+    } else {
+        intent::builtin_constructors(revision, &programs[source])?
+            .into_iter()
+            .filter_map(|row| row["target"].as_str().map(str::to_owned))
+            .collect::<BTreeSet<_>>()
+    };
     let bindings = intent::call_bindings(&programs[source])?;
     let mut calls = BTreeMap::new();
     let mut dependencies = BTreeMap::new();
@@ -330,6 +351,9 @@ fn plan(revision: &ProjectRevision, programs: &[Program], target: &str) -> Resul
             | ExprKind::Uint8(_)
             | ExprKind::Usize(_)
             | ExprKind::Bool(_)
+            | ExprKind::String(_)
+            | ExprKind::ArrayU8(_)
+            | ExprKind::RepeatArrayU8 { .. }
             | ExprKind::Var(_)
             | ExprKind::Unary { .. }
             | ExprKind::Binary { .. }
@@ -339,7 +363,7 @@ fn plan(revision: &ProjectRevision, programs: &[Program], target: &str) -> Resul
             | ExprKind::Project { .. }
             | ExprKind::UpdateRecord { .. }
             | ExprKind::Match {
-                mode: MatchMode::Value,
+                mode: MatchMode::Value | MatchMode::Own,
                 ..
             } => {}
             ExprKind::Block { statements, .. } => {
@@ -365,6 +389,14 @@ fn plan(revision: &ProjectRevision, programs: &[Program], target: &str) -> Resul
                 if !type_arguments.is_empty() {
                     return Err(invalid("movement does not relocate generic calls"));
                 }
+                if let Some(op) = types.builtin_at(expression.span) {
+                    if name != op.name() || !builtin_ids.contains(op.id()) {
+                        return Err(invalid(
+                            "movement builtin lacks its exact unshadowed compiler identity",
+                        ));
+                    }
+                    return Ok(());
+                }
                 let id = bindings.get(name).ok_or_else(|| {
                     invalid("movement requires explicit source function call bindings")
                 })?;
@@ -375,7 +407,7 @@ fn plan(revision: &ProjectRevision, programs: &[Program], target: &str) -> Resul
                         .is_empty()
                 {
                     return Err(invalid(
-                        "movement dependency requires an explicit monomorphic Copy signature",
+                        "movement dependency requires an explicit monomorphic resource-free signature",
                     ));
                 }
                 if !dependencies.contains_key(id) {
@@ -422,6 +454,18 @@ fn destination_admitted(programs: &[Program], plan: &Plan, destination: usize) -
     }
     let target = &programs[plan.source].functions[plan.function];
     let program = &programs[destination];
+    let builtin_names = plan.types.builtin_names();
+    if namespace(program)
+        .iter()
+        .any(|name| builtin_names.contains(name.as_str()))
+        || program
+            .interfaces
+            .iter()
+            .flat_map(|interface| &interface.imports)
+            .any(|import| builtin_names.contains(import.name.as_str()))
+    {
+        return false;
+    }
     if target
         .effects
         .iter()

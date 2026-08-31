@@ -225,12 +225,31 @@ impl ProjectCandidate {
                     "selector_source":"expression/catalog",
                     "constraints":["unique_authored_body_expression", "globally_new_explicit_identity", "compiler_derived_copy_captures", "checked_sized_copy_scalar_or_nominal_values", "field_reads_capture_immutable_copy_root", "preserve_original_lazy_position_and_evaluation_order", "no_mutable_or_escaping_owned_captures", "no_borrowed_or_resource_values", "full_candidate_revalidation"],
                 }));
-                let destinations = super::movement::destinations(&self.revision, target)?;
+                let (destinations, extended_profile) =
+                    super::movement::destinations(&self.revision, target)?;
                 if !destinations.is_empty() {
+                    let mut constraints = vec![
+                        "distinct_existing_module",
+                        "preserve_exact_stable_identity",
+                        "migrate_authenticated_call_bindings_and_import_origins",
+                        "preserve_checked_nominal_type_identities",
+                        "migrate_authenticated_type_bindings",
+                        "copy_values_only",
+                        "preserve_manifest_exports_and_effect_budgets",
+                        "full_candidate_revalidation",
+                    ];
+                    if extended_profile {
+                        constraints[5] = "resource_free_owned_values_and_checked_internal_views";
+                        constraints.extend([
+                            "unchanged_import_admission_required",
+                            "exact_checked_builtin_identity",
+                            "full_source_ownership_replay",
+                        ]);
+                    }
                     operations.push(json!({
                         "kind":"move_declaration", "required_fields":["kind","target","destination"],
                         "destination_anchors":destinations,
-                        "constraints":["distinct_existing_module", "preserve_exact_stable_identity", "migrate_authenticated_call_bindings_and_import_origins", "preserve_checked_nominal_type_identities", "migrate_authenticated_type_bindings", "copy_values_only", "preserve_manifest_exports_and_effect_budgets", "full_candidate_revalidation"],
+                        "constraints":constraints,
                     }));
                 }
             }

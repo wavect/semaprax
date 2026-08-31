@@ -1275,6 +1275,15 @@ linked-build consumer. The authored surface is unrun and adds no build or
 publication authority. See [Offline Multi-Package Source Capsule
 v1](OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md).
 
+`package_semantic_graph` consumes that same complete capsule replay to retain
+coordinate-qualified package, source, interface, import and cross-package call
+facts. Its immutable consumer index is independent of a Project image. A v5
+host may attach the verified graph before requests and expose read-only package
+queries through the selected discovery and parallel-read paths; equal stable
+IDs do not establish any Project/package relationship. No source, acquisition,
+build or publication authority crosses this boundary. See
+[Package Semantic Graph](PACKAGE-SEMANTIC-GRAPH-V1.md).
+
 Additive `package_build` consumes that exact resolver evidence only through an
 independent replay route. The v1 profile deliberately admits one selected,
 dependency-free Subject v2 whose embedded canonical source is rebuilt through

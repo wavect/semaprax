@@ -6,9 +6,9 @@ use crate::package_resolver::{ResolutionInput, ResolutionOptions};
 use crate::workspace_graph::WorkspaceSource;
 
 use super::model::{
-    BuiltCapsule, LinkedPackageImportFact, LinkedPackageSourceFact, PackageSource,
-    SourceCapsuleOptions, VerifiedSourceCapsule, MAX_OUTPUT_BYTES, MAX_PACKAGES, MAX_SOURCE_BYTES,
-    MAX_TOTAL_SOURCE_BYTES, MIN_OUTPUT_BYTES, MIN_PACKAGES,
+    BuiltCapsule, LinkedPackageCallFact, LinkedPackageImportFact, LinkedPackageSourceFact,
+    PackageSource, SourceCapsuleOptions, VerifiedSourceCapsule, MAX_OUTPUT_BYTES, MAX_PACKAGES,
+    MAX_SOURCE_BYTES, MAX_TOTAL_SOURCE_BYTES, MIN_OUTPUT_BYTES, MIN_PACKAGES,
 };
 
 pub(crate) fn validate_options(options: &SourceCapsuleOptions) -> Result<(), Diagnostic> {
@@ -33,6 +33,41 @@ pub(crate) fn build(
     resolution_input: &ResolutionInput,
     resolution_options: &ResolutionOptions,
     options: &SourceCapsuleOptions,
+) -> Result<BuiltCapsule, Diagnostic> {
+    build_inner(
+        sources,
+        resolution_evidence,
+        resolution_input,
+        resolution_options,
+        options,
+        false,
+    )
+}
+
+pub(crate) fn build_linked(
+    sources: &[PackageSource],
+    resolution_evidence: &str,
+    resolution_input: &ResolutionInput,
+    resolution_options: &ResolutionOptions,
+    options: &SourceCapsuleOptions,
+) -> Result<BuiltCapsule, Diagnostic> {
+    build_inner(
+        sources,
+        resolution_evidence,
+        resolution_input,
+        resolution_options,
+        options,
+        true,
+    )
+}
+
+fn build_inner(
+    sources: &[PackageSource],
+    resolution_evidence: &str,
+    resolution_input: &ResolutionInput,
+    resolution_options: &ResolutionOptions,
+    options: &SourceCapsuleOptions,
+    retain_calls: bool,
 ) -> Result<BuiltCapsule, Diagnostic> {
     validate_options(options)?;
     validate_source_input(sources)?;
@@ -262,6 +297,29 @@ pub(crate) fn build(
         .map(|fact| (fact.coordinate.clone(), fact.source_revision.clone()))
         .collect();
     let exports = workspace.root_exports.clone();
+    let mut call_facts = Vec::new();
+    if retain_calls {
+        for call in workspace.call_facts()? {
+            call_facts.push(LinkedPackageCallFact {
+                caller_package: coordinates
+                    .get(&call.caller_package)
+                    .cloned()
+                    .ok_or_else(|| super::association_error("call caller package is unselected"))?,
+                target_package: coordinates
+                    .get(&call.target_package)
+                    .cloned()
+                    .ok_or_else(|| super::association_error("call target package is unselected"))?,
+                caller: call.caller,
+                target: call.target,
+                site: call.site,
+                expression: call.expression,
+                ast_path: call.ast_path,
+                alias: call.alias,
+                ordinal: call.ordinal,
+            });
+        }
+        call_facts.sort();
+    }
     let receipt = VerifiedSourceCapsule::new(super::model::VerifiedSourceCapsuleFacts {
         digest,
         bytes: json.len(),
@@ -279,6 +337,7 @@ pub(crate) fn build(
         selected_subjects: selected.selected_subjects,
         package_facts,
         import_facts,
+        call_facts,
     })
 }
 

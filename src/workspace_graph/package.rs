@@ -14,6 +14,64 @@ pub(crate) struct PackageWorkspaceLink {
 }
 
 impl PackageWorkspaceLink {
+    /// Actual independently checked cross-package call edges over every source
+    /// function/contract, including callers outside the linked export closure.
+    pub(crate) fn call_facts(&self) -> Result<Vec<PackageWorkspaceCall>, Diagnostic> {
+        // The ordinary workspace builder already bounds all edges to 65,536.
+        // This graph-only clone additionally bounds its retained text before
+        // allocating any call row; old package builds never request this view.
+        let mut retained_bytes = 0usize;
+        for edge in self.build.edges.iter().filter(|edge| edge.kind == "call") {
+            retained_bytes = retained_bytes
+                .saturating_add(std::mem::size_of::<PackageWorkspaceCall>())
+                .saturating_add(edge.caller.len())
+                .saturating_add(edge.target.len())
+                .saturating_add(edge.expression.len())
+                .saturating_add(edge.ast_path.len())
+                .saturating_add(edge.alias.len())
+                .saturating_add(1024);
+            if retained_bytes > 16 * 1024 * 1024 {
+                return Err(Diagnostic::io(
+                    "SPX-PS603",
+                    "package graph call fact retention exceeds its byte bound",
+                ));
+            }
+        }
+        let paths = self
+            .build
+            .hir
+            .module_paths
+            .iter()
+            .map(|(module, path)| (path.as_str(), module.as_str()))
+            .collect::<BTreeMap<_, _>>();
+        self.build
+            .edges
+            .iter()
+            .filter(|edge| edge.kind == "call")
+            .map(|edge| {
+                let caller_package = paths
+                    .get(edge.caller_path.as_str())
+                    .ok_or_else(|| package_error("package call caller source is absent"))?;
+                let target_package = paths
+                    .get(edge.target_path.as_str())
+                    .ok_or_else(|| package_error("package call target source is absent"))?;
+                if caller_package == target_package {
+                    return Err(package_error("package call edge is not cross-package"));
+                }
+                Ok(PackageWorkspaceCall {
+                    caller_package: (*caller_package).to_owned(),
+                    target_package: (*target_package).to_owned(),
+                    caller: edge.caller.clone(),
+                    target: edge.target.clone(),
+                    site: edge.site,
+                    expression: edge.expression.clone(),
+                    ast_path: edge.ast_path.clone(),
+                    alias: edge.alias.clone(),
+                    ordinal: edge.ordinal,
+                })
+            })
+            .collect()
+    }
     /// Link the exact authenticated root export set and its transitive scalar
     /// callees. Package roots deliberately do not inherit Project's authored
     /// `main` display-name requirement; the byte-lowest selected `fn() -> i64`
@@ -22,6 +80,18 @@ impl PackageWorkspaceLink {
         self.build
             .linked_package_scalar_exports(&self.root_package, &self.root_exports)
     }
+}
+
+pub(crate) struct PackageWorkspaceCall {
+    pub(crate) caller_package: String,
+    pub(crate) target_package: String,
+    pub(crate) caller: String,
+    pub(crate) target: String,
+    pub(crate) site: &'static str,
+    pub(crate) expression: String,
+    pub(crate) ast_path: String,
+    pub(crate) alias: String,
+    pub(crate) ordinal: usize,
 }
 
 pub(crate) struct PackageWorkspaceModule {

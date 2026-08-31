@@ -37,6 +37,7 @@ impl VNextSession {
         frames: &[&[u8]],
         workers: usize,
     ) -> Result<Vec<Option<Vec<u8>>>, Vec<Diagnostic>> {
+        self.package_attachment_closed = true;
         if frames.is_empty() || frames.len() > MAX_FRAMES || !(1..=MAX_WORKERS).contains(&workers) {
             return Err(failure(
                 "SPX-G294",
@@ -60,7 +61,11 @@ impl VNextSession {
                 "parallel read frame exceeds its byte bound",
             ));
         }
-        let available = methods(&self.policy, self.commit.is_some());
+        let available = session_methods(
+            &self.policy,
+            self.commit.is_some(),
+            self.package_graph.is_some(),
+        );
         let reads = frames
             .iter()
             .map(|frame| prepare_read(frame, &available, &self.image))
@@ -75,6 +80,7 @@ impl VNextSession {
                 .collect());
         }
         let image = &self.image;
+        let package_graph = self.package_graph.as_deref();
         let registry = &self.registry;
         let policy = self.policy;
         let test_enabled = policy.test_policy.is_some();
@@ -146,6 +152,9 @@ impl VNextSession {
                             Operation::VNext(Action::Dependencies) => {
                                 dependencies::prepare(params, image)
                             }
+                            Operation::VNext(
+                                action @ (Action::PackageSummary | Action::PackageConsumers),
+                            ) => package_graph::prepare(action, params, image, package_graph),
                             Operation::VNext(Action::AnalysisCoverage) => {
                                 analysis_coverage::prepare(params, image)
                             }
@@ -169,11 +178,15 @@ impl VNextSession {
     /// Discover the host batch API's fixed read subset without doing source
     /// work. This does not add a JSON-RPC batching method or an authority grant.
     pub fn parallel_read_methods(&self) -> Vec<&'static str> {
-        methods(&self.policy, self.commit.is_some())
-            .into_iter()
-            .filter(|method| parallel_read(method.operation))
-            .map(|method| method.name)
-            .collect()
+        session_methods(
+            &self.policy,
+            self.commit.is_some(),
+            self.package_graph.is_some(),
+        )
+        .into_iter()
+        .filter(|method| parallel_read(method.operation))
+        .map(|method| method.name)
+        .collect()
     }
 }
 
@@ -200,6 +213,7 @@ fn parallel_read(operation: Operation) -> bool {
             | Operation::Facet
             | Operation::VNext(Action::Dependencies)
             | Operation::VNext(Action::AnalysisCoverage)
+            | Operation::VNext(Action::PackageSummary | Action::PackageConsumers)
             | Operation::VNext(Action::CleanupDependencies)
             | Operation::VNext(Action::DependencySummary | Action::DependencyPage)
     )

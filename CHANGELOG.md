@@ -16,6 +16,12 @@
   Rust 1.88/Clang 14, including hostile handles and issuer boundaries; the nested
   offline Cargo consumer is excluded. No hosted or full-profile promotion.
 
+- Added an authenticated package semantic graph with coordinate-qualified
+  consumer queries, separate import/call facts, and explicit host-selected v5
+  reads. The graph reuses complete package source-capsule replay and never
+  infers a Project dependency from matching IDs. Regression sources are
+  authored, unrun; package acquisition and publication remain separate.
+
 - Fixed new-project failed-publication cleanup authority: return the rename
   error before reopening `src`, so a replacement directory cannot become owned
   merely because it contains the original tracked files. Failed rename retains

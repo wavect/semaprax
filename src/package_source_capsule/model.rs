@@ -111,6 +111,19 @@ pub(crate) struct LinkedPackageImportFact {
     pub(crate) ordinal: usize,
 }
 
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(crate) struct LinkedPackageCallFact {
+    pub(crate) caller_package: Coordinate,
+    pub(crate) target_package: Coordinate,
+    pub(crate) caller: String,
+    pub(crate) target: String,
+    pub(crate) site: &'static str,
+    pub(crate) expression: String,
+    pub(crate) ast_path: String,
+    pub(crate) alias: String,
+    pub(crate) ordinal: usize,
+}
+
 #[allow(
     dead_code,
     reason = "frozen crate-private receipt consumed by Offline Package Build v2"
@@ -121,6 +134,7 @@ pub(crate) struct VerifiedLinkedSourceCapsule {
     pub(crate) selected_subjects: Vec<PackageSourceSubject>,
     pub(crate) package_facts: Vec<LinkedPackageSourceFact>,
     pub(crate) import_facts: Vec<LinkedPackageImportFact>,
+    pub(crate) call_facts: Vec<LinkedPackageCallFact>,
 }
 
 pub(crate) struct BuiltCapsule {
@@ -130,6 +144,7 @@ pub(crate) struct BuiltCapsule {
     pub(crate) selected_subjects: Vec<PackageSourceSubject>,
     pub(crate) package_facts: Vec<LinkedPackageSourceFact>,
     pub(crate) import_facts: Vec<LinkedPackageImportFact>,
+    pub(crate) call_facts: Vec<LinkedPackageCallFact>,
 }
 
 pub(crate) struct VerifiedSourceCapsuleFacts {

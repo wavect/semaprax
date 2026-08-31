@@ -55,6 +55,12 @@ It also includes `image/analysis-coverage`, a pure retained-input inventory of
 known facts and uninspected analysis boundaries. Its workers receive no access
 to deployment configuration, generators, external services or runtime state.
 
+When the host attached a verified package graph before any request, its
+package summary/consumer methods also join the allowlist. Workers borrow that
+independent immutable subject; they do not receive package inputs, acquisition
+handles, or permission to rebind the current Project to it. The ordinary held
+Project source authentication remains required for the enclosing session.
+
 Every accepted semantic batch rechecks its one held source snapshot before
 starting workers and after all workers join and render bounded results. An
 observed drift discards all rows, including otherwise successful rows, and

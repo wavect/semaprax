@@ -572,6 +572,12 @@ and candidate Web/npm carriers through existing independently verified pathless
 artifact projections. File-content, stable export, source and carrier bindings
 remain distinct. V5 requires the existing build grant and provides report chunks;
 neither report generation nor verification installs or publishes artifacts.
+`project/image_targets/openapi.rs` extends this pathless review lane with actual
+per-source OpenAPI envelopes. The shared `openapi.rs` renderer preserves its
+scalar admission rules; the Project carrier rebuilds every canonical input and
+regenerates the artifacts before exact replay. Source-selected stable IDs bind
+documents to exports, while image summaries and candidate deltas retain their
+existing authority boundaries. See [OpenAPI Artifacts](IMAGE-OPENAPI-ARTIFACTS-V1.md).
 The [integrated workflow](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md) is authored,
 unrun and publishes managed generations only; canonical Git files stay unchanged.
 

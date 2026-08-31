@@ -148,3 +148,9 @@ schema import parsing; no live conformance fixtures; no registry, server, or
 hosting; no target execution; read-only with no source changes. Widened-type
 evidence lives in `tests/schema_scalar_widen_v1.rs` over repository-relative
 fixtures.
+
+The additive [Project image OpenAPI artifact lane](IMAGE-OPENAPI-ARTIFACTS-V1.md)
+reuses this renderer and admission vocabulary for manifest-selected stable IDs
+in retained canonical Project sources. Its complete Project replay owns
+cross-file source validity; it introduces no new standalone CLI selection,
+schema, filesystem authority or runtime conformance claim.

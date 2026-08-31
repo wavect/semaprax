@@ -89,6 +89,7 @@ Audience: all documentation readers.
 - [Agent Discovery and Typed Clients v5](IMAGE-AGENT-DISCOVERY-V5.md)
 - [Source Commit Protocol v5](IMAGE-SOURCE-COMMIT-PROTOCOL-V5.md)
 - [Image Target and Artifact Projections v1](IMAGE-TARGET-ARTIFACTS-V1.md)
+- [Source-bound OpenAPI Artifacts v1](IMAGE-OPENAPI-ARTIFACTS-V1.md)
 - [Workspace Session CLI and Host Policies](WORKSPACE-SESSION-CLI-V1.md)
 - [Project Graph-operational Workflow v1](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md)
 - [Project Graph-operational Git Workflow v1](PROJECT-GRAPH-OPERATIONAL-GIT-WORKFLOW-V1.md)

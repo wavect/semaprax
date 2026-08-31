@@ -265,6 +265,82 @@ pub fn generate(
     Ok(envelope)
 }
 
+/// Pure reuse of the existing document renderer for one source in an already
+/// completely admitted Project. Imported callees remain in that Project's
+/// verified source closure; no standalone verification or stub body replaces
+/// them. The image caller independently rebuilds that full closure for replay.
+pub(crate) fn project_source_envelope(
+    revision: &crate::project::ProjectRevision,
+    path: &str,
+    selections: &[String],
+    options: &OpenApiOptions,
+) -> Result<String, Vec<Diagnostic>> {
+    OpenApiOptions::new(options.max_bytes).map_err(|error| vec![error])?;
+    if selections.is_empty() || selections.len() > MAX_FUNCTIONS {
+        return Err(vec![options_error(format!(
+            "openapi requires between 1 and {MAX_FUNCTIONS} stable-ID selections"
+        ))]);
+    }
+    let source = revision
+        .sources()
+        .iter()
+        .find(|source| source.path() == path)
+        .ok_or_else(|| {
+            vec![selection_error(
+                "Project OpenAPI source is absent".to_owned(),
+            )]
+        })?;
+    let program = parse(source.source(), Path::new(path)).map_err(|error| vec![error])?;
+    if format::canonical(&program) != source.source() {
+        return Err(vec![authentication_error(
+            "Project OpenAPI source is not canonical".to_owned(),
+        )]);
+    }
+    let mut selected = BTreeSet::new();
+    for id in selections {
+        if !selected.insert(id.as_str()) || !revision.manifest().web_exports().contains(id) {
+            return Err(vec![options_error(
+                "Project OpenAPI selection must be a unique manifest export identity".to_owned(),
+            )]);
+        }
+    }
+    let mut admitted = Vec::new();
+    let mut errors = Vec::new();
+    for function in &program.functions {
+        if !selected.remove(function.stable_id.as_str()) {
+            continue;
+        }
+        if !function.explicit_id {
+            errors.push(selection_error(
+                "Project OpenAPI export lacks an explicit identity".to_owned(),
+            ));
+        } else if let Some(reason) = admission(function) {
+            errors.push(excluded_error(format!(
+                "function `{}` is excluded from OpenAPI Schema Generation v1; reason={reason}",
+                function.stable_id
+            )));
+        } else {
+            admitted.push(function);
+        }
+    }
+    if !selected.is_empty() {
+        errors.push(selection_error(
+            "Project OpenAPI export is absent from its authenticated source".to_owned(),
+        ));
+    }
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+    build_envelope(
+        Path::new(path),
+        source.source(),
+        &program,
+        source.source_revision(),
+        &admitted,
+        options,
+    )
+}
+
 /// Admission vocabulary mirrors the widened Copy-scalar export profile: only
 /// monomorphic, effect-free functions over direct by-value Copy scalars
 /// (`i64`, `i32`, `u8`, `f32`, `f64`, `char`, `bool`) are admitted. Bodies

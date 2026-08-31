@@ -84,7 +84,7 @@ pub(super) fn payload(
             .iter()
             .any(|method| method.name == "candidate/artifact-delta")
         {
-            instructions.push_str(" Use candidate/artifact-delta only when candidate_build is granted. Bind candidate_revision and select kind web or npm to compare actual independently replayed pathless artifact carriers against the original base. Candidate replay precedes both builds; each side has a fixed 16 MiB build limit that requests cannot override. Reassemble the report using offset and next_offset, with chunk_bytes 1024 through 65536 (default 16384) and an 8 MiB report bound. The heterogeneous report is explicitly unbundled. No artifact paths are written, package manager or target executable is run, or publication authority granted.");
+            instructions.push_str(" Use candidate/build or candidate/artifact-delta only when candidate_build is granted. Bind candidate_revision and select kind web, npm or openapi for an independently replayed pathless artifact projection or its before/after comparison against the original base. OpenAPI projects supported manifest-selected export signatures as schema documents; it does not host or execute an HTTP service or establish external compatibility. Candidate replay precedes builds; each side has a fixed 16 MiB build limit that requests cannot override. Reassemble reports using offset and next_offset, with chunk_bytes 1024 through 65536 (default 16384); projection reports are bounded to 1 MiB and delta reports to 8 MiB. Heterogeneous reports remain explicitly unbundled. No artifact paths are written, package manager or target executable is run, or publication authority granted.");
         }
         if methods
             .iter()
@@ -763,6 +763,87 @@ mod tests {
             chunk["properties"]["candidate_revision"]["anyOf"][1]["type"],
             "null"
         );
+    }
+    #[test]
+    fn openapi_artifact_kind_uses_existing_build_grant_and_closed_client_schemas() {
+        for policy in [
+            VNextPolicy::default(),
+            VNextPolicy {
+                candidate_prepare: true,
+                ..VNextPolicy::default()
+            },
+        ] {
+            let bundle = selected(policy);
+            for name in ["candidate/build", "candidate/artifact-delta"] {
+                assert!(!bundle["methods"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|method| method["method"] == name));
+            }
+        }
+        let bundle = selected(VNextPolicy {
+            candidate_prepare: true,
+            build_enabled: true,
+            ..VNextPolicy::default()
+        });
+        for name in ["candidate/build", "candidate/artifact-delta"] {
+            let method = bundle["methods"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|method| method["method"] == name)
+                .unwrap();
+            assert_eq!(method["capability"], "candidate_build");
+            assert_eq!(method["query"], false);
+            let params = &method["request_schema"]["properties"]["params"];
+            assert_eq!(params["additionalProperties"], false);
+            assert_eq!(
+                params["properties"]["kind"]["enum"],
+                json!(["web", "npm", "openapi"])
+            );
+            assert_eq!(params["properties"].as_object().unwrap().len(), 5);
+            assert!(params["properties"].get("max_build_bytes").is_none());
+            assert!(params["properties"].get("path").is_none());
+        }
+        for id in [
+            "urn:semaprax.image-artifact-projection-chunk.v1",
+            "urn:semaprax.image-artifact-delta-chunk.v1",
+        ] {
+            let chunk = bundle["documents"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|document| document["$id"] == id)
+                .unwrap();
+            assert_eq!(chunk["additionalProperties"], false);
+            let kind = &chunk["properties"]["kind"];
+            let choices = kind
+                .get("enum")
+                .or_else(|| kind["anyOf"][0].get("enum"))
+                .unwrap();
+            assert_eq!(choices, &json!(["web", "npm", "openapi"]));
+            for field in [
+                "source_authority",
+                "artifact_materialization",
+                "target_execution",
+            ] {
+                assert_eq!(chunk["properties"][field]["const"], false);
+            }
+        }
+        for language in ["typescript", "python", "rust"] {
+            let source = clients::generate(language, &bundle).unwrap();
+            assert!(source.contains("openapi"));
+            assert!(source.contains("request_candidate_build"));
+            assert!(source.contains("request_candidate_artifact_delta"));
+        }
+        for test_enabled in [false, true] {
+            for method in crate::image_transport::candidates::diagnostics::methods(test_enabled) {
+                assert!(!serde_json::to_string(&method_description(method))
+                    .unwrap()
+                    .contains("openapi"));
+            }
+        }
     }
     #[test]
     fn generated_clients_have_typed_builders_bounds_and_actual_lf_escapes() {

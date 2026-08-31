@@ -12,10 +12,11 @@ establish that this function caused the failure. The report labels this scope
 and carries the owning compiler diagnostic without claiming runtime execution,
 native machine-code compilation, standalone function support or failure blame.
 
-`artifact_projection(expected_image, ImageArtifactKind::{Web,Npm}, max_bytes)`
-invokes the existing pathless Project carrier builder for the selected kind.
+`artifact_projection(expected_image, ImageArtifactKind::{Web,Npm,OpenApi}, max_bytes)`
+invokes the pathless Project carrier builder for the selected kind.
 The existing manifest/profile decides admission; Web remains scalar Project v1,
-and npm keeps its existing supported profiles. The returned carrier is
+and npm keeps its existing supported profiles. OpenAPI retains its scalar
+document profile as described below. The returned carrier is
 independently replayed before its schema, payload digest, exact envelope SHA256,
 file paths, byte counts and individual SHA256 bindings are projected. Nothing
 is installed, executed or written to a filesystem output directory.
@@ -24,8 +25,11 @@ Manifest-selected public export stable IDs link to their retained source
 declarations. Every authenticated source path/digest/revision is also listed as
 a Project input. These are source/manifest and carrier relationships, not
 dynamic coverage, proof that every file exports every declaration, external
-consumer usage, or npm installation evidence. Rust/C/OpenAPI package carriers
-and package-consumer migration are outside this report.
+consumer usage, or npm installation evidence. Rust/C package carriers and
+package-consumer migration remain outside this report. The additive
+[OpenAPI artifact kind](IMAGE-OPENAPI-ARTIFACTS-V1.md) provides source-bound
+per-module documents through the existing scalar generator and full Project
+source replay, while preserving Web/npm report bytes.
 
 The artifact build/envelope bound is host-selected within 1 KiB–16 MiB. Compact
 reports are at most 1 MiB and contain no encoded artifact bodies. Existing
@@ -46,7 +50,7 @@ Image Agent Protocol v5 adds `image/target-admission` as a `semantic_read` query
 It takes exact `image_revision`, `target`, and optional bounded UTF-8 chunk
 offset/size. `candidate/build` is exposed only if the host selected both
 candidate preparation and build authority. It takes a retained candidate, kind
-`web` or `npm`, and chunk controls; requests cannot widen its fixed 16 MiB build
+`web`, `npm` or additive `openapi`, and chunk controls; requests cannot widen its fixed 16 MiB build
 bound. The candidate's entire recovery history is independently restored before
 building and replaying its pathless carrier. It returns artifact-projection
 chunks, never filesystem materialization or publication authority.

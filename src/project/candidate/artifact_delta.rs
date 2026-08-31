@@ -187,6 +187,23 @@ impl ProjectCandidate {
             "changed_files":files.len()-unchanged_files,"unchanged_files":unchanged_files,
             "base_exports":base_exports.len(),"candidate_exports":candidate_exports.len(),
             "changed_exports":exports.len()-unchanged_exports,"unchanged_exports":unchanged_exports});
+        // Preserve earlier Web/npm report bytes. OpenAPI is an additive
+        // source-bound projection, not a claim about native package support.
+        let outside_projection = if kind == ImageArtifactKind::OpenApi {
+            json!(["rust", "c"])
+        } else {
+            json!(["rust", "c", "openapi"])
+        };
+        let export_relationship_scope = if kind == ImageArtifactKind::OpenApi {
+            "manifest_selected_exports_with_exact_source_document_and_operation_mapping"
+        } else {
+            "manifest_selected_exports_of_whole_carrier_not_per_file_edges"
+        };
+        let mapping_nonclaim = if kind == ImageArtifactKind::OpenApi {
+            "document_operation_mapping_is_not_live_http_routing"
+        } else {
+            "not_per_file_export_mapping"
+        };
         render(
             json!({"schema":PROJECT_CANDIDATE_ARTIFACT_DELTA_SCHEMA,"kind":kind.name(),
             "candidate_digest":expected_candidate,"base_project_revision":replay.base.project_revision(),
@@ -197,13 +214,13 @@ impl ProjectCandidate {
             "files":files,"exports":exports,"inventory":inventory,
             "max_build_bytes":MAX_IMAGE_ARTIFACT_BUILD_BYTES,
             "evidence_class":"exact_candidate_replay_and_independently_replayed_pathless_carrier_delta",
-            "export_relationship_scope":"manifest_selected_exports_of_whole_carrier_not_per_file_edges",
-            "outside_projection":["rust","c","openapi"],
+            "export_relationship_scope":export_relationship_scope,
+            "outside_projection":outside_projection,
             "artifact_materialization":false,"target_execution":false,"source_authority":false,
             "limits":{"max_report_bytes":MAX_PROJECT_CANDIDATE_ARTIFACT_DELTA_BYTES,"max_projection_bytes":MAX_IMAGE_ARTIFACT_REPORT_BYTES,
                 "max_fact_work_bytes":MAX_FACT_BYTES,"max_items":MAX_ITEMS,"max_json_syntax_visits":MAX_VISITS,"max_json_depth":MAX_DEPTH},
             "nonclaims":["not_runtime_or_test_coverage","not_external_consumer_usage_or_compatibility",
-                "not_package_installation_or_publication","not_per_file_export_mapping","no_native_compiler_or_package_manager_execution",
+                "not_package_installation_or_publication",mapping_nonclaim,"no_native_compiler_or_package_manager_execution",
                 "no_filesystem_artifact_materialization","no_source_or_publication_authority",
                 "outside_projection_does_not_assert_platform_absence","not_allocator_or_RSS_accounting"]}),
         )

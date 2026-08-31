@@ -220,7 +220,10 @@ fn build_permission_is_required_and_discovery_is_closed_without_client_elevation
         let params = &descriptor["request_schema"]["properties"]["params"];
         assert_eq!(params["additionalProperties"], false);
         assert_eq!(params["properties"].as_object().unwrap().len(), 5);
-        assert_eq!(params["properties"]["kind"]["enum"], json!(["web", "npm"]));
+        assert_eq!(
+            params["properties"]["kind"]["enum"],
+            json!(["web", "npm", "openapi"])
+        );
         assert_eq!(params["properties"]["offset"]["maximum"], 8 * 1024 * 1024);
         for absent in [
             "target",

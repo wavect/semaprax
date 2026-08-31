@@ -88,9 +88,26 @@ fn render_arguments(output: &mut String, count: usize) {
 }
 
 fn render_ffi(descriptor: &Descriptor, mode: PackageMode) -> String {
+    let has_owned_result = descriptor.exports.iter().any(|export| {
+        matches!(
+            export.result,
+            ResultKind::OwnedBytes
+                | ResultKind::OptionOwnedBytes
+                | ResultKind::ResultOwnedBytesI64
+                | ResultKind::OwnedUtf8
+        )
+    });
     let mut output = String::from(
-        "#![allow(unsafe_code)]\nuse core::marker::PhantomData;use core::ptr::NonNull;use std::rc::Rc;\n#[repr(C)]struct RawContext{_private:[u8;0]}\ntype Handle=u64;type Status=u32;\nextern \"C\"{fn spx_owned_data_context_size_v1()->u64;fn spx_owned_data_context_align_v1()->u64;fn spx_owned_data_context_init_v1(storage:*mut core::ffi::c_void,length:u64)->Status;fn spx_owned_data_context_drop_v1(context:*mut RawContext)->Status;fn spx_owned_bytes_len_v1(context:*mut RawContext,handle:Handle,length:*mut u64)->Status;fn spx_owned_bytes_copy_v1(context:*mut RawContext,handle:Handle,destination:*mut u8,length:u64)->Status;fn spx_owned_bytes_drop_v1(context:*mut RawContext,handle:Handle)->Status;\n",
+        "#![allow(unsafe_code)]\nuse core::marker::PhantomData;use core::ptr::NonNull;use std::rc::Rc;\n#[repr(C)]struct RawContext{_private:[u8;0]}\n",
     );
+    if has_owned_result {
+        output.push_str("type Handle=u64;");
+    }
+    output.push_str("type Status=u32;\nextern \"C\"{fn spx_owned_data_context_size_v1()->u64;fn spx_owned_data_context_align_v1()->u64;fn spx_owned_data_context_init_v1(storage:*mut core::ffi::c_void,length:u64)->Status;fn spx_owned_data_context_drop_v1(context:*mut RawContext)->Status;");
+    if has_owned_result {
+        output.push_str("fn spx_owned_bytes_len_v1(context:*mut RawContext,handle:Handle,length:*mut u64)->Status;fn spx_owned_bytes_copy_v1(context:*mut RawContext,handle:Handle,destination:*mut u8,length:u64)->Status;fn spx_owned_bytes_drop_v1(context:*mut RawContext,handle:Handle)->Status;");
+    }
+    output.push('\n');
     for export in &descriptor.exports {
         write!(
             output,
@@ -112,7 +129,10 @@ fn render_ffi(descriptor: &Descriptor, mode: PackageMode) -> String {
             }
         }
     }
-    output.push_str("}\n#[derive(Clone,Copy)]pub(super)enum Failure{Semantic,Adapter,Host}\npub(super)struct RawCall{pub tag:u32,pub handle:Handle,pub error:i64}\n");
+    output.push_str("}\n#[derive(Clone,Copy)]pub(super)enum Failure{Semantic,Adapter,Host}\n");
+    if has_owned_result {
+        output.push_str("pub(super)struct RawCall{pub tag:u32,pub handle:Handle,pub error:i64}\n");
+    }
     output.push_str(super::owned_ffi_runtime::CONTEXT);
     for export in &descriptor.exports {
         write!(output, "pub fn call_{}(&mut self", export.rust_method_name).unwrap();
@@ -156,10 +176,18 @@ fn render_ffi(descriptor: &Descriptor, mode: PackageMode) -> String {
             }
         }
     }
-    super::owned_ffi_runtime::append_owner_operations(
-        &mut output,
-        mode == PackageMode::StandaloneEvidence,
-    );
+    if has_owned_result {
+        // Every owned carrier has a malformed-success path that discards its
+        // live result; scalar-only selections have no such owner operations.
+        super::owned_ffi_runtime::append_owner_operations(
+            &mut output,
+            mode == PackageMode::StandaloneEvidence,
+            true,
+        );
+    } else {
+        output.push_str("}\n");
+    }
+    output.push_str(super::owned_ffi_runtime::INVOCATION);
     output
 }
 

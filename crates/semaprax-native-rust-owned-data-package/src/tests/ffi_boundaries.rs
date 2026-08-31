@@ -63,7 +63,8 @@ pub(crate) fn run_boundary_fixture(kind: u32, lib: &str, ffi: &str, method: &str
     // delete a caller-controlled temporary-directory tree.
     std::fs::write(root.join("sdk.rs"), lib).unwrap();
     let marker = "let mut guard=Guard{context:self,handle,armed:true};";
-    assert_eq!(ffi.matches(marker).count(), 1);
+    let has_owner = kind <= 3 || kind == 7;
+    assert_eq!(ffi.matches(marker).count(), usize::from(has_owner));
     let instrumented = ffi.replace(
         marker,
         &format!("{marker}\nif crate::mode()==21{{panic!(\"host unwind after owner guard\")}}"),

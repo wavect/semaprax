@@ -158,7 +158,16 @@ fn render_ffi(descriptor: &Descriptor) -> String {
         }
         output.push_str("if status==0{Ok(value)}else{match status{1=>Err(Failure::Semantic),2..=5=>Err(Failure::Adapter),_=>Err(Failure::Host)}}}\n");
     }
-    super::owned_ffi_runtime::append_owner_operations(&mut output, false);
+    // A Bool parameter does not create a result-owner discard path. Scan all
+    // selected records, including those belonging to later exports.
+    let needs_discard = descriptor.exports.iter().any(|export| {
+        export
+            .fields
+            .iter()
+            .any(|field| field.kind == FieldKind::Bool)
+    });
+    super::owned_ffi_runtime::append_owner_operations(&mut output, false, needs_discard);
+    output.push_str(super::owned_ffi_runtime::INVOCATION);
     output
 }
 

@@ -40,7 +40,11 @@ fn close(&mut self){
 }
 "#;
 
-pub(super) fn append_owner_operations(output: &mut String, exact_capacity: bool) {
+pub(super) fn append_owner_operations(
+    output: &mut String,
+    exact_capacity: bool,
+    needs_discard: bool,
+) {
     output.push_str(r#"
 pub fn copy_and_settle(&mut self,handle:Handle)->Result<Vec<u8>,Failure>{
     let mut guard=Guard{context:self,handle,armed:true};
@@ -60,22 +64,32 @@ pub fn copy_and_settle(&mut self,handle:Handle)->Result<Vec<u8>,Failure>{
     guard.armed=false;
     Ok(bytes)
 }
-pub fn discard(&mut self,handle:Handle)->Result<(),Failure>{
+"#);
+    if needs_discard {
+        output.push_str(
+            r#"pub fn discard(&mut self,handle:Handle)->Result<(),Failure>{
     if unsafe{spx_owned_bytes_drop_v1(self.raw.as_ptr(),handle)}!=0{std::process::abort()}
     Ok(())
 }
-}
+"#,
+        );
+    }
+    output.push_str(r#"}
 struct Guard<'a>{context:&'a mut Context,handle:Handle,armed:bool}
 impl Drop for Guard<'_>{
     fn drop(&mut self){
         if self.armed&&unsafe{spx_owned_bytes_drop_v1(self.context.raw.as_ptr(),self.handle)}!=0{std::process::abort()}
     }
 }
-// Owner guards are nested inside the invocation callback. Rust unwinds those
+"#);
+}
+
+// Always emitted, even when all selected results are scalars: successful
+// copying is not the proof that the complete provider context has settled.
+pub(super) const INVOCATION: &str = r#"// Owner guards are nested inside the invocation callback. Rust unwinds those
 // first, then reaches this guard; provider closure therefore follows ownership
 // settlement on ordinary errors and on host unwinding alike.
 struct Invocation<'a>{context:&'a mut Context}
 impl Drop for Invocation<'_>{fn drop(&mut self){self.context.close()}}
 impl Drop for Context{fn drop(&mut self){let _=self.storage.len();self.close()}}
-"#);
-}
+"#;

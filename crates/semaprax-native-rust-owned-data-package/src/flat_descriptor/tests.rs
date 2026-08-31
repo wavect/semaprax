@@ -158,6 +158,67 @@ fn generated_flat_record_sdk_closes_before_publication() {
     );
 }
 
+#[test]
+fn generated_discard_helper_follows_bool_fields_across_all_exports() {
+    let first = || {
+        export(
+            "api.first",
+            "record.first",
+            "BytesAndSize",
+            vec![
+                field("field.bytes", "bytes", FieldKind::OwnedBytes, 0),
+                field("field.size", "size", FieldKind::Usize, 1),
+            ],
+        )
+    };
+    let sources = |exports: Vec<Export>, selected: &[String]| {
+        let bytes = render::canonical(&descriptor(exports));
+        let replayed = replay(&bytes, &flat_descriptor_digest(&bytes), selected).unwrap();
+        crate::flat_render::render_sources(&replayed, crate::HostTarget::current().unwrap())
+    };
+    let without_bool = sources(vec![first()], &["api.first".to_owned()]);
+    assert_eq!(without_bool.ffi_rs.matches("pub fn discard(").count(), 0);
+    assert_eq!(without_bool.ffi_rs.matches("self.discard(").count(), 0);
+    assert_eq!(
+        without_bool
+            .ffi_rs
+            .matches("pub fn copy_and_settle(")
+            .count(),
+        1
+    );
+    assert_eq!(without_bool.ffi_rs.matches("struct Guard<'a>").count(), 1);
+
+    // A predicate inspecting only the first export would omit the helper
+    // needed to settle an owned field on the later export's malformed Bool.
+    let with_later_bool = sources(
+        vec![
+            first(),
+            export(
+                "api.second",
+                "record.second",
+                "BytesAndBool",
+                vec![
+                    field("field.bytes", "bytes", FieldKind::OwnedBytes, 0),
+                    field("field.flag", "flag", FieldKind::Bool, 1),
+                ],
+            ),
+        ],
+        &["api.first".to_owned(), "api.second".to_owned()],
+    );
+    let ffi = &with_later_bool.ffi_rs;
+    assert_eq!(ffi.matches("pub fn discard(").count(), 1);
+    assert_eq!(ffi.matches("self.discard(").count(), 1);
+    assert_eq!(ffi.matches("pub fn copy_and_settle(").count(), 1);
+    assert_eq!(ffi.matches("struct Guard<'a>").count(), 1);
+    let (first_call, later_call) = ffi.split_once("pub fn call_spx_api_dot_second(").unwrap();
+    assert!(!first_call.contains("self.discard("));
+    assert!(later_call.contains(
+        "if status==0&&value.slots[1]>1{self.discard(value.slots[0])?;return Err(Failure::Adapter)}"
+    ));
+    // The existing generated_flat_record_sdk_closes_before_publication test
+    // separately executes malformed-success Bool mode 20 against its ABI double.
+}
+
 fn field(id: &str, source: &str, kind: FieldKind, ordinal: usize) -> Field {
     Field {
         stable_id: id.to_owned(),

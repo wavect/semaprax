@@ -126,6 +126,15 @@ nonreused. Generated safe/private Rust and integrity bindings intentionally chan
 not provider C/ABI, public signatures, descriptor or manifest schemas. These
 regressions are authored but unrun.
 
+The later [descriptor-selected Rust helper correction](PUBLIC-OWNED-DATA-API-V1.md#descriptor-selected-private-rust-helpers)
+omits unused owner-only FFI declarations for admitted scalar-only v10 selections,
+while keeping the complete context protocol. Any selected Bytes/owned-UTF8
+result retains copying, malformed-carrier discard and owner guards byte-for-byte.
+Only scalar-only private FFI and dependent integrity bindings change, not v10
+admission, public signatures, providers or schemas. Warning-denied scalar SDK
+metadata/consumer checks pass with Rust 1.85.1, 1.88 and 1.98; the documented real
+minimum-version Cargo handoff covers v8/v9, not an actual v10 provider package.
+
 The native correction is confined to the existing v10 owned-UTF8 provider
 projection. Its per-function physical String owner cells are declared and
 initialized before any recoverable failure branch. Emission records the exact

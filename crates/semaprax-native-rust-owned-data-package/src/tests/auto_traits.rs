@@ -48,7 +48,7 @@ fn generated() -> Vec<(&'static str, String, String)> {
     profiles
 }
 
-fn write_new(path: &Path, text: &str) {
+pub(super) fn write_new(path: &Path, text: &str) {
     OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -58,7 +58,7 @@ fn write_new(path: &Path, text: &str) {
         .unwrap();
 }
 
-fn compiler(source: &Path, output: &Path, name: &str) -> Command {
+pub(super) fn compiler(source: &Path, output: &Path, name: &str) -> Command {
     let mut command = Command::new("rustc");
     command
         .args([
@@ -66,6 +66,7 @@ fn compiler(source: &Path, output: &Path, name: &str) -> Command {
             "--crate-type=lib",
             "--emit=metadata",
             "--error-format=json",
+            "-Dwarnings",
             "--crate-name",
             name,
         ])
@@ -75,7 +76,7 @@ fn compiler(source: &Path, output: &Path, name: &str) -> Command {
     command
 }
 
-fn success(output: Output, metadata: &Path) {
+pub(super) fn success(output: Output, metadata: &Path) {
     assert!(
         output.status.success(),
         "{}",

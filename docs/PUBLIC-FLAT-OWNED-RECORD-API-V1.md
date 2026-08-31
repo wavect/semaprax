@@ -179,6 +179,15 @@ types, descriptors, or manifest schemas. The private invocation counter resets
 on reinitialization; the linked provider's handle issuer does not. These
 corrections and their hostile-consumer evidence are authored but unrun.
 
+The later [descriptor-selected private Rust helper correction](PUBLIC-OWNED-DATA-API-V1.md#descriptor-selected-private-rust-helpers)
+omits unused `discard` only for selections with no Bool result field. A Bool
+in any selected record retains owner disposal before malformed-success rejection;
+copying, owner guards and checked context closure are unchanged. Only Bool-free
+v9 private FFI and its integrity binding change. Fresh real mixed-borrow v9
+packages pass warning-denied, locked/offline Rust 1.85.1 consumers on Linux
+AArch64; the linked provider archive remains byte-identical. This does not
+promote v9 or establish exact Rust 1.85.0 or Windows support.
+
 The subsequent [owned-data internal String correction](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md)
 applies to the shared v8/v9 native emitter. Its length-header helpers and inline
 owner ledger cover the full emitted function inventory, including unselected

@@ -246,6 +246,14 @@
   client tests pass locally, including actual Python and offline Rust consumers;
   full-profile and current-head hosted validation remain pending.
 
+- Generate private owned-SDK helpers from validated result shapes instead of
+  emitting unused ownership code. Scalar-only selections retain checked context
+  closure; flat records retain discard whenever any result Bool requires it.
+  Added warning-denied generated-SDK consumers and later-export Bool coverage.
+  Fresh real v8/v9 packages pass Rust 1.85.1 strict offline consumers; compared
+  provider archives and every v8 package byte remain unchanged. Only affected
+  private FFI and manifest bindings change; no ABI, admission or support promotion.
+
 - Added external compile-negative `Send`/`Sync` guards for four generated
   owned-data SDK variants, with healthy metadata consumers and exact compiler
   diagnostic checks. The gate passes on Linux/macOS, as do real v8/v9 native

@@ -489,6 +489,16 @@ snapshot/image. Immutable historical candidate handles survive; drafts and
 attempts are cleared on success. The default constructor uses cold source
 recovery; the explicit cache constructors below select reuse strategies.
 
+The optional `image_transport/vnext/mcp.rs` adapter consumes a configured v5
+session. Its pinned MCP lifecycle and stdio framing delegate semantic calls
+to the ordinary v5 handler, preserving source and publication boundaries.
+`mcp_catalog.rs` derives a collision-checked tool mapping and local-reference
+input schemas from selected methods. Response capacity is reserved before
+forwarding calls so wrapper escaping cannot hide a completed mutation or
+publication. The CLI shares `workspace_session` startup policy loading between
+ordinary NDJSON and `serve-workspace-mcp`; no client capability becomes authority.
+See [MCP Adapter](IMAGE-MCP-ADAPTER-V1.md) for bounds and unrun evidence.
+
 An opt-in `open_with_frontend_cache` constructor uses the same authenticated
 filesystem loader with `ProjectFrontendCache` as its build strategy. It parses
 fresh source directly on first load, then stages exact-source AST reuse during

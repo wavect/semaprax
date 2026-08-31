@@ -307,17 +307,21 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{context}");
             Ok(())
         }
-        "serve-workspace" => {
+        "serve-workspace" | "serve-workspace-mcp" => {
             if args.len() != 3
                 || args[1..]
                     .iter()
                     .any(|argument| argument.is_empty() || argument.starts_with('-'))
             {
-                eprintln!("serve-workspace requires exactly <manifest> <host-policy.json>");
+                eprintln!("{command} requires exactly <manifest> <host-policy.json>");
                 return Err(2);
             }
-            cli::workspace_session::run(Path::new(&args[1]), Path::new(&args[2]))
-                .map_err(|errors| report(&errors, false))
+            if command == "serve-workspace-mcp" {
+                cli::workspace_session::run_mcp(Path::new(&args[1]), Path::new(&args[2]))
+            } else {
+                cli::workspace_session::run(Path::new(&args[1]), Path::new(&args[2]))
+            }
+            .map_err(|errors| report(&errors, false))
         }
         "serve-image"
         | "serve-candidates"
@@ -2515,6 +2519,7 @@ fn print_help() {
            semaprax project-draft-load <store-root> <archive-digest> <draft-digest>\n\
            semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\n\
            semaprax serve-workspace <manifest> <host-policy.json>\n\
+           semaprax serve-workspace-mcp <manifest> <host-policy.json>\n\
            semaprax serve-image <manifest>\n\
            semaprax serve-candidates <manifest>\n\
            semaprax serve-test-candidates <manifest>\n\

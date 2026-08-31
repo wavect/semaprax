@@ -253,7 +253,9 @@ pub(crate) fn is_overflow_response(response: &[u8]) -> bool {
         })
 }
 
-fn scan_closed_request(frame: &[u8]) -> Result<(), RpcError> {
+/// Check duplicate members and the closed request envelope after bounded JSON
+/// parsing. Alternate transports may retain their own JSON-RPC identifier grammar.
+pub(crate) fn scan_closed_request(frame: &[u8]) -> Result<(), RpcError> {
     let mut cursor = skip_whitespace(frame, 0);
     if frame.get(cursor) != Some(&b'{') {
         return Ok(());

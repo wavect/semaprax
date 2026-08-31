@@ -13,6 +13,13 @@ reads one regular bounded policy file before requests begin. Relative manifest
 paths are resolved against the host working directory; normal Project path
 authentication still rejects aliases and unauthorized source shapes.
 
+`semaprax serve-workspace-mcp <manifest> <host-policy.json>` uses the same
+startup loader and every closed policy version below, then wraps the configured
+session in the optional [MCP stdio adapter](IMAGE-MCP-ADAPTER-V1.md). It changes
+framing and discovery only; client capabilities cannot select another policy,
+manifest, archive root or approval. The ordinary `serve-workspace` NDJSON wire
+and argument contract remain unchanged.
+
 The policy is a closed JSON object, at most 64 KiB. A read-only example is:
 
 ```json

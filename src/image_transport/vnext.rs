@@ -13,6 +13,8 @@ mod draft_archive;
 mod draft_merge;
 mod draft_rebase;
 mod draft_recovery;
+mod mcp;
+mod mcp_catalog;
 mod projections;
 mod read_batch;
 mod recovery;
@@ -20,6 +22,9 @@ mod retained_reads;
 mod review_facets;
 pub(super) mod symbol_diagnostics;
 pub use commit::GitCommitHost;
+pub use mcp::{
+    serve_mcp, McpSession, MAX_MCP_REQUEST_BYTES, MAX_MCP_RESPONSE_BYTES, MCP_PROTOCOL_VERSION,
+};
 
 pub const VNEXT_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v5";
 pub const VNEXT_RESULT_SCHEMA: &str = "semaprax.image-agent-result.v5";

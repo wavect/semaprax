@@ -80,6 +80,11 @@ additionally retains the original canonical source needed to reconstruct that
 history after the checkout changes or disappears. It preserves the same
 pending-hole and explicit-completion rules.
 
+[Typed-draft Rebase](PROJECT-CANDIDATE-DRAFT-REBASE-V1.md) can move the checked
+history and all pending hole kinds onto an independently admitted revision.
+It rejects conflicting selected regions, remaps expression identities and
+rebuilds contexts without completing or materializing the unfinished draft.
+
 ## Typed context
 
 The additive [Expression Holes v1](PROJECT-CANDIDATE-EXPRESSION-HOLES-V1.md)

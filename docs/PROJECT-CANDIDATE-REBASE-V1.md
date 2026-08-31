@@ -31,6 +31,11 @@ The report binds both parent candidate digests for a merge; a rebase binds its
 source candidate and the exact admitted destination Project revision. Keep
 this report alongside the resulting candidate when retaining merge ancestry.
 
+The additive [Typed-draft Rebase](PROJECT-CANDIDATE-DRAFT-REBASE-V1.md) first
+uses this checked-history rebase, then separately guards and remaps pending
+body, expression and contract holes. It returns only a draft and its report;
+these complete-candidate APIs and their wire reports remain unchanged.
+
 ## Stable-ID conflict selection
 
 Conflict analysis uses only the candidates' already admitted canonical

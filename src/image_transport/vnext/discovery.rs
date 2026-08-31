@@ -110,6 +110,9 @@ pub(super) fn payload(
         {
             instructions.push_str(" Use hole/archive-export to obtain a self-contained source-backed draft archive in UTF-8 chunks. Keep draft_revision and image_revision fixed while following next_offset; chunk_bytes is 1024 through 65536 (default 16384). To restore, send the structured archive plus exact archive_revision and draft_revision to hole/archive-restore. RPC restoration requires the same exact original source base as the current session; a saved historical base cannot be selected through a request. Only an explicit startup host import may restore a historical source archive before the first frame. The unchanged 64 KiB request-frame limit applies even though the library archive limit is 128 MiB; larger archives require an explicit library host, not larger RPC frames. Restore retains only a draft, not a registered candidate, approval, trusted HIR or source authority. Its source_candidate_revision is a reconstructed association and need not name a registered candidate. Fill and complete through ordinary hole APIs; unresolved holes still block completion. No archive operation is admitted to the immutable image batch.");
         }
+        if methods.iter().any(|method| method.name == "hole/rebase") {
+            instructions.push_str(" Use hole/rebase with exact draft_revision and new_base_candidate_revision to replay a retained draft onto that selected candidate's checked Project revision. Only the resulting draft is retained, with its pending selectors revalidated; its source_candidate_revision need not name a registered candidate. The bounded inline report is limited to 64 KiB, and failed replay, capacity or response preparation retains no new draft. This is conservative typed selector rebinding, not a general semantic merge or behavioral equivalence proof. No implicit completion, source publication, approval, build or test authority is granted. Workspace refresh still clears drafts: recover historical work through explicit startup archive restoration before rebasing. This mutation is excluded from immutable image batches.");
+        }
         result["instructions"] = json!(instructions);
     }
     bounded(result)
@@ -176,7 +179,8 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         | "hole/recovery-export"
         | "hole/recovery-restore"
         | "hole/archive-export"
-        | "hole/archive-restore" => "candidate_prepare",
+        | "hole/archive-restore"
+        | "hole/rebase" => "candidate_prepare",
         "candidate/commit" | "candidate/commit-report" | "source-commit/status" => "source_commit",
         name if name == "candidate/attempt"
             || name == "candidate/symbol-diagnostics"
@@ -736,6 +740,77 @@ mod tests {
                 !crate::image_transport::candidates::diagnostics::methods(test_enabled)
                     .iter()
                     .any(|method| method.name.starts_with("hole/archive-"))
+            );
+        }
+    }
+    #[test]
+    fn draft_rebase_has_exact_selectors_closed_reports_and_no_extra_grant() {
+        let readonly = selected(VNextPolicy::default());
+        assert!(!readonly["methods"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|method| method["method"] == "hole/rebase"));
+        let bundle = selected(VNextPolicy {
+            candidate_prepare: true,
+            ..VNextPolicy::default()
+        });
+        let method = bundle["methods"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|method| method["method"] == "hole/rebase")
+            .unwrap();
+        assert_eq!(method["capability"], "candidate_prepare");
+        assert_eq!(method["query"], false);
+        let params = &method["request_schema"]["properties"]["params"];
+        assert_eq!(params["additionalProperties"], false);
+        assert_eq!(params["properties"].as_object().unwrap().len(), 3);
+        assert_eq!(
+            params["required"],
+            json!([
+                "image_revision",
+                "draft_revision",
+                "new_base_candidate_revision"
+            ])
+        );
+        let documents = bundle["documents"].as_array().unwrap();
+        let wrapper = documents
+            .iter()
+            .find(|doc| doc["$id"] == "urn:semaprax.image-draft-rebase.v1")
+            .unwrap();
+        assert_eq!(wrapper["additionalProperties"], false);
+        assert_eq!(wrapper["required"].as_array().unwrap().len(), 4);
+        assert_eq!(
+            wrapper["properties"]["draft"]["$ref"],
+            "urn:semaprax.image-draft-handle.v1"
+        );
+        let report = documents
+            .iter()
+            .find(|doc| doc["$id"] == "urn:semaprax.project-candidate-draft-rebase.v1")
+            .unwrap();
+        assert_eq!(report["additionalProperties"], false);
+        assert_eq!(report["required"].as_array().unwrap().len(), 12);
+        assert_eq!(
+            report["properties"]["holes"]["items"]["additionalProperties"],
+            false
+        );
+        assert_eq!(report["properties"]["materializable"]["const"], false);
+        assert_eq!(report["properties"]["source_authority"]["const"], false);
+        assert_eq!(
+            report["properties"]["last_valid_rebase"]["$ref"],
+            "urn:semaprax.project-candidate-rebase.v1"
+        );
+        for language in ["typescript", "python", "rust"] {
+            let source = clients::generate(language, &bundle).unwrap();
+            assert!(source.contains("request_hole_rebase"));
+            assert!(source.contains("new_base_candidate_revision"));
+        }
+        for test_enabled in [false, true] {
+            assert!(
+                !crate::image_transport::candidates::diagnostics::methods(test_enabled)
+                    .iter()
+                    .any(|method| method.name == "hole/rebase")
             );
         }
     }

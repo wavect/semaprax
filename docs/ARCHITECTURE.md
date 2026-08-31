@@ -443,6 +443,14 @@ and history under the held store input; no serialized HIR is trusted and raw
 source is not reconstructed on disk. Post-pivot uncertainty never regains
 cleanup or retry authority. This is candidate persistence, not warm HIR reuse.
 
+The same store now has typed draft persistence/load entry points over a private
+shared byte-transport seam. Draft source/history/selector replay runs before
+root opening on persist and inside the held-input scope on load. Both archive
+kinds share the fixed inventory but retain separate schema admission. CLI
+`draft_archive.rs` and host-policy v6 add explicit draft storage and startup
+selection; neither path restores approvals or opens a new request authority.
+See [Typed-draft persistence](DRAFT-ARCHIVE-PERSISTENCE-V1.md).
+
 `image_transport/vnext/recovery.rs` admits independently recovered candidates
 only through startup host APIs, under live snapshot authentication and ordinary
 registry bounds. Canonical manifest equality permits historical source revisions
@@ -785,6 +793,12 @@ selectors and complete archive before returning only a draft. The v5
 `vnext/recovery.rs` separately allow same-manifest historical draft restore only
 before the first frame. Both use ordinary authenticated registry admission and
 recover no candidate entry or approval. See [Draft Archive](PROJECT-CANDIDATE-DRAFT-ARCHIVE-V1.md).
+`candidate/draft_rebase.rs` rebases the private checked history through the
+existing candidate owner, then uses shared semantic conflict fingerprints and
+authenticated expression-origin remapping to reconstruct pending holes. The
+v5 `draft_rebase.rs` adapter installs only the resulting draft after bounded
+report preparation and live-source authentication; no candidate or publication
+authority is released. See [Draft Rebase](PROJECT-CANDIDATE-DRAFT-REBASE-V1.md).
 These additions and focused regression cases are authored, unrun.
 
 `candidate/movement.rs` moves eligible functions through stable-ID call/import

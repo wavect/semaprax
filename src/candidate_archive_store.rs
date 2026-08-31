@@ -1,11 +1,12 @@
-//! Explicit host-selected persistence for complete, source-backed candidates.
+//! Explicit host-selected persistence for source-backed candidates and drafts.
 //! A stored archive and its receipt confer no source or publication authority.
 
 use std::path::Path;
 
 use crate::diagnostic::Diagnostic;
 use crate::project::{
-    ProjectCandidate, ProjectCandidateArchive, MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES,
+    ProjectCandidate, ProjectCandidateArchive, ProjectCandidateDraft, ProjectCandidateDraftArchive,
+    MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES, MAX_PROJECT_CANDIDATE_DRAFT_ARCHIVE_BYTES,
 };
 
 #[cfg(all(
@@ -51,6 +52,123 @@ impl CandidateArchiveStoreReceipt {
     }
     pub fn base_revision(&self) -> &str {
         &self.base_revision
+    }
+}
+
+/// Draft identity only. This receipt carries no completed candidate, store path,
+/// source authority, approval, or reusable filesystem handle.
+#[derive(Debug)]
+pub struct CandidateDraftArchiveStoreReceipt {
+    archive_digest: String,
+    draft_digest: String,
+    base_revision: String,
+}
+impl CandidateDraftArchiveStoreReceipt {
+    pub fn archive_digest(&self) -> &str {
+        &self.archive_digest
+    }
+    pub fn draft_digest(&self) -> &str {
+        &self.draft_digest
+    }
+    pub fn base_revision(&self) -> &str {
+        &self.base_revision
+    }
+}
+
+/// Replay source, valid history and pending selectors before opening the root,
+/// then publish the exact immutable draft archive. Candidate and draft archives
+/// share the same bounded inventory; only the selected typed loader admits
+/// content. Existing entries and failed stages are never adopted or removed.
+pub fn persist_draft(
+    root: &Path,
+    archive: &ProjectCandidateDraftArchive,
+) -> Result<CandidateDraftArchiveStoreReceipt> {
+    digest_hex(archive.archive_digest())?;
+    digest_hex(archive.draft_digest())?;
+    if archive.to_json().len() > MAX_PROJECT_CANDIDATE_DRAFT_ARCHIVE_BYTES
+        || archive.to_json().len() > MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES
+    {
+        return Err(capacity("draft archive exceeds the fixed store byte limit"));
+    }
+    // Restore binds all metadata by exact archive rederivation, including the
+    // original base. No last-valid candidate is exposed or materialized here.
+    let replay = ProjectCandidateDraftArchive::restore(
+        archive.to_json().as_bytes(),
+        archive.archive_digest(),
+        archive.draft_digest(),
+    )?;
+    drop(replay);
+    let receipt = CandidateDraftArchiveStoreReceipt {
+        archive_digest: archive.archive_digest().to_owned(),
+        draft_digest: archive.draft_digest().to_owned(),
+        base_revision: archive.base_revision().to_owned(),
+    };
+    #[cfg(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    ))]
+    {
+        unix::persist_draft(root, archive)?;
+        Ok(receipt)
+    }
+    #[cfg(not(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    )))]
+    {
+        let _ = (root, receipt);
+        Err(io(
+            "draft archive store requires supported Unix no-replace publication",
+        ))
+    }
+}
+
+/// Rebuild only the selected draft archive while its file and root remain held,
+/// then authenticate exact bytes again before returning the unresolved draft.
+/// No original source paths are read and completion remains separate.
+pub fn load_draft(
+    root: &Path,
+    expected_archive: &str,
+    expected_draft: &str,
+) -> Result<ProjectCandidateDraft> {
+    digest_hex(expected_archive)?;
+    digest_hex(expected_draft)?;
+    #[cfg(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    ))]
+    {
+        unix::load_draft(root, expected_archive, expected_draft)
+    }
+    #[cfg(not(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    )))]
+    {
+        let _ = root;
+        Err(io(
+            "draft archive store requires supported Unix held-directory input",
+        ))
     }
 }
 

@@ -84,6 +84,12 @@ host/approval still comes separately from the host policy and retains its
 startup-only boundary. No RPC parameter can request archive roots or restore
 the policy. See [Workspace Archive Recovery](IMAGE-WORKSPACE-ARCHIVE-RECOVERY-V1.md).
 
+Separate [typed-draft persistence](DRAFT-ARCHIVE-PERSISTENCE-V1.md) adds
+`project-draft-persist`, `project-draft-load` and host-policy v6 draft selections.
+The complete-candidate commands and v3 policy remain unchanged. Draft recovery
+retains pending holes and requires explicit completion; it cannot turn a draft
+into a complete candidate by choosing the complete-candidate loader.
+
 ## Evidence and limitations
 
 `tests/candidate_archive_cli_v1.rs` authors real CLI persist/load after removal

@@ -244,6 +244,7 @@ mod tests {
             Action::DraftRecoveryExport,
             Action::DraftArchiveExport,
             Action::DraftArchiveRestore,
+            Action::DraftRebase,
             Action::Refresh,
             Action::InterfaceDelta,
         ] {

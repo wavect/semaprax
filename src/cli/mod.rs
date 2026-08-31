@@ -1,6 +1,7 @@
 pub(crate) mod build;
 pub(crate) mod candidate_archive;
 pub(crate) mod candidate_git;
+pub(crate) mod draft_archive;
 pub(crate) mod execution;
 pub(crate) mod package_lock;
 pub(crate) mod package_resolver;

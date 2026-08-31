@@ -351,6 +351,43 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
         ],
     );
     put(
+        "semaprax.project-candidate-draft-rebase.v1",
+        vec![
+            ("parent_draft_digest", digest()),
+            ("original_base_revision", digest()),
+            ("onto_revision", digest()),
+            ("result_base_revision", digest()),
+            ("result_draft_digest", digest()),
+            (
+                "last_valid_rebase",
+                reference("semaprax.project-candidate-rebase.v1"),
+            ),
+            (
+                "holes",
+                json!({"type":"array","maxItems":16,"items":object(vec![
+                    ("hole_id", text()),
+                    (
+                        "kind",
+                        json!({"enum":["function_body","expression","contract_expression"]}),
+                    ),
+                    ("target", text()),
+                    ("old_expression_id", nullable(text())),
+                    ("new_expression_id", nullable(text())),
+                    ("concurrent_contract_change", boolean()),
+                    ("concurrent_body_change", boolean()),
+                    ("context_refreshed", json!({"const":true})),
+                ])}),
+            ),
+            ("materializable", json!({"const":false})),
+            ("source_authority", json!({"const":false})),
+            (
+                "validation",
+                json!({"const":"checked_history_replay_and_pending_selector_readmission"}),
+            ),
+            ("nonclaims", strings()),
+        ],
+    );
+    put(
         "semaprax.image-candidate-reconciliation.v1",
         vec![
             ("kind", json!({"enum":["merge","rebase"]})),

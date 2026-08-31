@@ -22,6 +22,7 @@ pub(super) fn supports(operation: Operation) -> bool {
                 | Action::SourceReview
                 | Action::HoleSummary
                 | Action::HolePage
+                | Action::DraftExpressionCatalog
                 | Action::CandidateCleanupDependencies
                 | Action::ContractExpressionCatalog
                 | Action::DraftRecoveryExport
@@ -72,9 +73,9 @@ pub(super) fn prepare(
         Operation::VNext(Action::SourceReview) => {
             source_review::for_candidate(params, image, candidate()?)
         }
-        Operation::VNext(action @ (Action::HoleSummary | Action::HolePage)) => {
-            hole_navigation::for_draft(action, params, draft()?)
-        }
+        Operation::VNext(
+            action @ (Action::HoleSummary | Action::HolePage | Action::DraftExpressionCatalog),
+        ) => hole_navigation::for_draft(action, params, draft()?),
         Operation::VNext(Action::CandidateCleanupDependencies) => {
             cleanup_dependencies::for_candidate(params, image, candidate()?)
         }

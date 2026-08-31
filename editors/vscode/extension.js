@@ -194,7 +194,6 @@ function activate(context) {
     },
     async openHole() {
       requireCandidate();
-      if (holes?.hasFilled) throw new Error('Plan all holes before the first fill; complete or discard this draft before opening more');
       const token = holeToken();
       const kind = await vscode.window.showQuickPick([
         { label: 'Function body', kind: 'body' },
@@ -214,7 +213,7 @@ function activate(context) {
         ensureHoleToken(token); if (!choice) return;
         expressionId = choice.row.expression_id;
       }
-      const holeId = await vscode.window.showInputBox({ prompt: 'New hole ID (plan every hole before filling)', ignoreFocusOut: true });
+      const holeId = await vscode.window.showInputBox({ prompt: 'New hole ID for the current draft', ignoreFocusOut: true });
       ensureHoleToken(token); if (holeId === undefined) return;
       if (!holeId || Buffer.byteLength(holeId) > 128 || !/^[A-Za-z0-9_.-]+$/.test(holeId)) throw new Error('Use a hole ID of at most 128 ASCII letters, digits, dots, underscores or hyphens');
       await draftOperation(() => controller.open(kind.kind, selectedTarget, holeId, expressionId)); ensureHoleToken(token, true);

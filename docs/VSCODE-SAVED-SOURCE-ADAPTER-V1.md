@@ -62,12 +62,14 @@ contract catalogue; display names and editor source spans are not selectors.
 The user chooses an explicit hole ID and can plan up to sixteen pending holes.
 These are server-owned immutable drafts, never placeholders written into `.spx`.
 
-Plan the complete set of holes before the first successful fill. This editor
-version deliberately closes further hole creation after that point: its
-expression catalogues describe the original candidate, while successful fills
-can change the draft's private last-valid expression identities. Existing holes
-continue through the compiler's ordinary selector rebinding. More general
-post-fill selection over the private last-valid revision remains future work.
+More holes can be planned after successful fills. Before the first hole, the
+editor uses the original candidate's expression catalogue. Once a draft exists,
+[draft expression discovery](PROJECT-DRAFT-EXPRESSION-CATALOG-V1.md) selects
+current identities and lexical scopes from its private last-valid state. Each
+choice inventory binds the current draft and is invalidated by every successful
+open or fill. A host without this method fails explicitly; the editor never
+falls back to stale original-candidate selections. Existing pending holes still
+use the compiler's ordinary selector rebinding and overlap checks.
 
 Select a pending hole, inspect its compact summary, and choose scope, calls,
 obligations or constructors for a bounded facet page. Additional pages require
@@ -162,6 +164,6 @@ compiler, Node test runner, generated client, VS Code extension host, package
 installation or local quality gate was run for this change.
 
 Real editor-host integration, accessibility and platform evidence, richer typed
-constructor UI, general post-fill hole selection, diagnostic workflows, asynchronous cancellation,
+constructor UI, diagnostic workflows, asynchronous cancellation,
 durable candidate recovery and task-level measurements remain open. This is an
 optional local adapter, not a marketplace release or full programme completion.

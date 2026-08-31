@@ -47,6 +47,15 @@ function catalog(kind, target) {
     limits: { max_expressions: 4096, max_depth: 256, max_scope_facts: 16384, max_bytes: 1048576 },
     nonclaims: ['lexical_scope_is_not_owned_value_liveness', 'no_source_or_commit_authority'] };
 }
+function draftCatalog(kind, target, revision) {
+  const old = catalog(kind, target);
+  return { schema: 'semaprax.project-draft-expression-catalog.v1', draft_revision: revision,
+    last_valid_revision: digest(60), last_valid_candidate_digest: digest(61), target,
+    region: kind === 'contract' ? 'contract' : 'body', source: old.source,
+    declared_effect_budget: old.declared_effect_budget, expressions: old.expressions, limits: old.limits,
+    materializable: false, source_authority: false, validation: 'pending_fill_full_source_replay',
+    evidence_class: 'last_valid_expression_inventory_not_draft_validation', selection_admission: 'requires_hole_open_validation', nonclaims: old.nonclaims };
+}
 function context(hole, revision) {
   const body = hole.kind === 'body', contract = hole.kind === 'contract';
   const common = { schema: SCHEMAS[hole.kind], draft_digest: revision, hole_id: hole.holeId, hole_handle: digest(12),
@@ -112,7 +121,9 @@ async function prepared(holes = HOLES) {
   const server = new Server(), controller = new HoleDraft(server.call.bind(server), IMAGE, CANDIDATE);
   for (const [index, hole] of holes.entries()) {
     if (hole.kind !== 'body') {
-      server.expect(hole.kind === 'contract' ? 'candidate/contract-expression-catalog' : 'expression/catalog', catalog(hole.kind, hole.target));
+      server.expect(controller.draftRevision !== null ? 'hole/expression-catalog' :
+        hole.kind === 'contract' ? 'candidate/contract-expression-catalog' : 'expression/catalog',
+        controller.draftRevision !== null ? draftCatalog(hole.kind, hole.target, controller.draftRevision) : catalog(hole.kind, hole.target));
       await controller.expressionChoices(hole.kind, hole.target);
     }
     server.expect(OPEN[hole.kind], draftHandle(digest(20 + index)));
@@ -139,9 +150,18 @@ test('mixed three-hole planning, partial fills and explicit completion never ins
     assert.equal(controller.sourceCandidate, CANDIDATE);
   }
   assert.equal(server.calls.filter(call => call.method === 'hole/complete').length, 0);
-  const ready = state(controller);
-  await assert.rejects(controller.open('body', 'calculator.multiply', 'later'));
-  assert.deepEqual(state(controller), ready);
+  const current = draftCatalog('expression', HOLES[1].target, controller.draftRevision);
+  current.expressions[0].expression_id = 'calculator.subtract/expr/after-fill';
+  server.expect('hole/expression-catalog', current);
+  const choices = await controller.expressionChoices('expression', HOLES[1].target);
+  assert.equal(server.calls.at(-1).params.draft_revision, digest(32));
+  assert.equal(server.calls.at(-1).params.candidate_revision, undefined);
+  server.expect('hole/open-expression', draftHandle(digest(33)));
+  await controller.open('expression', HOLES[1].target, 'later', choices[0].expression_id);
+  assert.equal(controller.pending.length, 1); assert.equal(controller.hasFilled, true);
+  assert.equal(server.calls.some(call => call.params.candidate_revision === current.last_valid_candidate_digest), false);
+  server.expect('hole/fill', draftHandle(digest(34)));
+  await controller.fill('later', { kind: 'i64', value: 9 });
   const completed = candidateHandle(); server.expect('hole/complete', completed);
   assert.deepEqual(await controller.complete(), completed);
   assert.equal(server.calls.filter(call => call.method === 'hole/complete').length, 1);
@@ -250,6 +270,69 @@ test('expression catalog selection retains only replaceable rows of the selected
   assert.equal(controller.pending.length, 0); assert.equal(controller.draftRevision, null);
 });
 
+test('opening any hole and filling a hole invalidate all prior candidate and draft expression choices', async () => {
+  const server = new Server(), controller = new HoleDraft(server.call.bind(server), IMAGE, CANDIDATE);
+  const hole = HOLES[1];
+  server.expect('expression/catalog', catalog('expression', hole.target));
+  await controller.expressionChoices('expression', hole.target);
+  server.expect('hole/open', draftHandle(digest(20)));
+  await controller.open('body', HOLES[0].target, 'body');
+  let count = server.calls.length;
+  await assert.rejects(controller.open('expression', hole.target, 'stale-candidate', hole.expressionId));
+  assert.equal(server.calls.length, count);
+  server.expect('hole/expression-catalog', draftCatalog('expression', hole.target, digest(20)));
+  await controller.expressionChoices('expression', hole.target);
+  server.expect('hole/open', draftHandle(digest(21)));
+  await controller.open('body', 'calculator.multiply', 'multiply');
+  count = server.calls.length;
+  await assert.rejects(controller.open('expression', hole.target, 'stale-draft', hole.expressionId));
+  assert.equal(server.calls.length, count);
+  server.expect('hole/expression-catalog', draftCatalog('expression', hole.target, digest(21)));
+  await controller.expressionChoices('expression', hole.target);
+  server.expect('hole/fill', draftHandle(digest(22)));
+  await controller.fill('body', { kind: 'i64', value: 7 });
+  count = server.calls.length;
+  await assert.rejects(controller.open('expression', hole.target, 'stale-fill', hole.expressionId));
+  assert.equal(server.calls.length, count);
+  const contract = draftCatalog('contract', HOLES[2].target, digest(22));
+  contract.expressions[0].expression_id = 'calculator.divide/requires/after-fill';
+  server.expect('hole/expression-catalog', contract);
+  const selected = await controller.expressionChoices('contract', HOLES[2].target);
+  assert.equal(server.calls.at(-1).params.region, 'contract');
+  server.expect('hole/open-contract-expression', draftHandle(digest(23)));
+  await controller.open('contract', HOLES[2].target, 'new-contract', selected[0].expression_id);
+  assert.equal(controller.pending.length, 2); assert.equal(controller.sourceCandidate, CANDIDATE);
+});
+
+test('draft catalog rejects stale identities, wrong region, malformed provenance and authority claims', async () => {
+  for (const mutate of [
+    row => { row.draft_revision = digest(99); }, row => { row.last_valid_revision = 'invalid'; },
+    row => { row.last_valid_candidate_digest = 'invalid'; }, row => { row.region = 'contract'; },
+    row => { row.target = 'foreign.target'; }, row => { row.source_authority = true; },
+    row => { row.materializable = true; }, row => { row.selection_admission = 'approved'; },
+    row => { row.evidence_class = 'validated'; }, row => { row.candidate_revision = CANDIDATE; },
+    row => { row.expressions[0].phase = 'requires'; },
+  ]) {
+    const { server, controller } = await prepared([HOLES[0]]), before = state(controller);
+    const report = draftCatalog('expression', HOLES[1].target, controller.draftRevision); mutate(report);
+    server.expect('hole/expression-catalog', report);
+    await assert.rejects(controller.expressionChoices('expression', HOLES[1].target), protocolFailure);
+    assert.deepEqual(state(controller), before);
+  }
+});
+
+test('a host without the draft catalog method fails without falling back to the original candidate', async () => {
+  const { server, controller } = await prepared([HOLES[0]]), before = state(controller);
+  const missing = new Error('Method not available in this host-selected protocol'); missing.semantic = true;
+  server.expect('hole/expression-catalog', missing);
+  const start = server.calls.length;
+  await assert.rejects(controller.expressionChoices('expression', HOLES[1].target), error => error === missing);
+  assert.deepEqual(server.calls.slice(start).map(call => call.method), ['hole/expression-catalog']);
+  assert.deepEqual(state(controller), before);
+  await assert.rejects(controller.open('expression', HOLES[1].target, 'unselected', HOLES[1].expressionId));
+  assert.equal(server.calls.length, start + 1);
+});
+
 test('serial requests and explicit discard cannot silently race or acquire execution/archive authority', async () => {
   let release, requests = 0;
   const controller = new HoleDraft(async () => { requests++; return new Promise(resolve => { release = resolve; }); }, IMAGE, CANDIDATE);
@@ -262,7 +345,7 @@ test('serial requests and explicit discard cannot silently race or acquire execu
   const child = new EventEmitter(); child.stdout = new EventEmitter(); child.stderr = new EventEmitter(); child.stdin = new EventEmitter();
   let writes = 0; child.stdin.write = () => { writes++; return true; }; child.kill = () => {};
   const client = new McpClient(child);
-  for (const method of ['hole/open', 'hole/open-expression', 'hole/open-contract-expression', 'hole/summary', 'hole/page', 'hole/query', 'hole/fill', 'hole/complete', 'hole/discard', 'expression/catalog', 'candidate/contract-expression-catalog']) assert.equal(ALLOWED.has(method), true, method);
+  for (const method of ['hole/open', 'hole/open-expression', 'hole/open-contract-expression', 'hole/summary', 'hole/page', 'hole/query', 'hole/expression-catalog', 'hole/fill', 'hole/complete', 'hole/discard', 'expression/catalog', 'candidate/contract-expression-catalog']) assert.equal(ALLOWED.has(method), true, method);
   for (const method of ['candidate/build', 'candidate/test', 'candidate/commit', 'candidate/commit-report', 'hole/archive-export', 'hole/archive-restore', 'hole/recovery-restore']) {
     assert.equal(ALLOWED.has(method), false, method); client.tools.add(method);
     await assert.rejects(client.call(method, {}), /allowlist/);

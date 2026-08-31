@@ -85,6 +85,7 @@ pub(super) enum Action {
     SourceReview,
     HoleSummary,
     HolePage,
+    DraftExpressionCatalog,
     SymbolDiagnostics,
     DraftRecoveryExport,
     DraftRecoveryRestore,
@@ -395,7 +396,11 @@ impl VNextSession {
                     source_review::prepare(params, image, registry)?,
                     candidates::Mutation::None,
                 ),
-                Operation::VNext(action @ (Action::HoleSummary | Action::HolePage)) => (
+                Operation::VNext(
+                    action @ (Action::HoleSummary
+                    | Action::HolePage
+                    | Action::DraftExpressionCatalog),
+                ) => (
                     hole_navigation::prepare(action, params, image, registry)?,
                     candidates::Mutation::None,
                 ),

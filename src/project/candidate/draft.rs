@@ -11,9 +11,14 @@ use crate::workspace_graph::WorkspaceGraphProjectionModule;
 
 #[path = "draft_archive.rs"]
 mod archive;
+#[path = "draft_expression_catalog.rs"]
+mod expression_catalog;
 pub use archive::{
     ProjectCandidateDraftArchive, MAX_PROJECT_CANDIDATE_DRAFT_ARCHIVE_BYTES,
     PROJECT_CANDIDATE_DRAFT_ARCHIVE_COMPATIBILITY, PROJECT_CANDIDATE_DRAFT_ARCHIVE_SCHEMA,
+};
+pub use expression_catalog::{
+    MAX_PROJECT_DRAFT_EXPRESSION_CATALOG_BYTES, PROJECT_DRAFT_EXPRESSION_CATALOG_SCHEMA,
 };
 
 #[path = "draft_recovery.rs"]

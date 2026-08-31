@@ -5,7 +5,7 @@ const MAX_RESPONSE = 8 * 1024 * 1024;
 const ALLOWED = new Set(['workspace/open', 'workspace/refresh-preview', 'workspace/refresh',
   'candidate/open', 'candidate/apply-intent', 'candidate/source-review', 'change/catalog',
   'expression/catalog', 'candidate/contract-expression-catalog', 'hole/open', 'hole/open-expression',
-  'hole/open-contract-expression', 'hole/query', 'hole/summary', 'hole/page', 'hole/fill',
+  'hole/open-contract-expression', 'hole/query', 'hole/summary', 'hole/page', 'hole/expression-catalog', 'hole/fill',
   'hole/complete', 'hole/discard', 'protocol/constructor-schemas']);
 const digest = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/.test(value);
 function exact(value, keys) {

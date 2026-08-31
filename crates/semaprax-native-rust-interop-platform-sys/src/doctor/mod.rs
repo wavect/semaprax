@@ -5,9 +5,8 @@ use std::time::Duration;
 
 mod offline_bundle;
 mod offline_input;
-// Physical root preparation is deliberately not a public launcher. Integration
-// awaits an independently admitted clean-descriptor child bootstrap.
-#[allow(dead_code)]
+// The private worker requires an externally provisioned clean process context;
+// it is not an ordinary CLI subprocess or profile admission route.
 #[cfg(all(
     target_os = "linux",
     target_pointer_width = "64",
@@ -15,6 +14,41 @@ mod offline_input;
     any(target_arch = "x86_64", target_arch = "aarch64")
 ))]
 mod offline_root;
+#[cfg(all(
+    target_os = "linux",
+    target_pointer_width = "64",
+    target_endian = "little",
+    any(target_arch = "x86_64", target_arch = "aarch64")
+))]
+mod offline_worker;
+
+/// Consume the dedicated process under DOCTOR-OFFLINE-WORKER-V1's trusted
+/// provisioning contract. Never call in an embedding application. Unsupported
+/// hosts exit without acquiring inputs or executing tools.
+///
+/// # Safety
+/// The caller must be a dedicated single-threaded process with exclusively
+/// transferred, live descriptors 0..=4 and no others, no foreign reapers or
+/// signal/descriptor mutators, and the complete provisioned namespace/resource
+/// context in DOCTOR-OFFLINE-WORKER-V1. This function consumes that process and
+/// its descriptor ownership; it must never return into an embedding host.
+#[doc(hidden)]
+pub unsafe fn provisioned_doctor_worker_entry() -> ! {
+    #[cfg(all(
+        target_os = "linux",
+        target_pointer_width = "64",
+        target_endian = "little",
+        any(target_arch = "x86_64", target_arch = "aarch64")
+    ))]
+    offline_worker::entry();
+    #[cfg(not(all(
+        target_os = "linux",
+        target_pointer_width = "64",
+        target_endian = "little",
+        any(target_arch = "x86_64", target_arch = "aarch64")
+    )))]
+    std::process::exit(125)
+}
 pub use offline_bundle::{
     DoctorOfflineArchitecture, DoctorOfflineBundle, DoctorOfflineBundleError,
     DoctorOfflineBundleFile, DoctorOfflineTool,

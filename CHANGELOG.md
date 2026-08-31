@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Connected the private Linux offline doctor worker from sealed request/bundle
+  framing through per-tool PID namespaces, detached roots, capability removal,
+  syscall filtering and bounded capture/reap. Added synthetic and real-bundle
+  provisioned execution fixtures, all unrun. Deployment requires an external
+  trusted provisioner; no service installation, ordinary CLI activation,
+  macOS/Windows support or completion promotion is claimed.
+
 - Removed silent Node prerequisite skips and a swallowed resizable-buffer
   rejection assertion from owned-data npm evidence. Shared v8/v9/v10 fixtures
   now require real hostile buffer capabilities and exact adapter rejection,

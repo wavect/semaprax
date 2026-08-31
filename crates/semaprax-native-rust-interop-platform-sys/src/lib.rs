@@ -6,7 +6,10 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
 mod doctor;
-pub use doctor::{probe_version as doctor_version_probe, ProbeError as DoctorProbeError};
+pub use doctor::{
+    probe_version as doctor_version_probe, provisioned_doctor_worker_entry,
+    ProbeError as DoctorProbeError,
+};
 pub use doctor::{
     DoctorOfflineArchitecture, DoctorOfflineBundle, DoctorOfflineBundleError,
     DoctorOfflineBundleFile, DoctorOfflineTool,

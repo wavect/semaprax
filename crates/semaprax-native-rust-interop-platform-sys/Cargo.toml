@@ -7,6 +7,10 @@ publish = false
 description = "Audited OS quarantine for private SEMAPRAX Native Rust Interop builds"
 license = "Apache-2.0"
 
+[[bin]]
+name = "semaprax-doctor-worker"
+path = "src/bin/doctor_worker.rs"
+
 [target.'cfg(unix)'.dependencies]
 libc = "=0.2.189"
 sha2 = "=0.11.0"

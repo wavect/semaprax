@@ -24,17 +24,17 @@ struct MountAttr {
 /// Drop: unwinding/implicit descriptor cleanup is not a child setup protocol.
 #[derive(Debug)]
 #[must_use]
-pub(super) struct Root {
+pub(in crate::doctor) struct Root {
     fd: RawFd,
 }
 
 impl Root {
-    pub(super) fn as_raw_fd(&self) -> RawFd {
+    pub(in crate::doctor) fn as_raw_fd(&self) -> RawFd {
         self.fd
     }
 
     /// The caller must own the controlled child and exclude descriptor reuse.
-    pub(super) unsafe fn close(self) {
+    pub(in crate::doctor) unsafe fn close(self) {
         close_owned(self.fd);
     }
 }
@@ -44,7 +44,7 @@ impl Root {
 /// the new descriptors/tree, signals that unwind, and return into parent code.
 /// This function neither closes inherited descriptors nor authenticates that
 /// bootstrap precondition. It allocates nothing and never retries a syscall.
-pub(super) unsafe fn materialize(plan: &Plan<'_>) -> Result<Root, Error> {
+pub(in crate::doctor) unsafe fn materialize(plan: &Plan<'_>) -> Result<Root, Error> {
     materialize_inner(
         plan,
         #[cfg(test)]

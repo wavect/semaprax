@@ -16,9 +16,10 @@ mutable input, a descriptor, or a publication operation through that facade.
 
 The separate private `doctor/offline_root` component prepares and materializes
 that inventory. It is compiled only for native64 little-endian Linux x86-64 and
-AArch64, and has no public entry point. A narrowly scoped dead-code allowance
-records that the production execution route is deliberately not connected.
-These functions are implementation components, not an admitted doctor host.
+AArch64, and has no public entry point. The private
+[provisioned worker](DOCTOR-OFFLINE-WORKER-V1.md) now calls it from its controlled
+child setup. These functions remain implementation components, not an admitted
+doctor host or ordinary CLI route.
 
 The materializer's caller must already own a controlled child with mapped
 private user/mount namespace authority, exclusive access to its newly created
@@ -26,7 +27,7 @@ descriptors and tree, and a no-unwind setup path. It does **not** authenticate o
 establish that context. It neither forks nor changes the current root/cwd,
 mounts onto an existing path, closes inherited descriptors, launches a tool,
 or drops capabilities. Calling it in an arbitrary embedding process is not a
-substitute for the missing bootstrap protocol.
+substitute for the worker's trusted external provisioning contract.
 
 ## Effect-free preparation
 

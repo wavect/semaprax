@@ -102,6 +102,20 @@ tool execution. The general-host launch route remains deliberately unwired;
 inherited descriptor closure can itself dispatch foreign filesystem flushes.
 See [Doctor offline root materialization v1](DOCTOR-OFFLINE-ROOT-V1.md).
 
+The private `doctor/offline_worker` component connects sealed request/bundle
+validation (`wire.rs`) to fresh pidfd-owned PID namespaces and bounded capture
+(`capture.rs`), controlled root/capability preparation (`child.rs`) and a
+default-deny syscall policy (`guard.rs`). The separately invoked
+`semaprax-doctor-worker` binary lives in the existing sys quarantine and invokes
+only its unsafe dedicated-process entry; no safe embedding facade exposes that
+operation. It requires an externally provisioned clean process,
+private user/mount namespaces and aggregate resource/lifecycle ownership.
+There is no ambient worker discovery, installer or CLI activation. Its reply
+binds observations to request bytes, not executable provenance or admitted
+version policy. Linux execution and hostile fixtures are authored, unrun;
+macOS/Windows require separate native implementations. See
+[Provisioned offline doctor worker v1](DOCTOR-OFFLINE-WORKER-V1.md).
+
 The retained safe `semaprax-native-rust-interop-platform` facade and platform-sys
 quarantine's separate `doctor/` module are no longer connected to that CLI route.
 This lower-level fixed `--version` probe owns bounded combined

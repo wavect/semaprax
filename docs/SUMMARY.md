@@ -14,6 +14,7 @@ Audience: all documentation readers.
 - [Doctor sealed input](DOCTOR-SEALED-INPUT-V1.md)
 - [Doctor offline bundle](DOCTOR-OFFLINE-BUNDLE-V1.md)
 - [Doctor offline root materialization](DOCTOR-OFFLINE-ROOT-V1.md)
+- [Provisioned offline doctor worker](DOCTOR-OFFLINE-WORKER-V1.md)
 - [Native compiler scratch](NATIVE-SCRATCH-V1.md)
 
 ## Language contract

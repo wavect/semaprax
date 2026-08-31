@@ -15,7 +15,7 @@ pub(super) struct File<'a> {
 
 /// Only this module can construct a plan. Paths are derived from an opaque
 /// parsed bundle, and payload borrows keep that exact snapshot alive.
-pub(super) struct Plan<'a> {
+pub(in crate::doctor) struct Plan<'a> {
     directories: Vec<CString>,
     files: Vec<File<'a>>,
     page_size: usize,
@@ -28,7 +28,7 @@ pub(super) struct Plan<'a> {
 impl<'a> Plan<'a> {
     /// Run before any child boundary. The materializer independently checks the
     /// actual tmpfs block size before trusting this page-rounded allocation cap.
-    pub(super) fn prepare(
+    pub(in crate::doctor) fn prepare(
         bundle: &'a DoctorOfflineBundle,
         page_size: usize,
     ) -> Result<Self, Error> {

@@ -7,7 +7,7 @@ use crate::diagnostic::Diagnostic;
 
 use super::intent::{
     MAX_AGGREGATE_TYPE_ARGUMENTS, MAX_APPEND_PARAMETERS, MAX_EXPRESSION_DEPTH,
-    MAX_EXPRESSION_NODES, MAX_ID_BYTES, MAX_NAME_BYTES,
+    MAX_EXPRESSION_NODES, MAX_ID_BYTES, MAX_NAME_BYTES, MAX_STRING_LITERAL_BYTES,
 };
 use super::{
     wire, SemanticChange, MAX_SEMANTIC_CHANGE_BYTES, SEMANTIC_CHANGE_REQUIREMENTS,
@@ -128,6 +128,14 @@ fn expression_schema() -> Value {
         .iter()
         .map(|kind| literal(kind))
         .collect::<Vec<_>>();
+    variants.push(closed(&[
+        ("kind", json!({"const":"string"})),
+        ("value", json!({"type":"string","maxLength":MAX_STRING_LITERAL_BYTES,"x-max-utf8-bytes":MAX_STRING_LITERAL_BYTES})),
+    ]));
+    variants.push(closed(&[
+        ("kind", json!({"const":"array_u8"})),
+        ("values", json!({"type":"array","maxItems":MAX_EXPRESSION_NODES-1,"items":{"type":"integer","minimum":0,"maximum":u8::MAX},"x-counts-toward-expression-node-budget":true})),
+    ]));
     variants.push(closed(&[
         ("kind", json!({"const":"place"})),
         ("name", identifier()),
@@ -451,6 +459,45 @@ fn function_declaration_schema() -> Value {
 #[cfg(test)]
 mod aggregate_expression_schema_tests {
     use super::*;
+
+    #[test]
+    fn storage_literals_are_closed_and_keep_migration_defaults_scalar_only() {
+        let expression = expression_schema();
+        let forms = expression["oneOf"].as_array().unwrap();
+        let string = forms
+            .iter()
+            .find(|form| form["properties"]["kind"]["const"] == "string")
+            .unwrap();
+        assert_eq!(string["additionalProperties"], false);
+        assert_eq!(string["required"], json!(["kind", "value"]));
+        assert_eq!(
+            string["properties"]["value"]["maxLength"],
+            MAX_STRING_LITERAL_BYTES
+        );
+        assert_eq!(
+            string["properties"]["value"]["x-max-utf8-bytes"],
+            MAX_STRING_LITERAL_BYTES
+        );
+        assert!(string["properties"]["value"].get("minLength").is_none());
+        let array = forms
+            .iter()
+            .find(|form| form["properties"]["kind"]["const"] == "array_u8")
+            .unwrap();
+        assert_eq!(array["additionalProperties"], false);
+        assert_eq!(array["required"], json!(["kind", "values"]));
+        let values = &array["properties"]["values"];
+        assert_eq!(values["maxItems"], MAX_EXPRESSION_NODES - 1);
+        assert_eq!(values["x-counts-toward-expression-node-budget"], true);
+        assert_eq!(
+            values["items"],
+            json!({"type":"integer","minimum":0,"maximum":255})
+        );
+        assert!(values.get("minItems").is_none());
+        assert_eq!(SCALAR_KINDS, &["i64", "i32", "u8", "usize", "bool"]);
+        assert!(!forms
+            .iter()
+            .any(|form| form["properties"]["kind"]["const"] == "repeat_array_u8"));
+    }
 
     #[test]
     fn contract_replacement_is_a_distinct_closed_typed_intention() {

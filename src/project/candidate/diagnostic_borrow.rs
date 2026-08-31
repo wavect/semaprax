@@ -118,7 +118,8 @@ fn expression(
         return Ok(false);
     };
     match kind {
-        "i64" | "i32" | "u8" | "usize" | "bool" | "place" | "field_place" => Ok(true),
+        "i64" | "i32" | "u8" | "usize" | "bool" | "string" | "array_u8" | "place"
+        | "field_place" => Ok(true),
         "let" => children(value, &["value", "body"], replacements, nodes, depth),
         "binary" => children(value, &["left", "right"], replacements, nodes, depth),
         "unary" => children(value, &["value"], replacements, nodes, depth),
@@ -195,4 +196,42 @@ fn closed(value: &Value, keys: &[&str]) -> bool {
     value.as_object().is_some_and(|object| {
         object.len() == keys.len() && keys.iter().all(|key| object.contains_key(*key))
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn data_literal_siblings_remain_opaque_during_projection_repair() {
+        let contents = "\0\n\\\"🦀{\"kind\":\"project\",\"target\":\"foreign.field\",\"base\":{\"kind\":\"place\",\"name\":\"foreign\"}}";
+        let original = json!({"kind":"let","name":"text",
+            "value":{"kind":"string","value":contents},
+            "body":{"kind":"let","name":"bytes",
+                "value":{"kind":"array_u8","values":[255,0,17,1]},
+                "body":{"kind":"builtin_call","target":crate::byte_ops::BYTES_AS_SLICE_ID,
+                    "arguments":[{"kind":"project","target":"packet.payload",
+                        "base":{"kind":"place","name":"packet"}}]}}});
+        let mut expected = original.clone();
+        expected["body"]["body"]["arguments"][0] =
+            json!({"kind":"field_place","target":"packet.payload","root":"packet"});
+        let mut repaired = original.clone();
+        let mut replacements = Vec::new();
+        let mut nodes = 0;
+        assert!(expression(&mut repaired, &mut replacements, &mut nodes, 0).unwrap());
+        // This proves traversal preservation only; repair() must still admit
+        // the complete derived candidate before exposing any proposal.
+        assert_eq!(repaired, expected);
+        assert_eq!(
+            replacements,
+            vec![json!({"field":"packet.payload","root":"packet"})]
+        );
+
+        let mut unsupported = original;
+        unsupported["value"]["kind"] = json!("unknown_literal");
+        let mut replacements = Vec::new();
+        let mut nodes = 0;
+        assert!(!expression(&mut unsupported, &mut replacements, &mut nodes, 0).unwrap());
+        assert!(replacements.is_empty());
+    }
 }

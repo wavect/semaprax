@@ -22,6 +22,7 @@ pub(super) const MAX_ID_BYTES: usize = 4096;
 pub(super) const MAX_APPEND_PARAMETERS: usize = 16;
 pub(super) const MAX_EXPRESSION_DEPTH: usize = 64;
 pub(super) const MAX_EXPRESSION_NODES: usize = 4096;
+pub(super) const MAX_STRING_LITERAL_BYTES: usize = 16_384;
 const MAX_WALK_DEPTH: usize = 256;
 const MAX_WALK_NODES: usize = 1_048_576;
 
@@ -685,6 +686,39 @@ impl Constructor<'_> {
         }
         let kind = match text(value, "kind")? {
             "i64" | "i32" | "u8" | "usize" | "bool" => return literal(value),
+            "string" => {
+                object(value, &["kind", "value"])?;
+                let contents = text(value, "value")?;
+                if contents.len() > MAX_STRING_LITERAL_BYTES {
+                    return Err(capacity(
+                        "candidate string literal exceeds its UTF-8 byte bound",
+                    ));
+                }
+                ExprKind::String(contents.to_owned())
+            }
+            "array_u8" => {
+                object(value, &["kind", "values"])?;
+                let values = array(value, "values")?;
+                // The root is already charged. Literal payload entries share
+                // the same budget with every surrounding constructor node.
+                if values.len() > MAX_EXPRESSION_NODES - self.nodes {
+                    return Err(capacity(
+                        "candidate byte-array literal exceeds the expression node bound",
+                    ));
+                }
+                self.nodes += values.len();
+                let bytes = values
+                    .iter()
+                    .map(|item| {
+                        item.as_u64()
+                            .and_then(|number| u8::try_from(number).ok())
+                            .ok_or_else(|| {
+                                grammar("candidate byte-array literal requires integer bytes")
+                            })
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                ExprKind::ArrayU8(bytes)
+            }
             "place" => {
                 object(value, &["kind", "name"])?;
                 let name = identifier(text(value, "name")?)?;
@@ -1461,6 +1495,85 @@ use function @id("image.add") from image.core as plus;
         json!({"kind":"change_function_signature","target":"image.add","append_parameters":[
             {"name":"offset","type":"i64","argument":{"kind":"i64","value":0}}
         ]})
+    }
+
+    fn data_expression(request: &Value) -> Result<Expr> {
+        construct_expression_inner(
+            None,
+            &programs()[0],
+            &BTreeSet::new(),
+            NominalScope::new(),
+            request,
+        )
+    }
+
+    #[test]
+    fn string_literals_preserve_decoded_data_and_bound_utf8_before_rendering() {
+        for contents in ["", "\0\u{7f}\n\r\t\\\"é🦀", "{kind:call,target:ambient}"] {
+            let expression = data_expression(&json!({"kind":"string","value":contents})).unwrap();
+            assert!(matches!(&expression.kind, ExprKind::String(actual) if actual == contents));
+            let mut program =
+                parse("module image.data; @id(\"image.data.text\") fn text() -> string { \"\" }");
+            program.functions[0].body = expression;
+            let source = format::canonical(&program);
+            let reparsed = parse(&source);
+            assert_eq!(format::canonical(&reparsed), source);
+            let ExprKind::Block { tail, .. } = &reparsed.functions[0].body.kind else {
+                panic!("function body must remain a block");
+            };
+            assert!(matches!(&tail.kind, ExprKind::String(actual) if actual == contents));
+        }
+        let limit = "é".repeat(MAX_STRING_LITERAL_BYTES / 2);
+        assert!(data_expression(&json!({"kind":"string","value":limit})).is_ok());
+        let over = format!("{limit}a");
+        let errors = data_expression(&json!({"kind":"string","value":over})).unwrap_err();
+        assert_eq!(errors[0].code, "SPX-G226");
+    }
+
+    #[test]
+    fn byte_array_literals_charge_payloads_to_the_shared_expression_budget() {
+        let limit = json!({"kind":"array_u8","values":vec![255u8; MAX_EXPRESSION_NODES - 1]});
+        let expression = data_expression(&limit).unwrap();
+        assert!(
+            matches!(expression.kind, ExprKind::ArrayU8(values) if values.len() == MAX_EXPRESSION_NODES - 1)
+        );
+        assert!(
+            matches!(data_expression(&json!({"kind":"array_u8","values":[]})).unwrap().kind, ExprKind::ArrayU8(values) if values.is_empty())
+        );
+        let nested = json!({"kind":"let","name":"first",
+            "value":{"kind":"array_u8","values":vec![0u8; 2047]},
+            "body":{"kind":"array_u8","values":vec![1u8; 2047]}});
+        for request in [
+            json!({"kind":"array_u8","values":vec![0u8; MAX_EXPRESSION_NODES]}),
+            nested,
+        ] {
+            assert_eq!(data_expression(&request).unwrap_err()[0].code, "SPX-G226");
+        }
+    }
+
+    #[test]
+    fn data_literal_grammar_does_not_expand_scalar_migration_defaults() {
+        for request in [
+            json!({"kind":"array_u8","values":[-1]}),
+            json!({"kind":"array_u8","values":[256]}),
+            json!({"kind":"array_u8","values":[1.0]}),
+            json!({"kind":"array_u8","values":[true]}),
+            json!({"kind":"array_u8","values":["1"]}),
+            json!({"kind":"array_u8","values":[{"kind":"u8","value":1}]}),
+            json!({"kind":"string","value":null}),
+            json!({"kind":"string","value":"text","source":"ambient()"}),
+            json!({"kind":"repeat_array_u8","value":0,"count":1}),
+        ] {
+            assert_eq!(data_expression(&request).unwrap_err()[0].code, "SPX-G225");
+        }
+        for argument in [
+            json!({"kind":"string","value":""}),
+            json!({"kind":"array_u8","values":[]}),
+        ] {
+            let mut intention = append();
+            intention["append_parameters"][0]["argument"] = argument;
+            code(apply(&mut programs(), &intention), "SPX-G225");
+        }
     }
 
     #[test]

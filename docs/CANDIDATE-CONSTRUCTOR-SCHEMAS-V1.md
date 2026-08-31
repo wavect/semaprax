@@ -25,7 +25,8 @@ its previous request descriptors. Every constructor object has explicit
 required fields and `additionalProperties: false`.
 
 Expression alternatives cover typed `i64`, `i32`, `u8`, `usize`, and `bool`
-literals; places; ordinary calls; compiler-owned byte calls; binary and unary
+literals; bounded decoded string and explicit byte-array literals; places;
+ordinary calls; compiler-owned byte calls; binary and unary
 operators; conditional expressions;
 immutable scoped `let` bindings;
 identity-selected record/variant construction, stable-ID record-field projection,
@@ -47,6 +48,13 @@ target-neutral unsigned 64-bit input range for `usize`; target admission can
 still reject a value. New names use the same bounded ordinary identifier shape
 and excluded keyword set as candidate constructors. Call arguments recurse into
 the same closed expression alternatives.
+
+The [literal constructor extension](PROJECT-LITERAL-CONSTRUCTORS-V1.md) closes
+`string` to `kind` and `value` (including empty text, at most 16,384 UTF-8 bytes),
+and `array_u8` to `kind` and `values` (at most 4,095 integers in `0..=255`).
+Every array element also consumes the shared expression construction budget;
+the schema records this contextual bound as metadata. Neither form extends
+the scalar-only literal grammars for append parameters or record-field defaults.
 
 `builtin_call` selects one of seven stable byte-operation identities from the
 compiler's operation table, with an exact argument count for each alternative.

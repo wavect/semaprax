@@ -51,6 +51,12 @@
   closed, `LIB` is unchanged, and missing headers still fail before archive or
   package publication.
 
+- Added bounded typed string and explicit byte-array literal constructors,
+  with closed schemas and catalogue/hole discovery. Existing canonical source
+  replay owns type, ownership, view provenance and target admission; scalar-only
+  migration defaults remain unchanged. Regression cases are authored, unrun;
+  no runtime, generated-client size or completion promotion is claimed.
+
 - Added read-only navigation from source generic-function templates to retained
   concrete instances and their facets. Exact instance caller and closure joins
   distinguish template IDs from concrete identities; existing plan renderers

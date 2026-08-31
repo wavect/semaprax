@@ -129,6 +129,12 @@ working implementation alongside the prior Image foundation.
 | Candidate ID, base/candidate revisions, semantic/source-diff digests, validation/diagnostics/gates | Partial, Candidate authored/unrun. Complete candidates carry digests, diffs, validation facts and gates. V4 adds bounded rejected-attempt lifecycle and repair discovery without invalid source/image access. General incomplete-state diagnostics remain missing. |
 | Candidate comparison, targeted validation and exact semantic replay | Partial. Original comparison is descriptive target overlap; additive read-only merge preview performs full merge replay in both orders, reports admission/rejection, and compares actual accepted canonical source without retaining a candidate. Source is formatted, reparsed and rebuilt with complete Project admission. General semantic compatibility decisions, intended-delta verification across general transformations, selective invalidation/validation and executed preview evidence remain open. |
 
+The additive [literal constructors](PROJECT-LITERAL-CONSTRUCTORS-V1.md) cover
+bounded owned string contents and explicit fixed byte arrays through ordinary
+source replay. This authored, unrun extension leaves scalar migration defaults,
+source ownership/provenance and target admission unchanged; repeat arrays and
+general constructor search remain outside its scope.
+
 ## Phase 3: all eleven requested operations
 
 All eleven requested classes now have bounded **authored/unrun** slices. This

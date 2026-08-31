@@ -70,7 +70,8 @@ structural location in a later revision. Stale requests do not gain authority
 from matching an ID string.
 
 Replacement uses the existing closed constructors: five typed scalar literal
-kinds, scoped `place`, stable-ID `call`, `binary`, `unary`, `if`, immutable scoped
+kinds, bounded [string and byte-array literals](PROJECT-LITERAL-CONSTRUCTORS-V1.md),
+scoped `place`, stable-ID `call`, `binary`, `unary`, `if`, immutable scoped
 [`let`](PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md), and the admitted aggregate
 constructor forms. Calls must
 already be locally bound or explicitly imported. The constructors cannot add

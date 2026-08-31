@@ -111,11 +111,12 @@ unchanged; committing source still requires the existing separate authority.
 
 ## Limits and evidence
 
-This does not add string/array literals, arbitrary intrinsics, external calls,
-raw source fragments, or direct stable-ID field-place borrowing. Existing
-record value projection stages an authenticated typed value; it cannot be
-silently substituted for a borrow of the original owned field. A future field
-place constructor must authenticate both the root's type and selected field.
+This operation does not add arbitrary intrinsics, external calls or raw source
+fragments. Separate [literal constructors](PROJECT-LITERAL-CONSTRUCTORS-V1.md)
+can supply string or byte-array values, and the existing field-place extension
+authenticates both the root's type and selected field. Record value projection
+still stages an authenticated typed value; it cannot be silently substituted
+for a borrow of the original owned field.
 
 Library and transport regression cases are authored but unrun. No compiler,
 interpreter, backend, generated client, or quality gate was executed for this

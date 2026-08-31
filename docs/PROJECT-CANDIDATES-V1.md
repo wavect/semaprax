@@ -102,6 +102,9 @@ Body constructors are closed objects: scalar `kind`/`value` literals;
 `target` and `arguments`. Places select existing function parameters. Calls
 select existing local functions or explicit imports and cannot add an import.
 Constructors cannot submit source text, HIR, graph fields, or unresolved holes.
+The additive [literal constructors](PROJECT-LITERAL-CONSTRUCTORS-V1.md) supply
+bounded decoded string contents or an explicit byte-array inventory through
+the same source replay path. Scalar-only migration defaults remain unchanged.
 The [scoped `let` constructor](PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md) binds
 one initializer for reuse in its body, with ordinary inferred typing and
 ownership verification. Places may also select active constructor-local or

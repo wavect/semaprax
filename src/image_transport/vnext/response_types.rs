@@ -829,14 +829,73 @@ mod tests {
             &[],
         )
         .unwrap();
-        let guarded = generated
+        let dispatch_and_helpers = generated
             .source
-            .split("        if value.is_object()")
+            .split("        for branch in 0..3 {")
             .nth(1)
             .unwrap();
-        let constant = guarded.find("value.get(\"kind\")").unwrap();
-        let children = guarded.find("serde_json::from_value::<").unwrap();
-        assert!(constant < children);
+        let (dispatcher, helpers) = dispatch_and_helpers
+            .split_once("\nimpl ResponseType")
+            .unwrap();
+        let charge = dispatcher
+            .find("ResponseTypeDecodeGuard::charge()")
+            .unwrap();
+        let selection = dispatcher
+            .find("let convert:Option<fn(&Value)->Result<Self,serde_json::Error>>=match branch")
+            .unwrap();
+        let conversion = dispatcher.find("convert(&value)").unwrap();
+        assert!(charge < selection && selection < conversion);
+        assert_eq!(dispatcher.matches("convert(&value)").count(), 1);
+        assert!(!dispatcher.contains("serde_json::from_value"));
+        assert!(!dispatcher.contains("value.clone()"));
+        let sticky = dispatcher.find("ResponseTypeDecodeGuard::check()").unwrap();
+        assert!(conversion < sticky && sticky < dispatcher.find("return Ok(parsed)").unwrap());
+        assert_eq!(
+            dispatcher
+                .matches("ResponseTypeDecodeGuard::check()")
+                .count(),
+            2
+        );
+        // Both recursive object alternatives inspect their discriminants before
+        // choosing an outlined conversion, including the builtin's target.
+        for index in 0..2 {
+            let arm = dispatcher
+                .split(&format!("{index} if value.is_object()"))
+                .nth(1)
+                .unwrap()
+                .split('\n')
+                .next()
+                .unwrap();
+            let constant = arm.find("value.get(\"kind\")").unwrap();
+            let selected = arm
+                .find(&format!("Some(Self::__response_decode_choice_{index})"))
+                .unwrap();
+            assert!(constant < selected);
+            if index == 1 {
+                assert!(arm.find("value.get(\"target\")").unwrap() < selected);
+            }
+        }
+        // Debug builds must not reserve all branch-specific serde temporaries
+        // in the recursive dispatcher. Keep each conversion in its own frame.
+        for index in 0..3 {
+            let signature = format!("    #[inline(never)]\n    fn __response_decode_choice_{index}(value:&Value)->Result<Self,serde_json::Error> {{");
+            let helper = helpers
+                .split(&signature)
+                .nth(1)
+                .unwrap()
+                .split("\n    }")
+                .next()
+                .unwrap();
+            assert_eq!(
+                helper
+                    .matches(" as Deserialize>::deserialize(value)")
+                    .count(),
+                1
+            );
+            assert!(!helper.contains("serde_json::from_value"));
+            assert!(!helper.contains("value.clone()"));
+            assert!(helper.contains(&format!(".map(Self::Choice{index})")));
+        }
         assert!(generated
             .source
             .contains("literal.as_str()==Some(\"core.bytes.len\")"));

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Reduced recursive generated Rust typed-client stack use through separate
+  branch converters, one shared dispatch callsite and borrowed JSON conversion
+  without explicit subtree cloning. Existing limits remain unchanged. The
+  correction follows a Windows consumer overflow; validation is pending.
+
 - Reduced generated Rust client source duplication by sharing literal serde
   implementations through macros and omitting redundant field-rename attributes.
   Public types, literal checks and recursive conversion budgets remain unchanged.

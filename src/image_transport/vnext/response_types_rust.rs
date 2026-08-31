@@ -287,17 +287,32 @@ fn recursive_union(
     shapes: &BTreeMap<&str, &Shape>,
     work: &mut usize,
 ) -> Result<()> {
-    writeln!(source,"impl<'de> Deserialize<'de> for {name} {{\n    fn deserialize<D:serde::Deserializer<'de>>(deserializer:D)->Result<Self,D::Error> {{\n        let _budget=ResponseTypeDecodeGuard::enter().map_err(serde::de::Error::custom)?;\n        let value=Value::deserialize(deserializer)?;").unwrap();
+    // Keep the dispatch frame independent of the number and size of branch
+    // conversion temporaries. In unoptimized generated clients, spelling every
+    // from_value call inline can reserve all of those temporaries simultaneously
+    // at every recursive union level, despite only one branch running at a time.
+    writeln!(source,"impl<'de> Deserialize<'de> for {name} {{\n    fn deserialize<D:serde::Deserializer<'de>>(deserializer:D)->Result<Self,D::Error> {{\n        let _budget=ResponseTypeDecodeGuard::enter().map_err(serde::de::Error::custom)?;\n        let value=Value::deserialize(deserializer)?;\n        for branch in 0..{} {{\n            ResponseTypeDecodeGuard::charge().map_err(serde::de::Error::custom)?;\n            let convert:Option<fn(&Value)->Result<Self,serde_json::Error>>=match branch {{", alternatives.len()).unwrap();
     for (index, target) in alternatives.iter().enumerate() {
         let guard = branch_guard(target, shapes, work)?;
+        writeln!(
+            source,
+            "                {index} if {guard} => Some(Self::__response_decode_choice_{index}),"
+        )
+        .unwrap();
+    }
+    writeln!(source,"                _ => None,\n            }};\n            if let Some(convert)=convert {{\n                if let Ok(parsed)=convert(&value) {{\n                    ResponseTypeDecodeGuard::check().map_err(serde::de::Error::custom)?;\n                    return Ok(parsed);\n                }}\n            }}\n        }}\n        ResponseTypeDecodeGuard::check().map_err(serde::de::Error::custom)?;\n        Err(serde::de::Error::custom(\"recursive response union has no admitted branch\"))\n    }}\n}}\nimpl {name} {{").unwrap();
+    for (index, target) in alternatives.iter().enumerate() {
         let ty = if recursive.contains(target) {
             format!("Box<{target}>")
         } else {
             target.clone()
         };
-        writeln!(source,"        ResponseTypeDecodeGuard::charge().map_err(serde::de::Error::custom)?;\n        if {guard} {{\n            if let Ok(parsed)=serde_json::from_value::<{ty}>(value.clone()) {{\n                ResponseTypeDecodeGuard::check().map_err(serde::de::Error::custom)?;\n                return Ok(Self::Choice{index}(parsed));\n            }}\n        }}").unwrap();
+        // All generated fields own their data. Serde's borrowed Value input
+        // constructs those same owned fields without first cloning the complete
+        // subtree. Keep per-type serde temporaries out of the dispatcher frame.
+        writeln!(source,"    #[inline(never)]\n    fn __response_decode_choice_{index}(value:&Value)->Result<Self,serde_json::Error> {{\n        <{ty} as Deserialize>::deserialize(value).map(Self::Choice{index})\n    }}").unwrap();
     }
-    writeln!(source,"        ResponseTypeDecodeGuard::check().map_err(serde::de::Error::custom)?;\n        Err(serde::de::Error::custom(\"recursive response union has no admitted branch\"))\n    }}\n}}").unwrap();
+    writeln!(source, "}}\n").unwrap();
     Ok(())
 }
 

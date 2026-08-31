@@ -1,7 +1,7 @@
 # Typed workspace response clients v1
 
-Status: focused recursive-client regressions pass locally; full-profile and
-current-head hosted validation remain pending.
+Status: prior focused recursive-client regressions passed locally; a generated
+Rust Windows stack-overflow correction is authored, pending validation.
 
 Audience: agent client authors, editor integrators and compiler contributors.
 
@@ -113,6 +113,17 @@ checks and integer widths. Unchanged field names omit redundant rename
 attributes; escaped or remapped identifiers retain them. This reduces source
 and JSON-string escaping overhead without erasing types or assertions.
 
+Recursive Rust union dispatch separates each branch conversion from the
+dispatcher through non-inlined helpers. Only the selected branch's conversion
+frame remains active during nested conversion; unused alternatives do not add
+their conversion temporaries to every recursive dispatcher frame. Branches
+deserialize from a borrowed JSON value, avoiding the explicit clone of the
+entire remaining subtree before each conversion. The generated fields remain
+owned values. These changes preserve branch order, diagnostics and the existing
+budgets without changing the host's stack size or admitting deeper values.
+Serde still performs recursive conversion and value materialization; this is
+not a claim of constant stack use.
+
 No generated client reads files, opens a socket, starts a process, applies a
 source edit or approves a commit. A decoded publication result retains its
 ordinary meaning; its Rust/Python/TypeScript type cannot authorize a retry.
@@ -158,7 +169,12 @@ they are not reminted compiler receipts. All three tests pass locally on
 macOS/Rust 1.98, including actual Python and offline compiled Rust consumers.
 The fixture let-binds borrowed byte views before using them; it does not widen
 the compiler's nested byte-slice provenance admission. Hosted cross-platform
-execution remains a separate gate.
+execution remains a separate gate. Repair head `5b1e570` exposed a Windows stack
+overflow in the actual Rust consumer. The subsequent stack-use correction is
+statically reviewed only here: the unchanged ten-level accepted case,
+160-level hostile case, exact capacity error and healthy follow-up must still
+pass through the executing CI owner. No Windows success is claimed from the
+earlier macOS or Linux evidence, or from these unrun changes.
 
 Complete heterogeneous compiler-report schemas, independent cross-language
 conformance and measured workflow improvements remain open. Typed constructor

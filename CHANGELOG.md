@@ -9,6 +9,11 @@
   regressions, all authored and unrun. No ordinary CLI activation, provisioning
   authority or production-support promotion is claimed.
 
+- Added semantic merging of unfinished sibling drafts: one checked-history
+  merge, independently rebound pending selections and a bounded hole union.
+  Opposing writes, including no-op fills, cannot silently complete a pending
+  hole. V5 retains only the resulting draft; regression evidence is authored, unrun.
+
 - Shared the provisioned doctor collector's ownership and report-delivery state
   machines with resource-free hostile scripts, preserving fixed descriptor
   ownership, fail-stop uncertainty, write bounds and deadlines. Added authored,

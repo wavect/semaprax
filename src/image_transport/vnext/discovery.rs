@@ -113,6 +113,9 @@ pub(super) fn payload(
         if methods.iter().any(|method| method.name == "hole/rebase") {
             instructions.push_str(" Use hole/rebase with exact draft_revision and new_base_candidate_revision to replay a retained draft onto that selected candidate's checked Project revision. Only the resulting draft is retained, with its pending selectors revalidated; its source_candidate_revision need not name a registered candidate. The bounded inline report is limited to 64 KiB, and failed replay, capacity or response preparation retains no new draft. This is conservative typed selector rebinding, not a general semantic merge or behavioral equivalence proof. No implicit completion, source publication, approval, build or test authority is granted. Workspace refresh still clears drafts: recover historical work through explicit startup archive restoration before rebasing. This mutation is excluded from immutable image batches.");
         }
+        if methods.iter().any(|method| method.name == "hole/merge") {
+            instructions.push_str(" Use hole/merge with exact draft_revision and other_draft_revision to merge checked histories sharing an original base and readmit both parents' pending selectors. The result retains only a draft, not its underlying valid candidate. Its report preserves each parent's selector mappings and the final union, bounded to 16 holes; conflicting IDs, regions or checked intentions fail closed. Read the bounded inline report (64 KiB limit) and continue through ordinary hole APIs; there is no implicit completion, placeholder source, arbitrary subtree merge, execution or publication authority. The immutable image batch excludes this mutation, and workspace refresh still clears drafts.");
+        }
         result["instructions"] = json!(instructions);
     }
     bounded(result)
@@ -180,7 +183,8 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         | "hole/recovery-restore"
         | "hole/archive-export"
         | "hole/archive-restore"
-        | "hole/rebase" => "candidate_prepare",
+        | "hole/rebase"
+        | "hole/merge" => "candidate_prepare",
         "candidate/commit" | "candidate/commit-report" | "source-commit/status" => "source_commit",
         name if name == "candidate/attempt"
             || name == "candidate/symbol-diagnostics"
@@ -811,6 +815,80 @@ mod tests {
                 !crate::image_transport::candidates::diagnostics::methods(test_enabled)
                     .iter()
                     .any(|method| method.name == "hole/rebase")
+            );
+        }
+    }
+    #[test]
+    fn draft_merge_has_two_exact_parents_and_closed_bounded_report() {
+        let readonly = selected(VNextPolicy::default());
+        assert!(!readonly["methods"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|method| method["method"] == "hole/merge"));
+        let bundle = selected(VNextPolicy {
+            candidate_prepare: true,
+            ..VNextPolicy::default()
+        });
+        let method = bundle["methods"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|method| method["method"] == "hole/merge")
+            .unwrap();
+        assert_eq!(method["capability"], "candidate_prepare");
+        assert_eq!(method["query"], false);
+        let params = &method["request_schema"]["properties"]["params"];
+        assert_eq!(params["additionalProperties"], false);
+        assert_eq!(params["properties"].as_object().unwrap().len(), 3);
+        assert_eq!(
+            params["required"],
+            json!(["image_revision", "draft_revision", "other_draft_revision"])
+        );
+        let documents = bundle["documents"].as_array().unwrap();
+        let wrapper = documents
+            .iter()
+            .find(|doc| doc["$id"] == "urn:semaprax.image-draft-merge.v1")
+            .unwrap();
+        assert_eq!(wrapper["additionalProperties"], false);
+        assert_eq!(wrapper["required"].as_array().unwrap().len(), 5);
+        assert_eq!(
+            wrapper["properties"]["draft"]["$ref"],
+            "urn:semaprax.image-draft-handle.v1"
+        );
+        let report = documents
+            .iter()
+            .find(|doc| doc["$id"] == "urn:semaprax.project-candidate-draft-merge.v1")
+            .unwrap();
+        assert_eq!(report["additionalProperties"], false);
+        assert_eq!(report["required"].as_array().unwrap().len(), 14);
+        for field in ["left_holes", "right_holes", "holes"] {
+            assert_eq!(report["properties"][field]["maxItems"], 16);
+            assert_eq!(
+                report["properties"][field]["items"]["additionalProperties"],
+                false
+            );
+        }
+        assert_eq!(
+            report["properties"]["holes"]["items"]["properties"]["parents"]["enum"],
+            json!([["left"], ["right"], ["left", "right"]])
+        );
+        assert_eq!(report["properties"]["materializable"]["const"], false);
+        assert_eq!(report["properties"]["source_authority"]["const"], false);
+        assert_eq!(
+            report["properties"]["last_valid_merge"]["$ref"],
+            "urn:semaprax.project-candidate-rebase.v1"
+        );
+        for language in ["typescript", "python", "rust"] {
+            let source = clients::generate(language, &bundle).unwrap();
+            assert!(source.contains("request_hole_merge"));
+            assert!(source.contains("other_draft_revision"));
+        }
+        for test_enabled in [false, true] {
+            assert!(
+                !crate::image_transport::candidates::diagnostics::methods(test_enabled)
+                    .iter()
+                    .any(|method| method.name == "hole/merge")
             );
         }
     }

@@ -82,6 +82,12 @@ same hole ID and newly bound context. An empty or fully filled draft remains
 ready to complete; `complete` is still the only release to a valid candidate.
 Neither parent draft, source base, sibling candidate nor filesystem is mutated.
 
+The additive [Draft Merge](PROJECT-CANDIDATE-DRAFT-MERGE-V1.md) shares these
+pending-selection guards while combining two checked histories with one common
+original base. It separately checks opposing history writes and reconciles the
+pending union; these rebase APIs, report bytes and destination-base semantics
+remain unchanged.
+
 ## V5 protocol and restart workflow
 
 Candidate-enabled v5 sessions add `hole/rebase` with exact `image_revision`,

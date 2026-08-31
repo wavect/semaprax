@@ -100,6 +100,12 @@ independently replayed candidate-era package-consumer corpus. It changes only
 `external_consumers` to `partial` for that bounded corpus; the other seven area
 rows and this report's no-external-input contract remain unchanged.
 
+The separate [Candidate Analysis Artifact Evidence
+v1](PROJECT-CANDIDATE-ANALYSIS-ARTIFACT-EVIDENCE-V1.md) can instead attach one
+independently replayed pathless Web, npm, OpenAPI or C delta. It changes only
+`generated_artifacts` to `partial` for that selected carrier; generator
+provenance, deployment, runtime and consumer rows remain unchanged.
+
 ## Bounds, diagnostics and authority
 
 The image collector retains its 16-source, 65,536-fact, conservative

@@ -72,3 +72,7 @@ The additive [Candidate Artifact Delta v1](PROJECT-CANDIDATE-ARTIFACT-DELTA-V1.m
 compares these actual projections across a replayed candidate's original and
 final revisions. It preserves this report's bytes and profile admission, and
 uses the existing v5 build grant for its separate chunked comparison route.
+The library-only [Candidate Analysis Artifact Evidence
+v1](PROJECT-CANDIDATE-ANALYSIS-ARTIFACT-EVIDENCE-V1.md) composes one such exact
+delta with candidate coverage while keeping materialization, deployment,
+execution and consumer evidence outside the claim.

@@ -139,3 +139,9 @@ or long local quality gate was run for this batch; no completion row is promoted
 Broader carrier types, installed consumer relationships, cross-package migration,
 artifact filesystem authority, runtime compatibility and the full
 graph-operational programme remain outstanding.
+
+The additive [Candidate Analysis Artifact Evidence
+v1](PROJECT-CANDIDATE-ANALYSIS-ARTIFACT-EVIDENCE-V1.md) embeds one freshly
+replayed complete delta in the exact candidate coverage inventory. That
+composition changes only the `generated_artifacts` boundary to `partial`; it
+does not widen this report's carrier admission, authority or nonclaims.

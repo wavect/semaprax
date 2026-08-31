@@ -15,6 +15,12 @@
   generated SDK execution, semantic-failure recovery, and all package checks
   remain unchanged, while independent CI shards still run in parallel.
 
+- Added library-only candidate analysis artifact evidence that composes exact
+  candidate coverage with one independently replayed Web, npm, OpenAPI or C
+  artifact delta. Only `generated_artifacts` becomes partial for the selected
+  pathless carrier; generated-file provenance, deployment, runtime, external
+  behavior and consumers remain uninspected. Evidence is authored and unrun.
+
 - Bound the Windows doctor descendant-settlement regression to an exact
   exclusive lease held by the authored child. Parallel process churn can no
   longer turn a terminating or reused numeric PID into a false failure; the

@@ -20,6 +20,8 @@ mod created_handoff;
 mod fixture;
 #[path = "support/launch.rs"]
 mod launch;
+#[path = "support/launched_handoff.rs"]
+mod launched_handoff;
 #[path = "support/nonchild.rs"]
 mod nonchild;
 #[path = "support/observe.rs"]

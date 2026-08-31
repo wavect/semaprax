@@ -16,6 +16,7 @@ Audience: all documentation readers.
 - [Doctor offline root materialization](DOCTOR-OFFLINE-ROOT-V1.md)
 - [Provisioned offline doctor worker](DOCTOR-OFFLINE-WORKER-V1.md)
 - [Provisioned offline doctor collector](DOCTOR-OFFLINE-COLLECTOR-V1.md)
+- [Provisioned offline doctor launcher](DOCTOR-OFFLINE-LAUNCHER-V1.md)
 - [Native compiler scratch](NATIVE-SCRATCH-V1.md)
 
 ## Language contract

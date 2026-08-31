@@ -20,8 +20,8 @@ pub use doctor::{
     DoctorOfflineBundleRoles, DoctorOfflineTool,
 };
 pub use doctor::{
-    probe_version as doctor_version_probe, provisioned_doctor_worker_entry,
-    ProbeError as DoctorProbeError,
+    probe_version as doctor_version_probe, provisioned_doctor_launcher_entry,
+    provisioned_doctor_worker_entry, ProbeError as DoctorProbeError,
 };
 
 #[cfg(unix)]

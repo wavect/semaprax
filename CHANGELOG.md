@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added a private provisioner-owned doctor launcher: sealed input and executable
+  preflight, fixed-descriptor worker creation, parent-death protection and
+  pidfd-owned collector handoff with bounded failure settlement. Added authored,
+  unrun admission, lifecycle and actual launcher fixtures. No namespace
+  bootstrap, service installation, ordinary CLI activation or support promotion
+  is claimed; executable/loader provenance remains provisioner-owned.
+
 - Added anonymous non-executable sealed doctor carrier creation from explicit
   bytes, returning an owned file and a snapshot verified through existing
   acquisition. Mandatory sealing has no weaker fallback, writes are bounded,

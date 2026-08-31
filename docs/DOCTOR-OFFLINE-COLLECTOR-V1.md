@@ -26,6 +26,10 @@ single-threaded collector with these exclusively transferred live descriptors:
 | 6 | Exclusive reader of the worker's reply pipe |
 | 7 | Exclusive reader of the worker's stderr pipe |
 
+The separate [private launcher](DOCTOR-OFFLINE-LAUNCHER-V1.md) now authors this
+worker-start/collector-exec wiring for an already provisioned process. It does
+not remove the external image, loader, namespace or cgroup prerequisites below.
+
 There are no other inherited descriptors, competing readers/writers, foreign
 reapers or signal/descriptor mutators. The provisioner authenticates endpoint
 binding, worker/collector executable and loader provenance, and the worker's

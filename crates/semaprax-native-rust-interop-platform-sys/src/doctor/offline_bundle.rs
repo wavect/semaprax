@@ -12,7 +12,7 @@ pub use encode::{
 };
 
 #[path = "offline_bundle/elf.rs"]
-mod elf;
+pub(super) mod elf;
 #[path = "offline_bundle/wire.rs"]
 mod wire;
 

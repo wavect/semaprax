@@ -7,7 +7,7 @@ mod tests;
 
 type Error = DoctorOfflineBundleError;
 
-pub(super) fn validate(
+pub(in crate::doctor) fn validate(
     bytes: &[u8],
     architecture: DoctorOfflineArchitecture,
 ) -> Result<Option<&str>, Error> {

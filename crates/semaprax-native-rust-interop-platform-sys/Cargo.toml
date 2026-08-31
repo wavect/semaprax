@@ -11,6 +11,10 @@ license = "Apache-2.0"
 name = "semaprax-doctor-worker"
 path = "src/bin/doctor_worker.rs"
 
+[[bin]]
+name = "semaprax-doctor-launcher"
+path = "src/bin/doctor_launcher.rs"
+
 [target.'cfg(unix)'.dependencies]
 libc = "=0.2.189"
 sha2 = "=0.11.0"

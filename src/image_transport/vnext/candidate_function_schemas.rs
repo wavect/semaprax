@@ -1,5 +1,5 @@
 //! Closed candidate function-navigation envelopes; compiler facet values stay opaque.
-use super::payload_schemas::{array, digest, document, nullable, object, text, uint};
+use super::{array, digest, document, nullable, object, text, uint};
 use crate::project::{
     PROJECT_CANDIDATE_FUNCTION_FACET_ITEM_SCHEMA, PROJECT_CANDIDATE_FUNCTION_FACET_SCHEMA,
     PROJECT_CANDIDATE_FUNCTION_SUMMARY_SCHEMA,

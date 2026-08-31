@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Corrected the held Windows C compiler environment to expose the already
+  bounded, caller-selected MSVC/SDK include directory set through both
+  `CPATH` (for the GNU-compatible `clang.exe` driver used by CI and the
+  product) and `INCLUDE` (for clang-cl compatibility). The environment remains
+  closed, `LIB` is unchanged, and missing headers still fail before archive or
+  package publication.
+
 - Corrected three native Project fixtures to construct Windows executable paths
   from the dot-free platform extension instead of treating the already dotted
   executable suffix as an extension. This removes the test-only `..exe` lookup;

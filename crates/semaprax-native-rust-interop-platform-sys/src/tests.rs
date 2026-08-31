@@ -3144,6 +3144,14 @@ fn windows_process_arena_attribute_plan_is_exact_aligned_and_bounded() {
         super::platform::prepared_process_arena_owned_capacity(&arena),
         required
     );
+    let mut expected = "CPATH=C:\\sdk\\include;C:\\msvc\\include\0INCLUDE=C:\\sdk\\include;C:\\msvc\\include\0LIB=C:\\sdk\\lib;C:\\msvc\\lib\0"
+        .encode_utf16()
+        .collect::<Vec<_>>();
+    expected.push(0);
+    assert_eq!(
+        super::platform::test_prepared_process_environment(&arena),
+        expected
+    );
 }
 
 #[cfg(unix)]

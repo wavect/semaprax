@@ -481,8 +481,11 @@ fn process_environment_units(
                     count.checked_add(1).ok_or(Error::OutputLimit)
                 }
             })?;
-            8usize
+            6usize
                 .checked_add(include_units)
+                .and_then(|units| units.checked_add(1))
+                .and_then(|units| units.checked_add(8))
+                .and_then(|units| units.checked_add(include_units))
                 .and_then(|units| units.checked_add(1))
                 .and_then(|units| units.checked_add(4))
                 .and_then(|units| units.checked_add(library_units))
@@ -548,6 +551,13 @@ pub fn materialize_process_arena_with_environment(
     match (include, libraries) {
         (None, None) => environment.extend([0, 0]),
         (Some(include), Some(libraries)) => {
+            // CI and the product invoke Clang's GNU-compatible driver, which
+            // consumes CPATH rather than clang-cl's INCLUDE convention. Both
+            // names carry the same already-bounded caller-selected directory
+            // set; this adds no SDK discovery or ambient PATH authority.
+            environment.extend("CPATH=".encode_utf16());
+            environment.extend(include.encode_wide());
+            environment.push(0);
             environment.extend("INCLUDE=".encode_utf16());
             environment.extend(include.encode_wide());
             environment.push(0);
@@ -603,6 +613,11 @@ pub fn prepared_process_arena_owned_capacity(prepared: &PreparedProcessArena) ->
                 .capacity()
                 .saturating_mul(std::mem::size_of::<u64>()),
         )
+}
+
+#[cfg(test)]
+pub(super) fn test_prepared_process_environment(prepared: &PreparedProcessArena) -> &[u16] {
+    &prepared.environment
 }
 
 pub fn prepared_process_arena_remaining(prepared: &PreparedProcessArena) -> usize {

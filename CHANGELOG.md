@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added anonymous non-executable sealed doctor carrier creation from explicit
+  bytes, returning an owned file and a snapshot verified through existing
+  acquisition. Mandatory sealing has no weaker fallback, writes are bounded,
+  and failure cleanup is one-shot. Added authored, unrun storage and direct
+  worker/collector handoff regressions. Ordinary CLI admission, host
+  configuration and production-support claims remain unchanged.
+
 - Added canonical offline doctor bundle and worker-request preparation from
   explicit borrowed content and retained sealed-input bindings. The APIs return
   bounded transport bytes only, reuse existing validators and preserve native

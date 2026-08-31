@@ -1,6 +1,9 @@
 //! Immutable input bytes only: no profile, filesystem path or execution authority.
 use std::fs::File;
 
+mod create;
+pub use create::create_doctor_offline_input;
+
 #[cfg(all(
     target_os = "linux",
     target_pointer_width = "64",

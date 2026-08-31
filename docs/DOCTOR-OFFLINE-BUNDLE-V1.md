@@ -56,6 +56,13 @@ immutable storage, reacquire through the sealed-input boundary and parse against
 the actual native host and selected profile. It must separately authenticate
 provenance, loader closure and the complete launch context.
 
+The [anonymous carrier factory](DOCTOR-SEALED-INPUT-V1.md#anonymous-carrier-creation)
+can create that storage from encoded bytes and return both the owned sealed file
+and an acquired snapshot. Parse the snapshot to derive the request, then use the
+same factory to seal the request bytes. Keep the returned files for the trusted
+worker/collector handoff; neither encoding nor file creation provides the launch
+context or executable provenance.
+
 An already parsed bundle can prepare a matching request using
 `encode_worker_request(target, nonce)`, as specified by the
 [worker request contract](DOCTOR-OFFLINE-WORKER-V1.md#canonical-request-preparation).

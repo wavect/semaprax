@@ -28,7 +28,15 @@ impl Drop for OwnedCollector {
 }
 
 pub fn run(request: &[u8], bundle: &[u8], surrogate: Option<&[u8]>) -> Observation {
-    let mut owned = OwnedCollector(super::launch::spawn(request, bundle, surrogate));
+    run_child(super::launch::spawn(request, bundle, surrogate))
+}
+
+pub(super) fn run_prepared(request: &std::fs::File, bundle: &std::fs::File) -> Observation {
+    run_child(super::launch::spawn_prepared(request, bundle))
+}
+
+fn run_child(child: Child) -> Observation {
+    let mut owned = OwnedCollector(child);
     // Guard stays armed across reads and assertion unwinding. try_wait caches
     // the exact status, so Drop never signals an already reaped numeric PID.
     collect(&mut owned.0).expect("bounded collector observation; reconcile cgroup on uncertainty")

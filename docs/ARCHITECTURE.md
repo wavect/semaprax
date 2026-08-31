@@ -88,6 +88,11 @@ seals before metadata or positional reads and never duplicates/closes the
 caller's descriptor. It returns bounded immutable untrusted bytes, not profile
 or execution authority; unsupported hosts reject. This input primitive is not
 connected to the CLI. See [Doctor sealed input v1](DOCTOR-SEALED-INPUT-V1.md).
+The adjacent `offline_input/create` component creates only anonymous
+non-executable sealed transport files from explicit bytes, then reuses that
+acquisition path before transferring the file and snapshot together. Its Linux
+adapter owns bounded writes, seal/property checks and one-shot failure cleanup;
+the safe facade only delegates. It performs no path discovery or worker launch.
 The sys quarantine's unsafe-free `DoctorOfflineBundle` parser consumes that
 snapshot into a closed selector/architecture-bound inventory with zero-copy file
 views, bounded paths/roles and minimum ELF/interpreter checks. The safe facade

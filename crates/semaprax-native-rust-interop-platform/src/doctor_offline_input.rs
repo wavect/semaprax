@@ -13,6 +13,24 @@ pub const DOCTOR_OFFLINE_INPUT_MAX_BYTES: usize =
 /// provenance, and grants no file publication or process-launch authority.
 pub struct DoctorOfflineInput(semaprax_native_rust_interop_platform_sys::DoctorOfflineInput);
 
+/// Create an anonymous, non-executable sealed memory file from explicit bytes,
+/// returning that owned file and its independently acquired snapshot.
+///
+/// This uses no host pathname or environment discovery. Native Linux support
+/// for mandatory non-executable sealing is required; there is no fallback.
+/// Limits and empty input are rejected before any OS operation. An unpublished
+/// file is closed exactly once on failure; uncertain closure terminates the
+/// process. The caller owns the successfully returned file and its lifetime.
+/// Storage immutability does not establish content provenance, confinement or
+/// authority to execute a worker. Ordinary CLI admission remains unchanged.
+pub fn create_doctor_offline_input(
+    bytes: &[u8],
+    max_bytes: usize,
+) -> Result<(File, DoctorOfflineInput), DoctorOfflineInputError> {
+    semaprax_native_rust_interop_platform_sys::create_doctor_offline_input(bytes, max_bytes)
+        .map(|(file, input)| (file, DoctorOfflineInput(input)))
+}
+
 impl DoctorOfflineInput {
     /// Borrow `file` without duplicating, closing, reopening or seeking it.
     ///
@@ -51,5 +69,7 @@ mod tests {
         let _: fn(&File, usize) -> Result<DoctorOfflineInput, DoctorOfflineInputError> =
             DoctorOfflineInput::acquire;
         let _: fn(&DoctorOfflineInput) -> &[u8] = DoctorOfflineInput::bytes;
+        let _: fn(&[u8], usize) -> Result<(File, DoctorOfflineInput), DoctorOfflineInputError> =
+            create_doctor_offline_input;
     }
 }

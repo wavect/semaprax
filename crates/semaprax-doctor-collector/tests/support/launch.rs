@@ -100,6 +100,29 @@ pub(super) fn spawn_with_capacity(
     surrogate: Option<&[u8]>,
     capacity: Option<i32>,
 ) -> Child {
+    spawn_inputs(
+        || (sealed(request, false), sealed(bundle, false)),
+        surrogate,
+        capacity,
+    )
+}
+
+/// Duplicate the actual provisioner-created files, not reconstructed bytes.
+/// High descriptors avoid collisions with the fixed child destinations; dup
+/// retains each same immutable memory file and never reopens or reseals it.
+pub(super) fn spawn_prepared(request: &File, bundle: &File) -> Child {
+    spawn_inputs(
+        || (high(request.as_raw_fd()), high(bundle.as_raw_fd())),
+        None,
+        None,
+    )
+}
+
+fn spawn_inputs(
+    inputs: impl FnOnce() -> (File, File),
+    surrogate: Option<&[u8]>,
+    capacity: Option<i32>,
+) -> Child {
     assert_eq!(
         std::env::var("SEMAPRAX_DOCTOR_WORKER_TEST_CONTEXT").as_deref(),
         Ok("private-mapped-user-mount-clean-worker-cgroup-v1")
@@ -109,10 +132,12 @@ pub(super) fn spawn_with_capacity(
     let worker = CString::new(worker.as_os_str().as_bytes()).unwrap();
     let executable = surrogate.map(|bytes| sealed(bytes, true));
     let executable_fd = executable.as_ref().map(AsRawFd::as_raw_fd);
-    let request = sealed(request, false);
-    let bundle = sealed(bundle, false);
+    // Prepare in the parent, before pre_exec. Both entry points supply owned
+    // high descriptors; only the literal entry point creates test carriers.
+    let (request, bundle) = inputs();
     let request_fd = request.as_raw_fd();
     let bundle_fd = bundle.as_raw_fd();
+    assert!(request_fd >= 64 && bundle_fd >= 64);
     let _reservations = reserve_destinations(request_fd);
     let mut command = Command::new(collector);
     command

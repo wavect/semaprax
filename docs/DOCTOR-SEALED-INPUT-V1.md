@@ -20,6 +20,60 @@ accessor, mutable byte accessor, ambient lookup, registry, format serializer, or
 publication operation. This is an input primitive, not an admitted `DoctorHost`.
 The [real doctor CLI](DOCTOR-PROBE-V1.md) still reports unavailable profiles.
 
+## Anonymous carrier creation
+
+The separate `create_doctor_offline_input(bytes, max_bytes)` function accepts
+explicit borrowed bytes and returns `(File, DoctorOfflineInput)`. It fills one
+fresh anonymous memory file, seals it, then uses the existing `acquire` operation
+and exact byte comparison before transferring either result. The snapshot is
+not constructed directly from caller bytes. Returning both objects avoids
+requiring the caller to reacquire the snapshot just to parse a bundle or derive
+its request. The caller owns the returned file and its subsequent lifetime;
+dropping that file does not invalidate the snapshot.
+
+Creation validates a zero limit (`Invalid`), above-ceiling limit (`Limit`), empty
+input (`Invalid`) and input above the selected limit (`Limit`), in that order,
+before any OS operation. Only the same native64 Linux configurations as
+acquisition are admitted; other hosts then return `Unsupported`. It creates
+with `MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_NOEXEC_SEAL`. There is no retry with
+weaker flags or filesystem fallback. `EINVAL` or `ENOSYS` from creation returns
+`Unsupported`; other operational failures return `Io`.
+
+The explicit non-executable flag creates a file without execute permission and
+sets `F_SEAL_EXEC`, preventing later addition of execute permission. It does not
+promise to prevent every executable mapping or use of copied content. See the
+[Linux non-executable memory-file contract](https://cdn.kernel.org/doc/html/latest/userspace-api/mfd_noexec.html).
+No sysctl or host policy is modified; kernels or policies that cannot supply the
+mandatory property reject. This stronger creation prerequisite does not change
+the existing borrowed acquisition's accepted files or kernel requirements.
+
+Writes are positional, at most 8,192 bytes each, with exact counts required.
+Short, zero, interrupted or failed writes reject without retry or partial
+publication. The shared file offset stays zero. Before returning, creation
+requires all four immutable seals from the acquisition contract, the executable
+seal, a regular file with no execute bits, the exact size, and close-on-exec.
+Disagreed properties return `Invalid`; failed property queries return `Io`.
+Only after these checks does ordinary sealed acquisition authenticate storage
+and copy the snapshot; its existing errors remain unchanged. An unequal snapshot
+rejects without returning either object.
+
+Only the newly created descriptor is owned during failure cleanup; no supplied
+file, pathname or arbitrary inherited descriptor is touched. Ownership is
+consumed before exactly one checked close. A negative close result terminates
+the process; it is never retried or followed by another operation on that
+descriptor number. This new factory deliberately treats uncertain closure as
+fail-stop rather than inferring completion from an error. It does not change
+the existing acquisition's no-close contract or the caller's ownership after a
+successful return. Normal cleanup cannot replace the primary selected error.
+
+The byte ceiling bounds the carrier and snapshot individually, not total
+resident memory: caller bytes, memory-file storage and the acquired snapshot can
+coexist. The bounds constrain application allocation and syscall counts, not
+hard real-time latency, kernel/LSM/VM behavior or aggregate host resource use.
+Creation does not authenticate content provenance, parse a profile, discover
+dependencies, start a worker, configure namespaces, or activate the ordinary
+CLI. Its returned file is transport storage, not execution authority.
+
 ## Admission and ordering
 
 1. Reject a zero caller limit with `Invalid`; reject a caller limit above the
@@ -93,6 +147,31 @@ The facade retains `forbid(unsafe_code)` and only delegates to the existing OS
 quarantine. Earlier CLI/profile and version-probe lifecycle fixtures are
 unchanged and remain required. Unsupported-host behavior must be exercised
 separately from Linux success. All new fixtures are authored and unrun.
+
+Creator fixtures separately cover exact binary content and chunk boundaries,
+zero initial offset, close-on-exec, immutable and executable seals, rejected
+write/resize/shared-writable-map/execute-permission changes, and retained
+snapshot lifetime. Private fault controls cover creation, writes, seals,
+property queries and acquisition failures without exporting runtime injection.
+They must prove one-shot cleanup and no later write or transfer after failure;
+injected syscall outcomes do not establish physical kernel faults. A dedicated
+subprocess exercises fail-stop closure without targeting foreign descriptors.
+Native success fixtures require actual non-executable sealing support and must
+not silently skip or downgrade when that prerequisite is missing.
+
+```sh
+cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib doctor::offline_input::create
+```
+
+The collector's ignored `tests/support/created_handoff.rs` additionally passes
+the actual production-created files to the existing trusted launch fixture,
+without serializing or resealing their contents. Independent literal bundle
+and request checks precede native/all worker-to-report observations and an
+unrepaired request-digest rejection. Existing literal-sealing hostile fixtures
+remain independent. This gate requires the full
+[provisioned collector context](DOCTOR-OFFLINE-COLLECTOR-V1.md#evidence-and-non-claims),
+not merely permission to create a memory file. All creator and handoff cases
+remain authored and unrun.
 
 The separate [offline bundle parser](DOCTOR-OFFLINE-BUNDLE-V1.md) now consumes
 this input through a closed, bounded inventory; it still grants no execution

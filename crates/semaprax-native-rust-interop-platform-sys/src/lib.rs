@@ -11,6 +11,10 @@ pub use doctor::{
     SettledDoctorObservation, SettledDoctorTool,
 };
 pub use doctor::{
+    create_doctor_offline_input, DoctorOfflineInput, DoctorOfflineInputError,
+    DOCTOR_OFFLINE_INPUT_MAX_BYTES,
+};
+pub use doctor::{
     encode_doctor_offline_bundle, DoctorOfflineArchitecture, DoctorOfflineBundle,
     DoctorOfflineBundleEntry, DoctorOfflineBundleError, DoctorOfflineBundleFile,
     DoctorOfflineBundleRoles, DoctorOfflineTool,
@@ -19,7 +23,6 @@ pub use doctor::{
     probe_version as doctor_version_probe, provisioned_doctor_worker_entry,
     ProbeError as DoctorProbeError,
 };
-pub use doctor::{DoctorOfflineInput, DoctorOfflineInputError, DOCTOR_OFFLINE_INPUT_MAX_BYTES};
 
 #[cfg(unix)]
 use std::ffi::CString;

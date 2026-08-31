@@ -14,6 +14,8 @@
     any(target_arch = "x86_64", target_arch = "aarch64")
 ))]
 
+#[path = "support/created_handoff.rs"]
+mod created_handoff;
 #[path = "support/fixture.rs"]
 mod fixture;
 #[path = "support/launch.rs"]

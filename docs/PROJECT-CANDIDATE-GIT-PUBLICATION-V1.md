@@ -1,8 +1,8 @@
 # Project Candidate Git Publication v1
 
 Audience: host integrators and compiler contributors.
-Status: authored bounded Unix/bare-SHA1-or-SHA256 source-publication route; focused
-regressions are authored and **not executed locally**. No passing platform or
+Status: bounded Unix/bare-SHA1-or-SHA256 source-publication route; focused real-Git
+regressions pass locally on macOS and Linux. No hosted, Windows, full-profile or
 completion-gate evidence is claimed.
 
 This route writes actual canonical `.spx` blobs, trees and a commit into one
@@ -89,7 +89,10 @@ Git commit content identity is not a signature or an approval service.
 
 The process adapter holds an exclusive permanent
 `.semaprax-git-publication.lock` file in the repository. Dropping the adapter
-releases its lease; the lock file is never deleted. This coordinates cooperating
+explicitly unlocks its lease, including admission-error and unwind paths; the
+lock file is never deleted. Close-on-exec remains set, but closing the owning
+descriptor alone must not let a concurrent fork's pre-exec duplicate extend the
+lease beyond the adapter's lifetime. This coordinates cooperating
 publication hosts. Ordinary concurrent Git writers remain subject to Git's ref
 CAS. The repository and executable are **host-controlled inputs**: neither this
 lease nor repeated pathname checks protects against a malicious same-UID process
@@ -144,13 +147,17 @@ objects and the permanent host lock file. Once an update was attempted, process
 failure is conservatively uncertain even when Git returned nonzero. There is no
 rollback that might overwrite a concurrent writer's ref.
 
-`tests/project_candidate_git_publication_v1.rs` authors a real bare-SHA256 Git
+`tests/project_candidate_git_publication_v1.rs` exercises real bare-SHA256 Git
 publication, unrelated entry/mode preservation, unchanged raw sources, disabled
 ref hooks, stale-ref/original-blob rejection, unsafe-config rejection and nested
-object-store symlink rejection. `SEMAPRAX_TEST_GIT` can select the trusted fixture
-binary; otherwise the Unix fixture selects `/usr/bin/git`. These tests have not
-been run in this development batch. No compiler, test suite or Git adapter process
-was executed as local validation.
+object-store symlink rejection. It also checks live-host contention, explicit
+lease release, rejected-admission recovery, unchanged source/ref state and lock-file
+retention. `SEMAPRAX_TEST_GIT` can select the trusted fixture binary; otherwise the
+Unix fixture selects `/usr/bin/git`. These tests completed locally on macOS with
+Rust 1.98 and in a bounded offline Linux container with Rust 1.88. The integrated
+SHA1/SHA256 graph workflow also passes on both hosts. This is not current-head
+hosted or Windows evidence, and the complete quality profile has not been rerun
+for this correction.
 
 ## Additive legacy SHA1 compatibility
 
@@ -190,7 +197,7 @@ collision defenses remain its responsibility. Host-controlled storage and the
 previous cooperative-race limits still apply. SHA256 is the format for hosts that
 require Git object naming with the stronger hash.
 
-Authored, unrun regressions add actual SHA1 bare publication and byte comparison,
+Regressions cover actual SHA1 bare publication and byte comparison,
 format/width mismatch rejection, strict version/extension config admission,
 standard SHA1 known answers (empty, `abc`, the 56-byte vector and one million
 `a` bytes), split-update padding checks, and known Git empty blob/tree OIDs. No

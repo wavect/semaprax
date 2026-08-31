@@ -194,6 +194,17 @@ mod unix {
     use std::path::PathBuf;
     use std::process::{Command, Stdio};
     use std::sync::mpsc;
+
+    struct Lease(File);
+    impl Drop for Lease {
+        fn drop(&mut self) {
+            // Closing alone can leave flock held by a concurrent fork's copy
+            // until exec, despite CLOEXEC. End the lease on its owning scope,
+            // including admission errors and unwinding, without deleting it.
+            let _ = fs2::FileExt::unlock(&self.0);
+        }
+    }
+
     pub(super) struct Host {
         pub(super) repo: PathBuf,
         pub(super) format: GitObjectFormat,
@@ -203,7 +214,7 @@ mod unix {
         executable_meta: Metadata,
         config_file: File,
         config: Vec<u8>,
-        _lock: File,
+        lock: Lease,
         deadline: Instant,
         remaining: usize,
         io_bytes: usize,
@@ -256,6 +267,7 @@ mod unix {
             }
             fs2::FileExt::try_lock_exclusive(&lock)
                 .map_err(|_| host("Git publication host is already leased"))?;
+            let lock = Lease(lock);
             let config_file = open_file(&repo.join("config"), false, false)
                 .map_err(|_| host("cannot hold Git config"))?;
             let config = read_bounded(&config_file, 65_536)
@@ -270,7 +282,7 @@ mod unix {
                 executable_meta: meta,
                 config_file,
                 config,
-                _lock: lock,
+                lock,
                 deadline: Instant::now() + Duration::from_millis(timeout_ms),
                 remaining: max_commands,
                 io_bytes: 0,
@@ -296,7 +308,7 @@ mod unix {
             same_file(&self.repo.join("config"), &self.config_file, false)?;
             same_file(
                 &self.repo.join(".semaprax-git-publication.lock"),
-                &self._lock,
+                &self.lock.0,
                 false,
             )?;
             let config = open_file(&self.repo.join("config"), false, false)?;
@@ -619,6 +631,98 @@ mod unix {
             (Some("0"), None) | (Some("1"), None | Some("sha1")) => Ok(GitObjectFormat::Sha1),
             (Some("1"), Some("sha256")) => Ok(GitObjectFormat::Sha256),
             _ => Err(invalid("Git repository version and object format disagree")),
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use std::sync::atomic::{AtomicU64, Ordering};
+
+        static SERIAL: AtomicU64 = AtomicU64::new(0);
+
+        struct Repository(PathBuf);
+        impl Repository {
+            fn new() -> Self {
+                let path = std::env::temp_dir().join(format!(
+                    "spx-git-lease-{}-{}",
+                    std::process::id(),
+                    SERIAL.fetch_add(1, Ordering::Relaxed)
+                ));
+                std::fs::create_dir(&path).unwrap();
+                std::fs::create_dir(path.join("objects")).unwrap();
+                std::fs::create_dir(path.join("refs")).unwrap();
+                std::fs::write(
+                    path.join("config"),
+                    b"[core]\nrepositoryformatversion = 0\nbare = true\n",
+                )
+                .unwrap();
+                Self(path.canonicalize().unwrap())
+            }
+
+            fn open(&self) -> Result<Host> {
+                // Admission only: no command is run by these lease tests.
+                let executable = std::env::current_exe().unwrap().canonicalize().unwrap();
+                Host::open(&executable, &self.0, 1, 60_000)
+            }
+
+            fn assert_leased(&self) {
+                let errors = self.open().err().expect("a live host must exclude rivals");
+                assert_eq!(errors.len(), 1);
+                assert_eq!(errors[0].code, "SPX-G266");
+                assert_eq!(errors[0].message, "Git publication host is already leased");
+            }
+        }
+        impl Drop for Repository {
+            fn drop(&mut self) {
+                std::fs::remove_dir_all(&self.0).unwrap();
+            }
+        }
+
+        #[test]
+        fn dropping_git_host_releases_lease_with_an_inherited_descriptor_alive() {
+            let repository = Repository::new();
+            let host = repository.open().unwrap();
+            // dup and fork share the same open-file description. Holding a dup
+            // makes the pre-exec child lifetime deterministic without a race.
+            let inherited = host.lock.0.try_clone().unwrap();
+            repository.assert_leased();
+            drop(host);
+
+            let next = repository.open().expect("drop must release the host lease");
+            same_file(
+                &repository.0.join(".semaprax-git-publication.lock"),
+                &inherited,
+                false,
+            )
+            .unwrap();
+            repository.assert_leased();
+            drop(inherited);
+            repository.assert_leased();
+            drop(next);
+            let final_host = repository.open().unwrap();
+            final_host.recheck().unwrap();
+        }
+
+        #[test]
+        fn unwinding_git_host_releases_lease_with_an_inherited_descriptor_alive() {
+            let repository = Repository::new();
+            let mut inherited = None;
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let host = repository.open().unwrap();
+                inherited = Some(host.lock.0.try_clone().unwrap());
+                repository.assert_leased();
+                panic!("host scope unwinds");
+            }));
+            assert_eq!(
+                result.unwrap_err().downcast_ref::<&str>(),
+                Some(&"host scope unwinds")
+            );
+            let next = repository.open().unwrap();
+            repository.assert_leased();
+            drop(inherited.unwrap());
+            repository.assert_leased();
+            next.recheck().unwrap();
         }
     }
 }

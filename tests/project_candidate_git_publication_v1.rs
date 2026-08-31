@@ -1,4 +1,4 @@
-//! Real bare-Git regressions authored but deliberately not executed locally.
+//! Real bare-Git publication and host-lease regressions.
 #![cfg(unix)]
 use semaprax::project::{
     apply_candidate_git_publication, with_authenticated_project, CandidateGitCommitMetadata,
@@ -278,6 +278,42 @@ fn unsafe_config_and_nested_storage_redirection_are_rejected() {
     .unwrap();
     assert!(CandidateGitProcessAuthority::open(&fixture.git, &fixture.repo, 100, 60_000).is_err());
     assert_eq!(fixture.current(), fixture.base);
+}
+
+#[test]
+fn host_lease_excludes_contenders_and_reopens_after_drop_and_rejected_admission() {
+    let fixture = Fixture::with_format(false, "sha1");
+    let before = fs::read(fixture.root.join("src/core.spx")).unwrap();
+    let authority = fixture.authority();
+    for _ in 0..2 {
+        let errors = CandidateGitProcessAuthority::open(&fixture.git, &fixture.repo, 4096, 60_000)
+            .err()
+            .expect("a rejected contender must not release the active host lease");
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].code, "SPX-G266");
+        assert_eq!(errors[0].message, "Git publication host is already leased");
+        assert_eq!(fixture.current(), fixture.base);
+    }
+    drop(authority);
+
+    let config = fixture.repo.join("config");
+    let original = fs::read(&config).unwrap();
+    fs::write(&config, b"[include]\npath = /tmp/ambient-git-config\n").unwrap();
+    let errors = CandidateGitProcessAuthority::open(&fixture.git, &fixture.repo, 4096, 60_000)
+        .err()
+        .expect("invalid config must reject after taking the lease");
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].code, "SPX-G263");
+    fs::write(&config, original).unwrap();
+    assert_eq!(fixture.current(), fixture.base);
+    let receipt: Value = serde_json::from_str(&fixture.publish(&fixture.base).unwrap()).unwrap();
+    assert_eq!(receipt["published_commit"], fixture.current());
+    assert_ne!(fixture.current(), fixture.base);
+    assert_eq!(fs::read(fixture.root.join("src/core.spx")).unwrap(), before);
+    assert!(fixture
+        .repo
+        .join(".semaprax-git-publication.lock")
+        .is_file());
 }
 
 #[test]

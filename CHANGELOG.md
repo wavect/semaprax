@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Corrected Unix Git-publication lease release: the owning guard now explicitly
+  unlocks on drop, rejected admission and unwinding instead of relying on the
+  final descriptor close under concurrent process creation. Added deterministic
+  duplicate-descriptor and real-Git contention/recovery regressions. Lock files,
+  nonblocking exclusion, publication checks, CI fail-fast and limits are unchanged.
+
 - Corrected the MSRV router's test-only stdout bridge to preserve exact bytes
   on Windows. Its original byte assertion and Cargo failure checks remain
   unchanged. The routing and typed-client Python fixtures now force CRLF text

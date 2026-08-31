@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Bound the Windows doctor descendant-settlement regression to an exact
+  exclusive lease held by the authored child. Parallel process churn can no
+  longer turn a terminating or reused numeric PID into a false failure; the
+  job termination, fail-stop paths, deadlines, and physical authority check
+  remain unchanged.
+
 - Keep Windows owned-data SDK publication within the existing fail-fast tool
   process bound by compiling its already O0/O2-validated provider at O0; Unix
   package archives remain O2 and no timeout, retry, or test boundary changes.

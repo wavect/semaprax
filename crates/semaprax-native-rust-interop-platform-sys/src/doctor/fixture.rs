@@ -25,6 +25,26 @@ fn main() {
         .get(1)
         .is_some_and(|value| value == "--fixture-child")
     {
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::OpenOptionsExt as _;
+
+            assert_eq!(arguments.len(), 4);
+            let lease = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .share_mode(0)
+                .open(&arguments[2])
+                .unwrap();
+            std::fs::write(&arguments[3], std::process::id().to_string()).unwrap();
+            std::hint::black_box(&lease);
+            std::thread::sleep(Duration::from_secs(3));
+            return;
+        }
+        #[cfg(not(windows))]
+        assert_eq!(arguments.len(), 2);
         std::thread::sleep(Duration::from_secs(3));
         return;
     }
@@ -63,11 +83,32 @@ fn main() {
         | "fault-close-descendant" => {
             let mut command = Command::new(&invoked);
             command.arg("--fixture-child").stdin(Stdio::null());
+            #[cfg(windows)]
+            command
+                .arg(invoked.with_extension("lease"))
+                .arg(invoked.with_extension("pid"));
             if scenario == "closed-descendant" {
                 command.stdout(Stdio::null()).stderr(Stdio::null());
             }
-            let child = command.spawn().unwrap();
+            let mut child = command.spawn().unwrap();
+            #[cfg(not(windows))]
             std::fs::write(invoked.with_extension("pid"), child.id().to_string()).unwrap();
+            #[cfg(windows)]
+            {
+                let pid = invoked.with_extension("pid");
+                let deadline = std::time::Instant::now() + Duration::from_secs(1);
+                while !pid.exists() {
+                    assert!(
+                        child.try_wait().unwrap().is_none(),
+                        "descendant exited before acquiring its lease"
+                    );
+                    assert!(
+                        std::time::Instant::now() < deadline,
+                        "descendant did not acquire its lease"
+                    );
+                    std::thread::yield_now();
+                }
+            }
             // Deliberately do not wait: the doctor owns descendant settlement.
             drop(child);
             println!("rustc 1.88.0 (fixture)");

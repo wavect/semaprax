@@ -190,7 +190,7 @@ fn physical_probe_bounds_output_and_settles_before_return() {
                 .unwrap()
                 .parse::<u32>()
                 .unwrap();
-            assert_stopped(pid);
+            assert_stopped(&path, pid);
         }
     }
     for name in ["sleep", "closed-sleep"] {
@@ -251,7 +251,7 @@ fn physical_probe_faults_are_sticky_and_uncertainty_is_fail_stop() {
             .unwrap()
             .parse::<u32>()
             .unwrap();
-        assert_stopped(pid);
+        assert_stopped(&path, pid);
     }
 }
 
@@ -281,7 +281,7 @@ fn settlement_fault_subprocess() {
         any(target_arch = "x86_64", target_arch = "aarch64")
     )
 ))]
-fn assert_stopped(pid: u32) {
+fn assert_stopped(_path: &std::path::Path, pid: u32) {
     assert!(pid > 0 && pid <= i32::MAX as u32);
     assert_eq!(
         unsafe { libc::kill(pid as i32, 0) },
@@ -295,19 +295,15 @@ fn assert_stopped(pid: u32) {
 }
 
 #[cfg(windows)]
-fn assert_stopped(pid: u32) {
-    use windows_sys::Win32::Foundation::{
-        CloseHandle, GetLastError, ERROR_INVALID_PARAMETER, WAIT_OBJECT_0,
-    };
-    use windows_sys::Win32::System::Threading::{
-        OpenProcess, WaitForSingleObject, PROCESS_SYNCHRONIZE,
-    };
-    let handle = unsafe { OpenProcess(PROCESS_SYNCHRONIZE, 0, pid) };
-    if handle.is_null() {
-        assert_eq!(unsafe { GetLastError() }, ERROR_INVALID_PARAMETER);
-        return;
-    }
-    let state = unsafe { WaitForSingleObject(handle, 0) };
-    assert_ne!(unsafe { CloseHandle(handle) }, 0);
-    assert_eq!(state, WAIT_OBJECT_0, "descendant is still running");
+fn assert_stopped(path: &std::path::Path, pid: u32) {
+    use std::os::windows::fs::OpenOptionsExt as _;
+
+    assert!(pid > 0);
+    let lease = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .share_mode(0)
+        .open(path.with_extension("lease"))
+        .expect("descendant still holds its exact lease");
+    drop(lease);
 }

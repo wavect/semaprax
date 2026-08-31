@@ -84,13 +84,18 @@ moving a prelude-typed signature can still reject if surviving callers would
 require a currently unsupported generic-signature import. A body-local prelude
 value does not itself require a synthetic type import.
 
-Compiler byte operations are recognized from retained checked HIR operation
+Compiler byte and string operations are recognized from retained checked HIR operation
 identities at the exact original source occurrence. Their source spellings stay
 unchanged and never become authored function imports. Source identity/binding
 collisions and destination shadowing reject; dependency aliases reserve those
 spellings. The operation inventory does not widen nominal admission:
 `byte_get` still fails this planner's direct-`i64`/`bool` nominal argument gate
 because its result is `Option<u8>`.
+The same restriction preserves the current scalar type vocabulary: a
+`string_from_char` call still encounters the planner's unsupported `char`
+type, even though typed candidate expression construction can select that
+operation. Other String operations can relocate only when every existing
+signature, body, ownership, source namespace and import check succeeds.
 
 These restrictions do not restrict unrelated functions in the Project. Caller
 migration uses the existing bounded exhaustive AST walker, including contracts,

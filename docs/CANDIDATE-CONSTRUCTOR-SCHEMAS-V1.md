@@ -56,13 +56,18 @@ Every array element also consumes the shared expression construction budget;
 the schema records this contextual bound as metadata. Neither form extends
 the scalar-only literal grammars for append parameters or record-field defaults.
 
-`builtin_call` selects one of seven stable byte-operation identities from the
-compiler's operation table, with an exact argument count for each alternative.
+`builtin_call` selects one of seven stable byte-operation or seven stable
+string-operation identities from the compiler's operation tables, with an exact
+argument count for each alternative.
 Its recursive arguments still require complete source admission, including
 view provenance and ownership. Target-specific `builtin_calls` descriptors
 remain separate from ordinary function discovery; array parameters describe
 the fixed byte-array family rather than the internal zero-length sentinel.
-See [Builtin Call Constructor](PROJECT-BUILTIN-CALL-CONSTRUCTOR-V1.md).
+String descriptors separately bind `compiler_string_operations` as their
+evidence owner and use concrete String/character parameter identities with the
+owner's borrowed, consumed or copied modes. This does not introduce a character
+literal, conversion or new target profile. See
+[Builtin Call Constructor](PROJECT-BUILTIN-CALL-CONSTRUCTOR-V1.md).
 
 The closed `let` shape requires `name`, recursive `value`, and recursive `body`.
 Its initializer cannot see the introduced name; only its body can. Normal

@@ -51,6 +51,13 @@
   closed, `LIB` is unchanged, and missing headers still fail before archive or
   package publication.
 
+- Exposed the seven existing String operations through typed builtin calls,
+  preserving their borrowed-read, consuming and copied-character signatures.
+  Closed discovery and semantic rebase use compiler-owned descriptors; eligible
+  declaration movement authenticates the same operation identities. Existing
+  byte descriptors, source/type/import restrictions and target profiles remain
+  unchanged. Regressions are authored, unrun, with no execution or completion claim.
+
 - Added bounded typed string and explicit byte-array literal constructors,
   with closed schemas and catalogue/hole discovery. Existing canonical source
   replay owns type, ownership, view provenance and target admission; scalar-only

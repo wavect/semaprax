@@ -96,6 +96,11 @@ fn place(name: &str) -> Value {
 }
 fn assert_metadata(value: &Value) {
     let rows = value["builtin_calls"].as_array().unwrap();
+    assert_eq!(rows.len(), 14);
+    let rows = rows
+        .iter()
+        .filter(|row| row["evidence_owner"] == "compiler_byte_operations")
+        .collect::<Vec<_>>();
     assert_eq!(rows.len(), OPERATIONS.len());
     for (id, name, arity) in OPERATIONS {
         let row = rows.iter().find(|row| row["target"] == id).unwrap();
@@ -124,7 +129,7 @@ fn assert_metadata(value: &Value) {
 }
 
 #[test]
-fn constructor_schemas_publish_seven_closed_exact_arity_recursive_builtin_alternatives() {
+fn constructor_schemas_preserve_seven_byte_alternatives_with_string_operations_added() {
     let fixture = Fixture::new();
     let mut session = fixture.session(true);
     let bundle = payload(bound(
@@ -145,7 +150,16 @@ fn constructor_schemas_publish_seven_closed_exact_arity_recursive_builtin_altern
         .iter()
         .filter(|row| row["properties"]["kind"]["const"] == "builtin_call")
         .collect::<Vec<_>>();
-    assert_eq!(builtins.len(), OPERATIONS.len());
+    assert_eq!(builtins.len(), 14);
+    assert_eq!(
+        builtins
+            .iter()
+            .filter(|row| OPERATIONS
+                .iter()
+                .any(|(id, _, _)| row["properties"]["target"]["const"] == *id))
+            .count(),
+        OPERATIONS.len()
+    );
     for (id, _, arity) in OPERATIONS {
         let row = builtins
             .iter()

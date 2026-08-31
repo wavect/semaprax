@@ -137,6 +137,34 @@ fn source<'a>(candidate: &'a ProjectCandidate, module: &str) -> &'a str {
 fn program(candidate: &ProjectCandidate, module: &str) -> Program {
     semaprax::parse(source(candidate, module), format!("src/{module}.spx")).unwrap()
 }
+fn checked_function(
+    candidate: &ProjectCandidate,
+    module: &str,
+    target: &str,
+) -> semaprax::hir::ResolvedFunction {
+    let selected = program(candidate, module)
+        .functions
+        .into_iter()
+        .find(|function| function.stable_id == target)
+        .unwrap();
+    // Resolve an analysis copy under one fixed module so source relocation
+    // cannot be mistaken for HIR evidence from a target closure. The exact
+    // admitted function AST is retained; only an inert local main is added
+    // because the standalone resolver requires it.
+    let mut analysis = semaprax::parse(
+        "module relocate.analysis; @id(\"relocate.analysis.main\") fn main()->i64 {0}",
+        "analysis.spx",
+    )
+    .unwrap();
+    analysis.functions.insert(0, selected);
+    let source = semaprax::format::canonical(&analysis);
+    semaprax::hir::resolve(&semaprax::check(&source, "analysis.spx").unwrap())
+        .unwrap()
+        .functions
+        .into_iter()
+        .find(|function| function.id.as_str() == target)
+        .unwrap()
+}
 fn movement(target: &str) -> Value {
     json!({"kind":"move_declaration","target":target,"destination":"relocate.destination"})
 }
@@ -366,6 +394,98 @@ fn owned_nominal_imports_and_real_module_cycles_remain_full_project_rejections()
     // import is a real cycle, even though the relocated signature is scalar.
     code(apply(&base, &movement("relocate.byte-work")), "SPX-G172");
     assert_eq!(base.to_json(), before);
+    assert_eq!(fixture.bytes(), disk);
+}
+
+#[test]
+fn scalar_signature_string_operations_relocate_with_checked_callees_and_cleanup() {
+    let fixture = Fixture::new();
+    fixture.write("support", "module relocate.support; @id(\"relocate.destination\") fn destination(value:i64)->i64 {value} @id(\"relocate.destination-call\") fn destination_call()->string {\"b\"}");
+    fixture.append("core", r#"
+@id("relocate.string-work") fn string_work()->i64 {let left="a";let right="b";let joined=string_concat(left,right);string_len(joined)}
+"#);
+    fixture.write("app", "module relocate.app; use function @id(\"relocate.public\") from relocate.core as public_value; @id(\"relocate.main\") fn main()->i64 {public_value(0)}");
+    fixture.write("tests", "module relocate.tests; use function @id(\"relocate.public\") from relocate.core as public_value; @id(\"relocate.test\") fn main()->i64 {if public_value(0)==0 {0}else{1}}");
+    let disk = fixture.bytes();
+    let base = fixture.candidate();
+    let moved = apply(&base, &movement("relocate.string-work")).unwrap();
+    let before = checked_function(&base, "core", "relocate.string-work");
+    let after = checked_function(&moved, "support", "relocate.string-work");
+    let callees = |function: &semaprax::hir::ResolvedFunction| {
+        let semaprax::hir::ResolvedExprKind::Block { statements, tail } = &function.body.kind
+        else {
+            panic!("missing checked block");
+        };
+        let semaprax::hir::ResolvedStatement::Let { value, .. } = &statements[2] else {
+            panic!("missing concatenation binding");
+        };
+        [&value.kind, &tail.kind]
+            .into_iter()
+            .map(|kind| {
+                let semaprax::hir::ResolvedExprKind::Call {
+                    callee,
+                    type_arguments,
+                    instance,
+                    ..
+                } = kind
+                else {
+                    panic!("missing checked builtin call");
+                };
+                assert!(type_arguments.is_empty());
+                assert!(instance.is_none());
+                callee.as_str().to_owned()
+            })
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(callees(&before), ["core.string.concat", "core.string.len"]);
+    assert_eq!(callees(&before), callees(&after));
+    assert_eq!(before.cleanup_plan, after.cleanup_plan);
+    assert_eq!(before.loan_plan, after.loan_plan);
+    let old = program(&base, "core");
+    let new = program(&moved, "support");
+    let old = old
+        .functions
+        .iter()
+        .find(|function| function.stable_id == "relocate.string-work")
+        .unwrap();
+    let new = new
+        .functions
+        .iter()
+        .find(|function| function.stable_id == "relocate.string-work")
+        .unwrap();
+    assert_eq!(
+        semaprax::format::expr(&old.body, 0),
+        semaprax::format::expr(&new.body, 0)
+    );
+    assert!(!program(&moved, "support")
+        .module_uses
+        .iter()
+        .any(|binding| binding.persistent_id.starts_with("core.string.")));
+    assert_eq!(calls(&base), calls(&moved));
+    replay(&moved);
+    assert_eq!(fixture.bytes(), disk);
+
+    // An ordinary destination type may occupy the compiler spelling even
+    // though authored functions with that name are rejected earlier.
+    fixture.append("support", "\n@id(\"relocate.string-name\") record string_len { @id(\"relocate.string-name.value\") value:i64, }\n");
+    let collided = fixture.candidate();
+    let disk = fixture.bytes();
+    code(
+        apply(&collided, &movement("relocate.string-work")),
+        "SPX-G225",
+    );
+    assert_eq!(fixture.bytes(), disk);
+
+    // Project v8 does not make owned String literals executable in the
+    // selected Wasm closure. Movement must not manufacture that admission.
+    fixture.write("app", "module relocate.app; use function @id(\"relocate.string-work\") from relocate.core as string_work; @id(\"relocate.main\") fn main()->i64 {string_work()}");
+    let disk = fixture.bytes();
+    code(
+        with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+            Ok(snapshot.retain_revision())
+        }),
+        "SPX-W110",
+    );
     assert_eq!(fixture.bytes(), disk);
 }
 

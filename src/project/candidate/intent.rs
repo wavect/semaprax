@@ -43,7 +43,8 @@ pub(super) use aggregate::{
     nominal_type_plan, nominal_types, validate_nominal_ast, MAX_AGGREGATE_TYPE_ARGUMENTS,
 };
 pub(super) use builtin::{
-    builtin_constructors, builtin_dependency_fingerprint, validate_builtin_namespace,
+    builtin_constructors, builtin_dependency_fingerprint, by_id as builtin_operation_by_id,
+    validate_builtin_namespace, BuiltinOp,
 };
 pub(super) use field_place::{parameter_nominal_scope, NominalScope};
 pub(super) use signature::{ordered_signature_parameters, validate_computed_signature};
@@ -1033,9 +1034,9 @@ impl Constructor<'_> {
             "builtin_call" => {
                 object(value, &["kind", "target", "arguments"])?;
                 let target = text(value, "target")?;
-                if crate::byte_ops::by_id(target).is_none() {
+                if builtin::by_id(target).is_none() {
                     return Err(grammar(
-                        "builtin call target is not a compiler-owned byte operation",
+                        "builtin call target is not an admitted compiler-owned operation",
                     ));
                 }
                 let revision = self.revision.ok_or_else(|| {

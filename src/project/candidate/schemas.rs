@@ -162,14 +162,22 @@ fn expression_schema() -> Value {
     binding["x-evaluation-order"] = json!("value_then_body");
     variants.push(binding);
     variants.push(closed(&[("kind",json!({"const":"call"})),("target",text(MAX_ID_BYTES)),("arguments",json!({"type":"array","maxItems":MAX_EXPRESSION_NODES-1,"items":reference("expression")}))]));
-    for operation in crate::byte_ops::ByteOp::ALL {
+    for (target, arity) in crate::byte_ops::ByteOp::ALL
+        .into_iter()
+        .map(|operation| (operation.id(), operation.arity()))
+        .chain(
+            crate::string_ops::StringOp::ALL
+                .into_iter()
+                .map(|operation| (operation.id(), operation.arity())),
+        )
+    {
         variants.push(closed(&[
             ("kind", json!({"const":"builtin_call"})),
-            ("target", json!({"const":operation.id()})),
+            ("target", json!({"const":target})),
             (
                 "arguments",
-                json!({"type":"array","minItems":operation.arity(),
-                "maxItems":operation.arity(),"items":reference("expression")}),
+                json!({"type":"array","minItems":arity,
+                "maxItems":arity,"items":reference("expression")}),
             ),
         ]));
     }
@@ -787,22 +795,27 @@ mod aggregate_expression_schema_tests {
             .iter()
             .filter(|variant| variant["properties"]["kind"]["const"] == "builtin_call")
             .collect::<Vec<_>>();
-        assert_eq!(builtins.len(), crate::byte_ops::ByteOp::ALL.len());
-        for operation in crate::byte_ops::ByteOp::ALL {
+        assert_eq!(
+            builtins.len(),
+            crate::byte_ops::ByteOp::ALL.len() + crate::string_ops::StringOp::ALL.len()
+        );
+        for (target, arity) in crate::byte_ops::ByteOp::ALL
+            .into_iter()
+            .map(|operation| (operation.id(), operation.arity()))
+            .chain(
+                crate::string_ops::StringOp::ALL
+                    .into_iter()
+                    .map(|operation| (operation.id(), operation.arity())),
+            )
+        {
             let shape = builtins
                 .iter()
-                .find(|shape| shape["properties"]["target"]["const"] == operation.id())
+                .find(|shape| shape["properties"]["target"]["const"] == target)
                 .unwrap();
             assert_eq!(shape["additionalProperties"], false);
             assert_eq!(shape["required"], json!(["kind", "target", "arguments"]));
-            assert_eq!(
-                shape["properties"]["arguments"]["minItems"],
-                operation.arity()
-            );
-            assert_eq!(
-                shape["properties"]["arguments"]["maxItems"],
-                operation.arity()
-            );
+            assert_eq!(shape["properties"]["arguments"]["minItems"], arity);
+            assert_eq!(shape["properties"]["arguments"]["maxItems"], arity);
             assert_eq!(
                 shape["properties"]["arguments"]["items"],
                 reference("expression")

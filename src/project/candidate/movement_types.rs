@@ -25,7 +25,7 @@ pub(super) struct TypeMovePlan {
     dependencies: BTreeMap<String, Dependency>,
     aliases: BTreeMap<String, String>,
     locals: BTreeSet<String>,
-    builtins: BTreeMap<(usize, usize), crate::byte_ops::ByteOp>,
+    builtins: BTreeMap<(usize, usize), intent::BuiltinOp>,
     extended: bool,
 }
 
@@ -61,7 +61,8 @@ pub(super) fn plan(
                 }
                 _ => None,
             };
-            if let Some(op) = operation.and_then(|id| crate::byte_ops::by_id(id.as_str())) {
+            if let Some(op) = operation.and_then(|id| intent::builtin_operation_by_id(id.as_str()))
+            {
                 charge(&mut type_nodes, 1)?;
                 if result
                     .builtins
@@ -200,7 +201,7 @@ impl TypeMovePlan {
         self.extended
     }
 
-    pub(super) fn builtin_at(&self, span: Span) -> Option<crate::byte_ops::ByteOp> {
+    pub(super) fn builtin_at(&self, span: Span) -> Option<intent::BuiltinOp> {
         self.builtins.get(&(span.start, span.end)).copied()
     }
 

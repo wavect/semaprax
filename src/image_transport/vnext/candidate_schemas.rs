@@ -15,6 +15,10 @@ fn reference(id: &str) -> Value {
 }
 
 fn builtin_constructor() -> Value {
+    json!({"oneOf":[byte_builtin_constructor(), string_builtin_constructor()]})
+}
+
+fn byte_builtin_constructor() -> Value {
     let mut parameters = array(object(vec![
         ("index", json!({"type":"integer","minimum":0,"maximum":2})),
         ("name", text()),
@@ -47,6 +51,63 @@ fn builtin_constructor() -> Value {
         (
             "evidence_owner",
             json!({"const":"compiler_byte_operations"}),
+        ),
+        ("requires_full_candidate_validation", json!({"const":true})),
+    ])
+}
+
+fn string_builtin_constructor() -> Value {
+    use crate::string_ops::{resolved_params, StringOp};
+    use std::collections::BTreeSet;
+    let parameters = StringOp::ALL
+        .into_iter()
+        .flat_map(resolved_params)
+        .collect::<Vec<_>>();
+    let types = parameters
+        .iter()
+        .map(|parameter| parameter.ty.identity_key())
+        .collect::<BTreeSet<_>>();
+    let names = parameters
+        .iter()
+        .map(|parameter| parameter.name.as_str())
+        .collect::<BTreeSet<_>>();
+    let ownership = parameters
+        .iter()
+        .map(|parameter| match parameter.ownership {
+            crate::hir::OwnershipMode::Value => "value",
+            crate::hir::OwnershipMode::Own => "own",
+            crate::hir::OwnershipMode::Borrow => "borrow",
+            crate::hir::OwnershipMode::Shared => "shared",
+        })
+        .collect::<BTreeSet<_>>();
+    let returns = StringOp::ALL
+        .into_iter()
+        .map(|operation| operation.return_type().identity_key())
+        .collect::<BTreeSet<_>>();
+    let parameters = json!({"type":"array","minItems":1,"maxItems":2,"items":object(vec![
+        ("index",json!({"type":"integer","minimum":0,"maximum":1})),
+        ("name",json!({"enum":names})),
+        ("type_id",json!({"enum":types})),
+        ("type_family",json!({"const":null})),
+        ("ownership",json!({"enum":ownership})),
+    ])});
+    object(vec![
+        ("kind", json!({"const":"builtin_call"})),
+        (
+            "target",
+            json!({"enum":StringOp::ALL.iter().map(|operation|operation.id()).collect::<Vec<_>>()}),
+        ),
+        (
+            "name",
+            json!({"enum":StringOp::ALL.iter().map(|operation|operation.name()).collect::<Vec<_>>()}),
+        ),
+        ("arity", json!({"type":"integer","minimum":1,"maximum":2})),
+        ("parameters", parameters),
+        ("return_type_id", json!({"enum":returns})),
+        ("effects", json!({"const":[]})),
+        (
+            "evidence_owner",
+            json!({"const":"compiler_string_operations"}),
         ),
         ("requires_full_candidate_validation", json!({"const":true})),
     ])
@@ -704,7 +765,8 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
     docs.get_mut("urn:semaprax.project-change-catalog.v1")
         .unwrap()["properties"]["nominal_types"] = array(nominal_type());
     let mut builtins = array(builtin_constructor());
-    builtins["maxItems"] = json!(crate::byte_ops::ByteOp::ALL.len());
+    builtins["maxItems"] =
+        json!(crate::byte_ops::ByteOp::ALL.len() + crate::string_ops::StringOp::ALL.len());
     docs.get_mut("urn:semaprax.project-change-catalog.v1")
         .unwrap()["properties"]["builtin_calls"] = builtins;
     let mut places = array(field_place());

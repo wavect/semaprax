@@ -854,9 +854,11 @@ build or publication authority. See
 [Contract Expression Holes](PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md).
 
 `candidate/builtin.rs`, a child of the intent module, resolves typed
-`builtin_call` requests through the compiler-owned byte-operation inventory.
+`builtin_call` requests through the compiler-owned byte and string operation inventories.
 It rejects source identity/binding collisions and supplies the same descriptors
-to discovery and semantic rebase. Ordinary source-call lowering and complete
+to discovery and semantic rebase. Its shared operation selector also supplies
+the exact HIR occurrence map used by declaration movement, without broadening
+movement's checked type or import vocabulary. Ordinary source-call lowering and complete
 candidate replay retain ownership, view provenance, cleanup and target
 authority; the graph carries no new independent meaning. See
 [Builtin Call Constructor](PROJECT-BUILTIN-CALL-CONSTRUCTOR-V1.md).

@@ -5,7 +5,7 @@ promotion or target execution evidence.
 
 Audience: compiler contributors, agent builders, and reviewers.
 
-Typed candidate expressions can select an existing compiler-owned byte
+Typed candidate expressions can select an existing compiler-owned byte or string
 operation without inventing a source function or import:
 
 ```json
@@ -24,9 +24,10 @@ The existing `call` constructor retains its local/imported function lookup.
 
 ## Compiler ownership and source replay
 
-`src/byte_ops.rs` owns the closed operation inventory, source spellings,
-arities, and semantic signatures. This constructor projects that inventory;
-it introduces no new byte semantics, evaluator, or backend operation.
+`src/byte_ops.rs` and `src/string_ops.rs` own the closed operation inventories,
+source spellings, arities, and semantic signatures. This constructor projects
+those inventories; it introduces no new language semantics, evaluator, or
+backend operation.
 
 | Stable identity | Source operation | Arguments | Result |
 | --- | --- | --- | --- |
@@ -37,6 +38,24 @@ it introduces no new byte semantics, evaluator, or backend operation.
 | `core.bytes.as-slice` | `bytes_as_slice` | borrowed `Bytes` place | byte slice |
 | `core.array-u8.as-slice` | `array_as_slice` | borrowed fixed byte-array place | byte slice |
 | `core.str.as-bytes` | `str_as_bytes` | borrowed `str` | byte slice |
+| `core.string.len` | `string_len` | borrowed String read | `i64` |
+| `core.string.concat` | `string_concat` | two consumed Strings | owned `string` |
+| `core.string.is_empty` | `string_is_empty` | borrowed String read | `bool` |
+| `core.string.starts_with` | `string_starts_with` | two borrowed String reads | `bool` |
+| `core.string.contains` | `string_contains` | two borrowed String reads | `bool` |
+| `core.string.len_chars` | `string_len_chars` | borrowed String read | `i64` |
+| `core.string.from_char` | `string_from_char` | copied `char` | owned `string` |
+
+String operations retain their [ordinary source contract](STRING-OPS-V1.md).
+`len` counts UTF-8 bytes; `len_chars` counts Unicode scalar values. Borrowed
+reads leave their named owners available, while concatenation consumes both
+arguments using the existing ownership machinery. Compiler-generated staging
+and String place reads retain their ordinary cloning/allocation behavior;
+`borrow` metadata is not a claim of allocation-free execution. `from_char`
+accepts an existing checked character place or an ordinary character-valued
+expression. It does not introduce a character literal constructor or coerce
+an integer/string into a character. String and byte operations remain distinct:
+there is no implicit String-to-`str`, byte-slice or `Bytes` conversion.
 
 An authored Project identity that collides with the selected compiler identity
 fails closed. Reserved spelling collisions and active lexical bindings must
@@ -87,8 +106,8 @@ in force; a matching source identity is not compiler provenance.
 
 ## Discovery
 
-Recursive constructor schemas derive seven closed alternatives from the same
-operation inventory. Each alternative fixes the target and exact argument
+Recursive constructor schemas derive fourteen closed alternatives from the
+two compiler operation inventories. Each alternative fixes the target and exact argument
 count while recursively referring to the complete expression grammar.
 
 Target-specific change catalogues and full typed-hole contexts can expose
@@ -97,6 +116,14 @@ Rows describe the constructor kind, target, source name, arity, ordered
 parameters, return type identity, effects, evidence owner, and the requirement
 for full candidate validation. These are available operation descriptors,
 not a result-type-filtered list of proven valid replacements.
+
+The seven byte descriptors retain their existing contents and order; the seven
+string descriptors follow them. String parameter types and ownership come from
+the owner's resolved signatures, with `type_family: null` and
+`evidence_owner: compiler_string_operations`. Byte descriptors keep
+`evidence_owner: compiler_byte_operations`. Closed response schemas distinguish
+the two inventories. Namespace filtering can remove unavailable descriptors;
+absence does not authorize a fallback to an authored function with a similar name.
 
 Each parameter carries its index, name, ownership mode, and either a concrete
 `type_id` or a `type_family`. The array parameter describes the fixed byte-array
@@ -121,3 +148,11 @@ for a borrow of the original owned field.
 Library and transport regression cases are authored but unrun. No compiler,
 interpreter, backend, generated client, or quality gate was executed for this
 change. The graph-operational programme and completion matrix remain partial.
+
+The string extension has separate
+[candidate regressions](../tests/project_candidate_string_builtin_calls_v1.rs)
+and [protocol regressions](../tests/image_string_builtin_constructors_v5.rs).
+String fixtures retained outside the selected entry/test closure establish no
+active Project or Wasm String execution support. Existing target profiles,
+generated-client response limits, and the serialized Rust client size gate are
+unchanged; their executable validation remains required.

@@ -1,6 +1,6 @@
 //! Compiler-owned string operation intrinsics.
 //!
-//! Five prelude-style intrinsic functions from the first wave and four from
+//! Three prelude-style intrinsic functions from the first wave and four from
 //! the second bounded wave are admitted wherever owned `string` values are
 //! already admitted. They carry reserved stable identities in the
 //! compiler-owned `core.string.*` family so a call site resolves to an
@@ -65,6 +65,16 @@ pub(crate) enum StringOp {
 }
 
 impl StringOp {
+    pub(crate) const ALL: [Self; 7] = [
+        Self::Len,
+        Self::Concat,
+        Self::IsEmpty,
+        Self::StartsWith,
+        Self::Contains,
+        Self::LenChars,
+        Self::FromChar,
+    ];
+
     pub(crate) fn name(self) -> &'static str {
         match self {
             StringOp::Len => LEN_NAME,

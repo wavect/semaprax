@@ -134,6 +134,11 @@ bounded owned string contents and explicit fixed byte arrays through ordinary
 source replay. This authored, unrun extension leaves scalar migration defaults,
 source ownership/provenance and target admission unchanged; repeat arrays and
 general constructor search remain outside its scope.
+The existing seven String intrinsics are also selectable through compiler-owned
+typed builtin calls, with exact parameter ownership and separate byte/string
+evidence owners. Discovery and eligible declaration movement share those
+identities. This authored, unrun extension does not widen String target
+profiles, character constructors, source imports or runtime authority.
 
 ## Phase 3: all eleven requested operations
 

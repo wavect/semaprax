@@ -371,5 +371,6 @@ assert 'frontend_work' in client.WorkspaceRefreshPreviewPayload.__optional_keys_
 hints = typing.get_type_hints(client.CandidateQueryPayload, vars(client), vars(client))
 assert type(None) in typing.get_args(hints['next_offset'])
 assert client.HoleQueryPayload is typing.Any
-print('typed-response-evidence-ok')
+# Keep this exact-byte test marker independent of Windows text-mode CRLF.
+sys.stdout.buffer.write(b'typed-response-evidence-ok\n')
 "#;

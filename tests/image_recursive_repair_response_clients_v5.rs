@@ -559,5 +559,6 @@ except client._ShapeLimitError:
     pass
 else:
     raise AssertionError('uniqueItems did not consume shared work budget')
-print('recursive-repair-client-ok')
+# Keep this exact-byte test marker independent of Windows text-mode CRLF.
+sys.stdout.buffer.write(b'recursive-repair-client-ok\n')
 "#;

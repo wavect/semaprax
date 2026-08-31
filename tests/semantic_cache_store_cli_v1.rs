@@ -1,4 +1,4 @@
-//! Cross-process cache evidence, authored and intentionally unrun.
+//! Cross-process cache evidence using a separately installed compiler image.
 #![cfg(all(
     unix,
     any(
@@ -12,7 +12,7 @@ use semaprax::project::{with_authenticated_project, ProjectSemanticImage};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::io::Write;
-use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -20,6 +20,7 @@ static SERIAL: AtomicU64 = AtomicU64::new(0);
 struct Fixture {
     root: PathBuf,
     store: PathBuf,
+    compiler: PathBuf,
 }
 impl Fixture {
     fn new() -> Self {
@@ -42,11 +43,32 @@ impl Fixture {
         let store = root.join(".semaprax-semantic-cache");
         std::fs::create_dir(&store).unwrap();
         std::fs::set_permissions(&store, std::fs::Permissions::from_mode(0o700)).unwrap();
-        Self { root, store }
+        // Cargo may hard-link its public binary to debug/deps on Linux. That
+        // build artifact is not the immutable single-link installation required
+        // by the cache contract. Install identical bytes without altering Cargo's
+        // artifact, and use that same installed image for every subprocess.
+        let compiler = root.join("semaprax-installed");
+        std::fs::copy(env!("CARGO_BIN_EXE_semaprax"), &compiler).unwrap();
+        std::fs::set_permissions(&compiler, std::fs::Permissions::from_mode(0o555)).unwrap();
+        let metadata = std::fs::metadata(&compiler).unwrap();
+        assert!(metadata.is_file());
+        assert_eq!(metadata.nlink(), 1);
+        assert_eq!(metadata.permissions().mode() & 0o777, 0o555);
+        assert!(metadata.len() > 0);
+        assert!(
+            metadata.len()
+                <= semaprax::semantic_cache_store::MAX_SEMANTIC_CACHE_COMPILER_BYTES as u64,
+            "cache fixture requires a compiler within the existing 256-MiB bound; build with debug=0"
+        );
+        Self {
+            root,
+            store,
+            compiler,
+        }
     }
     fn initialize(&self) -> Value {
         value(
-            Command::new(env!("CARGO_BIN_EXE_semaprax"))
+            Command::new(&self.compiler)
                 .arg("semantic-cache-init")
                 .arg(&self.store)
                 .output()
@@ -54,17 +76,18 @@ impl Fixture {
         )
     }
     fn persist(&self) -> Value {
-        value(
-            Command::new(env!("CARGO_BIN_EXE_semaprax"))
-                .arg("semantic-cache-persist")
-                .arg(self.root.join("semaprax.toml"))
-                .arg(&self.store)
-                .output()
-                .unwrap(),
-        )
+        value(self.persist_output())
+    }
+    fn persist_output(&self) -> Output {
+        Command::new(&self.compiler)
+            .arg("semantic-cache-persist")
+            .arg(self.root.join("semaprax.toml"))
+            .arg(&self.store)
+            .output()
+            .unwrap()
     }
     fn load(&self, digest: &str) -> Output {
-        Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        Command::new(&self.compiler)
             .arg("semantic-cache-load")
             .arg(&self.store)
             .arg(digest)
@@ -81,7 +104,7 @@ impl Fixture {
     fn session(&self, policy: &Value, input: &str) -> Output {
         let policy_path = self.root.join("host.json");
         std::fs::write(&policy_path, policy.to_string()).unwrap();
-        let mut process = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        let mut process = Command::new(&self.compiler)
             .arg("serve-workspace")
             .arg(self.root.join("semaprax.toml"))
             .arg(policy_path)
@@ -236,15 +259,10 @@ fn reminting_public_digest_does_not_authenticate_changed_private_payload() {
 #[test]
 fn persisted_cache_is_bound_to_exact_executable_not_only_package_version() {
     let current = std::env::current_exe().unwrap();
-    // The store deliberately refuses oversized debug installations; this case
-    // exercises binary mismatch only when both installations meet that bound.
     let bound = semaprax::semantic_cache_store::MAX_SEMANTIC_CACHE_COMPILER_BYTES as u64;
-    if [current.as_path(), Path::new(env!("CARGO_BIN_EXE_semaprax"))]
-        .iter()
-        .any(|path| std::fs::metadata(path).unwrap().len() > bound)
-    {
-        return;
-    }
+    let metadata = std::fs::metadata(current).unwrap();
+    assert!(metadata.len() <= bound, "build cache evidence with debug=0");
+    assert_eq!(metadata.nlink(), 1);
     let fixture = Fixture::new();
     fixture.initialize();
     let receipt = fixture.persist();
@@ -254,7 +272,41 @@ fn persisted_cache_is_bound_to_exact_executable_not_only_package_version() {
     )
     .err()
     .expect("test harness is not the sealing CLI executable");
-    assert!(errors.iter().any(|error| error.code == "SPX-G308"));
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].code, "SPX-G308");
+    assert_eq!(
+        errors[0].message,
+        "semantic cache version or exact compiler file identity differs"
+    );
+}
+
+#[test]
+fn compiler_hard_links_and_write_authority_reject_before_cache_publication() {
+    let fixture = Fixture::new();
+    fixture.initialize();
+    let key_path = fixture.store.join("compiler-cache.key");
+    let key = std::fs::read(&key_path).unwrap();
+    let rejected = || {
+        let output = fixture.persist_output();
+        assert!(!output.status.success());
+        assert!(output.stdout.is_empty());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("SPX-G308"));
+        assert_eq!(std::fs::read_dir(&fixture.store).unwrap().count(), 1);
+        assert_eq!(std::fs::read(&key_path).unwrap(), key);
+    };
+    let alias = fixture.root.join("compiler-hard-link");
+    std::fs::hard_link(&fixture.compiler, &alias).unwrap();
+    assert_eq!(std::fs::metadata(&fixture.compiler).unwrap().nlink(), 2);
+    rejected();
+    std::fs::remove_file(alias).unwrap();
+    assert_eq!(std::fs::metadata(&fixture.compiler).unwrap().nlink(), 1);
+    std::fs::set_permissions(&fixture.compiler, std::fs::Permissions::from_mode(0o575)).unwrap();
+    rejected();
+    std::fs::set_permissions(&fixture.compiler, std::fs::Permissions::from_mode(0o555)).unwrap();
+    let receipt = fixture.persist();
+    warm(&value(
+        fixture.load(receipt["entry_digest"].as_str().unwrap()),
+    ));
 }
 
 #[test]

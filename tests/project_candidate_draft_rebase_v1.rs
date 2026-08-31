@@ -514,11 +514,14 @@ fn copy_record_forwarding_binds_field_identity_even_when_owner_body_and_signatur
         )
         .err()
         .unwrap();
-    assert!(
-        errors
-            .iter()
-            .any(|error| error.code == "SPX-G345" && error.message.contains("nominal owner shape")),
-        "{errors:?}"
+    // Checked nominal signature fingerprints reject the changed field identity
+    // before the later nominal-owner descriptor guard. Authored function bytes
+    // being unchanged must not bypass either guard.
+    assert_eq!(errors.len(), 1, "{errors:?}");
+    assert_eq!(errors[0].code, "SPX-G345");
+    assert_eq!(
+        errors[0].message,
+        "pending draft region conflicts with concurrent signature, effects or selected-region changes"
     );
     assert_eq!(archive(&draft).to_json(), saved.to_json());
     assert_eq!(fixture.bytes(), disk);

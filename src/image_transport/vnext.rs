@@ -21,6 +21,7 @@ mod merge_preview;
 mod package_graph;
 mod projections;
 mod read_batch;
+mod read_batch_rpc;
 mod recovery;
 mod retained_reads;
 mod review_facets;
@@ -74,6 +75,7 @@ pub struct VNextPolicy {
 
 #[derive(Clone, Copy)]
 pub(super) enum Action {
+    ReadBatch,
     Refresh,
     RefreshPreview,
     Commit,
@@ -141,6 +143,7 @@ pub struct VNextSession {
     frontend: Option<ProjectFrontendCache>,
     package_graph: Option<Arc<crate::package_semantic_graph::PackageSemanticGraph>>,
     package_attachment_closed: bool,
+    read_batch_workers: Option<usize>,
 }
 
 impl VNextSession {
@@ -244,6 +247,7 @@ impl VNextSession {
             frontend,
             package_graph: None,
             package_attachment_closed: false,
+            read_batch_workers: None,
         })
     }
 
@@ -257,6 +261,24 @@ impl VNextSession {
             return Err(failure("SPX-G280", "Git publication host must be attached once before requests and match the session manifest"));
         }
         self.commit = Some(host);
+        Ok(self)
+    }
+
+    /// Select the wire read-batch method once before any request is accepted.
+    /// Request bytes cannot choose workers or expand the immutable read subset.
+    pub fn with_read_batch_workers(mut self, workers: usize) -> Result<Self, Vec<Diagnostic>> {
+        if !(1..=4).contains(&workers)
+            || self.started
+            || self.terminal
+            || self.package_attachment_closed
+            || self.read_batch_workers.is_some()
+        {
+            return Err(failure(
+                "SPX-G294",
+                "wire read batches require one startup selection of one through four workers",
+            ));
+        }
+        self.read_batch_workers = Some(workers);
         Ok(self)
     }
 
@@ -328,6 +350,7 @@ impl VNextSession {
             &self.policy,
             self.commit.is_some(),
             self.package_graph.is_some(),
+            self.read_batch_workers.is_some(),
         );
         let Some(method) = available
             .iter()
@@ -361,6 +384,9 @@ impl VNextSession {
             ));
         }
         let response = match method.operation {
+            Operation::VNext(Action::ReadBatch) => {
+                self.read_batch_request(&id, &params, &available)
+            }
             Operation::VNext(Action::Refresh) => self.refresh(&id, &params, false),
             Operation::VNext(Action::RefreshPreview) => self.refresh(&id, &params, true),
             Operation::VNext(Action::Commit) => self.commit_request(&id, method, &params),
@@ -646,13 +672,14 @@ impl VNextSession {
 
 #[cfg(test)]
 fn methods(policy: &VNextPolicy, commit_enabled: bool) -> Vec<&'static Method> {
-    session_methods(policy, commit_enabled, false)
+    session_methods(policy, commit_enabled, false, false)
 }
 
 fn session_methods(
     policy: &VNextPolicy,
     commit_enabled: bool,
     package_attached: bool,
+    read_batch_selected: bool,
 ) -> Vec<&'static Method> {
     use candidates::diagnostics::Action as DiagnosticAction;
     let mut methods = candidates::diagnostics::methods(policy.test_policy.is_some())
@@ -674,6 +701,9 @@ fn session_methods(
         .collect::<Vec<_>>();
     methods.push(&REFRESH);
     methods.push(&REFRESH_PREVIEW);
+    if read_batch_selected {
+        methods.push(read_batch_rpc::method());
+    }
     methods.push(dependencies::method());
     methods.push(analysis_coverage::method());
     if package_attached {

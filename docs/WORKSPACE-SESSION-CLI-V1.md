@@ -141,6 +141,17 @@ V1–v5 reject this field. Store roots are never selected by RPC, and no approva
 or publication state are recovered. See [Typed-draft persistence](DRAFT-ARCHIVE-PERSISTENCE-V1.md)
 for commands, exact bounds and authored/unrun regression evidence.
 
+Policy `semaprax.workspace-host-policy.v7` requires every v6 field plus
+`read_batch_workers`: null leaves protocol methods unchanged, while an integer
+from one through four enables `workspace/read-batch` with that fixed worker
+limit. Missing, boolean, fractional, string and out-of-range selections reject.
+V1–v6 reject the added field, even null. This grant is independent of the other
+capabilities and adds no test, build, storage or source authority. Both NDJSON
+and MCP use the same loader. Each outer request remains sequential, while
+explicitly selected immutable inner reads may run concurrently under the
+unchanged wire caps. See [Parallel Read Protocol v1](IMAGE-READ-BATCH-PROTOCOL-V1.md)
+for exact framing, authentication, closed schemas and authored/unrun evidence.
+
 `git_commit` is null or a closed object containing `git_executable`, `repository`,
 `reference`, `base_commit`, `project_prefix`, `author_name`, `author_email`,
 `unix_seconds`, `message`, `max_commands`, `timeout_ms` and

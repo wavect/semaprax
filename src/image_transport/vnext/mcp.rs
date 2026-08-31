@@ -35,6 +35,7 @@ impl McpSession {
             &inner.policy,
             inner.commit.is_some(),
             inner.package_graph.is_some(),
+            inner.read_batch_workers.is_some(),
         )?;
         Ok(Self {
             inner,

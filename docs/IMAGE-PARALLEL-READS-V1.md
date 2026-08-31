@@ -82,11 +82,13 @@ no rows. A frame submitted through this entry point still starts the session
 for purposes of the existing startup-only Git approval guard. Rejected batch
 configuration with no processed frames does not grant approval or alter source.
 
-This is not JSON-RPC array batching or a new remotely available method.
-`serve_vnext` and the `serve-workspace` CLI still process NDJSON sequentially.
-An embedding host must explicitly collect a bounded group and invoke this API;
-an agent cannot request worker count or widen the supported read subset. Method
-capabilities and normal sequential response bytes remain unchanged. Transport
+This API itself is not JSON-RPC array batching or a remotely available method.
+The separate opt-in [Parallel Read Protocol](IMAGE-READ-BATCH-PROTOCOL-V1.md)
+lets a startup-configured host expose bounded groups through NDJSON and MCP.
+`serve_vnext` still processes outer NDJSON frames sequentially. Without that
+selection, an embedding host must explicitly collect a group and invoke this
+API. An agent cannot request worker count or widen the supported read subset.
+Default method capabilities and ordinary response bytes remain unchanged. Transport
 scheduling across independent incoming streams, cancellation, and measured
 throughput improvements remain outstanding. Selected parallel candidate reads
 are authored in the separate retained-read extension.

@@ -765,6 +765,30 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
     if capabilities["methods"].as_array().is_some_and(|methods| {
         methods
             .iter()
+            .any(|method| method == "workspace/read-batch")
+    }) {
+        let mut request = object(vec![(
+            "frames",
+            json!({
+                "type":"array","minItems":1,"maxItems":16,
+                "items":{"type":"string","maxLength":65536,"x-max-utf8-bytes":65536}
+            }),
+        )]);
+        request["$id"] = json!("urn:semaprax.image-read-batch-request.v1");
+        request["$schema"] = json!("https://json-schema.org/draft/2020-12/schema");
+        result.insert("urn:semaprax.image-read-batch-request.v1".into(), request);
+        result.insert(
+            "urn:semaprax.image-read-batch.v1".into(),
+            document("semaprax.image-read-batch.v1", vec![
+                ("responses", json!({"type":"array","minItems":1,"maxItems":16,
+                    "items":nullable(json!({"type":"string","maxLength":1048576,"x-max-utf8-bytes":1048576}))})),
+                ("source_authority", json!({"const":false})),
+            ]),
+        );
+    }
+    if capabilities["methods"].as_array().is_some_and(|methods| {
+        methods
+            .iter()
             .any(|method| method == "candidate/merge-preview")
     }) {
         result.insert(

@@ -14,9 +14,12 @@ remain unchanged.
 ## Selection and worker inputs
 
 The host still chooses one to four workers and one to sixteen frames through
-the [original batch API](IMAGE-PARALLEL-READS-V1.md). There is no new RPC method,
-request-controlled concurrency setting, JSON-RPC array batch or concurrent
-NDJSON server. `parallel_read_methods()` lists the intersection of the fixed
+the [original batch API](IMAGE-PARALLEL-READS-V1.md). This extension adds no RPC
+method itself; the separate opt-in [Parallel Read Protocol](IMAGE-READ-BATCH-PROTOCOL-V1.md)
+can expose the same allowlist under startup-selected concurrency and stricter
+aggregate wire bounds. Neither adds a request-controlled concurrency setting,
+JSON-RPC array batch or concurrent outer NDJSON server.
+`parallel_read_methods()` lists the intersection of the fixed
 read allowlist and the methods already selected by the host's startup policy.
 The `query` flag alone does not establish worker eligibility.
 

@@ -742,23 +742,31 @@ mod tests {
                 ..VNextPolicy::default()
             },
         ] {
-            let methods = super::super::super::methods(&policy, false);
-            let method = methods
-                .iter()
-                .find(|method| method.name == "protocol/client")
-                .unwrap();
-            let params = serde_json::Map::from_iter([("language".to_owned(), json!("rust"))]);
-            // Exercise the production payload builder and its unchanged cap:
-            // the JSON source string escapes quotes/newlines and is larger
-            // than the generated source's own byte count.
-            let report = super::super::payload(method, &params, &methods, &policy, false).unwrap();
-            assert!(
-                serde_json::to_vec(&report).unwrap().len() <= super::super::MAX_DISCOVERY_BYTES
-            );
-            let source = report["source"].as_str().unwrap();
-            assert!(source.contains("response_literal!"));
-            assert_eq!(source.matches("macro_rules! response_literal").count(), 1);
-            assert!(source.contains("response literal mismatch"));
+            for batch_selected in [false, true] {
+                let methods =
+                    super::super::super::session_methods(&policy, false, false, batch_selected);
+                let method = methods
+                    .iter()
+                    .find(|method| method.name == "protocol/client")
+                    .unwrap();
+                let params = serde_json::Map::from_iter([("language".to_owned(), json!("rust"))]);
+                // Exercise the production payload builder and its unchanged cap:
+                // the JSON source string escapes quotes/newlines and is larger
+                // than the generated source's own byte count.
+                let report =
+                    super::super::payload(method, &params, &methods, &policy, false).unwrap();
+                assert!(
+                    serde_json::to_vec(&report).unwrap().len() <= super::super::MAX_DISCOVERY_BYTES
+                );
+                let source = report["source"].as_str().unwrap();
+                assert!(source.contains("response_literal!"));
+                assert_eq!(source.matches("macro_rules! response_literal").count(), 1);
+                assert!(source.contains("response literal mismatch"));
+                assert_eq!(
+                    source.contains("pub fn request_workspace_read_batch("),
+                    batch_selected
+                );
+            }
         }
     }
 

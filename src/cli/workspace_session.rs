@@ -83,6 +83,13 @@ fn open_session(manifest: &Path, policy_path: &Path) -> Result<VNextSession, Vec
     } else {
         VNextSession::open(&manifest, capability)?
     };
+    if policy
+        .get("read_batch_workers")
+        .is_some_and(|value| !value.is_null())
+    {
+        // Closed startup validation has already checked this host-only bound.
+        session = session.with_read_batch_workers(size(&policy, "read_batch_workers")?)?;
+    }
     // Archives contain historical source and intentions, never host policy or
     // approval. Load completely before opening any deadline-bound Git provider.
     if let Some(archives) = archives {
@@ -196,9 +203,12 @@ fn cache_policy(value: &Value) -> Result<(bool, bool), Vec<Diagnostic>> {
             "semaprax.workspace-host-policy.v3"
             | "semaprax.workspace-host-policy.v4"
             | "semaprax.workspace-host-policy.v5"
-            | "semaprax.workspace-host-policy.v6",
+            | "semaprax.workspace-host-policy.v6"
+            | "semaprax.workspace-host-policy.v7",
         ) => {
-            let draft_policy = value["schema"] == "semaprax.workspace-host-policy.v6";
+            let batch_policy = value["schema"] == "semaprax.workspace-host-policy.v7";
+            let draft_policy =
+                batch_policy || value["schema"] == "semaprax.workspace-host-policy.v6";
             let persistent_policy =
                 draft_policy || value["schema"] == "semaprax.workspace-host-policy.v5";
             let semantic_policy =
@@ -214,7 +224,20 @@ fn cache_policy(value: &Value) -> Result<(bool, bool), Vec<Diagnostic>> {
             if draft_policy {
                 keys.push("draft_archives");
             }
+            if batch_policy {
+                keys.push("read_batch_workers");
+            }
             exact(value, &keys)?;
+            if batch_policy
+                && !value["read_batch_workers"].is_null()
+                && !value["read_batch_workers"]
+                    .as_u64()
+                    .is_some_and(|workers| (1..=4).contains(&workers))
+            {
+                return Err(invalid(
+                    "read batch workers must be null or an integer from one to four",
+                ));
+            }
             if draft_policy {
                 let archives = value["draft_archives"]
                     .as_array()

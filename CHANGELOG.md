@@ -51,6 +51,13 @@
   closed, `LIB` is unchanged, and missing headers still fail before archive or
   package publication.
 
+- Added explicit startup-selected parallel read batches to v5 NDJSON and MCP,
+  reusing the immutable read allowlist and held-source authentication with
+  unchanged aggregate wire limits. Closed host-policy v7 and generated client
+  discovery carry the selection; no request can select workers or gain mutation
+  authority. Corrected stale record-field and retained-read instructions.
+  Regression cases are authored, unrun locally.
+
 - Extended inert scalar record-field additions to existing checked sized
   resource-free records with owned storage beyond flat Bytes. Compiler type
   facts and full candidate replay govern eligibility; defaults, source profiles,

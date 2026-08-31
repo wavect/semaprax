@@ -5,7 +5,7 @@ use super::*;
 const MAX_FRAMES: usize = 16;
 const MAX_WORKERS: usize = 4;
 
-enum Read {
+pub(super) enum Read {
     Immediate(Option<Vec<u8>>),
     Query {
         id: RequestId,
@@ -65,6 +65,7 @@ impl VNextSession {
             &self.policy,
             self.commit.is_some(),
             self.package_graph.is_some(),
+            self.read_batch_workers.is_some(),
         );
         let reads = frames
             .iter()
@@ -79,100 +80,16 @@ impl VNextSession {
                 })
                 .collect());
         }
-        let image = &self.image;
-        let package_graph = self.package_graph.as_deref();
-        let registry = &self.registry;
-        let policy = self.policy;
-        let test_enabled = policy.test_policy.is_some();
-        let commit_enabled = self.commit.is_some();
-        self.snapshot.with_authenticated_request(|_| {
-            // Resolve only selected immutable subjects inside live-source
-            // authentication. Even all-unknown-handle queries take both checks.
-            // Precompute cheap discovery values here so no host/test policy
-            // object needs to enter workers merely to describe its bounds.
-            let detached = reads
-                .iter()
-                .map(|read| match read {
-                    Read::Immediate(response) => DetachedRead::Immediate(response),
-                    Read::Query { id, method, params } => match method.operation {
-                        Operation::Capabilities
-                        | Operation::Schemas
-                        | Operation::Instructions
-                        | Operation::Client
-                        | Operation::Catalog => DetachedRead::Discovery {
-                            id,
-                            payload: discovery::payload(
-                                method,
-                                params,
-                                &available,
-                                &policy,
-                                commit_enabled,
-                            ),
-                        },
-                        _ => DetachedRead::Query {
-                            id,
-                            method,
-                            params,
-                            subjects: registry.detach_read(method.operation, params),
-                        },
-                    },
-                })
-                .collect::<Vec<_>>();
-            parallel_map(&detached, workers, &|read| match read {
-                DetachedRead::Immediate(response) => (*response).clone(),
-                DetachedRead::Discovery { id, payload } => Some(match payload {
-                    Ok(payload) => response(id, image, payload.clone()),
-                    Err(errors) => error_response(id, errors),
-                }),
-                DetachedRead::Query {
-                    id,
-                    method,
-                    params,
-                    subjects,
-                } => {
-                    let payload = subjects
-                        .as_ref()
-                        .map_err(Clone::clone)
-                        .and_then(|subjects| match method.operation {
-                            Operation::Candidate(candidates::Action::Diagnostic(action)) => {
-                                candidates::diagnostics::read_payload(
-                                    action, params, image, subjects,
-                                )
-                            }
-                            Operation::Candidate(action) => candidates::reads::payload(
-                                action,
-                                params,
-                                image,
-                                subjects,
-                                test_enabled,
-                            ),
-                            operation if retained_reads::supports(operation) => {
-                                retained_reads::prepare(operation, params, image, subjects)
-                            }
-                            Operation::VNext(Action::Dependencies) => {
-                                dependencies::prepare(params, image)
-                            }
-                            Operation::VNext(
-                                action @ (Action::PackageSummary | Action::PackageConsumers),
-                            ) => package_graph::prepare(action, params, image, package_graph),
-                            Operation::VNext(Action::AnalysisCoverage) => {
-                                analysis_coverage::prepare(params, image)
-                            }
-                            Operation::VNext(Action::CleanupDependencies) => {
-                                cleanup_dependencies::prepare(params, image)
-                            }
-                            Operation::VNext(
-                                action @ (Action::DependencySummary | Action::DependencyPage),
-                            ) => dependencies::prepare_navigation(action, params, image),
-                            _ => dispatch(method, params, image),
-                        });
-                    Some(match payload {
-                        Ok(payload) => response(id, image, payload),
-                        Err(errors) => error_response(id, &errors),
-                    })
-                }
-            })
-        })
+        let context = ReadContext {
+            image: &self.image,
+            package_graph: self.package_graph.as_deref(),
+            registry: &self.registry,
+            policy: &self.policy,
+            commit_enabled: self.commit.is_some(),
+            available: &available,
+        };
+        self.snapshot
+            .with_authenticated_request(|_| execute(&reads, workers, context))
     }
 
     /// Discover the host batch API's fixed read subset without doing source
@@ -182,6 +99,7 @@ impl VNextSession {
             &self.policy,
             self.commit.is_some(),
             self.package_graph.is_some(),
+            self.read_batch_workers.is_some(),
         )
         .into_iter()
         .filter(|method| parallel_read(method.operation))
@@ -190,7 +108,106 @@ impl VNextSession {
     }
 }
 
-fn parallel_read(operation: Operation) -> bool {
+/// Coordinator-only inputs. Destructure before spawning workers so neither the
+/// registry nor descriptive host policy enters any worker closure.
+pub(super) struct ReadContext<'a> {
+    pub(super) image: &'a ProjectSemanticImage,
+    pub(super) package_graph: Option<&'a crate::package_semantic_graph::PackageSemanticGraph>,
+    pub(super) registry: &'a candidates::Registry,
+    pub(super) policy: &'a VNextPolicy,
+    pub(super) commit_enabled: bool,
+    pub(super) available: &'a [&'static Method],
+}
+
+/// Caller must hold the ordinary before/after source-authentication boundary.
+/// This seam performs no authentication itself and returns no registry mutation.
+pub(super) fn execute(
+    reads: &[Read],
+    workers: usize,
+    context: ReadContext<'_>,
+) -> Result<Vec<Option<Vec<u8>>>, Vec<Diagnostic>> {
+    let ReadContext {
+        image,
+        package_graph,
+        registry,
+        policy,
+        commit_enabled,
+        available,
+    } = context;
+    let test_enabled = policy.test_policy.is_some();
+    // Lookup failures remain semantic query results, including all-unknown
+    // batches. Cheap discovery is prepared serially under authentication.
+    let detached = reads
+        .iter()
+        .map(|read| match read {
+            Read::Immediate(response) => DetachedRead::Immediate(response),
+            Read::Query { id, method, params } => match method.operation {
+                Operation::Capabilities
+                | Operation::Schemas
+                | Operation::Instructions
+                | Operation::Client
+                | Operation::Catalog => DetachedRead::Discovery {
+                    id,
+                    payload: discovery::payload(method, params, available, policy, commit_enabled),
+                },
+                _ => DetachedRead::Query {
+                    id,
+                    method,
+                    params,
+                    subjects: registry.detach_read(method.operation, params),
+                },
+            },
+        })
+        .collect::<Vec<_>>();
+    parallel_map(&detached, workers, &|read| match read {
+        DetachedRead::Immediate(response) => (*response).clone(),
+        DetachedRead::Discovery { id, payload } => Some(match payload {
+            Ok(payload) => response(id, image, payload.clone()),
+            Err(errors) => error_response(id, errors),
+        }),
+        DetachedRead::Query {
+            id,
+            method,
+            params,
+            subjects,
+        } => {
+            let payload = subjects
+                .as_ref()
+                .map_err(Clone::clone)
+                .and_then(|subjects| match method.operation {
+                    Operation::Candidate(candidates::Action::Diagnostic(action)) => {
+                        candidates::diagnostics::read_payload(action, params, image, subjects)
+                    }
+                    Operation::Candidate(action) => {
+                        candidates::reads::payload(action, params, image, subjects, test_enabled)
+                    }
+                    operation if retained_reads::supports(operation) => {
+                        retained_reads::prepare(operation, params, image, subjects)
+                    }
+                    Operation::VNext(Action::Dependencies) => dependencies::prepare(params, image),
+                    Operation::VNext(
+                        action @ (Action::PackageSummary | Action::PackageConsumers),
+                    ) => package_graph::prepare(action, params, image, package_graph),
+                    Operation::VNext(Action::AnalysisCoverage) => {
+                        analysis_coverage::prepare(params, image)
+                    }
+                    Operation::VNext(Action::CleanupDependencies) => {
+                        cleanup_dependencies::prepare(params, image)
+                    }
+                    Operation::VNext(
+                        action @ (Action::DependencySummary | Action::DependencyPage),
+                    ) => dependencies::prepare_navigation(action, params, image),
+                    _ => dispatch(method, params, image),
+                });
+            Some(match payload {
+                Ok(payload) => response(id, image, payload),
+                Err(errors) => error_response(id, &errors),
+            })
+        }
+    })
+}
+
+pub(super) fn parallel_read(operation: Operation) -> bool {
     if retained_reads::supports(operation) {
         return true;
     }
@@ -219,7 +236,11 @@ fn parallel_read(operation: Operation) -> bool {
     )
 }
 
-fn prepare_read(frame: &[u8], available: &[&'static Method], image: &ProjectSemanticImage) -> Read {
+pub(super) fn prepare_read(
+    frame: &[u8],
+    available: &[&'static Method],
+    image: &ProjectSemanticImage,
+) -> Read {
     if frame.is_empty() {
         return Read::Immediate(None);
     }
@@ -347,6 +368,7 @@ mod tests {
             assert!(parallel_read(Operation::VNext(action)));
         }
         for action in [
+            Action::ReadBatch,
             Action::Build,
             Action::ArtifactDelta,
             Action::Commit,

@@ -57,6 +57,20 @@ pub(super) fn payload(
         let mut instructions = result["instructions"].as_str().unwrap_or("").to_owned();
         if methods
             .iter()
+            .any(|method| method.name == "workspace/read-batch")
+        {
+            let eligible = methods
+                .iter()
+                .filter(|method| super::read_batch::parallel_read(method.operation))
+                .map(|method| method.name)
+                .collect::<Vec<_>>()
+                .join(", ");
+            instructions.push_str(" The host selected parallel_read. Use workspace/read-batch with image_revision and batch containing only frames, an array of one to sixteen ordinary JSON-RPC request strings. Existing generated request builders may supply those exact strings, including their trailing LF. Every inner request keeps its ordinary selectors and grants. Empty frames and notifications produce null response positions; malformed or unavailable requests keep ordinary per-row errors. Responses are exact JSON-RPC strings in input order: decode each non-null string with the existing method decoder, rather than treating the outer shape as proof of its contents. The host fixes one to four workers before startup; requests cannot choose concurrency. The complete outer request remains at most 64 KiB and the complete encoded response at most 1 MiB, so use smaller report chunks or fewer reads when needed. Combined response overflow, worker failure or live source drift releases no partial batch. All workers join before results return. No mutation, workspace refresh or refresh-preview, build, artifact delta, interpreter execution, commit, approval, storage operation or nested workspace/read-batch is admitted, even if another grant selected it. Expensive validation and source replay remain possible; concurrency does not promise CPU, memory, stack or latency bounds. The exact selected inner read methods are: ");
+            instructions.push_str(&eligible);
+            instructions.push('.');
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "package/summary")
         {
             instructions.push_str(" The host attached an independently verified package graph before startup. Call package/summary with image_revision to discover its graph_revision and source-capsule bindings. Then call package/consumers with image_revision, package_revision equal to that graph_revision, provider_package, provider_version and target. The package subject is independent: project_association is none, and the session image authenticates only the live request boundary, not package linkage to this Project. Imports are declared dependencies; calls contain only authenticated cross-package direct sites, so an import can have no calls. Both closed reports are bounded to 1 MiB before the ordinary response-envelope bound and support parallel reads. No request can attach, replace, load or fetch a package graph, resolve a registry, build or execute packages, create candidates, or publish source.");
@@ -68,7 +82,7 @@ pub(super) fn payload(
             .iter()
             .any(|method| method.name == "candidate/cleanup-dependencies")
         {
-            instructions.push_str(" With candidate_prepare, use candidate/cleanup-dependencies with candidate_revision and target for before/after cleanup dependency facts against the original source base. Keep image_revision, candidate_revision and target fixed while reassembling offset/next_offset chunks; chunk_bytes is 1024 through 65536 (default 16384), report bound 8 MiB. The heterogeneous report remains explicitly unbundled. This read is excluded from immutable image batches and grants no execution or publication authority.");
+            instructions.push_str(" With candidate_prepare, use candidate/cleanup-dependencies with candidate_revision and target for before/after cleanup dependency facts against the original source base. Keep image_revision, candidate_revision and target fixed while reassembling offset/next_offset chunks; chunk_bytes is 1024 through 65536 (default 16384), report bound 8 MiB. The heterogeneous report remains explicitly unbundled. This pure read is eligible for authenticated parallel read batches and grants no execution or publication authority.");
         }
         if methods
             .iter()
@@ -136,7 +150,7 @@ pub(super) fn payload(
             .iter()
             .any(|method| method.name == "hole/archive-export")
         {
-            instructions.push_str(" Use hole/archive-export to obtain a self-contained source-backed draft archive in UTF-8 chunks. Keep draft_revision and image_revision fixed while following next_offset; chunk_bytes is 1024 through 65536 (default 16384). To restore, send the structured archive plus exact archive_revision and draft_revision to hole/archive-restore. RPC restoration requires the same exact original source base as the current session; a saved historical base cannot be selected through a request. Only an explicit startup host import may restore a historical source archive before the first frame. The unchanged 64 KiB request-frame limit applies even though the library archive limit is 128 MiB; larger archives require an explicit library host, not larger RPC frames. Restore retains only a draft, not a registered candidate, approval, trusted HIR or source authority. Its source_candidate_revision is a reconstructed association and need not name a registered candidate. Fill and complete through ordinary hole APIs; unresolved holes still block completion. No archive operation is admitted to the immutable image batch.");
+            instructions.push_str(" Use hole/archive-export to obtain a self-contained source-backed draft archive in UTF-8 chunks. Keep draft_revision and image_revision fixed while following next_offset; chunk_bytes is 1024 through 65536 (default 16384). To restore, send the structured archive plus exact archive_revision and draft_revision to hole/archive-restore. RPC restoration requires the same exact original source base as the current session; a saved historical base cannot be selected through a request. Only an explicit startup host import may restore a historical source archive before the first frame. The unchanged 64 KiB request-frame limit applies even though the library archive limit is 128 MiB; larger archives require an explicit library host, not larger RPC frames. Restore retains only a draft, not a registered candidate, approval, trusted HIR or source authority. Its source_candidate_revision is a reconstructed association and need not name a registered candidate. Fill and complete through ordinary hole APIs; unresolved holes still block completion. The pure archive export is eligible for authenticated parallel read batches; archive restoration remains excluded because it retains a draft.");
         }
         if methods.iter().any(|method| method.name == "hole/rebase") {
             instructions.push_str(" Use hole/rebase with exact draft_revision and new_base_candidate_revision to replay a retained draft onto that selected candidate's checked Project revision. Only the resulting draft is retained, with its pending selectors revalidated; its source_candidate_revision need not name a registered candidate. The bounded inline report is limited to 64 KiB, and failed replay, capacity or response preparation retains no new draft. This is conservative typed selector rebinding, not a general semantic merge or behavioral equivalence proof. No implicit completion, source publication, approval, build or test authority is granted. Workspace refresh still clears drafts: recover historical work through explicit startup archive restoration before rebasing. This mutation is excluded from immutable image batches.");
@@ -165,7 +179,7 @@ pub(super) fn payload(
             .any(|method| method.name == "candidate/apply-intent")
         {
             instructions.push_str(" Use field_place with only kind, target (an exact record field ID) and root (an existing lexical name) to select original field storage without the typed temporary introduced by project. Optional field_places metadata in change/catalog and full hole/query describes visible field membership and owner identity; it does not establish a root's current type, availability, loan state or legal use. Root nominal identity and any existing generic arguments must match the selected owner exactly; a same-named field in a different owner is not interchangeable. There is no recursive base, caller-provided type assertion or implicit staging. Using a field place as a value may move it; borrowing still requires the ordinary bytes_as_slice direct owned-byte-field profile. Whole candidate source, ownership, cleanup and target admission remain mandatory, and no general nested or mutable borrow is granted.");
-            instructions.push_str(" When change/catalog advertises add_record_field for an explicit monomorphic checked Copy record or currently admitted flat owned-Bytes record, supply only field id, name, type and default. The new field must be i64, bool, i32, u8 or usize with the matching bounded literal constructor and an exactly representable value. Defaults are inert and appended after existing field evaluations; no arbitrary expression, Bytes default, new owned field or ownership transfer is introduced. Existing constructors and exact patterns are migrated through authenticated source; all ownership, cleanup, layout and selected-target checks still run before any candidate is admitted. This operation can change layout and artifact contracts and is not a binary compatibility guarantee.");
+            instructions.push_str(" When change/catalog advertises add_record_field for an explicit monomorphic checked sized resource-free record, supply only field id, name, type and default. Existing source-admitted String, Bytes, array and nested record/variant storage can qualify through bounded compiler TypeFacts; the target need not be Copy or match the flat owned-byte profile. Generic targets, classes, variant targets, resources and borrowed storage remain excluded. The new field must be i64, bool, i32, u8 or usize with the matching bounded literal constructor and an exactly representable value. Defaults are inert and appended after existing field evaluations; no arbitrary expression, Bytes default, new owned field or ownership transfer is introduced. Existing constructors and exact patterns are migrated through authenticated source, preserving old field identities, types, order and checked Copy/drop/resource/sized flags. All ownership, cleanup, layout and selected-target checks still run before any candidate is admitted; nested owning patterns, projected loans and owning imports gain no new admission. Migrating String-bearing or variant constructor bodies outside the selected executable closure does not establish active native or Wasm support; aggregate String layouts and nested or mixed owned-Bytes storage retain their existing target and SPX-T268 source restrictions. This operation can change layout and artifact contracts and is not a binary compatibility guarantee.");
             instructions.push_str(" For add_declaration record fields and variant payload fields, type_declaration_forms advertises i64, bool, i32, u8, usize, string and Bytes, plus existing nominal_types selectors. This is request vocabulary, not admission of every choice in every aggregate: non-Bytes variant payloads with string, i32, u8 or usize still fail the existing SPX-T215 gate, and nested generic record fields still fail SPX-T223. A named field type is exactly kind nominal, target stable owner ID and type_arguments containing only direct i64 or bool with exact declared arity. The owner must already be visible in the anchor module; no new import, self reference, arbitrary source spelling, direct array type, borrowed/shared field, class or resource is introduced. Existing nominal dependencies retain their ordinary source-admitted field vocabulary. The rebuilt record or variant must have compiler TypeFacts proving sized and resource-free; fields need not be Copy. The existing nominal_types copy_admission metadata describes the Copy function-signature path and is separate from field admission. Source formatting, identity replay, layout, ownership, cleanup and existing Project/target admission still decide whether the new declaration is accepted. No default value, runtime execution or source authority is granted.");
             instructions.push_str(" The add_declaration function form also admits parameter type string with surface mode value and checked owning String semantics, plus existing stable-ID nominal selectors with explicit mode own. Do not spell the string token as String or pair it with mode own. Owning nominal parameters require monomorphic source declarations and exactly empty type_arguments; generic owning parameters remain excluded even though the shared structural nominal selector can represent generic Copy selections. nominal_owning_admission marks a distinct checked signature path: nominal value parameters still require Copy with no drop; nominal own parameters require non-Copy with drop; both require sized, resource-free records or variants. Nominal results may follow either checked classification, and string results are admitted through ordinary source checks. Existing Bytes own and str/Slice<u8> borrow forms remain unchanged; borrowed/shared nominal parameters, classes and resources remain excluded. Read nominal_types as provisional source-visible selectors, not proof that every argument combination is Copy or owning. No new import or profile permission is created, and existing SPX-G172 owning/nominal import restrictions still apply. Extraction and computed/new signature parameter rules keep their separate Copy limits. Bodies, contracts, ordinary String cloning, ownership transfer, cleanup and target support are decided by full candidate source admission; no automatic default, execution or source authority is granted.");
             instructions.push_str(" move_declaration retains its kind, target and destination-anchor request. Its structural destination list can include functions using checked resource-free String, Bytes, monomorphic owning records or variants and existing internal views; it does not promise a successful move. Borrowed signature parameters, resources, classes and unsupported generic types remain excluded. Existing workspace import restrictions still apply: introducing an owning parameter import or an unsupported nominal type import can reject the complete move with SPX-G172. Compiler builtin identities must remain exact across source and destination bindings. Relocation rewrites authenticated bindings without staging, duplicating or reordering argument/body evaluation; canonical source replay and ordinary ownership, loan, cleanup, import and target admission remain mandatory. No new allocation, execution, publication or source authority is granted.");
@@ -177,6 +191,12 @@ pub(super) fn payload(
 
 fn capabilities(methods: &[&Method], policy: &VNextPolicy, commit: bool) -> Value {
     let mut grants = vec!["semantic_read", "workspace_refresh"];
+    if methods
+        .iter()
+        .any(|method| method.name == "workspace/read-batch")
+    {
+        grants.push("parallel_read");
+    }
     if policy.candidate_prepare {
         grants.push("candidate_prepare");
     }
@@ -224,6 +244,7 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
     };
     value["query"] = json!(method.query);
     value["capability"] = json!(match method.name {
+        "workspace/read-batch" => "parallel_read",
         "workspace/refresh" | "workspace/refresh-preview" => "workspace_refresh",
         "candidate/test" => "candidate_test",
         "candidate/build" | "candidate/artifact-delta" => "candidate_build",
@@ -406,12 +427,20 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
             "selected request descriptor has an unbundled constructor reference",
         ));
     }
+    let string_rules = if descriptors
+        .iter()
+        .any(|descriptor| descriptor["method"] == "workspace/read-batch")
+    {
+        "UTF-8-byte_limits; control_character_rejection_where_required_by_descriptor; batch_frame_strings_allow_empty_and_LF"
+    } else {
+        "UTF-8-byte_limits_and_control_character_rejection"
+    };
     bounded(
         json!({"schema":"semaprax.image-agent-schemas.v5","protocol":VNEXT_PROTOCOL_SCHEMA,
         "methods":descriptors,"documents":documents.into_values().collect::<Vec<_>>(),
         "unbundled_payload_schemas":unresolved,"request_schemas_complete":true,
         "payload_completeness":"only_bundled_documents_are_structurally_described; unbundled_payloads_require_owning_specification",
-        "wire_rules":{"unknown_parameters":"reject","optional_parameters":"omit; null_rejected_unless_explicitly_nullable","strings":"UTF-8-byte_limits_and_control_character_rejection","request_ids":"unsigned_u64_or_nonempty_bounded_string; notifications_do_not_execute","integer_bounds":"exact_descriptor_minimum_and_maximum","max_request_bytes":MAX_REQUEST_BYTES,"max_response_bytes":MAX_RESPONSE_BYTES}}),
+        "wire_rules":{"unknown_parameters":"reject","optional_parameters":"omit; null_rejected_unless_explicitly_nullable","strings":string_rules,"request_ids":"unsigned_u64_or_nonempty_bounded_string; notifications_do_not_execute","integer_bounds":"exact_descriptor_minimum_and_maximum","max_request_bytes":MAX_REQUEST_BYTES,"max_response_bytes":MAX_RESPONSE_BYTES}}),
     )
 }
 

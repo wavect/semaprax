@@ -601,8 +601,13 @@ with sequential dispatch. Diagnostic inventory reads detach a bounded immutable
 attempt-reference inventory and retain ordinary matching/error order.
 Policy-bearing discovery values are prepared by the serial coordinator inside
 authentication, so workers receive no execution policy. Refresh, registry mutations, runtime
-tests, builds and publication are excluded;
-the CLI NDJSON loop remains sequential. See
+tests, builds and publication are excluded. `read_batch_rpc.rs` adds only an
+explicit startup-selected `workspace/read-batch` entry point over that same
+worker engine. Host-policy v7 configures a fixed worker count independently of
+other grants; MCP and generated discovery derive the selected method. The
+complete outer response is bounded before final source authentication, including
+all-error batches, and keeps the existing 1 MiB cap. The CLI NDJSON loop remains
+sequential across outer requests. See [Parallel Read Protocol](IMAGE-READ-BATCH-PROTOCOL-V1.md),
 [Frontend Cache](IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md) and
 [Parallel Reads](IMAGE-PARALLEL-READS-V1.md) and
 [Parallel Retained Reads](IMAGE-PARALLEL-CANDIDATE-READS-V1.md) for bounds and unrun evidence.

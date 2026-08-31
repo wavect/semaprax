@@ -611,6 +611,14 @@ and input relationships do not imply runtime coverage or external consumer use.
 and returns bounded report chunks; it does not publish filesystem artifacts,
 install packages, invoke a native toolchain or execute generated code.
 
+`project/image_coverage.rs` inventories exact retained source/manifest bindings
+and interface-import declarations, and explicitly reports deployment,
+generated provenance, external behavior, runtime and consumer analysis gaps.
+The v5 `image/analysis-coverage` read shares ordinary source authentication and
+the detached parallel read path. It neither scans external inputs nor mistakes
+missing edges for absent external systems. See
+[Analysis Coverage](SEMANTIC-IMAGE-ANALYSIS-COVERAGE-V1.md).
+
 The v5 discovery catalogue generates its granted methods, schemas, instructions
 and typed client helpers together. Opaque nested payload references remain
 explicitly incomplete; a generated bundle is not a complete executable response

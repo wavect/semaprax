@@ -51,6 +51,9 @@ does not change image identity or authority.
 The same allowlist includes compact dependency summaries and reference-bound
 detail pages. Their deterministic selectors remain image-local values, not
 shared mutable session cursors or permission to widen the worker's authority.
+It also includes `image/analysis-coverage`, a pure retained-input inventory of
+known facts and uninspected analysis boundaries. Its workers receive no access
+to deployment configuration, generators, external services or runtime state.
 
 Every accepted semantic batch rechecks its one held source snapshot before
 starting workers and after all workers join and render bounded results. An

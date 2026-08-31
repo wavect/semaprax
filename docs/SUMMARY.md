@@ -107,6 +107,7 @@ Audience: all documentation readers.
 - [Project Expression Change v1](PROJECT-EXPRESSION-CHANGE-V1.md)
 - [Graph-operational programme ledger](GRAPH-OPERATIONAL-PROGRAMME.md)
 - [Semantic Image Facets v1](SEMANTIC-IMAGE-FACETS-V1.md)
+- [Semantic Image Analysis Coverage v1](SEMANTIC-IMAGE-ANALYSIS-COVERAGE-V1.md)
 - [Project Candidate Body Holes v1](PROJECT-CANDIDATE-HOLES-V1.md)
 - [Project Candidate Expression Holes v1](PROJECT-CANDIDATE-EXPRESSION-HOLES-V1.md)
 - [Project Candidate Contract Expression Holes v1](PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md)

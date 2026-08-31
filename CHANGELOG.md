@@ -22,6 +22,12 @@
   both resource-free report-oracle tests pass. Physical execution remains
   unrun; ordinary doctor acquisition and WP-05 status are unchanged.
 
+- Added a graph-facing analysis-coverage query exposing exact retained source
+  facts and explicit deployment, generated-file, external API, runtime and
+  consumer blind spots. Read-only v5 discovery and closed schemas carry the
+  same limits without external I/O or authority. Regressions are authored,
+  unrun; missing edges never prove absent external dependencies.
+
 - Added authenticated nominal/member occurrence normalization to candidate and
   draft rebase comparisons. Pure display renames preserve compatible regions;
   identity, owner-shape, field-type, ordering and real expression changes remain

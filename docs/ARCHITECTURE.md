@@ -384,7 +384,8 @@ descriptor before constructing scalar controls. Legacy `build_web` rejects
 String-bearing ordinary and materialized generic functions before output
 creation because its runtime lacks those imports. Raw emission and successful
 String-free legacy packages stay unchanged. See [Standalone internal String Web
-package v1](WASM-INTERNAL-STRINGS-WEB-V1.md); all new executable gates are unrun.
+package v1](WASM-INTERNAL-STRINGS-WEB-V1.md#local-validation-record) for selected
+local consumer and boundary evidence; required host/release gates remain open.
 
 `src/wit_component.rs` and `src/wit_component/` provide default-off private
 boundary evidence. They cannot be cited as public Component Model execution.

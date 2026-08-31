@@ -1,9 +1,72 @@
 use super::*;
+use sha2::{Digest, Sha256};
+use std::collections::BTreeMap;
+use std::io::Read;
 use std::sync::atomic::{AtomicU64, Ordering};
+
+mod descriptor_bounds;
+mod package_bounds;
 
 const SOURCE: &str =
     "module web.bounds;\n@id(\"main\")\nfn main() -> i64 { string_len(\"hello\") }\n";
 static NEXT: AtomicU64 = AtomicU64::new(0);
+const INVENTORY: [&str; 8] = [
+    "app.wasm",
+    "semaprax.js",
+    "semaprax.d.ts",
+    "semaprax.internal-strings.json",
+    "semaprax.manifest.json",
+    "package.json",
+    "index.html",
+    "app.js",
+];
+
+fn plain(path: &Path, directory: bool) -> std::fs::Metadata {
+    let metadata = std::fs::symlink_metadata(path).unwrap();
+    assert!(!metadata.file_type().is_symlink());
+    assert_eq!(metadata.is_dir(), directory);
+    assert_eq!(metadata.is_file(), !directory);
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt as _;
+        assert_eq!(metadata.file_attributes() & 0x400, 0);
+    }
+    metadata
+}
+
+fn exact_entries(path: &Path, expected: &[&str]) {
+    plain(path, true);
+    let mut actual = std::fs::read_dir(path)
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+        .collect::<Vec<_>>();
+    actual.sort();
+    let mut expected = expected.to_vec();
+    expected.sort_unstable();
+    assert_eq!(actual, expected);
+}
+
+fn reopened_package(path: &Path) -> BTreeMap<&'static str, Vec<u8>> {
+    exact_entries(path, &INVENTORY);
+    let mut remaining = PACKAGE_LIMIT;
+    INVENTORY
+        .into_iter()
+        .map(|name| {
+            let file = path.join(name);
+            let length = usize::try_from(plain(&file, false).len()).unwrap();
+            assert!(length <= remaining);
+            let mut bytes = Vec::new();
+            std::fs::File::open(file)
+                .unwrap()
+                .take(length as u64 + 1)
+                .read_to_end(&mut bytes)
+                .unwrap();
+            assert_eq!(bytes.len(), length);
+            remaining -= length;
+            (name, bytes)
+        })
+        .collect()
+}
 
 fn directory() -> std::path::PathBuf {
     let path = std::env::temp_dir().join(format!(
@@ -43,12 +106,56 @@ fn exact_source_bound_is_read_and_plus_one_fails_before_output() {
     let snapshot =
         crate::patch::read_source_snapshot_bounded(&source, SOURCE_LIMIT, "SPX-W111").unwrap();
     assert_eq!(snapshot.source().len(), SOURCE_LIMIT);
-    text.push('x');
-    std::fs::write(&source, text).unwrap();
+    assert_eq!(snapshot.source(), text);
     let output = root.join("output");
-    let errors = build_web_from_source(&source, &output, &["main".to_owned()]).unwrap_err();
+    build_web_from_source(&source, &output, &["main".to_owned()]).unwrap();
+    let files = reopened_package(&output);
+    let program = crate::check(&text, "input.spx").unwrap();
+    let module = emit_module(
+        &program,
+        &["main".to_owned()],
+        InternalStringOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(files["app.wasm"], module.wasm_bytes());
+    assert_eq!(files["semaprax.js"], module.runtime_source().as_bytes());
+    assert_eq!(
+        files["semaprax.internal-strings.json"],
+        module.descriptor().as_bytes()
+    );
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&files["semaprax.manifest.json"]).unwrap();
+    let source_digest = format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
+    );
+    assert_eq!(
+        manifest["source_digest"].as_str(),
+        Some(source_digest.as_str())
+    );
+    plain(&source, false);
+    assert_eq!(std::fs::read(&source).unwrap(), text.as_bytes());
+
+    text.push('x');
+    assert_eq!(text.len(), SOURCE_LIMIT + 1);
+    std::fs::write(&source, &text).unwrap();
+    let excess = root.join("excess");
+    let errors = build_web_from_source(&source, &excess, &["main".to_owned()]).unwrap_err();
     assert_eq!(errors[0].code, "SPX-W111");
-    assert!(!output.exists());
+    assert_eq!(
+        std::fs::symlink_metadata(&excess).unwrap_err().kind(),
+        std::io::ErrorKind::NotFound
+    );
+    // Validate the complete owned tree before explicit, nonrecursive cleanup.
+    // A failed oracle leaves all evidence in place.
+    exact_entries(&root, &["input.spx", "output"]);
+    assert_eq!(reopened_package(&output), files);
+    plain(&source, false);
+    assert_eq!(std::fs::read(&source).unwrap(), text.as_bytes());
+    for name in INVENTORY {
+        std::fs::remove_file(output.join(name)).unwrap();
+    }
+    std::fs::remove_dir(output).unwrap();
     std::fs::remove_file(source).unwrap();
     std::fs::remove_dir(root).unwrap();
 }

@@ -246,6 +246,14 @@
   client tests pass locally, including actual Python and offline Rust consumers;
   full-profile and current-head hosted validation remain pending.
 
+- Strengthened standalone String Web package evidence without changing production
+  behavior: real source/descriptor boundary publication, private manifest-inclusive
+  package accounting, and browser cancellation before oversized-response EOF.
+  Publication hostility now includes a mandatory Windows junction branch,
+  authored but unrun locally. Linux/macOS boundary, CLI/Node and legacy-admission
+  gates pass, as do provisioned macOS TypeScript/Chromium consumers. The owning
+  evidence record retains required-host, broader-browser and hosted-release gaps.
+
 - Corrected standalone String literal-pool admission and complete cleanup-work
   accounting without raising limits or leaking legacy diagnostics. Independent
   cleanup replay now reserves every charged block continuation and owned

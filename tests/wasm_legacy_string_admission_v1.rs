@@ -1,5 +1,5 @@
 //! Legacy Web publication must not succeed with missing String imports.
-//! These authored regressions do not execute as part of this implementation.
+//! Execution scope is recorded in the standalone String Web package contract.
 
 use std::fs;
 use std::path::{Path, PathBuf};

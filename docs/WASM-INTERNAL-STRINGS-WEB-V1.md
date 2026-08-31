@@ -1,6 +1,6 @@
 # Standalone internal String Web package v1
 
-Status: authored implementation; all new executable gates are unrun.
+Status: selected local consumer and boundary gates pass; full promotion remains open.
 No completion-matrix row or supported-host claim is promoted.
 
 Audience: compiler contributors, generated-package consumers and reviewers.
@@ -157,7 +157,7 @@ String-free legacy Web v3 bytes, scalar Web v4 admission/output, ordinary raw
 Wasm emission and every Project v1-v10 route remain unchanged. The old raw
 emitter's separate String settlement/coverage gaps are not declared solved.
 
-## Required authored evidence
+## Required evidence
 
 Before promotion, require actual CLI packages, exact reopened inventory and
 canonical manifest/digest checks, equality with direct compiler outputs,
@@ -175,6 +175,57 @@ Strict TypeScript and real-browser consumers must use explicit provisioned
 tools without downloading or silently skipping missing prerequisites. Existing
 raw owner-accounting evidence remains separately required.
 
-All new executable gates are unrun. Formatting, literal checks and static
-review do not establish release, supported browsers, npm publication, ordinary
-Wasm settlement or overall production readiness.
+Formatting, literal checks and static review do not establish release,
+supported browsers, npm publication, ordinary Wasm settlement or overall
+production readiness.
+
+## Local validation record
+
+The 2026-08-31 isolated test-only batch is based on local correction `0a450ad`,
+not the concurrent hosted repair head. No production parser, compiler, runtime,
+renderer or publisher behavior changes in this batch.
+
+| Executed gate | Scope and result |
+| --- | --- |
+| Web package units | Six pass on Linux AArch64/Rust 1.88 and macOS AArch64/Rust 1.98, including the real source and descriptor bounds below. |
+| CLI, Node and publication | All three ordinary integration cases pass on both hosts with Node 24.3. Actual eight-file packages, independent manifest replay, direct compiler bindings, repeated builds, stable-ID rename, hostile identities and Unix link preservation are exercised. |
+| Legacy String admission | Both tests pass on both hosts: direct and materialized-generic Strings reject before legacy publication; ordinary raw String emission keeps its separate import route. |
+| Strict TypeScript | Explicitly selected provisioned TypeScript 5.8.3 consumer passes on macOS; wrong argument types, unknown exports and unchecked outcome access receive the required diagnostics. |
+| Real Chromium | Explicitly selected Playwright 1.62.0 / Chromium 151.0.7922.34 gate passes on macOS. It loads the actual generated page/runtime over loopback and instruments the real engine/adapter entry points to observe calls, not to simulate their results. |
+
+The provisioned tests' default ignored status is not counted as a pass: both
+were explicitly selected and executed. No dependencies were downloaded by
+these gates. Linux execution used the existing offline, resource-limited
+container; macOS consumer execution used an external process deadline. Strict
+Clippy passes for the compiler library and these two integration targets.
+
+The source-boundary test now publishes and reopens a real package from exactly
+16 MiB of verified source, compares all three compiler outputs and an
+independently computed manifest source digest, then rejects one additional byte
+before a fresh destination exists. The descriptor boundary uses a valid tiny
+function with a long ASCII stable identity: an independent literal wire oracle
+derives exactly 1 MiB and `+1` without searching for a passing size. The existing
+public library build publishes the exact case and rejects `+1` with the precise
+descriptor `SPX-W111`, preserving source and the earlier package. These long
+identities are not passed through platform command-line argument limits.
+
+The 32-MiB test renders all eight artifacts, including the manifest, then checks
+the same final size guard at exact capacity and `+1`. Its deliberately synthetic
+module-name padding exceeds the source cap; it is private renderer/guard
+evidence, not a source-admitted package or publication witness. A public
+source-derived exact 32-MiB boundary remains unproven, not declared unreachable.
+
+For browser streaming refusal, the fixture sends exactly `limit + 1` bytes with
+backpressure and withholds EOF. It requires the size error and transport
+cancellation while the page remains open, before teardown, with zero compilation,
+instantiation or exported calls. Buffering the complete response before checking
+its size cannot satisfy this oracle. Descriptor/Wasm tampering, opaque facade,
+keyboard invocation, checked failures, capacity recovery and inert hostile
+identity text remain separately exercised.
+
+Publication alias coverage now uses the shared mandatory directory-link fixture:
+Unix symbolic links and Windows junctions must preserve the entire foreign target
+and report the exact output/parent diagnostics. The Windows branch is authored
+but unrun here. Other browsers, required Windows execution, complete legacy
+Project preservation and exact-head hosted/release gates remain open. These
+selected local results do not promote a completion-matrix row.

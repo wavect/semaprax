@@ -18,7 +18,13 @@ const files=new Map(names.map(name=>{
 }));
 const hostile='web."</script>λ';
 let mode='normal';
-const requests=[];
+const requests=[],streams=[],sockets=new Set();
+async function bounded(operation,milliseconds,label){
+  let timer;
+  try{return await Promise.race([operation,new Promise((_,reject)=>{
+    timer=setTimeout(()=>reject(new Error(label+' timed out')),milliseconds);
+  })])}finally{clearTimeout(timer)}
+}
 const server=createServer((request,response)=>{
   if(request.method!=='GET'){response.writeHead(405).end();return}
   const name=request.url==='/'?'index.html':request.url?.slice(1);
@@ -29,8 +35,23 @@ const server=createServer((request,response)=>{
   if((mode==='descriptor-oversize'&&name==='semaprax.internal-strings.json')||
      (mode==='wasm-oversize'&&name==='app.wasm')){
     const total=(mode==='descriptor-oversize'?1048576:16777216)+1;
-    // Separate writes force chunked streaming without trusting Content-Length.
-    response.write(Buffer.alloc(8192));response.end(Buffer.alloc(total-8192));return;
+    const stream={fault:mode,response,total,sent:0,closed:false};
+    stream.closure=new Promise(resolve=>response.once('close',()=>{stream.closed=true;resolve()}));
+    streams.push(stream);
+    // Never send EOF. Buffering the whole response before checking its size
+    // cannot produce the required UI refusal. Honor backpressure so this
+    // witness does not enqueue the entire oversized body at once.
+    function pump(){
+      while(!response.destroyed&&stream.sent<total){
+        const chunk=Buffer.alloc(Math.min(8192,total-stream.sent));
+        stream.sent+=chunk.length;
+        if(!response.write(chunk)){
+          if(stream.sent<total)response.once('drain',pump);
+          return;
+        }
+      }
+    }
+    pump();return;
   }
   let bytes=files.get(name);
   if((mode==='descriptor-tamper'&&name==='semaprax.internal-strings.json')||
@@ -39,9 +60,12 @@ const server=createServer((request,response)=>{
   }
   response.end(bytes);
 });
+server.on('connection',socket=>{
+  sockets.add(socket);socket.once('close',()=>sockets.delete(socket));
+});
 await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve)});
 const origin=`http://127.0.0.1:${server.address().port}`;
-let browser;
+let browser,failed=false,failure;
 try{
   browser=await chromium.launch({executablePath:chromiumPath,headless:true});
   const context=await browser.newContext();
@@ -124,11 +148,37 @@ try{
     assert.equal(await faultPage.locator('#export-select option').count(),0);
     assert.deepEqual(await faultPage.evaluate(()=>[globalThis.__webCompiles,globalThis.__webInstantiations,globalThis.__webEntries]),[0,0,0]);
     if(fault.startsWith('descriptor'))assert(!requests.includes('app.wasm'));
+    if(fault.endsWith('oversize')){
+      const matching=streams.filter(stream=>stream.fault===fault);
+      assert.equal(matching.length,1);
+      const stream=matching[0];
+      assert.equal(stream.sent,stream.total);
+      assert.equal(stream.response.writableEnded,false,'server supplied EOF');
+      // Observe transport cancellation while the page is still open, not as
+      // a side effect of test teardown or a successful complete-body read.
+      await bounded(stream.closure,5000,fault+' cancellation');
+      assert.equal(stream.closed,true);
+      assert.equal(stream.response.writableEnded,false);
+      assert.equal(faultPage.isClosed(),false);
+    }
     await faultPage.close();
   }
-  await context.close();
-}finally{
-  if(browser)await browser.close();
-  await new Promise((resolve,reject)=>server.close(error=>error?reject(error):resolve()));
+  await bounded(context.close(),10000,'context shutdown');
+}catch(error){failed=true;failure=error}
+finally{
+  // All endpoints are owned by this loopback fixture. Destroy unfinished
+  // responses and sockets even on a failed oracle, before waiting for server
+  // shutdown. Cleanup failure must not replace the original assertion.
+  const cleanupErrors=[];
+  for(const stream of streams)stream.response.destroy();
+  for(const socket of sockets)socket.destroy();
+  try{await bounded(new Promise((resolve,reject)=>server.close(error=>error?reject(error):resolve())),5000,'server shutdown')}
+  catch(error){cleanupErrors.push(error)}
+  if(browser){
+    try{await bounded(browser.close(),10000,'browser shutdown')}
+    catch(error){cleanupErrors.push(error)}
+  }
+  if(!failed&&cleanupErrors.length){failed=true;failure=cleanupErrors[0]}
 }
+if(failed)throw failure;
 console.log('string-web-chromium-ok');

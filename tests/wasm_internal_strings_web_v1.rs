@@ -1,6 +1,6 @@
-//! Authored, unrun consumers of the actual explicit-profile CLI package.
+//! Consumers of the actual explicit-profile CLI package.
 //! Provisioned TypeScript/browser gates never install or silently skip tools.
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 use std::fs;
 use std::path::Path;
 use std::process::{Command, Output};
@@ -9,6 +9,9 @@ use semaprax::wasm::internal_strings::{emit_module, InternalStringOptions};
 
 #[path = "wasm_internal_strings_web_v1/package_replay.rs"]
 mod package_replay;
+#[cfg(any(unix, windows))]
+#[path = "support/project_directory_link.rs"]
+mod project_directory_link;
 use package_replay::{reopen, replay, Fixture, INVENTORY};
 
 const IDS: [&str; 8] = [
@@ -286,32 +289,27 @@ fn invalid_cli_profiles_and_admission_create_no_output_and_existing_bytes_surviv
     fixture.cleanup();
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 #[test]
-fn symlink_output_and_parent_do_not_publish_through_foreign_paths() {
-    use std::os::unix::fs::symlink;
-    let mut fixture = Fixture::new("symlink");
+fn directory_link_output_and_parent_do_not_publish_through_foreign_paths() {
+    let mut fixture = Fixture::new("directory-link");
     let path = fixture.write("source.spx", source());
-    let foreign = fixture.root.join("foreign");
-    fs::create_dir(&foreign).unwrap();
-    fs::write(foreign.join("sentinel"), b"foreign bytes").unwrap();
-    let alias = fixture.root.join("alias");
-    symlink(&foreign, &alias).unwrap();
+    let alias = project_directory_link::create(&fixture.root);
+    let expected_entries = project_directory_link::entries(&fixture.root);
     for (output, code) in [(&alias, "SPX-I307"), (&alias.join("child"), "SPX-I301")] {
         let result = cli(&path, output, "web", &IDS);
         assert!(!result.status.success());
         assert!(String::from_utf8_lossy(&result.stderr).contains(code));
+        // The mandatory helper authenticates the link/reparse target, its
+        // complete one-file inventory and exact sentinel bytes on both hosts.
+        project_directory_link::assert_intact(&fixture.root);
         assert_eq!(
-            fs::read(foreign.join("sentinel")).unwrap(),
-            b"foreign bytes"
+            project_directory_link::entries(&fixture.root),
+            expected_entries
         );
-        assert_eq!(fs::read_dir(&foreign).unwrap().count(), 1);
-        assert!(fs::symlink_metadata(&alias)
-            .unwrap()
-            .file_type()
-            .is_symlink());
     }
-    fs::remove_file(&alias).unwrap();
+    project_directory_link::remove_link(&fixture.root);
+    let foreign = fixture.root.join("symlink-target");
     fs::remove_file(foreign.join("sentinel")).unwrap();
     fs::remove_dir(foreign).unwrap();
     fixture.cleanup();

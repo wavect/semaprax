@@ -1,4 +1,4 @@
-//! Recursive request-client evidence, authored and intentionally unrun.
+//! Recursive request-client generation and actual Python admission evidence.
 use semaprax::image_transport::{VNextPolicy, VNextSession};
 use semaprax::project::CandidateTestPolicy;
 use serde_json::{json, Value};
@@ -142,8 +142,7 @@ fn read_only_clients_cannot_acquire_constructor_or_publication_helpers() {
 
 #[test]
 fn generated_python_resolves_recursive_types_and_submits_exact_intent_for_compiler_admission() {
-    // This harness executes only if explicitly selected later. It was not run
-    // during implementation, and generation itself never executes Python.
+    // Generation itself never executes Python; this consumer harness does.
     let fixture = Fixture::new();
     let before = fixture.bytes();
     let mut session = fixture.session(VNextPolicy {
@@ -178,6 +177,15 @@ fn generated_python_resolves_recursive_types_and_submits_exact_intent_for_compil
         output.status.success(),
         "{}",
         String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        !output.stdout.contains(&b'\r'),
+        "wire frame must not contain CR"
+    );
+    assert_eq!(output.stdout.last(), Some(&b'\n'));
+    assert_eq!(
+        output.stdout.iter().filter(|&&byte| byte == b'\n').count(),
+        1
     );
     let request: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(request["params"], params);
@@ -220,5 +228,7 @@ typed = client.request_candidate_apply_intent_typed('typed-request', params)
 assert typed == client.request_candidate_apply_intent('typed-request', params)
 assert json.loads(typed)['params'] == params
 assert not hasattr(client, 'request_candidate_commit_typed')
-sys.stdout.write(typed)
+# Exercise Windows text newline translation even when this harness runs on Unix.
+sys.stdout.reconfigure(newline="\r\n")
+sys.stdout.buffer.write(typed.encode('utf-8'))
 "#;

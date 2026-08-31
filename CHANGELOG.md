@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Partitioned the Rust 1.88 CI target inventory into four fail-fast jobs with
+  unchanged workspace feature selection, checks, coverage and 20-minute limits.
+  Routing regressions require exact once-only coverage and reject unknown target
+  kinds. Corrected the actual Python typed-request consumer to write UTF-8 frame
+  bytes directly; forced CRLF text translation now guards against regression
+  without relaxing the protocol's carriage-return rejection.
+
 - Reduced recursive generated Rust typed-client stack use through separate
   branch converters, one shared dispatch callsite and borrowed JSON conversion
   without explicit subtree cloning. Existing limits remain unchanged. The

@@ -735,9 +735,13 @@ jobs:
     env:
       CARGO_PROFILE_DEV_DEBUG: "0"
       CARGO_PROFILE_TEST_DEBUG: "0"
-    name: Rust 1.88 minimum
+    name: Rust 1.88 minimum (${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: true
+      matrix:
+        shard: [unit, integration-0, integration-1, integration-2]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
@@ -749,7 +753,8 @@ jobs:
       - name: Fetch the complete locked workspace dependency closure
         run: cargo fetch --locked
       - run: cargo check --locked --workspace --all-targets --all-features
-      - run: cargo test --locked --workspace --all-targets --all-features
+      - name: Test the complete workspace target shard
+        run: python3 scripts/ci-msrv.py --shard "${{ matrix.shard }}"
 
   release-gate:
     name: Release gate

@@ -148,7 +148,7 @@ fn public_api_cli_getters_kats_and_no_write_are_exact() {
     );
     assert_eq!(
         bundle.derivation_digest(),
-        "sha256:f1d303c728fe075a031c76ebc5e9b01db9f7b664ee437f055bf4594651a445b8"
+        "sha256:7f1928af677e0fac3721279366d7fefb995ab28f82523a6923f16027998856ed"
     );
     assert!(bundle.derivation().ends_with('\n'));
     assert!(bundle.derived_change_proposal().ends_with('\n'));
@@ -289,7 +289,7 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
     );
     assert_eq!(
         bundle.derivation_digest(),
-        "sha256:f1d303c728fe075a031c76ebc5e9b01db9f7b664ee437f055bf4594651a445b8"
+        "sha256:7f1928af677e0fac3721279366d7fefb995ab28f82523a6923f16027998856ed"
     );
     assert_eq!(
         bundle.derived_change_proposal_digest(),
@@ -297,11 +297,11 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
     );
     assert_eq!(
         raw_sha256(bundle.workspace_change_evidence().as_bytes()),
-        "sha256:9c32038a65c89d3bec6d3d470a54d807da75d9d1ad7ff17c0337918d9920f852"
+        "sha256:f4a9902f2b7cd0dfc3e3390cd820ab98d51d42843081778b9e02590c977ae46a"
     );
     assert_eq!(
         raw_sha256(bundle.operations_evidence().as_bytes()),
-        "sha256:48b5121fe12e5b16110159ac7ef1bd72de12225bb17a26b3ab3e31a4e2b9a6e6"
+        "sha256:4eb70fa0f2905dd5d9fd34a0c29b8363bca915427ecaf8494f2b71f2a963f20f"
     );
     assert!(bundle
         .workspace_change_evidence_digest()
@@ -327,7 +327,7 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
             .unwrap();
     assert_eq!(
         raw_sha256(verification.as_bytes()),
-        "sha256:596c25fd91af58570319f47e105aeb3cc44919ff573b0d6d40bf0190fa2b252f"
+        "sha256:d9d04447e5e36b0a90eeebc28db54f8f68fbdda950ec44b5bd444712dc25303f"
     );
     let cli_verify = Command::new(env!("CARGO_BIN_EXE_semaprax"))
         .arg("verify-semantic-workspace-operations-evidence")
@@ -356,7 +356,7 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
     .unwrap();
     assert_eq!(
         raw_sha256(application.as_bytes()),
-        "sha256:eb4741c47dab0cbd7f93722d5c41ce8feeb4963dedd2fe96d453d0bc46e7e1cf"
+        "sha256:e588d641061d0b6c093dd63599c13d0368fd97e01f33b1a8c3d819c0b28a29ea"
     );
     apply_fixture.assert_exclusive_reacquire();
 

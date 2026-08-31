@@ -227,12 +227,16 @@ fn non_native_resource_import_is_partial_declaration_evidence_not_provider_verif
     @id("coverage.host.observe") import fn observe(value: own Token) -> unit
         effects {} failure infallible consumes value always;
 }
+// A source-local function with the same checked signature is not authenticated
+// provider evidence for the separately declared external import.
+@id("coverage.provider-like") fn provider_like(value: own Token) -> unit {observe(value)}
 "#;
     let program = semaprax::parse(&source, "src/core.spx").unwrap();
     std::fs::write(path, semaprax::format::canonical(&program)).unwrap();
     let disk = fixture.bytes();
     let image = fixture.image();
     let (before, value) = report(&image);
+    assert_eq!(value["inventory"]["functions"], 4);
     assert_eq!(value["inventory"]["interfaces"], 1);
     assert_eq!(value["inventory"]["interface_imports"], 1);
     assert_eq!(
@@ -242,6 +246,9 @@ fn non_native_resource_import_is_partial_declaration_evidence_not_provider_verif
             "name":"observe","import_key":"coverage.host.observe","native_rust":false,
             "effects":[],"required_authority":[]}])
     );
+    assert!(!value["external_contracts"]
+        .to_string()
+        .contains("coverage.provider-like"));
     let external = area(&value, "declared_external_contracts");
     assert_eq!(external["status"], "partial");
     assert_eq!(
@@ -251,6 +258,12 @@ fn non_native_resource_import_is_partial_declaration_evidence_not_provider_verif
     assert!(external["limitations"].as_array().unwrap().contains(&json!(
         "declarations_are_not_external_implementation_evidence"
     )));
+    assert!(external["required_evidence"]
+        .as_array()
+        .unwrap()
+        .contains(&json!(
+            "independently_authenticated_provider_contracts_and_implementations"
+        )));
     assert_eq!(
         area(&value, "external_api_behavior")["status"],
         "not_inspected"
@@ -265,6 +278,12 @@ fn non_native_resource_import_is_partial_declaration_evidence_not_provider_verif
     // The unused declaration is retained in the source image, but does not
     // enter the selected scalar entry/export closure or invoke its provider.
     assert!(image.revision().entry_program().interfaces.is_empty());
+    assert!(!image
+        .revision()
+        .entry_program()
+        .functions
+        .iter()
+        .any(|function| function.id.as_str() == "coverage.provider-like"));
     let mut session = fixture.session();
     let params = json!({"image_revision":session.image_revision()});
     assert_eq!(payload(call(&mut session, METHOD, params)), value);

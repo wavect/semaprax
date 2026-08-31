@@ -68,6 +68,19 @@
   facts, completeness, runtime, compatibility, retention or publication
   claims. Library and transport evidence is authored and unrun.
 
+- Preserved exact synchronous `borrow Bytes` semantics for monomorphic
+  source-defined calls over named owners and one direct field of an owned flat
+  byte record. Resolver/HIR now retain the borrow instead of normalizing it
+  into a transfer, and Shared Loan Plan replay binds owned origins while
+  forwarded borrowed roots reuse their enclosing provenance; source and
+  hostile-HIR checks reject generic, temporary, borrowed-root, deep,
+  identity-drifted, and
+  overlapping-transfer shapes. The interpreter aliases the existing logical
+  allocation, native C11 passes a `const spx_bytes_v1 *`, and Core Wasm
+  forwards the existing token without a call epoch or extra drop. Public ABI,
+  Graph and cleanup schemas, owned-call commit semantics, and broader escaping
+  or aggregate borrowing remain unchanged.
+
 - Partitioned the current Rust toolchain's Linux, macOS, and Windows workspace
   target inventory into parallel lib/bin and three integration-test shards,
   while retaining separate blocking quality, documentation, release, example,

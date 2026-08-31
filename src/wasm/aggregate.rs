@@ -5420,9 +5420,11 @@ impl Emitter<'_> {
                 && is_aggregate(self.program, &parameter.ty)?;
             let value = if borrowed_bytes || borrowed_aggregate {
                 let ResolvedExprKind::Place(place) = &argument.kind else {
-                    return Err(error(
-                        "borrowed owned-data call argument is not an exact place",
-                    ));
+                    return Err(error(if borrowed_bytes {
+                        "borrowed Bytes call argument is not an exact place"
+                    } else {
+                        "borrowed aggregate call argument is not an exact place"
+                    }));
                 };
                 if borrowed_aggregate && !place.projections.is_empty() {
                     return Err(error(

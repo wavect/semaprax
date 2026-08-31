@@ -1,0 +1,63 @@
+module borrowed.call.interpreter;
+
+@id("borrowed.packet")
+record Packet {
+    @id("borrowed.packet.payload") payload: Bytes,
+    @id("borrowed.packet.marker") marker: i64,
+}
+
+@id("borrowed.inspect")
+fn inspect(value: borrow Bytes) -> usize {
+    byte_len(bytes_as_slice(value))
+}
+
+@id("borrowed.forward")
+fn forward(value: borrow Bytes) -> usize {
+    inspect(value)
+}
+
+@id("borrowed.fail")
+fn fail_after_observation(value: borrow Bytes, divisor: i64) -> i64 {
+    let observed = byte_len(bytes_as_slice(value));
+    if observed == observed { 1 / divisor } else { 0 }
+}
+
+@id("borrowed.root")
+fn root(input: borrow Slice<u8>) -> Bytes {
+    let owned = bytes_copy(input);
+    let direct = inspect(owned);
+    let forwarded = forward(owned);
+    if direct == byte_len(bytes_as_slice(owned)) && forwarded == direct {
+        owned
+    } else {
+        let sentinel = [98u8, 97u8, 100u8];
+        bytes_copy(array_as_slice(sentinel))
+    }
+}
+
+@id("borrowed.field")
+fn field(input: borrow Slice<u8>) -> Bytes {
+    let packet = Packet { payload: bytes_copy(input), marker: 17 };
+    let observed = inspect(packet.payload);
+    if observed > 0usize && packet.marker == 17 {
+        packet.payload
+    } else {
+        let sentinel = [98u8, 97u8, 100u8];
+        bytes_copy(array_as_slice(sentinel))
+    }
+}
+
+@id("borrowed.failure")
+fn failure(input: borrow Slice<u8>, divisor: i64) -> Bytes {
+    let owned = bytes_copy(input);
+    let observed = fail_after_observation(owned, divisor);
+    if observed == 1 && byte_len(bytes_as_slice(owned)) > 0usize {
+        owned
+    } else {
+        let sentinel = [98u8, 97u8, 100u8];
+        bytes_copy(array_as_slice(sentinel))
+    }
+}
+
+@id("borrowed.main")
+fn main() -> i64 { 0 }

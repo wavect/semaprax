@@ -3896,6 +3896,32 @@ impl Evaluator<'_> {
         Ok(())
     }
 
+    fn begin_expression(&mut self, expression: &ResolvedExpr, depth: usize) -> Result<(), Flow> {
+        self.charge()?;
+        if self.trace_limit == 0 {
+            return Ok(());
+        }
+        if self.trace_events.len() < self.trace_limit {
+            let expression_id = self.intern_trace_identity(expression.id.as_str());
+            self.trace_events.push(ResolvedTraceEvent {
+                step: self.steps,
+                depth,
+                phase: self.trace_phase,
+                function_id: self.current_function.clone().ok_or(Flow::Guard(
+                    "trace evaluation has no authenticated function frame",
+                ))?,
+                expression_id,
+                span: expression.span,
+            });
+        } else {
+            self.dropped_trace_events = self
+                .dropped_trace_events
+                .checked_add(1)
+                .ok_or(Flow::Guard("trace event accounting overflowed"))?;
+        }
+        Ok(())
+    }
+
     fn charge_utf8_materialization(&mut self, byte_len: usize) -> Result<(), Flow> {
         self.utf8_materialization_budget.charge(byte_len)
     }
@@ -3965,6 +3991,47 @@ impl Evaluator<'_> {
             value = self.clone_value(field)?;
         }
         Ok(Some(value))
+    }
+
+    /// Stage one verifier-authenticated synchronous `borrow Bytes` call
+    /// argument without evaluating the owned place as a move. The callee
+    /// receives another read-only carrier for the same logical allocation;
+    /// neither the named caller slot nor a direct owned-record field is
+    /// tombstoned, and the byte allocation counters are unchanged.
+    fn borrow_bytes_call_argument(
+        &mut self,
+        environment: &Environment,
+        argument: &ResolvedExpr,
+        depth: usize,
+    ) -> Result<Value, Flow> {
+        // Ordinary argument evaluation would charge this expression before
+        // moving it. Borrow admission changes only the storage action, not
+        // deterministic fuel or trace accounting at the call boundary.
+        self.begin_expression(argument, depth)?;
+        let ResolvedExprKind::Place(place) = &argument.kind else {
+            return Err(Flow::Guard(
+                "borrowed Bytes call argument is not an exact place",
+            ));
+        };
+        if place.projections.len() > 1 {
+            return Err(Flow::Guard(
+                "borrowed Bytes call argument exceeds the direct field profile",
+            ));
+        }
+        let value = self
+            .lookup_place(environment, place)?
+            .ok_or(Flow::Guard("borrowed Bytes call owner is unavailable"))?;
+        let Value::Bytes(value) = value else {
+            return Err(Flow::Guard(
+                "borrowed Bytes call place does not contain owned bytes",
+            ));
+        };
+        if value.allocation == 0 || value.allocation > self.next_byte_allocation {
+            return Err(Flow::Guard(
+                "borrowed Bytes call has an invalid logical allocation",
+            ));
+        }
+        Ok(Value::Bytes(value))
     }
 
     fn take_owned(environment: &mut Environment, root: &ValueId) -> Option<Value> {
@@ -4156,27 +4223,7 @@ impl Evaluator<'_> {
         environment: &mut Environment,
         depth: usize,
     ) -> Result<Value, Flow> {
-        self.charge()?;
-        if self.trace_limit != 0 {
-            if self.trace_events.len() < self.trace_limit {
-                let expression_id = self.intern_trace_identity(expression.id.as_str());
-                self.trace_events.push(ResolvedTraceEvent {
-                    step: self.steps,
-                    depth,
-                    phase: self.trace_phase,
-                    function_id: self.current_function.clone().ok_or(Flow::Guard(
-                        "trace evaluation has no authenticated function frame",
-                    ))?,
-                    expression_id,
-                    span: expression.span,
-                });
-            } else {
-                self.dropped_trace_events = self
-                    .dropped_trace_events
-                    .checked_add(1)
-                    .ok_or(Flow::Guard("trace event accounting overflowed"))?;
-            }
-        }
+        self.begin_expression(expression, depth)?;
         match &expression.kind {
             ResolvedExprKind::Int(value) => Ok(Value::Int(*value)),
             ResolvedExprKind::Int32(value) => Ok(Value::Int32(*value)),
@@ -4774,6 +4821,10 @@ impl Evaluator<'_> {
                 let mut values: Vec<(ValueId, Value)> = Vec::with_capacity(args.len());
                 for (param, argument) in function.params.iter().zip(args.iter()) {
                     let value = if param.ownership == hir::OwnershipMode::Borrow
+                        && param.ty == ResolvedType::Bytes
+                    {
+                        self.borrow_bytes_call_argument(environment, argument, depth)?
+                    } else if param.ownership == hir::OwnershipMode::Borrow
                         && matches!(param.ty, ResolvedType::Nominal { .. })
                     {
                         // The resolved argument expression retains the owned

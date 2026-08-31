@@ -42,6 +42,7 @@ Audience: all documentation readers.
 - [Owned Byte Variant Algebra](OWNED-BYTE-VARIANT-ALGEBRA-V1.md)
 - [Shared Loan Plan](SHARED-LOAN-PLAN-V1.md)
 - [Projected Owned-Byte Field Shared Borrow](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)
+- [Projected Owned-Bytes Synchronous Borrowed Call](PROJECTED-OWNED-BYTES-BORROWED-CALL-V1.md)
 - [Unsafe boundary mechanics](UNSAFE-BOUNDARIES-V1.md)
 - [Reference interpreter](INTERPRETER-V1.md)
 - [Internal String interpreter](INTERPRETER-INTERNAL-STRINGS-V1.md)

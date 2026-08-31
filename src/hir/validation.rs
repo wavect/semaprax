@@ -4065,6 +4065,9 @@ impl<'a> HirValidator<'a> {
                     let param = &params[index];
                     self.require_type(&argument.ty, &param.ty, "call argument")?;
                     self.validate_argument_ownership(argument, param)?;
+                    self.validate_borrowed_bytes_call_argument(
+                        expression, argument, param, index, &scope,
+                    )?;
                     if param.ty == ResolvedType::SliceU8 {
                         match &argument.kind {
                             ResolvedExprKind::Place(place)
@@ -6606,6 +6609,9 @@ impl<'a> HirValidator<'a> {
                     )?;
                     self.require_type(&argument.ty, &param.ty, "call argument")?;
                     self.validate_argument_ownership(argument, param)?;
+                    self.validate_borrowed_bytes_call_argument(
+                        expression, argument, param, index, scope,
+                    )?;
                     if param.ty == ResolvedType::SliceU8 {
                         match &argument.kind {
                             ResolvedExprKind::Place(place)
@@ -8810,17 +8816,17 @@ impl<'a> HirValidator<'a> {
             match param.ownership {
                 OwnershipMode::Own => actual == OwnershipMode::Own,
                 OwnershipMode::Borrow => {
-                    let exact_place = matches!(
-                        &argument.kind,
-                        ResolvedExprKind::Place(place) if place.projections.is_empty()
-                    );
-                    if param.ty != ResolvedType::Bytes
-                        && resolved_type_contains_owned_bytes(self.program, &param.ty)
-                    {
+                    let exact_place = matches!(&argument.kind, ResolvedExprKind::Place(_));
+                    if param.ty == ResolvedType::Bytes {
+                        matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow) && exact_place
+                    } else if resolved_type_contains_owned_bytes(self.program, &param.ty) {
                         (resolved_type_is_flat_owned_byte_record(self.program, &param.ty)
                             || resolved_type_is_flat_owned_byte_variant(self.program, &param.ty))
                             && matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
-                            && exact_place
+                            && matches!(
+                                &argument.kind,
+                                ResolvedExprKind::Place(place) if place.projections.is_empty()
+                            )
                     } else {
                         true
                     }
@@ -8837,6 +8843,80 @@ impl<'a> HirValidator<'a> {
                 param.id
             )))
         }
+    }
+
+    fn validate_borrowed_bytes_call_argument(
+        &self,
+        call: &ResolvedExpr,
+        argument: &ResolvedExpr,
+        parameter: &ResolvedParam,
+        parameter_index: usize,
+        scope: &BTreeMap<ValueId, ValidationBinding>,
+    ) -> Result<(), Diagnostic> {
+        if parameter.ty != ResolvedType::Bytes || parameter.ownership != OwnershipMode::Borrow {
+            return Ok(());
+        }
+        let ResolvedExprKind::Call {
+            type_arguments,
+            instance,
+            ..
+        } = &call.kind
+        else {
+            return Err(hir_error(
+                "borrowed Bytes argument is not attached to an exact call",
+            ));
+        };
+        if instance.is_some() || !type_arguments.is_empty() {
+            return Err(hir_error(
+                "borrowed Bytes calls must be monomorphic source-defined calls",
+            ));
+        }
+        let ResolvedExprKind::Place(place) = &argument.kind else {
+            return Err(hir_error(
+                "borrowed Bytes call argument is not an exact storage place",
+            ));
+        };
+        let binding = scope
+            .get(&place.root)
+            .ok_or_else(|| hir_error("borrowed Bytes call root is out of scope"))?;
+        if Self::place_availability(binding, &place.projections) != Availability::Available {
+            return Err(hir_error(
+                "borrowed Bytes call place is moved or conditionally moved",
+            ));
+        }
+        let (place_ty, place_ownership) = self.resolve_place(place, binding)?;
+        if place_ty != ResolvedType::Bytes || argument.ty != ResolvedType::Bytes {
+            return Err(hir_error(
+                "borrowed Bytes call place has the wrong storage type",
+            ));
+        }
+        let admitted = if place.projections.is_empty() {
+            matches!(place_ownership, OwnershipMode::Own | OwnershipMode::Borrow)
+        } else {
+            place.projections.len() == 1
+                && matches!(place.projections[0], PlaceProjection::Field(_))
+                && binding.ownership == OwnershipMode::Own
+                && place_ownership == OwnershipMode::Own
+                && resolved_type_is_flat_owned_byte_record(self.program, &binding.ty)
+        };
+        if !admitted {
+            return Err(hir_error(
+                "borrowed Bytes call is outside the exact named or direct owned-field profile",
+            ));
+        }
+        if binding.ownership == OwnershipMode::Own {
+            let argument = u16::try_from(parameter_index)
+                .map_err(|_| hir_error("borrowed Bytes argument index overflows"))?;
+            if !self
+                .canonical_loan_ids
+                .contains_key(&(call.id.clone(), LoanCause::BorrowedCall { argument }))
+            {
+                return Err(hir_error(
+                    "borrowed Bytes call lacks its canonical shared-loan identity",
+                ));
+            }
+        }
+        Ok(())
     }
 
     /// Class Inheritance v1: independent re-derivation of the upcast
@@ -9301,6 +9381,119 @@ module test.owned_byte_borrow_argument;
                 .contains("argument ownership is incompatible"),
             "{diagnostic:?}"
         );
+    }
+}
+
+#[cfg(test)]
+mod borrowed_bytes_call_tests {
+    use super::*;
+
+    const SOURCE: &str = r#"
+module test.borrowed_bytes_call_hir;
+@id("packet.type") record Packet {
+  @id("packet.payload") payload: Bytes,
+  @id("packet.sibling") sibling: Bytes,
+}
+@id("packet.inspect") fn inspect(value: borrow Bytes) -> usize {
+  byte_len(bytes_as_slice(value))
+}
+@id("packet.caller") fn caller(packet: own Packet) -> usize { inspect(packet.payload) }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+
+    fn fixture() -> ResolvedProgram {
+        let parsed = crate::parse(
+            SOURCE,
+            std::path::Path::new("borrowed-bytes-call-hir-v1.spx"),
+        )
+        .expect("fixture parses");
+        let program = crate::hir::resolve(&parsed).expect("fixture resolves");
+        crate::hir::validate(&program).expect("fixture validates");
+        program
+    }
+
+    fn caller(program: &ResolvedProgram) -> &ResolvedFunction {
+        program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "packet.caller")
+            .expect("caller function")
+    }
+
+    fn caller_mut(program: &mut ResolvedProgram) -> &mut ResolvedFunction {
+        program
+            .functions
+            .iter_mut()
+            .find(|function| function.id.as_str() == "packet.caller")
+            .expect("caller function")
+    }
+
+    fn call_argument_mut(function: &mut ResolvedFunction) -> &mut ResolvedExpr {
+        let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind else {
+            panic!("caller body remains a block")
+        };
+        let ResolvedExprKind::Call { args, .. } = &mut tail.kind else {
+            panic!("caller tail remains a call")
+        };
+        &mut args[0]
+    }
+
+    #[test]
+    fn resolver_preserves_borrowed_bytes_and_attaches_projected_call_loan_identity() {
+        let program = fixture();
+        let inspect = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "packet.inspect")
+            .expect("inspect function");
+        assert_eq!(inspect.params[0].ownership, OwnershipMode::Borrow);
+
+        let loan = caller(&program)
+            .loan_plan
+            .loans
+            .iter()
+            .find(|loan| loan.cause == LoanCause::BorrowedCall { argument: 0 })
+            .expect("borrowed call loan");
+        assert_eq!(
+            loan.origin.projections,
+            [PlaceProjection::Field(DeclarationId::new("packet.payload"))]
+        );
+        assert_eq!(loan.start.phase, LoanPointPhase::Before);
+        assert!(!loan.end_edges.is_empty());
+    }
+
+    #[test]
+    fn hostile_call_place_and_attached_loan_field_identity_fail_closed() {
+        let mut forged_hir = fixture();
+        let argument = call_argument_mut(caller_mut(&mut forged_hir));
+        let ResolvedExprKind::Place(place) = &mut argument.kind else {
+            panic!("borrowed argument remains a place")
+        };
+        place.projections = vec![PlaceProjection::Field(DeclarationId::new("packet.sibling"))];
+        let diagnostic = crate::hir::validate(&forged_hir).expect_err("HIR drift must fail");
+        assert_eq!(diagnostic.code, "SPX-H006");
+
+        let mut forged_plan = fixture();
+        let loan = caller_mut(&mut forged_plan)
+            .loan_plan
+            .loans
+            .iter_mut()
+            .find(|loan| loan.cause == LoanCause::BorrowedCall { argument: 0 })
+            .expect("borrowed call loan");
+        loan.origin.projections =
+            vec![PlaceProjection::Field(DeclarationId::new("packet.sibling"))];
+        let diagnostic =
+            crate::hir::validate(&forged_plan).expect_err("loan identity drift must fail");
+        assert_eq!(diagnostic.code, "SPX-H006");
+    }
+
+    #[test]
+    fn hostile_non_place_borrowed_bytes_argument_is_h006() {
+        let mut program = fixture();
+        let argument = call_argument_mut(caller_mut(&mut program));
+        argument.kind = ResolvedExprKind::Int(0);
+        let diagnostic = crate::hir::validate(&program).expect_err("non-place must fail");
+        assert_eq!(diagnostic.code, "SPX-H006");
     }
 }
 

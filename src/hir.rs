@@ -4238,9 +4238,13 @@ impl Resolver<'_> {
             .map(|(index, param)| {
                 let ty = self.resolve_type(&param.ty, param.span)?;
                 let id = ValueId::parameter(function_scope, index);
-                // Owned strings are non-Copy: even a by-value `string`
-                // parameter carries unique ownership.
-                let ownership = if ty.is_uniquely_owned() {
+                // `borrow Bytes` is the one admitted synchronous borrowed
+                // owner carrier. Other uniquely-owned values, including
+                // strings and source-value parameters, retain the established
+                // implicit-Own normalization.
+                let ownership = if ty == ResolvedType::Bytes && param.mode == ParamMode::Borrow {
+                    OwnershipMode::Borrow
+                } else if ty.is_uniquely_owned() {
                     OwnershipMode::Own
                 } else if matches!(ty, ResolvedType::Str | ResolvedType::SliceU8) {
                     if param.mode != ParamMode::Borrow {

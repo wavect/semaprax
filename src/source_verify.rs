@@ -3405,12 +3405,22 @@ fn check_ownership_mode(
         return;
     }
     if param.ty == Type::Bytes {
-        if param.mode != ParamMode::Own {
+        if param.mode == ParamMode::Borrow && !function.type_parameters.is_empty() {
             diagnostics.push(error(
                 program,
                 "SPX-T263",
                 format!(
-                    "owned byte parameter `{}.{}` must use `own Bytes`",
+                    "borrowed Bytes parameter `{}.{}` requires a monomorphic function",
+                    function.name, param.name
+                ),
+                param.span,
+            ));
+        } else if !matches!(param.mode, ParamMode::Own | ParamMode::Borrow) {
+            diagnostics.push(error(
+                program,
+                "SPX-T263",
+                format!(
+                    "byte parameter `{}.{}` must use `own Bytes` or `borrow Bytes`",
                     function.name, param.name
                 ),
                 param.span,
@@ -3754,6 +3764,7 @@ enum VerifierFrame<'a> {
         scope: usize,
         index: usize,
         target: VerifierCallTarget<'a>,
+        borrowed_bytes_loans: Vec<(String, SourceLoanId)>,
     },
     ResumeMethodReceiver {
         expression: &'a Expr,
@@ -5083,6 +5094,17 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             });
                             VerifierCallTarget::Ordinary(specialized)
                         };
+                        let borrowed_bytes_loans = match &target {
+                            VerifierCallTarget::Ordinary(Some(
+                                VerifierFunctionSignature::Borrowed(function),
+                            )) => activate_borrowed_bytes_call_loans(
+                                args,
+                                &function.params,
+                                &mut self.scopes[scope].bindings,
+                                self.types,
+                            ),
+                            _ => Vec::new(),
+                        };
                         if let Some(argument) = args.first() {
                             self.frames.push(VerifierFrame::ResumeCallArgument {
                                 expression,
@@ -5091,6 +5113,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 scope,
                                 index: 0,
                                 target,
+                                borrowed_bytes_loans,
                             });
                             self.frames.push(VerifierFrame::Enter {
                                 expression: argument,
@@ -6330,6 +6353,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     scope,
                     index,
                     target,
+                    borrowed_bytes_loans,
                 } => {
                     let actual = self.values.pop().unwrap_or(None);
                     let argument = &args[index];
@@ -6397,6 +6421,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     self.allow_moves,
                                     specialized.as_ref().is_some_and(
                                         VerifierFunctionSignature::implicit_unique_ownership,
+                                    ),
+                                    matches!(
+                                        specialized.as_ref(),
+                                        Some(VerifierFunctionSignature::Borrowed(function))
+                                            if function.type_parameters.is_empty()
                                     ),
                                     self.diagnostics,
                                 );
@@ -6468,12 +6497,17 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             scope,
                             index: next,
                             target,
+                            borrowed_bytes_loans,
                         });
                         self.frames.push(VerifierFrame::Enter {
                             expression: argument,
                             scope,
                         });
                     } else {
+                        release_borrowed_bytes_call_loans(
+                            &mut self.scopes[scope].bindings,
+                            &borrowed_bytes_loans,
+                        );
                         let output = match target {
                             VerifierCallTarget::Native(import) => {
                                 let mut value = CheckedValue::value(match import.result {
@@ -6634,6 +6668,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         self.types,
                         self.allow_moves,
                         true,
+                        false,
                         self.diagnostics,
                     );
                     if args.is_empty() {
@@ -6701,6 +6736,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             self.types,
                             self.allow_moves,
                             true,
+                            false,
                             self.diagnostics,
                         );
                     }
@@ -8611,6 +8647,16 @@ fn check_expr(
                 }
                     validation_specialize_function(target, type_arguments)
             });
+            let borrowed_bytes_loans = target
+                .filter(|target| target.type_parameters.is_empty())
+                .map_or_else(Vec::new, |target| {
+                    activate_borrowed_bytes_call_loans(
+                        args,
+                        &target.params,
+                        variables,
+                        types,
+                    )
+                });
             for (index, arg) in args.iter().enumerate() {
                 let actual = check_expr(
                     program,
@@ -8659,9 +8705,11 @@ fn check_expr(
                     types,
                     allow_moves,
                     true,
+                    target.is_some_and(|target| target.type_parameters.is_empty()),
                     diagnostics,
                 );
             }
+            release_borrowed_bytes_call_loans(variables, &borrowed_bytes_loans);
             specialized_target.map(|target| {
                 CheckedValue::returned(
                     target.return_type.clone(),
@@ -8788,6 +8836,7 @@ fn check_expr(
                 types,
                 allow_moves,
                 true,
+                false,
                 diagnostics,
             );
             for (index, (argument, param)) in args
@@ -8835,6 +8884,7 @@ fn check_expr(
                     types,
                     allow_moves,
                     true,
+                    false,
                     diagnostics,
                 );
                 let _ = index;
@@ -10960,6 +11010,7 @@ fn check_argument_ownership(
     types: &TypeTable<'_>,
     allow_moves: bool,
     implicit_unique_ownership: bool,
+    allow_monomorphic_borrowed_bytes_call: bool,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
     let Some(actual) = actual else {
@@ -11066,21 +11117,23 @@ fn check_argument_ownership(
             }
         }
         ParamMode::Borrow if param.ty == Type::Bytes => {
-            let projected = source_place(arg, variables, types)
-                .is_some_and(|place| !place.projections.is_empty());
-            if !projected {
-                return;
-            }
-            let admitted = crate::byte_ops::by_name(callee).is_some_and(|operation| {
+            let exact_byte_view = crate::byte_ops::by_name(callee).is_some_and(|operation| {
                 operation == crate::byte_ops::ByteOp::BytesAsSlice
                     && source_byte_view_place_is_admitted(operation, arg, variables, types)
             });
-            if !admitted || actual.mode != ParamMode::Own {
+            if !exact_byte_view
+                && !source_borrowed_bytes_call_place_is_admitted(
+                    arg,
+                    variables,
+                    types,
+                    allow_monomorphic_borrowed_bytes_call,
+                )
+            {
                 diagnostics.push(
                     error(
                         program,
                         "SPX-T266",
-                        "owned byte view requires an exact admitted storage place",
+                        "borrowed Bytes call requires an exact admitted storage place",
                         arg.span,
                     )
                     .with_help(
@@ -11099,6 +11152,76 @@ fn check_argument_ownership(
             .with_help("borrow an exact named flat owned-Bytes aggregate place"),
         ),
         ParamMode::Borrow | ParamMode::Shared | ParamMode::Value => {}
+    }
+}
+
+fn source_borrowed_bytes_call_place_is_admitted(
+    expression: &Expr,
+    variables: &HashMap<String, Binding>,
+    types: &TypeTable<'_>,
+    allow_monomorphic_call: bool,
+) -> bool {
+    if !allow_monomorphic_call {
+        return false;
+    }
+    let Some(place) = source_place(expression, variables, types) else {
+        return false;
+    };
+    if place.ty != Type::Bytes {
+        return false;
+    }
+    if place.projections.is_empty() {
+        return matches!(expression.kind, ExprKind::Var(_))
+            && matches!(place.mode, ParamMode::Own | ParamMode::Borrow);
+    }
+    place.projections.len() == 1
+        && place.mode == ParamMode::Own
+        && variables.get(&place.root).is_some_and(|binding| {
+            binding.mode == ParamMode::Own && types.is_flat_owned_byte_record(&binding.ty)
+        })
+}
+
+fn activate_borrowed_bytes_call_loans(
+    arguments: &[Expr],
+    parameters: &[Param],
+    variables: &mut HashMap<String, Binding>,
+    types: &TypeTable<'_>,
+) -> Vec<(String, SourceLoanId)> {
+    let mut active = Vec::new();
+    for (index, (borrowed, parameter)) in arguments.iter().zip(parameters).enumerate() {
+        if parameter.mode != ParamMode::Borrow
+            || parameter.ty != Type::Bytes
+            || !source_borrowed_bytes_call_place_is_admitted(borrowed, variables, types, true)
+        {
+            continue;
+        }
+        let Some(origin) = source_place(borrowed, variables, types) else {
+            continue;
+        };
+        let id = SourceLoanId {
+            borrower: format!("borrowed call argument {index}"),
+            start: borrowed.span.start,
+            end: borrowed.span.end,
+        };
+        if let Some(owner) = variables.get_mut(&origin.root) {
+            owner.active_loans.insert(SourceLoan {
+                id: id.clone(),
+                projections: origin.projections,
+            });
+            active.push((origin.root, id));
+        }
+    }
+    active
+}
+
+fn release_borrowed_bytes_call_loans(
+    variables: &mut HashMap<String, Binding>,
+    active: &[(String, SourceLoanId)],
+) {
+    for (root, loan) in active {
+        if let Some(owner) = variables.get_mut(root) {
+            owner.active_loans.retain(|candidate| candidate.id != *loan);
+        }
     }
 }
 
@@ -11828,6 +11951,134 @@ pub(crate) fn is_scalar_source_type(ty: &Type) -> bool {
 mod iterative_verifier_tests {
     use super::*;
     use std::path::Path;
+
+    fn source_diagnostics(source: &str) -> Vec<Diagnostic> {
+        let program = crate::parse(source, Path::new("borrowed-bytes-call-source-v1.spx"))
+            .expect("fixture parses");
+        verify(&program)
+    }
+
+    #[test]
+    fn monomorphic_borrowed_bytes_calls_admit_named_and_direct_owned_field_places() {
+        let source = r#"
+module test.borrowed_bytes_call_source;
+@id("packet.type") record Packet {
+  @id("packet.payload") payload: Bytes,
+  @id("packet.sibling") sibling: Bytes,
+}
+@id("packet.measure") fn measure(value: borrow Bytes) -> usize {
+  byte_len(bytes_as_slice(value))
+}
+@id("packet.pair") fn pair(value: borrow Bytes, sibling: own Bytes) -> usize {
+  byte_len(bytes_as_slice(value))
+}
+@id("packet.forward") fn forward(value: borrow Bytes) -> usize { measure(value) }
+@id("packet.field") fn field(packet: own Packet) -> usize { measure(packet.payload) }
+@id("packet.sibling-call") fn sibling(packet: own Packet) -> usize {
+  pair(packet.payload, packet.sibling)
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+        let diagnostics = source_diagnostics(source);
+        assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+    }
+
+    #[test]
+    fn later_direct_or_nested_parent_transfer_overlapping_a_borrowed_field_is_t265() {
+        let cases = [
+            r#"
+module test.borrowed_bytes_call_overlap;
+@id("packet.type") record Packet { @id("packet.payload") payload: Bytes, }
+@id("packet.consume") fn consume(value: borrow Bytes, packet: own Packet) -> usize { 0usize }
+@id("packet.invalid") fn invalid(packet: own Packet) -> usize {
+  consume(packet.payload, packet)
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+            r#"
+module test.borrowed_bytes_call_nested_overlap;
+@id("packet.type") record Packet { @id("packet.payload") payload: Bytes, }
+@id("packet.take") fn take(packet: own Packet) -> Packet { packet }
+@id("packet.consume") fn consume(value: borrow Bytes, packet: own Packet) -> usize { 0usize }
+@id("packet.invalid") fn invalid(packet: own Packet) -> usize {
+  consume(packet.payload, take(packet))
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+        ];
+        for source in cases {
+            let diagnostics = source_diagnostics(source);
+            assert!(
+                diagnostics
+                    .iter()
+                    .any(|diagnostic| diagnostic.code == "SPX-T265"),
+                "{diagnostics:#?}"
+            );
+        }
+    }
+
+    #[test]
+    fn borrowed_bytes_call_rejects_temporary_borrowed_root_and_generic_projection() {
+        let cases = [
+            r#"
+module test.borrowed_bytes_call_temporary;
+@id("packet.type") record Packet { @id("packet.payload") payload: Bytes, }
+@id("packet.make") fn make(value: own Bytes) -> Packet { Packet { payload: value } }
+@id("packet.measure") fn measure(value: borrow Bytes) -> usize { 0usize }
+@id("packet.invalid") fn invalid(value: own Bytes) -> usize { measure(make(value).payload) }
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+            r#"
+module test.borrowed_bytes_call_borrowed_root;
+@id("packet.type") record Packet { @id("packet.payload") payload: Bytes, }
+@id("packet.measure") fn measure(value: borrow Bytes) -> usize { 0usize }
+@id("packet.invalid") fn invalid(packet: borrow Packet) -> usize { measure(packet.payload) }
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+            r#"
+module test.borrowed_bytes_call_generic;
+@id("packet.type") record Packet { @id("packet.payload") payload: Bytes, }
+@id("packet.measure") fn measure<T>(value: borrow Bytes, marker: T) -> T { marker }
+@id("packet.invalid") fn invalid(packet: own Packet) -> i64 { measure<i64>(packet.payload, 0) }
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+            r#"
+module test.borrowed_bytes_call_generic_named;
+@id("packet.measure") fn measure<T>(value: borrow Bytes, marker: T) -> T { marker }
+@id("packet.invalid") fn invalid(value: own Bytes) -> i64 { measure<i64>(value, 0) }
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+        ];
+        for source in cases {
+            let diagnostics = source_diagnostics(source);
+            assert!(
+                diagnostics
+                    .iter()
+                    .any(|diagnostic| diagnostic.code == "SPX-T266"),
+                "{diagnostics:#?}"
+            );
+        }
+    }
+
+    #[test]
+    fn byte_parameters_retain_the_closed_own_or_monomorphic_borrow_modes() {
+        for (label, mode) in [("value", ""), ("shared", "shared ")] {
+            let source = format!(
+                r#"
+module test.borrowed_bytes_parameter_mode;
+@id("packet.invalid") fn invalid(value: {mode}Bytes) -> usize {{ 0usize }}
+@id("app.main") fn main() -> i64 {{ 0 }}
+"#
+            );
+            let diagnostics = source_diagnostics(&source);
+            assert!(
+                diagnostics
+                    .iter()
+                    .any(|diagnostic| diagnostic.code == "SPX-T263"),
+                "{label}: {diagnostics:#?}"
+            );
+        }
+    }
 
     #[allow(clippy::type_complexity)]
     fn diagnostics_key(

@@ -24,7 +24,7 @@ impl ProjectCandidate {
             .iter()
             .flat_map(|program| &program.functions)
             .find(|function| function.stable_id == target);
-        let (aggregates, projections, matches, updates, nominal_types) = match selected {
+        let (aggregates, projections, matches, updates, nominal_types, builtins) = match selected {
             Some(function) if function.explicit_id && function.type_parameters.is_empty() => {
                 let program = programs
                     .iter()
@@ -41,9 +41,17 @@ impl ProjectCandidate {
                     super::intent::aggregate_matches(&self.revision, program)?,
                     super::intent::aggregate_updates(&self.revision, program)?,
                     super::intent::nominal_types(&self.revision, program)?,
+                    super::intent::builtin_constructors(&self.revision, program)?,
                 )
             }
-            _ => (Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new()),
+            _ => (
+                Vec::new(),
+                Vec::new(),
+                Vec::new(),
+                Vec::new(),
+                Vec::new(),
+                Vec::new(),
+            ),
         };
         let mut operations = Vec::<Value>::new();
         let mut parameters = Vec::<Value>::new();
@@ -261,10 +269,14 @@ impl ProjectCandidate {
             || !projections.is_empty()
             || !matches.is_empty()
             || !updates.is_empty()
+            || !builtins.is_empty()
         {
             for operation in &mut operations {
                 if operation["kind"] == "replace_function_body" {
                     let constructors = operation["constructors"].as_array_mut().unwrap();
+                    if !builtins.is_empty() {
+                        constructors.push(json!("builtin_call"));
+                    }
                     for kind in ["record", "variant"] {
                         if aggregates.iter().any(|item| item["kind"] == kind) {
                             constructors.push(json!(kind));
@@ -306,6 +318,9 @@ impl ProjectCandidate {
         }
         if !nominal_types.is_empty() {
             report["nominal_types"] = json!(nominal_types);
+        }
+        if !builtins.is_empty() {
+            report["builtin_calls"] = json!(builtins);
         }
         wire::render(report, 256 * 1024)
     }

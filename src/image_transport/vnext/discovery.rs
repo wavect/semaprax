@@ -125,6 +125,12 @@ pub(super) fn payload(
         if methods.iter().any(|method| method.name == "hole/summary") {
             instructions.push_str(" With candidate_prepare, use hole/summary with the exact image_revision, draft_revision and hole_id for a compact typed summary. Select the compiler-issued scope, calls, obligations or constructors reference and pass it to hole/page with the same selectors. Offset is 0 through 16384 (default 0); limit is 1 through 64 (default 16). Follow next_offset until null, retaining the same context-bound reference. Each closed summary or typed facet page is bounded to 64 KiB. These descriptive facts do not establish owned-value liveness, callable admission, successful fill or candidate validity. hole/query remains the unchanged full proof/context report and explicitly unbundled. Embedding hosts may use the compact pure reads in authenticated parallel batches; no candidate installation, execution or source authority is granted.");
         }
+        if methods
+            .iter()
+            .any(|method| method.name == "candidate/apply-intent")
+        {
+            instructions.push_str(" Typed expressions may use builtin_call with an exact compiler byte-operation target and arguments in left-to-right order. Constructor schemas derive the seven admitted identities and exact argument counts from the compiler operation owner. Read optional builtin_calls metadata in change/catalog or the full hole/query context for source-compatible operation names, parameter ownership, return types and type families; array_u8_any_length is a family, not an exact zero-length array type. Ordinary call and accessible_calls still select existing local or imported functions only. Empty declared effects do not imply allocation-free or infallible behavior: bytes_copy creates owned storage, and byte views and ranges retain ordinary place, lifetime, capacity, cleanup and target-profile checks. These catalogues describe potential constructors, never contract validity or permission to execute. Every fill or candidate change still requires full compiler admission; no ambient capability or source authority is granted.");
+        }
         result["instructions"] = json!(instructions);
     }
     bounded(result)

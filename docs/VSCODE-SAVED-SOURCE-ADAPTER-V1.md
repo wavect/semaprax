@@ -8,7 +8,8 @@ The optional extension in [editors/vscode](../editors/vscode/README.md) connects
 an explicitly started local editor session to the existing
 [MCP stdio adapter](IMAGE-MCP-ADAPTER-V1.md). It provides stable-ID selection,
 compiler-derived change discovery, typed-intention submission and read-only
-source diffs for complete immutable candidates. It does not make editor buffers
+source diffs for complete immutable candidates, plus ephemeral typed-hole
+planning and fills. It does not make editor buffers
 canonical, install a compiler or publish source.
 
 ## Startup and authority
@@ -50,9 +51,67 @@ they cannot become candidate handles or permission to retry publication.
 The JSON scratch document is a request draft, not `.spx` source or checked HIR.
 The extension accepts no arbitrary source patch and does not claim that a
 catalogue entry makes every payload valid. Existing candidate failure behavior
-leaves the prior candidate unchanged. This adapter does not implement typed
-holes, all diagnostic-repair interactions, branching recovery or a complete
-graph browser; those protocol surfaces remain separate.
+leaves the prior candidate unchanged. Diagnostic-repair interactions, branching
+recovery and a complete graph browser remain separate protocol surfaces.
+
+## Typed-hole workflow
+
+The editor can plan body, body-expression, and contract-expression holes on one
+selected candidate. Expression choices come from the compiler's bound body or
+contract catalogue; display names and editor source spans are not selectors.
+The user chooses an explicit hole ID and can plan up to sixteen pending holes.
+These are server-owned immutable drafts, never placeholders written into `.spx`.
+
+Plan the complete set of holes before the first successful fill. This editor
+version deliberately closes further hole creation after that point: its
+expression catalogues describe the original candidate, while successful fills
+can change the draft's private last-valid expression identities. Existing holes
+continue through the compiler's ordinary selector rebinding. More general
+post-fill selection over the private last-valid revision remains future work.
+
+Select a pending hole, inspect its compact summary, and choose scope, calls,
+obligations or constructors for a bounded facet page. Additional pages require
+an explicit editor action; the adapter does not automatically drain large
+inventories. Responses must match the selected image, draft, hole, context and
+facet reference, including exact progress and count bounds. Full context is
+available separately for aggregate and builtin descriptors and prior proof
+details. All these views are descriptive and read-only. They do not prove a
+fill valid, grant runtime capabilities, or authorize source publication.
+The constructor-schema command separately displays the four compiler-owned
+structural documents, including the recursive expression grammar. It never
+fetches references or substitutes a client schema check for compiler admission.
+Full contexts and schemas can contain integers beyond JavaScript's exact range;
+their displayed numeric values are descriptive, not an exact proof carrier.
+The controller does not hash reparsed full-context JSON. Compact facet reference
+bindings use only their exact string fields and canonical hash contract.
+
+The fill command accepts only an extension-created JSON scratch document bound
+to the current image, source candidate, draft revision and hole. It contains a
+typed expression, not an ordinary intention or source fragment. Any successful
+draft change invalidates previous fill scratches and navigation references;
+the user requests fresh context and a fresh fill scratch for the next hole.
+Malformed or rounded numeric JSON is rejected before submission. Ordinary
+compiler rejection leaves the draft and scratch available for correction.
+At most 64 fill-scratch references are tracked, and closing a document releases
+its reference. Successful draft changes invalidate old hole view text as well
+as scratch bindings. Only the most recently requested expression catalogue is
+retained for a new expression selection.
+
+An active draft blocks ordinary candidate replacement, intention submission and
+source-diff preview, including after its final hole is filled. The user must
+explicitly complete it. Only the validated `hole/complete` response becomes the
+selected candidate and enables the existing independently verified source diff.
+Discarding a draft returns to the originally selected candidate without saving
+or publishing any source. Neither action grants build, test, archive-restore,
+approval or commit authority.
+
+The controller retires its superseded server draft only after a new open/fill
+result has been validated and adopted. Completion similarly releases the final
+draft after receiving the candidate handle. This keeps at most two of this
+controller's draft handles live during a transition, within the server's
+sixteen-draft registry. Failed fills never discard the current draft. A failed
+retirement ends the session: a successful preceding operation is not described
+as rolled back, and no mutation or retirement is automatically retried.
 
 ## Read-only review
 
@@ -78,11 +137,13 @@ watchers are hints only. Every semantic server invocation still performs its
 ordinary held-source authentication. The extension never uploads an unsaved
 buffer as authoritative source or silently refreshes a revision after drift.
 
-Only one editor command and one protocol request can be pending. Responses and
+Only one editor command and one protocol request can be pending. The hole
+controller also serializes its own operations. Responses and
 virtual views remain bound to the session generation; a source change during
 an asynchronous operation invalidates its result. Transport errors, malformed
 responses and timeouts end the client session without automatic retry. Stop or
-restart releases retained review text. The extension does not promise process
+restart releases retained review text, draft selection, fill scratches and
+facet references. The extension does not promise process
 durability, exactly-once execution or recovery of a response lost after a
 candidate operation.
 
@@ -101,6 +162,6 @@ compiler, Node test runner, generated client, VS Code extension host, package
 installation or local quality gate was run for this change.
 
 Real editor-host integration, accessibility and platform evidence, richer typed
-constructor UI, holes and diagnostic workflows, asynchronous cancellation,
+constructor UI, general post-fill hole selection, diagnostic workflows, asynchronous cancellation,
 durable candidate recovery and task-level measurements remain open. This is an
 optional local adapter, not a marketplace release or full programme completion.

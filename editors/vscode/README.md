@@ -54,6 +54,30 @@ are only invalidation hints; every semantic call still uses exact server-bound
 image/candidate revisions and server source authentication. Manifest configuration
 changes that the host refuses require a new explicitly configured session.
 
+For incomplete work, **Open Typed Hole** plans a body, body-expression or
+contract-expression replacement. Choose expression identities from the
+compiler catalogue and plan all holes before filling any. **Select Pending
+Hole**, **Show Descriptive Hole Summary**, **Show Hole Facet Page or Next Page**
+and **Show Full Hole Context (Unbundled)** inspect the current draft without
+exposing it as valid source. Facet pages are
+expanded explicitly and remain bound to that exact hole context. **Show Typed
+Hole Constructor Schemas** displays the compiler's recursive expression grammar
+without fetching schema references or claiming semantic admission.
+
+**New Hole Fill Scratch** creates a typed-expression JSON document bound to the
+selected draft revision and hole. **Fill Selected Hole from Active Scratch**
+submits it through ordinary compiler admission. Rejected fills preserve the draft; successful
+changes invalidate older fill scratches and navigation references. Select the
+next pending hole and create a fresh scratch. Only **Complete Ready Draft as
+Candidate** releases a candidate for source review after every hole is filled. **Discard
+Typed-Hole Draft** returns to the original candidate without source writes.
+
+An active draft, even one ready to complete, blocks ordinary candidate changes
+and source-diff preview. Stop, source drift and refresh clear its editor state.
+Superseded in-memory draft handles are released after successful transitions;
+a failed release terminates the session without pretending that the preceding
+operation was rolled back. There is no automatic retry or publication.
+
 Only one command/request can be pending. Requests are capped at 128 KiB outer
 MCP and 64 KiB inner v5, responses at 8 MiB, source reviews at 16 MiB and 16 files,
 and virtual-document references at 64 and 32 MiB total per session. Requests time out after 30
@@ -71,8 +95,10 @@ SEMAPRAX tools for publication; this extension intentionally has no such route.
 Authored Node tests live in `test/`. They use the built-in `node:test` runner and
 mock processes to cover protocol bounds, exact inner envelopes, rejected tool
 authority, timeouts, duplicate keys, canonical source-review digests and hostile
-chunk/path inputs. They were **not run** during implementation. Later explicit
-verification can use `node --test test/*.test.js`; no VS Code or compiler process
+chunk/path inputs. Additional authored cases cover typed-hole lifecycle,
+context/reference binding, failed fills and explicit completion. They were
+**not run** during implementation. Later explicit verification can use
+`node --test test/*.test.js`; no VS Code or compiler process
 is started by those tests.
 
 Implementation references: [VS Code workspace trust](https://code.visualstudio.com/api/extension-guides/workspace-trust),

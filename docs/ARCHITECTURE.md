@@ -538,6 +538,13 @@ events invalidate UI state but never authorize or replace source authentication.
 See [Source Review](PROJECT-CANDIDATE-SOURCE-REVIEW-V1.md) and
 [Saved-Source Editor](VSCODE-SAVED-SOURCE-ADAPTER-V1.md).
 
+`editors/vscode/holes.js` coordinates an editor-owned typed draft through the
+existing body, expression and contract-hole routes. It validates bound handles
+and compact navigation, preserves failed fills, retires superseded draft
+handles and requires explicit completion before candidate review. Editor
+scratch bindings and source epochs are local freshness checks, not semantic
+proof or publication authority; compiler admission remains unchanged.
+
 An opt-in `open_with_frontend_cache` constructor uses the same authenticated
 filesystem loader with `ProjectFrontendCache` as its build strategy. It parses
 fresh source directly on first load, then stages exact-source AST reuse during
@@ -772,6 +779,14 @@ remaps survivors after fills; draft recovery stores only selectors over replayed
 valid history. V5 adds candidate-granted discovery and hole opening, with no
 build or publication authority. See
 [Contract Expression Holes](PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md).
+
+`candidate/builtin.rs`, a child of the intent module, resolves typed
+`builtin_call` requests through the compiler-owned byte-operation inventory.
+It rejects source identity/binding collisions and supplies the same descriptors
+to discovery and semantic rebase. Ordinary source-call lowering and complete
+candidate replay retain ownership, view provenance, cleanup and target
+authority; the graph carries no new independent meaning. See
+[Builtin Call Constructor](PROJECT-BUILTIN-CALL-CONSTRUCTOR-V1.md).
 
 `candidate/aggregate.rs` resolves typed record/case/field constructors through
 retained checked module declarations and existing local/imported type bindings.

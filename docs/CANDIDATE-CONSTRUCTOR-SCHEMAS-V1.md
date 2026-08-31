@@ -25,7 +25,8 @@ its previous request descriptors. Every constructor object has explicit
 required fields and `additionalProperties: false`.
 
 Expression alternatives cover typed `i64`, `i32`, `u8`, `usize`, and `bool`
-literals; places; calls; binary and unary operators; conditional expressions;
+literals; places; ordinary calls; compiler-owned byte calls; binary and unary
+operators; conditional expressions;
 immutable scoped `let` bindings;
 identity-selected record/variant construction, stable-ID record-field projection,
 exhaustive stable-ID variant matching, and typed stable-ID record updates.
@@ -34,6 +35,14 @@ target-neutral unsigned 64-bit input range for `usize`; target admission can
 still reject a value. New names use the same bounded ordinary identifier shape
 and excluded keyword set as candidate constructors. Call arguments recurse into
 the same closed expression alternatives.
+
+`builtin_call` selects one of seven stable byte-operation identities from the
+compiler's operation table, with an exact argument count for each alternative.
+Its recursive arguments still require complete source admission, including
+view provenance and ownership. Target-specific `builtin_calls` descriptors
+remain separate from ordinary function discovery; array parameters describe
+the fixed byte-array family rather than the internal zero-length sentinel.
+See [Builtin Call Constructor](PROJECT-BUILTIN-CALL-CONSTRUCTOR-V1.md).
 
 The closed `let` shape requires `name`, recursive `value`, and recursive `body`.
 Its initializer cannot see the introduced name; only its body can. Normal

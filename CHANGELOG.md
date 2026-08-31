@@ -12,6 +12,12 @@
   from the newer test driver. Updated affected programme rows to scoped local
   evidence, without hosted, release or production promotion.
 
+- Added saved-source editor controls for body, expression and contract holes,
+  compact context navigation, revision-bound fill scratches and explicit draft
+  completion. Superseded in-memory draft handles are released without source
+  writes; unfinished drafts cannot be previewed as valid candidates. Regression
+  evidence is authored, unrun; no editor-host or completion claim is added.
+
 - Added an explicitly selected frame-product ASan/UBSan gate with calibrated
   failure controls, reusing the unchanged nine-case and 72-case corpora for
   isolated and retained baseline/display-renamed Projects at O0/O2. It passes
@@ -19,6 +25,12 @@
   Ordinary frame, strict TypeScript, offline npm installation, generated Rust,
   Chromium and version/new-project/quickstart gates also have local macOS passes.
   No production emitter, schema, corpus, hosted workflow or promotion changes.
+
+- Added typed `builtin_call` expressions for the seven compiler-owned byte
+  operations, with owner-derived schemas and discovery, collision checks,
+  and semantic rebase dependencies. Ordinary source replay still owns type,
+  loan, cleanup, capacity and target admission. Regression coverage is authored,
+  unrun; no completion or performance claim is added.
 
 - Corrected doctor encoder test-module routing and the mixed-arity fixture's
   borrowed-view provenance: result bytes now come from named fixed-array

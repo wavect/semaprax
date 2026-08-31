@@ -35,6 +35,16 @@ pub(crate) enum ByteOp {
 }
 
 impl ByteOp {
+    pub(crate) const ALL: [Self; 7] = [
+        Self::Len,
+        Self::Get,
+        Self::Range,
+        Self::Copy,
+        Self::BytesAsSlice,
+        Self::ArrayAsSlice,
+        Self::StrAsBytes,
+    ];
+
     pub(crate) const fn name(self) -> &'static str {
         match self {
             Self::Len => LEN_NAME,

@@ -1,6 +1,7 @@
 # Project Signature Evolution v1
 
-Status: authored, unrun; the graph-operational programme remains Partial.
+Status: focused local owning-signature regressions pass; the graph-operational
+programme remains Partial, with full-profile and hosted validation pending.
 
 Audience: agent builders, compiler contributors, and reviewers.
 
@@ -221,11 +222,18 @@ byte arguments, exact original evaluation order, duplicate/removal rejection,
 and unchanged live source files. These tests have not been executed.
 [`tests/project_signature_owned_values_v1.rs`](../tests/project_signature_owned_values_v1.rs)
 adds authored cases for bare String and resource-free owned record/variant
-parameters, local and imported aliases, preserved argument subtrees and order,
+parameters, two local callers per target, preserved argument subtrees and order,
 renaming, exact replay/recovery, stale rejection, omitted-owner diagnostics and
-borrowed-mode exclusion. Catalog assertions distinguish implicit String
-ownership from source mode and preserve legacy Bytes/scalar descriptors. These
-cases are also unrun and do not establish runtime or physical cleanup behavior.
+borrowed-mode exclusion. Its five regressions pass locally on macOS/Rust 1.98.
+Catalog assertions distinguish implicit String ownership from source mode and
+preserve legacy Bytes/scalar descriptors. String declarations are retained and
+checked outside this fixture's executable closure; this is not a claim that
+the mixed owned-variant Project Wasm lane executes internal String literals.
+Owned-type and owned-argument function imports retain `SPX-G172` rejection.
+Asymmetric conditional variant-owner roots retain `SPX-H006` rejection; the
+positive variant target consumes its first owner and returns its second through
+an admitted straight-line body. These tests do not establish runtime or
+physical cleanup behavior, and current-head hosted validation remains pending.
 The pure reference-interpreter probes are authored executable evidence; no
 interpreter, target, compiler check, or local test was run for this change.
 Declared-effect ordering is a structural regression, not hosted effect-runtime

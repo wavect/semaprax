@@ -1,4 +1,4 @@
-//! Recursive repair response clients; authored, never executed during this change.
+//! Recursive repair response clients, including real offline consumer execution.
 use semaprax::image_transport::{VNextPolicy, VNextSession};
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -35,7 +35,7 @@ tests = ["recursive.tests"]
                 r#"module recursive.core;
 @id("recursive.packet") record Packet { @id("recursive.packet.bytes") bytes:Bytes, }
 @id("recursive.make") fn make(input:borrow Slice<u8>)->Packet {Packet {bytes:bytes_copy(input)}}
-@id("recursive.inspect") fn inspect(packet:own Packet)->usize {byte_len(bytes_as_slice(packet.bytes))}
+@id("recursive.inspect") fn inspect(packet:own Packet)->usize {let view=bytes_as_slice(packet.bytes);byte_len(view)}
 @id("recursive.identity") fn identity(value:usize)->usize {value}
 @id("recursive.public") fn public_value(value:i64)->i64 {value}
 @id("recursive.evaluate") fn evaluate()->i64 {let input=[7u8];if inspect(make(array_as_slice(input)))==1usize {42}else{0}}
@@ -133,7 +133,7 @@ fn responses(session: &mut VNextSession) -> Value {
         session,
         candidate,
         "recursive.inspect",
-        json!({"kind":"builtin_call","target":"core.bytes.len","arguments":[{"kind":"builtin_call","target":"core.bytes.as-slice","arguments":[{"kind":"project","target":"recursive.packet.bytes","base":{"kind":"place","name":"packet"}}]}]}),
+        json!({"kind":"let","name":"view","value":{"kind":"builtin_call","target":"core.bytes.as-slice","arguments":[{"kind":"project","target":"recursive.packet.bytes","base":{"kind":"place","name":"packet"}}]},"body":{"kind":"builtin_call","target":"core.bytes.len","arguments":[{"kind":"place","name":"view"}]}}),
     );
     let empty = catalog(
         session,
@@ -473,12 +473,12 @@ for name in ('literal', 'borrow'):
     rejects(bad)
 
 bad = copy.deepcopy(responses['borrow'])
-node = bad['result']['payload']['repairs'][0]['change']['intent']['body']['arguments'][0]['arguments'][0]
+node = bad['result']['payload']['repairs'][0]['change']['intent']['body']['value']['arguments'][0]
 assert node['kind'] == 'field_place'
 node['root'] = ['packet']
 rejects(bad)
 bad = copy.deepcopy(responses['borrow'])
-bad['result']['payload']['repairs'][0]['change']['intent']['body']['arguments'][0]['arguments'][0]['extra'] = 1
+bad['result']['payload']['repairs'][0]['change']['intent']['body']['value']['arguments'][0]['extra'] = 1
 rejects(bad)
 bad = copy.deepcopy(responses['borrow'])
 bad['result']['payload']['repairs'][0]['replacements'][0]['root'] = None

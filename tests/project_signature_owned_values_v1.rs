@@ -1,4 +1,4 @@
-//! Ordered resource-free owning signature evidence; authored and unrun.
+//! Ordered resource-free owning signatures and the closed module-import boundary.
 use semaprax::ast::{Expr, ExprKind, Function, ParamMode, Program, Statement};
 use semaprax::diagnostic::Diagnostic;
 use semaprax::hir::OwnershipMode;
@@ -27,7 +27,7 @@ name = "owned-signature-values"
 version = "1.0.0"
 profile = "owned-data-api.v1"
 entry = "owned.app"
-sources = ["src/app.spx", "src/core.spx", "src/bridge.spx", "src/tests.spx"]
+sources = ["src/app.spx", "src/bridge.spx", "src/core.spx", "src/tests.spx"]
 web_exports = ["owned.public"]
 tests = ["owned.tests"]
 "#,
@@ -45,8 +45,11 @@ tests = ["owned.tests"]
 @id("owned.text-call") fn text_call()->string {text_select(left_text(),right_text(),4/2)}
 @id("owned.record-select") fn record_select(left:own Packet,right:own Packet,flag:i64)->Packet {if flag==0 {left}else{right}}
 @id("owned.record-call") fn record_call(input:borrow Slice<u8>)->Packet {record_select(Packet {marker:8/2,bytes:bytes_copy(input)},Packet {bytes:bytes_copy(input),marker:18/3},4/2)}
-@id("owned.variant-select") fn variant_select(left:own Choice,right:own Choice,flag:i64)->Choice {if flag==0 {left}else{right}}
+@id("owned.variant-select") fn variant_select(left:own Choice,right:own Choice,flag:i64)->Choice {let marker=flag+consume_variant(left);right}
 @id("owned.variant-call") fn variant_call(input:borrow Slice<u8>)->Choice {variant_select(Choice::Data {marker:12/3,bytes:bytes_copy(input)},Choice::Data {bytes:bytes_copy(input),marker:24/4},4/2)}
+@id("owned.second-text") fn second_text()->string {text_select("left","right",4/2)}
+@id("owned.second-record") fn second_record(input:borrow Slice<u8>)->Packet {record_select(Packet {bytes:bytes_copy(input),marker:8/2},Packet {marker:18/3,bytes:bytes_copy(input)},4/2)}
+@id("owned.second-variant") fn second_variant(input:borrow Slice<u8>)->Choice {variant_select(Choice::Data {bytes:bytes_copy(input),marker:12/3},Choice::Data {marker:24/4,bytes:bytes_copy(input)},4/2)}
 @id("owned.consume-record") fn consume_record(value:own Packet)->i64 {match own value {Packet {bytes,marker}=>marker,}}
 @id("owned.consume-variant") fn consume_variant(value:own Choice)->i64 {match own value {Choice::None {}=>0,Choice::Data {bytes,marker}=>marker,}}
 @id("owned.borrow-record") fn borrow_record(value:borrow Packet)->i64 {0}
@@ -54,32 +57,23 @@ tests = ["owned.tests"]
 @id("owned.borrow-view") fn borrow_view(value:borrow Slice<u8>)->i64 {0}
 @id("owned.bytes") fn bytes(value:own Bytes)->Bytes {value}
 @id("owned.public") fn public_value(value:i64)->i64 {value}
-@id("owned.evaluate") fn evaluate()->i64 {let input=[1u8];if text_call()=="right" && consume_record(record_call(array_as_slice(input)))==6 && consume_variant(variant_call(array_as_slice(input)))==6 {42}else{0}}
+@id("owned.evaluate") fn evaluate()->i64 {let input=[1u8];if consume_record(record_call(array_as_slice(input)))==6 && consume_variant(variant_call(array_as_slice(input)))==6 {42}else{0}}
+@id("owned.evaluate-second") fn evaluate_second()->i64 {let input=[1u8];if consume_record(second_record(array_as_slice(input)))==6 && consume_variant(second_variant(array_as_slice(input)))==6 {42}else{0}}
 "#,
             ),
             (
                 "src/bridge.spx",
                 r#"module owned.bridge;
-use type @id("owned.packet") from owned.core as Frame;
-use type @id("owned.choice") from owned.core as Signal;
-use function @id("owned.text-select") from owned.core as select_text;
-use function @id("owned.record-select") from owned.core as select_frame;
-use function @id("owned.variant-select") from owned.core as select_signal;
-@id("owned.bridge-text") fn text_call()->string {select_text("left","right",4/2)}
-@id("owned.bridge-record") fn record_call(input:borrow Slice<u8>)->Frame {select_frame(Frame {marker:8/2,bytes:bytes_copy(input)},Frame {bytes:bytes_copy(input),marker:18/3},4/2)}
-@id("owned.bridge-variant") fn variant_call(input:borrow Slice<u8>)->Signal {select_signal(Signal::Data {marker:12/3,bytes:bytes_copy(input)},Signal::Data {bytes:bytes_copy(input),marker:24/4},4/2)}
+use function @id("owned.evaluate-second") from owned.core as evaluate_local_owners;
+@id("owned.bridge") fn evaluate()->i64 {evaluate_local_owners()}
 "#,
             ),
             (
                 "src/app.spx",
                 r#"module owned.app;
 use function @id("owned.evaluate") from owned.core as evaluate;
-use function @id("owned.consume-record") from owned.core as consume_record;
-use function @id("owned.consume-variant") from owned.core as consume_variant;
-use function @id("owned.bridge-text") from owned.bridge as bridge_text;
-use function @id("owned.bridge-record") from owned.bridge as bridge_record;
-use function @id("owned.bridge-variant") from owned.bridge as bridge_variant;
-@id("owned.main") fn main()->i64 {let input=[1u8];if bridge_text()=="right" && consume_record(bridge_record(array_as_slice(input)))==6 && consume_variant(bridge_variant(array_as_slice(input)))==6 {evaluate()}else{0}}
+use function @id("owned.bridge") from owned.bridge as bridge_evaluate;
+@id("owned.main") fn main()->i64 {if bridge_evaluate()==42 {evaluate()}else{0}}
 "#,
             ),
             (
@@ -249,27 +243,27 @@ fn ordered(report: &Value) -> bool {
 }
 
 #[test]
-fn strings_and_owned_records_and_variants_reorder_once_across_aliases_and_replay() {
+fn strings_and_owned_records_and_variants_reorder_each_local_call_once_and_replay() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
     let base = fixture.candidate();
-    for (target, local, foreign, mode) in [
+    for (target, local, second, mode) in [
         (
             "owned.text-select",
             "owned.text-call",
-            "owned.bridge-text",
+            "owned.second-text",
             ParamMode::Value,
         ),
         (
             "owned.record-select",
             "owned.record-call",
-            "owned.bridge-record",
+            "owned.second-record",
             ParamMode::Own,
         ),
         (
             "owned.variant-select",
             "owned.variant-call",
-            "owned.bridge-variant",
+            "owned.second-variant",
             ParamMode::Own,
         ),
     ] {
@@ -291,28 +285,110 @@ fn strings_and_owned_records_and_variants_reorder_once_across_aliases_and_replay
         assert_eq!(new.params[0].ty, old.params[1].ty);
         assert_eq!(new.params[2].ty, old.params[0].ty);
         assert_eq!(new.return_type, old.return_type);
-        let checked = candidate
-            .revision()
-            .entry_program()
-            .functions
-            .iter()
-            .find(|function| function.id.as_str() == target)
-            .unwrap();
-        assert_eq!(checked.params[0].ownership, OwnershipMode::Own);
-        assert_eq!(checked.params[2].ownership, OwnershipMode::Own);
-        assert_eq!(checked.params[0].name, "second");
-        assert_eq!(checked.params[2].name, "first");
-        assert!(
-            semaprax::format::expr(&new.body, 0).contains("if flag == 0 { first } else { second }")
+        // String declarations are checked and retained but are not reachable in
+        // this Project's v6 aggregate executable closure. Check their exact
+        // compiler-authenticated facts through the retained catalog as well.
+        let migrated_catalog = catalog(&candidate, target);
+        for (index, name) in [(0, "second"), (2, "first")] {
+            let parameter = &migrated_catalog["parameters"][index];
+            assert_eq!(parameter["name"], name);
+            assert_eq!(parameter["type_provenance"]["ownership"], "own");
+            assert_eq!(
+                parameter["type_provenance"]["evidence_owner"],
+                "retained_checked_hir"
+            );
+        }
+        if target != "owned.text-select" {
+            let checked = candidate
+                .revision()
+                .entry_program()
+                .functions
+                .iter()
+                .find(|function| function.id.as_str() == target)
+                .unwrap();
+            assert_eq!(checked.params[0].ownership, OwnershipMode::Own);
+            assert_eq!(checked.params[2].ownership, OwnershipMode::Own);
+            assert_eq!(checked.params[0].name, "second");
+            assert_eq!(checked.params[2].name, "first");
+        }
+        assert_eq!(
+            candidate
+                .revision()
+                .entry_program()
+                .functions
+                .iter()
+                .any(|function| function.id.as_str() == target),
+            target != "owned.text-select"
         );
+        let renamed_body = semaprax::format::expr(&new.body, 0);
+        if target == "owned.variant-select" {
+            assert!(renamed_body.contains("let marker = flag + consume_variant(first);"));
+            assert!(renamed_body.ends_with("second }"));
+        } else {
+            assert!(renamed_body.contains("if flag == 0 { first } else { second }"));
+        }
         staging(&base, &candidate, "src/core.spx", local);
-        staging(&base, &candidate, "src/bridge.spx", foreign);
+        staging(&base, &candidate, "src/core.spx", second);
+        assert_eq!(
+            source(&base, "src/bridge.spx"),
+            source(&candidate, "src/bridge.spx")
+        );
         code(
             candidate.apply(candidate.candidate_digest(), &change),
             "SPX-G224",
         );
         replay(&base, &candidate, change);
     }
+    assert_eq!(fixture.bytes(), disk);
+}
+
+#[test]
+fn owned_type_and_owned_argument_imports_remain_outside_project_admission() {
+    for import in [
+        "use type @id(\"owned.packet\") from owned.core as Frame;",
+        "use type @id(\"owned.choice\") from owned.core as Signal;",
+        "use function @id(\"owned.record-select\") from owned.core as select_frame;",
+        "use function @id(\"owned.variant-select\") from owned.core as select_signal;",
+    ] {
+        let fixture = Fixture::new();
+        let _base = fixture.candidate();
+        let bridge = format!(
+            "module owned.bridge;\n{import}\n@id(\"owned.bridge\") fn evaluate()->i64 {{42}}\n"
+        );
+        let parsed = semaprax::parse(&bridge, "src/bridge.spx").unwrap();
+        std::fs::write(
+            fixture.0.join("src/bridge.spx"),
+            semaprax::format::canonical(&parsed),
+        )
+        .unwrap();
+        let disk = fixture.bytes();
+        code(
+            with_authenticated_project(&fixture.0.join("semaprax.toml"), |_| Ok(())),
+            "SPX-G172",
+        );
+        assert_eq!(fixture.bytes(), disk);
+    }
+}
+
+#[test]
+fn asymmetric_conditional_variant_owners_remain_outside_cleanup_plan_admission() {
+    let fixture = Fixture::new();
+    let _base = fixture.candidate();
+    let path = fixture.0.join("src/core.spx");
+    let source = std::fs::read_to_string(&path).unwrap()
+        + "\n@id(\"owned.asymmetric\") fn asymmetric(left:own Choice,right:own Choice,flag:bool)->Choice {if flag {left}else{right}}\n";
+    let parsed = semaprax::parse(&source, "src/core.spx").unwrap();
+    std::fs::write(path, semaprax::format::canonical(&parsed)).unwrap();
+    let disk = fixture.bytes();
+    let errors =
+        with_authenticated_project(&fixture.0.join("semaprax.toml"), |_| Ok(())).unwrap_err();
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-H006"
+            && error
+                .message
+                .contains("branch join disagrees on conditional variant roots")),
+        "{errors:?}"
+    );
     assert_eq!(fixture.bytes(), disk);
 }
 

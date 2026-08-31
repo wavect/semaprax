@@ -1,6 +1,7 @@
 # Typed workspace response clients v1
 
-Status: implementation and regression evidence authored, unrun.
+Status: focused recursive-client regressions pass locally; full-profile and
+current-head hosted validation remain pending.
 
 Audience: agent client authors, editor integrators and compiler contributors.
 
@@ -146,15 +147,18 @@ and uniqueness of bounded string arrays. Unsupported `not` forms, regular
 expressions and schema intersections still fail generation.
 
 `tests/image_typed_response_clients_v5.rs` and focused generator regressions
-author selected-profile, deterministic generation, concrete shape, nullable and
-hostile-input evidence. They have not been executed. Tests, compiler checks,
-generated clients and long local quality gates were not run for this change.
+cover selected-profile, deterministic generation, concrete shape, nullable and
+hostile-input evidence. The full current-head baseline is still pending.
 
 `tests/image_recursive_repair_response_clients_v5.rs` adds selected-only repair
 schemas, actual literal/byte-field/empty reports, recursive language types,
 hostile nested payloads, assertion preservation and shared validation-budget
 cases. Synthetic changed reports in client tests establish shape handling only;
-they are not reminted compiler receipts. These cases are also authored and unrun.
+they are not reminted compiler receipts. All three tests pass locally on
+macOS/Rust 1.98, including actual Python and offline compiled Rust consumers.
+The fixture let-binds borrowed byte views before using them; it does not widen
+the compiler's nested byte-slice provenance admission. Hosted cross-platform
+execution remains a separate gate.
 
 Complete heterogeneous compiler-report schemas, independent cross-language
 conformance and measured workflow improvements remain open. Typed constructor

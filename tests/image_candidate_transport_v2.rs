@@ -684,14 +684,41 @@ fn constructor_schemas_are_closed_and_resolve_recursion_locally() {
         .find(|schema| schema["properties"]["kind"]["const"] == "add_record_field")
         .unwrap();
     let fields = record["properties"]["field"]["oneOf"].as_array().unwrap();
-    assert_eq!(fields.len(), 2);
-    for (field, kind) in fields.iter().zip(["i64", "bool"]) {
+    let expected_fields = [
+        (
+            "i64",
+            json!({"type":"integer","minimum":-i64::MAX,"maximum":i64::MAX}),
+        ),
+        ("bool", json!({"type":"boolean"})),
+        (
+            "i32",
+            json!({"type":"integer","minimum":-i32::MAX,"maximum":i32::MAX}),
+        ),
+        (
+            "u8",
+            json!({"type":"integer","minimum":0,"maximum":u8::MAX}),
+        ),
+        (
+            "usize",
+            json!({"type":"integer","minimum":0,"maximum":u64::MAX}),
+        ),
+    ];
+    assert_eq!(fields.len(), expected_fields.len());
+    for (field, (kind, value_schema)) in fields.iter().zip(expected_fields) {
         assert_eq!(field["required"], json!(["id", "name", "type", "default"]));
         assert_eq!(field["additionalProperties"], false);
         assert_eq!(field["properties"]["type"]["const"], kind);
         assert_eq!(
             field["properties"]["default"]["properties"]["kind"]["const"],
             kind
+        );
+        assert_eq!(
+            field["properties"]["default"]["required"],
+            json!(["kind", "value"])
+        );
+        assert_eq!(
+            field["properties"]["default"]["properties"]["value"],
+            value_schema
         );
     }
 }

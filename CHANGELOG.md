@@ -6,15 +6,20 @@
   implementations through macros and omitting redundant field-rename attributes.
   Public types, literal checks and recursive conversion budgets remain unchanged.
   Added a regression against the serialized discovery payload size, including
-  JSON escaping, without raising its existing cap. Authored, unrun locally;
-  coordinated CI owns executable verification.
+  JSON escaping, without raising its existing cap. Corrected recursive-client
+  fixtures to use admitted let-bound byte views. All three focused recursive
+  client tests pass locally, including actual Python and offline Rust consumers;
+  full-profile and current-head hosted validation remain pending.
 
 - Extended ordered signature intentions to retain and reorder admitted String
   and resource-free owned record/variant parameters using checked ownership and
   TypeFacts. Bare String parameters count as owners and cannot be omitted;
   original argument order, full candidate replay and ordinary cleanup admission
   remain mandatory. New owning defaults, resources and borrowing migrations
-  remain excluded. Discovery and regression additions are authored, unrun.
+  remain excluded. Five focused local regressions pass, including two callers
+  per target, replay/recovery and unchanged G172 import/H006 branch exclusions.
+  String declarations are checked outside the mixed-aggregate executable
+  closure; this is not physical or hosted String execution evidence.
 
 - Corrected cleanup-inventory traversal after assignment, while and audited
   unsafe statements, restoring discovery of later owned storage without changing

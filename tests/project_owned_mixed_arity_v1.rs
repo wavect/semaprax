@@ -134,6 +134,15 @@ fn real_project_zero_through_eight_mixed_arguments_match_native_and_npm() {
         .map_err(|error| vec![error])?;
         assert_eq!(provider.descriptor(), bytes);
         assert_eq!(provider.descriptor_digest(), digest);
+        assert!(provider.source().contains(
+            "return SPX_OWNED_DATA_ADAPTER_FAILURE;\n    borrowed += arg_2_len;\n    spx_str_v1 value_2"
+        ));
+        assert!(provider.source().contains(
+            "return SPX_OWNED_DATA_ADAPTER_FAILURE;\n    borrowed += arg_3_len;\n    spx_slice_u8_v1 value_3"
+        ));
+        assert!(!provider.source().contains(
+            "return SPX_OWNED_DATA_ADAPTER_FAILURE; borrowed +="
+        ));
         let inline = snapshot.build_npm_inline(MAX_PROJECT_NPM_BUILD_BYTES)?;
         inline.verify().unwrap();
         ProjectNpmBuild::inspect_envelope(inline.envelope(), MAX_PROJECT_NPM_BUILD_BYTES).unwrap();

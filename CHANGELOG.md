@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Corrected generated Project v8-v10 Native Rust provider guards so borrowed
+  input accounting and carrier construction begin on distinct C statements.
+  Strict compilers can no longer reject the authenticated provider for
+  misleading guard indentation; validation order, byte limits, optimization,
+  process deadlines, and publication authority remain unchanged.
+
 - Serialized the two test-local Project v10 Native Rust publication lifetimes.
   Windows no longer overlaps their real compiler and archiver authorities;
   generated SDK execution, semantic-failure recovery, and all package checks

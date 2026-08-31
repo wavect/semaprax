@@ -175,8 +175,8 @@ fn emit_flat_export(
     for (index, (_, _, parameter)) in export.parameters().iter().enumerate() {
         match parameter {
             PublicApiParameterType::Bool => writeln!(output, "    if (arg_{index} > UINT8_C(1)) return SPX_OWNED_DATA_ADAPTER_FAILURE;"),
-            PublicApiParameterType::BorrowStr => writeln!(output, "    if (arg_{index}_len > UINT64_C(65536) - borrowed || (arg_{index}_len != UINT64_C(0) && arg_{index} == NULL) || !spx_owned_data_utf8_v1(arg_{index}, arg_{index}_len)) return SPX_OWNED_DATA_ADAPTER_FAILURE; borrowed += arg_{index}_len; spx_str_v1 value_{index} = {{ .data = arg_{index}, .len = arg_{index}_len }};"),
-            PublicApiParameterType::BorrowSliceU8 => writeln!(output, "    if (arg_{index}_len > UINT64_C(65536) - borrowed || (arg_{index}_len != UINT64_C(0) && arg_{index} == NULL)) return SPX_OWNED_DATA_ADAPTER_FAILURE; borrowed += arg_{index}_len; spx_slice_u8_v1 value_{index} = {{ .ptr = arg_{index}_len == UINT64_C(0) ? NULL : arg_{index}, .len = arg_{index}_len }};"),
+            PublicApiParameterType::BorrowStr => writeln!(output, "    if (arg_{index}_len > UINT64_C(65536) - borrowed || (arg_{index}_len != UINT64_C(0) && arg_{index} == NULL) || !spx_owned_data_utf8_v1(arg_{index}, arg_{index}_len)) return SPX_OWNED_DATA_ADAPTER_FAILURE;\n    borrowed += arg_{index}_len;\n    spx_str_v1 value_{index} = {{ .data = arg_{index}, .len = arg_{index}_len }};"),
+            PublicApiParameterType::BorrowSliceU8 => writeln!(output, "    if (arg_{index}_len > UINT64_C(65536) - borrowed || (arg_{index}_len != UINT64_C(0) && arg_{index} == NULL)) return SPX_OWNED_DATA_ADAPTER_FAILURE;\n    borrowed += arg_{index}_len;\n    spx_slice_u8_v1 value_{index} = {{ .ptr = arg_{index}_len == UINT64_C(0) ? NULL : arg_{index}, .len = arg_{index}_len }};"),
             PublicApiParameterType::I64 => Ok(()),
         }.unwrap();
     }
@@ -560,8 +560,8 @@ fn emit_export(
     for (index, parameter) in export.parameters().iter().enumerate() {
         match parameter.ty() {
             PublicApiParameterType::Bool => writeln!(output, "    if (arg_{index} > UINT8_C(1)) return SPX_OWNED_DATA_ADAPTER_FAILURE;"),
-            PublicApiParameterType::BorrowStr => writeln!(output, "    if (arg_{index}_len > UINT64_C(65536) - borrowed || (arg_{index}_len != UINT64_C(0) && arg_{index} == NULL) || !spx_owned_data_utf8_v1(arg_{index}, arg_{index}_len)) return SPX_OWNED_DATA_ADAPTER_FAILURE; borrowed += arg_{index}_len; spx_str_v1 value_{index} = {{ .data = arg_{index}, .len = arg_{index}_len }};"),
-            PublicApiParameterType::BorrowSliceU8 => writeln!(output, "    if (arg_{index}_len > UINT64_C(65536) - borrowed || (arg_{index}_len != UINT64_C(0) && arg_{index} == NULL)) return SPX_OWNED_DATA_ADAPTER_FAILURE; borrowed += arg_{index}_len; spx_slice_u8_v1 value_{index} = {{ .ptr = arg_{index}_len == UINT64_C(0) ? NULL : arg_{index}, .len = arg_{index}_len }};"),
+            PublicApiParameterType::BorrowStr => writeln!(output, "    if (arg_{index}_len > UINT64_C(65536) - borrowed || (arg_{index}_len != UINT64_C(0) && arg_{index} == NULL) || !spx_owned_data_utf8_v1(arg_{index}, arg_{index}_len)) return SPX_OWNED_DATA_ADAPTER_FAILURE;\n    borrowed += arg_{index}_len;\n    spx_str_v1 value_{index} = {{ .data = arg_{index}, .len = arg_{index}_len }};"),
+            PublicApiParameterType::BorrowSliceU8 => writeln!(output, "    if (arg_{index}_len > UINT64_C(65536) - borrowed || (arg_{index}_len != UINT64_C(0) && arg_{index} == NULL)) return SPX_OWNED_DATA_ADAPTER_FAILURE;\n    borrowed += arg_{index}_len;\n    spx_slice_u8_v1 value_{index} = {{ .ptr = arg_{index}_len == UINT64_C(0) ? NULL : arg_{index}, .len = arg_{index}_len }};"),
             PublicApiParameterType::I64 => Ok(()),
         }.unwrap();
     }

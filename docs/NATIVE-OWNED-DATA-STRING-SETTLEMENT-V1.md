@@ -227,9 +227,10 @@ failing filesystem operation has not been established; this is a
 filesystem-dependent validation limit, not evidence of universal filesystem
 support.
 
-The focused Clippy attempt was blocked by an unrelated existing `field_place`
-lint, handled separately by the CI owner. No successful full quality profile
-or hosted run is claimed by this corrective evidence.
+The initial focused Clippy attempt was blocked by an unrelated `field_place`
+lint. After integrating the CI owner's correction, strict compiler-library
+Clippy passes on macOS. No successful full quality profile or hosted run is
+claimed by this corrective evidence.
 
 Existing SDK, Project v8/v9/v10,
 frame-payload, and artifact known answers remain required alongside the new

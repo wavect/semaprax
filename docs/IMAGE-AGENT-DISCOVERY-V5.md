@@ -101,6 +101,12 @@ optional fields become optional properties, `NotRequired`, or omitted `Option`
 fields. Required digests and integer bounds are checked before serialization.
 Calls always include an explicit request ID and end with one LF.
 
+[Typed Response Clients v1](IMAGE-TYPED-RESPONSE-CLIENTS-V1.md) adds concrete
+payload/result aliases and `decode_*_typed` helpers for selected methods. These
+helpers call the existing method-bound decoder first; generic decoders retain
+their signatures. Types derive only from the bundled response documents, while
+explicitly unbundled reports and JSON inside chunk strings remain opaque.
+
 The helpers validate closed outer parameter shapes, enum values, digest format,
 integer and UTF-8 bounds, control characters, and request byte limits. Nested
 constructor objects remain JSON objects and are checked by the compiler; their
@@ -121,7 +127,8 @@ deliberately bounded validator, not a general Draft 2020-12 implementation.
 Decoders match request IDs, protocol/result version, exact envelope fields,
 digest fields, and bundled transport payload shapes. Unbundled results remain
 opaque JSON values after their schema discriminator is checked. Response payload
-values are deliberately not advertised as fully typed semantic reports. Python
+values are not advertised as complete typed semantic reports; additive helpers
+type the already bundled transport payloads. Python
 also rejects duplicate JSON object keys. TypeScript's standard JSON parser and
 Rust's `Value` parser do not preserve duplicate-key lexical evidence; hosts that
 need the compiler codec's lexical guarantees must apply that codec separately.

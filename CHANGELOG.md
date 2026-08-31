@@ -51,6 +51,12 @@
   closed, `LIB` is unchanged, and missing headers still fail before archive or
   package publication.
 
+- Extended inert scalar record-field additions to existing checked sized
+  resource-free records with owned storage beyond flat Bytes. Compiler type
+  facts and full candidate replay govern eligibility; defaults, source profiles,
+  borrowing, matching, imports and publication authority are unchanged.
+  Broader target regressions are authored, unrun.
+
 - Added read-only candidate merge preview through actual merge replay in both
   orders. Reports bind exact parents, directional admission or bounded
   diagnostics, and accepted canonical source equality without retaining or

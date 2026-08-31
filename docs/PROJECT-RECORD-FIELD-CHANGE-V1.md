@@ -43,13 +43,13 @@ identifier and must not already occur on the target record.
 ## Eligibility and identity
 
 The target is an explicit, monomorphic, authored record from retained validated
-HIR. Eligibility uses the compiler's checked type facts for resource-free,
-sized Copy records, including already-admitted scalar and aggregate field
-types. Empty records are allowed. It also admits the existing flat owned-byte
-record profile: a monomorphic record with at least one direct `Bytes` field
-and only direct `Bytes` or the profile's Copy-scalar fields. The selected
-record's identity and complete field shape determine eligibility; display
-names never establish Copy or ownership facts.
+HIR. Eligibility uses the compiler's checked type facts for sized,
+resource-free records, including both Copy records and records with owned
+cleanup. Empty records are allowed. Already-admitted String, Bytes, array and
+nested record/variant storage need not match the flat owned-byte pattern
+profile merely to receive an inert scalar field. The selected record's exact
+dependency closure must still have compiler-derived type facts; display names
+never establish Copy or ownership facts.
 
 For an unused record, eligibility reconstructs only its selected nominal
 dependency closure from the retained checked declarations and compiler prelude.
@@ -58,7 +58,7 @@ the operation does not infer them from function use or duplicate those rules.
 This temporary index is neither retained nor a new source of graph authority.
 
 Generic target records, classes, variant targets, resources, borrowed storage,
-and owned shapes outside that flat-byte profile remain excluded. A newly
+and types without admitted bounded compiler facts remain excluded. A newly
 appended field is always an inert Copy scalar, never another owned field,
 allocation, resource, reference, or implicit ownership transfer. This broadens
 the semantic intention, not the language's aggregate or backend admission.
@@ -95,12 +95,25 @@ wildcard patterns need no new binding. Record updates are not expanded: the
 ordinary compiler copies the new field from the base unless explicitly changed
 by later source, preserving existing update and projection semantics.
 
-For an owned-byte record, explicit `match own` and `match borrow` modes stay
+For an owned record, explicit `match own` and `match borrow` modes stay
 unchanged. Every old droppable field retains its required binding; only the
 new non-droppable scalar receives `_`. The migration never discards an owned
 field or manufactures a second owner. Existing direct field loans retain their
 root and persistent field identities. Full source admission still checks loan
 overlap and last use after migration.
+
+Target eligibility does not extend the language's pattern or borrowing
+profiles. In particular, admitting an existing nested owned record for scalar
+field addition does not admit a new nested owning match, projected loan or
+import. A source that requires an unsupported operation still fails ordinary
+Project verification before a candidate is returned.
+
+The broader target evidence includes migration of checked String-bearing
+constructor bodies outside the selected executable closure. Current aggregate
+String target layout remains unsupported; retaining and changing those source
+bodies does not establish native or Wasm execution of them. Likewise, nested
+or mixed owned-Bytes storage remains subject to the existing `SPX-T268` source
+gate, even if a hypothetical type-fact calculation would be resource-free.
 
 The operation is append-only. It neither reorders old fields nor renames old
 members. It intentionally changes record layout and adds a new field to values;
@@ -123,7 +136,12 @@ merely because the old owned field identities remain unchanged.
 
 After admission, the operation independently reconstructs the field declaration
 and every migration from the prior immutable revision. All canonical candidate
-sources must match this reconstruction exactly. Existing candidate replay binds
+sources must match this reconstruction exactly. It also compares the old
+ordered checked field identities, names and types against the retained prefix
+and confirms that the single added field has its requested identity and scalar
+type. The selected record's Copy, drop, resource and sized flags must remain
+unchanged; its layout is intentionally allowed to change. These checks do not
+copy or reinterpret cleanup vectors. Existing candidate replay binds
 the full change history and canonical evidence. Rebase checks record-shape
 conflicts and new-ID collisions before replaying the migration in the new
 revision; unrelated function display renames can coexist, while concurrent
@@ -158,7 +176,11 @@ flat owned-byte records, initializer order, owning match bindings, live field
 loans and cleanup order, imported aliases, broader checked Copy fields, and
 scalar default ranges.
 
+`tests/project_resource_free_record_evolution_v1.rs` authors broader owned
+target cases and their ordinary source-admission boundaries. These cases are
+unrun; they do not establish new runtime, matching, borrowing or ABI support.
+
 No local tests, compiler checks, or long gates were executed, as requested by the
 user. These cases are not passing completion evidence. General record evolution,
-field removal/reordering, generic and broader owned record migration, arbitrary defaults,
+field removal/reordering, generic record migration, new owning fields, arbitrary defaults,
 public ABI compatibility, and the full graph-operational roadmap remain open.

@@ -9,7 +9,9 @@ use crate::ast::{
     RecordMatchFieldPattern, RecordMatchPatternField, Span, Type, TypeDeclarationKind,
 };
 use crate::diagnostic::Diagnostic;
-use crate::hir::{DeclarationIndex, ResolvedTypeDeclaration, ResolvedTypeDeclarationKind};
+use crate::hir::{
+    DeclarationIndex, ResolvedType, ResolvedTypeDeclaration, ResolvedTypeDeclarationKind, TypeFacts,
+};
 use crate::project::{ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 
 use super::{intent, parse_revision};
@@ -25,6 +27,7 @@ pub(super) struct FieldAddition {
     pub(super) owner: String,
     pub(super) path: String,
     pub(super) module: String,
+    type_flags: (bool, bool, bool, bool),
 }
 
 struct Record<'a> {
@@ -70,7 +73,7 @@ pub(super) fn apply(
     let name = identifier(text(field, "name")?, false)?;
     let (ty, default) = default_literal(field)?;
     let records = type_inventory(revision);
-    admitted_record(target, &records)?;
+    let facts = admitted_record(target, &records)?;
     let record = records
         .get(target)
         .ok_or_else(|| invalid("target record is absent"))?;
@@ -144,6 +147,7 @@ pub(super) fn apply(
         owner: target.to_owned(),
         path: record.path.to_owned(),
         module: record.module.to_owned(),
+        type_flags: type_flags(&facts),
     };
     let mut nodes = 0;
     let mut additions = 0;
@@ -230,7 +234,7 @@ pub(super) fn validate(
     request: &Value,
 ) -> Result<()> {
     let mut expected = parse_revision(before)?;
-    let _ = apply(before, &mut expected, request)?;
+    let (_, addition) = apply(before, &mut expected, request)?;
     if expected.len() != after.sources().len() {
         return Err(invalid(
             "record field migration changed the source inventory",
@@ -250,7 +254,86 @@ pub(super) fn validate(
             ));
         }
     }
+    validate_checked_fields(before, after, request, &addition)
+}
+
+fn validate_checked_fields(
+    before: &ProjectRevision,
+    after: &ProjectRevision,
+    request: &Value,
+    addition: &FieldAddition,
+) -> Result<()> {
+    let old_records = type_inventory(before);
+    let new_records = type_inventory(after);
+    let old = old_records
+        .get(&addition.owner)
+        .ok_or_else(|| invalid("original record has no retained checked declaration"))?;
+    let new = new_records
+        .get(&addition.owner)
+        .ok_or_else(|| invalid("evolved record has no retained checked declaration"))?;
+    let (
+        ResolvedTypeDeclarationKind::Record { fields: old_fields },
+        ResolvedTypeDeclarationKind::Record { fields: new_fields },
+    ) = (&old.declaration.kind, &new.declaration.kind)
+    else {
+        return Err(invalid(
+            "record field migration changed its checked owner kind",
+        ));
+    };
+    if new.path != old.path
+        || new.module != old.module
+        || new.declaration.name != old.declaration.name
+        || new_fields.len() != old_fields.len() + 1
+        || !old_fields.iter().zip(new_fields).all(|(old, new)| {
+            old.id == new.id && old.name == new.name && old.index == new.index && old.ty == new.ty
+        })
+    {
+        return Err(invalid(
+            "record migration changed existing checked fields or their order",
+        ));
+    }
+    let field = new_fields
+        .last()
+        .ok_or_else(|| invalid("evolved record lacks its appended checked field"))?;
+    let ty = match text(&request["field"], "type")? {
+        "i64" => ResolvedType::I64,
+        "bool" => ResolvedType::Bool,
+        "i32" => ResolvedType::I32,
+        "u8" => ResolvedType::U8,
+        "usize" => ResolvedType::Usize,
+        _ => {
+            return Err(invalid(
+                "appended checked field must retain its scalar type",
+            ))
+        }
+    };
+    if field.id.as_str() != addition.id
+        || field.name != addition.name
+        || field.index as usize != old_fields.len()
+        || field.ty != ty
+    {
+        return Err(invalid(
+            "appended checked field differs from its authenticated request",
+        ));
+    }
+    let facts = admitted_record(&addition.owner, &new_records)?;
+    if type_flags(&facts) != addition.type_flags {
+        return Err(invalid(
+            "inert scalar addition changed checked ownership or resource flags",
+        ));
+    }
+    // Layout intentionally changes. Cleanup plans are independently rebuilt by
+    // admission; neither their order nor byte equality is inferred here.
     Ok(())
+}
+
+fn type_flags(facts: &TypeFacts) -> (bool, bool, bool, bool) {
+    (
+        facts.copy,
+        facts.needs_drop,
+        facts.contains_resource,
+        facts.sized,
+    )
 }
 
 fn type_inventory(revision: &ProjectRevision) -> BTreeMap<String, Record<'_>> {
@@ -273,7 +356,7 @@ fn type_inventory(revision: &ProjectRevision) -> BTreeMap<String, Record<'_>> {
         .collect()
 }
 
-fn admitted_record(id: &str, records: &BTreeMap<String, Record<'_>>) -> Result<()> {
+fn admitted_record(id: &str, records: &BTreeMap<String, Record<'_>>) -> Result<TypeFacts> {
     let record = records
         .get(id)
         .ok_or_else(|| invalid("record type is not an authored retained declaration"))?;
@@ -295,17 +378,11 @@ fn admitted_record(id: &str, records: &BTreeMap<String, Record<'_>>) -> Result<(
         DeclarationIndex::record_evolution_type_facts(&record.declaration.id, &declarations)
             .map_err(|diagnostic| vec![diagnostic])?
             .ok_or_else(|| invalid("record has no admitted bounded checked TypeFacts"))?;
-    if facts.sized
-        && !facts.contains_resource
-        && ((facts.copy && !facts.needs_drop)
-            || (!facts.copy
-                && facts.needs_drop
-                && crate::hir::admitted_flat_owned_byte_record_declaration(record.declaration)))
-    {
-        Ok(())
+    if facts.sized && !facts.contains_resource {
+        Ok(facts)
     } else {
         Err(invalid(
-            "record field change requires resource-free Copy or flat owned-Bytes fields",
+            "record field change requires a checked sized resource-free record",
         ))
     }
 }

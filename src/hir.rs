@@ -96,7 +96,6 @@ pub(crate) use inspection::{
 };
 
 pub(crate) use type_reachability::reachable_authored_types;
-pub(crate) use validation::admitted_flat_owned_byte_record_declaration;
 pub(crate) use validation::validate_core;
 #[cfg(test)]
 use validation::HirValidator;

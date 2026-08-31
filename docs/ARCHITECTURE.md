@@ -976,8 +976,9 @@ constructors and exact patterns using retained type identities and the owning
 compiler type facts. `hir/record_evolution.rs` reconstructs only the bounded
 selected declaration closure, including unused records, for the existing HIR
 TypeFacts owner; it retains no additional whole-project index.
-The operation admits checked Copy records and existing flat owned-byte
-records while appending only inert non-droppable fields; owning match bindings,
+The operation admits existing checked sized resource-free records while
+appending only inert non-droppable fields. Post-admission checks bind the old
+field prefix and preserve the record's checked ownership flags; owning match bindings,
 loan roots and cleanup order remain under normal source replay. Both reconstruct
 the expected canonical source independently after admission; identity guards
 permit only the planned function location or new record member. Rebase compares

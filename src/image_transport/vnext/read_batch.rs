@@ -146,6 +146,9 @@ impl VNextSession {
                             Operation::VNext(Action::Dependencies) => {
                                 dependencies::prepare(params, image)
                             }
+                            Operation::VNext(Action::AnalysisCoverage) => {
+                                analysis_coverage::prepare(params, image)
+                            }
                             Operation::VNext(Action::CleanupDependencies) => {
                                 cleanup_dependencies::prepare(params, image)
                             }
@@ -196,6 +199,7 @@ fn parallel_read(operation: Operation) -> bool {
             | Operation::FunctionSummary
             | Operation::Facet
             | Operation::VNext(Action::Dependencies)
+            | Operation::VNext(Action::AnalysisCoverage)
             | Operation::VNext(Action::CleanupDependencies)
             | Operation::VNext(Action::DependencySummary | Action::DependencyPage)
     )

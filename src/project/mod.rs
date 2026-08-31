@@ -12,6 +12,7 @@ mod candidate;
 mod execution;
 mod flat_owned_record;
 mod image;
+mod image_coverage;
 mod image_dependencies;
 mod image_facets;
 mod image_protocols;
@@ -130,6 +131,7 @@ pub use image::{
     ProjectSemanticImage, MAX_SEMANTIC_IMAGE_BYTES, PROJECT_SEMANTIC_IMAGE_COMPATIBILITY,
     PROJECT_SEMANTIC_IMAGE_SCHEMA, PROJECT_SEMANTIC_IMAGE_SYMBOL_SCHEMA,
 };
+pub use image_coverage::{IMAGE_ANALYSIS_COVERAGE_SCHEMA, MAX_IMAGE_ANALYSIS_COVERAGE_BYTES};
 pub use image_dependencies::{
     ImageDependencyPageOptions, ImageDependencyView, IMAGE_CLEANUP_DEPENDENCIES_SCHEMA,
     IMAGE_CLEANUP_DEPENDENCIES_VERIFICATION_SCHEMA, IMAGE_DECLARATION_DEPENDENCIES_SCHEMA,

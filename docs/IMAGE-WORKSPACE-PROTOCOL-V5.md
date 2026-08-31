@@ -57,6 +57,12 @@ It shares the immutable image index with candidate deltas and the host parallel
 read path; no candidate grant or publication authority is needed or acquired.
 See [Declaration Dependencies](SEMANTIC-IMAGE-DEPENDENCIES-V1.md).
 
+`image/analysis-coverage` is another default exact-image semantic read. It
+reports retained source facts alongside explicit uninspected deployment,
+generated-file, external-API, runtime and consumer boundaries. It accepts no
+external paths or execution authority; missing imports never prove missing
+external dependencies. See [Analysis Coverage](SEMANTIC-IMAGE-ANALYSIS-COVERAGE-V1.md).
+
 Agents can instead request `image/dependency-summary` and expand selected
 `image/dependency-page` handles. These structured read-only methods expose
 counts and bounded sites/callers/calls/members pages without transferring the

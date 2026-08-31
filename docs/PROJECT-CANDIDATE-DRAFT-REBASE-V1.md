@@ -35,9 +35,9 @@ rebuilt source, not assumed to exist in the original base.
 ## Pending region conflicts and remapping
 
 The compiler shares candidate rebase's source-derived function fingerprints,
-including stable-ID call normalization and checked nominal signature facts.
-Function display renames and authenticated callee display renames do not by
-themselves create body conflicts.
+including stable-ID call normalization, authenticated nominal/member occurrence
+normalization and checked nominal signature facts. Function, callee and proven
+nominal/member display renames do not by themselves create region conflicts.
 
 | Pending kind | Concurrent owner changes that reject |
 | --- | --- |
@@ -62,6 +62,10 @@ contribute their actual checked nominal type identities, including inferred
 intermediates. Their existing owner descriptors must agree, including ordered
 member identities and types. This does not introduce a transitive nominal-type
 equivalence proof or silently broaden constructor admission.
+Known owner, case and field display names are excluded from these descriptor
+comparisons; IDs, ancestry, types, order, generic parameter names and provenance
+remain exact. The shared guard also applies during draft merge. A same-type
+sibling-field substitution is a semantic change, not a display rename.
 
 For expression and contract holes, existing source-join helpers derive the old
 AST position from the actual HIR identity and locate the new unique HIR origin.

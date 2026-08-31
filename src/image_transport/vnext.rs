@@ -4,6 +4,7 @@ use crate::project::{CandidateTestPolicy, ProjectFrontendCache};
 use crate::project_transport::codec::RequestId;
 use std::path::PathBuf;
 
+mod analysis_coverage;
 mod cleanup_dependencies;
 mod commit;
 mod contract_holes;
@@ -94,6 +95,7 @@ pub(super) enum Action {
     DraftRebase,
     DraftMerge,
     Dependencies,
+    AnalysisCoverage,
     CleanupDependencies,
     CandidateCleanupDependencies,
     DependencySummary,
@@ -415,6 +417,10 @@ impl VNextSession {
                     dependencies::prepare(params, image)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(Action::AnalysisCoverage) => (
+                    analysis_coverage::prepare(params, image)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(Action::CleanupDependencies) => (
                     cleanup_dependencies::prepare(params, image)?,
                     candidates::Mutation::None,
@@ -637,6 +643,7 @@ fn methods(policy: &VNextPolicy, commit_enabled: bool) -> Vec<&'static Method> {
     methods.push(&REFRESH);
     methods.push(&REFRESH_PREVIEW);
     methods.push(dependencies::method());
+    methods.push(analysis_coverage::method());
     methods.push(cleanup_dependencies::method());
     methods.extend(dependencies::navigation_methods());
     methods.extend(projections::methods(policy.build_enabled));

@@ -43,6 +43,9 @@ tests = ["fields.tests"]
 @id("fields.other") record Other { @id("fields.other.left") left:Bytes, }
 @id("fields.metric") record Metric { @id("fields.metric.value") value:i64, }
 @id("fields.other-metric") record OtherMetric { @id("fields.other-metric.value") value:i64, }
+@id("fields.pair") record Pair { @id("fields.pair.left") left:i64, @id("fields.pair.right") right:i64, }
+@id("fields.probe") record Probe { @id("fields.probe.value") value:i64, }
+@id("fields.other-probe") record OtherProbe { @id("fields.other-probe.value") value:i64, }
 @id("fields.box") record Box<T> { @id("fields.box.value") value:T, }
 @id("fields.consume") fn consume(bytes:own Bytes)->i64 {7}
 @id("fields.take") fn take(packet:own Packet)->i64 {7}
@@ -53,6 +56,12 @@ tests = ["fields.tests"]
 @id("fields.wrong") fn wrong(packet:own Other)->usize {0usize}
 @id("fields.read") fn read(metric:Metric)->i64 {metric.value}
 @id("fields.read-caller") fn read_caller()->i64 {read(Metric {value:42})}
+@id("fields.pair-read") fn pair_read(pair:Pair)->i64 {pair.left - pair.right}
+@id("fields.owner-read") fn owner_read(metric:Metric,other:OtherMetric)->i64 {metric.value}
+@id("fields.constrained") fn constrained(pair:Pair)->i64 requires pair.left >= 0 requires pair.right >= 0 ensures result == pair.left {pair.left}
+@id("fields.probe-read") fn probe_read(p:Probe)->bool {p.value == p.value}
+@id("fields.make-probe") fn make_probe()->Probe {Probe {value:0}}
+@id("fields.inferred-probe") fn inferred_probe()->bool {let p=make_probe(); p.value == p.value}
 @id("fields.wrong-metric") fn wrong_metric(metric:OtherMetric)->i64 {metric.value}
 @id("fields.make-other-metric") fn make_other_metric(value:i64)->OtherMetric {OtherMetric {value:value}}
 @id("fields.read-box") fn read_box(boxed:Box<i64>)->i64 {boxed.value}
@@ -202,6 +211,28 @@ fn selected(candidate: &ProjectCandidate, target: &str, snippet: &str) -> (Strin
         rows[0]["expression_id"].as_str().unwrap().to_owned(),
         rows[0].clone(),
     )
+}
+
+fn selected_contract(candidate: &ProjectCandidate, target: &str, snippet: &str) -> String {
+    let catalog: Value =
+        serde_json::from_str(&candidate.contract_expression_catalog(target).unwrap()).unwrap();
+    let text = source(candidate, catalog["source"]["path"].as_str().unwrap());
+    let selected = catalog["expressions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| {
+            let span = &row["source_span"];
+            row["phase"] == "ensures"
+                && row["replaceable"] == true
+                && text.get(
+                    span["start"].as_u64().unwrap() as usize
+                        ..span["end"].as_u64().unwrap() as usize,
+                ) == Some(snippet)
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(selected.len(), 1);
+    selected[0]["expression_id"].as_str().unwrap().to_owned()
 }
 
 fn projected_body() -> Value {
@@ -556,15 +587,35 @@ fn direct_field_rebase_tracks_display_renames_but_rejects_a_reidentified_member(
         json!({"kind":"rename_declaration","target":"fields.packet.left","name":"payload"}),
     )
     .unwrap();
-    // Renaming a field used in the original body still trips the source-body guard.
-    code(
-        candidate.rebase(
+    // Authenticated occurrences normalize the field used in the original body,
+    // while replay still emits its new source spelling.
+    let existing = candidate
+        .rebase(
             candidate.candidate_digest(),
             Arc::clone(renamed.revision()),
             renamed.revision().project_revision(),
-        ),
-        "SPX-G235",
+        )
+        .unwrap();
+    assert!(source(existing.candidate(), "src/core.spx").contains("bytes_as_slice(packet.payload)"));
+    let classifications: Value = serde_json::from_str(existing.to_json()).unwrap();
+    assert_eq!(
+        classifications["classifications"][0]["concurrent_body_change"],
+        false
     );
+    replay(existing.candidate());
+    assert!(!source(existing.candidate(), "src/core.spx").contains("spx_rebase_ref_"));
+    let merged = candidate
+        .merge(
+            candidate.candidate_digest(),
+            &renamed,
+            renamed.candidate_digest(),
+        )
+        .unwrap();
+    assert_eq!(
+        source(merged.candidate(), "src/core.spx"),
+        source(existing.candidate(), "src/core.spx")
+    );
+    replay(merged.candidate());
     // The pending function has no original field use: only the new constructor
     // dependency must survive the field's display-name change.
     let rebased = pending
@@ -742,5 +793,281 @@ fn computed_signature_field_defaults_use_original_nominal_parameters_and_staged_
     assert_eq!(args[0].kind, ExprKind::Var(original.clone()));
     assert_eq!(args[1].kind, ExprKind::Var(computed.clone()));
     replay(&changed);
+    assert_eq!(fixture.bytes(), disk);
+}
+
+#[test]
+fn authenticated_field_fingerprints_preserve_real_body_edits_owner_ids_and_operand_order() {
+    for (target, replacement_body, changed_identity) in [
+        ("fields.pair-read", Some("{pair.left + pair.right}"), None),
+        ("fields.pair-read", Some("{pair.right - pair.left}"), None),
+        ("fields.pair-read", Some("{pair.left - pair.left}"), None),
+        ("fields.owner-read", Some("{other.value}"), None),
+        ("fields.read", None, Some("fields.metric.value")),
+        ("fields.pair-read", None, Some("fields.pair.right")),
+    ] {
+        let fixture = Fixture::new();
+        let base = fixture.candidate();
+        // No field constructor dependency: the original-body fingerprint itself
+        // must distinguish these checked occurrences and ordered operations.
+        let candidate = body(&base, target, json!({"kind":"i64","value":7})).unwrap();
+        let before = candidate.to_json().to_owned();
+        let mut changed = source(&base, "src/core.spx").to_owned();
+        if let Some(replacement) = replacement_body {
+            let parsed = semaprax::parse(&changed, "src/core.spx").unwrap();
+            let function = parsed
+                .functions
+                .iter()
+                .find(|f| f.stable_id == target)
+                .unwrap();
+            changed.replace_range(
+                function.body.span.start..function.body.span.end,
+                replacement,
+            );
+        }
+        if let Some(identity) = changed_identity {
+            let old = format!("@id(\"{identity}\")");
+            assert_eq!(changed.matches(&old).count(), 1);
+            changed = changed.replace(&old, &format!("@id(\"{identity}.changed\")"));
+        }
+        assert_ne!(changed, source(&base, "src/core.spx"));
+        fixture.write("src/core.spx", &changed);
+        let incoming = fixture.candidate();
+        let incoming_before = incoming.to_json().to_owned();
+        let disk = fixture.bytes();
+        code(
+            candidate.rebase(
+                candidate.candidate_digest(),
+                Arc::clone(incoming.revision()),
+                incoming.revision().project_revision(),
+            ),
+            "SPX-G235",
+        );
+        assert_eq!(candidate.to_json(), before);
+        assert_eq!(incoming.to_json(), incoming_before);
+        assert_eq!(fixture.bytes(), disk);
+    }
+}
+
+#[test]
+fn authenticated_field_contract_fingerprints_preserve_predicates_siblings_and_clause_order() {
+    for edit in ["predicate", "sibling", "order", "identity"] {
+        let fixture = Fixture::new();
+        let base = fixture.candidate();
+        let original_source = source(&base, "src/core.spx");
+        let expression = selected_contract(&base, "fields.constrained", "result == pair.left");
+        let candidate = apply(&base, json!({"kind":"replace_contract_expression","target":"fields.constrained","expression_id":expression,"replacement":{"kind":"bool","value":true}})).unwrap();
+        let before = candidate.to_json().to_owned();
+        let changed = match edit {
+            "predicate" => original_source
+                .replace("ensures result == pair.left", "ensures result >= pair.left"),
+            "sibling" => original_source.replace(
+                "ensures result == pair.left",
+                "ensures result == pair.right",
+            ),
+            "identity" => original_source.replace(
+                "@id(\"fields.pair.left\")",
+                "@id(\"fields.pair.reidentified\")",
+            ),
+            "order" => {
+                let mut program = semaprax::parse(original_source, "src/core.spx").unwrap();
+                let function = program
+                    .functions
+                    .iter_mut()
+                    .find(|f| f.stable_id == "fields.constrained")
+                    .unwrap();
+                assert_eq!(function.requires.len(), 2);
+                function.requires.swap(0, 1);
+                semaprax::format::canonical(&program)
+            }
+            _ => unreachable!(),
+        };
+        assert_ne!(changed, original_source);
+        fixture.write("src/core.spx", &changed);
+        let incoming = fixture.candidate();
+        let incoming_before = incoming.to_json().to_owned();
+        let disk = fixture.bytes();
+        code(
+            candidate.rebase(
+                candidate.candidate_digest(),
+                Arc::clone(incoming.revision()),
+                incoming.revision().project_revision(),
+            ),
+            "SPX-G235",
+        );
+        assert_eq!(candidate.to_json(), before);
+        assert_eq!(incoming.to_json(), incoming_before);
+        assert_eq!(fixture.bytes(), disk);
+    }
+}
+
+#[test]
+fn authenticated_contract_occurrences_rebase_across_field_and_nominal_display_names() {
+    for (target, name) in [
+        ("fields.pair.left", "first"),
+        ("fields.pair", "RenamedPair"),
+    ] {
+        let fixture = Fixture::new();
+        let disk = fixture.bytes();
+        let base = fixture.candidate();
+        let expression = selected_contract(&base, "fields.constrained", "result == pair.left");
+        let candidate = apply(&base, json!({"kind":"replace_contract_expression","target":"fields.constrained","expression_id":expression,"replacement":{"kind":"bool","value":true}})).unwrap();
+        let before = candidate.to_json().to_owned();
+        let renamed = apply(
+            &base,
+            json!({"kind":"rename_declaration","target":target,"name":name}),
+        )
+        .unwrap();
+        let rebased = candidate
+            .rebase(
+                candidate.candidate_digest(),
+                Arc::clone(renamed.revision()),
+                renamed.revision().project_revision(),
+            )
+            .unwrap();
+        let report: Value = serde_json::from_str(rebased.to_json()).unwrap();
+        assert_eq!(report["classifications"].as_array().unwrap().len(), 1);
+        let classification = &report["classifications"][0];
+        assert_eq!(classification["concurrent_signature_change"], false);
+        assert_eq!(classification["concurrent_body_change"], false);
+        assert_eq!(classification["concurrent_contract_change"], false);
+        let text = source(rebased.candidate(), "src/core.spx");
+        assert!(text.contains("ensures true"));
+        if target == "fields.pair.left" {
+            assert!(text.contains("requires pair.first >= 0"));
+        } else {
+            assert!(text.contains("fn constrained(pair: RenamedPair)"));
+        }
+        assert!(!text.contains("spx_rebase_ref_"));
+        replay(rebased.candidate());
+        assert_eq!(candidate.to_json(), before);
+        assert_eq!(fixture.bytes(), disk);
+    }
+}
+
+#[test]
+fn identical_field_ids_and_body_spelling_cannot_hide_changed_type_or_owner() {
+    for edit in ["type", "owner"] {
+        let fixture = Fixture::new();
+        let base = fixture.candidate();
+        let target = if edit == "type" {
+            "fields.probe-read"
+        } else {
+            "fields.inferred-probe"
+        };
+        let candidate = body(&base, target, json!({"kind":"bool","value":true})).unwrap();
+        let before = candidate.to_json().to_owned();
+        let original = source(&base, "src/core.spx");
+        let parsed = semaprax::parse(original, "src/core.spx").unwrap();
+        let original_body = parsed
+            .functions
+            .iter()
+            .find(|f| f.stable_id == target)
+            .unwrap()
+            .body
+            .clone();
+        let mut changed_program = parsed.clone();
+        if edit == "type" {
+            let probe = changed_program
+                .types
+                .iter_mut()
+                .find(|ty| ty.stable_id == "fields.probe")
+                .unwrap();
+            let semaprax::ast::TypeDeclarationKind::Record { fields } = &mut probe.kind else {
+                panic!("missing probe record")
+            };
+            assert_eq!(fields[0].stable_id, "fields.probe.value");
+            fields[0].ty = semaprax::ast::Type::Bool;
+            // Keep the unused constructor source-valid; the selected function's
+            // signature, body text and selected field identity remain unchanged.
+            let make = changed_program
+                .functions
+                .iter_mut()
+                .find(|f| f.stable_id == "fields.make-probe")
+                .unwrap();
+            let semaprax::ast::ExprKind::Block { tail, .. } = &mut make.body.kind else {
+                panic!("missing constructor body")
+            };
+            let semaprax::ast::ExprKind::ConstructRecord { fields, .. } = &mut tail.kind else {
+                panic!("missing probe constructor")
+            };
+            fields[0].value.kind = semaprax::ast::ExprKind::Bool(false);
+        } else {
+            for declaration in &mut changed_program.types {
+                let replacement = match declaration.stable_id.as_str() {
+                    "fields.probe" => "fields.other-probe.value",
+                    "fields.other-probe" => "fields.probe.value",
+                    _ => continue,
+                };
+                let semaprax::ast::TypeDeclarationKind::Record { fields } = &mut declaration.kind
+                else {
+                    panic!("missing probe record")
+                };
+                fields[0].stable_id = replacement.to_owned();
+            }
+            let make = changed_program
+                .functions
+                .iter_mut()
+                .find(|f| f.stable_id == "fields.make-probe")
+                .unwrap();
+            make.return_type = semaprax::ast::Type::Named {
+                name: "OtherProbe".into(),
+                arguments: vec![],
+            };
+            let semaprax::ast::ExprKind::Block { tail, .. } = &mut make.body.kind else {
+                panic!("missing constructor body")
+            };
+            let semaprax::ast::ExprKind::ConstructRecord { type_name, .. } = &mut tail.kind else {
+                panic!("missing probe constructor")
+            };
+            *type_name = "OtherProbe".to_owned();
+        }
+        assert_eq!(
+            changed_program
+                .functions
+                .iter()
+                .find(|f| f.stable_id == target)
+                .unwrap()
+                .body,
+            original_body
+        );
+        fixture.write(
+            "src/core.spx",
+            &semaprax::format::canonical(&changed_program),
+        );
+        let incoming = fixture.candidate();
+        let disk = fixture.bytes();
+        code(
+            candidate.rebase(
+                candidate.candidate_digest(),
+                Arc::clone(incoming.revision()),
+                incoming.revision().project_revision(),
+            ),
+            "SPX-G235",
+        );
+        assert_eq!(candidate.to_json(), before);
+        assert_eq!(fixture.bytes(), disk);
+    }
+}
+
+#[test]
+fn authored_identifiers_cannot_impersonate_private_rebase_markers() {
+    let fixture = Fixture::new();
+    let base = fixture.candidate();
+    let candidate = body(&base, "fields.read", json!({"kind":"i64","value":7})).unwrap();
+    let before = candidate.to_json().to_owned();
+    let changed = format!("{}\n@id(\"fields.marker\") fn marker(spx_rebase_ref_user:i64)->i64 {{spx_rebase_ref_user}}\n", source(&base, "src/core.spx"));
+    fixture.write("src/core.spx", &changed);
+    let incoming = fixture.candidate();
+    let disk = fixture.bytes();
+    code(
+        candidate.rebase(
+            candidate.candidate_digest(),
+            Arc::clone(incoming.revision()),
+            incoming.revision().project_revision(),
+        ),
+        "SPX-G235",
+    );
+    assert_eq!(candidate.to_json(), before);
     assert_eq!(fixture.bytes(), disk);
 }

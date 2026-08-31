@@ -611,6 +611,14 @@ and input relationships do not imply runtime coverage or external consumer use.
 and returns bounded report chunks; it does not publish filesystem artifacts,
 install packages, invoke a native toolchain or execute generated code.
 
+`project/image_coverage.rs` inventories exact retained source/manifest bindings
+and interface-import declarations, and explicitly reports deployment,
+generated provenance, external behavior, runtime and consumer analysis gaps.
+The v5 `image/analysis-coverage` read shares ordinary source authentication and
+the detached parallel read path. It neither scans external inputs nor mistakes
+missing edges for absent external systems. See
+[Analysis Coverage](SEMANTIC-IMAGE-ANALYSIS-COVERAGE-V1.md).
+
 The v5 discovery catalogue generates its granted methods, schemas, instructions
 and typed client helpers together. Opaque nested payload references remain
 explicitly incomplete; a generated bundle is not a complete executable response
@@ -776,6 +784,15 @@ selection, binds nominal signatures to retained checked type identities, and
 replays supported intentions over an admitted base. Same-root
 merge retains both histories and the original source-diff base. These APIs
 produce candidates and ancestry reports, never source publication authority.
+
+`candidate/rebase_normalize.rs` borrows the existing Operations AST/HIR
+occurrence collector through a private Project view. It derives bounded,
+collision-checked identity markers for nominal and member references in
+comparison-only source copies, retaining checked owner shapes and ancestry.
+Canonical formatting of those parse-only copies removes display-name noise
+without changing binders, expression order or actual source. Candidate and
+draft dependency comparisons normalize only known descriptor display fields;
+ordinary source replay and publication boundaries remain unchanged.
 
 The additive contract-expression route in `candidate/expression.rs` reuses exact
 HIR/AST joins for existing pre/postcondition subtrees while leaving body-only

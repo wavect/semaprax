@@ -29,6 +29,12 @@ request builders. Its heterogeneous source-HIR report is explicitly listed as
 unbundled, so the wrapper schema does not claim to validate every relationship
 interior. See [Declaration Dependencies](SEMANTIC-IMAGE-DEPENDENCIES-V1.md).
 
+Read-only `image/analysis-coverage` adds a fully closed report schema with exact
+source bindings, declared interface imports, and explicit known/partial/
+not-inspected areas. Discovery and typed clients expose the same query without
+adding a host grant. Unknown external behavior must not be treated as safe,
+absent, or verified. See [Analysis Coverage](SEMANTIC-IMAGE-ANALYSIS-COVERAGE-V1.md).
+
 Compact `image/dependency-summary` and `image/dependency-page` methods add
 structured summary/page wrappers and typed view/reference/page-option requests.
 The heterogeneous dependency-item schema remains explicitly unbundled. These

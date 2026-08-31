@@ -305,8 +305,10 @@ current rebased revision. A missing target or changed member identity/order/type
 rejects with `SPX-G235`, even when the intention's function target has only a
 scalar signature. Generic parameter inventories, including phantom parameters,
 and compiler-prelude provenance are included in dependency fingerprints.
-Descriptor names and source location can also produce
-conservative conflicts. This is not general structural compatibility or a
+The additive rebase normal form excludes known descriptor display names while
+retaining identities, ordered shapes and generic parameter names. Source
+location and other provenance can still produce conservative conflicts.
+This is not general structural compatibility or a
 transitive behavioral equivalence proof. Surviving intentions still undergo
 complete candidate source admission.
 

@@ -12,6 +12,18 @@ use std::sync::Arc;
 pub const PROJECT_CANDIDATE_REBASE_SCHEMA: &str = "semaprax.project-candidate-rebase.v1";
 const MAX_REPORT_BYTES: usize = 1024 * 1024;
 const MAX_FINGERPRINT_BYTES: usize = 16 * 1024 * 1024;
+#[path = "rebase_normalize.rs"]
+mod normalize;
+pub(super) fn normalize_nominal_descriptor(value: &mut Value) {
+    normalize::descriptor(value);
+}
+
+fn normalized_descriptor(mut value: Option<Value>) -> Option<Value> {
+    if let Some(value) = &mut value {
+        normalize_nominal_descriptor(value);
+    }
+    value
+}
 
 /// Fully revalidated candidate with a bound ancestry report; no source authority.
 pub struct ProjectCandidateRebase {
@@ -214,8 +226,14 @@ fn apply_rebound(
         }
     }
     for target in constructor_intent_targets(&change.intent, &["record", "variant", "update"]) {
-        let before = intent::aggregate_dependency_fingerprint(original_revision, &target)?;
-        let after = intent::aggregate_dependency_fingerprint(candidate.revision(), &target)?;
+        let before = normalized_descriptor(intent::aggregate_dependency_fingerprint(
+            original_revision,
+            &target,
+        )?);
+        let after = normalized_descriptor(intent::aggregate_dependency_fingerprint(
+            candidate.revision(),
+            &target,
+        )?);
         if before.is_none() || before != after {
             return Err(conflict(
                 "candidate aggregate target or checked field shape changed concurrently",
@@ -223,10 +241,14 @@ fn apply_rebound(
         }
     }
     for target in constructor_intent_targets(&change.intent, &["project"]) {
-        let before =
-            intent::aggregate_projection_dependency_fingerprint(original_revision, &target)?;
-        let after =
-            intent::aggregate_projection_dependency_fingerprint(candidate.revision(), &target)?;
+        let before = normalized_descriptor(intent::aggregate_projection_dependency_fingerprint(
+            original_revision,
+            &target,
+        )?);
+        let after = normalized_descriptor(intent::aggregate_projection_dependency_fingerprint(
+            candidate.revision(),
+            &target,
+        )?);
         if before.is_none() || before != after {
             return Err(conflict(
                 "candidate field projection target or checked owner shape changed concurrently",
@@ -234,8 +256,14 @@ fn apply_rebound(
         }
     }
     for target in constructor_intent_targets(&change.intent, &["field_place"]) {
-        let before = intent::field_place_dependency_fingerprint(original_revision, &target)?;
-        let after = intent::field_place_dependency_fingerprint(candidate.revision(), &target)?;
+        let before = normalized_descriptor(intent::field_place_dependency_fingerprint(
+            original_revision,
+            &target,
+        )?);
+        let after = normalized_descriptor(intent::field_place_dependency_fingerprint(
+            candidate.revision(),
+            &target,
+        )?);
         if before.is_none() || before != after {
             return Err(conflict(
                 "candidate field place target or checked nominal owner shape changed concurrently",
@@ -243,8 +271,14 @@ fn apply_rebound(
         }
     }
     for target in constructor_intent_targets(&change.intent, &["match"]) {
-        let before = intent::aggregate_match_dependency_fingerprint(original_revision, &target)?;
-        let after = intent::aggregate_match_dependency_fingerprint(candidate.revision(), &target)?;
+        let before = normalized_descriptor(intent::aggregate_match_dependency_fingerprint(
+            original_revision,
+            &target,
+        )?);
+        let after = normalized_descriptor(intent::aggregate_match_dependency_fingerprint(
+            candidate.revision(),
+            &target,
+        )?);
         if before.is_none() || before != after {
             return Err(conflict(
                 "candidate match target or checked case inventory changed concurrently",
@@ -252,8 +286,14 @@ fn apply_rebound(
         }
     }
     for target in constructor_intent_targets(&change.intent, &["nominal"]) {
-        let before = intent::nominal_type_dependency_fingerprint(original_revision, &target)?;
-        let after = intent::nominal_type_dependency_fingerprint(candidate.revision(), &target)?;
+        let before = normalized_descriptor(intent::nominal_type_dependency_fingerprint(
+            original_revision,
+            &target,
+        )?);
+        let after = normalized_descriptor(intent::nominal_type_dependency_fingerprint(
+            candidate.revision(),
+            &target,
+        )?);
         if before.is_none() || before != after {
             return Err(conflict(
                 "candidate nominal declaration type or checked member inventory changed concurrently",
@@ -368,7 +408,7 @@ fn unchanged_builtin(
 fn fingerprints(
     revision: &ProjectRevision,
 ) -> Result<BTreeMap<String, Fingerprint>, Vec<Diagnostic>> {
-    let mut programs = parse_revision(revision)?;
+    let mut programs = normalize::programs(revision, parse_revision(revision)?)?;
     let mut result = BTreeMap::new();
     let mut nodes = 0usize;
     for program in &mut programs {

@@ -9,6 +9,7 @@ const RELEASE_BLOCKERS: &[&str] = &[
     "project-v1",
     "native-rust-sdk-v1",
     "verify",
+    "verify-tests",
     "desktop-native-product",
     "ios-static-cross-check",
     "ios-swift-app-cross-check",

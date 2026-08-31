@@ -3538,7 +3538,7 @@ pub fn prepare_c_compile_invocation(
 ) -> Result<PreparedCCompileInvocation, Error> {
     normal_name(input)?;
     if sanitizers
-        || !matches!(optimization, 0 | 1 | 2)
+        || !matches!(optimization, 0..=2)
         || target.is_empty()
         || !target
             .bytes()
@@ -4211,7 +4211,7 @@ pub fn compile_c_to_stdout(
     maximum: usize,
 ) -> Result<Vec<u8>, Error> {
     normal_name(input)?;
-    if sanitizers || !matches!(optimization, 0 | 1 | 2) {
+    if sanitizers || !matches!(optimization, 0..=2) {
         return Err(Error::Invalid);
     }
     let arguments = vec![

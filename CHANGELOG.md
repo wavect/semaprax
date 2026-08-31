@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added shared-source mixed v8 parameter-boundary regressions: all arities
+  zero through eight, exact ninth-parameter rejection, native O0/O2 and generated
+  npm/Rust consumers with independent argument literals and recovery controls.
+  Descriptor and published-package bindings remain explicit. These fixtures are
+  authored and unrun; no production, schema, artifact or promotion change is made.
+
 - Added production creation of sealed executable doctor images from explicit
   native ELF bytes, sharing bounded writes and one-shot failure cleanup with
   non-executable input creation. Added authored, unrun factory regressions and

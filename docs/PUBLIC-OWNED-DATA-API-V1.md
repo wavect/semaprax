@@ -781,6 +781,55 @@ Both gates remain authored and unrun. They add no production ABI, schema,
 artifact or completion-status change and do not replace sanitizer or exact-head
 hosted evidence.
 
+### Authored mixed-parameter arity gates
+
+`tests/support/owned_mixed_arity_product.rs` supplies one canonical v8 Project
+with nine selected exports, covering every arity from zero through eight. The
+parameter prefix repeats `i64`, `bool`, `borrow str`, and `borrow Slice<u8>`;
+distinct scalar values and borrowed lengths distinguish both positions of each
+repeated type. Each export returns owned `ok` or `bad` bytes according to its
+present arguments. Consumer literals are independent of the source predicates.
+
+The descriptor fixture `tests/public_api_descriptor_v1/mixed_arity.rs` checks
+exact parameter order, names, identities, ordinals, result types and replay,
+including separate seven/eight-parameter selections. A selected ninth parameter
+must yield the exact `SPX-J113` arity diagnostic. The real nine-parameter Project
+must reject before exposing an authenticated callback and preserve its input
+files. This callback check is not a physical tool-execution counter.
+
+`tests/project_owned_mixed_arity_v1.rs` retains the same Project descriptor for
+actual native providers at O0/O2 and a verified, published six-file npm package.
+Independent C and Node consumers exercise every arity, wrong-value controls for
+each present position, same-type argument swaps and healthy recovery. The native
+fixture separately observes owned allocation/copy/drop and empty context slots;
+Node checks host-copy independence across runtime objects. These tests establish
+only their observed argument positions and lengths when executed, not general
+evaluation order, complete borrowed-content equivalence or browser support.
+
+The private toolchain's `project_owned_mixed_arity_sdk_v1` gate publishes the
+same Project through the real Rust builder, reopens the exact seven-file package
+and binds its descriptor and provider source. An unsafe-forbidden, locked/offline
+external consumer calls all nine methods, checks each eight-argument mutation
+and recovery, and retains independent outputs across two SDK objects and after
+their disposal. SDK object reuse is not proof of one persistent native context.
+
+Focused gates, all authored and unrun:
+
+```sh
+cargo test --locked -p semaprax --test public_api_descriptor_v1 mixed_arity
+cargo test --locked -p semaprax --test project_owned_mixed_arity_v1
+cargo test --locked -p semaprax-toolchain --test project_owned_mixed_arity_sdk_v1 provisioned_mixed_arity_publish_and_run -- --ignored --exact
+```
+
+Native/npm execution requires Clang and Node, plus the existing full-toolchain
+prerequisites for Windows npm publication. The selected Rust gate requires
+absolute `CLANG` and `SEMAPRAX_ARCHIVER`, native Cargo and the existing Windows
+MSVC environment. Missing prerequisites fail; no test silently skips. These
+fixtures leave bounded temporary evidence trees for inspection. They do not
+change production code, generated artifacts, schemas or completion status, and
+do not replace strict TypeScript, installed-package, sanitizer or exact-head
+hosted gates.
+
 ## Nonclaims
 
 Public Owned Data API v1 does not claim public records or authored variants,

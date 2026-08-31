@@ -13,6 +13,9 @@ mod parameter_identity;
 #[path = "public_api_descriptor_v1/semantic_replay.rs"]
 mod semantic_replay;
 
+#[path = "public_api_descriptor_v1/mixed_arity.rs"]
+mod mixed_arity;
+
 const PROJECT_REVISION: &str =
     "sha256:1111111111111111111111111111111111111111111111111111111111111111";
 const WORKSPACE_REVISION: &str =

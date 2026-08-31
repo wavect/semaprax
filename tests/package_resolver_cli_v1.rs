@@ -62,6 +62,20 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         assert_eq!(current.matches(line).count(), 1);
         current = current.replacen(line, "", 1);
     }
+    const DRAFT_ARCHIVE_LINES: [&str; 2] = [
+        "semaprax project-draft-persist <manifest> <draft-capsule.json> <store-root>\n",
+        "semaprax project-draft-load <store-root> <archive-digest> <draft-digest>\n",
+    ];
+    assert_eq!(
+        current
+            .matches(DRAFT_ARCHIVE_LINES.concat().as_str())
+            .count(),
+        1
+    );
+    for line in DRAFT_ARCHIVE_LINES {
+        assert_eq!(current.matches(line).count(), 1);
+        current = current.replacen(line, "", 1);
+    }
     const GIT_PUBLISH_LINE: &str = "semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\n";
     const WORKSPACE_LINE: &str = "semaprax serve-workspace <manifest> <host-policy.json>\n";
     const PROFILE_DOCTOR_LINE: &str =

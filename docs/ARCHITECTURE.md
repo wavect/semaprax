@@ -438,6 +438,14 @@ and history under the held store input; no serialized HIR is trusted and raw
 source is not reconstructed on disk. Post-pivot uncertainty never regains
 cleanup or retry authority. This is candidate persistence, not warm HIR reuse.
 
+The same store now has typed draft persistence/load entry points over a private
+shared byte-transport seam. Draft source/history/selector replay runs before
+root opening on persist and inside the held-input scope on load. Both archive
+kinds share the fixed inventory but retain separate schema admission. CLI
+`draft_archive.rs` and host-policy v6 add explicit draft storage and startup
+selection; neither path restores approvals or opens a new request authority.
+See [Typed-draft persistence](DRAFT-ARCHIVE-PERSISTENCE-V1.md).
+
 `image_transport/vnext/recovery.rs` admits independently recovered candidates
 only through startup host APIs, under live snapshot authentication and ordinary
 registry bounds. Canonical manifest equality permits historical source revisions

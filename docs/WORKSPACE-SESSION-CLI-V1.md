@@ -123,6 +123,17 @@ write storage or change the startup-only Git approval guard. See
 [Cache Store v1](SEMANTIC-CACHE-STORE-V1.md) for the explicit trusted-host
 requirements; compiler-file hashing is not loaded-code attestation.
 
+Policy `semaprax.workspace-host-policy.v6` adds the required `draft_archives`
+array to every v5 field. Each entry is exactly `root`, `archive_digest` and
+`draft_digest`; at most sixteen unique drafts may be selected, and nonempty
+selection requires candidate preparation. Startup loads these source-backed
+archives through the explicit immutable store, authenticates the same canonical
+manifest and retains only drafts before frames and before opening a Git provider.
+The live source image remains current even when recovered drafts are historical.
+V1–v5 reject this field. Store roots are never selected by RPC, and no approvals
+or publication state are recovered. See [Typed-draft persistence](DRAFT-ARCHIVE-PERSISTENCE-V1.md)
+for commands, exact bounds and authored/unrun regression evidence.
+
 `git_commit` is null or a closed object containing `git_executable`, `repository`,
 `reference`, `base_commit`, `project_prefix`, `author_name`, `author_email`,
 `unix_seconds`, `message`, `max_commands`, `timeout_ms` and

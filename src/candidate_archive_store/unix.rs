@@ -14,7 +14,8 @@ use super::{
     MAX_CANDIDATE_ARCHIVE_STORE_PATH_DEPTH,
 };
 use crate::project::{
-    ProjectCandidate, ProjectCandidateArchive, MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES,
+    ProjectCandidate, ProjectCandidateArchive, ProjectCandidateDraft, ProjectCandidateDraftArchive,
+    MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -306,6 +307,29 @@ pub(super) fn persist(root: &Path, archive: &ProjectCandidateArchive) -> Result<
 pub(super) fn persist_with_hook(
     root_path: &Path,
     archive: &ProjectCandidateArchive,
+    hook: impl FnMut(StorePoint, &Path) -> std::io::Result<()>,
+) -> Result<()> {
+    persist_bytes_with_hook(
+        root_path,
+        archive.archive_digest(),
+        archive.to_json().as_bytes(),
+        hook,
+    )
+}
+pub(super) fn persist_draft(root: &Path, archive: &ProjectCandidateDraftArchive) -> Result<()> {
+    persist_bytes_with_hook(
+        root,
+        archive.archive_digest(),
+        archive.to_json().as_bytes(),
+        |_, _| Ok(()),
+    )
+}
+// Private IO seam: callers have independently replayed their typed archive.
+// No public raw-byte publication or generic authority is introduced.
+fn persist_bytes_with_hook(
+    root_path: &Path,
+    archive_digest: &str,
+    bytes: &[u8],
     mut hook: impl FnMut(StorePoint, &Path) -> std::io::Result<()>,
 ) -> Result<()> {
     let root = Root::open(root_path)?;
@@ -314,7 +338,7 @@ pub(super) fn persist_with_hook(
     if initial.len() >= MAX_CANDIDATE_ARCHIVE_STORE_ENTRIES {
         return Err(capacity("archive store has no publication slot"));
     }
-    let hex = digest_hex(archive.archive_digest())?;
+    let hex = digest_hex(archive_digest)?;
     let destination = format!("{hex}.json");
     if initial.contains_key(&destination) {
         return Err(binding(
@@ -346,35 +370,23 @@ pub(super) fn persist_with_hook(
         .map_err(|_| io("archive stage creation hook failed"))?;
     unchanged(&root, &staged)?;
     selected(&root, &stage, &mut file, created, b"")?;
-    file.write_all(archive.to_json().as_bytes())
+    file.write_all(bytes)
         .and_then(|()| file.sync_all())
         .map_err(|_| io("cannot write and settle archive stage"))?;
     let written = file_fact(&file)?;
-    if written.identity != created.identity || written.bytes != archive.to_json().len() {
+    if written.identity != created.identity || written.bytes != bytes.len() {
         return Err(binding("archive stage metadata disagrees after writing"));
     }
     staged.insert(stage.clone(), written);
     hook(StorePoint::AfterStageWrite, root_path)
         .map_err(|_| io("archive stage write hook failed"))?;
     unchanged(&root, &staged)?;
-    selected(
-        &root,
-        &stage,
-        &mut file,
-        written,
-        archive.to_json().as_bytes(),
-    )?;
+    selected(&root, &stage, &mut file, written, bytes)?;
     fs::fsync(root.fd()).map_err(|_| io("cannot settle archive stage directory"))?;
     hook(StorePoint::BeforePublish, root_path)
         .map_err(|_| io("archive pre-publication hook failed"))?;
     unchanged(&root, &staged)?;
-    selected(
-        &root,
-        &stage,
-        &mut file,
-        written,
-        archive.to_json().as_bytes(),
-    )?;
+    selected(&root, &stage, &mut file, written, bytes)?;
     file.sync_all()
         .map_err(|_| io("cannot resettle archive stage"))?;
     fs::renameat_with(
@@ -393,13 +405,7 @@ pub(super) fn persist_with_hook(
         let mut published = initial;
         published.insert(destination.clone(), written);
         unchanged(&root, &published)?;
-        selected(
-            &root,
-            &destination,
-            &mut file,
-            written,
-            archive.to_json().as_bytes(),
-        )?;
+        selected(&root, &destination, &mut file, written, bytes)?;
         lock.release()?;
         Ok(())
     })();
@@ -411,6 +417,28 @@ pub(super) fn load(
     archive_digest: &str,
     candidate_digest: &str,
 ) -> Result<ProjectCandidate> {
+    load_with(root_path, archive_digest, |bytes| {
+        ProjectCandidateArchive::restore(bytes, archive_digest, candidate_digest)
+    })
+}
+
+pub(super) fn load_draft(
+    root_path: &Path,
+    archive_digest: &str,
+    draft_digest: &str,
+) -> Result<ProjectCandidateDraft> {
+    load_with(root_path, archive_digest, |bytes| {
+        ProjectCandidateDraftArchive::restore(bytes, archive_digest, draft_digest)
+    })
+}
+
+// Typed replay runs inside the held lock and descriptors; successful results
+// cannot leave this scope before the original selected bytes are rechecked.
+fn load_with<T>(
+    root_path: &Path,
+    archive_digest: &str,
+    restore: impl FnOnce(&[u8]) -> Result<T>,
+) -> Result<T> {
     let root = Root::open(root_path)?;
     let lock = root.lock(false)?;
     let initial = inventory(&root, true)?;
@@ -428,9 +456,9 @@ pub(super) fn load(
     .map_err(|_| binding("cannot open selected archive without following links"))?;
     let mut file = std::fs::File::from(fd);
     let bytes = read_exact(&mut file, expected)?;
-    let candidate = ProjectCandidateArchive::restore(&bytes, archive_digest, candidate_digest)?;
+    let value = restore(&bytes)?;
     unchanged(&root, &initial)?;
     selected(&root, &name, &mut file, expected, &bytes)?;
     lock.release()?;
-    Ok(candidate)
+    Ok(value)
 }

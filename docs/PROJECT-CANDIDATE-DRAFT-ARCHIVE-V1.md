@@ -67,7 +67,9 @@ not install that candidate in a session registry.
 Source files may be edited or removed after export. Library restore operates
 on the archived owned bytes and does not recreate or overwrite those files.
 A host may persist the archive separately from canonical source; this change
-adds no automatic disk store or background checkpoint process.
+adds no automatic disk store or background checkpoint process. Separate
+[typed-draft persistence](DRAFT-ARCHIVE-PERSISTENCE-V1.md) provides an explicitly
+selected immutable store, host CLI commands and startup archive locators.
 
 ## Host startup and in-session recovery
 

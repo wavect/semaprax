@@ -1,7 +1,9 @@
 //! Host-only archive handoff. Serialized candidates never enter the registry
 //! until independent archive replay and both live snapshot checks succeed.
 use super::{candidates, failure, Arc, Diagnostic, VNextSession};
-use crate::project::{ProjectCandidate, ProjectCandidateArchive, ProjectCandidateDraftArchive};
+use crate::project::{
+    ProjectCandidate, ProjectCandidateArchive, ProjectCandidateDraft, ProjectCandidateDraftArchive,
+};
 
 impl VNextSession {
     /// Recover a historical unfinished draft before accepting the first frame.
@@ -13,6 +15,27 @@ impl VNextSession {
         expected_archive: &str,
         expected_draft: &str,
     ) -> Result<String, Vec<Diagnostic>> {
+        self.install_archived_draft(expected_draft, || {
+            ProjectCandidateDraftArchive::restore(bytes, expected_archive, expected_draft)
+        })
+    }
+
+    /// Retain an opaque compiler-created draft, including one independently
+    /// replayed by the archive store. This accepts no serialized unchecked state
+    /// and certifies no archive provenance or approval for the typed value.
+    pub fn retain_archived_draft(
+        &mut self,
+        draft: ProjectCandidateDraft,
+        expected_draft: &str,
+    ) -> Result<String, Vec<Diagnostic>> {
+        self.install_archived_draft(expected_draft, || Ok(draft))
+    }
+
+    fn install_archived_draft(
+        &mut self,
+        expected_draft: &str,
+        prepare: impl FnOnce() -> Result<ProjectCandidateDraft, Vec<Diagnostic>>,
+    ) -> Result<String, Vec<Diagnostic>> {
         if self.started || self.terminal || !self.policy.candidate_prepare {
             return Err(failure(
                 "SPX-G303",
@@ -21,19 +44,20 @@ impl VNextSession {
         }
         let registry = &self.registry;
         let (handle, mutation) = self.snapshot.with_authenticated_request(|snapshot| {
-            let draft = ProjectCandidateDraftArchive::restore_for_manifest(
-                bytes,
-                expected_archive,
-                expected_draft,
-                snapshot.manifest(),
-            )?;
-            let summary: serde_json::Value =
-                serde_json::from_str(draft.summary(draft.draft_digest())?).map_err(|_| {
-                    failure(
-                        "SPX-G303",
-                        "archived draft summary serialization is invalid",
-                    )
-                })?;
+            let draft = prepare()?;
+            let draft_summary = draft.summary(expected_draft)?;
+            if !draft.matches_manifest(snapshot.manifest()) {
+                return Err(failure(
+                    "SPX-G342",
+                    "draft archive manifest disagrees with the live host manifest",
+                ));
+            }
+            let summary: serde_json::Value = serde_json::from_str(draft_summary).map_err(|_| {
+                failure(
+                    "SPX-G303",
+                    "archived draft summary serialization is invalid",
+                )
+            })?;
             let source_candidate = summary["last_valid_candidate_digest"]
                 .as_str()
                 .ok_or_else(|| failure("SPX-G303", "archived draft candidate binding is absent"))?;

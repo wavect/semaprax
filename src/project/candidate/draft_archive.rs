@@ -28,6 +28,20 @@ pub struct ProjectCandidateDraftArchive {
     base: String,
 }
 
+impl ProjectCandidateDraft {
+    /// Narrow host admission predicate; no prior candidate or revision escapes
+    /// the unfinished draft. Historical source requires the same live manifest.
+    pub(crate) fn matches_manifest(&self, manifest: &ProjectManifest) -> bool {
+        let expected = manifest.to_canonical_toml();
+        self.last_valid
+            .base_revision()
+            .manifest()
+            .to_canonical_toml()
+            == expected
+            && self.last_valid.revision().manifest().to_canonical_toml() == expected
+    }
+}
+
 impl ProjectCandidateDraftArchive {
     pub fn prepare(draft: &ProjectCandidateDraft, expected_draft: &str) -> Result<Self> {
         validate_digest(expected_draft)?;
@@ -184,13 +198,7 @@ impl ProjectCandidateDraftArchive {
         manifest: &ProjectManifest,
     ) -> Result<ProjectCandidateDraft> {
         let draft = Self::restore(bytes, expected_archive, expected_draft)?;
-        if draft
-            .last_valid
-            .base_revision()
-            .manifest()
-            .to_canonical_toml()
-            != manifest.to_canonical_toml()
-        {
+        if !draft.matches_manifest(manifest) {
             return Err(binding(
                 "draft archive manifest disagrees with the live host manifest",
             ));

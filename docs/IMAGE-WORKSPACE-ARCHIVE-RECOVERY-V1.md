@@ -66,10 +66,18 @@ only a draft. Its distinct in-session RPC accepts only the current original
 base; completing a ready draft cannot bypass historical-candidate startup
 admission. Neither mechanism restores approvals or changes the live image.
 
+`retain_archived_draft(draft, expected_draft)` accepts an opaque compiler-created
+draft, including one returned by the typed archive store. It uses the same
+startup, manifest, live-source and registry admission as raw archive restore.
+The additive [draft persistence CLI](DRAFT-ARCHIVE-PERSISTENCE-V1.md) selects
+these entries through closed host-policy v6 before any Git provider opens.
+
 ## Diagnostics and evidence
 
-`SPX-G303` rejects lifecycle/policy misuse and a foreign canonical Project
-manifest. Existing archive grammar/capacity/replay diagnostics remain intact;
+`SPX-G303` rejects lifecycle/policy misuse and a candidate's foreign canonical
+Project manifest. Draft manifest disagreement uses `SPX-G342`; a mismatched
+opaque draft expectation retains the ordinary draft diagnostic. Existing
+archive grammar/capacity/replay diagnostics remain intact;
 `SPX-G224` covers unknown or mismatched candidate expectations, `SPX-G282` stale
 image expectations, and `SPX-G223` registry admission. Live Project drift retains
 its ordinary diagnostic and absorbing behavior. Explicit refresh can recover

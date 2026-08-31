@@ -37,9 +37,16 @@ pub(crate) fn run(manifest: &Path, policy_path: &Path) -> Result<(), Vec<Diagnos
         test_policy,
     };
     let archives = policy.get("candidate_archives").and_then(Value::as_array);
+    let draft_archives = policy.get("draft_archives").and_then(Value::as_array);
     if archives.is_some_and(|archives| !archives.is_empty()) && !capability.candidate_prepare {
         return Err(invalid(
             "startup candidate recovery requires candidate preparation",
+        ));
+    }
+    if draft_archives.is_some_and(|archives| !archives.is_empty()) && !capability.candidate_prepare
+    {
+        return Err(invalid(
+            "startup draft recovery requires candidate preparation",
         ));
     }
     let manifest: PathBuf = if manifest.is_absolute() {
@@ -75,6 +82,16 @@ pub(crate) fn run(manifest: &Path, policy_path: &Path) -> Result<(), Vec<Diagnos
                 string(archive, "candidate_digest")?,
             )?;
             session.retain_archived_candidate(candidate, string(archive, "candidate_digest")?)?;
+        }
+    }
+    if let Some(archives) = draft_archives {
+        for archive in archives {
+            let draft = semaprax::candidate_archive_store::load_draft(
+                Path::new(string(archive, "root")?),
+                string(archive, "archive_digest")?,
+                string(archive, "draft_digest")?,
+            )?;
+            session.retain_archived_draft(draft, string(archive, "draft_digest")?)?;
         }
     }
     if !policy["git_commit"].is_null() {
@@ -165,9 +182,12 @@ fn cache_policy(value: &Value) -> Result<(bool, bool), Vec<Diagnostic>> {
         Some(
             "semaprax.workspace-host-policy.v3"
             | "semaprax.workspace-host-policy.v4"
-            | "semaprax.workspace-host-policy.v5",
+            | "semaprax.workspace-host-policy.v5"
+            | "semaprax.workspace-host-policy.v6",
         ) => {
-            let persistent_policy = value["schema"] == "semaprax.workspace-host-policy.v5";
+            let draft_policy = value["schema"] == "semaprax.workspace-host-policy.v6";
+            let persistent_policy =
+                draft_policy || value["schema"] == "semaprax.workspace-host-policy.v5";
             let semantic_policy =
                 persistent_policy || value["schema"] == "semaprax.workspace-host-policy.v4";
             let mut keys = COMMON.to_vec();
@@ -178,7 +198,42 @@ fn cache_policy(value: &Value) -> Result<(bool, bool), Vec<Diagnostic>> {
             if persistent_policy {
                 keys.push("semantic_cache_entry");
             }
+            if draft_policy {
+                keys.push("draft_archives");
+            }
             exact(value, &keys)?;
+            if draft_policy {
+                let archives = value["draft_archives"]
+                    .as_array()
+                    .ok_or_else(|| invalid("startup draft archives must be an array"))?;
+                if archives.len() > 16 {
+                    return Err(invalid("startup draft archive inventory exceeds its bound"));
+                }
+                let mut selected = std::collections::BTreeSet::new();
+                for archive in archives {
+                    exact(archive, &["root", "archive_digest", "draft_digest"])?;
+                    let root = string(archive, "root")?;
+                    let digest = string(archive, "archive_digest")?;
+                    let draft = string(archive, "draft_digest")?;
+                    if !Path::new(root).is_absolute() || !selected.insert(draft) {
+                        return Err(invalid(
+                            "startup archive roots must be absolute and drafts unique",
+                        ));
+                    }
+                    for digest in [digest, draft] {
+                        if digest.len() != 71
+                            || !digest.starts_with("sha256:")
+                            || !digest.as_bytes()[7..]
+                                .iter()
+                                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
+                        {
+                            return Err(invalid(
+                                "startup archive selectors require canonical SHA256 digests",
+                            ));
+                        }
+                    }
+                }
+            }
             let archives = value["candidate_archives"]
                 .as_array()
                 .ok_or_else(|| invalid("startup candidate archives must be an array"))?;

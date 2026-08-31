@@ -11,6 +11,11 @@ root is discovered from a manifest, current directory, environment, archive,
 candidate, or protocol request. Stored bytes are recovery inputs, never trusted
 HIR, source-commit approval, or evidence of current source admission.
 
+The additive [typed-draft persistence](DRAFT-ARCHIVE-PERSISTENCE-V1.md) APIs
+share this root format and its aggregate limits. A root may contain complete
+candidate and draft archives, but each selected loader admits only its own
+exact archive kind. Existing candidate APIs and replay rules are unchanged.
+
 ## Public API
 
 ```rust

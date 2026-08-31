@@ -9,20 +9,20 @@ use std::os::unix::process::CommandExt;
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 
-fn provisioned_path(variable: &str) -> PathBuf {
+pub(super) fn provisioned_path(variable: &str) -> PathBuf {
     let path = PathBuf::from(std::env::var_os(variable).expect(variable));
     assert!(path.is_absolute(), "{variable} must be absolute");
     assert!(std::fs::metadata(&path).unwrap().is_file());
     path
 }
 
-fn high(fd: i32) -> File {
+pub(super) fn high(fd: i32) -> File {
     let duplicate = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, 64) };
     assert!(duplicate >= 64, "{}", io::Error::last_os_error());
     unsafe { File::from_raw_fd(duplicate) }
 }
 
-fn sealed(bytes: &[u8], executable: bool) -> File {
+pub(super) fn sealed(bytes: &[u8], executable: bool) -> File {
     // Executable-memfd permission is an explicit surrogate prerequisite. Never
     // retry without MFD_EXEC, change host configuration, or use a disk fallback.
     let flags =
@@ -39,7 +39,7 @@ fn sealed(bytes: &[u8], executable: bool) -> File {
 // Before Command allocates its private exec-error pipe, occupy every unused
 // fixed destination. The provisioner excludes competing descriptor mutators.
 // Never overwrite a live descriptor; keep reservations until spawn completes.
-fn reserve_destinations(source: i32) -> Vec<File> {
+pub(super) fn reserve_destinations(source: i32) -> Vec<File> {
     let mut reservations = Vec::with_capacity(6);
     loop {
         let fd = unsafe { libc::fcntl(source, libc::F_DUPFD_CLOEXEC, 3) };
@@ -54,7 +54,7 @@ fn reserve_destinations(source: i32) -> Vec<File> {
 // This runs ONLY in pre_exec. The outer test process must never retain worker
 // capture endpoints, even briefly across collector entry. Before clone, errors
 // simply fail startup and std exits the provisioner child, closing its table.
-unsafe fn high_pipe() -> io::Result<[i32; 2]> {
+pub(super) unsafe fn high_pipe() -> io::Result<[i32; 2]> {
     let mut descriptors = [-1; 2];
     unsafe {
         if libc::pipe2(descriptors.as_mut_ptr(), libc::O_CLOEXEC) != 0 {
@@ -91,6 +91,15 @@ struct CloneArgs {
 /// `surrogate` is a trusted literal test program, NOT an approved worker image.
 /// Its cases test collector mechanics, never executable provenance admission.
 pub fn spawn(request: &[u8], bundle: &[u8], surrogate: Option<&[u8]>) -> Child {
+    spawn_with_capacity(request, bundle, surrogate, None)
+}
+
+pub(super) fn spawn_with_capacity(
+    request: &[u8],
+    bundle: &[u8],
+    surrogate: Option<&[u8]>,
+    capacity: Option<i32>,
+) -> Child {
     assert_eq!(
         std::env::var("SEMAPRAX_DOCTOR_WORKER_TEST_CONTEXT").as_deref(),
         Ok("private-mapped-user-mount-clean-worker-cgroup-v1")
@@ -118,6 +127,13 @@ pub fn spawn(request: &[u8], bundle: &[u8], surrogate: Option<&[u8]>) -> Child {
     // Startup, descriptor flushes and uncertainty remain provisioner-owned.
     unsafe {
         command.pre_exec(move || {
+            // Configure the report pipe before any report bytes can exist;
+            // shrinking after spawn could race a full pipe and yield EBUSY.
+            if let Some(capacity) = capacity {
+                if libc::fcntl(1, libc::F_SETPIPE_SZ, capacity) < 0 {
+                    return Err(io::Error::last_os_error());
+                }
+            }
             let mut action: libc::sigaction = std::mem::zeroed();
             if libc::sigaction(libc::SIGCHLD, std::ptr::null(), &mut action) != 0
                 || action.sa_sigaction != libc::SIG_DFL

@@ -7,10 +7,11 @@ use sha2::{Digest as _, Sha256};
 use std::fs::File;
 use std::mem::ManuallyDrop;
 use std::os::fd::FromRawFd;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 mod capture;
 mod lifetime;
+mod report;
 use lifetime::Lifetime;
 
 pub(super) fn collect() -> SettledDoctorObservation {
@@ -84,10 +85,7 @@ fn execute(lifetime: &mut Lifetime) -> Result<SettledDoctorObservation, ()> {
     lifetime.require_time()?;
     // All allocations and validation precede closure; the opaque result is
     // constructed only after every transferred authority handle closes once.
-    for fd in [3, 4, 6, 7, 5] {
-        close_owned(fd);
-    }
-    lifetime.disarm();
+    lifetime.complete();
     Ok(SettledDoctorObservation {
         selector: request.selector,
         architecture: native,
@@ -133,59 +131,10 @@ fn nonblocking(fd: i32) -> Result<(), ()> {
 fn errno() -> i32 {
     std::io::Error::last_os_error().raw_os_error().unwrap_or(0)
 }
-fn close_owned(fd: i32) {
-    if unsafe { libc::close(fd) } != 0 {
-        stop();
-    }
-}
 fn stop() -> ! {
     unsafe { libc::_exit(126) }
 }
 
 pub(super) fn finish(report: &[u8], exit_code: u8) -> ! {
-    if exit_code > 1 || report.len() > 2 * 1024 * 1024 {
-        stop();
-    }
-    for fd in 0..=2 {
-        if require_pipe(fd).is_err() {
-            stop();
-        }
-    }
-    if nonblocking(1).is_err() {
-        stop();
-    }
-    // This dedicated process will never resume its caller. Keep a closed
-    // report reader's SIGPIPE pending until _exit so EPIPE selects exactly
-    // fail-stop 126 instead of an inherited signal disposition. No tool or
-    // ordinary CLI signal policy changes, and no restoration can deliver it.
-    let mut blocked = std::mem::MaybeUninit::<libc::sigset_t>::uninit();
-    if unsafe { libc::sigemptyset(blocked.as_mut_ptr()) } != 0 {
-        stop();
-    }
-    let mut blocked = unsafe { blocked.assume_init() };
-    if unsafe { libc::sigaddset(&mut blocked, libc::SIGPIPE) } != 0
-        || unsafe { libc::sigprocmask(libc::SIG_BLOCK, &blocked, std::ptr::null_mut()) } != 0
-    {
-        stop();
-    }
-    let origin = Instant::now();
-    let mut offset = 0;
-    while offset < report.len() {
-        if origin.elapsed() >= Duration::from_secs(5) {
-            stop();
-        }
-        let end = report.len().min(offset + 8192);
-        let count = unsafe { libc::write(1, report[offset..end].as_ptr().cast(), end - offset) };
-        if count > 0 && (count as usize) <= end - offset {
-            offset += count as usize;
-        } else if count < 0 && errno() == libc::EAGAIN {
-            std::thread::sleep(Duration::from_millis(1));
-        } else {
-            stop();
-        }
-    }
-    for fd in [1, 0, 2] {
-        close_owned(fd);
-    }
-    unsafe { libc::_exit(i32::from(exit_code)) }
+    report::finish(report, exit_code)
 }

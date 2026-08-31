@@ -18,8 +18,16 @@
 mod fixture;
 #[path = "support/launch.rs"]
 mod launch;
+#[path = "support/nonchild.rs"]
+mod nonchild;
 #[path = "support/observe.rs"]
 mod observe;
+#[path = "support/physical_reports.rs"]
+mod physical_reports;
+#[path = "support/report.rs"]
+mod report;
+#[path = "support/sentinel_elf.rs"]
+mod sentinel_elf;
 
 use fixture::{bundle, executable, reply, request, Ending, SELECTOR};
 use observe::{run, Observation};

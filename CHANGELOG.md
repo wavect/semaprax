@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Shared the provisioned doctor collector's ownership and report-delivery state
+  machines with resource-free hostile scripts, preserving fixed descriptor
+  ownership, fail-stop uncertainty, write bounds and deadlines. Added authored,
+  unrun physical all-role, tool-failure, nonchild and interrupted-delivery
+  regressions. Fixed full Rust signal-set initialization before libc's partial
+  initialization. Ordinary CLI admission and production-support claims remain
+  unchanged.
+
 - Connected provisioner-owned offline worker collection to the shared doctor
   report policy through a separate unpublished collector entry. Only exact
   request/bundle/reply binding, complete capture and successful owned-worker

@@ -1,30 +1,37 @@
-//! Pinned worker ownership begins only after a child-specific non-reaping wait.
-use super::{
-    capture::{Exit, Operations},
-    errno, stop,
-};
+//! Shared ownership decisions; only Lifetime's native operations own resources.
+use super::capture::{Exit, Operations as CaptureOperations};
 use std::time::{Duration, Instant};
 
-pub(super) struct Lifetime {
-    origin: Instant,
-    authenticated: bool,
-    reaped: bool,
-    armed: bool,
+mod operations;
+use operations::{Descriptor, Native, Operations, Wait};
+
+#[cfg(test)]
+mod tests;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum Phase {
+    Unvalidated,
+    Owned,
+    Reaped,
+    Closed,
 }
-impl Lifetime {
-    pub(super) fn new(origin: Instant) -> Self {
+
+// No descriptors and no Drop: scripted state cannot perform physical cleanup.
+// Native Lifetime alone owns the externally transferred fixed descriptor set.
+struct State {
+    phase: Phase,
+}
+impl State {
+    fn new() -> Self {
         Self {
-            origin,
-            authenticated: false,
-            reaped: false,
-            armed: true,
+            phase: Phase::Unvalidated,
         }
     }
-    pub(super) fn authenticate(&mut self) -> Result<(), ()> {
-        if self.authenticated || self.reaped {
+    fn authenticate(&mut self, operations: &mut impl Operations) -> Result<(), ()> {
+        if self.phase != Phase::Unvalidated {
             return Err(());
         }
-        if let Some(exit) = wait(false)? {
+        if let Some(exit) = operations.wait(Wait::Observe).map_err(|_| ())? {
             if exit.pid <= 0
                 || exit.signo != libc::SIGCHLD
                 || !matches!(
@@ -35,124 +42,130 @@ impl Lifetime {
                 return Err(());
             }
         }
-        self.authenticated = true;
+        self.phase = Phase::Owned;
         Ok(())
     }
-    pub(super) fn require_time(&self) -> Result<(), ()> {
-        if self.origin.elapsed() >= Duration::from_secs(60) {
+    fn observe(&mut self, operations: &mut impl Operations) -> Result<Option<Exit>, ()> {
+        if self.phase != Phase::Owned {
+            return Err(());
+        }
+        operations.wait(Wait::Observe).map_err(|_| ())
+    }
+    fn reap(&mut self, operations: &mut impl Operations) -> Result<Option<Exit>, ()> {
+        if self.phase != Phase::Owned {
+            return Err(());
+        }
+        let exit = operations.wait(Wait::Reap).map_err(|_| ())?;
+        // Record consumption before the capture caller compares terminal data.
+        // Even a mismatching returned event must never authorize another reap.
+        if exit.is_some() {
+            self.phase = Phase::Reaped;
+        }
+        Ok(exit)
+    }
+    fn complete(&mut self, operations: &mut impl Operations) {
+        // Establish the close precondition before touching any handle. This
+        // includes the pidfd needed by abort while the worker is still owned.
+        if self.phase != Phase::Reaped {
+            self.abort(operations);
+        }
+        for descriptor in [
+            Descriptor::Request,
+            Descriptor::Bundle,
+            Descriptor::Reply,
+            Descriptor::Stderr,
+            Descriptor::Pidfd,
+        ] {
+            if operations.close(descriptor).is_err() {
+                operations.stop();
+            }
+        }
+        self.phase = Phase::Closed;
+    }
+    fn abort(&mut self, operations: &mut impl Operations) -> ! {
+        // Unvalidated descriptors confer no signal authority. Reaped/closed
+        // scopes never receive another wait, signal, or close attempt here.
+        if self.phase == Phase::Owned {
+            let deadline = operations
+                .elapsed()
+                .checked_add(Duration::from_secs(5))
+                .unwrap_or_else(|| operations.stop());
+            if let Err(error) = operations.kill() {
+                if error != libc::ESRCH {
+                    operations.stop();
+                }
+            }
+            loop {
+                match self.reap(operations) {
+                    Ok(Some(_)) => break,
+                    Ok(None) => {}
+                    Err(()) => operations.stop(),
+                }
+                if operations.elapsed() >= deadline {
+                    operations.stop();
+                }
+                operations.pause();
+            }
+        }
+        // Successful forced reap still does not prove tool namespace closure.
+        // No ordinary error/result is returned; the provisioner reconciles it.
+        operations.stop()
+    }
+    fn cleanup_on_drop(&mut self, operations: &mut impl Operations) {
+        if self.phase != Phase::Closed {
+            self.abort(operations);
+        }
+    }
+}
+
+pub(super) struct Lifetime {
+    state: State,
+    native: Native,
+}
+impl Lifetime {
+    pub(super) fn new(origin: Instant) -> Self {
+        Self {
+            state: State::new(),
+            native: Native::new(origin),
+        }
+    }
+    pub(super) fn authenticate(&mut self) -> Result<(), ()> {
+        self.state.authenticate(&mut self.native)
+    }
+    pub(super) fn require_time(&mut self) -> Result<(), ()> {
+        if self.native.elapsed() >= Duration::from_secs(60) {
             Err(())
         } else {
             Ok(())
         }
     }
-    pub(super) fn disarm(&mut self) {
-        if !self.authenticated || !self.reaped {
-            stop();
-        }
-        self.armed = false;
+    pub(super) fn complete(&mut self) {
+        self.state.complete(&mut self.native);
     }
     pub(super) fn abort(&mut self) -> ! {
-        // Invalid/nonchild descriptors never confer signal authority. An
-        // already reaped worker never receives a second wait or signal.
-        if self.authenticated && !self.reaped {
-            let origin = Instant::now();
-            if unsafe {
-                libc::syscall(
-                    libc::SYS_pidfd_send_signal,
-                    5_i32,
-                    libc::SIGKILL,
-                    std::ptr::null::<libc::siginfo_t>(),
-                    0_u32,
-                )
-            } != 0
-                && errno() != libc::ESRCH
-            {
-                stop();
-            }
-            loop {
-                match wait(true) {
-                    Ok(Some(_)) => {
-                        self.reaped = true;
-                        break;
-                    }
-                    Ok(None) => {}
-                    Err(()) => stop(),
-                }
-                if origin.elapsed() >= Duration::from_secs(5) {
-                    stop();
-                }
-                std::thread::sleep(Duration::from_millis(1));
-            }
-        }
-        // This does not prove tool namespace closure after forced worker death.
-        // Provisioner-owned aggregate cleanup remains required; no report.
-        stop()
+        self.state.abort(&mut self.native)
     }
 }
 impl Drop for Lifetime {
     fn drop(&mut self) {
-        if self.armed {
-            self.abort();
-        }
+        self.state.cleanup_on_drop(&mut self.native);
     }
 }
 
-impl Operations for Lifetime {
+impl CaptureOperations for Lifetime {
     fn read(&mut self, stream: usize, bytes: &mut [u8; 8192]) -> Result<Option<usize>, ()> {
-        let fd = match stream {
-            0 => 6,
-            1 => 7,
-            _ => return Err(()),
-        };
-        let count = unsafe { libc::read(fd, bytes.as_mut_ptr().cast(), bytes.len()) };
-        if count < 0 {
-            if errno() == libc::EAGAIN {
-                Ok(None)
-            } else {
-                Err(())
-            }
-        } else {
-            Ok(Some(count as usize))
-        }
+        self.native.read(stream, bytes)
     }
     fn observe(&mut self) -> Result<Option<Exit>, ()> {
-        if !self.authenticated || self.reaped {
-            return Err(());
-        }
-        wait(false)
+        self.state.observe(&mut self.native)
     }
     fn reap(&mut self) -> Result<Option<Exit>, ()> {
-        if !self.authenticated || self.reaped {
-            return Err(());
-        }
-        let exit = wait(true)?;
-        if exit.is_some() {
-            self.reaped = true;
-        }
-        Ok(exit)
+        self.state.reap(&mut self.native)
     }
     fn elapsed(&mut self) -> Duration {
-        self.origin.elapsed()
+        self.native.elapsed()
     }
     fn pause(&mut self) {
-        std::thread::sleep(Duration::from_millis(1));
+        self.native.pause();
     }
-}
-
-fn wait(reap: bool) -> Result<Option<Exit>, ()> {
-    let mut info = unsafe { std::mem::zeroed::<libc::siginfo_t>() };
-    let flags = libc::WEXITED | libc::WNOHANG | if reap { 0 } else { libc::WNOWAIT };
-    if unsafe { libc::waitid(libc::P_PIDFD, 5, &mut info, flags) } != 0 {
-        return Err(());
-    }
-    let pid = unsafe { info.si_pid() };
-    if pid == 0 {
-        return Ok(None);
-    }
-    Ok(Some(Exit {
-        pid,
-        signo: info.si_signo,
-        code: info.si_code,
-        status: unsafe { info.si_status() },
-    }))
 }

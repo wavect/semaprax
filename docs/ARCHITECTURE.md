@@ -130,6 +130,11 @@ boundary to the toolchain library's shared doctor report policy, avoiding a
 dependency cycle or an unsafe ordinary CLI. Tool rows stay keyed by role even
 when their bundled paths alias. This provisioned entry does not activate ordinary
 CLI worker discovery. See [Provisioned offline doctor collector v1](DOCTOR-OFFLINE-COLLECTOR-V1.md).
+Its lifetime state owns authentication, the irreversible reap transition and
+fixed handle closure; only the native adapter performs pidfd and descriptor
+operations. The separate report-delivery module owns bounded writes and final
+standard-pipe closure after collection. Resource-free scripts exercise the same
+state transitions without constructing observations or process authority.
 
 The retained safe `semaprax-native-rust-interop-platform` facade and platform-sys
 quarantine's separate `doctor/` module are no longer connected to that CLI route.

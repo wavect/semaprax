@@ -11,7 +11,7 @@ pub struct Observation {
     pub stderr: Vec<u8>,
 }
 
-struct OwnedCollector(Child);
+pub(super) struct OwnedCollector(pub Child);
 
 impl Drop for OwnedCollector {
     fn drop(&mut self) {
@@ -34,7 +34,7 @@ pub fn run(request: &[u8], bundle: &[u8], surrogate: Option<&[u8]>) -> Observati
     collect(&mut owned.0).expect("bounded collector observation; reconcile cgroup on uncertainty")
 }
 
-fn stop(child: &mut Child) -> io::Result<()> {
+pub(super) fn stop(child: &mut Child) -> io::Result<()> {
     if child.try_wait()?.is_some() {
         return Ok(());
     }
@@ -54,11 +54,17 @@ fn stop(child: &mut Child) -> io::Result<()> {
     }
 }
 
-fn collect(child: &mut Child) -> io::Result<Observation> {
-    let mut stdout = child.stdout.take().unwrap();
+// A missing stdout is permitted only when the sink fixture has deliberately
+// closed its sole reader after observing an exact canonical report prefix.
+pub(super) fn collect(child: &mut Child) -> io::Result<Observation> {
+    let mut stdout = child.stdout.take();
     let mut stderr = child.stderr.take().unwrap();
     drop(child.stdin.take());
-    for fd in [stdout.as_raw_fd(), stderr.as_raw_fd()] {
+    for fd in stdout
+        .iter()
+        .map(AsRawFd::as_raw_fd)
+        .chain([stderr.as_raw_fd()])
+    {
         let flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
         if flags < 0 || unsafe { libc::fcntl(fd, libc::F_SETFL, flags | libc::O_NONBLOCK) } != 0 {
             return Err(io::Error::last_os_error());
@@ -66,19 +72,24 @@ fn collect(child: &mut Child) -> io::Result<Observation> {
     }
     let mut output = Vec::new();
     let mut errors = Vec::new();
-    let mut eof = [false; 2];
+    let mut eof = [stdout.is_none(), false];
     let mut status = None;
     // Preserve the real 60s collector budget, its 5s settlement budget and
     // report delivery. There is no production deadline override for tests.
     let deadline = Instant::now() + Duration::from_secs(75);
     loop {
         for (index, stream, bytes) in [
-            (0, &mut stdout as &mut dyn Read, &mut output),
-            (1, &mut stderr as &mut dyn Read, &mut errors),
+            (
+                0,
+                stdout.as_mut().map(|stream| stream as &mut dyn Read),
+                &mut output,
+            ),
+            (1, Some(&mut stderr as &mut dyn Read), &mut errors),
         ] {
             if eof[index] {
                 continue;
             }
+            let stream = stream.expect("only deliberately closed stdout may be absent");
             let mut chunk = [0; 8192];
             match stream.read(&mut chunk) {
                 Ok(0) => eof[index] = true,

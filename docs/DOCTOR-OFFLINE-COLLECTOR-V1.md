@@ -37,8 +37,8 @@ default `SIGCHLD` policy without automatic reaping must hold from worker creatio
 through collector exec and final reap. The collector checks that the pidfd names
 its own unreaped child before obtaining signaling authority; a wrong or nonchild
 pidfd fails without being signaled. Aggregate resource admission, startup
-deadlines and cgroup reconciliation remain provisioner-owned. This repository change installs no
-service and changes no host security configuration.
+deadlines and cgroup reconciliation remain provisioner-owned. This repository
+change installs no service and changes no host security configuration.
 
 The initial implementation is native64 little-endian Linux x86-64/AArch64 only.
 It uses the worker's exact closed request and reply wire version, verifies the
@@ -94,6 +94,12 @@ additional operation. Report delivery requires complete bounded output and
 normal collector exit; a partial frame or uncertain termination is not success.
 Output is capped at two MiB with a five-second write deadline; only ordinary
 doctor exit codes zero and one may be emitted after successful collection.
+Report setup initializes the complete Rust signal-set storage before the checked
+libc calls and blocks `SIGPIPE` through process termination. This avoids assuming
+that `sigemptyset` initializes unused storage: the
+[Linux glibc implementation](https://codebrowser.dev/glibc/glibc/sysdeps/unix/sysv/linux/sigsetops.h.html)
+only clears the words used for kernel signals. A broken report pipe is an output
+failure, not permission to retry collection or report success.
 
 ## Evidence and non-claims
 
@@ -109,15 +115,41 @@ Authored evidence is split by ownership:
 - Sys collector `linux/capture/tests.rs` exercises the production capture loop
   with scripted reads, exact exit/reap agreement, deadlines, limits and sticky
   failures. It does not exercise physical syscalls or prove OS settlement.
+- Private lifetime and report-delivery state machines are also shared by native
+  operations and resource-free scripts. Lifetime scripts cover ownership
+  authentication before signaling, bounded emergency kill/reap, the irreversible
+  reap latch and fixed one-shot handle closure. Report scripts cover exact byte
+  suffixes after partial writes, the unchanged write deadline, setup failure,
+  zero/impossible/error writes and termination after each uncertain close.
+  Only native adapters own descriptors and process termination. Scripted
+  outcomes cannot construct a settled observation or enable fault injection
+  in a running collector.
 - Toolchain `doctor/settled_report/tests.rs` covers shared report policy, role
   aliases, versions, invalid UTF-8 and failed observations. Ordinary CLI/library
   parity remains covered separately in `cli_doctor_v1.rs`.
 - Collector `tests/provisioned.rs` contains ignored physical fixtures for the
   actual native worker-to-report path with a synthetic tool bundle, calibrated
-  malformed/replayed replies, complete
-  replies followed by nonzero exit, and complete reply/EOF without worker exit.
+  malformed/replayed replies, complete replies followed by nonzero exit, and
+  complete reply/EOF without worker exit.
   The latter cases retain the actual sixty-second deadline. Sealed executable
   memfd surrogates test collector mechanics, not approved-worker provenance.
+- Additional provisioned cases execute all three roles with exact ordered JSON,
+  bracket a failed Node invocation with healthy controls, and require the later
+  Rust role's successful observation in the ordinary exit-one report. These
+  execute synthetic bundled programs, not real tool distributions.
+- The closed-sink case first calibrates a complete large report from the actual
+  worker, then observes an exact report prefix before closing its sole reader.
+  The checked pipe capacity proves that the complete report was not yet written;
+  the collector must still be live just before the close and must terminate
+  fail-stop. Scheduling can race the unchanged output deadline, so this does not
+  isolate a physical `EPIPE` return. Scripts separately select that error branch.
+  Partial report bytes are expected here and are never successful delivery.
+- The nonchild case transfers a pidfd for an exclusively owned sibling sentinel,
+  with no actual worker to orphan. After collector rejection, the sentinel must
+  answer a newly released challenge and exit normally. The calibrated literal
+  protocol detects unintended lethal/stopping effects, not every possible
+  signaling syscall; the shared ownership scripts separately assert no signal
+  operation before authentication. No arbitrary host process is targeted.
 
 Physical fixtures require immutable current-head worker and collector binaries,
 the complete worker namespace and cleanup prerequisites, and explicit executable
@@ -134,9 +166,10 @@ cargo test --locked -p semaprax-doctor-collector --test provisioned -- --ignored
 Missing prerequisites fail rather than skip or weaken the policy. The external
 provisioner must bound startup and reconcile the entire fixture cgroup on
 failure; reaping the collector alone does not prove descendant settlement.
-These gates are authored, not executed. Physical wrong-child/close/settlement
-fault injection, report-delivery failures and real-tool compatibility remain
-additional pending evidence.
+These gates are authored, not executed. Physical owned-handle close and
+settlement fault injection, syscall-specific report-failure observation and
+real-tool compatibility remain additional pending evidence. Sibling rejection
+does not establish executable/endpoint provenance for arbitrary child handoffs.
 
 This component does not install or discover a provisioner, authenticate arbitrary
 startup state, make Linux observations represent macOS/Windows, or promote WP-05.

@@ -13,26 +13,55 @@ pub fn architecture() -> u8 {
 }
 
 pub fn bundle() -> Vec<u8> {
-    let elf = executable(VERSION, Ending::Exit(0));
+    native_bundle(VERSION)
+}
+
+pub fn native_bundle(version: &[u8]) -> Vec<u8> {
+    bundle_files(&[("bin/clang", executable(version, Ending::Exit(0)))], 1)
+}
+
+pub fn all_bundle(node_ending: Ending) -> Vec<u8> {
+    bundle_files(
+        &[
+            ("bin/clang", executable(VERSION, Ending::Exit(0))),
+            ("bin/node", executable(b"v22.0.0\n", node_ending)),
+            ("bin/rustc", executable(b"rustc 1.88.0\n", Ending::Exit(0))),
+        ],
+        7,
+    )
+}
+
+fn bundle_files(files: &[(&str, Vec<u8>)], roles: u8) -> Vec<u8> {
     let mut bytes = b"SPXDOC1\0".to_vec();
-    bytes.extend_from_slice(&[architecture(), 1]);
+    bytes.extend_from_slice(&[architecture(), roles]);
     bytes.extend_from_slice(&(SELECTOR.len() as u16).to_le_bytes());
-    bytes.extend_from_slice(&1u32.to_le_bytes());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&u32::MAX.to_le_bytes());
-    bytes.extend_from_slice(&u32::MAX.to_le_bytes());
+    bytes.extend_from_slice(&(files.len() as u32).to_le_bytes());
+    for ordinal in 0..3 {
+        let index = if roles & (1 << ordinal) != 0 {
+            ordinal
+        } else {
+            u32::MAX
+        };
+        bytes.extend_from_slice(&index.to_le_bytes());
+    }
     bytes.extend_from_slice(SELECTOR.as_bytes());
-    bytes.extend_from_slice(&9u16.to_le_bytes());
-    bytes.extend_from_slice(&[1, 0]);
-    bytes.extend_from_slice(&(elf.len() as u64).to_le_bytes());
-    bytes.extend_from_slice(b"bin/clang");
-    bytes.extend_from_slice(&elf);
+    for (path, elf) in files {
+        bytes.extend_from_slice(&(path.len() as u16).to_le_bytes());
+        bytes.extend_from_slice(&[1, 0]);
+        bytes.extend_from_slice(&(elf.len() as u64).to_le_bytes());
+        bytes.extend_from_slice(path.as_bytes());
+        bytes.extend_from_slice(elf);
+    }
     bytes
 }
 
 pub fn request(bundle: &[u8]) -> Vec<u8> {
+    request_target(bundle, 1)
+}
+
+pub fn request_target(bundle: &[u8], target: u8) -> Vec<u8> {
     let mut bytes = b"SPXDWK1\0".to_vec();
-    bytes.extend_from_slice(&[1, architecture(), 1, 1]);
+    bytes.extend_from_slice(&[1, architecture(), target, [4, 1, 2, 7][target as usize]]);
     bytes.extend_from_slice(&[0x37; 32]);
     bytes.extend_from_slice(&(bundle.len() as u64).to_le_bytes());
     bytes.extend_from_slice(&Sha256::digest(bundle));
@@ -60,10 +89,15 @@ pub enum Ending {
 }
 
 /// Closed recipes only. One exact write, then exit or spin. A short write exits
-/// 7; calibration uses the identical prefix, with a payload below PIPE_BUF.
+/// 7. Reply surrogates remain below PIPE_BUF; the large actual-tool fixture
+/// calibrates its complete bounded write before testing report sink failure.
 pub fn executable(payload: &[u8], ending: Ending) -> Vec<u8> {
-    assert!(payload.len() < 4096);
+    assert!(payload.len() <= 65_535);
     let code = machine_code(payload.len(), ending);
+    image(&code, payload)
+}
+
+pub(super) fn image(code: &[u8], payload: &[u8]) -> Vec<u8> {
     let mut elf = vec![0; 120];
     elf[..7].copy_from_slice(b"\x7fELF\x02\x01\x01");
     elf[16..18].copy_from_slice(&2u16.to_le_bytes());
@@ -81,7 +115,7 @@ pub fn executable(payload: &[u8], ending: Ending) -> Vec<u8> {
     elf[96..104].copy_from_slice(&length.to_le_bytes());
     elf[104..112].copy_from_slice(&length.to_le_bytes());
     elf[112..120].copy_from_slice(&4096u64.to_le_bytes());
-    elf.extend_from_slice(&code);
+    elf.extend_from_slice(code);
     elf.extend_from_slice(payload);
     elf
 }

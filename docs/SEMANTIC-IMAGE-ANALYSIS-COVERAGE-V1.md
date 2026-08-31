@@ -28,6 +28,15 @@ rows expose actual checked owner/import identities, name, import key,
 `native_rust`, effects and required authority. These are declarations, not
 independent provider verification or granted host capabilities.
 
+Current semantic Graph admission rejects Native Rust import declarations with
+`SPX-G218`, before an image or coverage report exists. The generic retained
+interface inventory does not widen that admission, and its `native_rust` field
+does not establish a supported native-import coverage lane. The regression
+explicitly preserves this rejection. A separate authored, unrun positive case
+uses an already-admitted non-native resource import that is retained in the
+source image but unused by the selected executable closure; it claims only
+partial declaration evidence, with `native_rust: false`.
+
 Each `areas` row has an area name, `status`, `basis`, `limitations`, and
 `required_evidence`. The evidence descriptions explain what is missing; they
 are not executable requests, available host grants, or permission to fetch it.

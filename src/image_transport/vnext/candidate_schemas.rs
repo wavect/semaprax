@@ -732,7 +732,10 @@ fn operation() -> Value {
                     "field_fields",
                     json!({"const":["id","name","type","default"]}),
                 ),
-                ("field_types", json!({"const":["i64","bool"]})),
+                (
+                    "field_types",
+                    json!({"const":["i64","bool","i32","u8","usize"]}),
+                ),
             ]),
             "implement_interface" => fields.extend([
                 (
@@ -758,6 +761,14 @@ fn operation() -> Value {
                 {"kind":"record","placement":"append_record_in_anchor_module","max_fields":64,"max_combined_identities":4096,"requires_full_candidate_validation":true},
                 {"kind":"variant","placement":"append_variant_in_anchor_module","min_cases":1,"max_cases":64,"max_fields_per_case":64,"max_combined_identities":4096,"requires_full_candidate_validation":true},
             ]});
+        }
+        if kind == "repair_diagnostic" {
+            let mut borrowed_field = shape.clone();
+            borrowed_field["properties"]["repair_class"] =
+                json!({"const":"borrow_owned_byte_field_without_staging"});
+            borrowed_field["properties"]["selector_source"] =
+                json!({"const":"attempt/repair-catalog"});
+            choices.push(borrowed_field);
         }
         choices.push(shape);
     }

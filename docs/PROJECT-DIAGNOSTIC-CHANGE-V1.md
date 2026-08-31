@@ -5,7 +5,7 @@ Status: Partial; implementation and regression tests authored, unrun.
 Audience: agent builders, compiler contributors, and reviewers.
 
 This additive Semantic Change operation turns the existing
-[candidate integer-literal repair](PROJECT-CANDIDATE-DIAGNOSTICS-V1.md) into an
+[candidate typed repairs](PROJECT-CANDIDATE-DIAGNOSTICS-V1.md) into an
 exact, replayable intention. Canonical source and full Project admission remain
 authoritative. No general diagnostic repair, invalid semantic image, automatic
 selection, source publication, test execution, or runtime equivalence is claimed.
@@ -27,30 +27,38 @@ selection, source publication, test execution, or runtime equivalence is claimed
 
 The outer object has exactly those four fields. The rejected intention has
 exactly `kind`, `target`, and `body`; its kind must be `replace_function_body`
-and its target must equal the outer target. The body has exactly `kind` and
-`value`, selecting an explicit `i64`, `i32`, `u8`, or `usize` integer literal.
-The existing repair class additionally requires the literal to fit its stated
-type, differ from the retained function return type, and fit that return type
-without changing its integer value. A replacement expression, supplied
-diagnostic, source text, HIR payload, or nested repair is not accepted.
+and its target must equal the outer target. Its body uses the existing closed
+typed expression grammar. The integer-literal repair requires a body with
+exactly `kind` and `value`, selecting `i64`, `i32`, `u8`, or `usize`. The literal
+must fit its stated type, differ from the retained function return type, and
+fit that return type without changing its integer value. A separate replacement,
+supplied diagnostic, source text, HIR payload, or nested repair is not accepted.
+
+The additive `borrow_owned_byte_field_without_staging` class requires an actual
+`SPX-T266` rejection and replaces direct lexical-root value projections under
+`core.bytes.as-slice` with authenticated `field_place` constructors. Other
+computed bases remain unsupported. The proposal is exposed only after full
+candidate admission; the source borrowing profile remains unchanged. See the
+[attempt contract](PROJECT-CANDIDATE-DIAGNOSTICS-V1.md) for its exact scope.
 
 `ProjectCandidateAttempt::repair_catalog` now includes a compiler-derived
 `semantic_change_intent` beside each offered repair. Pass that exact object to
 `SemanticChange::new` bound to the current Project revision, then use ordinary
 `ProjectCandidate::apply` bound to the current candidate digest. The change
-catalogue advertises this constructor only for supported integer-returning
-monomorphic explicit top-level functions other than `main`; discovery does not
-assert that an arbitrary rejected intention has an available repair.
+catalogue advertises this constructor only for eligible body-replacement
+targets; discovery does not assert that an arbitrary rejected intention has an
+available repair.
 
 ## Independent derivation and history
 
 Application first executes the exact rejected body intention against the
 current immutable candidate. It must actually fail. The resulting bounded
 diagnostics and exact predecessor/history are used to regenerate the ordinary
-attempt digest. The existing repair class derives a retagged literal from the
-retained HIR return type, fully admits that proposal, and regenerates its repair
-ID. The requested ID must match exactly before that compiler-derived body
-transformation is used.
+attempt digest. The selected repair class derives its transformation from the
+exact typed request and retained compiler facts, fully admits that proposal,
+and regenerates its repair ID. The requested ID must match exactly before that
+compiler-derived body transformation is used. Direct-field repair lowering uses
+the retained revision to authenticate the lexical root and selected field owner.
 
 The outer ordinary application then canonically formats and reparses sources,
 rebuilds and independently replays the Project, and checks identity, contract,
@@ -96,3 +104,8 @@ revision with distinct candidate history, literal/target/extra-field tampering,
 recursive and successful-attempt rejection, predecessor binding, explicit rebase
 conflict, and unchanged original files. They are authored and unrun at the user's
 request. No compiler check, interpreter, target executable, or local gate was run.
+
+[Field-borrow repair cases](../tests/project_candidate_field_borrow_repair_v1.rs)
+add actual `SPX-T266` rejection, nested and branch-local transformations,
+remaining ownership rejection, exact descriptors and history-bound replay.
+These additions are likewise authored and unrun.

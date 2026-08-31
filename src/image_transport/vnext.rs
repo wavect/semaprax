@@ -17,6 +17,7 @@ mod draft_recovery;
 mod hole_navigation;
 mod mcp;
 mod mcp_catalog;
+mod package_graph;
 mod projections;
 mod read_batch;
 mod recovery;
@@ -96,6 +97,8 @@ pub(super) enum Action {
     DraftMerge,
     Dependencies,
     AnalysisCoverage,
+    PackageSummary,
+    PackageConsumers,
     CleanupDependencies,
     CandidateCleanupDependencies,
     DependencySummary,
@@ -134,6 +137,8 @@ pub struct VNextSession {
     started: bool,
     terminal: bool,
     frontend: Option<ProjectFrontendCache>,
+    package_graph: Option<Arc<crate::package_semantic_graph::PackageSemanticGraph>>,
+    package_attachment_closed: bool,
 }
 
 impl VNextSession {
@@ -235,6 +240,8 @@ impl VNextSession {
             started: false,
             terminal: false,
             frontend,
+            package_graph: None,
+            package_attachment_closed: false,
         })
     }
 
@@ -285,6 +292,7 @@ impl VNextSession {
 
     /// Notifications and invalid frames never perform semantic work or refresh.
     pub fn handle_frame(&mut self, frame: &[u8]) -> Option<Vec<u8>> {
+        self.package_attachment_closed = true;
         if self.terminal || frame.is_empty() {
             return None;
         }
@@ -314,7 +322,11 @@ impl VNextSession {
         let RequestKind::Call(id) = request.kind else {
             return None;
         };
-        let available = methods(&self.policy, self.commit.is_some());
+        let available = session_methods(
+            &self.policy,
+            self.commit.is_some(),
+            self.package_graph.is_some(),
+        );
         let Some(method) = available
             .iter()
             .copied()
@@ -364,6 +376,7 @@ impl VNextSession {
     ) -> Vec<u8> {
         let image = &self.image;
         let registry = &self.registry;
+        let package_graph = self.package_graph.as_deref();
         let policy = &self.policy;
         let commit_enabled = self.commit.is_some();
         let prepared = self.snapshot.with_authenticated_request(|_| {
@@ -415,6 +428,10 @@ impl VNextSession {
                 ) => contract_holes::prepare(action, params, image, registry)?,
                 Operation::VNext(Action::Dependencies) => (
                     dependencies::prepare(params, image)?,
+                    candidates::Mutation::None,
+                ),
+                Operation::VNext(action @ (Action::PackageSummary | Action::PackageConsumers)) => (
+                    package_graph::prepare(action, params, image, package_graph)?,
                     candidates::Mutation::None,
                 ),
                 Operation::VNext(Action::AnalysisCoverage) => (
@@ -621,7 +638,16 @@ impl VNextSession {
     }
 }
 
+#[cfg(test)]
 fn methods(policy: &VNextPolicy, commit_enabled: bool) -> Vec<&'static Method> {
+    session_methods(policy, commit_enabled, false)
+}
+
+fn session_methods(
+    policy: &VNextPolicy,
+    commit_enabled: bool,
+    package_attached: bool,
+) -> Vec<&'static Method> {
     use candidates::diagnostics::Action as DiagnosticAction;
     let mut methods = candidates::diagnostics::methods(policy.test_policy.is_some())
         .into_iter()
@@ -644,6 +670,9 @@ fn methods(policy: &VNextPolicy, commit_enabled: bool) -> Vec<&'static Method> {
     methods.push(&REFRESH_PREVIEW);
     methods.push(dependencies::method());
     methods.push(analysis_coverage::method());
+    if package_attached {
+        methods.extend(package_graph::methods());
+    }
     methods.push(cleanup_dependencies::method());
     methods.extend(dependencies::navigation_methods());
     methods.extend(projections::methods(policy.build_enabled));

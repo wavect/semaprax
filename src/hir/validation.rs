@@ -21,6 +21,21 @@ fn owned_byte_record_copy_field_is_admitted(ty: &ResolvedType) -> bool {
     )
 }
 
+/// The complete already-admitted flat owned-byte record shape. Semantic
+/// source edits may inspect this predicate, but must still replay validation.
+pub(crate) fn admitted_flat_owned_byte_record_declaration(
+    declaration: &ResolvedTypeDeclaration,
+) -> bool {
+    let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind else {
+        return false;
+    };
+    declaration.type_parameters.is_empty()
+        && fields.iter().any(|field| field.ty == ResolvedType::Bytes)
+        && fields.iter().all(|field| {
+            field.ty == ResolvedType::Bytes || owned_byte_record_copy_field_is_admitted(&field.ty)
+        })
+}
+
 fn resolved_type_contains_owned_bytes(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
     let mut pending = vec![ty.clone()];
     let mut visited = BTreeSet::new();

@@ -1915,7 +1915,6 @@ if (snapshotted.evaluate(19n, 23n) !== 42n) process.exit(86);
     }
 
     #[test]
-    #[ignore = "flaky with --workspace --all-targets, needs isolated run"]
     fn default_feature_external_consumer_cannot_import_component_harness() {
         let directory = ConsumerDirectory::create();
         let manifest_root = env!("CARGO_MANIFEST_DIR").replace('\\', "\\\\");
@@ -2032,7 +2031,6 @@ fn main() -> i64 { 0 }
     }
 
     #[test]
-    #[ignore = "flaky with --workspace --all-targets, needs isolated run"]
     fn feature_consumer_can_only_read_checked_component_digests_through_accessors() {
         let directory = ConsumerDirectory::create();
         let manifest_root = env!("CARGO_MANIFEST_DIR").replace('\\', "\\\\");

@@ -16,6 +16,28 @@
   undiagnosed filesystem-dependent limit. No full-quality, profile or hosted
   promotion is implied.
 
+- Batched CI repairs: update the isolated private Wasmtime runner to 47.0.4,
+  resolve strict Clippy errors, restore component/consumer checks, and correct
+  constructor fixtures without widening source/import admission. Core Wasm now
+  allocates byte-range scratch independently of CleanupPlan v4/v5/v6 selection.
+  Independent cleanup replay preserves declaration-ordered match transfers and
+  partial-construction history through late Copy initializer failures. Focused
+  local regressions pass; full-profile and current-head hosted promotion remain
+  pending.
+
+- Added compiler-guided repair for rejected byte-field views staged through
+  value projections. An actual `SPX-T266` rejection and full candidate admission
+  are required before offering direct field storage with unchanged stable field
+  and lexical root selectors. Repair selection retains exact predecessor and
+  replay bindings; source loan rules and publication authority are unchanged.
+  Discovery, schema and regression additions are authored, unrun.
+
+- Broadened semantic record-field changes to checked Copy and existing flat
+  owned-byte records, with inert i64/bool/i32/u8/usize defaults. Migrations
+  preserve old initializer order, owning pattern bindings and stable field
+  identities, then rebuild ownership, loans, cleanup and target facts. Schema,
+  catalogue and regression updates are authored, unrun.
+
 - Restored the resolved-interface slice in the borrowed operation-sidecar view
   for both workspace and retained-Project constructors. This fixes the refactor's
   compile error while preserving the existing authenticated interface-parameter
@@ -29,6 +51,18 @@
   changes. Nine selected native provider/target tests pass on Linux AArch64/
   Rust 1.88/Clang 14, including hostile handles and issuer boundaries; the nested
   offline Cargo consumer is excluded. No hosted or full-profile promotion.
+
+- Corrected analysis-coverage evidence after integration exposed an invalid
+  Native Rust import fixture. The native case now explicitly preserves Graph
+  admission rejection `SPX-G218`; a separate non-native resource-import case
+  covers partial declaration facts. Reports expose that admission limit. The
+  correction is authored and unrun here, without widening native support.
+
+- Added an authenticated package semantic graph with coordinate-qualified
+  consumer queries, separate import/call facts, and explicit host-selected v5
+  reads. The graph reuses complete package source-capsule replay and never
+  infers a Project dependency from matching IDs. Regression sources are
+  authored, unrun; package acquisition and publication remain separate.
 
 - Fixed new-project failed-publication cleanup authority: return the rename
   error before reopening `src`, so a replacement directory cannot become owned

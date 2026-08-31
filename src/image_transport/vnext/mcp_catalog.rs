@@ -1,6 +1,8 @@
 //! Pure MCP tool descriptions derived from the exact selected v5 registry.
 //! No output-schema claim is made for the deliberately opaque inner response.
-use super::{discovery, methods, VNextPolicy};
+#[cfg(test)]
+use super::methods;
+use super::{discovery, session_methods, VNextPolicy};
 use crate::diagnostic::Diagnostic;
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
@@ -22,8 +24,16 @@ pub(super) struct Catalog {
 }
 
 impl Catalog {
+    #[cfg(test)]
     pub(super) fn new(policy: &VNextPolicy, commit_enabled: bool) -> Result<Self> {
-        let selected_methods = methods(policy, commit_enabled);
+        Self::new_with_package(policy, commit_enabled, false)
+    }
+    pub(super) fn new_with_package(
+        policy: &VNextPolicy,
+        commit_enabled: bool,
+        package_attached: bool,
+    ) -> Result<Self> {
+        let selected_methods = session_methods(policy, commit_enabled, package_attached);
         if selected_methods.len() > MAX_TOOLS {
             return Err(capacity("MCP selected tool count exceeds 256"));
         }

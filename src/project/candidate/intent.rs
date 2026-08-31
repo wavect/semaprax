@@ -57,6 +57,7 @@ pub(super) struct IntentSummary {
 
 /// Mutates invocation-local candidate ASTs only. On failure the caller discards
 /// them; this internal routine supplies neither rollback nor source authority.
+#[cfg(test)]
 pub(super) fn apply(programs: &mut [Program], intent: &Value) -> Result<IntentSummary> {
     apply_inner(None, programs, intent)
 }

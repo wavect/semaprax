@@ -12,7 +12,8 @@ mod wire;
     reason = "frozen crate-private seam consumed by Offline Package Build v2"
 )]
 pub(crate) use model::{
-    LinkedPackageImportFact, LinkedPackageSourceFact, VerifiedLinkedSourceCapsule,
+    LinkedPackageCallFact, LinkedPackageImportFact, LinkedPackageSourceFact,
+    VerifiedLinkedSourceCapsule,
 };
 pub use model::{
     PackageSource, SourceCapsuleOptions, VerifiedSourceCapsule, MAX_IMPORTS, MAX_OUTPUT_BYTES,
@@ -74,9 +75,53 @@ pub(crate) fn verify_for_linked_build(
     resolution_options: &ResolutionOptions,
     options: &SourceCapsuleOptions,
 ) -> Result<VerifiedLinkedSourceCapsule, Diagnostic> {
+    verify_linked(
+        capsule,
+        sources,
+        resolution_evidence,
+        resolution_input,
+        resolution_options,
+        options,
+        false,
+    )
+}
+
+pub(crate) fn verify_for_semantic_graph(
+    capsule: &str,
+    sources: &[PackageSource],
+    resolution_evidence: &str,
+    resolution_input: &ResolutionInput,
+    resolution_options: &ResolutionOptions,
+    options: &SourceCapsuleOptions,
+) -> Result<VerifiedLinkedSourceCapsule, Diagnostic> {
+    verify_linked(
+        capsule,
+        sources,
+        resolution_evidence,
+        resolution_input,
+        resolution_options,
+        options,
+        true,
+    )
+}
+
+fn verify_linked(
+    capsule: &str,
+    sources: &[PackageSource],
+    resolution_evidence: &str,
+    resolution_input: &ResolutionInput,
+    resolution_options: &ResolutionOptions,
+    options: &SourceCapsuleOptions,
+    retain_calls: bool,
+) -> Result<VerifiedLinkedSourceCapsule, Diagnostic> {
     admission::validate_options(options)?;
     wire::validate_submitted(capsule, options.max_bytes)?;
-    let built = admission::build(
+    let build = if retain_calls {
+        admission::build_linked
+    } else {
+        admission::build
+    };
+    let built = build(
         sources,
         resolution_evidence,
         resolution_input,
@@ -94,6 +139,7 @@ pub(crate) fn verify_for_linked_build(
         selected_subjects: built.selected_subjects,
         package_facts: built.package_facts,
         import_facts: built.import_facts,
+        call_facts: built.call_facts,
     })
 }
 

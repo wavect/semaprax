@@ -75,6 +75,7 @@ fn view() -> usize uses { process.args.read } {
 mod inspection;
 #[cfg(test)]
 mod projected_byte_field_provenance_tests;
+mod record_evolution;
 mod type_reachability;
 mod validation;
 mod workspace_link;
@@ -95,6 +96,7 @@ pub(crate) use inspection::{
 };
 
 pub(crate) use type_reachability::reachable_authored_types;
+pub(crate) use validation::admitted_flat_owned_byte_record_declaration;
 pub(crate) use validation::validate_core;
 #[cfg(test)]
 use validation::HirValidator;

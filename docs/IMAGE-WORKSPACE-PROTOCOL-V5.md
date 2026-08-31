@@ -34,6 +34,13 @@ the host's existing fixed `CandidateTestPolicy`. No request changes these
 booleans or limits. `serve_vnext(input, output, session)` accepts host-provided
 streams and the already configured session; it discovers no paths or authority.
 
+An embedding host can also attach an independently verified immutable package
+graph before requests. This selects `package/summary` and `package/consumers`
+without widening any execution, candidate or publication grant. They describe
+an independent package subject, not a relationship to the current Project.
+No RPC accepts package input paths or attaches/replaces a graph. See
+[Package Semantic Graph](PACKAGE-SEMANTIC-GRAPH-V1.md).
+
 The optional [MCP adapter](IMAGE-MCP-ADAPTER-V1.md) consumes that configured
 session and exposes its selected methods as tools. It preserves exact v5
 arguments and response bytes, requires a separate MCP initialization handshake,

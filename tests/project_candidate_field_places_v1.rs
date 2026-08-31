@@ -28,7 +28,7 @@ name = "field-places"
 version = "1.0.0"
 profile = "owned-data-api.v1"
 entry = "fields.app"
-sources = ["src/app.spx", "src/core.spx", "src/bridge.spx", "src/tests.spx"]
+sources = ["src/app.spx", "src/bridge.spx", "src/core.spx", "src/tests.spx"]
 web_exports = ["fields.public"]
 tests = ["fields.tests"]
 "#,
@@ -65,8 +65,8 @@ tests = ["fields.tests"]
 @id("fields.wrong-metric") fn wrong_metric(metric:OtherMetric)->i64 {metric.value}
 @id("fields.make-other-metric") fn make_other_metric(value:i64)->OtherMetric {OtherMetric {value:value}}
 @id("fields.read-box") fn read_box(boxed:Box<i64>)->i64 {boxed.value}
-@id("fields.immutable") fn immutable(input:borrow Slice<u8>)->usize {let packet=make(input); byte_len(bytes_as_slice(packet.left))}
-@id("fields.mutable") fn mutable(input:borrow Slice<u8>)->usize {let mut packet=make(input); byte_len(bytes_as_slice(packet.left))}
+@id("fields.immutable") fn immutable(input:borrow Slice<u8>)->usize {let packet=make(input); let view=bytes_as_slice(packet.left); byte_len(view)}
+@id("fields.mutable") fn mutable(input:borrow Slice<u8>)->usize {let mut packet=make(input); let view=bytes_as_slice(packet.left); byte_len(view)}
 @id("fields.public") fn public_value(value:i64)->i64 {value}
 @id("fields.evaluate") fn evaluate()->i64 {let input=[7u8,8u8]; if inspect(make(array_as_slice(input)))==2usize && immutable(array_as_slice(input))==2usize && mutable(array_as_slice(input))==2usize && read(Metric {value:0})==0 && read_box(Box<i64> {value:0})==0 {42}else{0}}
 "#,
@@ -74,11 +74,12 @@ tests = ["fields.tests"]
             (
                 "src/bridge.spx",
                 r#"module fields.bridge;
-use type @id("fields.packet") from fields.core as Frame;
-use function @id("fields.make") from fields.core as make;
-use function @id("fields.consume") from fields.core as consume;
+use type @id("fields.metric") from fields.core as RemoteMetric;
+@id("fields.bridge-packet") record Frame { @id("fields.bridge-packet.left") left:Bytes, @id("fields.bridge-packet.right") right:Bytes, }
+@id("fields.bridge-consume") fn consume(bytes:own Bytes)->i64 {7}
+@id("fields.bridge-read") fn read(metric:RemoteMetric)->i64 {metric.value}
 @id("fields.bridge-inspect") fn inspect(packet:own Frame)->usize {let view=bytes_as_slice(packet.left); let sibling=consume(packet.right); byte_len(view)}
-@id("fields.bridge-evaluate") fn evaluate(input:borrow Slice<u8>)->usize {inspect(make(input))}
+@id("fields.bridge-evaluate") fn evaluate(input:borrow Slice<u8>)->usize {inspect(Frame {left:bytes_copy(input),right:bytes_copy(input)})}
 "#,
             ),
             (
@@ -236,21 +237,26 @@ fn selected_contract(candidate: &ProjectCandidate, target: &str, snippet: &str) 
 }
 
 fn projected_body() -> Value {
+    projected_body_for("fields.packet")
+}
+fn projected_body_for(owner: &str) -> Value {
+    let consumer = if owner == "fields.bridge-packet" {
+        "fields.bridge-consume"
+    } else {
+        "fields.consume"
+    };
     binding(
         "view",
         builtin(
             "core.bytes.as-slice",
-            vec![field("fields.packet.left", "packet")],
+            vec![field(&format!("{owner}.left"), "packet")],
         ),
         binding(
             "alias",
             place("view"),
             binding(
                 "sibling",
-                call(
-                    "fields.consume",
-                    vec![field("fields.packet.right", "packet")],
-                ),
+                call(consumer, vec![field(&format!("{owner}.right"), "packet")]),
                 builtin("core.bytes.len", vec![place("alias")]),
             ),
         ),
@@ -258,16 +264,20 @@ fn projected_body() -> Value {
 }
 
 #[test]
-fn direct_field_borrow_keeps_the_owned_parameter_and_exact_field_provenance_across_import_aliases()
-{
+fn direct_field_borrow_keeps_the_owned_parameter_and_exact_field_provenance_in_each_module() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
     let base = fixture.candidate();
-    for (target, path) in [
-        ("fields.inspect", "src/core.spx"),
-        ("fields.bridge-inspect", "src/bridge.spx"),
+    for (target, path, owner) in [
+        ("fields.inspect", "src/core.spx", "fields.packet"),
+        (
+            "fields.bridge-inspect",
+            "src/bridge.spx",
+            "fields.bridge-packet",
+        ),
     ] {
-        let candidate = body(&base, target, projected_body()).unwrap();
+        let expression = projected_body_for(owner);
+        let candidate = body(&base, target, expression.clone()).unwrap();
         let function = candidate
             .revision()
             .entry_program()
@@ -284,16 +294,16 @@ fn direct_field_borrow_keeps_the_owned_parameter_and_exact_field_provenance_acro
         assert_eq!(projected.origin.root, function.params[0].id);
         assert_eq!(
             projected.origin.projections,
-            [PlaceProjection::Field(DeclarationId::new(
-                "fields.packet.left"
-            ))]
+            [PlaceProjection::Field(DeclarationId::new(format!(
+                "{owner}.left"
+            )))]
         );
         let graph: Value = serde_json::from_str(candidate.revision().semantic_graph()).unwrap();
         assert!(graph["declarations"]
             .as_array()
             .unwrap()
             .iter()
-            .any(|row| row["id"] == "fields.packet.left" && row["owner"] == "fields.packet"));
+            .any(|row| row["id"] == format!("{owner}.left") && row["owner"] == owner));
         let parsed = semaprax::parse(source(&candidate, path), path).unwrap();
         let authored = parsed
             .functions
@@ -327,7 +337,7 @@ fn direct_field_borrow_keeps_the_owned_parameter_and_exact_field_provenance_acro
             .unwrap();
         code(draft.complete(draft.draft_digest()), "SPX-G232");
         let filled = draft
-            .fill_hole(draft.draft_digest(), "projected", &projected_body())
+            .fill_hole(draft.draft_digest(), "projected", &expression)
             .unwrap();
         let completed = filled.complete(filled.draft_digest()).unwrap();
         assert_eq!(completed.to_json(), candidate.to_json());
@@ -336,12 +346,67 @@ fn direct_field_borrow_keeps_the_owned_parameter_and_exact_field_provenance_acro
 }
 
 #[test]
+fn copy_type_import_aliases_keep_exact_field_owners() {
+    let fixture = Fixture::new();
+    let disk = fixture.bytes();
+    let base = fixture.candidate();
+    let candidate = body(
+        &base,
+        "fields.bridge-read",
+        field("fields.metric.value", "metric"),
+    )
+    .unwrap();
+    assert!(source(&candidate, "src/bridge.spx").contains("metric.value"));
+    code(
+        body(
+            &base,
+            "fields.bridge-read",
+            field("fields.other-metric.value", "metric"),
+        ),
+        "SPX-G225",
+    );
+    replay(&candidate);
+    assert_eq!(fixture.bytes(), disk);
+}
+
+#[test]
+fn owned_type_and_owned_argument_imports_keep_their_closed_workspace_boundaries() {
+    for (binding, diagnostic) in [
+        (
+            "use type @id(\"fields.packet\") from fields.core as RemotePacket;",
+            "SPX-G172",
+        ),
+        (
+            "use function @id(\"fields.consume\") from fields.core as remote_consume;",
+            "SPX-G172",
+        ),
+    ] {
+        let fixture = Fixture::new();
+        let bridge = std::fs::read_to_string(fixture.0.join("src/bridge.spx")).unwrap();
+        fixture.write(
+            "src/bridge.spx",
+            &bridge.replacen(
+                "module fields.bridge;",
+                &format!("module fields.bridge;\n{binding}"),
+                1,
+            ),
+        );
+        let disk = fixture.bytes();
+        code(
+            with_authenticated_project(&fixture.0.join("semaprax.toml"), |_| Ok(())),
+            diagnostic,
+        );
+        assert_eq!(fixture.bytes(), disk);
+    }
+}
+
+#[test]
 fn immutable_and_mutable_checked_local_roots_both_allow_shared_field_borrows_in_expression_holes() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
     let base = Arc::new(fixture.candidate());
     for (target, mutable) in [("fields.immutable", false), ("fields.mutable", true)] {
-        let (expression, row) = selected(&base, target, "byte_len(bytes_as_slice(packet.left))");
+        let (expression, row) = selected(&base, target, "byte_len(view)");
         let root = row["scope"]
             .as_array()
             .unwrap()
@@ -355,20 +420,20 @@ fn immutable_and_mutable_checked_local_roots_both_allow_shared_field_borrows_in_
             .with_expression_hole(empty.draft_digest(), target, &expression, "view")
             .unwrap();
         let before = draft.to_json().to_owned();
-        let replacement = builtin(
-            "core.bytes.len",
-            vec![builtin(
+        let replacement = binding(
+            "replacement_view",
+            builtin(
                 "core.bytes.as-slice",
                 vec![field("fields.packet.right", "packet")],
-            )],
+            ),
+            builtin("core.bytes.len", vec![place("replacement_view")]),
         );
         let done = draft
             .fill_hole(draft.draft_digest(), "view", &replacement)
             .unwrap();
         let candidate = done.complete(done.draft_digest()).unwrap();
-        assert!(
-            source(&candidate, "src/core.spx").contains("byte_len(bytes_as_slice(packet.right))")
-        );
+        assert!(source(&candidate, "src/core.spx")
+            .contains("let replacement_view = bytes_as_slice(packet.right);"));
         assert_eq!(draft.to_json(), before);
         replay(&candidate);
     }
@@ -395,12 +460,13 @@ fn constructor_let_roots_and_generic_scalar_instances_use_their_actual_nominal_o
         binding(
             "packet",
             call("fields.make", vec![place("input")]),
-            builtin(
-                "core.bytes.len",
-                vec![builtin(
+            binding(
+                "view",
+                builtin(
                     "core.bytes.as-slice",
                     vec![field("fields.packet.left", "packet")],
-                )],
+                ),
+                builtin("core.bytes.len", vec![place("view")]),
             ),
         ),
     )

@@ -936,9 +936,15 @@ type syntax through destination bindings. Rebuilt type identities supplement
 the existing call-inventory and exact source-reconstruction checks; source type
 imports remain unchanged and ordinary Project admission still rejects cycles.
 `candidate/record_field.rs` appends a typed scalar field and migrates
-constructors and exact patterns using retained type identities. Both reconstruct
+constructors and exact patterns using retained type identities and the owning
+compiler type facts. `hir/record_evolution.rs` reconstructs only the bounded
+selected declaration closure, including unused records, for the existing HIR
+TypeFacts owner; it retains no additional whole-project index.
+The operation admits checked Copy records and existing flat owned-byte
+records while appending only inert non-droppable fields; owning match bindings,
+loan roots and cleanup order remain under normal source replay. Both reconstruct
 the expected canonical source independently after admission; identity guards
-permit only the planned function location or new owned field. Rebase compares
+permit only the planned function location or new record member. Rebase compares
 record shape and relocation facts before full replay. No source authority is
 added. `image_facets/relationships.rs` projects bounded data-access and audit
 facts from retained HIR with source, expression and evidence provenance; the
@@ -949,7 +955,11 @@ executes the declared interpreter test closure only after exact candidate replay
 Image protocol v3 selects this bounded authority at host startup; policy cannot
 be changed by requests. `candidate/diagnostics.rs` retains failed intentions and
 diagnostics without exposing invalid source as a checked image, and routes its
-bounded repair class through ordinary complete candidate admission.
+bounded literal-retag and direct-field borrow repairs through ordinary complete
+candidate admission. Its private `candidate/diagnostic_borrow.rs` helper requires
+an actual `SPX-T266` rejection
+and only changes typed projections of named roots under byte-view constructors;
+source ownership and loan validation remain the admission authority.
 
 `candidate/publication.rs` is a separate host invocation over an existing managed
 Workspace. Its in-memory Change-v1 seam acquires existing shared/exclusive
@@ -1274,6 +1284,15 @@ while a crate-private replay seam retains linked HIR for the separate
 linked-build consumer. The authored surface is unrun and adds no build or
 publication authority. See [Offline Multi-Package Source Capsule
 v1](OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md).
+
+`package_semantic_graph` consumes that same complete capsule replay to retain
+coordinate-qualified package, source, interface, import and cross-package call
+facts. Its immutable consumer index is independent of a Project image. A v5
+host may attach the verified graph before requests and expose read-only package
+queries through the selected discovery and parallel-read paths; equal stable
+IDs do not establish any Project/package relationship. No source, acquisition,
+build or publication authority crosses this boundary. See
+[Package Semantic Graph](PACKAGE-SEMANTIC-GRAPH-V1.md).
 
 Additive `package_build` consumes that exact resolver evidence only through an
 independent replay route. The v1 profile deliberately admits one selected,

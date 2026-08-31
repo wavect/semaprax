@@ -9,6 +9,13 @@ builders from the exact host-selected method registry. No request, generated
 helper, or schema can grant preparation, diagnostics, tests, builds, or source
 commit authority. Existing v1–v4 discovery and client helpers remain unchanged.
 
+A startup-attached [Package Semantic Graph](PACKAGE-SEMANTIC-GRAPH-V1.md)
+selects package summary/consumer methods and their closed payload schemas.
+Instructions, typed clients and MCP tools reflect that actual attachment;
+default sessions cannot request package attachment or gain those methods.
+Package revisions identify independent verified subjects, with no inferred
+association to the session's Project image.
+
 ## Schema bundle
 
 `protocol/schemas` returns `semaprax.image-agent-schemas.v5`. Its `methods`

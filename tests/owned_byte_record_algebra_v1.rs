@@ -359,3 +359,130 @@ fn cleanup_inventory_and_plan_preserve_the_exact_direct_byte_projection() {
     );
     assert_eq!(plan_leaves, expected);
 }
+
+#[test]
+fn reordered_owned_patterns_keep_declaration_order_and_reject_reordered_transfers() {
+    use semaprax::cleanup_plan::CleanupTransition;
+    let source = r#"
+module test.reordered_owned_pattern;
+@id("packet") record Packet {
+    @id("packet.left") left:Bytes,
+    @id("packet.marker") marker:i64,
+    @id("packet.right") right:Bytes,
+}
+@id("take") fn take(packet:own Packet)->i64 {
+    match own packet { Packet {right:r,marker:m,left:l} => m, }
+}
+@id("app.main") fn main()->i64 {0}
+"#;
+    let program = resolved(source);
+    let take = function(&program, "take");
+    let transfers = take
+        .cleanup_plan
+        .blocks
+        .iter()
+        .find(|block| {
+            block
+                .transitions
+                .iter()
+                .filter(|transition| matches!(transition, CleanupTransition::Transfer { .. }))
+                .count()
+                == 2
+        })
+        .expect("one transfer per owned field");
+    let fields = transfers
+        .transitions
+        .iter()
+        .filter_map(|transition| match transition {
+            CleanupTransition::Transfer { source, .. } => Some(source.projections[0].as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(fields, ["packet.left", "packet.right"]);
+    hir::validate(&program).unwrap();
+
+    let block_id = transfers.id;
+    let mut forged = program.clone();
+    let take = forged
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "take")
+        .unwrap();
+    let block = take
+        .cleanup_plan
+        .blocks
+        .iter_mut()
+        .find(|block| block.id == block_id)
+        .unwrap();
+    let indices = block
+        .transitions
+        .iter()
+        .enumerate()
+        .filter_map(|(index, transition)| {
+            matches!(transition, CleanupTransition::Transfer { .. }).then_some(index)
+        })
+        .collect::<Vec<_>>();
+    block.transitions.swap(indices[0], indices[1]);
+    assert_eq!(hir::validate(&forged).unwrap_err().code, "SPX-H006");
+    assert_eq!(
+        semaprax::wasm::emit_resolved_module(&forged)
+            .unwrap_err()
+            .code,
+        "SPX-H006"
+    );
+}
+
+#[test]
+fn late_copy_initializer_failure_keeps_partial_record_initialization_order() {
+    let source = r#"
+module test.partial_owned_record;
+@id("packet") record Packet {
+    @id("packet.left") left:Bytes,
+    @id("packet.right") right:Bytes,
+    @id("packet.marker") marker:i64,
+}
+@id("make") fn make(input:borrow Slice<u8>,value:i64)->Packet {
+    Packet {right:bytes_copy(input),left:bytes_copy(input),marker:-value}
+}
+@id("app.main") fn main()->i64 {0}
+"#;
+    let program = resolved(source);
+    let make = function(&program, "make");
+    let exit = make
+        .cleanup_plan
+        .exits
+        .iter()
+        .find(|exit| {
+            matches!(
+                exit.continuation,
+                semaprax::cleanup_plan::ExitContinuation::ReturnFailure { .. }
+            ) && exit.finalize_in_order.len() == 2
+        })
+        .expect("negation failure settles both initialized fields");
+    assert_eq!(
+        exit.finalize_in_order
+            .iter()
+            .map(|action| { action.source.projections[0].as_str() })
+            .collect::<Vec<_>>(),
+        ["packet.left", "packet.right"]
+    );
+    hir::validate(&program).unwrap();
+    semaprax::wasm::emit_resolved_module(&program).unwrap();
+    semaprax::codegen::emit_c(&parse(source, "partial-owned-record.spx").unwrap()).unwrap();
+
+    let exit_id = exit.id;
+    let mut forged = program.clone();
+    let make = forged
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "make")
+        .unwrap();
+    let exit = make
+        .cleanup_plan
+        .exits
+        .iter_mut()
+        .find(|exit| exit.id == exit_id)
+        .unwrap();
+    exit.finalize_in_order.swap(0, 1);
+    assert_eq!(hir::validate(&forged).unwrap_err().code, "SPX-H006");
+}

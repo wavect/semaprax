@@ -31,7 +31,11 @@ impl McpSession {
         if inner.started || inner.is_terminal() {
             return Err(failure("SPX-G349", "MCP requires an unused v5 session"));
         }
-        let catalog = Catalog::new(&inner.policy, inner.commit.is_some())?;
+        let catalog = Catalog::new_with_package(
+            &inner.policy,
+            inner.commit.is_some(),
+            inner.package_graph.is_some(),
+        )?;
         Ok(Self {
             inner,
             catalog,

@@ -27,8 +27,14 @@ fixed candidate requirements. Its intention is exactly:
 }
 ```
 
-The other supported type/default pair is `"i64"` with an exact signed 64-bit
-JSON integer. The literal kind must equal the field type. Calls, places,
+Supported type/default pairs are `bool`, `i64`, `i32`, `u8`, and `usize`.
+Integer literals must be exact JSON integers with a source-representable
+magnitude: `-i64::MAX..=i64::MAX`, `-i32::MAX..=i32::MAX`, unsigned 8-bit,
+or unsigned 64-bit `usize`, respectively. The frozen lexer parses the positive
+magnitude before unary minus, so `i64::MIN` and `i32::MIN` are not admitted
+literal defaults; the intention rejects them with `SPX-G225` before migration.
+This does not narrow runtime integer values or widen source syntax.
+The literal kind must equal the field type. Calls, places,
 expressions, source strings, unknown keys, and implicit conversions are not
 accepted defaults. The new stable ID must be globally unused and use one to
 128 lowercase ASCII ID characters; the name must be a bounded ordinary field
@@ -37,18 +43,35 @@ identifier and must not already occur on the target record.
 ## Eligibility and identity
 
 The target is an explicit, monomorphic, authored record from retained validated
-HIR. Every existing field must be directly `i64`, `bool`, or another admitted
-monomorphic Copy record whose fields recursively meet the same rule. Empty
-records are allowed. Generic records, classes, variants, owned or borrowed data,
-resources, and other scalar/aggregate field kinds are outside this version.
-Eligibility uses memoized nominal-type traversal with a depth bound; it does not
-infer Copy semantics from display names.
+HIR. Eligibility uses the compiler's checked type facts for resource-free,
+sized Copy records, including already-admitted scalar and aggregate field
+types. Empty records are allowed. It also admits the existing flat owned-byte
+record profile: a monomorphic record with at least one direct `Bytes` field
+and only direct `Bytes` or the profile's Copy-scalar fields. The selected
+record's identity and complete field shape determine eligibility; display
+names never establish Copy or ownership facts.
+
+For an unused record, eligibility reconstructs only its selected nominal
+dependency closure from the retained checked declarations and compiler prelude.
+The ordinary HIR TypeFacts owner computes Copy, drop, resource, and layout facts;
+the operation does not infer them from function use or duplicate those rules.
+This temporary index is neither retained nor a new source of graph authority.
+
+Generic target records, classes, variant targets, resources, borrowed storage,
+and owned shapes outside that flat-byte profile remain excluded. A newly
+appended field is always an inert Copy scalar, never another owned field,
+allocation, resource, reference, or implicit ownership transfer. This broadens
+the semantic intention, not the language's aggregate or backend admission.
 
 Module source revision/digest facts and the target declaration's source origin
 must match the retained Project. Local type bindings and imported aliases map
 to persistent identities; imported aliases must name the authenticated owning
 module. Thus an imported `Point` renamed locally to `Metric` still selects the
 same record, while another record with a similar display name is untouched.
+Alias migration applies only where Project already admits the import: Copy
+record aliases are supported; owned-record type aliases and owned-argument
+function imports remain rejected by `SPX-G172`. Owned-record migration evidence
+uses local declarations without widening that cross-module boundary.
 The addition records the exact field ID, name, record owner ID, source path,
 and module. All old identities and fields retain their existing order.
 
@@ -61,7 +84,8 @@ constructor must exactly match the old field-name inventory. Its old initializer
 sequence remains unchanged and the inert default literal is appended last.
 This preserves left-to-right evaluation of the old values and their checked
 failure order; an initializer that was lazy remains at its original position.
-The new literal has no effects, allocation, or checked-failure path.
+The default has no effects or allocation and cannot fail when evaluated;
+negative defaults retain the ordinary checked unary-negation representation.
 
 Exact record patterns are traversed recursively, including nested field
 patterns. Each affected exact pattern must match the old field inventory and
@@ -70,6 +94,13 @@ references, and nested patterns remain unchanged. Whole-record binding and
 wildcard patterns need no new binding. Record updates are not expanded: the
 ordinary compiler copies the new field from the base unless explicitly changed
 by later source, preserving existing update and projection semantics.
+
+For an owned-byte record, explicit `match own` and `match borrow` modes stay
+unchanged. Every old droppable field retains its required binding; only the
+new non-droppable scalar receives `_`. The migration never discards an owned
+field or manufactures a second owner. Existing direct field loans retain their
+root and persistent field identities. Full source admission still checks loan
+overlap and last use after migration.
 
 The operation is append-only. It neither reorders old fields nor renames old
 members. It intentionally changes record layout and adds a new field to values;
@@ -85,6 +116,11 @@ record-layout, and admitted target checks remain mandatory; the operation never
 relaxes them. Native C and structurally validated Core Wasm target facts are
 rederived where the base lane is admitted, without claiming target execution.
 
+Appending a non-droppable field adds no owned cleanup leaf. Cleanup inventories
+and plans are rebuilt from the complete candidate, retaining the compiler's
+canonical order; they are not copied, sorted, repaired, or declared byte-equal
+merely because the old owned field identities remain unchanged.
+
 After admission, the operation independently reconstructs the field declaration
 and every migration from the prior immutable revision. All canonical candidate
 sources must match this reconstruction exactly. Existing candidate replay binds
@@ -93,8 +129,11 @@ conflicts and new-ID collisions before replaying the migration in the new
 revision; unrelated function display renames can coexist, while concurrent
 changes to the same record shape fail closed.
 
-The final target record has at most 64 fields. Existing nested records must also
-meet that bound. Type, expression, and pattern traversal depth is at most 256.
+The final target record has at most 64 fields. Selected type reconstruction has
+at most 4,096 source declarations, 1,048,576 visits, depth 256, and a 16 MiB
+charged-input budget; TypeFacts rendering has a separate 16 MiB output bound.
+Existing global nominal guards remain unchanged. Expression and pattern
+traversal depth is at most 256.
 Expression migration and inserted items share a 1,048,576 item ceiling; pattern
 traversal is separately bounded to that many items. Existing Project source and
 candidate byte limits still apply. Invalid/unsupported operations use
@@ -111,10 +150,15 @@ Git changes.
 cross-module aliases, constructor ordering, contract constructors, nested exact
 patterns, unchanged updates, lazy failure placement, exact replay, recovery, and tampering,
 stale requests, global ID/name collisions, default/type rejection, boolean
-fields, generic/owned rejection, unchanged source bytes, unrelated rename
+fields, generic rejection and unused owned-record admission, unchanged source bytes, unrelated rename
 merges, and competing record-shape rejection.
+
+`tests/project_owned_record_field_addition_v1.rs` adds authored, unrun cases for
+flat owned-byte records, initializer order, owning match bindings, live field
+loans and cleanup order, imported aliases, broader checked Copy fields, and
+scalar default ranges.
 
 No local tests, compiler checks, or long gates were executed, as requested by the
 user. These cases are not passing completion evidence. General record evolution,
-field removal/reordering, generic and owned record migration, arbitrary defaults,
+field removal/reordering, generic and broader owned record migration, arbitrary defaults,
 public ABI compatibility, and the full graph-operational roadmap remain open.

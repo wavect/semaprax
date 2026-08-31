@@ -83,17 +83,19 @@ mod tests {
 
     #[test]
     fn preparation_returns_bytes_and_request_derivation_requires_the_retained_bundle() {
-        let _: fn(
+        type EncodeBundle = fn(
             DoctorOfflineArchitecture,
             &str,
             &[DoctorOfflineBundleEntry<'_>],
             DoctorOfflineBundleRoles,
             usize,
-        ) -> Result<Vec<u8>, DoctorOfflineBundleError> = encode_doctor_offline_bundle;
-        let _: fn(
+        ) -> Result<Vec<u8>, DoctorOfflineBundleError>;
+        type EncodeRequest = fn(
             &DoctorOfflineBundle,
             crate::DoctorOfflineTarget,
             [u8; 32],
-        ) -> Result<Vec<u8>, DoctorOfflineBundleError> = DoctorOfflineBundle::encode_worker_request;
+        ) -> Result<Vec<u8>, DoctorOfflineBundleError>;
+        let _: EncodeBundle = encode_doctor_offline_bundle;
+        let _: EncodeRequest = DoctorOfflineBundle::encode_worker_request;
     }
 }

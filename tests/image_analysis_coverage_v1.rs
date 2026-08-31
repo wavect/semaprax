@@ -192,31 +192,86 @@ fn no_imports_still_explicitly_leave_external_generated_deployment_and_runtime_a
 }
 
 #[test]
-fn declared_native_interface_is_partial_contract_evidence_never_implementation_verification() {
+fn native_interface_remains_outside_image_admission_and_cannot_claim_coverage() {
     let fixture = Fixture::new(true);
     let disk = fixture.bytes();
+    let errors = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        ProjectSemanticImage::derive(snapshot.retain_revision(), snapshot.project_revision())
+    })
+    .err()
+    .expect("native imports must not enter the current semantic Graph schemas");
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-G218"),
+        "{errors:?}"
+    );
+    let errors = VNextSession::open(&fixture.0.join("semaprax.toml"), VNextPolicy::default())
+        .err()
+        .expect("coverage transport must not bypass image admission");
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-G218"),
+        "{errors:?}"
+    );
+    assert_eq!(fixture.bytes(), disk);
+}
+
+#[test]
+fn non_native_resource_import_is_partial_declaration_evidence_not_provider_verification() {
+    let fixture = Fixture::new(false);
+    let path = fixture.0.join("src/core.spx");
+    let source = std::fs::read_to_string(&path).unwrap()
+        + r#"
+@id("coverage.token") resource Token {
+    @id("coverage.token.drop") drop trivial;
+}
+@id("coverage.host") interface Host permits {} {
+    @id("coverage.host.observe") import fn observe(value: own Token) -> unit
+        effects {} failure infallible consumes value always;
+}
+"#;
+    let program = semaprax::parse(&source, "src/core.spx").unwrap();
+    std::fs::write(path, semaprax::format::canonical(&program)).unwrap();
+    let disk = fixture.bytes();
     let image = fixture.image();
-    let (_, value) = report(&image);
+    let (before, value) = report(&image);
     assert_eq!(value["inventory"]["interfaces"], 1);
     assert_eq!(value["inventory"]["interface_imports"], 1);
     assert_eq!(
         value["external_contracts"],
-        json!([{"path":"src/core.spx","module":"coverage.core","interface_id":"coverage.host","import_id":"coverage.host.echo","name":"echo","import_key":"coverage.host.echo","native_rust":true,"effects":[],"required_authority":[]}])
+        json!([{"path":"src/core.spx","module":"coverage.core",
+            "interface_id":"coverage.host","import_id":"coverage.host.observe",
+            "name":"observe","import_key":"coverage.host.observe","native_rust":false,
+            "effects":[],"required_authority":[]}])
     );
-    let declared = area(&value, "declared_external_contracts");
-    assert_eq!(declared["status"], "partial");
-    assert!(declared["limitations"].as_array().unwrap().contains(&json!(
+    let external = area(&value, "declared_external_contracts");
+    assert_eq!(external["status"], "partial");
+    assert_eq!(
+        external["basis"],
+        "retained_checked_interface_import_declarations"
+    );
+    assert!(external["limitations"].as_array().unwrap().contains(&json!(
         "declarations_are_not_external_implementation_evidence"
     )));
     assert_eq!(
         area(&value, "external_api_behavior")["status"],
         "not_inspected"
     );
-    assert!(value["nonclaims"].as_array().unwrap().contains(&json!(
-        "no_external_implementation_contract_or_runtime_conformance_proof"
-    )));
-    assert_eq!(value["external_io"], false);
-    assert_eq!(value["execution"], false);
+    assert_eq!(
+        area(&value, "runtime_environment")["status"],
+        "not_inspected"
+    );
+    for flag in ["source_authority", "external_io", "execution"] {
+        assert_eq!(value[flag], false);
+    }
+    // The unused declaration is retained in the source image, but does not
+    // enter the selected scalar entry/export closure or invoke its provider.
+    assert!(image.revision().entry_program().interfaces.is_empty());
+    let mut session = fixture.session();
+    let params = json!({"image_revision":session.image_revision()});
+    assert_eq!(payload(call(&mut session, METHOD, params)), value);
+    assert_eq!(
+        image.analysis_coverage(image.image_digest()).unwrap(),
+        before
+    );
     assert_eq!(fixture.bytes(), disk);
 }
 

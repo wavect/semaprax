@@ -73,7 +73,7 @@ pub(super) fn insert_ast_type(
 }
 
 fn ast_type(
-    revision: &ProjectRevision,
+    _revision: &ProjectRevision,
     program: &Program,
     ty: &Type,
     work: &mut usize,
@@ -111,7 +111,7 @@ fn ast_type(
             let id = ids.into_iter().next().unwrap();
             let mut values = Vec::new();
             for argument in arguments {
-                let Some(value) = ast_type(revision, program, argument, work, depth + 1)? else {
+                let Some(value) = ast_type(_revision, program, argument, work, depth + 1)? else {
                     return Ok(None);
                 };
                 values.push(value);

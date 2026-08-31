@@ -504,6 +504,14 @@ publication. The CLI shares `workspace_session` startup policy loading between
 ordinary NDJSON and `serve-workspace-mcp`; no client capability becomes authority.
 See [MCP Adapter](IMAGE-MCP-ADAPTER-V1.md) for bounds and unrun evidence.
 
+Discovery's `clients.rs` retains selected-method request generation and runtime
+validation. `response_types.rs` builds a shared bounded response-type model from
+the already audited reachable payload schemas; `response_types_rust.rs` and
+`response_types_script.rs` emit concrete Rust, TypeScript and Python shapes.
+Additive typed decoders enter through the existing validators. Unbundled reports
+remain opaque, and no generated helper owns transport or publication authority.
+See [Typed Response Clients](IMAGE-TYPED-RESPONSE-CLIENTS-V1.md).
+
 An opt-in `open_with_frontend_cache` constructor uses the same authenticated
 filesystem loader with `ProjectFrontendCache` as its build strategy. It parses
 fresh source directly on first load, then stages exact-source AST reuse during

@@ -16,6 +16,11 @@
   bootstrap, service installation, ordinary CLI activation or support promotion
   is claimed; executable/loader provenance remains provisioner-owned.
 
+- Added typed response payloads and additive decoders to the host-selected v5
+  TypeScript, Python and Rust clients. A shared model uses already bundled
+  schemas; existing runtime validation and generic APIs remain in place.
+  Opaque compiler reports stay opaque. Regression evidence is authored, unrun.
+
 - Added anonymous non-executable sealed doctor carrier creation from explicit
   bytes, returning an owned file and a snapshot verified through existing
   acquisition. Mandatory sealing has no weaker fallback, writes are bounded,

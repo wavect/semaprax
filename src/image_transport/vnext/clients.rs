@@ -4,11 +4,22 @@ use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
 
+#[path = "response_types.rs"]
+mod response_types;
+
 pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
     let methods = bundle["methods"]
         .as_array()
         .ok_or_else(|| invalid("client descriptor list is missing"))?;
     let documents = response_documents(bundle)?;
+    let typed = response_types::generate(
+        language,
+        methods,
+        &documents,
+        bundle["unbundled_payload_schemas"]
+            .as_array()
+            .ok_or_else(|| invalid("client opaque schema inventory missing"))?,
+    )?;
     let metadata = json!({"methods":methods.iter().map(|descriptor|(descriptor["method"].as_str().unwrap().to_owned(),json!({"params":descriptor["request_schema"]["properties"]["params"],"payload":descriptor["success_response_schema"]["properties"]["result"]["properties"]["payload"]}))).collect::<serde_json::Map<_,_>>(),
         "documents":documents,
         "unbundled":bundle["unbundled_payload_schemas"]});
@@ -20,9 +31,14 @@ pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
         "rust" => format!("// Generated selected-profile client. Requires serde(derive) + serde_json; no I/O.\nuse serde::{{Serialize, Deserialize}};\nuse serde_json::{{Value, json}};\npub const PROTOCOL: &str = {VNEXT_PROTOCOL_SCHEMA:?};\npub const RESULT_SCHEMA: &str = {VNEXT_RESULT_SCHEMA:?};\nconst METADATA: &str = {:?};\n{}\n",encoded,include_str!("client_rust.txt")),
         _ => return Err(invalid("unknown client language")),
     };
+    source.push_str(&typed.source);
+    let mut public_names = BTreeSet::new();
     for descriptor in methods {
         let method = descriptor["method"].as_str().unwrap();
         let class = class_name(method);
+        if !public_names.insert(class.clone()) {
+            return Err(invalid("selected client method type names collide"));
+        }
         let function = function_name(method);
         let params = &descriptor["request_schema"]["properties"]["params"];
         let fields = params["properties"].as_object().unwrap();
@@ -109,8 +125,40 @@ pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
                 writeln!(source,"}}\npub fn {function}(id: RpcId, params: {class}Params) -> Result<String, String> {{ request(id, {method:?}, serde_json::to_value(params).map_err(|e|e.to_string())?) }}\npub fn decode_{function}(line: &str, id: &RpcId) -> Result<ResultEnvelope, String> {{ decode(line, {method:?}, id) }}").unwrap();
             }
         }
+        let payload = typed
+            .payloads
+            .get(method)
+            .ok_or_else(|| invalid("selected client method lacks a response type"))?;
+        typed_decoder(&mut source, language, method, &class, &function, payload);
     }
     Ok(source)
+}
+
+/// Additive typed helpers always enter through the existing method-bound
+/// decoder. Static types cannot replace its envelope, revision or shape checks.
+fn typed_decoder(
+    source: &mut String,
+    language: &str,
+    method: &str,
+    class: &str,
+    function: &str,
+    payload: &str,
+) {
+    match language {
+        "typescript" => writeln!(
+            source,
+            "export type {class}Payload = {payload};\nexport type {class}Result = TypedResultEnvelope<{class}Payload>;\nexport function decode_{function}_typed(line: string, id: RpcId): {class}Result {{ return decode(line, {method:?}, id) as {class}Result; }}"
+        ),
+        "python" => writeln!(
+            source,
+            "{class}Payload: TypeAlias = {payload}\n{class}Result: TypeAlias = TypedResultEnvelope[{class}Payload]\ndef decode_{function}_typed(line: str, request_id: RpcId) -> {class}Result:\n    return cast({class}Result, decode(line, {method:?}, request_id))\n"
+        ),
+        _ => writeln!(
+            source,
+            "pub type {class}Payload = {payload};\npub type {class}Result = TypedResultEnvelope<{class}Payload>;\npub fn decode_{function}_typed(line: &str, id: &RpcId) -> Result<{class}Result, String> {{ typed_result(decode(line, {method:?}, id)?) }}"
+        ),
+    }
+    .unwrap();
 }
 
 /// Only the schema assertion subset implemented by all three templates may
@@ -385,5 +433,27 @@ mod tests {
         let mut changed = bundle;
         changed["documents"][1]["allOf"] = json!([]);
         assert!(response_documents(&changed).is_err());
+    }
+
+    #[test]
+    fn typed_public_names_reject_colliding_method_spellings() {
+        let methods = ["sample/value", "sample-value"]
+            .map(|method| {
+                json!({
+                    "method":method,
+                    "request_schema":{"properties":{"params":{
+                        "type":"object","properties":{},"required":[],"additionalProperties":false
+                    }}},
+                    "success_response_schema":{"properties":{"result":{"properties":{
+                        "payload":{"type":"object","properties":{},"required":[],"additionalProperties":false}
+                    }}}}
+                })
+            });
+        let bundle = json!({"methods":methods,"documents":[],"unbundled_payload_schemas":[]});
+        for language in ["typescript", "python", "rust"] {
+            let errors = generate(language, &bundle).unwrap_err();
+            assert_eq!(errors[0].code, "SPX-G288");
+            assert!(errors[0].message.contains("names collide"));
+        }
     }
 }

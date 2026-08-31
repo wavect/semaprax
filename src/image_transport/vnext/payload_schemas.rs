@@ -5,6 +5,8 @@ use std::collections::BTreeMap;
 
 #[path = "candidate_schemas.rs"]
 mod candidate_schemas;
+#[path = "function_instance_schemas.rs"]
+mod function_instance_schemas;
 #[path = "hole_navigation_schemas.rs"]
 mod hole_navigation_schemas;
 #[path = "merge_preview_schemas.rs"]
@@ -761,6 +763,13 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
     // constant is the strongest truthful schema, including nullable test policy.
     result.insert("urn:semaprax.image-agent-capabilities.v5".into(),json!({"$id":"urn:semaprax.image-agent-capabilities.v5","$schema":"https://json-schema.org/draft/2020-12/schema","const":capabilities}));
     result.extend(candidate_schemas::documents());
+    if capabilities["methods"].as_array().is_some_and(|methods| {
+        methods
+            .iter()
+            .any(|method| method == "image/function-instances")
+    }) {
+        result.extend(function_instance_schemas::documents());
+    }
     result.extend(hole_navigation_schemas::documents());
     if capabilities["methods"].as_array().is_some_and(|methods| {
         methods

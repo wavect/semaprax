@@ -750,7 +750,12 @@ source then re-enters complete Project admission and a second source replay.
 Candidates retain reviewable replacements/diffs and target projection facts,
 never filesystem or publication authority. `src/project/image_facets.rs`
 projects actual retained HIR into revision-bound paginated facets without
-changing the original image wire. `src/image_transport.rs` exposes these
+changing the original image wire. Its `image_facets/instances.rs` child adds
+source-template selection and concrete retained-instance pages. It reuses the
+seven applicable facet renderers and separately joins exact instance callers
+and linked-closure membership, because an instance's internal function ID
+still names its template. It creates no new instantiation or execution.
+`src/image_transport.rs` exposes these
 queries through a separately selected read-only protocol whose one method
 catalog also generates discovery/schema/client material. Existing transports
 keep their method sets. See [Candidates](PROJECT-CANDIDATES-V1.md),

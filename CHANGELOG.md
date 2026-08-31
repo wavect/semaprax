@@ -51,6 +51,13 @@
   closed, `LIB` is unchanged, and missing headers still fail before archive or
   package publication.
 
+- Added read-only navigation from source generic-function templates to retained
+  concrete instances and their facets. Exact instance caller and closure joins
+  distinguish template IDs from concrete identities; existing plan renderers
+  preserve their vectors. V5 discovery and read batches share the bounded
+  handlers. Regression cases are authored, unrun; no new instantiation,
+  generic-import admission or target execution is claimed.
+
 - Extended function extraction to nested blocks containing internal resource-free
   owners while retaining Copy captures and results. A helper wrapper preserves
   the nested cleanup boundary; source/HIR correspondence rejects owner crossings

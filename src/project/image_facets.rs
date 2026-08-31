@@ -10,7 +10,9 @@ use crate::workspace_graph::WorkspaceGraphProjectionModule;
 
 pub const IMAGE_FUNCTION_SUMMARY_SCHEMA: &str = "semaprax.image-function-summary.v1";
 pub const IMAGE_FACET_SCHEMA: &str = "semaprax.image-facet.v1";
+mod instances;
 mod relationships;
+pub use instances::{IMAGE_FUNCTION_INSTANCES_SCHEMA, IMAGE_INSTANCE_FACET_SCHEMA};
 
 const MAX_ITEMS: usize = 65_536;
 const MAX_INTERMEDIATE_BYTES: usize = 16 * 1024 * 1024;

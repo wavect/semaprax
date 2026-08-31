@@ -191,6 +191,9 @@ pub(super) fn execute(
                     Operation::VNext(Action::AnalysisCoverage) => {
                         analysis_coverage::prepare(params, image)
                     }
+                    Operation::VNext(
+                        action @ (Action::FunctionInstances | Action::FunctionInstanceFacet),
+                    ) => function_instances::prepare(action, params, image),
                     Operation::VNext(Action::CleanupDependencies) => {
                         cleanup_dependencies::prepare(params, image)
                     }
@@ -230,6 +233,7 @@ pub(super) fn parallel_read(operation: Operation) -> bool {
             | Operation::Facet
             | Operation::VNext(Action::Dependencies)
             | Operation::VNext(Action::AnalysisCoverage)
+            | Operation::VNext(Action::FunctionInstances | Action::FunctionInstanceFacet)
             | Operation::VNext(Action::PackageSummary | Action::PackageConsumers)
             | Operation::VNext(Action::CleanupDependencies)
             | Operation::VNext(Action::DependencySummary | Action::DependencyPage)
@@ -346,6 +350,10 @@ mod tests {
     #[test]
     fn dependency_query_extends_only_the_immutable_batch_subset() {
         assert!(parallel_read(Operation::VNext(Action::Dependencies)));
+        assert!(parallel_read(Operation::VNext(Action::FunctionInstances)));
+        assert!(parallel_read(Operation::VNext(
+            Action::FunctionInstanceFacet
+        )));
         assert!(parallel_read(Operation::VNext(Action::CleanupDependencies)));
         assert!(parallel_read(Operation::VNext(Action::DependencySummary)));
         assert!(parallel_read(Operation::VNext(Action::DependencyPage)));

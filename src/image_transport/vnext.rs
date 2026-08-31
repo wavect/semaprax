@@ -14,6 +14,7 @@ mod draft_archive;
 mod draft_merge;
 mod draft_rebase;
 mod draft_recovery;
+mod function_instances;
 mod hole_navigation;
 mod hole_suggestions;
 mod mcp;
@@ -109,6 +110,8 @@ pub(super) enum Action {
     CandidateCleanupDependencies,
     DependencySummary,
     DependencyPage,
+    FunctionInstances,
+    FunctionInstanceFacet,
 }
 
 const REFRESH: Method = Method {
@@ -476,6 +479,12 @@ impl VNextSession {
                     analysis_coverage::prepare(params, image)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(
+                    action @ (Action::FunctionInstances | Action::FunctionInstanceFacet),
+                ) => (
+                    function_instances::prepare(action, params, image)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(Action::CleanupDependencies) => (
                     cleanup_dependencies::prepare(params, image)?,
                     candidates::Mutation::None,
@@ -712,6 +721,7 @@ fn session_methods(
     }
     methods.push(dependencies::method());
     methods.push(analysis_coverage::method());
+    methods.extend(function_instances::methods());
     if package_attached {
         methods.extend(package_graph::methods());
     }

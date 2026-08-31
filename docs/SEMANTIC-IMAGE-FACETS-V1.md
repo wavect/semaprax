@@ -21,6 +21,10 @@ parameter count, return type identity, effects, contract counts, and nine
 `{facet, handle}` references. Compiler-owned declarations, missing IDs, and
 non-function declarations are not selectable.
 
+The separate [Function Instances](SEMANTIC-IMAGE-FUNCTION-INSTANCES-V1.md)
+queries list retained instances of source generic templates and expand concrete
+facets without changing this ordinary-declaration selection contract.
+
 `expand_facet(expected_image_digest, stable_id, facet, handle, cursor, options)`
 returns schema `semaprax.image-facet.v1`. The closed `ImageFacet` enum admits
 `signature`, `contracts`, `callers`, `ownership`, `loans`, `cleanup`,

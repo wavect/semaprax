@@ -11,9 +11,12 @@ real `CandidateGitProcessAuthority`. It supplements the existing
 not replace the managed `ACTIVE` authority or rewrite a checked-out source tree.
 
 The fixture starts from the three-file calculator Project. It adds a meaningful
-precondition and postcondition to `calculator.add`, appends an unused Copy `i64`
-parameter through a semantic intent, and lets the compiler migrate callers in
-the application and test modules. A sibling candidate renames
+precondition and postcondition plus a local checked caller to `calculator.add`.
+An ordered signature intention moves `right` before `left`, renames them to
+`rhs` and `lhs`, and appends an explicit Copy `i64` `offset` default. The
+compiler substitutes the body and contracts and migrates the local, application
+and test callers while staging their original arguments in their original
+left-to-right evaluation order. A sibling candidate renames
 `calculator.multiply` to `times` while preserving its declaration ID. Requests
 contain compiler-supported intentions and revision handles, not replacement
 source, paths, Git policy, or approval authority.
@@ -27,9 +30,9 @@ Both `twelve_step_v5_review_to_real_sha1_git_commit` and
 | --- | --- |
 | 1 | Open an authenticated v5 workspace and bind subsequent requests to its image revision. |
 | 2 | Discover the actual stable target and its two parameters, precondition, and postcondition with `image/function-summary`. |
-| 3 | Open a candidate and apply `change_function_signature`; the compiler reconstructs all three canonical sources. |
+| 3 | Open a candidate and apply ordered `change_function_signature`; the compiler renames and reorders the retained parameters, adds `offset`, substitutes the body/contracts and reconstructs all three canonical sources. |
 | 4 | Merge a sibling display rename through `candidate/merge`, retaining the original source base. |
-| 5 | Read candidate impact plus bounded candidate/source-diff and semantic-delta chunks. Require signature, contracts, callers, ownership, and cleanup facets and exactly two migrated calls. |
+| 5 | Read candidate impact plus bounded candidate/source-diff and semantic-delta chunks. Require signature, contracts, callers, ownership, and cleanup facets and exactly three migrated local/application/test calls. Inspect each staged call to prove its two original argument subtrees remain left-to-right while the final call uses them in the new parameter order. |
 | 6 | Reject a competing signature with `SPX-G235`; require the previously reviewed candidate report to remain byte-identical and raw sources unchanged. |
 | 7 | Request independent candidate validation and inspect the candidate's native-C11 and structurally validated Core-Wasm projections for entry and test closures. |
 | 8 | Request the manifest test plan and interpreter tests through v5 with an explicit host policy: 100,000 steps, 65,536 execution bytes, and 262,144 report bytes. |
@@ -55,11 +58,11 @@ original twelve requirements map as follows:
 | --- | --- |
 | Immutable snapshot | `workspace/open`, exact image-bound requests, independent capsule replay. |
 | Explicit stable-ID selection | The function summary selects `calculator.add`. |
-| Signature change | The typed append-parameter intent changes the admitted function signature. |
-| All authenticated callers migrated | Exactly two migrated calls; application, core, and test source differences; full candidate replay. |
+| Signature change | The typed ordered mapping renames and reorders both retained parameters and adds one explicit scalar default. |
+| All authenticated callers migrated | Exactly three migrated local/application/test calls; original argument subtrees stage left-to-right before the reordered final call; all three source differences and full candidate replay are checked. |
 | Stable and exported identity | Complete declaration-fact map and exact manifest Web export inventory comparison. |
-| No new effects or capabilities | Exact function effect and module permit comparisons for this scalar, effect-free fixture. This is a bounded invariant check, not a new general proof system. |
-| Contracts, ownership, cleanup | Nonempty contract preservation, exact parameter modes, ordinary candidate validation, selected facets, and empty scalar cleanup inventories. |
+| No new effects or capabilities | Exact candidate/base manifest capability inventory, function effect, and module permit comparisons for this scalar, effect-free fixture. This is a bounded invariant check, not a new general proof system. |
+| Contracts, ownership, cleanup | Nonempty predicates are scope-aware renamed with the parameters, their structure remains checked, parameter modes remain exact, and ordinary validation, selected facets and empty scalar cleanup inventories are checked. |
 | Affected tests | Explicit-policy v5 test request for the full manifest test closure, with an authored passing assertion. Unrun here. |
 | Native/Wasm admission | All four entry/test native-C11/Core-Wasm evidence rows admitted; no target execution. |
 | Semantic impact and source diff | Real `candidate/impact` request, exact semantic-delta replay, and per-file human source differences. |
@@ -104,11 +107,12 @@ fixture Git commands were executed while authoring this change.
 ## What this does not establish
 
 The fixture deliberately uses Copy scalar parameters and empty effect sets.
-Contract and ownership facts are preserved, and scalar cleanup inventories are
-checked; this is not owned-resource settlement, effectful execution, or general
-signature migration evidence. Stable Web export IDs remain unchanged, but
-appending an exported parameter changes its external signature: no external ABI
-or consumer compatibility is claimed.
+Contract and ownership facts are scope-aware rebuilt, and scalar cleanup
+inventories are checked; this is not owned-resource settlement, effectful
+execution, or general signature migration evidence. Stable Web export IDs
+remain unchanged, but reordering, renaming and appending an exported parameter
+changes its external signature: no external ABI or consumer compatibility is
+claimed.
 
 Native-C11 emission and Core-Wasm structural validation are target projections,
 not native or Wasm execution. The candidate report and Git receipt continue to

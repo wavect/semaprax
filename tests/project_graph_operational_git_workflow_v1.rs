@@ -1,6 +1,7 @@
 //! Integrated v5 + real bare Git workflow. Authored, not executed locally.
 #![cfg(unix)]
 
+use semaprax::ast::{Expr, ExprKind, Statement};
 use semaprax::image_transport::{
     GitCommitHost, VNextPolicy, VNextSession, VNEXT_PROTOCOL_SCHEMA, VNEXT_RESULT_SCHEMA,
 };
@@ -53,6 +54,10 @@ impl Fixture {
         let signature = "fn add(left: i64, right: i64) -> i64\n";
         assert!(core.contains(signature));
         let core = core.replace(signature, "fn add(left: i64, right: i64) -> i64\n    requires right >= 0\n    ensures result == left + right\n");
+        let core = core.replace(
+            "@id(\"calculator.subtract\")",
+            "@id(\"calculator.local-add\")\nfn local_add() -> i64\n{\n    add(6 / 2, 8 / 2)\n}\n\n@id(\"calculator.subtract\")",
+        );
         fs::write(
             root.join("src/core.spx"),
             semaprax::format::canonical(&semaprax::parse(&core, "src/core.spx").unwrap()),
@@ -284,8 +289,12 @@ fn chunks(session: &mut VNextSession, method: &str, mut params: Value) -> String
     }
     panic!("chunk progress exceeded fixture bound")
 }
-fn signature(name: &str) -> Value {
-    json!({"kind":"change_function_signature","target":"calculator.add","append_parameters":[{"name":name,"type":"i64","argument":{"kind":"i64","value":0}}]})
+fn signature(offset_name: &str) -> Value {
+    json!({"kind":"change_function_signature","target":"calculator.add","parameters":[
+        {"from":"right","name":"rhs"},
+        {"from":"left","name":"lhs"},
+        {"name":offset_name,"type":"i64","argument":{"kind":"i64","value":0}}
+    ]})
 }
 fn apply(session: &mut VNextSession, root: &str, intent: Value) -> String {
     digest(payload(bound(
@@ -309,6 +318,75 @@ fn declaration_facts(revision: &ProjectRevision) -> BTreeMap<String, Value> {
     }
     facts
 }
+
+fn staged_add<'a>(expression: &'a Expr) -> Option<(&'a [Statement], &'a Expr)> {
+    match &expression.kind {
+        ExprKind::Block { statements, tail } => {
+            if statements.len() == 2
+                && matches!(&tail.kind, ExprKind::Call { name, args, .. } if name == "add" && args.len() == 3)
+            {
+                return Some((statements, tail));
+            }
+            statements
+                .iter()
+                .find_map(|statement| staged_add(statement.value()))
+                .or_else(|| staged_add(tail))
+        }
+        ExprKind::Call { args, .. } => args.iter().find_map(staged_add),
+        ExprKind::Unary { value, .. } => staged_add(value),
+        ExprKind::Binary { left, right, .. } => staged_add(left).or_else(|| staged_add(right)),
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => staged_add(condition)
+            .or_else(|| staged_add(then_branch))
+            .or_else(|| staged_add(else_branch)),
+        _ => None,
+    }
+}
+
+fn assert_staged_call(
+    revision: &ProjectRevision,
+    target: &str,
+    original_left: &str,
+    original_right: &str,
+) {
+    let function = revision
+        .sources()
+        .iter()
+        .find_map(|source| {
+            semaprax::parse(source.source(), source.path())
+                .unwrap()
+                .functions
+                .into_iter()
+                .find(|function| function.stable_id == target)
+        })
+        .unwrap();
+    let (statements, call) = staged_add(&function.body).expect("migrated add call must be staged");
+    let [Statement::Let {
+        name: left_stage,
+        value: left,
+        ..
+    }, Statement::Let {
+        name: right_stage,
+        value: right,
+        ..
+    }] = statements
+    else {
+        panic!("signature migration must preserve two original argument stages")
+    };
+    assert_eq!(semaprax::format::expr(left, 0), original_left);
+    assert_eq!(semaprax::format::expr(right, 0), original_right);
+    let ExprKind::Call { name, args, .. } = &call.kind else {
+        unreachable!("staged add selected above")
+    };
+    assert_eq!(name, "add");
+    assert!(matches!(&args[0].kind, ExprKind::Var(name) if name == right_stage));
+    assert!(matches!(&args[1].kind, ExprKind::Var(name) if name == left_stage));
+    assert!(matches!(&args[2].kind, ExprKind::Int(0)));
+}
+
 struct Reviewed {
     digest: String,
     capsule: String,
@@ -339,7 +417,7 @@ fn review(fixture: &Fixture) -> Reviewed {
     assert_eq!(summary["ensures_count"], 1);
     let root = digest(payload(bound(&mut session, "candidate/open", json!({}))));
     // 3–4. Compiler-owned cross-file signature migration and a disjoint sibling.
-    let left = apply(&mut session, &root, signature("unused"));
+    let left = apply(&mut session, &root, signature("offset"));
     let right = apply(
         &mut session,
         &root,
@@ -369,7 +447,7 @@ fn review(fixture: &Fixture) -> Reviewed {
         .iter()
         .find(|operation| operation["kind"] == "change_function_signature")
         .unwrap();
-    assert_eq!(signature_operation["migrated_calls"], 2);
+    assert_eq!(signature_operation["migrated_calls"], 3);
     let paths: BTreeSet<_> = report["source_changes"]
         .as_array()
         .unwrap()
@@ -506,6 +584,19 @@ fn review(fixture: &Fixture) -> Reviewed {
     .unwrap();
     assert_eq!(candidate.candidate_digest(), merged);
     assert_eq!(candidate.to_json(), report_bytes);
+    assert_staged_call(
+        candidate.revision(),
+        "calculator.local-add",
+        "6 / 2",
+        "8 / 2",
+    );
+    assert_staged_call(
+        candidate.revision(),
+        "calculator.app.main",
+        "multiply(6, 7)",
+        "subtract(divide(4, 2), 2)",
+    );
+    assert_staged_call(candidate.revision(), "calculator.tests.main", "19", "23");
     candidate
         .verify_semantic_delta(&merged, "calculator.add", delta_bytes.as_bytes())
         .unwrap();
@@ -513,13 +604,31 @@ fn review(fixture: &Fixture) -> Reviewed {
         candidate.revision().manifest().web_exports(),
         fixture.revision.manifest().web_exports()
     );
+    assert_eq!(
+        candidate.revision().manifest().capabilities(),
+        fixture.revision.manifest().capabilities()
+    );
     let mut expected = declaration_facts(&fixture.revision);
-    expected.get_mut("calculator.add").unwrap()["parameters"]
-        .as_array_mut()
-        .unwrap()
-        .push(json!({"name":"unused","type":"i64","mode":"value"}));
+    expected.get_mut("calculator.add").unwrap()["parameters"] = json!([
+        {"name":"rhs","type":"i64","mode":"value"},
+        {"name":"lhs","type":"i64","mode":"value"},
+        {"name":"offset","type":"i64","mode":"value"}
+    ]);
+    expected.get_mut("calculator.add").unwrap()["requires"] = json!(["rhs >= 0"]);
+    expected.get_mut("calculator.add").unwrap()["ensures"] = json!(["result == lhs + rhs"]);
     expected.get_mut("calculator.multiply").unwrap()["name"] = json!("times");
     assert_eq!(declaration_facts(candidate.revision()), expected);
+    let core = candidate
+        .revision()
+        .sources()
+        .iter()
+        .find(|source| source.path() == "src/core.spx")
+        .unwrap()
+        .source();
+    assert!(core.contains("fn add(rhs: i64, lhs: i64, offset: i64) -> i64"));
+    assert!(core.contains("requires rhs >= 0"));
+    assert!(core.contains("ensures result == lhs + rhs"));
+    assert!(core.contains("{\n    lhs + rhs\n}"));
     for revision in [&fixture.revision, candidate.revision()] {
         for program in [revision.entry_program(), revision.test_program()] {
             for function in &program.functions {

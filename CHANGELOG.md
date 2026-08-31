@@ -44,6 +44,14 @@
   races without retries, sleeps, or weaker executable identity, hard-link,
   permission, and cache-binding assertions.
 
+- Added candidate-bound analysis coverage over the exact fully admitted final
+  candidate revision. The report reuses the retained image inventory and its
+  eight explicit blind-spot rows while adding exact candidate/base bindings and
+  false retention/publication authority. Generated-looking source remains only
+  checked source, local provider lookalikes do not satisfy declared external
+  contracts, and Native Rust imports remain rejected by `SPX-G218`. Library and
+  transport regressions are authored, unrun; no external evidence is ingested.
+
 - Added candidate-bound compact dependency summaries and paged
   sites/callers/calls/members navigation over the exact admitted candidate
   revision. Handles and cursors isolate candidate histories while reusing the

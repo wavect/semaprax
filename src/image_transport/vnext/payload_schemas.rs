@@ -125,6 +125,84 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
         ],
     );
     put(
+        "semaprax.project-candidate-analysis-coverage.v1",
+        vec![
+            ("image_revision", digest()),
+            ("project_revision", digest()),
+            ("workspace_revision", digest()),
+            ("candidate_revision", digest()),
+            ("base_project_revision", digest()),
+            ("project_graph_digest", digest()),
+            (
+                "manifest",
+                object(vec![
+                    ("schema", text()),
+                    ("profile", nullable(text())),
+                    ("entry", text()),
+                    ("test_module", text()),
+                    (
+                        "source_paths",
+                        json!({"type":"array","maxItems":16,"items":text()}),
+                    ),
+                    ("web_exports", array(text())),
+                    ("capabilities", array(text())),
+                ]),
+            ),
+            (
+                "sources",
+                json!({"type":"array","maxItems":16,"items":object(vec![
+                    ("path",text()),("module",text()),("source_revision",digest()),
+                    ("source_digest",digest()),("source_graph_schema",text()),
+                ])}),
+            ),
+            (
+                "inventory",
+                object(
+                    [
+                        "source_modules",
+                        "functions",
+                        "function_templates",
+                        "function_instances",
+                        "nominal_types",
+                        "interfaces",
+                        "interface_imports",
+                    ]
+                    .into_iter()
+                    .map(|name| (name, json!({"type":"integer","minimum":0,"maximum":65536})))
+                    .collect(),
+                ),
+            ),
+            (
+                "external_contracts",
+                json!({"type":"array","maxItems":65536,"items":object(vec![
+                    ("path",text()),("module",text()),("interface_id",text()),("import_id",text()),
+                    ("name",text()),("import_key",text()),("native_rust",json!({"type":"boolean"})),
+                    ("effects",array(text())),("required_authority",array(text())),
+                ])}),
+            ),
+            (
+                "areas",
+                json!({"type":"array","minItems":8,"maxItems":8,"items":object(vec![
+                    ("area",json!({"enum":["declared_source_inputs","declared_external_contracts",
+                        "deployment_configuration","generated_file_provenance","generated_artifacts",
+                        "external_api_behavior","runtime_environment","external_consumers"]})),
+                    ("status",json!({"enum":["known","partial","not_inspected"]})),
+                    ("basis",text()),("limitations",array(text())),("required_evidence",array(text())),
+                ])}),
+            ),
+            ("source_authority", json!({"const":false})),
+            ("external_io", json!({"const":false})),
+            ("execution", json!({"const":false})),
+            ("candidate_retained", json!({"const":false})),
+            ("publication_authority", json!({"const":false})),
+            (
+                "evidence_class",
+                json!({"const":"retained_source_analysis_boundary_inventory"}),
+            ),
+            ("nonclaims", array(text())),
+        ],
+    );
+    put(
         "semaprax.image-agent-workspace.v1",
         vec![
             ("state", json!({"const":"open"})),
@@ -825,6 +903,13 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
     // Capabilities are immutable for one selected host profile, so this exact
     // constant is the strongest truthful schema, including nullable test policy.
     result.insert("urn:semaprax.image-agent-capabilities.v5".into(),json!({"$id":"urn:semaprax.image-agent-capabilities.v5","$schema":"https://json-schema.org/draft/2020-12/schema","const":capabilities}));
+    if !capabilities["methods"].as_array().is_some_and(|methods| {
+        methods
+            .iter()
+            .any(|method| method == "candidate/analysis-coverage")
+    }) {
+        result.remove("urn:semaprax.project-candidate-analysis-coverage.v1");
+    }
     if !capabilities["methods"].as_array().is_some_and(|methods| {
         methods
             .iter()

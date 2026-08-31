@@ -12,6 +12,7 @@ use crate::workspace_analysis::{WorkspaceAnalysisTargetKind, WorkspaceImpactOpti
 
 use super::{build, ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 
+mod analysis_coverage;
 mod archive;
 mod artifact_delta;
 mod catalog;
@@ -45,6 +46,9 @@ mod type_declaration;
 mod type_rename;
 mod wire;
 
+pub use analysis_coverage::{
+    MAX_PROJECT_CANDIDATE_ANALYSIS_COVERAGE_BYTES, PROJECT_CANDIDATE_ANALYSIS_COVERAGE_SCHEMA,
+};
 pub use archive::{
     ProjectCandidateArchive, MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES, PROJECT_CANDIDATE_ARCHIVE_SCHEMA,
 };

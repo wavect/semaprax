@@ -359,6 +359,7 @@ mod tests {
         assert!(parallel_read(Operation::VNext(Action::DependencyPage)));
         for action in [
             Action::CandidateCleanupDependencies,
+            Action::CandidateAnalysisCoverage,
             Action::CandidateDependencySummary,
             Action::CandidateDependencyPage,
             Action::DraftRecoveryExport,

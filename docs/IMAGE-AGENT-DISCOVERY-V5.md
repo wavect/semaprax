@@ -42,6 +42,13 @@ not-inspected areas. Discovery and typed clients expose the same query without
 adding a host grant. Unknown external behavior must not be treated as safe,
 absent, or verified. See [Analysis Coverage](SEMANTIC-IMAGE-ANALYSIS-COVERAGE-V1.md).
 
+Candidate preparation conditionally adds the closed
+`candidate/analysis-coverage` schema, request types, response aliases and MCP
+tool. Its final-candidate source inventory preserves the same deployment,
+generated-file, provider, runtime and consumer blind spots; a generated helper
+does not acquire missing evidence or turn an unchanged status into proof. See
+[Candidate Analysis Coverage](PROJECT-CANDIDATE-ANALYSIS-COVERAGE-V1.md).
+
 Compact `image/dependency-summary` and `image/dependency-page` methods add
 structured summary/page wrappers and typed view/reference/page-option requests.
 The heterogeneous dependency-item schema remains explicitly unbundled. These

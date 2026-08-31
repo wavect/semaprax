@@ -77,6 +77,11 @@ execute programs, or change image serialization/digest or earlier protocols.
 The v5 discovery bundle owns a fully closed response schema and derives typed
 client helpers from the selected method registry.
 
+The additive [candidate projection](PROJECT-CANDIDATE-ANALYSIS-COVERAGE-V1.md)
+applies this same collector to an exact fully admitted candidate revision. It
+preserves these facts and blind spots, adds candidate/base bindings and no
+authority, and does not reinterpret an unchanged status as verified evidence.
+
 Focused library and transport regressions in
 [image_analysis_coverage_v1.rs](../tests/image_analysis_coverage_v1.rs) are
 authored but unrun. Broader deployment ingestion, generator provenance, provider

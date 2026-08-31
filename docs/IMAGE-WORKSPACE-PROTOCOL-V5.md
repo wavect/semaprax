@@ -70,6 +70,13 @@ generated-file, external-API, runtime and consumer boundaries. It accepts no
 external paths or execution authority; missing imports never prove missing
 external dependencies. See [Analysis Coverage](SEMANTIC-IMAGE-ANALYSIS-COVERAGE-V1.md).
 
+With candidate preparation, `candidate/analysis-coverage` applies that same
+closed inventory to one exact fully admitted candidate revision. The outer
+response remains bound to the live session image, while the payload image,
+Project, graph and source identities describe the candidate. It preserves all
+uninspected areas and creates no additional candidate or derived-image entry.
+See [Candidate Analysis Coverage](PROJECT-CANDIDATE-ANALYSIS-COVERAGE-V1.md).
+
 Agents can instead request `image/dependency-summary` and expand selected
 `image/dependency-page` handles. These structured read-only methods expose
 counts and bounded sites/callers/calls/members pages without transferring the

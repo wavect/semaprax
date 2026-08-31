@@ -54,6 +54,10 @@ shared mutable session cursors or permission to widen the worker's authority.
 It also includes `image/analysis-coverage`, a pure retained-input inventory of
 known facts and uninspected analysis boundaries. Its workers receive no access
 to deployment configuration, generators, external services or runtime state.
+When candidate preparation is selected, `candidate/analysis-coverage` performs
+the same pure inventory over the exact detached immutable candidate. The worker
+derives and discards its candidate image and receives no registry, external
+input, execution or publication authority.
 
 When the host attached a verified package graph before any request, its
 package summary/consumer methods also join the allowlist. Workers borrow that

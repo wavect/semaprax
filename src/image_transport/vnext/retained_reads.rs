@@ -21,6 +21,7 @@ pub(super) fn supports(operation: Operation) -> bool {
                 | Action::OwnershipDelta
                 | Action::SourceReview
                 | Action::CandidateMergePreview
+                | Action::CandidateAnalysisCoverage
                 | Action::CandidateDependencySummary
                 | Action::CandidateDependencyPage
                 | Action::HoleSummary
@@ -86,6 +87,9 @@ pub(super) fn prepare(
                 )
             })?;
             merge_preview::for_candidates(params, candidate, other)
+        }
+        Operation::VNext(Action::CandidateAnalysisCoverage) => {
+            analysis_coverage::for_candidate(params, candidate()?)
         }
         Operation::VNext(
             action @ (Action::HoleSummary | Action::HolePage | Action::DraftExpressionCatalog),

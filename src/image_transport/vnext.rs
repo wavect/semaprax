@@ -105,6 +105,7 @@ pub(super) enum Action {
     DraftMerge,
     Dependencies,
     AnalysisCoverage,
+    CandidateAnalysisCoverage,
     PackageSummary,
     PackageConsumers,
     CleanupDependencies,
@@ -482,6 +483,10 @@ impl VNextSession {
                     analysis_coverage::prepare(params, image)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(Action::CandidateAnalysisCoverage) => (
+                    analysis_coverage::prepare_candidate(params, image, registry)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(
                     action @ (Action::FunctionInstances | Action::FunctionInstanceFacet),
                 ) => (
@@ -741,6 +746,7 @@ fn session_methods(
     if policy.candidate_prepare {
         methods.push(source_review::method());
         methods.push(merge_preview::method());
+        methods.push(analysis_coverage::candidate_method());
         methods.extend(hole_navigation::methods());
         methods.push(hole_suggestions::method());
         methods.push(cleanup_dependencies::candidate_method());

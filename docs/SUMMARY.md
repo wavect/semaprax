@@ -112,6 +112,7 @@ Audience: all documentation readers.
 - [Semantic Image Facets v1](SEMANTIC-IMAGE-FACETS-V1.md)
 - [Semantic Image Function Instances v1](SEMANTIC-IMAGE-FUNCTION-INSTANCES-V1.md)
 - [Semantic Image Analysis Coverage v1](SEMANTIC-IMAGE-ANALYSIS-COVERAGE-V1.md)
+- [Project Candidate Analysis Coverage v1](PROJECT-CANDIDATE-ANALYSIS-COVERAGE-V1.md)
 - [Package Semantic Graph v1](PACKAGE-SEMANTIC-GRAPH-V1.md)
 - [Project Candidate Body Holes v1](PROJECT-CANDIDATE-HOLES-V1.md)
 - [Project Candidate Expression Holes v1](PROJECT-CANDIDATE-EXPRESSION-HOLES-V1.md)

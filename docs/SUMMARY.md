@@ -146,6 +146,7 @@ Audience: all documentation readers.
 - [Bounded stdout transcript](BOUNDED-STDOUT-TRANSCRIPT-V1.md)
 - [Bounded Language Command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V1.md)
 - [Wasm scalar exports](WASM-SCALAR-EXPORTS-V1.md)
+- [Public Scalar WIT Interface v1](PUBLIC-SCALAR-WIT-INTERFACE-V1.md)
 - [Wasm owned ABI](WASM-OWNED-ABI-V1.md)
 
 ## Agent query and change protocols

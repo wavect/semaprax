@@ -15,7 +15,7 @@ use super::{
     PublicApiParameterType,
 };
 use super::{ProjectExecution, ProjectExecutionOptions, ProjectExecutionRole, ProjectProfile};
-use super::{ProjectSource, ProjectWebBuild};
+use super::{ProjectSource, ProjectWebBuild, ScalarWitInterfaceArtifactV1};
 
 /// One immutable, fully admitted Project revision without ambient authority.
 pub struct ProjectRevision {
@@ -81,6 +81,56 @@ impl ProjectRevision {
             self.manifest.project_profile()
         );
         Ok(())
+    }
+
+    /// Rebuild and independently replay the retained Project-v1 scalar WIT
+    /// interface. The returned artifact contains no executable bytes or host
+    /// authority.
+    pub fn scalar_wit_interface_v1(&self) -> Result<ScalarWitInterfaceArtifactV1, Vec<Diagnostic>> {
+        if self.manifest.project_profile() != ProjectProfile::ScalarV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-J105",
+                "public scalar WIT interface requires Project v1",
+            )]);
+        }
+        let retained = self
+            .profile_admission
+            .scalar_wit_descriptor()
+            .ok_or_else(|| {
+                vec![Diagnostic::io(
+                    "SPX-J105",
+                    "retained Project v1 admission has no scalar WIT descriptor",
+                )]
+            })?;
+        self.replay_scalar_wit_interface_v1(&retained.canonical_bytes(), &retained.digest())
+    }
+
+    /// Verify caller-supplied descriptor bytes against this exact immutable
+    /// Project-v1 subject and return the independently reconstructed artifact.
+    pub fn replay_scalar_wit_interface_v1(
+        &self,
+        descriptor_bytes: &[u8],
+        digest: &str,
+    ) -> Result<ScalarWitInterfaceArtifactV1, Vec<Diagnostic>> {
+        if self.manifest.project_profile() != ProjectProfile::ScalarV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-J105",
+                "public scalar WIT interface replay requires Project v1",
+            )]);
+        }
+        super::scalar_wit::replay_scalar_wit_interface_v1(
+            &self.entry_program,
+            self.manifest.web_exports(),
+            super::scalar_wit::ScalarWitSubject {
+                project_name: self.manifest.name(),
+                project_revision: &self.project_revision,
+                workspace_revision: &self.workspace_revision,
+                project_graph_digest: self.semantic.graph_digest(),
+            },
+            descriptor_bytes,
+            digest,
+        )
+        .map_err(|error| vec![error])
     }
 
     /// Return the complete declared-project graph retained with this revision.

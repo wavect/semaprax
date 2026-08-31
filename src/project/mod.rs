@@ -30,6 +30,7 @@ mod public_utf8_api;
 mod publication_tests;
 mod rename;
 mod revision;
+mod scalar_wit;
 mod semantic;
 #[cfg(test)]
 mod tests;
@@ -261,6 +262,10 @@ pub use public_api::{
     PUBLIC_RESULT_ERR_TAG, PUBLIC_RESULT_OK_TAG,
 };
 pub use public_utf8_api::{PUBLIC_OWNED_UTF8_API_SCHEMA, PUBLIC_OWNED_UTF8_PROJECT_SCHEMA};
+pub use scalar_wit::{
+    ScalarWitExportV1, ScalarWitInterfaceArtifactV1, ScalarWitTypeV1,
+    MAX_SCALAR_WIT_DESCRIPTOR_BYTES, MAX_SCALAR_WIT_INTERFACE_BYTES, SCALAR_WIT_INTERFACE_SCHEMA,
+};
 
 pub(crate) fn validate_owned_utf8_closure_function(
     function: &crate::hir::ResolvedFunction,
@@ -442,6 +447,19 @@ impl ProjectSnapshot {
 
     pub fn build_npm_inline(&self, max_bytes: usize) -> Result<ProjectNpmBuild, Vec<Diagnostic>> {
         self.revision.build_npm_inline(max_bytes)
+    }
+
+    pub fn scalar_wit_interface_v1(&self) -> Result<ScalarWitInterfaceArtifactV1, Vec<Diagnostic>> {
+        self.revision.scalar_wit_interface_v1()
+    }
+
+    pub fn replay_scalar_wit_interface_v1(
+        &self,
+        descriptor_bytes: &[u8],
+        digest: &str,
+    ) -> Result<ScalarWitInterfaceArtifactV1, Vec<Diagnostic>> {
+        self.revision
+            .replay_scalar_wit_interface_v1(descriptor_bytes, digest)
     }
 
     pub fn public_api_descriptor(&self) -> Result<PublicApiDescriptor, Vec<Diagnostic>> {

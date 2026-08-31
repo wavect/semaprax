@@ -1,9 +1,8 @@
 use super::*;
 
 #[test]
-fn every_prepared_variant_reports_one_exact_closed_profile() {
+fn every_legacy_marker_reports_one_exact_closed_profile() {
     let legacy = [
-        (PreparedProjectAdmission::ScalarV1, ProjectProfile::ScalarV1),
         (
             PreparedProjectAdmission::UsefulTextConsumerV1,
             ProjectProfile::UsefulTextConsumerV1,

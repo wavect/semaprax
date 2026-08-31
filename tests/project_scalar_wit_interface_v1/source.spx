@@ -1,0 +1,43 @@
+module scalar.wit;
+
+@id("wit.zero")
+fn zero() -> i64
+{
+    0
+}
+
+@id("wit.eight")
+fn eight(first: i64, second: i64, third: i64, fourth: i64, fifth: i64, sixth: i64, seventh: i64, eighth: i64) -> i64
+{
+    if first == second && third == fourth && fifth == sixth && seventh == eighth { first } else { eighth }
+}
+
+@id("wit.bool")
+fn invert(value: bool) -> bool
+{
+    !value
+}
+
+@id("wit.mixed")
+fn mixed(value: i64, select: bool) -> bool
+{
+    select && value >= 0
+}
+
+@id("wit.a-b")
+fn hyphen(value: i64) -> i64
+{
+    value
+}
+
+@id("wit.a.b")
+fn dot(value: i64) -> i64
+{
+    value
+}
+
+@id("wit.a_b")
+fn underscore(value: i64) -> i64
+{
+    value
+}

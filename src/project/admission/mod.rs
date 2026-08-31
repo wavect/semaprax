@@ -17,7 +17,7 @@ use crate::hir::ResolvedProgram;
 
 use super::{
     FlatOwnedRecordApiDescriptor, ProjectManifest, ProjectProfile, PublicApiDescriptor,
-    PublicApiSubject,
+    PublicApiSubject, ScalarWitInterfaceArtifactV1,
 };
 
 /// One completely admitted schema-selected Project profile.
@@ -26,7 +26,7 @@ use super::{
 /// consumers must still replay their bytes against the retained HIR before
 /// treating them as semantic input.
 pub(super) enum PreparedProjectAdmission {
-    ScalarV1,
+    ScalarV1(Box<ScalarWitInterfaceArtifactV1>),
     UsefulTextConsumerV1,
     UsefulDataV1,
     UsefulDataCommandV1,
@@ -41,7 +41,7 @@ pub(super) enum PreparedProjectAdmission {
 impl PreparedProjectAdmission {
     pub(super) fn profile(&self) -> ProjectProfile {
         match self {
-            Self::ScalarV1 => ProjectProfile::ScalarV1,
+            Self::ScalarV1(_descriptor) => ProjectProfile::ScalarV1,
             Self::UsefulTextConsumerV1 => ProjectProfile::UsefulTextConsumerV1,
             Self::UsefulDataV1 => ProjectProfile::UsefulDataV1,
             Self::UsefulDataCommandV1 => ProjectProfile::UsefulDataCommandV1,
@@ -69,6 +69,13 @@ impl PreparedProjectAdmission {
             _ => None,
         }
     }
+
+    pub(super) fn scalar_wit_descriptor(&self) -> Option<&ScalarWitInterfaceArtifactV1> {
+        match self {
+            Self::ScalarV1(descriptor) => Some(descriptor.as_ref()),
+            _ => None,
+        }
+    }
 }
 
 /// Prepare exactly one manifest-selected profile from the authenticated linked
@@ -82,7 +89,26 @@ pub(super) fn prepare(
     match manifest.project_profile() {
         ProjectProfile::ScalarV1 => {
             legacy::scalar(program, manifest.web_exports())?;
-            Ok(PreparedProjectAdmission::ScalarV1)
+            let scalar_subject = super::scalar_wit::ScalarWitSubject {
+                project_name: manifest.name(),
+                project_revision: subject.project_revision,
+                workspace_revision: subject.workspace_revision,
+                project_graph_digest: subject.project_graph_digest,
+            };
+            let descriptor = super::scalar_wit::derive_scalar_wit_interface_v1(
+                program,
+                manifest.web_exports(),
+                scalar_subject,
+            )?;
+            super::scalar_wit::replay_scalar_wit_interface_v1(
+                program,
+                manifest.web_exports(),
+                scalar_subject,
+                &descriptor.canonical_bytes(),
+                &descriptor.digest(),
+            )
+            .map(Box::new)
+            .map(PreparedProjectAdmission::ScalarV1)
         }
         ProjectProfile::UsefulTextConsumerV1 => {
             legacy::useful_text(program, manifest.web_exports())?;

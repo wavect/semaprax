@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "scalar-wit-interface"
+entry = "scalar.wit.app"
+sources = ["app.spx", "source.spx", "tests.spx"]
+web_exports = ["wit.a-b", "wit.a.b", "wit.a_b", "wit.bool", "wit.eight", "wit.zero"]
+tests = ["scalar.wit.tests"]

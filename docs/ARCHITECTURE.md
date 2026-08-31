@@ -390,6 +390,15 @@ local consumer and boundary evidence; required host/release gates remain open.
 `src/wit_component.rs` and `src/wit_component/` provide default-off private
 boundary evidence. They cannot be cited as public Component Model execution.
 
+`src/project/scalar_wit.rs` projects an already admitted retained Project-v1
+scalar surface into a public, authority-free WIT interface artifact. Stable
+declaration IDs become injective hexadecimal WIT names, parameters use ordinal
+identities, and every scalar result is represented as `result<T, status>`.
+Its canonical subject-bound descriptor is independently replayed against the
+retained manifest, HIR, revisions, graph digest, selected order and regenerated
+WIT before exposure. This path emits no Core Wasm or Component bytes, performs
+no I/O, and does not promote the private Component harness.
+
 ### Shared runtime status
 
 `src/runtime_status.rs`, `src/semantic_trace.rs`, `src/conformance.rs`, and

@@ -21,6 +21,14 @@
   handles, associations and detail/discard routes without granting validity,
   execution, source or publication authority. Evidence is authored and unrun.
 
+- Added a public authority-free WIT interface artifact for exact retained
+  Project-v1 scalar exports. Injective stable-ID hexadecimal function names,
+  ordinal arguments, and `result<i64|bool, status>` signatures are bound into
+  a bounded canonical descriptor with independent manifest/HIR/revision/graph
+  replay. Display renames preserve WIT bytes while the subject-bound descriptor
+  correctly changes. This emits no Component or target bytes, performs no I/O,
+  and does not expose or promote the default-off private Component harness.
+
 - Serialized the two test-local Project v10 Native Rust publication lifetimes.
   Windows no longer overlaps their real compiler and archiver authorities;
   generated SDK execution, semantic-failure recovery, and all package checks

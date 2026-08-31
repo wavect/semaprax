@@ -1,0 +1,8 @@
+module scalar.wit.tests;
+use function @id("wit.zero") from scalar.wit as zero;
+
+@id("scalar.wit.tests.main")
+fn main() -> i64
+{
+    zero()
+}

@@ -936,9 +936,15 @@ type syntax through destination bindings. Rebuilt type identities supplement
 the existing call-inventory and exact source-reconstruction checks; source type
 imports remain unchanged and ordinary Project admission still rejects cycles.
 `candidate/record_field.rs` appends a typed scalar field and migrates
-constructors and exact patterns using retained type identities. Both reconstruct
+constructors and exact patterns using retained type identities and the owning
+compiler type facts. `hir/record_evolution.rs` reconstructs only the bounded
+selected declaration closure, including unused records, for the existing HIR
+TypeFacts owner; it retains no additional whole-project index.
+The operation admits checked Copy records and existing flat owned-byte
+records while appending only inert non-droppable fields; owning match bindings,
+loan roots and cleanup order remain under normal source replay. Both reconstruct
 the expected canonical source independently after admission; identity guards
-permit only the planned function location or new owned field. Rebase compares
+permit only the planned function location or new record member. Rebase compares
 record shape and relocation facts before full replay. No source authority is
 added. `image_facets/relationships.rs` projects bounded data-access and audit
 facts from retained HIR with source, expression and evidence provenance; the

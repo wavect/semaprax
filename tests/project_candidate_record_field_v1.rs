@@ -258,7 +258,7 @@ fn default_grammar_collisions_and_nonrecord_targets_fail_without_writes() {
 }
 
 #[test]
-fn generic_and_owned_records_remain_outside_copy_field_evolution() {
+fn generic_records_reject_while_unused_flat_owned_records_accept_scalar_fields() {
     let fixture = Fixture::new();
     let path = fixture.0.join("src/core.spx");
     let original = std::fs::read_to_string(&path).unwrap();
@@ -271,11 +271,45 @@ fn generic_and_owned_records_remain_outside_copy_field_evolution() {
     let program = semaprax::parse(&changed, Path::new("src/core.spx")).unwrap();
     std::fs::write(path, semaprax::format::canonical(&program)).unwrap();
     let root = fixture.candidate();
-    for target in ["field.generic", "field.owned"] {
-        let mut intent = request();
-        intent["target"] = json!(target);
-        diagnostic(apply(&root, &intent), "SPX-G225");
-    }
+    let disk = fixture.bytes();
+    let mut generic = request();
+    generic["target"] = json!("field.generic");
+    diagnostic(apply(&root, &generic), "SPX-G225");
+
+    // No function mentions Owned: selection reconstructs its checked facts
+    // without inventing a source consumer or relying on retained instances.
+    let mut owned = request();
+    owned["target"] = json!("field.owned");
+    owned["field"]["id"] = json!("field.owned.tag");
+    let candidate = apply(&root, &owned).unwrap();
+    let parsed = semaprax::parse(
+        source(&candidate, "src/core.spx"),
+        Path::new("src/core.spx"),
+    )
+    .unwrap();
+    let declaration = parsed
+        .types
+        .iter()
+        .find(|ty| ty.stable_id == "field.owned")
+        .unwrap();
+    let semaprax::ast::TypeDeclarationKind::Record { fields } = &declaration.kind else {
+        panic!("owned record disappeared")
+    };
+    assert_eq!(fields.len(), 2);
+    assert_eq!(fields[0].stable_id, "field.owned.bytes");
+    assert_eq!(fields[0].name, "bytes");
+    assert_eq!(fields[0].ty, semaprax::ast::Type::Bytes);
+    assert_eq!(fields[1].stable_id, "field.owned.tag");
+    assert_eq!(fields[1].name, "tag");
+    assert_eq!(fields[1].ty, semaprax::ast::Type::I64);
+    let restored = ProjectCandidate::restore(
+        Arc::clone(candidate.base_revision()),
+        candidate.base_revision().project_revision(),
+        candidate.recovery_capsule().unwrap().as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(restored.to_json(), candidate.to_json());
+    assert_eq!(fixture.bytes(), disk);
 }
 
 #[test]

@@ -1,4 +1,4 @@
-//! Append-only Copy record evolution over authenticated canonical Project ASTs.
+//! Append-only record evolution over authenticated canonical Project ASTs.
 //! Defaults are inert literals; existing field evaluation and bindings stay put.
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -9,7 +9,7 @@ use crate::ast::{
     RecordMatchFieldPattern, RecordMatchPatternField, Span, Type, TypeDeclarationKind,
 };
 use crate::diagnostic::Diagnostic;
-use crate::hir::{ResolvedType, ResolvedTypeDeclaration, ResolvedTypeDeclarationKind};
+use crate::hir::{DeclarationIndex, ResolvedTypeDeclaration, ResolvedTypeDeclarationKind};
 use crate::project::{ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 
 use super::{intent, parse_revision};
@@ -51,14 +51,7 @@ pub(super) fn eligible(revision: &ProjectRevision, target: &str) -> Result<bool>
             entry["id"].as_str() == Some(target)
                 && entry["identity_origin"].as_str() == Some("explicit")
         })
-        && copy_record(
-            target,
-            &records,
-            &mut BTreeSet::new(),
-            &mut BTreeSet::new(),
-            0,
-        )
-        .is_ok())
+        && admitted_record(target, &records).is_ok())
 }
 
 pub(super) fn apply(
@@ -77,18 +70,12 @@ pub(super) fn apply(
     let name = identifier(text(field, "name")?, false)?;
     let (ty, default) = default_literal(field)?;
     let records = type_inventory(revision);
-    copy_record(
-        target,
-        &records,
-        &mut BTreeSet::new(),
-        &mut BTreeSet::new(),
-        0,
-    )?;
+    admitted_record(target, &records)?;
     let record = records
         .get(target)
         .ok_or_else(|| invalid("target record is absent"))?;
     let ResolvedTypeDeclarationKind::Record { fields } = &record.declaration.kind else {
-        return Err(invalid("target is not an admitted Copy record"));
+        return Err(invalid("target is not an admitted record"));
     };
     if fields.len() >= MAX_FIELDS {
         return Err(capacity(
@@ -286,22 +273,7 @@ fn type_inventory(revision: &ProjectRevision) -> BTreeMap<String, Record<'_>> {
         .collect()
 }
 
-fn copy_record(
-    id: &str,
-    records: &BTreeMap<String, Record<'_>>,
-    seen: &mut BTreeSet<String>,
-    checked: &mut BTreeSet<String>,
-    depth: usize,
-) -> Result<()> {
-    if depth > MAX_DEPTH {
-        return Err(capacity("record Copy eligibility exceeds type depth"));
-    }
-    if checked.contains(id) {
-        return Ok(());
-    }
-    if !seen.insert(id.to_owned()) {
-        return Err(invalid("recursive record is not eligible"));
-    }
+fn admitted_record(id: &str, records: &BTreeMap<String, Record<'_>>) -> Result<()> {
     let record = records
         .get(id)
         .ok_or_else(|| invalid("record type is not an authored retained declaration"))?;
@@ -310,33 +282,32 @@ fn copy_record(
             "record field change does not support generic records",
         ));
     }
-    let ResolvedTypeDeclarationKind::Record { fields } = &record.declaration.kind else {
+    let ResolvedTypeDeclarationKind::Record { .. } = &record.declaration.kind else {
         return Err(invalid(
-            "record field change requires a resource-free Copy record",
+            "record field change requires a checked source record",
         ));
     };
-    if fields.len() > MAX_FIELDS {
-        return Err(capacity("record field inventory exceeds its bound"));
+    let declarations = records
+        .iter()
+        .map(|(id, record)| (id.as_str(), record.declaration))
+        .collect();
+    let facts =
+        DeclarationIndex::record_evolution_type_facts(&record.declaration.id, &declarations)
+            .map_err(|diagnostic| vec![diagnostic])?
+            .ok_or_else(|| invalid("record has no admitted bounded checked TypeFacts"))?;
+    if facts.sized
+        && !facts.contains_resource
+        && ((facts.copy && !facts.needs_drop)
+            || (!facts.copy
+                && facts.needs_drop
+                && crate::hir::admitted_flat_owned_byte_record_declaration(record.declaration)))
+    {
+        Ok(())
+    } else {
+        Err(invalid(
+            "record field change requires resource-free Copy or flat owned-Bytes fields",
+        ))
     }
-    for field in fields {
-        match &field.ty {
-            ResolvedType::I64 | ResolvedType::Bool => {}
-            ResolvedType::Nominal {
-                declaration,
-                arguments,
-            } if arguments.is_empty() => {
-                copy_record(declaration.as_str(), records, seen, checked, depth + 1)?;
-            }
-            _ => {
-                return Err(invalid(
-                    "record fields must be i64/bool or nested monomorphic Copy records",
-                ))
-            }
-        }
-    }
-    seen.remove(id);
-    checked.insert(id.to_owned());
-    Ok(())
 }
 
 fn authenticate_module(revision: &ProjectRevision, program: &Program) -> Result<()> {
@@ -534,9 +505,33 @@ fn default_literal(field: &Value) -> Result<(Type, Expr)> {
                     .ok_or_else(|| invalid("bool default must be a boolean"))?,
             ),
         ),
+        "i32" => (
+            Type::I32,
+            ExprKind::Int32(
+                value["value"]
+                    .as_i64()
+                    .and_then(|raw| i32::try_from(raw).ok())
+                    .ok_or_else(|| invalid("i32 default must be an exact signed 32-bit integer"))?,
+            ),
+        ),
+        "u8" => (
+            Type::U8,
+            ExprKind::Uint8(
+                value["value"]
+                    .as_u64()
+                    .and_then(|raw| u8::try_from(raw).ok())
+                    .ok_or_else(|| invalid("u8 default must be an exact unsigned 8-bit integer"))?,
+            ),
+        ),
+        "usize" => (
+            Type::Usize,
+            ExprKind::Usize(value["value"].as_u64().ok_or_else(|| {
+                invalid("usize default must be an exact unsigned 64-bit integer")
+            })?),
+        ),
         _ => {
             return Err(invalid(
-                "new record field supports only i64 and bool literal defaults",
+                "new record field supports only i64/bool/i32/u8/usize literal defaults",
             ))
         }
     };

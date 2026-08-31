@@ -305,7 +305,7 @@ fn intent_schema() -> Value {
         new_parameter(),
         computed_parameter()
     ]});
-    let record_fields = ["i64", "bool"]
+    let record_fields = ["i64", "bool", "i32", "u8", "usize"]
         .into_iter()
         .map(|kind| {
             closed(&[

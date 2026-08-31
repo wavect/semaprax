@@ -732,7 +732,10 @@ fn operation() -> Value {
                     "field_fields",
                     json!({"const":["id","name","type","default"]}),
                 ),
-                ("field_types", json!({"const":["i64","bool"]})),
+                (
+                    "field_types",
+                    json!({"const":["i64","bool","i32","u8","usize"]}),
+                ),
             ]),
             "implement_interface" => fields.extend([
                 (

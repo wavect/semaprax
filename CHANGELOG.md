@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Broadened semantic record-field changes to checked Copy and existing flat
+  owned-byte records, with inert i64/bool/i32/u8/usize defaults. Migrations
+  preserve old initializer order, owning pattern bindings and stable field
+  identities, then rebuild ownership, loans, cleanup and target facts. Schema,
+  catalogue and regression updates are authored, unrun.
+
 - Restored the resolved-interface slice in the borrowed operation-sidecar view
   for both workspace and retained-Project constructors. This fixes the refactor's
   compile error while preserving the existing authenticated interface-parameter

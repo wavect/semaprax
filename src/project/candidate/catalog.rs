@@ -250,8 +250,8 @@ impl ProjectCandidate {
             reason = "constructor_available_payload_requires_full_candidate_admission";
             operations.push(json!({
                 "kind":"add_record_field", "required_fields":["kind","target","field"],
-                "field_fields":["id","name","type","default"], "field_types":["i64","bool"],
-                "constraints":["globally_new_explicit_field_identity", "unique_field_name", "monomorphic_copy_record", "matching_pure_literal_default", "migrate_all_authenticated_constructors_and_exact_patterns", "preserve_existing_field_identities_and_projection_meaning", "revalidate_layout_ownership_and_targets"],
+                "field_fields":["id","name","type","default"], "field_types":["i64","bool","i32","u8","usize"],
+                "constraints":["globally_new_explicit_field_identity", "unique_field_name", "monomorphic_checked_copy_or_flat_owned_bytes_record", "matching_pure_literal_default", "append_default_after_existing_field_evaluations", "migrate_all_authenticated_constructors_and_exact_patterns", "preserve_existing_field_identities_and_projection_meaning", "no_new_owned_field_or_ownership_transfer", "revalidate_layout_ownership_cleanup_and_targets"],
             }));
         }
         if self.changes.len() < MAX_CHANGES {

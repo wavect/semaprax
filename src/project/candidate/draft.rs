@@ -30,6 +30,13 @@ pub use rebase::{
     PROJECT_CANDIDATE_DRAFT_REBASE_SCHEMA,
 };
 
+#[path = "draft_merge.rs"]
+mod merge;
+pub use merge::{
+    ProjectCandidateDraftMerge, MAX_PROJECT_CANDIDATE_DRAFT_MERGE_BYTES,
+    PROJECT_CANDIDATE_DRAFT_MERGE_SCHEMA,
+};
+
 pub const PROJECT_CANDIDATE_DRAFT_SCHEMA: &str = "semaprax.project-candidate-draft.v1";
 pub const PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA: &str =
     "semaprax.project-candidate-hole-context.v1";

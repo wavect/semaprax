@@ -231,6 +231,7 @@ Audience: all documentation readers.
 - [Source-backed typed-draft archive](PROJECT-CANDIDATE-DRAFT-ARCHIVE-V1.md)
 - [Typed-draft archive persistence](DRAFT-ARCHIVE-PERSISTENCE-V1.md)
 - [Typed-draft semantic rebase](PROJECT-CANDIDATE-DRAFT-REBASE-V1.md)
+- [Typed-draft semantic merge](PROJECT-CANDIDATE-DRAFT-MERGE-V1.md)
 - [Candidate Archive v1](PROJECT-CANDIDATE-ARCHIVE-V1.md)
 - [Candidate Archive Store v1](CANDIDATE-ARCHIVE-STORE-V1.md)
 - [Candidate Archive CLI v1](CANDIDATE-ARCHIVE-CLI-V1.md)

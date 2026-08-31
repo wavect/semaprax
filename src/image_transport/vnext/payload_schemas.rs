@@ -117,6 +117,21 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
             ),
         ],
     );
+    put(
+        "semaprax.image-draft-merge.v1",
+        vec![
+            ("left_draft_revision", digest()),
+            ("right_draft_revision", digest()),
+            (
+                "draft",
+                json!({"$ref":"urn:semaprax.image-draft-handle.v1"}),
+            ),
+            (
+                "report",
+                json!({"$ref":"urn:semaprax.project-candidate-draft-merge.v1"}),
+            ),
+        ],
+    );
     for (id, handle) in [
         ("semaprax.image-candidate-discard.v1", "candidate_revision"),
         ("semaprax.image-draft-discard.v1", "draft_revision"),

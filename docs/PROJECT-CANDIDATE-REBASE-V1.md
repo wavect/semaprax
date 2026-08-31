@@ -35,6 +35,9 @@ The additive [Typed-draft Rebase](PROJECT-CANDIDATE-DRAFT-REBASE-V1.md) first
 uses this checked-history rebase, then separately guards and remaps pending
 body, expression and contract holes. It returns only a draft and its report;
 these complete-candidate APIs and their wire reports remain unchanged.
+The separate [Draft Merge](PROJECT-CANDIDATE-DRAFT-MERGE-V1.md) uses one checked
+history merge and independently reconciles both pending inventories; it cannot
+release a candidate while any merged hole remains unresolved.
 
 ## Stable-ID conflict selection
 

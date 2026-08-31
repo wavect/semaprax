@@ -799,6 +799,12 @@ authenticated expression-origin remapping to reconstruct pending holes. The
 v5 `draft_rebase.rs` adapter installs only the resulting draft after bounded
 report preparation and live-source authentication; no candidate or publication
 authority is released. See [Draft Rebase](PROJECT-CANDIDATE-DRAFT-REBASE-V1.md).
+Its private pending-rebinding helper is also used by `candidate/draft_merge.rs`
+after one ordinary candidate history merge. Both parents pass region and
+dependency checks; opposing history writes are checked before their pending
+maps are reconciled through ordinary hole APIs. Final contexts precede result
+publication. The v5 `draft_merge.rs` adapter retains only the merged draft under
+the same request/registry boundary. See [Draft Merge](PROJECT-CANDIDATE-DRAFT-MERGE-V1.md).
 These additions and focused regression cases are authored, unrun.
 
 `candidate/movement.rs` moves eligible functions through stable-ID call/import

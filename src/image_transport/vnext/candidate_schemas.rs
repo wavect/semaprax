@@ -387,6 +387,50 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
             ("nonclaims", strings()),
         ],
     );
+    let parent_holes = json!({"type":"array","maxItems":16,"items":object(vec![
+        ("hole_id", text()),
+        ("kind", json!({"enum":["function_body","expression","contract_expression"]})),
+        ("target", text()),
+        ("old_expression_id", nullable(text())),
+        ("new_expression_id", nullable(text())),
+        ("concurrent_contract_change", boolean()),
+        ("concurrent_body_change", boolean()),
+        ("context_refreshed", json!({"const":true})),
+    ])});
+    put(
+        "semaprax.project-candidate-draft-merge.v1",
+        vec![
+            ("left_parent_draft_digest", digest()),
+            ("right_parent_draft_digest", digest()),
+            ("original_base_revision", digest()),
+            ("result_base_revision", digest()),
+            ("result_draft_digest", digest()),
+            (
+                "last_valid_merge",
+                reference("semaprax.project-candidate-rebase.v1"),
+            ),
+            ("left_holes", parent_holes.clone()),
+            ("right_holes", parent_holes),
+            (
+                "holes",
+                json!({"type":"array","maxItems":16,"items":object(vec![
+                    ("hole_id", text()),
+                    ("kind", json!({"enum":["function_body","expression","contract_expression"]})),
+                    ("target", text()),
+                    ("expression_id", nullable(text())),
+                    ("parents", json!({"enum":[["left"],["right"],["left","right"]]})),
+                    ("context_refreshed", json!({"const":true})),
+                ])}),
+            ),
+            ("materializable", json!({"const":false})),
+            ("source_authority", json!({"const":false})),
+            (
+                "validation",
+                json!({"const":"checked_history_merge_and_pending_selector_readmission"}),
+            ),
+            ("nonclaims", strings()),
+        ],
+    );
     put(
         "semaprax.image-candidate-reconciliation.v1",
         vec![

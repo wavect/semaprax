@@ -84,6 +84,10 @@ pending-hole and explicit-completion rules.
 history and all pending hole kinds onto an independently admitted revision.
 It rejects conflicting selected regions, remaps expression identities and
 rebuilds contexts without completing or materializing the unfinished draft.
+[Typed-draft Merge](PROJECT-CANDIDATE-DRAFT-MERGE-V1.md) combines compatible
+sibling histories and pending selections on their common original base, with
+explicit opposing-write, overlap and capacity checks. It never infers that a
+hole filled in one branch completes another branch's pending intention.
 
 ## Typed context
 

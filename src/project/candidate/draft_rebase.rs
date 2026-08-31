@@ -8,7 +8,7 @@ use super::ProjectCandidateDraft;
 use crate::diagnostic::Diagnostic;
 use crate::hir::{self, ResolvedFunction, ResolvedType};
 use crate::project::candidate::{expression, intent, parse_revision, rebase, wire};
-use crate::project::ProjectRevision;
+use crate::project::{ProjectCandidate, ProjectRevision};
 
 pub const PROJECT_CANDIDATE_DRAFT_REBASE_SCHEMA: &str =
     "semaprax.project-candidate-draft-rebase.v1";
@@ -53,7 +53,31 @@ impl ProjectCandidateDraft {
         )?;
         let ancestry: Value = serde_json::from_str(replay.to_json())
             .map_err(|_| invalid("checked candidate rebase report is invalid"))?;
-        let mut draft = Self::open(Arc::new(replay.into_candidate()))?;
+        let (draft, rows) = self.rebind_pending(Arc::new(replay.into_candidate()))?;
+        draft.validate_pending_contexts()?;
+        let json = wire::render(json!({
+            "schema":PROJECT_CANDIDATE_DRAFT_REBASE_SCHEMA,
+            "parent_draft_digest":self.draft_digest(),
+            "original_base_revision":self.last_valid.base_revision().project_revision(),
+            "onto_revision":expected_new_base,
+            "result_base_revision":draft.last_valid.base_revision().project_revision(),
+            "result_draft_digest":draft.draft_digest(),
+            "last_valid_rebase":ancestry,"holes":rows,
+            "materializable":false,"source_authority":false,
+            "validation":"checked_history_replay_and_pending_selector_readmission",
+            "nonclaims":["no_unresolved_source_or_candidate_release","not_behavioral_equivalence","not_contract_implication","no_runtime_or_project_test_execution","no_source_commit_authority","conservative_region_conflicts_not_arbitrary_subtree_merge"]
+        }), MAX_PROJECT_CANDIDATE_DRAFT_REBASE_BYTES)
+            .map_err(|_| capacity("draft rebase report exceeds its byte bound"))?;
+        Ok(ProjectCandidateDraftRebase { draft, json })
+    }
+
+    // History reconstruction belongs to the caller. This shared path only
+    // authenticates pending regions and readmits selectors on its checked result.
+    pub(super) fn rebind_pending(
+        &self,
+        candidate: Arc<ProjectCandidate>,
+    ) -> Result<(Self, Vec<Value>)> {
+        let mut draft = Self::open(candidate)?;
         let before = self.last_valid.revision();
         let after = draft.last_valid.revision();
         let body_targets = self
@@ -196,26 +220,22 @@ impl ProjectCandidateDraft {
                 );
             }
         }
-        // Reconstruct every full context from the final retained checked state,
-        // including calls, contracts and prior cleanup/loan plans. Each query
-        // keeps its existing bounds; discard bytes rather than retain a cache.
-        for hole in rows.keys() {
-            draft.hole_context(draft.draft_digest(), hole)?;
+        Ok((draft, rows.into_values().collect()))
+    }
+
+    /// Reconstruct full final contexts, including contracts and prior plans.
+    /// Discard bounded bytes; this installs neither cached evidence nor source.
+    pub(super) fn validate_pending_contexts(&self) -> Result<()> {
+        let holes = self
+            .holes
+            .keys()
+            .chain(self.expression_holes.keys())
+            .chain(self.contract_expression_holes.keys())
+            .collect::<BTreeSet<_>>();
+        for hole in holes {
+            self.hole_context(self.draft_digest(), hole)?;
         }
-        let json = wire::render(json!({
-            "schema":PROJECT_CANDIDATE_DRAFT_REBASE_SCHEMA,
-            "parent_draft_digest":self.draft_digest(),
-            "original_base_revision":self.last_valid.base_revision().project_revision(),
-            "onto_revision":expected_new_base,
-            "result_base_revision":draft.last_valid.base_revision().project_revision(),
-            "result_draft_digest":draft.draft_digest(),
-            "last_valid_rebase":ancestry,"holes":rows.into_values().collect::<Vec<_>>(),
-            "materializable":false,"source_authority":false,
-            "validation":"checked_history_replay_and_pending_selector_readmission",
-            "nonclaims":["no_unresolved_source_or_candidate_release","not_behavioral_equivalence","not_contract_implication","no_runtime_or_project_test_execution","no_source_commit_authority","conservative_region_conflicts_not_arbitrary_subtree_merge"]
-        }), MAX_PROJECT_CANDIDATE_DRAFT_REBASE_BYTES)
-            .map_err(|_| capacity("draft rebase report exceeds its byte bound"))?;
-        Ok(ProjectCandidateDraftRebase { draft, json })
+        Ok(())
     }
 }
 

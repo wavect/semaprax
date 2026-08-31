@@ -939,6 +939,69 @@ Both gates passed locally on macOS arm64 with Rust 1.98, Apple Clang 21 and
 Node 24.3, including the explicitly selected, locked/offline Rust SDK consumer.
 They add no production ABI, schema, artifact or completion-status change and
 do not replace sanitizer or exact-head hosted evidence.
+The interpreter/native/npm gate additionally passes on Linux AArch64 with
+Rust 1.88, Clang 14 and Node 24.3 at held parent `f5cdcc7`; that run did not
+execute this Result-extrema Rust SDK consumer.
+
+### Initialized-owner inactive results
+
+The shared `tests/support/owned_inactive_product.rs` preserves the exact earlier
+inactive-cleanup Project, canonical source/Graph round-trip and manifest. Both
+exports initialize `Bytes` before returning either an active owned value or
+successful `None`/`Err(-7)`. This differs from frame/extrema fixtures whose
+inactive constructors allocate nothing.
+
+`tests/project_owned_inactive_cleanup_v1` now derives the actual native provider
+from the same retained Project and descriptor as its unchanged npm consumer.
+The native companion wraps that exact provider with the independently calibrated
+allocator observer, then executes O0/O2 with strict C warnings. Its 96 calls
+cover both variants and empty, binary/invalid-UTF8, 65,535 and 65,536-byte inputs,
+with active/inactive/three-byte recovery sequences on one physical context.
+Immediately after an inactive call returns, before host len/copy/drop or context
+close, its allocation must already be freed, its pointer and slot inventories
+must be empty, and no public handle may have been issued. Empty `Bytes` separately
+requires one `free(NULL)` call, not a fictitious payload allocation.
+
+Active controls retain exactly one handle, preserve copied bytes and the output
+canary, settle once, and reject a second drop without another free. The corpus
+requires 64 active results, 32 inactive results, 80 physical allocations and
+96 finalizer calls; final context closure must add no allocation or free. These
+observations prove caller-visible settlement timing for this source, not every
+intermediate store, OOM behavior or sanitizer coverage.
+
+The private toolchain's `project_owned_inactive_cleanup_sdk_v1` separately
+publishes that same Project as a real seven-file Rust package. The existing
+tuple package's exact inventory/manifest oracle is shared without changing its
+facts or format. Descriptor and regenerated provider-source bindings are checked
+before a locked/offline, unsafe-forbidden consumer makes 192 calls using two SDK
+objects. It distinguishes successful `None`/`Err(-7)` from outer call failure,
+checks exact active/recovery bytes, and retains 128 independent outputs through
+input mutation and SDK destruction. Package and source bytes are reopened after
+consumption. This safe consumer is not itself an allocator trace or proof that
+one SDK object retains a single physical provider context.
+
+Focused gates (external deadlines/resource bounds remain required):
+
+```sh
+cargo test --locked --offline -p semaprax --test project_owned_inactive_cleanup_v1
+cargo test --locked --offline -p semaprax-toolchain --test project_owned_inactive_cleanup_sdk_v1 provisioned_inactive_cleanup_publish_and_run -- --ignored --exact
+```
+
+The first gate requires Node and Clang; the explicitly selected SDK gate requires
+absolute `CLANG` and `SEMAPRAX_ARCHIVER`, native Cargo and the existing Windows
+MSVC prerequisites. It must not be counted when left ignored. No source language,
+runtime, descriptor, ABI, generated artifact or public-support change follows
+from these test-only additions.
+
+The native/npm gate and explicitly selected new SDK gate pass locally on Linux
+AArch64/Rust 1.88/Clang 14/Node 24.3 and macOS AArch64/Rust 1.98/Apple Clang
+21/Node 24.3. The existing v8/v9 tuple SDK gate also passes on both hosts after
+the shared-oracle extraction. Scoped root/compiler and changed-toolchain-test
+Clippy passes on macOS. This batch does not execute the new source on Windows,
+Rust 1.85, real browsers or sanitizers, and does not run the full quality profile
+or exact-head hosted promotion. In particular, the single-Slice owned-data
+interpreter entry point does not accept this fixture's additional Bool parameter;
+the interpreter has not been widened merely to make this test available there.
 
 ### Mixed-parameter arity gates
 
@@ -986,8 +1049,10 @@ All three gates passed locally on macOS arm64 with Rust 1.98, Apple Clang 21
 and Node 24.3 after correcting the fixture's invalid string-literal byte view.
 The complete descriptor test binary passed all 15 tests; the native/npm and
 explicitly selected Rust SDK gates each passed their product test. This is
-local evidence, not Linux, Windows, minimum-Rust, browser, sanitizer or hosted
-validation.
+local evidence, not Windows, minimum-Rust, browser, sanitizer or hosted
+validation. A later root native/npm run also passes on Linux AArch64/Rust 1.88,
+Clang 14 and Node 24.3 at held parent `f5cdcc7`; that execution did not include
+the mixed-arity Rust SDK consumer.
 
 Native/npm execution requires Clang and Node, plus the existing full-toolchain
 prerequisites for Windows npm publication. The selected Rust gate requires

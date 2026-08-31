@@ -3,12 +3,19 @@
 //! deadline/resource bound; Command::output is not an intrinsic output cap.
 #![cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 
-use semaprax::project::{with_authenticated_project, MAX_PROJECT_NPM_BUILD_BYTES};
+use semaprax::project::{
+    with_authenticated_project, PublicApiSubject, MAX_PROJECT_NPM_BUILD_BYTES,
+};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
+
+#[path = "project_owned_inactive_cleanup_v1/native.rs"]
+mod native;
+#[path = "support/owned_inactive_product.rs"]
+mod subject;
 
 const ARTIFACTS: [&str; 6] = [
     "app.wasm",
@@ -44,38 +51,35 @@ fn initialized_bytes_settle_before_successful_none_and_err_publication() {
     fs::create_dir(&root).unwrap();
     let root = root.canonicalize().unwrap();
     eprintln!("retained inactive-cleanup fixture: {}", root.display());
-    fs::create_dir(root.join("src")).unwrap();
-    let mut retained = Vec::new();
-    for (name, source) in [
-        (
-            "app.spx",
-            include_str!("project_owned_inactive_cleanup_v1/source.spx"),
-        ),
-        (
-            "tests.spx",
-            "module inactive.tests; @id(\"inactive.tests.main\") fn main() -> i64 { 0 }",
-        ),
-    ] {
-        let path = root.join("src").join(name);
-        let ast = semaprax::check(source, &path).unwrap();
-        let canonical = semaprax::format::canonical(&ast);
-        let reparsed = semaprax::check(&canonical, &path).unwrap();
-        assert_eq!(semaprax::format::canonical(&reparsed), canonical);
-        assert_eq!(
-            semaprax::graph::to_json(&ast).unwrap(),
-            semaprax::graph::to_json(&reparsed).unwrap()
-        );
-        write_new(&path, canonical.as_bytes());
-        retained.push((path, canonical.into_bytes()));
-    }
-    let manifest = b"schema = \"semaprax.project.v8\"\nname = \"inactive-cleanup\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"\nentry = \"inactive.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"inactive.maybe\", \"inactive.result\"]\ntests = [\"inactive.tests\"]\n";
-    let manifest_path = root.join("semaprax.toml");
-    write_new(&manifest_path, manifest);
-    retained.push((manifest_path.clone(), manifest.to_vec()));
+    let manifest_path = subject::write_project(&root);
+    let mut retained = ["semaprax.toml", "src/app.spx", "src/tests.spx"]
+        .map(|name| {
+            let path = root.join(name);
+            let bytes = fs::read(&path).unwrap();
+            (path, bytes)
+        })
+        .to_vec();
     let package = root.join("package");
     fs::create_dir(&package).unwrap();
-    with_authenticated_project(&manifest_path, |snapshot| {
+    let provider = with_authenticated_project(&manifest_path, |snapshot| {
+        snapshot.check()?;
+        let revision = snapshot.retain_revision();
         let descriptor = snapshot.public_api_descriptor()?;
+        let provider = semaprax::codegen::emit_project_v8_native_owned_data_provider(
+            revision.entry_program(),
+            revision.manifest().web_exports(),
+            PublicApiSubject {
+                project_schema: revision.manifest().schema(),
+                project_revision: revision.project_revision(),
+                workspace_revision: revision.workspace_revision(),
+                project_graph_digest: revision.semantic_graph_digest(),
+            },
+            &descriptor.canonical_bytes(),
+            &descriptor.digest(),
+        )
+        .map_err(|error| vec![error])?;
+        assert_eq!(provider.descriptor(), descriptor.canonical_bytes());
+        assert_eq!(provider.descriptor_digest(), descriptor.digest());
         let build = snapshot.build_npm_inline(MAX_PROJECT_NPM_BUILD_BYTES)?;
         build.verify().unwrap();
         let envelope: serde_json::Value = serde_json::from_str(build.envelope()).unwrap();
@@ -101,9 +105,10 @@ fn initialized_bytes_settle_before_successful_none_and_err_publication() {
             descriptor.canonical_bytes()
         );
         assert_eq!(metadata["descriptor_digest"], descriptor.digest());
-        Ok(())
+        Ok(provider)
     })
     .unwrap();
+    native::run(&root, provider.source());
     let script = include_bytes!("project_owned_inactive_cleanup_v1/consumer.mjs");
     write_new(&root.join("consumer.mjs"), script);
     retained.push((root.join("consumer.mjs"), script.to_vec()));

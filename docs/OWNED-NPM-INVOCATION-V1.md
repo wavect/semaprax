@@ -257,6 +257,13 @@ physical deallocation, native behavior, browser coverage or a hostile-realm
 sandbox. Temporary fixture trees are retained, and the selected gate needs an
 external process deadline/resource bound.
 
+The subsequent [native and safe-Rust companion](PUBLIC-OWNED-DATA-API-V1.md#initialized-owner-inactive-results)
+shares the exact Project source without changing this JavaScript observer. The
+combined root gate now also requires Clang and checks physical native cleanup
+at O0/O2; a separately selected private gate publishes and consumes the real Rust
+SDK. Those observations, not the npm Map counters, own native allocation and
+safe-Rust publication evidence. Browser coverage remains separate.
+
 ### Scoped local execution
 
 On macOS AArch64 with Rust 1.98 and Node 24.3, both tests in

@@ -246,6 +246,13 @@
   client tests pass locally, including actual Python and offline Rust consumers;
   full-profile and current-head hosted validation remain pending.
 
+- Extended the real initialized-Bytes inactive-result fixture across native
+  O0/O2 and a published Rust SDK. Native counters require allocation release
+  before successful `None`/`Err` returns and no deferred context-close cleanup;
+  safe consumers retain independent outputs after input and SDK disposal.
+  Shared the exact Project fixture and package oracle while preserving the
+  existing npm observations. Test-only evidence, without ABI or support promotion.
+
 - Generate private owned-SDK helpers from validated result shapes instead of
   emitting unused ownership code. Scalar-only selections retain checked context
   closure; flat records retain discard whenever any result Bool requires it.

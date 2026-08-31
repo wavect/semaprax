@@ -29,7 +29,8 @@ impl Fixture {
             std::process::id(),
             SERIAL.fetch_add(1, Ordering::Relaxed)
         ));
-        std::fs::create_dir_all(root.join("src")).unwrap();
+        std::fs::create_dir(&root).unwrap();
+        std::fs::create_dir(root.join("src")).unwrap();
         let root = root.canonicalize().unwrap();
         let example = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/calculator-project");
         for path in [
@@ -48,8 +49,26 @@ impl Fixture {
         // by the cache contract. Install identical bytes without altering Cargo's
         // artifact, and use that same installed image for every subprocess.
         let compiler = root.join("semaprax-installed");
-        std::fs::copy(env!("CARGO_BIN_EXE_semaprax"), &compiler).unwrap();
+        let compiler_stage = root.join(".semaprax-installed.stage");
+        let source = std::fs::File::open(env!("CARGO_BIN_EXE_semaprax")).unwrap();
+        let expected_length = source.metadata().unwrap().len();
+        let mut source = std::io::BufReader::new(source);
+        let mut staged = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(&compiler_stage)
+            .unwrap();
+        assert_eq!(
+            std::io::copy(&mut source, &mut staged).unwrap(),
+            expected_length
+        );
+        staged.sync_all().unwrap();
+        drop(staged);
+        drop(source);
+        std::fs::rename(&compiler_stage, &compiler).unwrap();
         std::fs::set_permissions(&compiler, std::fs::Permissions::from_mode(0o555)).unwrap();
+        assert!(!compiler_stage.exists());
         let metadata = std::fs::metadata(&compiler).unwrap();
         assert!(metadata.is_file());
         assert_eq!(metadata.nlink(), 1);

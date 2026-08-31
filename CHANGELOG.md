@@ -246,6 +246,14 @@
   client tests pass locally, including actual Python and offline Rust consumers;
   full-profile and current-head hosted validation remain pending.
 
+- Extended real owned-data browser fixtures with independent direct-Bytes and
+  staged Option/Result packages, exact twelve-artifact request admission, fixed
+  offset controls, calibrated resizable-buffer rejection and retained variant
+  copies. Preserved the original Project and closed Graph/import boundaries.
+  Both compiler fixtures pass on Linux/macOS; actual publications pass a local
+  non-pinned Chromium-only run. Pinned three-engine execution remains unrun;
+  runtime, dependencies, hosted workflows and support status are unchanged.
+
 - Extended the real initialized-Bytes inactive-result fixture across native
   O0/O2 and a published Rust SDK. Native counters require allocation release
   before successful `None`/`Err` returns and no deferred context-close cleanup;

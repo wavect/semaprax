@@ -1,9 +1,11 @@
 # Owned Data Browser v1
 
-Status: authored, unrun; no current-head browser or hosted promotion claim.
+Status: scoped local compiler and non-pinned Chromium evidence; the pinned
+three-browser gate remains unrun, with no hosted promotion claim.
 
-This is the provisioned WP-10 direct-`Bytes` boundary fixture. It imports the
-actual generated package, not a host-injected `semapraxOwnedData` global. The
+This is the provisioned WP-10 direct-`Bytes` and owned-variant boundary fixture.
+It imports two actual generated packages, not a host-injected
+`semapraxOwnedData` global. The
 existing Chromium, Firefox and WebKit projects remain selected; each requires
 an already provisioned browser and the existing pinned Playwright 1.55.0
 dependency. The suite installs nothing and has no retries.
@@ -16,20 +18,31 @@ under review. It exports exactly `frame.fail-after`, `frame.fail-before`,
 argument before or after creating an owned byte value. They are real language
 functions, not substituted WebAssembly implementations.
 
+Also build `variant-project/semaprax.toml`, whose separate package
+`owned-data-browser-variants` exports exactly `frame.maybe` and `frame.result`.
+Both functions initialize Bytes unconditionally before selecting `Some`/`None`
+or `Ok`/`Err(-7)`. The original Project is unchanged: its local owned-buffer loan
+and the new owned variants must not be combined into one module, because the
+current Workspace Graph rejects that combination with `SPX-G410`. Moving its
+payload call across modules would instead violate `SPX-G172` for an owned
+return import. Separate Projects preserve both checks and admission boundaries.
+
 For example, from the repository root, with a prebuilt source-installed full
 toolchain and an existing host-owned parent (the `generated` destination must
 not exist; replace the example absolute path with that parent's path):
 
 ```sh
 semaprax-full build platform-tests/owned-data-browser-v1/project/semaprax.toml --target npm -o /absolute/host-owned/generated
+semaprax-full build platform-tests/owned-data-browser-v1/variant-project/semaprax.toml --target npm -o /absolute/host-owned/generated-variants
 ```
 
 Windows Project-v8 npm publication requires this full host; the standalone
 compiler rejects it with `SPX-W120`. Release archives expose the full CLI as
 `semaprax`, so use that name instead when provisioning from an archive.
 
-Serve that generated directory on loopback HTTP, with JavaScript modules served
-using a JavaScript MIME type. Its package inventory is exactly:
+Serve both generated directories on the same loopback HTTP origin, with
+JavaScript modules served using a JavaScript MIME type. Each package inventory
+is exactly:
 
 ```text
 app.wasm
@@ -41,22 +54,36 @@ package.json
 ```
 
 `SEMAPRAX_OWNED_DATA_PACKAGE_URL` is now a **directory URL**, not an HTML page.
-It must use `http://127.0.0.1`, end in `/`, and contain no credentials, query or
-fragment. Select the fixture explicitly after provisioning:
+Both it and the mandatory `SEMAPRAX_OWNED_DATA_VARIANT_PACKAGE_URL` must use
+`http://127.0.0.1`, end in `/`, and contain no credentials, query or fragment.
+Use distinct directories on the same origin. Select the fixture explicitly
+after provisioning:
 
 ```sh
-SEMAPRAX_OWNED_DATA_PACKAGE_URL='http://127.0.0.1:4173/' node platform-tests/owned-data-browser-v1/node_modules/@playwright/test/cli.js test --config platform-tests/owned-data-browser-v1/playwright.config.mjs
+SEMAPRAX_OWNED_DATA_PACKAGE_URL='http://127.0.0.1:4173/base/' SEMAPRAX_OWNED_DATA_VARIANT_PACKAGE_URL='http://127.0.0.1:4173/variants/' node platform-tests/owned-data-browser-v1/node_modules/@playwright/test/cli.js test --config platform-tests/owned-data-browser-v1/playwright.config.mjs
 ```
 
 Missing URLs, package files, browsers or required browser features fail; they
 do not skip the test. The test supplies its own blank document with
 [COOP/COEP cross-origin isolation headers](https://developer.mozilla.org/en-US/docs/Web/API/Window/crossOriginIsolated)
 so shared-buffer rejection is exercised rather than silently omitted. It
-permits requests only to the selected package directory and disables service
+permits requests only to the exact twelve package artifact URLs and disables service
 workers, following [Playwright's request-interception guidance](https://playwright.dev/docs/network).
 This test request policy is not an OS network sandbox.
 
 ## Evidence and limits
+
+Local validation on 2026-08-31 ran both compiler-fixture tests on macOS
+(Rust 1.98) and isolated offline Linux (Rust 1.88): two passes per host. The
+actual full CLI published both six-file packages. A temporary host-owned runner
+then used byte-identical checked-in test/config files with cached Playwright
+**1.62.0** and Chromium **151.0.7922.34**: one selected Chromium test passed.
+It served only the twelve snapshotted artifact URLs, selected Chromium explicitly,
+and checked package, test/config and Project input bytes again after execution.
+The local binding and generated packages are not repository changes. No downloads
+were performed. This is **not** the pinned Playwright 1.55.0 gate: its dependency
+and Firefox/WebKit binaries were unavailable. The three-project configuration,
+dependency pin, zero retries and mandatory capability checks remain unchanged.
 
 The browser runner covers empty, binary/NUL/invalid-UTF8 and 65,535/65,536-byte
 copies; cumulative UTF-8-plus-byte input bounds in both mixed branches;
@@ -66,11 +93,22 @@ repeated calls; and recovery on the same instance after genuine checked
 failures before and after owned staging. It requires shared, resizable and
 transferable buffers rather than silently weakening the selected engine's
 coverage. A calibrated observer of the real `WebAssembly.instantiate` checks
-that tampered Wasm is rejected before engine instantiation.
+that both packages' tampered Wasm is rejected before engine instantiation.
+
+Additional controls admit fixed nonzero-offset views, including an empty view
+and a 65,536-byte view inside a larger backing store. Eight resizable-view
+rejections exercise fixed and length-tracking views before shrinking, while
+partially/fully out of bounds, and after regrowth; effective lengths are checked
+before exact-diagnostic rejection. The separate variant facade executes 96
+active/inactive/recovery calls and four oversized-input rejection/recovery pairs.
+It retains 68 independent outputs, including empty results, and checks them
+after input mutation and creation of another base facade. `None` and frozen
+`Err(-7n)` are successful language results, not checked-call failures.
 
 `tests/owned_data_browser_fixture_v1.rs` separately authenticates the checked-in
-Project subject, selected signatures, descriptor and exact six-artifact inline
-carrier through the compiler's public APIs. It does not launch browsers or
+Project subjects, selected signatures, descriptors and exact six-artifact inline
+carriers through the compiler's public APIs. Typed HIR binds variant staging to
+the unconditional Bytes initializer. It does not launch browsers or
 publish files. The browser gate consumes host-provisioned bytes: metadata and
 Wasm consistency are not signatures or proof that a host served this exact
 source revision. Provisioning must keep the generated package bound to the

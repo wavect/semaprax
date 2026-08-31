@@ -851,16 +851,25 @@ This direct-consumer run is not npm installation, TypeScript, browser or
 current-hosted-head evidence.
 
 The provisioned [Owned Data Browser v1 fixture](../platform-tests/owned-data-browser-v1/README.md)
-now imports an actual generated direct-Bytes package in the existing three
-browser projects instead of trusting an injected global and skipping a missing
-URL. Its fixed Project and separate compiler-side carrier test bind the fixture
-signatures; the browser cases cover capacity, hostile inputs, copy independence,
-Wasm authentication before engine instantiation, and same-instance recovery
-after genuine pre/post-owned-staging failures. Required shared/resizable/transfer
-features fail closed when unavailable. These cases remain authored and unrun;
-host-provisioned package provenance, raw-carrier fault coverage and physical
-cleanup traces are separate obligations. No production artifact or schema
-changes follow from completing this evidence fixture.
+imports two actual generated packages in the existing three browser projects,
+with mandatory distinct same-origin URLs and an exact twelve-artifact request
+inventory. The original four-export direct-Bytes Project is unchanged. A separate
+two-export Project stages Bytes before `Option`/`Result` selection, preserving
+the existing G410 combined-module and G172 owned-return import boundaries.
+Separate compiler-side carrier tests bind both fixtures' signatures and verify
+unconditional variant staging in typed HIR. Browser cases cover capacity,
+nonzero-offset views, calibrated shrinking/regrowing resizable views, exact
+hostile-input diagnostics, retained copy independence, both Wasm authentication
+failures before instantiation, and same-instance recovery. The variant facade
+executes 96 active/inactive/recovery calls plus four oversized rejection/recovery
+pairs. Required shared/resizable/transfer features fail closed when unavailable.
+Both compiler tests pass locally on Linux Rust 1.88 and macOS Rust 1.98. Actual
+CLI publications passed a local Chromium-only run with cached Playwright 1.62.0
+and Chromium 151.0.7922.34, using unchanged test/config copies and retained input
+bytes. That is not the pinned Playwright 1.55.0 three-browser gate, which remains
+unrun; Firefox/WebKit, hosted provenance, raw-carrier fault coverage and physical
+cleanup traces remain separate obligations. No production, schema, dependency
+or support-status changes follow from extending this evidence fixture.
 
 ### Offline installed-package gate
 

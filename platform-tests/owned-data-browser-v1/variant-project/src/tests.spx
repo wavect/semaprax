@@ -1,0 +1,7 @@
+module owned_browser_variants.tests;
+
+@id("owned-browser-variants.tests.main")
+fn main() -> i64
+{
+    0
+}

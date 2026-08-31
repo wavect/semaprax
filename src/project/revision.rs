@@ -10,9 +10,11 @@ use crate::diagnostic::Diagnostic;
 use super::{
     admission, build::BuiltProject, execution, npm, semantic, ProjectManifest, ProjectNpmBuild,
 };
+use super::{
+    FlatOwnedRecordEvaluation, PublicApiArgument, PublicApiEvaluation, PublicApiParameterType,
+};
 use super::{ProjectExecution, ProjectExecutionOptions, ProjectExecutionRole, ProjectProfile};
 use super::{ProjectSource, ProjectWebBuild};
-use super::{PublicApiArgument, PublicApiEvaluation, PublicApiParameterType};
 
 /// One immutable, fully admitted Project revision without ambient authority.
 pub struct ProjectRevision {
@@ -330,6 +332,66 @@ impl ProjectRevision {
             &descriptor.digest(),
         )
         .map_err(|error| vec![error])
+    }
+
+    /// Evaluate one manifest-selected Project v9 flat owned-record export
+    /// from this immutable retained subject. Descriptor replay and exact
+    /// invocation-shape checks precede the authority-free interpreter call.
+    pub fn evaluate_flat_owned_record_api_v1(
+        &self,
+        entry_id: &str,
+        arguments: &[PublicApiArgument<'_>],
+        max_steps: usize,
+    ) -> Result<FlatOwnedRecordEvaluation, Vec<Diagnostic>> {
+        let descriptor = self.flat_owned_record_api_descriptor()?;
+        if !super::public_api::valid_stable_id(entry_id) {
+            return Err(vec![Diagnostic::io(
+                "SPX-F102",
+                "interpreter admission failed (unsupported_callee): flat owned-record selector is invalid",
+            )]);
+        }
+        let export = descriptor
+            .exports()
+            .iter()
+            .find(|export| export.stable_id().as_str() == entry_id)
+            .ok_or_else(|| {
+                vec![Diagnostic::io(
+                    "SPX-F102",
+                    format!(
+                        "interpreter admission failed (unsupported_callee): retained Project v9 descriptor does not select export `{entry_id}`"
+                    ),
+                )]
+            })?;
+        if arguments.len() != export.parameters().len() {
+            return Err(vec![Diagnostic::io(
+                "SPX-F103",
+                format!(
+                    "flat owned-record export `{entry_id}` takes {} argument(s), {} were provided",
+                    export.parameters().len(),
+                    arguments.len()
+                ),
+            )]);
+        }
+        for (ordinal, ((_, source_name, expected), argument)) in
+            export.parameters().iter().zip(arguments).enumerate()
+        {
+            if !public_argument_matches(*expected, argument) {
+                return Err(vec![Diagnostic::io(
+                    "SPX-F103",
+                    format!(
+                        "parameter `{source_name}` at ordinal {ordinal} of flat owned-record export `{entry_id}` expects {}, but the argument is {}",
+                        expected.wire_name(),
+                        public_argument_name(argument),
+                    ),
+                )]);
+            }
+        }
+        crate::interpreter::evaluate_resolved_flat_owned_record_api(
+            &self.entry_program,
+            export,
+            arguments,
+            max_steps,
+        )
     }
 
     /// Independently replay the retained canonical Project v10 owned UTF-8

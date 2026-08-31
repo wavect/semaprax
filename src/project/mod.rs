@@ -43,7 +43,9 @@ use crate::diagnostic::Diagnostic;
 use crate::semantic_workspace::SemanticWorkspaceSource;
 
 pub use crate::interpreter::{
-    PublicApiArgument, PublicApiEvaluation, PublicApiEvaluationOutcome, PublicApiValue,
+    FlatOwnedRecordEvaluation, FlatOwnedRecordEvaluationOutcome, FlatOwnedRecordMember,
+    FlatOwnedRecordMemberValue, FlatOwnedRecordValue, PublicApiArgument, PublicApiEvaluation,
+    PublicApiEvaluationOutcome, PublicApiValue,
 };
 pub use crate::wasm::{ProjectWebBuild, MAX_PROJECT_WEB_BUILD_BYTES, PROJECT_WEB_BUILD_SCHEMA};
 use authority::{authentication, DeclaredPathSelection, HeldDirectory, HeldFile};
@@ -163,7 +165,7 @@ pub use flat_owned_record::{
     FlatOwnedRecordApiDescriptor, FlatOwnedRecordCarrierPlan, FlatOwnedRecordExport,
     FlatOwnedRecordField, FlatOwnedRecordFieldType, FlatOwnedRecordSettlement,
     FLAT_OWNED_RECORD_API_SCHEMA, FLAT_OWNED_RECORD_METADATA_SCHEMA,
-    FLAT_OWNED_RECORD_NPM_BUILD_SCHEMA, FLAT_OWNED_RECORD_PROJECT_SCHEMA,
+    FLAT_OWNED_RECORD_NPM_BUILD_SCHEMA, FLAT_OWNED_RECORD_PROJECT_SCHEMA, MAX_FLAT_RECORD_FIELDS,
 };
 pub use image::{
     ProjectSemanticImage, MAX_SEMANTIC_IMAGE_BYTES, PROJECT_SEMANTIC_IMAGE_COMPATIBILITY,

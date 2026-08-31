@@ -246,6 +246,21 @@
   client tests pass locally, including actual Python and offline Rust consumers;
   full-profile and current-head hosted validation remain pending.
 
+- Added retained-Project reference evaluation for the closed Project-v9 flat
+  owned-record profile. The evaluator replays the exact descriptor, validates
+  the complete declaration-ordered record inventory before consumption, copies
+  and settles its sole `Bytes` owner exactly once, and only then publishes
+  identity-bound scalar members. Focused local coverage includes byte-first and
+  byte-last records, 65,536-byte output, scalar extrema, pre/post-allocation
+  failures, hostile selection/arguments and fuel. No aggregate layout, target
+  authority, cleanup schema, or v8/v10 behavior is exposed or changed.
+
+- Made CLI help reflect the authority already present in its host: standalone
+  `semaprax` no longer advertises private `doctor`, `new`, or Rust-package build
+  routes, while `semaprax-full` documents those existing routes. Parsing,
+  direct-invocation diagnostics, command availability, and private-host hooks
+  are unchanged; standalone and full alias/no-activity tests pass locally.
+
 - Added a retained-Project reference evaluator for the complete closed Project
   v8 public signature surface: zero through eight ordered `i64`, `bool`,
   borrowed UTF-8 and borrowed byte-slice arguments, plus all six v8 result

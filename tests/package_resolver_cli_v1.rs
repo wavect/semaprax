@@ -83,7 +83,18 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     const WORKSPACE_LINE: &str = "semaprax serve-workspace <manifest> <host-policy.json>\n";
     const PROFILE_DOCTOR_LINE: &str =
         "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n";
+    const NEW_PROJECT_LINE: &str =
+        "semaprax new <destination> [--name project-name] [--template calculator]\n";
+    const BUILD_LINE: &str = "semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]\n";
     const LEGACY_DOCTOR_LINE: &str = "semaprax doctor [--target native|web|all] [--json]\n";
+    assert_eq!(current.matches(PROFILE_DOCTOR_LINE).count(), 0);
+    assert_eq!(current.matches(NEW_PROJECT_LINE).count(), 0);
+    assert_eq!(current.matches(BUILD_LINE).count(), 1);
+    current = current.replacen(
+        BUILD_LINE,
+        &format!("{PROFILE_DOCTOR_LINE}{NEW_PROJECT_LINE}{BUILD_LINE}"),
+        1,
+    );
     // Data-only literal decoding, calibrated against the retained old pin below.
     // Restore only this intentional usage change before all historical witnesses.
     assert_eq!(current.len(), 5_842);

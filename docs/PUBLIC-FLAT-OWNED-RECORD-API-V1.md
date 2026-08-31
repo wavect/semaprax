@@ -199,6 +199,36 @@ The new physical allocation evidence is authored but unrun.
 
 ## Evidence boundary
 
+### Retained-Project reference evaluation
+
+`ProjectRevision::evaluate_flat_owned_record_api_v1` supplies an
+authority-free reference lane for the closed v9 surface. It first independently
+replays the retained canonical descriptor, then requires exact selected-export
+membership and ordered v9 argument count/types before entering the interpreter.
+Invalid selector bytes are checked with the existing bounded stable-ID grammar
+and receive fixed non-echoing diagnostics.
+
+The interpreter independently rechecks the explicit non-entry function,
+parameter identities/names/types/order, monomorphic record identity, and every
+explicit declaration-ordered field identity/name/type/ordinal. It admits only
+the closed scalar field types and exactly one direct `Bytes`, plus the inherited
+effect-free, contract-free, acyclic 256-function closure, borrowed-input and
+fuel bounds. At runtime the complete private record carrier is authenticated
+before any field is consumed. The sole byte owner is copied and settled through
+the existing owned-data path; only after that succeeds are identity-bound scalar
+members constructed in descriptor order. No offset, padding, map order, native
+layout or target carrier becomes public.
+
+`tests/project_flat_owned_record_interpreter_v1.rs` covers byte-first and
+byte-last declarations, empty and 65,536-byte results, `i64`/`usize` extrema,
+both Boolean values, exact field identities/order, failure before and after byte
+creation, one successful settlement event, malformed and unselected selectors,
+wrong argument shapes, zero- and eight-argument exports, cumulative multibyte
+UTF-8 and byte-slice totals through 65,536 bytes, fuel bounds, and no partial
+publication. Its four focused cases pass locally on macOS arm64. This is
+reference-lane evidence, not native/Wasm/npm/Rust, required-host, hosted, or
+promotion evidence.
+
 [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md) also applies
 to Project v9: `semaprax-full` owns the six-file held-handle publication, while
 standalone Windows publication rejects safely. The existing-parent/output-leaf

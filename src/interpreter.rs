@@ -561,8 +561,9 @@ pub struct OwnedDataEvaluation {
     pub max_steps: usize,
 }
 
-/// One borrowed Project-v8 public invocation argument. Borrowed host carriers
-/// are snapshotted before evaluation and never become interpreter ownership.
+/// One borrowed Project-v8/v9 public invocation argument. Borrowed host
+/// carriers are snapshotted before evaluation and never become interpreter
+/// ownership.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PublicApiArgument<'a> {
     I64(i64),
@@ -598,6 +599,48 @@ pub enum PublicApiEvaluationOutcome {
 pub struct PublicApiEvaluation {
     pub function_id: DeclarationId,
     pub outcome: PublicApiEvaluationOutcome,
+    pub cleanup_events: Vec<OwnedDataCleanupEvent>,
+    pub steps_used: usize,
+    pub max_steps: usize,
+}
+
+/// One identity-bound Project-v9 flat-record member. The vector containing
+/// these values is always in authenticated descriptor order; it is not a
+/// target layout or an offset-bearing aggregate.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum FlatOwnedRecordMemberValue {
+    I64(i64),
+    Bool(bool),
+    Usize(u64),
+    Bytes(Vec<u8>),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FlatOwnedRecordMember {
+    pub field_id: DeclarationId,
+    pub value: FlatOwnedRecordMemberValue,
+}
+
+/// Target-neutral copy-out of one authenticated Project-v9 result record.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FlatOwnedRecordValue {
+    pub record_id: DeclarationId,
+    pub fields: Vec<FlatOwnedRecordMember>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum FlatOwnedRecordEvaluationOutcome {
+    Returned(FlatOwnedRecordValue),
+    LanguageFailure(NormalizedStatus),
+    FuelExhausted,
+    CallDepthExceeded,
+    GuardError(String),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FlatOwnedRecordEvaluation {
+    pub function_id: DeclarationId,
+    pub outcome: FlatOwnedRecordEvaluationOutcome,
     pub cleanup_events: Vec<OwnedDataCleanupEvent>,
     pub steps_used: usize,
     pub max_steps: usize,
@@ -940,26 +983,7 @@ pub(crate) fn evaluate_resolved_public_api(
         ))]);
     }
     for (index, (parameter, argument)) in entry.params.iter().zip(arguments).enumerate() {
-        let admitted = matches!(
-            (&parameter.ty, parameter.ownership, argument),
-            (
-                ResolvedType::I64,
-                hir::OwnershipMode::Value,
-                PublicApiArgument::I64(_)
-            ) | (
-                ResolvedType::Bool,
-                hir::OwnershipMode::Value,
-                PublicApiArgument::Bool(_)
-            ) | (
-                ResolvedType::Str,
-                hir::OwnershipMode::Borrow,
-                PublicApiArgument::BorrowStr(_)
-            ) | (
-                ResolvedType::SliceU8,
-                hir::OwnershipMode::Borrow,
-                PublicApiArgument::BorrowSliceU8(_)
-            )
-        );
+        let admitted = public_api_argument_matches(parameter, argument);
         if !admitted {
             return Err(vec![selection_error(
                 REASON_UNSUPPORTED_PARAMETER_TYPE,
@@ -1102,6 +1126,378 @@ pub(crate) fn evaluate_resolved_public_api(
     })
 }
 
+/// Evaluate one exact Project-v9 flat owned-record export from validated HIR.
+///
+/// The caller supplies the independently replayed descriptor export. This
+/// lane rechecks its complete identity/type inventory against HIR, then keeps
+/// the runtime record private until its sole byte carrier has been copied and
+/// settled. Descriptor order is preserved without exposing a target layout.
+pub(crate) fn evaluate_resolved_flat_owned_record_api(
+    program: &hir::ResolvedProgram,
+    expected: &crate::project::FlatOwnedRecordExport,
+    arguments: &[PublicApiArgument<'_>],
+    max_steps: usize,
+) -> Result<FlatOwnedRecordEvaluation, Vec<Diagnostic>> {
+    hir::validate(program).map_err(|diagnostic| vec![diagnostic])?;
+    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
+        return Err(vec![option_error(format!(
+            "flat owned-record evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
+        ))]);
+    }
+    if arguments.len() > crate::project::MAX_PUBLIC_API_PARAMETERS {
+        return Err(vec![argument_error(format!(
+            "flat owned-record invocation exceeds {} parameters",
+            crate::project::MAX_PUBLIC_API_PARAMETERS
+        ))]);
+    }
+    validate_public_api_borrowed_input_bound(arguments, "flat owned-record")?;
+
+    let entry_id = expected.stable_id().as_str();
+    let entry = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == entry_id)
+        .ok_or_else(|| {
+            vec![selection_error(
+                REASON_UNSUPPORTED_CALLEE,
+                format!("resolved flat owned-record export `{entry_id}` is absent"),
+            )]
+        })?;
+    if entry.id == program.entrypoint
+        || program
+            .declarations
+            .declaration(&entry.id)
+            .is_none_or(|declaration| declaration.identity_origin != hir::IdentityOrigin::Explicit)
+    {
+        return Err(vec![selection_error(
+            REASON_AUTOMATIC_IDENTITY,
+            format!(
+                "resolved flat owned-record export `{entry_id}` is not an explicit non-entry identity"
+            ),
+        )]);
+    }
+    if entry.params.len() != expected.parameters().len() || entry.params.len() != arguments.len() {
+        return Err(vec![argument_error(format!(
+            "resolved flat owned-record export `{entry_id}` argument inventory disagrees with its descriptor"
+        ))]);
+    }
+    for (index, ((parameter, expected_parameter), argument)) in entry
+        .params
+        .iter()
+        .zip(expected.parameters())
+        .zip(arguments)
+        .enumerate()
+    {
+        let (expected_id, expected_name, expected_type) = expected_parameter;
+        if parameter.id.as_str() != expected_id
+            || parameter.name != *expected_name
+            || !public_api_parameter_type_matches(parameter, *expected_type)
+            || !public_api_argument_matches(parameter, argument)
+        {
+            return Err(vec![selection_error(
+                REASON_UNSUPPORTED_PARAMETER_TYPE,
+                format!(
+                    "resolved flat owned-record export `{entry_id}` parameter {index} disagrees with its exact descriptor and argument"
+                ),
+            )]);
+        }
+    }
+    validate_flat_owned_record_result_shape(program, entry, expected)?;
+    if !entry.effects.is_empty() {
+        return Err(vec![selection_error(
+            REASON_DECLARED_EFFECTS,
+            format!("resolved flat owned-record export `{entry_id}` declares effects"),
+        )]);
+    }
+    if !entry.requires.is_empty() || !entry.ensures.is_empty() {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_CALLEE,
+            format!("resolved flat owned-record export `{entry_id}` declares contracts"),
+        )]);
+    }
+
+    hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
+    let admitted = admitted_resolved_functions(program);
+    if !admitted.contains_key(entry_id) {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_CALLEE,
+            format!(
+                "resolved flat owned-record export `{entry_id}` is outside the interpreter profile"
+            ),
+        )]);
+    }
+    let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
+    if closure.len() > crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_CALLEE,
+            format!(
+                "flat owned-record selected closure exceeds {} functions",
+                crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS
+            ),
+        )]);
+    }
+    for id in &closure {
+        let function = admitted.get(id.as_str()).ok_or_else(|| {
+            vec![selection_error(
+                REASON_UNSUPPORTED_CALLEE,
+                format!("flat owned-record closure function `{id}` is not admitted"),
+            )]
+        })?;
+        if !function.effects.is_empty()
+            || !function.requires.is_empty()
+            || !function.ensures.is_empty()
+        {
+            return Err(vec![selection_error(
+                REASON_UNSUPPORTED_CALLEE,
+                format!(
+                    "flat owned-record closure function `{id}` must be effect- and contract-free"
+                ),
+            )]);
+        }
+    }
+    require_acyclic_public_api_closure(entry_id, &admitted)?;
+
+    let arguments = entry
+        .params
+        .iter()
+        .zip(arguments)
+        .map(|(parameter, argument)| {
+            let value = match argument {
+                PublicApiArgument::I64(value) => ArgumentValue::Int(*value),
+                PublicApiArgument::Bool(value) => ArgumentValue::Bool(*value),
+                PublicApiArgument::BorrowStr(value) => {
+                    ArgumentValue::BorrowedStr((*value).to_owned())
+                }
+                PublicApiArgument::BorrowSliceU8(value) => {
+                    ArgumentValue::BorrowedSlice((*value).to_vec())
+                }
+            };
+            (parameter.name.clone(), value)
+        })
+        .collect::<Vec<_>>();
+
+    std::thread::scope(|scope| {
+        let worker = std::thread::Builder::new()
+            .name("semaprax-flat-owned-record-evaluate".to_owned())
+            .stack_size(EVALUATION_STACK_BYTES)
+            .spawn_scoped(scope, || {
+                let (evaluated, steps_used, _) = evaluate_resolved_entry(
+                    entry,
+                    &arguments,
+                    &admitted,
+                    &program.declarations,
+                    max_steps,
+                    false,
+                );
+                let mut cleanup_events = Vec::with_capacity(1);
+                let outcome = match evaluated {
+                    Ok(value) => {
+                        match copy_out_flat_owned_record(value, expected, &mut cleanup_events) {
+                            Ok(value) => FlatOwnedRecordEvaluationOutcome::Returned(value),
+                            Err(detail) => {
+                                FlatOwnedRecordEvaluationOutcome::GuardError(detail.to_owned())
+                            }
+                        }
+                    }
+                    Err(Flow::Failure(status)) => {
+                        FlatOwnedRecordEvaluationOutcome::LanguageFailure(status)
+                    }
+                    Err(Flow::Exhausted) => FlatOwnedRecordEvaluationOutcome::FuelExhausted,
+                    Err(Flow::DepthExceeded) => FlatOwnedRecordEvaluationOutcome::CallDepthExceeded,
+                    Err(Flow::Cancelled { .. }) => FlatOwnedRecordEvaluationOutcome::GuardError(
+                        "unexpected cancellation in flat owned-record evaluation".to_owned(),
+                    ),
+                    Err(Flow::Guard(detail)) => {
+                        FlatOwnedRecordEvaluationOutcome::GuardError(detail.to_owned())
+                    }
+                };
+                FlatOwnedRecordEvaluation {
+                    function_id: entry.id.clone(),
+                    outcome,
+                    cleanup_events,
+                    steps_used,
+                    max_steps,
+                }
+            })
+            .map_err(|error| {
+                vec![guard_error(&format!(
+                    "flat owned-record evaluation thread failed to start: {error}"
+                ))]
+            })?;
+        worker.join().map_err(|_| {
+            vec![guard_error(
+                "flat owned-record evaluation thread panicked after HIR validation",
+            )]
+        })
+    })
+}
+
+fn public_api_argument_matches(
+    parameter: &hir::ResolvedParam,
+    argument: &PublicApiArgument<'_>,
+) -> bool {
+    matches!(
+        (&parameter.ty, parameter.ownership, argument),
+        (
+            ResolvedType::I64,
+            hir::OwnershipMode::Value,
+            PublicApiArgument::I64(_)
+        ) | (
+            ResolvedType::Bool,
+            hir::OwnershipMode::Value,
+            PublicApiArgument::Bool(_)
+        ) | (
+            ResolvedType::Str,
+            hir::OwnershipMode::Borrow,
+            PublicApiArgument::BorrowStr(_)
+        ) | (
+            ResolvedType::SliceU8,
+            hir::OwnershipMode::Borrow,
+            PublicApiArgument::BorrowSliceU8(_)
+        )
+    )
+}
+
+fn public_api_parameter_type_matches(
+    parameter: &hir::ResolvedParam,
+    expected: crate::project::PublicApiParameterType,
+) -> bool {
+    matches!(
+        (&parameter.ty, parameter.ownership, expected),
+        (
+            ResolvedType::I64,
+            hir::OwnershipMode::Value,
+            crate::project::PublicApiParameterType::I64
+        ) | (
+            ResolvedType::Bool,
+            hir::OwnershipMode::Value,
+            crate::project::PublicApiParameterType::Bool
+        ) | (
+            ResolvedType::Str,
+            hir::OwnershipMode::Borrow,
+            crate::project::PublicApiParameterType::BorrowStr
+        ) | (
+            ResolvedType::SliceU8,
+            hir::OwnershipMode::Borrow,
+            crate::project::PublicApiParameterType::BorrowSliceU8
+        )
+    )
+}
+
+fn validate_public_api_borrowed_input_bound(
+    arguments: &[PublicApiArgument<'_>],
+    label: &str,
+) -> Result<(), Vec<Diagnostic>> {
+    let mut borrowed_bytes = 0usize;
+    for argument in arguments {
+        let length = match argument {
+            PublicApiArgument::BorrowStr(value) => value.len(),
+            PublicApiArgument::BorrowSliceU8(value) => value.len(),
+            PublicApiArgument::I64(_) | PublicApiArgument::Bool(_) => 0,
+        };
+        borrowed_bytes = borrowed_bytes.checked_add(length).ok_or_else(|| {
+            vec![argument_error(format!(
+                "{label} cumulative borrowed input byte count overflowed"
+            ))]
+        })?;
+        if borrowed_bytes > crate::project::MAX_PUBLIC_API_BORROWED_INPUT_BYTES {
+            return Err(vec![argument_error(format!(
+                "{label} cumulative borrowed input exceeds {} bytes",
+                crate::project::MAX_PUBLIC_API_BORROWED_INPUT_BYTES
+            ))]);
+        }
+    }
+    Ok(())
+}
+
+fn validate_flat_owned_record_result_shape(
+    program: &hir::ResolvedProgram,
+    entry: &ResolvedFunction,
+    expected: &crate::project::FlatOwnedRecordExport,
+) -> Result<(), Vec<Diagnostic>> {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = &entry.return_type
+    else {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_RESULT_TYPE,
+            "flat owned-record result is not nominal".to_owned(),
+        )]);
+    };
+    if declaration != expected.record_id() || !arguments.is_empty() {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_RESULT_TYPE,
+            "flat owned-record result identity or monomorphization disagrees with its descriptor"
+                .to_owned(),
+        )]);
+    }
+    let record = program
+        .types
+        .iter()
+        .find(|candidate| &candidate.id == declaration)
+        .ok_or_else(|| {
+            vec![selection_error(
+                REASON_UNSUPPORTED_RESULT_TYPE,
+                "flat owned-record result declaration is absent".to_owned(),
+            )]
+        })?;
+    let hir::ResolvedTypeDeclarationKind::Record { fields } = &record.kind else {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_RESULT_TYPE,
+            "flat owned-record result identity is not a record".to_owned(),
+        )]);
+    };
+    if !record.type_parameters.is_empty()
+        || fields.len() != expected.fields().len()
+        || fields.is_empty()
+        || fields.len() > crate::project::MAX_FLAT_RECORD_FIELDS
+        || program
+            .declarations
+            .declaration(&record.id)
+            .is_none_or(|fact| fact.identity_origin != hir::IdentityOrigin::Explicit)
+    {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_RESULT_TYPE,
+            "flat owned-record result declaration disagrees with its closed descriptor".to_owned(),
+        )]);
+    }
+    let mut owned_bytes = 0usize;
+    for (index, (field, expected_field)) in fields.iter().zip(expected.fields()).enumerate() {
+        let expected_type = match expected_field.ty() {
+            crate::project::FlatOwnedRecordFieldType::I64 => ResolvedType::I64,
+            crate::project::FlatOwnedRecordFieldType::Bool => ResolvedType::Bool,
+            crate::project::FlatOwnedRecordFieldType::Usize => ResolvedType::Usize,
+            crate::project::FlatOwnedRecordFieldType::OwnedBytes => {
+                owned_bytes += 1;
+                ResolvedType::Bytes
+            }
+        };
+        if field.index as usize != index
+            || expected_field.ordinal() as usize != index
+            || field.id != *expected_field.stable_id()
+            || field.name != expected_field.source_name()
+            || field.ty != expected_type
+            || program
+                .declarations
+                .declaration(&field.id)
+                .is_none_or(|fact| fact.identity_origin != hir::IdentityOrigin::Explicit)
+        {
+            return Err(vec![selection_error(
+                REASON_UNSUPPORTED_RESULT_TYPE,
+                format!("flat owned-record field {index} disagrees with its exact descriptor"),
+            )]);
+        }
+    }
+    if owned_bytes != 1 {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_RESULT_TYPE,
+            "flat owned-record result requires exactly one direct Bytes field".to_owned(),
+        )]);
+    }
+    Ok(())
+}
+
 fn public_api_result_is_admitted(ty: &ResolvedType) -> bool {
     matches!(
         ty,
@@ -1196,6 +1592,106 @@ fn settle_interpreted_bytes(
     let bytes = value.bytes.as_ref().to_vec();
     cleanup_events.push(OwnedDataCleanupEvent::CopyOutAndSettleBytes);
     Ok(bytes)
+}
+
+fn copy_out_flat_owned_record(
+    value: Value,
+    expected: &crate::project::FlatOwnedRecordExport,
+    cleanup_events: &mut Vec<OwnedDataCleanupEvent>,
+) -> Result<FlatOwnedRecordValue, &'static str> {
+    let Value::Record(record) = value else {
+        return Err("flat owned-record result is not the private record carrier");
+    };
+    if record.record != *expected.record_id() || record.fields.len() != expected.fields().len() {
+        return Err(
+            "flat owned-record carrier identity or field inventory disagrees with its descriptor",
+        );
+    }
+
+    // Authenticate the complete carrier before consuming or publishing any
+    // member. This includes the sole owned field and every scalar field.
+    for field in expected.fields() {
+        let Some(value) = record.fields.get(field.stable_id()) else {
+            return Err("flat owned-record carrier is missing an authenticated field");
+        };
+        let type_matches = matches!(
+            (field.ty(), value),
+            (crate::project::FlatOwnedRecordFieldType::I64, Value::Int(_))
+                | (
+                    crate::project::FlatOwnedRecordFieldType::Bool,
+                    Value::Bool(_)
+                )
+                | (
+                    crate::project::FlatOwnedRecordFieldType::Usize,
+                    Value::Usize(_)
+                )
+                | (
+                    crate::project::FlatOwnedRecordFieldType::OwnedBytes,
+                    Value::Bytes(_)
+                )
+        );
+        if !type_matches {
+            return Err("flat owned-record carrier field type disagrees with its descriptor");
+        }
+    }
+
+    let mut record = Arc::try_unwrap(record)
+        .map_err(|_| "flat owned-record result still has a live alias at copy-out")?;
+    let owned_field = expected
+        .fields()
+        .iter()
+        .find(|field| field.ty() == crate::project::FlatOwnedRecordFieldType::OwnedBytes)
+        .ok_or("flat owned-record descriptor has no owned Bytes field")?;
+    let owned_value = record
+        .fields
+        .remove(owned_field.stable_id())
+        .ok_or("flat owned-record carrier lost its owned Bytes field")?;
+    let settled_bytes = settle_interpreted_bytes(owned_value, cleanup_events)?;
+
+    // Scalar host values are not constructed until byte copy and settlement
+    // have both succeeded. Output remains in descriptor order.
+    let mut settled_bytes = Some(settled_bytes);
+    let mut fields = Vec::with_capacity(expected.fields().len());
+    for field in expected.fields() {
+        let value = match field.ty() {
+            crate::project::FlatOwnedRecordFieldType::OwnedBytes => {
+                FlatOwnedRecordMemberValue::Bytes(
+                    settled_bytes
+                        .take()
+                        .ok_or("flat owned-record Bytes field was published more than once")?,
+                )
+            }
+            crate::project::FlatOwnedRecordFieldType::I64 => {
+                let Some(Value::Int(value)) = record.fields.remove(field.stable_id()) else {
+                    return Err("flat owned-record i64 field changed after authentication");
+                };
+                FlatOwnedRecordMemberValue::I64(value)
+            }
+            crate::project::FlatOwnedRecordFieldType::Bool => {
+                let Some(Value::Bool(value)) = record.fields.remove(field.stable_id()) else {
+                    return Err("flat owned-record bool field changed after authentication");
+                };
+                FlatOwnedRecordMemberValue::Bool(value)
+            }
+            crate::project::FlatOwnedRecordFieldType::Usize => {
+                let Some(Value::Usize(value)) = record.fields.remove(field.stable_id()) else {
+                    return Err("flat owned-record usize field changed after authentication");
+                };
+                FlatOwnedRecordMemberValue::Usize(value)
+            }
+        };
+        fields.push(FlatOwnedRecordMember {
+            field_id: field.stable_id().clone(),
+            value,
+        });
+    }
+    if !record.fields.is_empty() || settled_bytes.is_some() {
+        return Err("flat owned-record carrier retained an unauthenticated field");
+    }
+    Ok(FlatOwnedRecordValue {
+        record_id: expected.record_id().clone(),
+        fields,
+    })
 }
 
 fn copy_out_owned_data(

@@ -79,7 +79,7 @@ fn require_private_host<'a>(
 
 fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
     let Some(command) = args.first().map(String::as_str) else {
-        print_help();
+        print_help(host.is_some());
         return Err(2);
     };
     match command {
@@ -1236,12 +1236,12 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             Ok(())
         }
         "help" | "--help" | "-h" => {
-            print_help();
+            print_help(host.is_some());
             Ok(())
         }
         other => {
             eprintln!("unknown command `{other}`\n");
-            print_help();
+            print_help(host.is_some());
             Err(2)
         }
     }
@@ -2496,7 +2496,17 @@ fn report_all(errors: &[Diagnostic], json: bool) {
     }
 }
 
-fn print_help() {
+fn print_help(has_private_host: bool) {
+    let private_commands = if has_private_host {
+        "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\nsemaprax new <destination> [--name project-name] [--template calculator]\n"
+    } else {
+        ""
+    };
+    let build_targets = if has_private_host {
+        "native|native-callable|web|wasm|npm|rust"
+    } else {
+        "native|native-callable|web|wasm|npm"
+    };
     println!(
         "SEMAPRAX — Meaning in. Verified machine code out.\n\n\
          Usage:\n\
@@ -2529,9 +2539,8 @@ fn print_help() {
             semaprax context-benchmark <manifest>\n\
             semaprax serve <file> [--max-request-bytes N]\n\
             semaprax quality-plan <quick|changed|full> [exact-changed-path ...]\n\
-            semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n\
-            semaprax new <destination> [--name project-name] [--template calculator]\n\
-           semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]\n\
+{private_commands}\
+           semaprax build [<file>|semaprax.toml|--manifest-path path] [--target {build_targets}] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]\n\
            semaprax run <file>\n\
            semaprax run [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n\
            semaprax test [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n\

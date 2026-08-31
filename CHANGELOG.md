@@ -10,6 +10,11 @@
   publication diagnostics now distinguish provider compilation and archive
   failures without exposing tool output or weakening fail-stop settlement.
 
+- Added a host-selected v5 compact inventory of live retained candidates,
+  drafts and rejected attempts. It exposes bounded registry-local
+  handles, associations and detail/discard routes without granting validity,
+  execution, source or publication authority. Evidence is authored and unrun.
+
 - Serialized the two test-local Project v10 Native Rust publication lifetimes.
   Windows no longer overlaps their real compiler and archiver authorities;
   generated SDK execution, semantic-failure recovery, and all package checks

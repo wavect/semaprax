@@ -75,6 +75,12 @@ pub(super) fn payload(
         }
         if methods
             .iter()
+            .any(|method| method.name == "workspace/retained-subjects")
+        {
+            instructions.push_str(" With candidate_prepare, use workspace/retained-subjects to recover the deterministic bounded inventory of candidate, draft and rejected-attempt references currently retained by this exact session. Candidate associations on drafts and attempts can outlive removal of the associated candidate handle; the explicit retained flag reports only current registry membership. Every later operation still authenticates its own exact selector. Inventory entries grant no source, execution, materialization or publication authority and do not make drafts or rejected attempts into checked candidates. Refresh preserves candidates and clears drafts and attempts. This live registry query is intentionally excluded from workspace/read-batch and parallel immutable reads.");
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "image/function-instances")
         {
             instructions.push_str(" Use image/function-instances with image_revision and a source generic-function template target to list only its retained concrete instances, including a valid empty inventory. The closed report binds the template's source provenance, exact ordered type arguments and concrete signature counts; each instance carries nine facet handles. Follow next_cursor with the same image, target and page_size. Use image/function-instance-facet with that template target, exact instance_id, facet and handle, keeping those selectors and page_size fixed across pages. page_size is 1 through 128 (default 32), max_bytes is 1024 through 1048576 (default 65536); the ordinary response-envelope bound still applies. Both queries are read-only and eligible for authenticated parallel batches. They do not instantiate new type arguments, create candidates or infer that retained instances are all possible instantiations. Caller facts match concrete call instance identities, and template source spans are provenance rather than executed-site locations. Entry/test instance inventory and template export membership do not prove execution, test coverage or instance export. Facet envelopes are closed and typed, but their heterogeneous item interiors remain explicitly unbundled as semaprax.image-instance-facet-item.v1; full contract/loan/cleanup facts retain their owning compiler format and canonical vector order. Existing image/function-summary and image/facet keep their declared-function selectors and unchanged payload schemas. No execution, dynamic/external caller completeness or source/publication authority is granted.");
@@ -286,6 +292,7 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
     value["query"] = json!(method.query);
     value["capability"] = json!(match method.name {
         "workspace/read-batch" => "parallel_read",
+        "workspace/retained-subjects" => "candidate_prepare",
         "workspace/refresh" | "workspace/refresh-preview" => "workspace_refresh",
         "candidate/test" => "candidate_test",
         "candidate/build" | "candidate/artifact-delta" | "candidate/analysis-artifact-evidence" =>

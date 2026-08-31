@@ -28,6 +28,7 @@ mod read_batch;
 mod read_batch_rpc;
 mod recovery;
 mod retained_reads;
+mod retained_subjects;
 mod review_facets;
 mod source_review;
 pub(super) mod symbol_diagnostics;
@@ -80,6 +81,7 @@ pub struct VNextPolicy {
 #[derive(Clone, Copy)]
 pub(super) enum Action {
     ReadBatch,
+    RetainedSubjects,
     Refresh,
     RefreshPreview,
     Commit,
@@ -471,6 +473,10 @@ impl VNextSession {
                     symbol_diagnostics::prepare(params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(Action::RetainedSubjects) => (
+                    retained_subjects::prepare(params, image, registry)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(Action::HoleFillSuggestions) => (
                     hole_suggestions::prepare(params, image, registry)?,
                     candidates::Mutation::None,
@@ -757,6 +763,7 @@ fn session_methods(
     methods.extend(projections::methods(policy.build_enabled));
     methods.extend(review_facets::methods(policy));
     if policy.candidate_prepare {
+        methods.push(retained_subjects::method());
         methods.push(source_review::method());
         methods.push(merge_preview::method());
         methods.push(analysis_coverage::candidate_method());

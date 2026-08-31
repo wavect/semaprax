@@ -91,6 +91,7 @@ Audience: all documentation readers.
 - [Candidate Symbol Diagnostics v1](PROJECT-CANDIDATE-SYMBOL-DIAGNOSTICS-V1.md)
 - [Candidate Diagnostic Protocol v4](IMAGE-CANDIDATE-DIAGNOSTIC-PROTOCOL-V4.md)
 - [Workspace Protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md)
+- [Image Retained Subjects v1](IMAGE-RETAINED-SUBJECTS-V1.md)
 - [Workspace Frontend Cache v1](IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md)
 - [Image Parallel Reads v1](IMAGE-PARALLEL-READS-V1.md)
 - [Parallel Retained Semantic Reads v1](IMAGE-PARALLEL-CANDIDATE-READS-V1.md)

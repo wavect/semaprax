@@ -189,6 +189,14 @@ links bundled constructor schemas. Generated clients only construct/validate
 messages; they have no filesystem, network, process, approval, or session-policy
 authority.
 
+With candidate preparation selected, `workspace/retained-subjects` returns the
+bounded compact [Retained Subjects v1](IMAGE-RETAINED-SUBJECTS-V1.md) inventory
+for this session. It lists live candidate, draft and rejected-attempt
+handles in deterministic order, including registry-local association/orphan
+flags and the owning detail/discard methods. Membership grants no validity,
+source freshness, execution or publication authority. Because the inventory
+observes mutable session state, it is excluded from `workspace/read-batch`.
+
 ## Explicit refresh and stale state
 
 After a manual edit, call `workspace/refresh-preview` with the current image

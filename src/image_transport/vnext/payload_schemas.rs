@@ -924,6 +924,94 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
     // Capabilities are immutable for one selected host profile, so this exact
     // constant is the strongest truthful schema, including nullable test policy.
     result.insert("urn:semaprax.image-agent-capabilities.v5".into(),json!({"$id":"urn:semaprax.image-agent-capabilities.v5","$schema":"https://json-schema.org/draft/2020-12/schema","const":capabilities}));
+    if capabilities["methods"].as_array().is_some_and(|methods| {
+        methods
+            .iter()
+            .any(|method| method == "workspace/retained-subjects")
+    }) {
+        let candidate = object(vec![
+            ("candidate_revision", digest()),
+            ("base_project_revision", digest()),
+            ("project_revision", digest()),
+            ("retained_report_bytes", uint()),
+            ("has_retained_drafts", json!({"type":"boolean"})),
+            ("has_retained_attempts", json!({"type":"boolean"})),
+            ("detail_method", json!({"const":"candidate/query"})),
+            ("discard_method", json!({"const":"candidate/discard"})),
+        ]);
+        let draft = object(vec![
+            ("draft_revision", digest()),
+            ("source_candidate_revision", digest()),
+            ("source_candidate_retained", json!({"type":"boolean"})),
+            ("state", json!({"enum":["incomplete","ready_to_complete"]})),
+            (
+                "unresolved_hole_count",
+                json!({"type":"integer","minimum":0,"maximum":16}),
+            ),
+            ("retained_report_bytes", uint()),
+            ("detail_method", json!({"const":"hole/recovery-export"})),
+            ("discard_method", json!({"const":"hole/discard"})),
+        ]);
+        let attempt = object(vec![
+            ("attempt_revision", digest()),
+            ("base_candidate_revision", digest()),
+            ("base_project_revision", digest()),
+            ("base_candidate_retained", json!({"type":"boolean"})),
+            ("state", json!({"const":"rejected"})),
+            (
+                "diagnostic_count",
+                json!({"type":"integer","minimum":1,"maximum":256}),
+            ),
+            ("retained_report_bytes", uint()),
+            ("detail_method", json!({"const":"attempt/query"})),
+            ("discard_method", json!({"const":"attempt/discard"})),
+        ]);
+        result.insert(
+            "urn:semaprax.image-retained-subjects.v1".into(),
+            document(
+                "semaprax.image-retained-subjects.v1",
+                vec![
+                    ("image_revision", digest()),
+                    (
+                        "candidates",
+                        json!({"type":"array","maxItems":16,"items":candidate}),
+                    ),
+                    (
+                        "drafts",
+                        json!({"type":"array","maxItems":16,"items":draft}),
+                    ),
+                    (
+                        "attempts",
+                        json!({"type":"array","maxItems":16,"items":attempt}),
+                    ),
+                    ("retained_report_bytes", uint()),
+                    (
+                        "limits",
+                        object(vec![
+                            ("max_candidates", json!({"const":16})),
+                            ("max_drafts", json!({"const":16})),
+                            ("max_attempts", json!({"const":16})),
+                            ("max_retained_report_bytes", json!({"const":268435456})),
+                            ("max_inventory_bytes", json!({"const":65536})),
+                        ]),
+                    ),
+                    ("source_authority", json!({"const":false})),
+                    ("artifact_materialization", json!({"const":false})),
+                    ("execution", json!({"const":false})),
+                    ("publication_authority", json!({"const":false})),
+                    (
+                        "nonclaims",
+                        json!({"const":[
+                            "session_inventory_is_not_persistent_storage",
+                            "registry_association_is_not_ownership_or_current_candidate_validity",
+                            "drafts_and_rejected_attempts_are_not_checked_candidates",
+                            "references_grant_no_source_execution_materialization_or_publication_authority"
+                        ]}),
+                    ),
+                ],
+            ),
+        );
+    }
     if !capabilities["methods"].as_array().is_some_and(|methods| {
         methods
             .iter()

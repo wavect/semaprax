@@ -383,6 +383,7 @@ mod tests {
         }
         for action in [
             Action::ReadBatch,
+            Action::RetainedSubjects,
             Action::Build,
             Action::ArtifactDelta,
             Action::AnalysisArtifactEvidence,

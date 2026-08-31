@@ -16,10 +16,10 @@ pub const TEST_RESULT_SCHEMA: &str = "semaprax.image-agent-result.v3";
 pub(super) mod diagnostics;
 pub(in crate::image_transport) mod reads;
 pub use diagnostics::{DIAGNOSTIC_PROTOCOL_SCHEMA, DIAGNOSTIC_RESULT_SCHEMA};
-const MAX_ATTEMPTS: usize = 16;
-const MAX_CANDIDATES: usize = 16;
-const MAX_DRAFTS: usize = 16;
-const MAX_RETAINED_REPORT_BYTES: usize = 256 * 1024 * 1024;
+pub(super) const MAX_ATTEMPTS: usize = 16;
+pub(super) const MAX_CANDIDATES: usize = 16;
+pub(super) const MAX_DRAFTS: usize = 16;
+pub(super) const MAX_RETAINED_REPORT_BYTES: usize = 256 * 1024 * 1024;
 
 const CANDIDATE: Parameter = Parameter {
     name: "candidate_revision",
@@ -316,6 +316,42 @@ pub(super) struct Registry {
     attempts: BTreeMap<String, Arc<crate::project::ProjectCandidateAttempt>>,
 }
 
+/// Bounded metadata for the exact subjects retained by one session registry.
+/// The rows deliberately carry no source, intention, diagnostic, or hole body.
+pub(super) struct RetainedSubjectSnapshot {
+    pub(super) candidates: Vec<RetainedCandidateSnapshot>,
+    pub(super) drafts: Vec<RetainedDraftSnapshot>,
+    pub(super) attempts: Vec<RetainedAttemptSnapshot>,
+    pub(super) retained_report_bytes: usize,
+}
+
+pub(super) struct RetainedCandidateSnapshot {
+    pub(super) candidate_revision: String,
+    pub(super) base_project_revision: String,
+    pub(super) project_revision: String,
+    pub(super) retained_report_bytes: usize,
+    pub(super) has_retained_drafts: bool,
+    pub(super) has_retained_attempts: bool,
+}
+
+pub(super) struct RetainedDraftSnapshot {
+    pub(super) draft_revision: String,
+    pub(super) source_candidate_revision: String,
+    pub(super) source_candidate_retained: bool,
+    pub(super) state: String,
+    pub(super) unresolved_hole_count: usize,
+    pub(super) retained_report_bytes: usize,
+}
+
+pub(super) struct RetainedAttemptSnapshot {
+    pub(super) attempt_revision: String,
+    pub(super) base_candidate_revision: String,
+    pub(super) base_project_revision: String,
+    pub(super) base_candidate_retained: bool,
+    pub(super) diagnostic_count: usize,
+    pub(super) retained_report_bytes: usize,
+}
+
 pub(super) enum Mutation {
     None,
     Candidate(Arc<ProjectCandidate>),
@@ -402,6 +438,146 @@ impl Registry {
                     .map(|attempt| attempt.retained_report_bytes()),
             )
             .sum()
+    }
+
+    /// Return one deterministic, bounded inventory of retained handles and
+    /// their registry-local associations. BTreeMap iteration fixes row order;
+    /// the existing 16/16/16 admission caps bound all allocations here.
+    pub(super) fn retained_subject_snapshot(
+        &self,
+    ) -> Result<RetainedSubjectSnapshot, Vec<Diagnostic>> {
+        let mut drafts_by_candidate = BTreeMap::<&str, usize>::new();
+        for entry in self.drafts.values() {
+            *drafts_by_candidate
+                .entry(entry.source_candidate.as_str())
+                .or_default() += 1;
+        }
+
+        let mut attempts = Vec::with_capacity(self.attempts.len());
+        let mut attempts_by_candidate = BTreeMap::<String, usize>::new();
+        for (attempt_revision, attempt) in &self.attempts {
+            let summary: Value = serde_json::from_str(&attempt.summary(attempt.attempt_digest())?)
+                .map_err(|_| {
+                    failure("SPX-G356", "retained attempt summary is not compiler JSON")
+                })?;
+            let base_candidate_revision = summary["base_candidate_revision"]
+                .as_str()
+                .filter(|value| value.starts_with("sha256:") && value.len() == 71)
+                .ok_or_else(|| {
+                    failure(
+                        "SPX-G356",
+                        "retained attempt summary has no exact candidate association",
+                    )
+                })?;
+            let base_project_revision = summary["base_project_revision"]
+                .as_str()
+                .filter(|value| value.starts_with("sha256:") && value.len() == 71)
+                .ok_or_else(|| {
+                    failure(
+                        "SPX-G356",
+                        "retained attempt summary has no exact project association",
+                    )
+                })?;
+            let diagnostic_count = summary["diagnostic_count"]
+                .as_u64()
+                .and_then(|value| usize::try_from(value).ok())
+                .filter(|value| *value <= 256)
+                .ok_or_else(|| {
+                    failure(
+                        "SPX-G356",
+                        "retained attempt summary has no bounded diagnostic count",
+                    )
+                })?;
+            if summary["schema"] != "semaprax.project-candidate-attempt-summary.v1"
+                || summary["attempt_revision"] != attempt_revision.as_str()
+                || summary["state"] != "rejected"
+                || summary["materializable"] != false
+                || summary["checked_image"] != false
+                || summary["source_authority"] != false
+            {
+                return Err(failure(
+                    "SPX-G356",
+                    "retained attempt summary has unexpected compiler metadata",
+                ));
+            }
+            *attempts_by_candidate
+                .entry(base_candidate_revision.to_owned())
+                .or_default() += 1;
+            attempts.push(RetainedAttemptSnapshot {
+                attempt_revision: attempt_revision.clone(),
+                base_candidate_revision: base_candidate_revision.to_owned(),
+                base_project_revision: base_project_revision.to_owned(),
+                base_candidate_retained: self.candidates.contains_key(base_candidate_revision),
+                diagnostic_count,
+                retained_report_bytes: attempt.retained_report_bytes(),
+            });
+        }
+
+        let candidates = self
+            .candidates
+            .values()
+            .map(|candidate| RetainedCandidateSnapshot {
+                candidate_revision: candidate.candidate_digest().to_owned(),
+                base_project_revision: candidate.base_revision().project_revision().to_owned(),
+                project_revision: candidate.revision().project_revision().to_owned(),
+                retained_report_bytes: candidate.to_json().len(),
+                has_retained_drafts: drafts_by_candidate.contains_key(candidate.candidate_digest()),
+                has_retained_attempts: attempts_by_candidate
+                    .contains_key(candidate.candidate_digest()),
+            })
+            .collect();
+        let mut drafts = Vec::with_capacity(self.drafts.len());
+        for entry in self.drafts.values() {
+            let summary: Value = serde_json::from_str(
+                entry.draft.summary(entry.draft.draft_digest())?,
+            )
+            .map_err(|_| failure("SPX-G356", "retained draft summary is not compiler JSON"))?;
+            let unresolved_hole_count = summary["unresolved_holes"]
+                .as_array()
+                .filter(|holes| holes.len() <= crate::project::MAX_PROJECT_CANDIDATE_HOLES)
+                .map(Vec::len)
+                .ok_or_else(|| {
+                    failure(
+                        "SPX-G356",
+                        "retained draft summary has no bounded hole inventory",
+                    )
+                })?;
+            let state = summary["state"]
+                .as_str()
+                .filter(|state| {
+                    (*state == "ready_to_complete" && unresolved_hole_count == 0)
+                        || (*state == "incomplete" && unresolved_hole_count > 0)
+                })
+                .ok_or_else(|| {
+                    failure(
+                        "SPX-G356",
+                        "retained draft summary state disagrees with its hole inventory",
+                    )
+                })?;
+            if summary["schema"] != crate::project::PROJECT_CANDIDATE_DRAFT_SCHEMA
+                || summary["materializable"] != false
+                || summary["source_authority"] != false
+            {
+                return Err(failure(
+                    "SPX-G356",
+                    "retained draft summary has unexpected compiler metadata",
+                ));
+            }
+            drafts.push(RetainedDraftSnapshot {
+                draft_revision: entry.draft.draft_digest().to_owned(),
+                source_candidate_revision: entry.source_candidate.clone(),
+                source_candidate_retained: self.candidates.contains_key(&entry.source_candidate),
+                state: state.to_owned(),
+                unresolved_hole_count,
+                retained_report_bytes: entry.draft.retained_report_bytes(),
+            });
+        }
+        Ok(RetainedSubjectSnapshot {
+            candidates,
+            drafts,
+            attempts,
+            retained_report_bytes: self.report_bytes(),
+        })
     }
     pub(super) fn admit(&self, mutation: &Mutation) -> Result<(), Vec<Diagnostic>> {
         let added = match mutation {

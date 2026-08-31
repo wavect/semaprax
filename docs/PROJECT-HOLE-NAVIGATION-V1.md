@@ -12,6 +12,11 @@ remains available and byte-for-byte unchanged.
 
 ## Summary and detail selection
 
+The separate [fill-suggestion query](PROJECT-HOLE-FILL-SUGGESTIONS-V1.md) derives
+bounded place/call proposals and previews each through ordinary fill replay.
+It leaves the summary and four facets below unchanged; lexical call rows remain
+possibilities rather than prevalidated fills.
+
 `ProjectCandidateDraft::hole_summary(expected_draft, hole_id)` returns
 `semaprax.project-hole-summary.v1`. The summary binds the exact draft, hole,
 last-valid project revision, target, existing hole handle and full context

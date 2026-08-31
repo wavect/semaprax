@@ -23,6 +23,7 @@ pub(super) fn supports(operation: Operation) -> bool {
                 | Action::CandidateMergePreview
                 | Action::HoleSummary
                 | Action::HolePage
+                | Action::HoleFillSuggestions
                 | Action::DraftExpressionCatalog
                 | Action::CandidateCleanupDependencies
                 | Action::ContractExpressionCatalog
@@ -89,6 +90,9 @@ pub(super) fn prepare(
         ) => hole_navigation::for_draft(action, params, draft()?),
         Operation::VNext(Action::CandidateCleanupDependencies) => {
             cleanup_dependencies::for_candidate(params, image, candidate()?)
+        }
+        Operation::VNext(Action::HoleFillSuggestions) => {
+            hole_suggestions::for_draft(params, draft()?)
         }
         Operation::VNext(Action::ContractExpressionCatalog) => {
             contract_holes::catalog_for_candidate(params, candidate()?)

@@ -360,6 +360,7 @@ mod tests {
             Action::CandidateMergePreview,
             Action::HoleSummary,
             Action::HolePage,
+            Action::HoleFillSuggestions,
             Action::DraftExpressionCatalog,
             Action::SymbolDiagnostics,
             Action::ContractExpressionCatalog,

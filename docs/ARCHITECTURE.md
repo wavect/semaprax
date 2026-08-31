@@ -533,6 +533,16 @@ ordinary live-source authentication and detached reads. Full contract, loan and
 cleanup contexts retain their existing owners and bytes. See
 [Compact Hole Navigation](PROJECT-HOLE-NAVIGATION-V1.md).
 
+`project/candidate/draft_suggestions.rs` derives bounded place and direct-call
+proposals from the existing exact hole context, then invokes ordinary fill on
+the original draft for each attempt. Type/effect matching prunes enumeration;
+full source admission owns ownership, loan, cleanup and profile checks. Preview
+drafts are dropped, and their digests confer no registry handle. The v5
+`hole_suggestions.rs` adapter and detached reads share the pure query; its
+finite output grammar is derived from compiler constructor schemas. See
+[Fill Suggestions](PROJECT-HOLE-FILL-SUGGESTIONS-V1.md) for search, replay and
+report bounds and the distinction between source admission and intended behavior.
+
 `project/candidate/draft_expression_catalog.rs` reuses the private last-valid
 candidate's checked expression catalogue and wraps it with exact draft and
 region bindings. The separate last-valid digest fields are descriptive; this

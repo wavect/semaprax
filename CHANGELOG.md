@@ -51,6 +51,12 @@
   closed, `LIB` is unchanged, and missing headers still fail before archive or
   package publication.
 
+- Added bounded typed-hole fill suggestions derived from exact context types,
+  effects and lexical bindings. Every returned proposal passes ordinary source
+  fill replay; previews are discarded and publication remains separate. Typed
+  v5 discovery and parallel reads share the pure query. Regressions are authored,
+  unrun; suggestions do not prove intended behavior or runtime contracts.
+
 - Added explicit startup-selected parallel read batches to v5 NDJSON and MCP,
   reusing the immutable read allowlist and held-source authentication with
   unchanged aggregate wire limits. Closed host-policy v7 and generated client

@@ -56,6 +56,7 @@ includes these method families, only under their ordinary host grants:
 | Typed discovery | `change/catalog`, `expression/catalog`, `candidate/contract-expression-catalog`, `candidate/interface-catalog`, `protocol/constructor-schemas`, `validation/catalog` |
 | Semantic review | `candidate/semantic-delta`, `candidate/semantic-delta-catalog`, `candidate/interface-delta`, `candidate/contract-delta`, `candidate/ownership-delta`, `candidate/cleanup-dependencies` |
 | Pending work | `hole/query`, `hole/recovery-export`, `hole/archive-export` |
+| Checked fill discovery | `hole/fill-suggestions`, bounded place/direct-call proposals previewed through ordinary fill replay |
 | Diagnostic review | `attempt/summary`, `attempt/query`, `attempt/repair-catalog`, `candidate/symbol-diagnostics` |
 | Conformance and admission | `protocol/conformance`, `image/target-admission` |
 | Static test selection | `candidate/test-plan`, only when the ordinary selected catalogue includes it |
@@ -72,6 +73,13 @@ merge replay in both orders. It returns only descriptive results and bounded
 diagnostic excerpts, retaining neither temporary candidate. This source-replay
 work can be expensive; the worker cap does not promise a CPU, stack or RSS
 bound. The distinct registry-mutating `candidate/merge` remains excluded.
+
+Fill suggestions can perform up to 32 sequential source-admission previews per
+query. Every preview uses the same immutable original draft and is dropped;
+no suggested draft or candidate is installed in a registry. Concurrent queries
+retain their individual limits without promising a total CPU or memory bound.
+Their finite search is not an intent, liveness or runtime-contract proof. See
+[Fill Suggestions](PROJECT-HOLE-FILL-SUGGESTIONS-V1.md).
 
 Candidate, draft and attempt digests retain their own exact subjects. The
 current image expectation still binds the session's held source, but does not

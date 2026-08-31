@@ -90,6 +90,7 @@ Audience: all documentation readers.
 - [Image Parallel Reads v1](IMAGE-PARALLEL-READS-V1.md)
 - [Parallel Retained Semantic Reads v1](IMAGE-PARALLEL-CANDIDATE-READS-V1.md)
 - [Host-selected Parallel Read Protocol v1](IMAGE-READ-BATCH-PROTOCOL-V1.md)
+- [Source-checked Typed-hole Fill Suggestions v1](PROJECT-HOLE-FILL-SUGGESTIONS-V1.md)
 - [Semantic Workspace MCP Adapter v1](IMAGE-MCP-ADAPTER-V1.md)
 - [Agent Discovery and Typed Clients v5](IMAGE-AGENT-DISCOVERY-V5.md)
 - [Typed Workspace Response Clients v1](IMAGE-TYPED-RESPONSE-CLIENTS-V1.md)

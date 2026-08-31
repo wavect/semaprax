@@ -15,6 +15,7 @@ mod draft_merge;
 mod draft_rebase;
 mod draft_recovery;
 mod hole_navigation;
+mod hole_suggestions;
 mod mcp;
 mod mcp_catalog;
 mod merge_preview;
@@ -91,6 +92,7 @@ pub(super) enum Action {
     CandidateMergePreview,
     HoleSummary,
     HolePage,
+    HoleFillSuggestions,
     DraftExpressionCatalog,
     SymbolDiagnostics,
     DraftRecoveryExport,
@@ -455,6 +457,10 @@ impl VNextSession {
                     symbol_diagnostics::prepare(params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(Action::HoleFillSuggestions) => (
+                    hole_suggestions::prepare(params, image, registry)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(
                     action @ (Action::ContractExpressionCatalog | Action::ContractHoleOpen),
                 ) => contract_holes::prepare(action, params, image, registry)?,
@@ -717,6 +723,7 @@ fn session_methods(
         methods.push(source_review::method());
         methods.push(merge_preview::method());
         methods.extend(hole_navigation::methods());
+        methods.push(hole_suggestions::method());
         methods.push(cleanup_dependencies::candidate_method());
         methods.extend(draft_recovery::methods());
         methods.extend(draft_archive::methods());

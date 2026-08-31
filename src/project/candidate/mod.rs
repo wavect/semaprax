@@ -23,6 +23,7 @@ mod diagnostic_intent;
 mod diagnostics;
 mod draft;
 mod draft_navigation;
+mod draft_suggestions;
 mod expression;
 mod extraction;
 mod git_publication;
@@ -110,6 +111,9 @@ pub use publication::{
 pub use draft_navigation::{
     MAX_PROJECT_HOLE_NAVIGATION_BYTES, MAX_PROJECT_HOLE_NAVIGATION_ITEMS, PROJECT_HOLE_PAGE_SCHEMA,
     PROJECT_HOLE_SUMMARY_SCHEMA,
+};
+pub use draft_suggestions::{
+    MAX_PROJECT_HOLE_FILL_SUGGESTIONS_BYTES, PROJECT_HOLE_FILL_SUGGESTIONS_SCHEMA,
 };
 pub use merge_preview::{
     MAX_PROJECT_CANDIDATE_MERGE_PREVIEW_BYTES, PROJECT_CANDIDATE_MERGE_PREVIEW_SCHEMA,

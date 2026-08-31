@@ -9,6 +9,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 #[path = "clients.rs"]
 mod clients;
+#[path = "hole_suggestions_schemas.rs"]
+mod hole_suggestions_schemas;
 #[path = "payload_schemas.rs"]
 mod payload_schemas;
 #[path = "repair_schemas.rs"]
@@ -164,6 +166,12 @@ pub(super) fn payload(
         {
             instructions.push_str(" Use hole/expression-catalog with exact image_revision, draft_revision, target and region body or contract to select expressions from a retained draft's current last-valid source revision, including after successful fills. The closed typed report is bounded to 1 MiB and separates last_valid_revision from last_valid_candidate_digest. Neither field registers or grants a candidate handle. Body inventories contain body expressions only; contract inventories contain requires/ensures expressions. Lexical scope is not owned-value liveness, and replaceable is not hole-open admission or draft validity. Read current selectors again after each draft change; ordinary hole opening still rejects overlap and stale selections. This pure query is available to authenticated parallel read batches under candidate_prepare and grants no execution, completion or source authority.");
         }
+        if methods
+            .iter()
+            .any(|method| method.name == "hole/fill-suggestions")
+        {
+            instructions.push_str(" With candidate_prepare, call hole/fill-suggestions using exact image_revision, draft_revision and hole_id to search a bounded set of possible fills. The compiler tries scope places of the expected type and direct calls with exact result type and permitted effects, excluding the hole's own target function and using only same-type scope places as arguments. It lazily enumerates at most 32 fill attempts globally; it invents no defaults or nested calls. Each returned expression passed ordinary full fill source replay against the same original draft, including ownership, loans, cleanup, contracts and selected target admission. The ephemeral result is discarded: preview_draft_revision is a digest, not a registered draft handle. To choose a suggestion, explicitly submit its expression to ordinary hole/fill with the original exact draft and hole selectors; that operation validates again. considered and rejected describe attempted proposals, and search_exhausted describes only this restricted enumeration, not all possible expressions. Rejections can include conservative or capacity failures, and no suggestions is not proof that the hole cannot be filled. The 64 KiB report binds context_revision and last_valid_revision and can join authenticated parallel read batches. No draft is retained or completed, no tests or runtime contracts are executed, and source admission does not establish intent correctness, behavioral equivalence, or liveness inferred from old proof data. Existing hole/query, summary and page payloads remain unchanged.");
+        }
         if methods.iter().any(|method| method.name == "hole/summary") {
             instructions.push_str(" With candidate_prepare, use hole/summary with the exact image_revision, draft_revision and hole_id for a compact typed summary. Select the compiler-issued scope, calls, obligations or constructors reference and pass it to hole/page with the same selectors. Offset is 0 through 16384 (default 0); limit is 1 through 64 (default 16). Follow next_offset until null, retaining the same context-bound reference. Each closed summary or typed facet page is bounded to 64 KiB. These descriptive facts do not establish owned-value liveness, callable admission, successful fill or candidate validity. hole/query remains the unchanged full proof/context report and explicitly unbundled. Embedding hosts may use the compact pure reads in authenticated parallel batches; no candidate installation, execution or source authority is granted.");
         }
@@ -262,7 +270,8 @@ fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {
         | "hole/archive-restore"
         | "hole/rebase"
         | "hole/merge" => "candidate_prepare",
-        "hole/summary" | "hole/page" | "hole/expression-catalog" => "candidate_prepare",
+        "hole/summary" | "hole/page" | "hole/expression-catalog" | "hole/fill-suggestions" =>
+            "candidate_prepare",
         "candidate/commit" | "candidate/commit-report" | "source-commit/status" => "source_commit",
         name if name == "candidate/attempt"
             || name == "candidate/symbol-diagnostics"
@@ -291,6 +300,13 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
     }
     for (id, document) in payload_schemas::documents(capabilities) {
         documents.insert(id, document);
+    }
+    if descriptors
+        .iter()
+        .any(|descriptor| descriptor["method"] == "hole/fill-suggestions")
+    {
+        let schema = hole_suggestions_schemas::schema(&documents)?;
+        documents.insert(hole_suggestions_schemas::ID.to_owned(), schema);
     }
     if descriptors
         .iter()

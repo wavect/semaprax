@@ -94,6 +94,12 @@ import remains declaration evidence only; a source-local function with a
 matching name or signature is not joined to it as provider implementation
 evidence.
 
+The separate [Candidate Analysis Evidence
+v1](PROJECT-CANDIDATE-ANALYSIS-EVIDENCE-V1.md) can attach one explicit,
+independently replayed candidate-era package-consumer corpus. It changes only
+`external_consumers` to `partial` for that bounded corpus; the other seven area
+rows and this report's no-external-input contract remain unchanged.
+
 ## Bounds, diagnostics and authority
 
 The image collector retains its 16-source, 65,536-fact, conservative

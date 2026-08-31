@@ -21,6 +21,13 @@
   job termination, fail-stop paths, deadlines, and physical authority check
   remain unchanged.
 
+- Added library-only candidate analysis evidence that composes exact candidate
+  coverage with one explicit authenticated candidate-era package-consumer
+  replay. Only `external_consumers` becomes partial for that corpus; the other
+  seven boundaries, exact nested rows/digests and strict no-discovery,
+  compatibility, execution, retention and authority claims remain unchanged.
+  Evidence is authored and unrun.
+
 - Keep Windows owned-data SDK publication within the existing fail-fast tool
   process bound by compiling its already O0/O2-validated provider at O1. The
   bounded middle mode avoids both O2 compilation exhaustion and O0's larger

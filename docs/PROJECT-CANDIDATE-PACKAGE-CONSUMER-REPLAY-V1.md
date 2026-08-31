@@ -117,6 +117,12 @@ execution, artifact materialization, source update or publication. Empty results
 mean only that the explicit verified capsule contains no matching fact; they do
 not establish absence of other consumers.
 
+[Candidate Analysis Evidence
+v1](PROJECT-CANDIDATE-ANALYSIS-EVIDENCE-V1.md) embeds one exact replay beside
+ordinary candidate analysis coverage and marks only its external-consumer area
+`partial`. That composition does not change this replay's rows, digests,
+association checks or nonclaims.
+
 ## Evidence
 
 Authored, unrun regressions in

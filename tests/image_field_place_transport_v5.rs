@@ -2,7 +2,7 @@
 use semaprax::image_transport::{VNextPolicy, VNextSession};
 use semaprax::project::{with_authenticated_project, ProjectCandidate, SemanticChange};
 use serde_json::{json, Value};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
@@ -15,18 +15,37 @@ impl Fixture {
             SERIAL.fetch_add(1, Ordering::Relaxed)
         ));
         std::fs::create_dir_all(root.join("src")).unwrap();
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/frame-payload-project");
-        for path in [
-            "semaprax.toml",
-            "src/app.spx",
-            "src/frame.spx",
-            "src/tests.spx",
+        std::fs::write(
+            root.join("semaprax.toml"),
+            r#"schema = "semaprax.project.v8"
+name = "field-place"
+version = "0.1.0"
+profile = "owned-data-api.v1"
+entry = "field_place.app"
+sources = ["src/app.spx", "src/frame.spx", "src/tests.spx"]
+web_exports = ["field-place.public"]
+tests = ["field_place.tests"]
+"#,
+        )
+        .unwrap();
+        for (path, source) in [
+            (
+                "src/app.spx",
+                "module field_place.app; @id(\"field-place.main\") fn main()->i64 {0}",
+            ),
+            (
+                "src/tests.spx",
+                "module field_place.tests; @id(\"field-place.test\") fn main()->i64 {0}",
+            ),
         ] {
-            std::fs::copy(sample.join(path), root.join(path)).unwrap();
+            let program = semaprax::parse(source, path).unwrap();
+            std::fs::write(root.join(path), semaprax::format::canonical(&program)).unwrap();
         }
         let path = root.join("src/frame.spx");
-        let source = std::fs::read_to_string(&path).unwrap()
-            + r#"
+        // Keep this loan-bearing fixture in the admitted flat-record profile;
+        // the frame product's owned variants intentionally cannot be masked by v23.
+        let source = r#"module field_place.frame;
+@id("field-place.public") fn public_value(value:i64)->i64 {value}
 @id("field-place.packet") record Packet {
     @id("field-place.packet.payload") payload: Bytes,
     @id("field-place.packet.sibling") sibling: Bytes,
@@ -37,7 +56,7 @@ impl Fixture {
 }
 @id("field-place.inspect") fn inspect(packet: own Packet) -> usize { 0usize }
 "#;
-        let parsed = semaprax::parse(&source, "src/frame.spx").unwrap();
+        let parsed = semaprax::parse(source, "src/frame.spx").unwrap();
         std::fs::write(path, semaprax::format::canonical(&parsed)).unwrap();
         Self(root.canonicalize().unwrap())
     }
@@ -78,7 +97,9 @@ impl Drop for Fixture {
     }
 }
 fn call(session: &mut VNextSession, method: &str, mut params: Value) -> Value {
-    params["image_revision"] = json!(session.image_revision());
+    if !matches!(method, "protocol/schemas" | "protocol/client") {
+        params["image_revision"] = json!(session.image_revision());
+    }
     let frame = json!({"jsonrpc":"2.0","id":1,"method":method,"params":params}).to_string();
     serde_json::from_slice(&session.handle_frame(frame.as_bytes()).unwrap()).unwrap()
 }

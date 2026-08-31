@@ -221,7 +221,20 @@ fn nested_branch_repairs_keep_each_field_selector_and_root_exact() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
     let base = fixture.candidate();
-    let branches = |fixed| json!({"kind":"if","condition":{"kind":"bool","value":true},"then":length(view(if fixed {field("repair.packet.left","packet")} else {project("repair.packet.left",place("packet"))})),"else":length(view(if fixed {field("repair.packet.right","packet")} else {project("repair.packet.right",place("packet"))}))});
+    let branch = |fixed, target, name| {
+        binding(
+            name,
+            view(if fixed {
+                field(target, "packet")
+            } else {
+                project(target, place("packet"))
+            }),
+            length(place(name)),
+        )
+    };
+    // Projected views retain the source profile's let-bound borrow form.
+    let branches = |fixed| json!({"kind":"if","condition":{"kind":"bool","value":true},"then":branch(fixed,"repair.packet.left","left_view"),"else":branch(fixed,"repair.packet.right","right_view")});
+    apply(&base, &intent("repair.inspect", branches(true))).unwrap();
     let failed = intent("repair.inspect", branches(false));
     code(apply(&base, &failed), "SPX-T266");
     let attempt = rejected(&base, &failed);

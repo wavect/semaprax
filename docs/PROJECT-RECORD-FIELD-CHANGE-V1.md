@@ -28,9 +28,13 @@ fixed candidate requirements. Its intention is exactly:
 ```
 
 Supported type/default pairs are `bool`, `i64`, `i32`, `u8`, and `usize`.
-Integer literals must be exact JSON integers in their type's range: signed
-64-bit, signed 32-bit, unsigned 8-bit, or unsigned 64-bit `usize`
-range respectively. The literal kind must equal the field type. Calls, places,
+Integer literals must be exact JSON integers with a source-representable
+magnitude: `-i64::MAX..=i64::MAX`, `-i32::MAX..=i32::MAX`, unsigned 8-bit,
+or unsigned 64-bit `usize`, respectively. The frozen lexer parses the positive
+magnitude before unary minus, so `i64::MIN` and `i32::MIN` are not admitted
+literal defaults; the intention rejects them with `SPX-G225` before migration.
+This does not narrow runtime integer values or widen source syntax.
+The literal kind must equal the field type. Calls, places,
 expressions, source strings, unknown keys, and implicit conversions are not
 accepted defaults. The new stable ID must be globally unused and use one to
 128 lowercase ASCII ID characters; the name must be a bounded ordinary field
@@ -64,6 +68,10 @@ must match the retained Project. Local type bindings and imported aliases map
 to persistent identities; imported aliases must name the authenticated owning
 module. Thus an imported `Point` renamed locally to `Metric` still selects the
 same record, while another record with a similar display name is untouched.
+Alias migration applies only where Project already admits the import: Copy
+record aliases are supported; owned-record type aliases and owned-argument
+function imports remain rejected by `SPX-G172`. Owned-record migration evidence
+uses local declarations without widening that cross-module boundary.
 The addition records the exact field ID, name, record owner ID, source path,
 and module. All old identities and fields retain their existing order.
 
@@ -76,7 +84,8 @@ constructor must exactly match the old field-name inventory. Its old initializer
 sequence remains unchanged and the inert default literal is appended last.
 This preserves left-to-right evaluation of the old values and their checked
 failure order; an initializer that was lazy remains at its original position.
-The new literal has no effects, allocation, or checked-failure path.
+The default has no effects or allocation and cannot fail when evaluated;
+negative defaults retain the ordinary checked unary-negation representation.
 
 Exact record patterns are traversed recursively, including nested field
 patterns. Each affected exact pattern must match the old field inventory and

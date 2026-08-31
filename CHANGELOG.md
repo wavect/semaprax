@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Batched CI repairs: update the isolated private Wasmtime runner to 47.0.4,
+  resolve strict Clippy errors, restore component/consumer checks, and correct
+  constructor fixtures without widening source/import admission. Core Wasm now
+  allocates byte-range scratch independently of CleanupPlan v4/v5/v6 selection.
+  Independent cleanup replay preserves declaration-ordered match transfers and
+  partial-construction history through late Copy initializer failures. Focused
+  local regressions pass; full-profile and current-head hosted promotion remain
+  pending.
+
 - Added compiler-guided repair for rejected byte-field views staged through
   value projections. An actual `SPX-T266` rejection and full candidate admission
   are required before offering direct field storage with unchanged stable field

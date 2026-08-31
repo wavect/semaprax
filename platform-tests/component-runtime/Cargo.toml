@@ -13,7 +13,7 @@ resolver = "2"
 [dependencies]
 semaprax = { version = "=0.2.0", path = "../..", default-features = false, features = ["unstable-wit-component-harness"] }
 sha2 = { version = "=0.11.0", default-features = false }
-wasmtime = { version = "=47.0.3", default-features = false, features = ["component-model", "cranelift", "runtime", "std"] }
+wasmtime = { version = "=47.0.4", default-features = false, features = ["component-model", "cranelift", "runtime", "std"] }
 
 [lints.rust]
 unsafe_code = "forbid"

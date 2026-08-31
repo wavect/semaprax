@@ -308,11 +308,19 @@ fn intent_schema() -> Value {
     let record_fields = ["i64", "bool", "i32", "u8", "usize"]
         .into_iter()
         .map(|kind| {
+            let mut default = literal(kind);
+            // Source negation is separate from the positive literal token.
+            // Keep field defaults inside that frozen, round-trippable grammar.
+            if kind == "i64" {
+                default["properties"]["value"]["minimum"] = json!(-i64::MAX);
+            } else if kind == "i32" {
+                default["properties"]["value"]["minimum"] = json!(-i32::MAX);
+            }
             closed(&[
                 ("id", stable_id()),
                 ("name", identifier()),
                 ("type", json!({"const": kind})),
-                ("default", literal(kind)),
+                ("default", default),
             ])
         })
         .collect::<Vec<_>>();

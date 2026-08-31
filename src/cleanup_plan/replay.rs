@@ -4624,14 +4624,37 @@ fn expression_skeleton(
                                         "owned record match path has no owned source",
                                     )
                                 })?;
-                                let ResolvedMatchPattern::Record { fields, .. } = &arm.pattern
+                                let ResolvedMatchPattern::Record { record, fields, .. } =
+                                    &arm.pattern
                                 else {
                                     return Err(replay_error(
                                         function,
                                         "owned record match lacks an exact record pattern",
                                     ));
                                 };
-                                for field in fields {
+                                // Transfers follow the authenticated declaration
+                                // inventory, independently of pattern spelling order.
+                                // Derive the expected sequence here; never reorder
+                                // the emitted plan to make it pass replay.
+                                let declarations = program
+                                    .declarations
+                                    .record_fields(record)
+                                    .ok_or_else(|| {
+                                        replay_error(
+                                            function,
+                                            "owned record match has no field inventory",
+                                        )
+                                    })?;
+                                for declaration in declarations {
+                                    let field = fields
+                                        .iter()
+                                        .find(|field| field.field == declaration.id)
+                                        .ok_or_else(|| {
+                                            replay_error(
+                                                function,
+                                                "owned record pattern is incomplete",
+                                            )
+                                        })?;
                                     let ResolvedRecordMatchFieldPattern::Binding(binding) =
                                         &field.pattern
                                     else {
@@ -6975,12 +6998,20 @@ fn replay_transfer(
     }
 
     let mapping = transfer_mapping(function, source, destination, leaves)?;
-    let source_history = state
-        .live_order
-        .iter()
-        .filter(|flag| source_set.contains(flag))
-        .copied()
-        .collect::<Vec<_>>();
+    // A whole-source transfer is a completed aggregate boundary, authenticated
+    // by the typed control skeleton. Filling every owned destination field is
+    // not: later Copy initializers can still fail, so preserve their preceding
+    // field-initialization history until the constructor actually completes.
+    let source_history = if source.projections.is_empty() {
+        source_flags
+    } else {
+        state
+            .live_order
+            .iter()
+            .filter(|flag| source_set.contains(flag))
+            .copied()
+            .collect::<Vec<_>>()
+    };
     state.live_order.retain(|flag| !source_set.contains(flag));
     if destination.projections.is_empty() {
         state.live_order.extend(destination_flags);
@@ -6988,7 +7019,6 @@ fn replay_transfer(
         for source_flag in source_history {
             state.live_order.push(mapping[&source_flag]);
         }
-        normalize_completed_storage(function, state, &destination.storage, leaves)?;
     }
     Ok(())
 }
@@ -7139,30 +7169,6 @@ fn transfer_mapping(
         ));
     }
     Ok(mapping)
-}
-
-fn normalize_completed_storage(
-    function: &ResolvedFunction,
-    state: &mut PathState,
-    storage: &StorageId,
-    leaves: &BTreeMap<LivenessFlagId, Leaf>,
-) -> Result<(), Diagnostic> {
-    let flags = leaves
-        .iter()
-        .filter_map(|(flag, leaf)| (leaf.place.storage == *storage).then_some(*flag))
-        .collect::<Vec<_>>();
-    if flags.is_empty() {
-        return Err(replay_error(
-            function,
-            "completed cleanup storage has no liveness flags",
-        ));
-    }
-    if flags.iter().all(|flag| state.live_order.contains(flag)) {
-        let set = flags.iter().copied().collect::<BTreeSet<_>>();
-        state.live_order.retain(|flag| !set.contains(flag));
-        state.live_order.extend(flags);
-    }
-    Ok(())
 }
 
 fn append_dead_flags(

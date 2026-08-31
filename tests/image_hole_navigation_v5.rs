@@ -130,7 +130,9 @@ fn frame(id: usize, method: &str, params: Value) -> Vec<u8> {
         .into_bytes()
 }
 fn call(session: &mut VNextSession, method: &str, mut params: Value) -> Value {
-    params["image_revision"] = json!(session.image_revision());
+    if !matches!(method, "protocol/schemas" | "protocol/client") {
+        params["image_revision"] = json!(session.image_revision());
+    }
     serde_json::from_slice(&session.handle_frame(&frame(1, method, params)).unwrap()).unwrap()
 }
 fn payload(response: Value) -> Value {

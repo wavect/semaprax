@@ -72,7 +72,9 @@ impl Drop for Fixture {
     }
 }
 fn bound(session: &mut VNextSession, method: &str, mut params: Value) -> Value {
-    params["image_revision"] = json!(session.image_revision());
+    if !matches!(method, "protocol/schemas" | "protocol/client") {
+        params["image_revision"] = json!(session.image_revision());
+    }
     let frame = json!({"jsonrpc":"2.0","id":1,"method":method,"params":params}).to_string();
     serde_json::from_slice(&session.handle_frame(frame.as_bytes()).unwrap()).unwrap()
 }

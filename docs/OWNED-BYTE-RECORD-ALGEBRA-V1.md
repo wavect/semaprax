@@ -66,6 +66,13 @@ transition. The arm child region settles the binding leaves in canonical
 field order. `match borrow` creates the arm region but no transfer and leaves
 the source flags unchanged.
 
+Transfer order follows the authenticated declaration inventory even when the
+exact source pattern lists fields in a different order. During construction,
+cleanup reverses actual initializer completion order until the whole record
+completes: filling every owned field does not imply that later Copy initializers
+have succeeded. Independent replay checks these boundaries without sorting or
+repairing the emitted transition or finalizer vectors.
+
 Independent replay derives schema selection, record inventory, binding
 ownership, projected transfers, arm-region settlement, and finalizer order
 from authenticated HIR rather than trusting the emitted plan. Replay rejects

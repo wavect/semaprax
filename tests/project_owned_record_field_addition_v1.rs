@@ -28,7 +28,7 @@ name = "owned-field-addition"
 version = "1.0.0"
 profile = "owned-data-api.v1"
 entry = "append.app"
-sources = ["src/app.spx", "src/core.spx", "src/bridge.spx", "src/tests.spx"]
+sources = ["src/app.spx", "src/bridge.spx", "src/core.spx", "src/tests.spx"]
 web_exports = ["append.public"]
 tests = ["append.tests"]
 "#,
@@ -49,6 +49,8 @@ tests = ["append.tests"]
 @id("append.consume") fn consume(value:own Bytes)->i64 {1}
 @id("append.inspect") fn inspect(packet:own Packet)->usize {let view=bytes_as_slice(packet.left);let sibling=consume(packet.right);byte_len(view)}
 @id("append.unpack") fn unpack(packet:own Packet)->i64 {match own packet {Packet {left,right,marker}=>{let a=consume(left);let b=consume(right);marker+a+b},}}
+@id("append.alternate-make") fn make_other(input:borrow Slice<u8>)->Packet {Packet {marker:8,left:left_bytes(input),right:right_bytes(input)}}
+@id("append.alternate-unpack") fn unpack_other(packet:own Packet)->i64 {match own packet {Packet {right:r,marker:m,left:l}=>{let a=consume(l);let b=consume(r);m+a+b},}}
 @id("append.public") fn public_value(value:i64)->i64 {value}
 @id("append.evaluate") fn evaluate()->i64 {let input=[7u8,8u8];if inspect(make(array_as_slice(input)))==2usize && unpack(make(array_as_slice(input)))==9 {42}else{0}}
 "#,
@@ -56,13 +58,9 @@ tests = ["append.tests"]
             (
                 "src/bridge.spx",
                 r#"module append.bridge;
-use type @id("append.packet") from append.core as Frame;
-use function @id("append.left") from append.core as left_bytes;
-use function @id("append.right") from append.core as right_bytes;
-use function @id("append.consume") from append.core as consume;
-@id("append.bridge-make") fn make(input:borrow Slice<u8>)->Frame {Frame {marker:8,left:left_bytes(input),right:right_bytes(input)}}
-@id("append.bridge-unpack") fn unpack(packet:own Frame)->i64 {match own packet {Frame {right:r,marker:m,left:l}=>{let a=consume(l);let b=consume(r);m+a+b},}}
-@id("append.bridge-evaluate") fn evaluate()->i64 {let input=[1u8];unpack(make(array_as_slice(input)))}
+use type @id("append.small") from append.core as Gauge;
+@id("append.bridge-small") fn make()->Gauge {Gauge {byte:2u8,signed:1i32,size:3usize}}
+@id("append.bridge-evaluate") fn evaluate()->i64 {10}
 "#,
             ),
             (
@@ -159,7 +157,7 @@ fn tail(mut expression: &semaprax::ast::Expr) -> &semaprax::ast::Expr {
 }
 
 #[test]
-fn owned_constructors_keep_source_evaluation_order_and_append_default_last_across_aliases() {
+fn owned_constructors_keep_source_evaluation_order_and_match_binding_aliases() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
     let base = fixture.candidate();
@@ -171,8 +169,8 @@ fn owned_constructors_keep_source_evaluation_order_and_append_default_last_acros
             vec!["right", "left", "marker", "added"],
         ),
         (
-            "src/bridge.spx",
-            "append.bridge-make",
+            "src/core.spx",
+            "append.alternate-make",
             vec!["marker", "left", "right", "added"],
         ),
     ] {
@@ -214,7 +212,7 @@ fn owned_constructors_keep_source_evaluation_order_and_append_default_last_acros
     }
     for (path, target) in [
         ("src/core.spx", "append.unpack"),
-        ("src/bridge.spx", "append.bridge-unpack"),
+        ("src/core.spx", "append.alternate-unpack"),
     ] {
         let old = semaprax::parse(source(&base, path), path).unwrap();
         let new = semaprax::parse(source(&candidate, path), path).unwrap();
@@ -342,18 +340,26 @@ fn checked_copy_records_accept_exact_inert_scalar_defaults_and_reject_range_or_k
     let base = fixture.candidate();
     let before = base.to_json().to_owned();
     for (ty, value) in [
-        ("i64", json!(i64::MIN)),
+        ("i64", json!(-i64::MAX)),
+        ("i64", json!(i64::MAX)),
         ("bool", json!(true)),
-        ("i32", json!(i32::MIN)),
+        ("i32", json!(-i32::MAX)),
+        ("i32", json!(i32::MAX)),
         ("u8", json!(u8::MAX)),
         ("usize", json!(u64::MAX)),
     ] {
         let candidate = apply(&base, &request("append.small", ty, value)).unwrap();
         replay(&candidate);
-        let source = source(&candidate, "src/core.spx");
-        assert!(source.contains("Small { size: 3usize, byte: 2u8, signed: 1i32, added:"));
+        let core = source(&candidate, "src/core.spx");
+        assert!(core.contains("Small { size: 3usize, byte: 2u8, signed: 1i32, added:"));
+        let bridge = source(&candidate, "src/bridge.spx");
+        assert!(bridge.contains("Gauge { byte: 2u8, signed: 1i32, size: 3usize, added:"));
     }
     for (ty, value) in [
+        // The frozen lexer rejects these positive magnitudes before parsing
+        // unary minus; field evolution does not widen source literal syntax.
+        ("i64", json!(i64::MIN)),
+        ("i32", json!(i32::MIN)),
         ("i32", json!(2147483648i64)),
         ("i32", json!(-2147483649i64)),
         ("u8", json!(256)),
@@ -420,5 +426,25 @@ fn owned_field_history_replays_unrelated_changes_but_rejects_stale_and_competing
         "SPX-G235",
     );
     assert_eq!(candidate.to_json(), before);
+    assert_eq!(fixture.bytes(), disk);
+}
+
+#[test]
+fn owned_type_aliases_remain_outside_project_admission() {
+    let fixture = Fixture::new();
+    let bridge = std::fs::read_to_string(fixture.0.join("src/bridge.spx")).unwrap();
+    fixture.write(
+        "src/bridge.spx",
+        &bridge.replacen(
+            "module append.bridge;",
+            "module append.bridge;\nuse type @id(\"append.packet\") from append.core as Frame;",
+            1,
+        ),
+    );
+    let disk = fixture.bytes();
+    code(
+        with_authenticated_project(&fixture.0.join("semaprax.toml"), |_| Ok(())),
+        "SPX-G172",
+    );
     assert_eq!(fixture.bytes(), disk);
 }

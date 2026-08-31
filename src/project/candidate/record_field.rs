@@ -494,7 +494,10 @@ fn default_literal(field: &Value) -> Result<(Type, Expr)> {
             ExprKind::Int(
                 value["value"]
                     .as_i64()
-                    .ok_or_else(|| invalid("i64 default must be an exact signed integer"))?,
+                    .filter(|value| *value != i64::MIN)
+                    .ok_or_else(|| {
+                        invalid("i64 default must have a representable source literal magnitude")
+                    })?,
             ),
         ),
         "bool" => (
@@ -511,7 +514,10 @@ fn default_literal(field: &Value) -> Result<(Type, Expr)> {
                 value["value"]
                     .as_i64()
                     .and_then(|raw| i32::try_from(raw).ok())
-                    .ok_or_else(|| invalid("i32 default must be an exact signed 32-bit integer"))?,
+                    .filter(|value| *value != i32::MIN)
+                    .ok_or_else(|| {
+                        invalid("i32 default must have a representable source literal magnitude")
+                    })?,
             ),
         ),
         "u8" => (

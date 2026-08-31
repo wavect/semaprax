@@ -1962,7 +1962,18 @@ fn program_uses_byte_range(program: &ResolvedProgram) -> bool {
                 .iter()
                 .map(|instance| &instance.function),
         )
-        .any(|function| function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V4)
+        .any(|function| {
+            // Record/variant matching selects v5/v6 even when the same function
+            // contains ranges. Replayed status sources retain the operation
+            // identity independently of the enclosing plan's schema.
+            function.cleanup_plan.status_sources.iter().any(|source| {
+                matches!(
+                    &source.producer,
+                    crate::cleanup_plan::StatusProducer::PropagatedCall { callee }
+                        if callee.as_str() == crate::byte_ops::RANGE_ID
+                )
+            })
+        })
 }
 
 fn emit_profile(
@@ -7611,6 +7622,10 @@ fn emit_arithmetic_trap_case(
     write_u32(body, import);
     body.extend([0x1a, 0x00, 0x0b]);
 }
+
+#[cfg(test)]
+#[path = "aggregate_range_tests.rs"]
+mod range_tests;
 
 #[cfg(test)]
 mod tests {

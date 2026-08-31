@@ -120,6 +120,14 @@ first-failure behavior, and executable add/subtract/multiply/divide/remainder/
 negate overflow and zero-divisor status paths. Wasmtime fuel exhaustion remains
 an out-of-band engine error rather than a forged typed SEMAPRAX status.
 
+The current isolated runner is pinned to Wasmtime 47.0.4, including its matching
+lockfile family, to address GHSA-x84v-gj2h-g759 and GHSA-vqjp-4c8c-hfgg. The typed
+runtime test and runner Clippy pass locally on macOS/Rust 1.98; the exact pinned
+Linux/Rust 1.97.1 hosted gate remains separate evidence. The earlier hosted
+links below are historical and do not establish current-head success for this
+dependency update. Imports, denial policy, features, and public dependencies
+are unchanged.
+
 The runner requires zero component imports, instantiates with an empty linker,
 provides no WASI context or host callback, and grants no filesystem, network,
 environment, clock, randomness, process, logging, or mutable ambient authority.

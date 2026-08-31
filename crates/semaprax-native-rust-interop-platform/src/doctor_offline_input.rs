@@ -89,9 +89,9 @@ mod tests {
         let _: fn(&File, usize) -> Result<DoctorOfflineInput, DoctorOfflineInputError> =
             DoctorOfflineInput::acquire;
         let _: fn(&DoctorOfflineInput) -> &[u8] = DoctorOfflineInput::bytes;
-        let _: fn(&[u8], usize) -> Result<(File, DoctorOfflineInput), DoctorOfflineInputError> =
-            create_doctor_offline_input;
-        let _: fn(&[u8], usize) -> Result<(File, DoctorOfflineInput), DoctorOfflineInputError> =
-            create_doctor_offline_executable;
+        type CreateInput =
+            fn(&[u8], usize) -> Result<(File, DoctorOfflineInput), DoctorOfflineInputError>;
+        let _: CreateInput = create_doctor_offline_input;
+        let _: CreateInput = create_doctor_offline_executable;
     }
 }

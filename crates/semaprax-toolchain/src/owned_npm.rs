@@ -73,6 +73,7 @@ struct Parent {
 
 impl Parent {
     fn prepare(output: &Path) -> Result<Self, Failure> {
+        require_requested_output(output)?;
         if output
             .components()
             .any(|part| matches!(part, Component::ParentDir))
@@ -141,11 +142,36 @@ impl Parent {
     }
 }
 
+fn require_requested_output(output: &Path) -> Result<(), Failure> {
+    let encoded = output.as_os_str().as_encoded_bytes();
+    if encoded
+        .split(|byte| matches!(byte, b'/' | b'\\'))
+        .any(|part| part == b"..")
+    {
+        return Err(failure(
+            "npm package output may not contain parent traversal",
+        ));
+    }
+    let leaf = encoded
+        .rsplit(|byte| matches!(byte, b'/' | b'\\'))
+        .next()
+        .and_then(|leaf| std::str::from_utf8(leaf).ok())
+        .ok_or_else(|| failure("npm package output leaf is invalid"))?;
+    require_output_leaf_text(leaf)
+}
+
 fn require_output_leaf(name: &OsStr) -> Result<(), Failure> {
     let text = name
         .to_str()
         .filter(|text| !text.is_empty() && text.is_ascii())
         .ok_or_else(|| failure("npm package output leaf is invalid"))?;
+    require_output_leaf_text(text)
+}
+
+fn require_output_leaf_text(text: &str) -> Result<(), Failure> {
+    if text.is_empty() || !text.is_ascii() {
+        return Err(failure("npm package output leaf is invalid"));
+    }
     if matches!(text, "." | "..")
         || text.contains(['/', '\\', '\0', ':'])
         || text.ends_with([' ', '.'])

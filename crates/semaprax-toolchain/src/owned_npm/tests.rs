@@ -185,8 +185,8 @@ fn invalid_names_inventory_and_missing_parent_have_no_effects() {
         assert_failure(publish_files(
             &root.join(name),
             FILES,
-            || panic!("invalid input selected stage"),
-            |_, _| panic!("invalid input created stage"),
+            || panic!("invalid input selected stage: {name:?}"),
+            |_, _| panic!("invalid input created stage: {name:?}"),
         ));
     }
     let mut files = FILES;

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Rejected Windows owned-npm parent traversal and inadmissible final-leaf
+  spellings from the raw requested path before `Path` or Win32 component
+  normalization. Reserved names, alternate streams, separators, trailing
+  dot/space, non-ASCII leaves, and missing parents remain pre-staging failures.
+
 - Made the isolated public scalar WIT consumer's exact `wit-parser 0.252.0`
   lock assertion independent of LF versus Windows CRLF checkout newlines. The
   dependency version, default-feature isolation, and locked/offline contract

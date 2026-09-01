@@ -22,7 +22,8 @@ those version numbers are not interchangeable.
 
 The private Windows route requires an existing output parent. It does not use
 the CLI's legacy automatic parent creation or pathname cleanup. Relative output
-is resolved once; parent traversal and inadmissible Windows spellings reject.
+is resolved once; parent traversal and inadmissible Windows spellings reject
+from the raw requested path before component or Win32 path normalization.
 The final directory leaf uses the existing platform's ASCII child-name rules:
 reserved device names, alternate streams, separators and trailing dot/space
 spellings reject. Parent directories may have Unicode names. This is an

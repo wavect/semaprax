@@ -449,30 +449,47 @@ fn displaced_parent_cannot_turn_held_publication_into_success_at_replacement_pat
     let root = fixture();
     let parent = root.join("parent");
     fs::create_dir(&parent).unwrap();
+    let mut displacement_denied = false;
     assert_failure(publish_files(
         &parent.join("package"),
         FILES,
         || 7,
         |point, _| {
             if point == Point::AfterRename {
-                fs::rename(&parent, root.join("moved-parent")).unwrap();
+                if let Err(error) = fs::rename(&parent, root.join("moved-parent")) {
+                    if error.kind() == std::io::ErrorKind::PermissionDenied {
+                        displacement_denied = true;
+                        return Err(failure(
+                            "retained Windows authority denied parent displacement",
+                        ));
+                    }
+                    panic!("unexpected parent displacement failure: {error}");
+                }
                 fs::create_dir(&parent).unwrap();
                 fs::write(parent.join("foreign"), b"foreign").unwrap();
             }
             Ok(())
         },
     ));
-    let mut files = package("moved-parent/package");
-    files.push(("parent/foreign".into(), b"foreign".to_vec()));
-    finish(
-        &root,
-        &[
-            "parent".into(),
-            "moved-parent".into(),
-            "moved-parent/package".into(),
-        ],
-        &files,
-    );
+    if displacement_denied {
+        finish(
+            &root,
+            &["parent".into(), "parent/package".into()],
+            &package("parent/package"),
+        );
+    } else {
+        let mut files = package("moved-parent/package");
+        files.push(("parent/foreign".into(), b"foreign".to_vec()));
+        finish(
+            &root,
+            &[
+                "parent".into(),
+                "moved-parent".into(),
+                "moved-parent/package".into(),
+            ],
+            &files,
+        );
+    }
 }
 
 #[test]

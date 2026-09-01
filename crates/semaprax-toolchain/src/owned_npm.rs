@@ -86,6 +86,7 @@ impl Parent {
         let requested_leaf = output
             .file_name()
             .ok_or_else(|| failure("npm package output must name one directory"))?;
+        require_output_leaf(requested_leaf)?;
         platform::prepare_child_name(requested_leaf).map_err(map_error)?;
         let absolute = std::path::absolute(output)
             .map_err(|_| failure("cannot resolve npm output directory"))?;
@@ -138,6 +139,30 @@ impl Parent {
         }
         platform::recheck_directory(&self.held).map_err(map_error)
     }
+}
+
+fn require_output_leaf(name: &OsStr) -> Result<(), Failure> {
+    let text = name
+        .to_str()
+        .filter(|text| !text.is_empty() && text.is_ascii())
+        .ok_or_else(|| failure("npm package output leaf is invalid"))?;
+    if matches!(text, "." | "..")
+        || text.contains(['/', '\\', '\0', ':'])
+        || text.ends_with([' ', '.'])
+    {
+        return Err(failure("npm package output leaf is invalid"));
+    }
+    let stem = text.split('.').next().unwrap_or("");
+    if ["CON", "PRN", "AUX", "NUL", "CLOCK$"]
+        .iter()
+        .any(|reserved| stem.eq_ignore_ascii_case(reserved))
+        || (stem.len() == 4
+            && (stem[..3].eq_ignore_ascii_case("COM") || stem[..3].eq_ignore_ascii_case("LPT"))
+            && matches!(stem.as_bytes()[3], b'1'..=b'9'))
+    {
+        return Err(failure("npm package output leaf is invalid"));
+    }
+    Ok(())
 }
 
 fn require_plain_directory(path: &Path) -> Result<(), Failure> {

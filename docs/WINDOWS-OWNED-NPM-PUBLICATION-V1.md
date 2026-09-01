@@ -77,6 +77,13 @@ stage authority, checks the exact six-file inventory, and rechecks destination
 and original-parent binding. A successful rename is not sufficient by itself
 to report success. Existing foreign destinations are never replaced.
 
+The retained parent, published-directory, and file handles may make a physical
+ancestor rename fail with Windows `AccessDenied`. That is a stronger retained-
+authority outcome, not evidence that displacement succeeded: the invocation
+still fails stop and the complete package remains at the original parent. On a
+host that permits the rename, the replacement-path identity check must reject
+success and preserve both trees exactly.
+
 These checks are observations under the existing platform authority contract.
 They do not promise permanent pathname binding, isolation from a hostile
 same-principal process, crash durability, cross-filesystem publication, or a

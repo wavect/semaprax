@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Closed two Windows owned-npm publication fixture gaps: the private host now
+  enforces its ASCII, non-device output-leaf grammar directly before acquiring
+  parent or stage authority, and the ancestor-displacement regression accepts
+  Windows' stronger access-denied result from retained descendant handles while
+  still requiring fail-stop publication and exact retained bytes.
+
 - Corrected Windows release ZIP creation to use the literal .NET filesystem
   paths already admitted by the packager. This avoids `Compress-Archive`'s
   hosted PowerShell path-binding failure for bracketed or short-form paths

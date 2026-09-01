@@ -229,7 +229,7 @@ fn non_native_resource_import_is_partial_declaration_evidence_not_provider_verif
 }
 // A source-local function with the same checked signature is not authenticated
 // provider evidence for the separately declared external import.
-@id("coverage.provider-like") fn provider_like(value: own Token) -> unit {observe(value)}
+@id("coverage.provider-like") fn provider_like(value: own Token) -> i64 {0}
 "#;
     let program = semaprax::parse(&source, "src/core.spx").unwrap();
     std::fs::write(path, semaprax::format::canonical(&program)).unwrap();

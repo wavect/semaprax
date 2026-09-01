@@ -1,4 +1,4 @@
-//! Explicit candidate-era package-consumer replay; authored and intentionally unrun.
+//! Explicit candidate-era package-consumer replay.
 use semaprax::diagnostic::Diagnostic;
 use semaprax::package_lock_v2::{self, Coordinate};
 use semaprax::package_report_v2::{self, PackageReportV2Options};
@@ -39,7 +39,7 @@ impl Fixture {
 name = "libmath"
 version = "1.0.0"
 profile = "owned-data-api.v1"
-entry = "lib.app"
+entry = "libmath"
 sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
 web_exports = ["lib.answer", "lib.unused"]
 tests = ["lib.tests"]
@@ -51,7 +51,7 @@ tests = ["lib.tests"]
             "app",
             r#"module lib.app;
 use function @id("lib.answer") from libmath as answer;
-@id("lib.main") fn main()->i64 {answer()}
+@id("lib.app-helper") fn app_helper()->i64 {answer()}
 "#,
         );
         fixture.write(
@@ -59,6 +59,7 @@ use function @id("lib.answer") from libmath as answer;
             r#"module libmath;
 @id("lib.answer") fn answer()->i64 {41}
 @id("lib.unused") fn unused()->i64 {99}
+@id("lib.main") fn main()->i64 {answer()}
 "#,
         );
         fixture.write(
@@ -404,9 +405,11 @@ fn stale_foreign_and_tampered_candidate_package_inputs_fail_closed() {
     );
 
     let mut tampered_sources = left_corpus.sources.clone();
+    let original_consumer_source = tampered_sources[0].source.clone();
     tampered_sources[0].source = tampered_sources[0]
         .source
-        .replace("answer()+1", "answer()+2");
+        .replace("answer() + 1", "answer() + 2");
+    assert_ne!(tampered_sources[0].source, original_consumer_source);
     let mut tampered = left_corpus.replay(TARGET);
     tampered.sources = &tampered_sources;
     failed(

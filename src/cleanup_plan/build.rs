@@ -919,17 +919,7 @@ impl<'a> PlanBuilder<'a> {
     }
 
     fn needs_drop(&self, ty: &ResolvedType) -> Result<bool, Diagnostic> {
-        // Owned strings free their heap buffer inline in each backend; they
-        // never join the resource-lifecycle cleanup plan.
-        Ok(self
-            .program
-            .declarations
-            .type_facts(ty)
-            .map(|facts| facts.needs_drop)
-            .ok_or_else(|| {
-                plan_error(format!("type `{}` has no cleanup facts", ty.identity_key()))
-            })?
-            && !matches!(ty, ResolvedType::String | ResolvedType::Str))
+        crate::cleanup::type_needs_resource_cleanup(self.program, ty).map_err(plan_error)
     }
 
     fn assign_slot(

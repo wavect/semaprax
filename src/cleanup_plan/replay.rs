@@ -1820,22 +1820,8 @@ fn type_needs_drop(
     function: &ResolvedFunction,
     ty: &ResolvedType,
 ) -> Result<bool, Diagnostic> {
-    // Owned strings free their heap buffer inline in each backend; they never
-    // join the resource-lifecycle cleanup plan.
-    Ok(program
-        .declarations
-        .type_facts(ty)
-        .map(|facts| facts.needs_drop)
-        .ok_or_else(|| {
-            replay_error(
-                function,
-                format!("type `{}` has no cleanup facts", ty.identity_key()),
-            )
-        })?
-        && !matches!(
-            ty,
-            ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8
-        ))
+    crate::cleanup::type_needs_resource_cleanup(program, ty)
+        .map_err(|message| replay_error(function, message))
 }
 
 /// Resolve one call's parameters for replay: compiler-owned string operations

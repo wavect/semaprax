@@ -1,4 +1,4 @@
-//! Resource-free record evolution: authored regression source, intentionally unrun.
+//! Resource-free record evolution regression source.
 use semaprax::ast::{Expr, ExprKind, TypeDeclarationKind};
 use semaprax::diagnostic::Diagnostic;
 use semaprax::hir::{self, DeclarationId, ResolvedType, TypeFacts};

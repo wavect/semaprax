@@ -1,4 +1,4 @@
-//! Authored, unrun StringOp candidate evidence. No target execution is claimed.
+//! StringOp candidate evidence. No target execution is claimed.
 use semaprax::diagnostic::Diagnostic;
 use semaprax::hir::{self, OwnershipMode, ResolvedExpr, ResolvedExprKind, ResolvedType};
 use semaprax::project::{
@@ -44,7 +44,6 @@ tests = ["strings.tests"]
             "src/core.spx",
             &format!(
                 r#"module strings.core;
-@id("strings.core-main") fn main()->i64 {{0}}
 @id("strings.measure") fn measure(value:string)->i64 {{0}}
 @id("strings.merge") fn merge(left:string,right:string)->string {{left}}
 @id("strings.text") fn text()->string {{"seed"}}
@@ -109,10 +108,19 @@ fn source(candidate: &ProjectCandidate) -> &str {
         .unwrap()
         .source()
 }
+fn analysis_source(candidate: &ProjectCandidate) -> String {
+    format!(
+        "{}\n@id(\"strings.analysis-only\") fn main()->i64 {{0}}\n",
+        source(candidate)
+    )
+}
 fn checked(candidate: &ProjectCandidate) -> hir::ResolvedProgram {
-    // core-main is real checked fixture source, not a synthetic entry added to
-    // make an otherwise unresolvable snippet pass. It is not the Project entry.
-    hir::resolve(&semaprax::parse(source(candidate), "src/core.spx").unwrap()).unwrap()
+    // Re-resolve the exact admitted provider declarations to inspect functions
+    // that intentionally stay outside the entry closure. The standalone HIR
+    // resolver requires an entry point, so add one only to this analysis copy;
+    // the Project source remains a non-entry scalar provider as G172 requires.
+    let analysis = analysis_source(candidate);
+    hir::resolve(&semaprax::parse(&analysis, "src/core.spx").unwrap()).unwrap()
 }
 fn calls<'a>(program: &'a hir::ResolvedProgram, target: &str) -> Vec<&'a ResolvedExpr> {
     let function = program
@@ -316,9 +324,10 @@ fn all_seven_string_operations_use_exact_compiler_ids_and_parameter_ownership() 
             unreachable!()
         };
         assert!(type_arguments.is_empty() && instance.is_none());
-        let graph =
-            semaprax::graph::to_json(&semaprax::parse(source(&candidate), "src/core.spx").unwrap())
-                .unwrap();
+        let graph = semaprax::graph::to_json(
+            &semaprax::parse(&analysis_source(&candidate), "src/core.spx").unwrap(),
+        )
+        .unwrap();
         assert!(
             graph.contains(id),
             "source Graph omitted compiler identity {id}"

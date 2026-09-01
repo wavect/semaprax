@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Corrected the current Rust integration fixtures so scalar provider modules
+  retain the existing G172 boundary and package-consumer tamper probes mutate
+  the canonical source they authenticate. Resource-lifecycle cleanup inventory,
+  planning, and replay now consistently exclude inline-owned `String` leaves
+  through nested records and variants while preserving cleanup for `Bytes` and
+  declared resources. The exact integration-0 and integration-2 shards and
+  strict workspace Clippy pass locally.
+
 - Corrected generated Project v8-v10 Native Rust provider guards so borrowed
   input accounting and carrier construction begin on distinct C statements.
   Strict compilers can no longer reject the authenticated provider for

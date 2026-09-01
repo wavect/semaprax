@@ -1,4 +1,4 @@
-//! Candidate analysis evidence with one explicit package corpus; authored and unrun.
+//! Candidate analysis evidence with one explicit package corpus.
 use semaprax::diagnostic::Diagnostic;
 use semaprax::package_lock_v2::{self, Coordinate};
 use semaprax::package_report_v2::{self, PackageReportV2Options};
@@ -39,7 +39,7 @@ impl Fixture {
 name = "libmath"
 version = "1.0.0"
 profile = "owned-data-api.v1"
-entry = "lib.app"
+entry = "libmath"
 sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
 web_exports = ["lib.answer", "lib.unobserved", "lib.unused"]
 tests = ["lib.tests"]
@@ -52,7 +52,7 @@ tests = ["lib.tests"]
                 "app",
                 r#"module lib.app;
 use function @id("lib.answer") from libmath as answer;
-@id("lib.main") fn main()->i64 {answer()}
+@id("lib.app-helper") fn app_helper()->i64 {answer()}
 "#,
             ),
             (
@@ -61,6 +61,7 @@ use function @id("lib.answer") from libmath as answer;
 @id("lib.answer") fn answer()->i64 {41}
 @id("lib.unobserved") fn unobserved()->i64 {7}
 @id("lib.unused") fn unused()->i64 {99}
+@id("lib.main") fn main()->i64 {answer()}
 "#,
             ),
             (
@@ -446,9 +447,11 @@ fn stale_foreign_tampered_and_sibling_evidence_is_rejected_or_history_isolated()
         "SPX-G336",
     );
     let mut tampered_sources = left_corpus.sources.clone();
+    let original_consumer_source = tampered_sources[0].source.clone();
     tampered_sources[0].source = tampered_sources[0]
         .source
-        .replace("answer()+1", "answer()+2");
+        .replace("answer() + 1", "answer() + 2");
+    assert_ne!(tampered_sources[0].source, original_consumer_source);
     let mut tampered = left_corpus.input(TARGET);
     tampered.sources = &tampered_sources;
     failed(

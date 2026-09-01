@@ -6,6 +6,8 @@
 //! not describe path-sensitive liveness, transfers, initialization/finalization
 //! order, failure status, or exits.
 
+use std::collections::BTreeSet;
+
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     DeclarationId, ExpressionId, OwnershipMode, ResolvedBinding, ResolvedExpr, ResolvedExprKind,
@@ -349,6 +351,99 @@ pub(crate) fn build_inventory(
     })
 }
 
+/// Whether a type contains a leaf governed by the resource-lifecycle cleanup
+/// plan. Owned `String` storage is settled inline by the backends, including
+/// when nested in an aggregate, so `TypeFacts::needs_drop` alone is too broad.
+pub(crate) fn type_needs_resource_cleanup(
+    program: &ResolvedProgram,
+    ty: &ResolvedType,
+) -> Result<bool, String> {
+    let mut pending = vec![ty.clone()];
+    let mut visited = BTreeSet::new();
+    while let Some(ty) = pending.pop() {
+        let facts = program
+            .declarations
+            .type_facts(&ty)
+            .ok_or_else(|| format!("type `{}` has no cleanup facts", ty.identity_key()))?;
+        if !facts.needs_drop || !visited.insert(ty.clone()) {
+            continue;
+        }
+        match ty {
+            ResolvedType::Bytes => return Ok(true),
+            ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 => {}
+            ResolvedType::Nominal {
+                declaration,
+                arguments,
+            } => {
+                let item = program
+                    .types
+                    .iter()
+                    .find(|item| item.id == declaration)
+                    .ok_or_else(|| format!("unknown cleanup type `{declaration}`"))?;
+                match &item.kind {
+                    ResolvedTypeDeclarationKind::Resource { .. } => return Ok(true),
+                    ResolvedTypeDeclarationKind::Record { fields }
+                    | ResolvedTypeDeclarationKind::Class { fields, .. } => {
+                        pending.try_reserve(fields.len()).map_err(|_| {
+                            "cleanup type traversal capacity exceeds address space".to_owned()
+                        })?;
+                        for field in fields.iter().rev() {
+                            pending.push(
+                                crate::hir::substitute_type(&field.ty, &declaration, &arguments)
+                                    .map_err(|_| {
+                                        format!("type `{declaration}` cleanup substitution failed")
+                                    })?,
+                            );
+                        }
+                    }
+                    ResolvedTypeDeclarationKind::Variant { cases } => {
+                        let fields = cases
+                            .iter()
+                            .try_fold(0usize, |total, case| total.checked_add(case.fields.len()))
+                            .ok_or_else(|| "cleanup type traversal work overflowed".to_owned())?;
+                        pending.try_reserve(fields).map_err(|_| {
+                            "cleanup type traversal capacity exceeds address space".to_owned()
+                        })?;
+                        for case in cases.iter().rev() {
+                            for field in case.fields.iter().rev() {
+                                pending.push(
+                                    crate::hir::substitute_type(
+                                        &field.ty,
+                                        &declaration,
+                                        &arguments,
+                                    )
+                                    .map_err(|_| {
+                                        format!("type `{declaration}` cleanup substitution failed")
+                                    })?,
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+            // Preserve the existing unsupported-generic cleanup path: the
+            // shape builder will issue its more specific diagnostic.
+            ResolvedType::TypeParameter { .. } => return Ok(true),
+            ResolvedType::Unit
+            | ResolvedType::I64
+            | ResolvedType::I32
+            | ResolvedType::Char
+            | ResolvedType::U8
+            | ResolvedType::Usize
+            | ResolvedType::ArrayU8(_)
+            | ResolvedType::F32
+            | ResolvedType::F64
+            | ResolvedType::Bool => {
+                return Err(format!(
+                    "copy type `{}` unexpectedly requires cleanup",
+                    ty.identity_key()
+                ));
+            }
+        }
+    }
+    Ok(false)
+}
+
 fn shape_contains_variant(shape: &FieldLivenessShape) -> bool {
     let mut pending = vec![shape];
     while let Some(shape) = pending.pop() {
@@ -510,17 +605,7 @@ struct InventoryBuilder<'a> {
 
 impl InventoryBuilder<'_> {
     fn needs_drop(&self, ty: &ResolvedType) -> Result<bool, Diagnostic> {
-        // Owned strings free their heap buffer inline in each backend; they
-        // never join the resource-lifecycle cleanup inventory.
-        Ok(self
-            .program
-            .declarations
-            .type_facts(ty)
-            .map(|facts| facts.needs_drop)
-            .ok_or_else(|| {
-                cleanup_error(format!("type `{}` has no cleanup facts", ty.identity_key()))
-            })?
-            && !matches!(ty, ResolvedType::String | ResolvedType::Str))
+        type_needs_resource_cleanup(self.program, ty).map_err(cleanup_error)
     }
 
     fn add_slot(

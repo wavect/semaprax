@@ -235,6 +235,14 @@ impl<const N: usize> PreparedDiscardInventory<N> {
             .ok_or(Error::Invalid)
     }
 
+    fn validate_settled_slot(&self, name: &str) -> Result<usize, Error> {
+        self.names[..self.attached]
+            .iter()
+            .position(|candidate| *candidate == OsStr::new(name))
+            .filter(|index| self.files[*index].is_none() && self.settled[*index].is_some())
+            .ok_or(Error::Invalid)
+    }
+
     pub fn attach(&mut self, name: &str, file: HeldRegularFile) -> Result<(), Error> {
         let index = self.validate_next(name)?;
         self.files[index] = Some(file);
@@ -474,6 +482,22 @@ pub fn hold_regular_file_prepared<const N: usize>(
         &inventory.native,
         index,
         &tracked.0,
+    )
+    .map(HeldRegularFile)
+}
+
+pub fn hold_settled_regular_file_prepared<const N: usize>(
+    directory: &HeldDirectory,
+    inventory: &PreparedDiscardInventory<N>,
+    name: &str,
+) -> Result<HeldRegularFile, Error> {
+    let index = inventory.validate_settled_slot(name)?;
+    let tracked = inventory.settled[index].as_ref().ok_or(Error::Invalid)?;
+    semaprax_native_rust_interop_platform_sys::hold_settled_regular_file_prepared(
+        &directory.0,
+        &inventory.native,
+        index,
+        tracked,
     )
     .map(HeldRegularFile)
 }

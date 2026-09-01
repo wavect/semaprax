@@ -233,6 +233,29 @@ fn post_publish_mutation_is_reported_visible_and_never_discarded() {
 }
 
 #[test]
+fn post_publish_same_byte_file_substitution_is_visible_failure() {
+    let root = root("post-publish-file-substitution");
+    let output = root.join("package");
+    let displaced = root.join("displaced-module");
+    let mut observer = ClosureObserver(|point: PublishPoint, paths: &ObservedPaths<'_>| {
+        if point == PublishPoint::AfterPublish {
+            let module = paths.output.join(MODULE_FILE);
+            fs::rename(&module, &displaced).unwrap();
+            fs::write(module, b"\0asm\x01\0\0\0").unwrap();
+        }
+    });
+    let error = publish_observed(&output, &build(), &mut accept, &mut observer).unwrap_err();
+    assert_eq!(error.code, PP_PUBLISHED_CHANGED);
+    assert_eq!(error.visibility, PublicationVisibility::Published);
+    assert_eq!(error.cleanup, CleanupStatus::NotNeeded);
+    assert_eq!(fs::read(displaced).unwrap(), b"\0asm\x01\0\0\0");
+    assert_eq!(
+        fs::read(output.join(MODULE_FILE)).unwrap(),
+        b"\0asm\x01\0\0\0"
+    );
+}
+
+#[test]
 fn post_publish_output_path_substitution_is_visible_failure() {
     let root = root("post-publish-path-substitution");
     let output = root.join("package");

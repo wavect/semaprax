@@ -193,11 +193,14 @@ safe platform facade. The invocation:
    authenticates exact inventory and file identities;
 6. independently re-verifies the retained immutable build inputs and
    exact-compares every held staged file, then consumes a second exact
-   inventory scan immediately before settle;
+   inventory scan immediately before settling the file handles into retained
+   identity-and-digest proof;
 7. sets a fail-stop `publication_attempted` state and publishes the prepared
    directory no-clobber;
 8. immediately marks a successful rename return as `published` before any
-   post-publication check; neither state may discard;
+   post-publication check, then reopens the three files relative to the renamed
+   held directory and authenticates them against the settled proof; neither
+   state may discard;
 9. on a failure after a stage was successfully held but before publication was
    attempted, attempts only exact authenticated discard; cleanup failure cannot
    replace the sticky primary failure and is reported separately. A create-new

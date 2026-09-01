@@ -1723,6 +1723,15 @@ pub fn hold_regular_file_prepared<const N: usize>(
     Ok(rebound)
 }
 
+pub fn hold_settled_regular_file_prepared<const N: usize>(
+    directory: &Directory,
+    names: &PreparedDiscardNames<N>,
+    index: usize,
+    tracked: &SettledRegularFile,
+) -> Result<RegularFile, Error> {
+    hold_regular_file_prepared(directory, names, index, &tracked.0)
+}
+
 pub fn transition_regular_file_to_external_read_prepared<const N: usize>(
     directory: &Directory,
     names: &PreparedDiscardNames<N>,

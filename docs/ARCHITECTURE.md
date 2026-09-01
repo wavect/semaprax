@@ -1416,7 +1416,10 @@ The separate `semaprax-offline-wasm-package` crate is the only publication
 boundary for both build profiles. Its safe facade replays the complete caller-owned
 build before acquiring a held destination, stages exactly three create-new
 files, exact-compares held staged bytes before settle, and performs one
-no-replace directory publication. Previsibility cleanup is limited to the
+no-replace directory publication. File handles are settled before that rename;
+post-publication authentication reopens the fixed inventory through the renamed
+held directory and compares it with the retained identity-and-digest proof.
+Previsibility cleanup is limited to the
 authenticated stage inventory; publication uncertainty is fail-stop. This is
 create-new local publication, not acquisition, a registry/cache, provenance,
 runtime enforcement, or a hermetic operating-system build sandbox. Its

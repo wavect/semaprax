@@ -2,11 +2,11 @@
 
 use semaprax_native_rust_interop_platform::{
     clang_version_bounded, create_directory_new, discard_owned_stage_prepared, execute_harness,
-    hold_directory, hold_executable, hold_regular_file, inventory_exact_prepared,
-    prepare_discard_inventory, prepare_inventory_exact, prepare_publish_directory,
-    prepare_stage_name, publish_directory_new_prepared, read_exact, recheck_directory,
-    same_directory_path, transition_regular_file_to_external_read_prepared, write_file_new,
-    write_file_new_prepared, Error, HeldDirectory, HeldRegularFile,
+    hold_directory, hold_executable, hold_regular_file, hold_settled_regular_file_prepared,
+    inventory_exact_prepared, prepare_discard_inventory, prepare_inventory_exact,
+    prepare_publish_directory, prepare_stage_name, publish_directory_new_prepared, read_exact,
+    recheck_directory, same_directory_path, transition_regular_file_to_external_read_prepared,
+    write_file_new, write_file_new_prepared, Error, HeldDirectory, HeldRegularFile,
 };
 use std::ffi::OsStr;
 use std::fs::{self, File, OpenOptions};
@@ -231,6 +231,8 @@ fn windows_prepared_publish_renames_the_authenticated_stage_without_clobber() {
         fs::read(root.join("published/artifact")).unwrap(),
         b"authenticated"
     );
+    let reopened = hold_settled_regular_file_prepared(&stage, &inventory, "artifact").unwrap();
+    assert_eq!(read_exact(&reopened, 13).unwrap(), b"authenticated");
     let published_name = prepare_stage_name(OsStr::new("published")).unwrap();
     discard_owned_stage_prepared(&parent, &stage, &published_name, &inventory).unwrap();
     assert!(!root.join("published").exists());

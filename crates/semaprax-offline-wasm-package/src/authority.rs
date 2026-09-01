@@ -101,7 +101,6 @@ fn publish_artifacts<V>(
     }
 
     let artifact_names = artifacts.names();
-    let post_hold_errors = artifacts.post_hold_errors();
     let names = artifact_names.map(OsStr::new);
     let inventory = platform::prepare_discard_inventory(names)
         .map_err(|_| PublicationError::plain(PP_INVALID, "fixed inventory is invalid"))?;
@@ -128,12 +127,10 @@ fn publish_artifacts<V>(
         publish,
         publication_attempted: false,
         published: false,
-        post_files: None,
         post_failure: Some(published_changed(
             "published output failed exact post-publication authentication",
         )),
         artifact_names,
-        post_hold_errors,
     };
 
     if let Err(primary) = staged.write_and_authenticate(artifacts, observer) {
@@ -223,10 +220,8 @@ struct StagedPublication {
     publish: platform::PreparedPublishDirectory,
     publication_attempted: bool,
     published: bool,
-    post_files: Option<[platform::HeldRegularFile; 3]>,
     post_failure: Option<PublicationError>,
     artifact_names: [&'static str; 3],
-    post_hold_errors: [&'static str; 3],
 }
 
 impl StagedPublication {
@@ -291,33 +286,9 @@ impl StagedPublication {
         self.authenticate_files_for_settle()?;
         platform::inventory_exact_prepared(&mut self.exact, &self.stage, &self.inventory)
             .map_err(|_| changed("reauthenticate exact staged inventory before settle"))?;
-        self.prepare_post_files()?;
         self.inventory
             .settle_for_publish()
             .map_err(|_| changed("settle staged artifact handles"))
-    }
-
-    fn prepare_post_files(&mut self) -> Result<(), PublicationError> {
-        let first = platform::hold_regular_file_prepared(
-            &self.stage,
-            &self.inventory,
-            self.artifact_names[0],
-        )
-        .map_err(|_| changed(self.post_hold_errors[0]))?;
-        let second = platform::hold_regular_file_prepared(
-            &self.stage,
-            &self.inventory,
-            self.artifact_names[1],
-        )
-        .map_err(|_| changed(self.post_hold_errors[1]))?;
-        let third = platform::hold_regular_file_prepared(
-            &self.stage,
-            &self.inventory,
-            self.artifact_names[2],
-        )
-        .map_err(|_| changed(self.post_hold_errors[2]))?;
-        self.post_files = Some([first, second, third]);
-        Ok(())
     }
 
     fn authenticate_files_for_settle(&self) -> Result<(), PublicationError> {
@@ -340,14 +311,26 @@ impl StagedPublication {
         ) {
             return Err(self.take_post_failure());
         }
-        let Some(files) = self.post_files.as_ref() else {
-            return Err(self.take_post_failure());
-        };
-        for file in files {
-            if platform::recheck_regular_file(file).is_err() {
-                return Err(self.take_post_failure());
-            }
-        }
+        let files = [
+            platform::hold_settled_regular_file_prepared(
+                &self.stage,
+                &self.inventory,
+                self.artifact_names[0],
+            )
+            .map_err(|_| self.take_post_failure())?,
+            platform::hold_settled_regular_file_prepared(
+                &self.stage,
+                &self.inventory,
+                self.artifact_names[1],
+            )
+            .map_err(|_| self.take_post_failure())?,
+            platform::hold_settled_regular_file_prepared(
+                &self.stage,
+                &self.inventory,
+                self.artifact_names[2],
+            )
+            .map_err(|_| self.take_post_failure())?,
+        ];
         if platform::inventory_entries_exact_prepared(
             &mut self.post,
             &self.stage,
@@ -434,21 +417,6 @@ impl<'a> ArtifactFiles<'a> {
         match self {
             Self::Build { .. } => BUILD_INVENTORY,
             Self::LockSnapshot { .. } => LOCK_SNAPSHOT_INVENTORY,
-        }
-    }
-
-    const fn post_hold_errors(self) -> [&'static str; 3] {
-        match self {
-            Self::Build { .. } => [
-                "prepare held module for post-publication authentication",
-                "prepare held evidence for post-publication authentication",
-                "prepare held manifest for post-publication authentication",
-            ],
-            Self::LockSnapshot { .. } => [
-                "prepare held resolution input for post-publication authentication",
-                "prepare held resolution evidence for post-publication authentication",
-                "prepare held semantic lock for post-publication authentication",
-            ],
         }
     }
 

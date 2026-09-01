@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Corrected Windows offline Wasm package publication to settle staged file
+  handles before the no-replace directory rename, then reopen and authenticate
+  the exact three-file inventory through the renamed held directory against
+  retained identity-and-digest proof. Existing-output, publication-race, and
+  visible post-publication diagnostics retain their distinct fail-stop states.
+
 - Disabled matrix fail-fast cancellation for both the current-toolchain and
   Rust 1.88 four-way test shards. Every Linux, macOS, and Windows shard now
   reports its own result after a peer fails; coverage, per-job failure status,

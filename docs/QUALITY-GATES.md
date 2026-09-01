@@ -74,8 +74,9 @@ gate requires both matrices.
 The Rust 1.88 minimum-version lane partitions the complete Cargo workspace
 target inventory into a lib/bin shard and three integration-target shards using
 `scripts/ci-msrv.py`. Every shard retains workspace-wide feature unification,
-locked dependencies, the all-targets/all-features check, fail-fast execution,
-and the 20-minute job limit. Shared integration target names stay together;
+locked dependencies, the all-targets/all-features check, and the 20-minute job
+limit. Matrix fail-fast is disabled so every shard reports its result after a
+peer failure. Shared integration target names stay together;
 unknown target kinds fail closed instead of silently losing coverage. The
 release gate requires the complete matrix. This changes scheduling only, not
 the local `full` profile or any test, admission limit, or release requirement.

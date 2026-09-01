@@ -132,7 +132,7 @@ fn msrv_router_fails_closed_and_propagates_the_first_cargo_failure() {
 }
 
 #[test]
-fn msrv_matrix_preserves_checks_timeout_fail_fast_and_release_dependency() {
+fn msrv_matrix_preserves_checks_timeout_complete_results_and_release_dependency() {
     let workflow = std::fs::read_to_string(root().join(".github/workflows/ci.yml")).unwrap();
     let msrv = workflow
         .split_once("\n  msrv:\n")
@@ -144,7 +144,7 @@ fn msrv_matrix_preserves_checks_timeout_fail_fast_and_release_dependency() {
     for required in [
         "name: Rust 1.88 minimum (${{ matrix.shard }})",
         "timeout-minutes: 20",
-        "fail-fast: true",
+        "fail-fast: false",
         "shard: [unit, integration-0, integration-1, integration-2]",
         "toolchain: \"1.88\"",
         "run: cargo fetch --locked",
@@ -190,7 +190,7 @@ fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() 
     for required in [
         "name: Rust tests ${{ matrix.os }} (${{ matrix.shard }})",
         "timeout-minutes: 30",
-        "fail-fast: true",
+        "fail-fast: false",
         "os: [ubuntu-latest, macos-latest, windows-latest]",
         "shard: [unit, integration-0, integration-1, integration-2]",
         "python3 scripts/ci-msrv.py --label \"Rust $RUNNER_OS\" --shard \"${{ matrix.shard }}\"",

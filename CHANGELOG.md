@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Disabled matrix fail-fast cancellation for both the current-toolchain and
+  Rust 1.88 four-way test shards. Every Linux, macOS, and Windows shard now
+  reports its own result after a peer fails; coverage, per-job failure status,
+  time limits, and release blocking remain unchanged.
+
 - Bound explicit Project v8-v10 Native Rust output leaves to the canonical
   spelling of their already-admitted parent on Windows. Relative package
   outputs now reach held publication without a DOS-versus-verbatim path

@@ -349,9 +349,17 @@ fn audit_schema(schema: &Value, refs: &mut BTreeSet<String>, depth: usize) -> Re
         }
     }
     if let Some(unique) = fields.get("uniqueItems") {
+        let items = &schema["items"];
+        let is_string_array = items["type"] == "string"
+            || items
+                .get("enum")
+                .and_then(|value| value.as_array())
+                .is_some_and(|values| {
+                    !values.is_empty() && values.iter().all(|value| value.is_string())
+                });
         if !unique.is_boolean()
             || (unique == true
-                && (schema["items"]["type"] != "string"
+                && (!is_string_array
                     || !schema["maxItems"]
                         .as_u64()
                         .is_some_and(|bound| bound <= 4096)))

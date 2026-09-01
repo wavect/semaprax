@@ -1290,6 +1290,7 @@ impl WorkspaceGraphBuild {
                             crate::host_io_ops::STDOUT_WRITE_EFFECT,
                         ]);
             let project_shape_admitted = profile.is_owned_api()
+                || matches!(profile, crate::project::ProjectProfile::ScalarV1)
                 || (module.types.is_empty()
                     && module.interfaces.is_empty()
                     && module.function_templates.is_empty()
@@ -1304,7 +1305,10 @@ impl WorkspaceGraphBuild {
                 )]);
             }
             for function in &module.functions {
-                if module.module != entry_module && function.name == "main" {
+                if profile == crate::project::ProjectProfile::ScalarV1
+                    && module.module != entry_module
+                    && function.name == "main"
+                {
                     return Err(vec![graph_error(
                         "SPX-G172",
                         "workspace scalar provider modules may not declare `main`",
@@ -2138,6 +2142,7 @@ impl WorkspaceGraphBuild {
                             crate::host_io_ops::STDOUT_WRITE_EFFECT,
                         ]);
             let project_shape_admitted = profile.is_owned_api()
+                || matches!(profile, crate::project::ProjectProfile::ScalarV1)
                 || (module.types.is_empty()
                     && module.interfaces.is_empty()
                     && module.function_templates.is_empty()

@@ -499,10 +499,11 @@ fn diagnostics(errors: &[Diagnostic]) -> String {
 
 fn validate_parameters(method: &Method, params: &Map<String, Value>) -> Result<(), String> {
     if params.keys().any(|key| {
-        !method
-            .parameters
-            .iter()
-            .any(|parameter| parameter.name == key)
+        key != "image_revision"
+            && !method
+                .parameters
+                .iter()
+                .any(|parameter| parameter.name == key)
     }) {
         return Err("unknown parameter for image protocol method".to_owned());
     }

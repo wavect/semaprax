@@ -287,6 +287,7 @@ mod tests {
         "quality-plan",
         "doctor",
         "new",
+        "project-scaffold",
         "build",
         "run",
         "test",

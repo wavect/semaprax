@@ -122,6 +122,7 @@ fn summary(session: &mut VNextSession, candidate: &str, target: &str) -> Value {
         json!({"candidate_revision":candidate,"target":target}),
     ))
 }
+#[allow(clippy::too_many_arguments)]
 fn facet(
     session: &mut VNextSession,
     candidate: &str,

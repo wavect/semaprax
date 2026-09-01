@@ -97,13 +97,13 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     );
     // Data-only literal decoding, calibrated against the retained old pin below.
     // Restore only this intentional usage change before all historical witnesses.
-    assert_eq!(current.len(), 5_842);
-    assert_eq!(fnv1a64(current.as_bytes()), 0xfb3e_0c07_9eca_4b7b);
+    assert_eq!(current.len(), 5_912);
+    assert_eq!(fnv1a64(current.as_bytes()), 0xc9a5_bf69_d4ef_810a);
     assert_eq!(current.matches(PROFILE_DOCTOR_LINE).count(), 1);
     assert_eq!(current.matches(LEGACY_DOCTOR_LINE).count(), 0);
     let current = current.replacen(PROFILE_DOCTOR_LINE, LEGACY_DOCTOR_LINE, 1);
-    assert_eq!(current.len(), 5_825);
-    assert_eq!(fnv1a64(current.as_bytes()), 0x484f_8dd0_f2a6_dee9);
+    assert_eq!(current.len(), 5_895);
+    assert_eq!(fnv1a64(current.as_bytes()), 0xd57d_d3f0_32d8_b8a6);
     assert_eq!(current.matches(WORKSPACE_LINE).count(), 1);
     assert_eq!(current.matches(GIT_PUBLISH_LINE).count(), 1);
     // The thirteen additive Project-image commands contribute exactly 642 bytes.
@@ -139,12 +139,12 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     );
     assert_eq!(current.matches(workspace_image_lines.as_str()).count(), 1);
     let current = current.replacen(WORKSPACE_LINE, "", 1);
-    assert_eq!(current.len(), 5_770);
-    assert_eq!(fnv1a64(current.as_bytes()), 0xdb0a_53ee_5f16_ba3b);
+    assert_eq!(current.len(), 5_840);
+    assert_eq!(fnv1a64(current.as_bytes()), 0x4ff9_f65d_95ab_4724);
     assert_eq!(current.matches(current_image_lines.as_str()).count(), 1);
     let current = current.replacen(GIT_PUBLISH_LINE, "", 1);
-    assert_eq!(current.len(), 5_658);
-    assert_eq!(fnv1a64(current.as_bytes()), 0x582e_75e7_64c4_56c3);
+    assert_eq!(current.len(), 5_728);
+    assert_eq!(fnv1a64(current.as_bytes()), 0x912b_536f_4973_e66c);
     // Also retain upstream's exact contiguous-block assertion.
     assert_eq!(current.matches(image_lines.as_str()).count(), 1);
     let before_store_and_diagnostics = current
@@ -152,31 +152,31 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         .replacen(PROJECT_IMAGE_LINES[2], "", 1)
         .replacen(PROJECT_IMAGE_LINES[11], "", 1)
         .replacen(PROJECT_IMAGE_LINES[12], "", 1);
-    assert_eq!(before_store_and_diagnostics.len(), 5_442);
+    assert_eq!(before_store_and_diagnostics.len(), 5_512);
     assert_eq!(
         fnv1a64(before_store_and_diagnostics.as_bytes()),
-        0xdda0_c525_8993_7efa
+        0x14b1_4440_8d51_2a49
     );
     let before_test_candidates =
         before_store_and_diagnostics.replacen(PROJECT_IMAGE_LINES[10], "", 1);
-    assert_eq!(before_test_candidates.len(), 5_400);
+    assert_eq!(before_test_candidates.len(), 5_470);
     assert_eq!(
         fnv1a64(before_test_candidates.as_bytes()),
-        0xdefc_7bb0_649a_dded
+        0x5285_8c34_dae9_c9a2
     );
     let before_recovery = before_test_candidates
         .replacen(PROJECT_IMAGE_LINES[6], "", 1)
         .replacen(PROJECT_IMAGE_LINES[7], "", 1);
-    assert_eq!(before_recovery.len(), 5_280);
-    assert_eq!(fnv1a64(before_recovery.as_bytes()), 0x312c_8a8b_3e20_4b28);
+    assert_eq!(before_recovery.len(), 5_350);
+    assert_eq!(fnv1a64(before_recovery.as_bytes()), 0xc9e2_03c3_a6c2_a883);
     let before_holes = before_recovery.replacen(PROJECT_IMAGE_LINES[9], "", 1);
-    assert_eq!(before_holes.len(), 5_243);
-    assert_eq!(fnv1a64(before_holes.as_bytes()), 0xfaf2_50ea_829e_bdf0);
+    assert_eq!(before_holes.len(), 5_313);
+    assert_eq!(fnv1a64(before_holes.as_bytes()), 0x5f86_debb_6e0e_1c8b);
     let before_candidates = before_holes
         .replacen(PROJECT_IMAGE_LINES[5], "", 1)
         .replacen(PROJECT_IMAGE_LINES[8], "", 1);
-    assert_eq!(before_candidates.len(), 5_151);
-    assert_eq!(fnv1a64(before_candidates.as_bytes()), 0x3606_80c0_4da0_b739);
+    assert_eq!(before_candidates.len(), 5_221);
+    assert_eq!(fnv1a64(before_candidates.as_bytes()), 0x0217_f8a4_e2c2_3ed6);
     let mut legacy = current;
     for line in PROJECT_IMAGE_LINES {
         assert_eq!(legacy.matches(line).count(), 1);
@@ -189,12 +189,12 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     assert_eq!(legacy.matches(STRINGS_LINE).count(), 1);
     const WEB_PROFILE: &str = " [--profile internal-strings-v1]";
     assert_eq!(legacy.matches(WEB_PROFILE).count(), 1);
-    assert_eq!(legacy.len(), 5_016);
-    assert_eq!(fnv1a64(legacy.as_bytes()), 0x9b9d_2017_826d_61b5);
+    assert_eq!(legacy.len(), 5_086);
+    assert_eq!(fnv1a64(legacy.as_bytes()), 0x6193_4a94_625c_3d6a);
     // Preserve the historical whole-output pin as an independent control too.
     let previous = legacy.replacen(WEB_PROFILE, "", 1);
-    assert_eq!(previous.len(), 4_984);
-    assert_eq!(fnv1a64(previous.as_bytes()), 0x5d28_008d_32a9_33ac);
+    assert_eq!(previous.len(), 5_054);
+    assert_eq!(fnv1a64(previous.as_bytes()), 0x87b6_170f_33bb_a527);
 }
 
 fn fnv1a64(bytes: &[u8]) -> u64 {

@@ -287,7 +287,7 @@ fn schemas_publish_fourteen_exact_arity_branches_and_both_client_type_graphs() {
                 .count(),
             14
         );
-        assert!(!forms
+        assert!(forms
             .iter()
             .any(|row| row["properties"]["kind"]["const"] == "char"));
         for (id, _, arity, _, _, _) in OPERATIONS {

@@ -1290,7 +1290,6 @@ impl WorkspaceGraphBuild {
                             crate::host_io_ops::STDOUT_WRITE_EFFECT,
                         ]);
             let project_shape_admitted = profile.is_owned_api()
-                || matches!(profile, crate::project::ProjectProfile::ScalarV1)
                 || (module.types.is_empty()
                     && module.interfaces.is_empty()
                     && module.function_templates.is_empty()
@@ -2139,7 +2138,6 @@ impl WorkspaceGraphBuild {
                             crate::host_io_ops::STDOUT_WRITE_EFFECT,
                         ]);
             let project_shape_admitted = profile.is_owned_api()
-                || matches!(profile, crate::project::ProjectProfile::ScalarV1)
                 || (module.types.is_empty()
                     && module.interfaces.is_empty()
                     && module.function_templates.is_empty()

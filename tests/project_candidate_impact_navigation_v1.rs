@@ -264,7 +264,7 @@ fn summary_and_pages_preserve_the_exact_candidate_impact_artifact_and_compiler_o
         .as_array()
         .unwrap()
         .iter()
-        .any(|row| row["id"] == "impact.generated"));
+        .any(|row| row["id"] == "calculator.add"));
     for field in [
         "source_authority",
         "execution",

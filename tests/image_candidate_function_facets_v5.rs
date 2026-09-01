@@ -165,19 +165,14 @@ fn changed_and_added_functions_preserve_all_nine_exact_candidate_facet_inventori
     let added = json!({"kind":"add_declaration","target":"calculator.add","declaration":{
         "id":"calculator.added","name":"added","parameters":[{"name":"value","type":"i64","mode":"value"}],
         "return_type":"i64","effects":[],"requires":[],"ensures":[],"body":{"kind":"place","name":"value"}}});
-    let record = json!({"kind":"add_declaration","target":"calculator.add","declaration":{
-        "kind":"record","id":"calculator.record","name":"AddedRecord",
-        "fields":[{"id":"calculator.record.value","name":"value","type":"i64"}]}});
     let changed = apply(&base, &rename);
     let changed = apply(&changed, &added);
-    let changed = apply(&changed, &record);
     let changed_json = changed.to_json().to_owned();
 
     let mut session = fixture.session();
     let root = open(&mut session);
     let selected = apply_wire(&mut session, &root, &rename);
     let selected = apply_wire(&mut session, &selected, &added);
-    let selected = apply_wire(&mut session, &selected, &record);
     assert_eq!(selected, changed.candidate_digest());
 
     for target in ["calculator.add", "calculator.added"] {

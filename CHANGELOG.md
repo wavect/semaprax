@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Made the isolated public scalar WIT consumer's exact `wit-parser 0.252.0`
+  lock assertion independent of LF versus Windows CRLF checkout newlines. The
+  dependency version, default-feature isolation, and locked/offline contract
+  remain unchanged.
+
 - Closed two Windows owned-npm publication fixture gaps: the private host now
   enforces its ASCII, non-device output-leaf grammar directly before acquiring
   parent or stage authority, and the ancestor-displacement regression accepts

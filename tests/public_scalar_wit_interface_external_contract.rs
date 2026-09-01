@@ -6,6 +6,12 @@ fn read(path: &str) -> String {
         .unwrap_or_else(|error| panic!("failed to read {path}: {error}"))
 }
 
+fn contains_adjacent_lines(text: &str, first: &str, second: &str) -> bool {
+    text.lines()
+        .zip(text.lines().skip(1))
+        .any(|(left, right)| left == first && right == second)
+}
+
 #[test]
 fn external_consumer_is_isolated_default_feature_and_exactly_locked() {
     let manifest = read("platform-tests/public-scalar-wit-interface/Cargo.toml");
@@ -24,8 +30,26 @@ fn external_consumer_is_isolated_default_feature_and_exactly_locked() {
     assert!(!root_lock.contains("name = \"wit-parser\""));
 
     let lock = read("platform-tests/public-scalar-wit-interface/Cargo.lock");
-    assert!(lock.contains("name = \"wit-parser\"\nversion = \"0.252.0\""));
+    assert!(contains_adjacent_lines(
+        &lock,
+        "name = \"wit-parser\"",
+        "version = \"0.252.0\""
+    ));
     assert!(lock.contains("name = \"semaprax-public-scalar-wit-interface-consumer\""));
+}
+
+#[test]
+fn exact_lock_rows_accept_unix_and_windows_checkout_newlines() {
+    for lock in [
+        "name = \"wit-parser\"\nversion = \"0.252.0\"\n",
+        "name = \"wit-parser\"\r\nversion = \"0.252.0\"\r\n",
+    ] {
+        assert!(contains_adjacent_lines(
+            lock,
+            "name = \"wit-parser\"",
+            "version = \"0.252.0\""
+        ));
+    }
 }
 
 #[test]

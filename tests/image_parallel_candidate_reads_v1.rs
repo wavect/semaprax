@@ -594,7 +594,7 @@ fn malformed_stale_missing_references_and_bounds_preserve_order_without_mutation
     let mut sequential = state.session(&fixture, policy());
     let mut parallel = state.session(&fixture, policy());
     let wrong = format!("sha256:{}", "0".repeat(64));
-    let requests = vec![
+    let requests = [
         bound_frame(
             &parallel,
             7,

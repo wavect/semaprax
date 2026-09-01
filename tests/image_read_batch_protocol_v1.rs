@@ -124,7 +124,7 @@ fn exact_sequential_and_host_batch_parity_preserves_order_ids_errors_and_notific
             .unwrap();
         let image = remote.image_revision().to_owned();
         assert_eq!(ordinary.image_revision(), image);
-        let requests = vec![
+        let requests = [
             frame(json!(8), "workspace/open", json!({})),
             frame(
                 json!("unicode-λ"),

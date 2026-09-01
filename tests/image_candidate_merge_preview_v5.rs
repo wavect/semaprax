@@ -142,7 +142,7 @@ fn sequential_and_bounded_parallel_previews_match_library_bytes_without_register
     assert_eq!(before.as_array().unwrap().len(), 2);
     let image = parallel.image_revision().to_owned();
     assert_eq!(image, sequential.image_revision());
-    let requests = vec![
+    let requests = [
         frame(
             &parallel,
             9,
@@ -302,7 +302,7 @@ fn malformed_and_unknown_parent_requests_match_sequential_errors_and_do_not_rela
     let mut sequential = fixture.session(&[&left, &right]);
     let mut parallel = fixture.session(&[&left, &right]);
     let unknown = format!("sha256:{}", "0".repeat(64));
-    let requests = vec![
+    let requests = [
         frame(
             &parallel,
             1,

@@ -97,7 +97,7 @@ fn summary(candidate: &ProjectCandidate, options: WorkspaceImpactOptions) -> (St
     (text, value)
 }
 
-fn facet<'a>(summary: &'a Value, view: CandidateImpactView) -> &'a Value {
+fn facet(summary: &Value, view: CandidateImpactView) -> &Value {
     let matches = summary["facets"]
         .as_array()
         .unwrap()

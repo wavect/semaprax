@@ -1,16 +1,13 @@
 //! Candidate-bound pathless artifact evidence, authored and intentionally unrun.
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
-    with_authenticated_project, ImageArtifactKind, ProjectCandidate, ProjectRevision,
-    SemanticChange, MAX_PROJECT_CANDIDATE_ANALYSIS_ARTIFACT_EVIDENCE_BYTES,
+    with_authenticated_project, ImageArtifactKind, ProjectCandidate, SemanticChange,
+    MAX_PROJECT_CANDIDATE_ANALYSIS_ARTIFACT_EVIDENCE_BYTES,
     PROJECT_CANDIDATE_ANALYSIS_ARTIFACT_EVIDENCE_SCHEMA,
 };
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
-use std::sync::{
-    atomic::{AtomicU64, Ordering},
-    Arc,
-};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
@@ -388,8 +385,7 @@ fn unsupported_carrier_admission_propagates_without_empty_or_partial_fabrication
     let candidate = fixture.candidate();
     let errors = candidate
         .analysis_artifact_evidence(candidate.candidate_digest(), ImageArtifactKind::OpenApi)
-        .err()
-        .expect("unsupported owned OpenAPI carrier fabricated evidence");
+        .expect_err("unsupported owned OpenAPI carrier fabricated evidence");
     assert!(!errors.is_empty());
     assert!(errors.iter().all(|error| error.code != "SPX-G352"));
 }

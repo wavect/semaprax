@@ -573,7 +573,7 @@ fn declaration_facts(revision: &ProjectRevision) -> BTreeMap<String, Value> {
     facts
 }
 
-fn staged_add<'a>(expression: &'a Expr) -> Option<(&'a [Statement], &'a Expr)> {
+fn staged_add(expression: &Expr) -> Option<(&[Statement], &Expr)> {
     match &expression.kind {
         ExprKind::Block { statements, tail } => {
             if statements.len() == 2

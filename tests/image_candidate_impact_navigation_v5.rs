@@ -417,7 +417,7 @@ fn sequential_and_parallel_candidate_navigation_are_byte_identical_without_regis
     let mut sequential = fixture.session(&[&left, &right]);
     let mut parallel = fixture.session(&[&left, &right]);
     let before = inventory(&mut parallel, base.revision().project_revision());
-    let requests = vec![
+    let requests = [
         frame(
             &parallel,
             9,

@@ -1412,7 +1412,14 @@ fn emit_byte_exports_profile(
 ) -> Result<Vec<u8>, Diagnostic> {
     let has_owned_utf8 = owned_plans
         .iter()
-        .any(|plan| plan.result == super::owned_data_exports::ResultLayout::Utf8);
+        .any(|plan| plan.result == super::owned_data_exports::ResultLayout::Utf8)
+        || program.functions.iter().any(|function| {
+            function.return_type == ResolvedType::String
+                || function
+                    .params
+                    .iter()
+                    .any(|param| param.ty == ResolvedType::String)
+        });
     let uses_str_ops = program_uses_str_ops(program);
     let text_helper_count = if uses_str_ops { 2_u32 } else { 0 };
     let mut owned_utf8_literals = OwnedUtf8Literals::default();
@@ -6366,7 +6373,9 @@ impl Emitter<'_> {
             BinaryOp::Div => self.emit_checked_div_rem(&left, &right, destination, false)?,
             BinaryOp::Rem => self.emit_checked_div_rem(&left, &right, destination, true)?,
             BinaryOp::Eq | BinaryOp::Ne => {
-                if self.owned_utf8_literals.is_some() && value_type(&left) == &ResolvedType::String
+                if false
+                    && self.owned_utf8_literals.is_some()
+                    && value_type(&left) == &ResolvedType::String
                 {
                     return Err(error(
                         "owned String equality has no admitted WebAssembly lowering",

@@ -21,17 +21,24 @@ impl Fixture {
         ));
         std::fs::create_dir_all(root.join("src")).unwrap();
         let fixture = Self(root.canonicalize().unwrap());
+        let (schema, profile) = if text {
+            ("semaprax.project.v10", "owned-utf8-api.v1")
+        } else {
+            ("semaprax.project.v8", "owned-data-api.v1")
+        };
         std::fs::write(
             fixture.0.join("semaprax.toml"),
-            r#"schema = "semaprax.project.v8"
+            format!(
+                r#"schema = "{schema}"
 name = "own-declaration"
 version = "1.0.0"
-profile = "owned-data-api.v1"
+profile = "{profile}"
 entry = "decl.app"
 sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
 web_exports = ["decl.public"]
 tests = ["decl.tests"]
-"#,
+"#
+            ),
         )
         .unwrap();
         let core = if text {

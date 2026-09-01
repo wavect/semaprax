@@ -144,9 +144,10 @@ fn checked_function(
 ) -> semaprax::hir::ResolvedFunction {
     let selected = program(candidate, module)
         .functions
-        .into_iter()
+        .iter()
         .find(|function| function.stable_id == target)
-        .unwrap();
+        .unwrap()
+        .clone();
     // Resolve an analysis copy under one fixed module so source relocation
     // cannot be mistaken for HIR evidence from a target closure. The exact
     // admitted function AST is retained; only an inert local main is added

@@ -116,10 +116,11 @@ fn body(candidate: &ProjectCandidate, target: &str) -> Expr {
     let program = semaprax::parse(source(candidate), "src/core.spx").unwrap();
     program
         .functions
-        .into_iter()
+        .iter()
         .find(|f| f.stable_id == target)
         .unwrap()
         .body
+        .clone()
 }
 fn string(value: &str) -> Value {
     json!({"kind":"string","value":value})

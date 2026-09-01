@@ -128,7 +128,6 @@ impl ProjectCandidate {
             .ok_or_else(|| capacity("candidate function facet page offset overflow"))?;
         let wrapped_items = items
             .iter()
-            .cloned()
             .map(|item| {
                 json!({
                     "schema": PROJECT_CANDIDATE_FUNCTION_FACET_ITEM_SCHEMA,

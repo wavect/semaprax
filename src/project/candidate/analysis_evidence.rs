@@ -199,10 +199,8 @@ fn validate_bindings(candidate: &ProjectCandidate, coverage: &Value, replay: &Va
 fn unique_area<'a>(areas: &'a mut [Value], name: &str) -> Result<&'a mut Value> {
     let mut found = None;
     for (index, row) in areas.iter().enumerate() {
-        if row["area"] == name {
-            if found.replace(index).is_some() {
-                return Err(invalid("candidate analysis coverage area is duplicated"));
-            }
+        if row["area"] == name && found.replace(index).is_some() {
+            return Err(invalid("candidate analysis coverage area is duplicated"));
         }
     }
     found

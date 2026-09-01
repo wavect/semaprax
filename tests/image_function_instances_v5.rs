@@ -272,7 +272,7 @@ fn discovery_closes_new_envelopes_but_explicitly_leaves_facet_items_opaque() {
     }
     let mut old = ImageSession::open(
         &fixture.0.join("semaprax.toml"),
-        ImageHostCapability::read_only(),
+        ImageHostCapability::ReadOnly,
     )
     .unwrap();
     for method in [LIST, FACET] {

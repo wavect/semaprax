@@ -1785,7 +1785,13 @@ use function @id("image.add") from image.core as plus;
 
     #[test]
     fn unsupported_or_effectful_migrations_and_unbound_body_nodes_fail_closed() {
-        let invalid = [
+        // The deeply nested unary chain exercises the constructor depth guard
+        // without relying on the default test-thread stack size, which can be
+        // as small as 2 MiB on some runners.
+        std::thread::Builder::new()
+            .stack_size(8 * 1024 * 1024)
+            .spawn(|| {
+                let invalid = [
             json!({"kind":"change_function_signature","target":"image.add","parameters":[{"from":"missing"}]}),
             json!({"kind":"change_function_signature","target":"image.add","append_parameters":[{"name":"offset","type":"i64","argument":{"kind":"call","target":"image.add","arguments":[]}}]}),
             json!({"kind":"change_function_signature","target":"image.add","append_parameters":[{"name":"a","type":"i64","argument":{"kind":"i64","value":0}}]}),
@@ -1810,5 +1816,9 @@ use function @id("image.add") from image.core as plus;
             ),
             "SPX-G226",
         );
+            })
+            .unwrap()
+            .join()
+            .unwrap();
     }
 }

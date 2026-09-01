@@ -312,8 +312,7 @@ fn selection_schemas_and_generated_helpers_are_narrow_and_candidate_granted_only
             );
         }
     }
-    let mut old =
-        ImageSession::open(&fixture.manifest(), ImageHostCapability::read_only()).unwrap();
+    let mut old = ImageSession::open(&fixture.manifest(), ImageHostCapability::ReadOnly).unwrap();
     let request = frame(1, "hole/fill-suggestions", json!({}));
     let response: Value = serde_json::from_slice(&old.handle_frame(&request).unwrap()).unwrap();
     assert_eq!(response["error"]["code"], -32601);

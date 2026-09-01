@@ -613,8 +613,9 @@ fn assert_staged_call(
             semaprax::parse(source.source(), source.path())
                 .unwrap()
                 .functions
-                .into_iter()
+                .iter()
                 .find(|function| function.stable_id == target)
+                .cloned()
         })
         .unwrap();
     let (statements, call) = staged_add(&function.body).expect("migrated add call must be staged");

@@ -131,9 +131,10 @@ fn function(candidate: &ProjectCandidate, id: &str) -> Function {
     semaprax::parse(source(candidate), "src/core.spx")
         .unwrap()
         .functions
-        .into_iter()
+        .iter()
         .find(|f| f.stable_id == id)
         .unwrap()
+        .clone()
 }
 fn selection(candidate: &ProjectCandidate, target: &str, marker: &str, block: bool) -> Value {
     let catalog: Value =

@@ -269,6 +269,29 @@ pub(crate) fn absolute_rust_output(path: &Path) -> Result<PathBuf, Diagnostic> {
     Ok(normalized)
 }
 
+pub(crate) fn bind_rust_output_parent(path: &Path) -> Result<PathBuf, Diagnostic> {
+    #[cfg(windows)]
+    {
+        let name = path.file_name().ok_or_else(|| {
+            parent_error("Project v8 Rust output must name one package directory")
+        })?;
+        let parent = path.parent().ok_or_else(|| {
+            parent_error("Project v8 Rust output must have an explicit parent directory")
+        })?;
+        let canonical_parent = parent.canonicalize().map_err(|error| {
+            parent_error(format!(
+                "cannot bind Project v8 Rust output parent {}: {error}",
+                parent.display()
+            ))
+        })?;
+        Ok(canonical_parent.join(name))
+    }
+    #[cfg(not(windows))]
+    {
+        Ok(path.to_path_buf())
+    }
+}
+
 pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
     let mut input = None::<PathBuf>;
     let mut output = None::<PathBuf>;
@@ -648,5 +671,22 @@ mod tests {
         assert!(normalized.is_absolute());
         assert!(normalized.ends_with(Path::new("dist/rust")));
         assert!(absolute_rust_output(Path::new("dist/../rust")).is_err());
+    }
+
+    #[test]
+    fn rust_output_binds_the_existing_parent_canonical_spelling() {
+        let current = std::env::current_dir().unwrap();
+        let output = current.join("semaprax-rust-output-binding-test");
+        let bound = bind_rust_output_parent(&output).unwrap();
+        #[cfg(windows)]
+        assert_eq!(
+            bound,
+            current
+                .canonicalize()
+                .unwrap()
+                .join("semaprax-rust-output-binding-test")
+        );
+        #[cfg(not(windows))]
+        assert_eq!(bound, output);
     }
 }

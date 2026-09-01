@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Bound explicit Project v8-v10 Native Rust output leaves to the canonical
+  spelling of their already-admitted parent on Windows. Relative package
+  outputs now reach held publication without a DOS-versus-verbatim path
+  mismatch; fail-fast settlement, tool authority, and process limits are
+  unchanged.
+
 - Corrected the current Rust integration fixtures so scalar provider modules
   retain the existing G172 boundary and package-consumer tamper probes mutate
   the canonical source they authenticate. Resource-lifecycle cleanup inventory,

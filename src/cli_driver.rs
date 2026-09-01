@@ -560,6 +560,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                             .map(|_| cli::build::ProjectOutputParent::prepare(&output))
                             .transpose()
                             .map_err(|error| vec![error])?;
+                        if options.target == "rust" {
+                            output = cli::build::bind_rust_output_parent(&output)
+                                .map_err(|error| vec![error])?;
+                        }
                         match options.target.as_str() {
                             "web" | "wasm" => snapshot.build_web(&output)?,
                             "npm" => snapshot.build_npm(&output)?,

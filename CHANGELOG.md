@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Corrected Windows release ZIP creation to use the literal .NET filesystem
+  paths already admitted by the packager. This avoids `Compress-Archive`'s
+  hosted PowerShell path-binding failure for bracketed or short-form paths
+  while retaining the package root, optimal compression, and unpacked smoke
+  validation.
+
 - Corrected Windows offline Wasm package publication to settle staged file
   handles before the no-replace directory rename, then reopen and authenticate
   the exact three-file inventory through the renamed held directory against

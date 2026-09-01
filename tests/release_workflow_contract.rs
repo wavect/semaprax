@@ -167,6 +167,9 @@ fn both_packagers_bind_version_commit_manifest_inventory_and_smoke() {
     }
     assert!(unix.contains("*[!0-9a-f]*"));
     assert!(windows.contains("^[0-9a-f]{40}$"));
+    assert!(windows.contains("[System.IO.Compression.ZipFile]::CreateFromDirectory("));
+    assert!(windows.contains("[System.IO.Compression.CompressionLevel]::Optimal"));
+    assert!(!windows.contains("Compress-Archive"));
 }
 
 #[test]

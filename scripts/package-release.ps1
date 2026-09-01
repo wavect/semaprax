@@ -82,7 +82,12 @@ $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 $smoke = "module release.smoke;`n`n@id(`"release.smoke.main`")`nfn main() -> i64 { 42 }`n"
 [System.IO.File]::WriteAllText((Join-Path $packageRoot 'smoke/meaning.spx'), $smoke, $utf8NoBom)
 
-Compress-Archive -LiteralPath $packageRoot -DestinationPath $archive -CompressionLevel Optimal
+[System.IO.Compression.ZipFile]::CreateFromDirectory(
+    [string]$packageRoot,
+    [string]$archive,
+    [System.IO.Compression.CompressionLevel]::Optimal,
+    $true
+)
 Expand-Archive -LiteralPath $archive -DestinationPath $smokeRoot
 $unpacked = Join-Path $smokeRoot $packageName
 $binary = Join-Path $unpacked 'semaprax.exe'

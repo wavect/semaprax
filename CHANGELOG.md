@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Gave Windows release ZIP extraction sole ownership of creating its
+  previously verified-absent smoke root. Literal-path .NET extraction no
+  longer follows a redundant PowerShell `New-Item`, avoiding hosted Windows'
+  false/duplicate existing-directory failure without permitting stale output.
+
 - Rejected Windows owned-npm parent traversal and inadmissible final-leaf
   spellings from the raw requested path before `Path` or Win32 component
   normalization. Reserved names, alternate streams, separators, trailing

@@ -49,7 +49,6 @@ foreach ($path in @($packageRoot, $archive, $smokeRoot, $buildRoot)) {
 [System.IO.Directory]::CreateDirectory($output) | Out-Null
 New-Item -ItemType Directory -Path $packageRoot -ErrorAction Stop | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $packageRoot 'smoke') -ErrorAction Stop | Out-Null
-New-Item -ItemType Directory -Path $smokeRoot -ErrorAction Stop | Out-Null
 New-Item -ItemType Directory -Path $buildRoot -ErrorAction Stop | Out-Null
 
 $env:SEMAPRAX_BUILD_COMMIT = $Commit
@@ -88,7 +87,10 @@ $smoke = "module release.smoke;`n`n@id(`"release.smoke.main`")`nfn main() -> i64
     [System.IO.Compression.CompressionLevel]::Optimal,
     $true
 )
-Expand-Archive -LiteralPath $archive -DestinationPath $smokeRoot
+[System.IO.Compression.ZipFile]::ExtractToDirectory(
+    [string]$archive,
+    [string]$smokeRoot
+)
 $unpacked = Join-Path $smokeRoot $packageName
 $binary = Join-Path $unpacked 'semaprax.exe'
 $human = @(& $binary --version)

@@ -173,6 +173,20 @@ fn both_packagers_bind_version_commit_manifest_inventory_and_smoke() {
 }
 
 #[test]
+fn windows_packager_gives_literal_zip_extraction_sole_smoke_root_creation() {
+    let windows = read("scripts/package-release.ps1");
+    assert!(windows.contains("[System.IO.Compression.ZipFile]::ExtractToDirectory("));
+    assert!(!windows.contains("New-Item -ItemType Directory -Path $smokeRoot"));
+    let absence_check = windows
+        .find("foreach ($path in @($packageRoot, $archive, $smokeRoot, $buildRoot))")
+        .expect("smoke extraction root must be checked for absence");
+    let extraction = windows
+        .find("[System.IO.Compression.ZipFile]::ExtractToDirectory(")
+        .expect("literal ZIP extraction must be present");
+    assert!(absence_check < extraction);
+}
+
+#[test]
 fn release_documentation_preserves_all_nonclaims() {
     let docs = read("docs/RELEASE-PROCESS.md");
     for exact in [

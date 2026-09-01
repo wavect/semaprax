@@ -49,6 +49,9 @@ They copy both binaries only from that same build directory. Ambient
 leaving the packager to select stale binaries from the repository's `target/`.
 The build directory, package stage, archive and smoke extraction paths must
 all be absent, including dangling links, before any of those paths is created.
+A Windows smoke extraction root is created exactly once by literal-path .NET
+ZIP extraction after that absence check; it is not pre-created through the
+PowerShell provider.
 A new output root is still supported. Windows resolves relative output paths
 from PowerShell's filesystem location, not the process working directory.
 The Unix host query and version/run smoke checks also retain each command's

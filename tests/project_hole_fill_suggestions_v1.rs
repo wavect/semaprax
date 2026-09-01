@@ -1,4 +1,4 @@
-//! Compiler-replayed bounded fill suggestions: authored regressions, unrun.
+//! Compiler-replayed bounded fill suggestions.
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{with_authenticated_project, ProjectCandidate, ProjectCandidateDraft};
 use serde_json::{json, Value};
@@ -27,6 +27,23 @@ impl Fixture {
         ] {
             std::fs::copy(sample.join(path), root.join(path)).unwrap();
         }
+        let manifest = std::fs::read_to_string(root.join("semaprax.toml"))
+            .unwrap()
+            .replace(
+                "sources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]",
+                "sources = [\"src/app.spx\", \"src/core.spx\", \"src/suggestions.spx\", \"src/tests.spx\"]",
+            );
+        std::fs::write(root.join("semaprax.toml"), manifest).unwrap();
+        let suggestions = semaprax::parse(
+            "module calculator.suggestions;\n@id(\"calculator.suggestion-seed\") fn suggestion_seed()->i64 {0}\n",
+            "src/suggestions.spx",
+        )
+        .unwrap();
+        std::fs::write(
+            root.join("src/suggestions.spx"),
+            semaprax::format::canonical(&suggestions),
+        )
+        .unwrap();
         Self(root.canonicalize().unwrap())
     }
     fn candidate(&self) -> Arc<ProjectCandidate> {
@@ -36,17 +53,25 @@ impl Fixture {
         })
         .unwrap()
     }
-    fn append(&self, extra: &str) {
-        let path = self.0.join("src/core.spx");
+    fn append_isolated(&self, extra: &str) {
+        self.append_to("src/suggestions.spx", extra);
+    }
+    fn append_to(&self, relative: &str, extra: &str) {
+        let path = self.0.join(relative);
         let text = format!("{}\n{extra}\n", std::fs::read_to_string(&path).unwrap());
-        let program = semaprax::parse(&text, "src/core.spx").unwrap();
+        let program = semaprax::parse(&text, relative).unwrap();
         std::fs::write(path, semaprax::format::canonical(&program)).unwrap();
+    }
+    fn write(&self, relative: &str, text: &str) {
+        let program = semaprax::parse(text, relative).unwrap();
+        std::fs::write(self.0.join(relative), semaprax::format::canonical(&program)).unwrap();
     }
     fn bytes(&self) -> Vec<Vec<u8>> {
         [
             "semaprax.toml",
             "src/app.spx",
             "src/core.spx",
+            "src/suggestions.spx",
             "src/tests.spx",
         ]
         .iter()
@@ -261,7 +286,7 @@ fn finite_enumeration_exhaustion_is_distinct_from_global_attempt_limit_and_no_li
         .map(|i| format!("p{i}:i64"))
         .collect::<Vec<_>>()
         .join(",");
-    fixture.append(&format!("@id(\"calculator.wide\") fn wide({params})->i64 {{p0}}\n@id(\"calculator.nothing\") fn nothing()->bool {{true}}"));
+    fixture.append_isolated(&format!("@id(\"calculator.wide\") fn wide({params})->i64 {{p0}}\n@id(\"calculator.nothing\") fn nothing()->bool {{true}}"));
     let disk = fixture.bytes();
     let base = fixture.candidate();
     let empty = ProjectCandidateDraft::open(Arc::clone(&base)).unwrap();
@@ -301,16 +326,28 @@ fn finite_enumeration_exhaustion_is_distinct_from_global_attempt_limit_and_no_li
 #[test]
 fn repeated_owned_arguments_are_rejected_by_real_fill_admission_not_inferred_liveness() {
     let fixture = Fixture::new();
-    std::fs::write(fixture.0.join("semaprax.toml"),r#"schema = "semaprax.project.v8"
+    std::fs::write(
+        fixture.0.join("semaprax.toml"),
+        r#"schema = "semaprax.project.v8"
 name = "fill-owned"
 version = "1.0.0"
 profile = "owned-data-api.v1"
 entry = "calculator.app"
-sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
-web_exports = ["calculator.add", "calculator.divide", "calculator.is-negative", "calculator.multiply", "calculator.not", "calculator.subtract"]
+sources = ["src/app.spx", "src/core.spx", "src/suggestions.spx", "src/tests.spx"]
+web_exports = ["calculator.add"]
 tests = ["calculator.tests"]
-"#).unwrap();
-    fixture.append("@id(\"calculator.owned-target\") fn owned_target(input:own Bytes)->Bytes {input}\n@id(\"calculator.owned-pair\") fn owned_pair(left:own Bytes,right:own Bytes)->Bytes {left}");
+"#,
+    )
+    .unwrap();
+    fixture.write(
+        "src/app.spx",
+        "module calculator.app; use function @id(\"calculator.add\") from calculator.core as add; @id(\"calculator.app.main\") fn main()->i64 {add(19,23)}",
+    );
+    fixture.write(
+        "src/tests.spx",
+        "module calculator.tests; use function @id(\"calculator.add\") from calculator.core as add; @id(\"calculator.tests.main\") fn main()->i64 {if add(19,23)==42 {0}else{1}}",
+    );
+    fixture.append_isolated("@id(\"calculator.owned-target\") fn owned_target(input:own Bytes)->Bytes {input}\n@id(\"calculator.owned-pair\") fn owned_pair(left:own Bytes,right:own Bytes)->Bytes {left}");
     let disk = fixture.bytes();
     let base = fixture.candidate();
     let empty = ProjectCandidateDraft::open(base).unwrap();

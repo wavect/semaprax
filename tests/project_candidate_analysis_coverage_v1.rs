@@ -1,4 +1,4 @@
-//! Candidate-bound analysis-boundary inventory; authored and intentionally unrun.
+//! Candidate-bound analysis-boundary inventory.
 use semaprax::project::{
     with_authenticated_project, ProjectCandidate, ProjectRevision, ProjectSemanticImage,
     SemanticChange, IMAGE_ANALYSIS_COVERAGE_SCHEMA, MAX_IMAGE_ANALYSIS_COVERAGE_BYTES,
@@ -57,7 +57,7 @@ tests = ["coverage.tests"]
         effects {} failure infallible consumes value always;
 }
 // A source-local lookalike remains an ordinary function, not provider evidence.
-@id("coverage.provider-like") fn provider_like(value: own Token) -> unit {observe(value)}
+@id("coverage.provider-like") fn provider_like(value: own Token) -> i64 {0}
 "#,
             ),
             ImportFixture::Native => core.push_str(

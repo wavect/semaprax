@@ -1,4 +1,4 @@
-//! Owned movement boundaries: authored regressions, not local execution evidence.
+//! Owned movement boundaries.
 use semaprax::ast::{ExprKind, ModuleUseKind, ParamMode, Program, Type};
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{with_authenticated_project, ProjectCandidate, SemanticChange};
@@ -27,7 +27,7 @@ name = "owned-movement"
 version = "1.0.0"
 profile = "owned-data-api.v1"
 entry = "relocate.app"
-sources = ["src/app.spx", "src/core.spx", "src/support.spx", "src/tests.spx", "src/util.spx"]
+sources = ["src/app.spx", "src/core.spx", "src/owned.spx", "src/support.spx", "src/tests.spx", "src/util.spx"]
 web_exports = ["relocate.public"]
 tests = ["relocate.tests"]
 "#,
@@ -39,19 +39,24 @@ tests = ["relocate.tests"]
                 "core",
                 r#"module relocate.core;
 use function @id("relocate.select") from relocate.util as choose;
-@id("relocate.packet") record Packet { @id("relocate.packet.bytes") bytes:Bytes, @id("relocate.packet.marker") marker:i64, }
-@id("relocate.choice") variant Choice { @id("relocate.choice.none") None, @id("relocate.choice.data") Data { @id("relocate.choice.data.bytes") bytes:Bytes, @id("relocate.choice.data.marker") marker:i64, }, }
 @id("relocate.text") fn text(left:string,right:string)->string {choose(left,right,4/2)}
 @id("relocate.text-call") fn text_call()->string {text("left","right")}
 @id("relocate.bytes") fn bytes(value:own Bytes)->Bytes {value}
 @id("relocate.byte-work") fn byte_work()->usize {let input=[1u8,2u8];let input_view=array_as_slice(input);let bytes=bytes_copy(input_view);let view=bytes_as_slice(bytes);byte_len(view)}
+@id("relocate.borrow") fn borrowed(value:borrow Slice<u8>)->usize {byte_len(value)}
+@id("relocate.public") fn public_value(value:i64)->i64 {value}
+@id("relocate.evaluate") fn evaluate()->i64 {if text_call()=="right" && byte_work()==2usize {42}else{0}}
+"#,
+            ),
+            (
+                "owned",
+                r#"module relocate.owned;
+@id("relocate.packet") record Packet { @id("relocate.packet.bytes") bytes:Bytes, @id("relocate.packet.marker") marker:i64, }
+@id("relocate.choice") variant Choice { @id("relocate.choice.none") None, @id("relocate.choice.data") Data { @id("relocate.choice.data.bytes") bytes:Bytes, @id("relocate.choice.data.marker") marker:i64, }, }
 @id("relocate.record") fn record_value(value:own Packet)->Packet {value}
 @id("relocate.variant") fn variant_value(value:own Choice)->Choice {value}
 @id("relocate.record-match") fn record_match(value:own Packet)->i64 {match own value {Packet {bytes,marker}=>marker,}}
 @id("relocate.variant-match") fn variant_match(value:own Choice)->i64 {match own value {Choice::None {}=>0,Choice::Data {bytes,marker}=>marker,}}
-@id("relocate.borrow") fn borrowed(value:borrow Slice<u8>)->usize {byte_len(value)}
-@id("relocate.public") fn public_value(value:i64)->i64 {value}
-@id("relocate.evaluate") fn evaluate()->i64 {if text_call()=="right" && byte_work()==2usize {42}else{0}}
 "#,
             ),
             (
@@ -72,16 +77,15 @@ use function @id("relocate.select") from relocate.util as select_text;
             (
                 "app",
                 r#"module relocate.app;
-use function @id("relocate.evaluate") from relocate.core as evaluate;
-use function @id("relocate.destination-call") from relocate.support as destination_call;
-@id("relocate.main") fn main()->i64 {if destination_call()=="b" {evaluate()}else{0}}
+use function @id("relocate.public") from relocate.core as public_value;
+@id("relocate.main") fn main()->i64 {public_value(42)}
 "#,
             ),
             (
                 "tests",
                 r#"module relocate.tests;
-use function @id("relocate.evaluate") from relocate.core as evaluate;
-@id("relocate.test") fn main()->i64 {if evaluate()==42 {0}else{1}}
+use function @id("relocate.public") from relocate.core as public_value;
+@id("relocate.test") fn main()->i64 {if public_value(42)==42 {0}else{1}}
 "#,
             ),
         ] {
@@ -110,6 +114,7 @@ use function @id("relocate.evaluate") from relocate.core as evaluate;
             "semaprax.toml",
             "src/app.spx",
             "src/core.spx",
+            "src/owned.spx",
             "src/support.spx",
             "src/tests.spx",
             "src/util.spx",
@@ -320,20 +325,8 @@ fn scalar_signature_byte_work_keeps_compiler_operations_loans_and_cleanup_in_pla
     let disk = fixture.bytes();
     let base = fixture.candidate();
     let moved = apply(&base, &movement("relocate.byte-work")).unwrap();
-    let before = base
-        .revision()
-        .entry_program()
-        .functions
-        .iter()
-        .find(|f| f.id.as_str() == "relocate.byte-work")
-        .unwrap();
-    let after = moved
-        .revision()
-        .entry_program()
-        .functions
-        .iter()
-        .find(|f| f.id.as_str() == "relocate.byte-work")
-        .unwrap();
+    let before = checked_function(&base, "core", "relocate.byte-work");
+    let after = checked_function(&moved, "support", "relocate.byte-work");
     assert!(!before.loan_plan.loans.is_empty());
     assert_eq!(before.loan_plan, after.loan_plan);
     assert_eq!(before.cleanup_plan, after.cleanup_plan);
@@ -496,8 +489,8 @@ fn audited_sources_are_rejected_by_project_admission_before_movement_is_availabl
     let source = std::fs::read_to_string(fixture.0.join("src/core.spx"))
         .unwrap()
         .replacen(
-            "module relocate.core;",
-            "module relocate.core;\npermit { unsafe }",
+            "use function @id(\"relocate.select\") from relocate.util as choose;",
+            "use function @id(\"relocate.select\") from relocate.util as choose;\npermit { unsafe }",
             1,
         );
     fixture.write("core", &source);

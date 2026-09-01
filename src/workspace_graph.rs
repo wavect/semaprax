@@ -7338,7 +7338,7 @@ fn main() -> i64 { left_value() + right_value() }
     }
 
     #[test]
-    fn scalar_linker_rejects_disconnected_nonscalar_modules_and_provider_mains() {
+    fn scalar_linker_ignores_disconnected_nonscalar_modules_and_rejects_provider_mains() {
         let app = canonical_source(
             "app/main.spx",
             r#"
@@ -7369,11 +7369,15 @@ record Record { @id("other.record.value") value: i64, }
 fn value() -> i64 { 0 }
 "#,
         );
-        let error = build_owned(vec![app.clone(), test, disconnected])
+        let (entry, tests) = build_owned(vec![app.clone(), test, disconnected])
             .unwrap()
             .into_linked_scalar_programs("app.main", "test.main")
-            .unwrap_err();
-        assert_eq!(error[0].code, "SPX-G172");
+            .unwrap();
+        assert_eq!(entry.module, "app.main");
+        assert_eq!(tests.module, "test.main");
+        assert!(entry.types.is_empty() && tests.types.is_empty());
+        assert_eq!(entry.functions.len(), 1);
+        assert_eq!(tests.functions.len(), 1);
 
         let provider = canonical_source(
             "lib/provider.spx",

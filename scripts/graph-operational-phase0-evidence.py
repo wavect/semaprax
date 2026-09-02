@@ -13,6 +13,10 @@ COMPONENTS=(
  ("canonical-git","scripts/graph-operational-evidence.py","semaprax.graph-operational-execution-evidence.v2","semaprax.graph-operational-execution-evidence.bundle.v2"),
  ("client-mcp","scripts/graph-operational-client-mcp-evidence.py","semaprax.graph-operational-client-mcp-execution-evidence.v2","semaprax.graph-operational-client-mcp-execution-evidence.bundle.v2"),
  ("vscode-host","scripts/graph-operational-vscode-host-evidence.py","semaprax.graph-operational-vscode-host-execution-evidence.v1","semaprax.graph-operational-vscode-host-execution-evidence.bundle.v1"),)
+CANONICAL_GATES=(
+ ("graph_operational_git_workflow_v1",["cargo","test","--locked","--offline","-p","semaprax","--test","project_graph_operational_git_workflow_v1","--","--test-threads=1","--nocapture"],"local_unix_git","cargo.log",("competing_real_git_ref_consumes_approval_without_overwriting_the_other_commit","real_git_ref_update_with_lost_response_is_terminal_and_requires_inspection","twelve_step_v5_review_to_real_sha1_git_commit","twelve_step_v5_review_to_real_sha256_git_commit")),
+ ("candidate_managed_publication_v1",["cargo","test","--locked","--offline","-p","semaprax","--test","project_candidate_publication_v1","--","--test-threads=1","--nocapture"],"local_managed_workspace","candidate-publication-cargo.log",("existing_exclusive_lock_is_required_before_replay_or_candidate_approval_checks","prepare_is_read_only_and_apply_changes_only_the_managed_active_generation","proof_tamper_approval_and_host_substitution_reject_before_any_generation_write","raw_source_drift_and_single_changed_file_never_pad_or_publish")),
+ ("graph_operational_managed_workflow_v1",["cargo","test","--locked","--offline","-p","semaprax","--test","project_graph_operational_workflow_v1","--","--test-threads=1","--nocapture"],"local_managed_workspace","managed-workflow-cargo.log",("signature_evolution_merge_reports_tests_and_separate_managed_publication",)),)
 class Failure(Exception): pass
 def canonical(v): return json.dumps(v,sort_keys=True,separators=(",",":"),allow_nan=False).encode()
 def sha(b): return "sha256:"+hashlib.sha256(b).hexdigest()
@@ -53,10 +57,14 @@ def validate_outcomes(name,value):
  if name=="canonical-git":
   if (repo.get("clean_before"),repo.get("clean_after"),repo.get("head_unchanged"))!=(True,True,True): raise Failure("canonical Git repository state mismatch")
   gates=value.get("gates")
-  expected={"graph_operational_git_workflow_v1":{"selected":4,"passed":4,"failed":0,"ignored":0,"measured":0,"filtered_out":0},"candidate_managed_publication_v1":{"selected":4,"passed":4,"failed":0,"ignored":0,"measured":0,"filtered_out":0},"graph_operational_managed_workflow_v1":{"selected":1,"passed":1,"failed":0,"ignored":0,"measured":0,"filtered_out":0}}
-  if not isinstance(gates,list) or {gate.get("id") for gate in gates}!=set(expected): raise Failure("canonical publication gate inventory mismatch")
-  for gate in gates:
-   if gate.get("outcome")!="passed" or gate.get("exit_code")!=0 or gate.get("counts")!=expected[gate["id"]]: raise Failure(f"canonical publication gate outcome mismatch: {gate.get('id')}")
+  if not isinstance(gates,list) or len(gates)!=len(CANONICAL_GATES): raise Failure("canonical publication gate inventory mismatch")
+  for gate,(gate_id,gate_command,prerequisite,log,tests) in zip(gates,CANONICAL_GATES):
+   counts={"selected":len(tests),"passed":len(tests),"failed":0,"ignored":0,"measured":0,"filtered_out":0}
+   expected={"id":gate_id,"selection":"default","prerequisite":prerequisite,"provisioning":"not_required","command":gate_command,"outcome":"passed","exit_code":0,"counts":counts,"tests":[{"name":test,"outcome":"passed"} for test in tests],"log":log}
+   if gate!=expected: raise Failure(f"canonical publication gate mismatch: {gate_id}")
+  claims=value.get("claims",{})
+  required={"real_git_post_cas_uncertainty":"executed_injected_result_loss_after_real_ref_update","managed_publication_boundary_controls":"executed_local","bounded_twelve_step_managed_workflow":"executed_local","managed_active_workflow":"executed_local_managed_generation"}
+  if any(claims.get(key)!=expected for key,expected in required.items()): raise Failure("canonical publication claims mismatch")
  elif name=="client-mcp":
   if (repo.get("clean_before"),repo.get("clean_after"),repo.get("head_unchanged"))!=(True,True,True): raise Failure("client/MCP repository state mismatch")
   expected={"generated_clients_ordinary_v1":{"selected":12,"passed":10,"failed":0,"ignored":2,"measured":0,"filtered_out":0},"generated_client_typescript_request_provisioned_v1":{"selected":1,"passed":1,"failed":0,"ignored":0,"measured":0,"filtered_out":4},"generated_client_typescript_provisioned_v1":{"selected":1,"passed":1,"failed":0,"ignored":0,"measured":0,"filtered_out":3},"workspace_mcp_adapter_v1":{"selected":8,"passed":8,"failed":0,"ignored":0,"measured":0,"filtered_out":0},"workspace_mcp_cli_stdio_v1":{"selected":5,"passed":5,"failed":0,"ignored":0,"measured":0,"filtered_out":0}}
@@ -155,7 +163,7 @@ def main():
  with tempfile.TemporaryDirectory(prefix="semaprax-phase0-components-",dir="/private/tmp") as temporary:
   stage=Path(temporary); commands={"canonical-git":[sys.executable,str(ROOT/"scripts/graph-operational-evidence.py")],"client-mcp":[sys.executable,str(ROOT/"scripts/graph-operational-client-mcp-evidence.py"),"--node",node,"--tsc",tsc],"vscode-host":[sys.executable,str(ROOT/"scripts/graph-operational-vscode-host-evidence.py"),"--node",node,"--vscode-app",str(Path(ns.vscode_app).resolve(strict=True))]}; components=[]; values={}; artifacts=[]
   for name,script,schema,domain in COMPONENTS:
-   incoming=stage/name/"incoming"; cmd=[*commands[name],"--output",str(incoming)]; command(cmd,f"{name} component"); value=validate_component(incoming,name,schema,domain,commit,tree); verify_repository(commit,tree,inputs); bundle=value["bundle_id"]; target=incoming.parent/bundle; incoming.rename(target); values[name]=value
+   incoming=stage/name/"incoming"; cmd=[*commands[name],"--output",str(incoming)]; command(cmd,f"{name} component",timeout=65*60 if name=="canonical-git" else TIMEOUT); value=validate_component(incoming,name,schema,domain,commit,tree); verify_repository(commit,tree,inputs); bundle=value["bundle_id"]; target=incoming.parent/bundle; incoming.rename(target); values[name]=value
    components.append({"id":name,"schema":schema,"bundle_id":bundle,"path":f"{name}/{bundle}","outcome":"passed","command":cmd,"provisioning":"explicit_local_node_tsc" if name=="client-mcp" else ("explicit_local_visual_studio_code_product" if name=="vscode-host" else "local_unix_git")})
    for path in sorted(target.iterdir()): artifacts.append(file_row(path,f"{name}/{bundle}/{path.name}"))
   cross_tools(values); sdk_tools,compiler_row,observation,sdk_artifacts,sdk_command=execute_sdk(stage,mcp_python,cargo,rustc,commit,tree,inputs)

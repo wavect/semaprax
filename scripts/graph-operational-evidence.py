@@ -246,6 +246,26 @@ def write_bundle(destination, evidence, logs, reports):
         raise
 
 
+def verify_bundle(destination, evidence):
+    body = regular_bytes(destination / "evidence.json", MAX_LOG_BYTES, "evidence envelope")
+    if body != canonical(evidence) or json.loads(body) != evidence:
+        raise EvidenceError("published evidence envelope does not replay")
+    artifacts = evidence["artifacts"]
+    expected = {"evidence.json", *(row["path"] for row in artifacts)}
+    actual = {entry.name for entry in destination.iterdir()}
+    if actual != expected:
+        raise EvidenceError(f"published evidence inventory mismatch: {sorted(actual)!r}")
+    for row in artifacts:
+        artifact = regular_bytes(destination / row["path"], MAX_LOG_BYTES, "evidence artifact")
+        if len(artifact) != row["bytes"] or sha256(artifact) != row["sha256"]:
+            raise EvidenceError(f"published evidence artifact mismatch: {row['path']}")
+    seed = b"semaprax.graph-operational-execution-evidence.bundle.v2\0" + b"\0".join(
+        row["sha256"].encode("ascii") for row in artifacts
+    )
+    if evidence["bundle_id"] != sha256(seed).split(":", 1)[1]:
+        raise EvidenceError("published evidence bundle ID does not replay")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -407,7 +427,8 @@ def main(argv=None):
     write_bundle(destination, evidence, logs, report_bodies)
     try:
         require_repository_identity(commit_before, tree_before, input_bodies)
-    except EvidenceError:
+        verify_bundle(destination, evidence)
+    except (EvidenceError, OSError, ValueError, KeyError, TypeError):
         shutil.rmtree(destination, ignore_errors=True)
         raise
     print(destination)

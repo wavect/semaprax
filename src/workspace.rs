@@ -673,7 +673,6 @@ struct ParsedFact {
     usage: (usize, usize, usize),
 }
 
-#[allow(dead_code)]
 struct WorkspaceGuard {
     root: PathBuf,
     root_identity: FileIdentity,
@@ -727,7 +726,6 @@ struct WorkspaceLockGuard {
     exclusive: bool,
 }
 
-#[allow(dead_code)]
 struct PreparedGeneration {
     path: PathBuf,
     directories: Vec<AuthenticatedDirectory>,
@@ -800,7 +798,6 @@ impl WorkspaceGuard {
         Ok(())
     }
 
-    #[allow(dead_code)]
     fn recheck_base_authority(&mut self) -> Result<(), Vec<Diagnostic>> {
         recheck_lock(&self.lock_path, &self.lock, &self.lock_identity)?;
         if authenticate_directory(&self.root)? != self.root_identity {
@@ -816,7 +813,6 @@ impl WorkspaceGuard {
         Ok(())
     }
 
-    #[allow(dead_code)]
     fn recheck_phase_inventory(
         &self,
         generation_names: &BTreeSet<String>,
@@ -3388,7 +3384,6 @@ fn final_uncertainty(message: impl Into<String>) -> Vec<Diagnostic> {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[allow(dead_code)]
 pub(crate) enum GenerationPoint {
     AfterSlotCreate,
     AfterManifestWrite,
@@ -3399,7 +3394,6 @@ pub(crate) enum GenerationPoint {
     AfterGenerationPublish,
 }
 
-#[allow(dead_code)]
 fn ensure_candidate_generation(
     guard: &mut WorkspaceGuard,
     patch_input: &mut AuthenticatedText,
@@ -3548,7 +3542,6 @@ fn ensure_candidate_generation(
 }
 
 impl PreparedGeneration {
-    #[allow(dead_code)]
     fn recheck(&mut self) -> Result<(), Vec<Diagnostic>> {
         authenticate_directory(&self.path)?;
         for directory in &self.directories {
@@ -3711,7 +3704,6 @@ fn publish_no_replace(
     }
 }
 
-#[allow(dead_code)]
 fn authenticate_expected_generation(
     path: &Path,
     plan: &WorkspacePlanSummary,
@@ -4656,7 +4648,6 @@ fn write_generation(
     Ok(())
 }
 
-#[allow(dead_code)]
 fn write_generation_held(
     slot: &Path,
     manifest: &str,
@@ -4707,7 +4698,6 @@ fn write_generation_held(
     })
 }
 
-#[allow(dead_code)]
 fn ensure_generation_parent_held(
     files_root: &Path,
     logical: &str,
@@ -4731,7 +4721,6 @@ fn ensure_generation_parent_held(
     Ok(held)
 }
 
-#[allow(dead_code)]
 fn write_new_text(
     path: &Path,
     source: &str,
@@ -4836,7 +4825,6 @@ fn authenticate_generation_payload_mode(
     Ok(held)
 }
 
-#[allow(dead_code)]
 fn authenticate_generation_deep(
     generation: &Path,
     manifest: &str,
@@ -5854,7 +5842,6 @@ fn inventory_names_from_texts(
         .collect()
 }
 
-#[allow(dead_code)]
 fn require_distinct_path_identities(
     entries: &[(&PathBuf, &FileIdentity)],
 ) -> Result<(), Vec<Diagnostic>> {

@@ -250,7 +250,6 @@ pub(super) fn pattern_literal_type(value: crate::ast::PatternLiteral) -> Type {
     }
 }
 
-#[allow(dead_code)]
 pub(super) struct VariantMatchState<'a> {
     pub(super) expression: &'a Expr,
     pub(super) arms: &'a [crate::ast::MatchArm],

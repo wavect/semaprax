@@ -240,6 +240,166 @@ pub(super) fn discover(revision: &ProjectRevision, target: &str) -> Result<Vec<V
     Ok(output)
 }
 
+/// Exact source facts that determine whether an admitted implementation
+/// intention can be replayed on another base. Executable bodies and permitted
+/// postconditions are deliberately outside static signature conformance.
+pub(super) fn rebase_fingerprint(
+    revision: &ProjectRevision,
+    request: &Value,
+) -> Result<Option<Value>> {
+    exact(request, &["kind", "target", "protocol", "id", "members"])?;
+    if request["kind"] != "implement_interface" {
+        return Err(invalid(
+            "interface rebase fingerprint requires an implementation intention",
+        ));
+    }
+    let target = selector(request, "target")?;
+    let protocol_id = selector(request, "protocol")?;
+    let implementation_id = selector(request, "id")?;
+    if implementation_id.starts_with("auto:") || implementation_id.starts_with("semaprax.") {
+        return Err(invalid("implementation identity uses a reserved namespace"));
+    }
+    let requested = request["members"]
+        .as_array()
+        .ok_or_else(|| invalid("implementation members must be an array"))?;
+    if requested.is_empty() || requested.len() > MAX_MEMBERS {
+        return Err(invalid(
+            "implementation must have a bounded nonempty member mapping",
+        ));
+    }
+    let mut mapping = BTreeMap::new();
+    let mut selected_functions = BTreeSet::new();
+    for member in requested {
+        exact(member, &["method", "implementation"])?;
+        let method_id = selector(member, "method")?;
+        let function_id = selector(member, "implementation")?;
+        if mapping
+            .insert(method_id.to_owned(), function_id.to_owned())
+            .is_some()
+        {
+            return Err(invalid("implementation repeats a required protocol member"));
+        }
+        if !selected_functions.insert(function_id.to_owned()) {
+            return Err(invalid(
+                "implementation functions must be selected at most once",
+            ));
+        }
+    }
+
+    let programs = parse_revision(revision)?;
+    let identities = identities(&programs)?;
+    let implementation_id_absent = !identities.contains(implementation_id)
+        && !programs.iter().any(|program| {
+            program
+                .module_uses
+                .iter()
+                .any(|binding| binding.persistent_id == implementation_id)
+        });
+    if !implementation_id_absent {
+        return Ok(None);
+    }
+    // Ambiguity is destination drift here, rather than a malformed retained
+    // intention. The originally admitted history necessarily had one owner.
+    let Some(owner) = receiver_owner(&programs, target).ok().flatten() else {
+        return Ok(None);
+    };
+    let program = &programs[owner];
+    let Some(receiver) = program
+        .types
+        .iter()
+        .find(|declaration| declaration.stable_id == target)
+    else {
+        return Ok(None);
+    };
+    let Some(protocol) = program
+        .protocols
+        .iter()
+        .find(|protocol| protocol.stable_id == protocol_id && protocol.explicit_id)
+    else {
+        return Ok(None);
+    };
+    if protocol.methods.len() != mapping.len() || protocol.methods.len() > MAX_MEMBERS {
+        return Ok(None);
+    }
+    let pair_vacant = !program.implementations.iter().any(|implementation| {
+        implementation.receiver_id == target && implementation.protocol_id == protocol_id
+    });
+    if !pair_vacant {
+        return Ok(None);
+    }
+
+    let mut methods = protocol.methods.iter().collect::<Vec<_>>();
+    methods.sort_by(|left, right| left.stable_id.cmp(&right.stable_id));
+    let mut method_facts = Vec::with_capacity(methods.len());
+    let mut function_facts = BTreeMap::new();
+    for method in methods {
+        if !method.explicit_id {
+            return Ok(None);
+        }
+        let Some(function_id) = mapping.get(&method.stable_id) else {
+            return Ok(None);
+        };
+        let Some(function) = program
+            .functions
+            .iter()
+            .find(|function| function.stable_id == *function_id)
+        else {
+            return Ok(None);
+        };
+        if !crate::static_protocol::member_matches(protocol, method, receiver, function) {
+            return Ok(None);
+        }
+        method_facts.push(json!({
+            "id":method.stable_id,
+            "explicit_id":method.explicit_id,
+            "parameters":method.params.iter().map(|parameter| json!({
+                "mode":parameter.mode.text(),"type":parameter.ty.to_string()
+            })).collect::<Vec<_>>(),
+            "return_type":method.return_type.to_string()
+        }));
+        function_facts.insert(
+            function.stable_id.clone(),
+            json!({
+                "id":function.stable_id,
+                "explicit_id":function.explicit_id,
+                "is_main":function.name == "main",
+                "type_parameter_count":function.type_parameters.len(),
+                "parameters":function.params.iter().map(|parameter| json!({
+                    "mode":parameter.mode.text(),"type":parameter.ty.to_string()
+                })).collect::<Vec<_>>(),
+                "return_type":function.return_type.to_string(),
+                "effects":function.effects,
+                "requires_empty":function.requires.is_empty()
+            }),
+        );
+    }
+    let fingerprint = json!({
+        "receiver":{
+            "id":receiver.stable_id,
+            "explicit_id":receiver.explicit_id,
+            "name":receiver.name,
+            "type_parameter_count":receiver.type_parameters.len(),
+            "kind":"record",
+            "path":program.path,
+            "module":program.module
+        },
+        "protocol":{
+            "id":protocol.stable_id,
+            "explicit_id":protocol.explicit_id,
+            "name":protocol.name,
+            "members":method_facts
+        },
+        "functions":function_facts,
+        "mapping":mapping,
+        "implementation_id":implementation_id,
+        "implementation_id_absent":implementation_id_absent,
+        "pair_vacant":pair_vacant
+    });
+    wire::render(fingerprint.clone(), MAX_REPORT_BYTES)
+        .map_err(|_| capacity("interface rebase fingerprint exceeds its byte bound"))?;
+    Ok(Some(fingerprint))
+}
+
 // Source conformance requires distinct functions, so nonempty per-member
 // candidate lists alone do not establish availability. Paths have depth <=64.
 fn complete_mapping(members: &[Value]) -> bool {

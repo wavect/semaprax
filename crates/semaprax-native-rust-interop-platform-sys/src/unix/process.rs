@@ -3,6 +3,7 @@
 
 use super::*;
 
+#[path = "archive.rs"]
 mod archive;
 pub use archive::*;
 

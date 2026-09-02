@@ -673,10 +673,6 @@ pub(super) fn mismatch() -> Vec<Diagnostic> {
         "candidate did not preserve exact source implementation identities and mappings",
     )]
 }
-pub(super) fn rebase_conflict() -> Vec<Diagnostic> {
-    vec![Diagnostic::io("SPX-G275","static implementation intention requires fresh discovery on a new base; protocol and member bindings are not implicitly remapped")]
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

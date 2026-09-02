@@ -124,8 +124,7 @@ active. These are structural/output bounds, not a total heap or latency promise.
 incomplete selections, incompatible member signatures, and identity collisions.
 `SPX-G273` reports candidate interface capacity. `SPX-G274` rejects a changed
 source implementation inventory. `SPX-G235` owns conservative rebase/merge
-dependency, pair-occupancy, and identity conflicts. `SPX-G275` remains reserved
-for implementation rebasing outside the explicit fingerprinted route. The
+dependency, pair-occupancy, identity, and unsupported-history conflicts. The
 source static-conformance `SPX-Q1xx`, Project, and ordinary candidate
 stale/replay diagnostics remain authoritative where delegated.
 

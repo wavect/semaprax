@@ -20,6 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -36,6 +40,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -61,6 +69,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -140,6 +152,10 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15, windows-2025]
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -246,6 +262,10 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15, windows-2025]
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -269,6 +289,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -369,6 +393,10 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -567,6 +595,10 @@ jobs:
         shard: [unit, integration-0, integration-1, integration-2]
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -657,6 +689,10 @@ jobs:
       matrix:
         os: [windows-2025, macos-15]
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -695,6 +731,10 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 25
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -735,6 +775,10 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 40
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -754,6 +798,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -804,6 +852,10 @@ jobs:
     env:
       ANDROID_ARCH: ${{ matrix.abi }}
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -844,6 +896,10 @@ jobs:
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
       RUSTFLAGS: -C linker=clang -C link-arg=-fsanitize=address,undefined -C force-frame-pointers=yes
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -876,6 +932,10 @@ jobs:
       ASAN_OPTIONS: detect_leaks=1:halt_on_error=1:abort_on_error=1
       RUSTFLAGS: -Zsanitizer=address -Zexternal-clangrt -Clinker=clang-18 -Clink-arg=-fsanitize=address -Cforce-frame-pointers=yes
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -901,6 +961,10 @@ jobs:
       matrix:
         shard: [unit, integration-0, integration-1, integration-2]
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -965,6 +1029,10 @@ jobs:
             target: x86_64-pc-windows-msvc
             extension: zip
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -1003,6 +1071,10 @@ jobs:
       actions: read
       contents: write
     steps:
+      - name: Allow Windows to check out long evidence paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1

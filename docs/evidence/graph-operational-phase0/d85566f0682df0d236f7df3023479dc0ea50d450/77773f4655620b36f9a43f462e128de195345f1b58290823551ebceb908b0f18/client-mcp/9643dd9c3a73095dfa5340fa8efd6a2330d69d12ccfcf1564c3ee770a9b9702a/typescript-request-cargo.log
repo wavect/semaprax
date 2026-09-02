@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/image_typed_request_clients_v5.rs (target/debug/deps/image_typed_request_clients_v5-d1451ebe7782f4b3)
+
+running 1 test
+test provisioned_typescript_submits_exact_typed_request_for_compiler_admission ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 1.01s
+

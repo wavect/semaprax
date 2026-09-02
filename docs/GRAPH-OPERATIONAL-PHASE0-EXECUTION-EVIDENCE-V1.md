@@ -1,6 +1,8 @@
 # Graph-operational Phase 0 execution evidence v1
 
-Status: aggregate runner and independent MCP SDK profile authored, unrun.
+Status: reviewed local aggregate passed at exact subject
+`d85566f0682df0d236f7df3023479dc0ea50d450`; bundle
+[`77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18`](evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/evidence.json).
 
 Audience: release engineers, compiler contributors, and programme reviewers.
 

@@ -1,6 +1,8 @@
 # Graph-operational client and MCP execution evidence v2
 
-Status: runner and expanded request-admission evidence authored, unrun.
+Status: reviewed local execution passed at exact subject
+`d85566f0682df0d236f7df3023479dc0ea50d450` as a component of the
+[Phase 0 aggregate](evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/evidence.json).
 
 Audience: release engineers, compiler contributors, and programme reviewers.
 

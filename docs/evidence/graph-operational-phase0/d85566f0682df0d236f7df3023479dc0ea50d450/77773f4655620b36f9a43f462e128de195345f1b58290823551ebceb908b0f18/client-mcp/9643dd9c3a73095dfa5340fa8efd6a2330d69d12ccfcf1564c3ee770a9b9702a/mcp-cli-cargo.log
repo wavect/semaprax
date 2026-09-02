@@ -1,0 +1,13 @@
+   Compiling semaprax v0.2.0 (/private/tmp/semaprax-graph-operational-next-20260902)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.62s
+     Running tests/workspace_mcp_cli_v1.rs (target/debug/deps/workspace_mcp_cli_v1-ecf69190e892e38a)
+
+running 5 tests
+test all_six_fixed_host_policies_preserve_readonly_grants_and_exact_v5_read_bytes ... ok
+test candidate_enabled_cli_replays_semantic_edits_without_source_or_execution_authority ... ok
+test help_pins_the_optional_mcp_command_without_replacing_v5 ... ok
+test malformed_host_policy_fails_before_handshake_and_v5_frames_are_not_mcp_calls ... ok
+test real_stdio_catalogue_paging_and_notification_nonexecution_are_explicit ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.04s
+

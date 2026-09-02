@@ -34,12 +34,10 @@ fn fixture() -> PathBuf {
     // prefix to keep a long non-verbatim path so `root.join("../package")`
     // preserves `..` as `Component::ParentDir`.
     let text = canonical.to_string_lossy();
-    if text.starts_with(r"\\?\") {
-        if text.starts_with(r"\\?\UNC\") {
-            PathBuf::from(format!(r"\\{}", &text[8..]))
-        } else {
-            PathBuf::from(text[4..].to_string())
-        }
+    if let Some(unc) = text.strip_prefix(r"\\?\UNC\") {
+        PathBuf::from(format!(r"\\{unc}"))
+    } else if let Some(stripped) = text.strip_prefix(r"\\?\") {
+        PathBuf::from(stripped.to_string())
     } else {
         canonical
     }

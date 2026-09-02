@@ -30,12 +30,10 @@ fn fresh_root() -> PathBuf {
                 // the long non-verbatim path logged by the fixture tool.
                 let canonical = path.canonicalize().unwrap();
                 let text = canonical.to_string_lossy();
-                let long = if text.starts_with(r"\\?\") {
-                    if text.starts_with(r"\\?\UNC\") {
-                        PathBuf::from(format!(r"\\{}", &text[8..]))
-                    } else {
-                        PathBuf::from(text[4..].to_string())
-                    }
+                let long = if let Some(unc) = text.strip_prefix(r"\\?\UNC\") {
+                    PathBuf::from(format!(r"\\{unc}"))
+                } else if let Some(stripped) = text.strip_prefix(r"\\?\") {
+                    PathBuf::from(stripped.to_string())
                 } else {
                     canonical
                 };

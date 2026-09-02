@@ -198,7 +198,7 @@ fn rejects_partial_wrong_duplicate_and_existing_identity_mappings() {
 }
 
 #[test]
-fn later_changes_preserve_binding_ids_and_revalidate_member_requirements() {
+fn later_changes_preserve_binding_ids_revalidate_members_and_rebase_conservatively() {
     let fixture = Fixture::new();
     let base = fixture.candidate();
     let candidate = apply(&base, &request()).unwrap();
@@ -228,12 +228,21 @@ fn later_changes_preserve_binding_ids_and_revalidate_member_requirements() {
         &json!({"kind":"rename_declaration","target":"iface.evaluate","name":"evaluate_again"}),
     )
     .unwrap();
-    code(
-        candidate.rebase(
+    let rebased = candidate
+        .rebase(
             candidate.candidate_digest(),
             Arc::clone(unrelated.revision()),
             unrelated.revision().project_revision(),
-        ),
-        "SPX-G275",
-    );
+        )
+        .unwrap();
+    let source = rebased
+        .candidate()
+        .revision()
+        .sources()
+        .iter()
+        .find(|source| source.path() == "src/core.spx")
+        .unwrap()
+        .source();
+    assert!(source.contains("fn evaluate_again("));
+    assert!(source.contains("impl \"iface.readable\" for \"iface.counter\""));
 }

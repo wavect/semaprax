@@ -145,6 +145,27 @@ full admission checks its shape at that intermediate revision. Later nominal
 type use and aggregate construction retain the ordinary whole-owner dependency
 guards. No new type is considered present in the original source base.
 
+`implement_interface` uses a separate closed static-conformance fingerprint at
+each original and rebased intermediate revision. It binds the receiver's exact
+explicit record identity, display name and complete ordered field shape; the
+protocol's exact explicit identity, display name and ordered member signatures;
+the normalized method-to-function mapping; and every selected function's
+stable identity, ordered parameter modes/types, result, effects and absence of
+preconditions. It also requires the receiver/protocol pair to remain vacant and
+the requested implementation ID to remain absent from the complete source
+identity inventory, including module-use identities. The same implementation
+ID is contributed to ordinary merged-history collision checks.
+
+Function bodies, postconditions and display names do not participate in static
+protocol matching and are excluded from this special fingerprint. A surviving
+intention is nevertheless replayed in full and must pass the ordinary source
+checker and Candidate admission. Receiver/protocol shape or display drift,
+required-member drift, selected-function signature/effect/precondition drift,
+pair occupation and identity collision reject with `SPX-G235`. Competing
+siblings therefore cannot install two tables for one pair or reuse the same
+implementation identity. This admits neither dynamic dispatch nor behavioral,
+contract-implication, runtime-consumer, or external-API compatibility.
+
 | Concurrent change | Decision for replayed intent |
 | --- | --- |
 | Body edit and unrelated display rename, including the same source file | Replay permitted, then full admission. |
@@ -162,6 +183,9 @@ guards. No new type is considered present in the original source base.
 | Two display renames of the same target | Conflict, even if they happen to choose equal display names. |
 | Deleted target/lost explicit identity | Conflict before replay. |
 | Typed constructor calls a concurrently deleted declaration or changed signature | Conflict before replay when the referenced declaration existed in the original base. |
+| Interface addition plus unrelated body or selected-function display edit | Replay permitted after exact static-conformance fingerprint comparison, then full admission. |
+| Interface receiver/protocol/member/function conformance changes | Conflict before replay. |
+| Competing interface pair or implementation ID | Conflict before replay. |
 
 Unrecognized future intention kinds fail closed until their conflict contract
 is defined. New declarations, declaration deletion/movement, general package
@@ -249,6 +273,12 @@ rename normalization, body/contract revalidation, competing signatures/bodies,
 deleted targets, stale selectors, manifest rejection, original-base preservation
 and exact shared-prefix handling. Tests and compiler/quality gates were not
 run at the user's request; no local or hosted completion is claimed.
+
+[Interface rebase evidence](../tests/project_candidate_interface_rebase_v1.rs)
+adds exact-fingerprint rebase/merge success, unchanged source and parent
+evidence, no runtime-graph-declaration claim, and receiver, protocol,
+selected-function, occupied-pair and implementation-ID conflicts. It is also
+authored and intentionally unrun.
 
 General semantic conflict reasoning, source-publication race integration,
 parallel mutation scheduling, candidate persistence/recovery, cross-package

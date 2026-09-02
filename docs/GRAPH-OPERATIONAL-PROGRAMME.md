@@ -71,7 +71,7 @@ outstanding without requiring another permission request now.
 | Candidate function facets | [Candidate Function Facets v1](PROJECT-CANDIDATE-FUNCTION-FACETS-V1.md); final-candidate compact summaries and all nine existing HIR facet pages with candidate-bound handles and cursors, authored/unrun |
 | Diagnostic protocol | [Diagnostic Protocol v4](IMAGE-CANDIDATE-DIAGNOSTIC-PROTOCOL-V4.md) |
 | Integrated managed workflow | [Workflow v1](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md), [authored scenario](../tests/project_graph_operational_workflow_v1.rs) |
-| Focused canonical-Git execution evidence | [Execution Evidence v1](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md); exact-commit local runner, locked/offline three-test selection, SHA-1/SHA-256 economics exports and orthogonal nonclaim dimensions authored; no completed bundle or subject SHA claimed here |
+| Focused canonical-Git execution evidence | [Execution Evidence v1](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md); exact subject `474c481bf3c3561c144e077f0000460f61af55f2` passed the locked/offline local three-test selection with authenticated SHA-1/SHA-256 economics exports; managed, generated-client, MCP, target-runtime, hosted and completion dimensions remain unselected or unclaimed |
 | Frontend reuse | [Frontend Cache v1](PROJECT-FRONTEND-CACHE-V1.md), [incremental.rs](../src/project/incremental.rs) |
 | Checked-module reuse | [Semantic Cache v1](PROJECT-SEMANTIC-CACHE-V1.md), [authored cases](../tests/project_semantic_cache_v1.rs); exact synthetic AST/HIR retention within one compiler process |
 | Persistent checked-module reuse | [Persistent Cache v1](PERSISTENT-SEMANTIC-CACHE-V1.md), [authenticated store](SEMANTIC-CACHE-STORE-V1.md); private complete codec, compiler-file/key binding before decoding, source reparse and warm full-Project replay |
@@ -81,7 +81,7 @@ outstanding without requiring another permission request now.
 | Host-selected protocol batches | [Parallel Read Protocol v1](IMAGE-READ-BATCH-PROTOCOL-V1.md); explicit v7 startup worker selection, unchanged aggregate wire caps, generated schemas/clients and MCP method selection, authored/unrun |
 | Retained session subjects | [Retained Subjects v1](IMAGE-RETAINED-SUBJECTS-V1.md); bounded deterministic candidate/draft/rejected-attempt handles and registry-local associations, explicitly outside immutable batches, authored/unrun |
 | Checked hole-fill suggestions | [Fill Suggestions v1](PROJECT-HOLE-FILL-SUGGESTIONS-V1.md); exact type/effect-guided place/call enumeration with ordinary source fill replay, no retained previews or intent/runtime-contract proof, authored/unrun |
-| Integrated canonical Git workflow | [Git Workflow v1](PROJECT-GRAPH-OPERATIONAL-GIT-WORKFLOW-V1.md), [authored real-provider scenarios](../tests/project_graph_operational_git_workflow_v1.rs); no executed publication evidence |
+| Integrated canonical Git workflow | [Git Workflow v1](PROJECT-GRAPH-OPERATIONAL-GIT-WORKFLOW-V1.md), [real-provider scenarios](../tests/project_graph_operational_git_workflow_v1.rs); exact local subject evidence passed SHA-1, SHA-256 and stale-ref cases, with broader provider/platform evidence still open |
 | Expression holes | [Expression Holes v1](PROJECT-CANDIDATE-EXPRESSION-HOLES-V1.md) |
 | Contract expression holes | [Contract Expression Holes v1](PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md); source-replayed pre/postcondition subtree changes, shared draft/recovery lifecycle and v5 discovery, authored/unrun |
 | Typed repair change | [Diagnostic Change v1](PROJECT-DIAGNOSTIC-CHANGE-V1.md) |
@@ -209,15 +209,18 @@ declaration before/after facts, function facets, reverse field accesses, test
 relevance and whole-closure target artifacts with exact recomputation. This
 narrows the missing delta work above; package/artifact families, broader interface admission,
 behavioral equivalence and runtime coverage remain open.
-Source/semantic-diff binding and exact candidate replay are **Authored/unrun**
-for the closed slice. Targeted tests plus policy-selected full gates remain
-**unrun/missing integration**. Evidence-bound materialization through separate
+Source/semantic-diff binding and exact candidate replay passed for the bounded
+`474c481b` Git-workflow fixture; generalized facet families remain
+**Authored/unrun**. The fixture's explicit interpreter request passed, while
+policy-selected full gates remain **unrun/missing integration**.
+Evidence-bound materialization through separate
 commit authority is **Partial** in existing A0/managed Workspace routes and
 **Partial for candidates** through an authored/unrun separate managed Workspace
 bridge. It replays under the existing lock before `ACTIVE` publication and leaves
-original raw Git paths unchanged. A separate authored/unrun host route now
-constructs canonical Git objects and publishes a branch by expected-old ref
-update in an explicitly selected Unix bare SHA1 or SHA256 repository. SHA1
+original raw Git paths unchanged. A separate host route constructs canonical
+Git objects and publishes a branch by expected-old ref update in an explicitly
+selected Unix bare SHA1 or SHA256 repository; the bounded local fixture executed
+both formats. SHA1
 adds exact staged-object readback and a SHA256 observed/prepared-content binding,
 without collision-detection or modern SHA1 integrity claims. Broader hosts and
 checkout integration remain missing; a capsule cannot publish
@@ -260,18 +263,18 @@ there is no in-session RPC or later-startup approval shortcut.
 
 | Step | Current evidence or outstanding gate |
 | --- | --- |
-| 1. Open immutable Project snapshot | Image/Project foundation; current-head preservation gates unrun. |
-| 2. Select explicit stable-ID function | Image/Facets and Candidate closed selection; authored/unrun. |
-| 3. Change signature | Candidate append-scalar and ordered built-in/nominal Copy and resource-free owning mappings authored/unrun; general evolution open. |
-| 4. Migrate every authenticated caller | Authored bounded append and hygienic mapped-argument migration; local/cross-file/contract-region evidence must run. No external/dynamic migration claim. |
-| 5. Preserve stable ID and exported identity | Candidate identity/manifest checks authored; external ABI compatibility is not implied. |
-| 6. Prove no new effects/capabilities | Candidate invariant checks plus re-admission authored; execute success and hostile cases. |
-| 7. Revalidate contracts/ownership/cleanup | Candidate complete source rebuild/replay authored; execute exact preservation/negative cases. |
-| 8. Run affected tests | Selection and explicit candidate interpreter-test API/transport authored, unrun. No execution evidence for this demonstration yet; broader test/target gates remain open. |
-| 9. Verify native/Wasm admission | Candidate C11/structural Wasm projection authored; runtime conformance and broader package targets remain open. |
-| 10. Return semantic impact and human source diff | Paired Impact, digest-bound source diff and selected source-bound semantic delta replay are authored/unrun; complete generalized facet families remain open. |
-| 11. Reject or semantically rebase concurrent source change | Retained-base stale rejection and bounded source-replayed semantic rebase are authored/unrun, including exact-fingerprint replay of eligible static interface additions; live candidate publication race evidence and general conflict reconciliation remain open. |
-| 12. Commit only through separate authority | Authored/unrun bridges support managed Workspace and a Unix bare-SHA1/SHA256 Git ref authority. The latter publishes canonical source in Git objects without touching checkouts. Integrated v5 scenarios now author separate startup-approved review/restore/commit, actual Git object inspection, wrong approval and stale-ref rejection. Executed source-commit/hostile evidence and broader Git support remain incomplete. |
+| 1. Open immutable Project snapshot | Passed in the exact local Git-workflow subject; broader current-head preservation gates remain open. |
+| 2. Select explicit stable-ID function | Passed for the fixture's explicit `calculator.add` selection; general selection evidence remains broader. |
+| 3. Change signature | Passed for the bounded reorder/rename/append scalar mapping; general evolution remains open. |
+| 4. Migrate every authenticated caller | Passed for the fixture's three local/application/test callers with left-to-right staging; no external/dynamic migration claim. |
+| 5. Preserve stable ID and exported identity | Passed for the fixture's declaration and manifest checks; external ABI compatibility is not implied. |
+| 6. Prove no new effects/capabilities | Passed for the scalar, effect-free fixture; this is not a general proof. Conflict and publication hostile controls are recorded separately. |
+| 7. Revalidate contracts/ownership/cleanup | Passed for rebuilt predicates, exact modes and empty scalar cleanup inventory; resource ownership remains open. |
+| 8. Run affected tests | The explicit candidate interpreter-test request passed inside the exact local workflow; broader target/test gates remain open. |
+| 9. Verify native/Wasm admission | C11 emission and structural Core-Wasm admission passed inside the workflow; target runtime execution remains open. |
+| 10. Return semantic impact and human source diff | Impact, source differences and semantic-delta replay passed for the exact fixture; generalized facets remain open. |
+| 11. Reject or semantically rebase concurrent source change | Sibling merge, competing signature rejection and real stale-ref preflight passed; manual refresh/rebase, mid-CAS race and general reconciliation remain open. |
+| 12. Commit only through separate authority | Separate startup-approved SHA-1/SHA-256 Git publication, committed-object inspection, wrong approval and terminal reuse controls passed locally; managed `ACTIVE`, broader Git and platform evidence remain open. |
 
 An integrated canonical Git scenario is authored in
 `tests/project_graph_operational_git_workflow_v1.rs`: real v5 requests select a
@@ -287,11 +290,13 @@ The scenario has a focused exact-commit runner and machine-readable evidence
 contract authored in
 [Execution Evidence v1](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md). It selects
 the two real-provider scenarios plus the nonignored real stale-ref preflight and
-requires both format-specific economics artifacts. No completed bundle or
-subject SHA is claimed here. The managed-generation test remains ignored and
+requires both format-specific economics artifacts. The
+[reviewed local bundle](evidence/graph-operational/474c481bf3c3561c144e077f0000460f61af55f2/5269b6acba08a197e6a8411ba95ccdec6e6a4ff724d35681344b5260087cb2e8/evidence.json)
+records all three selected tests passing for exact subject
+`474c481bf3c3561c144e077f0000460f61af55f2`. The managed-generation test remains ignored and
 `not_selected`; generated clients, MCP, hosted CI and native/Wasm runtime remain
 independent unselected or unobserved dimensions. Therefore this evidence tranche,
-even after a passing local run, cannot by itself complete the demonstration.
+despite the passing local run, does not complete the general demonstration.
 
 An integrated managed-generation precursor is also authored in
 `tests/project_graph_operational_workflow_v1.rs`: it combines signature migration,

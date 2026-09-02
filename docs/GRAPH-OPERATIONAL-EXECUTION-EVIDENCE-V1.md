@@ -1,8 +1,8 @@
 # Graph-operational execution evidence v1
 
-Status: focused exact-commit runner and evidence contract authored; no execution
-record is claimed by this document. The full graph-operational programme remains
-Partial.
+Status: focused exact-commit runner executed locally for subject
+`474c481bf3c3561c144e077f0000460f61af55f2`; the selected three-test gate passed
+3/3. The full graph-operational programme remains Partial.
 
 Audience: release engineers, compiler contributors, and programme reviewers.
 
@@ -29,8 +29,15 @@ The runner must bind the bundle to the exact checked-out commit, reject a dirty
 or detached subject that it cannot identify exactly, and record the current
 source manifest and `Cargo.lock` state before invoking Cargo. A later commit,
 even one containing documentation-only changes, is a different subject and
-cannot inherit the result. This document intentionally contains no subject SHA
-until an actual completed bundle is reviewed.
+cannot inherit the result.
+
+The reviewed local invocation for exact subject
+`474c481bf3c3561c144e077f0000460f61af55f2` produced bundle
+`5269b6acba08a197e6a8411ba95ccdec6e6a4ff724d35681344b5260087cb2e8`.
+Its [archived envelope](evidence/graph-operational/474c481bf3c3561c144e077f0000460f61af55f2/5269b6acba08a197e6a8411ba95ccdec6e6a4ff724d35681344b5260087cb2e8/evidence.json)
+and three authenticated artifacts are checked in as evidence of that subject,
+not of this later documentation commit. The recorded host is Darwin arm64 with
+Rust/Cargo 1.98.0, Git 2.47.1 and Python 3.14.2; this is local evidence only.
 
 The focused command is exactly:
 
@@ -89,8 +96,10 @@ The successful envelope contains exactly two gate rows:
 | `graph_operational_git_workflow_v1` | `default` | `local_unix_git` | `passed` with the exact command, exit zero, 3/3/0 counts and the three named test rows |
 | `graph_operational_managed_workflow_v1` | `explicit_ignored_required` | `known_fixture_correction` | `not_selected`, with the source ignore reason `SPX-G150 wrong ACTIVE schema, needs workspace init fix` |
 
-Both rows record `provisioning: not_required`. This means the local prerequisites
-were already present; it is not a hosted or provisioned-platform result.
+Both rows record `provisioning: not_required`. This means neither row is a
+separately provisioned-host gate; it does not assert that the managed fixture's
+required correction is present. This is not a hosted or provisioned-platform
+result.
 
 ## Orthogonal status dimensions
 

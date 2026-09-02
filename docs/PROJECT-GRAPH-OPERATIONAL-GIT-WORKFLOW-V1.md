@@ -1,7 +1,8 @@
 # Project graph-operational Git workflow v1
 
-Status: integrated regression and focused evidence-export contract authored;
-no execution bundle is claimed here. Full goal remains Partial.
+Status: integrated regression executed locally for exact subject
+`474c481bf3c3561c144e077f0000460f61af55f2`; all three selected Git-workflow
+tests passed. Full goal remains Partial.
 
 Audience: compiler contributors, embedding hosts, and agent workflow integrators.
 
@@ -25,9 +26,9 @@ source, paths, Git policy, or approval authority.
 ## Twelve connected steps
 
 Both `twelve_step_v5_review_to_real_sha1_git_commit` and
-`twelve_step_v5_review_to_real_sha256_git_commit` author this sequence:
+`twelve_step_v5_review_to_real_sha256_git_commit` exercise this sequence:
 
-| Step | Authored observation or action |
+| Step | Observed action |
 | --- | --- |
 | 1 | Open an authenticated v5 workspace and bind subsequent requests to its image revision. |
 | 2 | Discover the actual stable target and its two parameters, precondition, and postcondition with `image/function-summary`. |
@@ -64,7 +65,7 @@ original twelve requirements map as follows:
 | Stable and exported identity | Complete declaration-fact map and exact manifest Web export inventory comparison. |
 | No new effects or capabilities | Exact candidate/base manifest capability inventory, function effect, and module permit comparisons for this scalar, effect-free fixture. This is a bounded invariant check, not a new general proof system. |
 | Contracts, ownership, cleanup | Nonempty predicates are scope-aware renamed with the parameters, their structure remains checked, parameter modes remain exact, and ordinary validation, selected facets and empty scalar cleanup inventories are checked. |
-| Affected tests | Explicit-policy v5 test request for the full manifest test closure, with an authored passing assertion. Unrun here. |
+| Affected tests | Explicit-policy v5 test request for the full manifest test closure; its passing assertion executed in the exact local subject bundle. |
 | Native/Wasm admission | All four entry/test native-C11/Core-Wasm evidence rows admitted; no target execution. |
 | Semantic impact and source diff | Real `candidate/impact` request, exact semantic-delta replay, and per-file human source differences. |
 | Concurrent change handling | Sibling candidate merge, competing signature rejection, and a real concurrent bare-ref advancement rejected before publication. Manual raw-source refresh/rebase and a mid-CAS race are not this fixture's coverage. |
@@ -102,8 +103,9 @@ require a Git installation with both selected object formats. The adapter's
 bare-repository, no-hook, no-network, bounded-process, and storage-indirection
 restrictions remain those of
 [Git publication v1](PROJECT-CANDIDATE-GIT-PUBLICATION-V1.md). SHA1 is a legacy
-Git compatibility format, not a modern collision-resistance claim. No tests or
-fixture Git commands were executed while authoring this change.
+Git compatibility format, not a modern collision-resistance claim. The exact
+local evidence invocation executed these fixture Git commands for the recorded
+subject; no hosted or cross-platform execution follows from that run.
 
 ## What this does not establish
 
@@ -118,17 +120,18 @@ claimed.
 Native-C11 emission and Core-Wasm structural validation are target projections,
 not native or Wasm execution. The candidate report and Git receipt continue to
 say `tests: not_run` for their own operations; separately requested interpreter
-test evidence is a different report bound to the candidate digest. An authored
-assertion expecting that report to pass is not evidence that it passed here.
+test evidence is a different report bound to the candidate digest. The exact
+local bundle observes that separate interpreter assertion passing; it does not
+turn the Git receipt's `tests: not_run` field into a different fact.
 
 This scenario uses sibling merge, not live-source refresh/rebase. It does not
 exercise every operation class, generated client, backend, failure race,
 transport framing mode, or quality gate. It supplies no measured time, token,
 success-rate, or task-level benchmark. Publication changes a bare Git branch,
 not raw checkout files, a remote repository, managed `ACTIVE`, or a deployment.
-Neither this document nor these unrun regressions promote the current head to
-verified or the [graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md) to
-complete.
+Neither this exact-subject result nor these bounded regressions promote a later
+repository head to verified or the
+[graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md) to complete.
 
 ## Focused exact-commit evidence runner
 
@@ -145,9 +148,10 @@ canonical `semaprax.agent-task-economics.v1` values as
 `agent-task-economics-sha1.json` and
 `agent-task-economics-sha256.json`; an outer
 `semaprax.graph-operational-execution-evidence.v1` envelope binds those artifacts,
-the Cargo transcript, exact commit, source manifest and lock state. No such
-bundle or subject SHA is asserted by this document until the runner actually
-completes and its output is reviewed.
+the Cargo transcript, exact commit, source manifest and lock state. The reviewed
+[local bundle](evidence/graph-operational/474c481bf3c3561c144e077f0000460f61af55f2/5269b6acba08a197e6a8411ba95ccdec6e6a4ff724d35681344b5260087cb2e8/evidence.json)
+records 3 passed, 0 failed and 0 ignored selected tests for exact subject
+`474c481bf3c3561c144e077f0000460f61af55f2` on Darwin arm64.
 
 The ignored managed-generation test is deliberately outside the runner and is
 recorded as `not_selected`. The runner likewise does not select generated-client,
@@ -167,5 +171,7 @@ model tool calls; sibling-candidate reconciliation is not stale recovery;
 target admission is not target execution. Model tokens, latency, validation
 time and human review time remain explicitly unobserved. Commit, commit-report
 and source-commit-status route hashes are host-bound invocation evidence rather
-than portable snapshots; recovery traffic remains separately labeled. No task
-report has been executed or measured on this head.
+than portable snapshots; recovery traffic remains separately labeled. Both
+format-specific task reports were executed and authenticated for the exact
+subject above; they are protocol traffic observations, not comparative
+task-performance measurements.

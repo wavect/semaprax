@@ -1,0 +1,37 @@
+   Compiling libc v0.2.189
+   Compiling typenum v1.20.1
+   Compiling cmov v0.5.4
+   Compiling zmij v1.0.23
+   Compiling serde_core v1.0.229
+   Compiling const-oid v0.10.2
+   Compiling bitflags v2.13.1
+   Compiling serde_json v1.0.151
+   Compiling getrandom v0.4.3
+   Compiling rustix v1.1.4
+   Compiling cfg-if v1.0.4
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling ctutils v0.4.2
+   Compiling semver v1.0.28
+   Compiling same-file v1.0.6
+   Compiling wasmparser v0.258.0
+   Compiling hybrid-array v0.4.14
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling digest v0.11.3
+   Compiling hmac v0.13.0
+   Compiling cpufeatures v0.3.0
+   Compiling errno v0.3.14
+   Compiling fs2 v0.4.3
+   Compiling sha2 v0.11.0
+   Compiling semaprax v0.2.0 (/private/tmp/semaprax-graph-operational-next-20260902)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 55.87s
+     Running tests/project_graph_operational_git_workflow_v1.rs (target/debug/deps/project_graph_operational_git_workflow_v1-ad9dfd58b6d6b509)
+
+running 3 tests
+test competing_real_git_ref_consumes_approval_without_overwriting_the_other_commit ... ok
+test twelve_step_v5_review_to_real_sha1_git_commit ... ok
+test twelve_step_v5_review_to_real_sha256_git_commit ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.37s
+

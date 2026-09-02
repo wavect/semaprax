@@ -153,11 +153,13 @@ ref hooks, stale-ref/original-blob rejection, unsafe-config rejection and nested
 object-store symlink rejection. It also checks live-host contention, explicit
 lease release, rejected-admission recovery, unchanged source/ref state and lock-file
 retention. `SEMAPRAX_TEST_GIT` can select the trusted fixture binary; otherwise the
-Unix fixture selects `/usr/bin/git`. These tests completed locally on macOS with
-Rust 1.98 and in a bounded offline Linux container with Rust 1.88. The integrated
-SHA1/SHA256 graph workflow also passes on both hosts. This is not current-head
-hosted or Windows evidence, and the complete quality profile has not been rerun
-for this correction.
+Unix fixture selects `/usr/bin/git`. These lower-level tests and the then-current
+integrated SHA1/SHA256 workflow previously passed locally on macOS with Rust
+1.98 and in a bounded offline Linux container with Rust 1.88. That is prior-head
+evidence, not a claim for the expanded current fixture. The later exact-subject
+[graph-workflow bundle](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md) is local
+Darwin evidence only. Neither result is current-head hosted or Windows evidence,
+and the complete quality profile was not rerun for this correction.
 
 ## Additive legacy SHA1 compatibility
 

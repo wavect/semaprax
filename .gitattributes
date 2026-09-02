@@ -12,3 +12,4 @@
 *.sh text eol=lf
 *.kt text eol=lf
 platform-tests/component-runtime/** text eol=lf
+docs/evidence/**/cargo.log text eol=lf whitespace=-blank-at-eof

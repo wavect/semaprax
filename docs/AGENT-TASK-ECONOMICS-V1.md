@@ -1,8 +1,9 @@
 # Agent Task Economics v1
 
-Status: integrated observation, deterministic export, and focused bundle
-contract authored; no exact-commit bundle is claimed here. No productivity,
-latency, model-token or completion claim.
+Status: integrated observation and deterministic export executed locally for
+exact subject `474c481bf3c3561c144e077f0000460f61af55f2`, with both format reports
+authenticated by the focused bundle. No productivity, latency, model-token or
+completion claim.
 
 Audience: agent evaluators, workflow integrators, and compiler contributors.
 
@@ -115,9 +116,10 @@ rather than becoming a second source or candidate archive. The report has
 authority; the separately attached Git host remains the sole authority for the
 scripted commit step.
 
-The integrated SHA-1 and SHA-256 regressions and their exact-commit runner are
-authored. This document records no completed subject SHA or bundle. The ignored
-managed workflow is `not_selected`; generated clients, MCP, native/Wasm runtime,
-hosted CI and the complete programme are separate dimensions and are not
-selected by this runner. No benchmark value is claimed, and the graph-operational
-programme remains Partial.
+The integrated SHA-1 and SHA-256 regressions passed in the exact local bundle
+for subject `474c481bf3c3561c144e077f0000460f61af55f2`; the
+[execution envelope](evidence/graph-operational/474c481bf3c3561c144e077f0000460f61af55f2/5269b6acba08a197e6a8411ba95ccdec6e6a4ff724d35681344b5260087cb2e8/evidence.json)
+authenticates both reports. The ignored managed workflow is `not_selected`;
+generated clients, MCP, native/Wasm runtime, hosted CI and the complete
+programme are separate dimensions and were not selected by this runner. No
+benchmark value is claimed, and the graph-operational programme remains Partial.

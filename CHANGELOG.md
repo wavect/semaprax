@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Executed the saved-source adapter in a selected local Visual Studio Code
+  1.135.0 Extension Host at exact subject
+  `2888f84f123b7caa44aa6807388d98f851d4beaf`. The archived machine-readable
+  bundle records 50 standalone controller passes and one real compiler-backed
+  host scenario covering 26 command registrations, stable-ID selection, a typed
+  declaration rename, verified read-only virtual source diff, dirty-buffer
+  invalidation, and unchanged saved source. VSIX/Marketplace, manual
+  UI/accessibility, typed-hole and diagnostic-repair host paths, minimum-version,
+  hosted/cross-platform, full quality, and programme completion remain unclaimed.
+
 - Executed generated-client and MCP evidence at exact local subject
   `c69600e853a5ecc0df0b23e1329770914ba06e99`. All 23 explicitly selected tests
   passed, including three Python consumer paths, one offline compiled Rust

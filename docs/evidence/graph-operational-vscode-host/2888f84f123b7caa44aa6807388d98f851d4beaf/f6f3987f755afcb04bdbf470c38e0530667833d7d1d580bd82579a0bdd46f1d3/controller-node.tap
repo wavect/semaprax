@@ -1,0 +1,310 @@
+TAP version 13
+# Subtest: body, expression and contract suggestions are descriptive copies until an explicit ordinary fill
+ok 1 - body, expression and contract suggestions are descriptive copies until an explicit ordinary fill
+  ---
+  duration_ms: 5.799083
+  type: 'test'
+  ...
+# Subtest: empty and attempt-limited reports keep their precise restricted-search meaning
+ok 2 - empty and attempt-limited reports keep their precise restricted-search meaning
+  ---
+  duration_ms: 0.828625
+  type: 'test'
+  ...
+# Subtest: closed report bindings and counts fail atomically and close the controller
+ok 3 - closed report bindings and counts fail atomically and close the controller
+  ---
+  duration_ms: 5.070167
+  type: 'test'
+  ...
+# Subtest: suggestions contain only bounded identifier places or direct calls with place arguments
+ok 4 - suggestions contain only bounded identifier places or direct calls with place arguments
+  ---
+  duration_ms: 4.196625
+  type: 'test'
+  ...
+# Subtest: the report byte cap applies before any display or state adoption
+ok 5 - the report byte cap applies before any display or state adoption
+  ---
+  duration_ms: 0.754083
+  type: 'test'
+  ...
+# Subtest: edited, foreign and obsolete summary copies fail before RPC without discarding a valid draft
+ok 6 - edited, foreign and obsolete summary copies fail before RPC without discarding a valid draft
+  ---
+  duration_ms: 0.7175
+  type: 'test'
+  ...
+# Subtest: semantic rejection preserves usable state and mutation of a returned display copy cannot affect later reads
+ok 7 - semantic rejection preserves usable state and mutation of a returned display copy cannot affect later reads
+  ---
+  duration_ms: 0.294959
+  type: 'test'
+  ...
+# Subtest: busy suggestion reads forbid racing writes and use an immutable summary snapshot across await
+ok 8 - busy suggestion reads forbid racing writes and use an immutable summary snapshot across await
+  ---
+  duration_ms: 0.287708
+  type: 'test'
+  ...
+# Subtest: late discard-only and malformed responses close the controller without issuing cleanup or later writes
+ok 9 - late discard-only and malformed responses close the controller without issuing cleanup or later writes
+  ---
+  duration_ms: 0.406667
+  type: 'test'
+  ...
+# Subtest: mixed three-hole planning, partial fills and explicit completion never install an unfinished candidate
+ok 10 - mixed three-hole planning, partial fills and explicit completion never install an unfinished candidate
+  ---
+  duration_ms: 3.693625
+  type: 'test'
+  ...
+# Subtest: semantic fill rejection and malformed mutation handles leave all local state atomic
+ok 11 - semantic fill rejection and malformed mutation handles leave all local state atomic
+  ---
+  duration_ms: 0.893125
+  type: 'test'
+  ...
+# Subtest: summary and page bind every hole/context/reference and require ordered progressing bounded counts
+ok 12 - summary and page bind every hole/context/reference and require ordered progressing bounded counts
+  ---
+  duration_ms: 4.097333
+  type: 'test'
+  ...
+# Subtest: successful fills stale earlier summaries and full context remains explicitly descriptive
+ok 13 - successful fills stale earlier summaries and full context remains explicitly descriptive
+  ---
+  duration_ms: 1.600833
+  type: 'test'
+  ...
+# Subtest: expression catalog selection retains only replaceable rows of the selected body or contract owner
+ok 14 - expression catalog selection retains only replaceable rows of the selected body or contract owner
+  ---
+  duration_ms: 0.392208
+  type: 'test'
+  ...
+# Subtest: opening any hole and filling a hole invalidate all prior candidate and draft expression choices
+ok 15 - opening any hole and filling a hole invalidate all prior candidate and draft expression choices
+  ---
+  duration_ms: 0.339167
+  type: 'test'
+  ...
+# Subtest: draft catalog rejects stale identities, wrong region, malformed provenance and authority claims
+ok 16 - draft catalog rejects stale identities, wrong region, malformed provenance and authority claims
+  ---
+  duration_ms: 0.725041
+  type: 'test'
+  ...
+# Subtest: a host without the draft catalog method fails without falling back to the original candidate
+ok 17 - a host without the draft catalog method fails without falling back to the original candidate
+  ---
+  duration_ms: 0.132791
+  type: 'test'
+  ...
+# Subtest: serial requests and explicit discard cannot silently race or acquire execution/archive authority
+ok 18 - serial requests and explicit discard cannot silently race or acquire execution/archive authority
+  ---
+  duration_ms: 0.369709
+  type: 'test'
+  ...
+# Subtest: sixteen planned holes and sixteen fills retain at most two owned draft handles
+ok 19 - sixteen planned holes and sixteen fills retain at most two owned draft handles
+  ---
+  duration_ms: 0.752042
+  type: 'test'
+  ...
+# Subtest: failed retirement keeps the newly adopted state and closes without rollback or retries
+ok 20 - failed retirement keeps the newly adopted state and closes without rollback or retries
+  ---
+  duration_ms: 0.161333
+  type: 'test'
+  ...
+# Subtest: source-epoch invalidation discards a pending fill and prevents stale scratch retries
+ok 21 - source-epoch invalidation discards a pending fill and prevents stale scratch retries
+  ---
+  duration_ms: 0.126208
+  type: 'test'
+  ...
+# Subtest: constructor schemas remain bounded descriptive documents with no request or source authority
+ok 22 - constructor schemas remain bounded descriptive documents with no request or source authority
+  ---
+  duration_ms: 0.49475
+  type: 'test'
+  ...
+# Subtest: strict parser rejects duplicate keys, hostile depth, invalid UTF16 and rounded intent integers
+ok 23 - strict parser rejects duplicate keys, hostile depth, invalid UTF16 and rounded intent integers
+  ---
+  duration_ms: 2.255709
+  type: 'test'
+  ...
+# Subtest: ordinary semantic rejection preserves the valid candidate while live-source drift invalidates it
+ok 24 - ordinary semantic rejection preserves the valid candidate while live-source drift invalidates it
+  ---
+  duration_ms: 0.130584
+  type: 'test'
+  ...
+# Subtest: inner v5 text remains exact, id0 is mandatory and semantic rejection is not hidden
+ok 25 - inner v5 text remains exact, id0 is mandatory and semantic rejection is not hidden
+  ---
+  duration_ms: 0.448375
+  type: 'test'
+  ...
+# Subtest: single-flight requests match IDs across fragmented UTF8 and reject terminal unsolicited output
+ok 26 - single-flight requests match IDs across fragmented UTF8 and reject terminal unsolicited output
+  ---
+  duration_ms: 1.039125
+  type: 'test'
+  ...
+# Subtest: timeout and response overflow terminate without retrying any request
+ok 27 - timeout and response overflow terminate without retrying any request
+  ---
+  duration_ms: 6.264
+  type: 'test'
+  ...
+# Subtest: even a host-granted tool cannot escape the fixed editor authority allowlist
+ok 28 - even a host-granted tool cannot escape the fixed editor authority allowlist
+  ---
+  duration_ms: 0.17275
+  type: 'test'
+  ...
+# Subtest: initialize pages discover only the exact selected safe tool mapping
+ok 29 - initialize pages discover only the exact selected safe tool mapping
+  ---
+  duration_ms: 0.41875
+  type: 'test'
+  ...
+# Subtest: catalog rejects oversized tool names before retaining them
+ok 30 - catalog rejects oversized tool names before retaining them
+  ---
+  duration_ms: 0.182417
+  type: 'test'
+  ...
+# Subtest: rejection remains evidence until an explicitly advertised selector is applied
+ok 31 - rejection remains evidence until an explicitly advertised selector is applied
+  ---
+  duration_ms: 3.787875
+  type: 'test'
+  ...
+# Subtest: both supported repair classes and empty availability remain descriptive, never auto applied
+ok 32 - both supported repair classes and empty availability remain descriptive, never auto applied
+  ---
+  duration_ms: 0.904792
+  type: 'test'
+  ...
+# Subtest: replacement attempts retire only the previous adopted handle and invalidate its advertised repairs
+ok 33 - replacement attempts retire only the previous adopted handle and invalidate its advertised repairs
+  ---
+  duration_ms: 5.14875
+  type: 'test'
+  ...
+# Subtest: accepted attempts expose only validated candidate handles and retire previous rejection
+ok 34 - accepted attempts expose only validated candidate handles and retire previous rejection
+  ---
+  duration_ms: 0.212083
+  type: 'test'
+  ...
+# Subtest: wrong accepted/rejected arms or predecessor bindings are terminal and do not retire known state
+ok 35 - wrong accepted/rejected arms or predecessor bindings are terminal and do not retire known state
+  ---
+  duration_ms: 1.281542
+  type: 'test'
+  ...
+# Subtest: catalog identities and repair authority cannot be substituted after rejection
+ok 36 - catalog identities and repair authority cannot be substituted after rejection
+  ---
+  duration_ms: 1.101958
+  type: 'test'
+  ...
+# Subtest: repair apply binds the exact advertised validated candidate, never a replacement body supplied by the client
+ok 37 - repair apply binds the exact advertised validated candidate, never a replacement body supplied by the client
+  ---
+  duration_ms: 0.18475
+  type: 'test'
+  ...
+# Subtest: semantic selector errors preserve the attempt while transport uncertainty forbids retry
+ok 38 - semantic selector errors preserve the attempt while transport uncertainty forbids retry
+  ---
+  duration_ms: 0.286166
+  type: 'test'
+  ...
+# Subtest: retirement failure after adoption is terminal and never rolls back or repeats the successful operation
+ok 39 - retirement failure after adoption is terminal and never rolls back or repeats the successful operation
+  ---
+  duration_ms: 0.390375
+  type: 'test'
+  ...
+# Subtest: host image and project drift fail closed without confusing the candidate project with the host image
+ok 40 - host image and project drift fail closed without confusing the candidate project with the host image
+  ---
+  duration_ms: 0.208291
+  type: 'test'
+  ...
+# Subtest: full diagnostic report preserves exact UTF8 and unsafe numeric bytes, never reconstructing an executable repair
+ok 41 - full diagnostic report preserves exact UTF8 and unsafe numeric bytes, never reconstructing an executable repair
+  ---
+  duration_ms: 2.528333
+  type: 'test'
+  ...
+# Subtest: report chunks reject foreign selectors, byte offsets, nonprogress, oversized inventory and premature completion
+ok 42 - report chunks reject foreign selectors, byte offsets, nonprogress, oversized inventory and premature completion
+  ---
+  duration_ms: 7.085375
+  type: 'test'
+  ...
+# Subtest: even correctly hashed full reports cannot change provenance, authority or rejected state
+ok 43 - even correctly hashed full reports cannot change provenance, authority or rejected state
+  ---
+  duration_ms: 2.520167
+  type: 'test'
+  ...
+# Subtest: single flight and safe input checks prevent a second candidate mutation before the first outcome
+ok 44 - single flight and safe input checks prevent a second candidate mutation before the first outcome
+  ---
+  duration_ms: 0.187125
+  type: 'test'
+  ...
+# Subtest: immutable summary counters and discard receipts require exact bindings before state changes
+ok 45 - immutable summary counters and discard receipts require exact bindings before state changes
+  ---
+  duration_ms: 0.621625
+  type: 'test'
+  ...
+# Subtest: source invalidation and source epoch races close diagnostic workflows without retirement or retry
+ok 46 - source invalidation and source epoch races close diagnostic workflows without retirement or retry
+  ---
+  duration_ms: 0.182459
+  type: 'test'
+  ...
+# Subtest: editor repair tools do not grant build, tests, publication, archives or approval
+ok 47 - editor repair tools do not grant build, tests, publication, archives or approval
+  ---
+  duration_ms: 0.234667
+  type: 'test'
+  ...
+# Subtest: canonical review binds whole report and each exact source/diff byte string
+ok 48 - canonical review binds whole report and each exact source/diff byte string
+  ---
+  duration_ms: 2.957708
+  type: 'test'
+  ...
+# Subtest: canonical relative paths and changed-only sorted inventory reject filesystem tricks
+ok 49 - canonical relative paths and changed-only sorted inventory reject filesystem tricks
+  ---
+  duration_ms: 0.548375
+  type: 'test'
+  ...
+# Subtest: chunk assembly is byte-bound, exact-revision-bound and rejects skipped/truncated continuations
+ok 50 - chunk assembly is byte-bound, exact-revision-bound and rejects skipped/truncated continuations
+  ---
+  duration_ms: 1.077625
+  type: 'test'
+  ...
+1..50
+# tests 50
+# suites 0
+# pass 50
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 469.462167

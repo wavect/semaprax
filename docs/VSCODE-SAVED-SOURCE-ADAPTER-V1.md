@@ -1,6 +1,6 @@
 # VS Code saved-source adapter v1
 
-Status: implementation, standalone controller regressions, and a focused real Extension Host evidence runner authored; host runner unrun and extension not published.
+Status: focused local Extension Host evidence executed for exact subject `2888f84f123b7caa44aa6807388d98f851d4beaf`; extension remains experimental and unpublished.
 
 Audience: editor users, extension integrators and compiler contributors.
 
@@ -261,4 +261,4 @@ remain outstanding.
 
 ## Focused Extension Host evidence
 
-[VS Code Host Execution Evidence v1](GRAPH-OPERATIONAL-VSCODE-HOST-EXECUTION-EVIDENCE-V1.md) owns a separate, exact-subject local scenario using an actual provisioned VS Code Extension Host and freshly built compiler. Its test-only seam is enabled only by `ExtensionMode.Test` and contributes no production command or authority. Until an archived passing bundle exists, this scenario remains authored and unrun.
+[VS Code Host Execution Evidence v1](GRAPH-OPERATIONAL-VSCODE-HOST-EXECUTION-EVIDENCE-V1.md) owns a separate, exact-subject local scenario using a selected provisioned Visual Studio Code Extension Host and freshly built compiler. Its test-only seam is enabled only by `ExtensionMode.Test` and contributes no production command or authority. The exact local subject `2888f84f123b7caa44aa6807388d98f851d4beaf` passed the 50-case standalone controller selection plus the actual Extension Host/compiler typed-rename, verified-diff, and dirty-buffer invalidation scenario. Packaging, manual UI, hosted/cross-platform, typed-hole and diagnostic-repair host execution remain open.

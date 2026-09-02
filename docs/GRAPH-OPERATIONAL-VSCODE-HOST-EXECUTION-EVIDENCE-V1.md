@@ -1,6 +1,6 @@
 # Graph-operational VS Code host execution evidence v1
 
-Status: runner and Extension Host scenario authored, unrun.
+Status: executed locally for exact subject `2888f84f123b7caa44aa6807388d98f851d4beaf`; the 50 standalone controller cases and one real Extension Host scenario passed.
 
 Audience: editor integrators, compiler contributors, and programme reviewers.
 
@@ -27,6 +27,8 @@ The VS Code process receives only absolute paths and runs with other extensions,
 updates, workspace trust prompts, and GPU use disabled. This is local provisioned
 evidence; it is not a vendor-signature, network-isolation, minimum-version, or
 cross-platform claim.
+
+The reviewed invocation produced bundle `f6f3987f755afcb04bdbf470c38e0530667833d7d1d580bd82579a0bdd46f1d3`. Its [archived envelope](evidence/graph-operational-vscode-host/2888f84f123b7caa44aa6807388d98f851d4beaf/f6f3987f755afcb04bdbf470c38e0530667833d7d1d580bd82579a0bdd46f1d3/evidence.json) and four authenticated artifacts are evidence for that exact subject, not for this later record commit. The selected local product reported Visual Studio Code 1.135.0 on Darwin arm64.
 
 The runner first executes the five standalone Node controller files and requires
 exactly 50 passes. It then starts an actual Extension Host using

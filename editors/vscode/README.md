@@ -1,9 +1,11 @@
 # SEMAPRAX saved-source editor adapter
 
-Experimental. A focused real Extension Host runner is authored but unrun; the standalone controller suite remains separate. This zero-build CommonJS extension uses only
+Experimental. A focused local Visual Studio Code Extension Host run passed for
+exact subject `2888f84f123b7caa44aa6807388d98f851d4beaf`; the standalone
+50-case controller suite remains separate. This zero-build CommonJS extension uses only
 VS Code APIs and Node built-ins. No npm dependencies, bundling, telemetry,
 webviews, language server, automatic process startup, or publication command.
-It is not a packaged or marketplace release, and no editor execution is claimed.
+It is not a packaged or marketplace release. The exact local execution claim is bounded by the evidence contract below.
 
 Load this directory as a development extension using VS Code's extension
 development host. Configure these **user/machine settings**, all absolute paths:

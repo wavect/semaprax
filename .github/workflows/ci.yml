@@ -21,9 +21,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -41,9 +47,15 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -70,9 +82,15 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -153,9 +171,15 @@ jobs:
         os: [ubuntu-24.04, macos-15, windows-2025]
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -263,9 +287,15 @@ jobs:
         os: [ubuntu-24.04, macos-15, windows-2025]
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -290,9 +320,15 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -394,9 +430,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -596,9 +638,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -690,9 +738,15 @@ jobs:
         os: [windows-2025, macos-15]
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -732,9 +786,15 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -776,9 +836,15 @@ jobs:
     timeout-minutes: 40
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -799,9 +865,15 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -853,9 +925,15 @@ jobs:
       ANDROID_ARCH: ${{ matrix.abi }}
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -897,9 +975,15 @@ jobs:
       RUSTFLAGS: -C linker=clang -C link-arg=-fsanitize=address,undefined -C force-frame-pointers=yes
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -933,9 +1017,15 @@ jobs:
       RUSTFLAGS: -Zsanitizer=address -Zexternal-clangrt -Clinker=clang-18 -Clink-arg=-fsanitize=address -Cforce-frame-pointers=yes
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -962,9 +1052,15 @@ jobs:
         shard: [unit, integration-0, integration-1, integration-2]
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -1030,9 +1126,15 @@ jobs:
             extension: zip
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -1072,9 +1174,15 @@ jobs:
       contents: write
     steps:
       - name: Allow Windows to check out long evidence paths
-        if: runner.os == 'Windows'
         shell: bash
-        run: git config --system core.longpaths true
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1

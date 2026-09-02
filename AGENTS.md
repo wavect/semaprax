@@ -93,6 +93,10 @@ owns the rule and the two standing exceptions.
 ## Prohibited shortcuts
 
 - Do not edit generated files under `target/` or commit tool caches.
+- Do not run `git stash` here. The stash is a single stack shared by every
+  worktree of this repository, and dozens are usually registered, so a push or
+  pop reaches another agent's uncommitted work rather than your own. Commit to a
+  scratch branch, or use a worktree, instead.
 - Do not introduce build-time network access or ambient authority.
 - Do not bypass verification in a backend or report generator.
 - Do not sort, repair, or reinterpret canonical cleanup plans downstream.

@@ -68,7 +68,8 @@ def main():
     commit=git("rev-parse","HEAD^{commit}"); tree=git("rev-parse","HEAD^{tree}"); tags=git("tag","--points-at",commit).splitlines()
     inputs=[repo_row(x) for x in FILES]
     app=Path(ns.vscode_app).resolve(strict=True)
-    code=app/"Contents/MacOS/Code"; cli=app/"Contents/Resources/app/bin/code"
+    choices=[app/"Contents/MacOS/Code",app/"Contents/MacOS/Electron"]
+    code=next((candidate for candidate in choices if candidate.exists()),choices[0]); cli=app/"Contents/Resources/app/bin/code"
     product=app/"Contents/Resources/app/product.json"; product_package=app/"Contents/Resources/app/package.json"
     for p in (code,cli,product,product_package):
         if not p.exists(): raise Failure(f"incomplete VS Code product: {p}")
@@ -79,15 +80,20 @@ def main():
     node=str(Path(ns.node or tool("node")).resolve(strict=True)); cargo=tool("cargo"); rustc=tool("rustc")
     versions={"node":text([node,"--version"],"node version"),"cargo":text([cargo,"--version"],"cargo version"),"rustc":text([rustc,"--version"],"rustc version"),"vscode":cli_version}
     node_log=command([node,"--test","--test-concurrency=1","--test-reporter=tap",*NODE_TESTS],"Node controllers")
-    for line in (b"# tests 50",b"# pass 50",b"# fail 0",b"# skipped 0"):
-        if line not in node_log: raise Failure(f"unexpected Node controller inventory: {line!r}")
-    build_env=os.environ.copy(); build_env.update({"CARGO_NET_OFFLINE":"true","CARGO_INCREMENTAL":"0","CARGO_TERM_COLOR":"never","RUSTC":rustc})
+    for name,expected in ((b"tests",50),(b"pass",50),(b"fail",0),(b"skipped",0)):
+        rows=re.findall(rb"^# "+name+rb" ([0-9]+)$",node_log,re.MULTILINE)
+        if rows != [str(expected).encode()]: raise Failure(f"unexpected Node controller {name.decode()} inventory: {rows!r}")
+    build_temp=tempfile.TemporaryDirectory(prefix="semaprax-vscode-build-")
+    build_target=Path(build_temp.name)/"target"
+    build_env=os.environ.copy(); build_env.update({"CARGO_NET_OFFLINE":"true","CARGO_INCREMENTAL":"0","CARGO_TERM_COLOR":"never","RUSTC":rustc,"CARGO_TARGET_DIR":str(build_target)})
     build_log=command([cargo,"build","--locked","--offline","-p","semaprax","--bin","semaprax"],"compiler build",env=build_env)
-    compiler=(ROOT/"target/debug/semaprax").resolve(strict=True); compiler_before=file_row(compiler)
+    compiler=(build_target/"debug/semaprax").resolve(strict=True); compiler_before=file_row(compiler)
     with tempfile.TemporaryDirectory(prefix="semaprax-vscode-host-") as td:
         area=Path(td); workspace=area/"workspace"; shutil.copytree(ROOT/"examples/calculator-project",workspace)
         policy=area/"policy.json"; policy.write_bytes(canonical(POLICY))
-        user=area/"user"; extensions=area/"extensions"; user.mkdir(); extensions.mkdir()
+        user=area/"user"; extensions=area/"extensions"; (user/"User").mkdir(parents=True); extensions.mkdir()
+        settings={"semaprax.compilerPath":str(compiler),"semaprax.manifestPath":str(workspace/"semaprax.toml"),"semaprax.hostPolicyPath":str(policy)}
+        (user/"User/settings.json").write_bytes(canonical(settings))
         source=workspace/"src/core.spx"; fixture_before={str(p.relative_to(workspace)):sha(p.read_bytes()) for p in sorted(workspace.rglob("*")) if p.is_file()}
         env=os.environ.copy(); env.update({
           "SEMAPRAX_VSCODE_COMPILER":str(compiler),"SEMAPRAX_VSCODE_MANIFEST":str(workspace/"semaprax.toml"),
@@ -114,6 +120,10 @@ def main():
     if git("rev-parse","HEAD^{commit}")!=commit or git("rev-parse","HEAD^{tree}")!=tree: raise Failure("repository subject drift")
     compiler_after=file_row(compiler)
     if compiler_after!=compiler_before: raise Failure("compiler binary drift")
+    for recorded in inputs:
+        if repo_row(recorded["path"]) != recorded: raise Failure(f"repository input drift: {recorded['path']}")
+    for recorded,path in ((file_row(node),node),(file_row(cargo),cargo),(file_row(rustc),rustc),(file_row(code),code),(file_row(cli),cli),(file_row(product),product),(file_row(product_package),product_package),(file_row(host_exec),host_exec)):
+        if file_row(path) != recorded: raise Failure(f"tool or product drift: {path}")
     logs={"controller-node.tap":node_log,"compiler-build-cargo.log":build_log,"vscode-extension-host.log":host_log,"vscode-host-observation.json":canonical(observation)}
     rows=[artifact(name,body) for name,body in logs.items()]
     domain=b"semaprax.graph-operational-vscode-host-execution-evidence.bundle.v1\0"
@@ -128,7 +138,7 @@ def main():
         "vscode":{"app":str(app),"code":file_row(code),"cli":file_row(cli),"product":file_row(product),"package":file_row(product_package),"extension_host":file_row(host_exec)}},
       "executions":[{"id":"vscode_node_mock_controllers_v1","passed":50,"failed":0,"ignored":0},{"id":"vscode_extension_host_real_compiler_v1","passed":1,"failed":0,"ignored":0}],
       "observation":observation,"artifacts":rows,
-      "claims":{"local_official_vscode_extension_host":"passed","actual_compiler_mcp_typed_intent_review_invalidation":"passed","source_bytes_unchanged":"passed","node_controllers_are_extension_host":"not_claimed","marketplace_or_vsix":"not_selected","hosted_or_cross_platform":"not_observed","full_quality_or_programme_completion":"not_selected","os_network_isolation":"not_claimed"}}
+      "claims":{"selected_visual_studio_code_product_extension_host":"passed","actual_compiler_mcp_typed_intent_review_invalidation":"passed","source_bytes_unchanged":"passed","node_controllers_are_extension_host":"not_claimed","marketplace_or_vsix":"not_selected","hosted_or_cross_platform":"not_observed","full_quality_or_programme_completion":"not_selected","os_network_isolation":"not_claimed"}}
     if destination.exists(): raise Failure(f"destination exists: {destination}")
     stage=destination.parent/("."+destination.name+".tmp")
     if stage.exists(): shutil.rmtree(stage)

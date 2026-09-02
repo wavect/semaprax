@@ -10,7 +10,7 @@ bundles. Passing it does not complete the graph-operational programme.
 
 ## Exact runner
 
-Run a clean committed subject with an externally provisioned official VS Code
+Run a clean committed subject with an externally provisioned Visual Studio Code
 application and absolute Node executable:
 
 ```sh
@@ -22,7 +22,7 @@ python3 scripts/graph-operational-vscode-host-evidence.py \
 The runner requires `product.json` to identify `Visual Studio Code`, binds the
 product executable, CLI, product metadata, exact Extension Host executable and
 version, and creates fresh user-data, extension, policy, and calculator fixture
-directories. It builds the exact-subject `semaprax` binary locked and offline.
+directories. It builds the exact-subject `semaprax` binary locked and offline in a fresh target directory.
 The VS Code process receives only absolute paths and runs with other extensions,
 updates, workspace trust prompts, and GPU use disabled. This is local provisioned
 evidence; it is not a vendor-signature, network-isolation, minimum-version, or
@@ -39,8 +39,7 @@ The host opens a candidate, selects `calculator.add`, creates and applies the
 catalogued `rename_declaration` typed intent, obtains a compiler-verified
 read-only virtual source diff, and checks base `add` versus candidate `addition`.
 It then dirties a real `.spx` editor buffer and requires candidate and virtual
-views to invalidate while every saved fixture byte remains unchanged. Stop must
-terminate the session and release virtual documents.
+views to invalidate while every saved fixture byte remains unchanged. Stop must clear local session state, request child termination, and release virtual documents; process reaping is not claimed.
 
 ## Envelope and boundaries
 

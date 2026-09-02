@@ -30,9 +30,12 @@ async function run() {
   assert.equal(path.resolve(folder.uri.fsPath), path.resolve(path.dirname(manifest)));
 
   const settings = vscode.workspace.getConfiguration('semaprax');
-  await settings.update('compilerPath', compiler, vscode.ConfigurationTarget.Global);
-  await settings.update('manifestPath', manifest, vscode.ConfigurationTarget.Global);
-  await settings.update('hostPolicyPath', policy, vscode.ConfigurationTarget.Global);
+  for (const [key, expected] of [['compilerPath', compiler], ['manifestPath', manifest], ['hostPolicyPath', policy]]) {
+    const inspected = settings.inspect(key);
+    assert.equal(inspected.globalValue, expected, `${key} must be selected globally`);
+    assert.equal(inspected.workspaceValue, undefined, `${key} must not be selected by the workspace`);
+    assert.equal(inspected.workspaceFolderValue, undefined, `${key} must not be selected by the workspace folder`);
+  }
 
   const extension = vscode.extensions.getExtension('semaprax.semaprax-saved-source');
   assert.ok(extension, 'development extension must be installed');
@@ -74,6 +77,7 @@ async function run() {
   assert.match(base.text, /fn add\(/);
   assert.match(candidate.text, /fn addition\(/);
   assert.deepEqual(fs.readFileSync(source), sourceBefore, 'candidate review must not write canonical source');
+  const workflow = state;
 
   const sourceDocument = await vscode.workspace.openTextDocument(vscode.Uri.file(source));
   const sourceEditor = await vscode.window.showTextDocument(sourceDocument, { preview: false });
@@ -87,7 +91,6 @@ async function run() {
   await vscode.commands.executeCommand('workbench.action.files.revert');
   assert.deepEqual(fs.readFileSync(source), sourceBefore);
 
-  const observed = state;
   await api.execute('stop');
   state = api.state();
   assert.equal(state.running, false);
@@ -99,8 +102,8 @@ async function run() {
     extension_host_exec_path: process.execPath,
     extension_version: extension.packageJSON.version,
     registered_commands: contributed.length,
-    image_revision: observed.image,
-    candidate_revision: observed.candidate,
+    image_revision: workflow.image,
+    candidate_revision: workflow.candidate,
     source_sha256: digest(sourceBefore),
     typed_intent: 'rename_declaration',
     target: 'calculator.add',

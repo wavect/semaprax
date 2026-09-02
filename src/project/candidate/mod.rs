@@ -15,6 +15,7 @@ use super::{build, ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 mod analysis_artifact_evidence;
 mod analysis_coverage;
 mod analysis_evidence;
+mod analysis_runtime_evidence;
 mod archive;
 mod artifact_delta;
 mod catalog;
@@ -60,6 +61,10 @@ pub use analysis_coverage::{
 };
 pub use analysis_evidence::{
     MAX_PROJECT_CANDIDATE_ANALYSIS_EVIDENCE_BYTES, PROJECT_CANDIDATE_ANALYSIS_EVIDENCE_SCHEMA,
+};
+pub use analysis_runtime_evidence::{
+    MAX_PROJECT_CANDIDATE_ANALYSIS_RUNTIME_EVIDENCE_BYTES,
+    PROJECT_CANDIDATE_ANALYSIS_RUNTIME_EVIDENCE_SCHEMA,
 };
 pub use archive::{
     ProjectCandidateArchive, MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES, PROJECT_CANDIDATE_ARCHIVE_SCHEMA,

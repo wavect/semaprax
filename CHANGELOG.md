@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added library-only candidate runtime-boundary evidence that composes exact
+  candidate coverage with a freshly replayed, policy-bounded reference-
+  interpreter test closure. Only `runtime_environment` becomes partial;
+  native/Wasm and deployed execution, path coverage, host-environment
+  observation, external services, compatibility and publication remain open.
+  Evidence is authored and unrun.
+
 - Recorded the published `v0.2.0` prerelease at exact commit
   `5f6fb9655fdec92c57ab71615cfd7bfa8cc76051`: all 45 jobs in the tag-triggered
   release workflow passed, all three host-built archives passed unpacked smoke

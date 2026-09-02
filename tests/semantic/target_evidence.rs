@@ -115,7 +115,7 @@ fn report_is_exact_typed_and_read_only() {
     assert_eq!(value["targets"][1]["validation"], "wasmparser_structural");
     assert_eq!(value["targets"][1]["validator_version"], "0.258.0");
     // Keep report metadata tied to the actual pinned dependency.
-    assert!(include_str!("../Cargo.toml").contains(&format!(
+    assert!(include_str!("../../Cargo.toml").contains(&format!(
         "wasmparser = {{ version = \"={}\"",
         value["targets"][1]["validator_version"].as_str().unwrap()
     )));
@@ -412,12 +412,12 @@ fn graph_v10_through_v14_target_projections_are_admitted() {
             "semaprax.graph.v11",
         ),
         (
-            include_str!("../platform-tests/component-runtime/v7.spx"),
+            include_str!("../../platform-tests/component-runtime/v7.spx"),
             "component.transform-i64-bool",
             "semaprax.graph.v12",
         ),
         (
-            include_str!("../platform-tests/component-runtime/v8.spx"),
+            include_str!("../../platform-tests/component-runtime/v8.spx"),
             "component.pattern.preserve-phantom-i64",
             "semaprax.graph.v13",
         ),

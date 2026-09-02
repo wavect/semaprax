@@ -1,4 +1,4 @@
-#[path = "../src/byte_data_capacity.rs"]
+#[path = "../../src/byte_data_capacity.rs"]
 mod byte_data_capacity;
 
 use byte_data_capacity::{

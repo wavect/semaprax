@@ -4,7 +4,7 @@ Audience: language users, tool authors, and compiler contributors.
 
 Status: Partial — the Restricted `unsafe` and raw memory row of
 [COMPLETION-MATRIX.md](COMPLETION-MATRIX.md) moves from Missing to Partial on
-the strength of this document plus `tests/unsafe_boundaries_v1.rs`.
+the strength of this document plus `tests/projections/unsafe_boundaries.rs`.
 
 ## Objective
 
@@ -122,7 +122,7 @@ still holds, proving zero KAT drift.
 
 ## Evidence
 
-`tests/unsafe_boundaries_v1.rs` covers: canonical round-trip and revision
+`tests/projections/unsafe_boundaries.rs` covers: canonical round-trip and revision
 stability under `permit { unsafe }`; regressions for `SPX-N101` (including
 the positive control where adding the declaration clears it), `SPX-N102`,
 `SPX-N103`, `SPX-N104`, and `SPX-N105`; deterministic Graph JSON with exactly

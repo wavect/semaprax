@@ -111,7 +111,7 @@ against a declared manifest remains future work.
 
 ## Evidence
 
-Executable evidence lives in `tests/capability_manifest_v1.rs` plus module
+Executable evidence lives in `tests/projections/capability_manifest.rs` plus module
 tests in `src/capability_manifest.rs`: a pinned golden envelope SHA-256 KAT
 over `examples/meaning.spx` whose effect-free program must assert all-five-
 `"none"` ambient authority, a declared-effects module whose manifest lists

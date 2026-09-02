@@ -42,7 +42,7 @@ fn record_graph_matches_exact_v10_snapshot() {
     let json = graph::to_json(&program).unwrap();
     assert_eq!(
         format!("{json}\n"),
-        include_str!("snapshots/records.graph.json")
+        include_str!("../snapshots/records.graph.json")
     );
 }
 

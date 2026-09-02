@@ -128,5 +128,5 @@ tranche does not move any completion-matrix status.
 ```sh
 cargo test --locked -p semaprax --lib properties::
 cargo test --locked -p semaprax --test property_tests_v1 -- --test-threads=1
-cargo test --locked -p semaprax --all-features --test property_widen_v1 -- --test-threads=1
+cargo test --locked -p semaprax --all-features --test language property_widen:: -- --test-threads=1
 ```

@@ -1533,6 +1533,53 @@ shared across every branch — `src/hir/resolve_expr.rs` and
 new signatures, which is a behavioural change and needs its own review; it is not
 a relocation.
 
+### Integration test harnesses
+
+Cargo builds every top-level file in `tests/` as its own binary, and each one
+statically links the whole compiler. The test code is a small fraction of that:
+a typical file contributed ~1.5 MiB to a ~42 MiB binary. With one file per
+subject the suite reached 393 binaries and over 11 GiB of executables, which
+exhausted disks and dominated CI time.
+
+Tests are therefore grouped into harnesses. A harness is `tests/<group>.rs`
+declaring one module per former file, with the bodies in `tests/<group>/`:
+
+```rust
+#[path = "<group>/<name>.rs"]
+mod <name>;
+```
+
+The `#[path]` is required: in a test crate root, plain `mod foo;` resolves to
+`tests/foo.rs`, not to the subdirectory.
+
+**Add a new test as a module of the harness that owns its subject.** A new
+top-level file links the compiler again and gives back the saving.
+
+Four things follow from sharing one binary, each enforced or already paid for:
+
+- Relative paths in `include_str!`, `include_bytes!`, and `#[path]` resolve
+  against the declaring file, so a body one directory deeper needs `../`.
+- Modules share a process id. A temporary fixture root built from a literal
+  prefix plus `process::id()` collides if two modules use the same prefix, so
+  every prefix in a harness must be distinct. `tests/harness_isolation.rs`
+  checks this.
+- A test that re-invokes its own binary with `--exact <path>` cannot be a
+  module: merging prefixes the path and the selected case silently never runs.
+  Such a file stays a top-level target. `tests/harness_isolation.rs` checks this
+  too, keyed by path.
+- Two modules must not `#[path]`-load the same `tests/support/*.rs`. Inside one
+  crate that compiles the file twice and yields unrelated copies of its types;
+  `clippy::duplicate_mod` rejects it. Declare the support module once in the
+  harness root and refer to it as `crate::<name>`.
+
+A file stays a standalone target when CI or a script selects it with
+`--test <name>`, when another test reads it as text, or when it re-invokes its
+own binary. Documentation cites tests by path and `tests/documentation.rs` fails
+on an unresolvable link, so citations move with the code, and a documented
+`--test <old> <filter>` becomes `--test <group> <module>::<filter>` — the
+`module::` form matters, since a bare second positional is read as a second
+libtest filter.
+
 ### Source-locked contracts
 
 Some gates assert over the *text* of a module: they read a `.rs` file with

@@ -171,8 +171,8 @@ no-clobber route.
 The focused local gates are:
 
 ```sh
-cargo test --locked -p semaprax --test bounded_language_command_io_v1
-cargo test --locked -p semaprax --test language_command_io_native_v1
+cargo test --locked -p semaprax --test useful_data bounded_language_command_io::
+cargo test --locked -p semaprax --test useful_data language_command_io_native::
 cargo test --locked -p semaprax --test project manifest_v6::
 cargo test --locked -p semaprax --test project language_command_native:: -- --test-threads=1
 cargo test --locked -p semaprax --lib wasm::command_io::tests

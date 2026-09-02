@@ -4,8 +4,8 @@ use semaprax::hosted_interpreter::{execute_language_command, HostedCommandInput}
 use semaprax::interpreter::CommandEvaluationOutcome;
 use semaprax::{hir, parse, verify};
 
-const APP_SOURCE: &str = include_str!("../examples/spxgrep-lines-project/src/app.spx");
-const FILTER_SOURCE: &str = include_str!("../examples/spxgrep-lines-project/src/filter.spx");
+const APP_SOURCE: &str = include_str!("../../examples/spxgrep-lines-project/src/app.spx");
+const FILTER_SOURCE: &str = include_str!("../../examples/spxgrep-lines-project/src/filter.spx");
 
 fn linked_source() -> String {
     let app = APP_SOURCE.replace(

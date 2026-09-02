@@ -117,7 +117,7 @@ semantic guarantee that two systems interoperate.
 
 ## Evidence
 
-`tests/openapi_generation_v1.rs` pins the exact canonical document payload and
+`tests/projections/openapi_generation.rs` pins the exact canonical document payload and
 its domain-separated digest for a fixed fixture, proves byte determinism,
 exercises every admission exclusion reason, verifies the presence and absence
 rules for the default response and status component, pins the compatibility
@@ -146,7 +146,7 @@ Remaining nonclaims: no strings, named/aggregate types, variants, resources,
 or generics in the widened profile; no Protobuf/gRPC, GraphQL, or SQL; no
 schema import parsing; no live conformance fixtures; no registry, server, or
 hosting; no target execution; read-only with no source changes. Widened-type
-evidence lives in `tests/schema_scalar_widen_v1.rs` over repository-relative
+evidence lives in `tests/language/schema_scalar_widen.rs` over repository-relative
 fixtures.
 
 The additive [Project image OpenAPI artifact lane](IMAGE-OPENAPI-ARTIFACTS-V1.md)

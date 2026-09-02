@@ -119,7 +119,7 @@ for this batch):
 
 ```sh
 cargo test --test native string_settlement::
-cargo test --test semantic_target_evidence_v1 string_cleanup_evidence_binds_current_production_c_and_rejects_foreign_binding
+cargo test --test semantic target_evidence::string_cleanup_evidence_binds_current_production_c_and_rejects_foreign_binding
 ```
 
 The ordinary physical cases require `CLANG` or `clang`; absence is a failure,

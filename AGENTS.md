@@ -90,6 +90,12 @@ records it, and a recorded file may not grow past its recorded size. Prefer a ne
 submodule over a larger file. [Architecture](docs/ARCHITECTURE.md#module-size)
 owns the rule and the two standing exceptions.
 
+Add an integration test as a module of the harness that owns its subject, not as
+a new top-level file in `tests/`. Each top-level file is a separate binary that
+statically links the whole compiler.
+[Architecture](docs/ARCHITECTURE.md#integration-test-harnesses) owns the
+convention and the cases that must stay standalone.
+
 ## Prohibited shortcuts
 
 - Do not edit generated files under `target/` or commit tool caches.

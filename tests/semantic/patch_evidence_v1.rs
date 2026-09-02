@@ -394,13 +394,13 @@ fn graph_v10_through_v14_are_preserved_without_new_graph_semantics() {
             "semaprax.graph.v11",
         ),
         (
-            include_str!("../platform-tests/component-runtime/v7.spx"),
+            include_str!("../../platform-tests/component-runtime/v7.spx"),
             "component.transform-i64-bool",
             "renamed_v12",
             "semaprax.graph.v12",
         ),
         (
-            include_str!("../platform-tests/component-runtime/v8.spx"),
+            include_str!("../../platform-tests/component-runtime/v8.spx"),
             "component.pattern.preserve-phantom-i64",
             "renamed_v13",
             "semaprax.graph.v13",

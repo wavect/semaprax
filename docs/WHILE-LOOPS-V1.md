@@ -181,7 +181,7 @@ remain `SPX-U101`–`SPX-U106`.
 
 ## Evidence
 
-`tests/while_loops_v1.rs` pins canonical round-trips, deterministic Graph-v15
+`tests/language/while_loops.rs` pins canonical round-trips, deterministic Graph-v15
 serialization plus the untouched non-while byte pin, CleanupPlan structural
 equality against unrolled equivalents, stable regressions for every new
 diagnostic, native C11 O0/O2 success and condition-dependent

@@ -44,14 +44,14 @@ fn main() -> i64 { 0 }
 #[test]
 fn lifecycle_graph_v10_exposes_contract_and_context_closure() {
     let program = parse(
-        include_str!("../examples/lifecycle.spx"),
+        include_str!("../../examples/lifecycle.spx"),
         Path::new("lifecycle-graph.spx"),
     )
     .unwrap();
     let json = graph::to_json(&program).unwrap();
     assert_eq!(
         json.trim(),
-        include_str!("snapshots/lifecycle.graph.json").trim()
+        include_str!("../snapshots/lifecycle.graph.json").trim()
     );
     assert!(json.contains("\"schema\":\"semaprax.graph.v10\""));
     assert!(json.contains("\"id\":\"platform.token.drop\",\"kind\":\"resource_drop\""));

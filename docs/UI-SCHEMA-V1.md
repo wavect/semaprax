@@ -99,7 +99,7 @@ envelope to its exact input bytes.
 
 ## Evidence
 
-Executable evidence lives in `tests/ui_schema_v1.rs` plus module tests in
+Executable evidence lives in `tests/projections/ui_schema.rs` plus module tests in
 `src/ui_schema.rs`: pinned golden envelope digests over
 `examples/meaning.spx`, `examples/calculator.spx`, and `examples/records.spx`,
 the pinned Point state shape equal to the checked Native64 layout (fields at
@@ -138,5 +138,5 @@ remain explicitly empty; no rendering, runtime, DOM, typed update/view
 constructs, semantic controls, accessibility, navigation, localization,
 assets, platform blocks, custom rendering, or target execution; read-only
 with no source changes. Widened-type evidence lives in
-`tests/schema_scalar_widen_v1.rs`, with in-crate unit tests comparing widened
+`tests/language/schema_scalar_widen.rs`, with in-crate unit tests comparing widened
 state shapes directly against `aggregate_layout`.

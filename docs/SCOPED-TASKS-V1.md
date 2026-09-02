@@ -135,7 +135,7 @@ wire format.
 
 ## Required executable evidence
 
-`tests/scoped_tasks_model_v1.rs` plus seven focused module units currently
+`tests/cleanup_backends/scoped_tasks_model.rs` plus seven focused module units currently
 cover:
 
 - pinned known-answer trace digests for four canonical scenarios:

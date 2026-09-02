@@ -3,7 +3,7 @@
 Audience: language users, tool authors, and compiler contributors.
 
 Status: Partial — this tranche adds refutable `match` arms over an explicitly
-admitted Copy-scalar profile, evidenced by `tests/refutable_match_v1.rs` and
+admitted Copy-scalar profile, evidenced by `tests/language/refutable_match.rs` and
 `examples/refutable_match.spx`. The broader matching rows of
 [COMPLETION-MATRIX.md](COMPLETION-MATRIX.md) are unchanged by this document
 alone.
@@ -174,7 +174,7 @@ target and assignment errors are untouched.
 
 ## Evidence
 
-`tests/refutable_match_v1.rs` pins canonical round-trips, deterministic
+`tests/language/refutable_match.rs` pins canonical round-trips, deterministic
 Graph-v16 serialization plus untouched v10/v13 selections and the historical
 pre-feature byte pins, slot-free/finalizer-free plans with explicit
 `ArmSelected` structure, stable regressions for every new diagnostic, native

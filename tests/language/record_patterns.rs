@@ -363,7 +363,7 @@ module examples.record_graph;
     .unwrap();
     assert_eq!(
         format!("{}\n", graph::to_json(&legacy).unwrap()),
-        include_str!("snapshots/records.graph.json")
+        include_str!("../snapshots/records.graph.json")
     );
 }
 

@@ -46,7 +46,7 @@ fn let_and_if_are_canonical_and_graph_visible() {
     assert!(graph.contains("\"expressions\":\"revision-scoped-structural\""));
     assert_eq!(
         format!("{graph}\n"),
-        include_str!("snapshots/control_flow.graph.json")
+        include_str!("../snapshots/control_flow.graph.json")
     );
 }
 

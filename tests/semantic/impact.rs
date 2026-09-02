@@ -606,13 +606,13 @@ fn every_graph_v10_v14_schema_is_equal_across_preview() {
             "semaprax.graph.v11",
         ),
         (
-            include_str!("../platform-tests/component-runtime/v7.spx"),
+            include_str!("../../platform-tests/component-runtime/v7.spx"),
             "component.transform-i64-bool",
             "renamed_v12",
             "semaprax.graph.v12",
         ),
         (
-            include_str!("../platform-tests/component-runtime/v8.spx"),
+            include_str!("../../platform-tests/component-runtime/v8.spx"),
             "component.pattern.preserve-phantom-i64",
             "renamed_v13",
             "semaprax.graph.v13",

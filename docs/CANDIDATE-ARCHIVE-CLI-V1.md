@@ -92,7 +92,7 @@ into a complete candidate by choosing the complete-candidate loader.
 
 ## Evidence and limitations
 
-`tests/candidate_archive_cli_v1.rs` authors real CLI persist/load after removal
+`tests/semantic/candidate_archive_cli.rs` authors real CLI persist/load after removal
 of the original sources, duplicate publication preservation, startup recovery
 against edited live source, authority exclusion, strict policy/version/count
 checks, and RPC rejection. Historical complete CLI help snapshots remain pinned

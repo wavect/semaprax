@@ -95,7 +95,7 @@ adds authored, unrun compiler/host ownership evidence without changing
 ordinary Wasm imports or package admission. Its bounded capacity outcomes
 and absorbing unexpected-failure state are separate from language failures.
 
-`tests/string_ops_v1.rs` proves canonical round-trip, deterministic graph JSON
+`tests/language/string_ops_v1.rs` proves canonical round-trip, deterministic graph JSON
 with pinned fragments, HIR binding to the reserved identities, stable
 diagnostics (type error, arity, shadowing, use-after-move), borrowed-read
 non-movement, interpreter agreement, native C11 O0/O2 execution equality, Node
@@ -168,7 +168,7 @@ Backends gate breadth-v2 lowering as one separate group:
 
 ### Evidence
 
-`tests/string_ops_v2.rs` proves canonical round-trip, deterministic graph JSON
+`tests/language/string_ops_v2.rs` proves canonical round-trip, deterministic graph JSON
 with pinned fragments for the four new identities (and their absence for
 first-wave-only and operation-free programs), HIR binding with ownership
 modes, stable diagnostics (argument type including the `char` parameter,

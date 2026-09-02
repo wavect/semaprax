@@ -139,7 +139,7 @@ lattice is not expanded by these source facts.
 Existing parser errors and protocol signature/identity `SPX-Q104`/`SPX-Q105`
 diagnostics retain their meaning.
 
-Core evidence is authored in `tests/static_protocol_conformance_v1.rs`: canonical
+Core evidence is authored in `tests/projections/static_protocol_conformance.rs`: canonical
 source round trips, real admitted facts, display-rename stability, exact local
 inventory, ownership/signature/effect/precondition rejection, body verification,
 duplicate identities/pairs/functions, bounds, and legacy projection refusal.

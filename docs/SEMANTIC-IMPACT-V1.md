@@ -257,10 +257,10 @@ final checks and patch mutation after its single read.
 Focused gates:
 
 ```text
-cargo test --locked -p semaprax --all-features --test semantic_impact_v1
+cargo test --locked -p semaprax --all-features --test semantic impact::
 cargo test --locked -p semaprax --all-features --lib impact::tests::
 cargo test --locked -p semaprax --all-features --lib call_index::tests::
-cargo test --locked -p semaprax --all-features --test semantic_patch_v2
+cargo test --locked -p semaprax --all-features --test semantic patch_v2::
 cargo test --locked -p semaprax --all-features --test agent_context_v2
 cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 ```

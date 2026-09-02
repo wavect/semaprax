@@ -144,7 +144,7 @@ kernels, and memory/effect rules remain unimplemented.
 
 ## Evidence
 
-Executable evidence lives in `tests/simd_report_v1.rs` plus module tests in
+Executable evidence lives in `tests/projections/simd_report.rs` plus module tests in
 `src/simd_report.rs`: pinned golden envelope digests over
 `examples/calculator.spx` and `examples/meaning.spx`, byte-identical double
 runs, every function-admission exclusion reason, every per-expression

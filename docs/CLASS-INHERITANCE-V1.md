@@ -3,7 +3,7 @@
 Audience: language users, tool authors, and compiler contributors.
 
 Status: Bounded tranche — RFC-STRING-OO badge 4. This document plus
-`tests/class_inheritance_v1.rs` are the executable evidence for everything
+`tests/language/class_inheritance.rs` are the executable evidence for everything
 claimed here. Nothing in this file claims completion-matrix promotion.
 
 ## Objective
@@ -159,7 +159,7 @@ independently.
 
 ## Evidence
 
-`tests/class_inheritance_v1.rs`: canonical round-trip and prefix-sequence
+`tests/language/class_inheritance.rs`: canonical round-trip and prefix-sequence
 pins; generated-C `_Static_assert` offset pins for two- and three-level
 chains; clang O0/O2 execution; Node/Wasm equivalence on the copy-only corpus;
 graph determinism plus pre-feature byte-identity pins; cleanup-plan schema,

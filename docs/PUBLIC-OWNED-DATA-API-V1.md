@@ -1136,7 +1136,7 @@ their disposal. SDK object reuse is not proof of one persistent native context.
 Focused gates:
 
 ```sh
-cargo test --locked -p semaprax --test public_api_descriptor_v1 mixed_arity
+cargo test --locked -p semaprax --test projections public_api_descriptor::mixed_arity
 cargo test --locked -p semaprax --test project owned_mixed_arity_interpreter::
 cargo test --locked -p semaprax --test project owned_mixed_arity::
 cargo test --locked -p semaprax-toolchain --test project_owned_mixed_arity_sdk_v1 provisioned_mixed_arity_publish_and_run -- --ignored --exact
@@ -1162,7 +1162,7 @@ hosted gates.
 
 ### Authentic descriptor capacity regressions
 
-The export-count regression in `tests/public_api_descriptor_v1.rs` resolves
+The export-count regression in `tests/projections/public_api_descriptor.rs` resolves
 33 real export declarations. Selections of 31 and 32 derive and replay; selecting
 all 33 requires `SPX-J113` with the exact export-count diagnostic. The previous
 negative selected a nonexistent extra identity, which could conceal a broken

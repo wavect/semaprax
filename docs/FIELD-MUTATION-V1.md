@@ -4,7 +4,7 @@ Audience: language users, tool authors, and compiler contributors.
 
 Status: Partial — extends Explicit Mutation v1 with direct scalar-field
 stores on `let mut` record/class locals; evidence lives in
-`tests/field_mutation_v1.rs` plus `examples/field_mutation.spx`.
+`tests/language/field_mutation.rs` plus `examples/field_mutation.spx`.
 
 ## Objective
 
@@ -71,7 +71,7 @@ Unknown assignment names keep the established unknown-value diagnostic
 - **Graph**: `statement_json` emits an additive `"field":"<stable-id>"`
   attribute on assign nodes only; programs without field mutation serialize
   byte-for-byte identically (pinned by the pre-feature digest in
-  `tests/explicit_mutation_v1.rs` and the `meaning.spx` revision pin).
+  `tests/language/explicit_mutation.rs` and the `meaning.spx` revision pin).
 - **Cleanup**: Copy-scalar field stores lower their RHS exactly like an
   initializer and never transfer into cleanup slots; straight-line field
   mutation produces CleanupPlan v2 output structurally identical to the
@@ -87,7 +87,7 @@ Unknown assignment names keep the established unknown-value diagnostic
 
 ## Evidence
 
-`tests/field_mutation_v1.rs` pins canonical round-trips, all six new
+`tests/language/field_mutation.rs` pins canonical round-trips, all six new
 U-family regressions, additive deterministic Graph JSON (schema stays v10),
 CleanupPlan structural equality, native O0/O2 probes over records and classes
 including branch-local mutation, Node/Wasm equivalence (134 corpus result,

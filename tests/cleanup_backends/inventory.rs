@@ -6,7 +6,7 @@ use semaprax::cleanup::{
 use semaprax::hir;
 use semaprax::{codegen, parse, wasm};
 
-#[path = "cleanup_inventory/nonbinding.rs"]
+#[path = "inventory/nonbinding.rs"]
 mod nonbinding;
 
 const SOURCE: &str = r#"module test.cleanup_inventory;

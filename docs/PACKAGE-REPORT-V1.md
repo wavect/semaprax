@@ -153,4 +153,4 @@ Remaining nonclaims: no strings, named/aggregate types, variants, resources,
 or generics in the widened profile; no resolver, lockfile, dependency model,
 registry/hosting, version-compatibility engine, conformance tests,
 provenance/signatures/licenses/SBOM, or target execution; read-only with no
-source changes. Widened-type evidence lives in `tests/schema_scalar_widen_v1.rs`.
+source changes. Widened-type evidence lives in `tests/language/schema_scalar_widen.rs`.

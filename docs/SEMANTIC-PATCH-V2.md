@@ -112,7 +112,7 @@ delta is the directly selected old/new instance set.
 
 ## Evidence
 
-`tests/semantic_patch_v2.rs` covers schema confusion, legacy v1 success,
+`tests/semantic/patch_v2.rs` covers schema confusion, legacy v1 success,
 noncanonical exact spans, every member use site (declaration, construction,
 update, projection, flat/nested record and variant patterns), shorthand binding
 identity, case/payload changes, same-name owner isolation, a single mixed atomic
@@ -135,10 +135,10 @@ the lock-reconciled isolated runtime is green in [Wasmtime job
 Focused gates:
 
 ```text
-cargo test --locked -p semaprax --all-features --test semantic_patch_v2
-cargo test --locked -p semaprax --all-features --test patch
-cargo test --locked -p semaprax --all-features --test generic_functions
-cargo test --locked -p semaprax --all-features --test executable_generic_function_backends
+cargo test --locked -p semaprax --all-features --test semantic patch_v2::
+cargo test --locked -p semaprax --all-features --test semantic patch::
+cargo test --locked -p semaprax --all-features --test language generic_functions::
+cargo test --locked -p semaprax --all-features --test cleanup_backends executable_generic_function::
 cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 ```
 

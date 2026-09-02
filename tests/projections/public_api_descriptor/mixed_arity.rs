@@ -2,7 +2,7 @@
 use super::*;
 use semaprax::project::with_authenticated_project;
 
-#[path = "../support/owned_mixed_arity_product.rs"]
+#[path = "../../support/owned_mixed_arity_product.rs"]
 mod product;
 
 #[test]

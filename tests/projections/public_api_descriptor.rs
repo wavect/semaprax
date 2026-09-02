@@ -7,16 +7,16 @@ use semaprax::project::{
 };
 use sha2::{Digest, Sha256};
 
-#[path = "public_api_descriptor_v1/parameter_identity.rs"]
+#[path = "public_api_descriptor/parameter_identity.rs"]
 mod parameter_identity;
 
-#[path = "public_api_descriptor_v1/semantic_replay.rs"]
+#[path = "public_api_descriptor/semantic_replay.rs"]
 mod semantic_replay;
 
-#[path = "public_api_descriptor_v1/mixed_arity.rs"]
+#[path = "public_api_descriptor/mixed_arity.rs"]
 mod mixed_arity;
 
-#[path = "public_api_descriptor_v1/limits.rs"]
+#[path = "public_api_descriptor/limits.rs"]
 mod limits;
 
 const PROJECT_REVISION: &str =
@@ -584,11 +584,11 @@ fn legacy_project_v1_through_v7_canonical_manifest_bytes_are_unchanged() {
 
 #[test]
 fn project_v8_is_activated_only_by_manifest_and_profile_admission() {
-    let manifest = include_str!("../src/project/manifest.rs");
-    let profile = include_str!("../src/project/profile.rs");
-    let npm = include_str!("../src/project/npm.rs");
-    let native_sdk = include_str!("../src/project/native_sdk.rs");
-    let wasm = include_str!("../src/wasm.rs");
+    let manifest = include_str!("../../src/project/manifest.rs");
+    let profile = include_str!("../../src/project/profile.rs");
+    let npm = include_str!("../../src/project/npm.rs");
+    let native_sdk = include_str!("../../src/project/native_sdk.rs");
+    let wasm = include_str!("../../src/wasm.rs");
 
     assert!(manifest.contains(PUBLIC_OWNED_DATA_PROJECT_SCHEMA));
     assert!(profile.contains("PROJECT_PROFILE_OWNED_DATA_API_V1"));

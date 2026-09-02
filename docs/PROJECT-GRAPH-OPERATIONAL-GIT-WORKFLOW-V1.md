@@ -1,6 +1,7 @@
 # Project graph-operational Git workflow v1
 
-Status: integrated regression authored; unrun and unverified. Full goal remains Partial.
+Status: integrated regression and focused evidence-export contract authored;
+no execution bundle is claimed here. Full goal remains Partial.
 
 Audience: compiler contributors, embedding hosts, and agent workflow integrators.
 
@@ -128,6 +129,30 @@ not raw checkout files, a remote repository, managed `ACTIVE`, or a deployment.
 Neither this document nor these unrun regressions promote the current head to
 verified or the [graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md) to
 complete.
+
+## Focused exact-commit evidence runner
+
+[Graph-operational Execution Evidence v1](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md)
+defines one local exact-commit runner for this integration binary:
+
+```sh
+python3 scripts/graph-operational-evidence.py
+```
+
+It selects exactly the two twelve-step real-provider tests and the real stale-ref
+preflight test, all nonignored. The SHA-1 and SHA-256 workflows can export their
+canonical `semaprax.agent-task-economics.v1` values as
+`agent-task-economics-sha1.json` and
+`agent-task-economics-sha256.json`; an outer
+`semaprax.graph-operational-execution-evidence.v1` envelope binds those artifacts,
+the Cargo transcript, exact commit, source manifest and lock state. No such
+bundle or subject SHA is asserted by this document until the runner actually
+completes and its output is reviewed.
+
+The ignored managed-generation test is deliberately outside the runner and is
+recorded as `not_selected`. The runner likewise does not select generated-client,
+MCP, editor, native-runtime, Wasm-runtime, hosted, or complete-programme gates.
+Those dimensions remain independent even if all three selected Git tests pass.
 
 ## Task-economics observation
 

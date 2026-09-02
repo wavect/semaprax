@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Authored a focused exact-commit execution-evidence contract for the existing
+  twelve-step canonical-Git workflow. One locked local runner selects the three
+  nonignored SHA-1/SHA-256/stale-ref tests and can authenticate two exported
+  `semaprax.agent-task-economics.v1` reports inside a separate machine-readable
+  envelope. No run or subject SHA is claimed yet. The ignored managed workflow,
+  hosted CI, generated clients, MCP, native/Wasm runtime, final-head validation,
+  benchmark results and programme completion remain explicitly independent and
+  unclaimed.
+
 - Added exact-revision semantic-image function references. A compact canonical
   carrier binds one retained function, optional facet, image/Project/Workspace
   revisions, graph digest and source provenance; resolving it against an

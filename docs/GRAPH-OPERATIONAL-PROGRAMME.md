@@ -71,6 +71,7 @@ outstanding without requiring another permission request now.
 | Candidate function facets | [Candidate Function Facets v1](PROJECT-CANDIDATE-FUNCTION-FACETS-V1.md); final-candidate compact summaries and all nine existing HIR facet pages with candidate-bound handles and cursors, authored/unrun |
 | Diagnostic protocol | [Diagnostic Protocol v4](IMAGE-CANDIDATE-DIAGNOSTIC-PROTOCOL-V4.md) |
 | Integrated managed workflow | [Workflow v1](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md), [authored scenario](../tests/project_graph_operational_workflow_v1.rs) |
+| Focused canonical-Git execution evidence | [Execution Evidence v1](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md); exact-commit local runner, locked/offline three-test selection, SHA-1/SHA-256 economics exports and orthogonal nonclaim dimensions authored; no completed bundle or subject SHA claimed here |
 | Frontend reuse | [Frontend Cache v1](PROJECT-FRONTEND-CACHE-V1.md), [incremental.rs](../src/project/incremental.rs) |
 | Checked-module reuse | [Semantic Cache v1](PROJECT-SEMANTIC-CACHE-V1.md), [authored cases](../tests/project_semantic_cache_v1.rs); exact synthetic AST/HIR retention within one compiler process |
 | Persistent checked-module reuse | [Persistent Cache v1](PERSISTENT-SEMANTIC-CACHE-V1.md), [authenticated store](SEMANTIC-CACHE-STORE-V1.md); private complete codec, compiler-file/key binding before decoding, source reparse and warm full-Project replay |
@@ -282,7 +283,15 @@ committed source objects and reject wrong approval or a stale fixed ref base.
 The scalar fixture checks preserved pre/postconditions, effects, exports and
 empty owned cleanup; it does not establish general resource behavior. Native
 and Wasm evidence is compiler emission/structural validation, not target execution.
-The scenario is **unrun** and therefore does not complete the demonstration.
+The scenario has a focused exact-commit runner and machine-readable evidence
+contract authored in
+[Execution Evidence v1](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md). It selects
+the two real-provider scenarios plus the nonignored real stale-ref preflight and
+requires both format-specific economics artifacts. No completed bundle or
+subject SHA is claimed here. The managed-generation test remains ignored and
+`not_selected`; generated clients, MCP, hosted CI and native/Wasm runtime remain
+independent unselected or unobserved dimensions. Therefore this evidence tranche,
+even after a passing local run, cannot by itself complete the demonstration.
 
 An integrated managed-generation precursor is also authored in
 `tests/project_graph_operational_workflow_v1.rs`: it combines signature migration,
@@ -321,7 +330,8 @@ protocol preservation, hostile-image/candidate, backend and policy-selected
 quality gates before any completion or comparative productivity assertion.
 
 An additive [task-economics observation](AGENT-TASK-ECONOMICS-V1.md) is
-authored/unrun inside the integrated twelve-step Git workflow. It records exact
+authored inside the integrated twelve-step Git workflow, with deterministic
+per-format export and a separate exact-commit envelope contract. It records exact
 semantic protocol traffic, review-material sizes, scripted control rejections,
 validation/replay/test operation counts, target-admission row counts and the
 twelve asserted criteria. It explicitly records stale recoveries as zero and

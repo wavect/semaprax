@@ -1,7 +1,8 @@
 # Agent Task Economics v1
 
-Status: integrated observation and regression source authored; unrun and
-unmeasured. No productivity, latency, model-token or completion claim.
+Status: integrated observation, deterministic export, and focused bundle
+contract authored; no exact-commit bundle is claimed here. No productivity,
+latency, model-token or completion claim.
 
 Audience: agent evaluators, workflow integrators, and compiler contributors.
 
@@ -79,6 +80,30 @@ traffic, corpus/compiler/source revisions, cold/warm state, correctness rubric,
 validation timing method and human-review protocol. None of those external
 observations is synthesized from compiler protocol bytes.
 
+## Deterministic focused export
+
+When and only when the test process receives an absolute
+`SEMAPRAX_GRAPH_WORKFLOW_EVIDENCE_DIR`, each successful format-specific
+twelve-step scenario writes its already validated compact JSON observation to
+one fixed name:
+
+- `agent-task-economics-sha1.json`
+- `agent-task-economics-sha256.json`
+
+The ordinary test invocation sets no directory and writes no report. Export
+does not change the report schema, protocol traffic, Git provider, candidate,
+or assertions. The focused
+[execution-evidence runner](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md) supplies
+the directory, authenticates both outputs, and places their digests in a
+separate exact-commit envelope. A successful test without both required files
+is not a successful evidence bundle.
+
+The two reports are per-invocation facts. In particular, temporary canonical
+manifest and repository identities make selected publication-route hashes
+host-bound. Their byte counts and digests may differ across otherwise valid
+runs; the outer evidence envelope authenticates the observed files without
+turning them into cross-host goldens.
+
 ## Bounds and evidence
 
 The fixed test supplies two finite sessions and their response-bearing frames.
@@ -90,6 +115,9 @@ rather than becoming a second source or candidate archive. The report has
 authority; the separately attached Git host remains the sole authority for the
 scripted commit step.
 
-The integrated SHA-1 and SHA-256 regressions are authored but unrun. No report
-from the current head has been produced, no benchmark value is claimed, and the
-graph-operational programme remains Partial.
+The integrated SHA-1 and SHA-256 regressions and their exact-commit runner are
+authored. This document records no completed subject SHA or bundle. The ignored
+managed workflow is `not_selected`; generated clients, MCP, native/Wasm runtime,
+hosted CI and the complete programme are separate dimensions and are not
+selected by this runner. No benchmark value is claimed, and the graph-operational
+programme remains Partial.

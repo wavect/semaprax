@@ -116,6 +116,7 @@ Audience: all documentation readers.
 - [Workspace Session CLI and Host Policies](WORKSPACE-SESSION-CLI-V1.md)
 - [Project Graph-operational Workflow v1](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md)
 - [Project Graph-operational Git Workflow v1](PROJECT-GRAPH-OPERATIONAL-GIT-WORKFLOW-V1.md)
+- [Graph-operational Execution Evidence v1](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md)
 - [Project Contract Change v1](PROJECT-CONTRACT-CHANGE-V1.md)
 - [Project Signature Evolution v1](PROJECT-SIGNATURE-EVOLUTION-V1.md)
 - [Project Expression Change v1](PROJECT-EXPRESSION-CHANGE-V1.md)

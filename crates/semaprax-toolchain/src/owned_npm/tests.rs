@@ -27,7 +27,22 @@ fn fixture() -> PathBuf {
             .as_nanos()
     ));
     fs::create_dir(&path).unwrap();
-    path.canonicalize().unwrap()
+    let canonical = path.canonicalize().unwrap();
+    // `canonicalize` on Windows returns a verbatim `\\?\` path. Verbatim
+    // `PathBuf::join` pops `..` segments, erasing parent-traversal evidence
+    // before `require_requested_output` can reject it. Strip the verbatim
+    // prefix to keep a long non-verbatim path so `root.join("../package")`
+    // preserves `..` as `Component::ParentDir`.
+    let text = canonical.to_string_lossy();
+    if text.starts_with(r"\\?\") {
+        if text.starts_with(r"\\?\UNC\") {
+            PathBuf::from(format!(r"\\{}", &text[8..]))
+        } else {
+            PathBuf::from(text[4..].to_string())
+        }
+    } else {
+        canonical
+    }
 }
 
 fn stage_name() -> String {

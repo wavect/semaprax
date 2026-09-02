@@ -22,8 +22,25 @@ fn fresh_root() -> PathBuf {
         assert!(path.is_absolute());
         match fs::create_dir(&path) {
             Ok(()) => {
-                eprintln!("retained release packaging fixture: {}", path.display());
-                return path;
+                // `temp_dir` on hosted Windows may be the short `RUNNER~1` form
+                // while PowerShell's `GetUnresolvedProviderPathFromPSPath` for
+                // the release output resolves to the long `runneradmin` form.
+                // Canonicalize and strip the verbatim `\\?\` prefix so
+                // `build.display()` in the expected `target-dir` line matches
+                // the long non-verbatim path logged by the fixture tool.
+                let canonical = path.canonicalize().unwrap();
+                let text = canonical.to_string_lossy();
+                let long = if text.starts_with(r"\\?\") {
+                    if text.starts_with(r"\\?\UNC\") {
+                        PathBuf::from(format!(r"\\{}", &text[8..]))
+                    } else {
+                        PathBuf::from(text[4..].to_string())
+                    }
+                } else {
+                    canonical
+                };
+                eprintln!("retained release packaging fixture: {}", long.display());
+                return long;
             }
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
             Err(error) => panic!("create fixture: {error}"),

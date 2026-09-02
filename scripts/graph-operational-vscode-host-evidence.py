@@ -85,12 +85,12 @@ def main():
     for name,expected in ((b"tests",50),(b"pass",50),(b"fail",0),(b"skipped",0)):
         rows=re.findall(rb"^# "+name+rb" ([0-9]+)$",node_log,re.MULTILINE)
         if rows != [str(expected).encode()]: raise Failure(f"unexpected Node controller {name.decode()} inventory: {rows!r}")
-    build_temp=tempfile.TemporaryDirectory(prefix="semaprax-vscode-build-")
+    build_temp=tempfile.TemporaryDirectory(prefix="semaprax-vscode-build-",dir="/private/tmp")
     build_target=Path(build_temp.name)/"target"
     build_env=os.environ.copy(); build_env.update({"CARGO_NET_OFFLINE":"true","CARGO_INCREMENTAL":"0","CARGO_TERM_COLOR":"never","RUSTC":rustc,"CARGO_TARGET_DIR":str(build_target)})
     build_log=command([cargo,"build","--locked","--offline","-p","semaprax","--bin","semaprax"],"compiler build",env=build_env)
     compiler=(build_target/"debug/semaprax").resolve(strict=True); compiler_before=file_row(compiler)
-    with tempfile.TemporaryDirectory(prefix="semaprax-vscode-host-") as td:
+    with tempfile.TemporaryDirectory(prefix="semaprax-vscode-host-",dir="/private/tmp") as td:
         area=Path(td); workspace=area/"workspace"; shutil.copytree(ROOT/"examples/calculator-project",workspace)
         policy=area/"policy.json"; policy.write_bytes(canonical(POLICY))
         user=area/"user"; extensions=area/"extensions"; (user/"User").mkdir(parents=True); extensions.mkdir()

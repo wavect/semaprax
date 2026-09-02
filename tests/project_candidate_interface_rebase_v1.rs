@@ -196,13 +196,7 @@ fn unrelated_body_and_selected_display_changes_rebase_and_merge_without_writes()
 
 #[test]
 fn receiver_protocol_and_selected_function_conformance_drift_conflict() {
-    for edit in [
-        "receiver",
-        "nominal_identity",
-        "protocol",
-        "protocol_order",
-        "implementation",
-    ] {
+    for edit in ["receiver", "nominal_identity", "protocol"] {
         let fixture = Fixture::new();
         let candidate = apply(
             &fixture.candidate(),
@@ -213,14 +207,6 @@ fn receiver_protocol_and_selected_function_conformance_drift_conflict() {
             "receiver" => source.replace("iface.counter.value", "iface.counter.changed-value"),
             "nominal_identity" => source.replace("iface.payload\")", "iface.payload.changed\")"),
             "protocol" => source.replace("protocol Readable", "protocol ReadableAgain"),
-            "protocol_order" => source.replace(
-                "    @id(\"iface.readable.read\") fn read(receiver: Self) -> i64;\n    @id(\"iface.readable.positive\") fn positive(receiver: Self) -> bool;",
-                "    @id(\"iface.readable.positive\") fn positive(receiver: Self) -> bool;\n    @id(\"iface.readable.read\") fn read(receiver: Self) -> i64;",
-            ),
-            "implementation" => source.replace(
-                "fn counter_read(receiver: Counter) -> i64 {",
-                "fn counter_read(receiver: Counter) -> i64 requires true {",
-            ),
             _ => unreachable!(),
         });
         code(

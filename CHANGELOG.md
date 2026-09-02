@@ -1310,6 +1310,14 @@
   unchanged source/v10 admission. Tests/builds remain unrun; no ordinary-Wasm
   settlement or production promotion is claimed.
 
+- Added conservative semantic rebase and same-root merge for source-owned
+  static protocol implementation intentions. Replay binds exact compiler-owned
+  receiver, protocol, method and selected-function conformance facts and rejects
+  occupied receiver/protocol pairs or implementation identities before full
+  candidate admission. Function bodies and postconditions remain outside the
+  conformance fingerprint; behavioral equivalence, runtime witnesses and
+  dynamic dispatch are not claimed. Focused evidence is authored and unrun.
+
 - Added source-owned static protocol implementation mappings, compiler-derived
   member discovery, the bounded `implement_interface` intention, and additive
   v4 conformance/interface-catalogue queries over source-bound sidecar facts.

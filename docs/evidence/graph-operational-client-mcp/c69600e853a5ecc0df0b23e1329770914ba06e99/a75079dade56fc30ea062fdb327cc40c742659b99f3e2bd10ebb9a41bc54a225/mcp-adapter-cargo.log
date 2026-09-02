@@ -1,0 +1,16 @@
+   Compiling semaprax v0.2.0 (/private/tmp/semaprax-graph-operational-next-20260902)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.00s
+     Running tests/image_mcp_transport_v1.rs (target/debug/deps/image_mcp_transport_v1-7263479971421516)
+
+running 8 tests
+test eof_and_live_source_drift_still_use_inner_workspace_authentication ... ok
+test host_grants_control_discovery_and_notifications_never_execute_candidate_actions ... ok
+test malformed_duplicate_fields_ids_and_arguments_fail_without_corrupting_lifecycle ... ok
+test pinned_lifecycle_negotiation_paging_and_self_contained_inputs_are_explicit ... ok
+test publication::source_drift_after_delivered_mock_commit_keeps_g287_at_eof ... ok
+test publication::writer_failure_after_mock_cas_preserves_known_or_uncertain_publication_classification ... ok
+test request_bounds_reject_before_forwarding_and_outer_overflow_is_terminal ... ok
+test tools_embed_exact_inner_v5_bytes_for_reads_mutations_holes_and_semantic_errors ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.24s
+

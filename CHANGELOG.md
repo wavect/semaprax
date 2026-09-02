@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Executed generated-client and MCP evidence at exact local subject
-  `85084537bfe41fd1c2d1691b19a25a9955d76731`. All 23 explicitly selected tests
+  `c69600e853a5ecc0df0b23e1329770914ba06e99`. All 23 explicitly selected tests
   passed, including three Python consumer paths, one offline compiled Rust
   consumer, one provisioned strict TypeScript 5.8.3/Node consumer, eight MCP
   adapter cases and five MCP CLI tests. One CLI test interactively launches the

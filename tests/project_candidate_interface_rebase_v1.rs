@@ -39,14 +39,20 @@ tests = ["iface.tests"]
             (
                 "src/core.spx",
                 r#"module iface.core;
-@id("iface.counter") record Counter { @id("iface.counter.value") value: i64, }
+@id("iface.payload") record Payload { @id("iface.payload.value") value: i64, }
+@id("iface.counter") record Counter {
+    @id("iface.counter.value") value: i64,
+    @id("iface.counter.payload") payload: Payload,
+}
 @id("iface.readable") protocol Readable {
     @id("iface.readable.read") fn read(receiver: Self) -> i64;
     @id("iface.readable.positive") fn positive(receiver: Self) -> bool;
 }
 @id("iface.read") fn counter_read(receiver: Counter) -> i64 { receiver.value }
 @id("iface.positive") fn counter_positive(receiver: Counter) -> bool { receiver.value > 0 }
-@id("iface.evaluate") fn evaluate(value: i64) -> i64 { counter_read(Counter { value: value }) }
+@id("iface.evaluate") fn evaluate(value: i64) -> i64 {
+    counter_read(Counter { value: value, payload: Payload { value: value } })
+}
 "#,
             ),
             (
@@ -190,7 +196,13 @@ fn unrelated_body_and_selected_display_changes_rebase_and_merge_without_writes()
 
 #[test]
 fn receiver_protocol_and_selected_function_conformance_drift_conflict() {
-    for edit in ["receiver", "protocol", "implementation"] {
+    for edit in [
+        "receiver",
+        "nominal_identity",
+        "protocol",
+        "protocol_order",
+        "implementation",
+    ] {
         let fixture = Fixture::new();
         let candidate = apply(
             &fixture.candidate(),
@@ -199,7 +211,12 @@ fn receiver_protocol_and_selected_function_conformance_drift_conflict() {
         let before = candidate.to_json().to_owned();
         let revision = fixture.rewrite_core(|source| match edit {
             "receiver" => source.replace("iface.counter.value", "iface.counter.changed-value"),
+            "nominal_identity" => source.replace("iface.payload\")", "iface.payload.changed\")"),
             "protocol" => source.replace("protocol Readable", "protocol ReadableAgain"),
+            "protocol_order" => source.replace(
+                "    @id(\"iface.readable.read\") fn read(receiver: Self) -> i64;\n    @id(\"iface.readable.positive\") fn positive(receiver: Self) -> bool;",
+                "    @id(\"iface.readable.positive\") fn positive(receiver: Self) -> bool;\n    @id(\"iface.readable.read\") fn read(receiver: Self) -> i64;",
+            ),
             "implementation" => source.replace(
                 "fn counter_read(receiver: Counter) -> i64 {",
                 "fn counter_read(receiver: Counter) -> i64 requires true {",
@@ -284,6 +301,10 @@ fn sibling_pair_and_implementation_id_collisions_fail_closed() {
             &identity,
             identity.candidate_digest(),
         ),
+        "SPX-G235",
+    );
+    code(
+        identity.merge(identity.candidate_digest(), &left, left.candidate_digest()),
         "SPX-G235",
     );
 }

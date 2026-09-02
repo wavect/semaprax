@@ -156,6 +156,13 @@ the requested implementation ID to remain absent from the complete source
 identity inventory, including module-use identities. The same implementation
 ID is contributed to ordinary merged-history collision checks.
 
+Named receiver-field and selected-function parameter/result types additionally
+bind their retained checked-HIR identities, so unchanged source spelling or an
+import alias cannot conceal nominal reidentification. Protocol method source
+order is preserved independently from the normalized mapping. Dependencies
+introduced only by an earlier intention in the same suffix remain outside this
+conservative route and reject with `SPX-G235` before replay.
+
 Function bodies, postconditions and display names do not participate in static
 protocol matching and are excluded from this special fingerprint. A surviving
 intention is nevertheless replayed in full and must pass the ordinary source

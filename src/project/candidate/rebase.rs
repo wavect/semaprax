@@ -735,7 +735,7 @@ fn compare_interface_binding(
     after: Option<Value>,
 ) -> Result<(), Vec<Diagnostic>> {
     let before = before.ok_or_else(|| {
-        grammar("admitted interface implementation lacks its original binding facts")
+        conflict("interface implementation dependencies are absent from the selected history base")
     })?;
     if after.as_ref() != Some(&before) {
         return Err(conflict(
@@ -775,12 +775,23 @@ fn classify(
     };
     let new_graph: Value = serde_json::from_str(new.semantic_graph())
         .map_err(|_| grammar("candidate rebase graph is invalid"))?;
-    let new_ids = new_graph["declarations"]
+    let mut new_ids = new_graph["declarations"]
         .as_array()
         .ok_or_else(|| grammar("candidate rebase graph lacks declarations"))?
         .iter()
         .filter_map(|declaration| declaration["id"].as_str())
         .collect::<BTreeSet<_>>();
+    let new_programs = parse_revision(new)?;
+    let source_ids = super::interface::identities(&new_programs)?;
+    new_ids.extend(source_ids.iter().map(String::as_str));
+    for program in &new_programs {
+        new_ids.extend(
+            program
+                .module_uses
+                .iter()
+                .map(|binding| binding.persistent_id.as_str()),
+        );
+    }
     let mut introduced = BTreeSet::new();
     let mut report = Vec::new();
     for change in changes {

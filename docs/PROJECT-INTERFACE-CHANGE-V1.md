@@ -84,6 +84,10 @@ method-to-function mapping, each selected function's conformance-relevant
 signature/effects/precondition facts, the vacant receiver/protocol pair, and
 the globally absent new implementation ID. Mapping input order is immaterial
 because the admitted table is normalized by method ID.
+Named receiver-field and selected-function signature types also bind retained
+checked-HIR identities, and protocol method source order remains part of the
+protocol shape. Thus unchanged type spelling or an import alias cannot hide a
+nominal identity substitution.
 
 Selected-function body, postcondition, and display-name edits do not change
 static conformance and are excluded from this fingerprint. They may therefore

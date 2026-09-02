@@ -328,6 +328,28 @@ pub(super) fn rebase_fingerprint(
         return Ok(None);
     }
 
+    let Some(checked_module) = revision
+        .semantic
+        .image_modules()
+        .iter()
+        .find(|module| module.path() == program.path)
+    else {
+        return Ok(None);
+    };
+    let Some(checked_receiver) = checked_module
+        .types()
+        .iter()
+        .find(|declaration| declaration.id.as_str() == target)
+    else {
+        return Ok(None);
+    };
+    let crate::hir::ResolvedTypeDeclarationKind::Record {
+        fields: checked_fields,
+    } = &checked_receiver.kind
+    else {
+        return Ok(None);
+    };
+
     let TypeDeclarationKind::Record { fields } = &receiver.kind else {
         return Ok(None);
     };
@@ -342,12 +364,21 @@ pub(super) fn rebase_fingerprint(
             })
         })
         .collect::<Vec<_>>();
+    let checked_receiver_fields = checked_fields
+        .iter()
+        .map(|field| {
+            json!({
+                "id":field.id.as_str(),
+                "name":field.name,
+                "index":field.index,
+                "type_identity":field.ty.identity_key()
+            })
+        })
+        .collect::<Vec<_>>();
 
-    let mut methods = protocol.methods.iter().collect::<Vec<_>>();
-    methods.sort_by(|left, right| left.stable_id.cmp(&right.stable_id));
-    let mut method_facts = Vec::with_capacity(methods.len());
+    let mut method_facts = Vec::with_capacity(protocol.methods.len());
     let mut function_facts = BTreeMap::new();
-    for method in methods {
+    for method in &protocol.methods {
         if !method.explicit_id {
             return Ok(None);
         }
@@ -364,6 +395,13 @@ pub(super) fn rebase_fingerprint(
         if !crate::static_protocol::member_matches(protocol, method, receiver, function) {
             return Ok(None);
         }
+        let Some(checked_function) = checked_module
+            .functions()
+            .iter()
+            .find(|candidate| candidate.id.as_str() == function.stable_id)
+        else {
+            return Ok(None);
+        };
         method_facts.push(json!({
             "id":method.stable_id,
             "explicit_id":method.explicit_id,
@@ -384,6 +422,12 @@ pub(super) fn rebase_fingerprint(
                     "mode":parameter.mode.text(),"type":parameter.ty.to_string()
                 })).collect::<Vec<_>>(),
                 "return_type":function.return_type.to_string(),
+                "checked_signature":{
+                    "parameters":checked_function.params.iter().map(|parameter|
+                        parameter.ty.identity_key()).collect::<Vec<_>>(),
+                    "return_type":checked_function.return_type.identity_key(),
+                    "evidence_owner":"retained_checked_source_module_HIR"
+                },
                 "effects":function.effects,
                 "requires_empty":function.requires.is_empty()
             }),
@@ -397,6 +441,7 @@ pub(super) fn rebase_fingerprint(
             "type_parameter_count":receiver.type_parameters.len(),
             "kind":"record",
             "fields":receiver_fields,
+            "checked_fields":checked_receiver_fields,
             "path":program.path,
             "module":program.module
         },

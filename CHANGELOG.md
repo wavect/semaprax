@@ -1314,7 +1314,9 @@
   static protocol implementation intentions. Replay binds exact compiler-owned
   receiver, protocol, method and selected-function conformance facts and rejects
   occupied receiver/protocol pairs or implementation identities before full
-  candidate admission. Function bodies and postconditions remain outside the
+  candidate admission. Named signature and receiver-field types bind retained
+  checked-HIR identities, and protocol method order remains exact. Function
+  bodies and postconditions remain outside the
   conformance fingerprint; behavioral equivalence, runtime witnesses and
   dynamic dispatch are not claimed. Focused evidence is authored and unrun.
 

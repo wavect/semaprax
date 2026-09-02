@@ -8,8 +8,9 @@ fn private_callable_v3_physical_ci_evidence_is_mandatory() {
         .expect("read the pinned CI workflow");
     let provider_main = fs::read_to_string(root.join("src/codegen/native_callable_provider_v3.rs"))
         .expect("read the private callable-v3 provider");
-    let provider_tests = fs::read_to_string(root.join("src/codegen/native_callable_provider_v3/tests.rs"))
-        .unwrap_or_default();
+    let provider_tests =
+        fs::read_to_string(root.join("src/codegen/native_callable_provider_v3/tests.rs"))
+            .unwrap_or_default();
     let provider = format!("{provider_main}\n{provider_tests}");
     let joint = fs::read_to_string(
         root.join("crates/semaprax-native-host/src/settlement_host_v3_integration.rs"),

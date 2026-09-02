@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Executed the selected Phase 0 graph-operational evidence set freshly at one
+  exact local subject, `d85566f0682df0d236f7df3023479dc0ea50d450`.
+  Aggregate bundle
+  `77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18`
+  recursively authenticates three canonical-Git passes, 25 generated-client
+  and authored-MCP passes, 50 standalone editor-controller passes, one real
+  Visual Studio Code Extension Host scenario, and one independent Python MCP
+  SDK 1.27.0 interoperability flow. Python, offline compiled Rust and
+  provisioned TypeScript all submitted exact typed requests to compiler
+  admission. The report separately records two default-ignored TypeScript
+  cases as explicitly provisioned passes and the managed `ACTIVE` workflow as
+  not selected. Exact-tag, remote/later-head, full MCP certification,
+  hosted/cross-platform, target runtime, full quality and programme completion
+  remain unclaimed.
+
 - Executed the saved-source adapter in a selected local Visual Studio Code
   1.135.0 Extension Host at exact subject
   `2888f84f123b7caa44aa6807388d98f851d4beaf`. The archived machine-readable

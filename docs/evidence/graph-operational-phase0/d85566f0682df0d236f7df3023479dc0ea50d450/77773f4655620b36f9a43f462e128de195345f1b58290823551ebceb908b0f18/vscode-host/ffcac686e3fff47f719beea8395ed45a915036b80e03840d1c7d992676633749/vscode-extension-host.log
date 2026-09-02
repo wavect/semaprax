@@ -1,0 +1,120 @@
+[90m[main 2026-09-02T13:30:42.267Z][0m StorageMainService: creating application shared storage
+[90m[main 2026-09-02T13:30:42.652Z][0m [shared storage] Creating shared storage database at ':memory:' (wasCreated: true)
+[90m[main 2026-09-02T13:30:42.653Z][0m [shared storage] Initializing fallback application storage (path: in-memory)
+[90m[main 2026-09-02T13:30:42.765Z][0m [shared storage] Fallback application storage initialized with 3 items
+[90m[main 2026-09-02T13:30:42.766Z][0m update#setState disabled
+[90m[main 2026-09-02T13:30:42.766Z][0m update#ctor - updates are disabled by the environment
+[AgentHost:renderer] Acquiring MessagePort to agent host...
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey=undefined conversationKey=undefined modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey="local" conversationKey="vscode-chat-session://local/Y2NjN2U3MzctYmY1YS00MmVjLWJhNWEtNzkzNWFhZmI1YzNi" modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+Started initializing default profile extensions in extensions installation folder. file:///private/tmp/semaprax-vscode-host-ir98y3nl/extensions
+[AccountPolicyGate] apply: state=inactive, reason=undefined, isRestricted=false
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey="local" conversationKey="vscode-chat-session://local/Y2NjN2U3MzctYmY1YS00MmVjLWJhNWEtNzkzNWFhZmI1YzNi" modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+Completed initializing default profile extensions in extensions installation folder. file:///private/tmp/semaprax-vscode-host-ir98y3nl/extensions
+Loading development extension at /private/tmp/semaprax-graph-operational-next-20260902/editors/vscode
+Settings Sync: Account status changed from uninitialized to unavailable
+[90m[main 2026-09-02T13:30:44.652Z][0m AgentHostProcessManager: agent host started
+[AgentHost:renderer] MessagePort acquired, creating client...
+Started local extension host with pid 93318.
+[91m[main 2026-09-02T13:30:45.082Z][0m [AgentHost:stderr] (node:93317) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `Code Helper --trace-deprecation ...` to show where the warning was created)
+
+[AgentHost:renderer] Protocol connection established; clientId=05369640-8265-448f-8f69-1c1948410004
+[RemoteAgentHostProtocol] Request 2 failed: {
+  code: -32603,
+  message: 'ProviderCatalogUnavailableError: Provider claude cannot enumerate its native session catalog yet\n' +
+    '    at hg._migrateLegacyProviderChats (file:///private/tmp/semaprax-vscode-provision/app/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/platform/agentHost/node/agentHostMain.js:975:34194)'
+}
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] Clearing authentication for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] Clearing authentication for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[RemoteAgentHostProtocol] Request 5 failed: {
+  code: -32603,
+  message: 'ProviderCatalogUnavailableError: Provider claude cannot enumerate its native session catalog yet\n' +
+    '    at hg._migrateLegacyProviderChats (file:///private/tmp/semaprax-vscode-provision/app/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/platform/agentHost/node/agentHostMain.js:975:34194)'
+}
+Unknown channel: agentHostClientByokLm
+Unknown channel: agentHostClientProxy
+Unknown channel: agentHostClientProxy
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey="local" conversationKey="vscode-chat-session://local/Y2NjN2U3MzctYmY1YS00MmVjLWJhNWEtNzkzNWFhZmI1YzNi" modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+SEMAPRAX_VSCODE_HOST_RESULT={"schema":"semaprax.vscode-extension-host-result.v1","vscode_version":"1.135.0","app_name":"Visual Studio Code","extension_host_exec_path":"/private/tmp/semaprax-vscode-provision/app/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)","extension_version":"0.1.0","registered_commands":26,"image_revision":"sha256:1ce813a126c875e660856f94e228f9351d8dd5c7cb97c982bbc913cc6a67c0c2","candidate_revision":"sha256:8bb8b728a1d6834b34ea7ce65a0c7bb7962644b041ce76483672387fd361087a","source_sha256":"sha256:415255f8628535606dcecd8d7459639014d4a3437dc1199ecf7f9cc8074d801e","typed_intent":"rename_declaration","target":"calculator.add","verified_virtual_diff":true,"dirty_buffer_invalidated":true,"source_bytes_unchanged":true}
+[90m[main 2026-09-02T13:30:47.174Z][0m Extension host with pid 93318 exited with code: 0, signal: unknown.

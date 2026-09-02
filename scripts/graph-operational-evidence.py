@@ -42,6 +42,7 @@ MANAGED_TEST = "signature_evolution_merge_reports_tests_and_separate_managed_pub
 MANAGED_REASON = "SPX-G150 wrong ACTIVE schema, needs workspace init fix"
 MAX_LOG_BYTES = 16 * 1024 * 1024
 MAX_REPORT_BYTES = 256 * 1024
+MAX_REPOSITORY_INPUT_BYTES = 16 * 1024 * 1024
 MAX_COMMAND_SECONDS = 20 * 60
 HEX_COMMIT = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
 RESULT = re.compile(r"^test ([A-Za-z0-9_]+) \.\.\. (ok|FAILED|ignored)$", re.MULTILINE)
@@ -138,13 +139,17 @@ def report(path, object_format):
     if value.get("git_object_format") != object_format:
         raise EvidenceError(f"task-economics report has the wrong Git format: {path.name}")
     criteria = value.get("criteria")
-    if (
-        not isinstance(criteria, list)
-        or len(criteria) != 12
-        or any(row.get("passed") is not True for row in criteria if isinstance(row, dict))
-        or any(not isinstance(row, dict) for row in criteria)
-    ):
+    if not isinstance(criteria, list) or len(criteria) != 12:
         raise EvidenceError(f"task-economics report lacks twelve passing criteria: {path.name}")
+    for expected, row in enumerate(criteria, 1):
+        if (
+            not isinstance(row, dict)
+            or row.get("criterion") != expected
+            or row.get("passed") is not True
+        ):
+            raise EvidenceError(
+                f"task-economics report has a malformed criterion {expected}: {path.name}"
+            )
     return body, value
 
 
@@ -182,6 +187,31 @@ def inventory(directory):
         raise EvidenceError(f"unexpected exported evidence inventory: {sorted(names)!r}")
 
 
+def repository_inputs():
+    bodies = {}
+    rows = []
+    for name in ("Cargo.toml", "Cargo.lock"):
+        body = regular_bytes(
+            ROOT / name, MAX_REPOSITORY_INPUT_BYTES, "repository input"
+        )
+        bodies[name] = body
+        rows.append({"path": name, "bytes": len(body), "sha256": sha256(body)})
+    return bodies, rows
+
+
+def require_repository_identity(commit, tree, inputs):
+    if git("rev-parse", "--verify", "HEAD^{commit}") != commit:
+        raise EvidenceError("Git HEAD changed during evidence execution")
+    if git("rev-parse", "--verify", "HEAD^{tree}") != tree:
+        raise EvidenceError("Git HEAD tree changed during evidence execution")
+    current, _rows = repository_inputs()
+    for path, original in inputs.items():
+        if current.get(path) != original:
+            raise EvidenceError(f"repository input changed during evidence execution: {path}")
+    if tree_state():
+        raise EvidenceError("repository worktree is not clean after execution")
+
+
 def write_bundle(destination, evidence, log, reports):
     parent = destination.parent
     parent.mkdir(parents=True, exist_ok=True)
@@ -214,8 +244,12 @@ def main(argv=None):
     commit_before = git("rev-parse", "--verify", "HEAD^{commit}")
     if HEX_COMMIT.fullmatch(commit_before) is None:
         raise EvidenceError("Git HEAD is not one exact lowercase commit ID")
+    tree_before = git("rev-parse", "--verify", "HEAD^{tree}")
+    if HEX_COMMIT.fullmatch(tree_before) is None:
+        raise EvidenceError("Git HEAD tree is not one exact lowercase object ID")
     if tree_state():
         raise EvidenceError("repository worktree is not clean before execution")
+    input_bodies, input_rows = repository_inputs()
 
     tools = {
         "cargo": tool("cargo", "--version", "--verbose"),
@@ -247,11 +281,7 @@ def main(argv=None):
             body, _value = report(exported_path / name, object_format)
             report_bodies[name] = body
 
-    commit_after = git("rev-parse", "--verify", "HEAD^{commit}")
-    if commit_after != commit_before:
-        raise EvidenceError("Git HEAD changed during evidence execution")
-    if tree_state():
-        raise EvidenceError("repository worktree is not clean after execution")
+    require_repository_identity(commit_before, tree_before, input_bodies)
 
     artifact_rows = [
         {"path": "cargo.log", "bytes": len(log), "sha256": sha256(log)},
@@ -275,6 +305,8 @@ def main(argv=None):
         "schema": SCHEMA,
         "repository": {
             "commit": commit_before,
+            "tree": tree_before,
+            "inputs": input_rows,
             "head_relation_at_capture": "HEAD",
             "clean_before": True,
             "clean_after": True,
@@ -346,9 +378,11 @@ def main(argv=None):
         if not destination.is_absolute():
             destination = (Path.cwd() / destination).resolve()
     write_bundle(destination, evidence, log, report_bodies)
-    if git("rev-parse", "--verify", "HEAD^{commit}") != commit_before or tree_state():
+    try:
+        require_repository_identity(commit_before, tree_before, input_bodies)
+    except EvidenceError:
         shutil.rmtree(destination, ignore_errors=True)
-        raise EvidenceError("writing the evidence bundle changed repository state")
+        raise
     print(destination)
     return 0
 

@@ -65,8 +65,9 @@ Export followed by resolve on one image is byte-for-value identical to resolve
 on a separately derived image with the same compiler identity, schemas,
 manifest bytes, ordered paths and canonical source bytes. Absolute checkout
 paths and process/session identities are not reference facts. A source edit,
-manifest edit, schema/compiler change or different target produces a different
-image and rejects the old reference rather than retargeting it by stable ID.
+manifest edit or schema/compiler change produces a different image and rejects
+the old reference. Selecting another target on the same image produces a
+different reference; it never retargets or invalidates the original reference.
 
 ## Digest and grammar
 
@@ -104,8 +105,8 @@ nor source.
 
 Two additive semantic-read methods expose the same library operations:
 
-- `image/function-reference-export` takes `image_revision`, `target`, and
-  optional nullable `facet`;
+- `image/function-reference-export` takes `image_revision`, `target`, and an
+  optional `facet`; omission exports a reference whose facet value is null;
 - `image/function-reference-resolve` takes `image_revision` and `reference`,
   where `reference` is the exact canonical carrier string with no terminal LF.
 

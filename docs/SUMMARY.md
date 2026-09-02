@@ -77,6 +77,7 @@ Audience: all documentation readers.
 - [Semantic Image Dependency Navigation v1](SEMANTIC-IMAGE-DEPENDENCY-NAVIGATION-V1.md)
 - [Project Candidate Dependency Navigation v1](PROJECT-CANDIDATE-DEPENDENCY-NAVIGATION-V1.md)
 - [Project Candidate Function Facets v1](PROJECT-CANDIDATE-FUNCTION-FACETS-V1.md)
+- [Semantic Image Function Reference v1](SEMANTIC-IMAGE-FUNCTION-REFERENCE-V1.md)
 - [Project Candidate Impact Navigation v1](PROJECT-CANDIDATE-IMPACT-NAVIGATION-V1.md)
 - [Project Candidate Package Consumer Replay v1](PROJECT-CANDIDATE-PACKAGE-CONSUMER-REPLAY-V1.md)
 - [Project Candidate Analysis Evidence v1](PROJECT-CANDIDATE-ANALYSIS-EVIDENCE-V1.md)

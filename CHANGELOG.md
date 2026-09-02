@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added exact-revision semantic-image function references. A compact canonical
+  carrier binds one retained function, optional facet, image/Project/Workspace
+  revisions, graph digest and source provenance; resolving it against an
+  independently rebuilt identical image freshly derives the function summary
+  and facet handle. Two closed v5 read methods, generated clients, MCP and
+  authenticated read batches expose the same zero-authority contract. Evidence
+  is authored and unrun; references do not migrate across revisions or retain
+  program meaning, cursors, execution, source or publication authority.
+
 - Added library-only candidate runtime-boundary evidence that composes exact
   candidate coverage with a freshly replayed, policy-bounded reference-
   interpreter test closure. Only `runtime_environment` becomes partial;

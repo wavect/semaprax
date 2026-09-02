@@ -16,6 +16,7 @@ mod image_coverage;
 mod image_dependencies;
 mod image_facets;
 mod image_protocols;
+mod image_reference;
 mod image_store;
 mod image_targets;
 pub(crate) mod incremental;
@@ -192,6 +193,10 @@ pub use image_facets::{
 };
 pub use image_protocols::{
     IMAGE_PROTOCOL_CONFORMANCE_SCHEMA, MAX_IMAGE_PROTOCOL_CONFORMANCE_BYTES,
+};
+pub use image_reference::{
+    IMAGE_FUNCTION_REFERENCE_RESOLUTION_SCHEMA, IMAGE_FUNCTION_REFERENCE_SCHEMA,
+    MAX_IMAGE_FUNCTION_REFERENCE_BYTES, MAX_IMAGE_FUNCTION_REFERENCE_RESOLUTION_BYTES,
 };
 pub use image_store::{
     load_semantic_image, persist_semantic_image, ImageRefreshReport, ImageStoreReceipt,

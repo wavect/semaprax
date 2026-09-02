@@ -82,6 +82,16 @@ Agents can instead request `image/dependency-summary` and expand selected
 counts and bounded sites/callers/calls/members pages without transferring the
 complete report. See [Dependency Navigation](SEMANTIC-IMAGE-DEPENDENCY-NAVIGATION-V1.md).
 
+`image/function-reference-export` emits a compact canonical selector for one
+declared function and optional facet. `image/function-reference-resolve`
+accepts those exact bytes only against the same image revision, verifies the
+Project, Workspace, graph and source provenance, and freshly derives the
+current function summary and selected facet handle. Both closed-schema methods
+are eligible for authenticated read batches. The reference is an integrity and
+staleness binding, not persistent compiler state, a migration token, a secret,
+a capability or source/publication authority. See [Function Reference
+v1](SEMANTIC-IMAGE-FUNCTION-REFERENCE-V1.md).
+
 With candidate preparation, `candidate/dependency-summary` and
 `candidate/dependency-page` expose the same compact views over one exact
 retained candidate revision. Their handles and cursors bind the candidate, so

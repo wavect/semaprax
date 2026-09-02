@@ -273,8 +273,8 @@ fn discovery_bundles_closed_payloads_and_generated_clients_without_new_grants() 
         ));
         let source = client["source"].as_str().unwrap();
         for fragment in [
-            "ImageFunctionReferencePayload",
-            "ImageFunctionReferenceResolutionPayload",
+            "ImageFunctionReferenceExportPayload",
+            "ImageFunctionReferenceResolvePayload",
             "request_image_function_reference_export_typed",
             "decode_request_image_function_reference_resolve_typed",
         ] {
@@ -314,7 +314,7 @@ fn catalogue_mcp_export_and_resolve_match_direct_json_rpc_bytes() {
     let arguments = resolve_params(&revision, &reference);
     let mut direct = fixture.session();
     let direct_bytes = direct
-        .handle_frame(&frame(11, RESOLVE, arguments.clone()))
+        .handle_frame(&frame(0, RESOLVE, arguments.clone()))
         .unwrap();
 
     let mut mcp = McpSession::new(fixture.session()).unwrap();

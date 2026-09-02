@@ -1,7 +1,6 @@
 //! Exact archive admission, archiver settlement, and the legacy harness entry
 //! points that run held tools.
 
-use super::super::handles::*;
 use super::*;
 
 pub(crate) fn recheck_named_regular(

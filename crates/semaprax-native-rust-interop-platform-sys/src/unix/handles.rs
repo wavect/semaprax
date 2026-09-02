@@ -200,7 +200,7 @@ pub fn hold_regular_file(directory: &Directory, name: &OsStr) -> Result<RegularF
     hold_regular_file_name_prepared(directory, &name)
 }
 
-fn authenticate_regular_file(file: File) -> Result<RegularFile, Error> {
+pub(crate) fn authenticate_regular_file(file: File) -> Result<RegularFile, Error> {
     authenticate_regular_file_bounded(file, u64::MAX)
 }
 

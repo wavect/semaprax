@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-- Authored the Phase 0 graph-operational v2 closure runner. It selects four
+- Executed the Phase 0 graph-operational v2 closure runner at exact local
+  subject `4e6751f92525ed8e4bb5e859233616df7adc86d1`. Aggregate bundle
+  `76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff`
+  recursively authenticates 86 passing rows: four
   canonical-Git workflows including deterministic result loss after a real Git
   ref update, four managed-publication boundary regressions, and the integrated
   managed-generation workflow. Managed fixtures now authenticate the semantic
@@ -10,8 +13,10 @@
   candidate source in the immutable generation without rewriting raw source.
   The VS Code product identity check now retains bounded launcher diagnostics
   separately from the final three canonical identity lines, accommodating
-  current signed macOS products without weakening package-version comparison.
-  Exact-subject aggregate execution and promotion remain pending.
+  the selected macOS product without weakening package-version comparison.
+  The completion row remains Partial: hosted/cross-platform, target runtime,
+  full MCP certification, full quality, later-head and programme completion are
+  unclaimed.
 
 - Executed the selected Phase 0 graph-operational evidence set freshly at one
   exact local subject, `d85566f0682df0d236f7df3023479dc0ea50d450`.

@@ -1,8 +1,8 @@
 # Project graph-operational Git workflow v1
 
 Status: integrated regression executed locally for exact subject
-`474c481bf3c3561c144e077f0000460f61af55f2`; all three selected Git-workflow
-tests passed. Full goal remains Partial.
+`4e6751f92525ed8e4bb5e859233616df7adc86d1`; all four selected Git-workflow
+tests passed, including post-CAS result-loss handling. Full goal remains Partial.
 
 Audience: compiler contributors, embedding hosts, and agent workflow integrators.
 
@@ -170,7 +170,8 @@ Those dimensions remain independent even if all three selected Git tests pass.
 [Graph-operational Execution Evidence v2](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V2.md)
 extends that runner with the real post-CAS result-loss case, the four managed
 publication boundary regressions, and the integrated managed-generation
-workflow. Its exact-subject execution is pending.
+workflow. Its reviewed local bundle records all nine rows passing for exact
+subject `4e6751f92525ed8e4bb5e859233616df7adc86d1`.
 
 ## Task-economics observation
 

@@ -1,6 +1,8 @@
 # Graph-operational execution evidence v2
 
-Status: runner and closed inventory authored; exact-subject execution pending.
+Status: reviewed local runner passed all 9 selected rows at exact subject
+`4e6751f92525ed8e4bb5e859233616df7adc86d1`; bundle
+[`e3a9378c33342571621026f9a8c98a191e06e8521faeb97c223a3a0e74801a7f`](evidence/graph-operational/4e6751f92525ed8e4bb5e859233616df7adc86d1/e3a9378c33342571621026f9a8c98a191e06e8521faeb97c223a3a0e74801a7f/evidence.json).
 
 Audience: release engineers, compiler contributors, and programme reviewers.
 
@@ -39,6 +41,11 @@ missing reports, dirty input or output state, subject drift, malformed summaries
 and artifact inventory or digest mismatches. `Cargo.toml` and `Cargo.lock` remain
 bound repository inputs. Output is private derived evidence, never source or
 publication authority.
+
+The reviewed Darwin arm64 invocation used Cargo/Rust 1.98.0, Git 2.47.1 and
+Python 3.14.2. Its five artifacts and envelope replay under the v2 bundle
+domain. This is local evidence for the named subject, not for this later archive
+commit or a hosted platform.
 
 ## Boundaries
 

@@ -94,7 +94,7 @@ promotes a complete row, and broader validation remains outstanding.
 | Typed requests | [Typed Request Clients v1](IMAGE-TYPED-REQUEST-CLIENTS-V1.md) and [Client/MCP Evidence v2](GRAPH-OPERATIONAL-CLIENT-MCP-EXECUTION-EVIDENCE-V2.md); one exact local subject executes Python, offline compiled Rust and provisioned TypeScript request construction against real compiler admission, including an exact hostile unbound-place rejection; packaged SDK and exhaustive generated-method coverage remain open |
 | Compact hole navigation | [Hole Navigation v1](PROJECT-HOLE-NAVIGATION-V1.md); typed summaries and context-bound scope/call/obligation/constructor pages for all three hole kinds, authored/unrun; full contexts and pending-state authority unchanged |
 | Unified workspace protocol | [Workspace Protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md), [startup CLI](WORKSPACE-SESSION-CLI-V1.md) |
-| MCP integration | [MCP Adapter v1](IMAGE-MCP-ADAPTER-V1.md), [Client/MCP Evidence v2](GRAPH-OPERATIONAL-CLIENT-MCP-EXECUTION-EVIDENCE-V2.md), and [Phase 0 Evidence v1](GRAPH-OPERATIONAL-PHASE0-EXECUTION-EVIDENCE-V1.md); one exact local subject passes the authored adapter/stdio gates and an independent public Python MCP SDK 1.27.0 interoperability profile including bounded catalogue paging and notification nonexecution; full MCP certification, HTTP/cancellation and hosted cross-platform evidence remain open |
+| MCP integration | [MCP Adapter v1](IMAGE-MCP-ADAPTER-V1.md), [Client/MCP Evidence v2](GRAPH-OPERATIONAL-CLIENT-MCP-EXECUTION-EVIDENCE-V2.md), and [Phase 0 Evidence v2](GRAPH-OPERATIONAL-PHASE0-EXECUTION-EVIDENCE-V2.md); one exact local subject passes the authored adapter/stdio gates and an independent provisioned Python `mcp` SDK 1.27.0 interoperability profile including bounded catalogue paging and notification nonexecution; full MCP certification, HTTP/cancellation and hosted cross-platform evidence remain open |
 | Editor source review | [Source Review v1](PROJECT-CANDIDATE-SOURCE-REVIEW-V1.md), [VS Code Adapter v1](VSCODE-SAVED-SOURCE-ADAPTER-V1.md), and [focused host evidence](GRAPH-OPERATIONAL-VSCODE-HOST-EXECUTION-EVIDENCE-V1.md); exact local subject `2888f84f123b7caa44aa6807388d98f851d4beaf` executes the compiler-backed typed rename, verified virtual diff and dirty-buffer invalidation without saved-source writes. Packaging, manual UI, minimum-version, hosted and cross-platform evidence remain open |
 | Editor typed holes | [VS Code Adapter v1](VSCODE-SAVED-SOURCE-ADAPTER-V1.md#typed-hole-workflow); three-kind hole planning, compact facets, explicit checked-suggestion selection into bound fill scratches and separate completion, authored/unrun; editor-host execution remains open |
 | Editor diagnostic repair | [VS Code Adapter v1](VSCODE-SAVED-SOURCE-ADAPTER-V1.md#diagnostic-attempts-and-explicit-repair); separate rejected attempts, exact-byte report inspection and explicit compiler repair selectors, authored/unrun with mock controller regressions; richer repair UX and actual editor-host execution remain open |
@@ -275,7 +275,7 @@ there is no in-session RPC or later-startup approval shortcut.
 | 9. Verify native/Wasm admission | C11 emission and structural Core-Wasm admission passed inside the workflow; target runtime execution remains open. |
 | 10. Return semantic impact and human source diff | Impact, source differences and semantic-delta replay passed for the exact fixture; generalized facets remain open. |
 | 11. Reject or semantically rebase concurrent source change | Sibling merge, competing signature rejection and real stale-ref preflight passed; manual refresh/rebase, mid-CAS race and general reconciliation remain open. |
-| 12. Commit only through separate authority | Separate startup-approved SHA-1/SHA-256 Git publication, committed-object inspection, wrong approval and terminal reuse controls passed locally; managed `ACTIVE`, broader Git and platform evidence remain open. |
+| 12. Commit only through separate authority | Separate startup-approved SHA-1/SHA-256 Git publication, committed-object inspection, wrong approval and terminal reuse controls passed locally. Separate local managed-generation evidence also published and authenticated `ACTIVE` while preserving raw source; a single integrated general publication path, broader Git and platform evidence remain open. |
 
 An integrated canonical Git scenario is authored in
 `tests/project_graph_operational_git_workflow_v1.rs`: real v5 requests select a
@@ -296,14 +296,16 @@ records all three selected tests passing for exact subject
 `474c481bf3c3561c144e077f0000460f61af55f2`. [Execution Evidence
 v2](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V2.md) additionally selects a real
 post-CAS result-loss case, four managed-publication boundary regressions, and
-the integrated managed workflow. Its exact-subject execution is pending;
+the integrated managed workflow. Its reviewed local exact-subject bundle passes
+all nine selected rows; the Phase 0 v2 aggregate passes all 86 selected rows;
 generated clients, MCP, hosted CI and native/Wasm runtime remain independent
 dimensions. Therefore neither tranche completes the general demonstration.
 
-An integrated managed-generation precursor is selected by the v2 runner in
+An integrated managed-generation precursor is executed by the v2 runner in
 `tests/project_graph_operational_workflow_v1.rs`: it combines signature migration,
 unrelated merge, competing-signature rejection, deltas, explicit test policy and
-separate managed publication with stale rejection. It is unrun and deliberately
+separate managed publication with stale rejection. It passed locally at the
+recorded exact subject and deliberately
 leaves canonical raw Git source unchanged. The demonstration is not complete
 until one integrated executable scenario
 covers all twelve steps, including the separate commit boundary and its hostile

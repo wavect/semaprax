@@ -1,7 +1,8 @@
 # Project graph-operational workflow v1
 
-Status: integrated managed-generation scenario selected by the authored Phase 0
-v2 evidence runner; exact-subject execution is pending.
+Status: integrated managed-generation scenario passed in the reviewed local
+Phase 0 v2 bundle for exact subject
+`4e6751f92525ed8e4bb5e859233616df7adc86d1`.
 
 Audience: compiler contributors and agent workflow integrators.
 

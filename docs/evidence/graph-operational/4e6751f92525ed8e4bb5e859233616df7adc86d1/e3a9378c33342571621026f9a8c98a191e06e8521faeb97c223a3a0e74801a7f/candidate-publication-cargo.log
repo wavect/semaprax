@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running tests/project_candidate_publication_v1.rs (target/debug/deps/project_candidate_publication_v1-0479d7911e85748f)
+
+running 4 tests
+test existing_exclusive_lock_is_required_before_replay_or_candidate_approval_checks ... ok
+test prepare_is_read_only_and_apply_changes_only_the_managed_active_generation ... ok
+test proof_tamper_approval_and_host_substitution_reject_before_any_generation_write ... ok
+test raw_source_drift_and_single_changed_file_never_pad_or_publish ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.64s
+

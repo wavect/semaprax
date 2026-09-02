@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running tests/project_graph_operational_git_workflow_v1.rs (target/debug/deps/project_graph_operational_git_workflow_v1-ad9dfd58b6d6b509)
+
+running 4 tests
+test competing_real_git_ref_consumes_approval_without_overwriting_the_other_commit ... ok
+test real_git_ref_update_with_lost_response_is_terminal_and_requires_inspection ... ok
+test twelve_step_v5_review_to_real_sha1_git_commit ... ok
+test twelve_step_v5_review_to_real_sha256_git_commit ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.58s
+

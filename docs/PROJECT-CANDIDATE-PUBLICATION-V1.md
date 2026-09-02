@@ -1,7 +1,8 @@
 # Project Candidate Managed Publication v1
 
-Status: Partial; implementation and four focused regressions are selected by
-the authored Phase 0 v2 evidence runner. Exact-subject execution is pending.
+Status: Partial; all four focused managed-publication regressions passed in the
+reviewed local Phase 0 v2 bundle for exact subject
+`4e6751f92525ed8e4bb5e859233616df7adc86d1`.
 
 Audience: compiler maintainers and hosts explicitly publishing approved Project candidates.
 

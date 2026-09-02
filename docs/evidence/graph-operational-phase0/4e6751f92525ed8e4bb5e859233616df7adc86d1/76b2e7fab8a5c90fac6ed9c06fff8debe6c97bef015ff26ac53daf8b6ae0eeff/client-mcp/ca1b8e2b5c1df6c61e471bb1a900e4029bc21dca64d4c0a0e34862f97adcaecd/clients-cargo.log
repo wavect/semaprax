@@ -1,0 +1,31 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running tests/image_recursive_repair_response_clients_v5.rs (target/debug/deps/image_recursive_repair_response_clients_v5-ae921a7f1d5911e4)
+
+running 4 tests
+test authored_python_harness_checks_actual_recursive_repair_payloads_and_hostile_nested_values ... ok
+test authored_rust_harness_converts_recursive_typed_repairs_after_runtime_validation ... ok
+test full_repair_report_is_bundled_only_with_selected_diagnostics_and_all_clients_are_deterministic ... ok
+test provisioned_typescript_harness_checks_actual_recursive_repair_payloads_and_hostile_nested_values ... ignored, requires provisioned absolute SEMAPRAX_TEST_TSC 5.8.3 and SEMAPRAX_TEST_NODE >=22
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 17.91s
+
+     Running tests/image_typed_request_clients_v5.rs (target/debug/deps/image_typed_request_clients_v5-d1451ebe7782f4b3)
+
+running 5 tests
+test generated_python_resolves_recursive_types_and_submits_exact_intent_for_compiler_admission ... ok
+test generated_rust_resolves_recursive_types_and_submits_exact_intent_for_compiler_admission ... ok
+test provisioned_typescript_submits_exact_typed_request_for_compiler_admission ... ignored, requires provisioned absolute SEMAPRAX_TEST_TSC 5.8.3 and SEMAPRAX_TEST_NODE >=22
+test read_only_clients_cannot_acquire_constructor_or_publication_helpers ... ok
+test selected_recursive_request_types_are_deterministic_and_preserve_legacy_helpers ... ok
+
+test result: ok. 4 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 21.92s
+
+     Running tests/image_typed_response_clients_v5.rs (target/debug/deps/image_typed_response_clients_v5-908b92ba5555cff4)
+
+running 3 tests
+test all_languages_emit_deterministic_typed_responses_for_only_selected_methods ... ok
+test concrete_chunk_schemas_keep_required_null_distinct_from_omission_and_opaque_contexts ... ok
+test generated_python_typed_decoders_preserve_runtime_validation_and_opaque_report_boundaries ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.02s
+

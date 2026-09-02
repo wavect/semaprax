@@ -1,7 +1,8 @@
 # Graph-operational Phase 0 execution evidence v2
 
-Status: aggregate runner and closed inventory authored; exact-subject execution
-pending.
+Status: reviewed local aggregate passed at exact subject
+`4e6751f92525ed8e4bb5e859233616df7adc86d1`; bundle
+[`76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff`](evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/evidence.json).
 
 Audience: release engineers, compiler contributors, and programme reviewers.
 
@@ -34,10 +35,17 @@ TypeScript cases remain separately provisioned and must pass explicitly. The
 managed `ACTIVE` tests are ordinary selected rows in v2 and may no longer be
 reported as ignored or not selected.
 
+The reviewed Darwin arm64 aggregate freshly executed every component on the
+same subject. It used explicit Node 24.3.0 and TypeScript 5.8.3 tools, the
+selected Visual Studio Code 1.135.0 product, and Python 3.14.2 with a provisioned
+`mcp` SDK distribution 1.27.0. The archived aggregate contains 20 authenticated
+child artifacts plus its canonical envelope.
+
 All child bundles must bind the same commit and tree. The runner replays their
-closed inventories, artifacts and bundle identifiers; pins tool identities;
-executes the independent public Python MCP SDK 1.27.0 flow; and publishes a new
-aggregate only after repository, tool, and artifact checks remain stable.
+closed inventories, artifacts and bundle identifiers; records selected
+executable and launcher identities, versions, and the `mcp` package payload;
+executes the independent provisioned Python `mcp` SDK 1.27.0 flow; and publishes
+a new aggregate only after repository, tool, and artifact checks remain stable.
 
 A passing aggregate is local exact-subject Phase 0 evidence. It does not claim
 an exact release tag, remote-main or later-head status, hosted/cross-platform

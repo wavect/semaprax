@@ -1,4 +1,4 @@
-//! Generated response-client evidence, authored and intentionally unrun.
+//! Generated response-client evidence; exact local execution is separately archived.
 use semaprax::image_transport::{VNextPolicy, VNextSession};
 use semaprax::project::CandidateTestPolicy;
 use serde_json::{json, Value};

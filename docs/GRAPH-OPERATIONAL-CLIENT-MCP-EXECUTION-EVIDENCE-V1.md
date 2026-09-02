@@ -1,7 +1,8 @@
 # Graph-operational client and MCP execution evidence v1
 
-Status: authored, not executed. This contract does not record a passing subject
-until its runner completes against one exact clean commit.
+Status: executed locally for exact subject
+`85084537bfe41fd1c2d1691b19a25a9955d76731`; all 23 explicitly selected tests
+passed and the ordinary run retained its one provisioned TypeScript ignore row.
 
 Audience: release engineers, compiler contributors, and programme reviewers.
 
@@ -25,6 +26,13 @@ version with major version 22 or later. `--output <new-bundle-directory>` may
 select an exact fresh destination. Otherwise the runner writes beneath
 `.semaprax/evidence/graph-operational-client-mcp/<commit>/<bundle-id>/`. The
 directory is private derived evidence and is never source or authority.
+
+The reviewed invocation produced bundle
+`a20ed6b8b39d8c4e48cd277a4a6936e5acc4b8d20be55ac381d3ae22e26d8ddb`.
+Its [archived envelope](evidence/graph-operational-client-mcp/85084537bfe41fd1c2d1691b19a25a9955d76731/a20ed6b8b39d8c4e48cd277a4a6936e5acc4b8d20be55ac381d3ae22e26d8ddb/evidence.json)
+and four authenticated Cargo logs are evidence for that exact subject, not for
+this later record commit. The host was Darwin arm64 with Rust/Cargo 1.98.0,
+Python 3.14.2, Node 24.3.0 and TypeScript 5.8.3.
 
 Before execution the runner requires a clean worktree and binds exact `HEAD`,
 its tree object, and the regular-file bytes, lengths, and SHA-256 digests of

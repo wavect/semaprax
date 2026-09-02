@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Executed generated-client and MCP evidence at exact local subject
+  `85084537bfe41fd1c2d1691b19a25a9955d76731`. All 23 explicitly selected tests
+  passed, including three Python consumer paths, one offline compiled Rust
+  consumer, one provisioned strict TypeScript 5.8.3/Node consumer, eight MCP
+  adapter cases and five MCP CLI tests. One CLI test interactively launches the
+  actual `serve-workspace-mcp` stdio process. The archived envelope binds the
+  four Cargo logs and recorded tools. Independent MCP SDK conformance, VS Code,
+  HTTP/cancellation, generated-client Git publication, hosted/cross-platform,
+  target runtime, full quality and programme completion remain unclaimed.
+
 - Added and executed a focused exact-commit evidence contract for the existing
   twelve-step canonical-Git workflow. Subject
   `474c481bf3c3561c144e077f0000460f61af55f2` passed all three locked/offline local

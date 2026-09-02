@@ -1,4 +1,4 @@
-//! Optional MCP stdio adapter evidence, authored and intentionally unrun.
+//! Optional MCP stdio adapter evidence; exact local execution is separately archived.
 use semaprax::image_transport::{McpSession, VNextPolicy, VNextSession};
 use semaprax::project::{
     with_authenticated_project, CandidateTestPolicy, ProjectCandidate, ProjectCandidateDraft,

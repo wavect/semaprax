@@ -12,6 +12,10 @@ use std::sync::{
 };
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
+const MAX_STDIO_LINE_BYTES: usize = 8 * 1024 * 1024 + 1;
+const MAX_STDERR_BYTES: usize = 64 * 1024;
+const MAX_CATALOGUE_PAGES: usize = 64;
+const MAX_CATALOGUE_TOOLS: usize = 512;
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 struct Fixture(PathBuf);
 impl Fixture {
@@ -130,12 +134,43 @@ fn failed(row: &Value) -> bool {
     row.get("error").is_some() || row["result"]["isError"] == true
 }
 
+fn bounded_line(reader: &mut impl BufRead) -> Result<Option<String>, String> {
+    let mut line = Vec::new();
+    loop {
+        let available = reader.fill_buf().map_err(|error| error.to_string())?;
+        if available.is_empty() {
+            return if line.is_empty() {
+                Ok(None)
+            } else {
+                Err("MCP stdout ended inside a frame".into())
+            };
+        }
+        let end = available
+            .iter()
+            .position(|byte| *byte == b'\n')
+            .map_or(available.len(), |index| index + 1);
+        if line.len().saturating_add(end) > MAX_STDIO_LINE_BYTES {
+            return Err("MCP stdout frame exceeds its retained byte bound".into());
+        }
+        let terminated = available[end - 1] == b'\n';
+        line.extend_from_slice(&available[..end]);
+        reader.consume(end);
+        if terminated {
+            return String::from_utf8(line)
+                .map(Some)
+                .map_err(|_| "MCP stdout frame is not UTF-8".into());
+        }
+    }
+}
+
 struct LiveMcp {
     child: Child,
     input: Option<std::process::ChildStdin>,
     output: Receiver<Result<String, String>>,
+    output_done: Receiver<()>,
+    error_result: Receiver<Result<(Vec<u8>, bool), String>>,
     output_thread: Option<JoinHandle<()>>,
-    error_thread: Option<JoinHandle<Vec<u8>>>,
+    error_thread: Option<JoinHandle<()>>,
     reaped: bool,
 }
 impl LiveMcp {
@@ -155,13 +190,13 @@ impl LiveMcp {
         let output = child.stdout.take().unwrap();
         let error = child.stderr.take().unwrap();
         let (sender, receiver) = mpsc::channel();
+        let (output_done_sender, output_done) = mpsc::channel();
         let output_thread = thread::spawn(move || {
             let mut reader = BufReader::new(output);
             loop {
-                let mut line = String::new();
-                match reader.read_line(&mut line) {
-                    Ok(0) => break,
-                    Ok(_) => {
+                match bounded_line(&mut reader) {
+                    Ok(None) => break,
+                    Ok(Some(line)) => {
                         if sender.send(Ok(line)).is_err() {
                             break;
                         }
@@ -172,16 +207,33 @@ impl LiveMcp {
                     }
                 }
             }
+            let _ = output_done_sender.send(());
         });
+        let (error_result_sender, error_result) = mpsc::channel();
         let error_thread = thread::spawn(move || {
-            let mut bytes = Vec::new();
-            BufReader::new(error).read_to_end(&mut bytes).unwrap();
-            bytes
+            let mut reader = BufReader::new(error);
+            let mut retained = Vec::new();
+            let mut overflow = false;
+            let result = loop {
+                let mut chunk = [0_u8; 8192];
+                match reader.read(&mut chunk) {
+                    Ok(0) => break Ok((retained, overflow)),
+                    Ok(count) => {
+                        let remaining = MAX_STDERR_BYTES.saturating_sub(retained.len());
+                        retained.extend_from_slice(&chunk[..count.min(remaining)]);
+                        overflow |= count > remaining;
+                    }
+                    Err(error) => break Err(error.to_string()),
+                }
+            };
+            let _ = error_result_sender.send(result);
         });
         Self {
             child,
             input: Some(input),
             output: receiver,
+            output_done,
+            error_result,
             output_thread: Some(output_thread),
             error_thread: Some(error_thread),
             reaped: false,
@@ -218,9 +270,21 @@ impl LiveMcp {
             thread::sleep(Duration::from_millis(10));
         };
         self.reaped = true;
-        self.output_thread.take().unwrap().join().unwrap();
-        let stderr = self.error_thread.take().unwrap().join().unwrap();
+        self.output_done
+            .recv_timeout(Duration::from_secs(2))
+            .expect("MCP stdout reader did not finish after process exit");
+        let (stderr, stderr_overflow) = self
+            .error_result
+            .recv_timeout(Duration::from_secs(2))
+            .expect("MCP stderr reader did not finish after process exit")
+            .expect("cannot read MCP stderr");
+        self.output_thread.take();
+        self.error_thread.take();
         assert!(status.success(), "{}", String::from_utf8_lossy(&stderr));
+        assert!(
+            !stderr_overflow,
+            "MCP stderr exceeds its retained byte bound"
+        );
         assert!(stderr.is_empty());
         assert!(self.output.try_recv().is_err(), "unexpected MCP response");
     }
@@ -231,12 +295,10 @@ impl Drop for LiveMcp {
             let _ = self.child.kill();
             let _ = self.child.wait();
         }
-        if let Some(thread) = self.output_thread.take() {
-            let _ = thread.join();
-        }
-        if let Some(thread) = self.error_thread.take() {
-            let _ = thread.join();
-        }
+        let _ = self.output_done.recv_timeout(Duration::from_secs(2));
+        let _ = self.error_result.recv_timeout(Duration::from_secs(2));
+        self.output_thread.take();
+        self.error_thread.take();
     }
 }
 
@@ -288,7 +350,8 @@ fn real_stdio_catalogue_paging_and_notification_nonexecution_are_explicit() {
     let mut names = Vec::new();
     let mut cursors = BTreeSet::new();
     let mut cursor = None;
-    loop {
+    let mut terminal_cursor = false;
+    for _ in 0..MAX_CATALOGUE_PAGES {
         let params = cursor
             .as_ref()
             .map_or_else(|| json!({}), |cursor| json!({"cursor":cursor}));
@@ -300,6 +363,10 @@ fn real_stdio_catalogue_paging_and_notification_nonexecution_are_explicit() {
         let tools = page["result"]["tools"].as_array().unwrap();
         assert!(!tools.is_empty());
         assert!(tools.len() <= 8);
+        assert!(
+            names.len().saturating_add(tools.len()) <= MAX_CATALOGUE_TOOLS,
+            "MCP catalogue exceeds its test inventory bound"
+        );
         names.extend(
             tools
                 .iter()
@@ -308,9 +375,16 @@ fn real_stdio_catalogue_paging_and_notification_nonexecution_are_explicit() {
         cursor = page["result"]["nextCursor"].as_str().map(str::to_owned);
         match cursor.as_ref() {
             Some(cursor) => assert!(cursors.insert(cursor.clone())),
-            None => break,
+            None => {
+                terminal_cursor = true;
+                break;
+            }
         }
     }
+    assert!(
+        terminal_cursor,
+        "MCP catalogue has no bounded terminal cursor"
+    );
     assert!(names.windows(2).all(|pair| pair[0] < pair[1]));
     for available in ["workspace__open", "candidate__open", "candidate__query"] {
         assert!(names.iter().any(|name| name == available), "{available}");
@@ -342,6 +416,12 @@ fn real_stdio_catalogue_paging_and_notification_nonexecution_are_explicit() {
     let probe = process.receive();
     assert_eq!(probe["id"], "notification-probe");
     assert!(failed(&probe), "{probe}");
+    let probe = inner(&probe);
+    assert_eq!(probe["error"]["code"], -32000);
+    assert_eq!(
+        probe["error"]["message"],
+        "SPX-G224: candidate handle is stale, discarded, or unknown"
+    );
 
     process.finish();
     assert_eq!(fixture.sources(), disk);

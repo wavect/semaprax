@@ -8,12 +8,113 @@ fn read(relative: &str) -> String {
 }
 
 fn read_platform_sys_sources() -> (String, String, String, String, String) {
+    // `unix`, `windows`, and `tests` are split across submodules. Contracts
+    // below slice regions out of these strings ("the text between `fn
+    // open_directory(` and `fn run_argv(`"), so the submodules must be joined
+    // in ORIGINAL SOURCE order, not the alphabetical order the `mod`
+    // declarations were formatted into. This order matches `UNIX_SOURCE` and
+    // `WINDOWS_SOURCE` in the crate's own `src/tests.rs`.
+    // `windows/publish_tests.rs` predates the split and was never part of the
+    // production windows source, so it stays out of this join.
     let common = read("crates/semaprax-native-rust-interop-platform-sys/src/lib.rs");
-    let unix = read("crates/semaprax-native-rust-interop-platform-sys/src/unix.rs");
-    let windows = read("crates/semaprax-native-rust-interop-platform-sys/src/windows.rs");
-    let tests = read("crates/semaprax-native-rust-interop-platform-sys/src/tests.rs");
+    let unix = read_module(
+        "crates/semaprax-native-rust-interop-platform-sys/src/unix.rs",
+        &[
+            "plans",
+            "primitives",
+            "handles",
+            "inventory",
+            "process",
+            "archive",
+        ],
+    );
+    let windows = read_module(
+        "crates/semaprax-native-rust-interop-platform-sys/src/windows.rs",
+        &["plans", "handles", "inventory", "process", "invocations"],
+    );
+    let tests = read_module(
+        "crates/semaprax-native-rust-interop-platform-sys/src/tests.rs",
+        &[
+            "archive_admission",
+            "inventory",
+            "linux_runner",
+            "source_contracts",
+            "spawn_settlement",
+            "windows_archive",
+        ],
+    );
     let production = [common.as_str(), unix.as_str(), windows.as_str()].concat();
     (common, unix, windows, tests, production)
+}
+
+fn read_module(root: &str, submodules: &[&str]) -> String {
+    let directory = root.strip_suffix(".rs").expect("module root file");
+    let mut source = read(root);
+    for submodule in submodules {
+        source.push_str(&read(&format!("{directory}/{submodule}.rs")));
+    }
+    source
+}
+
+/// The private implementation module is split across submodules. Source-shape
+/// contracts below bind the complete module, so the root is read first and the
+/// submodules follow in declaration order.
+fn read_private_implementation() -> String {
+    read_module(
+        "crates/semaprax-native-rust-interop-builder/src/implementation.rs",
+        &[
+            "observability",
+            "facts_capacity",
+            "bundle_facts",
+            "ledger",
+            "disposal",
+            "toolchain",
+            "manifest",
+            "harness",
+            "phase_b",
+            "stages",
+            "authority",
+            "platform_stage",
+        ],
+    )
+}
+
+/// The pure artifact projection module, root first.
+fn read_private_artifacts() -> String {
+    read_module(
+        "crates/semaprax-native-rust-interop-builder/src/implementation/artifacts.rs",
+        &[
+            "descriptor",
+            "descriptor_replay",
+            "header",
+            "c_expression",
+            "c_replay",
+            "c_artifact",
+            "rust_artifact",
+            "generated_replay",
+        ],
+    )
+}
+
+/// The proof-only implementation test module, root first.
+fn read_private_implementation_tests() -> String {
+    read_module(
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests.rs",
+        &[
+            "phase_a_contract",
+            "phase_b_publication",
+            "artifact_replay",
+            "ledger_capacity",
+            "phase_b_toolchain",
+            "phase_b_staging",
+            "source_census",
+            "cleanup_census",
+            "hir_traversal",
+            "cleanup_regions",
+            "resolved_disposal",
+            "linked_bundle",
+        ],
+    )
 }
 
 fn assert_contains_all(label: &str, source: &str, required: &[&str]) {
@@ -83,7 +184,7 @@ fn native_rust_interop_implementation_crates_are_unpublished_and_quarantined() {
 
 #[test]
 fn private_native_rust_interop_nonclaims_are_the_frozen_ordered_set() {
-    let implementation = read("crates/semaprax-native-rust-interop-builder/src/implementation.rs");
+    let implementation = read_private_implementation();
     let nonclaims = implementation
         .split("const NONCLAIMS: &[&str] = &[")
         .nth(1)
@@ -163,13 +264,11 @@ fn public_semaprax_package_excludes_private_interop_crate_sources() {
 
 #[test]
 fn private_builder_uses_held_platform_authority_for_every_physical_step() {
-    let implementation = read("crates/semaprax-native-rust-interop-builder/src/implementation.rs");
-    let artifacts =
-        read("crates/semaprax-native-rust-interop-builder/src/implementation/artifacts.rs");
+    let implementation = read_private_implementation();
+    let artifacts = read_private_artifacts();
     let exact_replay =
         read("crates/semaprax-native-rust-interop-builder/src/implementation/exact_replay.rs");
-    let implementation_tests =
-        read("crates/semaprax-native-rust-interop-builder/src/implementation/tests.rs");
+    let implementation_tests = read_private_implementation_tests();
     assert_contains_all(
         "named private replay and hostile evidence",
         &implementation_tests,
@@ -1016,7 +1115,7 @@ fn hosted_workflow_names_all_private_interop_evidence_boundaries() {
         "sanitizer workflow must not bypass authenticated tool discovery with a bare CLANG path"
     );
 
-    let implementation = read("crates/semaprax-native-rust-interop-builder/src/implementation.rs");
+    let implementation = read_private_implementation();
     for required in [
         "SEMAPRAX_REQUIRE_NATIVE_RUST_INTEROP_SANITIZERS",
         "-fsanitize=address,undefined",

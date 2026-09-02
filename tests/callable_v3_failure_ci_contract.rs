@@ -6,8 +6,11 @@ fn callable_v3_failure_injection_evidence_is_mandatory() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let workflow = fs::read_to_string(root.join(".github/workflows/ci.yml"))
         .expect("read the pinned CI workflow");
-    let provider = fs::read_to_string(root.join("src/codegen/native_callable_provider_v3.rs"))
+    let provider_main = fs::read_to_string(root.join("src/codegen/native_callable_provider_v3.rs"))
         .expect("read the private callable-v3 provider");
+    let provider_tests = fs::read_to_string(root.join("src/codegen/native_callable_provider_v3/tests.rs"))
+        .unwrap_or_default();
+    let provider = format!("{provider_main}\n{provider_tests}");
     let abi = fs::read_to_string(root.join("docs/NATIVE-CALLABLE-ABI-V3.md"))
         .expect("read the callable-v3 ABI");
     let test_name =

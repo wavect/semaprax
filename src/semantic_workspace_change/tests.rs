@@ -41,14 +41,14 @@ impl Fixture {
         write_source(&root, "z/entry.spx", entry_base());
         let path_set = root.join("paths.json");
         std::fs::write(
-            &path_set,
-            if island {
-                "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\",\"files\":[{\"path\":\"a/provider.spx\"},{\"path\":\"m/consumer.spx\"},{\"path\":\"n/island.spx\"},{\"path\":\"z/entry.spx\"}]}\n"
-            } else {
-                "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\",\"files\":[{\"path\":\"a/provider.spx\"},{\"path\":\"m/consumer.spx\"},{\"path\":\"z/entry.spx\"}]}\n"
-            },
-        )
-        .unwrap();
+                &path_set,
+                if island {
+                    "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\",\"files\":[{\"path\":\"a/provider.spx\"},{\"path\":\"m/consumer.spx\"},{\"path\":\"n/island.spx\"},{\"path\":\"z/entry.spx\"}]}\n"
+                } else {
+                    "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\",\"files\":[{\"path\":\"a/provider.spx\"},{\"path\":\"m/consumer.spx\"},{\"path\":\"z/entry.spx\"}]}\n"
+                },
+            )
+            .unwrap();
         let revision = crate::semantic_workspace::initialize(&root, &path_set).unwrap();
         Self { root, revision }
     }
@@ -1036,10 +1036,10 @@ fn canonical_proposal_mutation_matrix_and_entry_boundary() {
     assert_grammar(source.replace(",\"entry_module\":\"change.entry\"", ""));
     assert_grammar(source.replacen("{\"schema\":", "{\"extra\":0,\"schema\":", 1));
     assert_grammar(source.replacen(
-        "{\"schema\":\"semaprax.workspace-semantic-change.v1\",",
-        "{\"schema\":\"semaprax.workspace-semantic-change.v1\",\"schema\":\"semaprax.workspace-semantic-change.v1\",",
-        1,
-    ));
+            "{\"schema\":\"semaprax.workspace-semantic-change.v1\",",
+            "{\"schema\":\"semaprax.workspace-semantic-change.v1\",\"schema\":\"semaprax.workspace-semantic-change.v1\",",
+            1,
+        ));
     let body = source.trim_end_matches('\n');
     let first = body.find(',').unwrap();
     let second = first + 1 + body[first + 1..].find(',').unwrap();

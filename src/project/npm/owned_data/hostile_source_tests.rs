@@ -32,9 +32,9 @@ fn bounded_renderer_fragments_pin_the_reviewed_failure_state_correction() {
 fn identity_guard_is_the_only_change_to_the_previous_bounded_prelude() {
     let rendered = render_runtime_prelude_with_admission("digest", true, 16);
     let guard = concat!(
-        "      // Reject without coercion: an unknown identity must not run caller hooks.\n",
-        "      if(typeof id!==\"string\")throw new RangeError(\"SEMAPRAX export identity must be a string\");\n",
-    );
+            "      // Reject without coercion: an unknown identity must not run caller hooks.\n",
+            "      if(typeof id!==\"string\")throw new RangeError(\"SEMAPRAX export identity must be a string\");\n",
+        );
     assert_eq!(rendered.matches(guard).count(), 1);
     assert_eq!(
         hex_sha256(rendered.replacen(guard, "", 1).as_bytes()),

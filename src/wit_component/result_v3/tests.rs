@@ -7,10 +7,10 @@ const SOURCE: &str = r#"module test.component_result_v3;
 
 @id("component.evaluate")
 fn evaluate(left: i64, right: i64) -> i64
-requires right != 7
-ensures result != 9
+    requires right != 7
+    ensures result != 9
 {
-(left + 1) / right
+    (left + 1) / right
 }
 
 @id("app.main")
@@ -243,14 +243,14 @@ for (const [left, right, status, expected] of cases) {{
   if (adapter(left, right) !== 256) process.exit(93);
   const tag = view.getUint8(256);
   if (status === 0) {{
-if (tag !== 0 || view.getBigInt64(264, true) !== expected) process.exit(94);
+    if (tag !== 0 || view.getBigInt64(264, true) !== expected) process.exit(94);
   }} else {{
-const class_ = status >>> 24, code = status & 0xffffff;
-const pointer = view.getUint32(264, true), length = view.getUint32(268, true);
-const domain = new TextDecoder().decode(new Uint8Array(instance.exports.memory.buffer, pointer, length));
-const expectedDomain = class_ === 1 ? "semaprax.contract.v1" : "semaprax.arithmetic.v1";
-if (tag !== 1 || domain !== expectedDomain || view.getUint32(272, true) !== code ||
-    view.getUint8(276) !== class_ || view.getUint8(277) !== 1 || view.getUint8(278) !== 0) process.exit(95);
+    const class_ = status >>> 24, code = status & 0xffffff;
+    const pointer = view.getUint32(264, true), length = view.getUint32(268, true);
+    const domain = new TextDecoder().decode(new Uint8Array(instance.exports.memory.buffer, pointer, length));
+    const expectedDomain = class_ === 1 ? "semaprax.contract.v1" : "semaprax.arithmetic.v1";
+    if (tag !== 1 || domain !== expectedDomain || view.getUint32(272, true) !== code ||
+        view.getUint8(276) !== class_ || view.getUint8(277) !== 1 || view.getUint8(278) !== 0) process.exit(95);
   }}
 }}
 "#

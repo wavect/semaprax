@@ -79,62 +79,62 @@ permit { io.release }
 
 @id("token.type")
 resource Token {
-@id("token.drop")
-drop trivial;
+    @id("token.drop")
+    drop trivial;
 }
 
 @id("pair.type")
 record Pair {
-@id("pair.first")
-first: Token,
+    @id("pair.first")
+    first: Token,
 
-@id("pair.second")
-second: Token,
+    @id("pair.second")
+    second: Token,
 }
 
 @id("choice.type")
 variant Choice {
-@id("choice.left")
-Left {
-    @id("choice.left.value")
-    value: i64,
-},
+    @id("choice.left")
+    Left {
+        @id("choice.left.value")
+        value: i64,
+    },
 
-@id("choice.right")
-Right {
-    @id("choice.right.flag")
-    flag: bool,
-},
+    @id("choice.right")
+    Right {
+        @id("choice.right.flag")
+        flag: bool,
+    },
 
-@id("choice.none")
-None,
+    @id("choice.none")
+    None,
 }
 
 @id("generic.choice")
 variant GenericChoice<T> {
-@id("generic.choice.none")
-None,
+    @id("generic.choice.none")
+    None,
 
-@id("generic.choice.value")
-Value {
-    @id("generic.choice.value.value")
-    value: T,
-},
+    @id("generic.choice.value")
+    Value {
+        @id("generic.choice.value.value")
+        value: T,
+    },
 }
 
 @id("file.type")
 resource File {
-@id("file.drop")
-drop import "file.finalize";
+    @id("file.drop")
+    drop import "file.finalize";
 }
 
 @id("file.host")
 interface FileHost permits { io.release } {
-@id("file.finalize")
-import fn finalize(file: own File) -> unit
-    effects { io.release }
-    failure infallible
-    consumes file always;
+    @id("file.finalize")
+    import fn finalize(file: own File) -> unit
+        effects { io.release }
+        failure infallible
+        consumes file always;
 }
 
 @id("scalar.success")
@@ -142,9 +142,9 @@ fn scalar_success() -> i64 { 42 }
 
 @id("contract.failure")
 fn contract_failure(value: i64) -> i64
-requires value > 0
+    requires value > 0
 {
-value
+    value
 }
 
 @id("token.discard")
@@ -155,23 +155,23 @@ fn identity_pair(value: own Pair) -> Pair { value }
 
 @id("choice.checked")
 fn checked_choice(choice: Choice, zero: i64) -> i64 {
-match choice {
-    Choice::Left { value } => value,
-    Choice::Right { flag } => if flag { 1 } else { 0 },
-    Choice::None {} => 1 / zero,
-}
+    match choice {
+        Choice::Left { value } => value,
+        Choice::Right { flag } => if flag { 1 } else { 0 },
+        Choice::None {} => 1 / zero,
+    }
 }
 
 @id("generic.dual")
 fn generic_dual(left: GenericChoice<i64>, right: GenericChoice<bool>) -> i64 {
-let first = match left {
-    GenericChoice::Value { value } => value,
-    GenericChoice::None {} => 0,
-};
-match right {
-    GenericChoice::Value { value } => first,
-    GenericChoice::None {} => 0,
-}
+    let first = match left {
+        GenericChoice::Value { value } => value,
+        GenericChoice::None {} => 0,
+    };
+    match right {
+        GenericChoice::Value { value } => first,
+        GenericChoice::None {} => 0,
+    }
 }
 
 @id("file.discard")
@@ -185,10 +185,10 @@ const TRY_SOURCE: &str = r#"module test.execute_try;
 
 @id("result.forward")
 fn forward(value: Result<i64, bool>) -> Result<bool, bool>
-ensures true
+    ensures true
 {
-let number = value?;
-Result<bool, bool>::Ok { value: true }
+    let number = value?;
+    Result<bool, bool>::Ok { value: true }
 }
 
 @id("app.main")

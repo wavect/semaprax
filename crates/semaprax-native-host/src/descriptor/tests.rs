@@ -10,7 +10,7 @@ resource Token { @id("token.drop") drop trivial; }
 
 @id("token.scalar-mix")
 fn scalar_mix(value: own Token, delta: i64, condition: bool) -> i64 {
-0
+    0
 }
 
 @id("token.select-second")

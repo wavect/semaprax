@@ -251,10 +251,10 @@ ensures divisor != 13
     .unwrap();
     let v2 = super::super::emit_private_checked_component_v2(&v2_program).unwrap();
     let v3_program = crate::parse(
-        "module v3; @id(\"component.evaluate\") fn evaluate(left:i64,right:i64)->i64 { left + right } @id(\"app.main\") fn main()->i64 { 0 }",
-        Path::new("v3.spx"),
-    )
-    .unwrap();
+            "module v3; @id(\"component.evaluate\") fn evaluate(left:i64,right:i64)->i64 { left + right } @id(\"app.main\") fn main()->i64 { 0 }",
+            Path::new("v3.spx"),
+        )
+        .unwrap();
     let v3 = super::super::emit_private_result_component_v3(&v3_program).unwrap();
     let v4_program = crate::parse(V4_SOURCE, Path::new("v4.spx")).unwrap();
     let v4 = super::super::emit_private_source_result_component_v4(&v4_program).unwrap();

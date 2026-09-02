@@ -189,18 +189,18 @@ fn sealed_plan_acquires_a0_for_validated_imported_module_without_main() {
     );
     std::fs::write(&manifest_path, manifest).unwrap();
     std::fs::write(
-        fixture.0.join("src/helpers.spx"),
-        "module calculator.helpers;\n\n@id(\"calculator.identity\")\nfn identity(value: i64) -> i64\n{\n    value\n}\n",
-    )
-    .unwrap();
+            fixture.0.join("src/helpers.spx"),
+            "module calculator.helpers;\n\n@id(\"calculator.identity\")\nfn identity(value: i64) -> i64\n{\n    value\n}\n",
+        )
+        .unwrap();
     let core_path = fixture.0.join("src/core.spx");
     let core = std::fs::read_to_string(&core_path)
-        .unwrap()
-        .replace(
-            "module calculator.core;\n",
-            "module calculator.core;\nuse function @id(\"calculator.identity\") from calculator.helpers as identity;\n",
-        )
-        .replacen("left + right", "identity(left) + right", 1);
+            .unwrap()
+            .replace(
+                "module calculator.core;\n",
+                "module calculator.core;\nuse function @id(\"calculator.identity\") from calculator.helpers as identity;\n",
+            )
+            .replacen("left + right", "identity(left) + right", 1);
     std::fs::write(&core_path, core).unwrap();
     let before = inventory(&fixture.0);
 

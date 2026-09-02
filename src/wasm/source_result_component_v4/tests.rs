@@ -10,22 +10,22 @@ const SOURCE: &str = r#"module test.component_source_result_v4;
 @id("component.source")
 fn source(value: i64, reject: bool) -> Result<i64, bool>
 {
-if reject { Result<i64, bool>::Err { error: value > 0 } } else { Result<i64, bool>::Ok { value: value } }
+    if reject { Result<i64, bool>::Err { error: value > 0 } } else { Result<i64, bool>::Ok { value: value } }
 }
 
 @id("component.evaluate")
 fn evaluate(value: i64, reject: bool, divisor: i64) -> Result<bool, bool>
-requires value != -99
-ensures divisor != 13
+    requires value != -99
+    ensures divisor != 13
 {
-let checked = source(value, reject)?;
-Result<bool, bool>::Ok { value: (checked + 1) / divisor > 0 }
+    let checked = source(value, reject)?;
+    Result<bool, bool>::Ok { value: (checked + 1) / divisor > 0 }
 }
 
 @id("app.main")
 fn main() -> i64
 {
-0
+    0
 }
 "#;
 
@@ -91,7 +91,7 @@ for(let round=0;round<8;round++)for(const [value,reject,divisor,status,tag,paylo
   const actual=statusOut(value,reject,divisor,out);
   if(actual!==status)throw new Error(`${{label}} status ${{actual}}`);
   if(status===0){{
-if(view.getUint32(out,true)!==tag||view.getUint32(out+4,true)!==payload)throw new Error(`${{label}} language result`);
+    if(view.getUint32(out,true)!==tag||view.getUint32(out+4,true)!==payload)throw new Error(`${{label}} language result`);
   }}else assertPoison(out,8,label);
 }}
 poisonBytes(out,8);
@@ -148,40 +148,40 @@ fn excluded_signatures_nominals_and_effects_fail_before_emission() {
 
     let selected = r#"@id("component.evaluate")
 fn evaluate(value: i64, reject: bool, divisor: i64) -> Result<bool, bool>
-requires value != -99
-ensures divisor != 13
+    requires value != -99
+    ensures divisor != 13
 {
-let checked = source(value, reject)?;
-Result<bool, bool>::Ok { value: (checked + 1) / divisor > 0 }
+    let checked = source(value, reject)?;
+    Result<bool, bool>::Ok { value: (checked + 1) / divisor > 0 }
 }"#;
     let wrong_param = r#"@id("component.evaluate")
 fn evaluate(value: bool, reject: bool, divisor: i64) -> Result<bool, bool>
-ensures divisor != 13
+    ensures divisor != 13
 {
-let checked = source(if value { 1 } else { 0 }, reject)?;
-Result<bool, bool>::Ok { value: checked / divisor > 0 }
+    let checked = source(if value { 1 } else { 0 }, reject)?;
+    Result<bool, bool>::Ok { value: checked / divisor > 0 }
 }"#;
     let wrong_result = r#"@id("component.evaluate")
 fn evaluate(value: i64, reject: bool, divisor: i64) -> Result<i64, bool>
-requires value != -99
-ensures divisor != 13
+    requires value != -99
+    ensures divisor != 13
 {
-let checked = source(value, reject)?;
-Result<i64, bool>::Ok { value: checked / divisor }
+    let checked = source(value, reject)?;
+    Result<i64, bool>::Ok { value: checked / divisor }
 }"#;
     for source in [
-        SOURCE.replace(selected, wrong_param),
-        SOURCE.replace(selected, wrong_result),
-        SOURCE.replace("@id(\"component.source\")", "@id(\"component.other\")"),
-        SOURCE.replace(
-            "module test.component_source_result_v4;",
-            "module test.component_source_result_v4; @id(\"user.choice\") variant Choice { @id(\"user.choice.none\") None, }",
-        ),
-    ] {
-        let parsed = crate::parse(&source, Path::new("excluded-source-result-v4.spx")).unwrap();
-        assert_eq!(
-            emit_private_source_result_core_v4(&parsed).unwrap_err().code,
-            "SPX-WIT108"
-        );
-    }
+            SOURCE.replace(selected, wrong_param),
+            SOURCE.replace(selected, wrong_result),
+            SOURCE.replace("@id(\"component.source\")", "@id(\"component.other\")"),
+            SOURCE.replace(
+                "module test.component_source_result_v4;",
+                "module test.component_source_result_v4; @id(\"user.choice\") variant Choice { @id(\"user.choice.none\") None, }",
+            ),
+        ] {
+            let parsed = crate::parse(&source, Path::new("excluded-source-result-v4.spx")).unwrap();
+            assert_eq!(
+                emit_private_source_result_core_v4(&parsed).unwrap_err().code,
+                "SPX-WIT108"
+            );
+        }
 }

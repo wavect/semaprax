@@ -95,10 +95,10 @@ fn node_executes_all_patterns_contracts_and_invalid_input_bools() {
     let script_path = std::env::temp_dir().join(format!("{stem}.mjs"));
     std::fs::write(&wasm_path, artifact.bytes).unwrap();
     std::fs::write(
-        &script_path,
-        "import fs from 'node:fs';\nconst {instance}=await WebAssembly.instantiate(fs.readFileSync(process.argv[2]));const m=new DataView(instance.exports.memory.buffer);const u=new Uint8Array(instance.exports.memory.buffer);const names=['cabi_preserve_pattern_phantom_i64_v8','cabi_invert_pattern_phantom_i64_v8','cabi_preserve_pattern_phantom_bool_v8','cabi_invert_pattern_phantom_bool_v8'];const f=names.map(n=>instance.exports[n]);const results=[160,224,288,352];for(let i=0;i<4;i++){for(const b of [0,1]){let p=f[i](b,0n);if(m.getUint8(p)!==0||m.getUint8(p+4)!==(i%2?1-b:b))throw Error('semantic')}}for(let i=0;i<4;i++){let p=f[i](1,-99n);if(m.getUint8(p)!==1||m.getUint32(p+12,true)!==1)throw Error('requires');p=f[i](1,13n);if(m.getUint8(p)!==1||m.getUint32(p+12,true)!==2)throw Error('ensures');u.fill(0x3c,results[i],results[i]+20);let trapped=false;try{f[i](2,0n)}catch{trapped=true}if(!trapped)throw Error('bool2');for(let j=0;j<20;j++)if(u[results[i]+j]!==0xa5)throw Error(`bool2-poison-${i}-${j}`)}console.log('record-pattern-v8-core-ok');\n",
-    )
-    .unwrap();
+            &script_path,
+            "import fs from 'node:fs';\nconst {instance}=await WebAssembly.instantiate(fs.readFileSync(process.argv[2]));const m=new DataView(instance.exports.memory.buffer);const u=new Uint8Array(instance.exports.memory.buffer);const names=['cabi_preserve_pattern_phantom_i64_v8','cabi_invert_pattern_phantom_i64_v8','cabi_preserve_pattern_phantom_bool_v8','cabi_invert_pattern_phantom_bool_v8'];const f=names.map(n=>instance.exports[n]);const results=[160,224,288,352];for(let i=0;i<4;i++){for(const b of [0,1]){let p=f[i](b,0n);if(m.getUint8(p)!==0||m.getUint8(p+4)!==(i%2?1-b:b))throw Error('semantic')}}for(let i=0;i<4;i++){let p=f[i](1,-99n);if(m.getUint8(p)!==1||m.getUint32(p+12,true)!==1)throw Error('requires');p=f[i](1,13n);if(m.getUint8(p)!==1||m.getUint32(p+12,true)!==2)throw Error('ensures');u.fill(0x3c,results[i],results[i]+20);let trapped=false;try{f[i](2,0n)}catch{trapped=true}if(!trapped)throw Error('bool2');for(let j=0;j<20;j++)if(u[results[i]+j]!==0xa5)throw Error(`bool2-poison-${i}-${j}`)}console.log('record-pattern-v8-core-ok');\n",
+        )
+        .unwrap();
     let output = Command::new("node")
         .arg(&script_path)
         .arg(&wasm_path)
@@ -118,10 +118,10 @@ fn adversarial_status_and_output_bools_trap_before_any_publication() {
     let stem = format!("semaprax-record-pattern-v8-hostile-{}", std::process::id());
     let script_path = std::env::temp_dir().join(format!("{stem}.mjs"));
     std::fs::write(
-        &script_path,
-        "import fs from 'node:fs';\nconst names=['cabi_preserve_pattern_phantom_i64_v8','cabi_invert_pattern_phantom_i64_v8','cabi_preserve_pattern_phantom_bool_v8','cabi_invert_pattern_phantom_bool_v8'];const results=[160,224,288,352];for(const path of process.argv.slice(2)){const {instance}=await WebAssembly.instantiate(fs.readFileSync(path));const u=new Uint8Array(instance.exports.memory.buffer);for(let i=0;i<4;i++){u.fill(0x3c,results[i],results[i]+20);let trapped=false;try{instance.exports[names[i]](1,0n)}catch{trapped=true}if(!trapped)throw Error(`hostile-no-trap-${path}-${i}`);for(let j=0;j<20;j++)if(u[results[i]+j]!==0xa5)throw Error(`hostile-published-${path}-${i}-${j}`)}}console.log('record-pattern-v8-hostiles-ok');\n",
-    )
-    .unwrap();
+            &script_path,
+            "import fs from 'node:fs';\nconst names=['cabi_preserve_pattern_phantom_i64_v8','cabi_invert_pattern_phantom_i64_v8','cabi_preserve_pattern_phantom_bool_v8','cabi_invert_pattern_phantom_bool_v8'];const results=[160,224,288,352];for(const path of process.argv.slice(2)){const {instance}=await WebAssembly.instantiate(fs.readFileSync(path));const u=new Uint8Array(instance.exports.memory.buffer);for(let i=0;i<4;i++){u.fill(0x3c,results[i],results[i]+20);let trapped=false;try{instance.exports[names[i]](1,0n)}catch{trapped=true}if(!trapped)throw Error(`hostile-no-trap-${path}-${i}`);for(let j=0;j<20;j++)if(u[results[i]+j]!==0xa5)throw Error(`hostile-published-${path}-${i}-${j}`)}}console.log('record-pattern-v8-hostiles-ok');\n",
+        )
+        .unwrap();
     let mut paths = Vec::new();
     for (name, outcome) in [
         ("bool2", AdversarialOutcome::InvalidBool),

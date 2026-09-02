@@ -449,32 +449,32 @@ fn strict_separate_c_and_cpp_translation_units_link_and_inspect_descriptor() {
     let provider_source = emit_source(&descriptor, "adapter.h").unwrap();
     std::fs::write(&provider, &provider_source).unwrap();
     std::fs::write(
-        &consumer,
-        format!(
-            "#include <string.h>\n#pragma pack(push, 1)\n#include \"adapter.h\"\n#pragma pack(pop)\n\
-             extern int spx_cpp_inspect(void);\n\
-             static uint32_t read_u32(const unsigned char *p) {{\n\
-             return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);\n}}\n\
-             int main(void) {{\n\
-             const unsigned char *p = {symbol}();\n\
-             if (p == (const unsigned char *)0 || memcmp(p, \"SPXNABI1\", 8) != 0) return 1;\n\
-             if (read_u32(p + 8) != UINT32_C(1) || read_u32(p + 12) != UINT32_C(20) || read_u32(p + 16) != UINT32_C({length})) return 2;\n\
-             if (p != {symbol}()) return 3;\n\
-             return spx_cpp_inspect();\n}}\n",
-            symbol = descriptor.getter_symbol,
-            length = descriptor.bytes.len()
-        ),
-    )
-    .unwrap();
+            &consumer,
+            format!(
+                "#include <string.h>\n#pragma pack(push, 1)\n#include \"adapter.h\"\n#pragma pack(pop)\n\
+                 extern int spx_cpp_inspect(void);\n\
+                 static uint32_t read_u32(const unsigned char *p) {{\n\
+                 return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);\n}}\n\
+                 int main(void) {{\n\
+                 const unsigned char *p = {symbol}();\n\
+                 if (p == (const unsigned char *)0 || memcmp(p, \"SPXNABI1\", 8) != 0) return 1;\n\
+                 if (read_u32(p + 8) != UINT32_C(1) || read_u32(p + 12) != UINT32_C(20) || read_u32(p + 16) != UINT32_C({length})) return 2;\n\
+                 if (p != {symbol}()) return 3;\n\
+                 return spx_cpp_inspect();\n}}\n",
+                symbol = descriptor.getter_symbol,
+                length = descriptor.bytes.len()
+            ),
+        )
+        .unwrap();
     std::fs::write(
-        &cpp,
-        format!(
-            "#pragma pack(push, 16)\n#include \"adapter.h\"\n#pragma pack(pop)\n\
-             extern \"C\" int spx_cpp_inspect(void) {{ return {symbol}() == nullptr ? 4 : 0; }}\n",
-            symbol = descriptor.getter_symbol
-        ),
-    )
-    .unwrap();
+            &cpp,
+            format!(
+                "#pragma pack(push, 16)\n#include \"adapter.h\"\n#pragma pack(pop)\n\
+                 extern \"C\" int spx_cpp_inspect(void) {{ return {symbol}() == nullptr ? 4 : 0; }}\n",
+                symbol = descriptor.getter_symbol
+            ),
+        )
+        .unwrap();
 
     let provider_object = directory.path.join("provider.o");
     let consumer_object = directory.path.join("consumer.o");
@@ -594,22 +594,22 @@ fn shared_library_exports_only_getter_and_dynamic_consumer_runs() {
     std::fs::write(&header, emit_header(&descriptor)).unwrap();
     std::fs::write(&provider, emit_source(&descriptor, "adapter.h").unwrap()).unwrap();
     std::fs::write(
-        &consumer,
-        format!(
-            "#if defined(_WIN32)\n#define SPX_ADAPTER_DESCRIPTOR_DLL 1\n#endif\n\
-             #include <string.h>\n#include \"adapter.h\"\n\
-             static uint32_t read_u32(const unsigned char *p) {{\n\
-             return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);\n}}\n\
-             int main(void) {{\n\
-             const unsigned char *p = {symbol}();\n\
-             if (p == (const unsigned char *)0 || memcmp(p, \"SPXNABI1\", 8) != 0) return 1;\n\
-             if (read_u32(p + 8) != UINT32_C(1) || read_u32(p + 12) != UINT32_C(20) || read_u32(p + 16) != UINT32_C({length})) return 2;\n\
-             return p == {symbol}() ? 0 : 3;\n}}\n",
-            symbol = descriptor.getter_symbol,
-            length = descriptor.bytes.len()
-        ),
-    )
-    .unwrap();
+            &consumer,
+            format!(
+                "#if defined(_WIN32)\n#define SPX_ADAPTER_DESCRIPTOR_DLL 1\n#endif\n\
+                 #include <string.h>\n#include \"adapter.h\"\n\
+                 static uint32_t read_u32(const unsigned char *p) {{\n\
+                 return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);\n}}\n\
+                 int main(void) {{\n\
+                 const unsigned char *p = {symbol}();\n\
+                 if (p == (const unsigned char *)0 || memcmp(p, \"SPXNABI1\", 8) != 0) return 1;\n\
+                 if (read_u32(p + 8) != UINT32_C(1) || read_u32(p + 12) != UINT32_C(20) || read_u32(p + 16) != UINT32_C({length})) return 2;\n\
+                 return p == {symbol}() ? 0 : 3;\n}}\n",
+                symbol = descriptor.getter_symbol,
+                length = descriptor.bytes.len()
+            ),
+        )
+        .unwrap();
 
     let executable = directory.path.join(if cfg!(windows) {
         "dynamic_consumer.exe"

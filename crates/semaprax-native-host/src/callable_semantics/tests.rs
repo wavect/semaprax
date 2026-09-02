@@ -19,7 +19,7 @@ fn checked(value: i64) -> i64
 requires value >= 0
 ensures result >= 0
 {
-value
+    value
 }
 
 @id("test.other")
@@ -52,7 +52,7 @@ requires value >= 0
 requires value != 99
 ensures result >= 0
 {
-value
+    value
 }
 
 @id("app.main")

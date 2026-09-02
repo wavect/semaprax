@@ -118,8 +118,8 @@ fn generated_staging_names_do_not_capture_existing_parameters_or_local_bindings(
         r#"module test.signature;
 @id("math.select") fn select(left: i64, right: i64) -> i64 { left * 10 + right }
 @id("math.nested") fn nested(spx_sig_stage_0: i64) -> i64 {
-let spx_sig_stage_1 = 3;
-select(spx_sig_stage_0, spx_sig_stage_1)
+    let spx_sig_stage_1 = 3;
+    select(spx_sig_stage_0, spx_sig_stage_1)
 }
 @id("app.main") fn main() -> i64 { nested(2) }
 "#,
@@ -192,9 +192,9 @@ fn simultaneous_parameter_renames_preserve_contracts_and_avoid_local_capture() {
 requires left >= 0
 ensures result >= right
 {
-let mut renamed = right;
-renamed = renamed + left;
-match renamed { local if local > 0 => left + local, _ => right, }
+    let mut renamed = right;
+    renamed = renamed + left;
+    match renamed { local if local > 0 => left + local, _ => right, }
 }
 @id("app.main") fn main() -> i64 { select(2, 3) }
 "#,
@@ -219,9 +219,9 @@ fn local_initializer_and_assignment_follow_their_original_binding() {
     let mut programs = vec![program(
         r#"module test.signature;
 @id("math.select") fn select(left: i64, right: i64) -> i64 {
-let mut renamed = left + right;
-renamed = renamed + left;
-renamed
+    let mut renamed = left + right;
+    renamed = renamed + left;
+    renamed
 }
 @id("app.main") fn main() -> i64 { select(2, 3) }
 "#,

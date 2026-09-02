@@ -55,12 +55,12 @@ module test.shapes;
 
 @id("shapes.point")
 record Point {
-@id("shapes.point.x")
-x: i64,
-@id("shapes.point.y")
-y: i64,
-@id("shapes.point.flag")
-flag: bool,
+    @id("shapes.point.x")
+    x: i64,
+    @id("shapes.point.y")
+    y: i64,
+    @id("shapes.point.flag")
+    flag: bool,
 }
 
 @id("app.main")
@@ -123,20 +123,20 @@ module test.widened.shapes;
 
 @id("shapes.tensor")
 record Tensor {
-@id("shapes.tensor.a")
-a: i64,
-@id("shapes.tensor.b")
-b: i32,
-@id("shapes.tensor.c")
-c: u8,
-@id("shapes.tensor.d")
-d: f32,
-@id("shapes.tensor.e")
-e: f64,
-@id("shapes.tensor.g")
-g: char,
-@id("shapes.tensor.h")
-h: bool,
+    @id("shapes.tensor.a")
+    a: i64,
+    @id("shapes.tensor.b")
+    b: i32,
+    @id("shapes.tensor.c")
+    c: u8,
+    @id("shapes.tensor.d")
+    d: f32,
+    @id("shapes.tensor.e")
+    e: f64,
+    @id("shapes.tensor.g")
+    g: char,
+    @id("shapes.tensor.h")
+    h: bool,
 }
 
 @id("app.main")

@@ -181,12 +181,12 @@ fn node_executes_some_none_contracts_sticky_arithmetic_skip_and_reentry() {
     let script_path = std::env::temp_dir().join(format!("{stem}.mjs"));
     std::fs::write(&wasm_path, artifact.bytes).unwrap();
     let script = format!(
-        "import fs from 'node:fs';\nconst {{instance}}=await WebAssembly.instantiate(fs.readFileSync(process.argv[2]));const v=new DataView(instance.exports.memory.buffer);const u=new Uint8Array(instance.exports.memory.buffer);const f=instance.exports['{canonical}'];const validate=instance.exports['{validate}'];const area={area};const poison=()=>u.fill(0xa5,area,area+20);const assertPoison=(l)=>{{for(let i=0;i<20;i++)if(u[area+i]!==0xa5)throw Error(l+'-poison-'+i)}};const ok=(tag,payload,divisor,expectedTag,expectedBool,l)=>{{const p=f(tag,BigInt(payload),BigInt(divisor));if(p!==area||v.getUint8(p)!==0||v.getUint8(p+4)!==expectedTag||(expectedTag===1&&v.getUint8(p+5)!==expectedBool))throw Error(l)}};ok(1,83,2,1,1,'some-true');ok(1,-5,2,1,0,'some-false');ok(0,0,0,0,0,'none-skips-div0');for(let i=5;i<20;i++)if(u[area+i]!==0xa5)throw Error('none-payload-'+i);for(let i=0;i<4096;i++)ok(i&1,7,2,i&1,1,'reentry');const err=(tag,payload,divisor,code,l)=>{{const p=f(tag,BigInt(payload),BigInt(divisor));if(v.getUint8(p)!==1||v.getUint32(p+12,true)!==code)throw Error(l)}};err(1,1,-99,1,'requires-some');err(0,0,-99,1,'requires-none');err(0,0,13,2,'none-ensures');err(1,1,0,4,'div0');err(1,9223372036854775807n,1,1,'overflow');v.setUint32(600,0,true);v.setUint32(604,0xa5a5a5a5,true);u.fill(0xa5,620,628);if(validate(600,620)!==0||v.getUint32(620,true)!==0)throw Error('none-validator');for(let i=624;i<628;i++)if(u[i]!==0xa5)throw Error('none-validator-payload');v.setUint32(600,1,true);v.setUint32(604,2,true);if(validate(600,620)!=={invalid})throw Error('bool2');v.setUint32(600,2,true);if(validate(600,620)!=={invalid})throw Error('tag2');poison();let trapped=false;try{{f(2,0n,1n)}}catch{{trapped=true}}if(!trapped)throw Error('input-tag2');assertPoison('input-tag2');console.log('option-propagation-v10-core-ok');\n",
-        canonical = CANONICAL_EXPORT,
-        validate = TEST_VALIDATE_EXPORT,
-        area = RESULT_AREA,
-        invalid = aggregate::STATUS_INTERNAL_INVALID_TAG,
-    );
+            "import fs from 'node:fs';\nconst {{instance}}=await WebAssembly.instantiate(fs.readFileSync(process.argv[2]));const v=new DataView(instance.exports.memory.buffer);const u=new Uint8Array(instance.exports.memory.buffer);const f=instance.exports['{canonical}'];const validate=instance.exports['{validate}'];const area={area};const poison=()=>u.fill(0xa5,area,area+20);const assertPoison=(l)=>{{for(let i=0;i<20;i++)if(u[area+i]!==0xa5)throw Error(l+'-poison-'+i)}};const ok=(tag,payload,divisor,expectedTag,expectedBool,l)=>{{const p=f(tag,BigInt(payload),BigInt(divisor));if(p!==area||v.getUint8(p)!==0||v.getUint8(p+4)!==expectedTag||(expectedTag===1&&v.getUint8(p+5)!==expectedBool))throw Error(l)}};ok(1,83,2,1,1,'some-true');ok(1,-5,2,1,0,'some-false');ok(0,0,0,0,0,'none-skips-div0');for(let i=5;i<20;i++)if(u[area+i]!==0xa5)throw Error('none-payload-'+i);for(let i=0;i<4096;i++)ok(i&1,7,2,i&1,1,'reentry');const err=(tag,payload,divisor,code,l)=>{{const p=f(tag,BigInt(payload),BigInt(divisor));if(v.getUint8(p)!==1||v.getUint32(p+12,true)!==code)throw Error(l)}};err(1,1,-99,1,'requires-some');err(0,0,-99,1,'requires-none');err(0,0,13,2,'none-ensures');err(1,1,0,4,'div0');err(1,9223372036854775807n,1,1,'overflow');v.setUint32(600,0,true);v.setUint32(604,0xa5a5a5a5,true);u.fill(0xa5,620,628);if(validate(600,620)!==0||v.getUint32(620,true)!==0)throw Error('none-validator');for(let i=624;i<628;i++)if(u[i]!==0xa5)throw Error('none-validator-payload');v.setUint32(600,1,true);v.setUint32(604,2,true);if(validate(600,620)!=={invalid})throw Error('bool2');v.setUint32(600,2,true);if(validate(600,620)!=={invalid})throw Error('tag2');poison();let trapped=false;try{{f(2,0n,1n)}}catch{{trapped=true}}if(!trapped)throw Error('input-tag2');assertPoison('input-tag2');console.log('option-propagation-v10-core-ok');\n",
+            canonical = CANONICAL_EXPORT,
+            validate = TEST_VALIDATE_EXPORT,
+            area = RESULT_AREA,
+            invalid = aggregate::STATUS_INTERNAL_INVALID_TAG,
+        );
     std::fs::write(&script_path, script).unwrap();
     let output = Command::new("node")
         .arg(&script_path)
@@ -211,10 +211,10 @@ fn adversarial_output_bool_tag_and_unknown_status_trap_with_full_poison() {
         let script_path = std::env::temp_dir().join(format!("{stem}.mjs"));
         std::fs::write(&wasm_path, bytes).unwrap();
         let script = format!(
-            "import fs from 'node:fs';const {{instance}}=await WebAssembly.instantiate(fs.readFileSync(process.argv[2]));const u=new Uint8Array(instance.exports.memory.buffer);const f=instance.exports['{canonical}'];let trapped=false;try{{f(1,5n,1n)}}catch{{trapped=true}}if(!trapped)throw Error('not-trapped');for(let i=0;i<20;i++)if(u[{area}+i]!==0xa5)throw Error('published-'+i);",
-            canonical = CANONICAL_EXPORT,
-            area = RESULT_AREA,
-        );
+                "import fs from 'node:fs';const {{instance}}=await WebAssembly.instantiate(fs.readFileSync(process.argv[2]));const u=new Uint8Array(instance.exports.memory.buffer);const f=instance.exports['{canonical}'];let trapped=false;try{{f(1,5n,1n)}}catch{{trapped=true}}if(!trapped)throw Error('not-trapped');for(let i=0;i<20;i++)if(u[{area}+i]!==0xa5)throw Error('published-'+i);",
+                canonical = CANONICAL_EXPORT,
+                area = RESULT_AREA,
+            );
         std::fs::write(&script_path, script).unwrap();
         let output = Command::new("node")
             .arg(&script_path)

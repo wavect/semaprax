@@ -6,15 +6,15 @@ fn checked_value_fixture() -> hir::ResolvedProgram {
 @id("values.envelope") record Envelope { @id("values.envelope.item") item: Config, }
 @id("values.choice") variant Choice { @id("values.choice.some") Some { @id("values.choice.item") item: i64, }, @id("values.choice.none") None, }
 @id("values.disconnected") fn disconnected() -> i64
-requires (Config { value: 1 }).value == 1
-ensures result >= 0
+    requires (Config { value: 1 }).value == 1
+    ensures result >= 0
 {
-let envelope = Envelope { item: Config { value: 42 } };
-match envelope { Envelope { item: Config { value: selected } } => selected, }
+    let envelope = Envelope { item: Config { value: 42 } };
+    match envelope { Envelope { item: Config { value: selected } } => selected, }
 }
 @id("values.variant") fn variant_value() -> i64 {
-let choice = Choice::Some { item: 42 };
-match choice { Choice::Some { item: selected } => selected, Choice::None {} => 0, }
+    let choice = Choice::Some { item: 42 };
+    match choice { Choice::Some { item: selected } => selected, Choice::None {} => 0, }
 }
 @id("values.main") fn main() -> i64 { 0 }
 "#, Path::new("values.spx")).unwrap();
@@ -299,38 +299,38 @@ module lib.exports;
 
 @id("lib.payload")
 record Payload {
-@id("lib.payload.value") value: i64,
+    @id("lib.payload.value") value: i64,
 }
 
 @id("lib.wrapper")
 record Wrapper {
-@id("lib.wrapper.payload") payload: Payload,
+    @id("lib.wrapper.payload") payload: Payload,
 }
 
 @id("lib.choice")
 variant Choice {
-@id("lib.choice.ready") Ready {
-    @id("lib.choice.ready.payload") payload: i64,
-},
-@id("lib.choice.empty") Empty,
+    @id("lib.choice.ready") Ready {
+        @id("lib.choice.ready.payload") payload: i64,
+    },
+    @id("lib.choice.empty") Empty,
 }
 
 @id("lib.unused")
 record Unused {
-@id("lib.unused.value") value: bool,
+    @id("lib.unused.value") value: bool,
 }
 
 @id("lib.helper")
 fn helper(value: i64) -> i64 {
-let wrapper = Wrapper { payload: Payload { value } };
-let nested = match wrapper {
-    Wrapper { payload: Payload { value: inner } } => inner,
-};
-let choice = Choice::Ready { payload: nested };
-match choice {
-    Choice::Ready { payload } => payload,
-    Choice::Empty {} => 0,
-}
+    let wrapper = Wrapper { payload: Payload { value } };
+    let nested = match wrapper {
+        Wrapper { payload: Payload { value: inner } } => inner,
+    };
+    let choice = Choice::Ready { payload: nested };
+    match choice {
+        Choice::Ready { payload } => payload,
+        Choice::Empty {} => 0,
+    }
 }
 
 @id("lib.selected")
@@ -338,8 +338,8 @@ fn selected(value: i64) -> i64 { helper(value) }
 
 @id("lib.unselected")
 fn unselected(value: i64) -> i64 {
-let ignored = Unused { value: true };
-value
+    let ignored = Unused { value: true };
+    value
 }
 "#,
     );
@@ -419,21 +419,21 @@ module lib.exports;
 
 @id("lib.byte-length")
 fn byte_length(value: borrow Slice<u8>) -> usize {
-let alias = value;
-byte_len(alias)
+    let alias = value;
+    byte_len(alias)
 }
 
 @id("lib.byte-count")
 fn byte_count(value: borrow Slice<u8>) -> usize {
-let mut index = 0usize;
-while index < byte_len(value) {
-    index = index + 1usize;
-    index < byte_len(value)
-}
-match byte_get(value, 0usize) {
-    Option::Some { value: _ } => index,
-    Option::None {} => index,
-}
+    let mut index = 0usize;
+    while index < byte_len(value) {
+        index = index + 1usize;
+        index < byte_len(value)
+    }
+    match byte_get(value, 0usize) {
+        Option::Some { value: _ } => index,
+        Option::None {} => index,
+    }
 }
 
 @id("lib.unselected")
@@ -652,7 +652,7 @@ permit { audit.write, network.read }
 
 @id("app.main")
 fn main() -> i64 uses { audit.write, network.read } {
-zero() + multi()
+    zero() + multi()
 }
 
 @id("app.other")
@@ -684,14 +684,14 @@ module lib.core;
 
 @id("lib.imported")
 record Imported {
-@id("lib.imported.value")
-value: i64,
+    @id("lib.imported.value")
+    value: i64,
 }
 
 @id("lib.foreign")
 record Foreign {
-@id("lib.foreign.value")
-value: i64,
+    @id("lib.foreign.value")
+    value: i64,
 }
 
 @id("lib.answer")
@@ -704,36 +704,36 @@ use type @id("lib.imported") from lib.core as Imported;
 
 @id("app.record")
 record Record {
-value: i64,
+    value: i64,
 }
 
 @id("app.choice")
 variant Choice {
-Number { value: i64, },
+    Number { value: i64, },
 }
 
 @id("app.explicit_variant")
 variant ExplicitVariant {
-@id("app.explicit_variant.ready")
-Ready {
-    @id("app.explicit_variant.ready.code")
-    code: i64,
-},
+    @id("app.explicit_variant.ready")
+    Ready {
+        @id("app.explicit_variant.ready.code")
+        code: i64,
+    },
 }
 
 @id("app.token")
 resource Token {
-@id("app.token.drop")
-drop trivial;
+    @id("app.token.drop")
+    drop trivial;
 }
 
 @id("app.host")
 interface Host permits {} {
-@id("app.host.observe")
-import fn observe(value: own Token) -> unit
-    effects {}
-    failure infallible
-    consumes value always;
+    @id("app.host.observe")
+    import fn observe(value: own Token) -> unit
+        effects {}
+        failure infallible
+        consumes value always;
 }
 
 fn helper() -> i64 { answer() }
@@ -1054,8 +1054,8 @@ use function @id("lib.zero") from lib.core as zero;
 
 @id("app.keep")
 fn keep<T>(value: T) -> T {
-let observed = zero();
-if observed == 0 { value } else { value }
+    let observed = zero();
+    if observed == 0 { value } else { value }
 }
 
 @id("app.main")
@@ -1136,8 +1136,8 @@ fn indexed_proof_replays_many_permits_and_zero_effect_calls() {
         "module lib.core;\npermit {{ {permits} }}\n\n@id(\"lib.zero\")\nfn zero() -> i64 {{ 0 }}\n"
     );
     let mut app = format!(
-        "module app.main;\nuse function @id(\"lib.zero\") from lib.core as zero;\npermit {{ {permits} }}\n\n@id(\"app.main\")\nfn main() -> i64 {{\n"
-    );
+            "module app.main;\nuse function @id(\"lib.zero\") from lib.core as zero;\npermit {{ {permits} }}\n\n@id(\"app.main\")\nfn main() -> i64 {{\n"
+        );
     for index in 0..CALLS {
         app.push_str(&format!("    let value_{index} = zero();\n"));
     }
@@ -1257,12 +1257,12 @@ use function @id("lib.answer") from lib.core as answer;
 
 @id("app.main")
 fn main() -> i64
-requires flag()
-requires flag()
-ensures flag()
-ensures flag()
+    requires flag()
+    requires flag()
+    ensures flag()
+    ensures flag()
 {
-answer() + answer() + answer()
+    answer() + answer() + answer()
 }
 
 "#;
@@ -1317,8 +1317,8 @@ fn before() -> i64 { answer() }
 
 @id("app.keep")
 fn keep<T>(value: T) -> T {
-let observed = answer();
-if observed == 42 { value } else { value }
+    let observed = answer();
+    if observed == 42 { value } else { value }
 }
 
 @id("app.after")
@@ -1326,8 +1326,8 @@ fn after() -> i64 { answer() }
 
 @id("app.main")
 fn main() -> i64 {
-let number = keep<i64>(before());
-if keep<bool>(true) { number + after() } else { 0 }
+    let number = keep<i64>(before());
+    if keep<bool>(true) { number + after() } else { 0 }
 }
 "#;
 
@@ -1823,15 +1823,15 @@ fn logical_limits_accept_exact_and_reject_one_over() {
 #[test]
 fn exact_file_limit_builds_and_one_over_rejects_before_parse() {
     let exact = (0..MAX_FILES)
-        .map(|index| {
-            canonical_source(
-                &format!("m{index:02}.spx"),
-                &format!(
-                    "module m{index:02};\n\n@id(\"m{index:02}.entry\")\nfn entry() -> i64 {{ {index} }}\n"
-                ),
-            )
-        })
-        .collect::<Vec<_>>();
+            .map(|index| {
+                canonical_source(
+                    &format!("m{index:02}.spx"),
+                    &format!(
+                        "module m{index:02};\n\n@id(\"m{index:02}.entry\")\nfn entry() -> i64 {{ {index} }}\n"
+                    ),
+                )
+            })
+            .collect::<Vec<_>>();
     build_owned(exact).unwrap();
 
     let over = (0..=MAX_FILES)
@@ -1879,10 +1879,10 @@ fn four_two_parameter_materializations_and_t226_premises_are_preserved() {
 module generic.app;
 @id("generic.first") fn first<T, U>(left: T, right: U) -> T { left }
 @id("generic.app.main") fn main() -> i64 {
-let ii = first<i64, i64>(1, 2);
-let ib = first<i64, bool>(ii, true);
-let bi = first<bool, i64>(false, ib);
-if first<bool, bool>(bi, true) { ib } else { 0 }
+    let ii = first<i64, i64>(1, 2);
+    let ib = first<i64, bool>(ii, true);
+    let bi = first<bool, i64>(false, ib);
+    if first<bool, bool>(bi, true) { ib } else { 0 }
 }
 "#,
     );
@@ -1989,8 +1989,8 @@ module boundary.declarations;
 @id("d.record") record Record { value: i64, }
 @id("d.variant") variant Variant { Case { value: i64, }, }
 @id("d.host") interface Host permits {} {
-@id("d.host.consume") import fn consume(value: own Token) -> unit
-    effects {} failure infallible consumes value always;
+    @id("d.host.consume") import fn consume(value: own Token) -> unit
+        effects {} failure infallible consumes value always;
 }
 "#,
     );
@@ -2061,8 +2061,8 @@ module boundary.calls;
 @id("calls.flag") fn flag() -> bool { true }
 @id("calls.zero") fn zero() -> i64 { 0 }
 @id("calls.keep") fn keep<T>(value: T) -> T
-requires flag()
-ensures flag()
+    requires flag()
+    ensures flag()
 { let seen = zero(); value }
 @id("calls.main") fn main() -> i64 {
 "#,
@@ -2174,18 +2174,18 @@ fn long_nominal_and_child_id_repetition_is_rejected_by_builder_preflight() {
     let type_id = format!("long.type.{}", "t".repeat(2048));
     let field_id = format!("long.field.{}", "f".repeat(2048));
     let provider = canonical_source(
-        "long-type/provider.spx",
-        &format!(
-            "module long_type.provider;\n@id(\"{type_id}\") record Long {{ @id(\"{field_id}\") value: i64, }}\n@id(\"long.type.local\") fn local() -> i64 {{ 0 }}\n"
-        ),
-    );
+            "long-type/provider.spx",
+            &format!(
+                "module long_type.provider;\n@id(\"{type_id}\") record Long {{ @id(\"{field_id}\") value: i64, }}\n@id(\"long.type.local\") fn local() -> i64 {{ 0 }}\n"
+            ),
+        );
     let mut consumer = format!(
         "module long_type.consumer;\nuse type @id(\"{type_id}\") from long_type.provider as L;\n"
     );
     for index in 0..READERS {
         consumer.push_str(&format!(
-            "@id(\"reader.{index}\") fn read_{index}(value: L) -> i64 {{ match value {{ L {{ value }} => value, }} }}\n"
-        ));
+                "@id(\"reader.{index}\") fn read_{index}(value: L) -> i64 {{ match value {{ L {{ value }} => value, }} }}\n"
+            ));
     }
     consumer.push_str("@id(\"long.type.main\") fn main() -> i64 { let value = L { value: 0 }; match value { L { value } => value, } }\n");
     let consumer = canonical_source("long-type/consumer.spx", &consumer);
@@ -2242,10 +2242,10 @@ fn all_four_generic_materializations_have_an_exact_minimum_builder_limit() {
 module generic_limit.app;
 @id("generic.limit.first") fn first<T, U>(left: T, right: U) -> T { left }
 @id("generic.limit.main") fn main() -> i64 {
-let ii = first<i64, i64>(1, 2);
-let ib = first<i64, bool>(ii, true);
-let bi = first<bool, i64>(false, ib);
-if first<bool, bool>(bi, true) { ib } else { 0 }
+    let ii = first<i64, i64>(1, 2);
+    let ib = first<i64, bool>(ii, true);
+    let bi = first<bool, i64>(false, ib);
+    if first<bool, bool>(bi, true) { ib } else { 0 }
 }
 "#,
     );

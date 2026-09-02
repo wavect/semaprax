@@ -16,8 +16,8 @@ const SOURCE: &str = r#"module test.native_cleanup_emit;
 
 @id("token.type")
 resource Token {
-@id("token.drop")
-drop trivial;
+    @id("token.drop")
+    drop trivial;
 }
 
 @id("token.discard")
@@ -129,50 +129,50 @@ fn discard_emits_exact_plan_driven_c() {
     let index = classify(&program, function(&program, "token.discard")).unwrap();
     let emitted = emit(&index, &complete_bindings(&index)).unwrap();
     let expected = concat!(
-        "/* semaprax.native-cleanup-scaffold.v1 */\n",
-        "bool spx_cleanup_flag_0 = false;\n",
-        "spx_status_token spx_cleanup_selected_status = SPX_STATUS_SUCCESS;\n",
-        "spx_cleanup_flag_0 = true;\n",
-        "goto spx_cleanup_block_0;\n",
-        "spx_cleanup_block_0:\n",
-        "goto spx_cleanup_exit_0;\n",
-        "spx_cleanup_exit_0:\n",
-        "if (spx_cleanup_flag_0) {\n",
-        "    spx_cleanup_flag_0 = false;\n",
-        "{\n",
-        "    struct spx_trace_event spx_cleanup_event = {0};\n",
-        "    spx_cleanup_event.kind = SPX_TRACE_FINALIZE_BEGIN;\n",
-        "    spx_cleanup_event.function_id = \"token.discard\";\n",
-        "    spx_cleanup_event.data.finalize.source.storage.kind = SPX_TRACE_STORAGE_VALUE;\n",
-        "    spx_cleanup_event.data.finalize.source.storage.value_id = \"declaration:13:token.discard:value:param:1:0\";\n",
-        "    spx_cleanup_event.data.finalize.lifecycle_id = \"token.drop\";\n",
-        "    spx_cleanup_event.data.finalize.guard_flag = UINT32_C(0);\n",
-        "    spx_trace_push(spx_bind_context, &spx_cleanup_event);\n",
-        "}\n",
-        "{\n",
-        "    struct spx_trace_event spx_cleanup_event = {0};\n",
-        "    spx_cleanup_event.kind = SPX_TRACE_FINALIZE_END;\n",
-        "    spx_cleanup_event.function_id = \"token.discard\";\n",
-        "    spx_cleanup_event.data.finalize.source.storage.kind = SPX_TRACE_STORAGE_VALUE;\n",
-        "    spx_cleanup_event.data.finalize.source.storage.value_id = \"declaration:13:token.discard:value:param:1:0\";\n",
-        "    spx_cleanup_event.data.finalize.lifecycle_id = \"token.drop\";\n",
-        "    spx_cleanup_event.data.finalize.guard_flag = UINT32_C(0);\n",
-        "    spx_trace_push(spx_bind_context, &spx_cleanup_event);\n",
-        "}\n",
-        "}\n",
-        "if (spx_cleanup_selected_status != SPX_STATUS_SUCCESS) spx_runtime_invariant_failure(\"cleanup result commit selected failure\");\n",
-        "if (spx_cleanup_flag_0) spx_runtime_invariant_failure(\"cleanup scalar result commit retains a live resource\");\n",
-        "*spx_bind_result_out = spx_bind_scalar_result;\n",
-        "{\n",
-        "    struct spx_trace_event spx_cleanup_event = {0};\n",
-        "    spx_cleanup_event.kind = SPX_TRACE_RESULT_COMMIT;\n",
-        "    spx_cleanup_event.function_id = \"token.discard\";\n",
-        "    spx_cleanup_event.data.result_commit.source.kind = SPX_TRACE_RESULT_SCALAR;\n",
-        "    spx_cleanup_event.data.result_commit.source.scalar_expression_id = \"declaration:13:token.discard:expression:4:body\";\n",
-        "    spx_trace_push(spx_bind_context, &spx_cleanup_event);\n",
-        "}\n",
-        "return SPX_STATUS_SUCCESS;\n",
-    );
+            "/* semaprax.native-cleanup-scaffold.v1 */\n",
+            "bool spx_cleanup_flag_0 = false;\n",
+            "spx_status_token spx_cleanup_selected_status = SPX_STATUS_SUCCESS;\n",
+            "spx_cleanup_flag_0 = true;\n",
+            "goto spx_cleanup_block_0;\n",
+            "spx_cleanup_block_0:\n",
+            "goto spx_cleanup_exit_0;\n",
+            "spx_cleanup_exit_0:\n",
+            "if (spx_cleanup_flag_0) {\n",
+            "    spx_cleanup_flag_0 = false;\n",
+            "{\n",
+            "    struct spx_trace_event spx_cleanup_event = {0};\n",
+            "    spx_cleanup_event.kind = SPX_TRACE_FINALIZE_BEGIN;\n",
+            "    spx_cleanup_event.function_id = \"token.discard\";\n",
+            "    spx_cleanup_event.data.finalize.source.storage.kind = SPX_TRACE_STORAGE_VALUE;\n",
+            "    spx_cleanup_event.data.finalize.source.storage.value_id = \"declaration:13:token.discard:value:param:1:0\";\n",
+            "    spx_cleanup_event.data.finalize.lifecycle_id = \"token.drop\";\n",
+            "    spx_cleanup_event.data.finalize.guard_flag = UINT32_C(0);\n",
+            "    spx_trace_push(spx_bind_context, &spx_cleanup_event);\n",
+            "}\n",
+            "{\n",
+            "    struct spx_trace_event spx_cleanup_event = {0};\n",
+            "    spx_cleanup_event.kind = SPX_TRACE_FINALIZE_END;\n",
+            "    spx_cleanup_event.function_id = \"token.discard\";\n",
+            "    spx_cleanup_event.data.finalize.source.storage.kind = SPX_TRACE_STORAGE_VALUE;\n",
+            "    spx_cleanup_event.data.finalize.source.storage.value_id = \"declaration:13:token.discard:value:param:1:0\";\n",
+            "    spx_cleanup_event.data.finalize.lifecycle_id = \"token.drop\";\n",
+            "    spx_cleanup_event.data.finalize.guard_flag = UINT32_C(0);\n",
+            "    spx_trace_push(spx_bind_context, &spx_cleanup_event);\n",
+            "}\n",
+            "}\n",
+            "if (spx_cleanup_selected_status != SPX_STATUS_SUCCESS) spx_runtime_invariant_failure(\"cleanup result commit selected failure\");\n",
+            "if (spx_cleanup_flag_0) spx_runtime_invariant_failure(\"cleanup scalar result commit retains a live resource\");\n",
+            "*spx_bind_result_out = spx_bind_scalar_result;\n",
+            "{\n",
+            "    struct spx_trace_event spx_cleanup_event = {0};\n",
+            "    spx_cleanup_event.kind = SPX_TRACE_RESULT_COMMIT;\n",
+            "    spx_cleanup_event.function_id = \"token.discard\";\n",
+            "    spx_cleanup_event.data.result_commit.source.kind = SPX_TRACE_RESULT_SCALAR;\n",
+            "    spx_cleanup_event.data.result_commit.source.scalar_expression_id = \"declaration:13:token.discard:expression:4:body\";\n",
+            "    spx_trace_push(spx_bind_context, &spx_cleanup_event);\n",
+            "}\n",
+            "return SPX_STATUS_SUCCESS;\n",
+        );
     assert_eq!(emitted, expected);
 }
 
@@ -292,108 +292,108 @@ fn emitted_discard_trace_compiles_and_runs_with_strict_c11() {
     super::super::native_runtime::emit_status_runtime(&mut runtime);
     super::super::native_trace_runtime::emit_trace_runtime(&mut runtime);
     let source = format!(
-        "{runtime}\n\
-         static __attribute__((noreturn)) void spx_runtime_invariant_failure(const char *message) {{ (void)message; abort(); }}\n\
-         static void spx_test_retain_status_runtime(void) {{\n\
-             (void)spx_status_resolve;\n\
-             (void)spx_status_attach_detail;\n\
-             (void)spx_status_resolve_detail;\n\
-             (void)spx_status_record_requires_false;\n\
-             (void)spx_status_record_ensures_false;\n\
-             (void)spx_status_record_arithmetic;\n\
-         }}\n\
-         static spx_status_token spx_test_discard(\n\
-             struct spx_context *spx_bind_context,\n\
-             uintptr_t spx_bind_slot_0,\n\
-             int64_t *spx_bind_result_out,\n\
-             int64_t spx_bind_scalar_result\n\
-         ) {{\n\
-             (void)spx_bind_slot_0;\n\
-         {emitted}\
-         }}\n\
-         static spx_status_token spx_test_identity(\n\
-             struct spx_context *spx_bind_context,\n\
-         {identity_storage_parameters}\
-             uintptr_t *spx_bind_result_out\n\
-         ) {{\n\
-         {identity}\
-         }}\n\
-         static spx_status_token spx_test_contract_failure(\n\
-             struct spx_context *spx_bind_context,\n\
-             uintptr_t spx_bind_slot_0,\n\
-             bool spx_bind_bool_0,\n\
-             spx_status_token spx_bind_status_0,\n\
-             int64_t *spx_bind_result_out,\n\
-             int64_t spx_bind_scalar_result\n\
-         ) {{\n\
-             (void)spx_bind_slot_0;\n\
-         {failure}\
-         }}\n\
-         static spx_status_token spx_test_escaped_discard(\n\
-             struct spx_context *spx_bind_context,\n\
-             uintptr_t spx_bind_slot_0,\n\
-             int64_t *spx_bind_result_out,\n\
-             int64_t spx_bind_scalar_result\n\
-         ) {{\n\
-             (void)spx_bind_slot_0;\n\
-         {escaped}\
-         }}\n\
-         int main(void) {{\n\
-             spx_test_retain_status_runtime();\n\
-             struct spx_status_entry status_entries[UINT32_C(1)] = {{0}};\n\
-             struct spx_context context = {{0}};\n\
-             if (!spx_context_init(&context, UINT64_C(1), status_entries, UINT32_C(1), NULL, NULL, NULL)) return 1;\n\
-             struct spx_trace_event events[UINT32_C(3)] = {{0}};\n\
-             struct spx_trace_buffer trace = {{0}};\n\
-             if (!spx_trace_buffer_init(&trace, events, UINT32_C(3))) return 2;\n\
-             if (!spx_trace_attach_preflight(&context, &trace, UINT32_C(3))) return 3;\n\
-             int64_t result = INT64_C(0);\n\
-             if (spx_test_discard(&context, (uintptr_t)UINT32_C(99), &result, INT64_C(7)) != SPX_STATUS_SUCCESS) return 4;\n\
-             if (result != INT64_C(7) || trace.length != UINT32_C(3)) return 5;\n\
-             if (events[0].kind != SPX_TRACE_FINALIZE_BEGIN || events[1].kind != SPX_TRACE_FINALIZE_END || events[2].kind != SPX_TRACE_RESULT_COMMIT) return 6;\n\
-             if (events[0].semantic_ordinal != UINT32_C(1) || events[1].semantic_ordinal != UINT32_C(2) || events[2].semantic_ordinal != UINT32_C(3)) return 26;\n\
-             if (strcmp(events[0].function_id, \"token.discard\") != 0 || strcmp(events[1].function_id, \"token.discard\") != 0 || strcmp(events[2].function_id, \"token.discard\") != 0) return 7;\n\
-             if (events[0].data.finalize.source.storage.kind != SPX_TRACE_STORAGE_VALUE || strcmp(events[0].data.finalize.source.storage.value_id, \"declaration:13:token.discard:value:param:1:0\") != 0 || strcmp(events[0].data.finalize.lifecycle_id, \"token.drop\") != 0 || events[0].data.finalize.guard_flag != UINT32_C(0)) return 8;\n\
-             if (events[2].data.result_commit.source.kind != SPX_TRACE_RESULT_SCALAR || strcmp(events[2].data.result_commit.source.scalar_expression_id, \"declaration:13:token.discard:expression:4:body\") != 0) return 9;\n\
-             struct spx_status_entry identity_status_entries[UINT32_C(1)] = {{0}};\n\
-             struct spx_context identity_context = {{0}};\n\
-             if (!spx_context_init(&identity_context, UINT64_C(2), identity_status_entries, UINT32_C(1), NULL, NULL, NULL)) return 10;\n\
-             struct spx_trace_event identity_events[UINT32_C(3)] = {{0}};\n\
-             struct spx_trace_buffer identity_trace = {{0}};\n\
-             if (!spx_trace_buffer_init(&identity_trace, identity_events, UINT32_C(3)) || !spx_trace_attach_preflight(&identity_context, &identity_trace, UINT32_C(3))) return 11;\n\
-             uintptr_t owned_result = (uintptr_t)UINT32_C(0);\n\
-             if (spx_test_identity(&identity_context, {identity_storage_arguments}, &owned_result) != SPX_STATUS_SUCCESS || owned_result != (uintptr_t)UINT32_C(73)) return 12;\n\
-             if (identity_trace.length != UINT32_C(3) || identity_events[0].kind != SPX_TRACE_TRANSFER || identity_events[1].kind != SPX_TRACE_TRANSFER || identity_events[2].kind != SPX_TRACE_RESULT_COMMIT) return 13;\n\
-             if (identity_events[0].semantic_ordinal != UINT32_C(1) || identity_events[1].semantic_ordinal != UINT32_C(2) || identity_events[2].semantic_ordinal != UINT32_C(3)) return 27;\n\
-             if (identity_events[0].data.transfer.source.storage.kind != SPX_TRACE_STORAGE_VALUE || identity_events[0].data.transfer.destination.storage.kind != SPX_TRACE_STORAGE_TEMPORARY || identity_events[1].data.transfer.source.storage.kind != SPX_TRACE_STORAGE_TEMPORARY || identity_events[1].data.transfer.destination.storage.kind != SPX_TRACE_STORAGE_PROVISIONAL_RESULT || identity_events[2].data.result_commit.source.kind != SPX_TRACE_RESULT_OWNED || identity_events[2].data.result_commit.source.owned_storage.storage.kind != SPX_TRACE_STORAGE_PROVISIONAL_RESULT) return 14;\n\
-             struct spx_status_entry failure_status_entries[UINT32_C(1)] = {{0}};\n\
-             struct spx_context failure_context = {{0}};\n\
-             if (!spx_context_init(&failure_context, UINT64_C(3), failure_status_entries, UINT32_C(1), NULL, NULL, NULL)) return 15;\n\
-             spx_status_token contract_status = SPX_STATUS_SUCCESS;\n\
-             if (!spx_status_record_requires_false(&failure_context, &contract_status)) return 16;\n\
-             struct spx_trace_event failure_events[UINT32_C(3)] = {{0}};\n\
-             struct spx_trace_buffer failure_trace = {{0}};\n\
-             if (!spx_trace_buffer_init(&failure_trace, failure_events, UINT32_C(3)) || !spx_trace_attach_preflight(&failure_context, &failure_trace, UINT32_C(3))) return 17;\n\
-             int64_t poisoned_result = INT64_C(99);\n\
-             if (spx_test_contract_failure(&failure_context, (uintptr_t)UINT32_C(88), false, contract_status, &poisoned_result, INT64_C(0)) != contract_status || poisoned_result != INT64_C(99)) return 18;\n\
-             if (failure_trace.length != UINT32_C(3) || failure_events[0].kind != SPX_TRACE_SELECT_FAILURE || failure_events[1].kind != SPX_TRACE_FINALIZE_BEGIN || failure_events[2].kind != SPX_TRACE_FINALIZE_END) return 19;\n\
-             if (failure_events[0].semantic_ordinal != UINT32_C(1) || failure_events[1].semantic_ordinal != UINT32_C(2) || failure_events[2].semantic_ordinal != UINT32_C(3)) return 28;\n\
-             if (failure_events[0].data.select_failure.source.lane != SPX_TRACE_STATUS_CONTRACT_FALSE || strcmp(failure_events[0].data.select_failure.status.domain_id, \"semaprax.contract.v1\") != 0 || failure_events[0].data.select_failure.status.code != SPX_STATUS_CONTRACT_REQUIRES_FALSE || failure_events[0].data.select_failure.status.status_class != SPX_TRACE_STATUS_CLASS_CONTRACT) return 20;\n\
-             struct spx_status_entry escaped_status_entries[UINT32_C(1)] = {{0}};\n\
-             struct spx_context escaped_context = {{0}};\n\
-             if (!spx_context_init(&escaped_context, UINT64_C(4), escaped_status_entries, UINT32_C(1), NULL, NULL, NULL)) return 21;\n\
-             struct spx_trace_event escaped_events[UINT32_C(3)] = {{0}};\n\
-             struct spx_trace_buffer escaped_trace = {{0}};\n\
-             if (!spx_trace_buffer_init(&escaped_trace, escaped_events, UINT32_C(3)) || !spx_trace_attach_preflight(&escaped_context, &escaped_trace, UINT32_C(3))) return 22;\n\
-             int64_t escaped_result = INT64_C(0);\n\
-             if (spx_test_escaped_discard(&escaped_context, (uintptr_t)UINT32_C(55), &escaped_result, INT64_C(11)) != SPX_STATUS_SUCCESS || escaped_result != INT64_C(11)) return 23;\n\
-             static const unsigned char expected_function_id[] = {{'t', 'o', 'k', 'e', 'n', '.', 0x3f, 0x3f, '/', 0xce, 0xbb, 0x00}};\n\
-             if (escaped_trace.length != UINT32_C(3)) return 24;\n\
-             if (escaped_events[0].semantic_ordinal != UINT32_C(1) || escaped_events[1].semantic_ordinal != UINT32_C(2) || escaped_events[2].semantic_ordinal != UINT32_C(3)) return 29;\n\
-             if (memcmp(escaped_events[0].function_id, expected_function_id, sizeof(expected_function_id)) != 0 || memcmp(escaped_events[1].function_id, expected_function_id, sizeof(expected_function_id)) != 0 || memcmp(escaped_events[2].function_id, expected_function_id, sizeof(expected_function_id)) != 0) return 25;\n\
-             return 0;\n\
-         }}\n"
-    );
+            "{runtime}\n\
+             static __attribute__((noreturn)) void spx_runtime_invariant_failure(const char *message) {{ (void)message; abort(); }}\n\
+             static void spx_test_retain_status_runtime(void) {{\n\
+                 (void)spx_status_resolve;\n\
+                 (void)spx_status_attach_detail;\n\
+                 (void)spx_status_resolve_detail;\n\
+                 (void)spx_status_record_requires_false;\n\
+                 (void)spx_status_record_ensures_false;\n\
+                 (void)spx_status_record_arithmetic;\n\
+             }}\n\
+             static spx_status_token spx_test_discard(\n\
+                 struct spx_context *spx_bind_context,\n\
+                 uintptr_t spx_bind_slot_0,\n\
+                 int64_t *spx_bind_result_out,\n\
+                 int64_t spx_bind_scalar_result\n\
+             ) {{\n\
+                 (void)spx_bind_slot_0;\n\
+             {emitted}\
+             }}\n\
+             static spx_status_token spx_test_identity(\n\
+                 struct spx_context *spx_bind_context,\n\
+             {identity_storage_parameters}\
+                 uintptr_t *spx_bind_result_out\n\
+             ) {{\n\
+             {identity}\
+             }}\n\
+             static spx_status_token spx_test_contract_failure(\n\
+                 struct spx_context *spx_bind_context,\n\
+                 uintptr_t spx_bind_slot_0,\n\
+                 bool spx_bind_bool_0,\n\
+                 spx_status_token spx_bind_status_0,\n\
+                 int64_t *spx_bind_result_out,\n\
+                 int64_t spx_bind_scalar_result\n\
+             ) {{\n\
+                 (void)spx_bind_slot_0;\n\
+             {failure}\
+             }}\n\
+             static spx_status_token spx_test_escaped_discard(\n\
+                 struct spx_context *spx_bind_context,\n\
+                 uintptr_t spx_bind_slot_0,\n\
+                 int64_t *spx_bind_result_out,\n\
+                 int64_t spx_bind_scalar_result\n\
+             ) {{\n\
+                 (void)spx_bind_slot_0;\n\
+             {escaped}\
+             }}\n\
+             int main(void) {{\n\
+                 spx_test_retain_status_runtime();\n\
+                 struct spx_status_entry status_entries[UINT32_C(1)] = {{0}};\n\
+                 struct spx_context context = {{0}};\n\
+                 if (!spx_context_init(&context, UINT64_C(1), status_entries, UINT32_C(1), NULL, NULL, NULL)) return 1;\n\
+                 struct spx_trace_event events[UINT32_C(3)] = {{0}};\n\
+                 struct spx_trace_buffer trace = {{0}};\n\
+                 if (!spx_trace_buffer_init(&trace, events, UINT32_C(3))) return 2;\n\
+                 if (!spx_trace_attach_preflight(&context, &trace, UINT32_C(3))) return 3;\n\
+                 int64_t result = INT64_C(0);\n\
+                 if (spx_test_discard(&context, (uintptr_t)UINT32_C(99), &result, INT64_C(7)) != SPX_STATUS_SUCCESS) return 4;\n\
+                 if (result != INT64_C(7) || trace.length != UINT32_C(3)) return 5;\n\
+                 if (events[0].kind != SPX_TRACE_FINALIZE_BEGIN || events[1].kind != SPX_TRACE_FINALIZE_END || events[2].kind != SPX_TRACE_RESULT_COMMIT) return 6;\n\
+                 if (events[0].semantic_ordinal != UINT32_C(1) || events[1].semantic_ordinal != UINT32_C(2) || events[2].semantic_ordinal != UINT32_C(3)) return 26;\n\
+                 if (strcmp(events[0].function_id, \"token.discard\") != 0 || strcmp(events[1].function_id, \"token.discard\") != 0 || strcmp(events[2].function_id, \"token.discard\") != 0) return 7;\n\
+                 if (events[0].data.finalize.source.storage.kind != SPX_TRACE_STORAGE_VALUE || strcmp(events[0].data.finalize.source.storage.value_id, \"declaration:13:token.discard:value:param:1:0\") != 0 || strcmp(events[0].data.finalize.lifecycle_id, \"token.drop\") != 0 || events[0].data.finalize.guard_flag != UINT32_C(0)) return 8;\n\
+                 if (events[2].data.result_commit.source.kind != SPX_TRACE_RESULT_SCALAR || strcmp(events[2].data.result_commit.source.scalar_expression_id, \"declaration:13:token.discard:expression:4:body\") != 0) return 9;\n\
+                 struct spx_status_entry identity_status_entries[UINT32_C(1)] = {{0}};\n\
+                 struct spx_context identity_context = {{0}};\n\
+                 if (!spx_context_init(&identity_context, UINT64_C(2), identity_status_entries, UINT32_C(1), NULL, NULL, NULL)) return 10;\n\
+                 struct spx_trace_event identity_events[UINT32_C(3)] = {{0}};\n\
+                 struct spx_trace_buffer identity_trace = {{0}};\n\
+                 if (!spx_trace_buffer_init(&identity_trace, identity_events, UINT32_C(3)) || !spx_trace_attach_preflight(&identity_context, &identity_trace, UINT32_C(3))) return 11;\n\
+                 uintptr_t owned_result = (uintptr_t)UINT32_C(0);\n\
+                 if (spx_test_identity(&identity_context, {identity_storage_arguments}, &owned_result) != SPX_STATUS_SUCCESS || owned_result != (uintptr_t)UINT32_C(73)) return 12;\n\
+                 if (identity_trace.length != UINT32_C(3) || identity_events[0].kind != SPX_TRACE_TRANSFER || identity_events[1].kind != SPX_TRACE_TRANSFER || identity_events[2].kind != SPX_TRACE_RESULT_COMMIT) return 13;\n\
+                 if (identity_events[0].semantic_ordinal != UINT32_C(1) || identity_events[1].semantic_ordinal != UINT32_C(2) || identity_events[2].semantic_ordinal != UINT32_C(3)) return 27;\n\
+                 if (identity_events[0].data.transfer.source.storage.kind != SPX_TRACE_STORAGE_VALUE || identity_events[0].data.transfer.destination.storage.kind != SPX_TRACE_STORAGE_TEMPORARY || identity_events[1].data.transfer.source.storage.kind != SPX_TRACE_STORAGE_TEMPORARY || identity_events[1].data.transfer.destination.storage.kind != SPX_TRACE_STORAGE_PROVISIONAL_RESULT || identity_events[2].data.result_commit.source.kind != SPX_TRACE_RESULT_OWNED || identity_events[2].data.result_commit.source.owned_storage.storage.kind != SPX_TRACE_STORAGE_PROVISIONAL_RESULT) return 14;\n\
+                 struct spx_status_entry failure_status_entries[UINT32_C(1)] = {{0}};\n\
+                 struct spx_context failure_context = {{0}};\n\
+                 if (!spx_context_init(&failure_context, UINT64_C(3), failure_status_entries, UINT32_C(1), NULL, NULL, NULL)) return 15;\n\
+                 spx_status_token contract_status = SPX_STATUS_SUCCESS;\n\
+                 if (!spx_status_record_requires_false(&failure_context, &contract_status)) return 16;\n\
+                 struct spx_trace_event failure_events[UINT32_C(3)] = {{0}};\n\
+                 struct spx_trace_buffer failure_trace = {{0}};\n\
+                 if (!spx_trace_buffer_init(&failure_trace, failure_events, UINT32_C(3)) || !spx_trace_attach_preflight(&failure_context, &failure_trace, UINT32_C(3))) return 17;\n\
+                 int64_t poisoned_result = INT64_C(99);\n\
+                 if (spx_test_contract_failure(&failure_context, (uintptr_t)UINT32_C(88), false, contract_status, &poisoned_result, INT64_C(0)) != contract_status || poisoned_result != INT64_C(99)) return 18;\n\
+                 if (failure_trace.length != UINT32_C(3) || failure_events[0].kind != SPX_TRACE_SELECT_FAILURE || failure_events[1].kind != SPX_TRACE_FINALIZE_BEGIN || failure_events[2].kind != SPX_TRACE_FINALIZE_END) return 19;\n\
+                 if (failure_events[0].semantic_ordinal != UINT32_C(1) || failure_events[1].semantic_ordinal != UINT32_C(2) || failure_events[2].semantic_ordinal != UINT32_C(3)) return 28;\n\
+                 if (failure_events[0].data.select_failure.source.lane != SPX_TRACE_STATUS_CONTRACT_FALSE || strcmp(failure_events[0].data.select_failure.status.domain_id, \"semaprax.contract.v1\") != 0 || failure_events[0].data.select_failure.status.code != SPX_STATUS_CONTRACT_REQUIRES_FALSE || failure_events[0].data.select_failure.status.status_class != SPX_TRACE_STATUS_CLASS_CONTRACT) return 20;\n\
+                 struct spx_status_entry escaped_status_entries[UINT32_C(1)] = {{0}};\n\
+                 struct spx_context escaped_context = {{0}};\n\
+                 if (!spx_context_init(&escaped_context, UINT64_C(4), escaped_status_entries, UINT32_C(1), NULL, NULL, NULL)) return 21;\n\
+                 struct spx_trace_event escaped_events[UINT32_C(3)] = {{0}};\n\
+                 struct spx_trace_buffer escaped_trace = {{0}};\n\
+                 if (!spx_trace_buffer_init(&escaped_trace, escaped_events, UINT32_C(3)) || !spx_trace_attach_preflight(&escaped_context, &escaped_trace, UINT32_C(3))) return 22;\n\
+                 int64_t escaped_result = INT64_C(0);\n\
+                 if (spx_test_escaped_discard(&escaped_context, (uintptr_t)UINT32_C(55), &escaped_result, INT64_C(11)) != SPX_STATUS_SUCCESS || escaped_result != INT64_C(11)) return 23;\n\
+                 static const unsigned char expected_function_id[] = {{'t', 'o', 'k', 'e', 'n', '.', 0x3f, 0x3f, '/', 0xce, 0xbb, 0x00}};\n\
+                 if (escaped_trace.length != UINT32_C(3)) return 24;\n\
+                 if (escaped_events[0].semantic_ordinal != UINT32_C(1) || escaped_events[1].semantic_ordinal != UINT32_C(2) || escaped_events[2].semantic_ordinal != UINT32_C(3)) return 29;\n\
+                 if (memcmp(escaped_events[0].function_id, expected_function_id, sizeof(expected_function_id)) != 0 || memcmp(escaped_events[1].function_id, expected_function_id, sizeof(expected_function_id)) != 0 || memcmp(escaped_events[2].function_id, expected_function_id, sizeof(expected_function_id)) != 0) return 25;\n\
+                 return 0;\n\
+             }}\n"
+        );
     let suffix = NEXT_TEST_BINARY.fetch_add(1, Ordering::Relaxed);
     let binary = std::env::temp_dir().join(format!(
         "semaprax-native-cleanup-trace-{}-{suffix}{}",
@@ -480,8 +480,8 @@ fn contract_failure_scaffold_is_deterministic_and_sticky() {
     ));
     assert!(first.contains("spx_status_resolve(spx_bind_context, spx_bind_status_"));
     assert!(first.contains(
-        "spx_cleanup_event.data.select_failure.status.domain_id = spx_cleanup_normalized_status->domain_id;"
-    ));
+            "spx_cleanup_event.data.select_failure.status.domain_id = spx_cleanup_normalized_status->domain_id;"
+        ));
     let terminal_status = first
         .rfind("cleanup failure return changed status")
         .expect("exact failure status assertion");
@@ -559,14 +559,14 @@ fn owned_result_requires_exact_provisional_liveness_before_publication() {
         "spx_cleanup_event.data.transfer.source.storage.kind = SPX_TRACE_STORAGE_VALUE;"
     ));
     assert!(emitted.contains(
-        "spx_cleanup_event.data.transfer.destination.storage.kind = SPX_TRACE_STORAGE_PROVISIONAL_RESULT;"
-    ));
+            "spx_cleanup_event.data.transfer.destination.storage.kind = SPX_TRACE_STORAGE_PROVISIONAL_RESULT;"
+        ));
     assert!(emitted.contains("spx_cleanup_event.kind = SPX_TRACE_RESULT_COMMIT;"));
     assert!(emitted
         .contains("spx_cleanup_event.data.result_commit.source.kind = SPX_TRACE_RESULT_OWNED;"));
     assert!(emitted.contains(
-        "spx_cleanup_event.data.result_commit.source.owned_storage.storage.kind = SPX_TRACE_STORAGE_PROVISIONAL_RESULT;"
-    ));
+            "spx_cleanup_event.data.result_commit.source.owned_storage.storage.kind = SPX_TRACE_STORAGE_PROVISIONAL_RESULT;"
+        ));
     assert!(!emitted.contains("semaprax.cleanup."));
 
     let status = emitted

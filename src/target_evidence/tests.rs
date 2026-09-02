@@ -36,16 +36,16 @@ fn capability_manifest_is_typed_and_canonical() {
     let source = r#"module target.capabilities;
 permit { platform.token.release }
 @id("platform.token") resource Token {
-@id("platform.token.drop") drop import "platform.token.finalize";
+    @id("platform.token.drop") drop import "platform.token.finalize";
 }
 @id("platform.token.host") interface TokenHost
-permits { platform.token.release }
+    permits { platform.token.release }
 {
-@id("platform.token.finalize")
-import fn finalize(token: own Token) -> unit
-    effects { platform.token.release }
-    failure infallible
-    consumes token always;
+    @id("platform.token.finalize")
+    import fn finalize(token: own Token) -> unit
+        effects { platform.token.release }
+        failure infallible
+        consumes token always;
 }
 @id("generic.touch") fn touch<T>(value:T)->T { value }
 @id("app.main") fn main() -> i64 uses { platform.token.release } { let value=touch<i64>(1);value }

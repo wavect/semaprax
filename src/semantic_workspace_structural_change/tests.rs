@@ -608,11 +608,11 @@ fn replace_operation(source: &workspace::WorkspaceSemanticSource, replacement: &
 
 fn proposal(revision: &str, entry_module: &str, operations: &[String]) -> String {
     format!(
-        "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":{},\"entry_module\":{},\"operations\":[{}]}}\n",
-        quoted(revision),
-        quoted(entry_module),
-        operations.join(",")
-    )
+            "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":{},\"entry_module\":{},\"operations\":[{}]}}\n",
+            quoted(revision),
+            quoted(entry_module),
+            operations.join(",")
+        )
 }
 
 fn source<'a>(base: &'a BaseFixture, path: &str) -> &'a workspace::WorkspaceSemanticSource {
@@ -1225,11 +1225,11 @@ fn analysis_builder_limit_has_an_exact_minimum_successful_boundary() {
     assert_eq!(diagnostics.len(), 1);
     assert_eq!(diagnostics[0].code, "SPX-G191");
     assert_eq!(
-        diagnostics[0].message,
-        format!(
-            "Semantic Workspace Structural Change limit exceeded: analysis_builder_bytes maximum {MAX_ANALYSIS_BUILDER_BYTES}"
-        )
-    );
+            diagnostics[0].message,
+            format!(
+                "Semantic Workspace Structural Change limit exceeded: analysis_builder_bytes maximum {MAX_ANALYSIS_BUILDER_BYTES}"
+            )
+        );
 }
 
 #[test]
@@ -1813,9 +1813,9 @@ fn evidence_format_confusion_and_exact_replay_mutations_fail_closed() {
         });
         assert_eq!(error.code, "SPX-G195");
         assert_eq!(
-            error.message,
-            "Semantic Workspace Structural Change Evidence does not exactly replay the authenticated proposal and candidate"
-        );
+                error.message,
+                "Semantic Workspace Structural Change Evidence does not exactly replay the authenticated proposal and candidate"
+            );
     }
 }
 

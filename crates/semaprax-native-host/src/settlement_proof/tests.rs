@@ -11,18 +11,18 @@ const SOURCE: &str = r#"module test.callable_proof_host;
 
 @id("token.type")
 resource Token {
-@id("token.drop")
-drop trivial;
+    @id("token.drop")
+    drop trivial;
 }
 
 @id("token.consume")
 fn consume(value: own Token) -> i64 {
-7
+    7
 }
 
 @id("token.keep")
 fn keep(value: own Token) -> Token {
-value
+    value
 }
 
 @id("app.main")

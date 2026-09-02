@@ -36,7 +36,7 @@ fn unsupported_response_assertions_fail_before_client_generation() {
 #[test]
 fn metadata_contains_only_transitive_selected_response_documents() {
     let bundle = json!({"methods":[{"request_schema":{"properties":{"params":{"type":"object","properties":{}}}},"success_response_schema":{"properties":{"result":{"properties":{"payload":{"$ref":"urn:outer"}}}}}}],
-        "documents":[{"$id":"urn:outer","type":"object","properties":{"child":{"$ref":"urn:inner"}}},{"$id":"urn:inner","type":"string"},{"$id":"urn:unselected","allOf":[]}],"unbundled_payload_schemas":[]});
+            "documents":[{"$id":"urn:outer","type":"object","properties":{"child":{"$ref":"urn:inner"}}},{"$id":"urn:inner","type":"string"},{"$id":"urn:unselected","allOf":[]}],"unbundled_payload_schemas":[]});
     let docs = response_documents(&bundle).unwrap();
     assert_eq!(
         docs.keys().map(String::as_str).collect::<Vec<_>>(),
@@ -106,7 +106,7 @@ fn selected_recursive_definitions_normalize_without_erasing_assertions() {
         "unused":{"type":"string"}
     }});
     let bundle = json!({"methods":[{"request_schema":{"properties":{"params":{"type":"object","properties":{}}}},"success_response_schema":{"properties":{"result":{"properties":{"payload":{"$ref":"urn:recursive"}}}}}}],
-        "documents":[root],"unbundled_payload_schemas":[]});
+            "documents":[root],"unbundled_payload_schemas":[]});
     let docs = response_documents(&bundle).unwrap();
     assert_eq!(docs.len(), 2);
     assert_eq!(
@@ -147,17 +147,17 @@ fn selected_recursive_definitions_normalize_without_erasing_assertions() {
 #[test]
 fn typed_public_names_reject_colliding_method_spellings() {
     let methods = ["sample/value", "sample-value"]
-        .map(|method| {
-            json!({
-                "method":method,
-                "request_schema":{"properties":{"params":{
-                    "type":"object","properties":{},"required":[],"additionalProperties":false
-                }}},
-                "success_response_schema":{"properties":{"result":{"properties":{
-                    "payload":{"type":"object","properties":{},"required":[],"additionalProperties":false}
-                }}}}
-            })
-        });
+            .map(|method| {
+                json!({
+                    "method":method,
+                    "request_schema":{"properties":{"params":{
+                        "type":"object","properties":{},"required":[],"additionalProperties":false
+                    }}},
+                    "success_response_schema":{"properties":{"result":{"properties":{
+                        "payload":{"type":"object","properties":{},"required":[],"additionalProperties":false}
+                    }}}}
+                })
+            });
     let bundle = json!({"methods":methods,"documents":[],"unbundled_payload_schemas":[]});
     for language in ["typescript", "python", "rust"] {
         let errors = generate(language, &bundle).unwrap_err();

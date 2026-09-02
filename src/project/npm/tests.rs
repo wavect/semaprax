@@ -4,9 +4,9 @@ use super::*;
 
 fn manifest() -> ProjectManifest {
     ProjectManifest::parse(
-        "schema = \"semaprax.project.v2\"\nname = \"config-validator\"\nversion = \"1.2.3\"\nprofile = \"useful-text-consumer.v1\"\nentry = \"config.app\"\nsources = [\"a/app.spx\", \"z/tests.spx\"]\nweb_exports = [\"config.valid\"]\ntests = [\"config.tests\"]\n",
-    )
-    .unwrap()
+            "schema = \"semaprax.project.v2\"\nname = \"config-validator\"\nversion = \"1.2.3\"\nprofile = \"useful-text-consumer.v1\"\nentry = \"config.app\"\nsources = [\"a/app.spx\", \"z/tests.spx\"]\nweb_exports = [\"config.valid\"]\ntests = [\"config.tests\"]\n",
+        )
+        .unwrap()
 }
 
 fn export() -> TextPackageExport {
@@ -20,17 +20,17 @@ fn export() -> TextPackageExport {
 
 fn runtime_manifest() -> ProjectManifest {
     ProjectManifest::parse(
-        "schema = \"semaprax.project.v2\"\nname = \"config-validator\"\nversion = \"1.2.3\"\nprofile = \"useful-text-consumer.v1\"\nentry = \"config.app\"\nsources = [\"a/app.spx\", \"z/tests.spx\"]\nweb_exports = [\"config.contains\", \"config.fail\", \"config.len\"]\ntests = [\"config.tests\"]\n",
-    )
-    .unwrap()
+            "schema = \"semaprax.project.v2\"\nname = \"config-validator\"\nversion = \"1.2.3\"\nprofile = \"useful-text-consumer.v1\"\nentry = \"config.app\"\nsources = [\"a/app.spx\", \"z/tests.spx\"]\nweb_exports = [\"config.contains\", \"config.fail\", \"config.len\"]\ntests = [\"config.tests\"]\n",
+        )
+        .unwrap()
 }
 
 fn runtime_package() -> UsefulTextNpmPackage {
     let source = crate::parse(
-        "module config.app;\n@id(\"config.contains\") fn contains(value: borrow str, needle: borrow str) -> bool { str_contains(value, needle) }\n@id(\"config.fail\") fn fail(value: borrow str) -> i64 { str_len_bytes(value) / 0 }\n@id(\"config.len\") fn len(value: borrow str) -> i64 { str_len_bytes(value) }\n@id(\"main\") fn main() -> i64 { 0 }\n",
-        std::path::Path::new("config-runtime.spx"),
-    )
-    .unwrap();
+            "module config.app;\n@id(\"config.contains\") fn contains(value: borrow str, needle: borrow str) -> bool { str_contains(value, needle) }\n@id(\"config.fail\") fn fail(value: borrow str) -> i64 { str_len_bytes(value) / 0 }\n@id(\"config.len\") fn len(value: borrow str) -> i64 { str_len_bytes(value) }\n@id(\"main\") fn main() -> i64 { 0 }\n",
+            std::path::Path::new("config-runtime.spx"),
+        )
+        .unwrap();
     let program = crate::hir::resolve(&source).unwrap();
     let wasm = crate::wasm::emit_resolved_module_with_text_exports(
         &program,
@@ -89,9 +89,9 @@ fn useful_text_npm_inventory_and_metadata_are_exact_and_deterministic() {
 #[test]
 fn npm_renderer_rejects_v1_unsorted_and_non_text_inputs() {
     let v1 = ProjectManifest::parse(
-        "schema = \"semaprax.project.v1\"\nname = \"config-validator\"\nentry = \"config.app\"\nsources = [\"a/app.spx\", \"z/tests.spx\"]\nweb_exports = [\"config.valid\"]\ntests = [\"config.tests\"]\n",
-    )
-    .unwrap();
+            "schema = \"semaprax.project.v1\"\nname = \"config-validator\"\nentry = \"config.app\"\nsources = [\"a/app.spx\", \"z/tests.spx\"]\nweb_exports = [\"config.valid\"]\ntests = [\"config.tests\"]\n",
+        )
+        .unwrap();
     assert_eq!(
         render_useful_text_npm_package(&v1, b"\0asm", &[export()])
             .unwrap_err()
@@ -99,10 +99,10 @@ fn npm_renderer_rejects_v1_unsorted_and_non_text_inputs() {
         "SPX-W120"
     );
     let scalar_source = crate::parse(
-        "module config.app;\n@id(\"config.valid\") fn valid(value: bool) -> bool { value }\n@id(\"main\") fn main() -> i64 { 0 }\n",
-        std::path::Path::new("config-v1.spx"),
-    )
-    .unwrap();
+            "module config.app;\n@id(\"config.valid\") fn valid(value: bool) -> bool { value }\n@id(\"main\") fn main() -> i64 { 0 }\n",
+            std::path::Path::new("config-v1.spx"),
+        )
+        .unwrap();
     let scalar_program = crate::hir::resolve(&scalar_source).unwrap();
     let admission = prepare(&v1, &scalar_program, "", "", "", 0).unwrap_err();
     assert_eq!(admission.code, "SPX-W120");
@@ -125,10 +125,10 @@ fn npm_renderer_rejects_v1_unsorted_and_non_text_inputs() {
 #[test]
 fn carrier_replay_rejects_a_canonical_self_resigned_generated_artifact_mutation() {
     let source = crate::parse(
-        "module config.app;\n@id(\"config.valid\") fn valid(value: borrow str, expected: bool) -> bool { str_is_empty(value) == expected }\n@id(\"main\") fn main() -> i64 { 0 }\n",
-        std::path::Path::new("config.spx"),
-    )
-    .unwrap();
+            "module config.app;\n@id(\"config.valid\") fn valid(value: borrow str, expected: bool) -> bool { str_is_empty(value) == expected }\n@id(\"main\") fn main() -> i64 { 0 }\n",
+            std::path::Path::new("config.spx"),
+        )
+        .unwrap();
     let program = crate::hir::resolve(&source).unwrap();
     let wasm =
         crate::wasm::emit_resolved_module_with_text_exports(&program, &["config.valid".to_owned()])
@@ -164,10 +164,10 @@ fn carrier_replay_rejects_a_canonical_self_resigned_generated_artifact_mutation(
     trusted_build.verify().unwrap();
 
     let attacker_source = crate::parse(
-        "module config.app;\n@id(\"config.valid\") fn valid(value: borrow str, expected: bool) -> bool { !str_is_empty(value) == expected }\n@id(\"main\") fn main() -> i64 { 0 }\n",
-        std::path::Path::new("attacker-config.spx"),
-    )
-    .unwrap();
+            "module config.app;\n@id(\"config.valid\") fn valid(value: borrow str, expected: bool) -> bool { !str_is_empty(value) == expected }\n@id(\"main\") fn main() -> i64 { 0 }\n",
+            std::path::Path::new("attacker-config.spx"),
+        )
+        .unwrap();
     let attacker_program = crate::hir::resolve(&attacker_source).unwrap();
     let attacker_wasm = crate::wasm::emit_resolved_module_with_text_exports(
         &attacker_program,
@@ -338,10 +338,10 @@ assert.match(source, /SemapraxTextError\(3/);
             String::from_utf8_lossy(&installed.stderr)
         );
         std::fs::write(
-            consumer.join("consumer.ts"),
-            "import instantiate, { exportIds, type UsefulTextRuntime } from \"config-validator\";\nconst bytes = new Uint8Array();\nconst runtime: UsefulTextRuntime = instantiate(bytes);\nconst length: bigint = runtime.functions[\"config.len\"](\"ok\");\nconst contained: boolean = runtime.functions[\"config.contains\"](\"ok\", \"k\");\nvoid [length, contained, exportIds];\n",
-        )
-        .unwrap();
+                consumer.join("consumer.ts"),
+                "import instantiate, { exportIds, type UsefulTextRuntime } from \"config-validator\";\nconst bytes = new Uint8Array();\nconst runtime: UsefulTextRuntime = instantiate(bytes);\nconst length: bigint = runtime.functions[\"config.len\"](\"ok\");\nconst contained: boolean = runtime.functions[\"config.contains\"](\"ok\", \"k\");\nvoid [length, contained, exportIds];\n",
+            )
+            .unwrap();
         let typed = Command::new("tsc")
             .current_dir(&consumer)
             .args([
@@ -373,10 +373,10 @@ fn handle_relative_publication_never_writes_through_a_substituted_destination() 
     use std::os::unix::fs::symlink;
 
     let source = crate::parse(
-        "module config.app;\n@id(\"config.contains\") fn contains(value: borrow str, needle: borrow str) -> bool { str_contains(value, needle) }\n@id(\"config.fail\") fn fail(value: borrow str) -> i64 { str_len_bytes(value) / 0 }\n@id(\"config.len\") fn len(value: borrow str) -> i64 { str_len_bytes(value) }\n@id(\"main\") fn main() -> i64 { 0 }\n",
-        Path::new("publication-race.spx"),
-    )
-    .unwrap();
+            "module config.app;\n@id(\"config.contains\") fn contains(value: borrow str, needle: borrow str) -> bool { str_contains(value, needle) }\n@id(\"config.fail\") fn fail(value: borrow str) -> i64 { str_len_bytes(value) / 0 }\n@id(\"config.len\") fn len(value: borrow str) -> i64 { str_len_bytes(value) }\n@id(\"main\") fn main() -> i64 { 0 }\n",
+            Path::new("publication-race.spx"),
+        )
+        .unwrap();
     let program = crate::hir::resolve(&source).unwrap();
     let package = runtime_package();
     let recipe = render_semantic_recipe(&program).unwrap();

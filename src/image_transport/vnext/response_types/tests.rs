@@ -289,7 +289,7 @@ fn recursive_rust_union_checks_discriminants_before_children_and_bounds_retries(
 fn optional_nullable_fields_keep_presence_separate_from_required_null() {
     let nullable = json!({"anyOf":[{"type":"string"},{"type":"null"}]});
     let schema = json!({"type":"object","additionalProperties":false,
-        "required":["must"],"properties":{"must":nullable,"maybe":nullable}});
+            "required":["must"],"properties":{"must":nullable,"maybe":nullable}});
     let documents = BTreeMap::new();
     let mut builder = Builder {
         documents: &documents,

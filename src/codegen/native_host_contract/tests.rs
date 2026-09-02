@@ -28,12 +28,12 @@ fn choose_second(first: own Token, count: i64, second: own Token) -> Token { sec
 
 @id("token.requires")
 fn requires_guard(value: own Token, allowed: bool) -> i64
-requires allowed
+    requires allowed
 { 0 }
 
 @id("token.checked")
 fn checked(value: own Token, number: i64) -> i64
-requires number >= 0
+    requires number >= 0
 { number + 1 }
 
 @id("app.main")

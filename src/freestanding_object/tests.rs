@@ -23,17 +23,17 @@ module test.probe;
 
 @id("probe.double")
 fn double(value: i64) -> i64
-requires value >= 0
-ensures result == value + value
+    requires value >= 0
+    ensures result == value + value
 {
-value + value
+    value + value
 }
 
 @id("app.main")
 fn main() -> i64
-ensures result == 42
+    ensures result == 42
 {
-if double(21) == 42 { 42 } else { 0 }
+    if double(21) == 42 { 42 } else { 0 }
 }
 "#;
 
@@ -70,8 +70,8 @@ fn golden_unit_has_documented_shape_and_is_deterministic() {
     assert!(!first.contains("<stdlib.h>"));
     assert!(first.contains(INVARIANT_FAILURE_FAILSTOP));
     assert!(first.contains(
-        "spx_status_token spx_decl_70726f62652e646f75626c65(struct spx_context *spx_ctx, int64_t, int64_t *spx_result_out);"
-    ));
+            "spx_status_token spx_decl_70726f62652e646f75626c65(struct spx_context *spx_ctx, int64_t, int64_t *spx_result_out);"
+        ));
     cleanup(&path);
 }
 
@@ -156,8 +156,8 @@ fn main() -> i64 { 0 }
 module test.bad;
 
 resource Buffer {
-@id("buffer.type.drop")
-drop trivial;
+    @id("buffer.type.drop")
+    drop trivial;
 }
 
 @id("app.main")

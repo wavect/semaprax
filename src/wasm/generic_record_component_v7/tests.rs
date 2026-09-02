@@ -104,10 +104,10 @@ fn node_executes_all_instances_status_order_poison_and_invalid_bools() {
     let script_path = std::env::temp_dir().join(format!("{stem}.mjs"));
     std::fs::write(&wasm_path, artifact.bytes).unwrap();
     std::fs::write(
-        &script_path,
-        "import fs from 'node:fs';\nconst {instance}=await WebAssembly.instantiate(fs.readFileSync(process.argv[2]));\nconst m=new DataView(instance.exports.memory.buffer);\nconst a=instance.exports.cabi_transform_i64_bool_v7;const b=instance.exports.cabi_transform_bool_i64_v7;const p64=instance.exports.cabi_preserve_phantom_i64_v7;const pb=instance.exports.cabi_invert_phantom_bool_v7;\nlet p=a(83n,1,1n,2n);if(m.getUint8(p)!==0||m.getBigInt64(p+8,true)!==42n||m.getUint8(p+16)!==1)throw Error('a');\np=b(0,83n,1n,2n);if(m.getUint8(p)!==0||m.getUint8(p+8)!==0||m.getBigInt64(p+16,true)!==42n)throw Error('b');\np=p64(1);if(m.getUint8(p)!==0||m.getUint8(p+4)!==1)throw Error('p64');p=pb(0);if(m.getUint8(p)!==0||m.getUint8(p+4)!==1)throw Error('pb');\np=a(9223372036854775807n,1,1n,0n);if(m.getUint8(p)!==1||m.getUint32(p+16,true)!==1)throw Error('sticky-a');p=b(1,9223372036854775807n,1n,0n);if(m.getUint8(p)!==1||m.getUint32(p+16,true)!==1)throw Error('sticky-b');\nfor(const [f,args] of [[a,[1n,1,1n,0n]],[b,[1,1n,1n,0n]]]){p=f(...args);if(m.getUint8(p)!==1||m.getUint32(p+16,true)!==4)throw Error('div0');}\nfor(const [f,args] of [[a,[1n,2,1n,2n]],[b,[2,1n,1n,2n]],[p64,[2]],[pb,[2]]]){let trapped=false;try{f(...args)}catch{trapped=true}if(!trapped)throw Error('bool2');}\nconsole.log('generic-record-v7-core-ok');\n",
-    )
-    .unwrap();
+            &script_path,
+            "import fs from 'node:fs';\nconst {instance}=await WebAssembly.instantiate(fs.readFileSync(process.argv[2]));\nconst m=new DataView(instance.exports.memory.buffer);\nconst a=instance.exports.cabi_transform_i64_bool_v7;const b=instance.exports.cabi_transform_bool_i64_v7;const p64=instance.exports.cabi_preserve_phantom_i64_v7;const pb=instance.exports.cabi_invert_phantom_bool_v7;\nlet p=a(83n,1,1n,2n);if(m.getUint8(p)!==0||m.getBigInt64(p+8,true)!==42n||m.getUint8(p+16)!==1)throw Error('a');\np=b(0,83n,1n,2n);if(m.getUint8(p)!==0||m.getUint8(p+8)!==0||m.getBigInt64(p+16,true)!==42n)throw Error('b');\np=p64(1);if(m.getUint8(p)!==0||m.getUint8(p+4)!==1)throw Error('p64');p=pb(0);if(m.getUint8(p)!==0||m.getUint8(p+4)!==1)throw Error('pb');\np=a(9223372036854775807n,1,1n,0n);if(m.getUint8(p)!==1||m.getUint32(p+16,true)!==1)throw Error('sticky-a');p=b(1,9223372036854775807n,1n,0n);if(m.getUint8(p)!==1||m.getUint32(p+16,true)!==1)throw Error('sticky-b');\nfor(const [f,args] of [[a,[1n,1,1n,0n]],[b,[1,1n,1n,0n]]]){p=f(...args);if(m.getUint8(p)!==1||m.getUint32(p+16,true)!==4)throw Error('div0');}\nfor(const [f,args] of [[a,[1n,2,1n,2n]],[b,[2,1n,1n,2n]],[p64,[2]],[pb,[2]]]){let trapped=false;try{f(...args)}catch{trapped=true}if(!trapped)throw Error('bool2');}\nconsole.log('generic-record-v7-core-ok');\n",
+        )
+        .unwrap();
     let output = Command::new("node")
         .arg(&script_path)
         .arg(&wasm_path)
@@ -127,10 +127,10 @@ fn adversarial_selected_bodies_trap_before_publishing_poisoned_results() {
     let stem = format!("semaprax-generic-record-v7-hostile-{}", std::process::id());
     let script_path = std::env::temp_dir().join(format!("{stem}.mjs"));
     std::fs::write(
-        &script_path,
-        "import fs from 'node:fs';\nconst names=['cabi_transform_i64_bool_v7','cabi_transform_bool_i64_v7','cabi_preserve_phantom_i64_v7','cabi_invert_phantom_bool_v7'];const args=[[7n,1,1n,2n],[1,7n,1n,2n],[1],[0]];const results=[192,320,416,480];\nfor(const path of process.argv.slice(2)){const {instance}=await WebAssembly.instantiate(fs.readFileSync(path));const bytes=new Uint8Array(instance.exports.memory.buffer);for(let i=0;i<4;i++){bytes.fill(0x3c,results[i],results[i]+24);let trapped=false;try{instance.exports[names[i]](...args[i])}catch{trapped=true}if(!trapped)throw Error(`hostile did not trap ${path} ${names[i]}`);for(let j=0;j<24;j++)if(bytes[results[i]+j]!==0xa5)throw Error(`published byte ${path} ${names[i]} ${j}`)}}\nconsole.log('generic-record-v7-hostiles-ok');\n",
-    )
-    .unwrap();
+            &script_path,
+            "import fs from 'node:fs';\nconst names=['cabi_transform_i64_bool_v7','cabi_transform_bool_i64_v7','cabi_preserve_phantom_i64_v7','cabi_invert_phantom_bool_v7'];const args=[[7n,1,1n,2n],[1,7n,1n,2n],[1],[0]];const results=[192,320,416,480];\nfor(const path of process.argv.slice(2)){const {instance}=await WebAssembly.instantiate(fs.readFileSync(path));const bytes=new Uint8Array(instance.exports.memory.buffer);for(let i=0;i<4;i++){bytes.fill(0x3c,results[i],results[i]+24);let trapped=false;try{instance.exports[names[i]](...args[i])}catch{trapped=true}if(!trapped)throw Error(`hostile did not trap ${path} ${names[i]}`);for(let j=0;j<24;j++)if(bytes[results[i]+j]!==0xa5)throw Error(`published byte ${path} ${names[i]} ${j}`)}}\nconsole.log('generic-record-v7-hostiles-ok');\n",
+        )
+        .unwrap();
     let mut wasm_paths = Vec::new();
     for (name, outcome) in [
         ("bool2", AdversarialOutcome::InvalidBool),

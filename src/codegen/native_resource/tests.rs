@@ -16,23 +16,23 @@ permit {{ io.release }}
 
 @id("token.type")
 resource {resource_name} {{
-@id("token.drop")
-drop trivial;
+    @id("token.drop")
+    drop trivial;
 }}
 
 @id("file.type")
 resource File {{
-@id("file.drop")
-drop import "file.finalize";
+    @id("file.drop")
+    drop import "file.finalize";
 }}
 
 @id("file.host")
 interface {interface_name} permits {{ io.release }} {{
-@id("file.finalize")
-import fn {import_name}(file: own File) -> unit
-    effects {{ io.release }}
-    failure infallible
-    consumes file always;
+    @id("file.finalize")
+    import fn {import_name}(file: own File) -> unit
+        effects {{ io.release }}
+        failure infallible
+        consumes file always;
 }}
 
 @id("app.main")
@@ -131,9 +131,9 @@ fn emission_is_deterministic() {
 #[test]
 fn type_selection_rejects_unknown_record_and_generic_shapes() {
     let program = resolve(&format!(
-        "{}\n@id(\"record.type\")\nrecord Record {{\n    @id(\"record.value\")\n    value: i64,\n}}\n",
-        source("Token", "FileHost", "finalize")
-    ));
+            "{}\n@id(\"record.type\")\nrecord Record {{\n    @id(\"record.value\")\n    value: i64,\n}}\n",
+            source("Token", "FileHost", "finalize")
+        ));
     let abi = build_resource_abi(&program).unwrap();
 
     let unknown = ResolvedType::Nominal {

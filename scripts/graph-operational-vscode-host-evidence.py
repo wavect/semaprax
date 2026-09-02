@@ -37,7 +37,9 @@ def run(args, **kw):
 def command(args, label, **kw):
     r=run(args, **kw)
     if len(r.stdout)>MAX_LOG: raise Failure(f"{label} log exceeds bound")
-    if r.returncode: raise Failure(f"{label} failed ({r.returncode})")
+    if r.returncode:
+        tail=r.stdout[-8192:].decode("utf-8","replace")
+        raise Failure(f"{label} failed ({r.returncode}):\n{tail}")
     return r.stdout
 
 def text(args, label):

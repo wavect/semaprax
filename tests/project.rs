@@ -28,6 +28,10 @@
 // yields two unrelated sets of types; modules refer to these as `crate::<name>`.
 #[path = "support/flat_record_product.rs"]
 mod flat_record_product;
+#[path = "support/full_toolchain.rs"]
+mod full_toolchain;
+#[path = "support/native_rust_cargo.rs"]
+mod native_rust_cargo;
 #[path = "support/owned_mixed_arity_product.rs"]
 mod owned_mixed_arity_product;
 #[path = "support/owned_npm_publication.rs"]

@@ -1,7 +1,4 @@
-#[path = "../support/full_toolchain.rs"]
-mod full_toolchain;
-#[path = "../support/native_rust_cargo.rs"]
-mod native_rust_cargo;
+use crate::full_toolchain;
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};

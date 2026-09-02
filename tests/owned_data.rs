@@ -2,6 +2,19 @@
 //! owned UTF-8 and usize products, across the interpreter, native and Wasm
 //! backends.
 
+// `owned_npm_publication` is shared with the `project` harness and reaches
+// `full_toolchain` through `crate::`, so this root provides it too. Both are
+// Windows-only there, and `full_toolchain` reaches `native_rust_cargo` via
+// `super::`, which resolves here at the crate root.
+#[cfg(windows)]
+#[path = "support/full_toolchain.rs"]
+mod full_toolchain;
+#[cfg(windows)]
+#[path = "support/native_rust_cargo.rs"]
+mod native_rust_cargo;
+#[path = "support/owned_npm_publication.rs"]
+mod owned_npm_publication;
+
 #[path = "owned_data/borrowed_str.rs"]
 mod borrowed_str;
 #[path = "owned_data/borrowed_str_native.rs"]

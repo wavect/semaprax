@@ -252,8 +252,8 @@ impl BundleBuildError {
     }
 }
 
-struct StickyDiagnosticCarrier {
-    errors: Option<Vec<Diagnostic>>,
+pub(super) struct StickyDiagnosticCarrier {
+    pub(super) errors: Option<Vec<Diagnostic>>,
 }
 
 impl StickyDiagnosticCarrier {
@@ -469,7 +469,7 @@ pub(super) fn retain_phase_b(
 }
 
 pub(super) struct PhaseBErrorCarriers {
-    carriers: [StickyDiagnosticCarrier; 7],
+    pub(super) carriers: [StickyDiagnosticCarrier; 7],
 }
 
 pub(super) fn finish_bounded_bundle(

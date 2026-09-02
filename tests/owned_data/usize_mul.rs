@@ -11,8 +11,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-#[path = "../support/owned_npm_publication.rs"]
-mod owned_npm_publication;
+use crate::owned_npm_publication;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 const SOURCE: &str = include_str!("../usize_mul_owned_v1/subject.spx");

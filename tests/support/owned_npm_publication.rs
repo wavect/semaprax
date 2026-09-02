@@ -8,12 +8,13 @@ use std::path::Path;
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::ProjectSnapshot;
 
+// Only `tests/project.rs` includes this file, and it declares both of these
+// support modules at its root. Loading them again here would compile each a
+// second time into the same crate, which `clippy::duplicate_mod` rejects.
+// `full_toolchain` reaches `native_rust_cargo` through `super::`, which now
+// resolves at the crate root, so only this one import is needed here.
 #[cfg(windows)]
-#[path = "full_toolchain.rs"]
-mod full_toolchain;
-#[cfg(windows)]
-#[path = "native_rust_cargo.rs"]
-mod native_rust_cargo;
+use crate::full_toolchain;
 
 #[cfg(windows)]
 const UNAVAILABLE: &str = "Project v8-v10 npm publication requires semaprax-full with safe handle-relative Windows authority";

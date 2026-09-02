@@ -128,11 +128,11 @@ dependency, pair-occupancy, identity, and unsupported-history conflicts. The
 source static-conformance `SPX-Q1xx`, Project, and ordinary candidate
 stale/replay diagnostics remain authoritative where delegated.
 
-[`tests/project_candidate_interface_v1.rs`](../tests/project_candidate_interface_v1.rs)
+[`tests/project_candidate/interface.rs`](../tests/project_candidate/interface.rs)
 authors discovery, real source addition, selected delta verification, exact
 replay/recovery, no-write behavior, incomplete/wrong/duplicate/colliding mapping
 rejection, display rename preservation, and precondition revalidation.
-[`tests/project_candidate_interface_rebase_v1.rs`](../tests/project_candidate_interface_rebase_v1.rs)
+[`tests/project_candidate/interface_rebase.rs`](../tests/project_candidate/interface_rebase.rs)
 authors conservative rebase/merge success across unrelated body and selected
 display edits, exact replay equivalence, unchanged parents/files, the absence
 of a fabricated runtime-graph declaration, and fail-closed receiver, protocol,

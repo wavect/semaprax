@@ -91,8 +91,8 @@ is added.
 
 ## Evidence
 
-[Candidate regressions](../tests/project_candidate_literal_constructors_v1.rs)
-and [protocol regressions](../tests/image_literal_constructors_v5.rs) are
+[Candidate regressions](../tests/project_candidate/literal_constructors.rs)
+and [protocol regressions](../tests/image_v5/literal_constructors.rs) are
 authored but unrun. They require exact literal contents and source replay,
 ownership/type/provenance checks, failure immutability and discovery alignment.
 The existing generated Rust client serialized-size gate remains unchanged and

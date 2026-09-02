@@ -147,7 +147,7 @@ objects and the permanent host lock file. Once an update was attempted, process
 failure is conservatively uncertain even when Git returned nonzero. There is no
 rollback that might overwrite a concurrent writer's ref.
 
-`tests/project_candidate_git_publication_v1.rs` exercises real bare-SHA256 Git
+`tests/project_candidate/git_publication.rs` exercises real bare-SHA256 Git
 publication, unrelated entry/mode preservation, unchanged raw sources, disabled
 ref hooks, stale-ref/original-blob rejection, unsafe-config rejection and nested
 object-store symlink rejection. It also checks live-host contention, explicit

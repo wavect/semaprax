@@ -137,7 +137,7 @@ context diagnostics propagate, as do candidate history/replay conflicts and
 draft rebase's region/dependency diagnostics. The inline transport cap remains
 `SPX-G234`. Failure changes neither parent and grants no retry or commit authority.
 
-`tests/project_candidate_draft_merge_v1.rs` and
+`tests/project_candidate/draft_merge.rs` and
 `tests/image_transport_v5/draft_merge.rs` author compatible checked histories,
 mixed holes, coalescing, conflicting selections, opposing writes, recovery and
 authority-preserving protocol behavior. Tests, compiler checks and long local

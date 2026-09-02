@@ -123,7 +123,7 @@ test policy grants none. A report digest is integrity evidence, not a secret,
 capability, approval, or replay permission.
 
 Focused regressions in
-`tests/project_candidate_analysis_runtime_evidence_v1.rs` are authored but
+`tests/project_candidate/analysis_runtime_evidence.rs` are authored but
 unrun. They pin exact nested reports, the single-row coverage change, passing
 and failing attempts, deterministic composition, selector mismatch rejection,
 immutability, the exported 4-MiB cap with successful evidence below it, and

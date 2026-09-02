@@ -219,7 +219,7 @@ ordering, canonical source round trips, removal of a still-used parameter,
 and rejection of type changes, omitted owners, and unsupported borrowed modes.
 Additional authored regressions cover simultaneous display renames, contract
 references, local mutation, match guard capture avoidance, and removed-binding
-capture. [`tests/project_candidate_signature_ownership_v1.rs`](../tests/project_candidate_signature_ownership_v1.rs)
+capture. [`tests/project_candidate/signature_ownership.rs`](../tests/project_candidate/signature_ownership.rs)
 authors full Project candidate/replay checks for reordered and renamed owned
 byte arguments, exact original evaluation order, duplicate/removal rejection,
 and unchanged live source files. These tests have not been executed.
@@ -257,6 +257,6 @@ retention/removal, alias/identity, catalogue and independent candidate replay
 evidence. Rebase signature fingerprints additionally bind retained nominal
 type identities: unchanged source spelling cannot conceal a different record
 or variant identity on a concurrent base. The regression in
-`tests/project_candidate_rebase_v1.rs` authors that conflict and unchanged-source
+`tests/project_candidate/rebase.rs` authors that conflict and unchanged-source
 failure behavior. These cases are unrun; neither runtime equivalence nor the
 full signature-evolution objective is promoted.

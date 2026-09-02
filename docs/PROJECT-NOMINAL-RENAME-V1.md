@@ -111,7 +111,7 @@ the reference inventory. Candidate request errors retain `SPX-G225`, stale
 candidate/Project bindings `SPX-G224`, and rebase conflicts `SPX-G235`; lower
 Operations, Graph, parser and verifier diagnostics propagate unchanged.
 
-Authored, unrun evidence is in `tests/project_candidate_nominal_rename_v1.rs`
+Authored, unrun evidence is in `tests/project_candidate/nominal_rename.rs`
 and `tests/image_transport_v5/nominal_rename.rs`. It covers proven local uses,
 stable identities and consumer aliases, generic/owned admitted source shapes,
 collisions, immutable failure, recovery and conservative rebase. No compiler,

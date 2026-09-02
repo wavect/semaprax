@@ -128,7 +128,7 @@ does not poison later valid reads.
 
 ## Evidence and limits
 
-[Library regressions](../tests/image_function_reference_v1.rs) cover exact
+[Library regressions](../tests/image_protocol/function_reference_v1.rs) cover exact
 carrier shape/digest/provenance, same-image and independent-rebuild parity,
 function-only and facet resolution, stale and tampered carriers, extra and
 missing fields, unknown facets, missing targets, bounds, unchanged images and

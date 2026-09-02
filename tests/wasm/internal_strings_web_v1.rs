@@ -7,10 +7,10 @@ use std::process::{Command, Output};
 
 use semaprax::wasm::internal_strings::{emit_module, InternalStringOptions};
 
-#[path = "wasm_internal_strings_web_v1/package_replay.rs"]
+#[path = "../wasm_internal_strings_web_v1/package_replay.rs"]
 mod package_replay;
 #[cfg(any(unix, windows))]
-#[path = "support/project_directory_link.rs"]
+#[path = "../support/project_directory_link.rs"]
 mod project_directory_link;
 use package_replay::{reopen, replay, Fixture, INVENTORY};
 
@@ -26,7 +26,7 @@ const IDS: [&str; 8] = [
 ];
 
 fn source() -> String {
-    let source = include_str!("wasm_internal_strings_web_v1/source.spx")
+    let source = include_str!("../wasm_internal_strings_web_v1/source.spx")
         .replace("__CAPACITY_TEXT__", &"x".repeat(4096));
     let ast = semaprax::check(&source, "web.spx").unwrap();
     let canonical = semaprax::format::canonical(&ast);
@@ -147,7 +147,7 @@ fn real_cli_packages_replay_exactly_and_preserve_direct_compiler_and_renamed_api
     );
     fixture.write(
         "node.mjs",
-        include_str!("wasm_internal_strings_web_v1/node.mjs"),
+        include_str!("../wasm_internal_strings_web_v1/node.mjs"),
     );
     node(&fixture, "node.mjs", &first);
     node(&fixture, "node.mjs", &renamed_output);
@@ -332,7 +332,7 @@ fn provisioned_typescript_checks_real_overloads_and_rejects_wrong_consumers() {
     fixture.write("package.json", "{\"private\":true,\"type\":\"module\"}\n");
     fixture.write(
         "consumer.ts",
-        include_str!("wasm_internal_strings_web_v1/consumer.ts"),
+        include_str!("../wasm_internal_strings_web_v1/consumer.ts"),
     );
     let consumer_root = fixture.root.clone();
     let compile = |file: &str| {
@@ -399,7 +399,7 @@ fn provisioned_chromium_consumes_actual_page_and_rejects_descriptor_and_wasm_dri
     success(cli(&path, &generated, "web", &IDS));
     fixture.write(
         "browser.mjs",
-        include_str!("wasm_internal_strings_web_v1/browser.mjs"),
+        include_str!("../wasm_internal_strings_web_v1/browser.mjs"),
     );
     let output = Command::new(std::env::var_os("NODE").unwrap_or_else(|| "node".into()))
         .arg("browser.mjs")

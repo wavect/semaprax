@@ -94,7 +94,7 @@ binding; `SPX-G353` reports final composite capacity overflow. Failure does not
 substitute empty artifact evidence.
 
 Authored, unrun regressions in
-`tests/project_candidate_analysis_artifact_evidence_v1.rs` compare the complete
+`tests/project_candidate/analysis_artifact_evidence.rs` compare the complete
 report with independently invoked coverage and delta owners, exercise changed
 and unchanged Web evidence and admitted npm/OpenAPI/C carriers, check exact
 source/hash/export joins, preserve the other seven boundaries, reject stale and

@@ -83,7 +83,7 @@ image expectations, and `SPX-G223` registry admission. Live Project drift retain
 its ordinary diagnostic and absorbing behavior. Explicit refresh can recover
 the live snapshot; it does not make startup-only restoration available again.
 
-`tests/image_workspace_archive_recovery_v1.rs` authors sibling-root recovery after
+`tests/image_protocol/workspace_archive_recovery_v1.rs` authors sibling-root recovery after
 the original root is removed, historical query and explicit rebase, startup and
 read-only denials, tamper and typed expectation failures preserving registry
 contents, live drift rejection, explicit refresh, and raw source byte preservation.

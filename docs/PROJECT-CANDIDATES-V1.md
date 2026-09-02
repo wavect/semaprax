@@ -276,7 +276,7 @@ uses the image reader's existing `SPX-G219` host rejection boundary.
 
 ## Evidence and remaining programme
 
-Tests in [project_candidates_v1.rs](../tests/project_candidates_v1.rs) and the
+Tests in [project_candidate/candidates.rs](../tests/project_candidate/candidates.rs) and the
 intent module cover append migration, stable-ID body calls, canonical source
 round-trips, branching, sequential changes, stale/tampered replay, real type
 rejection, and no incidental writes. They are authored, unrun at the user's

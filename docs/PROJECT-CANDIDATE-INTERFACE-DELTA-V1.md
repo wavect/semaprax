@@ -135,7 +135,7 @@ separate exact and provenance-normalized projection digests.
 capacity overflow, and `SPX-G312` rejects exact replay mismatch. Existing stale
 candidate, source, conformance, and Project diagnostics propagate unchanged.
 
-`tests/project_candidate_interface_delta_v1.rs` authors addition with complete
+`tests/project_candidate/interface_delta.rs` authors addition with complete
 member tables, independent modules with identical display names, exact source
 provenance, changed bound-function facts with unchanged sibling retention,
 imported-helper edits affecting a binding whose own source is unchanged,

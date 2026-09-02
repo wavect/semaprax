@@ -66,7 +66,7 @@ and rechecks before swapping all retained state, retaining historical complete
 candidates and clearing drafts/attempts exactly as the ordinary v5 route does.
 Startup-only Git host attachment and approval guards remain unchanged.
 
-`tests/image_workspace_frontend_cache_v1.rs` authors cold identity/discovery
+`tests/image_protocol/workspace_frontend_cache_v1.rs` authors cold identity/discovery
 equivalence, zero-parser warm refresh, leaf/provider invalidation, preview and
 failed-refresh rollback, full semantic rejection, stale-session recovery, and
 physical hardlink rejection despite exact cached source bytes. Existing cache,

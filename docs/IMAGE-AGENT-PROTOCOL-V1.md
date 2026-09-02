@@ -106,7 +106,7 @@ untrusted responses are independently verified.
 
 ## Authored evidence
 
-`tests/image_transport_v1.rs` covers catalog consistency, generated helper
+`tests/image_protocol/transport_v1.rs` covers catalog consistency, generated helper
 method lists, compact workspace handles, semantic and facet queries, authority
 and path rejection, stale image rejection, strict codec reuse, notification
 silence, bounded deterministic framing, Unix absorbing drift, and CLI arity.

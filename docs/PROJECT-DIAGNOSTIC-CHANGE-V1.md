@@ -98,14 +98,14 @@ attempt capacity, constructor, compiler, and candidate stale/replay diagnostics
 remain unchanged. No separate G269 condition is introduced in this tranche.
 
 The new regressions in
-[`tests/project_candidate_diagnostics_v1.rs`](../tests/project_candidate_diagnostics_v1.rs)
+[`tests/project_candidate/diagnostics.rs`](../tests/project_candidate/diagnostics.rs)
 cover real repair history, exact replay/recovery, equivalent ordinary source
 revision with distinct candidate history, literal/target/extra-field tampering,
 recursive and successful-attempt rejection, predecessor binding, explicit rebase
 conflict, and unchanged original files. They are authored and unrun at the user's
 request. No compiler check, interpreter, target executable, or local gate was run.
 
-[Field-borrow repair cases](../tests/project_candidate_field_borrow_repair_v1.rs)
+[Field-borrow repair cases](../tests/project_candidate/field_borrow_repair.rs)
 add actual `SPX-T266` rejection, nested and branch-local transformations,
 remaining ownership rejection, exact descriptors and history-bound replay.
 These additions are likewise authored and unrun.

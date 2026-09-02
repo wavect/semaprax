@@ -131,7 +131,7 @@ digests retain their existing owning definitions.
 `SPX-G333` exact replay mismatch. Existing source, candidate, profile, target and
 carrier diagnostics can propagate unchanged.
 
-`tests/project_candidate_artifact_delta_v1.rs` owns library evidence;
+`tests/project_candidate/artifact_delta.rs` owns library evidence;
 `tests/image_transport_v5/artifact_delta.rs` covers build gating, discovery and
 chunking. Tests are authored and unrun. No compiler/test/application executable
 or long local quality gate was run for this batch; no completion row is promoted.

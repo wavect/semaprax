@@ -100,7 +100,7 @@ and page reads join that immutable detached subset: each worker recomputes the
 same candidate-bound artifact, mutates no registry, and returns bytes in request
 order. This scheduling does not make a truncated impact artifact complete.
 
-`tests/image_parallel_reads_v1.rs` authors sequential-byte equality across
+`tests/image_protocol/parallel_reads_v1.rs` authors sequential-byte equality across
 worker counts, request-order preservation, operation exclusion, invalid input,
 silent notifications, startup approval preservation, and absorbing drift.
 Module regressions force worker overlap and check that a worker panic still

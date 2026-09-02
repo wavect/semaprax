@@ -107,7 +107,7 @@ TypeScript, Python and Rust clients and MCP use the same method/schema selection
 These shapes do not replace ordinary fill validation.
 
 `tests/project_hole_fill_suggestions_v1.rs` and
-`tests/image_hole_fill_suggestions_v5.rs` author replay, parent retention, source
+`tests/image_v5/hole_fill_suggestions.rs` author replay, parent retention, source
 preservation, bounds, stale selection, ownership and transport boundaries.
 They have not been executed. Runtime contracts, actual client execution,
 representative tasks and measured improvements remain outstanding; no

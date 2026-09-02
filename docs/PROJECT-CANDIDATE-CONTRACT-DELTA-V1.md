@@ -134,7 +134,7 @@ candidate, source and compiler projection diagnostics can propagate unchanged.
 The unchanged shared callable collector can also propagate its existing
 Interface Delta inventory/capacity diagnostics.
 
-`tests/project_candidate_contract_delta_v1.rs` owns focused library regression
+`tests/project_candidate/contract_delta.rs` owns focused library regression
 evidence. `tests/image_transport_v5/contract_delta.rs` covers host gating,
 exact chunk reassembly, stale inputs and physical source drift; the discovery
 module also checks generated method helpers.

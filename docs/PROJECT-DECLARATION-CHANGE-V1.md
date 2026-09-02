@@ -285,7 +285,7 @@ digests retain the existing candidate diagnostics.
 `append_function` helper used by compiler-derived extraction. Parent candidate
 dispatch and invariant/identity checks live in `candidate/mod.rs`; semantic
 composition lives in `candidate/rebase.rs`. Authored regressions in
-`tests/project_candidate_declaration_v1.rs` cover canonical replay without
+`tests/project_candidate/declaration.rs` cover canonical replay without
 source writes, creation followed by rename/body change and merge, a `main`
 placement anchor with existing imports, ID/name collisions, unauthorized
 effects, invalid ownership modes, result scope, raw-source fields, malformed
@@ -295,12 +295,12 @@ These regressions have not been run.
 `candidate/aggregate_nominal.rs` owns nominal selector authentication and
 template discovery; `declaration.rs` owns requested-mode preflight and the
 post-build checked signature gate. Copy and owning modes remain distinct.
-`tests/project_candidate_nominal_declarations_v1.rs` adds authored, unrun cases
+`tests/project_candidate/nominal_declarations.rs` adds authored, unrun cases
 for unused generic instances, return-only records/variants, monomorphic aliases,
 Option/Result, malformed selectors, non-Copy signatures, recovery and no writes.
-`tests/project_candidate_rebase_v1.rs` adds type-only dependency conflicts.
+`tests/project_candidate/rebase.rs` adds type-only dependency conflicts.
 
-`tests/project_candidate_owned_declarations_v1.rs` adds authored, unrun
+`tests/project_candidate/owned_declarations.rs` adds authored, unrun
 composition of data-type creation and local owning helpers, String forwarding,
 checked ownership/cleanup evidence, exact replay, mode rejection and unchanged
 import/source-profile limits. These are not physical execution or allocation
@@ -308,14 +308,14 @@ conformance results.
 
 `candidate/type_declaration.rs` owns record/variant construction, exact planned
 identity inventories and independent source reconstruction.
-`tests/project_candidate_type_declarations_v1.rs` adds authored, unrun type
+`tests/project_candidate/type_declarations.rs` adds authored, unrun type
 creation, downstream use, identity rejection, bounds and recovery cases. Rebase
 regressions cover creation followed by record evolution and nominal use, plus
 nested identity collisions against independently admitted candidates.
 The former scalar-only field exclusions have explicit positive replay cases
 for `Bytes`, `i32` and existing nominal records; borrowed and self-reference
 inputs retain negative coverage. Additional data-field and ownership cases in
-`tests/project_candidate_data_type_declarations_v1.rs` are authored, unrun.
+`tests/project_candidate/data_type_declarations.rs` are authored, unrun.
 
 Creating generic types, classes, resources, interfaces,
 protocols, methods, generic functions, modules, public exports, new imports,

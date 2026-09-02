@@ -96,7 +96,7 @@ its normal source-authentication/recheck boundary.
 
 ## Evidence and remaining work
 
-[Authored integration evidence](../tests/image_facets_v1.rs) covers cross-root
+[Authored integration evidence](../tests/image_protocol/facets_v1.rs) covers cross-root
 determinism, unchanged Image v1 bytes, real contract expressions, local and
 cross-file callers across body/contract regions, paginated completeness,
 reference rejection across revisions/targets/facets/page sizes, and owned-byte

@@ -10,15 +10,15 @@ use semaprax::wasm::internal_strings::{emit_module, InternalStringModule, Intern
 use serde_json::{json, Value};
 use sha2::{Digest as _, Sha256};
 
-#[path = "interpreter_internal_strings_v1/support.rs"]
+#[path = "../interpreter_internal_strings_v1/support.rs"]
 mod support;
 use support::Fixture;
 
-#[path = "wasm_internal_strings_v1/literal_bounds.rs"]
+#[path = "../wasm_internal_strings_v1/literal_bounds.rs"]
 mod literal_bounds;
 
-const BASE: &str = include_str!("interpreter_internal_strings_v1/source.spx");
-const EXTRA: &str = include_str!("wasm_internal_strings_v1/source.spx");
+const BASE: &str = include_str!("../interpreter_internal_strings_v1/source.spx");
+const EXTRA: &str = include_str!("../wasm_internal_strings_v1/source.spx");
 const CASES: &[(&str, &str)] = &[
     ("case.content", "ok|42"),
     ("case.requires", "semaprax.contract.v1|1"),
@@ -123,7 +123,7 @@ fn compiler_settlement_matches_native_and_interpreter_and_reuses_every_failure_s
     fixture.write("cases.json", serde_json::to_vec(CASES).unwrap());
 
     let generated = semaprax::codegen::emit_c(&ast).unwrap();
-    let mut probe = format!("{}\n{}\n{generated}\n#undef malloc\n#undef free\nint main(void) {{\nREQUIRE(fixture_binary_stdout());\nstruct spx_status_entry entries[32]; struct spx_context context={{0}}; REQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,NULL));\n", include_str!("support/native_fixture_stdio.c"), include_str!("native_owned_utf8_settlement_v1/allocations.c"));
+    let mut probe = format!("{}\n{}\n{generated}\n#undef malloc\n#undef free\nint main(void) {{\nREQUIRE(fixture_binary_stdout());\nstruct spx_status_entry entries[32]; struct spx_context context={{0}}; REQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,NULL));\n", include_str!("../support/native_fixture_stdio.c"), include_str!("../native_owned_utf8_settlement_v1/allocations.c"));
     for (id, _) in CASES {
         let symbol = id
             .bytes()
@@ -153,7 +153,7 @@ fn compiler_settlement_matches_native_and_interpreter_and_reuses_every_failure_s
         node(
             &mut fixture,
             "raw-probe.mjs",
-            include_str!("wasm_internal_strings_v1/raw.mjs")
+            include_str!("../wasm_internal_strings_v1/raw.mjs")
         ),
         expected
     );
@@ -161,7 +161,7 @@ fn compiler_settlement_matches_native_and_interpreter_and_reuses_every_failure_s
         node(
             &mut fixture,
             "host-probe.mjs",
-            include_str!("wasm_internal_strings_v1/host.mjs")
+            include_str!("../wasm_internal_strings_v1/host.mjs")
         ),
         expected
     );
@@ -240,7 +240,7 @@ fn quota_refusals_are_profile_outcomes_and_allow_settled_reuse() {
         node(
             &mut fixture,
             "quota-probe.mjs",
-            include_str!("wasm_internal_strings_v1/quotas.mjs")
+            include_str!("../wasm_internal_strings_v1/quotas.mjs")
         ),
         "quotas settled\n"
     );

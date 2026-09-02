@@ -95,7 +95,7 @@ validated HIR. They do not prove runtime liveness, contract truth, test
 coverage, target admission, external/dynamic callers, compatibility, source
 freshness outside the host boundary, or authority to edit, execute or publish.
 
-Authored, unrun evidence in `tests/image_candidate_function_facets_v5.rs`
+Authored, unrun evidence in `tests/image_v5/candidate_function_facets.rs`
 covers changed and newly added functions, all nine facets and exact item order,
 candidate/base/sibling/target reference isolation, cursor-option binding,
 unavailable and non-function targets, selected schemas and generated clients,

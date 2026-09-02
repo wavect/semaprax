@@ -76,7 +76,7 @@ inventory capacity rejects with `SPX-G226`. Type/purity/ownership failures use
 the ordinary compiler diagnostic. Exact candidate and Project digest checks
 continue to reject stale changes before transformation.
 
-Authored, unrun cases in `tests/project_candidates_v1.rs` cover ordered
+Authored, unrun cases in `tests/project_candidate/candidates.rs` cover ordered
 preservation of an existing precondition, additive postconditions using
 `result`, exact replay, no writes, invalid phase/scope, and non-boolean
 rejection. These cases have not been executed; no completion gate is promoted.

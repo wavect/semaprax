@@ -7,7 +7,7 @@ use semaprax::{diagnostic::quote_json, graph, hir, parse, verify, wasm};
 use sha2::{Digest, Sha256};
 use wasmparser::{ExternalKind, Parser, Payload, TypeRef, ValType};
 
-const CALCULATOR: &str = include_str!("../examples/calculator.spx");
+const CALCULATOR: &str = include_str!("../../examples/calculator.spx");
 const EXPORT_IDS: &[&str] = &[
     "calculator.add",
     "calculator.divide",

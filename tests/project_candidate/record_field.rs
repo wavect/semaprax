@@ -11,7 +11,7 @@ use semaprax::project::{
 use serde_json::{json, Value};
 
 #[allow(dead_code)]
-#[path = "support/project_product.rs"]
+#[path = "../support/project_product.rs"]
 mod support;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);

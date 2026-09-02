@@ -64,7 +64,7 @@ Existing host source authentication surrounds queries; v5 does not change the
 method sets of v1–v4. The distinction between build and artifact-materialization
 authority remains explicit.
 
-`tests/image_target_artifacts_v1.rs` authors membership, actual carrier binding,
+`tests/image_protocol/target_artifacts_v1.rs` authors membership, actual carrier binding,
 export/source provenance, exact replay/mutation, capacity and no-write checks.
 No tests, compiler gates or generated artifacts were executed during this work.
 

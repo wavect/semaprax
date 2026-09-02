@@ -75,7 +75,7 @@ an immutable detached subject. Generated TypeScript, Python and Rust clients
 cover the closed request and response. MCP exposes the selected method as
 `workspace__retained-subjects` without adding authority.
 
-Authored, unrun evidence in `tests/image_retained_subjects_v5.rs` covers an
+Authored, unrun evidence in `tests/image_v5/retained_subjects.rs` covers an
 empty selected registry; candidate open/apply, draft and rejected-attempt
 retention; deterministic order and fixed caps; registry-local association and
 orphan flags; explicit discard; refresh clearing and candidate survival;

@@ -371,19 +371,19 @@ rebase regressions are authored but intentionally unrun. Executed canonical
 round-trip, graph, target and runtime evidence remains required before a
 completion claim.
 
-[Generic constructor regressions](../tests/project_candidate_generic_aggregate_expressions_v1.rs)
+[Generic constructor regressions](../tests/project_candidate/generic_aggregate_expressions.rs)
 cover ordered arguments, module-local bindings, rejected generic imports, phantom nominal identity, named
 generic variants, all four prelude cases, typed hole recovery, malformed inputs
-and capacity rejection. [Rebase regressions](../tests/project_candidate_rebase_v1.rs)
+and capacity rejection. [Rebase regressions](../tests/project_candidate/rebase.rs)
 include a checked generic field-type change while the nominal instance and
 function identities remain unchanged. These files are authored evidence only.
 
-[Match regressions](../tests/project_candidate_match_expressions_v1.rs) are
+[Match regressions](../tests/project_candidate/match_expressions.rs) are
 authored and unrun. They cover stable-ID selection, typed staging, lexical
 bindings, discovery, recovery and rejection. The rebase regressions also cover
 case/payload identity changes with an unchanged variant owner and signature.
 
-[Record update regressions](../tests/project_candidate_record_update_v1.rs)
+[Record update regressions](../tests/project_candidate/record_update.rs)
 are authored and unrun. They exercise typed staging, replacement subsets and
 order, generic/local/imported owners, discovery, holes, recovery and rejection.
 The rebase fixture also changes an untouched field identity to ensure a

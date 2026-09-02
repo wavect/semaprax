@@ -142,7 +142,7 @@ Nested replay diagnostics propagate. Host lifecycle/policy rejection remains
 transport-frame and held-source failures retain their existing diagnostics.
 
 Authored cases in
-[library evidence](../tests/project_candidate_draft_archive_v1.rs) and
+[library evidence](../tests/project_candidate/draft_archive.rs) and
 [transport evidence](../tests/image_transport_v5/draft_archive.rs) cover missing
 original source, partial fills, context regeneration, ready and unresolved
 drafts, altered content, host startup rules, current-base RPC recovery and

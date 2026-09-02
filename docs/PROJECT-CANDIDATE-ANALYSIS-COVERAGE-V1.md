@@ -123,7 +123,7 @@ conformance and new host authority. A report is descriptive evidence bound to
 one immutable candidate, not permission to fetch missing evidence.
 
 Authored, unrun library regressions in
-`tests/project_candidate_analysis_coverage_v1.rs` compare the complete wrapper
+`tests/project_candidate/analysis_coverage.rs` compare the complete wrapper
 with an independently derived candidate image, observe a changed generated-
 named source and introduced function, preserve all eight blind-spot statuses,
 keep non-native imports partial and provider-like functions separate, preserve

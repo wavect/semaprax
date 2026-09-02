@@ -135,7 +135,7 @@ proof that every caller accepts an arbitrary expression.
 
 Authored evidence is in `tests/project_signature_argument_expressions_v1.rs`
 and the computed-signature cases in
-`tests/project_candidate_lexical_binding_rebase_v1.rs`. They remain unrun.
+`tests/project_candidate/lexical_binding_rebase.rs`. They remain unrun.
 Nominal parameter coverage is authored in
 `tests/project_signature_nominal_arguments_v1.rs` and
 `tests/project_signature_nominal_rebase_v1.rs`, including distinct caller type

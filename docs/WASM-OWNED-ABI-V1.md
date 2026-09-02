@@ -134,7 +134,7 @@ result reinterpretation cannot enter the ownership transaction.
 
 ## Evidence and nonclaims
 
-`tests/wasm_owned.rs` executes real generated core Wasm under Node and proves:
+`tests/wasm/owned.rs` executes real generated core Wasm under Node and proves:
 
 - deterministic bytes and manifest mappings;
 - exact export/argument/result metadata rejection and private host imports;

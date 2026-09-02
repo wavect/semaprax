@@ -115,7 +115,7 @@ ranks no repair or intent, persists no index, treats bounded/truncated inventory
 as incomplete, and grants no source, execution or publication authority.
 
 Authored, unrun library regressions in
-`tests/project_candidate_impact_navigation_v1.rs` compare every paged row with
+`tests/project_candidate/impact_navigation.rs` compare every paged row with
 the independently recomputed candidate artifact, preserve compiler order and
 exact metadata, retain truncation/frontier evidence, bind all handles and
 cursors to candidate/query/view/page options, isolate sibling histories, reject

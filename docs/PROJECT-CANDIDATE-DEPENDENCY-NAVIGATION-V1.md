@@ -96,7 +96,7 @@ or make the candidate current. Sibling histories remain isolated even when
 their canonical base and target stable IDs are equal.
 
 Authored library evidence in
-`tests/project_candidate_dependency_navigation_v1.rs` covers changed and
+`tests/project_candidate/dependency_navigation.rs` covers changed and
 introduced declarations, exact candidate/base/Project bindings, all four paged
 views, foreign and stale selectors/references/options, source immutability and
 history isolation. The cases were not executed while authoring this tranche.

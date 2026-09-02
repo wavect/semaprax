@@ -164,7 +164,7 @@ Git changes.
 
 ## Authored evidence and remaining scope
 
-`tests/project_candidate_record_field_v1.rs` contains authored, unrun cases for
+`tests/project_candidate/record_field.rs` contains authored, unrun cases for
 cross-module aliases, constructor ordering, contract constructors, nested exact
 patterns, unchanged updates, lazy failure placement, exact replay, recovery, and tampering,
 stale requests, global ID/name collisions, default/type rejection, boolean

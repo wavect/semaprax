@@ -89,7 +89,7 @@ is not a proportional-work or total-memory guarantee. Crossing a limit returns
 `SPX-G228` without partial JSON. Existing exact image/handle/cursor rejection
 remains unchanged, including facet-bound and page-size-bound cursor checks.
 
-[Focused authored regressions](../tests/image_hir_relationships_v1.rs) cover
+[Focused authored regressions](../tests/image_protocol/hir_relationships_v1.rs) cover
 contract/body regions, nested stores and shared ValueIds, field identities,
 explicit owned call/result consumption, page concatenation, source provenance,
 facet-handle mismatch, and unchanged unsafe admission. These tests have not

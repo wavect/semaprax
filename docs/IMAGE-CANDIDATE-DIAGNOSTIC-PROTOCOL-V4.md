@@ -132,7 +132,7 @@ Delta reports contain bounded structural semantic differences and static test
 relevance, not executed coverage, runtime behavior, a compatibility guarantee,
 or approval. Runtime test capability remains separately selected and visible.
 
-[Focused authored tests](../tests/image_diagnostic_transport_v4.rs) cover legacy
+[Focused authored tests](../tests/image_protocol/diagnostic_transport_v4.rs) cover legacy
 profile rejection, diagnostics without tests, host-only fixed optional policies,
 exact attempt chunks, retained-base discard, typed repair, semantic-delta
 chunks, registry capacity, source immutability, and absorbing drift. Tests were

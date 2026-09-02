@@ -79,8 +79,8 @@ Schemas describe this closed recursive shape and discovery includes `let` in
 constructor lists. Schema validation cannot prove lexical scope or ownership.
 Existing protocol method sets and authority selections are unchanged.
 
-Authored evidence is in `tests/project_candidate_lexical_binding_v1.rs` and
-`tests/project_candidate_lexical_binding_rebase_v1.rs`, plus constructor/schema
+Authored evidence is in `tests/project_candidate/lexical_binding.rs` and
+`tests/project_candidate/lexical_binding_rebase.rs`, plus constructor/schema
 module cases. They cover scope, evaluation structure, ownership rejection,
 hole filling, source replay, callee renames and changed-signature conflicts.
 All remain unrun. General imperative constructors, liveness-guided synthesis,

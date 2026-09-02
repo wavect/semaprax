@@ -93,8 +93,8 @@ unchanged.
 
 ## Evidence
 
-[Candidate regressions](../tests/project_candidate_scalar_literal_constructors_v1.rs)
-and [protocol regressions](../tests/image_literal_constructors_v5.rs) are
+[Candidate regressions](../tests/project_candidate/scalar_literal_constructors.rs)
+and [protocol regressions](../tests/image_v5/literal_constructors.rs) are
 authored but unrun. They cover exact Unicode and IEEE boundaries, signed-float
 lowering, canonical source and Graph/HIR replay, expression and hole
 composition, both signature-evolution forms, malformed input, recovery and the

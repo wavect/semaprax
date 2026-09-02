@@ -148,8 +148,8 @@ Graph schemas, earlier protocol profiles and target admission are unchanged.
 
 ## Evidence
 
-Library [regressions](../tests/image_function_instances_v1.rs) and transport
-[regressions](../tests/image_function_instances_v5.rs) are authored but unrun. They cover actual
+Library [regressions](../tests/image_protocol/function_instances_v1.rs) and transport
+[regressions](../tests/image_v5/function_instances.rs) are authored but unrun. They cover actual
 retained scalar instances, unused templates, exact-instance selection and
 callers, page reconstruction, reference rejection, old-image preservation and
 unchanged generic-import and generic-to-generic-call admission. No generic source is executed by this work.

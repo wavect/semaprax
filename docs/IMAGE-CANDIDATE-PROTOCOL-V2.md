@@ -131,7 +131,7 @@ source. Required external gates remain reported as unrun. Comparison remains
 descriptive; callers must explicitly select the separate merge/rebase methods
 for their bounded reconciliation behavior.
 
-`tests/image_candidate_transport_v2.rs` contains authored coverage for profile
+`tests/image_protocol/candidate_transport_v2.rs` contains authored coverage for profile
 separation, catalog/client consistency, immutable siblings, canonical report
 chunks, replay validation, invalid-intent atomicity, stale handles, hole
 completion boundaries, candidate/draft capacity, retained draft lifetime after

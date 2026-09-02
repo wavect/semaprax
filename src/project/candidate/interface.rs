@@ -328,6 +328,21 @@ pub(super) fn rebase_fingerprint(
         return Ok(None);
     }
 
+    let TypeDeclarationKind::Record { fields } = &receiver.kind else {
+        return Ok(None);
+    };
+    let receiver_fields = fields
+        .iter()
+        .map(|field| {
+            json!({
+                "id":field.stable_id,
+                "explicit_id":field.explicit_id,
+                "name":field.name,
+                "type":field.ty.to_string()
+            })
+        })
+        .collect::<Vec<_>>();
+
     let mut methods = protocol.methods.iter().collect::<Vec<_>>();
     methods.sort_by(|left, right| left.stable_id.cmp(&right.stable_id));
     let mut method_facts = Vec::with_capacity(methods.len());
@@ -352,8 +367,9 @@ pub(super) fn rebase_fingerprint(
         method_facts.push(json!({
             "id":method.stable_id,
             "explicit_id":method.explicit_id,
+            "name":method.name,
             "parameters":method.params.iter().map(|parameter| json!({
-                "mode":parameter.mode.text(),"type":parameter.ty.to_string()
+                "name":parameter.name,"mode":parameter.mode.text(),"type":parameter.ty.to_string()
             })).collect::<Vec<_>>(),
             "return_type":method.return_type.to_string()
         }));
@@ -380,6 +396,7 @@ pub(super) fn rebase_fingerprint(
             "name":receiver.name,
             "type_parameter_count":receiver.type_parameters.len(),
             "kind":"record",
+            "fields":receiver_fields,
             "path":program.path,
             "module":program.module
         },

@@ -1492,7 +1492,8 @@ a supported language, CLI, ABI, or runtime surface.
 | Area | Primary owners |
 | --- | --- |
 | Source projection | `src/ast.rs`, `src/lexer.rs`, `src/parser.rs`, `src/format.rs` |
-| Verification and HIR | `src/verify.rs`, `src/source_verify.rs`, `src/hir.rs`, `src/hir/` |
+| Verification | `src/verify.rs`, `src/source_verify.rs`, `src/source_verify/` — `declaration/` owns the per-pass declaration checks, `iterative/` the frame machine, `oracle/` the test-only recursive cross-check, and `loans.rs`/`place.rs` the loan lifecycle |
+| HIR | `src/hir.rs`, `src/hir/` — `ids.rs`, `nodes.rs`, and `expr_nodes.rs` own the data model; `resolve_*.rs` own AST lowering; `validation.rs` owns core validation |
 | Cleanup and layouts | `src/cleanup.rs`, `src/cleanup_plan.rs`, `src/cleanup_plan/`, `src/aggregate_layout.rs`, `src/variant_layout.rs` |
 | Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs` |
 | Single-file transactions | `src/patch.rs`, `src/patch/`, `src/patch_evidence.rs`, `src/repair.rs` |
@@ -1510,3 +1511,43 @@ a supported language, CLI, ABI, or runtime surface.
 
 This table is the single module-level map. Other contributor documents should
 link here instead of copying it.
+
+### Module size
+
+A Rust source file may not exceed 1500 lines unless `tests/module-size-budget.tsv`
+records it, and a recorded file may not grow past the size it was recorded at.
+`tests/module_size.rs` enforces both, and fails on entries that no longer exceed
+the limit so the ledger shrinks with the code.
+
+The constraint is a reading cost, not a style preference. A module that holds
+several thousand lines forces every reader — and every agent context window — to
+pay for the whole file to reach one item, and it makes unrelated edits collide in
+one blast radius. Prefer splitting an oversized module into submodules that each
+own one concern. An inherent `impl` may be split across several `impl` blocks in
+different modules of the same crate, which is usually the cheapest behaviour-
+preserving cut for the largest files here.
+
+Two files exceed the budget because each is a single function whose locals are
+shared across every branch — `src/hir/resolve_expr.rs` and
+`src/economic_agent/agent_execute.rs`. Cutting those requires extract-method with
+new signatures, which is a behavioural change and needs its own review; it is not
+a relocation.
+
+### Source-locked contracts
+
+Some gates assert over the *text* of a module: they read a `.rs` file with
+`include_str!` or a path read, then require substrings, forbid others, count
+occurrences, or slice the region between two markers. `tests/economic_agent_v1.rs`
+scans for ambient authority this way, `tests/native_rust_interop_ci_contract.rs`
+and `crates/semaprax-native-rust-interop-platform-sys/src/tests.rs` bind physical
+authority boundaries, and `implementation/tests/ledger_capacity.rs` pins layout
+constants.
+
+Splitting a module silently narrows every such gate: the text moves to a sibling
+file, the assertions still pass against the smaller root, and the coverage is
+gone with nothing failing. When a split moves audited text, join the root and its
+submodules — with `concat!(include_str!(..), ..)` or a path-reading helper — so
+the contract binds the complete module. Use **original source order**, not the
+alphabetical order `mod` declarations are formatted into, whenever the contract
+slices a region between two markers. `tests/source_locked_contracts.rs` fails
+when a reader binds a module root but not its submodules.

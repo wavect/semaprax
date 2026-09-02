@@ -90,6 +90,14 @@ The [architecture](ARCHITECTURE.md) is the single repository module map.
 `AGENTS.md` contains operating invariants and routes contributors here instead
 of duplicating that map.
 
+Before splitting a module, check whether a gate binds its text. `rg` the module's
+path across `tests/` and `crates/*/src` for `include_str!` and path reads: a hit
+means a [source-locked contract](ARCHITECTURE.md#source-locked-contracts) whose
+join must follow the code, or it will keep passing while covering less.
+`tests/source_locked_contracts.rs` fails when a reader binds a module root but
+not its submodules, and `tests/module_size.rs` fails when a module grows past its
+recorded size.
+
 ## Verification
 
 The standalone `semaprax` registry package has no private-host dependency.

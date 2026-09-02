@@ -85,6 +85,11 @@ Use bounded source tools such as `rg` and `rg --files` for Rust and host-code
 navigation. Read [ADR 0001](docs/decisions/0001-graphify.md) before adding a
 repository-wide graph index.
 
+A Rust source file may not exceed 1500 lines unless `tests/module-size-budget.tsv`
+records it, and a recorded file may not grow past its recorded size. Prefer a new
+submodule over a larger file. [Architecture](docs/ARCHITECTURE.md#module-size)
+owns the rule and the two standing exceptions.
+
 ## Prohibited shortcuts
 
 - Do not edit generated files under `target/` or commit tool caches.
@@ -92,6 +97,13 @@ repository-wide graph index.
 - Do not bypass verification in a backend or report generator.
 - Do not sort, repair, or reinterpret canonical cleanup plans downstream.
 - Do not weaken a test, diagnostic, golden, or hostile-input case merely to
-  make a gate pass.
+  make a gate pass. Relocating audited source weakens one silently: a gate that
+  reads a module's text keeps passing against the smaller root while covering
+  less. Splitting a module means joining its submodules back into every such
+  contract.
+- Do not dedent relocated code. Moving a body out of an inline module removes a
+  level of indentation from the interior lines of multi-line string literals,
+  where leading whitespace is content rather than formatting. Move bodies
+  verbatim and let `cargo fmt` reindent; it never rewrites literal contents.
 - Do not describe private, local, proof-only, simulator, or prior-head evidence
   as public, hosted, physical-device, current-head, or production support.

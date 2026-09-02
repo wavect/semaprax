@@ -1,6 +1,6 @@
 # VS Code saved-source adapter v1
 
-Status: implementation and regression evidence authored, unrun; not published.
+Status: implementation, standalone controller regressions, and a focused real Extension Host evidence runner authored; host runner unrun and extension not published.
 
 Audience: editor users, extension integrators and compiler contributors.
 
@@ -258,3 +258,7 @@ ordinary semantic rejection, busy/delayed requests and no implicit fill or
 preview adoption. These mocks do not exercise the actual VS Code quick pick,
 document-opening lifecycle or compiler source replay; those integration gates
 remain outstanding.
+
+## Focused Extension Host evidence
+
+[VS Code Host Execution Evidence v1](GRAPH-OPERATIONAL-VSCODE-HOST-EXECUTION-EVIDENCE-V1.md) owns a separate, exact-subject local scenario using an actual provisioned VS Code Extension Host and freshly built compiler. Its test-only seam is enabled only by `ExtensionMode.Test` and contributes no production command or authority. Until an archived passing bundle exists, this scenario remains authored and unrun.

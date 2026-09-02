@@ -13,6 +13,16 @@ function activate(context) {
   let holes, selectedHole, holeNavigation;
   let imageProject, candidateHandle, repairs;
   let watchers = [];
+  const testMode = context.extensionMode === vscode.ExtensionMode.Test;
+  const testInputs = [], testPicks = [];
+  const input = options => testMode && testInputs.length ? Promise.resolve(testInputs.shift()) : vscode.window.showInputBox(options);
+  const pick = (items, options) => {
+    if (!testMode || !testPicks.length) return vscode.window.showQuickPick(items, options);
+    const label = testPicks.shift();
+    const selected = items.find(item => (typeof item === 'string' ? item : item.label) === label);
+    if (!selected) throw new Error(`Extension-host test selection is unavailable: ${label}`);
+    return Promise.resolve(selected);
+  };
   const documents = new Map(), scratch = new Set(), changed = new vscode.EventEmitter();
   const holeScratch = new Map();
   const holeReports = new Set();
@@ -201,7 +211,7 @@ function activate(context) {
     },
     async selectTarget() {
       requireCandidate(); const current = epoch;
-      const selection = await vscode.window.showInputBox({ prompt: 'Exact declaration stable ID (not its display name)', ignoreFocusOut: true });
+      const selection = await input({ prompt: 'Exact declaration stable ID (not its display name)', ignoreFocusOut: true });
       ensureEpoch(current);
       if (selection === undefined) return;
       if (!selection || Buffer.byteLength(selection) > 512 || /[\u0000-\u001f\u007f]/.test(selection)) throw new Error('Invalid stable ID');
@@ -217,7 +227,7 @@ function activate(context) {
     async newIntent() {
       requireNoDraft();
       const current = epoch; const value = await catalog(); ensureEpoch(current);
-      const operation = await vscode.window.showQuickPick(value.operations.map(row => ({ label: row.kind, description: 'Compiler-described intention; fill required fields', row })), { title: 'Choose typed intention' });
+      const operation = await pick(value.operations.map(row => ({ label: row.kind, description: 'Compiler-described intention; fill required fields', row })), { title: 'Choose typed intention' });
       ensureEpoch(current);
       if (!operation) return;
       const uri = await virtual(JSON.stringify(operation.row, null, 2), 'constructor.json', 'json', current); ensureEpoch(current);
@@ -298,7 +308,7 @@ function activate(context) {
       let report;
       try { report = await fetchReview((method, params) => invoke(method, params), image, candidate); }
       catch (error) { if (!error.semantic && !error.discardOnly && client) client.fail(error); throw error; }
-      const file = await vscode.window.showQuickPick(report.files.map(row => ({ label: row.path, row })), { title: 'Verified changed source files (read-only)' });
+      const file = await pick(report.files.map(row => ({ label: row.path, row })), { title: 'Verified changed source files (read-only)' });
       if (!file) return; ensureEpoch(current);
       const left = await virtual(file.row.base_source, 'base.spx', 'plaintext', current), right = await virtual(file.row.candidate_source, 'candidate.spx', 'plaintext', current);
       ensureEpoch(current);
@@ -451,6 +461,21 @@ function activate(context) {
     busy = true;
     try { await command(); } catch (error) { void vscode.window.showErrorMessage(String(error.message || error).slice(0, 4096)); } finally { busy = false; }
   }));
+  if (testMode) return Object.freeze({
+    enqueueInput(value) { testInputs.push(value); },
+    enqueuePick(label) { testPicks.push(label); },
+    async execute(name) {
+      if (!Object.prototype.hasOwnProperty.call(commands, name)) throw new Error(`Unknown SEMAPRAX test command: ${name}`);
+      return commands[name]();
+    },
+    state() {
+      return {
+        running: Boolean(client && !client.closed), stale, image: image || null, candidate: candidate || null,
+        target: target || null, status: status.text, scratch: [...scratch],
+        documents: [...documents].map(([uri, text]) => ({ uri, text }))
+      };
+    }
+  });
 }
 function deactivate() { stopActive(); }
 module.exports = { activate, deactivate };

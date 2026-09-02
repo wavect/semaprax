@@ -1,6 +1,6 @@
 # SEMAPRAX saved-source editor adapter
 
-Experimental, authored and unrun. This zero-build CommonJS extension uses only
+Experimental. A focused real Extension Host runner is authored but unrun; the standalone controller suite remains separate. This zero-build CommonJS extension uses only
 VS Code APIs and Node built-ins. No npm dependencies, bundling, telemetry,
 webviews, language server, automatic process startup, or publication command.
 It is not a packaged or marketplace release, and no editor execution is claimed.
@@ -20,7 +20,7 @@ Workspace and folder overrides are rejected even if supplied manually. A trusted
 local filesystem workspace and saved source/manifest buffers are required.
 The explicit Start command invokes the selected binary directly, without a shell:
 `serve-workspace-mcp <manifest> <host-policy>`. Nothing downloads or builds it.
-The existing host-policy v1–v6 parser remains authoritative. Prefer a policy with
+The existing host-policy v1–v7 parser remains authoritative. Prefer a policy with
 candidate preparation enabled and builds, tests and Git commit disabled. Enable
 diagnostics in the host policy only if you want the optional attempt workflow
 below. The adapter cannot widen policy and its own fixed allowlist excludes
@@ -124,8 +124,9 @@ grammar, stale and asynchronous failures, and no implicit preview adoption. Repa
 use schema-shaped mock responses to cover exact selectors, bound raw diagnostic
 reports, malformed responses and failed handle retirement. They were
 **not run** during implementation. Later explicit verification can use
-`node --test test/*.test.js`; no VS Code or compiler process
-is started by those tests.
+`node --test test/*.test.js`; no VS Code or compiler process is started by those tests.
+The separate `scripts/graph-operational-vscode-host-evidence.py` runner provisions
+an actual Extension Host scenario and must be reported under its exact subject.
 
 Implementation references: [VS Code workspace trust](https://code.visualstudio.com/api/extension-guides/workspace-trust),
 [virtual documents](https://code.visualstudio.com/api/extension-guides/virtual-documents),

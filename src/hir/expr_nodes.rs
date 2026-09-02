@@ -263,7 +263,7 @@ pub enum ResolvedStatement {
         span: Span,
     },
     /// Explicit Mutation v1: `<binding> = <expr>;`. The target reuses the
-    /// original binding's [`ValueId`]; no new value identity is created.
+    /// original binding's `ValueId`; no new value identity is created.
     /// Field Mutation v1: `field` names the one direct scalar field of a
     /// `<binding>.<field>` target; the store replaces that whole field.
     Assign {
